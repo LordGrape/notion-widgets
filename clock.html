@@ -5,33 +5,100 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clock Widget</title>
     <style>
-        /* CSS styles for better performance and animations */
-        body {
-            background-color: #f0f0f0;
-            color: #333;
-            font-family: Arial, sans-serif;
+        *, *::before, *::after { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
         }
-        .clock {
-            font-size: 48px;
+
+        :root {
+            --bg: #ffffff;
+            --text: #37352f;
+            --sub: #787774;
+            --accent: #d3d1cb;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #191919;
+                --text: #ffffffcf;
+                --sub: #ffffff73;
+                --accent: #ffffff1a;
+            }
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .container {
             text-align: center;
-            margin-top: 20%;
+            opacity: 0;
+            animation: fadeIn 1s ease forwards;
+        }
+
+        .time {
+            font-size: clamp(36px, 5vw, 56px);
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            transition: color 0.3s ease;
+        }
+
+        .date {
+            margin-top: 12px;
+            font-size: clamp(12px, 1.6vw, 14px);
+            color: var(--sub);
+            font-weight: 400;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            transition: color 0.3s ease;
+        }
+
+        .divider {
+            width: 32px;
+            height: 2px;
+            background: var(--accent);
+            margin: 16px auto;
+            border-radius: 1px;
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; }
         }
     </style>
 </head>
 <body>
-    <div class="clock" role="status" aria-live="polite">
-        <!-- The clock will be updated with JavaScript -->
-        <span id="time">Loading...</span>
+    <div class="container">
+        <div class="time" id="time" role="status" aria-live="polite" aria-atomic="true">--:--</div>
+        <div class="divider"></div>
+        <div class="date" id="date"></div>
     </div>
+
     <script>
-        const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-        const particles = 100; // Reduced particle count for optimization
+        const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
         function updateTime() {
             const now = new Date();
-            const day = DAYS[now.getDay() === 0 ? 6 : now.getDay() - 1]; // Adjusted for Monday start
-            const formattedTime = now.toUTCString().replace(/ GMT.*$/, ''); // Improved date formatting
-            document.getElementById('time').innerText = `${day}, ${formattedTime}`;
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            
+            const day = DAYS[now.getDay()];
+            const date = now.getDate();
+            const month = MONTHS[now.getMonth()];
+            
+            document.getElementById('time').textContent = `${hours}:${minutes}:${seconds}`;
+            document.getElementById('date').textContent = `${day}, ${month} ${date}`;
         }
 
         setInterval(updateTime, 1000);
