@@ -1,39 +1,136 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Clock</title>
-    <style>
-        .dot {
-            height: 20px;
-            width: 20px;
-            border-radius: 50%;
-            display: inline-block;
-            margin: 2px;
-            background-color: lightgray;
-        }
-        .highlight {
-            background-color: blue;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clock Widget</title>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #ffffff;
+    --text: #37352f;
+    --sub: #787774;
+    --accent: #d3d1cb;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #191919;
+      --text: #ffffffcf;
+      --sub: #ffffff73;
+      --accent: #ffffff1a;
+    }
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .container {
+    text-align: center;
+    padding: 20px 40px;
+    opacity: 0;
+    animation: fadeIn 1s ease forwards;
+  }
+
+  .time {
+    font-size: clamp(36px, 8vw, 64px);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .seconds {
+    font-weight: 300;
+    font-size: clamp(24px, 5vw, 40px);
+    color: var(--sub);
+    vertical-align: baseline;
+  }
+
+  .ampm {
+    font-size: clamp(14px, 2.5vw, 20px);
+    font-weight: 400;
+    color: var(--sub);
+    margin-left: 4px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .date-line {
+    margin-top: 6px;
+    font-size: clamp(11px, 1.8vw, 14px);
+    color: var(--sub);
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .progress-bar {
+    width: 60px;
+    height: 2px;
+    background: var(--accent);
+    margin: 12px auto 0;
+    border-radius: 1px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--sub);
+    border-radius: 1px;
+    transition: width 1s linear;
+  }
+
+  @keyframes fadeIn {
+    to { opacity: 1; }
+  }
+</style>
 </head>
 <body>
-    <h1>Week Representation</h1>
-    <div id="week">
-        <script>
-            const currentDate = new Date('2026-04-03T23:52:11Z');
-            const weekDots = document.getElementById('week');
-            // Representing a week starting with Monday
-            const daysInWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-            const currentDayIndex = currentDate.getUTCDay() === 0 ? 6 : currentDate.getUTCDay() - 1;
-            daysInWeek.forEach((day, index) => {
-                const dot = document.createElement('span');
-                dot.className = 'dot';
-                if (index === currentDayIndex) {
-                    dot.classList.add('highlight');
-                }
-                weekDots.appendChild(dot);
-            });
-        </script>
-    </div>
+<div class="container">
+  <div class="time">
+    <span id="hm"></span><span class="seconds" id="sec"></span><span class="ampm" id="ampm"></span>
+  </div>
+  <div class="date-line" id="date"></div>
+  <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+</div>
+<script>
+const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+function pad(n) { return n < 10 ? '0' + n : '' + n; }
+
+function update() {
+  const now = new Date();
+  let h = now.getHours();
+  const m = now.getMinutes();
+  const s = now.getSeconds();
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+
+  document.getElementById('hm').textContent = h + ':' + pad(m);
+  document.getElementById('sec').textContent = ':' + pad(s);
+  document.getElementById('ampm').textContent = ampm;
+  document.getElementById('date').textContent = DAYS[now.getDay()] + ', ' + MONTHS[now.getMonth()] + ' ' + now.getDate() + ', ' + now.getFullYear();
+
+  // Seconds progress bar
+  document.getElementById('progress').style.width = ((s / 59) * 100) + '%';
+}
+
+setInterval(update, 1000);
+update();
+</script>
 </body>
 </html>
