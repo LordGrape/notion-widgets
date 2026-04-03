@@ -166,7 +166,7 @@ body {
 /* Weekday dots */
 .weekday-dots {
   display: flex; justify-content: center; gap: 14px;
-  margin: 12px 0 4px;
+  margin: 28px 0 8px;
   opacity: 0; animation: fadeIn 1s ease-out 0.55s forwards;
 }
 .weekday-dots .dot {
@@ -244,7 +244,7 @@ body {
 </div>
 <script>
 const NAME = 'Musbah';
-const DAYS = ['S','M','T','W','T','F','S'];
+const DAYS = ['M','T','W','T','F','S','S'];
 let prevDigits = '';
 
 // Build weekday dots
@@ -253,7 +253,7 @@ DAYS.forEach(function(d, i) {
   var dot = document.createElement('div');
   dot.className = 'dot';
   dot.dataset.index = i;
-  const dayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][i];
+  const dayName = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'][i];
   dot.title = dayName;
   dot.setAttribute('aria-label', dayName);
   dot.setAttribute('role', 'img');
@@ -294,7 +294,7 @@ function updateClock() {
   // Weekday dots — highlight today (0 = Sun, 6 = Sat)
   const day = now.getDay();
   dotsEl.querySelectorAll('.dot').forEach(function(dot, idx) {
-    dot.classList.toggle('active', idx === day);
+    dot.classList.toggle('active', idx === (day + 6) % 7);
   });
 
   // Day progress — percentage of the 24h day elapsed (86400 = seconds in a day)
