@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Adaptive clock widget with animated purple particle background, glassmorphism card, and live time display for Notion embeds.">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -58,7 +59,7 @@
 }
 
 body {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', Arial, sans-serif;
   background: var(--bg);
   display: flex;
   align-items: center;
@@ -250,59 +251,62 @@ DAYS.forEach(function(d, i) {
   var dot = document.createElement('div');
   dot.className = 'dot';
   dot.dataset.index = i;
-  dot.title = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][i];
+  const dayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][i];
+  dot.title = dayName;
+  dot.setAttribute('aria-label', dayName);
+  dot.setAttribute('role', 'img');
   dot.textContent = d;
   dotsEl.appendChild(dot);
 });
 
 function updateClock() {
-  var now = new Date();
-  var h = now.getHours();
-  var m = now.getMinutes();
-  var s = now.getSeconds();
+  const now = new Date();
+  const h = now.getHours();
+  const m = now.getMinutes();
+  const s = now.getSeconds();
 
-  // Greeting
-  var greet = 'Good evening';
+  // Greeting — changes based on time of day
+  let greet = 'Good evening';
   if (h < 12) greet = 'Good morning';
   else if (h < 17) greet = 'Good afternoon';
   document.getElementById('greeting').textContent = greet + ', ' + NAME;
 
-  // Time with digit crossfade
-  var hStr = String(h).padStart(2, '0');
-  var mStr = String(m).padStart(2, '0');
-  var digits = hStr + mStr;
-  var timeHTML = '';
-  for (var i = 0; i < 4; i++) {
-    var cls = (prevDigits && digits[i] !== prevDigits[i]) ? ' digit-change' : '';
+  // Time with digit crossfade — each digit slides up when it changes
+  const hStr = String(h).padStart(2, '0');
+  const mStr = String(m).padStart(2, '0');
+  const digits = hStr + mStr;
+  let timeHTML = '';
+  for (let i = 0; i < 4; i++) {
+    const cls = (prevDigits && digits[i] !== prevDigits[i]) ? ' digit-change' : '';
     timeHTML += '<span class="d' + i + cls + '">' + digits[i] + '</span>';
     if (i === 1) timeHTML += '<span class="colon">:</span>';
   }
   document.getElementById('time').innerHTML = timeHTML;
   prevDigits = digits;
 
-  // Seconds arc
-  var arcTotal = 560;
-  var arcOffset = arcTotal - (s / 59) * arcTotal;
+  // Seconds arc — 560 is the total perimeter (stroke-dasharray) of the rounded rect SVG
+  const arcTotal = 560;
+  const arcOffset = arcTotal - (s / 59) * arcTotal;
   document.getElementById('arcHand').style.strokeDashoffset = arcOffset;
 
-  // Weekday dots
-  var day = now.getDay();
+  // Weekday dots — highlight today (0 = Sun, 6 = Sat)
+  const day = now.getDay();
   dotsEl.querySelectorAll('.dot').forEach(function(dot, idx) {
     dot.classList.toggle('active', idx === day);
   });
 
-  // Day progress
-  var dayProgress = ((h * 3600 + m * 60 + s) / 86400) * 100;
+  // Day progress — percentage of the 24h day elapsed (86400 = seconds in a day)
+  const dayProgress = ((h * 3600 + m * 60 + s) / 86400) * 100;
   document.getElementById('dayBar').style.width = dayProgress + '%';
 
-  // Date
+  // Date string
   document.getElementById('date').textContent =
     now.toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
   // Next-hour countdown
-  var minsLeft = 60 - m;
-  var nextH = (h + 1) % 24;
-  var nextHStr = String(nextH).padStart(2, '0') + ':00';
+  const minsLeft = 60 - m;
+  const nextH = (h + 1) % 24;
+  const nextHStr = String(nextH).padStart(2, '0') + ':00';
   document.getElementById('countdown').textContent = minsLeft + 'm : until ' + nextHStr;
 }
 updateClock();
