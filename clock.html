@@ -1,41 +1,39 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clock Widget</title>
+    <title>Clock</title>
     <style>
-        /* CSS styles for better performance and animations */
-        body {
-            background-color: #f0f0f0;
-            color: #333;
-            font-family: Arial, sans-serif;
+        .dot {
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            display: inline-block;
+            margin: 2px;
+            background-color: lightgray;
         }
-        .clock {
-            font-size: 48px;
-            text-align: center;
-            margin-top: 20%;
+        .highlight {
+            background-color: blue;
         }
     </style>
 </head>
 <body>
-    <div class="clock" role="status" aria-live="polite">
-        <!-- The clock will be updated with JavaScript -->
-        <span id="time">Loading...</span>
+    <h1>Week Representation</h1>
+    <div id="week">
+        <script>
+            const currentDate = new Date('2026-04-03T23:52:11Z');
+            const weekDots = document.getElementById('week');
+            // Representing a week starting with Monday
+            const daysInWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            const currentDayIndex = currentDate.getUTCDay() === 0 ? 6 : currentDate.getUTCDay() - 1;
+            daysInWeek.forEach((day, index) => {
+                const dot = document.createElement('span');
+                dot.className = 'dot';
+                if (index === currentDayIndex) {
+                    dot.classList.add('highlight');
+                }
+                weekDots.appendChild(dot);
+            });
+        </script>
     </div>
-    <script>
-        const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-        const particles = 100; // Reduced particle count for optimization
-
-        function updateTime() {
-            const now = new Date();
-            const day = DAYS[now.getDay() === 0 ? 6 : now.getDay() - 1]; // Adjusted for Monday start
-            const formattedTime = now.toUTCString().replace(/ GMT.*$/, ''); // Improved date formatting
-            document.getElementById('time').innerText = `${day}, ${formattedTime}`;
-        }
-
-        setInterval(updateTime, 1000);
-        updateTime();
-    </script>
 </body>
 </html>
