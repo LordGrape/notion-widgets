@@ -10,7 +10,7 @@
 
 :root {
   --bg: #ffffff;
-  --card-bg: rgba(255, 255, 255, 0.82);
+  --card-bg: rgba(255, 255, 255, 0.96);
   --card-border: rgba(138, 92, 246, 0.12);
   --card-shadow: 0 4px 24px rgba(0,0,0,0.06);
   --card-glow: 0 0 20px 2px rgba(138, 92, 246, 0.06);
@@ -40,7 +40,7 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #191919;
-    --card-bg: rgba(25, 25, 35, 0.75);
+    --card-bg: rgba(25, 25, 35, 0.94);
     --card-border: rgba(138, 92, 246, 0.15);
     --card-shadow: 0 8px 40px rgba(0,0,0,0.4);
     --card-glow: 0 0 24px 4px rgba(138, 92, 246, 0.12);
@@ -114,8 +114,6 @@ body {
   padding: 20px 22px 16px;
   border-radius: 18px;
   background: var(--card-bg);
-  backdrop-filter: blur(18px) saturate(1.4);
-  -webkit-backdrop-filter: blur(18px) saturate(1.4);
   border: 1px solid var(--card-border);
   width: 94%;
   max-width: 420px;
@@ -483,11 +481,12 @@ body {
 }
 .week-block {
   position: absolute; left: 3px; right: 3px;
-  border-radius: 7px; padding: 5px 6px;
+  border-radius: 7px; padding: 2px 3px;
   overflow: hidden; cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
   box-shadow: 0 2px 8px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.15);
   z-index: 1;
+  display: flex; align-items: center; justify-content: center;
 }
 .week-block::after {
   content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
@@ -500,9 +499,10 @@ body {
   box-shadow: 0 6px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2);
 }
 .week-block-name {
-  font-size: 9px; font-weight: 700; color: #fff;
-  line-height: 1.15; text-shadow: 0 1px 4px rgba(0,0,0,0.4);
-  letter-spacing: 0.3px;
+  font-size: 8px; font-weight: 700; color: #fff;
+  line-height: 1; text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  letter-spacing: 0.5px;
+  text-align: center;
 }
 .week-block-sub {
   font-size: 6.5px; font-weight: 400;
@@ -857,8 +857,6 @@ function renderWeekView() {
       }
       html += '<div class="week-block" data-day="' + c.day + '" data-idx="' + idx + '" style="top:' + top + '%;height:' + ht + '%;background:' + c.color + '">'
         + '<div class="week-block-name">' + shortNum + '</div>'
-        + (ht > 12 ? '<div class="week-block-sub">' + shortSub + '</div>' : '')
-        + (ht > 16 ? '<div class="week-block-time">' + formatTime(c.start) + ' – ' + formatTime(c.end) + '</div>' : '')
         + '</div>';
     });
     html += '</div></div>';
@@ -907,16 +905,22 @@ function renderWeekView() {
 /* ── 3D Tilt on mouse move ── */
 var card = document.querySelector('.container');
 var mouseX = innerWidth / 2, mouseY = innerHeight / 2;
+var tiltQueued = false;
 document.addEventListener('mousemove', function(e) {
   mouseX = e.clientX; mouseY = e.clientY;
-  var rect = card.getBoundingClientRect();
-  var cx = rect.left + rect.width / 2;
-  var cy = rect.top + rect.height / 2;
-  var dx = (e.clientX - cx) / (rect.width / 2);
-  var dy = (e.clientY - cy) / (rect.height / 2);
-  var tiltX = dy * -4;
-  var tiltY = dx * 4;
-  card.style.transform = 'perspective(800px) rotateX(' + tiltX + 'deg) rotateY(' + tiltY + 'deg)';
+  if (tiltQueued) return;
+  tiltQueued = true;
+  requestAnimationFrame(function() {
+    tiltQueued = false;
+    var rect = card.getBoundingClientRect();
+    var cx = rect.left + rect.width / 2;
+    var cy = rect.top + rect.height / 2;
+    var dx = (e.clientX - cx) / (rect.width / 2);
+    var dy = (e.clientY - cy) / (rect.height / 2);
+    var tiltX = dy * -4;
+    var tiltY = dx * 4;
+    card.style.transform = 'perspective(800px) rotateX(' + tiltX + 'deg) rotateY(' + tiltY + 'deg)';
+  });
 });
 document.addEventListener('mouseleave', function() {
   card.style.transform = 'perspective(800px) rotateX(0) rotateY(0)';
@@ -935,14 +939,14 @@ function resize() { W = canvas.width = window.innerWidth; H = canvas.height = wi
 resize();
 window.addEventListener('resize', resize);
 
-var orbs = Array.from({ length: 3 }, function() {
+var orbs = Array.from({ length: 2 }, function() {
   return {
     x: Math.random() * innerWidth, y: Math.random() * innerHeight,
     r: 60 + Math.random() * 100, dx: (Math.random() - 0.5) * 0.2, dy: (Math.random() - 0.5) * 0.2,
     hue: 260 + Math.random() * 30, alpha: ORB_ALPHA + Math.random() * 0.01
   };
 });
-var particles = Array.from({ length: isDark ? 30 : 18 }, function() {
+var particles = Array.from({ length: isDark ? 12 : 8 }, function() {
   return {
     x: Math.random() * innerWidth, y: Math.random() * innerHeight,
     r: 0.8 + Math.random() * 1.5, speed: 0.1 + Math.random() * 0.25,
@@ -974,10 +978,20 @@ function drawParticles(time) {
     ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
   }
 }
+var animRunning = true;
+var lastFrame = 0;
 function animate(time) {
-  ctx.clearRect(0, 0, W, H); drawOrbs(); drawParticles(time); requestAnimationFrame(animate);
+  if (!animRunning) return;
+  if (time - lastFrame < 32) { requestAnimationFrame(animate); return; }
+  lastFrame = time;
+  ctx.clearRect(0, 0, W, H); drawOrbs(); drawParticles(time);
+  requestAnimationFrame(animate);
 }
 requestAnimationFrame(animate);
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden) { animRunning = false; }
+  else { animRunning = true; requestAnimationFrame(animate); }
+});
 </script>
 </body>
 </html>
