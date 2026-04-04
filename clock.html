@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Adaptive clock widget with animated purple particle background, glassmorphism card, and live time display for Notion embeds.">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -11,7 +10,7 @@
 /* ── Base (light mode) ── */
 :root {
   --bg: #ffffff;
-  --card-bg: rgba(255, 255, 255, 0.82);
+  --card-bg: rgba(255, 255, 255, 0.96);
   --card-border: rgba(138, 92, 246, 0.12);
   --card-shadow: 0 4px 24px rgba(0,0,0,0.06);
   --card-glow: 0 0 20px 2px rgba(138, 92, 246, 0.06);
@@ -36,7 +35,7 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #191919;
-    --card-bg: rgba(25, 25, 35, 0.75);
+    --card-bg: rgba(25, 25, 35, 0.94);
     --card-border: rgba(138, 92, 246, 0.15);
     --card-shadow: 0 8px 40px rgba(0,0,0,0.4);
     --card-glow: 0 0 24px 4px rgba(138, 92, 246, 0.12);
@@ -59,7 +58,7 @@
 }
 
 body {
-  font-family: 'Inter', Arial, sans-serif;
+  font-family: 'Inter', sans-serif;
   background: var(--bg);
   display: flex;
   align-items: center;
@@ -107,8 +106,6 @@ body {
   padding: 44px 48px 28px;
   border-radius: 22px;
   background: var(--card-bg);
-  backdrop-filter: blur(18px) saturate(1.4);
-  -webkit-backdrop-filter: blur(18px) saturate(1.4);
   border: 1px solid var(--card-border);
   animation: fadeIn 0.8s ease-out, breathe 8s cubic-bezier(0.4,0,0.2,1) infinite;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -157,8 +154,6 @@ body {
 .colon {
   animation: blink 2s step-end infinite;
   -webkit-text-fill-color: var(--dot-active);
-  -webkit-background-clip: initial;
-  background-clip: initial;
   background: none;
 }
 .digit-change { display: inline-block; animation: digitUp 0.35s ease-out; }
@@ -166,7 +161,7 @@ body {
 /* Weekday dots */
 .weekday-dots {
   display: flex; justify-content: center; gap: 14px;
-  margin: 28px 0 8px;
+  margin: 12px 0 4px;
   opacity: 0; animation: fadeIn 1s ease-out 0.55s forwards;
 }
 .weekday-dots .dot {
@@ -244,7 +239,7 @@ body {
 </div>
 <script>
 const NAME = 'Musbah';
-const DAYS = ['M','T','W','T','F','S','S'];
+const DAYS = ['S','M','T','W','T','F','S'];
 let prevDigits = '';
 
 // Build weekday dots
@@ -253,62 +248,59 @@ DAYS.forEach(function(d, i) {
   var dot = document.createElement('div');
   dot.className = 'dot';
   dot.dataset.index = i;
-  const dayName = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'][i];
-  dot.title = dayName;
-  dot.setAttribute('aria-label', dayName);
-  dot.setAttribute('role', 'img');
+  dot.title = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][i];
   dot.textContent = d;
   dotsEl.appendChild(dot);
 });
 
 function updateClock() {
-  const now = new Date();
-  const h = now.getHours();
-  const m = now.getMinutes();
-  const s = now.getSeconds();
+  var now = new Date();
+  var h = now.getHours();
+  var m = now.getMinutes();
+  var s = now.getSeconds();
 
-  // Greeting — changes based on time of day
-  let greet = 'Good evening';
+  // Greeting
+  var greet = 'Good evening';
   if (h < 12) greet = 'Good morning';
   else if (h < 17) greet = 'Good afternoon';
   document.getElementById('greeting').textContent = greet + ', ' + NAME;
 
-  // Time with digit crossfade — each digit slides up when it changes
-  const hStr = String(h).padStart(2, '0');
-  const mStr = String(m).padStart(2, '0');
-  const digits = hStr + mStr;
-  let timeHTML = '';
-  for (let i = 0; i < 4; i++) {
-    const cls = (prevDigits && digits[i] !== prevDigits[i]) ? ' digit-change' : '';
+  // Time with digit crossfade
+  var hStr = String(h).padStart(2, '0');
+  var mStr = String(m).padStart(2, '0');
+  var digits = hStr + mStr;
+  var timeHTML = '';
+  for (var i = 0; i < 4; i++) {
+    var cls = (prevDigits && digits[i] !== prevDigits[i]) ? ' digit-change' : '';
     timeHTML += '<span class="d' + i + cls + '">' + digits[i] + '</span>';
     if (i === 1) timeHTML += '<span class="colon">:</span>';
   }
   document.getElementById('time').innerHTML = timeHTML;
   prevDigits = digits;
 
-  // Seconds arc — 560 is the total perimeter (stroke-dasharray) of the rounded rect SVG
-  const arcTotal = 560;
-  const arcOffset = arcTotal - (s / 59) * arcTotal;
+  // Seconds arc
+  var arcTotal = 560;
+  var arcOffset = arcTotal - (s / 59) * arcTotal;
   document.getElementById('arcHand').style.strokeDashoffset = arcOffset;
 
-  // Weekday dots — highlight today (0 = Sun, 6 = Sat)
-  const day = now.getDay();
+  // Weekday dots
+  var day = now.getDay();
   dotsEl.querySelectorAll('.dot').forEach(function(dot, idx) {
-    dot.classList.toggle('active', idx === (day + 6) % 7);
+    dot.classList.toggle('active', idx === day);
   });
 
-  // Day progress — percentage of the 24h day elapsed (86400 = seconds in a day)
-  const dayProgress = ((h * 3600 + m * 60 + s) / 86400) * 100;
+  // Day progress
+  var dayProgress = ((h * 3600 + m * 60 + s) / 86400) * 100;
   document.getElementById('dayBar').style.width = dayProgress + '%';
 
-  // Date string
+  // Date
   document.getElementById('date').textContent =
     now.toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
   // Next-hour countdown
-  const minsLeft = 60 - m;
-  const nextH = (h + 1) % 24;
-  const nextHStr = String(nextH).padStart(2, '0') + ':00';
+  var minsLeft = 60 - m;
+  var nextH = (h + 1) % 24;
+  var nextHStr = String(nextH).padStart(2, '0') + ':00';
   document.getElementById('countdown').textContent = minsLeft + 'm : until ' + nextHStr;
 }
 updateClock();
@@ -327,12 +319,12 @@ function resize() { W = canvas.width = window.innerWidth; H = canvas.height = wi
 resize();
 window.addEventListener('resize', resize);
 
-const orbs = Array.from({ length: 5 }, () => ({
+const orbs = Array.from({ length: 3 }, () => ({
   x: Math.random() * innerWidth, y: Math.random() * innerHeight,
   r: 80 + Math.random() * 140, dx: (Math.random() - 0.5) * 0.3, dy: (Math.random() - 0.5) * 0.3,
   hue: 260 + Math.random() * 30, alpha: ORB_ALPHA + Math.random() * 0.02
 }));
-const particles = Array.from({ length: isDark ? 60 : 35 }, () => ({
+const particles = Array.from({ length: isDark ? 25 : 15 }, () => ({
   x: Math.random() * innerWidth, y: Math.random() * innerHeight,
   r: 1 + Math.random() * 2, speed: 0.15 + Math.random() * 0.35,
   alpha: P_ALPHA_BASE * (0.4 + Math.random() * 0.6), flicker: Math.random() * Math.PI * 2
@@ -356,10 +348,20 @@ function drawParticles(time) {
     ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
   }
 }
+var animRunning = true;
+var lastFrame = 0;
 function animate(time) {
-  ctx.clearRect(0, 0, W, H); drawOrbs(); drawParticles(time); requestAnimationFrame(animate);
+  if (!animRunning) return;
+  if (time - lastFrame < 32) { requestAnimationFrame(animate); return; }
+  lastFrame = time;
+  ctx.clearRect(0, 0, W, H); drawOrbs(); drawParticles(time);
+  requestAnimationFrame(animate);
 }
 requestAnimationFrame(animate);
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden) { animRunning = false; }
+  else { animRunning = true; requestAnimationFrame(animate); }
+});
 </script>
 </body>
 </html>
