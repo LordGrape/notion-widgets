@@ -471,22 +471,63 @@ body {
   min-height: 260px;
 }
 .week-block {
-  position: absolute; left: 2px; right: 2px;
-  border-radius: 4px; padding: 3px 4px;
-  overflow: hidden; transition: all 0.3s;
+  position: absolute; left: 3px; right: 3px;
+  border-radius: 6px; padding: 4px 5px;
+  overflow: hidden; cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
 }
-.week-block:hover { opacity: 0.85; transform: scale(1.03); z-index: 2; }
+.week-block::after {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.18) 0%, transparent 50%);
+  border-radius: 6px; pointer-events: none;
+}
+.week-block:hover { transform: scale(1.06) translateY(-1px); z-index: 3; box-shadow: 0 4px 16px rgba(0,0,0,0.25); }
 .week-block-name {
-  font-size: 7px; font-weight: 600; color: #fff;
-  line-height: 1.2; text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  font-size: 8.5px; font-weight: 700; color: #fff;
+  line-height: 1.1; text-shadow: 0 1px 3px rgba(0,0,0,0.35);
+  letter-spacing: 0.5px;
 }
 .week-block-time {
-  font-size: 6px; font-weight: 300;
-  color: rgba(255,255,255,0.8); margin-top: 1px;
+  font-size: 6px; font-weight: 400;
+  color: rgba(255,255,255,0.85); margin-top: 2px;
+  letter-spacing: 0.2px;
 }
-.week-block-room {
-  font-size: 6px; font-weight: 300;
-  color: rgba(255,255,255,0.7);
+.week-grid-line {
+  position: absolute; left: 0; right: 0; height: 1px;
+  background: var(--block-border); pointer-events: none; opacity: 0.5;
+}
+/* Week detail overlay */
+.week-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.12); z-index: 10;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.25s ease;
+}
+.week-overlay.show { opacity: 1; pointer-events: auto; }
+.week-detail-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(20px) saturate(1.5);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  border: 1px solid var(--card-border);
+  border-radius: 14px; padding: 16px 20px;
+  max-width: 240px; width: 88%;
+  transform: scale(0.92) translateY(8px);
+  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+}
+.week-overlay.show .week-detail-card { transform: scale(1) translateY(0); }
+.week-detail-accent { width: 100%; height: 3px; border-radius: 2px; margin-bottom: 10px; }
+.week-detail-name { font-size: 11px; font-weight: 600; color: var(--text-primary); line-height: 1.3; margin-bottom: 2px; }
+.week-detail-sub { font-size: 8px; font-weight: 300; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+.week-detail-row { display: flex; gap: 6px; align-items: center; margin-bottom: 4px; }
+.week-detail-icon { font-size: 9px; width: 14px; text-align: center; flex-shrink: 0; }
+.week-detail-text { font-size: 9px; font-weight: 300; color: var(--text-secondary); letter-spacing: 0.3px; }
+.week-detail-divider { height: 1px; background: var(--block-border); margin: 6px 0; }
+.week-detail-dur {
+  display: inline-block; margin-top: 6px; padding: 2px 8px;
+  border-radius: 6px; font-size: 7px; font-weight: 600;
+  letter-spacing: 0.5px; color: #fff;
 }
 </style>
 </head>
@@ -720,6 +761,9 @@ toggleBtns.forEach(function(btn) {
 function renderWeekView() {
   var el = document.getElementById('weekView');
   var GS = 600, GE = 1140, SPAN = GE - GS;
+  /* Remove old overlay */
+  var oldOv = document.querySelector('.week-overlay');
+  if (oldOv) oldOv.remove();
   var html = '<div class="week-grid"><div class="week-times">';
   for (var h = 10; h <= 18; h++) {
     var lbl = h > 12 ? (h - 12) + ' PM' : (h === 12 ? '12 PM' : h + ' AM');
@@ -729,16 +773,57 @@ function renderWeekView() {
   var dayLabels = ['MON','TUE','WED','THU','FRI'];
   for (var d = 1; d <= 5; d++) {
     html += '<div class="week-col"><div class="week-col-header' + (d === today ? ' today-col' : '') + '">' + dayLabels[d - 1] + '</div><div class="week-col-body">';
-    schedule.filter(function(c) { return c.day === d; }).forEach(function(c) {
+    /* Hourly grid lines */
+    for (var gl = 10; gl <= 18; gl++) {
+      var glTop = ((gl * 60 - GS) / SPAN) * 100;
+      html += '<div class="week-grid-line" style="top:' + glTop + '%"></div>';
+    }
+    var dayClasses = schedule.filter(function(c) { return c.day === d; });
+    dayClasses.forEach(function(c, idx) {
       var sm = timeToMinutes(c.start), em = timeToMinutes(c.end);
       var top = ((sm - GS) / SPAN) * 100, ht = ((em - sm) / SPAN) * 100;
-      var short = c.name.split(':')[0];
-      html += '<div class="week-block" style="top:' + top + '%;height:' + ht + '%;background:' + c.color + '"><div class="week-block-name">' + short + '</div><div class="week-block-time">' + formatTime(c.start) + ' – ' + formatTime(c.end) + '</div><div class="week-block-room">' + c.room + '</div></div>';
+      /* Short label: just the 4-digit course number */
+      var numMatch = c.name.match(/\d{4}/);
+      var shortName = numMatch ? numMatch[0] : c.name.split(':')[0];
+      html += '<div class="week-block" data-day="' + c.day + '" data-idx="' + idx + '" style="top:' + top + '%;height:' + ht + '%;background:' + c.color + '"><div class="week-block-name">' + shortName + '</div><div class="week-block-time">' + formatTime(c.start) + '</div></div>';
     });
     html += '</div></div>';
   }
   html += '</div>';
   el.innerHTML = html;
+  /* Detail overlay */
+  var overlay = document.createElement('div');
+  overlay.className = 'week-overlay';
+  overlay.innerHTML = '<div class="week-detail-card" id="weekDetailCard"></div>';
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) overlay.classList.remove('show');
+  });
+  /* Click handlers on blocks */
+  el.querySelectorAll('.week-block').forEach(function(block) {
+    block.addEventListener('click', function() {
+      var day = parseInt(this.dataset.day);
+      var idx = parseInt(this.dataset.idx);
+      var classes = schedule.filter(function(c) { return c.day === day; });
+      var c = classes[idx];
+      if (!c) return;
+      var sm = timeToMinutes(c.start), em = timeToMinutes(c.end);
+      var dur = em - sm;
+      var dH = Math.floor(dur / 60), dM = dur % 60;
+      var durStr = dH > 0 ? dH + 'h' + (dM > 0 ? ' ' + dM + 'm' : '') : dM + 'm';
+      var dayName = DAY_NAMES[day];
+      var card = document.getElementById('weekDetailCard');
+      card.innerHTML = '<div class="week-detail-accent" style="background:' + c.color + '"></div>'
+        + '<div class="week-detail-name">' + c.name + '</div>'
+        + '<div class="week-detail-sub">' + dayName + '</div>'
+        + '<div class="week-detail-divider"></div>'
+        + '<div class="week-detail-row"><span class="week-detail-icon">\uD83D\uDD50</span><span class="week-detail-text">' + formatTime(c.start) + ' – ' + formatTime(c.end) + '</span></div>'
+        + '<div class="week-detail-row"><span class="week-detail-icon">\uD83D\uDCCD</span><span class="week-detail-text">' + c.room + '</span></div>'
+        + '<div class="week-detail-row"><span class="week-detail-icon">\uD83D\uDC64</span><span class="week-detail-text">' + c.prof + '</span></div>'
+        + '<div class="week-detail-dur" style="background:' + c.color + '">' + durStr + '</div>';
+      overlay.classList.add('show');
+    });
+  });
 }
 
 /* ── 3D Tilt on mouse move ── */
