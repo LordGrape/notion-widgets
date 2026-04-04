@@ -500,23 +500,11 @@ function draw(t) {
   ctx.lineWidth = 0.8; ctx.stroke();
 }
 
-/* ── Blip click popup ── */
+/* ── Popup system ── */
 var blipOv = document.getElementById('blipOv');
 var blipCard = document.getElementById('blipCard');
-cv.style.cursor = 'pointer';
-cv.addEventListener('click', function(e) {
-  var rect = cv.getBoundingClientRect();
-  var mx = (e.clientX - rect.left) * (SZ / rect.width);
-  var my = (e.clientY - rect.top) * (SZ / rect.height);
-  var hit = null, best = 18;
-  blips.forEach(function(b) {
-    var dx = mx - b.x, dy = my - b.y;
-    var d = Math.sqrt(dx * dx + dy * dy);
-    if (d < best) { best = d; hit = b; }
-  });
-  if (!hit) return;
-  var m = items.find(function(i) { return i.n === hit.n; });
-  if (!m) return;
+
+function showPopup(m) {
   var v, u;
   if (m.days === 0) { v = 'TODAY'; u = ''; }
   else if (m.days === 1) { v = '1'; u = 'day'; }
@@ -530,13 +518,55 @@ cv.addEventListener('click', function(e) {
     + '<div class="blip-name">' + m.n + '</div>'
     + '<div class="blip-cat">' + m.cat + '</div>'
     + '<div class="blip-divider"></div>'
-    + '<div class="blip-row"><span class="blip-icon">\uD83D\uDCC5</span><span class="blip-text">' + ds + '</span></div>'
-    + '<div class="blip-row"><span class="blip-icon">\uD83D\uDCE1</span><span class="blip-text">Ring ' + ring + ' · ' + m.days + ' days out</span></div>'
+    + '<div class="blip-row"><span class="blip-icon">&#x1F4C5;</span><span class="blip-text">' + ds + '</span></div>'
+    + '<div class="blip-row"><span class="blip-icon">&#x1F4E1;</span><span class="blip-text">Ring ' + ring + ' &#183; ' + m.days + ' days out</span></div>'
     + '<div class="blip-countdown" style="background:' + m.c + '">' + v + (u ? ' <span class="blip-cd-unit">' + u + '</span>' : '') + '</div>'
     + '<div class="blip-close">tap outside to close</div>';
   blipOv.classList.add('show');
+}
+
+/* Make side-panel event items clickable */
+var evEls = document.querySelectorAll('.ev');
+items.slice(0, 5).forEach(function(m, i) {
+  if (evEls[i]) {
+    evEls[i].style.cursor = 'pointer';
+    evEls[i].addEventListener('click', function() { showPopup(m); });
+  }
 });
+
+/* Radar canvas click + touch */
+cv.style.cursor = 'pointer';
+function getBlipFromEvent(e) {
+  var rect = cv.getBoundingClientRect();
+  var cx = e.clientX, cy = e.clientY;
+  if (e.changedTouches && e.changedTouches.length) {
+    cx = e.changedTouches[0].clientX;
+    cy = e.changedTouches[0].clientY;
+  }
+  var mx = (cx - rect.left) * (SZ / rect.width);
+  var my = (cy - rect.top) * (SZ / rect.height);
+  var hit = null, best = 28;
+  blips.forEach(function(b) {
+    var dx = mx - b.x, dy = my - b.y;
+    var d = Math.sqrt(dx * dx + dy * dy);
+    if (d < best) { best = d; hit = b; }
+  });
+  return hit;
+}
+function handleRadarTap(e) {
+  var hit = getBlipFromEvent(e);
+  if (!hit) return;
+  var m = items.find(function(x) { return x.n === hit.n; });
+  if (m) showPopup(m);
+}
+cv.addEventListener('click', handleRadarTap);
+cv.addEventListener('touchend', function(e) { e.preventDefault(); handleRadarTap(e); });
+
+/* Dismiss popup */
 blipOv.addEventListener('click', function(e) {
+  if (e.target === blipOv) blipOv.classList.remove('show');
+});
+blipOv.addEventListener('touchend', function(e) {
   if (e.target === blipOv) blipOv.classList.remove('show');
 });
 document.addEventListener('keydown', function(e) {
