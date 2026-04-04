@@ -50,7 +50,6 @@ body {
   overflow: hidden;
   user-select: none;
   -webkit-user-select: none;
-  pointer-events: none;
   transition: background 0.3s;
 }
 
@@ -86,6 +85,8 @@ body {
   border: 1px solid var(--card-border);
   max-width: 100%;
   width: 98%;
+  cursor: grab;
+  will-change: transform;
   animation: fadeIn 0.8s ease-out, breathe 8s cubic-bezier(0.4,0,0.2,1) infinite;
 }
 
@@ -227,6 +228,71 @@ setTimeout(function refresh() {
   render();
   setTimeout(refresh, msUntilMidnight());
 }, msUntilMidnight());
+
+/* ── Physics spin ── */
+var card = document.querySelector('.container');
+var phAngle = 0, phVel = 0, phDrag = false, phLastA = 0, phLastT = 0;
+var phFriction = 0.96, phSettling = false, phReady = false;
+setTimeout(function() { phReady = true; }, 900);
+
+function phGetAngle(e) {
+  var rect = card.getBoundingClientRect();
+  var cx = rect.left + rect.width / 2;
+  var cy = rect.top + rect.height / 2;
+  var ex = e.touches ? e.touches[0].clientX : e.clientX;
+  var ey = e.touches ? e.touches[0].clientY : e.clientY;
+  return Math.atan2(ey - cy, ex - cx);
+}
+
+card.addEventListener('mousedown', phStart);
+card.addEventListener('touchstart', phStart, { passive: true });
+function phStart(e) {
+  if (!phReady) return;
+  phDrag = true; phSettling = false; phVel = 0;
+  card.style.cursor = 'grabbing';
+  card.style.animation = 'breathe 8s cubic-bezier(0.4,0,0.2,1) infinite';
+  phLastA = phGetAngle(e);
+  phLastT = performance.now();
+}
+
+document.addEventListener('mousemove', phMove);
+document.addEventListener('touchmove', phMove, { passive: true });
+function phMove(e) {
+  if (!phDrag) return;
+  var a = phGetAngle(e);
+  var da = a - phLastA;
+  if (da > Math.PI) da -= Math.PI * 2;
+  if (da < -Math.PI) da += Math.PI * 2;
+  phAngle += da;
+  var now = performance.now();
+  var dt = now - phLastT;
+  if (dt > 0) phVel = da / dt * 16;
+  phLastA = a; phLastT = now;
+  card.style.transform = 'rotate(' + (phAngle * 180 / Math.PI) + 'deg)';
+}
+
+document.addEventListener('mouseup', phEnd);
+document.addEventListener('touchend', phEnd);
+function phEnd() {
+  if (!phDrag) return;
+  phDrag = false;
+  card.style.cursor = 'grab';
+  requestAnimationFrame(phCoast);
+}
+
+function phCoast() {
+  if (phDrag) return;
+  phVel *= phFriction;
+  phVel -= phAngle * 0.05;
+  phAngle += phVel;
+  if (Math.abs(phVel) < 0.0003 && Math.abs(phAngle) < 0.001) {
+    phAngle = 0; phVel = 0;
+    card.style.transform = '';
+    return;
+  }
+  card.style.transform = 'rotate(' + (phAngle * 180 / Math.PI) + 'deg)';
+  requestAnimationFrame(phCoast);
+}
 
 /* ── Background: orbs + particles (lighter for banner) ── */
 var isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
