@@ -229,29 +229,41 @@ setTimeout(function refresh() {
   setTimeout(refresh, msUntilMidnight());
 }, msUntilMidnight());
 
-/* ── Physics spin ── */
+/* ── 3D Physics spin (Y-axis flip) ── */
 var card = document.querySelector('.container');
-var phAngle = 0, phVel = 0, phDrag = false, phLastA = 0, phLastT = 0;
-var phFriction = 0.96, phSettling = false, phReady = false;
+var phAngle = 0, phVel = 0, phDrag = false, phLastX = 0, phLastT = 0;
+var phFriction = 0.97, phSpring = 0.04, phAnimating = false;
+var phReady = false, phDragged = false;
 setTimeout(function() { phReady = true; }, 900);
 
-function phGetAngle(e) {
-  var rect = card.getBoundingClientRect();
-  var cx = rect.left + rect.width / 2;
-  var cy = rect.top + rect.height / 2;
-  var ex = e.touches ? e.touches[0].clientX : e.clientX;
-  var ey = e.touches ? e.touches[0].clientY : e.clientY;
-  return Math.atan2(ey - cy, ex - cx);
+function phStartAnim() {
+  if (phAnimating) return;
+  phAnimating = true;
+  requestAnimationFrame(phCoast);
+}
+function phApply() {
+  card.style.transform = 'perspective(800px) rotateY(' + (phAngle * 180 / Math.PI) + 'deg)';
 }
 
+/* Click-to-flick — works inside Notion embeds where drag is blocked */
+card.addEventListener('click', function(e) {
+  if (!phReady || phDragged) { phDragged = false; return; }
+  var rect = card.getBoundingClientRect();
+  var cx = rect.left + rect.width / 2;
+  var dir = (e.clientX > cx) ? 1 : -1;
+  phVel += dir * 0.25;
+  phStartAnim();
+});
+
+/* Drag to spin (fullscreen / direct browser) */
 card.addEventListener('mousedown', phStart);
 card.addEventListener('touchstart', phStart, { passive: true });
 function phStart(e) {
   if (!phReady) return;
-  phDrag = true; phSettling = false; phVel = 0;
+  phDrag = true; phDragged = false; phVel = 0;
   card.style.cursor = 'grabbing';
   card.style.animation = 'breathe 8s cubic-bezier(0.4,0,0.2,1) infinite';
-  phLastA = phGetAngle(e);
+  phLastX = e.touches ? e.touches[0].clientX : e.clientX;
   phLastT = performance.now();
 }
 
@@ -259,16 +271,15 @@ document.addEventListener('mousemove', phMove);
 document.addEventListener('touchmove', phMove, { passive: true });
 function phMove(e) {
   if (!phDrag) return;
-  var a = phGetAngle(e);
-  var da = a - phLastA;
-  if (da > Math.PI) da -= Math.PI * 2;
-  if (da < -Math.PI) da += Math.PI * 2;
-  phAngle += da;
+  phDragged = true;
+  var ex = e.touches ? e.touches[0].clientX : e.clientX;
+  var dx = ex - phLastX;
+  phAngle += dx * 0.01;
   var now = performance.now();
   var dt = now - phLastT;
-  if (dt > 0) phVel = da / dt * 16;
-  phLastA = a; phLastT = now;
-  card.style.transform = 'rotate(' + (phAngle * 180 / Math.PI) + 'deg)';
+  if (dt > 0) phVel = (dx * 0.01) / dt * 16;
+  phLastX = ex; phLastT = now;
+  phApply();
 }
 
 document.addEventListener('mouseup', phEnd);
@@ -277,20 +288,20 @@ function phEnd() {
   if (!phDrag) return;
   phDrag = false;
   card.style.cursor = 'grab';
-  requestAnimationFrame(phCoast);
+  phStartAnim();
 }
 
 function phCoast() {
-  if (phDrag) return;
+  if (phDrag) { phAnimating = false; return; }
   phVel *= phFriction;
-  phVel -= phAngle * 0.05;
+  phVel -= phAngle * phSpring;
   phAngle += phVel;
-  if (Math.abs(phVel) < 0.0003 && Math.abs(phAngle) < 0.001) {
-    phAngle = 0; phVel = 0;
+  if (Math.abs(phVel) < 0.0002 && Math.abs(phAngle) < 0.001) {
+    phAngle = 0; phVel = 0; phAnimating = false;
     card.style.transform = '';
     return;
   }
-  card.style.transform = 'rotate(' + (phAngle * 180 / Math.PI) + 'deg)';
+  phApply();
   requestAnimationFrame(phCoast);
 }
 
