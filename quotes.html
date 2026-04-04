@@ -1,89 +1,351 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daily Quote</title>
-    <style>
-        body {
-            background-color: #f0f0f0;
-            color: #333;
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-        }
-        .container {
-            text-align: center;
-            margin-top: 20%;
-        }
-        .quote {
-            font-size: 32px;
-            font-weight: 500;
-            margin-bottom: 16px;
-            line-height: 1.6;
-        }
-        .attribution {
-            font-size: 12px;
-            color: #666;
-            font-weight: 400;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Quote</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #ffffff;
+  --card-bg: rgba(255, 255, 255, 0.82);
+  --card-border: rgba(138, 92, 246, 0.12);
+  --card-shadow: 0 4px 24px rgba(0,0,0,0.06);
+  --card-glow: 0 0 20px 2px rgba(138, 92, 246, 0.06);
+  --card-hover-shadow: 0 8px 32px rgba(0,0,0,0.1);
+  --label-color: rgba(124, 58, 237, 0.5);
+  --quote-grad: linear-gradient(135deg, #1a1a2e 0%, #7c3aed 40%, #8b5cf6 60%, #1a1a2e 100%);
+  --author-color: rgba(100, 100, 120, 0.5);
+  --book-color: rgba(100, 100, 120, 0.35);
+  --dot-bg: rgba(138, 92, 246, 0.1);
+  --dot-active: #8b5cf6;
+  --dot-active-glow: 0 0 6px rgba(138, 92, 246, 0.4);
+  --bar-bg: rgba(138, 92, 246, 0.08);
+  --bar-fill: linear-gradient(90deg, #8b5cf6, #a78bfa, #c4b5fd);
+  --bar-glow: 0 0 6px rgba(124, 58, 237, 0.2);
+  --orb-alpha: 0.025;
+  --particle-rgb: 124, 58, 237;
+  --particle-alpha: 0.12;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #191919;
+    --card-bg: rgba(25, 25, 35, 0.75);
+    --card-border: rgba(138, 92, 246, 0.15);
+    --card-shadow: 0 8px 40px rgba(0,0,0,0.4);
+    --card-glow: 0 0 24px 4px rgba(138, 92, 246, 0.12);
+    --card-hover-shadow: 0 12px 48px rgba(0,0,0,0.5);
+    --label-color: rgba(167, 139, 250, 0.65);
+    --quote-grad: linear-gradient(135deg, #fff 0%, #c4b5fd 25%, #8b5cf6 50%, #a78bfa 75%, #fff 100%);
+    --author-color: rgba(160, 160, 180, 0.5);
+    --book-color: rgba(160, 160, 180, 0.35);
+    --dot-bg: rgba(138, 92, 246, 0.15);
+    --dot-active: #a78bfa;
+    --dot-active-glow: 0 0 8px rgba(167, 139, 250, 0.5);
+    --bar-bg: rgba(138, 92, 246, 0.1);
+    --bar-fill: linear-gradient(90deg, #7c3aed, #a78bfa, #c4b5fd);
+    --bar-glow: 0 0 8px rgba(124, 58, 237, 0.4);
+    --orb-alpha: 0.045;
+    --particle-rgb: 167, 139, 250;
+    --particle-alpha: 0.3;
+  }
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background 0.3s;
+}
+
+#bg {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes breathe {
+  0%, 100% { box-shadow: var(--card-shadow), 0 0 0 0 transparent; }
+  30%      { box-shadow: var(--card-shadow), var(--card-glow); }
+}
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes quoteIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.container {
+  position: relative; z-index: 1;
+  text-align: center;
+  padding: 40px 48px 32px;
+  border-radius: 22px;
+  background: var(--card-bg);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  border: 1px solid var(--card-border);
+  max-width: 620px;
+  width: 90%;
+  animation: fadeIn 0.8s ease-out, breathe 8s cubic-bezier(0.4,0,0.2,1) infinite;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.container:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--card-hover-shadow), var(--card-glow);
+}
+
+.label {
+  font-size: 11px; font-weight: 300;
+  letter-spacing: 3px; text-transform: uppercase;
+  color: var(--label-color);
+  margin-bottom: 20px;
+  opacity: 0; animation: fadeIn 1s ease-out 0.3s forwards;
+}
+
+.quote {
+  font-size: clamp(18px, 3vw, 26px);
+  font-weight: 500;
+  font-style: italic;
+  line-height: 1.45;
+  letter-spacing: -0.3px;
+  background: var(--quote-grad);
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradientShift 6s ease infinite;
+  transition: opacity 0.5s ease;
+  padding: 0 8px;
+}
+.quote.animate { animation: quoteIn 0.6s ease-out, gradientShift 6s ease infinite; }
+
+.divider-bar {
+  width: 40px; height: 2px;
+  margin: 18px auto;
+  background: var(--bar-fill);
+  border-radius: 2px;
+  box-shadow: var(--bar-glow);
+  opacity: 0; animation: fadeIn 1s ease-out 0.5s forwards;
+}
+
+.author {
+  font-size: clamp(12px, 1.6vw, 14px);
+  font-weight: 400;
+  color: var(--author-color);
+  letter-spacing: 0.5px;
+  transition: opacity 0.5s ease;
+}
+.author.animate { animation: quoteIn 0.6s ease-out 0.1s both; }
+
+.book {
+  font-size: clamp(10px, 1.2vw, 11.5px);
+  font-weight: 300;
+  color: var(--book-color);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-top: 4px;
+  transition: opacity 0.5s ease;
+}
+.book.animate { animation: quoteIn 0.6s ease-out 0.2s both; }
+
+/* Quote navigation dots */
+.nav-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 20px;
+  opacity: 0;
+  animation: fadeIn 1s ease-out 0.6s forwards;
+}
+.nav-dots .dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--dot-bg);
+  transition: all 0.4s ease;
+}
+.nav-dots .dot.active {
+  background: var(--dot-active);
+  box-shadow: var(--dot-active-glow);
+  transform: scale(1.3);
+}
+
+.hint {
+  font-size: 9px;
+  font-weight: 300;
+  color: var(--book-color);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-top: 14px;
+  opacity: 0;
+  animation: fadeIn 1s ease-out 0.7s forwards;
+}
+</style>
 </head>
 <body>
-    <div class="container">
-        <div class="quote" id="quote"></div>
-        <div class="attribution" id="attribution"></div>
-    </div>
+<canvas id="bg"></canvas>
+<div class="container" id="root">
+  <div class="label">Daily Wisdom</div>
+  <div class="quote" id="quote"></div>
+  <div class="divider-bar"></div>
+  <div class="author" id="author"></div>
+  <div class="book" id="book"></div>
+  <div class="nav-dots" id="dots"></div>
+  <div class="hint">Click to cycle</div>
+</div>
+<script>
+const quotes = [
+  { text: "You have power over your mind, not outside events. Realize this, and you will find strength.", author: "Marcus Aurelius", book: "Meditations" },
+  { text: "The impediment to action advances action. What stands in the way becomes the way.", author: "Marcus Aurelius", book: "Meditations" },
+  { text: "Waste no more time arguing about what a good man should be. Be one.", author: "Marcus Aurelius", book: "Meditations" },
+  { text: "It is not what happens to you, but how you react to it that matters.", author: "Epictetus", book: "Discourses" },
+  { text: "No man is free who is not master of himself.", author: "Epictetus", book: "Discourses" },
+  { text: "First say to yourself what you would be; and then do what you have to do.", author: "Epictetus", book: "Discourses" },
+  { text: "We suffer more often in imagination than in reality.", author: "Seneca", book: "Letters from a Stoic" },
+  { text: "Luck is what happens when preparation meets opportunity.", author: "Seneca", book: "Letters from a Stoic" },
+  { text: "It is not that we have a short time to live, but that we waste a great deal of it.", author: "Seneca", book: "Letters from a Stoic" },
+  { text: "He who has a why to live can bear almost any how.", author: "Friedrich Nietzsche", book: "Twilight of the Idols" },
+  { text: "That which does not kill us makes us stronger.", author: "Friedrich Nietzsche", book: "Twilight of the Idols" },
+  { text: "Any fool can criticize, complain, and condemn. But it takes character and self-control to be understanding and forgiving.", author: "Dale Carnegie", book: "How to Win Friends & Influence People" },
+  { text: "You can make more friends in two months by becoming interested in other people than in two years by trying to get other people interested in you.", author: "Dale Carnegie", book: "How to Win Friends & Influence People" },
+  { text: "Every action you take is a vote for the type of person you wish to become.", author: "James Clear", book: "Atomic Habits" },
+  { text: "You do not rise to the level of your goals. You fall to the level of your systems.", author: "James Clear", book: "Atomic Habits" },
+  { text: "The highest form of wealth is the ability to wake up every morning and say, I can do whatever I want today.", author: "Morgan Housel", book: "The Psychology of Money" },
+  { text: "Doing well with money has little to do with how smart you are and a lot to do with how you behave.", author: "Morgan Housel", book: "The Psychology of Money" },
+  { text: "There is nothing more difficult to take in hand, more perilous to conduct, or more uncertain in its success, than to take the lead in the introduction of a new order of things.", author: "Niccolò Machiavelli", book: "The Prince" },
+  { text: "The future belongs to those who learn more skills and combine them in creative ways.", author: "Robert Greene", book: "The 48 Laws of Power" },
+  { text: "The key to doing well in school is not to study more. It is to study smarter.", author: "Cal Newport", book: "How to Become a Straight-A Student" },
+  { text: "The real difference between us and chimpanzees is the mythical glue that binds together large numbers of individuals, families, and groups.", author: "Yuval Noah Harari", book: "Sapiens" },
+  { text: "The universe is under no obligation to make sense to you.", author: "Neil deGrasse Tyson", book: "Starry Messenger" },
+  { text: "The task of philosophy is not to explain the world but to help us live well in it.", author: "John Sellars", book: "Lessons in Stoicism" },
+];
 
-    <script>
-        const quotes = [
-            { text: "You have power over your mind, not outside events. Realize this, and you will find strength.", author: "Marcus Aurelius", book: "Meditations" },
-            { text: "The impediment to action advances action. What stands in the way becomes the way.", author: "Marcus Aurelius", book: "Meditations" },
-            { text: "Waste no more time arguing about what a good man should be. Be one.", author: "Marcus Aurelius", book: "Meditations" },
-            { text: "It is not what happens to you, but how you react to it that matters.", author: "Epictetus", book: "Discourses" },
-            { text: "No man is free who is not master of himself.", author: "Epictetus", book: "Discourses" },
-            { text: "First say to yourself what you would be; and then do what you have to do.", author: "Epictetus", book: "Discourses" },
-            { text: "We suffer more often in imagination than in reality.", author: "Seneca", book: "Letters from a Stoic" },
-            { text: "Luck is what happens when preparation meets opportunity.", author: "Seneca", book: "Letters from a Stoic" },
-            { text: "It is not that we have a short time to live, but that we waste a great deal of it.", author: "Seneca", book: "Letters from a Stoic" },
-            { text: "He who has a why to live can bear almost any how.", author: "Friedrich Nietzsche", book: "Twilight of the Idols" },
-            { text: "That which does not kill us makes us stronger.", author: "Friedrich Nietzsche", book: "Twilight of the Idols" },
-            { text: "Any fool can criticize, complain, and condemn. But it takes character and self-control to be understanding and forgiving.", author: "Dale Carnegie", book: "How to Win Friends & Influence People" },
-            { text: "You can make more friends in two months by becoming interested in other people than in two years by trying to get other people interested in you.", author: "Dale Carnegie", book: "How to Win Friends & Influence People" },
-            { text: "Every action you take is a vote for the type of person you wish to become.", author: "James Clear", book: "Atomic Habits" },
-            { text: "You do not rise to the level of your goals. You fall to the level of your systems.", author: "James Clear", book: "Atomic Habits" },
-            { text: "The highest form of wealth is the ability to wake up every morning and say, I can do whatever I want today.", author: "Morgan Housel", book: "The Psychology of Money" },
-            { text: "Doing well with money has little to do with how smart you are and a lot to do with how you behave.", author: "Morgan Housel", book: "The Psychology of Money" },
-            { text: "There is nothing more difficult to take in hand, more perilous to conduct, or more uncertain in its success, than to take the lead in the introduction of a new order of things.", author: "Niccolò Machiavelli", book: "The Prince" },
-            { text: "The future belongs to those who learn more skills and combine them in creative ways.", author: "Robert Greene", book: "The 48 Laws of Power" },
-            { text: "The key to doing well in school is not to study more. It is to study smarter.", author: "Cal Newport", book: "How to Become a Straight-A Student" },
-            { text: "The real difference between us and chimpanzees is the mythical glue that binds together large numbers of individuals, families, and groups.", author: "Yuval Noah Harari", book: "Sapiens" },
-            { text: "The universe is under no obligation to make sense to you.", author: "Neil deGrasse Tyson", book: "Starry Messenger" },
-            { text: "The task of philosophy is not to explain the world but to help us live well in it.", author: "John Sellars", book: "Lessons in Stoicism" },
-        ];
+function getDailyIndex() {
+  var now = new Date();
+  var start = new Date(now.getFullYear(), 0, 0);
+  var diff = now - start;
+  var oneDay = 1000 * 60 * 60 * 24;
+  return Math.floor(diff / oneDay) % quotes.length;
+}
 
-        function getDailyQuote() {
-            const now = new Date();
-            const start = new Date(now.getFullYear(), 0, 0);
-            const diff = now - start;
-            const oneDay = 1000 * 60 * 60 * 24;
-            const dayOfYear = Math.floor(diff / oneDay);
-            return quotes[dayOfYear % quotes.length];
-        }
+var currentIndex = getDailyIndex();
 
-        function render() {
-            const q = getDailyQuote();
-            document.getElementById("quote").textContent = '"' + q.text + '"';
-            document.getElementById("attribution").textContent = q.author + " — " + q.book;
-        }
+// Build nav dots
+var dotsEl = document.getElementById('dots');
+for (var i = 0; i < quotes.length; i++) {
+  var dot = document.createElement('div');
+  dot.className = 'dot';
+  dot.dataset.index = i;
+  dotsEl.appendChild(dot);
+}
 
-        render();
-    </script>
+function render(animate) {
+  var q = quotes[currentIndex];
+  var quoteEl = document.getElementById('quote');
+  var authorEl = document.getElementById('author');
+  var bookEl = document.getElementById('book');
+
+  if (animate) {
+    quoteEl.style.opacity = '0';
+    authorEl.style.opacity = '0';
+    bookEl.style.opacity = '0';
+    setTimeout(function() {
+      quoteEl.textContent = '\u201C' + q.text + '\u201D';
+      authorEl.textContent = q.author;
+      bookEl.textContent = q.book;
+      quoteEl.className = 'quote animate';
+      authorEl.className = 'author animate';
+      bookEl.className = 'book animate';
+    }, 300);
+  } else {
+    quoteEl.textContent = '\u201C' + q.text + '\u201D';
+    authorEl.textContent = q.author;
+    bookEl.textContent = q.book;
+  }
+
+  dotsEl.querySelectorAll('.dot').forEach(function(dot, idx) {
+    dot.classList.toggle('active', idx === currentIndex);
+  });
+}
+
+document.getElementById('root').addEventListener('click', function() {
+  currentIndex = (currentIndex + 1) % quotes.length;
+  render(true);
+});
+
+render(false);
+
+// ── Background: orbs + particles (identical to clock widget) ──
+var isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+var ORB_ALPHA = isDark ? 0.045 : 0.025;
+var P_RGB = isDark ? '167, 139, 250' : '124, 58, 237';
+var P_ALPHA_BASE = isDark ? 0.3 : 0.12;
+
+var canvas = document.getElementById('bg');
+var ctx = canvas.getContext('2d');
+var W, H;
+function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+resize();
+window.addEventListener('resize', resize);
+
+var orbs = Array.from({ length: 5 }, function() {
+  return {
+    x: Math.random() * innerWidth, y: Math.random() * innerHeight,
+    r: 80 + Math.random() * 140, dx: (Math.random() - 0.5) * 0.3, dy: (Math.random() - 0.5) * 0.3,
+    hue: 260 + Math.random() * 30, alpha: ORB_ALPHA + Math.random() * 0.02
+  };
+});
+var particles = Array.from({ length: isDark ? 60 : 35 }, function() {
+  return {
+    x: Math.random() * innerWidth, y: Math.random() * innerHeight,
+    r: 1 + Math.random() * 2, speed: 0.15 + Math.random() * 0.35,
+    alpha: P_ALPHA_BASE * (0.4 + Math.random() * 0.6), flicker: Math.random() * Math.PI * 2
+  };
+});
+
+function drawOrbs() {
+  for (var i = 0; i < orbs.length; i++) {
+    var o = orbs[i];
+    o.x += o.dx; o.y += o.dy;
+    if (o.x < -o.r) o.x = W + o.r; if (o.x > W + o.r) o.x = -o.r;
+    if (o.y < -o.r) o.y = H + o.r; if (o.y > H + o.r) o.y = -o.r;
+    var g = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r);
+    g.addColorStop(0, 'hsla(' + o.hue + ', 70%, 50%, ' + o.alpha + ')');
+    g.addColorStop(1, 'hsla(' + o.hue + ', 70%, 50%, 0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2); ctx.fill();
+  }
+}
+function drawParticles(time) {
+  for (var i = 0; i < particles.length; i++) {
+    var p = particles[i];
+    p.y -= p.speed; if (p.y < -10) { p.y = H + 10; p.x = Math.random() * W; }
+    var a = p.alpha * (0.5 + 0.5 * Math.sin(time * 0.002 + p.flicker));
+    ctx.fillStyle = 'rgba(' + P_RGB + ', ' + a + ')';
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+  }
+}
+function animate(time) {
+  ctx.clearRect(0, 0, W, H); drawOrbs(); drawParticles(time); requestAnimationFrame(animate);
+}
+requestAnimationFrame(animate);
+</script>
 </body>
 </html>
