@@ -774,10 +774,22 @@ setInterval(function() {
 }, 30000);
 
 /* ── View toggle ── */
-var currentView = 'today';
+/* Smart default: week view if no classes today, today view otherwise */
+var hasClassesToday = schedule.some(function(c) { return c.day === today; });
+var currentView = hasClassesToday ? 'today' : 'week';
 var toggleBtns = document.querySelectorAll('.view-btn');
 var todayViewEl = document.getElementById('todayView');
 var weekViewEl = document.getElementById('weekView');
+
+/* Apply smart default on load */
+if (!hasClassesToday) {
+  todayViewEl.style.display = 'none';
+  weekViewEl.style.display = '';
+  document.getElementById('title').textContent = 'Weekly Overview';
+  toggleBtns.forEach(function(b) { b.classList.remove('active'); });
+  document.querySelector('.view-btn[data-view="week"]').classList.add('active');
+  renderWeekView();
+}
 
 toggleBtns.forEach(function(btn) {
   btn.addEventListener('click', function() {
