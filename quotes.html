@@ -14,7 +14,6 @@
   --card-border: rgba(138, 92, 246, 0.12);
   --card-shadow: 0 4px 24px rgba(0,0,0,0.06);
   --card-glow: 0 0 20px 2px rgba(138, 92, 246, 0.06);
-  --card-hover-shadow: 0 8px 32px rgba(0,0,0,0.1);
   --label-color: rgba(124, 58, 237, 0.5);
   --quote-grad: linear-gradient(135deg, #1a1a2e 0%, #7c3aed 40%, #8b5cf6 60%, #1a1a2e 100%);
   --author-color: rgba(100, 100, 120, 0.5);
@@ -22,7 +21,6 @@
   --bar-bg: rgba(138, 92, 246, 0.08);
   --bar-fill: linear-gradient(90deg, #8b5cf6, #a78bfa, #c4b5fd);
   --bar-glow: 0 0 6px rgba(124, 58, 237, 0.2);
-  --arc-track: rgba(138, 92, 246, 0.06);
   --orb-alpha: 0.025;
   --particle-rgb: 124, 58, 237;
   --particle-alpha: 0.12;
@@ -35,7 +33,6 @@
     --card-border: rgba(138, 92, 246, 0.15);
     --card-shadow: 0 8px 40px rgba(0,0,0,0.4);
     --card-glow: 0 0 24px 4px rgba(138, 92, 246, 0.12);
-    --card-hover-shadow: 0 12px 48px rgba(0,0,0,0.5);
     --label-color: rgba(167, 139, 250, 0.65);
     --quote-grad: linear-gradient(135deg, #fff 0%, #c4b5fd 25%, #8b5cf6 50%, #a78bfa 75%, #fff 100%);
     --author-color: rgba(160, 160, 180, 0.5);
@@ -43,7 +40,6 @@
     --bar-bg: rgba(138, 92, 246, 0.1);
     --bar-fill: linear-gradient(90deg, #7c3aed, #a78bfa, #c4b5fd);
     --bar-glow: 0 0 8px rgba(124, 58, 237, 0.4);
-    --arc-track: rgba(138, 92, 246, 0.08);
     --orb-alpha: 0.045;
     --particle-rgb: 167, 139, 250;
     --particle-alpha: 0.3;
@@ -60,6 +56,7 @@ body {
   overflow: hidden;
   user-select: none;
   -webkit-user-select: none;
+  pointer-events: none;
   transition: background 0.3s;
 }
 
@@ -72,7 +69,7 @@ body {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes breathe {
@@ -84,17 +81,13 @@ body {
   50%  { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
-@keyframes quoteIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
 
-/* ── Banner card ── */
+/* ── Thin banner card ── */
 .container {
   position: relative; z-index: 1;
   text-align: center;
-  padding: 20px 48px 16px;
-  border-radius: 18px;
+  padding: 14px 36px 12px;
+  border-radius: 14px;
   background: var(--card-bg);
   backdrop-filter: blur(18px) saturate(1.4);
   -webkit-backdrop-filter: blur(18px) saturate(1.4);
@@ -102,62 +95,38 @@ body {
   max-width: 100%;
   width: 98%;
   animation: fadeIn 0.8s ease-out, breathe 8s cubic-bezier(0.4,0,0.2,1) infinite;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
-.container:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--card-hover-shadow), var(--card-glow);
-}
-
-/* ── SVG arc border (mirrors clock) ── */
-.arc-wrap {
-  position: relative;
-  display: inline-block;
-  width: 100%;
-}
-.arc-svg {
-  position: absolute;
-  top: -10px; left: -12px;
-  width: calc(100% + 24px);
-  height: calc(100% + 20px);
-  pointer-events: none;
-  opacity: 0;
-  animation: fadeIn 1.2s ease-out 0.5s forwards;
-}
-.arc-track { fill: none; stroke: var(--arc-track); stroke-width: 1.5; }
 
 .label {
-  font-size: 10px; font-weight: 300;
+  font-size: 9px; font-weight: 300;
   letter-spacing: 3px; text-transform: uppercase;
   color: var(--label-color);
-  margin-bottom: 10px;
+  margin-bottom: 6px;
   font-variant-numeric: tabular-nums;
   opacity: 0; animation: fadeIn 1s ease-out 0.3s forwards;
 }
 
 .quote {
-  font-size: clamp(16px, 2.4vw, 24px);
+  font-size: clamp(13px, 1.8vw, 18px);
   font-weight: 500;
   font-style: italic;
-  line-height: 1.5;
-  letter-spacing: -0.3px;
+  line-height: 1.4;
+  letter-spacing: -0.2px;
   background: var(--quote-grad);
   background-size: 300% 300%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   animation: gradientShift 6s ease infinite;
-  transition: opacity 0.5s ease;
-  padding: 0 12px;
-  max-width: 800px;
+  padding: 0 8px;
+  max-width: 900px;
   margin: 0 auto;
 }
-.quote.animate { animation: quoteIn 0.6s ease-out, gradientShift 6s ease infinite; }
 
-/* ── Progress bar (replaces dots) ── */
+/* ── Thin progress bar ── */
 .progress-bar {
-  width: 60%; height: 1.5px;
-  margin: 10px auto 0;
+  width: 50%; height: 1px;
+  margin: 8px auto 0;
   background: var(--bar-bg);
   border-radius: 2px;
   overflow: hidden;
@@ -167,7 +136,6 @@ body {
   height: 100%;
   background: var(--bar-fill);
   border-radius: 2px;
-  transition: width 0.5s ease;
   box-shadow: var(--bar-glow);
 }
 
@@ -176,58 +144,37 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  margin-top: 10px;
+  gap: 8px;
+  margin-top: 6px;
   opacity: 0; animation: fadeIn 1s ease-out 0.55s forwards;
 }
 
 .author {
-  font-size: clamp(11px, 1.4vw, 13px);
+  font-size: clamp(9px, 1.2vw, 11px);
   font-weight: 400;
   color: var(--author-color);
   letter-spacing: 0.5px;
-  transition: opacity 0.5s ease;
 }
-.author.animate { animation: quoteIn 0.6s ease-out 0.1s both; }
 
 .separator {
-  font-size: 10px;
+  font-size: 9px;
   color: var(--book-color);
 }
 
 .book {
-  font-size: clamp(9px, 1.1vw, 11px);
+  font-size: clamp(8px, 1vw, 10px);
   font-weight: 300;
   color: var(--book-color);
   letter-spacing: 1.5px;
   text-transform: uppercase;
-  transition: opacity 0.5s ease;
 }
-.book.animate { animation: quoteIn 0.6s ease-out 0.2s both; }
 </style>
 </head>
 <body>
 <canvas id="bg"></canvas>
-<svg style="position:absolute;width:0;height:0">
-  <defs>
-    <linearGradient id="arcGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#7c3aed"/>
-      <stop offset="50%" stop-color="#8b5cf6"/>
-      <stop offset="100%" stop-color="#c4b5fd"/>
-    </linearGradient>
-  </defs>
-</svg>
-<div class="container" id="root">
+<div class="container">
   <div class="label" id="label">Daily Wisdom</div>
-  <div class="arc-wrap">
-    <svg class="arc-svg" viewBox="0 0 400 60" preserveAspectRatio="none">
-      <rect class="arc-track" x="1" y="1" width="398" height="58" rx="14" ry="14"/>
-      <rect id="arcHand" x="1" y="1" width="398" height="58" rx="14" ry="14"
-            fill="none" stroke="url(#arcGrad)" stroke-width="1.5"
-            stroke-linecap="round" stroke-dasharray="900" stroke-dashoffset="900"/>
-    </svg>
-    <div class="quote" id="quote"></div>
-  </div>
+  <div class="quote" id="quote"></div>
   <div class="progress-bar"><div class="progress-fill" id="progressBar"></div></div>
   <div class="attribution">
     <div class="author" id="author"></div>
@@ -262,6 +209,7 @@ var quotes = [
   { text: "The task of philosophy is not to explain the world but to help us live well in it.", author: "John Sellars", book: "Lessons in Stoicism" },
 ];
 
+/* Deterministic daily index based on day-of-year */
 function getDailyIndex() {
   var now = new Date();
   var start = new Date(now.getFullYear(), 0, 0);
@@ -272,51 +220,18 @@ function getDailyIndex() {
 
 var currentIndex = getDailyIndex();
 
-function updateArc() {
-  var arcTotal = 900;
-  var progress = (currentIndex + 1) / quotes.length;
-  var arcOffset = arcTotal - progress * arcTotal;
-  document.getElementById('arcHand').style.strokeDashoffset = arcOffset;
-}
-
-function render(animate) {
+function render() {
   var q = quotes[currentIndex];
-  var quoteEl = document.getElementById('quote');
-  var authorEl = document.getElementById('author');
-  var bookEl = document.getElementById('book');
-  var labelEl = document.getElementById('label');
-
-  var num = String(currentIndex + 1).padStart(2, '0');
-  var total = String(quotes.length).padStart(2, '0');
-  labelEl.textContent = 'Daily Wisdom  \u2014  ' + num + ' / ' + total;
-
+  document.getElementById('quote').textContent = '\u201C' + q.text + '\u201D';
+  document.getElementById('author').textContent = q.author;
+  document.getElementById('book').textContent = q.book;
   document.getElementById('progressBar').style.width =
     ((currentIndex + 1) / quotes.length * 100) + '%';
-
-  updateArc();
-
-  if (animate) {
-    quoteEl.style.opacity = '0';
-    authorEl.style.opacity = '0';
-    bookEl.style.opacity = '0';
-    setTimeout(function() {
-      quoteEl.textContent = '\u201C' + q.text + '\u201D';
-      authorEl.textContent = q.author;
-      bookEl.textContent = q.book;
-      quoteEl.className = 'quote animate';
-      authorEl.className = 'author animate';
-      bookEl.className = 'book animate';
-    }, 300);
-  } else {
-    quoteEl.textContent = '\u201C' + q.text + '\u201D';
-    authorEl.textContent = q.author;
-    bookEl.textContent = q.book;
-  }
 }
 
-render(false);
+render();
 
-// Auto-cycle at midnight
+/* Auto-rotate at midnight */
 function msUntilMidnight() {
   var now = new Date();
   var midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
@@ -324,15 +239,15 @@ function msUntilMidnight() {
 }
 setTimeout(function refresh() {
   currentIndex = getDailyIndex();
-  render(true);
+  render();
   setTimeout(refresh, msUntilMidnight());
 }, msUntilMidnight());
 
-// ── Background: orbs + particles (identical to clock widget) ──
+/* ── Background: orbs + particles (lighter for banner) ── */
 var isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-var ORB_ALPHA = isDark ? 0.045 : 0.025;
+var ORB_ALPHA = isDark ? 0.04 : 0.02;
 var P_RGB = isDark ? '167, 139, 250' : '124, 58, 237';
-var P_ALPHA_BASE = isDark ? 0.3 : 0.12;
+var P_ALPHA_BASE = isDark ? 0.25 : 0.1;
 
 var canvas = document.getElementById('bg');
 var ctx = canvas.getContext('2d');
@@ -341,17 +256,17 @@ function resize() { W = canvas.width = window.innerWidth; H = canvas.height = wi
 resize();
 window.addEventListener('resize', resize);
 
-var orbs = Array.from({ length: 5 }, function() {
+var orbs = Array.from({ length: 3 }, function() {
   return {
     x: Math.random() * innerWidth, y: Math.random() * innerHeight,
-    r: 80 + Math.random() * 140, dx: (Math.random() - 0.5) * 0.3, dy: (Math.random() - 0.5) * 0.3,
-    hue: 260 + Math.random() * 30, alpha: ORB_ALPHA + Math.random() * 0.02
+    r: 60 + Math.random() * 100, dx: (Math.random() - 0.5) * 0.2, dy: (Math.random() - 0.5) * 0.2,
+    hue: 260 + Math.random() * 30, alpha: ORB_ALPHA + Math.random() * 0.01
   };
 });
-var particles = Array.from({ length: isDark ? 60 : 35 }, function() {
+var particles = Array.from({ length: isDark ? 30 : 18 }, function() {
   return {
     x: Math.random() * innerWidth, y: Math.random() * innerHeight,
-    r: 1 + Math.random() * 2, speed: 0.15 + Math.random() * 0.35,
+    r: 0.8 + Math.random() * 1.5, speed: 0.1 + Math.random() * 0.25,
     alpha: P_ALPHA_BASE * (0.4 + Math.random() * 0.6), flicker: Math.random() * Math.PI * 2
   };
 });
