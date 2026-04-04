@@ -415,6 +415,76 @@ body {
   letter-spacing: 1px;
   text-transform: uppercase;
 }
+
+/* View toggle */
+.view-toggle {
+  display: flex; justify-content: center; gap: 4px;
+  margin-bottom: 12px;
+  opacity: 0; animation: fadeIn 0.8s ease-out 0.25s forwards;
+}
+.view-btn {
+  font-family: 'Inter', sans-serif;
+  font-size: 8px; font-weight: 600;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 5px 14px; border-radius: 20px;
+  border: 1px solid var(--block-border);
+  background: transparent; color: var(--text-muted);
+  cursor: pointer; transition: all 0.3s ease;
+}
+.view-btn:hover { border-color: var(--block-active-border); color: var(--text-secondary); }
+.view-btn.active {
+  background: var(--dot-active); border-color: var(--dot-active);
+  color: #fff; box-shadow: var(--dot-active-glow);
+}
+
+/* Week grid */
+.week-view { opacity: 0; animation: fadeIn 0.5s ease-out forwards; }
+.week-grid {
+  display: grid;
+  grid-template-columns: 32px repeat(5, 1fr);
+  gap: 3px;
+}
+.week-times {
+  display: flex; flex-direction: column;
+  justify-content: space-between;
+  padding-top: 24px; padding-bottom: 4px;
+}
+.week-time {
+  font-size: 6.5px; font-weight: 300;
+  color: var(--text-muted); letter-spacing: 0.3px;
+  font-variant-numeric: tabular-nums;
+}
+.week-col { display: flex; flex-direction: column; }
+.week-col-header {
+  text-align: center; font-size: 8px; font-weight: 600;
+  letter-spacing: 1px; color: var(--text-secondary);
+  margin-bottom: 4px; text-transform: uppercase;
+}
+.week-col-header.today-col { color: var(--dot-active); }
+.week-col-body {
+  position: relative; flex: 1;
+  background: var(--block-bg); border-radius: 6px;
+  border: 1px solid var(--block-border);
+  min-height: 260px;
+}
+.week-block {
+  position: absolute; left: 2px; right: 2px;
+  border-radius: 4px; padding: 3px 4px;
+  overflow: hidden; transition: all 0.3s;
+}
+.week-block:hover { opacity: 0.85; transform: scale(1.03); z-index: 2; }
+.week-block-name {
+  font-size: 7px; font-weight: 600; color: #fff;
+  line-height: 1.2; text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+.week-block-time {
+  font-size: 6px; font-weight: 300;
+  color: rgba(255,255,255,0.8); margin-top: 1px;
+}
+.week-block-room {
+  font-size: 6px; font-weight: 300;
+  color: rgba(255,255,255,0.7);
+}
 </style>
 </head>
 <body>
@@ -424,11 +494,18 @@ body {
     <div class="label">Schedule</div>
     <div class="title" id="title">Today's Classes</div>
   </div>
+  <div class="view-toggle" id="viewToggle">
+    <button class="view-btn active" data-view="today">Today</button>
+    <button class="view-btn" data-view="week">Week</button>
+  </div>
+  <div id="todayView">
   <div class="day-selector" id="daySelector"></div>
   <div class="schedule" id="schedule"></div>
   <div class="footer">
     <div class="footer-text" id="footer"></div>
   </div>
+  </div>
+  <div class="week-view" id="weekView" style="display:none"></div>
 </div>
 <script>
 /* ══════════════════════════════════════════
@@ -609,6 +686,57 @@ renderSchedule();
 setInterval(function() {
   if (selectedDay === today) renderSchedule();
 }, 30000);
+
+/* ── View toggle ── */
+var currentView = 'today';
+var toggleBtns = document.querySelectorAll('.view-btn');
+var todayViewEl = document.getElementById('todayView');
+var weekViewEl = document.getElementById('weekView');
+
+toggleBtns.forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var view = this.dataset.view;
+    if (view === currentView) return;
+    currentView = view;
+    toggleBtns.forEach(function(b) { b.classList.remove('active'); });
+    this.classList.add('active');
+    if (view === 'today') {
+      todayViewEl.style.display = '';
+      weekViewEl.style.display = 'none';
+      if (selectedDay === today) document.getElementById('title').textContent = "Today's Classes";
+      else document.getElementById('title').textContent = DAY_NAMES[selectedDay];
+    } else {
+      todayViewEl.style.display = 'none';
+      weekViewEl.style.display = '';
+      document.getElementById('title').textContent = 'Weekly Overview';
+      renderWeekView();
+    }
+  });
+});
+
+function renderWeekView() {
+  var el = document.getElementById('weekView');
+  var GS = 600, GE = 1140, SPAN = GE - GS;
+  var html = '<div class="week-grid"><div class="week-times">';
+  for (var h = 10; h <= 18; h++) {
+    var lbl = h > 12 ? (h - 12) + ' PM' : (h === 12 ? '12 PM' : h + ' AM');
+    html += '<div class="week-time">' + lbl + '</div>';
+  }
+  html += '</div>';
+  var dayLabels = ['MON','TUE','WED','THU','FRI'];
+  for (var d = 1; d <= 5; d++) {
+    html += '<div class="week-col"><div class="week-col-header' + (d === today ? ' today-col' : '') + '">' + dayLabels[d - 1] + '</div><div class="week-col-body">';
+    schedule.filter(function(c) { return c.day === d; }).forEach(function(c) {
+      var sm = timeToMinutes(c.start), em = timeToMinutes(c.end);
+      var top = ((sm - GS) / SPAN) * 100, ht = ((em - sm) / SPAN) * 100;
+      var short = c.name.split(':')[0];
+      html += '<div class="week-block" style="top:' + top + '%;height:' + ht + '%;background:' + c.color + '"><div class="week-block-name">' + short + '</div><div class="week-block-time">' + formatTime(c.start) + ' – ' + formatTime(c.end) + '</div><div class="week-block-room">' + c.room + '</div></div>';
+    });
+    html += '</div></div>';
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
 
 /* ── 3D Tilt on mouse move ── */
 var card = document.querySelector('.container');
