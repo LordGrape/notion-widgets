@@ -3,134 +3,363 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Clock Widget</title>
+<meta name="description" content="Adaptive clock widget with animated purple particle background, glassmorphism card, and live time display for Notion embeds.">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
-  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
+/* ── Base (light mode) ── */
+:root {
+  --bg: #ffffff;
+  --card-bg: rgba(255, 255, 255, 0.82);
+  --card-border: rgba(138, 92, 246, 0.12);
+  --card-shadow: 0 4px 24px rgba(0,0,0,0.06);
+  --card-glow: 0 0 20px 2px rgba(138, 92, 246, 0.06);
+  --card-hover-shadow: 0 8px 32px rgba(0,0,0,0.1);
+  --greeting-color: rgba(124, 58, 237, 0.5);
+  --time-grad: linear-gradient(135deg, #1a1a2e 0%, #7c3aed 40%, #8b5cf6 60%, #1a1a2e 100%);
+  --date-color: rgba(100, 100, 120, 0.5);
+  --meta-color: rgba(100, 100, 120, 0.35);
+  --dot-bg: rgba(138, 92, 246, 0.1);
+  --dot-active: #8b5cf6;
+  --dot-active-glow: 0 0 6px rgba(138, 92, 246, 0.4);
+  --bar-bg: rgba(138, 92, 246, 0.08);
+  --bar-fill: linear-gradient(90deg, #8b5cf6, #a78bfa, #c4b5fd);
+  --bar-glow: 0 0 6px rgba(124, 58, 237, 0.2);
+  --arc-track: rgba(138, 92, 246, 0.06);
+  --orb-alpha: 0.025;
+  --particle-rgb: 124, 58, 237;
+  --particle-alpha: 0.12;
+}
+
+/* ── Dark mode ── */
+@media (prefers-color-scheme: dark) {
   :root {
-    --bg: #ffffff;
-    --text: #37352f;
-    --sub: #787774;
-    --accent: #d3d1cb;
+    --bg: #191919;
+    --card-bg: rgba(25, 25, 35, 0.75);
+    --card-border: rgba(138, 92, 246, 0.15);
+    --card-shadow: 0 8px 40px rgba(0,0,0,0.4);
+    --card-glow: 0 0 24px 4px rgba(138, 92, 246, 0.12);
+    --card-hover-shadow: 0 12px 48px rgba(0,0,0,0.5);
+    --greeting-color: rgba(167, 139, 250, 0.65);
+    --time-grad: linear-gradient(135deg, #fff 0%, #c4b5fd 25%, #8b5cf6 50%, #a78bfa 75%, #fff 100%);
+    --date-color: rgba(160, 160, 180, 0.5);
+    --meta-color: rgba(160, 160, 180, 0.35);
+    --dot-bg: rgba(138, 92, 246, 0.15);
+    --dot-active: #a78bfa;
+    --dot-active-glow: 0 0 8px rgba(167, 139, 250, 0.5);
+    --bar-bg: rgba(138, 92, 246, 0.1);
+    --bar-fill: linear-gradient(90deg, #7c3aed, #a78bfa, #c4b5fd);
+    --bar-glow: 0 0 8px rgba(124, 58, 237, 0.4);
+    --arc-track: rgba(138, 92, 246, 0.08);
+    --orb-alpha: 0.045;
+    --particle-rgb: 167, 139, 250;
+    --particle-alpha: 0.3;
   }
+}
 
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #191919;
-      --text: #ffffffcf;
-      --sub: #ffffff73;
-      --accent: #ffffff1a;
-    }
-  }
+body {
+  font-family: 'Inter', Arial, sans-serif;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  overflow: hidden;
+  transition: background 0.3s;
+}
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    overflow: hidden;
-    user-select: none;
-    -webkit-user-select: none;
-  }
+#bg {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
 
-  .container {
-    text-align: center;
-    padding: 20px 40px;
-    opacity: 0;
-    animation: fadeIn 1s ease forwards;
-  }
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes breathe {
+  0%, 100% { box-shadow: var(--card-shadow), 0 0 0 0 transparent; }
+  30%      { box-shadow: var(--card-shadow), var(--card-glow); }
+}
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.2; }
+}
+@keyframes digitUp {
+  from { transform: translateY(8px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
 
-  .time {
-    font-size: clamp(36px, 8vw, 64px);
-    font-weight: 600;
-    letter-spacing: -0.02em;
-    line-height: 1.1;
-    font-variant-numeric: tabular-nums;
-  }
+/* Card */
+.container {
+  position: relative; z-index: 1;
+  text-align: center;
+  padding: 44px 48px 28px;
+  border-radius: 22px;
+  background: var(--card-bg);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  border: 1px solid var(--card-border);
+  animation: fadeIn 0.8s ease-out, breathe 8s cubic-bezier(0.4,0,0.2,1) infinite;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.container:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--card-hover-shadow), var(--card-glow);
+}
 
-  .seconds {
-    font-weight: 300;
-    font-size: clamp(24px, 5vw, 40px);
-    color: var(--sub);
-    vertical-align: baseline;
-  }
+/* Greeting */
+.greeting {
+  font-size: 12px; font-weight: 300;
+  letter-spacing: 3px; text-transform: uppercase;
+  color: var(--greeting-color);
+  margin-bottom: 20px;
+  opacity: 0; animation: fadeIn 1s ease-out 0.3s forwards;
+}
 
-  .ampm {
-    font-size: clamp(14px, 2.5vw, 20px);
-    font-weight: 400;
-    color: var(--sub);
-    margin-left: 4px;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-  }
+/* Arc wrap */
+.arc-wrap {
+  position: relative; display: inline-block;
+  margin-bottom: 2px;
+}
+.arc-svg {
+  position: absolute;
+  top: -14px; left: -18px;
+  width: calc(100% + 36px);
+  height: calc(100% + 28px);
+  pointer-events: none;
+  opacity: 0; animation: fadeIn 1.2s ease-out 0.5s forwards;
+}
+.arc-track { fill: none; stroke: var(--arc-track); stroke-width: 2; }
 
-  .date-line {
-    margin-top: 6px;
-    font-size: clamp(11px, 1.8vw, 14px);
-    color: var(--sub);
-    font-weight: 400;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-  }
+/* Time */
+.time {
+  font-size: 64px; font-weight: 600;
+  letter-spacing: -2px; line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  background: var(--time-grad);
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradientShift 6s ease infinite;
+}
+.colon {
+  animation: blink 2s step-end infinite;
+  -webkit-text-fill-color: var(--dot-active);
+  -webkit-background-clip: initial;
+  background-clip: initial;
+  background: none;
+}
+.digit-change { display: inline-block; animation: digitUp 0.35s ease-out; }
 
-  .progress-bar {
-    width: 60px;
-    height: 2px;
-    background: var(--accent);
-    margin: 12px auto 0;
-    border-radius: 1px;
-    overflow: hidden;
-    position: relative;
-  }
+/* Weekday dots */
+.weekday-dots {
+  display: flex; justify-content: center; gap: 14px;
+  margin: 28px 0 8px;
+  opacity: 0; animation: fadeIn 1s ease-out 0.55s forwards;
+}
+.weekday-dots .dot {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--dot-bg);
+  transition: all 0.4s ease;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 8px; font-weight: 600; letter-spacing: 0;
+  color: var(--date-color);
+}
+.weekday-dots .dot.active {
+  background: var(--dot-active);
+  box-shadow: var(--dot-active-glow);
+  transform: scale(1.15);
+  color: #fff;
+}
 
-  .progress-fill {
-    height: 100%;
-    background: var(--sub);
-    border-radius: 1px;
-    transition: width 1s linear;
-  }
+/* Day progress bar */
+.day-bar {
+  width: 80%; height: 1.5px;
+  margin: 10px auto 0;
+  background: var(--bar-bg);
+  border-radius: 2px; overflow: hidden;
+  opacity: 0; animation: fadeIn 1s ease-out 0.6s forwards;
+}
+.day-fill {
+  height: 100%;
+  background: var(--bar-fill);
+  border-radius: 2px;
+  transition: width 60s linear;
+  box-shadow: var(--bar-glow);
+}
 
-  @keyframes fadeIn {
-    to { opacity: 1; }
-  }
+/* Date */
+.date {
+  font-size: 11.5px; font-weight: 300;
+  color: var(--date-color);
+  margin-top: 10px; letter-spacing: 1.5px;
+  opacity: 0; animation: fadeIn 1s ease-out 0.65s forwards;
+}
+
+/* Next-hour countdown */
+.countdown {
+  font-size: 10px; font-weight: 300;
+  color: var(--meta-color);
+  margin-top: 6px; letter-spacing: 1px;
+  opacity: 0; animation: fadeIn 1s ease-out 0.7s forwards;
+}
 </style>
 </head>
 <body>
+<canvas id="bg"></canvas>
+<svg style="position:absolute;width:0;height:0">
+  <defs>
+    <linearGradient id="arcGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="50%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#c4b5fd"/>
+    </linearGradient>
+  </defs>
+</svg>
 <div class="container">
-  <div class="time">
-    <span id="hm"></span><span class="seconds" id="sec"></span><span class="ampm" id="ampm"></span>
+  <div class="greeting" id="greeting"></div>
+  <div class="arc-wrap">
+    <svg class="arc-svg" viewBox="0 0 200 90" preserveAspectRatio="none">
+      <rect class="arc-track" x="1" y="1" width="198" height="88" rx="16" ry="16"/>
+      <rect id="arcHand" x="1" y="1" width="198" height="88" rx="16" ry="16" fill="none" stroke="url(#arcGrad)" stroke-width="2" stroke-linecap="round" stroke-dasharray="560" stroke-dashoffset="560"/>
+    </svg>
+    <div class="time" id="time"></div>
   </div>
-  <div class="date-line" id="date"></div>
-  <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+  <div class="weekday-dots" id="dots"></div>
+  <div class="day-bar"><div class="day-fill" id="dayBar"></div></div>
+  <div class="date" id="date"></div>
+  <div class="countdown" id="countdown"></div>
 </div>
 <script>
-const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const NAME = 'Musbah';
+const DAYS = ['M','T','W','T','F','S','S'];
+let prevDigits = '';
 
-function pad(n) { return n < 10 ? '0' + n : '' + n; }
+// Build weekday dots
+const dotsEl = document.getElementById('dots');
+DAYS.forEach(function(d, i) {
+  var dot = document.createElement('div');
+  dot.className = 'dot';
+  dot.dataset.index = i;
+  const dayName = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'][i];
+  dot.title = dayName;
+  dot.setAttribute('aria-label', dayName);
+  dot.setAttribute('role', 'img');
+  dot.textContent = d;
+  dotsEl.appendChild(dot);
+});
 
-function update() {
+function updateClock() {
   const now = new Date();
-  let h = now.getHours();
+  const h = now.getHours();
   const m = now.getMinutes();
   const s = now.getSeconds();
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  h = h % 12 || 12;
 
-  document.getElementById('hm').textContent = h + ':' + pad(m);
-  document.getElementById('sec').textContent = ':' + pad(s);
-  document.getElementById('ampm').textContent = ampm;
-  document.getElementById('date').textContent = DAYS[now.getDay()] + ', ' + MONTHS[now.getMonth()] + ' ' + now.getDate() + ', ' + now.getFullYear();
+  // Greeting — changes based on time of day
+  let greet = 'Good evening';
+  if (h < 12) greet = 'Good morning';
+  else if (h < 17) greet = 'Good afternoon';
+  document.getElementById('greeting').textContent = greet + ', ' + NAME;
 
-  // Seconds progress bar
-  document.getElementById('progress').style.width = ((s / 59) * 100) + '%';
+  // Time with digit crossfade — each digit slides up when it changes
+  const hStr = String(h).padStart(2, '0');
+  const mStr = String(m).padStart(2, '0');
+  const digits = hStr + mStr;
+  let timeHTML = '';
+  for (let i = 0; i < 4; i++) {
+    const cls = (prevDigits && digits[i] !== prevDigits[i]) ? ' digit-change' : '';
+    timeHTML += '<span class="d' + i + cls + '">' + digits[i] + '</span>';
+    if (i === 1) timeHTML += '<span class="colon">:</span>';
+  }
+  document.getElementById('time').innerHTML = timeHTML;
+  prevDigits = digits;
+
+  // Seconds arc — 560 is the total perimeter (stroke-dasharray) of the rounded rect SVG
+  const arcTotal = 560;
+  const arcOffset = arcTotal - (s / 59) * arcTotal;
+  document.getElementById('arcHand').style.strokeDashoffset = arcOffset;
+
+  // Weekday dots — highlight today (0 = Sun, 6 = Sat)
+  const day = now.getDay();
+  dotsEl.querySelectorAll('.dot').forEach(function(dot, idx) {
+    dot.classList.toggle('active', idx === (day + 6) % 7);
+  });
+
+  // Day progress — percentage of the 24h day elapsed (86400 = seconds in a day)
+  const dayProgress = ((h * 3600 + m * 60 + s) / 86400) * 100;
+  document.getElementById('dayBar').style.width = dayProgress + '%';
+
+  // Date string
+  document.getElementById('date').textContent =
+    now.toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+  // Next-hour countdown
+  const minsLeft = 60 - m;
+  const nextH = (h + 1) % 24;
+  const nextHStr = String(nextH).padStart(2, '0') + ':00';
+  document.getElementById('countdown').textContent = minsLeft + 'm : until ' + nextHStr;
 }
+updateClock();
+setInterval(updateClock, 1000);
 
-setInterval(update, 1000);
-update();
+// ── Theme detection ──
+const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+const ORB_ALPHA = isDark ? 0.045 : 0.025;
+const P_RGB = isDark ? '167, 139, 250' : '124, 58, 237';
+const P_ALPHA_BASE = isDark ? 0.3 : 0.12;
+
+const canvas = document.getElementById('bg');
+const ctx = canvas.getContext('2d');
+let W, H;
+function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+resize();
+window.addEventListener('resize', resize);
+
+const orbs = Array.from({ length: 5 }, () => ({
+  x: Math.random() * innerWidth, y: Math.random() * innerHeight,
+  r: 80 + Math.random() * 140, dx: (Math.random() - 0.5) * 0.3, dy: (Math.random() - 0.5) * 0.3,
+  hue: 260 + Math.random() * 30, alpha: ORB_ALPHA + Math.random() * 0.02
+}));
+const particles = Array.from({ length: isDark ? 60 : 35 }, () => ({
+  x: Math.random() * innerWidth, y: Math.random() * innerHeight,
+  r: 1 + Math.random() * 2, speed: 0.15 + Math.random() * 0.35,
+  alpha: P_ALPHA_BASE * (0.4 + Math.random() * 0.6), flicker: Math.random() * Math.PI * 2
+}));
+function drawOrbs() {
+  for (const o of orbs) {
+    o.x += o.dx; o.y += o.dy;
+    if (o.x < -o.r) o.x = W + o.r; if (o.x > W + o.r) o.x = -o.r;
+    if (o.y < -o.r) o.y = H + o.r; if (o.y > H + o.r) o.y = -o.r;
+    const g = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r);
+    g.addColorStop(0, 'hsla(' + o.hue + ', 70%, 50%, ' + o.alpha + ')');
+    g.addColorStop(1, 'hsla(' + o.hue + ', 70%, 50%, 0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2); ctx.fill();
+  }
+}
+function drawParticles(time) {
+  for (const p of particles) {
+    p.y -= p.speed; if (p.y < -10) { p.y = H + 10; p.x = Math.random() * W; }
+    const a = p.alpha * (0.5 + 0.5 * Math.sin(time * 0.002 + p.flicker));
+    ctx.fillStyle = 'rgba(' + P_RGB + ', ' + a + ')';
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+  }
+}
+function animate(time) {
+  ctx.clearRect(0, 0, W, H); drawOrbs(); drawParticles(time); requestAnimationFrame(animate);
+}
+requestAnimationFrame(animate);
 </script>
 </body>
 </html>
