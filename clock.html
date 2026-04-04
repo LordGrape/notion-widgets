@@ -26,11 +26,12 @@
   --bar-fill: linear-gradient(90deg, #8b5cf6, #a78bfa, #c4b5fd);
   --bar-glow: 0 0 6px rgba(124, 58, 237, 0.2);
   --arc-track: rgba(138, 92, 246, 0.06);
-  --mesh-1: hsla(260, 70%, 50%, 0.35);
-  --mesh-2: hsla(280, 60%, 45%, 0.25);
-  --mesh-3: hsla(240, 80%, 55%, 0.2);
-  --orb-color: hsla(260, 70%, 60%, 0.08);
-  --orb-color-2: hsla(280, 60%, 50%, 0.06);
+  --mesh-1: hsla(260, 70%, 50%, 0.1);
+  --mesh-2: hsla(280, 60%, 45%, 0.07);
+  --mesh-3: hsla(240, 80%, 55%, 0.05);
+  --orb-color: hsla(260, 85%, 60%, 0.32);
+  --orb-color-2: hsla(210, 80%, 55%, 0.28);
+  --orb-color-3: hsla(320, 75%, 55%, 0.26);
 }
 
 /* ── Dark mode ── */
@@ -53,11 +54,12 @@
     --bar-fill: linear-gradient(90deg, #7c3aed, #a78bfa, #c4b5fd);
     --bar-glow: 0 0 8px rgba(124, 58, 237, 0.4);
     --arc-track: rgba(138, 92, 246, 0.08);
-    --mesh-1: hsla(260, 70%, 50%, 0.3);
-    --mesh-2: hsla(290, 60%, 45%, 0.25);
-    --mesh-3: hsla(230, 80%, 55%, 0.2);
-    --orb-color: hsla(260, 70%, 60%, 0.12);
-    --orb-color-2: hsla(280, 60%, 50%, 0.1);
+    --mesh-1: hsla(260, 70%, 50%, 0.1);
+    --mesh-2: hsla(290, 60%, 45%, 0.07);
+    --mesh-3: hsla(230, 80%, 55%, 0.05);
+    --orb-color: hsla(260, 85%, 65%, 0.42);
+    --orb-color-2: hsla(210, 80%, 60%, 0.38);
+    --orb-color-3: hsla(320, 75%, 60%, 0.35);
   }
 }
 
@@ -81,7 +83,7 @@ body {
     radial-gradient(ellipse at 25% 30%, var(--mesh-1) 0%, transparent 55%),
     radial-gradient(ellipse at 75% 65%, var(--mesh-2) 0%, transparent 50%),
     radial-gradient(ellipse at 50% 80%, var(--mesh-3) 0%, transparent 60%);
-  animation: meshHue 25s ease infinite alternate;
+  animation: meshHue 12s ease infinite alternate;
   z-index: 0;
   pointer-events: none;
 }
@@ -99,25 +101,25 @@ body {
   z-index: 0;
 }
 .bg-orb--1 {
-  width: 300px; height: 300px;
-  background: radial-gradient(circle, var(--orb-color) 0%, transparent 70%);
-  top: 10%; left: 15%;
-  animation: orbFloat1 35s ease-in-out infinite alternate;
-  filter: blur(40px);
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, var(--orb-color) 0%, transparent 60%);
+  top: 5%; left: 10%;
+  animation: orbFloat1 20s ease-in-out infinite alternate;
+  filter: blur(12px);
 }
 .bg-orb--2 {
-  width: 250px; height: 250px;
-  background: radial-gradient(circle, var(--orb-color-2) 0%, transparent 70%);
-  bottom: 15%; right: 10%;
-  animation: orbFloat2 40s ease-in-out infinite alternate;
-  filter: blur(50px);
+  width: 180px; height: 180px;
+  background: radial-gradient(circle, var(--orb-color-2) 0%, transparent 60%);
+  bottom: 10%; right: 5%;
+  animation: orbFloat2 25s ease-in-out infinite alternate;
+  filter: blur(10px);
 }
 .bg-orb--3 {
-  width: 180px; height: 180px;
-  background: radial-gradient(circle, var(--orb-color) 0%, transparent 70%);
-  top: 55%; left: 55%;
-  animation: orbFloat3 30s ease-in-out infinite alternate;
-  filter: blur(35px);
+  width: 150px; height: 150px;
+  background: radial-gradient(circle, var(--orb-color-3) 0%, transparent 60%);
+  top: 45%; left: 50%;
+  animation: orbFloat3 18s ease-in-out infinite alternate;
+  filter: blur(8px);
 }
 @keyframes orbFloat1 {
   0% { transform: translate(0, 0) scale(1); }
