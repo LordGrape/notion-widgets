@@ -416,24 +416,27 @@ body {
   text-transform: uppercase;
 }
 
-/* View toggle */
+/* View toggle — top-right pill */
 .view-toggle {
-  display: flex; justify-content: center; gap: 4px;
-  margin-bottom: 12px;
+  position: absolute; top: 14px; right: 16px;
+  display: flex; gap: 2px;
+  background: var(--block-bg); border: 1px solid var(--block-border);
+  border-radius: 10px; padding: 2px;
   opacity: 0; animation: fadeIn 0.8s ease-out 0.25s forwards;
+  z-index: 2;
 }
 .view-btn {
   font-family: 'Inter', sans-serif;
-  font-size: 8px; font-weight: 600;
-  letter-spacing: 1.5px; text-transform: uppercase;
-  padding: 5px 14px; border-radius: 20px;
-  border: 1px solid var(--block-border);
+  font-size: 7px; font-weight: 600;
+  letter-spacing: 1px; text-transform: uppercase;
+  padding: 3px 10px; border-radius: 8px;
+  border: none;
   background: transparent; color: var(--text-muted);
-  cursor: pointer; transition: all 0.3s ease;
+  cursor: pointer; transition: all 0.25s ease;
 }
-.view-btn:hover { border-color: var(--block-active-border); color: var(--text-secondary); }
+.view-btn:hover { color: var(--text-secondary); background: var(--dot-bg); }
 .view-btn.active {
-  background: var(--dot-active); border-color: var(--dot-active);
+  background: var(--dot-active);
   color: #fff; box-shadow: var(--dot-active-glow);
 }
 
