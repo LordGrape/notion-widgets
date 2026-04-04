@@ -130,7 +130,9 @@ body {
 
 /* Header */
 .header {
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 14px;
   opacity: 0; animation: fadeIn 0.8s ease-out 0.2s forwards;
 }
@@ -416,14 +418,12 @@ body {
   text-transform: uppercase;
 }
 
-/* View toggle — top-right pill */
+/* View toggle pill */
 .view-toggle {
-  position: absolute; top: 14px; right: 16px;
   display: flex; gap: 2px;
   background: var(--block-bg); border: 1px solid var(--block-border);
   border-radius: 10px; padding: 2px;
-  opacity: 0; animation: fadeIn 0.8s ease-out 0.25s forwards;
-  z-index: 2;
+  flex-shrink: 0;
 }
 .view-btn {
   font-family: 'Inter', sans-serif;
@@ -577,12 +577,14 @@ body {
 <canvas id="bg"></canvas>
 <div class="container">
   <div class="header">
-    <div class="label">Schedule</div>
-    <div class="title" id="title">Today's Classes</div>
-  </div>
-  <div class="view-toggle" id="viewToggle">
-    <button class="view-btn active" data-view="today">Today</button>
-    <button class="view-btn" data-view="week">Week</button>
+    <div class="header-left">
+      <div class="label">Schedule</div>
+      <div class="title" id="title">Today's Classes</div>
+    </div>
+    <div class="view-toggle" id="viewToggle">
+      <button class="view-btn active" data-view="today">Today</button>
+      <button class="view-btn" data-view="week">Week</button>
+    </div>
   </div>
   <div id="todayView">
   <div class="day-selector" id="daySelector"></div>
