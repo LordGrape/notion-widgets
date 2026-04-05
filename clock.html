@@ -104,20 +104,27 @@ body {
   contain: content; min-width: 280px;
 }
 
-/* ── Mode Toggle ── */
+/* ── Mode Toggle (hover-reveal) ── */
 .mode-toggle {
-  position: absolute; top: 12px; right: 14px;
+  position: absolute; top: 10px; right: 14px;
   display: flex; gap: 2px;
-  background: var(--dot-bg); border-radius: 8px; padding: 2px; z-index: 10;
+  background: var(--dot-bg); border-radius: 10px; padding: 3px; z-index: 10;
+  opacity: 0; transform: translateY(6px) scale(0.95);
+  transition: opacity 0.4s cubic-bezier(0.4,0,0.2,1), transform 0.4s cubic-bezier(0.4,0,0.2,1);
+  pointer-events: none;
+}
+.container:hover .mode-toggle {
+  opacity: 1; transform: translateY(0) scale(1);
+  pointer-events: auto;
 }
 .mode-btn {
-  font-family: 'Inter', sans-serif; font-size: 7px; font-weight: 600;
-  letter-spacing: 1px; text-transform: uppercase;
-  padding: 4px 8px; border-radius: 6px; border: none;
-  background: transparent; color: var(--meta-color);
+  font-family: 'Inter', sans-serif; font-size: 8px; font-weight: 600;
+  letter-spacing: 0.8px; text-transform: uppercase;
+  padding: 5px 10px; border-radius: 7px; border: none;
+  background: transparent; color: var(--date-color);
   cursor: pointer; transition: all 0.25s ease;
 }
-.mode-btn:hover { color: var(--date-color); background: rgba(var(--accent-rgb), 0.08); }
+.mode-btn:hover { color: var(--accent); background: rgba(var(--accent-rgb), 0.1); }
 .mode-btn.active { background: var(--dot-active); color: #fff; box-shadow: var(--dot-active-glow); }
 
 /* ── Clock Mode ── */
