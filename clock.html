@@ -127,12 +127,10 @@ body {
   border: 1px solid var(--card-border);
   opacity: 0;
   animation: fadeIn 0.8s ease-out forwards, breathe 8s cubic-bezier(0.4,0,0.2,1) 0.8s infinite;
-  transition: transform 0.3s ease;
+  transition: transform 0.15s ease-out;
+  transform-style: preserve-3d;
   will-change: transform, opacity;
   contain: content;
-}
-.container:hover {
-  transform: translateY(-2px) scale(1.005);
 }
 
 /* Greeting */
@@ -230,6 +228,32 @@ body {
   margin-top: 6px; letter-spacing: 1px;
   opacity: 0; animation: fadeIn 1s ease-out 0.7s forwards;
 }
+
+/* Weather */
+.weather {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 8px;
+  opacity: 0; animation: fadeIn 1s ease-out 0.75s forwards;
+}
+.weather-icon {
+  font-size: 16px;
+  filter: drop-shadow(0 0 6px rgba(138, 92, 246, 0.35));
+}
+.weather-temp {
+  font-size: 11px; font-weight: 400;
+  color: var(--date-color);
+  letter-spacing: 0.5px;
+  font-variant-numeric: tabular-nums;
+}
+.weather-cond {
+  font-size: 9px; font-weight: 300;
+  color: var(--meta-color);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
@@ -262,6 +286,7 @@ body {
   <div class="day-bar"><div class="day-fill" id="dayBar"></div></div>
   <div class="date" id="date"></div>
   <div class="countdown" id="countdown"></div>
+  <div class="weather" id="weather"></div>
 </div>
 <script>
 const NAME = 'Musbah';
@@ -331,6 +356,65 @@ function updateClock() {
 }
 updateClock();
 setInterval(updateClock, 1000);
+
+/* ── Weather (Open-Meteo — Windsor ON) ── */
+var WLAT = 42.3149, WLON = -83.0364;
+var weatherEl = document.getElementById('weather');
+
+function wmoEmoji(code) {
+  var h = new Date().getHours();
+  var night = (h < 6 || h >= 20);
+  if (code === 0) return [night ? '🌙' : '☀️', night ? 'Clear Night' : 'Clear'];
+  if (code <= 2) return [night ? '🌙' : '🌤️', 'Partly Cloudy'];
+  if (code === 3) return ['☁️', 'Overcast'];
+  if (code <= 48) return ['🌫️', 'Fog'];
+  if (code <= 57) return ['🌧️', 'Drizzle'];
+  if (code <= 67) return ['🌧️', 'Rain'];
+  if (code <= 77) return ['🌨️', 'Snow'];
+  if (code <= 82) return ['🌦️', 'Showers'];
+  if (code <= 86) return ['🌨️', 'Snow Showers'];
+  if (code <= 99) return ['⛈️', 'Thunder'];
+  return ['🌡️', ''];
+}
+
+function fetchWeather() {
+  fetch('https://api.open-meteo.com/v1/forecast?latitude=' + WLAT + '&longitude=' + WLON + '&current=temperature_2m,weather_code&timezone=America%2FToronto')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      var temp = Math.round(d.current.temperature_2m);
+      var w = wmoEmoji(d.current.weather_code);
+      weatherEl.innerHTML = '<span class="weather-icon">' + w[0] + '</span>'
+        + '<span class="weather-temp">' + temp + '°C</span>'
+        + '<span class="weather-cond">· ' + w[1] + '</span>';
+    })
+    .catch(function() { weatherEl.innerHTML = ''; });
+}
+fetchWeather();
+setInterval(fetchWeather, 900000);
+
+/* ── 3D Mouse Tilt ── */
+var card = document.querySelector('.container');
+setTimeout(function() {
+  card.style.opacity = '1';
+  card.style.animation = 'breathe 8s cubic-bezier(0.4,0,0.2,1) infinite';
+}, 900);
+var tiltQueued = false;
+document.addEventListener('mousemove', function(e) {
+  if (tiltQueued) return;
+  tiltQueued = true;
+  requestAnimationFrame(function() {
+    tiltQueued = false;
+    var rect = card.getBoundingClientRect();
+    var cx = rect.left + rect.width / 2;
+    var cy = rect.top + rect.height / 2;
+    var dx = (e.clientX - cx) / (rect.width / 2);
+    var dy = (e.clientY - cy) / (rect.height / 2);
+    card.style.transform = 'perspective(800px) rotateX(' + (dy * -3) + 'deg) rotateY(' + (dx * 3) + 'deg)';
+  });
+});
+document.addEventListener('mouseleave', function() {
+  card.style.transform = 'perspective(800px) rotateX(0) rotateY(0)';
+});
 </script>
 </body>
 </html>
