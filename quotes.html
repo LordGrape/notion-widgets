@@ -87,6 +87,7 @@ body {
   width: 98%;
   cursor: grab;
   will-change: transform;
+  contain: content;
   animation: fadeIn 0.8s ease-out, breathe 8s cubic-bezier(0.4,0,0.2,1) infinite;
 }
 
@@ -144,6 +145,10 @@ body {
   color: var(--book-color);
   letter-spacing: 1.5px;
   text-transform: uppercase;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  #bg { display: none; }
 }
 </style>
 </head>
@@ -307,6 +312,7 @@ function phCoast() {
 
 /* ── Background: orbs + particles (lighter for banner) ── */
 var isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+var isLowEnd = navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4;
 var ORB_ALPHA = isDark ? 0.04 : 0.02;
 var P_RGB = isDark ? '167, 139, 250' : '124, 58, 237';
 var P_ALPHA_BASE = isDark ? 0.25 : 0.1;
@@ -318,14 +324,14 @@ function resize() { W = canvas.width = window.innerWidth; H = canvas.height = wi
 resize();
 window.addEventListener('resize', resize);
 
-var orbs = Array.from({ length: 2 }, function() {
+var orbs = Array.from({ length: isLowEnd ? 1 : 2 }, function() {
   return {
     x: Math.random() * innerWidth, y: Math.random() * innerHeight,
     r: 60 + Math.random() * 100, dx: (Math.random() - 0.5) * 0.2, dy: (Math.random() - 0.5) * 0.2,
     hue: 260 + Math.random() * 30, alpha: ORB_ALPHA + Math.random() * 0.01
   };
 });
-var particles = Array.from({ length: isDark ? 12 : 8 }, function() {
+var particles = Array.from({ length: isLowEnd ? (isDark ? 6 : 4) : (isDark ? 12 : 8) }, function() {
   return {
     x: Math.random() * innerWidth, y: Math.random() * innerHeight,
     r: 0.8 + Math.random() * 1.5, speed: 0.1 + Math.random() * 0.25,
@@ -354,7 +360,7 @@ function drawParticles(time) {
     ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
   }
 }
-var animRunning = true;
+var animRunning = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 var lastFrame = 0;
 function animate(time) {
   if (!animRunning) return;
