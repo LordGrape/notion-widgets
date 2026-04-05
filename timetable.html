@@ -9,548 +9,111 @@
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
-  --bg: #ffffff;
-  --card-bg: rgba(255, 255, 255, 0.96);
-  --card-border: rgba(138, 92, 246, 0.12);
-  --card-shadow: 0 4px 24px rgba(0,0,0,0.06);
-  --card-glow: 0 0 20px 2px rgba(138, 92, 246, 0.06);
-  --label-color: rgba(124, 58, 237, 0.5);
+  --bg: #ffffff; --card-bg: rgba(255,255,255,0.96); --card-border: rgba(138,92,246,0.12);
+  --card-shadow: 0 4px 24px rgba(0,0,0,0.06); --card-glow: 0 0 20px 2px rgba(138,92,246,0.06);
+  --label-color: rgba(124,58,237,0.5);
   --title-grad: linear-gradient(135deg, #1a1a2e 0%, #7c3aed 40%, #8b5cf6 60%, #1a1a2e 100%);
-  --text-primary: #37352f;
-  --text-secondary: rgba(100, 100, 120, 0.5);
-  --text-muted: rgba(100, 100, 120, 0.35);
-  --dot-bg: rgba(138, 92, 246, 0.1);
-  --dot-active: #8b5cf6;
-  --dot-active-glow: 0 0 6px rgba(138, 92, 246, 0.4);
-  --block-bg: rgba(138, 92, 246, 0.04);
-  --block-border: rgba(138, 92, 246, 0.08);
-  --block-active-bg: rgba(138, 92, 246, 0.08);
-  --block-active-border: rgba(138, 92, 246, 0.2);
-  --block-active-glow: 0 0 12px rgba(138, 92, 246, 0.1);
-  --bar-bg: rgba(138, 92, 246, 0.08);
-  --bar-fill: linear-gradient(90deg, #8b5cf6, #a78bfa, #c4b5fd);
-  --bar-glow: 0 0 6px rgba(124, 58, 237, 0.2);
-  --timeline-color: rgba(138, 92, 246, 0.08);
-  --orb-alpha: 0.025;
-  --particle-rgb: 124, 58, 237;
-  --particle-alpha: 0.12;
-  --empty-color: rgba(100, 100, 120, 0.25);
+  --text-primary: #37352f; --text-secondary: rgba(100,100,120,0.5); --text-muted: rgba(100,100,120,0.35);
+  --dot-bg: rgba(138,92,246,0.1); --dot-active: #8b5cf6; --dot-active-glow: 0 0 6px rgba(138,92,246,0.4);
+  --block-bg: rgba(138,92,246,0.04); --block-border: rgba(138,92,246,0.08);
+  --block-active-bg: rgba(138,92,246,0.08); --block-active-border: rgba(138,92,246,0.2);
+  --block-active-glow: 0 0 12px rgba(138,92,246,0.1);
+  --bar-bg: rgba(138,92,246,0.08); --bar-fill: linear-gradient(90deg, #8b5cf6, #a78bfa, #c4b5fd);
+  --bar-glow: 0 0 6px rgba(124,58,237,0.2); --timeline-color: rgba(138,92,246,0.08);
+  --empty-color: rgba(100,100,120,0.25);
 }
-
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #191919;
-    --card-bg: rgba(25, 25, 35, 0.94);
-    --card-border: rgba(138, 92, 246, 0.15);
-    --card-shadow: 0 8px 40px rgba(0,0,0,0.4);
-    --card-glow: 0 0 24px 4px rgba(138, 92, 246, 0.12);
-    --label-color: rgba(167, 139, 250, 0.65);
+    --bg: #191919; --card-bg: rgba(25,25,35,0.94); --card-border: rgba(138,92,246,0.15);
+    --card-shadow: 0 8px 40px rgba(0,0,0,0.4); --card-glow: 0 0 24px 4px rgba(138,92,246,0.12);
+    --label-color: rgba(167,139,250,0.65);
     --title-grad: linear-gradient(135deg, #fff 0%, #c4b5fd 25%, #8b5cf6 50%, #a78bfa 75%, #fff 100%);
-    --text-primary: rgba(255, 255, 255, 0.81);
-    --text-secondary: rgba(160, 160, 180, 0.5);
-    --text-muted: rgba(160, 160, 180, 0.35);
-    --dot-bg: rgba(138, 92, 246, 0.15);
-    --dot-active: #a78bfa;
-    --dot-active-glow: 0 0 8px rgba(167, 139, 250, 0.5);
-    --block-bg: rgba(138, 92, 246, 0.06);
-    --block-border: rgba(138, 92, 246, 0.1);
-    --block-active-bg: rgba(138, 92, 246, 0.12);
-    --block-active-border: rgba(138, 92, 246, 0.3);
-    --block-active-glow: 0 0 16px rgba(138, 92, 246, 0.15);
-    --bar-bg: rgba(138, 92, 246, 0.1);
-    --bar-fill: linear-gradient(90deg, #7c3aed, #a78bfa, #c4b5fd);
-    --bar-glow: 0 0 8px rgba(124, 58, 237, 0.4);
-    --timeline-color: rgba(138, 92, 246, 0.1);
-    --orb-alpha: 0.045;
-    --particle-rgb: 167, 139, 250;
-    --particle-alpha: 0.3;
-    --empty-color: rgba(160, 160, 180, 0.2);
+    --text-primary: rgba(255,255,255,0.81); --text-secondary: rgba(160,160,180,0.5); --text-muted: rgba(160,160,180,0.35);
+    --dot-bg: rgba(138,92,246,0.15); --dot-active: #a78bfa; --dot-active-glow: 0 0 8px rgba(167,139,250,0.5);
+    --block-bg: rgba(138,92,246,0.06); --block-border: rgba(138,92,246,0.1);
+    --block-active-bg: rgba(138,92,246,0.12); --block-active-border: rgba(138,92,246,0.3);
+    --block-active-glow: 0 0 16px rgba(138,92,246,0.15);
+    --bar-bg: rgba(138,92,246,0.1); --bar-fill: linear-gradient(90deg, #7c3aed, #a78bfa, #c4b5fd);
+    --bar-glow: 0 0 8px rgba(124,58,237,0.4); --timeline-color: rgba(138,92,246,0.1);
+    --empty-color: rgba(160,160,180,0.2);
   }
 }
-
-body {
-  font-family: 'Inter', sans-serif;
-  background: var(--bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-  overflow: hidden;
-  transition: background 0.3s;
-}
-
-#bg {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  z-index: 0;
-  pointer-events: none;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes breathe {
-  0%, 100% { box-shadow: var(--card-shadow), 0 0 0 0 transparent; }
-  30%      { box-shadow: var(--card-shadow), var(--card-glow); }
-}
-@keyframes gradientShift {
-  0%   { background-position: 0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-@keyframes pulseGlow {
-  0%, 100% { box-shadow: var(--block-active-glow), inset 0 0 0 transparent; }
-  50%      { box-shadow: 0 0 20px rgba(138, 92, 246, 0.2), inset 0 0 0 transparent; }
-}
-@keyframes slideIn {
-  from { opacity: 0; transform: translateX(-12px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-
-.container {
-  position: relative; z-index: 1;
-  padding: 20px 22px 16px;
-  border-radius: 18px;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  width: 94%;
-  max-width: 420px;
-  max-height: 96vh;
-  overflow-y: auto;
-  animation: fadeIn 0.8s ease-out, breathe 8s cubic-bezier(0.4,0,0.2,1) infinite;
-  transform-style: preserve-3d;
-  transition: transform 0.15s ease-out, box-shadow 0.3s ease;
-  will-change: transform;
-  contain: content;
-}
+body { font-family: 'Inter', sans-serif; background: var(--bg); display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; transition: background 0.3s; }
+#bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes breathe { 0%, 100% { box-shadow: var(--card-shadow), 0 0 0 0 transparent; } 30% { box-shadow: var(--card-shadow), var(--card-glow); } }
+@keyframes gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+@keyframes pulseGlow { 0%, 100% { box-shadow: var(--block-active-glow), inset 0 0 0 transparent; } 50% { box-shadow: 0 0 20px rgba(138,92,246,0.2), inset 0 0 0 transparent; } }
+@keyframes slideIn { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
+.container { position: relative; z-index: 1; padding: 20px 22px 16px; border-radius: 18px; background: var(--card-bg); border: 1px solid var(--card-border); width: 94%; max-width: 420px; max-height: 96vh; overflow-y: auto; animation: fadeIn 0.8s ease-out, breathe 8s cubic-bezier(0.4,0,0.2,1) infinite; transform-style: preserve-3d; transition: transform 0.15s ease-out, box-shadow 0.3s ease; will-change: transform; contain: content; }
 .container::-webkit-scrollbar { width: 0; }
-
-/* Header */
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
-  opacity: 0; animation: fadeIn 0.8s ease-out 0.2s forwards;
-}
-.label {
-  font-size: 8px; font-weight: 300;
-  letter-spacing: 3px; text-transform: uppercase;
-  color: var(--label-color);
-  margin-bottom: 4px;
-}
-.title {
-  font-size: 15px; font-weight: 600;
-  letter-spacing: -0.3px;
-  background: var(--title-grad);
-  background-size: 300% 300%;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: gradientShift 6s ease infinite;
-}
-
-/* Day selector */
-.day-selector {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 14px;
-  opacity: 0; animation: fadeIn 0.8s ease-out 0.35s forwards;
-}
-.day-dot {
-  width: 28px; height: 28px;
-  border-radius: 50%;
-  background: var(--dot-bg);
-  border: none;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  font-family: 'Inter', sans-serif;
-  font-size: 9px; font-weight: 600;
-  color: var(--text-secondary);
-  transition: all 0.3s ease;
-  pointer-events: auto;
-  position: relative;
-}
-.day-dot:hover {
-  background: rgba(138, 92, 246, 0.15);
-  transform: scale(1.08);
-}
-.day-dot.active {
-  background: var(--dot-active);
-  color: #fff;
-  box-shadow: var(--dot-active-glow);
-  transform: scale(1.12);
-}
-.day-dot.today::after {
-  content: '';
-  position: absolute;
-  bottom: -4px;
-  width: 3px; height: 3px;
-  border-radius: 50%;
-  background: var(--dot-active);
-}
-.day-dot.active.today::after {
-  background: #fff;
-}
-
-/* Schedule list */
-.schedule {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-height: 120px;
-}
-
-.class-block {
-  display: flex;
-  align-items: stretch;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: var(--block-bg);
-  border: 1px solid var(--block-border);
-  transition: all 0.3s ease;
-  opacity: 0;
-  animation: slideIn 0.5s ease-out forwards;
-  cursor: pointer;
-  user-select: none;
-  -webkit-user-select: none;
-}
-.class-block:hover {
-  background: var(--block-active-bg);
-  border-color: var(--block-active-border);
-  transform: translateX(3px);
-  box-shadow: var(--block-active-glow);
-}
-.class-block.active {
-  background: var(--block-active-bg);
-  border-color: var(--block-active-border);
-  animation: slideIn 0.5s ease-out forwards, pulseGlow 4s ease-in-out infinite;
-}
-.class-block.past {
-  opacity: 0;
-  animation: slideIn 0.5s ease-out forwards;
-}
+.header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; opacity: 0; animation: fadeIn 0.8s ease-out 0.2s forwards; }
+.label { font-size: 8px; font-weight: 300; letter-spacing: 3px; text-transform: uppercase; color: var(--label-color); margin-bottom: 4px; }
+.title { font-size: 15px; font-weight: 600; letter-spacing: -0.3px; background: var(--title-grad); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: gradientShift 6s ease infinite; }
+.day-selector { display: flex; justify-content: center; gap: 8px; margin-bottom: 14px; opacity: 0; animation: fadeIn 0.8s ease-out 0.35s forwards; }
+.day-dot { width: 28px; height: 28px; border-radius: 50%; background: var(--dot-bg); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-family: 'Inter', sans-serif; font-size: 9px; font-weight: 600; color: var(--text-secondary); transition: all 0.3s ease; position: relative; }
+.day-dot:hover { background: rgba(138,92,246,0.15); transform: scale(1.08); }
+.day-dot.active { background: var(--dot-active); color: #fff; box-shadow: var(--dot-active-glow); transform: scale(1.12); }
+.day-dot.today::after { content: ''; position: absolute; bottom: -4px; width: 3px; height: 3px; border-radius: 50%; background: var(--dot-active); }
+.day-dot.active.today::after { background: #fff; }
+.schedule { display: flex; flex-direction: column; gap: 8px; min-height: 120px; }
+.class-block { display: flex; align-items: stretch; gap: 10px; padding: 10px 12px; border-radius: 10px; background: var(--block-bg); border: 1px solid var(--block-border); transition: all 0.3s ease; opacity: 0; animation: slideIn 0.5s ease-out forwards; cursor: pointer; user-select: none; -webkit-user-select: none; }
+.class-block:hover { background: var(--block-active-bg); border-color: var(--block-active-border); transform: translateX(3px); box-shadow: var(--block-active-glow); }
+.class-block.active { background: var(--block-active-bg); border-color: var(--block-active-border); animation: slideIn 0.5s ease-out forwards, pulseGlow 4s ease-in-out infinite; }
+.class-block.past { opacity: 0; animation: slideIn 0.5s ease-out forwards; }
 .class-block.past .class-info { opacity: 0.4; }
 .class-block.past .time-col { opacity: 0.4; }
-
-/* Time column */
-.time-col {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-width: 44px;
-  padding-right: 10px;
-  border-right: 1.5px solid var(--timeline-color);
-  position: relative;
-}
-.time-start {
-  font-size: 10px; font-weight: 500;
-  color: var(--text-secondary);
-  font-variant-numeric: tabular-nums;
-}
-.time-end {
-  font-size: 8px; font-weight: 300;
-  color: var(--text-muted);
-  margin-top: 2px;
-  font-variant-numeric: tabular-nums;
-}
-.time-col::after {
-  content: '';
-  position: absolute;
-  right: -4px;
-  top: 50%;
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: var(--dot-bg);
-  transition: all 0.3s;
-}
-.class-block.active .time-col::after {
-  background: var(--dot-active);
-  box-shadow: var(--dot-active-glow);
-}
-
-/* Class info */
-.class-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 2px;
-}
-.class-name {
-  font-size: 11px; font-weight: 600;
-  color: var(--text-primary);
-  letter-spacing: -0.1px;
-  line-height: 1.3;
-}
-.class-meta {
-  font-size: 9px; font-weight: 300;
-  color: var(--text-muted);
-  letter-spacing: 0.5px;
-}
-.class-accent {
-  width: 3px;
-  border-radius: 2px;
-  flex-shrink: 0;
-  align-self: stretch;
-}
-
-/* Progress bar for active class */
-.progress-wrap {
-  margin-top: 5px;
-  height: 2px;
-  background: var(--bar-bg);
-  border-radius: 2px;
-  overflow: hidden;
-}
-.progress-fill {
-  height: 100%;
-  background: var(--bar-fill);
-  border-radius: 2px;
-  box-shadow: var(--bar-glow);
-  transition: width 30s linear;
-}
-
-/* Status line */
-.status {
-  font-size: 8px; font-weight: 400;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  margin-top: 4px;
-}
-.status.live {
-  color: var(--dot-active);
-}
-.status.upcoming {
-  color: var(--text-muted);
-}
-.status.done {
-  color: var(--text-muted);
-}
-
-/* Expanded details */
-.class-details {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.4s cubic-bezier(0.4,0,0.2,1), opacity 0.3s ease, margin-top 0.3s ease;
-  opacity: 0;
-  margin-top: 0;
-}
-.class-block.expanded .class-details {
-  max-height: 120px;
-  opacity: 1;
-  margin-top: 6px;
-}
-.detail-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 3px;
-}
-.detail-icon {
-  font-size: 9px;
-  width: 14px;
-  text-align: center;
-  flex-shrink: 0;
-}
-.detail-text {
-  font-size: 9px;
-  font-weight: 300;
-  color: var(--text-secondary);
-  letter-spacing: 0.3px;
-}
-.detail-divider {
-  height: 1px;
-  background: var(--block-border);
-  margin: 4px 0;
-}
-.duration-bar {
-  height: 3px;
-  background: var(--bar-bg);
-  border-radius: 2px;
-  overflow: hidden;
-  margin-top: 4px;
-}
-.duration-fill {
-  height: 100%;
-  border-radius: 2px;
-  opacity: 0.6;
-}
-
-/* Empty state */
-.empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 140px;
-  gap: 8px;
-  opacity: 0; animation: fadeIn 0.8s ease-out 0.5s forwards;
-}
-.empty-icon {
-  font-size: 28px;
-  opacity: 0.4;
-}
-.empty-text {
-  font-size: 11px; font-weight: 300;
-  color: var(--empty-color);
-  letter-spacing: 1px;
-}
-
-/* Footer */
-.footer {
-  text-align: center;
-  margin-top: 12px;
-  padding-top: 8px;
-  border-top: 1px solid var(--block-border);
-  opacity: 0; animation: fadeIn 0.8s ease-out 0.6s forwards;
-}
-.footer-text {
-  font-size: 8px; font-weight: 300;
-  color: var(--text-muted);
-  letter-spacing: 1px;
-  text-transform: uppercase;
-}
-
-/* View toggle pill */
-.view-toggle {
-  display: flex; gap: 2px;
-  background: var(--block-bg); border: 1px solid var(--block-border);
-  border-radius: 10px; padding: 2px;
-  flex-shrink: 0;
-}
-.view-btn {
-  font-family: 'Inter', sans-serif;
-  font-size: 7px; font-weight: 600;
-  letter-spacing: 1px; text-transform: uppercase;
-  padding: 3px 10px; border-radius: 8px;
-  border: none;
-  background: transparent; color: var(--text-muted);
-  cursor: pointer; transition: all 0.25s ease;
-}
+.time-col { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 44px; padding-right: 10px; border-right: 1.5px solid var(--timeline-color); position: relative; }
+.time-start { font-size: 10px; font-weight: 500; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.time-end { font-size: 8px; font-weight: 300; color: var(--text-muted); margin-top: 2px; font-variant-numeric: tabular-nums; }
+.time-col::after { content: ''; position: absolute; right: -4px; top: 50%; width: 6px; height: 6px; border-radius: 50%; background: var(--dot-bg); transition: all 0.3s; }
+.class-block.active .time-col::after { background: var(--dot-active); box-shadow: var(--dot-active-glow); }
+.class-info { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
+.class-name { font-size: 11px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.1px; line-height: 1.3; }
+.class-meta { font-size: 9px; font-weight: 300; color: var(--text-muted); letter-spacing: 0.5px; }
+.class-accent { width: 3px; border-radius: 2px; flex-shrink: 0; align-self: stretch; }
+.progress-wrap { margin-top: 5px; height: 2px; background: var(--bar-bg); border-radius: 2px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--bar-fill); border-radius: 2px; box-shadow: var(--bar-glow); transition: width 30s linear; }
+.status { font-size: 8px; font-weight: 400; letter-spacing: 1.5px; text-transform: uppercase; margin-top: 4px; }
+.status.live { color: var(--dot-active); }
+.status.upcoming { color: var(--text-muted); }
+.status.done { color: var(--text-muted); }
+.class-details { max-height: 0; overflow: hidden; transition: max-height 0.4s cubic-bezier(0.4,0,0.2,1), opacity 0.3s ease, margin-top 0.3s ease; opacity: 0; margin-top: 0; }
+.class-block.expanded .class-details { max-height: 120px; opacity: 1; margin-top: 6px; }
+.detail-row { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+.detail-icon { font-size: 9px; width: 14px; text-align: center; flex-shrink: 0; }
+.detail-text { font-size: 9px; font-weight: 300; color: var(--text-secondary); letter-spacing: 0.3px; }
+.detail-divider { height: 1px; background: var(--block-border); margin: 4px 0; }
+.duration-bar { height: 3px; background: var(--bar-bg); border-radius: 2px; overflow: hidden; margin-top: 4px; }
+.duration-fill { height: 100%; border-radius: 2px; opacity: 0.6; }
+.empty { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 140px; gap: 8px; opacity: 0; animation: fadeIn 0.8s ease-out 0.5s forwards; }
+.empty-icon { font-size: 28px; opacity: 0.4; }
+.empty-text { font-size: 11px; font-weight: 300; color: var(--empty-color); letter-spacing: 1px; }
+.footer { text-align: center; margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--block-border); opacity: 0; animation: fadeIn 0.8s ease-out 0.6s forwards; }
+.footer-text { font-size: 8px; font-weight: 300; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; }
+.view-toggle { display: flex; gap: 2px; background: var(--block-bg); border: 1px solid var(--block-border); border-radius: 10px; padding: 2px; flex-shrink: 0; }
+.view-btn { font-family: 'Inter', sans-serif; font-size: 7px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; padding: 3px 10px; border-radius: 8px; border: none; background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.25s ease; }
 .view-btn:hover { color: var(--text-secondary); background: var(--dot-bg); }
-.view-btn.active {
-  background: var(--dot-active);
-  color: #fff; box-shadow: var(--dot-active-glow);
-}
-
-/* Week pill strip */
+.view-btn.active { background: var(--dot-active); color: #fff; box-shadow: var(--dot-active-glow); }
 .week-view { opacity: 0; animation: fadeIn 0.5s ease-out forwards; }
 .week-strip { display: flex; flex-direction: column; gap: 5px; }
-.week-time-header {
-  display: flex; align-items: center;
-  margin-left: 36px; margin-bottom: 2px; position: relative;
-  height: 14px;
-}
-.week-time-tick {
-  position: absolute;
-  font-size: 6.5px; font-weight: 400;
-  color: var(--text-muted); letter-spacing: 0.2px;
-  font-variant-numeric: tabular-nums;
-  transform: translateX(-50%);
-}
-.week-row {
-  display: flex; align-items: center; gap: 8px;
-}
-.week-day-label {
-  width: 28px; flex-shrink: 0;
-  font-size: 8px; font-weight: 600;
-  letter-spacing: 1.5px; color: var(--text-secondary);
-  text-transform: uppercase;
-  text-align: right;
-  transition: all 0.3s ease;
-}
-.week-day-label.today-label {
-  color: var(--dot-active);
-  text-shadow: 0 0 8px rgba(138, 92, 246, 0.3);
-}
-.week-track {
-  flex: 1; position: relative;
-  height: 30px;
-  background: var(--block-bg);
-  border-radius: 8px;
-  border: 1px solid var(--block-border);
-  overflow: visible;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
-}
-.week-track.today-track {
-  border-color: rgba(138, 92, 246, 0.25);
-  box-shadow: 0 0 12px rgba(138, 92, 246, 0.08);
-}
-.week-pill {
-  position: absolute; top: 3px; bottom: 3px;
-  border-radius: 6px;
-  display: flex; align-items: center; justify-content: center;
-  gap: 3px; padding: 0 5px;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.15);
-  overflow: hidden;
-  z-index: 1;
-}
-.week-pill::after {
-  content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-  background: linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.05) 40%, transparent 100%);
-  border-radius: 6px; pointer-events: none;
-}
-.week-pill:hover {
-  transform: scaleY(1.2) scaleX(1.02);
-  z-index: 4;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2);
-}
-
-.week-pill-name {
-  font-size: 9px; font-weight: 700; color: #fff;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.4);
-  letter-spacing: 0.5px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.week-now-marker {
-  position: absolute; top: -2px; bottom: -2px; width: 2px;
-  background: var(--dot-active);
-  z-index: 5; border-radius: 1px;
-  box-shadow: 0 0 6px rgba(138, 92, 246, 0.5);
-  pointer-events: none;
-}
-.week-now-marker::before {
-  content: ''; position: absolute; top: -3px; left: -3px;
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--dot-active);
-  box-shadow: 0 0 6px rgba(138, 92, 246, 0.5);
-}
-.week-empty-label {
-  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 8px; font-weight: 300;
-  color: var(--empty-color); letter-spacing: 0.5px;
-  font-style: italic;
-}
-/* Week detail overlay */
-.week-overlay {
-  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.25); z-index: 100;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  display: flex; align-items: center; justify-content: center;
-  opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
-}
+.week-time-header { display: flex; align-items: center; margin-left: 36px; margin-bottom: 2px; position: relative; height: 14px; }
+.week-time-tick { position: absolute; font-size: 6.5px; font-weight: 400; color: var(--text-muted); letter-spacing: 0.2px; font-variant-numeric: tabular-nums; transform: translateX(-50%); }
+.week-row { display: flex; align-items: center; gap: 8px; }
+.week-day-label { width: 28px; flex-shrink: 0; font-size: 8px; font-weight: 600; letter-spacing: 1.5px; color: var(--text-secondary); text-transform: uppercase; text-align: right; transition: all 0.3s ease; }
+.week-day-label.today-label { color: var(--dot-active); text-shadow: 0 0 8px rgba(138,92,246,0.3); }
+.week-track { flex: 1; position: relative; height: 30px; background: var(--block-bg); border-radius: 8px; border: 1px solid var(--block-border); overflow: visible; transition: border-color 0.3s ease, box-shadow 0.3s ease; }
+.week-track.today-track { border-color: rgba(138,92,246,0.25); box-shadow: 0 0 12px rgba(138,92,246,0.08); }
+.week-pill { position: absolute; top: 3px; bottom: 3px; border-radius: 6px; display: flex; align-items: center; justify-content: center; gap: 3px; padding: 0 5px; cursor: pointer; transition: all 0.3s cubic-bezier(0.4,0,0.2,1); box-shadow: 0 2px 8px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.15); overflow: hidden; z-index: 1; }
+.week-pill::after { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.05) 40%, transparent 100%); border-radius: 6px; pointer-events: none; }
+.week-pill:hover { transform: scaleY(1.2) scaleX(1.02); z-index: 4; box-shadow: 0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2); }
+.week-pill-name { font-size: 9px; font-weight: 700; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.4); letter-spacing: 0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.week-now-marker { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--dot-active); z-index: 5; border-radius: 1px; box-shadow: 0 0 6px rgba(138,92,246,0.5); pointer-events: none; }
+.week-now-marker::before { content: ''; position: absolute; top: -3px; left: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--dot-active); box-shadow: 0 0 6px rgba(138,92,246,0.5); }
+.week-empty-label { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 300; color: var(--empty-color); letter-spacing: 0.5px; font-style: italic; }
+.week-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.25); z-index: 100; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
 .week-overlay.show { opacity: 1; pointer-events: auto; }
-.week-detail-card {
-  background: var(--card-bg);
-  backdrop-filter: blur(24px) saturate(1.6);
-  -webkit-backdrop-filter: blur(24px) saturate(1.6);
-  border: 1px solid var(--card-border);
-  border-radius: 16px; padding: 20px 24px;
-  max-width: 260px; width: 90%;
-  transform: scale(0.88) translateY(12px);
-  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 0 12px 40px rgba(0,0,0,0.18), 0 0 0 1px rgba(138, 92, 246, 0.08);
-}
+.week-detail-card { background: var(--card-bg); backdrop-filter: blur(24px) saturate(1.6); -webkit-backdrop-filter: blur(24px) saturate(1.6); border: 1px solid var(--card-border); border-radius: 16px; padding: 20px 24px; max-width: 260px; width: 90%; transform: scale(0.88) translateY(12px); transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1); box-shadow: 0 12px 40px rgba(0,0,0,0.18), 0 0 0 1px rgba(138,92,246,0.08); }
 .week-overlay.show .week-detail-card { transform: scale(1) translateY(0); }
 .week-detail-accent { width: 100%; height: 3px; border-radius: 2px; margin-bottom: 12px; }
 .week-detail-name { font-size: 12px; font-weight: 600; color: var(--text-primary); line-height: 1.3; margin-bottom: 2px; }
@@ -559,22 +122,9 @@ body {
 .week-detail-icon { font-size: 10px; width: 16px; text-align: center; flex-shrink: 0; }
 .week-detail-text { font-size: 10px; font-weight: 300; color: var(--text-secondary); letter-spacing: 0.3px; }
 .week-detail-divider { height: 1px; background: var(--block-border); margin: 8px 0; }
-.week-detail-dur {
-  display: inline-block; margin-top: 8px; padding: 3px 10px;
-  border-radius: 8px; font-size: 8px; font-weight: 600;
-  letter-spacing: 0.5px; color: #fff;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-}
-.week-detail-close {
-  text-align: center; margin-top: 10px;
-  font-size: 7px; font-weight: 300;
-  color: var(--text-muted); letter-spacing: 1px;
-  text-transform: uppercase;
-}
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
-  #bg { display: none; }
-}
+.week-detail-dur { display: inline-block; margin-top: 8px; padding: 3px 10px; border-radius: 8px; font-size: 8px; font-weight: 600; letter-spacing: 0.5px; color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+.week-detail-close { text-align: center; margin-top: 10px; font-size: 7px; font-weight: 300; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; } #bg { display: none; } }
 </style>
 </head>
 <body>
@@ -591,20 +141,14 @@ body {
     </div>
   </div>
   <div id="todayView">
-  <div class="day-selector" id="daySelector"></div>
-  <div class="schedule" id="schedule"></div>
-  <div class="footer">
-    <div class="footer-text" id="footer"></div>
-  </div>
+    <div class="day-selector" id="daySelector"></div>
+    <div class="schedule" id="schedule"></div>
+    <div class="footer"><div class="footer-text" id="footer"></div></div>
   </div>
   <div class="week-view" id="weekView" style="display:none"></div>
 </div>
 <script src="core.js"></script>
 <script>
-/* ══════════════════════════════════════════
-   SCHEDULE DATA — edit this each semester
-   Days: 0=Sun 1=Mon 2=Tue 3=Wed 4=Thu 5=Fri 6=Sat
-   ══════════════════════════════════════════ */
 var schedule = [
   { day: 1, name: "POLS 3550: Political Economy & Intl Trade", prof: "Dr. Lanoszka", room: "Dillon Hall 361", start: "11:30", end: "14:20", color: "#c4a235" },
   { day: 1, name: "POLS 3140: Constitutional Law & Politics", prof: "Dr. Callaghan", room: "Erie Hall 2123", start: "14:30", end: "15:50", color: "#7cb342" },
@@ -613,322 +157,82 @@ var schedule = [
   { day: 4, name: "POLS 4610: International Relation Seminar", prof: "Dr. Najem", room: "Dillon Hall 366", start: "10:00", end: "12:50", color: "#ce93d8" },
   { day: 4, name: "POLS 4420: Politics and Security in Russia and Eurasia", prof: "Dr. Maltseva", room: "Dillon Hall 366", start: "13:00", end: "15:50", color: "#4dd0e1" },
 ];
-
-/* Audio from core.js */
-
 var DAY_LABELS = ['S','M','T','W','T','F','S'];
 var DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 var today = new Date().getDay();
 var selectedDay = today;
-
-/* Build day selector */
 var selectorEl = document.getElementById('daySelector');
 for (var i = 0; i < 7; i++) {
   var btn = document.createElement('button');
-  btn.className = 'day-dot';
-  btn.textContent = DAY_LABELS[i];
-  btn.dataset.day = i;
+  btn.className = 'day-dot'; btn.textContent = DAY_LABELS[i]; btn.dataset.day = i;
   if (i === today) btn.classList.add('today');
   if (i === selectedDay) btn.classList.add('active');
-  btn.addEventListener('click', function() {
-    playClick();
-    selectedDay = parseInt(this.dataset.day);
-    renderSchedule();
-    updateDots();
-  });
+  btn.addEventListener('click', function() { playClick(); selectedDay = parseInt(this.dataset.day); renderSchedule(); updateDots(); });
   selectorEl.appendChild(btn);
 }
-
-function updateDots() {
-  var dots = selectorEl.querySelectorAll('.day-dot');
-  for (var i = 0; i < dots.length; i++) {
-    dots[i].classList.toggle('active', parseInt(dots[i].dataset.day) === selectedDay);
-  }
-}
-
-function timeToMinutes(t) {
-  var parts = t.split(':');
-  return parseInt(parts[0]) * 60 + parseInt(parts[1]);
-}
-
-function formatTime(t) {
-  var parts = t.split(':');
-  var h = parseInt(parts[0]);
-  var m = parts[1];
-  var ampm = h >= 12 ? 'PM' : 'AM';
-  if (h > 12) h -= 12;
-  if (h === 0) h = 12;
-  return h + ':' + m + ' ' + ampm;
-}
-
+function updateDots() { var dots = selectorEl.querySelectorAll('.day-dot'); for (var i = 0; i < dots.length; i++) dots[i].classList.toggle('active', parseInt(dots[i].dataset.day) === selectedDay); }
+function timeToMinutes(t) { var p = t.split(':'); return parseInt(p[0]) * 60 + parseInt(p[1]); }
+function formatTime(t) { var p = t.split(':'); var h = parseInt(p[0]); var m = p[1]; var ap = h >= 12 ? 'PM' : 'AM'; if (h > 12) h -= 12; if (h === 0) h = 12; return h + ':' + m + ' ' + ap; }
 function renderSchedule() {
-  var container = document.getElementById('schedule');
-  container.innerHTML = '';
+  var container = document.getElementById('schedule'); container.innerHTML = '';
   var classes = schedule.filter(function(c) { return c.day === selectedDay; });
   var isToday = selectedDay === today;
-
-  /* Title update */
   var titleEl = document.getElementById('title');
-  if (isToday) {
-    titleEl.textContent = "Today's Classes";
-  } else {
-    titleEl.textContent = DAY_NAMES[selectedDay];
-  }
-
-  if (classes.length === 0) {
-    var empty = document.createElement('div');
-    empty.className = 'empty';
-    empty.innerHTML = '<div class="empty-icon">\u2728</div><div class="empty-text">No classes</div>';
-    container.appendChild(empty);
-    document.getElementById('footer').textContent = 'Free day';
-    return;
-  }
-
-  var now = new Date();
-  var nowMins = now.getHours() * 60 + now.getMinutes();
-  var nextClass = null;
-  var activeClass = null;
-
+  titleEl.textContent = isToday ? "Today's Classes" : DAY_NAMES[selectedDay];
+  if (classes.length === 0) { var empty = document.createElement('div'); empty.className = 'empty'; empty.innerHTML = '<div class="empty-icon">\u2728</div><div class="empty-text">No classes</div>'; container.appendChild(empty); document.getElementById('footer').textContent = 'Free day'; return; }
+  var now = new Date(); var nowMins = now.getHours() * 60 + now.getMinutes(); var nextClass = null; var activeClass = null;
   classes.forEach(function(c, idx) {
-    var startMins = timeToMinutes(c.start);
-    var endMins = timeToMinutes(c.end);
-    var block = document.createElement('div');
-    block.className = 'class-block';
-    block.style.animationDelay = (0.3 + idx * 0.1) + 's';
-
+    var startMins = timeToMinutes(c.start); var endMins = timeToMinutes(c.end);
+    var block = document.createElement('div'); block.className = 'class-block'; block.style.animationDelay = (0.3 + idx * 0.1) + 's';
     var state = '';
-    if (isToday) {
-      if (nowMins >= startMins && nowMins < endMins) {
-        state = 'active';
-        activeClass = c;
-        block.classList.add('active');
-      } else if (nowMins >= endMins) {
-        state = 'past';
-        block.classList.add('past');
-      } else {
-        state = 'upcoming';
-        if (!nextClass) nextClass = c;
-      }
-    }
-
-    /* Accent bar */
-    var accent = document.createElement('div');
-    accent.className = 'class-accent';
-    accent.style.background = c.color;
-    block.appendChild(accent);
-
-    /* Time column */
-    var timeCol = document.createElement('div');
-    timeCol.className = 'time-col';
-    timeCol.innerHTML = '<div class="time-start">' + formatTime(c.start) + '</div><div class="time-end">' + formatTime(c.end) + '</div>';
-    block.appendChild(timeCol);
-
-    /* Info */
-    var info = document.createElement('div');
-    info.className = 'class-info';
-    info.innerHTML = '<div class="class-name">' + c.name + '</div><div class="class-meta">' + c.prof + ' \u00B7 ' + c.room + '</div>';
-
-    /* Progress bar for active */
-    if (state === 'active') {
-      var progress = (nowMins - startMins) / (endMins - startMins) * 100;
-      var remaining = endMins - nowMins;
-      info.innerHTML += '<div class="progress-wrap"><div class="progress-fill" style="width:' + progress + '%"></div></div>';
-      info.innerHTML += '<div class="status live">' + remaining + 'm remaining</div>';
-    } else if (state === 'upcoming' && c === nextClass) {
-      var until = startMins - nowMins;
-      info.innerHTML += '<div class="status upcoming">Starts in ' + until + 'm</div>';
-    } else if (state === 'past') {
-      info.innerHTML += '<div class="status done">Completed</div>';
-    }
-
-    /* Expanded details panel */
-    var details = document.createElement('div');
-    details.className = 'class-details';
-    var durationMins = endMins - startMins;
-    var durationH = Math.floor(durationMins / 60);
-    var durationM = durationMins % 60;
-    var durationStr = durationH > 0 ? durationH + 'h ' + (durationM > 0 ? durationM + 'm' : '') : durationM + 'm';
-    details.innerHTML = '<div class="detail-divider"></div>'
-      + '<div class="detail-row"><span class="detail-icon">⏱</span><span class="detail-text">Duration: ' + durationStr.trim() + '</span></div>'
-      + '<div class="detail-row"><span class="detail-icon">\uD83D\uDCCD</span><span class="detail-text">' + c.room + '</span></div>'
-      + '<div class="detail-row"><span class="detail-icon">\uD83D\uDC64</span><span class="detail-text">' + c.prof + '</span></div>'
-      + '<div class="duration-bar"><div class="duration-fill" style="width:' + Math.min(durationMins / 180 * 100, 100) + '%;background:' + c.color + '"></div></div>';
+    if (isToday) { if (nowMins >= startMins && nowMins < endMins) { state = 'active'; activeClass = c; block.classList.add('active'); } else if (nowMins >= endMins) { state = 'past'; block.classList.add('past'); } else { state = 'upcoming'; if (!nextClass) nextClass = c; } }
+    var accent = document.createElement('div'); accent.className = 'class-accent'; accent.style.background = c.color; block.appendChild(accent);
+    var timeCol = document.createElement('div'); timeCol.className = 'time-col'; timeCol.innerHTML = '<div class="time-start">' + formatTime(c.start) + '</div><div class="time-end">' + formatTime(c.end) + '</div>'; block.appendChild(timeCol);
+    var info = document.createElement('div'); info.className = 'class-info'; info.innerHTML = '<div class="class-name">' + c.name + '</div><div class="class-meta">' + c.prof + ' \u00B7 ' + c.room + '</div>';
+    if (state === 'active') { var progress = (nowMins - startMins) / (endMins - startMins) * 100; var remaining = endMins - nowMins; info.innerHTML += '<div class="progress-wrap"><div class="progress-fill" style="width:' + progress + '%"></div></div><div class="status live">' + remaining + 'm remaining</div>'; }
+    else if (state === 'upcoming' && c === nextClass) { info.innerHTML += '<div class="status upcoming">Starts in ' + (startMins - nowMins) + 'm</div>'; }
+    else if (state === 'past') { info.innerHTML += '<div class="status done">Completed</div>'; }
+    var details = document.createElement('div'); details.className = 'class-details';
+    var dur = endMins - startMins; var dH = Math.floor(dur / 60); var dM = dur % 60; var durStr = dH > 0 ? dH + 'h ' + (dM > 0 ? dM + 'm' : '') : dM + 'm';
+    details.innerHTML = '<div class="detail-divider"></div><div class="detail-row"><span class="detail-icon">\u23F1</span><span class="detail-text">Duration: ' + durStr.trim() + '</span></div><div class="detail-row"><span class="detail-icon">\uD83D\uDCCD</span><span class="detail-text">' + c.room + '</span></div><div class="detail-row"><span class="detail-icon">\uD83D\uDC64</span><span class="detail-text">' + c.prof + '</span></div><div class="duration-bar"><div class="duration-fill" style="width:' + Math.min(dur / 180 * 100, 100) + '%;background:' + c.color + '"></div></div>';
     info.appendChild(details);
-
-    /* Click to expand/collapse */
-    block.addEventListener('click', function() {
-      var wasExpanded = this.classList.contains('expanded');
-      if (wasExpanded) { playClose(); } else { playOpen(); }
-      var allBlocks = container.querySelectorAll('.class-block');
-      for (var j = 0; j < allBlocks.length; j++) allBlocks[j].classList.remove('expanded');
-      if (!wasExpanded) this.classList.add('expanded');
-    });
-
-    block.appendChild(info);
-    container.appendChild(block);
+    block.addEventListener('click', function() { var was = this.classList.contains('expanded'); if (was) playClose(); else playOpen(); var all = container.querySelectorAll('.class-block'); for (var j = 0; j < all.length; j++) all[j].classList.remove('expanded'); if (!was) this.classList.add('expanded'); });
+    block.appendChild(info); container.appendChild(block);
   });
-
-  /* Footer */
-  var totalHours = 0;
-  classes.forEach(function(c) {
-    totalHours += (timeToMinutes(c.end) - timeToMinutes(c.start)) / 60;
-  });
-  var footerText = classes.length + ' class' + (classes.length > 1 ? 'es' : '') + ' \u00B7 ' + totalHours.toFixed(1) + 'h total';
-  document.getElementById('footer').textContent = footerText;
+  var totalH = 0; classes.forEach(function(c) { totalH += (timeToMinutes(c.end) - timeToMinutes(c.start)) / 60; });
+  document.getElementById('footer').textContent = classes.length + ' class' + (classes.length > 1 ? 'es' : '') + ' \u00B7 ' + totalH.toFixed(1) + 'h total';
 }
-
 renderSchedule();
-
-/* Live update every 30s if viewing today */
-setInterval(function() {
-  if (selectedDay === today) renderSchedule();
-}, 30000);
-
-/* ── View toggle ── */
-/* Smart default: week view if no classes today, today view otherwise */
+setInterval(function() { if (selectedDay === today) renderSchedule(); }, 30000);
 var hasClassesToday = schedule.some(function(c) { return c.day === today; });
 var currentView = hasClassesToday ? 'today' : 'week';
 var toggleBtns = document.querySelectorAll('.view-btn');
 var todayViewEl = document.getElementById('todayView');
 var weekViewEl = document.getElementById('weekView');
-
-/* Apply smart default on load */
-if (!hasClassesToday) {
-  todayViewEl.style.display = 'none';
-  weekViewEl.style.display = '';
-  document.getElementById('title').textContent = 'Weekly Overview';
-  toggleBtns.forEach(function(b) { b.classList.remove('active'); });
-  document.querySelector('.view-btn[data-view="week"]').classList.add('active');
-  renderWeekView();
-}
-
-toggleBtns.forEach(function(btn) {
-  btn.addEventListener('click', function() {
-    var view = this.dataset.view;
-    if (view === currentView) return;
-    playModeSwitch();
-    currentView = view;
-    toggleBtns.forEach(function(b) { b.classList.remove('active'); });
-    this.classList.add('active');
-    if (view === 'today') {
-      todayViewEl.style.display = '';
-      weekViewEl.style.display = 'none';
-      if (selectedDay === today) document.getElementById('title').textContent = "Today's Classes";
-      else document.getElementById('title').textContent = DAY_NAMES[selectedDay];
-    } else {
-      todayViewEl.style.display = 'none';
-      weekViewEl.style.display = '';
-      document.getElementById('title').textContent = 'Weekly Overview';
-      renderWeekView();
-    }
-  });
-});
-
+if (!hasClassesToday) { todayViewEl.style.display = 'none'; weekViewEl.style.display = ''; document.getElementById('title').textContent = 'Weekly Overview'; toggleBtns.forEach(function(b) { b.classList.remove('active'); }); document.querySelector('.view-btn[data-view="week"]').classList.add('active'); renderWeekView(); }
+toggleBtns.forEach(function(btn) { btn.addEventListener('click', function() { var view = this.dataset.view; if (view === currentView) return; playModeSwitch(); currentView = view; toggleBtns.forEach(function(b) { b.classList.remove('active'); }); this.classList.add('active'); if (view === 'today') { todayViewEl.style.display = ''; weekViewEl.style.display = 'none'; document.getElementById('title').textContent = selectedDay === today ? "Today's Classes" : DAY_NAMES[selectedDay]; } else { todayViewEl.style.display = 'none'; weekViewEl.style.display = ''; document.getElementById('title').textContent = 'Weekly Overview'; renderWeekView(); } }); });
 function renderWeekView() {
   var el = document.getElementById('weekView');
-  /* Remove old overlay & escape handler */
-  var oldOv = document.querySelector('.week-overlay');
-  if (oldOv) oldOv.remove();
+  var oldOv = document.querySelector('.week-overlay'); if (oldOv) oldOv.remove();
   if (window._weekEsc) { document.removeEventListener('keydown', window._weekEsc); }
-
-  /* Dynamic time range from schedule data */
   var allStarts = schedule.map(function(c) { return timeToMinutes(c.start); });
   var allEnds = schedule.map(function(c) { return timeToMinutes(c.end); });
-  var GS = Math.min.apply(null, allStarts) - 30;
-  var GE = Math.max.apply(null, allEnds) + 30;
-  var SPAN = GE - GS;
-
-  var now = new Date();
-  var nowMins = now.getHours() * 60 + now.getMinutes();
+  var GS = Math.min.apply(null, allStarts) - 30; var GE = Math.max.apply(null, allEnds) + 30; var SPAN = GE - GS;
+  var now = new Date(); var nowMins = now.getHours() * 60 + now.getMinutes();
   var dayLabels = ['MON','TUE','WED','THU','FRI'];
-
-  var html = '<div class="week-strip">';
-
-  /* Time axis header */
-  html += '<div class="week-time-header">';
-  for (var h = Math.ceil(GS / 60); h <= Math.floor(GE / 60); h++) {
-    var pct = ((h * 60 - GS) / SPAN) * 100;
-    var lbl = h > 12 ? (h - 12) + 'p' : (h === 12 ? '12p' : h + 'a');
-    html += '<div class="week-time-tick" style="left:' + pct + '%">' + lbl + '</div>';
-  }
+  var html = '<div class="week-strip"><div class="week-time-header">';
+  for (var h = Math.ceil(GS / 60); h <= Math.floor(GE / 60); h++) { var pct = ((h * 60 - GS) / SPAN) * 100; var lbl = h > 12 ? (h - 12) + 'p' : (h === 12 ? '12p' : h + 'a'); html += '<div class="week-time-tick" style="left:' + pct + '%">' + lbl + '</div>'; }
   html += '</div>';
-
-  /* Day rows */
-  for (var d = 1; d <= 5; d++) {
-    var isToday = d === today;
-    var dayClasses = schedule.filter(function(c) { return c.day === d; });
-
-    html += '<div class="week-row">';
-    html += '<div class="week-day-label' + (isToday ? ' today-label' : '') + '">' + dayLabels[d - 1] + '</div>';
-    html += '<div class="week-track' + (isToday ? ' today-track' : '') + '">';
-
-    if (isToday && nowMins >= GS && nowMins <= GE) {
-      var nowPct = ((nowMins - GS) / SPAN) * 100;
-      html += '<div class="week-now-marker" style="left:' + nowPct + '%"></div>';
-    }
-
-    if (dayClasses.length === 0) {
-      html += '<div class="week-empty-label">free</div>';
-    } else {
-      dayClasses.forEach(function(c, idx) {
-        var sm = timeToMinutes(c.start), em = timeToMinutes(c.end);
-        var left = ((sm - GS) / SPAN) * 100;
-        var width = ((em - sm) / SPAN) * 100;
-        var numMatch = c.name.match(/\d{4}/);
-        var shortNum = numMatch ? numMatch[0] : c.name.split(':')[0];
-        html += '<div class="week-pill" data-day="' + c.day + '" data-idx="' + idx + '" style="left:' + left + '%;width:' + width + '%;background:' + c.color + '">'
-          + '<span class="week-pill-name">' + shortNum + '</span>'
-          + '</div>';
-      });
-    }
-
-    html += '</div></div>';
-  }
-  html += '</div>';
-  el.innerHTML = html;
-
-  /* Detail overlay */
-  var overlay = document.createElement('div');
-  overlay.className = 'week-overlay';
-  overlay.innerHTML = '<div class="week-detail-card" id="weekDetailCard"></div>';
-  document.body.appendChild(overlay);
-  overlay.addEventListener('click', function(e) {
-    if (e.target === overlay) { playClose(); overlay.classList.remove('show'); }
-  });
-  window._weekEsc = function(e) { if (e.key === 'Escape') { playClose(); overlay.classList.remove('show'); } };
-  document.addEventListener('keydown', window._weekEsc);
-
-  /* Click handlers on pills */
-  el.querySelectorAll('.week-pill').forEach(function(pill) {
-    pill.addEventListener('click', function(e) {
-      e.stopPropagation();
-      playOpen();
-      var day = parseInt(this.dataset.day);
-      var idx = parseInt(this.dataset.idx);
-      var classes = schedule.filter(function(c) { return c.day === day; });
-      var c = classes[idx];
-      if (!c) return;
-      var sm = timeToMinutes(c.start), em = timeToMinutes(c.end);
-      var dur = em - sm;
-      var dH = Math.floor(dur / 60), dM = dur % 60;
-      var durStr = dH > 0 ? dH + 'h' + (dM > 0 ? ' ' + dM + 'm' : '') : dM + 'm';
-      var dayName = DAY_NAMES[day];
-      var card = document.getElementById('weekDetailCard');
-      card.innerHTML = '<div class="week-detail-accent" style="background:' + c.color + '"></div>'
-        + '<div class="week-detail-name">' + c.name + '</div>'
-        + '<div class="week-detail-sub">' + dayName + '</div>'
-        + '<div class="week-detail-divider"></div>'
-        + '<div class="week-detail-row"><span class="week-detail-icon">\uD83D\uDD50</span><span class="week-detail-text">' + formatTime(c.start) + ' – ' + formatTime(c.end) + '</span></div>'
-        + '<div class="week-detail-row"><span class="week-detail-icon">\uD83D\uDCCD</span><span class="week-detail-text">' + c.room + '</span></div>'
-        + '<div class="week-detail-row"><span class="week-detail-icon">\uD83D\uDC64</span><span class="week-detail-text">' + c.prof + '</span></div>'
-        + '<div class="week-detail-dur" style="background:' + c.color + '">' + durStr + '</div>'
-        + '<div class="week-detail-close">tap outside to close</div>';
-      overlay.classList.add('show');
-    });
-  });
+  for (var d = 1; d <= 5; d++) { var isToday = d === today; var dayClasses = schedule.filter(function(c) { return c.day === d; }); html += '<div class="week-row"><div class="week-day-label' + (isToday ? ' today-label' : '') + '">' + dayLabels[d - 1] + '</div><div class="week-track' + (isToday ? ' today-track' : '') + '">';
+    if (isToday && nowMins >= GS && nowMins <= GE) { html += '<div class="week-now-marker" style="left:' + ((nowMins - GS) / SPAN * 100) + '%"></div>'; }
+    if (dayClasses.length === 0) { html += '<div class="week-empty-label">free</div>'; } else { dayClasses.forEach(function(c, idx) { var sm = timeToMinutes(c.start), em = timeToMinutes(c.end); var left = ((sm - GS) / SPAN) * 100; var width = ((em - sm) / SPAN) * 100; var numMatch = c.name.match(/\d{4}/); var shortNum = numMatch ? numMatch[0] : c.name.split(':')[0]; html += '<div class="week-pill" data-day="' + c.day + '" data-idx="' + idx + '" style="left:' + left + '%;width:' + width + '%;background:' + c.color + '"><span class="week-pill-name">' + shortNum + '</span></div>'; }); }
+    html += '</div></div>'; }
+  html += '</div>'; el.innerHTML = html;
+  var overlay = document.createElement('div'); overlay.className = 'week-overlay'; overlay.innerHTML = '<div class="week-detail-card" id="weekDetailCard"></div>'; document.body.appendChild(overlay);
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) { playClose(); overlay.classList.remove('show'); } });
+  window._weekEsc = function(e) { if (e.key === 'Escape') { playClose(); overlay.classList.remove('show'); } }; document.addEventListener('keydown', window._weekEsc);
+  el.querySelectorAll('.week-pill').forEach(function(pill) { pill.addEventListener('click', function(e) { e.stopPropagation(); playOpen(); var day = parseInt(this.dataset.day); var idx = parseInt(this.dataset.idx); var classes = schedule.filter(function(c) { return c.day === day; }); var c = classes[idx]; if (!c) return; var sm = timeToMinutes(c.start), em = timeToMinutes(c.end); var dur = em - sm; var dH = Math.floor(dur / 60), dM = dur % 60; var durStr = dH > 0 ? dH + 'h' + (dM > 0 ? ' ' + dM + 'm' : '') : dM + 'm'; var card = document.getElementById('weekDetailCard'); card.innerHTML = '<div class="week-detail-accent" style="background:' + c.color + '"></div><div class="week-detail-name">' + c.name + '</div><div class="week-detail-sub">' + DAY_NAMES[day] + '</div><div class="week-detail-divider"></div><div class="week-detail-row"><span class="week-detail-icon">\uD83D\uDD50</span><span class="week-detail-text">' + formatTime(c.start) + ' \u2013 ' + formatTime(c.end) + '</span></div><div class="week-detail-row"><span class="week-detail-icon">\uD83D\uDCCD</span><span class="week-detail-text">' + c.room + '</span></div><div class="week-detail-row"><span class="week-detail-icon">\uD83D\uDC64</span><span class="week-detail-text">' + c.prof + '</span></div><div class="week-detail-dur" style="background:' + c.color + '">' + durStr + '</div><div class="week-detail-close">tap outside to close</div>'; overlay.classList.add('show'); }); });
 }
-
-/* ── Init core systems ── */
 initBackground('bg', { orbCount: 2, orbRadius: [60, 100], orbSpeed: 0.2, hueRange: [260, 30], mouseTracking: true });
 initTilt('.container', { maxDeg: 4 });
 </script>
