@@ -293,18 +293,19 @@ body {
 <script>
 /* ══════════════════════════════════════════
    MILESTONES — update as life evolves
+   w: importance weight (1–3), controls blip size
    ══════════════════════════════════════════ */
 var MS = [
-  { n: "UWindsor Graduation",       d: "2026-04-28", c: "#8b5cf6", cat: "Academic" },
-  { n: "Queen's Bursary Deadline",   d: "2026-07-15", c: "#f59e0b", cat: "Law School" },
-  { n: "Queen's Law — 1L Begins", d: "2026-09-08", c: "#3b82f6", cat: "Law School" },
-  { n: "22nd Birthday",             d: "2026-10-20", c: "#ec4899", cat: "Personal" },
+  { n: "UWindsor Graduation",       d: "2026-04-28", c: "#8b5cf6", cat: "Academic", w: 2 },
+  { n: "Queen's Bursary Deadline",   d: "2026-07-15", c: "#f59e0b", cat: "Law School", w: 1 },
+  { n: "Queen's Law — 1L Begins", d: "2026-09-08", c: "#3b82f6", cat: "Law School", w: 3 },
+  { n: "22nd Birthday",             d: "2026-10-20", c: "#ec4899", cat: "Personal", w: 1 },
 ];
 
 var MAX_DAYS = 210;
 var RINGS = [7, 30, 90, 180];
 var RLBL = ['1W', '1M', '3M', '6M'];
-var ROT_MS = 8000; /* ms per full sweep rotation */
+var ROT_MS = 8000;
 
 function daysTo(ds) {
   var t = new Date(ds + 'T00:00:00'), n = new Date();
@@ -320,8 +321,26 @@ function hashStr(s) {
   return h;
 }
 
+/* ── v2: Sector quadrants — each category gets an angular sector ── */
+var catList = [];
+MS.forEach(function(m) { if (catList.indexOf(m.cat) === -1) catList.push(m.cat); });
+var sectorSize = (Math.PI * 2) / Math.max(catList.length, 1);
+function catSectorAngle(cat, seed) {
+  var idx = catList.indexOf(cat);
+  var base = idx * sectorSize + sectorSize * 0.1;
+  var spread = (Math.abs(seed) % 1000) / 1000;
+  return base + spread * sectorSize * 0.8;
+}
+
+/* ── v2: Threat level — events in 1W ring warm the centre ── */
+function getThreatLevel() {
+  var n = 0;
+  items.forEach(function(m) { if (m.days <= 7 && m.days >= 0) n++; });
+  return Math.min(n / 3, 1);
+}
+
 var items = MS.map(function(m) {
-  return { n: m.n, d: m.d, c: m.c, cat: m.cat, days: daysTo(m.d) };
+  return { n: m.n, d: m.d, c: m.c, cat: m.cat, days: daysTo(m.d), w: m.w || 1 };
 }).filter(function(m) { return m.days >= 0; }).sort(function(a, b) { return a.days - b.days; });
 
 /* ── Build event list ── */
@@ -366,19 +385,37 @@ ctx.scale(DPR, DPR);
 
 var C = SZ / 2, MR = C - 10;
 
-/* Blip positions (deterministic from name hash) */
+/* v2: Animation state */
 var echoes = [];
+var pings = [];
+var bursts = [];
+var ENTRY_DUR = 1200;
+var loadTime = -1;
+var lastPingTime = 0;
+
+/* v2: Blip positions with sectors + orbital drift + weighted sizing */
 var blips = items.filter(function(m) { return m.days <= MAX_DAYS; }).map(function(m) {
   var dist = (m.days / MAX_DAYS) * MR;
-  var angle = ((Math.abs(hashStr(m.n)) % 3600) / 3600) * Math.PI * 2;
+  var angle = catSectorAngle(m.cat, hashStr(m.n));
+  var orbitSpeed = 0.00012 * Math.max(0.15, 1 - dist / MR) + 0.00003;
   return {
-    x: C + Math.cos(angle) * dist,
-    y: C + Math.sin(angle) * dist,
-    angle: angle, dist: dist,
-    c: m.c, n: m.n, days: m.days,
+    angle: angle, targetDist: dist, dist: MR + 30,
+    orbitSpeed: orbitSpeed,
+    c: m.c, n: m.n, days: m.days, w: m.w || 1, cat: m.cat,
     phase: Math.random() * Math.PI * 2,
-    lastSwept: -9999
+    lastSwept: -9999, x: 0, y: 0
   };
+});
+
+/* v2: Arrival burst particles for 0-day events */
+items.forEach(function(m) {
+  if (m.days === 0) {
+    for (var i = 0; i < 24; i++) {
+      var ba = Math.random() * Math.PI * 2;
+      var bv = 0.4 + Math.random() * 1.8;
+      bursts.push({ x: C, y: C, vx: Math.cos(ba) * bv, vy: Math.sin(ba) * bv, r: 0.8 + Math.random() * 2, a: 0.9, c: m.c });
+    }
+  }
 });
 
 /* ── Static layer (rendered once, blitted per frame) ── */
@@ -408,15 +445,40 @@ RINGS.forEach(function(days, i) {
 sCtx.beginPath(); sCtx.arc(C, C, MR + 1, 0, Math.PI * 2);
 sCtx.strokeStyle = dark ? 'rgba(138,92,246,0.12)' : 'rgba(138,92,246,0.08)';
 sCtx.lineWidth = 0.8; sCtx.stroke();
+/* v2: Sector divider lines */
+for (var si = 0; si < catList.length; si++) {
+  var sa = si * sectorSize;
+  sCtx.beginPath(); sCtx.moveTo(C, C);
+  sCtx.lineTo(C + Math.cos(sa) * (MR + 1), C + Math.sin(sa) * (MR + 1));
+  sCtx.strokeStyle = dark ? 'rgba(138,92,246,0.05)' : 'rgba(138,92,246,0.035)';
+  sCtx.lineWidth = 0.5; sCtx.stroke();
+}
+/* v2: Sector category labels */
+sCtx.font = '500 5.5px Inter';
+catList.forEach(function(cat, i) {
+  var midAngle = i * sectorSize + sectorSize / 2;
+  var lr = MR * 0.52;
+  var lx = C + Math.cos(midAngle) * lr;
+  var ly = C + Math.sin(midAngle) * lr;
+  sCtx.save(); sCtx.translate(lx, ly);
+  var rot = midAngle;
+  if (rot > Math.PI / 2 && rot < Math.PI * 1.5) rot += Math.PI;
+  sCtx.rotate(rot);
+  sCtx.textAlign = 'center';
+  sCtx.fillStyle = dark ? 'rgba(167,139,250,0.14)' : 'rgba(138,92,246,0.11)';
+  sCtx.fillText(cat.toUpperCase(), 0, 2);
+  sCtx.restore();
+});
 
 function draw(t) {
+  if (loadTime < 0) loadTime = t;
   ctx.clearRect(0, 0, SZ, SZ);
   var sweep = ((t % ROT_MS) / ROT_MS) * Math.PI * 2;
 
-  /* ── Static layer (crosshairs + rings + border) ── */
+  /* Static layer */
   ctx.drawImage(staticCv, 0, 0, SZ, SZ);
 
-  /* ── Sweep cone (layered arc sectors for phosphor trail) ── */
+  /* Sweep cone */
   var SL = 30, CONE = 0.7;
   for (var i = SL - 1; i >= 0; i--) {
     var f = i / SL;
@@ -429,7 +491,7 @@ function draw(t) {
     ctx.fill();
   }
 
-  /* ── Sweep line ── */
+  /* Sweep line */
   var sx = C + Math.cos(sweep) * MR;
   var sy = C + Math.sin(sweep) * MR;
   var lg = ctx.createLinearGradient(C, C, sx, sy);
@@ -446,7 +508,21 @@ function draw(t) {
   ctx.beginPath(); ctx.arc(sx, sy, 6, 0, Math.PI * 2);
   ctx.fillStyle = tg; ctx.fill();
 
-  /* ── Echo rings (expanding from swept blips) ── */
+  /* v2: Centre sonar ping — one per full rotation */
+  if (sweep < 0.3 && t - lastPingTime > ROT_MS * 0.85) {
+    lastPingTime = t;
+    pings.push({ r: 3, a: 0.35 });
+  }
+  for (var pi = pings.length - 1; pi >= 0; pi--) {
+    var pg = pings[pi];
+    pg.r += 0.5; pg.a -= 0.005;
+    if (pg.a <= 0) { pings.splice(pi, 1); continue; }
+    ctx.beginPath(); ctx.arc(C, C, pg.r, 0, Math.PI * 2);
+    ctx.strokeStyle = dark ? 'rgba(167,139,250,' + pg.a + ')' : 'rgba(138,92,246,' + pg.a + ')';
+    ctx.lineWidth = 0.8; ctx.stroke();
+  }
+
+  /* Echo rings */
   for (var e = echoes.length - 1; e >= 0; e--) {
     var ec = echoes[e];
     ec.r += 0.4; ec.a -= 0.012;
@@ -456,54 +532,82 @@ function draw(t) {
     ctx.lineWidth = 1; ctx.stroke();
   }
 
-  /* ── Blips ── */
-  blips.forEach(function(b) {
-    var diff = sweep - b.angle;
-    while (diff < 0) diff += Math.PI * 2;
+  /* v2: Arrival burst particles */
+  for (var bi = bursts.length - 1; bi >= 0; bi--) {
+    var bp = bursts[bi];
+    bp.x += bp.vx; bp.y += bp.vy;
+    bp.vx *= 0.97; bp.vy *= 0.97;
+    bp.a -= 0.007;
+    if (bp.a <= 0) { bursts.splice(bi, 1); continue; }
+    ctx.beginPath(); ctx.arc(bp.x, bp.y, bp.r, 0, Math.PI * 2);
+    ctx.fillStyle = hexRgba(bp.c, bp.a); ctx.fill();
+  }
+
+  /* v2: Blips — orbital drift + staggered entry + weighted sizing */
+  var entryElapsed = t - loadTime;
+  blips.forEach(function(b, bIdx) {
+    b.angle += b.orbitSpeed;
+    var bDelay = bIdx * 150;
+    var bProg = Math.min(Math.max(0, entryElapsed - bDelay) / ENTRY_DUR, 1);
+    bProg = 1 - Math.pow(1 - bProg, 3);
+    b.dist = b.targetDist + (MR + 30 - b.targetDist) * (1 - bProg);
+    b.x = C + Math.cos(b.angle) * b.dist;
+    b.y = C + Math.sin(b.angle) * b.dist;
+    if (bProg < 0.05) return;
+
+    var ws = 0.7 + b.w * 0.35;
+    var diff = sweep - (b.angle % (Math.PI * 2));
+    if (diff < 0) diff += Math.PI * 2;
     var intensity = diff < 0.4 ? Math.max(0, 1 - diff / 0.4) : 0;
     var pulse = 0.35 + 0.2 * Math.sin(t * 0.003 + b.phase);
     var total = Math.min(Math.max(pulse, intensity), 1);
 
-    /* Trigger echo on sweep pass */
-    if (diff < 0.15 && t - b.lastSwept > 2000) {
+    if (diff < 0.15 && t - b.lastSwept > 2000 && bProg > 0.8) {
       b.lastSwept = t;
-      echoes.push({ x: b.x, y: b.y, r: 4, a: 0.5, c: b.c });
+      echoes.push({ x: b.x, y: b.y, r: 4 * ws, a: 0.5, c: b.c });
     }
 
-    /* Outer glow */
-    var gr = 5 + intensity * 6;
+    var gr = (5 + intensity * 6) * ws;
     var gg = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, gr);
     gg.addColorStop(0, hexRgba(b.c, total * 0.5));
     gg.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.beginPath(); ctx.arc(b.x, b.y, gr, 0, Math.PI * 2);
     ctx.fillStyle = gg; ctx.fill();
 
-    /* Core dot */
-    var cr = 2.5 + intensity * 1.5;
+    var cr = (2.5 + intensity * 1.5) * ws;
     ctx.beginPath(); ctx.arc(b.x, b.y, cr, 0, Math.PI * 2);
-    ctx.globalAlpha = total; ctx.fillStyle = b.c; ctx.fill();
+    ctx.globalAlpha = total * bProg; ctx.fillStyle = b.c; ctx.fill();
     ctx.globalAlpha = 1;
 
-    /* Day label on sweep */
     if (intensity > 0.15) {
-      ctx.font = '600 7px Inter';
+      ctx.font = '600 ' + Math.round(7 * ws) + 'px Inter';
       ctx.fillStyle = hexRgba(b.c, intensity * 0.85);
       ctx.textAlign = 'center';
-      ctx.fillText(b.days + 'd', b.x, b.y - 10);
+      ctx.fillText(b.days + 'd', b.x, b.y - 10 * ws);
     }
   });
 
-  /* ── Centre core ── */
+  /* v2: Centre core — adaptive threat glow */
+  var threat = getThreatLevel();
+  var coreHue = Math.round(260 - threat * 200);
   var cp = 2.5 + Math.sin(t * 0.002) * 0.5;
-  var cg = ctx.createRadialGradient(C, C, 0, C, C, cp + 5);
-  cg.addColorStop(0, dark ? 'rgba(167,139,250,0.7)' : 'rgba(138,92,246,0.6)');
-  cg.addColorStop(0.5, dark ? 'rgba(167,139,250,0.15)' : 'rgba(138,92,246,0.1)');
+  var coreR = cp + 5 + threat * 4;
+  var cg = ctx.createRadialGradient(C, C, 0, C, C, coreR);
+  cg.addColorStop(0, 'hsla(' + coreHue + ',75%,' + (dark ? 70 : 60) + '%,0.7)');
+  cg.addColorStop(0.5, 'hsla(' + coreHue + ',75%,' + (dark ? 70 : 60) + '%,0.15)');
   cg.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.beginPath(); ctx.arc(C, C, cp + 5, 0, Math.PI * 2);
+  ctx.beginPath(); ctx.arc(C, C, coreR, 0, Math.PI * 2);
   ctx.fillStyle = cg; ctx.fill();
   ctx.beginPath(); ctx.arc(C, C, cp, 0, Math.PI * 2);
-  ctx.fillStyle = dark ? '#a78bfa' : '#8b5cf6'; ctx.fill();
+  ctx.fillStyle = 'hsl(' + coreHue + ',75%,' + (dark ? 70 : 60) + '%)'; ctx.fill();
 
+  /* v2: Nearest event countdown in centre */
+  if (items.length > 0 && items[0].days <= 30) {
+    ctx.font = '700 6px Inter';
+    ctx.fillStyle = dark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.18)';
+    ctx.textAlign = 'center';
+    ctx.fillText(items[0].days + 'd', C, C + cp + 13);
+  }
 }
 
 /* ── Popup system ── */
