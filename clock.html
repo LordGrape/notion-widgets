@@ -88,7 +88,7 @@ body {
   border: 1px solid var(--card-border);
   opacity: 0;
   animation: fadeIn 0.8s ease-out forwards, breathe 8s cubic-bezier(0.4,0,0.2,1) 0.8s infinite;
-  transition: transform 0.15s ease-out;
+  transition: transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1);
   transform-style: preserve-3d; will-change: transform, opacity;
   contain: content; width: 94%; max-width: 420px; min-width: 280px;
 }
@@ -614,7 +614,7 @@ document.getElementById('breakSkip').addEventListener('click', function() { play
 var card = document.querySelector('.container');
 setTimeout(function() { card.style.opacity = '1'; card.style.animation = 'breathe 8s cubic-bezier(0.4,0,0.2,1) infinite'; }, 900);
 initBackground('bgCanvas', { orbCount: 3, particleCount: Core.isLowEnd ? (Core.isDark ? 8 : 5) : (Core.isDark ? 18 : 12), orbRadius: [80, 140], hueRange: [250, 40], mouseTracking: true });
-initTilt('.container', { maxDeg: 3 });
+initTilt('.container', { maxDeg: 2 });
 </script>
 </body>
 </html>
