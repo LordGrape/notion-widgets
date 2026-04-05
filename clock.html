@@ -291,6 +291,7 @@ body {
   </div>
 </div>
 
+<script src="core.js"></script>
 <script>
 /* ══════════════════════════════════════
    MODE SWITCHING
@@ -388,25 +389,7 @@ function fetchWeather() {
 fetchWeather();
 setInterval(fetchWeather, 900000);
 
-/* ══════════════════════════════════════
-   FOCUS STATS (localStorage)
-   ══════════════════════════════════════ */
-function todayKey() {
-  var d = new Date();
-  return 'focus_' + d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-}
-function addFocusSeconds(secs) {
-  if (secs < 1) return;
-  var key = todayKey();
-  var total = parseInt(localStorage.getItem(key) || '0', 10) + Math.floor(secs);
-  localStorage.setItem(key, String(total));
-  return total;
-}
-function getTodayFocus() { return parseInt(localStorage.getItem(todayKey()) || '0', 10); }
-function formatFocusTime(secs) {
-  var h = Math.floor(secs / 3600), m = Math.floor((secs % 3600) / 60);
-  return h > 0 ? h + 'h ' + m + 'm' : m + 'm';
-}
+/* Focus stats display — utilities from core.js */
 function updateFocusStats() {
   var total = getTodayFocus();
   var capped = total >= 14400;
@@ -423,88 +406,7 @@ function updateFocusStats() {
 }
 updateFocusStats();
 
-/* ══════════════════════════════════════
-   AUDIO: Web Audio API
-   ══════════════════════════════════════ */
-var audioCtx = null;
-function getAudioCtx() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-  return audioCtx;
-}
-
-function playChime() {
-  var ctx = getAudioCtx(), now = ctx.currentTime;
-  [523.25, 659.25, 783.99].forEach(function(freq, i) {
-    var osc = ctx.createOscillator();
-    var gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0, now + i * 0.22);
-    gain.gain.linearRampToValueAtTime(0.25, now + i * 0.22 + 0.04);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.22 + 1.4);
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.start(now + i * 0.22); osc.stop(now + i * 0.22 + 1.6);
-  });
-}
-
-function playClick() {
-  var ctx = getAudioCtx(), now = ctx.currentTime;
-  var osc = ctx.createOscillator();
-  var gain = ctx.createGain();
-  osc.type = 'sine'; osc.frequency.value = 800;
-  gain.gain.setValueAtTime(0.12, now);
-  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
-  osc.connect(gain); gain.connect(ctx.destination);
-  osc.start(now); osc.stop(now + 0.08);
-}
-
-/* ══════════════════════════════════════
-   CONFETTI
-   ══════════════════════════════════════ */
-var confettiCv = document.getElementById('confetti');
-var confettiCtx = confettiCv.getContext('2d');
-var confettiParts = [], confettiRunning = false;
-function resizeConfetti() { confettiCv.width = window.innerWidth; confettiCv.height = window.innerHeight; }
-resizeConfetti(); window.addEventListener('resize', resizeConfetti);
-
-var CCOLORS = ['#7c3aed','#8b5cf6','#a78bfa','#c4b5fd','#ddd6fe','#ede9fe','#ec4899','#f59e0b','#10b981','#6366f1'];
-
-function launchConfetti() {
-  confettiParts = [];
-  var cx = confettiCv.width / 2, cy = confettiCv.height * 0.38;
-  for (var i = 0; i < 150; i++) {
-    var angle = Math.random() * Math.PI * 2;
-    var speed = 3 + Math.random() * 9;
-    confettiParts.push({
-      x: cx, y: cy,
-      vx: Math.cos(angle) * speed * (0.4 + Math.random() * 0.6),
-      vy: Math.sin(angle) * speed * (0.4 + Math.random() * 0.6) - 3,
-      w: 4 + Math.random() * 7, h: 3 + Math.random() * 5,
-      color: CCOLORS[Math.floor(Math.random() * CCOLORS.length)],
-      rot: Math.random() * Math.PI * 2, rotV: (Math.random() - 0.5) * 0.3,
-      a: 1, gravity: 0.1 + Math.random() * 0.08
-    });
-  }
-  if (!confettiRunning) { confettiRunning = true; animConfetti(); }
-}
-
-function animConfetti() {
-  confettiCtx.clearRect(0, 0, confettiCv.width, confettiCv.height);
-  var alive = false;
-  confettiParts.forEach(function(p) {
-    if (p.a <= 0) return; alive = true;
-    p.x += p.vx; p.y += p.vy; p.vy += p.gravity; p.vx *= 0.99;
-    p.rot += p.rotV; p.a -= 0.006;
-    if (p.a < 0) p.a = 0;
-    confettiCtx.save(); confettiCtx.translate(p.x, p.y); confettiCtx.rotate(p.rot);
-    confettiCtx.globalAlpha = p.a; confettiCtx.fillStyle = p.color;
-    confettiCtx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
-    confettiCtx.restore();
-  });
-  if (alive) requestAnimationFrame(animConfetti);
-  else { confettiRunning = false; confettiCtx.clearRect(0, 0, confettiCv.width, confettiCv.height); }
-}
+/* Audio, confetti — from core.js */
 
 /* ══════════════════════════════════════
    STOPWATCH
@@ -638,7 +540,7 @@ function tickTimer() {
     document.getElementById('tmLabel').className = 'session-label done';
     document.getElementById('tmRing').classList.add('complete');
     addFocusSeconds(tmDuration); updateFocusStats();
-    playChime(); launchConfetti();
+    playChime(); launchConfetti('confetti');
     var needsBreak = tmDuration >= 2700;
     setTimeout(function() {
       tmRemaining = tmDuration; updateTMDisplay();
@@ -707,92 +609,11 @@ function dismissBreak() {
 }
 document.getElementById('breakSkip').addEventListener('click', function() { playClick(); dismissBreak(); });
 
-/* ══════════════════════════════════════
-   3D MOUSE TILT + BACKGROUND
-   ══════════════════════════════════════ */
+/* ── Init core systems ── */
 var card = document.querySelector('.container');
 setTimeout(function() { card.style.opacity = '1'; card.style.animation = 'breathe 8s cubic-bezier(0.4,0,0.2,1) infinite'; }, 900);
-var mouseX = innerWidth / 2, mouseY = innerHeight / 2;
-var tiltQueued = false;
-document.addEventListener('mousemove', function(e) {
-  mouseX = e.clientX; mouseY = e.clientY;
-  if (tiltQueued) return; tiltQueued = true;
-  requestAnimationFrame(function() {
-    tiltQueued = false;
-    var rect = card.getBoundingClientRect();
-    var cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
-    var dx = (e.clientX - cx) / (rect.width / 2), dy = (e.clientY - cy) / (rect.height / 2);
-    card.style.transform = 'perspective(800px) rotateX(' + (dy * -3) + 'deg) rotateY(' + (dx * 3) + 'deg)';
-  });
-});
-document.addEventListener('mouseleave', function() { card.style.transform = 'perspective(800px) rotateX(0) rotateY(0)'; });
-
-/* ── Background: orbs + particles ── */
-var isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-var isLowEnd = navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4;
-var ORB_ALPHA = isDark ? 0.04 : 0.02;
-var P_RGB = isDark ? '167, 139, 250' : '124, 58, 237';
-var P_ALPHA_BASE = isDark ? 0.25 : 0.1;
-
-var bgCanvas = document.getElementById('bgCanvas');
-var bgCtx = bgCanvas.getContext('2d');
-var W, H;
-function resizeBg() { W = bgCanvas.width = window.innerWidth; H = bgCanvas.height = window.innerHeight; }
-resizeBg();
-window.addEventListener('resize', resizeBg);
-
-var orbs = Array.from({ length: isLowEnd ? 1 : 3 }, function() {
-  return {
-    x: Math.random() * innerWidth, y: Math.random() * innerHeight,
-    r: 80 + Math.random() * 140, dx: (Math.random() - 0.5) * 0.15, dy: (Math.random() - 0.5) * 0.15,
-    hue: 250 + Math.random() * 40, alpha: ORB_ALPHA + Math.random() * 0.01
-  };
-});
-var particles = Array.from({ length: isLowEnd ? (isDark ? 8 : 5) : (isDark ? 18 : 12) }, function() {
-  return {
-    x: Math.random() * innerWidth, y: Math.random() * innerHeight,
-    r: 0.6 + Math.random() * 1.8, speed: 0.08 + Math.random() * 0.2,
-    alpha: P_ALPHA_BASE * (0.3 + Math.random() * 0.7), flicker: Math.random() * Math.PI * 2
-  };
-});
-
-function drawOrbs() {
-  for (var i = 0; i < orbs.length; i++) {
-    var o = orbs[i];
-    var pullX = (mouseX - o.x) * 0.0003;
-    var pullY = (mouseY - o.y) * 0.0003;
-    o.x += o.dx + pullX; o.y += o.dy + pullY;
-    if (o.x < -o.r) o.x = W + o.r; if (o.x > W + o.r) o.x = -o.r;
-    if (o.y < -o.r) o.y = H + o.r; if (o.y > H + o.r) o.y = -o.r;
-    var g = bgCtx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r);
-    g.addColorStop(0, 'hsla(' + o.hue + ', 70%, 50%, ' + o.alpha + ')');
-    g.addColorStop(1, 'hsla(' + o.hue + ', 70%, 50%, 0)');
-    bgCtx.fillStyle = g; bgCtx.beginPath(); bgCtx.arc(o.x, o.y, o.r, 0, Math.PI * 2); bgCtx.fill();
-  }
-}
-function drawParticles(time) {
-  for (var i = 0; i < particles.length; i++) {
-    var p = particles[i];
-    p.y -= p.speed; if (p.y < -10) { p.y = H + 10; p.x = Math.random() * W; }
-    var a = p.alpha * (0.5 + 0.5 * Math.sin(time * 0.002 + p.flicker));
-    bgCtx.fillStyle = 'rgba(' + P_RGB + ', ' + a + ')';
-    bgCtx.beginPath(); bgCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2); bgCtx.fill();
-  }
-}
-var bgAnimRunning = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-var bgLastFrame = 0;
-function animateBg(time) {
-  if (!bgAnimRunning) return;
-  if (time - bgLastFrame < 32) { requestAnimationFrame(animateBg); return; }
-  bgLastFrame = time;
-  bgCtx.clearRect(0, 0, W, H); drawOrbs(); drawParticles(time);
-  requestAnimationFrame(animateBg);
-}
-requestAnimationFrame(animateBg);
-document.addEventListener('visibilitychange', function() {
-  if (document.hidden) { bgAnimRunning = false; }
-  else { bgAnimRunning = true; requestAnimationFrame(animateBg); }
-});
+initBackground('bgCanvas', { orbCount: 3, particleCount: Core.isLowEnd ? (Core.isDark ? 8 : 5) : (Core.isDark ? 18 : 12), orbRadius: [80, 140], hueRange: [250, 40], mouseTracking: true });
+initTilt('.container', { maxDeg: 3 });
 </script>
 </body>
 </html>
