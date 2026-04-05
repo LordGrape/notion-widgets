@@ -163,6 +163,7 @@ body {
     <div class="book" id="book"></div>
   </div>
 </div>
+<script src="core.js"></script>
 <script>
 var quotes = [
   { text: "You have power over your mind, not outside events. Realize this, and you will find strength.", author: "Marcus Aurelius", book: "Meditations" },
@@ -234,23 +235,7 @@ setTimeout(function refresh() {
   setTimeout(refresh, msUntilMidnight());
 }, msUntilMidnight());
 
-/* ── Audio: click feedback ── */
-var audioCtx = null;
-function getAudioCtx() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-  return audioCtx;
-}
-function playClick() {
-  var ctx = getAudioCtx(), now = ctx.currentTime;
-  var osc = ctx.createOscillator();
-  var gain = ctx.createGain();
-  osc.type = 'sine'; osc.frequency.value = 800;
-  gain.gain.setValueAtTime(0.12, now);
-  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
-  osc.connect(gain); gain.connect(ctx.destination);
-  osc.start(now); osc.stop(now + 0.08);
-}
+/* Audio from core.js */
 
 /* ── 3D Physics spin (Y-axis flip) ── */
 var card = document.querySelector('.container');
@@ -329,70 +314,8 @@ function phCoast() {
   requestAnimationFrame(phCoast);
 }
 
-/* ── Background: orbs + particles (lighter for banner) ── */
-var isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-var isLowEnd = navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4;
-var ORB_ALPHA = isDark ? 0.04 : 0.02;
-var P_RGB = isDark ? '167, 139, 250' : '124, 58, 237';
-var P_ALPHA_BASE = isDark ? 0.25 : 0.1;
-
-var canvas = document.getElementById('bg');
-var ctx = canvas.getContext('2d');
-var W, H;
-function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
-resize();
-window.addEventListener('resize', resize);
-
-var orbs = Array.from({ length: isLowEnd ? 1 : 2 }, function() {
-  return {
-    x: Math.random() * innerWidth, y: Math.random() * innerHeight,
-    r: 60 + Math.random() * 100, dx: (Math.random() - 0.5) * 0.2, dy: (Math.random() - 0.5) * 0.2,
-    hue: 260 + Math.random() * 30, alpha: ORB_ALPHA + Math.random() * 0.01
-  };
-});
-var particles = Array.from({ length: isLowEnd ? (isDark ? 6 : 4) : (isDark ? 12 : 8) }, function() {
-  return {
-    x: Math.random() * innerWidth, y: Math.random() * innerHeight,
-    r: 0.8 + Math.random() * 1.5, speed: 0.1 + Math.random() * 0.25,
-    alpha: P_ALPHA_BASE * (0.4 + Math.random() * 0.6), flicker: Math.random() * Math.PI * 2
-  };
-});
-
-function drawOrbs() {
-  for (var i = 0; i < orbs.length; i++) {
-    var o = orbs[i];
-    o.x += o.dx; o.y += o.dy;
-    if (o.x < -o.r) o.x = W + o.r; if (o.x > W + o.r) o.x = -o.r;
-    if (o.y < -o.r) o.y = H + o.r; if (o.y > H + o.r) o.y = -o.r;
-    var g = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r);
-    g.addColorStop(0, 'hsla(' + o.hue + ', 70%, 50%, ' + o.alpha + ')');
-    g.addColorStop(1, 'hsla(' + o.hue + ', 70%, 50%, 0)');
-    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2); ctx.fill();
-  }
-}
-function drawParticles(time) {
-  for (var i = 0; i < particles.length; i++) {
-    var p = particles[i];
-    p.y -= p.speed; if (p.y < -10) { p.y = H + 10; p.x = Math.random() * W; }
-    var a = p.alpha * (0.5 + 0.5 * Math.sin(time * 0.002 + p.flicker));
-    ctx.fillStyle = 'rgba(' + P_RGB + ', ' + a + ')';
-    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
-  }
-}
-var animRunning = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-var lastFrame = 0;
-function animate(time) {
-  if (!animRunning) return;
-  if (time - lastFrame < 32) { requestAnimationFrame(animate); return; }
-  lastFrame = time;
-  ctx.clearRect(0, 0, W, H); drawOrbs(); drawParticles(time);
-  requestAnimationFrame(animate);
-}
-requestAnimationFrame(animate);
-document.addEventListener('visibilitychange', function() {
-  if (document.hidden) { animRunning = false; }
-  else { animRunning = true; requestAnimationFrame(animate); }
-});
+/* ── Init core background (no tilt — quotes uses physics spin) ── */
+initBackground('bg', { orbCount: 2, orbRadius: [60, 100], orbSpeed: 0.2, hueRange: [260, 30], mouseTracking: false });
 </script>
 </body>
 </html>
