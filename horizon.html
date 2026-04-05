@@ -290,28 +290,13 @@ body {
 <div class="blip-overlay" id="blipOv">
   <div class="blip-card" id="blipCard"></div>
 </div>
+<script src="core.js"></script>
 <script>
 /* ══════════════════════════════════════════
    MILESTONES — update as life evolves
    w: importance weight (1–3), controls blip size
    ══════════════════════════════════════════ */
-/* ── Audio: click feedback ── */
-var audioCtx = null;
-function getAudioCtx() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-  return audioCtx;
-}
-function playClick() {
-  var ctx = getAudioCtx(), now = ctx.currentTime;
-  var osc = ctx.createOscillator();
-  var gain = ctx.createGain();
-  osc.type = 'sine'; osc.frequency.value = 800;
-  gain.gain.setValueAtTime(0.12, now);
-  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
-  osc.connect(gain); gain.connect(ctx.destination);
-  osc.start(now); osc.stop(now + 0.08);
-}
+/* Audio from core.js */
 
 var MS = [
   { n: "UWindsor Graduation",       d: "2026-04-28", c: "#8b5cf6", cat: "Academic", w: 2 },
@@ -394,7 +379,7 @@ Object.keys(cats).forEach(function(k) {
    ══════════════════════════════════════════ */
 var cv = document.getElementById('r');
 var ctx = cv.getContext('2d');
-var dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+var dark = Core.isDark;
 var DPR = window.devicePixelRatio || 1;
 var SZ = 200;
 cv.width = SZ * DPR; cv.height = SZ * DPR;
@@ -703,7 +688,7 @@ document.addEventListener('keydown', function(e) {
 
 /* Animation loop */
 var running = true, last = 0;
-var prefersRM = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+var prefersRM = Core.reducedMotion;
 function loop(t) {
   if (!running) return;
   if (prefersRM) { draw(0); return; }
