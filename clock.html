@@ -305,6 +305,7 @@ modeBtns.forEach(function(btn) {
   btn.addEventListener('click', function() {
     var mode = this.dataset.mode;
     if (mode === currentMode) return;
+    playModeSwitch();
     currentMode = mode;
     modeBtns.forEach(function(b) { b.classList.remove('active'); });
     this.classList.add('active');
@@ -441,7 +442,7 @@ function updateSW() {
 }
 
 document.getElementById('swToggle').addEventListener('click', function() {
-  playClick();
+  if (swRunning) { playPause(); } else if (swAccum > 0) { playResume(); } else { playStart(); }
   if (swRunning) {
     swAccum += Date.now() - swStartTime;
     swRunning = false; clearInterval(swInterval);
@@ -458,7 +459,7 @@ document.getElementById('swToggle').addEventListener('click', function() {
 });
 
 document.getElementById('swLap').addEventListener('click', function() {
-  if (!swRunning) return; playClick();
+  if (!swRunning) return; playLap();
   var elapsed = swAccum + (Date.now() - swStartTime);
   var prevTotal = swLapsArr.length > 0 ? swLapsArr[0].total : 0;
   swLapsArr.unshift({ num: swLapsArr.length + 1, time: elapsed - prevTotal, total: elapsed });
@@ -470,7 +471,7 @@ document.getElementById('swLap').addEventListener('click', function() {
 });
 
 document.getElementById('swReset').addEventListener('click', function() {
-  playClick();
+  playReset();
   if (swRunning) swAccum += Date.now() - swStartTime;
   var swSecs = swAccum / 1000;
   if (swAccum >= 1000) { addFocusSeconds(swSecs); updateFocusStats(); }
@@ -505,7 +506,7 @@ PRESETS.forEach(function(p, i) {
   chip.className = 'preset-chip' + (i === selectedPreset ? ' active' : '');
   chip.textContent = p.label; chip.dataset.idx = i;
   chip.addEventListener('click', function() {
-    if (tmRunning) return; playClick();
+    if (tmRunning) return; playPresetSelect();
     selectedPreset = parseInt(this.dataset.idx);
     tmDuration = PRESETS[selectedPreset].secs; tmRemaining = tmDuration;
     updateTMDisplay();
@@ -554,7 +555,7 @@ function tickTimer() {
 updateTMDisplay();
 
 document.getElementById('tmToggle').addEventListener('click', function() {
-  playClick();
+  if (tmRunning) { playPause(); } else if (tmRemaining < tmDuration) { playResume(); } else { playStart(); }
   if (tmRunning) {
     tmRemaining = Math.max(0, tmStartRemaining - (Date.now() - tmStartTime) / 1000);
     tmRunning = false; clearInterval(tmInterval);
@@ -572,7 +573,7 @@ document.getElementById('tmToggle').addEventListener('click', function() {
 });
 
 document.getElementById('tmReset').addEventListener('click', function() {
-  playClick();
+  playReset();
   if (tmRunning) {
     var focused = tmDuration - Math.max(0, tmStartRemaining - (Date.now() - tmStartTime) / 1000);
     if (focused >= 1) { addFocusSeconds(focused); updateFocusStats(); }
@@ -590,6 +591,7 @@ document.getElementById('tmReset').addEventListener('click', function() {
    ══════════════════════════════════════ */
 var breakInterval = null, breakRemaining = 0;
 function showMicroBreak() {
+  playBreakAppear();
   breakRemaining = 300;
   document.getElementById('breakOverlay').classList.add('show');
   updateBreakTimer();
@@ -607,7 +609,7 @@ function dismissBreak() {
   clearInterval(breakInterval);
   document.getElementById('breakOverlay').classList.remove('show');
 }
-document.getElementById('breakSkip').addEventListener('click', function() { playClick(); dismissBreak(); });
+document.getElementById('breakSkip').addEventListener('click', function() { playBreakDismiss(); dismissBreak(); });
 
 /* ── Init core systems ── */
 var card = document.querySelector('.container');
