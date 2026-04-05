@@ -101,7 +101,7 @@ body {
   animation: fadeIn 0.8s ease-out forwards, breathe 8s cubic-bezier(0.4,0,0.2,1) 0.8s infinite;
   transition: transform 0.15s ease-out;
   transform-style: preserve-3d; will-change: transform, opacity;
-  contain: content; min-width: 280px;
+  contain: content; width: 94%; max-width: 420px; min-width: 280px;
 }
 
 /* ── Mode Toggle (hover-reveal) ── */
@@ -186,12 +186,6 @@ body {
 .focus-stats { font-size: 8px; font-weight: 300; color: var(--meta-color); letter-spacing: 1px; text-transform: uppercase; margin-top: 10px; }
 .focus-val { color: var(--accent); font-weight: 600; }
 
-/* Subject Tags */
-.subject-row { display: flex; justify-content: center; gap: 4px; margin-bottom: 6px; flex-wrap: wrap; }
-.subject-chip { font-family: 'Inter', sans-serif; font-size: 7px; font-weight: 500; letter-spacing: 0.5px; padding: 3px 10px; border-radius: 10px; border: 1px solid var(--arc-track); background: transparent; color: var(--meta-color); cursor: pointer; transition: all 0.25s ease; text-transform: uppercase; }
-.subject-chip:hover { border-color: rgba(var(--accent-rgb), 0.3); color: var(--date-color); }
-.subject-chip.active { background: rgba(var(--accent-rgb), 0.12); color: var(--accent); border-color: rgba(var(--accent-rgb), 0.3); }
-
 /* Micro-break Overlay */
 .break-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: var(--card-bg); border-radius: 22px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; z-index: 20; opacity: 0; pointer-events: none; transition: opacity 0.5s ease; }
 .break-overlay.show { opacity: 1; pointer-events: auto; }
@@ -202,11 +196,6 @@ body {
 @keyframes breatheCircle { 0%, 100% { transform: scale(0.8); opacity: 0.3; } 50% { transform: scale(1.2); opacity: 0.8; } }
 .break-skip { font-family: 'Inter', sans-serif; font-size: 8px; font-weight: 300; letter-spacing: 1.5px; text-transform: uppercase; color: var(--meta-color); background: none; border: none; cursor: pointer; transition: color 0.2s; }
 .break-skip:hover { color: var(--date-color); }
-
-/* Nudge */
-.nudge { font-size: 8px; font-weight: 300; color: var(--meta-color); letter-spacing: 0.3px; margin-top: 6px; text-align: center; line-height: 1.4; max-height: 0; overflow: hidden; transition: max-height 0.4s ease, opacity 0.4s ease; opacity: 0; }
-.nudge.show { max-height: 40px; opacity: 1; }
-.nudge-hl { color: var(--accent); font-weight: 500; }
 
 /* Focus Cap */
 .focus-stats.capped .focus-val { color: #f59e0b; }
@@ -264,7 +253,6 @@ body {
 
   <!-- STOPWATCH MODE -->
   <div class="mode hidden" id="stopwatchMode">
-    <div class="subject-row" id="swSubjects"></div>
     <div class="ring-wrap">
       <svg class="ring-svg" viewBox="0 0 180 180">
         <circle class="ring-track" cx="90" cy="90" r="82"/>
@@ -282,12 +270,10 @@ body {
     </div>
     <div class="laps" id="swLaps"></div>
     <div class="focus-stats" id="swStats"></div>
-    <div class="nudge" id="swNudge"></div>
   </div>
 
   <!-- TIMER MODE -->
   <div class="mode hidden" id="timerMode">
-    <div class="subject-row" id="tmSubjects"></div>
     <div class="presets" id="presets"></div>
     <div class="ring-wrap">
       <svg class="ring-svg" viewBox="0 0 180 180">
@@ -304,7 +290,6 @@ body {
       <button class="ctrl-btn ctrl-secondary" id="tmReset">Reset</button>
     </div>
     <div class="focus-stats" id="tmStats"></div>
-    <div class="nudge" id="tmNudge"></div>
   </div>
 
   <!-- MICRO-BREAK OVERLAY -->
@@ -597,7 +582,7 @@ document.getElementById('swReset').addEventListener('click', function() {
   playClick();
   if (swRunning) swAccum += Date.now() - swStartTime;
   var swSecs = swAccum / 1000;
-  if (swAccum >= 1000) { addFocusSeconds(swSecs); updateFocusStats(); logSession(currentSubject); }
+  if (swAccum >= 1000) { addFocusSeconds(swSecs); updateFocusStats(); }
   var triggerBreak = swSecs >= 2700;
   swRunning = false; clearInterval(swInterval); swAccum = 0; swElapsed = 0; swLapsArr = [];
   document.getElementById('swTime').innerHTML = formatSW(0);
@@ -664,7 +649,6 @@ function tickTimer() {
     document.getElementById('tmLabel').className = 'session-label done';
     document.getElementById('tmRing').classList.add('complete');
     addFocusSeconds(tmDuration); updateFocusStats();
-    logSession(currentSubject);
     playChime(); launchConfetti();
     var needsBreak = tmDuration >= 2700;
     setTimeout(function() {
@@ -709,69 +693,6 @@ document.getElementById('tmReset').addEventListener('click', function() {
   document.getElementById('tmLabel').className = 'session-label';
   document.getElementById('tmRing').classList.remove('complete');
 });
-
-/* ══════════════════════════════════════
-   SUBJECTS — swap for your 1L courses
-   e.g. ['Torts','Contracts','Crim','Con Law','Property','Civ Pro']
-   ══════════════════════════════════════ */
-var SUBJECTS = ['Reading', 'Writing', 'Review', 'Practice', 'Research', 'Other'];
-var currentSubject = null;
-
-function buildSubjectChips(containerId) {
-  var el = document.getElementById(containerId);
-  SUBJECTS.forEach(function(s) {
-    var chip = document.createElement('button');
-    chip.className = 'subject-chip'; chip.textContent = s;
-    chip.addEventListener('click', function() {
-      playClick();
-      var wasActive = this.classList.contains('active');
-      document.querySelectorAll('.subject-chip').forEach(function(c) { c.classList.remove('active'); });
-      if (!wasActive) {
-        currentSubject = s;
-        document.querySelectorAll('.subject-chip').forEach(function(c) { if (c.textContent === s) c.classList.add('active'); });
-      } else { currentSubject = null; }
-      checkInterleavingNudge();
-    });
-    el.appendChild(chip);
-  });
-}
-buildSubjectChips('swSubjects');
-buildSubjectChips('tmSubjects');
-
-/* ══════════════════════════════════════
-   SESSION LOG + INTERLEAVING NUDGE
-   ══════════════════════════════════════ */
-function getSessionLog() {
-  try { return JSON.parse(localStorage.getItem('session_log') || '[]'); } catch(e) { return []; }
-}
-function logSession(subject) {
-  if (!subject) return;
-  var log = getSessionLog();
-  log.push({ subject: subject, time: Date.now() });
-  if (log.length > 30) log = log.slice(-30);
-  localStorage.setItem('session_log', JSON.stringify(log));
-  checkInterleavingNudge();
-}
-function checkInterleavingNudge() {
-  var log = getSessionLog();
-  var today = new Date(); today.setHours(0,0,0,0);
-  var todaySessions = log.filter(function(s) { return s.time >= today.getTime(); });
-  var nudgeHTML = '';
-  if (currentSubject && todaySessions.length >= 2) {
-    var streak = 0;
-    for (var i = todaySessions.length - 1; i >= 0; i--) {
-      if (todaySessions[i].subject === currentSubject) streak++; else break;
-    }
-    if (streak >= 3) {
-      nudgeHTML = '<span class="nudge-hl">Interleaving tip:</span> ' + streak + ' consecutive ' + currentSubject + ' sessions today. Switching topics improves long-term retention.';
-    }
-  }
-  ['swNudge', 'tmNudge'].forEach(function(id) {
-    var el = document.getElementById(id);
-    el.innerHTML = nudgeHTML;
-    el.classList.toggle('show', nudgeHTML !== '');
-  });
-}
 
 /* ══════════════════════════════════════
    MICRO-BREAK (after 45+ min sessions)
