@@ -762,8 +762,8 @@ function renderSchedule() {
 
     /* Click to expand/collapse */
     block.addEventListener('click', function() {
-      playClick();
       var wasExpanded = this.classList.contains('expanded');
+      if (wasExpanded) { playClose(); } else { playOpen(); }
       var allBlocks = container.querySelectorAll('.class-block');
       for (var j = 0; j < allBlocks.length; j++) allBlocks[j].classList.remove('expanded');
       if (!wasExpanded) this.classList.add('expanded');
@@ -811,7 +811,7 @@ toggleBtns.forEach(function(btn) {
   btn.addEventListener('click', function() {
     var view = this.dataset.view;
     if (view === currentView) return;
-    playClick();
+    playModeSwitch();
     currentView = view;
     toggleBtns.forEach(function(b) { b.classList.remove('active'); });
     this.classList.add('active');
@@ -899,16 +899,16 @@ function renderWeekView() {
   overlay.innerHTML = '<div class="week-detail-card" id="weekDetailCard"></div>';
   document.body.appendChild(overlay);
   overlay.addEventListener('click', function(e) {
-    if (e.target === overlay) { playClick(); overlay.classList.remove('show'); }
+    if (e.target === overlay) { playClose(); overlay.classList.remove('show'); }
   });
-  window._weekEsc = function(e) { if (e.key === 'Escape') { playClick(); overlay.classList.remove('show'); } };
+  window._weekEsc = function(e) { if (e.key === 'Escape') { playClose(); overlay.classList.remove('show'); } };
   document.addEventListener('keydown', window._weekEsc);
 
   /* Click handlers on pills */
   el.querySelectorAll('.week-pill').forEach(function(pill) {
     pill.addEventListener('click', function(e) {
       e.stopPropagation();
-      playClick();
+      playOpen();
       var day = parseInt(this.dataset.day);
       var idx = parseInt(this.dataset.idx);
       var classes = schedule.filter(function(c) { return c.day === day; });
