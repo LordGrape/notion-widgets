@@ -618,6 +618,24 @@ var schedule = [
   { day: 4, name: "POLS 4420: Politics and Security in Russia and Eurasia", prof: "Dr. Maltseva", room: "Dillon Hall 366", start: "13:00", end: "15:50", color: "#4dd0e1" },
 ];
 
+/* ── Audio: click feedback ── */
+var audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function playClick() {
+  var ctx = getAudioCtx(), now = ctx.currentTime;
+  var osc = ctx.createOscillator();
+  var gain = ctx.createGain();
+  osc.type = 'sine'; osc.frequency.value = 800;
+  gain.gain.setValueAtTime(0.12, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+  osc.connect(gain); gain.connect(ctx.destination);
+  osc.start(now); osc.stop(now + 0.08);
+}
+
 var DAY_LABELS = ['S','M','T','W','T','F','S'];
 var DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 var today = new Date().getDay();
@@ -633,6 +651,7 @@ for (var i = 0; i < 7; i++) {
   if (i === today) btn.classList.add('today');
   if (i === selectedDay) btn.classList.add('active');
   btn.addEventListener('click', function() {
+    playClick();
     selectedDay = parseInt(this.dataset.day);
     renderSchedule();
     updateDots();
@@ -758,6 +777,7 @@ function renderSchedule() {
 
     /* Click to expand/collapse */
     block.addEventListener('click', function() {
+      playClick();
       var wasExpanded = this.classList.contains('expanded');
       var allBlocks = container.querySelectorAll('.class-block');
       for (var j = 0; j < allBlocks.length; j++) allBlocks[j].classList.remove('expanded');
@@ -806,6 +826,7 @@ toggleBtns.forEach(function(btn) {
   btn.addEventListener('click', function() {
     var view = this.dataset.view;
     if (view === currentView) return;
+    playClick();
     currentView = view;
     toggleBtns.forEach(function(b) { b.classList.remove('active'); });
     this.classList.add('active');
@@ -893,15 +914,16 @@ function renderWeekView() {
   overlay.innerHTML = '<div class="week-detail-card" id="weekDetailCard"></div>';
   document.body.appendChild(overlay);
   overlay.addEventListener('click', function(e) {
-    if (e.target === overlay) overlay.classList.remove('show');
+    if (e.target === overlay) { playClick(); overlay.classList.remove('show'); }
   });
-  window._weekEsc = function(e) { if (e.key === 'Escape') overlay.classList.remove('show'); };
+  window._weekEsc = function(e) { if (e.key === 'Escape') { playClick(); overlay.classList.remove('show'); } };
   document.addEventListener('keydown', window._weekEsc);
 
   /* Click handlers on pills */
   el.querySelectorAll('.week-pill').forEach(function(pill) {
     pill.addEventListener('click', function(e) {
       e.stopPropagation();
+      playClick();
       var day = parseInt(this.dataset.day);
       var idx = parseInt(this.dataset.idx);
       var classes = schedule.filter(function(c) { return c.day === day; });
