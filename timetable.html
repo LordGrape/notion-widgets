@@ -503,17 +503,12 @@ body {
   z-index: 4;
   box-shadow: 0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2);
 }
+
 .week-pill-name {
-  font-size: 8px; font-weight: 700; color: #fff;
+  font-size: 9px; font-weight: 700; color: #fff;
   text-shadow: 0 1px 4px rgba(0,0,0,0.4);
-  letter-spacing: 0.3px;
+  letter-spacing: 0.5px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.week-pill-time {
-  font-size: 6px; font-weight: 400;
-  color: rgba(255,255,255,0.75);
-  white-space: nowrap;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 .week-now-marker {
   position: absolute; top: -2px; bottom: -2px; width: 2px;
@@ -883,7 +878,6 @@ function renderWeekView() {
         var shortNum = numMatch ? numMatch[0] : c.name.split(':')[0];
         html += '<div class="week-pill" data-day="' + c.day + '" data-idx="' + idx + '" style="left:' + left + '%;width:' + width + '%;background:' + c.color + '">'
           + '<span class="week-pill-name">' + shortNum + '</span>'
-          + '<span class="week-pill-time">' + formatTime(c.start).replace(' ', '') + '</span>'
           + '</div>';
       });
     }
