@@ -124,6 +124,7 @@ body {
   opacity: 0;
   animation: fadeIn 0.8s ease-out forwards, breathe 8s cubic-bezier(0.4,0,0.2,1) 0.8s infinite;
   overflow: hidden;
+  contain: content;
 }
 
 /* Scan line across card */
@@ -270,6 +271,9 @@ body {
   color: var(--text-muted); letter-spacing: 1.5px;
   text-transform: uppercase;
 }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
 </style>
 </head>
 <body>
@@ -377,34 +381,40 @@ var blips = items.filter(function(m) { return m.days <= MAX_DAYS; }).map(functio
   };
 });
 
+/* ── Static layer (rendered once, blitted per frame) ── */
+var staticCv = document.createElement('canvas');
+staticCv.width = SZ * DPR; staticCv.height = SZ * DPR;
+var sCtx = staticCv.getContext('2d');
+sCtx.scale(DPR, DPR);
+sCtx.strokeStyle = dark ? 'rgba(138,92,246,0.06)' : 'rgba(138,92,246,0.04)';
+sCtx.lineWidth = 0.5;
+sCtx.beginPath();
+sCtx.moveTo(C, C - MR - 2); sCtx.lineTo(C, C + MR + 2);
+sCtx.moveTo(C - MR - 2, C); sCtx.lineTo(C + MR + 2, C);
+var dd = (MR + 2) * 0.707;
+sCtx.moveTo(C - dd, C - dd); sCtx.lineTo(C + dd, C + dd);
+sCtx.moveTo(C + dd, C - dd); sCtx.lineTo(C - dd, C + dd);
+sCtx.stroke();
+RINGS.forEach(function(days, i) {
+  var r = (days / MAX_DAYS) * MR;
+  sCtx.beginPath(); sCtx.arc(C, C, r, 0, Math.PI * 2);
+  sCtx.strokeStyle = dark ? 'rgba(138,92,246,0.10)' : 'rgba(138,92,246,0.07)';
+  sCtx.lineWidth = 0.7; sCtx.stroke();
+  sCtx.font = '500 6.5px Inter';
+  sCtx.fillStyle = dark ? 'rgba(167,139,250,0.28)' : 'rgba(138,92,246,0.22)';
+  sCtx.textAlign = 'left';
+  sCtx.fillText(RLBL[i], C + 2, C - r - 3);
+});
+sCtx.beginPath(); sCtx.arc(C, C, MR + 1, 0, Math.PI * 2);
+sCtx.strokeStyle = dark ? 'rgba(138,92,246,0.12)' : 'rgba(138,92,246,0.08)';
+sCtx.lineWidth = 0.8; sCtx.stroke();
+
 function draw(t) {
   ctx.clearRect(0, 0, SZ, SZ);
   var sweep = ((t % ROT_MS) / ROT_MS) * Math.PI * 2;
 
-  /* ── Crosshairs ── */
-  ctx.save();
-  ctx.strokeStyle = dark ? 'rgba(138,92,246,0.06)' : 'rgba(138,92,246,0.04)';
-  ctx.lineWidth = 0.5;
-  ctx.beginPath();
-  ctx.moveTo(C, C - MR - 2); ctx.lineTo(C, C + MR + 2);
-  ctx.moveTo(C - MR - 2, C); ctx.lineTo(C + MR + 2, C);
-  var dd = (MR + 2) * 0.707;
-  ctx.moveTo(C - dd, C - dd); ctx.lineTo(C + dd, C + dd);
-  ctx.moveTo(C + dd, C - dd); ctx.lineTo(C - dd, C + dd);
-  ctx.stroke();
-  ctx.restore();
-
-  /* ── Concentric rings ── */
-  RINGS.forEach(function(days, i) {
-    var r = (days / MAX_DAYS) * MR;
-    ctx.beginPath(); ctx.arc(C, C, r, 0, Math.PI * 2);
-    ctx.strokeStyle = dark ? 'rgba(138,92,246,0.10)' : 'rgba(138,92,246,0.07)';
-    ctx.lineWidth = 0.7; ctx.stroke();
-    ctx.font = '500 6.5px Inter';
-    ctx.fillStyle = dark ? 'rgba(167,139,250,0.28)' : 'rgba(138,92,246,0.22)';
-    ctx.textAlign = 'left';
-    ctx.fillText(RLBL[i], C + 2, C - r - 3);
-  });
+  /* ── Static layer (crosshairs + rings + border) ── */
+  ctx.drawImage(staticCv, 0, 0, SZ, SZ);
 
   /* ── Sweep cone (layered arc sectors for phosphor trail) ── */
   var SL = 30, CONE = 0.7;
@@ -494,10 +504,6 @@ function draw(t) {
   ctx.beginPath(); ctx.arc(C, C, cp, 0, Math.PI * 2);
   ctx.fillStyle = dark ? '#a78bfa' : '#8b5cf6'; ctx.fill();
 
-  /* Outer border ring */
-  ctx.beginPath(); ctx.arc(C, C, MR + 1, 0, Math.PI * 2);
-  ctx.strokeStyle = dark ? 'rgba(138,92,246,0.12)' : 'rgba(138,92,246,0.08)';
-  ctx.lineWidth = 0.8; ctx.stroke();
 }
 
 /* ── Popup system ── */
@@ -575,8 +581,10 @@ document.addEventListener('keydown', function(e) {
 
 /* Animation loop */
 var running = true, last = 0;
+var prefersRM = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 function loop(t) {
   if (!running) return;
+  if (prefersRM) { draw(0); return; }
   if (t - last < 32) { requestAnimationFrame(loop); return; }
   last = t; draw(t); requestAnimationFrame(loop);
 }
