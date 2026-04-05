@@ -123,6 +123,7 @@ body {
   transform-style: preserve-3d;
   transition: transform 0.15s ease-out, box-shadow 0.3s ease;
   will-change: transform;
+  contain: content;
 }
 .container::-webkit-scrollbar { width: 0; }
 
@@ -438,97 +439,101 @@ body {
   color: #fff; box-shadow: var(--dot-active-glow);
 }
 
-/* Week grid */
+/* Week pill strip */
 .week-view { opacity: 0; animation: fadeIn 0.5s ease-out forwards; }
-.week-grid {
-  display: grid;
-  grid-template-columns: 36px repeat(5, 1fr);
-  gap: 4px;
+.week-strip { display: flex; flex-direction: column; gap: 5px; }
+.week-time-header {
+  display: flex; align-items: center;
+  margin-left: 36px; margin-bottom: 2px; position: relative;
+  height: 14px;
 }
-.week-times {
-  display: flex; flex-direction: column;
-  justify-content: space-between;
-  padding-top: 26px; padding-bottom: 4px;
-}
-.week-time {
-  font-size: 7px; font-weight: 400;
-  color: var(--text-muted); letter-spacing: 0.3px;
+.week-time-tick {
+  position: absolute;
+  font-size: 6.5px; font-weight: 400;
+  color: var(--text-muted); letter-spacing: 0.2px;
   font-variant-numeric: tabular-nums;
+  transform: translateX(-50%);
 }
-.week-col { display: flex; flex-direction: column; }
-.week-col-header {
-  text-align: center; font-size: 8px; font-weight: 600;
+.week-row {
+  display: flex; align-items: center; gap: 8px;
+}
+.week-day-label {
+  width: 28px; flex-shrink: 0;
+  font-size: 8px; font-weight: 600;
   letter-spacing: 1.5px; color: var(--text-secondary);
-  margin-bottom: 5px; text-transform: uppercase;
+  text-transform: uppercase;
+  text-align: right;
   transition: all 0.3s ease;
 }
-.week-col-header.today-col {
+.week-day-label.today-label {
   color: var(--dot-active);
   text-shadow: 0 0 8px rgba(138, 92, 246, 0.3);
 }
-.week-col-body {
-  position: relative; flex: 1;
+.week-track {
+  flex: 1; position: relative;
+  height: 30px;
   background: var(--block-bg);
   border-radius: 8px;
   border: 1px solid var(--block-border);
-  min-height: 280px;
-  box-shadow: inset 0 1px 3px rgba(0,0,0,0.04);
+  overflow: visible;
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
-.week-col-body.today-body {
+.week-track.today-track {
   border-color: rgba(138, 92, 246, 0.25);
-  box-shadow: inset 0 1px 3px rgba(0,0,0,0.04), 0 0 12px rgba(138, 92, 246, 0.08);
+  box-shadow: 0 0 12px rgba(138, 92, 246, 0.08);
 }
-.week-block {
-  position: absolute; left: 3px; right: 3px;
-  border-radius: 7px; padding: 2px 3px;
-  overflow: hidden; cursor: pointer;
+.week-pill {
+  position: absolute; top: 3px; bottom: 3px;
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  gap: 3px; padding: 0 5px;
+  cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
   box-shadow: 0 2px 8px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.15);
+  overflow: hidden;
   z-index: 1;
-  display: flex; align-items: center; justify-content: center;
 }
-.week-block::after {
+.week-pill::after {
   content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
   background: linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.05) 40%, transparent 100%);
-  border-radius: 7px; pointer-events: none;
+  border-radius: 6px; pointer-events: none;
 }
-.week-block:hover {
-  transform: scale(1.08) translateY(-2px);
+.week-pill:hover {
+  transform: scaleY(1.2) scaleX(1.02);
   z-index: 4;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2);
 }
-.week-block-name {
+.week-pill-name {
   font-size: 8px; font-weight: 700; color: #fff;
-  line-height: 1; text-shadow: 0 1px 4px rgba(0,0,0,0.4);
-  letter-spacing: 0.5px;
-  text-align: center;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  letter-spacing: 0.3px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.week-block-sub {
-  font-size: 6.5px; font-weight: 400;
-  color: rgba(255,255,255,0.75); margin-top: 1px;
-  letter-spacing: 0.2px; text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-}
-.week-block-time {
+.week-pill-time {
   font-size: 6px; font-weight: 400;
-  color: rgba(255,255,255,0.8); margin-top: 2px;
-  letter-spacing: 0.2px;
+  color: rgba(255,255,255,0.75);
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
-.week-grid-line {
-  position: absolute; left: 0; right: 0; height: 1px;
-  background: var(--block-border); pointer-events: none; opacity: 0.4;
-}
-.week-now-line {
-  position: absolute; left: -2px; right: -2px; height: 2px;
-  background: var(--dot-active); pointer-events: none; z-index: 5;
-  border-radius: 1px;
+.week-now-marker {
+  position: absolute; top: -2px; bottom: -2px; width: 2px;
+  background: var(--dot-active);
+  z-index: 5; border-radius: 1px;
   box-shadow: 0 0 6px rgba(138, 92, 246, 0.5);
+  pointer-events: none;
 }
-.week-now-dot {
-  position: absolute; left: -4px; top: -3px;
+.week-now-marker::before {
+  content: ''; position: absolute; top: -3px; left: -3px;
   width: 8px; height: 8px; border-radius: 50%;
   background: var(--dot-active);
   box-shadow: 0 0 6px rgba(138, 92, 246, 0.5);
+}
+.week-empty-label {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 8px; font-weight: 300;
+  color: var(--empty-color); letter-spacing: 0.5px;
+  font-style: italic;
 }
 /* Week detail overlay */
 .week-overlay {
@@ -570,6 +575,10 @@ body {
   font-size: 7px; font-weight: 300;
   color: var(--text-muted); letter-spacing: 1px;
   text-transform: uppercase;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  #bg { display: none; }
 }
 </style>
 </head>
@@ -816,53 +825,68 @@ toggleBtns.forEach(function(btn) {
 
 function renderWeekView() {
   var el = document.getElementById('weekView');
-  var GS = 600, GE = 1140, SPAN = GE - GS;
   /* Remove old overlay & escape handler */
   var oldOv = document.querySelector('.week-overlay');
   if (oldOv) oldOv.remove();
   if (window._weekEsc) { document.removeEventListener('keydown', window._weekEsc); }
+
+  /* Dynamic time range from schedule data */
+  var allStarts = schedule.map(function(c) { return timeToMinutes(c.start); });
+  var allEnds = schedule.map(function(c) { return timeToMinutes(c.end); });
+  var GS = Math.min.apply(null, allStarts) - 30;
+  var GE = Math.max.apply(null, allEnds) + 30;
+  var SPAN = GE - GS;
+
   var now = new Date();
   var nowMins = now.getHours() * 60 + now.getMinutes();
-  var html = '<div class="week-grid"><div class="week-times">';
-  for (var h = 10; h <= 18; h++) {
-    var lbl = h > 12 ? (h - 12) + ' PM' : (h === 12 ? '12 PM' : h + ' AM');
-    html += '<div class="week-time">' + lbl + '</div>';
+  var dayLabels = ['MON','TUE','WED','THU','FRI'];
+
+  var html = '<div class="week-strip">';
+
+  /* Time axis header */
+  html += '<div class="week-time-header">';
+  for (var h = Math.ceil(GS / 60); h <= Math.floor(GE / 60); h++) {
+    var pct = ((h * 60 - GS) / SPAN) * 100;
+    var lbl = h > 12 ? (h - 12) + 'p' : (h === 12 ? '12p' : h + 'a');
+    html += '<div class="week-time-tick" style="left:' + pct + '%">' + lbl + '</div>';
   }
   html += '</div>';
-  var dayLabels = ['MON','TUE','WED','THU','FRI'];
+
+  /* Day rows */
   for (var d = 1; d <= 5; d++) {
     var isToday = d === today;
-    html += '<div class="week-col"><div class="week-col-header' + (isToday ? ' today-col' : '') + '">' + dayLabels[d - 1] + '</div><div class="week-col-body' + (isToday ? ' today-body' : '') + '">';
-    for (var gl = 10; gl <= 18; gl++) {
-      var glTop = ((gl * 60 - GS) / SPAN) * 100;
-      html += '<div class="week-grid-line" style="top:' + glTop + '%"></div>';
-    }
-    /* Live time indicator on today column */
-    if (isToday && nowMins >= GS && nowMins <= GE) {
-      var nowTop = ((nowMins - GS) / SPAN) * 100;
-      html += '<div class="week-now-line" style="top:' + nowTop + '%"><div class="week-now-dot"></div></div>';
-    }
     var dayClasses = schedule.filter(function(c) { return c.day === d; });
-    dayClasses.forEach(function(c, idx) {
-      var sm = timeToMinutes(c.start), em = timeToMinutes(c.end);
-      var top = ((sm - GS) / SPAN) * 100, ht = ((em - sm) / SPAN) * 100;
-      var numMatch = c.name.match(/\d{4}/);
-      var shortNum = numMatch ? numMatch[0] : c.name.split(':')[0];
-      var colonIdx = c.name.indexOf(':');
-      var shortSub = '';
-      if (colonIdx > -1) {
-        var full = c.name.substring(colonIdx + 1).trim();
-        var words = full.split(' ');
-        shortSub = words.length > 3 ? words.slice(0, 3).join(' ') : full;
-      }
-      html += '<div class="week-block" data-day="' + c.day + '" data-idx="' + idx + '" style="top:' + top + '%;height:' + ht + '%;background:' + c.color + '">'
-        + '<div class="week-block-name">' + shortNum + '</div>'
-        + '</div>';
-    });
+
+    html += '<div class="week-row">';
+    html += '<div class="week-day-label' + (isToday ? ' today-label' : '') + '">' + dayLabels[d - 1] + '</div>';
+    html += '<div class="week-track' + (isToday ? ' today-track' : '') + '">';
+
+    if (isToday && nowMins >= GS && nowMins <= GE) {
+      var nowPct = ((nowMins - GS) / SPAN) * 100;
+      html += '<div class="week-now-marker" style="left:' + nowPct + '%"></div>';
+    }
+
+    if (dayClasses.length === 0) {
+      html += '<div class="week-empty-label">free</div>';
+    } else {
+      dayClasses.forEach(function(c, idx) {
+        var sm = timeToMinutes(c.start), em = timeToMinutes(c.end);
+        var left = ((sm - GS) / SPAN) * 100;
+        var width = ((em - sm) / SPAN) * 100;
+        var numMatch = c.name.match(/\d{4}/);
+        var shortNum = numMatch ? numMatch[0] : c.name.split(':')[0];
+        html += '<div class="week-pill" data-day="' + c.day + '" data-idx="' + idx + '" style="left:' + left + '%;width:' + width + '%;background:' + c.color + '">'
+          + '<span class="week-pill-name">' + shortNum + '</span>'
+          + '<span class="week-pill-time">' + formatTime(c.start).replace(' ', '') + '</span>'
+          + '</div>';
+      });
+    }
+
     html += '</div></div>';
   }
   html += '</div>';
   el.innerHTML = html;
+
   /* Detail overlay */
   var overlay = document.createElement('div');
   overlay.className = 'week-overlay';
@@ -873,9 +897,10 @@ function renderWeekView() {
   });
   window._weekEsc = function(e) { if (e.key === 'Escape') overlay.classList.remove('show'); };
   document.addEventListener('keydown', window._weekEsc);
-  /* Click handlers on blocks */
-  el.querySelectorAll('.week-block').forEach(function(block) {
-    block.addEventListener('click', function(e) {
+
+  /* Click handlers on pills */
+  el.querySelectorAll('.week-pill').forEach(function(pill) {
+    pill.addEventListener('click', function(e) {
       e.stopPropagation();
       var day = parseInt(this.dataset.day);
       var idx = parseInt(this.dataset.idx);
@@ -928,6 +953,7 @@ document.addEventListener('mouseleave', function() {
 
 /* ── Background: orbs + particles ── */
 var isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+var isLowEnd = navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4;
 var ORB_ALPHA = isDark ? 0.04 : 0.02;
 var P_RGB = isDark ? '167, 139, 250' : '124, 58, 237';
 var P_ALPHA_BASE = isDark ? 0.25 : 0.1;
@@ -939,14 +965,14 @@ function resize() { W = canvas.width = window.innerWidth; H = canvas.height = wi
 resize();
 window.addEventListener('resize', resize);
 
-var orbs = Array.from({ length: 2 }, function() {
+var orbs = Array.from({ length: isLowEnd ? 1 : 2 }, function() {
   return {
     x: Math.random() * innerWidth, y: Math.random() * innerHeight,
     r: 60 + Math.random() * 100, dx: (Math.random() - 0.5) * 0.2, dy: (Math.random() - 0.5) * 0.2,
     hue: 260 + Math.random() * 30, alpha: ORB_ALPHA + Math.random() * 0.01
   };
 });
-var particles = Array.from({ length: isDark ? 12 : 8 }, function() {
+var particles = Array.from({ length: isLowEnd ? (isDark ? 6 : 4) : (isDark ? 12 : 8) }, function() {
   return {
     x: Math.random() * innerWidth, y: Math.random() * innerHeight,
     r: 0.8 + Math.random() * 1.5, speed: 0.1 + Math.random() * 0.25,
@@ -978,7 +1004,7 @@ function drawParticles(time) {
     ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
   }
 }
-var animRunning = true;
+var animRunning = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 var lastFrame = 0;
 function animate(time) {
   if (!animRunning) return;
