@@ -129,6 +129,7 @@ body {
   animation: fadeIn 0.8s ease-out forwards, breathe 8s cubic-bezier(0.4,0,0.2,1) 0.8s infinite;
   transition: transform 0.3s ease;
   will-change: transform, opacity;
+  contain: content;
 }
 .container:hover {
   transform: translateY(-2px) scale(1.005);
@@ -228,6 +229,9 @@ body {
   color: var(--meta-color);
   margin-top: 6px; letter-spacing: 1px;
   opacity: 0; animation: fadeIn 1s ease-out 0.7s forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
 </style>
 </head>
