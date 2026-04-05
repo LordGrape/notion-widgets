@@ -295,6 +295,24 @@ body {
    MILESTONES — update as life evolves
    w: importance weight (1–3), controls blip size
    ══════════════════════════════════════════ */
+/* ── Audio: click feedback ── */
+var audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function playClick() {
+  var ctx = getAudioCtx(), now = ctx.currentTime;
+  var osc = ctx.createOscillator();
+  var gain = ctx.createGain();
+  osc.type = 'sine'; osc.frequency.value = 800;
+  gain.gain.setValueAtTime(0.12, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+  osc.connect(gain); gain.connect(ctx.destination);
+  osc.start(now); osc.stop(now + 0.08);
+}
+
 var MS = [
   { n: "UWindsor Graduation",       d: "2026-04-28", c: "#8b5cf6", cat: "Academic", w: 2 },
   { n: "Queen's Bursary Deadline",   d: "2026-07-15", c: "#f59e0b", cat: "Law School", w: 1 },
@@ -640,7 +658,7 @@ var evEls = document.querySelectorAll('.ev');
 items.slice(0, 5).forEach(function(m, i) {
   if (evEls[i]) {
     evEls[i].style.cursor = 'pointer';
-    evEls[i].addEventListener('click', function() { showPopup(m); });
+    evEls[i].addEventListener('click', function() { playClick(); showPopup(m); });
   }
 });
 
@@ -667,20 +685,20 @@ function handleRadarTap(e) {
   var hit = getBlipFromEvent(e);
   if (!hit) return;
   var m = items.find(function(x) { return x.n === hit.n; });
-  if (m) showPopup(m);
+  if (m) { playClick(); showPopup(m); }
 }
 cv.addEventListener('click', handleRadarTap);
 cv.addEventListener('touchend', function(e) { e.preventDefault(); handleRadarTap(e); });
 
 /* Dismiss popup */
 blipOv.addEventListener('click', function(e) {
-  if (e.target === blipOv) blipOv.classList.remove('show');
+  if (e.target === blipOv) { playClick(); blipOv.classList.remove('show'); }
 });
 blipOv.addEventListener('touchend', function(e) {
-  if (e.target === blipOv) blipOv.classList.remove('show');
+  if (e.target === blipOv) { playClick(); blipOv.classList.remove('show'); }
 });
 document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') blipOv.classList.remove('show');
+  if (e.key === 'Escape') { playClick(); blipOv.classList.remove('show'); }
 });
 
 /* Animation loop */
