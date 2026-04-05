@@ -124,11 +124,13 @@ body {
 .time-display { font-size: 64px; font-weight: 600; letter-spacing: -2px; line-height: 1.1; font-variant-numeric: tabular-nums; background: var(--time-grad); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: gradientShift 6s ease infinite; }
 .colon { animation: blink 2s step-end infinite; -webkit-text-fill-color: var(--dot-active); background: none; }
 .digit-change { display: inline-block; animation: digitUp 0.35s ease-out; }
-.weekday-dots { display: flex; justify-content: center; gap: 14px; margin: 12px 20px 4px; opacity: 0; animation: fadeIn 1s ease-out 0.55s forwards; }
-.weekday-dots .dot { width: 18px; height: 18px; border-radius: 50%; background: var(--dot-bg); transition: all 0.4s ease; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 600; color: var(--date-color); }
-.weekday-dots .dot.active { background: var(--dot-active); box-shadow: var(--dot-active-glow); transform: scale(1.15); color: #fff; }
-.day-bar { width: 80%; height: 1.5px; margin: 10px auto 0; background: var(--bar-bg); border-radius: 2px; overflow: hidden; opacity: 0; animation: fadeIn 1s ease-out 0.6s forwards; }
-.day-fill { height: 100%; background: var(--bar-fill); border-radius: 2px; transition: width 60s linear; box-shadow: var(--bar-glow); }
+.weekday-row { display: flex; justify-content: center; gap: 20px; margin: 14px 0 8px; opacity: 0; animation: fadeIn 1s ease-out 0.55s forwards; }
+.weekday-row .day { font-size: 9px; font-weight: 400; letter-spacing: 1.5px; text-transform: uppercase; color: var(--meta-color); transition: all 0.4s cubic-bezier(0.4,0,0.2,1); position: relative; padding-bottom: 8px; cursor: default; }
+.weekday-row .day.active { color: var(--accent); font-weight: 600; }
+.weekday-row .day.active::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 16px; height: 2px; border-radius: 1px; background: var(--accent); box-shadow: var(--dot-active-glow); animation: fadeIn 0.4s ease-out; }
+.day-bar { width: 70%; height: 2px; margin: 12px auto 0; background: var(--bar-bg); border-radius: 2px; overflow: visible; opacity: 0; animation: fadeIn 1s ease-out 0.6s forwards; }
+.day-fill { height: 100%; background: var(--bar-fill); border-radius: 2px; transition: width 60s linear; box-shadow: var(--bar-glow); position: relative; }
+.day-fill::after { content: ''; position: absolute; right: -2px; top: 50%; transform: translateY(-50%); width: 4px; height: 4px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.6); }
 .date { font-size: 11.5px; font-weight: 300; color: var(--date-color); margin-top: 10px; letter-spacing: 1.5px; opacity: 0; animation: fadeIn 1s ease-out 0.65s forwards; }
 .clock-countdown { font-size: 10px; font-weight: 300; color: var(--meta-color); margin-top: 6px; letter-spacing: 1px; opacity: 0; animation: fadeIn 1s ease-out 0.7s forwards; }
 .weather { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 8px; opacity: 0; animation: fadeIn 1s ease-out 0.75s forwards; }
@@ -233,7 +235,7 @@ body {
       </svg>
       <div class="time-display" id="time"></div>
     </div>
-    <div class="weekday-dots" id="dots"></div>
+    <div class="weekday-row" id="weekdays"></div>
     <div class="day-bar"><div class="day-fill" id="dayBar"></div></div>
     <div class="date" id="date"></div>
     <div class="clock-countdown" id="clockCountdown"></div>
@@ -317,16 +319,15 @@ modeBtns.forEach(function(btn) {
    CLOCK MODE
    ══════════════════════════════════════ */
 var NAME = 'Musbah';
-var DAYS = ['S','M','T','W','T','F','S'];
 var prevDigits = '';
 
-var dotsEl = document.getElementById('dots');
-DAYS.forEach(function(d, i) {
-  var dot = document.createElement('div');
-  dot.className = 'dot';
-  dot.title = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][i];
-  dot.textContent = d;
-  dotsEl.appendChild(dot);
+var DAYLABELS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+var weekdayEl = document.getElementById('weekdays');
+DAYLABELS.forEach(function(d) {
+  var el = document.createElement('div');
+  el.className = 'day';
+  el.textContent = d;
+  weekdayEl.appendChild(el);
 });
 
 function updateClock() {
@@ -349,7 +350,7 @@ function updateClock() {
   document.getElementById('arcHand').style.strokeDashoffset = 560 - (s / 59) * 560;
 
   var day = now.getDay();
-  dotsEl.querySelectorAll('.dot').forEach(function(dot, idx) { dot.classList.toggle('active', idx === day); });
+  weekdayEl.querySelectorAll('.day').forEach(function(el, idx) { el.classList.toggle('active', idx === day); });
 
   document.getElementById('dayBar').style.width = ((h * 3600 + m * 60 + s) / 86400 * 100) + '%';
   document.getElementById('date').textContent = now.toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
