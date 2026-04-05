@@ -234,6 +234,24 @@ setTimeout(function refresh() {
   setTimeout(refresh, msUntilMidnight());
 }, msUntilMidnight());
 
+/* ── Audio: click feedback ── */
+var audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function playClick() {
+  var ctx = getAudioCtx(), now = ctx.currentTime;
+  var osc = ctx.createOscillator();
+  var gain = ctx.createGain();
+  osc.type = 'sine'; osc.frequency.value = 800;
+  gain.gain.setValueAtTime(0.12, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+  osc.connect(gain); gain.connect(ctx.destination);
+  osc.start(now); osc.stop(now + 0.08);
+}
+
 /* ── 3D Physics spin (Y-axis flip) ── */
 var card = document.querySelector('.container');
 var phAngle = 0, phVel = 0, phDrag = false, phLastX = 0, phLastT = 0;
@@ -253,6 +271,7 @@ function phApply() {
 /* Click-to-flick — works inside Notion embeds where drag is blocked */
 card.addEventListener('click', function(e) {
   if (!phReady || phDragged) { phDragged = false; return; }
+  playClick();
   var rect = card.getBoundingClientRect();
   var cx = rect.left + rect.width / 2;
   var dir = (e.clientX > cx) ? 1 : -1;
