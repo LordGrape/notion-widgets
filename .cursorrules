@@ -125,6 +125,12 @@
 
 # quotes.html v3 — copy button removed, widget is now fully passive (no interactive elements except 3D drag spin)
 
+# Quotes whoosh (quotes.html)
+- 3D drag spin now plays velocity-reactive whoosh via Web Audio (white noise → bandpass filter → gain)
+- Speed = sqrt(velX² + velY²), mapped quadratically to gain (0→0.3) and filter freq (300→2000Hz)
+- initWhoosh() lazy-inits on first drag, reuses getAudioCtx() from core.js
+- silenceWhoosh() ramps to zero when coast settles
+
 # Timer persistence (clock.html)
 - Timer state (running/paused) is persisted to SyncEngine `clock.timer_state` so it survives Notion iframe reload
 - saveTimerState() writes on start/pause/visibilitychange/beforeunload; restoreTimerState() resumes on load
