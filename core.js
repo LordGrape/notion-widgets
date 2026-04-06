@@ -1062,6 +1062,60 @@ var SyncEngine = (function() {
   var initDone = false;
   var namespaces = [];  // registered namespace strings
 
+  /* ── BroadcastChannel: cross-widget real-time sync ──
+     All widgets on the same origin (lordgrape.github.io)
+     share a channel. Passphrase entry in one widget
+     propagates to all others instantly. State writes
+     are broadcast so every open widget stays current
+     without waiting for Cloudflare round-trips.
+     ────────────────────────────────────────────────── */
+  var _channel = (typeof BroadcastChannel !== 'undefined')
+    ? new BroadcastChannel('widget_sync') : null;
+
+  function _broadcast(msg) {
+    if (_channel) try { _channel.postMessage(msg); } catch(e) {}
+  }
+
+  if (_channel) {
+    _channel.addEventListener('message', function(e) {
+      var d = e.data;
+      if (!d || !d.type) return;
+
+      /* Another widget entered the passphrase */
+      if (d.type === 'passphrase' && !passphrase && d.value) {
+        passphrase = d.value;
+        localStorage.setItem(PASS_KEY, passphrase);
+        /* Dismiss prompt if it is currently showing */
+        var ov = document.querySelector('[data-sync-prompt]');
+        if (ov) ov.remove();
+        /* Kick off remote sync now that we have a passphrase */
+        if (WORKER_URL && !online) {
+          var pulls = namespaces.map(function(ns) {
+            return remoteGet(ns)
+              .then(function(remote) {
+                cache[ns] = merge(cache[ns], remote);
+                lsWrite(ns);
+                return remotePut(ns);
+              })
+              .catch(function() {});
+          });
+          Promise.all(pulls).then(function() {
+            online = true;
+          }).catch(function() {});
+        }
+      }
+
+      /* Another widget wrote state — merge into our cache */
+      if (d.type === 'state_update' && d.namespace && d.data) {
+        if (!cache[d.namespace]) cache[d.namespace] = {};
+        for (var k in d.data) {
+          if (d.data.hasOwnProperty(k)) cache[d.namespace][k] = d.data[k];
+        }
+        lsWrite(d.namespace);
+      }
+    });
+  }
+
   /* ── localStorage helpers ── */
   function lsKey(ns) { return '_sync_' + ns; }
 
@@ -1239,6 +1293,7 @@ var SyncEngine = (function() {
         if (val) {
           localStorage.setItem(PASS_KEY, val);
           passphrase = val;
+          _broadcast({ type: 'passphrase', value: val });
         }
         ov.remove();
         resolve(val);
@@ -1254,6 +1309,7 @@ var SyncEngine = (function() {
       card.appendChild(desc);
       card.appendChild(input);
       card.appendChild(row);
+      ov.setAttribute('data-sync-prompt', 'true');
       ov.appendChild(card);
       document.body.appendChild(ov);
       setTimeout(function() { input.focus(); }, 100);
@@ -1336,6 +1392,8 @@ var SyncEngine = (function() {
       cache[ns][key] = value;
       lsWrite(ns);
       schedulePush(ns);
+      var patch = {}; patch[key] = value;
+      _broadcast({ type: 'state_update', namespace: ns, data: patch });
     },
 
     /** Batch-write multiple keys in one namespace. */
@@ -1346,11 +1404,18 @@ var SyncEngine = (function() {
       }
       lsWrite(ns);
       schedulePush(ns);
+      _broadcast({ type: 'state_update', namespace: ns, data: obj });
     },
 
     /** Delete a key. */
     remove: function(ns, key) {
-      if (cache[ns]) { delete cache[ns][key]; lsWrite(ns); schedulePush(ns); }
+      if (cache[ns]) {
+        delete cache[ns][key];
+        lsWrite(ns);
+        schedulePush(ns);
+        var patch = {}; patch[key] = null;
+        _broadcast({ type: 'state_update', namespace: ns, data: patch });
+      }
     },
 
     /** Register a callback for when first sync completes. */
