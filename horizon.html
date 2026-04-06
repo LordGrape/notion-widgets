@@ -21,6 +21,7 @@
   --text-secondary: rgba(100, 100, 120, 0.5);
   --text-muted: rgba(100, 100, 120, 0.35);
   --accent: #8b5cf6;
+  --accent-rgb: 139, 92, 246;
   --ring-stroke: rgba(138, 92, 246, 0.07);
   --grid-stroke: rgba(138, 92, 246, 0.04);
   --sweep-a: 0.06;
@@ -38,6 +39,7 @@
   --outer-ring: rgba(138, 92, 246, 0.08);
   --scan-peak: rgba(138, 92, 246, 0.12);
   --scan-mid: rgba(138, 92, 246, 0.06);
+  --bar-empty: rgba(138, 92, 246, 0.08);
 }
 
 /* ── Dark mode ── */
@@ -54,6 +56,7 @@
     --text-secondary: rgba(160, 160, 180, 0.5);
     --text-muted: rgba(160, 160, 180, 0.35);
     --accent: #a78bfa;
+    --accent-rgb: 167, 139, 250;
     --ring-stroke: rgba(138, 92, 246, 0.10);
     --grid-stroke: rgba(138, 92, 246, 0.06);
     --sweep-a: 0.10;
@@ -71,19 +74,16 @@
     --outer-ring: rgba(138, 92, 246, 0.12);
     --scan-peak: rgba(138, 92, 246, 0.15);
     --scan-mid: rgba(138, 92, 246, 0.08);
+    --bar-empty: rgba(138, 92, 246, 0.1);
   }
 }
 
 body {
   font-family: 'Inter', sans-serif;
   background: var(--bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-  overflow: hidden;
-  user-select: none;
-  -webkit-user-select: none;
+  display: flex; align-items: center; justify-content: center;
+  height: 100vh; overflow: hidden;
+  user-select: none; -webkit-user-select: none;
   transition: background 0.3s;
 }
 
@@ -106,144 +106,191 @@ body {
   95%  { opacity: 0.6; }
   100% { top: calc(100% + 2px); opacity: 0; }
 }
+@keyframes xpUp {
+  0%   { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-36px); }
+}
 
-/* Card */
+/* ── Card (now column layout for dual modes) ── */
 .wrap {
   position: relative; z-index: 1;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  padding: 18px 22px;
+  display: flex; flex-direction: column;
+  padding: 14px 18px 16px;
   border-radius: 18px;
   background: var(--card-bg);
   backdrop-filter: blur(20px) saturate(1.4);
   -webkit-backdrop-filter: blur(20px) saturate(1.4);
   border: 1px solid var(--card-border);
-  width: 96%;
-  max-width: 640px;
+  width: 96%; max-width: 640px;
   opacity: 0;
   animation: fadeIn 0.8s ease-out forwards, breathe 8s cubic-bezier(0.4,0,0.2,1) 0.8s infinite;
-  overflow: hidden;
-  contain: content;
+  overflow: hidden; contain: content;
 }
-
-/* Scan line across card */
 .scan {
-  position: absolute;
-  left: 0; right: 0;
-  height: 1px;
+  position: absolute; left: 0; right: 0; height: 1px;
   background: linear-gradient(90deg, transparent 0%, var(--scan-mid) 30%, var(--scan-peak) 50%, var(--scan-mid) 70%, transparent 100%);
   animation: scanDown 6s linear infinite;
-  pointer-events: none;
-  z-index: 20;
+  pointer-events: none; z-index: 20;
 }
 
-/* Radar */
+/* ── Header with tab toggle ── */
+.hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+  opacity: 0; animation: fadeIn 0.8s ease-out 0.2s forwards;
+}
+.tab-bar {
+  display: flex; gap: 2px;
+  background: var(--item-bg); border-radius: 8px; padding: 2px;
+}
+.tab-btn {
+  all: unset; cursor: pointer;
+  font-size: 13px; padding: 4px 8px; border-radius: 6px;
+  transition: all 0.25s; opacity: 0.35;
+}
+.tab-btn.active { background: var(--item-hover-bg); opacity: 1; }
+.tab-btn:hover { opacity: 0.7; }
+.hdr-title {
+  font-size: 8px; font-weight: 300;
+  letter-spacing: 3px; text-transform: uppercase;
+  color: var(--label-color);
+}
+
+/* ── View toggle ── */
+.view { display: none; }
+.view.active { display: flex; }
+
+/* ── Dragon view ── */
+.dragon-view {
+  flex-direction: column; align-items: center; gap: 10px;
+  padding: 2px 0 4px;
+  opacity: 0; animation: fadeIn 0.6s ease-out 0.3s forwards;
+}
+.dragon-view canvas { display: block; cursor: pointer; }
+.d-bars { width: 100%; max-width: 300px; display: flex; flex-direction: column; gap: 5px; }
+.d-bar-row { display: flex; align-items: center; gap: 8px; }
+.d-bar-icon { font-size: 9px; width: 14px; text-align: center; }
+.d-bar-label {
+  font-size: 7px; font-weight: 400; color: var(--text-muted);
+  letter-spacing: 0.5px; text-transform: uppercase; width: 56px;
+}
+.d-bar-track {
+  flex: 1; height: 4px; border-radius: 2px;
+  background: var(--bar-empty); overflow: hidden;
+}
+.d-bar-fill {
+  height: 100%; border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent), rgba(var(--accent-rgb), 0.5));
+  transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+}
+.d-bar-val {
+  font-size: 7px; font-weight: 500; color: var(--text-secondary);
+  width: 22px; text-align: right; font-variant-numeric: tabular-nums;
+}
+.d-status {
+  font-size: 8px; font-weight: 400; color: var(--text-muted);
+  letter-spacing: 0.3px; text-align: center;
+  opacity: 0; animation: fadeIn 0.6s ease-out 0.5s forwards;
+}
+.d-rank { color: var(--accent); font-weight: 600; }
+.d-fire { color: #f59e0b; }
+
+/* ── Radar view ── */
+.radar-view {
+  flex-direction: row; align-items: center; gap: 20px;
+  opacity: 0; animation: fadeIn 0.6s ease-out 0.3s forwards;
+}
 .radar { flex-shrink: 0; }
 .radar canvas { display: block; }
-
-/* Panel */
-.panel {
-  flex: 1; min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
+.panel { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
 .panel-label {
   font-size: 8px; font-weight: 300;
   letter-spacing: 3px; text-transform: uppercase;
   color: var(--label-color);
-  opacity: 0; animation: fadeIn 0.8s ease-out 0.3s forwards;
 }
 .panel-title {
-  font-size: 14px; font-weight: 600;
-  letter-spacing: -0.3px;
-  background: var(--title-grad);
-  background-size: 300% 300%;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  opacity: 0;
-  animation: fadeIn 0.8s ease-out 0.35s forwards, gradientShift 6s ease infinite;
+  font-size: 14px; font-weight: 600; letter-spacing: -0.3px;
+  background: var(--title-grad); background-size: 300% 300%;
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  animation: gradientShift 6s ease infinite;
 }
-
-/* Event list */
 .events { display: flex; flex-direction: column; gap: 6px; margin-top: 2px; }
 .ev {
   display: flex; align-items: center; gap: 10px;
   padding: 7px 10px; border-radius: 10px;
-  background: var(--item-bg);
-  border: 1px solid var(--item-border);
+  background: var(--item-bg); border: 1px solid var(--item-border);
   transition: all 0.3s ease;
   opacity: 0; animation: fadeIn 0.5s ease-out forwards;
 }
-.ev:hover {
-  background: var(--item-hover-bg);
-  border-color: var(--item-hover-border);
-  transform: translateX(3px);
-}
-.ev-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%; flex-shrink: 0;
-}
+.ev:hover { background: var(--item-hover-bg); border-color: var(--item-hover-border); transform: translateX(3px); }
+.ev-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 .ev-body { flex: 1; min-width: 0; }
-.ev-name {
-  font-size: 10px; font-weight: 500;
-  color: var(--text-primary);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.ev-meta {
-  font-size: 8px; font-weight: 300;
-  color: var(--text-muted); letter-spacing: 0.3px;
-}
+.ev-name { font-size: 10px; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ev-meta { font-size: 8px; font-weight: 300; color: var(--text-muted); letter-spacing: 0.3px; }
 .ev-cd { text-align: right; flex-shrink: 0; }
-.ev-val {
-  font-size: 11px; font-weight: 600;
-  color: var(--accent);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.3px;
-}
-.ev-unit {
-  font-size: 7px; font-weight: 300;
-  color: var(--text-muted);
-  letter-spacing: 0.5px; text-transform: uppercase;
-}
-
-/* Legend */
-.legend {
-  display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px;
-  opacity: 0; animation: fadeIn 0.8s ease-out 0.7s forwards;
-}
+.ev-val { font-size: 11px; font-weight: 600; color: var(--accent); font-variant-numeric: tabular-nums; letter-spacing: -0.3px; }
+.ev-unit { font-size: 7px; font-weight: 300; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase; }
+.legend { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
 .legend-i { display: flex; align-items: center; gap: 4px; }
 .legend-d { width: 5px; height: 5px; border-radius: 50%; }
-.legend-t {
-  font-size: 7px; font-weight: 300;
-  color: var(--text-muted);
+.legend-t { font-size: 7px; font-weight: 300; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase; }
+
+/* ── Radial interaction menu ── */
+.radial-ov {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 200; display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.18);
+  backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+  opacity: 0; pointer-events: none; transition: opacity 0.25s;
+}
+.radial-ov.show { opacity: 1; pointer-events: auto; }
+.radial-menu {
+  display: flex; gap: 10px;
+}
+.rad-btn {
+  all: unset; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 12px 16px; border-radius: 14px;
+  background: var(--card-bg);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
+  font-size: 20px;
+  transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), background 0.2s;
+  transform: scale(0.7); opacity: 0;
+}
+.radial-ov.show .rad-btn { transform: scale(1); opacity: 1; }
+.rad-btn:nth-child(1) { transition-delay: 0.03s; }
+.rad-btn:nth-child(2) { transition-delay: 0.06s; }
+.rad-btn:nth-child(3) { transition-delay: 0.09s; }
+.rad-btn:hover { background: var(--item-hover-bg); transform: scale(1.08) !important; }
+.rad-btn span {
+  font-size: 7px; font-weight: 400; color: var(--text-muted);
   letter-spacing: 0.5px; text-transform: uppercase;
 }
+.rad-btn.maxed { opacity: 0.3; pointer-events: none; }
 
-/* Responsive: stack vertically on narrow embeds */
-@media (max-width: 480px) {
-  .wrap { flex-direction: column; gap: 14px; padding: 14px 16px; }
-  .panel { align-items: center; text-align: center; }
+/* ── XP float popup ── */
+.xp-float {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  font-size: 11px; font-weight: 700; color: var(--accent);
+  pointer-events: none; animation: xpUp 1.2s ease-out forwards;
+  z-index: 50; text-shadow: 0 1px 4px rgba(0,0,0,0.1);
 }
 
-/* Blip detail popup */
+/* ── Blip detail popup ── */
 .blip-overlay {
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0,0,0,0.25); z-index: 100;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
   display: flex; align-items: center; justify-content: center;
   opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
 }
 .blip-overlay.show { opacity: 1; pointer-events: auto; }
 .blip-card {
   background: var(--card-bg);
-  backdrop-filter: blur(24px) saturate(1.6);
-  -webkit-backdrop-filter: blur(24px) saturate(1.6);
-  border: 1px solid var(--card-border);
-  border-radius: 16px; padding: 20px 24px;
+  backdrop-filter: blur(24px) saturate(1.6); -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  border: 1px solid var(--card-border); border-radius: 16px; padding: 20px 24px;
   max-width: 260px; width: 90%;
   transform: scale(0.88) translateY(12px);
   transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -265,11 +312,11 @@ body {
   box-shadow: 0 2px 10px rgba(0,0,0,0.2);
 }
 .blip-cd-unit { font-size: 8px; font-weight: 400; letter-spacing: 0.5px; opacity: 0.85; }
-.blip-close {
-  margin-top: 10px;
-  font-size: 7px; font-weight: 300;
-  color: var(--text-muted); letter-spacing: 1.5px;
-  text-transform: uppercase;
+.blip-close { margin-top: 10px; font-size: 7px; font-weight: 300; color: var(--text-muted); letter-spacing: 1.5px; text-transform: uppercase; }
+
+@media (max-width: 480px) {
+  .radar-view { flex-direction: column; gap: 14px; }
+  .panel { align-items: center; text-align: center; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
@@ -277,26 +324,537 @@ body {
 </style>
 </head>
 <body>
+
 <div class="wrap">
   <div class="scan"></div>
-  <div class="radar"><canvas id="r"></canvas></div>
-  <div class="panel">
-    <div class="panel-label">Horizon</div>
-    <div class="panel-title">Mission Timeline</div>
-    <div class="events" id="evs"></div>
-    <div class="legend" id="leg"></div>
+
+  <!-- Header -->
+  <div class="hdr">
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tabDragon" title="Dragon">&#x1F409;</button>
+      <button class="tab-btn" id="tabRadar" title="Radar">&#x1F4E1;</button>
+    </div>
+    <div class="hdr-title">HORIZON</div>
+  </div>
+
+  <!-- Dragon View (default) -->
+  <div class="view dragon-view active" id="vDragon">
+    <canvas id="dc"></canvas>
+    <div class="d-bars" id="dBars">
+      <div class="d-bar-row"><span class="d-bar-icon">&#x1F356;</span><span class="d-bar-label">Rations</span><div class="d-bar-track"><div class="d-bar-fill" id="barRations" style="width:100%"></div></div><span class="d-bar-val" id="valRations">100</span></div>
+      <div class="d-bar-row"><span class="d-bar-icon">&#x2694;&#xFE0F;</span><span class="d-bar-label">Morale</span><div class="d-bar-track"><div class="d-bar-fill" id="barMorale" style="width:100%"></div></div><span class="d-bar-val" id="valMorale">100</span></div>
+      <div class="d-bar-row"><span class="d-bar-icon">&#x26A1;</span><span class="d-bar-label">Readiness</span><div class="d-bar-track"><div class="d-bar-fill" id="barReadiness" style="width:100%"></div></div><span class="d-bar-val" id="valReadiness">100</span></div>
+    </div>
+    <div class="d-status" id="dStatus"></div>
+  </div>
+
+  <!-- Radar View -->
+  <div class="view radar-view" id="vRadar">
+    <div class="radar"><canvas id="r"></canvas></div>
+    <div class="panel">
+      <div class="panel-label">Horizon</div>
+      <div class="panel-title">Mission Timeline</div>
+      <div class="events" id="evs"></div>
+      <div class="legend" id="leg"></div>
+    </div>
   </div>
 </div>
+
+<!-- Radial Menu -->
+<div class="radial-ov" id="radialOv">
+  <div class="radial-menu">
+    <button class="rad-btn" id="btnFeed" data-act="feed">&#x1F356;<span>Rations</span></button>
+    <button class="rad-btn" id="btnPlay" data-act="play">&#x2694;&#xFE0F;<span>Morale</span></button>
+    <button class="rad-btn" id="btnRest" data-act="rest">&#x1F4A4;<span>Readiness</span></button>
+  </div>
+</div>
+
+<!-- Blip Popup -->
 <div class="blip-overlay" id="blipOv">
   <div class="blip-card" id="blipCard"></div>
 </div>
+
 <script src="core.js"></script>
 <script>
-/* ══════════════════════════════════════════
-   MILESTONES — update as life evolves
-   w: importance weight (1–3), controls blip size
-   ══════════════════════════════════════════ */
-/* Audio from core.js */
+/* ═══════════════════════════════════════════════════════
+   HORIZON + WYRM — Dragon Companion & Mission Timeline
+   ═══════════════════════════════════════════════════════ */
+
+var dark = Core.isDark;
+var DPR = window.devicePixelRatio || 1;
+
+/* ══════════════════════════════════════
+   1. DRAGON STATE ENGINE
+   ══════════════════════════════════════ */
+
+var STAGES = [
+  { name: 'Egg',       rank: 'Recruit', xp: 0 },
+  { name: 'Hatchling', rank: 'OCdt',    xp: 1000 },
+  { name: 'Fledgling', rank: '2Lt',     xp: 5000 },
+  { name: 'Juvenile',  rank: 'Lt',      xp: 20000 },
+  { name: 'Adult',     rank: 'Capt',    xp: 60000 },
+  { name: 'Elder',     rank: 'Maj',     xp: 150000 }
+];
+
+var STREAK_BASE = 15, STREAK_CAP = 150;
+var DAILY_VIS_CAP = 120;
+var INTERACT_XP = 5;
+var INTERACT_CAP = 3;
+
+function todayStr() {
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function loadDS() {
+  return {
+    xp:         parseInt(localStorage.getItem('dragon_xp') || '0'),
+    rations:    parseFloat(localStorage.getItem('dragon_rations') || '100'),
+    morale:     parseFloat(localStorage.getItem('dragon_morale') || '100'),
+    readiness:  parseFloat(localStorage.getItem('dragon_readiness') || '100'),
+    lastVisit:  localStorage.getItem('dragon_lastVisit') || new Date().toISOString(),
+    streak:     parseInt(localStorage.getItem('dragon_streak') || '0'),
+    streakDate: localStorage.getItem('dragon_streakDate') || '',
+    feedToday:  parseInt(localStorage.getItem('dragon_feedToday') || '0'),
+    playToday:  parseInt(localStorage.getItem('dragon_playToday') || '0'),
+    restToday:  parseInt(localStorage.getItem('dragon_restToday') || '0'),
+    visXPToday: parseInt(localStorage.getItem('dragon_visXPToday') || '0'),
+    todayDate:  localStorage.getItem('dragon_todayDate') || '',
+    lastRandom: localStorage.getItem('dragon_lastRandom') || ''
+  };
+}
+
+function saveDS(s) {
+  localStorage.setItem('dragon_xp', String(Math.floor(s.xp)));
+  localStorage.setItem('dragon_rations', String(Math.round(s.rations * 10) / 10));
+  localStorage.setItem('dragon_morale', String(Math.round(s.morale * 10) / 10));
+  localStorage.setItem('dragon_readiness', String(Math.round(s.readiness * 10) / 10));
+  localStorage.setItem('dragon_lastVisit', s.lastVisit);
+  localStorage.setItem('dragon_streak', String(s.streak));
+  localStorage.setItem('dragon_streakDate', s.streakDate);
+  localStorage.setItem('dragon_feedToday', String(s.feedToday));
+  localStorage.setItem('dragon_playToday', String(s.playToday));
+  localStorage.setItem('dragon_restToday', String(s.restToday));
+  localStorage.setItem('dragon_visXPToday', String(s.visXPToday));
+  localStorage.setItem('dragon_todayDate', s.todayDate);
+  localStorage.setItem('dragon_lastRandom', s.lastRandom);
+}
+
+function getStage(xp) {
+  for (var i = STAGES.length - 1; i >= 0; i--) { if (xp >= STAGES[i].xp) return i; }
+  return 0;
+}
+
+function xpMult(s) {
+  var e = 0;
+  if (s.rations <= 0) e++;
+  if (s.morale <= 0) e++;
+  if (s.readiness <= 0) e++;
+  return e === 0 ? 1 : e === 1 ? 0.5 : e === 2 ? 0.25 : 0;
+}
+
+function nextStageXP(xp) {
+  for (var i = 0; i < STAGES.length; i++) { if (xp < STAGES[i].xp) return STAGES[i].xp; }
+  return STAGES[STAGES.length - 1].xp;
+}
+
+/* ── Initialise: decay bars, check streak, daily reset ── */
+function initDS() {
+  var s = loadDS();
+  var now = new Date();
+  var last = new Date(s.lastVisit);
+  var elapsed = Math.max(0, now - last);
+
+  /* Decay: Rations -1%/hr, Morale -1.25%/hr, Readiness -0.83%/hr */
+  s.rations   = Math.max(0, s.rations   - elapsed / 3600000);
+  s.morale    = Math.max(0, s.morale    - elapsed / 2880000);
+  var rDecay  = elapsed / 4320000;
+  /* Readiness auto-recovers +20 if offline > 6h */
+  if (elapsed > 21600000) s.readiness = Math.min(100, Math.max(0, s.readiness - rDecay + 20));
+  else s.readiness = Math.max(0, s.readiness - rDecay);
+
+  /* Daily reset */
+  var today = todayStr();
+  if (s.todayDate !== today) {
+    s.feedToday = 0; s.playToday = 0; s.restToday = 0;
+    s.visXPToday = 0; s.todayDate = today;
+  }
+
+  /* Streak (48h grace) */
+  if (s.streakDate !== today) {
+    if (s.streakDate) {
+      var diff = Math.floor((now - new Date(s.streakDate + 'T00:00:00')) / 86400000);
+      s.streak = diff <= 2 ? s.streak + 1 : 1;
+    } else { s.streak = 1; }
+    s.streakDate = today;
+    var sxp = Math.min(s.streak * STREAK_BASE, STREAK_CAP);
+    s.xp += Math.floor(sxp * xpMult(s));
+  }
+
+  /* Random bonus (5% per day) */
+  if (s.lastRandom !== today && Math.random() < 0.05) {
+    s.xp += Math.floor((25 + Math.random() * 51) * xpMult(s));
+    s.lastRandom = today;
+  }
+
+  s.lastVisit = now.toISOString();
+  saveDS(s);
+  return s;
+}
+
+var DS = initDS();
+var prevStage = getStage(DS.xp);
+
+/* ── Add XP helper ── */
+function addXP(amt) {
+  var gained = Math.floor(amt * xpMult(DS));
+  if (gained <= 0) return 0;
+  DS.xp += gained;
+  saveDS(DS);
+  /* Check evolution */
+  var ns = getStage(DS.xp);
+  if (ns > prevStage) {
+    prevStage = ns;
+    if (typeof playChime === 'function') playChime();
+    if (typeof launchConfetti === 'function') launchConfetti('dc');
+  }
+  showXPFloat('+' + gained + ' XP');
+  return gained;
+}
+
+/* ══════════════════════════════════════
+   2. DRAGON CANVAS + DRAWING
+   ══════════════════════════════════════ */
+
+var dcv = document.getElementById('dc');
+var dctx = dcv.getContext('2d');
+var DSZ = 180;
+dcv.width = DSZ * DPR; dcv.height = DSZ * DPR;
+dcv.style.width = DSZ + 'px'; dcv.style.height = DSZ + 'px';
+dctx.scale(DPR, DPR);
+var DC = DSZ / 2;
+
+/* Blink state */
+var blinkTimer = 0, blinkNext = 3000 + Math.random() * 5000, isBlinking = false;
+
+function drawEgg(ctx, t) {
+  var cx = DC, cy = DC;
+  var avgBar = (DS.rations + DS.morale + DS.readiness) / 3;
+  var mood = Math.max(0.15, avgBar / 100);
+  var progress = Math.min(DS.xp / 1000, 1);
+
+  /* Wobble */
+  var wobbleAmp = 0.015 + mood * 0.02;
+  var wobble = Math.sin(t * 0.0012) * wobbleAmp;
+  if (Math.sin(t * 0.00018) > 0.92) wobble *= 3.5;
+
+  ctx.save();
+  ctx.translate(cx, cy + 6);
+  ctx.rotate(wobble);
+
+  /* Shadow */
+  ctx.beginPath();
+  ctx.ellipse(0, 40, 26, 6, 0, 0, Math.PI * 2);
+  ctx.fillStyle = dark ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.06)';
+  ctx.fill();
+
+  /* Egg body */
+  var ew = 28, eh = 38;
+  ctx.save();
+  ctx.scale(1, eh / ew);
+  ctx.beginPath();
+  ctx.arc(0, -4 * (ew / eh), ew, 0, Math.PI * 2);
+  var eg = ctx.createRadialGradient(-6, -12 * (ew / eh), 2, 0, 0, ew);
+  eg.addColorStop(0, dark ? '#ddd6fe' : '#c4b5fd');
+  eg.addColorStop(0.4, dark ? '#a78bfa' : '#8b5cf6');
+  eg.addColorStop(1, dark ? '#6d28d9' : '#5b21b6');
+  ctx.fillStyle = eg;
+  ctx.fill();
+  ctx.restore();
+
+  /* Inner glow — heartbeat pulse */
+  var beat = 0.12 + 0.1 * Math.pow(Math.sin(t * 0.004), 2);
+  var gg = ctx.createRadialGradient(0, -4, 0, 0, -4, eh * 0.7);
+  gg.addColorStop(0, 'rgba(' + (dark ? '167,139,250' : '139,92,246') + ',' + (beat * mood) + ')');
+  gg.addColorStop(1, 'rgba(138,92,246,0)');
+  ctx.beginPath();
+  ctx.ellipse(0, -4, ew + 4, eh + 4, 0, 0, Math.PI * 2);
+  ctx.fillStyle = gg;
+  ctx.fill();
+
+  /* Cracks */
+  if (progress >= 0.25) {
+    ctx.strokeStyle = dark ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.55)';
+    ctx.lineWidth = 1.2; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-5, -22); ctx.lineTo(-3, -12); ctx.lineTo(-7, -6); ctx.stroke();
+  }
+  if (progress >= 0.5) {
+    ctx.beginPath(); ctx.moveTo(7, -18); ctx.lineTo(4, -8); ctx.lineTo(9, -1); ctx.stroke();
+  }
+  if (progress >= 0.75) {
+    ctx.beginPath(); ctx.moveTo(-2, 4); ctx.lineTo(3, 12); ctx.lineTo(-1, 20); ctx.stroke();
+    /* Extra glow at 75% — almost hatching */
+    var hg = ctx.createRadialGradient(0, -4, 0, 0, -4, eh * 0.5);
+    hg.addColorStop(0, 'rgba(' + (dark ? '167,139,250' : '139,92,246') + ',0.15)');
+    hg.addColorStop(1, 'rgba(138,92,246,0)');
+    ctx.beginPath(); ctx.ellipse(0, -4, ew, eh, 0, 0, Math.PI * 2);
+    ctx.fillStyle = hg; ctx.fill();
+  }
+
+  ctx.restore();
+}
+
+function drawHatchling(ctx, t) {
+  var cx = DC, cy = DC + 10;
+  var avgBar = (DS.rations + DS.morale + DS.readiness) / 3;
+  var mood = Math.max(0.2, avgBar / 100);
+
+  /* Animation */
+  var breathe = 1 + Math.sin(t * 0.002) * 0.025;
+  var bob = Math.sin(t * 0.0012) * 2.5 * mood;
+  var headTilt = Math.sin(t * 0.0008) * 0.05 * mood;
+
+  /* Blink */
+  blinkTimer += 16;
+  if (!isBlinking && blinkTimer > blinkNext) { isBlinking = true; blinkTimer = 0; }
+  if (isBlinking && blinkTimer > 150) { isBlinking = false; blinkTimer = 0; blinkNext = 2500 + Math.random() * 5000; }
+
+  var alpha = 0.55 + mood * 0.45;
+  ctx.globalAlpha = alpha;
+  ctx.save();
+  ctx.translate(cx, cy + bob);
+
+  var bc = dark ? '#a78bfa' : '#8b5cf6';
+  var belly = dark ? '#ddd6fe' : '#c4b5fd';
+  var wc = dark ? '#8b5cf6' : '#7c3aed';
+  var ec = dark ? '#c4b5fd' : '#7c3aed';
+  var hc = dark ? '#c4b5fd' : '#a78bfa';
+
+  var bw = 16 * breathe, bh = 20;
+  var hr = 14, hy = -bh - hr + 8;
+
+  /* Shadow */
+  ctx.beginPath(); ctx.ellipse(0, bh + 6, 22, 5, 0, 0, Math.PI * 2);
+  ctx.fillStyle = dark ? 'rgba(0,0,0,0.15)' : 'rgba(0,0,0,0.05)'; ctx.fill();
+
+  /* Tail */
+  ctx.beginPath(); ctx.moveTo(bw * 0.6, bh * 0.15);
+  ctx.quadraticCurveTo(bw + 14, bh * 0.3, bw + 10, -6);
+  ctx.strokeStyle = bc; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.stroke();
+  /* Tail tip */
+  ctx.beginPath();
+  ctx.moveTo(bw + 10, -6); ctx.lineTo(bw + 14, -10); ctx.lineTo(bw + 8, -8);
+  ctx.fillStyle = wc; ctx.fill();
+
+  /* Back wing (left) */
+  ctx.beginPath();
+  ctx.moveTo(-bw * 0.4, -bh * 0.25);
+  ctx.lineTo(-bw - 16, -bh - 12);
+  ctx.lineTo(-bw - 4, -bh - 16);
+  ctx.lineTo(-bw * 0.15, -bh * 0.05);
+  ctx.closePath(); ctx.fillStyle = wc; ctx.fill();
+
+  /* Body */
+  ctx.beginPath(); ctx.ellipse(0, 0, bw, bh, 0, 0, Math.PI * 2);
+  ctx.fillStyle = bc; ctx.fill();
+
+  /* Belly */
+  ctx.beginPath(); ctx.ellipse(0, bh * 0.12, bw * 0.55, bh * 0.55, 0, 0, Math.PI * 2);
+  ctx.fillStyle = belly; ctx.fill();
+
+  /* Front wing (right) */
+  ctx.save(); ctx.globalAlpha = alpha * 0.85;
+  ctx.beginPath();
+  ctx.moveTo(bw * 0.35, -bh * 0.3);
+  ctx.lineTo(bw + 18, -bh - 14);
+  ctx.lineTo(bw + 8, -bh - 18);
+  ctx.lineTo(bw * 0.15, -bh * 0.08);
+  ctx.closePath(); ctx.fillStyle = wc; ctx.fill();
+  ctx.restore();
+
+  /* Feet */
+  ctx.fillStyle = bc;
+  ctx.beginPath(); ctx.ellipse(-bw * 0.45, bh + 2, 5, 3.5, -0.2, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(bw * 0.45, bh + 2, 5, 3.5, 0.2, 0, Math.PI * 2); ctx.fill();
+
+  /* Head */
+  ctx.save(); ctx.translate(0, hy); ctx.rotate(headTilt);
+  ctx.beginPath(); ctx.arc(0, 0, hr, 0, Math.PI * 2);
+  ctx.fillStyle = bc; ctx.fill();
+
+  /* Eyes */
+  if (!isBlinking) {
+    [-5, 5].forEach(function(ex) {
+      var dir = ex < 0 ? 1 : -1;
+      ctx.beginPath(); ctx.ellipse(ex, -1, 4.2, 5, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff'; ctx.fill();
+      ctx.beginPath(); ctx.arc(ex + dir * 0.8, -0.5, 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = ec; ctx.fill();
+      ctx.beginPath(); ctx.arc(ex + dir * 1.5, -1.5, 0.9, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff'; ctx.fill();
+    });
+  } else {
+    ctx.strokeStyle = ec; ctx.lineWidth = 1.5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-8, 0); ctx.lineTo(-2, 0); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(2, 0); ctx.lineTo(8, 0); ctx.stroke();
+  }
+
+  /* Horns */
+  ctx.fillStyle = hc;
+  [[-5, -hr + 2, -3, -hr - 8, -1, -hr + 2], [1, -hr + 2, 3, -hr - 8, 5, -hr + 2]].forEach(function(h) {
+    ctx.beginPath(); ctx.moveTo(h[0], h[1]); ctx.lineTo(h[2], h[3]); ctx.lineTo(h[4], h[5]); ctx.closePath(); ctx.fill();
+  });
+
+  /* Smile */
+  if (mood > 0.4) {
+    ctx.beginPath(); ctx.arc(0, 3.5, 3.5, 0.15, Math.PI - 0.15);
+    ctx.strokeStyle = dark ? '#6d28d9' : '#5b21b6'; ctx.lineWidth = 0.8; ctx.stroke();
+  }
+
+  /* Eggshell piece */
+  if (DS.xp < 3000) {
+    ctx.beginPath();
+    ctx.moveTo(-9, -hr + 1); ctx.lineTo(-11, -hr - 5); ctx.lineTo(-6, -hr - 7);
+    ctx.lineTo(-2, -hr - 3); ctx.lineTo(-5, -hr + 1); ctx.closePath();
+    ctx.fillStyle = dark ? '#e8e4f8' : '#f5f3ff';
+    ctx.strokeStyle = hc; ctx.lineWidth = 0.5;
+    ctx.fill(); ctx.stroke();
+  }
+
+  ctx.restore(); /* head */
+  ctx.restore(); /* main */
+  ctx.globalAlpha = 1;
+}
+
+function drawDragon(t) {
+  dctx.clearRect(0, 0, DSZ, DSZ);
+  var stage = getStage(DS.xp);
+  if (stage === 0) drawEgg(dctx, t);
+  else drawHatchling(dctx, t); /* stages 1+ use hatchling for now */
+}
+
+/* ══════════════════════════════════════
+   3. UI UPDATES (bars, status)
+   ══════════════════════════════════════ */
+
+function updateBars() {
+  document.getElementById('barRations').style.width = Math.max(0, DS.rations) + '%';
+  document.getElementById('barMorale').style.width = Math.max(0, DS.morale) + '%';
+  document.getElementById('barReadiness').style.width = Math.max(0, DS.readiness) + '%';
+  document.getElementById('valRations').textContent = Math.round(DS.rations);
+  document.getElementById('valMorale').textContent = Math.round(DS.morale);
+  document.getElementById('valReadiness').textContent = Math.round(DS.readiness);
+}
+
+function updateStatus() {
+  var stage = getStage(DS.xp);
+  var si = STAGES[stage];
+  var nxt = stage < STAGES.length - 1 ? STAGES[stage + 1].xp : DS.xp;
+  document.getElementById('dStatus').innerHTML =
+    '<span class="d-rank">' + si.rank + '</span> &middot; ' +
+    Math.floor(DS.xp).toLocaleString() + ' XP &middot; ' +
+    'Streak: ' + DS.streak + 'd <span class="d-fire">&#x1F525;</span>';
+}
+
+function showXPFloat(text) {
+  var el = document.createElement('div');
+  el.className = 'xp-float';
+  el.textContent = text;
+  el.style.top = '40%';
+  document.querySelector('.wrap').appendChild(el);
+  setTimeout(function() { el.remove(); }, 1300);
+}
+
+updateBars();
+updateStatus();
+
+/* ══════════════════════════════════════
+   4. RADIAL MENU + INTERACTIONS
+   ══════════════════════════════════════ */
+
+var radialOv = document.getElementById('radialOv');
+
+function openRadial() {
+  /* Update button states */
+  document.getElementById('btnFeed').classList.toggle('maxed', DS.feedToday >= INTERACT_CAP);
+  document.getElementById('btnPlay').classList.toggle('maxed', DS.playToday >= INTERACT_CAP);
+  document.getElementById('btnRest').classList.toggle('maxed', DS.restToday >= INTERACT_CAP);
+  radialOv.classList.add('show');
+  if (typeof playClick === 'function') playClick();
+}
+
+function closeRadial() { radialOv.classList.remove('show'); }
+
+/* Dragon canvas tap */
+dcv.addEventListener('click', openRadial);
+dcv.addEventListener('touchend', function(e) { e.preventDefault(); openRadial(); });
+
+radialOv.addEventListener('click', function(e) {
+  if (e.target === radialOv) { closeRadial(); return; }
+  var btn = e.target.closest('.rad-btn');
+  if (!btn || btn.classList.contains('maxed')) return;
+  var act = btn.dataset.act;
+  if (act === 'feed' && DS.feedToday < INTERACT_CAP) {
+    DS.rations = Math.min(100, DS.rations + 40); DS.feedToday++;
+    if (typeof playOpen === 'function') playOpen();
+  } else if (act === 'play' && DS.playToday < INTERACT_CAP) {
+    DS.morale = Math.min(100, DS.morale + 35); DS.playToday++;
+    if (typeof playStart === 'function') playStart();
+  } else if (act === 'rest' && DS.restToday < INTERACT_CAP) {
+    DS.readiness = Math.min(100, DS.readiness + 30); DS.restToday++;
+    if (typeof playOpen === 'function') playOpen();
+  } else { return; }
+  addXP(INTERACT_XP);
+  saveDS(DS);
+  updateBars();
+  updateStatus();
+  closeRadial();
+});
+
+/* ══════════════════════════════════════
+   5. PASSIVE XP (1 XP/min while visible)
+   ══════════════════════════════════════ */
+
+var visAccum = 0;
+setInterval(function() {
+  if (document.hidden) return;
+  if (DS.visXPToday >= DAILY_VIS_CAP) return;
+  visAccum++;
+  if (visAccum >= 60) { /* every 60s */
+    visAccum = 0;
+    DS.visXPToday++;
+    addXP(1);
+    saveDS(DS);
+    updateStatus();
+  }
+}, 1000);
+
+/* ══════════════════════════════════════
+   6. TAB TOGGLE
+   ══════════════════════════════════════ */
+
+var tabDragon = document.getElementById('tabDragon');
+var tabRadar  = document.getElementById('tabRadar');
+var vDragon   = document.getElementById('vDragon');
+var vRadar    = document.getElementById('vRadar');
+var activeTab = 'dragon';
+
+function switchTab(tab) {
+  if (tab === activeTab) return;
+  activeTab = tab;
+  tabDragon.classList.toggle('active', tab === 'dragon');
+  tabRadar.classList.toggle('active', tab === 'radar');
+  vDragon.classList.toggle('active', tab === 'dragon');
+  vRadar.classList.toggle('active', tab === 'radar');
+  if (typeof playModeSwitch === 'function') playModeSwitch();
+}
+
+tabDragon.addEventListener('click', function() { switchTab('dragon'); });
+tabRadar.addEventListener('click', function() { switchTab('radar'); });
+
+/* ══════════════════════════════════════
+   7. MILESTONES (existing)
+   ══════════════════════════════════════ */
 
 var MS = [
   { n: "UWindsor Graduation",       d: "2026-04-28", c: "#8b5cf6", cat: "Academic", w: 2 },
@@ -324,7 +882,6 @@ function hashStr(s) {
   return h;
 }
 
-/* ── v2: Sector quadrants — each category gets an angular sector ── */
 var catList = [];
 MS.forEach(function(m) { if (catList.indexOf(m.cat) === -1) catList.push(m.cat); });
 var sectorSize = (Math.PI * 2) / Math.max(catList.length, 1);
@@ -335,7 +892,6 @@ function catSectorAngle(cat, seed) {
   return base + spread * sectorSize * 0.8;
 }
 
-/* ── v2: Threat level — events in 1W ring warm the centre ── */
 function getThreatLevel() {
   var n = 0;
   items.forEach(function(m) { if (m.days <= 7 && m.days >= 0) n++; });
@@ -374,29 +930,23 @@ Object.keys(cats).forEach(function(k) {
   legEl.appendChild(el);
 });
 
-/* ══════════════════════════════════════════
-   RADAR CANVAS
-   ══════════════════════════════════════════ */
+/* ══════════════════════════════════════
+   8. RADAR CANVAS (existing)
+   ══════════════════════════════════════ */
+
 var cv = document.getElementById('r');
 var ctx = cv.getContext('2d');
-var dark = Core.isDark;
-var DPR = window.devicePixelRatio || 1;
 var SZ = 200;
 cv.width = SZ * DPR; cv.height = SZ * DPR;
 cv.style.width = SZ + 'px'; cv.style.height = SZ + 'px';
 ctx.scale(DPR, DPR);
 
 var C = SZ / 2, MR = C - 10;
-
-/* v2: Animation state */
-var echoes = [];
-var pings = [];
-var bursts = [];
+var echoes = [], pings = [], bursts = [];
 var ENTRY_DUR = 1200;
 var loadTime = -1;
 var lastPingTime = 0;
 
-/* v2: Blip positions with sectors + orbital drift + weighted sizing */
 var blips = items.filter(function(m) { return m.days <= MAX_DAYS; }).map(function(m) {
   var dist = (m.days / MAX_DAYS) * MR;
   var angle = catSectorAngle(m.cat, hashStr(m.n));
@@ -410,7 +960,6 @@ var blips = items.filter(function(m) { return m.days <= MAX_DAYS; }).map(functio
   };
 });
 
-/* v2: Arrival burst particles for 0-day events */
 items.forEach(function(m) {
   if (m.days === 0) {
     for (var i = 0; i < 24; i++) {
@@ -421,7 +970,7 @@ items.forEach(function(m) {
   }
 });
 
-/* ── Static layer (rendered once, blitted per frame) ── */
+/* Static radar layer */
 var staticCv = document.createElement('canvas');
 staticCv.width = SZ * DPR; staticCv.height = SZ * DPR;
 var sCtx = staticCv.getContext('2d');
@@ -448,7 +997,6 @@ RINGS.forEach(function(days, i) {
 sCtx.beginPath(); sCtx.arc(C, C, MR + 1, 0, Math.PI * 2);
 sCtx.strokeStyle = dark ? 'rgba(138,92,246,0.12)' : 'rgba(138,92,246,0.08)';
 sCtx.lineWidth = 0.8; sCtx.stroke();
-/* v2: Sector divider lines */
 for (var si = 0; si < catList.length; si++) {
   var sa = si * sectorSize;
   sCtx.beginPath(); sCtx.moveTo(C, C);
@@ -456,7 +1004,6 @@ for (var si = 0; si < catList.length; si++) {
   sCtx.strokeStyle = dark ? 'rgba(138,92,246,0.05)' : 'rgba(138,92,246,0.035)';
   sCtx.lineWidth = 0.5; sCtx.stroke();
 }
-/* v2: Sector category labels */
 sCtx.font = '500 5.5px Inter';
 catList.forEach(function(cat, i) {
   var midAngle = i * sectorSize + sectorSize / 2;
@@ -473,12 +1020,11 @@ catList.forEach(function(cat, i) {
   sCtx.restore();
 });
 
-function draw(t) {
+function drawRadar(t) {
   if (loadTime < 0) loadTime = t;
   ctx.clearRect(0, 0, SZ, SZ);
   var sweep = ((t % ROT_MS) / ROT_MS) * Math.PI * 2;
 
-  /* Static layer */
   ctx.drawImage(staticCv, 0, 0, SZ, SZ);
 
   /* Sweep cone */
@@ -504,14 +1050,13 @@ function draw(t) {
   ctx.beginPath(); ctx.moveTo(C, C); ctx.lineTo(sx, sy);
   ctx.strokeStyle = lg; ctx.lineWidth = 1.5; ctx.stroke();
 
-  /* Sweep tip glow */
   var tg = ctx.createRadialGradient(sx, sy, 0, sx, sy, 6);
   tg.addColorStop(0, dark ? 'rgba(167,139,250,0.5)' : 'rgba(138,92,246,0.4)');
   tg.addColorStop(1, 'rgba(138,92,246,0)');
   ctx.beginPath(); ctx.arc(sx, sy, 6, 0, Math.PI * 2);
   ctx.fillStyle = tg; ctx.fill();
 
-  /* v2: Centre sonar ping — one per full rotation */
+  /* Sonar ping */
   if (sweep < 0.3 && t - lastPingTime > ROT_MS * 0.85) {
     lastPingTime = t;
     pings.push({ r: 3, a: 0.35 });
@@ -535,7 +1080,7 @@ function draw(t) {
     ctx.lineWidth = 1; ctx.stroke();
   }
 
-  /* v2: Arrival burst particles */
+  /* Burst particles */
   for (var bi = bursts.length - 1; bi >= 0; bi--) {
     var bp = bursts[bi];
     bp.x += bp.vx; bp.y += bp.vy;
@@ -546,7 +1091,7 @@ function draw(t) {
     ctx.fillStyle = hexRgba(bp.c, bp.a); ctx.fill();
   }
 
-  /* v2: Blips — orbital drift + staggered entry + weighted sizing */
+  /* Blips */
   var entryElapsed = t - loadTime;
   blips.forEach(function(b, bIdx) {
     b.angle += b.orbitSpeed;
@@ -590,7 +1135,7 @@ function draw(t) {
     }
   });
 
-  /* v2: Centre core — adaptive threat glow */
+  /* Centre core */
   var threat = getThreatLevel();
   var coreHue = Math.round(260 - threat * 200);
   var cp = 2.5 + Math.sin(t * 0.002) * 0.5;
@@ -604,7 +1149,6 @@ function draw(t) {
   ctx.beginPath(); ctx.arc(C, C, cp, 0, Math.PI * 2);
   ctx.fillStyle = 'hsl(' + coreHue + ',75%,' + (dark ? 70 : 60) + '%)'; ctx.fill();
 
-  /* v2: Nearest event countdown in centre */
   if (items.length > 0 && items[0].days <= 30) {
     ctx.font = '700 6px Inter';
     ctx.fillStyle = dark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.18)';
@@ -613,7 +1157,10 @@ function draw(t) {
   }
 }
 
-/* ── Popup system ── */
+/* ══════════════════════════════════════
+   9. POPUP SYSTEM (existing)
+   ══════════════════════════════════════ */
+
 var blipOv = document.getElementById('blipOv');
 var blipCard = document.getElementById('blipCard');
 
@@ -638,7 +1185,6 @@ function showPopup(m) {
   blipOv.classList.add('show');
 }
 
-/* Make side-panel event items clickable */
 var evEls = document.querySelectorAll('.ev');
 items.slice(0, 5).forEach(function(m, i) {
   if (evEls[i]) {
@@ -647,7 +1193,6 @@ items.slice(0, 5).forEach(function(m, i) {
   }
 });
 
-/* Radar canvas click + touch */
 cv.style.cursor = 'pointer';
 function getBlipFromEvent(e) {
   var rect = cv.getBoundingClientRect();
@@ -675,7 +1220,6 @@ function handleRadarTap(e) {
 cv.addEventListener('click', handleRadarTap);
 cv.addEventListener('touchend', function(e) { e.preventDefault(); handleRadarTap(e); });
 
-/* Dismiss popup */
 blipOv.addEventListener('click', function(e) {
   if (e.target === blipOv) { playClick(); blipOv.classList.remove('show'); }
 });
@@ -683,23 +1227,48 @@ blipOv.addEventListener('touchend', function(e) {
   if (e.target === blipOv) { playClick(); blipOv.classList.remove('show'); }
 });
 document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') { playClick(); blipOv.classList.remove('show'); }
+  if (e.key === 'Escape') {
+    playClick();
+    blipOv.classList.remove('show');
+    closeRadial();
+  }
 });
 
-/* Animation loop */
-var running = true, last = 0;
+/* ══════════════════════════════════════
+   10. ANIMATION LOOPS
+   ══════════════════════════════════════ */
+
+var running = true, lastFrame = 0;
 var prefersRM = Core.reducedMotion;
+
 function loop(t) {
   if (!running) return;
-  if (prefersRM) { draw(0); return; }
-  if (t - last < 32) { requestAnimationFrame(loop); return; }
-  last = t; draw(t); requestAnimationFrame(loop);
+  if (prefersRM) {
+    drawDragon(0);
+    drawRadar(0);
+    return;
+  }
+  if (t - lastFrame < 32) { requestAnimationFrame(loop); return; }
+  lastFrame = t;
+
+  if (activeTab === 'dragon') drawDragon(t);
+  else drawRadar(t);
+
+  requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
+
 document.addEventListener('visibilitychange', function() {
-  if (document.hidden) running = false;
-  else { running = true; requestAnimationFrame(loop); }
+  if (document.hidden) { running = false; }
+  else {
+    running = true;
+    DS.lastVisit = new Date().toISOString();
+    saveDS(DS);
+    requestAnimationFrame(loop);
+  }
 });
+
+playSummon('bottom');
 </script>
 </body>
 </html>
