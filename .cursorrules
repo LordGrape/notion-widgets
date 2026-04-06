@@ -19,6 +19,23 @@
 - 6 stages: Egg (0 XP) → Hatchling (1000) → Whelp (5000) → Drake (20000) → Dragon (60000) → Elder (120000)
 - Stage 0 (Egg): Rendered via Three.js (EggScene module) with Canvas 2D fallback
 - Stages 1+: Canvas 2D rendering (drawDragon function)
+
+### Weather system (horizon.html)
+- Open-Meteo API (free, no key). Cached 30min in localStorage `_weather_cache`
+- `weatherData` global: `{ temp, code, condition, icon, type, humidity, wind }`
+- `getWeatherType(code)` returns: `clear` | `cloudy` | `rain` | `snow` | `fog` | `storm`
+- Weather influences both Canvas 2D (`drawEgg`, `drawWeatherFX`) and Three.js (`EggScene.render`)
+- `fetchWeather()` reads lat/lon from SyncEngine `user` namespace (fallback Toronto-area defaults)
+
+### Ambient systems (horizon egg — zero-interaction, scale with `getStage()`)
+- `returnGlow`: set in `initDS()` when previous `lastVisit` was 2h+ before refresh; fades via decay in the active renderer (`drawEgg` or `EggScene.render`)
+- Time-of-day particles (Canvas egg): morning = gold dust, evening = fireflies, night = blue sparkles
+- Weather particles (Canvas egg): rain streaks, snowflakes, sun rays, fog wisps, storm flash
+- Proximity warmth: heat particles rising when pointer is near the egg
+- Seasonal nest accents: spring buds, summer gold, autumn amber, winter frost (sleep activity)
+- Three.js crack glow: independent breathing rhythm per crack (desync from egg heartbeat)
+- Particle counts use `base + getStage(DS.xp) * multiplier`; intensities use `base + stage * scale`
+- Future stages (1–5) extend in their draw functions with stage-specific responses
 - XP stored in SyncEngine under 'dragon' namespace
 - Bars: rations, morale, readiness (0-100, decay over time)
 - Activity system: ACT_POOL per stage, day-phase dependent
