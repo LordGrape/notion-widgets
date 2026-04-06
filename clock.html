@@ -1161,8 +1161,8 @@ PRESETS.forEach(function(p, i) {
     clearActivePresets();
     this.classList.add('active');
     /* Reset custom input if open */
-    var ci = document.getElementById('customInput');
-    if (ci) ci.value = '';
+    var cw = document.getElementById('customInputWrap');
+    if (cw) cw.remove();
     document.getElementById('customChip').classList.remove('active');
     document.getElementById('tmLabel').textContent = 'Set duration';
     document.getElementById('tmLabel').className = 'session-label';
