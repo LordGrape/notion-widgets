@@ -248,17 +248,9 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); display: flex; a
    Data flow:
    1. Courses stored in SyncEngine 'timetable' namespace (CRUD via settings UI)
    2. Milestones pulled from SyncEngine.fetchMilestones() (Notion bridge)
-   3. First run seeds defaults from the old hardcoded schedule
    ══════════════════════════════════════ */
 
-var DEFAULT_COURSES = [
-  { id:'d1', day:1, name:"POLS 3550: Political Economy & Intl Trade", prof:"Dr. Lanoszka", room:"Dillon Hall 361", start:"11:30", end:"14:20", color:"#c4a235" },
-  { id:'d2', day:1, name:"POLS 3140: Constitutional Law & Politics", prof:"Dr. Callaghan", room:"Erie Hall 2123", start:"14:30", end:"15:50", color:"#7cb342" },
-  { id:'d3', day:1, name:"ICDS 3020: Historical Approaches to People with Disabilities", prof:"Dr. Voronka", room:"Memorial Hall 311", start:"16:00", end:"18:50", color:"#e67c73" },
-  { id:'d4', day:3, name:"POLS 3140: Constitutional Law & Politics", prof:"Dr. Callaghan", room:"Erie Hall 2123", start:"14:30", end:"15:50", color:"#7cb342" },
-  { id:'d5', day:4, name:"POLS 4610: International Relation Seminar", prof:"Dr. Najem", room:"Dillon Hall 366", start:"10:00", end:"12:50", color:"#ce93d8" },
-  { id:'d6', day:4, name:"POLS 4420: Politics and Security in Russia and Eurasia", prof:"Dr. Maltseva", room:"Dillon Hall 366", start:"13:00", end:"15:50", color:"#4dd0e1" }
-];
+var DEFAULT_COURSES = [];
 
 var DAY_LABELS = ['S','M','T','W','T','F','S'];
 var DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -707,8 +699,6 @@ SyncEngine.init({
   worker: 'https://widget-sync.lordgrape-widgets.workers.dev',
   namespaces: ['dragon', 'clock', 'user', 'timetable']
 }).then(function() {
-  /* Seed defaults on first run */
-  if (!getCourses().length) saveCourses(DEFAULT_COURSES);
   schedule = getCourses();
 
   buildDaySelector();
