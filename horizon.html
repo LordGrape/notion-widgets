@@ -534,6 +534,28 @@ dcv.style.width = DSZ + 'px'; dcv.style.height = DSZ + 'px';
 dctx.scale(DPR, DPR);
 var DC = DSZ / 2;
 
+/* ── Egg particle aura ── */
+var eggParts = [];
+for (var _ep = 0; _ep < 14; _ep++) {
+  eggParts.push({
+    a: Math.random() * Math.PI * 2,
+    d: 32 + Math.random() * 28,
+    sp: 0.0004 + Math.random() * 0.0005,
+    dr: 0.2 + Math.random() * 0.35,
+    r: 0.5 + Math.random() * 1.6,
+    ph: Math.random() * Math.PI * 2
+  });
+}
+
+/* ── Mouse tracking on dragon canvas ── */
+var eggMX = DC, eggMY = DC;
+dcv.addEventListener('mousemove', function(e) {
+  var rect = dcv.getBoundingClientRect();
+  eggMX = (e.clientX - rect.left) * (DSZ / rect.width);
+  eggMY = (e.clientY - rect.top) * (DSZ / rect.height);
+});
+dcv.addEventListener('mouseleave', function() { eggMX = DC; eggMY = DC; });
+
 /* Blink state */
 var blinkTimer = 0, blinkNext = 3000 + Math.random() * 5000, isBlinking = false;
 
@@ -543,65 +565,133 @@ function drawEgg(ctx, t) {
   var mood = Math.max(0.15, avgBar / 100);
   var progress = Math.min(DS.xp / 1000, 1);
 
-  /* Wobble */
-  var wobbleAmp = 0.015 + mood * 0.02;
-  var wobble = Math.sin(t * 0.0012) * wobbleAmp;
-  if (Math.sin(t * 0.00018) > 0.92) wobble *= 3.5;
+  /* Mouse proximity (0 = far, 1 = on egg) */
+  var mdx = eggMX - cx, mdy = eggMY - (cy + 6);
+  var mDist = Math.sqrt(mdx * mdx + mdy * mdy);
+  var prox = Math.max(0, 1 - mDist / 80);
+
+  /* === BREATHING === */
+  var breath = Math.sin(t * 0.0016) * 0.04;
+  var heartbeat = Math.pow(Math.sin(t * 0.0042), 2) * 0.018;
+  var scale = 1 + (breath + heartbeat) * mood;
+
+  /* === LEVITATION === */
+  var floatY = Math.sin(t * 0.001) * 4.5 * mood;
+  var floatX = Math.sin(t * 0.0007) * 1.8 * mood;
+
+  /* === ORGANIC WOBBLE === */
+  var wobble = Math.sin(t * 0.0012) * 0.03 * mood;
+  if (Math.sin(t * 0.00018) > 0.9) wobble *= 3;
+
+  /* === MOUSE LEAN === */
+  var lean = (mdx / 80) * 0.07 * prox;
 
   ctx.save();
-  ctx.translate(cx, cy + 6);
-  ctx.rotate(wobble);
+  ctx.translate(cx + floatX, cy + 6 + floatY);
+  ctx.rotate(wobble + lean);
+  ctx.scale(scale, scale);
 
-  /* Shadow */
+  /* Shadow (responds to float height) */
+  var shScale = 1 - Math.abs(floatY) / 18;
   ctx.beginPath();
-  ctx.ellipse(0, 40, 26, 6, 0, 0, Math.PI * 2);
-  ctx.fillStyle = dark ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.06)';
+  ctx.ellipse(0, 40 - floatY, 26 * shScale, 5.5 * shScale, 0, 0, Math.PI * 2);
+  ctx.fillStyle = dark ? 'rgba(0,0,0,0.18)' : 'rgba(0,0,0,0.05)';
   ctx.fill();
+
+  /* Outer aura (breathing glow) */
+  var aInt = 0.1 + breath * 2.5 + prox * 0.12;
+  var au = ctx.createRadialGradient(0, -4, 0, 0, -4, 56);
+  au.addColorStop(0, 'rgba(' + (dark ? '167,139,250' : '139,92,246') + ',' + (aInt * mood) + ')');
+  au.addColorStop(0.5, 'rgba(' + (dark ? '167,139,250' : '139,92,246') + ',' + (aInt * 0.25 * mood) + ')');
+  au.addColorStop(1, 'rgba(138,92,246,0)');
+  ctx.beginPath(); ctx.arc(0, -4, 56, 0, Math.PI * 2);
+  ctx.fillStyle = au; ctx.fill();
 
   /* Egg body */
   var ew = 28, eh = 38;
   ctx.save();
   ctx.scale(1, eh / ew);
-  ctx.beginPath();
-  ctx.arc(0, -4 * (ew / eh), ew, 0, Math.PI * 2);
+  ctx.beginPath(); ctx.arc(0, -4 * (ew / eh), ew, 0, Math.PI * 2);
   var eg = ctx.createRadialGradient(-6, -12 * (ew / eh), 2, 0, 0, ew);
   eg.addColorStop(0, dark ? '#ddd6fe' : '#c4b5fd');
   eg.addColorStop(0.4, dark ? '#a78bfa' : '#8b5cf6');
   eg.addColorStop(1, dark ? '#6d28d9' : '#5b21b6');
-  ctx.fillStyle = eg;
-  ctx.fill();
+  ctx.fillStyle = eg; ctx.fill();
   ctx.restore();
 
-  /* Inner glow — heartbeat pulse */
-  var beat = 0.12 + 0.1 * Math.pow(Math.sin(t * 0.004), 2);
+  /* Inner glow — double-pulse heartbeat */
+  var b1 = 0.15 + 0.14 * Math.pow(Math.sin(t * 0.004), 2);
+  var b2 = 0.07 * Math.pow(Math.sin(t * 0.004 + 0.8), 4);
+  var bTot = (b1 + b2) * mood + prox * 0.1;
   var gg = ctx.createRadialGradient(0, -4, 0, 0, -4, eh * 0.7);
-  gg.addColorStop(0, 'rgba(' + (dark ? '167,139,250' : '139,92,246') + ',' + (beat * mood) + ')');
+  gg.addColorStop(0, 'rgba(' + (dark ? '167,139,250' : '139,92,246') + ',' + bTot + ')');
+  gg.addColorStop(0.6, 'rgba(' + (dark ? '139,92,246' : '124,58,237') + ',' + (bTot * 0.25) + ')');
   gg.addColorStop(1, 'rgba(138,92,246,0)');
-  ctx.beginPath();
-  ctx.ellipse(0, -4, ew + 4, eh + 4, 0, 0, Math.PI * 2);
-  ctx.fillStyle = gg;
-  ctx.fill();
+  ctx.beginPath(); ctx.ellipse(0, -4, ew + 4, eh + 4, 0, 0, Math.PI * 2);
+  ctx.fillStyle = gg; ctx.fill();
 
-  /* Cracks */
+  /* Specular highlight (shifts with breath) */
+  var hlY = -18 + Math.sin(t * 0.0016) * 2;
+  var hl = ctx.createRadialGradient(-8, hlY, 0, -8, hlY, 11);
+  hl.addColorStop(0, 'rgba(255,255,255,' + (dark ? 0.1 : 0.18) + ')');
+  hl.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.beginPath(); ctx.ellipse(-8, hlY, 9, 5, -0.3, 0, Math.PI * 2);
+  ctx.fillStyle = hl; ctx.fill();
+
+  /* Cracks + light leaks */
+  ctx.lineWidth = 1.2; ctx.lineCap = 'round';
   if (progress >= 0.25) {
     ctx.strokeStyle = dark ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.55)';
-    ctx.lineWidth = 1.2; ctx.lineCap = 'round';
     ctx.beginPath(); ctx.moveTo(-5, -22); ctx.lineTo(-3, -12); ctx.lineTo(-7, -6); ctx.stroke();
+    if (progress >= 0.5) {
+      var lk = 0.08 + 0.06 * Math.sin(t * 0.003);
+      ctx.strokeStyle = 'rgba(' + (dark ? '167,139,250' : '139,92,246') + ',' + lk + ')';
+      ctx.lineWidth = 3.5;
+      ctx.beginPath(); ctx.moveTo(-5, -22); ctx.lineTo(-3, -12); ctx.lineTo(-7, -6); ctx.stroke();
+      ctx.lineWidth = 1.2;
+    }
   }
   if (progress >= 0.5) {
+    ctx.strokeStyle = dark ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.55)';
     ctx.beginPath(); ctx.moveTo(7, -18); ctx.lineTo(4, -8); ctx.lineTo(9, -1); ctx.stroke();
+    if (progress >= 0.75) {
+      var lk2 = 0.08 + 0.06 * Math.sin(t * 0.003 + 1);
+      ctx.strokeStyle = 'rgba(' + (dark ? '167,139,250' : '139,92,246') + ',' + lk2 + ')';
+      ctx.lineWidth = 3.5;
+      ctx.beginPath(); ctx.moveTo(7, -18); ctx.lineTo(4, -8); ctx.lineTo(9, -1); ctx.stroke();
+      ctx.lineWidth = 1.2;
+    }
   }
   if (progress >= 0.75) {
+    ctx.strokeStyle = dark ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.55)';
     ctx.beginPath(); ctx.moveTo(-2, 4); ctx.lineTo(3, 12); ctx.lineTo(-1, 20); ctx.stroke();
-    /* Extra glow at 75% — almost hatching */
     var hg = ctx.createRadialGradient(0, -4, 0, 0, -4, eh * 0.5);
-    hg.addColorStop(0, 'rgba(' + (dark ? '167,139,250' : '139,92,246') + ',0.15)');
+    hg.addColorStop(0, 'rgba(' + (dark ? '167,139,250' : '139,92,246') + ',0.2)');
     hg.addColorStop(1, 'rgba(138,92,246,0)');
     ctx.beginPath(); ctx.ellipse(0, -4, ew, eh, 0, 0, Math.PI * 2);
     ctx.fillStyle = hg; ctx.fill();
   }
 
   ctx.restore();
+
+  /* Orbiting particles (world space) */
+  for (var pi = 0; pi < eggParts.length; pi++) {
+    var ep = eggParts[pi];
+    ep.a += ep.sp * (1 + prox * 1.5);
+    var pd = ep.d + Math.sin(t * 0.001 + ep.ph) * ep.dr * 10;
+    var pyo = Math.sin(t * 0.0008 + ep.ph) * 10;
+    var ppx = cx + floatX + Math.cos(ep.a + t * 0.00015) * pd * 0.6;
+    var ppy = cy + 6 + floatY + Math.sin(ep.a + t * 0.00015) * pd * 0.4 + pyo;
+    var pa = (0.12 + 0.22 * Math.sin(t * 0.003 + ep.ph)) * mood;
+    var pg = ctx.createRadialGradient(ppx, ppy, 0, ppx, ppy, ep.r * 3.5);
+    pg.addColorStop(0, 'rgba(' + (dark ? '167,139,250' : '139,92,246') + ',' + pa + ')');
+    pg.addColorStop(1, 'rgba(138,92,246,0)');
+    ctx.beginPath(); ctx.arc(ppx, ppy, ep.r * 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = pg; ctx.fill();
+    ctx.beginPath(); ctx.arc(ppx, ppy, ep.r, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(' + (dark ? '200,180,255' : '139,92,246') + ',' + (pa * 1.4) + ')';
+    ctx.fill();
+  }
 }
 
 function drawHatchling(ctx, t) {
