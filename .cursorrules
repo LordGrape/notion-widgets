@@ -6,7 +6,8 @@
 - Cloudflare Worker: https://widget-sync.lordgrape-widgets.workers.dev
 - Auth: passphrase stored in localStorage as _sync_passphrase, sent as X-Widget-Key header
 - All widgets run inside Notion iframe embeds (typical height 180px, varies)
-- Fullscreen: Press F toggles native Fullscreen API on document.documentElement. Lives in core.js. All widgets inherit it. Does not fire inside input/textarea fields.
+- Expand mode: Press F toggles .container to fill the iframe viewport via CSS (position:fixed + 100vw/vh). Sandbox-safe, no Fullscreen API. Lives in core.js. All widgets inherit. Esc also collapses.
+- Weather click: Copies forecast URL to clipboard (window.open blocked in Notion's sandboxed iframes).
 
 ## Widgets
 - horizon.html: Main dashboard widget — clock, timetable, dragon pet game, milestones
