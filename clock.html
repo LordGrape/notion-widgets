@@ -138,6 +138,11 @@ body {
 .weather-temp { font-size: 11px; font-weight: 400; color: var(--date-color); letter-spacing: 0.5px; font-variant-numeric: tabular-nums; }
 .weather-cond { font-size: 9px; font-weight: 300; color: var(--meta-color); letter-spacing: 1px; text-transform: uppercase; }
 
+/* ── Presence Stats ── */
+.presence-stats { display: flex; justify-content: center; gap: 16px; margin-top: 6px; opacity: 0; animation: fadeIn 1s ease-out 0.8s forwards; }
+.presence-stat { font-size: 10px; font-weight: 300; color: var(--meta-color); letter-spacing: 1px; text-transform: uppercase; }
+.presence-val { color: var(--date-color); font-weight: 400; font-variant-numeric: tabular-nums; }
+
 /* ── Stopwatch / Timer Shared ── */
 .mode.hidden { display: none; }
 .ring-wrap { position: relative; width: 180px; height: 180px; margin: 10px auto 16px; }
@@ -192,6 +197,43 @@ body {
 .focus-stats.capped .focus-val { color: #f59e0b; }
 .focus-cap-msg { font-size: 7px; color: #f59e0b; letter-spacing: 0.5px; opacity: 0.7; }
 
+/* ── Settings Panel ── */
+.settings-btn { position:absolute; top:10px; left:14px; font-size:14px; background:none; border:none; cursor:pointer; opacity:0; transform:translateY(6px) scale(0.95); transition:opacity 0.4s cubic-bezier(0.4,0,0.2,1),transform 0.4s cubic-bezier(0.4,0,0.2,1); pointer-events:none; z-index:10; color:var(--date-color); }
+.container:hover .settings-btn { opacity:0.5; transform:translateY(0) scale(1); pointer-events:auto; }
+.settings-btn:hover { opacity:1 !important; }
+.settings-ov { position:absolute; top:0; left:0; right:0; bottom:0; background:var(--card-bg); border-radius:22px; display:flex; flex-direction:column; padding:20px 24px; z-index:25; opacity:0; pointer-events:none; transition:opacity 0.3s; overflow-y:auto; }
+.settings-ov.show { opacity:1; pointer-events:auto; }
+.s-title { font-size:11px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:var(--accent); margin-bottom:16px; text-align:center; }
+.s-item { display:flex; align-items:center; gap:8px; padding:10px 12px; border-radius:10px; margin-bottom:8px; background:var(--dot-bg); border:1px solid var(--arc-track); }
+.s-item-info { flex:1; min-width:0; }
+.s-item-label { font-size:8px; font-weight:300; color:var(--meta-color); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:2px; }
+.s-item-val { font-size:11px; font-weight:500; color:var(--date-color); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.s-item-val.empty { font-style:italic; opacity:0.4; font-weight:300; }
+.s-actions { display:flex; gap:4px; flex-shrink:0; }
+.s-btn { font-family:'Inter',sans-serif; font-size:8px; font-weight:600; letter-spacing:0.5px; text-transform:uppercase; padding:5px 10px; border-radius:8px; border:none; cursor:pointer; transition:all 0.2s; }
+.s-btn.add { background:var(--accent); color:#fff; }
+.s-btn.add:hover { transform:scale(1.05); }
+.s-btn.del { background:rgba(239,68,68,0.1); color:#ef4444; }
+.s-btn.del:hover { background:rgba(239,68,68,0.2); }
+.s-btn.edt { background:rgba(var(--accent-rgb),0.1); color:var(--accent); }
+.s-btn.edt:hover { background:rgba(var(--accent-rgb),0.2); }
+.s-close { margin-top:auto; padding-top:12px; text-align:center; font-size:8px; font-weight:300; color:var(--meta-color); letter-spacing:1.5px; text-transform:uppercase; cursor:pointer; }
+.s-close:hover { color:var(--date-color); }
+.s-input-row { display:flex; gap:6px; margin:8px 0; }
+.s-input { flex:1; padding:8px 12px; border-radius:8px; border:1px solid var(--arc-track); background:var(--dot-bg); color:var(--date-color); font-family:'Inter',sans-serif; font-size:11px; outline:none; box-sizing:border-box; }
+.s-input:focus { border-color:var(--accent); }
+.s-input::placeholder { color:var(--meta-color); }
+.s-confirm { display:flex; gap:6px; align-items:center; padding:6px 0; }
+.s-confirm-msg { font-size:9px; color:#ef4444; flex:1; }
+.s-confirm-btn { font-family:'Inter',sans-serif; font-size:8px; font-weight:600; letter-spacing:0.5px; text-transform:uppercase; padding:5px 10px; border-radius:8px; border:none; cursor:pointer; }
+.s-confirm-yes { background:#ef4444; color:#fff; }
+.s-confirm-yes:hover { background:#dc2626; }
+.s-confirm-no { background:var(--dot-bg); color:var(--date-color); }
+.s-confirm-no:hover { background:rgba(var(--accent-rgb),0.1); }
+.s-geo { display:flex; flex-direction:column; gap:4px; margin-top:4px; }
+.s-geo-btn { font-family:'Inter',sans-serif; font-size:10px; color:var(--date-color); padding:6px 10px; border-radius:8px; background:var(--dot-bg); border:1px solid var(--arc-track); cursor:pointer; text-align:left; width:100%; transition:all 0.2s; }
+.s-geo-btn:hover { background:rgba(var(--accent-rgb),0.15); color:var(--accent); }
+
 /* Confetti */
 #confetti { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; pointer-events: none; }
 
@@ -219,6 +261,7 @@ body {
 <canvas id="confetti"></canvas>
 
 <div class="container">
+  <button class="settings-btn" id="sBtn" title="Settings">&#x2699;&#xFE0F;</button>
   <div class="mode-toggle">
     <button class="mode-btn active" data-mode="clock">Clock</button>
     <button class="mode-btn" data-mode="stopwatch">Stopwatch</button>
@@ -240,6 +283,10 @@ body {
     <div class="date" id="date"></div>
     <div class="clock-countdown" id="clockCountdown"></div>
     <div class="weather" id="weather"></div>
+    <div class="presence-stats" id="presence">
+      <div class="presence-stat">Session · <span class="presence-val" id="presSession"></span></div>
+      <div class="presence-stat">Today · <span class="presence-val" id="presDaily"></span></div>
+    </div>
   </div>
 
   <!-- STOPWATCH MODE -->
@@ -283,6 +330,13 @@ body {
     <div class="focus-stats" id="tmStats"></div>
   </div>
 
+  <!-- SETTINGS -->
+  <div class="settings-ov" id="settingsOv">
+    <div class="s-title">&#x2699;&#xFE0F; Settings</div>
+    <div id="sContent"></div>
+    <div class="s-close" id="sClose">Close</div>
+  </div>
+
   <!-- MICRO-BREAK OVERLAY -->
   <div class="break-overlay" id="breakOverlay">
     <div class="break-breathe"></div>
@@ -315,10 +369,25 @@ modeBtns.forEach(function(btn) {
   });
 });
 
+/* ── SyncEngine Init ── */
+SyncEngine.init({ worker: 'https://widget-sync.lordgrape-widgets.workers.dev' });
+
+/* Migrate old clock_user_* keys → SyncEngine user namespace */
+(function() {
+  var m = { name: 'clock_user_name', lat: 'clock_user_lat', lon: 'clock_user_lon', location: 'clock_user_location', tz: 'clock_user_tz' };
+  for (var k in m) {
+    var v = localStorage.getItem(m[k]);
+    if (v !== null) {
+      if (!SyncEngine.get('user', k)) SyncEngine.set('user', k, (k === 'lat' || k === 'lon') ? parseFloat(v) : v);
+      localStorage.removeItem(m[k]);
+    }
+  }
+})();
+
 /* ══════════════════════════════════════
    CLOCK MODE
    ══════════════════════════════════════ */
-var NAME = 'Musbah';
+var NAME = SyncEngine.get('user', 'name') || '';
 var prevDigits = '';
 
 var DAYLABELS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
@@ -334,7 +403,7 @@ function updateClock() {
   var now = new Date();
   var h = now.getHours(), m = now.getMinutes(), s = now.getSeconds();
   var greet = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
-  document.getElementById('greeting').textContent = greet + ', ' + NAME;
+  document.getElementById('greeting').textContent = NAME ? greet + ', ' + NAME : greet;
 
   var hStr = String(h).padStart(2, '0'), mStr = String(m).padStart(2, '0');
   var digits = hStr + mStr;
@@ -363,7 +432,10 @@ updateClock();
 setInterval(updateClock, 1000);
 
 /* Weather */
-var WLAT = 42.3149, WLON = -83.0364;
+var WLAT = SyncEngine.get('user', 'lat') || null;
+var WLON = SyncEngine.get('user', 'lon') || null;
+var WLOC = SyncEngine.get('user', 'location') || '';
+var WTZ = SyncEngine.get('user', 'tz') || Intl.DateTimeFormat().resolvedOptions().timeZone;
 var weatherEl = document.getElementById('weather');
 function wmoEmoji(code) {
   var h = new Date().getHours(), night = (h < 6 || h >= 20);
@@ -380,7 +452,8 @@ function wmoEmoji(code) {
   return ['\u{1F321}\u{FE0F}', ''];
 }
 function fetchWeather() {
-  fetch('https://api.open-meteo.com/v1/forecast?latitude=' + WLAT + '&longitude=' + WLON + '&current=temperature_2m,weather_code&timezone=America%2FToronto&models=gem_seamless')
+  if (!WLAT || !WLON) { weatherEl.innerHTML = ''; return; }
+  fetch('https://api.open-meteo.com/v1/forecast?latitude=' + WLAT + '&longitude=' + WLON + '&current=temperature_2m,weather_code&timezone=' + encodeURIComponent(WTZ) + '&models=gem_seamless')
     .then(function(r) { return r.json(); })
     .then(function(d) {
       var temp = Math.round(d.current.temperature_2m);
@@ -390,6 +463,14 @@ function fetchWeather() {
 }
 fetchWeather();
 setInterval(fetchWeather, 900000);
+
+/* Presence display */
+function updatePresence() {
+  document.getElementById('presSession').textContent = formatPresenceTime(getSessionPresence());
+  document.getElementById('presDaily').textContent = formatPresenceTime(getTodayPresence());
+}
+updatePresence();
+setInterval(updatePresence, 1000);
 
 /* Focus stats display — utilities from core.js */
 function updateFocusStats() {
@@ -609,6 +690,127 @@ function dismissBreak() {
   document.getElementById('breakOverlay').classList.remove('show');
 }
 document.getElementById('breakSkip').addEventListener('click', function() { playBreakDismiss(); dismissBreak(); });
+
+/* ══════════════════════════════════════
+   SETTINGS PANEL
+   ══════════════════════════════════════ */
+var _geo = [];
+
+document.getElementById('sBtn').addEventListener('click', function() {
+  playOpen(); renderS(); document.getElementById('settingsOv').classList.add('show');
+});
+document.getElementById('sClose').addEventListener('click', function() {
+  playClose(); document.getElementById('settingsOv').classList.remove('show');
+});
+
+function renderS() {
+  var n = SyncEngine.get('user', 'name') || '';
+  var l = SyncEngine.get('user', 'location') || '';
+  var h = '<div class="s-item"><div class="s-item-info"><div class="s-item-label">Name</div>';
+  h += '<div class="s-item-val' + (n ? '' : ' empty') + '">' + (n || 'Not set') + '</div></div>';
+  h += '<div class="s-actions">';
+  if (n) { h += '<button class="s-btn edt" data-a="en">Edit</button><button class="s-btn del" data-a="dn">Delete</button>'; }
+  else { h += '<button class="s-btn add" data-a="en">Add</button>'; }
+  h += '</div></div><div id="na"></div>';
+  h += '<div class="s-item"><div class="s-item-info"><div class="s-item-label">Location</div>';
+  h += '<div class="s-item-val' + (l ? '' : ' empty') + '">' + (l || 'Not set') + '</div></div>';
+  h += '<div class="s-actions">';
+  if (l) { h += '<button class="s-btn edt" data-a="el">Edit</button><button class="s-btn del" data-a="dl">Delete</button>'; }
+  else { h += '<button class="s-btn add" data-a="el">Add</button>'; }
+  h += '</div></div><div id="la"></div>';
+  document.getElementById('sContent').innerHTML = h;
+  document.querySelectorAll('[data-a]').forEach(function(b) {
+    b.addEventListener('click', function() {
+      ({ en: showNI, dn: confirmDN, el: showLI, dl: confirmDL })[this.dataset.a]();
+    });
+  });
+}
+
+function showNI() {
+  var c = SyncEngine.get('user', 'name') || '';
+  var a = document.getElementById('na');
+  a.innerHTML = '<div class="s-input-row"><input class="s-input" id="ni" placeholder="Your name" value="' + c.replace(/"/g, '&#34;') + '"><button class="s-btn add" id="nis">Save</button></div>';
+  document.getElementById('nis').addEventListener('click', saveN);
+  var inp = document.getElementById('ni');
+  inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') saveN(); });
+  inp.focus();
+}
+
+function saveN() {
+  var v = document.getElementById('ni').value.trim();
+  if (v) { SyncEngine.set('user', 'name', v); NAME = v; playClick(); }
+  else { SyncEngine.remove('user', 'name'); NAME = ''; }
+  renderS(); updateClock();
+}
+
+function confirmDN() {
+  var a = document.getElementById('na');
+  a.innerHTML = '<div class="s-confirm"><span class="s-confirm-msg">Delete name?</span><button class="s-confirm-btn s-confirm-no" id="dnc">Cancel</button><button class="s-confirm-btn s-confirm-yes" id="dny">Delete</button></div>';
+  document.getElementById('dnc').addEventListener('click', renderS);
+  document.getElementById('dny').addEventListener('click', function() {
+    SyncEngine.remove('user', 'name'); NAME = ''; playReset(); renderS(); updateClock();
+  });
+}
+
+function showLI() {
+  var a = document.getElementById('la');
+  a.innerHTML = '<div class="s-input-row"><input class="s-input" id="li" placeholder="Search city..."><button class="s-btn add" id="lis">Search</button></div><div id="gr"></div>';
+  document.getElementById('lis').addEventListener('click', searchL);
+  var inp = document.getElementById('li');
+  inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') searchL(); });
+  inp.focus();
+}
+
+function searchL() {
+  var q = document.getElementById('li').value.trim();
+  if (!q) return;
+  var el = document.getElementById('gr');
+  el.innerHTML = '<div class="s-item-label" style="padding:4px 0">Searching...</div>';
+  fetch('https://geocoding-api.open-meteo.com/v1/search?name=' + encodeURIComponent(q) + '&count=5&language=en&format=json')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (!d.results || !d.results.length) {
+        el.innerHTML = '<div class="s-item-label" style="padding:4px 0">No results</div>';
+        return;
+      }
+      _geo = d.results;
+      var h = '<div class="s-geo">';
+      d.results.forEach(function(r, i) {
+        h += '<button class="s-geo-btn" data-i="' + i + '">' + r.name + (r.admin1 ? ', ' + r.admin1 : '') + (r.country ? ', ' + r.country : '') + '</button>';
+      });
+      el.innerHTML = h + '</div>';
+      el.querySelectorAll('.s-geo-btn').forEach(function(b) {
+        b.addEventListener('click', function() { pickL(parseInt(this.dataset.i)); });
+      });
+    })
+    .catch(function() {
+      el.innerHTML = '<div class="s-item-label" style="padding:4px 0">Search failed</div>';
+    });
+}
+
+function pickL(i) {
+  var r = _geo[i];
+  if (!r) return;
+  var lb = r.name + (r.admin1 ? ', ' + r.admin1 : '') + (r.country ? ', ' + r.country : '');
+  var tz = r.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  SyncEngine.set('user', 'lat', r.latitude);
+  SyncEngine.set('user', 'lon', r.longitude);
+  SyncEngine.set('user', 'location', lb);
+  SyncEngine.set('user', 'tz', tz);
+  WLAT = r.latitude; WLON = r.longitude; WLOC = lb; WTZ = tz;
+  playClick(); renderS(); fetchWeather();
+}
+
+function confirmDL() {
+  var a = document.getElementById('la');
+  a.innerHTML = '<div class="s-confirm"><span class="s-confirm-msg">Delete location?</span><button class="s-confirm-btn s-confirm-no" id="dlc">Cancel</button><button class="s-confirm-btn s-confirm-yes" id="dly">Delete</button></div>';
+  document.getElementById('dlc').addEventListener('click', renderS);
+  document.getElementById('dly').addEventListener('click', function() {
+    ['lat', 'lon', 'location', 'tz'].forEach(function(k) { SyncEngine.remove('user', k); });
+    WLAT = null; WLON = null; WLOC = ''; WTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    playReset(); renderS(); weatherEl.innerHTML = '';
+  });
+}
 
 /* ── Init core systems ── */
 var card = document.querySelector('.container');
