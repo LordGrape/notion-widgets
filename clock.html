@@ -266,6 +266,99 @@ body {
 /* Confetti */
 #confetti { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; pointer-events: none; }
 
+/* ── Weather Forecast Overlay ── */
+.forecast-ov {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--card-bg);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  border-radius: 22px;
+  display: flex; flex-direction: column;
+  padding: 16px 20px 12px;
+  z-index: 22;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+.forecast-ov.show { opacity: 1; pointer-events: auto; }
+
+.forecast-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 10px;
+}
+.forecast-title {
+  font-size: 10px; font-weight: 600; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--accent);
+}
+.forecast-loc {
+  font-size: 8px; font-weight: 300; color: var(--meta-color);
+  letter-spacing: 0.5px; margin-top: 2px;
+}
+.forecast-close {
+  font-family: 'Inter', sans-serif;
+  font-size: 8px; font-weight: 300; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--meta-color);
+  background: none; border: none; cursor: pointer;
+  padding: 4px 8px; border-radius: 6px;
+  transition: color 0.2s, background 0.2s;
+}
+.forecast-close:hover { color: var(--date-color); background: var(--dot-bg); }
+
+.forecast-now {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px; margin-bottom: 10px;
+  background: var(--dot-bg); border-radius: 12px;
+}
+.forecast-now-icon { font-size: 28px; filter: drop-shadow(0 0 8px rgba(var(--accent-rgb), 0.3)); }
+.forecast-now-temp {
+  font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums;
+  background: var(--time-grad); background-size: 300% 300%;
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text; animation: gradientShift 6s ease infinite;
+}
+.forecast-now-details { flex: 1; text-align: right; }
+.forecast-now-cond {
+  font-size: 9px; font-weight: 400; color: var(--date-color);
+  letter-spacing: 0.5px; text-transform: uppercase;
+}
+.forecast-now-hl {
+  font-size: 8px; font-weight: 300; color: var(--meta-color);
+  letter-spacing: 0.5px; margin-top: 2px;
+}
+
+.forecast-hours {
+  flex: 1; overflow-x: auto; overflow-y: hidden;
+  display: flex; gap: 2px; padding: 4px 0;
+  scrollbar-width: none;
+}
+.forecast-hours::-webkit-scrollbar { display: none; }
+
+.forecast-hour {
+  flex: 0 0 auto;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 6px 8px; border-radius: 10px;
+  transition: background 0.2s;
+  min-width: 44px;
+}
+.forecast-hour:hover { background: var(--dot-bg); }
+.forecast-hour.now-hour { background: var(--dot-bg); }
+.forecast-hour-time {
+  font-size: 7px; font-weight: 500; color: var(--meta-color);
+  letter-spacing: 0.8px; text-transform: uppercase;
+}
+.forecast-hour.now-hour .forecast-hour-time { color: var(--accent); font-weight: 600; }
+.forecast-hour-icon { font-size: 14px; }
+.forecast-hour-temp {
+  font-size: 10px; font-weight: 500; color: var(--date-color);
+  font-variant-numeric: tabular-nums;
+}
+
+.forecast-loading {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 300; color: var(--meta-color);
+  letter-spacing: 1.5px; text-transform: uppercase;
+}
+
 </style>
 </head>
 <body>
@@ -382,6 +475,21 @@ body {
     <div class="break-msg">Let your brain consolidate. Rest triggers rapid memory replay that strengthens what you just learned.</div>
     <button class="break-skip" id="breakSkip">Skip</button>
   </div>
+
+<!-- WEATHER FORECAST OVERLAY -->
+<div class="forecast-ov" id="forecastOv">
+  <div class="forecast-header">
+    <div>
+      <div class="forecast-title">☁️ 24-Hour Forecast</div>
+      <div class="forecast-loc" id="forecastLoc"></div>
+    </div>
+    <button class="forecast-close" id="forecastClose">Close</button>
+  </div>
+  <div class="forecast-now" id="forecastNow"></div>
+  <div class="forecast-hours" id="forecastHours">
+    <div class="forecast-loading">Loading...</div>
+  </div>
+</div>
 </div>
 </div>
 
@@ -552,18 +660,85 @@ function fetchWeather() {
 fetchWeather();
 setInterval(fetchWeather, 900000);
 
-/* Weather click → copy forecast URL (window.open blocked in sandboxed iframes) */
+/* Weather click → inline forecast overlay */
 weatherEl.style.cursor = 'pointer';
 weatherEl.addEventListener('click', function() {
   if (!WLAT || !WLON) return;
-  var url = 'https://open-meteo.com/en/docs/forecast-api#latitude=' + WLAT + '&longitude=' + WLON +
-    '&hourly=temperature_2m,weather_code&timezone=' + encodeURIComponent(WTZ);
-  navigator.clipboard.writeText(url).then(function() {
-    var orig = weatherEl.innerHTML;
-    weatherEl.innerHTML = '<span class="weather-cond" style="color:var(--accent);">FORECAST URL COPIED</span>';
-    setTimeout(function() { weatherEl.innerHTML = orig; }, 1400);
-  });
+  openForecast();
 });
+
+document.getElementById('forecastClose').addEventListener('click', closeForecast);
+
+function openForecast() {
+  var ov = document.getElementById('forecastOv');
+  ov.classList.add('show');
+  document.getElementById('forecastLoc').textContent = WLOC || (WLAT.toFixed(2) + ', ' + WLON.toFixed(2));
+  document.getElementById('forecastHours').innerHTML = '<div class="forecast-loading">Loading...</div>';
+  document.getElementById('forecastNow').innerHTML = '';
+
+  fetch('https://api.open-meteo.com/v1/forecast?latitude=' + WLAT + '&longitude=' + WLON +
+    '&hourly=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min' +
+    '&current=temperature_2m,weather_code&timezone=' + encodeURIComponent(WTZ) +
+    '&forecast_days=2&models=gem_seamless')
+    .then(function(r) { return r.json(); })
+    .then(function(d) { renderForecast(d); })
+    .catch(function() {
+      document.getElementById('forecastHours').innerHTML =
+        '<div class="forecast-loading">Forecast unavailable</div>';
+    });
+}
+
+function closeForecast() {
+  document.getElementById('forecastOv').classList.remove('show');
+}
+
+function renderForecast(d) {
+  var now = new Date();
+  var currentHour = now.getHours();
+
+  /* Current conditions */
+  var cw = wmoEmoji(d.current.weather_code);
+  var hi = d.daily ? Math.round(d.daily.temperature_2m_max[0]) : '--';
+  var lo = d.daily ? Math.round(d.daily.temperature_2m_min[0]) : '--';
+  document.getElementById('forecastNow').innerHTML =
+    '<span class="forecast-now-icon">' + cw[0] + '</span>' +
+    '<span class="forecast-now-temp">' + Math.round(d.current.temperature_2m) + '°</span>' +
+    '<div class="forecast-now-details">' +
+      '<div class="forecast-now-cond">' + cw[1] + '</div>' +
+      '<div class="forecast-now-hl">H: ' + hi + '°  L: ' + lo + '°</div>' +
+    '</div>';
+
+  /* Hourly — next 24 hours */
+  var times = d.hourly.time;
+  var temps = d.hourly.temperature_2m;
+  var codes = d.hourly.weather_code;
+
+  /* Find the index of the current hour */
+  var startIdx = 0;
+  var nowISO = now.getFullYear() + '-' +
+    String(now.getMonth() + 1).padStart(2, '0') + '-' +
+    String(now.getDate()).padStart(2, '0') + 'T' +
+    String(currentHour).padStart(2, '0') + ':00';
+  for (var i = 0; i < times.length; i++) {
+    if (times[i] === nowISO) { startIdx = i; break; }
+  }
+
+  var html = '';
+  for (var j = startIdx; j < Math.min(startIdx + 24, times.length); j++) {
+    var t = new Date(times[j] + ':00');
+    var hr = t.getHours();
+    var label = j === startIdx ? 'Now' : (hr === 0 ? '12a' : hr < 12 ? hr + 'a' : hr === 12 ? '12p' : (hr - 12) + 'p');
+    var w = wmoEmoji(codes[j]);
+    var isNow = j === startIdx;
+
+    html += '<div class="forecast-hour' + (isNow ? ' now-hour' : '') + '">' +
+      '<span class="forecast-hour-time">' + label + '</span>' +
+      '<span class="forecast-hour-icon">' + w[0] + '</span>' +
+      '<span class="forecast-hour-temp">' + Math.round(temps[j]) + '°</span>' +
+    '</div>';
+  }
+  document.getElementById('forecastHours').innerHTML = html;
+}
 
 /* ══════════════════════════════════════
    PRESENCE TRACKING (self-contained)
@@ -1045,7 +1220,7 @@ initTilt('.container', { maxDeg: 2 });
 playSummon('upper');
 Core.tooltip.init();
 Core.tooltip.attach(document.getElementById('sBtn'), 'Settings');
-Core.tooltip.attach(document.getElementById('weather'), 'Copy forecast link');
+Core.tooltip.attach(document.getElementById('weather'), 'View forecast');
 
 function revealClockContent() {
   var sk = document.getElementById('clockSkeleton');
