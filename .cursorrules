@@ -1,0 +1,68 @@
+# Notion Widgets — Project Rules
+
+## Architecture
+- Single HTML files per widget, all sharing core.js as a library
+- core.js: SyncEngine (Cloudflare KV sync), theme engine, dragon game, shared utilities
+- Cloudflare Worker: https://widget-sync.lordgrape-widgets.workers.dev
+- Auth: passphrase stored in localStorage as _sync_passphrase, sent as X-Widget-Key header
+- All widgets run inside Notion iframe embeds (typical height 180px, varies)
+
+## Widgets
+- horizon.html: Main dashboard widget — clock, timetable, dragon pet game, milestones
+- clock.html: Standalone clock widget
+- timetable.html: Class schedule widget
+- quotes.html: Daily quotes widget
+
+## Dragon Game (horizon.html)
+- 6 stages: Egg (0 XP) → Hatchling (1000) → Whelp (5000) → Drake (20000) → Dragon (60000) → Elder (120000)
+- Stage 0 (Egg): Rendered via Three.js (EggScene module) with Canvas 2D fallback
+- Stages 1+: Canvas 2D rendering (drawDragon function)
+- XP stored in SyncEngine under 'dragon' namespace
+- Bars: rations, morale, readiness (0-100, decay over time)
+- Activity system: ACT_POOL per stage, day-phase dependent
+
+## SyncEngine (core.js)
+- v3 architecture: localStorage primary, Cloudflare KV remote sync
+- Namespace-based: each widget feature gets a namespace key (e.g. 'dragon', 'clock')
+- Merge strategies:
+  - MONOTONIC_KEYS (xp, streak): Math.max() — highest value always wins
+  - UNION_KEYS (achievements): JSON array set union
+  - Default: newest timestamp wins (_ts field comparison)
+- Daily XP cap: 1200/day enforced in addDragonXP()
+- Monotonic enforcement: XP can never decrease client-side
+
+## Worker (Cloudflare)
+- XP validation on PUT for dragon namespace:
+  - XP can never decrease (patches to old value if attempted)
+  - Per-push delta capped at 2000 XP
+  - Non-destructive: patches only XP, lets other state through
+- Also serves Notion API proxy for milestones (GET /notion/milestones)
+
+## Frameworks & Libraries
+- Three.js r160 (CDN) — used ONLY for egg rendering in horizon.html
+- GSAP (CDN) — used for animations across widgets
+- No other frameworks. Vanilla JS everywhere else.
+
+## Style & Conventions
+- var (not let/const) in widget HTML files for consistency with existing code
+- let/const in core.js SyncEngine IIFE (modern style within the module)
+- Canadian English in all user-facing strings
+- Dark/light theme support required — use Core.isDark and Core.on('theme-change', ...)
+- All colours must have both dark and light variants
+
+## Key Constants
+- DAILY_VIS_CAP = 200, DAILY_LOGIN_XP = 40, INTERACT_XP = 8, INTERACT_CAP = 5
+- STREAK_BASE = 20, STREAK_CAP = 150
+- Dragon canvas: id="dc", size DSZ (180), DPR-scaled
+
+## Testing
+- Open HTML files directly in browser or via GitHub Pages
+- F12 console: look for [Horizon], [Core], [SyncEngine] prefixed logs
+- Test both dark and light themes
+- Test with WebGL disabled (egg should fall back to Canvas 2D)
+- Test cross-device sync by opening on two devices and earning XP on one
+
+## Spec Pages
+- Full architecture specs are maintained in Notion by the user's AI assistant
+- The human will paste relevant spec content into prompts when needed
+- Always ask for the relevant spec section if making changes to unfamiliar code
