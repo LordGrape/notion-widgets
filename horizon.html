@@ -855,39 +855,128 @@ function drawEgg(ctx, t) {
   /* === MOUSE LEAN === */
   var lean = (mdx / 80) * 0.07 * prox;
 
-  /* Nest (visible during sleep — woven twig bowl) */
+  /* Nest (visible during sleep — layered woven bowl)
+     Render order (painter's algorithm): shadow → bowl interior → downy lining →
+     back woven strokes → rim (triple-layer) → front woven strokes → protruding
+     twigs → moss accents → egg glow. ~50 draw calls at varied opacity/thickness
+     suggest woven texture without drawing every fibre. Deterministic pseudo-random
+     (_nR) keeps twig placement stable across frames. */
   if (curAct && curAct.id === 'sleep') {
     var nA = Math.min(1, actFade * 0.9);
     ctx.save();
     ctx.globalAlpha = nA;
     var nCx = cx, nCy = cy + 44;
-    /* Soft ground shadow */
-    var bowlG = ctx.createRadialGradient(nCx, nCy + 4, 4, nCx, nCy + 4, 40);
-    bowlG.addColorStop(0, dark ? 'rgba(60,42,22,0.5)' : 'rgba(140,110,60,0.25)');
-    bowlG.addColorStop(1, dark ? 'rgba(60,40,20,0)' : 'rgba(120,90,50,0)');
-    ctx.beginPath(); ctx.ellipse(nCx, nCy + 5, 42, 10, 0, 0, Math.PI * 2);
+    /* Deterministic pseudo-random for consistent twig placement */
+    var _nR = function(i) { var v = Math.sin(i * 127.1 + 311.7) * 43758.5453; return v - Math.floor(v); };
+
+    /* 1. Soft ground shadow */
+    var shG = ctx.createRadialGradient(nCx, nCy + 6, 2, nCx, nCy + 6, 50);
+    shG.addColorStop(0, dark ? 'rgba(30,20,10,0.5)' : 'rgba(80,50,20,0.18)');
+    shG.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.beginPath(); ctx.ellipse(nCx, nCy + 6, 50, 13, 0, 0, Math.PI * 2);
+    ctx.fillStyle = shG; ctx.fill();
+
+    /* 2. Bowl interior — recessed dark fill for depth */
+    var bowlG = ctx.createRadialGradient(nCx, nCy - 4, 2, nCx, nCy + 3, 34);
+    bowlG.addColorStop(0, dark ? 'rgba(38,24,10,0.9)' : 'rgba(95,65,30,0.5)');
+    bowlG.addColorStop(0.5, dark ? 'rgba(52,36,16,0.7)' : 'rgba(125,90,45,0.38)');
+    bowlG.addColorStop(1, dark ? 'rgba(62,44,22,0.15)' : 'rgba(140,105,55,0.1)');
+    ctx.beginPath(); ctx.ellipse(nCx, nCy + 1, 34, 11, 0, 0, Math.PI * 2);
     ctx.fillStyle = bowlG; ctx.fill();
-    /* Outer rim */
-    ctx.beginPath(); ctx.ellipse(nCx, nCy, 36, 14, 0, 0.15, Math.PI - 0.15);
-    ctx.strokeStyle = dark ? '#8b6c42' : '#a08050'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.stroke();
-    /* Inner woven layer */
-    ctx.beginPath(); ctx.ellipse(nCx, nCy + 1, 30, 11, 0, 0.2, Math.PI - 0.2);
+
+    /* 3. Soft downy lining — lighter warm centre */
+    var lnG = ctx.createRadialGradient(nCx, nCy - 1, 0, nCx, nCy + 1, 20);
+    lnG.addColorStop(0, dark ? 'rgba(100,78,48,0.4)' : 'rgba(190,160,110,0.3)');
+    lnG.addColorStop(0.6, dark ? 'rgba(80,58,32,0.2)' : 'rgba(170,140,90,0.15)');
+    lnG.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.beginPath(); ctx.ellipse(nCx, nCy, 20, 7, 0, 0, Math.PI * 2);
+    ctx.fillStyle = lnG; ctx.fill();
+    /* Downy texture dots */
+    for (var di = 0; di < 14; di++) {
+      var ddx = (_nR(di) - 0.5) * 30, ddy = (_nR(di + 50) - 0.5) * 9;
+      ctx.beginPath(); ctx.arc(nCx + ddx, nCy + ddy, 0.4 + _nR(di + 100) * 0.7, 0, Math.PI * 2);
+      ctx.fillStyle = dark ? 'rgba(125,95,60,' + (0.12 + _nR(di + 200) * 0.12) + ')' : 'rgba(175,145,95,' + (0.1 + _nR(di + 200) * 0.1) + ')';
+      ctx.fill();
+    }
+
+    /* 4. Back woven layer — darker, thinner strokes (perceived depth) */
+    ctx.lineCap = 'round';
+    for (var nbi = 0; nbi < 10; nbi++) {
+      var bAng = (nbi / 10) * Math.PI + (_nR(nbi + 300) - 0.5) * 0.3;
+      var nbr = 28 + _nR(nbi + 350) * 6;
+      var nbx1 = nCx + Math.cos(bAng) * nbr, nby1 = nCy + Math.sin(bAng) * (nbr * 0.35) - 1;
+      var nbx2 = nCx + Math.cos(bAng + Math.PI) * nbr, nby2 = nCy + Math.sin(bAng + Math.PI) * (nbr * 0.35) - 1;
+      var nbcpx = nCx + (_nR(nbi + 400) - 0.5) * 12;
+      var nbcpy = nCy + 2 + _nR(nbi + 500) * 5;
+      ctx.beginPath(); ctx.moveTo(nbx1, nby1);
+      ctx.quadraticCurveTo(nbcpx, nbcpy, nbx2, nby2);
+      ctx.strokeStyle = dark ? 'rgba(65,44,22,' + (0.3 + _nR(nbi + 600) * 0.2) + ')' : 'rgba(115,80,40,' + (0.2 + _nR(nbi + 600) * 0.15) + ')';
+      ctx.lineWidth = 0.6 + _nR(nbi + 700) * 0.5;
+      ctx.stroke();
+    }
+
+    /* 5. Rim structure — triple-layer for depth and solidity */
+    /* Outer rim (thick, dark base) */
+    ctx.beginPath(); ctx.ellipse(nCx, nCy, 38, 14, 0, 0.08, Math.PI - 0.08);
+    ctx.strokeStyle = dark ? '#7a5c35' : '#8a6a3e'; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.stroke();
+    /* Mid rim (warm brown) */
+    ctx.beginPath(); ctx.ellipse(nCx, nCy - 0.5, 36, 13.5, 0, 0.12, Math.PI - 0.12);
+    ctx.strokeStyle = dark ? '#8b6c42' : '#a08050'; ctx.lineWidth = 3.5; ctx.stroke();
+    /* Inner rim edge */
+    ctx.beginPath(); ctx.ellipse(nCx, nCy + 0.5, 33, 12.5, 0, 0.18, Math.PI - 0.18);
     ctx.strokeStyle = dark ? '#7a5c38' : '#917548'; ctx.lineWidth = 2; ctx.stroke();
-    /* Protruding twigs */
-    ctx.strokeStyle = dark ? 'rgba(140,110,60,0.5)' : 'rgba(160,130,70,0.45)';
-    ctx.lineWidth = 1.2; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(nCx - 34, nCy - 2); ctx.quadraticCurveTo(nCx - 42, nCy - 12, nCx - 36, nCy - 16); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(nCx + 34, nCy - 2); ctx.quadraticCurveTo(nCx + 42, nCy - 12, nCx + 36, nCy - 16); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(nCx - 30, nCy + 2); ctx.quadraticCurveTo(nCx - 38, nCy - 6, nCx - 34, nCy - 12); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(nCx + 30, nCy + 2); ctx.quadraticCurveTo(nCx + 38, nCy - 6, nCx + 34, nCy - 12); ctx.stroke();
-    /* Soft inner fill */
-    ctx.beginPath(); ctx.ellipse(nCx, nCy + 3, 28, 8, 0, 0, Math.PI);
-    ctx.fillStyle = dark ? 'rgba(90,65,35,0.6)' : 'rgba(170,140,80,0.4)'; ctx.fill();
-    /* Warm purple glow from egg in nest */
-    var ngG = ctx.createRadialGradient(nCx, nCy - 8, 0, nCx, nCy - 8, 24);
-    ngG.addColorStop(0, 'rgba(' + (dark ? '167,139,250' : '139,92,246') + ',0.08)');
+    /* Rim highlight (top edge catches ambient light) */
+    ctx.beginPath(); ctx.ellipse(nCx, nCy - 1, 37, 13.8, 0, 0.25, Math.PI - 0.25);
+    ctx.strokeStyle = dark ? 'rgba(170,140,85,0.2)' : 'rgba(200,170,110,0.25)'; ctx.lineWidth = 0.8; ctx.stroke();
+
+    /* 6. Front woven layer — lighter, thicker, overlapping rim */
+    for (var nfi = 0; nfi < 7; nfi++) {
+      var fAng = (nfi / 7) * Math.PI + 0.15 + (_nR(nfi + 800) - 0.5) * 0.2;
+      var nfr = 32 + _nR(nfi + 850) * 5;
+      var nfx1 = nCx + Math.cos(fAng) * nfr, nfy1 = nCy + Math.sin(fAng) * (nfr * 0.38);
+      var nfx2 = nCx + Math.cos(fAng + Math.PI * 0.55) * nfr, nfy2 = nCy + Math.sin(fAng + Math.PI * 0.55) * (nfr * 0.38);
+      var nfcpx = nCx + (_nR(nfi + 900) - 0.5) * 16;
+      var nfcpy = nCy + 4 + _nR(nfi + 1000) * 6;
+      ctx.beginPath(); ctx.moveTo(nfx1, nfy1);
+      ctx.quadraticCurveTo(nfcpx, nfcpy, nfx2, nfy2);
+      ctx.strokeStyle = dark ? 'rgba(95,68,36,' + (0.35 + _nR(nfi + 1100) * 0.25) + ')' : 'rgba(135,100,50,' + (0.25 + _nR(nfi + 1100) * 0.2) + ')';
+      ctx.lineWidth = 0.9 + _nR(nfi + 1200) * 0.8;
+      ctx.stroke();
+    }
+
+    /* 7. Protruding twigs — 8 organic sprigs at varied angles */
+    var nTwigs = [
+      [-37, -2, -46, -15, -40, -20], [37, -2, 46, -15, 40, -20],
+      [-33, 0, -42, -9, -38, -15], [33, 0, 42, -9, 38, -15],
+      [-28, -3, -38, -18, -32, -24], [28, -3, 38, -18, 32, -24],
+      [-20, -5, -28, -14, -26, -11], [20, -5, 30, -16, 26, -13]
+    ];
+    for (var nti = 0; nti < nTwigs.length; nti++) {
+      var ntw = nTwigs[nti];
+      ctx.beginPath(); ctx.moveTo(nCx + ntw[0], nCy + ntw[1]);
+      ctx.quadraticCurveTo(nCx + ntw[2], nCy + ntw[3], nCx + ntw[4], nCy + ntw[5]);
+      ctx.strokeStyle = dark ? 'rgba(130,100,55,' + (0.28 + _nR(nti + 1300) * 0.22) + ')' : 'rgba(150,118,62,' + (0.22 + _nR(nti + 1300) * 0.18) + ')';
+      ctx.lineWidth = 0.7 + _nR(nti + 1400) * 0.7; ctx.stroke();
+    }
+
+    /* 8. Moss/lichen accents — tiny muted-green dots along rim */
+    for (var nmi = 0; nmi < 10; nmi++) {
+      var mAng = 0.25 + (nmi / 10) * (Math.PI - 0.5);
+      var nmx = nCx + Math.cos(mAng) * (35 + (_nR(nmi + 1500) - 0.5) * 5);
+      var nmy = nCy - Math.sin(mAng) * (13 + (_nR(nmi + 1600) - 0.5) * 3);
+      ctx.beginPath(); ctx.arc(nmx, nmy, 0.5 + _nR(nmi + 1700) * 0.9, 0, Math.PI * 2);
+      ctx.fillStyle = dark ? 'rgba(75,105,45,' + (0.18 + _nR(nmi + 1800) * 0.18) + ')' : 'rgba(95,125,55,' + (0.12 + _nR(nmi + 1800) * 0.12) + ')';
+      ctx.fill();
+    }
+
+    /* 9. Warm purple glow — egg light reflecting onto nest bowl */
+    var ngG = ctx.createRadialGradient(nCx, nCy - 10, 0, nCx, nCy - 6, 30);
+    ngG.addColorStop(0, 'rgba(' + (dark ? '167,139,250' : '139,92,246') + ',0.1)');
+    ngG.addColorStop(0.4, 'rgba(' + (dark ? '167,139,250' : '139,92,246') + ',0.04)');
     ngG.addColorStop(1, 'rgba(138,92,246,0)');
-    ctx.beginPath(); ctx.arc(nCx, nCy - 8, 24, 0, Math.PI * 2); ctx.fillStyle = ngG; ctx.fill();
+    ctx.beginPath(); ctx.arc(nCx, nCy - 6, 30, 0, Math.PI * 2);
+    ctx.fillStyle = ngG; ctx.fill();
+
     ctx.restore();
   }
 
