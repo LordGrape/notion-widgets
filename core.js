@@ -2288,40 +2288,81 @@ let SyncEngine = (function() {
 })();
 
 /* ══════════════════════════════════════
-   FULLSCREEN TOGGLE (F key)
-   Press F while widget is focused to toggle fullscreen.
-   Works inside Notion embed iframes via Fullscreen API.
+   EXPAND TOGGLE (F key)
+   Sandbox-safe: no Fullscreen API needed.
+   Expands the .container card to fill the
+   entire iframe viewport. Press F or Esc to toggle.
    ══════════════════════════════════════ */
 (function() {
-  var fsEl = document.documentElement;
+  var expanded = false;
+  var container = null;
+  var origStyles = {};
 
-  function isFullscreen() {
-    return !!(document.fullscreenElement || document.webkitFullscreenElement);
+  function getContainer() {
+    if (!container) container = document.querySelector('.container');
+    return container;
   }
 
-  function enterFS() {
-    if (fsEl.requestFullscreen) return fsEl.requestFullscreen();
-    if (fsEl.webkitRequestFullscreen) return fsEl.webkitRequestFullscreen();
+  function expand() {
+    var el = getContainer();
+    if (!el) return;
+    /* Save originals */
+    origStyles.position = el.style.position;
+    origStyles.top = el.style.top;
+    origStyles.left = el.style.left;
+    origStyles.width = el.style.width;
+    origStyles.height = el.style.height;
+    origStyles.maxWidth = el.style.maxWidth;
+    origStyles.minWidth = el.style.minWidth;
+    origStyles.zIndex = el.style.zIndex;
+    origStyles.borderRadius = el.style.borderRadius;
+    origStyles.transform = el.style.transform;
+    origStyles.transition = el.style.transition;
+    origStyles.overflow = el.style.overflow;
+    origStyles.padding = el.style.padding;
+
+    el.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+    el.style.position = 'fixed';
+    el.style.top = '0';
+    el.style.left = '0';
+    el.style.width = '100vw';
+    el.style.height = '100vh';
+    el.style.maxWidth = '100vw';
+    el.style.minWidth = '0';
+    el.style.zIndex = '9999';
+    el.style.borderRadius = '0';
+    el.style.transform = 'none';
+    el.style.overflow = 'auto';
+    el.style.padding = '32px 48px';
+    expanded = true;
   }
 
-  function exitFS() {
-    if (document.exitFullscreen) return document.exitFullscreen();
-    if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
+  function collapse() {
+    var el = getContainer();
+    if (!el) return;
+    el.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+    for (var k in origStyles) {
+      el.style[k] = origStyles[k];
+    }
+    expanded = false;
+    /* Clean up transition override after animation */
+    setTimeout(function() {
+      el.style.transition = origStyles.transition || '';
+    }, 350);
   }
 
   document.addEventListener('keydown', function(e) {
-    /* Only trigger on bare 'F' — not inside inputs, not with modifiers */
-    if (e.key !== 'f' && e.key !== 'F') return;
-    if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+    /* Ignore if typing in an input */
     var tag = (e.target.tagName || '').toLowerCase();
     if (tag === 'input' || tag === 'textarea' || e.target.isContentEditable) return;
 
-    e.preventDefault();
-    if (isFullscreen()) { exitFS(); } else { enterFS(); }
-  });
-
-  /* Also exit on Escape (backup — most browsers handle this natively) */
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && isFullscreen()) exitFS();
+    if ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
+      e.preventDefault();
+      if (expanded) { collapse(); } else { expand(); }
+    }
+    if (e.key === 'Escape' && expanded) {
+      e.preventDefault();
+      collapse();
+    }
   });
 })();
