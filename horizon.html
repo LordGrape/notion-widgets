@@ -413,6 +413,12 @@ body {
 /* ── Info button ── */
 .info-btn { all:unset; cursor:pointer; position:absolute; top:14px; right:18px; font-size:11px; opacity:0.25; transition:opacity 0.2s; z-index:10; }
 .info-btn:hover { opacity:0.6; }
+/* ── Weather badge ── */
+.weather-badge { position:absolute; bottom:6px; right:6px; display:flex; align-items:center; gap:4px; font-size:9px; color:var(--text-muted); opacity:0.4; transition:opacity 0.4s; z-index:5; pointer-events:none; }
+.dragon-view:hover .weather-badge { opacity:0.7; }
+.w-icon { font-size:12px; }
+.w-temp { font-weight:500; font-variant-numeric:tabular-nums; }
+.w-cond { font-size:7px; letter-spacing:0.5px; text-transform:uppercase; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
@@ -432,7 +438,7 @@ body {
       <button class="tab-btn" id="tabRadar" title="Radar">&#x1F4E1;</button>
       <button class="tab-btn" id="tabAch" title="Achievements">&#x1F3C6;</button>
     </div>
-    <div class="hdr-title">HORIZON</div>
+    <div class="hdr-title" id="hdrTitle">HORIZON</div>
   </div>
 
   <!-- Dragon View (default) -->
@@ -448,6 +454,7 @@ body {
       <div class="xp-prog-track"><div class="xp-prog-fill" id="xpProgFill" style="width:0%"></div></div>
       <span class="xp-prog-label" id="xpProgLabel"></span>
     </div>
+    <div class="weather-badge" id="wBadge"></div>
   </div>
 
   <!-- Radar View -->
@@ -507,6 +514,8 @@ body {
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 <script src="core.js"></script>
 <script>
 /* ═══════════════════════════════════════════════════════
@@ -1137,6 +1146,22 @@ function showEvolution(stageIdx) {
   document.getElementById('evolRank').textContent = si.rank;
   evolOv.classList.add('show');
   if (typeof playChime === 'function') { setTimeout(function() { playChime(); }, 500); }
+  /* GSAP sub-element animations */
+  if (typeof gsap !== 'undefined') {
+    gsap.fromTo('#evolName', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, delay: 0.4, ease: 'back.out(1.7)', clearProps: 'all' });
+    gsap.fromTo('#evolRank', { y: 15, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, delay: 0.7, ease: 'power3.out', clearProps: 'all' });
+    gsap.fromTo('.evol-xp-fill', { width: '0%' }, { width: '100%', duration: 1.2, delay: 0.9, ease: 'power2.inOut' });
+  }
+  /* Canvas-confetti celebration */
+  if (typeof confetti !== 'undefined') {
+    setTimeout(function() {
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.45 }, colors: ['#8b5cf6', '#a78bfa', '#f59e0b', '#fbbf24', '#c4b5fd'] });
+    }, 300);
+    setTimeout(function() {
+      confetti({ particleCount: 50, spread: 90, origin: { y: 0.55, x: 0.35 }, colors: ['#7c3aed', '#fbbf24'] });
+      confetti({ particleCount: 50, spread: 90, origin: { y: 0.55, x: 0.65 }, colors: ['#7c3aed', '#fbbf24'] });
+    }, 800);
+  }
 }
 evolOv.addEventListener('click', function() { evolOv.classList.remove('show'); });
 evolOv.addEventListener('touchend', function(e) { e.preventDefault(); evolOv.classList.remove('show'); });
@@ -1620,9 +1645,127 @@ function drawElder(ctx, t) {
   }
 }
 
+/* ══════════════════════════════════════
+   WEATHER SYSTEM (Open-Meteo API)
+   Dragon reacts to real weather via canvas FX
+   ══════════════════════════════════════ */
+
+var WLAT = 42.3149, WLON = -83.0364;
+var weatherState = { type: 'clear' };
+
+function wmoWX(code) {
+  var h = new Date().getHours(), n = h < 6 || h >= 20;
+  if (code === 0) return { i: n ? '🌙' : '☀️', c: n ? 'Clear Night' : 'Clear', t: 'clear' };
+  if (code <= 2) return { i: n ? '🌙' : '⛅', c: 'Partly Cloudy', t: 'cloudy' };
+  if (code === 3) return { i: '☁️', c: 'Overcast', t: 'overcast' };
+  if (code <= 48) return { i: '🌫️', c: 'Fog', t: 'fog' };
+  if (code <= 67) return { i: '🌧️', c: code <= 57 ? 'Drizzle' : 'Rain', t: 'rain' };
+  if (code <= 77) return { i: '🌨️', c: 'Snow', t: 'snow' };
+  if (code <= 82) return { i: '🌦️', c: 'Showers', t: 'rain' };
+  if (code <= 86) return { i: '🌨️', c: 'Snow', t: 'snow' };
+  if (code <= 99) return { i: '⛈️', c: 'Thunder', t: 'thunder' };
+  return { i: '🌡️', c: '', t: 'clear' };
+}
+
+function fetchWX() {
+  fetch('https://api.open-meteo.com/v1/forecast?latitude=' + WLAT + '&longitude=' + WLON + '&current=temperature_2m,weather_code&timezone=America%2FToronto&models=gem_seamless')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      var temp = Math.round(d.current.temperature_2m);
+      var w = wmoWX(d.current.weather_code);
+      weatherState = { code: d.current.weather_code, temp: temp, cond: w.c, icon: w.i, type: w.t };
+      var badge = document.getElementById('wBadge');
+      if (badge) badge.innerHTML = '<span class="w-icon">' + w.i + '</span><span class="w-temp">' + temp + '°C</span><span class="w-cond">· ' + w.c + '</span>';
+    }).catch(function() {});
+}
+fetchWX();
+setInterval(fetchWX, 900000);
+
+/* Weather canvas particles */
+var wxDrops = [];
+for (var _wi = 0; _wi < 25; _wi++) {
+  wxDrops.push({ x: Math.random(), y: Math.random(), sp: 0.4 + Math.random() * 1.2, sz: 0.8 + Math.random() * 1.5 });
+}
+
+function drawWeatherFX(ctx, t) {
+  var wt = weatherState.type;
+  if (!wt || wt === 'clear' || wt === 'cloudy') return;
+  ctx.save();
+  /* Rain: falling streaks */
+  if (wt === 'rain') {
+    for (var i = 0; i < 18; i++) {
+      var d = wxDrops[i]; d.y += d.sp * 0.014; d.x += 0.002;
+      if (d.y > 1.05) { d.y = -0.05; d.x = Math.random(); }
+      var rx = d.x * DSZ, ry = d.y * DSZ;
+      ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(rx + 1.5, ry + d.sz * 4);
+      ctx.strokeStyle = dark ? 'rgba(167,139,250,0.12)' : 'rgba(100,120,200,0.1)';
+      ctx.lineWidth = 0.7; ctx.stroke();
+    }
+  }
+  /* Snow: drifting flakes */
+  if (wt === 'snow') {
+    for (var j = 0; j < 12; j++) {
+      var s = wxDrops[j]; s.y += s.sp * 0.005;
+      s.x += Math.sin(t * 0.0008 + j * 0.7) * 0.0015;
+      if (s.y > 1.05) { s.y = -0.05; s.x = Math.random(); }
+      ctx.beginPath(); ctx.arc(s.x * DSZ, s.y * DSZ, s.sz * 0.7, 0, Math.PI * 2);
+      ctx.fillStyle = dark ? 'rgba(220,220,255,0.18)' : 'rgba(180,180,220,0.22)'; ctx.fill();
+    }
+  }
+  /* Thunder: random lightning flash */
+  if (wt === 'thunder' && Math.random() > 0.996) {
+    ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fillRect(0, 0, DSZ, DSZ);
+  }
+  /* Fog: radial mist overlay */
+  if (wt === 'fog') {
+    var fa = 0.035 + 0.02 * Math.sin(t * 0.0004);
+    var fg = ctx.createRadialGradient(DC, DC, 20, DC, DC, DSZ * 0.6);
+    fg.addColorStop(0, 'rgba(0,0,0,0)');
+    fg.addColorStop(1, dark ? 'rgba(80,60,120,' + fa + ')' : 'rgba(180,180,200,' + fa + ')');
+    ctx.fillStyle = fg; ctx.fillRect(0, 0, DSZ, DSZ);
+  }
+  /* Overcast: subtle dim */
+  if (wt === 'overcast') {
+    ctx.fillStyle = dark ? 'rgba(40,30,60,0.03)' : 'rgba(150,150,170,0.02)';
+    ctx.fillRect(0, 0, DSZ, DSZ);
+  }
+  ctx.restore();
+}
+
+/* ═══════════════════════════════════
+   GSAP + CONFETTI OVERRIDES
+   ═══════════════════════════════════ */
+setTimeout(function() {
+  /* Smooth XP float with GSAP */
+  if (typeof gsap !== 'undefined' && typeof showXPFloat === 'function') {
+    var _oxp = showXPFloat;
+    showXPFloat = function(text) {
+      var el = document.createElement('div');
+      el.className = 'xp-float'; el.textContent = text; el.style.top = '30%';
+      var p = document.querySelector('.dragon-view');
+      if (p) p.appendChild(el);
+      gsap.fromTo(el, { y: 0, opacity: 1, scale: 0.65 },
+        { y: -55, opacity: 0, scale: 1.35, duration: 1.6, ease: 'power2.out',
+          onComplete: function() { if (el.parentNode) el.remove(); } });
+    };
+  }
+  /* Confetti burst on new achievement unlock */
+  if (typeof confetti !== 'undefined' && typeof unlockAch === 'function') {
+    var _ou = unlockAch;
+    unlockAch = function(key) {
+      var ad = JSON.parse(localStorage.getItem('dragon_ach') || '{}');
+      var isNew = !ad[key]; _ou(key);
+      if (isNew) confetti({ particleCount: 30, spread: 50, startVelocity: 16,
+        origin: { y: 0.6 }, colors: ['#8b5cf6', '#f59e0b', '#a78bfa', '#c4b5fd'],
+        gravity: 0.9, scalar: 0.7 });
+    };
+  }
+}, 0);
+
 function drawDragon(t) {
   dctx.clearRect(0, 0, DSZ, DSZ);
   drawAmbientBG(dctx, t);
+  drawWeatherFX(dctx, t);
   checkActivity(t);
   if (curAct && (curAct.id === 'sleep' || curAct.id === 'dream' || curAct.id === 'astral')) {
     isBlinking = true; blinkTimer = 0;
@@ -2668,6 +2811,121 @@ document.addEventListener('visibilitychange', function() {
   }
 });
 
+</script>
+
+<script>
+/* ══════════════════════════════════════
+   THYMOS ↔ RADAR INTEGRATION
+   ══════════════════════════════════════
+   1. Real milestones replace old events
+   2. Milestone completion → XP rewards
+   3. Dragon stage → radar glow
+   4. Horizon Power dynamic header
+   ══════════════════════════════════════ */
+
+if (typeof CATS === 'undefined') window.CATS = { academic:'#8b5cf6', military:'#22c55e', career:'#f59e0b', personal:'#ec4899' };
+
+/* ── 1. Replace milestones ── */
+EVENTS = [
+  { id:'graduation', name:'UWindsor Graduation', date:'2026-06-02', cat:'academic', color:'#8b5cf6', icon:'🎓', xp:1500, desc:'B.A. Honours — University of Windsor' },
+  { id:'bmq', name:'BMQ Graduation Weekend', date:'2026-06-07', cat:'military', color:'#22c55e', icon:'🎖️', xp:2000, desc:'Basic Military Qualification — CAF' },
+  { id:'lawschool', name:"Queen's Law — 1L Start", date:'2026-09-08', cat:'academic', color:'#8b5cf6', icon:'⚖️', xp:1000, desc:"Juris Doctor Year 1 — Queen's University" },
+  { id:'birthday', name:'Birthday', date:'2026-10-20', cat:'personal', color:'#ec4899', icon:'🎂', xp:500, desc:'Another year of growth' }
+];
+
+/* Re-render events panel with real milestones */
+(function() {
+  var evsEl = document.getElementById('evs'), legEl = document.getElementById('leg');
+  if (!evsEl) return;
+  evsEl.innerHTML = '';
+  var now = new Date();
+  EVENTS.forEach(function(ev, i) {
+    var diff = new Date(ev.date + 'T00:00:00') - now;
+    var days = Math.ceil(diff / 86400000);
+    var passed = days <= 0;
+    var cdT, cdU;
+    if (passed) { cdT = '✓'; cdU = 'DONE'; }
+    else if (days > 60) { var m = Math.round(days / 30.44); cdT = m; cdU = m === 1 ? 'MONTH' : 'MONTHS'; }
+    else { cdT = days; cdU = days === 1 ? 'DAY' : 'DAYS'; }
+    var d = document.createElement('div');
+    d.className = 'ev'; d.style.animationDelay = (0.15 + i * 0.1) + 's';
+    var col = CATS[ev.cat] || '#8b5cf6';
+    d.innerHTML = '<div class="ev-dot" style="background:' + col + (passed ? ';opacity:0.4' : '') + '"></div>' +
+      '<div class="ev-body"><div class="ev-name">' + ev.icon + ' ' + ev.name + '</div>' +
+      '<div class="ev-meta">' + new Date(ev.date + 'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) + '</div></div>' +
+      '<div class="ev-cd"><div class="ev-val"' + (passed ? ' style="color:#22c55e"' : '') + '>' + cdT + '</div>' +
+      '<div class="ev-unit">' + cdU + '</div></div>';
+    if (typeof showBlip === 'function') {
+      d.style.cursor = 'pointer';
+      d.addEventListener('click', (function(e){ return function(){ showBlip(e); }; })(ev));
+    }
+    evsEl.appendChild(d);
+  });
+  if (legEl) {
+    legEl.innerHTML = ''; var seen = {};
+    EVENTS.forEach(function(ev) {
+      if (seen[ev.cat]) return; seen[ev.cat] = true;
+      var li = document.createElement('div'); li.className = 'legend-i';
+      li.innerHTML = '<div class="legend-d" style="background:' + (CATS[ev.cat]||'#8b5cf6') + '"></div><span class="legend-t">' + ev.cat + '</span>';
+      legEl.appendChild(li);
+    });
+  }
+})();
+
+/* ── 2. Milestone → XP on date pass ── */
+(function() {
+  var now = new Date(), any = false;
+  var cl = JSON.parse(localStorage.getItem('dragon_milestone_claimed') || '{}');
+  EVENTS.forEach(function(ev) {
+    if (cl[ev.id]) return;
+    if (now >= new Date(ev.date + 'T00:00:00')) {
+      var r = Math.floor((ev.xp||500) * xpMult(DS));
+      if (r > 0) { DS.xp += r; any = true; }
+      cl[ev.id] = now.toISOString();
+      setTimeout(function(){ showXPFloat('🎯 ' + ev.icon + ' +' + r + ' XP'); }, 800);
+    }
+  });
+  if (any) {
+    localStorage.setItem('dragon_milestone_claimed', JSON.stringify(cl));
+    saveDS(DS);
+    var ns = getStage(DS.xp);
+    if (ns > prevStage) { prevStage = ns; showEvolution(ns); }
+    if (typeof checkAch === 'function') checkAch();
+  }
+})();
+
+/* ── 3. Dragon stage → radar glow + title ── */
+(function() {
+  var stage = getStage(DS.xp);
+  var rd = document.querySelector('.radar');
+  if (rd) {
+    var g = 2 + stage * 4, gold = stage / 5;
+    var cr = Math.round(138 + gold * 113), cg2 = Math.round(92 + gold * 99), cb = Math.round(246 - gold * 210);
+    rd.style.filter = 'drop-shadow(0 0 ' + g + 'px rgba(' + cr + ',' + cg2 + ',' + cb + ',0.' + (15 + stage * 8) + '))';
+  }
+  var pt = document.querySelector('.panel-title');
+  if (pt) {
+    var titles = ['Dormant Horizon','Awakening Horizon','Rising Horizon','Surging Horizon','Blazing Horizon','Transcendent Horizon'];
+    pt.textContent = titles[stage] || 'Mission Timeline';
+  }
+})();
+
+/* ── 4. Horizon Power header ── */
+function getHorizonPower() {
+  var s = getStage(DS.xp), cur = STAGES[s].xp, nxt = nextStageXP(DS.xp);
+  var xpP = nxt > cur ? (DS.xp - cur) / (nxt - cur) : 1;
+  var now = Date.now(), closest = Infinity;
+  EVENTS.forEach(function(ev) { var d = new Date(ev.date+'T00:00:00').getTime()-now; if(d>0&&d<closest) closest=d; });
+  var mileP = closest===Infinity ? 1 : Math.max(0, 1 - closest/(180*86400000));
+  return Math.min(100, Math.round((xpP*0.5 + mileP*0.5)*100));
+}
+(function() {
+  var el = document.getElementById('hdrTitle');
+  if (!el) return;
+  function upd() { el.textContent = '⚡ HORIZON ' + getHorizonPower() + '%'; }
+  upd();
+  setInterval(upd, 60000);
+})();
 </script>
 </body>
 </html>
