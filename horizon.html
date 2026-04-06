@@ -414,7 +414,7 @@ body {
 .info-btn { all:unset; cursor:pointer; position:absolute; top:14px; right:18px; font-size:11px; opacity:0.25; transition:opacity 0.2s; z-index:10; }
 .info-btn:hover { opacity:0.6; }
 /* ── Weather badge ── */
-.weather-badge { position:absolute; bottom:6px; right:6px; display:flex; align-items:center; gap:4px; font-size:9px; color:var(--text-muted); opacity:0.4; transition:opacity 0.4s; z-index:5; pointer-events:none; }
+.weather-badge { position:absolute; bottom:6px; right:6px; display:none; align-items:center; gap:4px; font-size:9px; color:var(--text-muted); opacity:0.4; transition:opacity 0.4s; z-index:5; pointer-events:none; }
 .dragon-view:hover .weather-badge { opacity:0.7; }
 .w-icon { font-size:12px; }
 .w-temp { font-weight:500; font-variant-numeric:tabular-nums; }
@@ -854,6 +854,42 @@ function drawEgg(ctx, t) {
 
   /* === MOUSE LEAN === */
   var lean = (mdx / 80) * 0.07 * prox;
+
+  /* Nest (visible during sleep — woven twig bowl) */
+  if (curAct && curAct.id === 'sleep') {
+    var nA = Math.min(1, actFade * 0.9);
+    ctx.save();
+    ctx.globalAlpha = nA;
+    var nCx = cx, nCy = cy + 44;
+    /* Soft ground shadow */
+    var bowlG = ctx.createRadialGradient(nCx, nCy + 4, 4, nCx, nCy + 4, 40);
+    bowlG.addColorStop(0, dark ? 'rgba(60,42,22,0.5)' : 'rgba(140,110,60,0.25)');
+    bowlG.addColorStop(1, dark ? 'rgba(60,40,20,0)' : 'rgba(120,90,50,0)');
+    ctx.beginPath(); ctx.ellipse(nCx, nCy + 5, 42, 10, 0, 0, Math.PI * 2);
+    ctx.fillStyle = bowlG; ctx.fill();
+    /* Outer rim */
+    ctx.beginPath(); ctx.ellipse(nCx, nCy, 36, 14, 0, 0.15, Math.PI - 0.15);
+    ctx.strokeStyle = dark ? '#8b6c42' : '#a08050'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.stroke();
+    /* Inner woven layer */
+    ctx.beginPath(); ctx.ellipse(nCx, nCy + 1, 30, 11, 0, 0.2, Math.PI - 0.2);
+    ctx.strokeStyle = dark ? '#7a5c38' : '#917548'; ctx.lineWidth = 2; ctx.stroke();
+    /* Protruding twigs */
+    ctx.strokeStyle = dark ? 'rgba(140,110,60,0.5)' : 'rgba(160,130,70,0.45)';
+    ctx.lineWidth = 1.2; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(nCx - 34, nCy - 2); ctx.quadraticCurveTo(nCx - 42, nCy - 12, nCx - 36, nCy - 16); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(nCx + 34, nCy - 2); ctx.quadraticCurveTo(nCx + 42, nCy - 12, nCx + 36, nCy - 16); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(nCx - 30, nCy + 2); ctx.quadraticCurveTo(nCx - 38, nCy - 6, nCx - 34, nCy - 12); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(nCx + 30, nCy + 2); ctx.quadraticCurveTo(nCx + 38, nCy - 6, nCx + 34, nCy - 12); ctx.stroke();
+    /* Soft inner fill */
+    ctx.beginPath(); ctx.ellipse(nCx, nCy + 3, 28, 8, 0, 0, Math.PI);
+    ctx.fillStyle = dark ? 'rgba(90,65,35,0.6)' : 'rgba(170,140,80,0.4)'; ctx.fill();
+    /* Warm purple glow from egg in nest */
+    var ngG = ctx.createRadialGradient(nCx, nCy - 8, 0, nCx, nCy - 8, 24);
+    ngG.addColorStop(0, 'rgba(' + (dark ? '167,139,250' : '139,92,246') + ',0.08)');
+    ngG.addColorStop(1, 'rgba(138,92,246,0)');
+    ctx.beginPath(); ctx.arc(nCx, nCy - 8, 24, 0, Math.PI * 2); ctx.fillStyle = ngG; ctx.fill();
+    ctx.restore();
+  }
 
   ctx.save();
   ctx.translate(cx + floatX, cy + 6 + floatY);
