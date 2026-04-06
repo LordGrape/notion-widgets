@@ -662,21 +662,27 @@ function getDayPhase() {
 }
 
 function loadDS() {
+  /* Read from SyncEngine first (cross-device), fall back to localStorage */
+  var _sg = function(k, def) {
+    try { var v = SyncEngine.get('dragon', k); if (v !== null && v !== undefined) return v; } catch(e) {}
+    var ls = localStorage.getItem('dragon_' + k);
+    return ls !== null ? ls : def;
+  };
   return {
-    xp:         parseInt(localStorage.getItem('dragon_xp') || '0'),
-    rations:    parseFloat(localStorage.getItem('dragon_rations') || '100'),
-    morale:     parseFloat(localStorage.getItem('dragon_morale') || '100'),
-    readiness:  parseFloat(localStorage.getItem('dragon_readiness') || '100'),
-    lastVisit:  localStorage.getItem('dragon_lastVisit') || new Date().toISOString(),
-    streak:     parseInt(localStorage.getItem('dragon_streak') || '0'),
-    streakDate: localStorage.getItem('dragon_streakDate') || '',
-    feedToday:  parseInt(localStorage.getItem('dragon_feedToday') || '0'),
-    playToday:  parseInt(localStorage.getItem('dragon_playToday') || '0'),
-    restToday:  parseInt(localStorage.getItem('dragon_restToday') || '0'),
-    visXPToday: parseInt(localStorage.getItem('dragon_visXPToday') || '0'),
-    loginToday: parseInt(localStorage.getItem('dragon_loginToday') || '0'),
-    todayDate:  localStorage.getItem('dragon_todayDate') || '',
-    lastRandom: localStorage.getItem('dragon_lastRandom') || ''
+    xp:         parseInt(_sg('xp', '0')),
+    rations:    parseFloat(_sg('rations', '100')),
+    morale:     parseFloat(_sg('morale', '100')),
+    readiness:  parseFloat(_sg('readiness', '100')),
+    lastVisit:  _sg('lastVisit', new Date().toISOString()),
+    streak:     parseInt(_sg('streak', '0')),
+    streakDate: _sg('streakDate', '') || '',
+    feedToday:  parseInt(_sg('feedToday', '0')),
+    playToday:  parseInt(_sg('playToday', '0')),
+    restToday:  parseInt(_sg('restToday', '0')),
+    visXPToday: parseInt(_sg('visXPToday', '0')),
+    loginToday: parseInt(_sg('loginToday', '0')),
+    todayDate:  _sg('todayDate', '') || '',
+    lastRandom: _sg('lastRandom', '') || ''
   };
 }
 
@@ -695,6 +701,19 @@ function saveDS(s) {
   localStorage.setItem('dragon_loginToday', String(s.loginToday));
   localStorage.setItem('dragon_todayDate', s.todayDate);
   localStorage.setItem('dragon_lastRandom', s.lastRandom);
+  /* SyncEngine mirror — push all dragon state for cross-device sync */
+  try {
+    if (SyncEngine.isOnline()) {
+      SyncEngine.setMany('dragon', {
+        xp: Math.floor(s.xp), rations: Math.round(s.rations * 10) / 10,
+        morale: Math.round(s.morale * 10) / 10, readiness: Math.round(s.readiness * 10) / 10,
+        lastVisit: s.lastVisit, streak: s.streak, streakDate: s.streakDate,
+        feedToday: s.feedToday, playToday: s.playToday, restToday: s.restToday,
+        visXPToday: s.visXPToday, loginToday: s.loginToday, todayDate: s.todayDate,
+        lastRandom: s.lastRandom
+      });
+    }
+  } catch(e) {}
 }
 
 function getStage(xp) {
@@ -767,6 +786,22 @@ function initDS() {
 
 var DS = initDS();
 var prevStage = getStage(DS.xp);
+
+/* ── SyncEngine boot — cross-device state sync ── */
+SyncEngine.init({
+  worker: 'https://widget-sync.lordgrape-widgets.workers.dev',
+  namespaces: ['dragon', 'clock', 'user']
+}).then(function() {
+  /* Merge remote dragon state into local DS */
+  var remote = SyncEngine.getAll('dragon');
+  if (remote && Object.keys(remote).length > 0) {
+    DS = initDS();
+    prevStage = getStage(DS.xp);
+  } else {
+    /* First sync: push local state to remote */
+    saveDS(DS);
+  }
+});
 
 /* ── Add XP helper ── */
 function addXP(amt) {
