@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Daily Quote</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -163,6 +163,109 @@ body {
   color: var(--book-color); letter-spacing: 1.5px; text-transform: uppercase;
 }
 
+/* ── Design system overrides ── */
+* { box-sizing: border-box; }
+body { margin: 0; font-family: 'Inter', sans-serif; background: var(--surface-0); color: var(--text-primary); }
+::selection { background: var(--accent-glow-strong); color: var(--text-primary); }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-accent); }
+
+@keyframes fadeSlideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes wordUnderline {
+  0% { box-shadow: inset 0 -1px 0 transparent; }
+  40% { box-shadow: inset 0 -8px 0 color-mix(in srgb, var(--accent-primary) 18%, transparent); }
+  100% { box-shadow: inset 0 -1px 0 transparent; }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-md);
+}
+.loading-skeleton { display:flex; flex-direction:column; gap:8px; }
+.sk-line { height: 16px; }
+.sk-line.w1 { width: 92%; } .sk-line.w2 { width: 82%; } .sk-line.w3 { width: 68%; } .sk-line.w4 { width: 34%; }
+.content-shell { transition: opacity var(--transition-default), transform var(--transition-default); }
+.content-shell.loading { opacity: 0; transform: translateY(8px); pointer-events: none; }
+.container.copy-pulse { border-color: var(--accent-primary); box-shadow: 0 0 0 2px var(--accent-glow-strong), var(--shadow-md), var(--shadow-glow); }
+
+.container {
+  padding: 40px;
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
+  border: 1px solid var(--border-default);
+  box-shadow: var(--shadow-md), var(--shadow-glow);
+  animation: fadeSlideUp 0.4s var(--transition-default) forwards;
+}
+
+.copy-btn {
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-tertiary);
+  transition: all var(--transition-default);
+}
+.copy-btn:hover {
+  background: var(--accent-glow-strong);
+  color: var(--text-primary);
+  border-color: var(--border-accent);
+}
+.copy-btn::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: -30px;
+  right: 0;
+  white-space: nowrap;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+  pointer-events: none;
+}
+.copy-btn:hover::after { opacity: 1; transform: translateY(0); }
+.copy-btn.copied { color: var(--success); border-color: color-mix(in srgb, var(--success) 60%, var(--border-subtle)); }
+.copy-btn:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
+.copy-btn:active { transform: scale(0.97); }
+
+.label { color: var(--text-tertiary); }
+.quote {
+  font-weight: 300;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+.quote .word {
+  background: none;
+  -webkit-text-fill-color: var(--text-primary);
+  color: var(--text-primary);
+  position: relative;
+}
+.quote .word.recent { animation: wordReveal 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards, wordUnderline 0.4s ease-out forwards; }
+
+.attribution { flex-direction: column; gap: 2px; margin-top: 12px; }
+.author {
+  font-style: italic;
+  color: var(--text-tertiary);
+}
+.author::before { content: '— '; }
+.separator { display: none; }
+.book {
+  color: var(--text-tertiary);
+  text-transform: none;
+  letter-spacing: 0.4px;
+  font-size: 0.78rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -178,13 +281,21 @@ body {
 <body>
 <canvas id="bg"></canvas>
 <div class="container">
-  <button class="copy-btn" id="copyBtn" title="Copy quote">📋</button>
-  <div class="label" id="label">Daily Wisdom</div>
-  <div class="quote" id="quote"></div>
-  <div class="attribution" id="attribution">
-    <div class="author" id="author"></div>
-    <div class="separator">&middot;</div>
-    <div class="book" id="book"></div>
+  <div class="loading-skeleton" id="qtSkeleton">
+    <div class="skeleton sk-line w1"></div>
+    <div class="skeleton sk-line w2"></div>
+    <div class="skeleton sk-line w3"></div>
+    <div class="skeleton sk-line w4"></div>
+  </div>
+  <div class="content-shell loading" id="qtContent">
+    <button class="copy-btn" id="copyBtn" title="Copy quote" data-tip="Copy quote" aria-label="Copy quote to clipboard">📋</button>
+    <div class="label" id="label">Daily Wisdom</div>
+    <div class="quote" id="quote" aria-live="polite"></div>
+    <div class="attribution" id="attribution">
+      <div class="author" id="author"></div>
+      <div class="separator">&middot;</div>
+      <div class="book" id="book"></div>
+    </div>
   </div>
 </div>
 <script src="core.js"></script>
@@ -263,7 +374,7 @@ function renderWords(text) {
   var words = text.split(' ');
   words.forEach(function(w, i) {
     var span = document.createElement('span');
-    span.className = 'word';
+    span.className = 'word recent';
     span.textContent = w;
     span.style.animationDelay = (0.35 + i * WORD_DELAY_S) + 's';
     el.appendChild(span);
@@ -281,7 +392,8 @@ function showQuote() {
   currentDateStr = dayStr();
   renderWords(q.text);
   document.getElementById('author').textContent = q.author;
-  document.getElementById('book').textContent = q.book;
+  document.getElementById('book').textContent = q.book || '';
+  document.getElementById('book').style.display = q.book ? 'block' : 'none';
 }
 
 /* ── Upgrade 3: Crossfade at midnight ── */
@@ -301,7 +413,8 @@ function crossfade() {
     var q = currentQuote();
     currentDateStr = dayStr();
     document.getElementById('author').textContent = q.author;
-    document.getElementById('book').textContent = q.book;
+    document.getElementById('book').textContent = q.book || '';
+    document.getElementById('book').style.display = q.book ? 'block' : 'none';
     quoteEl.classList.remove('fading');
     renderWords(q.text);
   }, 650);
@@ -315,17 +428,39 @@ document.getElementById('copyBtn').addEventListener('click', function(e) {
   var str = '\u201C' + q.text + '\u201D\n\u2014 ' + q.author + ', ' + q.book;
   navigator.clipboard.writeText(str).then(function() {
     var btn = document.getElementById('copyBtn');
+    Core.ripple(btn);
     btn.textContent = '\u2713';
+    btn.setAttribute('data-tip', 'Copied');
     btn.classList.add('copied');
+    var card = document.querySelector('.container');
+    card.classList.add('copy-pulse');
     setTimeout(function() {
       btn.textContent = '\uD83D\uDCCB';
+      btn.setAttribute('data-tip', 'Copy quote');
       btn.classList.remove('copied');
+      card.classList.remove('copy-pulse');
     }, 1400);
   });
+});
+document.getElementById('copyBtn').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.click(); }
 });
 
 /* ── Init ── */
 loadQuotes();
+Core.tooltip.init();
+Core.tooltip.attach(document.getElementById('copyBtn'), function() { return document.getElementById('copyBtn').getAttribute('data-tip') || 'Copy to clipboard'; });
+function revealQuotes() {
+  var sk = document.getElementById('qtSkeleton');
+  var c = document.getElementById('qtContent');
+  if (!sk || !c) return;
+  c.classList.remove('loading');
+  sk.style.opacity = '0';
+  sk.style.transition = 'opacity 220ms ease';
+  setTimeout(function() { if (sk.parentNode) sk.remove(); }, 260);
+}
+if (SyncEngine && typeof SyncEngine.onReady === 'function') SyncEngine.onReady(revealQuotes);
+setTimeout(revealQuotes, 450);
 try {
   initBackground('bg', {
     orbCount: 2, orbRadius: [60, 100], orbSpeed: 0.15,

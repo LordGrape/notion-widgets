@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HORIZON</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -420,6 +420,180 @@ body {
 .w-temp { font-weight:500; font-variant-numeric:tabular-nums; }
 .w-cond { font-size:7px; letter-spacing:0.5px; text-transform:uppercase; }
 
+/* ── Design system overrides ── */
+* { box-sizing: border-box; }
+body { margin: 0; font-family: 'Inter', sans-serif; background: var(--surface-0); color: var(--text-primary); }
+::selection { background: var(--accent-glow-strong); color: var(--text-primary); }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-accent); }
+@keyframes fadeSlideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes shimmerX { to { transform: translateX(240%); } }
+@keyframes sparkle { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
+@keyframes wobble { 0%,100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-md);
+}
+.loading-skeleton { width:100%; display:flex; flex-direction:column; align-items:center; gap:10px; }
+.sk-canvas { width:180px; height:180px; border-radius: var(--radius-md); }
+.sk-bar { width:100%; max-width:300px; height:12px; border-radius:999px; }
+.content-shell { transition: opacity var(--transition-default), transform var(--transition-default); }
+.content-shell.loading { opacity:0; transform: translateY(8px); pointer-events:none; }
+.view { transition: opacity 200ms ease-out, transform 200ms ease-out; }
+.view.exiting-forward { opacity:0; transform:translateX(-8px); }
+.view.exiting-backward { opacity:0; transform:translateX(8px); }
+.view.entering-forward { opacity:0; transform:translateX(8px); }
+.view.entering-backward { opacity:0; transform:translateX(-8px); }
+
+.wrap {
+  background: var(--surface-1);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md), var(--shadow-glow);
+  animation: fadeSlideUp 0.4s var(--transition-default) forwards;
+}
+
+button, .tab-btn, .rad-btn, .st-btn, .info-btn { cursor: pointer; }
+button:active, .tab-btn:active, .rad-btn:active, .st-btn:active { transform: scale(0.97); }
+button:focus-visible, .tab-btn:focus-visible, .rad-btn:focus-visible, .st-btn:focus-visible, .info-btn:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.tab-bar {
+  position: relative;
+  gap: 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  padding: 4px;
+}
+.tab-btn {
+  position: relative;
+  z-index: 2;
+  border-radius: 999px;
+  opacity: 1;
+  color: var(--text-secondary);
+  transition: color var(--transition-default), transform var(--transition-fast);
+}
+.tab-btn.active { background: transparent; color: var(--text-primary); }
+.tab-indicator {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  width: calc((100% - 16px) / 3);
+  height: calc(100% - 8px);
+  border-radius: 999px;
+  background: var(--accent-glow-strong);
+  border: 1px solid var(--border-accent);
+  transition: transform var(--transition-spring);
+}
+.tab-bar:has(#tabDragon.active) .tab-indicator { transform: translateX(0%); }
+.tab-bar:has(#tabRadar.active) .tab-indicator { transform: translateX(calc(100% + 4px)); }
+.tab-bar:has(#tabAch.active) .tab-indicator { transform: translateX(calc(200% + 8px)); }
+
+.d-bar-track {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+}
+.d-bar-fill {
+  position: relative;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--success), color-mix(in srgb, var(--success) 60%, var(--accent-primary)));
+}
+.d-bar-fill.warn { background: linear-gradient(90deg, var(--warning), color-mix(in srgb, var(--warning) 65%, var(--accent-primary))) !important; }
+.d-bar-fill.crit { background: linear-gradient(90deg, var(--danger), color-mix(in srgb, var(--danger) 65%, var(--accent-primary))) !important; }
+.d-bar-fill::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 30%;
+  background: linear-gradient(120deg, transparent, rgba(255,255,255,0.22), transparent);
+  transform: translateX(-180%);
+  animation: shimmerX 2.8s linear infinite;
+}
+.d-bar-fill::after {
+  content: attr(data-pct);
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.6rem;
+  color: var(--text-primary);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.35);
+}
+
+.rad-btn {
+  background: var(--surface-1);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  transition: transform var(--transition-spring), background var(--transition-fast), box-shadow var(--transition-fast);
+}
+.rad-btn:hover { box-shadow: 0 0 14px var(--accent-glow); }
+.rad-btn > .rad-icon { display: inline-block; transition: transform var(--transition-spring); }
+.rad-btn:hover > .rad-icon { transform: translateY(-2px); }
+.rad-btn.maxed {
+  opacity: 0.55;
+  filter: grayscale(0.6);
+  position: relative;
+}
+.rad-btn.maxed::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: conic-gradient(var(--accent-primary) calc(var(--cd-progress, 0) * 1%), transparent 0);
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1px));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1px));
+}
+
+.ach-item {
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+}
+.ach-item.locked {
+  opacity: 0.45;
+  background: color-mix(in srgb, var(--surface-2) 88%, transparent);
+  backdrop-filter: blur(10px);
+}
+.ach-item.unlocked {
+  border-color: color-mix(in srgb, var(--warning) 50%, var(--border-accent));
+  background: color-mix(in srgb, var(--warning) 8%, var(--surface-2));
+}
+.ach-item.unlocked:hover { box-shadow: 0 0 14px color-mix(in srgb, var(--warning) 35%, transparent); }
+.ach-item.unlocked:hover .ach-icon { animation: sparkle 1.1s ease-in-out infinite; }
+
+.evol-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 10% 80%, rgba(255,255,255,0.5) 0 1px, transparent 2px),
+    radial-gradient(circle at 30% 90%, rgba(255,255,255,0.4) 0 1px, transparent 2px),
+    radial-gradient(circle at 60% 75%, rgba(255,255,255,0.45) 0 1px, transparent 2px),
+    radial-gradient(circle at 80% 85%, rgba(255,255,255,0.35) 0 1px, transparent 2px);
+  animation: starsRise 3s linear infinite;
+  pointer-events: none;
+}
+@keyframes starsRise {
+  0% { transform: translateY(20px); opacity: 0.2; }
+  100% { transform: translateY(-50px); opacity: 0.9; }
+}
+
+.s-flame { animation: wobble 1.2s ease-in-out infinite; transform-origin: bottom center; }
+.xp-prog-label { font-family: 'JetBrains Mono', 'Inter', monospace; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
@@ -429,26 +603,34 @@ body {
 <body>
 
 <div class="wrap">
+  <div class="loading-skeleton" id="hzSkeleton">
+    <div class="skeleton sk-canvas"></div>
+    <div class="skeleton sk-bar"></div>
+    <div class="skeleton sk-bar"></div>
+    <div class="skeleton sk-bar"></div>
+  </div>
+  <div class="content-shell loading" id="hzContent">
   <div class="scan"></div>
   <button class="info-btn" id="infoBtn" title="Stats">&#x2139;&#xFE0F;</button>
 
   <!-- Header -->
   <div class="hdr">
-    <div class="tab-bar">
-      <button class="tab-btn active" id="tabDragon" title="Dragon">&#x1F409;</button>
-      <button class="tab-btn" id="tabRadar" title="Radar">&#x1F4E1;</button>
-      <button class="tab-btn" id="tabAch" title="Achievements">&#x1F3C6;</button>
+    <div class="tab-bar" role="tablist" aria-label="Horizon tabs">
+      <button class="tab-btn active" id="tabDragon" title="Dragon" role="tab" aria-selected="true">&#x1F409;</button>
+      <button class="tab-btn" id="tabRadar" title="Radar" role="tab" aria-selected="false">&#x1F4E1;</button>
+      <button class="tab-btn" id="tabAch" title="Achievements" role="tab" aria-selected="false">&#x1F3C6;</button>
+      <span class="tab-indicator" aria-hidden="true"></span>
     </div>
     <div class="hdr-title" id="hdrTitle">HORIZON</div>
   </div>
 
   <!-- Dragon View (default) -->
-  <div class="view dragon-view active" id="vDragon">
+  <div class="view dragon-view active" id="vDragon" role="tabpanel" aria-label="Dragon panel">
     <canvas id="dc"></canvas>
     <div class="d-bars" id="dBars">
-      <div class="d-bar-row"><span class="d-bar-icon">&#x1F356;</span><span class="d-bar-label">Rations</span><div class="d-bar-track"><div class="d-bar-fill" id="barRations" style="width:100%"></div></div><span class="d-bar-val" id="valRations">100</span></div>
-      <div class="d-bar-row"><span class="d-bar-icon">&#x2694;&#xFE0F;</span><span class="d-bar-label">Morale</span><div class="d-bar-track"><div class="d-bar-fill" id="barMorale" style="width:100%"></div></div><span class="d-bar-val" id="valMorale">100</span></div>
-      <div class="d-bar-row"><span class="d-bar-icon">&#x26A1;</span><span class="d-bar-label">Readiness</span><div class="d-bar-track"><div class="d-bar-fill" id="barReadiness" style="width:100%"></div></div><span class="d-bar-val" id="valReadiness">100</span></div>
+      <div class="d-bar-row"><span class="d-bar-icon">&#x1F356;</span><span class="d-bar-label">Rations</span><div class="d-bar-track" aria-label="Rations: 100%"><div class="d-bar-fill" id="barRations" style="width:100%"></div></div><span class="d-bar-val" id="valRations">100</span></div>
+      <div class="d-bar-row"><span class="d-bar-icon">&#x2694;&#xFE0F;</span><span class="d-bar-label">Morale</span><div class="d-bar-track" aria-label="Morale: 100%"><div class="d-bar-fill" id="barMorale" style="width:100%"></div></div><span class="d-bar-val" id="valMorale">100</span></div>
+      <div class="d-bar-row"><span class="d-bar-icon">&#x26A1;</span><span class="d-bar-label">Readiness</span><div class="d-bar-track" aria-label="Readiness: 100%"><div class="d-bar-fill" id="barReadiness" style="width:100%"></div></div><span class="d-bar-val" id="valReadiness">100</span></div>
     </div>
     <div class="d-status" id="dStatus"></div>
     <div class="xp-prog">
@@ -459,7 +641,7 @@ body {
   </div>
 
   <!-- Radar View -->
-  <div class="view radar-view" id="vRadar">
+  <div class="view radar-view" id="vRadar" role="tabpanel" aria-label="Radar panel">
     <div class="radar"><canvas id="r"></canvas></div>
     <div class="panel">
       <div class="panel-label">Horizon</div>
@@ -470,18 +652,19 @@ body {
   </div>
 
   <!-- Achievement View -->
-  <div class="view achieve-view" id="vAch">
-    <div class="ach-grid" id="achGrid"></div>
+  <div class="view achieve-view" id="vAch" role="tabpanel" aria-label="Achievements panel">
+    <div class="ach-grid" id="achGrid" role="grid"></div>
     <div class="ach-count" id="achCount"></div>
   </div>
+</div>
 </div>
 
 <!-- Radial Menu -->
 <div class="radial-ov" id="radialOv">
   <div class="radial-menu">
-    <button class="rad-btn" id="btnFeed" data-act="feed">&#x1F356;<span>Rations</span></button>
-    <button class="rad-btn" id="btnPlay" data-act="play">&#x2694;&#xFE0F;<span>Morale</span></button>
-    <button class="rad-btn" id="btnRest" data-act="rest">&#x1F4A4;<span>Readiness</span></button>
+    <button class="rad-btn" id="btnFeed" data-act="feed" aria-label="Feed dragon"><span class="rad-icon">&#x1F356;</span><span>Rations</span></button>
+    <button class="rad-btn" id="btnPlay" data-act="play" aria-label="Play with dragon"><span class="rad-icon">&#x2694;&#xFE0F;</span><span>Morale</span></button>
+    <button class="rad-btn" id="btnRest" data-act="rest" aria-label="Train and rest dragon"><span class="rad-icon">&#x1F4A4;</span><span>Readiness</span></button>
   </div>
 </div>
 
@@ -2301,10 +2484,13 @@ function updateBars() {
     var val = Math.max(0, DS[b[0]]);
     var fill = document.getElementById('bar' + b[1]);
     fill.style.width = val + '%';
+    fill.setAttribute('data-pct', Math.round(val) + '%');
     fill.classList.remove('warn', 'crit');
     if (val < 10) fill.classList.add('crit');
     else if (val < 30) fill.classList.add('warn');
     document.getElementById('val' + b[1]).textContent = Math.round(val);
+    var track = fill.parentNode;
+    if (track) track.setAttribute('aria-label', b[1] + ': ' + Math.round(val) + '%');
   });
 }
 
@@ -2327,7 +2513,15 @@ function updateStatus() {
       var prev = STAGES[stage].xp;
       var pct = Math.min(100, ((DS.xp - prev) / (nxt - prev)) * 100);
       pf.style.width = pct + '%';
-      pl.textContent = Math.floor(DS.xp).toLocaleString() + ' / ' + nxt.toLocaleString();
+      if (Core && typeof Core.smoothCounter === 'function') {
+        Core.smoothCounter(pl, Math.floor(DS.xp), {
+          duration: 0.45,
+          decimals: 0,
+          suffix: ' / ' + nxt.toLocaleString()
+        });
+      } else {
+        pl.textContent = Math.floor(DS.xp).toLocaleString() + ' / ' + nxt.toLocaleString();
+      }
     } else {
       pf.style.width = '100%';
       pl.textContent = 'MAX RANK';
@@ -2422,13 +2616,17 @@ function renderAch() {
   ACHS.forEach(function(a) {
     var u = !!achData[a.id];
     if (u) ul++;
-    html += '<div class="ach-item ' + (u ? 'unlocked' : 'locked') + '">' +
+    html += '<div class="ach-item ' + (u ? 'unlocked' : 'locked') + '" role="gridcell" tabindex="0" aria-label="' + a.name + ': ' + a.desc + '">' +
       '<div class="ach-icon">' + a.icon + '</div>' +
       '<div class="ach-info"><div class="ach-name">' + a.name + '</div>' +
       '<div class="ach-desc">' + a.desc + '</div></div></div>';
   });
   grid.innerHTML = html;
   count.textContent = ul + ' / ' + ACHS.length + ' unlocked';
+  Core.a11y.roving(grid, '.ach-item');
+  grid.querySelectorAll('.ach-item').forEach(function(item) {
+    Core.tooltip.attach(item, function() { return item.getAttribute('aria-label'); });
+  });
 }
 
 /* ═══ AMBIENT BACKGROUND + SEASONAL ═══ */
@@ -2498,6 +2696,12 @@ updateBars();
 updateStatus();
 checkAch();
 renderAch();
+Core.tooltip.init();
+Core.tooltip.attach(document.getElementById('tabDragon'), 'Dragon');
+Core.tooltip.attach(document.getElementById('tabRadar'), 'Radar');
+Core.tooltip.attach(document.getElementById('tabAch'), 'Achievements');
+document.querySelectorAll('.d-bar-label').forEach(function(el) { Core.tooltip.attach(el, el.textContent + ' level'); });
+Core.tooltip.attach(document.getElementById('dStatus'), function() { return DS.streak + ' day streak'; });
 setInterval(checkAch, 10000);
 
 /* ═══ TAB OVERRIDE ═══ */
@@ -2577,20 +2781,27 @@ var radialOv = document.getElementById('radialOv');
 
 function openRadial() {
   var cd = timeToMidnight();
+  var now = new Date();
+  var midnight = new Date(now); midnight.setHours(24, 0, 0, 0);
+  var remainingPct = Math.max(0, Math.min(100, ((midnight - now) / 86400000) * 100));
   /* Update button states + cooldown countdown */
   var caps = { Feed: 'feedToday', Play: 'playToday', Rest: 'restToday' };
   Object.keys(caps).forEach(function(id) {
     var btn = document.getElementById('btn' + id);
     var isMaxed = DS[caps[id]] >= INTERACT_CAP;
     btn.classList.toggle('maxed', isMaxed);
+    btn.style.setProperty('--cd-progress', remainingPct);
     var cdEl = btn.querySelector('.rad-cd');
     if (isMaxed) {
       if (!cdEl) { cdEl = document.createElement('span'); cdEl.className = 'rad-cd'; btn.appendChild(cdEl); }
       cdEl.textContent = cd;
+      btn.setAttribute('aria-label', btn.textContent.trim() + ', cooldown ' + cd);
     } else if (cdEl) { cdEl.remove(); }
+    else btn.setAttribute('aria-label', btn.textContent.trim());
   });
   radialOv.classList.add('show');
   if (typeof playClick === 'function') playClick();
+  Core.a11y.roving(radialOv, '.rad-btn');
 }
 
 function closeRadial() { radialOv.classList.remove('show'); }
@@ -2614,6 +2825,7 @@ radialOv.addEventListener('click', function(e) {
     DS.readiness = Math.min(100, DS.readiness + 30); DS.restToday++;
     if (typeof playOpen === 'function') playOpen();
   } else { return; }
+  Core.ripple(btn);
   var wantBonus = (wantActive === act) ? WANT_BONUS : 0;
   if (wantActive === act) { wantActive = null; wantBubble.classList.remove('show'); }
   addXP(INTERACT_XP + wantBonus);
@@ -2678,22 +2890,53 @@ function checkWant(t) {
 
 var tabDragon = document.getElementById('tabDragon');
 var tabRadar  = document.getElementById('tabRadar');
+var tabAch    = document.getElementById('tabAch');
 var vDragon   = document.getElementById('vDragon');
 var vRadar    = document.getElementById('vRadar');
+var vAch      = document.getElementById('vAch');
 var activeTab = 'dragon';
 
 function switchTab(tab) {
   if (tab === activeTab) return;
+  var order = ['dragon', 'radar', 'ach'];
+  var dir = order.indexOf(tab) > order.indexOf(activeTab) ? 'forward' : 'backward';
+  var oldEl = activeTab === 'dragon' ? vDragon : activeTab === 'radar' ? vRadar : vAch;
+  var newEl = tab === 'dragon' ? vDragon : tab === 'radar' ? vRadar : vAch;
+  oldEl.classList.add('exiting-' + dir);
+  newEl.classList.remove('active');
+  newEl.classList.add('entering-' + dir);
   activeTab = tab;
   tabDragon.classList.toggle('active', tab === 'dragon');
   tabRadar.classList.toggle('active', tab === 'radar');
-  vDragon.classList.toggle('active', tab === 'dragon');
-  vRadar.classList.toggle('active', tab === 'radar');
+  tabAch.classList.toggle('active', tab === 'ach');
+  tabDragon.setAttribute('aria-selected', tab === 'dragon' ? 'true' : 'false');
+  tabRadar.setAttribute('aria-selected', tab === 'radar' ? 'true' : 'false');
+  tabAch.setAttribute('aria-selected', tab === 'ach' ? 'true' : 'false');
+  setTimeout(function() {
+    vDragon.classList.toggle('active', tab === 'dragon');
+    vRadar.classList.toggle('active', tab === 'radar');
+    vAch.classList.toggle('active', tab === 'ach');
+    oldEl.classList.remove('exiting-forward', 'exiting-backward');
+    newEl.classList.remove('entering-forward', 'entering-backward');
+  }, 200);
   if (typeof playModeSwitch === 'function') playModeSwitch();
 }
 
 tabDragon.addEventListener('click', function() { switchTab('dragon'); });
 tabRadar.addEventListener('click', function() { switchTab('radar'); });
+tabAch.addEventListener('click', function() { switchTab('ach'); renderAch(); });
+Core.a11y.roving(document.querySelector('.tab-bar'), '.tab-btn');
+[tabDragon, tabRadar, tabAch].forEach(function(t) {
+  t.addEventListener('keydown', function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); t.click(); } });
+});
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    closeRadial();
+    document.getElementById('blipOv').classList.remove('show');
+    document.getElementById('statsOv').classList.remove('show');
+    document.getElementById('evolOv').classList.remove('show');
+  }
+});
 
 /* ══════════════════════════════════════
    7. MILESTONES (existing)
@@ -3379,6 +3622,17 @@ function getHorizonPower() {
   upd();
   setInterval(upd, 60000);
 })();
+function revealHorizon() {
+  var sk = document.getElementById('hzSkeleton');
+  var c = document.getElementById('hzContent');
+  if (!sk || !c) return;
+  c.classList.remove('loading');
+  sk.style.opacity = '0';
+  sk.style.transition = 'opacity 220ms ease';
+  setTimeout(function() { if (sk.parentNode) sk.remove(); }, 260);
+}
+if (SyncEngine && typeof SyncEngine.onReady === 'function') SyncEngine.onReady(revealHorizon);
+setTimeout(revealHorizon, 650);
 </script>
 </body>
 </html>

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Schedule</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -188,12 +188,171 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); display: flex; a
 /* ── Day Group Labels (Settings) ── */
 .day-group-label { font-size: 7px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-secondary); margin: 8px 0 4px 2px; }
 
+/* ── Design system overrides ── */
+* { box-sizing: border-box; }
+body { margin: 0; font-family: 'Inter', sans-serif; background: var(--surface-0); color: var(--text-primary); }
+::selection { background: var(--accent-glow-strong); color: var(--text-primary); }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-accent); }
+
+@keyframes fadeSlideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes glowBreathe { 0%,100% { box-shadow: 0 0 0 0 transparent; } 50% { box-shadow: 0 0 0 1px var(--border-accent), 0 0 20px var(--accent-glow); } }
+@keyframes emojiPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-md);
+}
+.loading-skeleton { display:flex; flex-direction:column; gap:8px; }
+.sk-row { height: 28px; border-radius: 999px; }
+.content-shell { transition: opacity var(--transition-default), transform var(--transition-default); }
+.content-shell.loading { opacity: 0; transform: translateY(8px); pointer-events: none; }
+
+.container {
+  background: var(--surface-1);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md), var(--shadow-glow);
+  animation: fadeSlideUp 0.4s var(--transition-default) forwards;
+}
+
+button, .week-pill, .class-block, .color-swatch, .form-btn, .settings-btn { cursor: pointer; }
+button:active, .week-pill:active, .class-block:active, .color-swatch:active, .form-btn:active { transform: scale(0.97); }
+button:focus-visible, .week-pill:focus-visible, .day-dot:focus-visible, .view-btn:focus-visible, .form-input:focus-visible, .color-swatch:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.label, .title, .class-name, .week-detail-name, .settings-title, .confirm-title { color: var(--text-primary); font-weight: 600; }
+.class-meta, .status, .footer-text, .week-detail-text { color: var(--text-secondary); font-weight: 400; }
+.settings-sub, .form-label, .day-group-label, .milestones-label { color: var(--text-tertiary); font-size: 0.8rem; font-weight: 400; }
+
+.view-toggle, .settings-card, .confirm-card, .week-detail-card {
+  background: var(--surface-1);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+.view-btn {
+  border-radius: 999px;
+  transition: all var(--transition-default);
+  color: var(--text-secondary);
+}
+.view-btn.active {
+  background: var(--accent-glow-strong);
+  color: var(--text-primary);
+  border: 1px solid var(--border-accent);
+}
+
+.week-track { background: var(--surface-2); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); }
+.week-now-marker {
+  width: 6px;
+  background: linear-gradient(180deg, transparent, var(--accent-primary), transparent);
+  box-shadow: none;
+  border-radius: 999px;
+}
+.week-now-marker::before { background: var(--accent-primary); box-shadow: 0 0 10px var(--accent-glow); }
+.week-pill {
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.week-pill:hover { box-shadow: var(--shadow-md); }
+.week-track.today-track .week-pill { animation: glowBreathe 2.8s ease-in-out infinite; }
+
+.class-block {
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--course-color, var(--accent-primary)) 5%, var(--surface-2));
+  border: 1px solid var(--border-subtle);
+  transition: all var(--transition-default);
+}
+.class-block:hover { border-color: var(--border-accent); background: var(--surface-3); box-shadow: var(--shadow-sm); }
+.class-accent { width: 3px; border-radius: var(--radius-sm); }
+.class-info {
+  background: color-mix(in srgb, var(--surface-1) 95%, transparent);
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+}
+
+.settings-btn, .add-course-btn, .form-btn, .confirm-btn {
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+.add-course-btn, .form-btn-secondary, .confirm-btn-cancel {
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+.form-btn-primary {
+  background: var(--accent-primary);
+  color: var(--surface-1);
+}
+.form-input { background: var(--surface-0); border: 1px solid var(--border-default); border-radius: var(--radius-md); color: var(--text-primary); }
+
+.color-swatch {
+  position: relative;
+  border: 1px solid var(--border-subtle);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+.color-swatch.active {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px var(--accent-glow-strong);
+}
+.color-swatch.active::after {
+  content: '✓';
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--surface-1);
+  font-size: 10px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+.empty {
+  min-height: 170px;
+  gap: 10px;
+  background: var(--surface-2);
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-lg);
+}
+.empty-icon { font-size: 42px; opacity: 0.88; animation: emojiPulse 2.2s ease-in-out infinite; }
+.empty-text { color: var(--text-secondary); }
+.empty .glass-cta {
+  background: var(--accent-glow-strong);
+  border: 1px solid var(--border-accent);
+  color: var(--text-primary);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.week-detail-card { transform: scale(0.95) translateY(6px); transition: transform var(--transition-spring), opacity var(--transition-default); opacity: 0; }
+.week-overlay.show .week-detail-card { transform: scale(1) translateY(0); opacity: 1; }
+
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; } #bg { display: none; } }
 </style>
 </head>
 <body>
 <canvas id="bg"></canvas>
 <div class="container">
+  <div class="loading-skeleton" id="ttSkeleton">
+    <div class="skeleton sk-row"></div>
+    <div class="skeleton sk-row"></div>
+    <div class="skeleton sk-row"></div>
+    <div class="skeleton sk-row"></div>
+    <div class="skeleton sk-row"></div>
+    <div class="skeleton sk-row"></div>
+  </div>
+  <div class="content-shell loading" id="ttContent">
   <div class="header">
     <div class="header-left">
       <div class="label">Schedule</div>
@@ -214,6 +373,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); display: flex; a
     <div class="footer"><div class="footer-text" id="footer"></div></div>
   </div>
   <div class="week-view" id="weekView" style="display:none"></div>
+</div>
 </div>
 
 <!-- Settings Overlay -->
@@ -304,7 +464,11 @@ function renderSchedule() {
   document.getElementById('title').textContent = isToday ? "Today's Classes" : DAY_NAMES[selectedDay];
 
   if (classes.length === 0) {
-    container.innerHTML = '<div class="empty"><div class="empty-icon">\u2728</div><div class="empty-text">No classes</div></div>';
+    container.innerHTML = '<div class="empty"><div class="empty-icon">\ud83d\udcda</div><div class="empty-text">No classes yet</div><button class="glass-cta" id="emptyAddCourseBtn">Add your first course</button></div>';
+    setTimeout(function() {
+      var cta = document.getElementById('emptyAddCourseBtn');
+      if (cta) cta.addEventListener('click', showSettings);
+    }, 0);
     document.getElementById('footer').textContent = 'Free day';
     renderMilestones();
     return;
@@ -318,6 +482,7 @@ function renderSchedule() {
     var startMins = timeToMinutes(c.start), endMins = timeToMinutes(c.end);
     var block = document.createElement('div');
     block.className = 'class-block';
+    block.style.setProperty('--course-color', c.color || 'var(--accent-primary)');
     block.style.animationDelay = (0.3 + idx * 0.1) + 's';
     var state = '';
     if (isToday) {
@@ -383,7 +548,11 @@ function renderWeekView() {
   if (window._weekEsc) document.removeEventListener('keydown', window._weekEsc);
 
   if (!schedule.length) {
-    el.innerHTML = '<div class="empty"><div class="empty-icon">\u2728</div><div class="empty-text">No courses yet</div></div>';
+    el.innerHTML = '<div class="empty"><div class="empty-icon">\ud83d\udcda</div><div class="empty-text">No courses yet</div><button class="glass-cta" id="emptyAddCourseBtnWeek">Add your first course</button></div>';
+    setTimeout(function() {
+      var ctaW = document.getElementById('emptyAddCourseBtnWeek');
+      if (ctaW) ctaW.addEventListener('click', showSettings);
+    }, 0);
     return;
   }
 
@@ -420,7 +589,7 @@ function renderWeekView() {
         var width = ((em - sm) / SPAN) * 100;
         var numMatch = c.name.match(/\d{4}/);
         var shortNum = numMatch ? numMatch[0] : c.name.split(':')[0];
-        html += '<div class="week-pill" data-day="' + c.day + '" data-idx="' + idx + '" style="left:' + left + '%;width:' + width + '%;background:' + c.color + '"><span class="week-pill-name">' + shortNum + '</span></div>';
+        html += '<div class="week-pill" tabindex="0" aria-label="' + c.name + ', ' + formatTime(c.start) + ' to ' + formatTime(c.end) + ', Room ' + c.room + '" data-day="' + c.day + '" data-idx="' + idx + '" style="left:' + left + '%;width:' + width + '%;background:' + c.color + '"><span class="week-pill-name">' + shortNum + '</span></div>';
       });
     }
     html += '</div></div>';
@@ -430,13 +599,14 @@ function renderWeekView() {
 
   /* Week detail overlay */
   var overlay = document.createElement('div'); overlay.className = 'week-overlay';
-  overlay.innerHTML = '<div class="week-detail-card" id="weekDetailCard"></div>';
+  overlay.innerHTML = '<div class="week-detail-card" role="dialog" aria-modal="true" aria-labelledby="weekDetailTitle" id="weekDetailCard"></div>';
   document.body.appendChild(overlay);
   overlay.addEventListener('click', function(e) { if (e.target === overlay) { playClose(); overlay.classList.remove('show'); } });
   window._weekEsc = function(e) { if (e.key === 'Escape') { playClose(); overlay.classList.remove('show'); } };
   document.addEventListener('keydown', window._weekEsc);
 
   el.querySelectorAll('.week-pill').forEach(function(pill) {
+    Core.tooltip.attach(pill, function() { return pill.getAttribute('aria-label'); });
     pill.addEventListener('click', function(e) {
       e.stopPropagation(); playOpen();
       var day = parseInt(this.dataset.day), idx = parseInt(this.dataset.idx);
@@ -447,7 +617,7 @@ function renderWeekView() {
       var durStr = dH > 0 ? dH + 'h' + (dM > 0 ? ' ' + dM + 'm' : '') : dM + 'm';
       document.getElementById('weekDetailCard').innerHTML =
         '<div class="week-detail-accent" style="background:' + c.color + '"></div>' +
-        '<div class="week-detail-name">' + c.name + '</div>' +
+        '<div class="week-detail-name" id="weekDetailTitle">' + c.name + '</div>' +
         '<div class="week-detail-sub">' + DAY_NAMES[day] + '</div>' +
         '<div class="week-detail-divider"></div>' +
         '<div class="week-detail-row"><span class="week-detail-icon">\uD83D\uDD50</span><span class="week-detail-text">' + formatTime(c.start) + ' \u2013 ' + formatTime(c.end) + '</span></div>' +
@@ -457,7 +627,11 @@ function renderWeekView() {
         '<div class="week-detail-close">tap outside to close</div>';
       overlay.classList.add('show');
     });
+    pill.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pill.click(); }
+    });
   });
+  Core.a11y.roving(el, '.week-pill');
 }
 
 /* ── Milestones (Notion Bridge via SyncEngine.fetchMilestones) ── */
@@ -545,11 +719,13 @@ function renderCourseList() {
         '<div class="course-item-info"><div class="course-item-name">' + c.name + '</div>' +
         '<div class="course-item-meta">' + formatTime(c.start) + ' \u2013 ' + formatTime(c.end) + ' \u00B7 ' + c.room + '</div></div>';
       var delBtn = document.createElement('button'); delBtn.className = 'course-delete-btn'; delBtn.textContent = '\u2715';
+      delBtn.setAttribute('aria-label', 'Delete ' + c.name);
       delBtn.addEventListener('click', function(e) { e.stopPropagation(); confirmDeleteCourse(c); });
       item.appendChild(delBtn);
       el.appendChild(item);
     });
   });
+  bindSettingsRoving();
 }
 
 /* ── Add Course Form ── */
@@ -678,6 +854,17 @@ document.getElementById('settingsOverlay').addEventListener('click', function(e)
   if (e.target === this) hideSettings();
 });
 document.getElementById('addCourseBtn').addEventListener('click', showAddForm);
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    if (document.getElementById('confirmOverlay').classList.contains('show')) { hideConfirmDelete(); return; }
+    if (document.getElementById('settingsOverlay').classList.contains('show')) { hideSettings(); return; }
+  }
+});
+
+function bindSettingsRoving() {
+  var courseList = document.getElementById('courseList');
+  if (courseList) Core.a11y.roving(courseList, '.course-delete-btn');
+}
 
 /* Layered Escape key handling */
 document.addEventListener('keydown', function(e) {
@@ -755,7 +942,26 @@ SyncEngine.init({
   initBackground('bg', { orbCount: 2, orbRadius: [60, 100], orbSpeed: 0.2, hueRange: [260, 30], mouseTracking: true });
   initTilt('.container', { maxDeg: 4 });
   playSummon('lower');
+  Core.tooltip.init();
+  Core.tooltip.attach(document.getElementById('settingsBtn'), 'Course settings');
+  function revealTimetable() {
+    var sk = document.getElementById('ttSkeleton');
+    var c = document.getElementById('ttContent');
+    if (!sk || !c) return;
+    c.classList.remove('loading');
+    sk.style.opacity = '0';
+    sk.style.transition = 'opacity 220ms ease';
+    setTimeout(function() { if (sk.parentNode) sk.remove(); }, 260);
+  }
+  revealTimetable();
 });
+if (SyncEngine && typeof SyncEngine.onReady === 'function') {
+  SyncEngine.onReady(function() {
+    var sk = document.getElementById('ttSkeleton');
+    var c = document.getElementById('ttContent');
+    if (sk && c) { c.classList.remove('loading'); sk.remove(); }
+  });
+}
 </script>
 </body>
 </html>
