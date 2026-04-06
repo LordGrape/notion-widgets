@@ -305,105 +305,76 @@ try {
   });
 } catch(e) {}
 
-/* ── 3D Drag Spin + Velocity Whoosh ── */
+/* ── 3D Drag Spin + harmonic chord pad ── */
 (function() {
   var card = document.querySelector('.container');
   var dragging = false, lastX, lastY, velX = 0, velY = 0;
   var rotX = 0, rotY = 0, spinId = null;
   var SENS = 0.4, FRICTION = 0.94, RETURN = 0.97;
 
-  /* ── Whoosh Sound Engine v2 (smooth wind) ── */
-  var whooshCtx = null, whooshSource = null, whooshFilter = null, whooshGain = null;
-  var whooshTone = null, whooshToneGain = null;
-  var whooshActive = false;
-  var WHOOSH_MAX_GAIN = 0.12;
-  var WHOOSH_TONE_MAX_GAIN = 0.04;
-  var WHOOSH_MIN_FREQ = 150;
-  var WHOOSH_MAX_FREQ = 900;
-  var WHOOSH_TONE_BASE = 180;
-  var WHOOSH_TONE_RANGE = 280;
-  var WHOOSH_SPEED_CAP = 35;
+  /* ── Spin Sound Engine v3 (harmonic chord pad) ── */
+  var spinCtx = null, spinActive = false;
+  var spinVoices = [];
+  var SPIN_SPEED_CAP = 35;
+  /* C major 7 spread voicing — warm, dreamy, unresolved */
+  var SPIN_CHORD = [
+    { freq: 130.81, type: 'triangle', maxGain: 0.06,  threshold: 0.0  },
+    { freq: 329.63, type: 'sine',     maxGain: 0.04,  threshold: 0.15 },
+    { freq: 392.00, type: 'sine',     maxGain: 0.035, threshold: 0.2  },
+    { freq: 493.88, type: 'sine',     maxGain: 0.025, threshold: 0.4  }
+  ];
 
-  function initWhoosh() {
-    if (whooshActive) return;
+  function initSpin() {
+    if (spinActive) return;
     try {
-      whooshCtx = typeof getAudioCtx === 'function' ? getAudioCtx() : new (window.AudioContext || window.webkitAudioContext)();
-      if (whooshCtx.state === 'suspended') whooshCtx.resume();
+      spinCtx = typeof getAudioCtx === 'function' ? getAudioCtx() : new (window.AudioContext || window.webkitAudioContext)();
+      if (spinCtx.state === 'suspended') spinCtx.resume();
 
-      /* Generate pink noise buffer (1/f rolloff — warm, natural) */
-      var bufLen = whooshCtx.sampleRate * 2;
-      var buf = whooshCtx.createBuffer(1, bufLen, whooshCtx.sampleRate);
-      var data = buf.getChannelData(0);
-      var b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
-      for (var i = 0; i < bufLen; i++) {
-        var white = Math.random() * 2 - 1;
-        b0 = 0.99886 * b0 + white * 0.0555179;
-        b1 = 0.99332 * b1 + white * 0.0750759;
-        b2 = 0.96900 * b2 + white * 0.1538520;
-        b3 = 0.86650 * b3 + white * 0.3104856;
-        b4 = 0.55000 * b4 + white * 0.5329522;
-        b5 = -0.7616 * b5 - white * 0.0168980;
-        data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
-        b6 = white * 0.115926;
-      }
+      spinVoices = SPIN_CHORD.map(function(v) {
+        var osc = spinCtx.createOscillator();
+        osc.type = v.type;
+        osc.frequency.value = v.freq;
 
-      whooshSource = whooshCtx.createBufferSource();
-      whooshSource.buffer = buf;
-      whooshSource.loop = true;
+        var lfo = spinCtx.createOscillator();
+        lfo.type = 'sine';
+        lfo.frequency.value = 3.5 + Math.random() * 1.5;
+        var lfoGain = spinCtx.createGain();
+        lfoGain.gain.value = v.freq * 0.003;
+        lfo.connect(lfoGain);
+        lfoGain.connect(osc.frequency);
+        lfo.start();
 
-      /* Lowpass filter — warm cutoff, gentle slope */
-      whooshFilter = whooshCtx.createBiquadFilter();
-      whooshFilter.type = 'lowpass';
-      whooshFilter.frequency.value = WHOOSH_MIN_FREQ;
-      whooshFilter.Q.value = 0.4;
+        var gain = spinCtx.createGain();
+        gain.gain.value = 0;
+        osc.connect(gain);
+        gain.connect(spinCtx.destination);
+        osc.start();
 
-      whooshGain = whooshCtx.createGain();
-      whooshGain.gain.value = 0;
+        return { osc: osc, gain: gain, lfo: lfo, maxGain: v.maxGain, threshold: v.threshold };
+      });
 
-      whooshSource.connect(whooshFilter);
-      whooshFilter.connect(whooshGain);
-      whooshGain.connect(whooshCtx.destination);
-      whooshSource.start();
-
-      /* Subtle sine undertone — adds "singing wind" resonance */
-      whooshTone = whooshCtx.createOscillator();
-      whooshTone.type = 'sine';
-      whooshTone.frequency.value = WHOOSH_TONE_BASE;
-      whooshToneGain = whooshCtx.createGain();
-      whooshToneGain.gain.value = 0;
-      whooshTone.connect(whooshToneGain);
-      whooshToneGain.connect(whooshCtx.destination);
-      whooshTone.start();
-
-      whooshActive = true;
-    } catch (e) { whooshActive = false; }
+      spinActive = true;
+    } catch (e) { spinActive = false; }
   }
 
-  function updateWhoosh(speed) {
-    if (!whooshActive || !whooshGain || !whooshFilter) return;
-    var t = whooshCtx.currentTime + 0.03;
-    var norm = Math.min(speed / WHOOSH_SPEED_CAP, 1);
-    /* Cubic curve: very quiet at low speeds, ramps late */
-    var gainVal = norm * norm * norm * WHOOSH_MAX_GAIN;
-    var freqVal = WHOOSH_MIN_FREQ + norm * norm * (WHOOSH_MAX_FREQ - WHOOSH_MIN_FREQ);
-    whooshGain.gain.linearRampToValueAtTime(gainVal, t);
-    whooshFilter.frequency.linearRampToValueAtTime(freqVal, t);
-    /* Sine undertone drifts up with speed */
-    if (whooshTone && whooshToneGain) {
-      var toneGain = norm * norm * norm * WHOOSH_TONE_MAX_GAIN;
-      var toneFreq = WHOOSH_TONE_BASE + norm * WHOOSH_TONE_RANGE;
-      whooshToneGain.gain.linearRampToValueAtTime(toneGain, t);
-      whooshTone.frequency.linearRampToValueAtTime(toneFreq, t);
-    }
+  function updateSpin(speed) {
+    if (!spinActive) return;
+    var t = spinCtx.currentTime + 0.08;
+    var norm = Math.min(speed / SPIN_SPEED_CAP, 1);
+
+    spinVoices.forEach(function(v) {
+      var voiceNorm = norm <= v.threshold ? 0 : (norm - v.threshold) / (1 - v.threshold);
+      var g = voiceNorm * voiceNorm * v.maxGain;
+      v.gain.gain.linearRampToValueAtTime(g, t);
+    });
   }
 
-  function silenceWhoosh() {
-    if (!whooshActive || !whooshGain) return;
-    var t = whooshCtx.currentTime + 0.12;
-    whooshGain.gain.linearRampToValueAtTime(0, t);
-    if (whooshFilter) whooshFilter.frequency.linearRampToValueAtTime(WHOOSH_MIN_FREQ, t);
-    if (whooshToneGain) whooshToneGain.gain.linearRampToValueAtTime(0, t);
-    if (whooshTone) whooshTone.frequency.linearRampToValueAtTime(WHOOSH_TONE_BASE, t);
+  function silenceSpin() {
+    if (!spinActive) return;
+    var t = spinCtx.currentTime + 0.2;
+    spinVoices.forEach(function(v) {
+      v.gain.gain.linearRampToValueAtTime(0, t);
+    });
   }
 
   function start(e) {
@@ -413,7 +384,7 @@ try {
     velX = velY = 0;
     if (spinId) cancelAnimationFrame(spinId);
     card.style.cursor = 'grabbing';
-    initWhoosh();
+    initSpin();
   }
   function move(e) {
     if (!dragging) return;
@@ -423,7 +394,7 @@ try {
     rotY += dx * SENS; rotX -= dy * SENS;
     card.style.transform = 'perspective(800px) rotateX(' + rotX + 'deg) rotateY(' + rotY + 'deg)';
     lastX = p.clientX; lastY = p.clientY;
-    updateWhoosh(Math.sqrt(velX * velX + velY * velY));
+    updateSpin(Math.sqrt(velX * velX + velY * velY));
   }
   function end() {
     if (!dragging) return;
@@ -436,13 +407,13 @@ try {
     rotY += velX * SENS; rotX -= velY * SENS;
     rotX *= RETURN; rotY *= RETURN;
     card.style.transform = 'perspective(800px) rotateX(' + rotX + 'deg) rotateY(' + rotY + 'deg)';
-    updateWhoosh(Math.sqrt(velX * velX + velY * velY));
+    updateSpin(Math.sqrt(velX * velX + velY * velY));
     if (Math.abs(velX) > 0.05 || Math.abs(velY) > 0.05 || Math.abs(rotX) > 0.3 || Math.abs(rotY) > 0.3) {
       spinId = requestAnimationFrame(coast);
     } else {
       rotX = rotY = 0;
       card.style.transform = '';
-      silenceWhoosh();
+      silenceSpin();
     }
   }
 

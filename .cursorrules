@@ -125,13 +125,13 @@
 
 # quotes.html v3 — copy button removed, widget is now fully passive (no interactive elements except 3D drag spin)
 
-# Quotes whoosh v2 (quotes.html)
-- 3D drag spin plays smooth wind sound via Web Audio (pink noise → lowpass filter → gain + sine undertone)
-- Pink noise generated with Voss-McCartney algorithm (1/f rolloff, warm natural texture)
-- Lowpass filter (not bandpass): 150–900 Hz range, Q 0.4 — stays in warm zone, never harsh
-- Sine oscillator adds subtle tonal "singing wind" quality, drifts 180–460 Hz with velocity
-- Cubic gain curve: very quiet at low speeds, only becomes audible on deliberate flings
-- Max gain 0.12 (noise) + 0.04 (tone) — ambient, not attention-grabbing
+# Quotes spin sound v3 (quotes.html)
+- 3D drag spin plays a velocity-reactive Cmaj7 chord pad (C3, E4, G4, B4) via Web Audio oscillators
+- Each voice has a velocity threshold: root enters first, upper voices layer in at higher speeds
+- Subtle per-voice vibrato (3.5–5 Hz LFO, ±0.3% pitch) adds organic shimmer
+- No noise source — pure tones only, can never sound harsh
+- Quadratic gain curves, 80ms ramp (updateSpin), 200ms decay (silenceSpin)
+- initSpin() lazy-inits on first drag via getAudioCtx()
 
 # Timer persistence (clock.html)
 - Timer state (running/paused) is persisted to SyncEngine `clock.timer_state` so it survives Notion iframe reload
