@@ -305,12 +305,67 @@ try {
   });
 } catch(e) {}
 
-/* ── 3D Drag Spin ── */
+/* ── 3D Drag Spin + Velocity Whoosh ── */
 (function() {
   var card = document.querySelector('.container');
   var dragging = false, lastX, lastY, velX = 0, velY = 0;
   var rotX = 0, rotY = 0, spinId = null;
   var SENS = 0.4, FRICTION = 0.94, RETURN = 0.97;
+
+  /* ── Whoosh Sound Engine ── */
+  var whooshCtx = null, whooshSource = null, whooshFilter = null, whooshGain = null, whooshActive = false;
+  var WHOOSH_MAX_GAIN = 0.3;
+  var WHOOSH_MIN_FREQ = 300;
+  var WHOOSH_MAX_FREQ = 2000;
+  var WHOOSH_SPEED_CAP = 35;
+
+  function initWhoosh() {
+    if (whooshActive) return;
+    try {
+      whooshCtx = typeof getAudioCtx === 'function' ? getAudioCtx() : new (window.AudioContext || window.webkitAudioContext)();
+      if (whooshCtx.state === 'suspended') whooshCtx.resume();
+
+      var bufLen = whooshCtx.sampleRate * 2;
+      var buf = whooshCtx.createBuffer(1, bufLen, whooshCtx.sampleRate);
+      var data = buf.getChannelData(0);
+      for (var i = 0; i < bufLen; i++) data[i] = Math.random() * 2 - 1;
+
+      whooshSource = whooshCtx.createBufferSource();
+      whooshSource.buffer = buf;
+      whooshSource.loop = true;
+
+      whooshFilter = whooshCtx.createBiquadFilter();
+      whooshFilter.type = 'bandpass';
+      whooshFilter.frequency.value = WHOOSH_MIN_FREQ;
+      whooshFilter.Q.value = 0.8;
+
+      whooshGain = whooshCtx.createGain();
+      whooshGain.gain.value = 0;
+
+      whooshSource.connect(whooshFilter);
+      whooshFilter.connect(whooshGain);
+      whooshGain.connect(whooshCtx.destination);
+      whooshSource.start();
+      whooshActive = true;
+    } catch (e) { whooshActive = false; }
+  }
+
+  function updateWhoosh(speed) {
+    if (!whooshActive || !whooshGain || !whooshFilter) return;
+    var t = whooshCtx.currentTime + 0.02;
+    var norm = Math.min(speed / WHOOSH_SPEED_CAP, 1);
+    var gainVal = norm * norm * WHOOSH_MAX_GAIN;
+    var freqVal = WHOOSH_MIN_FREQ + norm * (WHOOSH_MAX_FREQ - WHOOSH_MIN_FREQ);
+    whooshGain.gain.linearRampToValueAtTime(gainVal, t);
+    whooshFilter.frequency.linearRampToValueAtTime(freqVal, t);
+  }
+
+  function silenceWhoosh() {
+    if (!whooshActive || !whooshGain || !whooshFilter) return;
+    var t = whooshCtx.currentTime + 0.08;
+    whooshGain.gain.linearRampToValueAtTime(0, t);
+    whooshFilter.frequency.linearRampToValueAtTime(WHOOSH_MIN_FREQ, t);
+  }
 
   function start(e) {
     dragging = true;
@@ -319,6 +374,7 @@ try {
     velX = velY = 0;
     if (spinId) cancelAnimationFrame(spinId);
     card.style.cursor = 'grabbing';
+    initWhoosh();
   }
   function move(e) {
     if (!dragging) return;
@@ -328,6 +384,7 @@ try {
     rotY += dx * SENS; rotX -= dy * SENS;
     card.style.transform = 'perspective(800px) rotateX(' + rotX + 'deg) rotateY(' + rotY + 'deg)';
     lastX = p.clientX; lastY = p.clientY;
+    updateWhoosh(Math.sqrt(velX * velX + velY * velY));
   }
   function end() {
     if (!dragging) return;
@@ -340,11 +397,13 @@ try {
     rotY += velX * SENS; rotX -= velY * SENS;
     rotX *= RETURN; rotY *= RETURN;
     card.style.transform = 'perspective(800px) rotateX(' + rotX + 'deg) rotateY(' + rotY + 'deg)';
+    updateWhoosh(Math.sqrt(velX * velX + velY * velY));
     if (Math.abs(velX) > 0.05 || Math.abs(velY) > 0.05 || Math.abs(rotX) > 0.3 || Math.abs(rotY) > 0.3) {
       spinId = requestAnimationFrame(coast);
     } else {
       rotX = rotY = 0;
       card.style.transform = '';
+      silenceWhoosh();
     }
   }
 
