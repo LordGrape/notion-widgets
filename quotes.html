@@ -326,11 +326,13 @@ document.getElementById('copyBtn').addEventListener('click', function(e) {
 
 /* ── Init ── */
 loadQuotes();
-initBackground('bg', {
-  orbCount: 2, orbRadius: [60, 100], orbSpeed: 0.15,
-  hueRange: [250, 40], mouseTracking: true
-});
-playSummon('top');
+try {
+  initBackground('bg', {
+    orbCount: 2, orbRadius: [60, 100], orbSpeed: 0.15,
+    hueRange: [250, 40], mouseTracking: true
+  });
+} catch(e) {}
+try { playSummon('top'); } catch(e) {}
 </script>
 </body>
 </html>
