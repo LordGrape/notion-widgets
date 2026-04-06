@@ -727,9 +727,22 @@ function formatPresenceTime(secs) {
    ══════════════════════════════════════ */
 function addDragonXP(amount) {
   let xp = SyncEngine.get('dragon', 'xp') || 0;
-  xp += Math.floor(amount);
-  SyncEngine.set('dragon', 'xp', xp);
-  return xp;
+  let newXP = xp + Math.floor(amount);
+  /* Monotonic: XP can never decrease */
+  if (newXP <= xp) return xp;
+  /* Daily cap: ~1200 XP/day prevents runaway accumulation */
+  let today = new Date().toISOString().split('T')[0];
+  let capDate = SyncEngine.get('dragon', '_xpCapDate') || '';
+  let capUsed = SyncEngine.get('dragon', '_xpCapUsed') || 0;
+  if (capDate !== today) { capDate = today; capUsed = 0; }
+  let DAILY_CAP = 1200;
+  let allowed = Math.min(Math.floor(amount), DAILY_CAP - capUsed);
+  if (allowed <= 0) return xp;
+  newXP = xp + allowed;
+  SyncEngine.set('dragon', 'xp', newXP);
+  SyncEngine.set('dragon', '_xpCapDate', capDate);
+  SyncEngine.set('dragon', '_xpCapUsed', capUsed + allowed);
+  return newXP;
 }
 
 function getDragonXP() {
@@ -1478,7 +1491,12 @@ let SyncEngine = (function() {
     .then(function(r) { if (!r.ok) throw new Error(r.status); });
   }
 
-  /* ── Merge: newer timestamp wins on conflict ── */
+  /* Keys where highest-value-wins, not newest-timestamp-wins */
+  let MONOTONIC_KEYS = { xp: true, streak: true };
+  /* Keys where values are JSON arrays merged via set union */
+  let UNION_KEYS = { achievements: true };
+
+  /* ── Merge: strategy-aware conflict resolution ── */
   function merge(local, remote) {
     let merged = {};
     local = _normalizeNamespaceObject(local || {});
@@ -1486,7 +1504,34 @@ let SyncEngine = (function() {
     for (let k in local) if (local.hasOwnProperty(k)) merged[k] = local[k];
     for (let k in remote) {
       if (!remote.hasOwnProperty(k)) continue;
-      if (!merged.hasOwnProperty(k) || _entryTs(remote[k]) >= _entryTs(merged[k])) merged[k] = remote[k];
+
+      /* Strategy 1: Monotonic — always keep the higher numeric value */
+      if (MONOTONIC_KEYS[k]) {
+        let localVal = _entryValue(merged[k]) || 0;
+        let remoteVal = _entryValue(remote[k]) || 0;
+        let maxVal = Math.max(Number(localVal) || 0, Number(remoteVal) || 0);
+        merged[k] = { value: maxVal, _ts: Math.max(_entryTs(merged[k] || {}), _entryTs(remote[k])) };
+        continue;
+      }
+
+      /* Strategy 2: Union — merge arrays without duplicates */
+      if (UNION_KEYS[k]) {
+        let localArr = [];
+        let remoteArr = [];
+        try { localArr = JSON.parse(_entryValue(merged[k]) || '[]'); } catch(e) {}
+        try { remoteArr = JSON.parse(_entryValue(remote[k]) || '[]'); } catch(e) {}
+        if (!Array.isArray(localArr)) localArr = [];
+        if (!Array.isArray(remoteArr)) remoteArr = [];
+        let unionSet = {};
+        localArr.concat(remoteArr).forEach(function(v) { unionSet[v] = true; });
+        merged[k] = { value: JSON.stringify(Object.keys(unionSet)), _ts: Math.max(_entryTs(merged[k] || {}), _entryTs(remote[k])) };
+        continue;
+      }
+
+      /* Strategy 3 (default): Newest timestamp wins */
+      if (!merged.hasOwnProperty(k) || _entryTs(remote[k]) >= _entryTs(merged[k])) {
+        merged[k] = remote[k];
+      }
     }
     return merged;
   }

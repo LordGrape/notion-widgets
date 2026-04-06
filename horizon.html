@@ -424,6 +424,7 @@ body {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
 </style>
+<script async src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 </head>
 <body>
 
@@ -807,7 +808,14 @@ SyncEngine.init({
 function addXP(amt) {
   var gained = Math.floor(amt * xpMult(DS));
   if (gained <= 0) return 0;
-  DS.xp += gained;
+  /* Monotonic: never decrease XP */
+  var prevXP = DS.xp;
+  DS.xp = Math.max(DS.xp, DS.xp + gained);
+  /* Also update via core.js for cross-widget sync + daily cap */
+  if (typeof addDragonXP === 'function') {
+    var coreXP = addDragonXP(gained);
+    DS.xp = Math.max(DS.xp, coreXP);
+  }
   saveDS(DS);
   /* Check evolution */
   var ns = getStage(DS.xp);
@@ -835,6 +843,275 @@ dcv.style.width = DSZ + 'px'; dcv.style.height = DSZ + 'px';
 dctx.scale(DPR, DPR);
 var DC = DSZ / 2;
 
+/* ══════════════════════════════════════
+   THREE.JS EGG SCENE
+   ══════════════════════════════════════ */
+
+var EggScene = (function() {
+  var ready = false;
+  var scene, camera, renderer, egg, glowMesh, crackLines;
+  var particles, particlePositions;
+  var ambientLight, dirLight, pointLight;
+  var clock, mouseNDC = { x: 0, y: 0 };
+  var shadowPlane;
+  var CRACK_STAGES = [0.25, 0.5, 0.75];
+  var crackGroups = [];
+  var nestGroup = null;
+
+  function init(canvas) {
+    if (typeof THREE === 'undefined') return false;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        canvas: canvas, antialias: true, alpha: true, powerPreference: 'low-power'
+      });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(DSZ, DSZ);
+      renderer.setClearColor(0x000000, 0);
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+      scene = new THREE.Scene();
+      var frustum = 3.2;
+      camera = new THREE.OrthographicCamera(-frustum, frustum, frustum, -frustum, 0.1, 100);
+      camera.position.set(0, 0.3, 5);
+      camera.lookAt(0, 0, 0);
+      clock = new THREE.Clock();
+
+      var eggGeo = new THREE.IcosahedronGeometry(1, 4);
+      var posAttr = eggGeo.attributes.position;
+      for (var i = 0; i < posAttr.count; i++) {
+        var x = posAttr.getX(i), y = posAttr.getY(i), z = posAttr.getZ(i);
+        var widthScale = 0.72 + 0.12 * Math.cos(y * Math.PI * 0.8);
+        var noise = 1 + (Math.sin(x * 5.1 + y * 3.7) * Math.cos(z * 4.3 + y * 2.1)) * 0.015;
+        posAttr.setXYZ(i, x * widthScale * noise, y * 1.25 * noise, z * widthScale * noise);
+      }
+      eggGeo.computeVertexNormals();
+
+      var isDk = Core.isDark;
+      var eggMat = new THREE.MeshStandardMaterial({
+        color: isDk ? 0xa78bfa : 0x8b5cf6, roughness: 0.25, metalness: 0.15,
+        emissive: isDk ? 0x7c3aed : 0x6d28d9, emissiveIntensity: 0.08,
+        transparent: true, opacity: 0.95
+      });
+      egg = new THREE.Mesh(eggGeo, eggMat);
+      scene.add(egg);
+
+      var glowGeo = new THREE.IcosahedronGeometry(1.08, 3);
+      var gposAttr = glowGeo.attributes.position;
+      for (var gi = 0; gi < gposAttr.count; gi++) {
+        var gx = gposAttr.getX(gi), gy = gposAttr.getY(gi), gz = gposAttr.getZ(gi);
+        var gw = 0.75 + 0.12 * Math.cos(gy * Math.PI * 0.8);
+        gposAttr.setXYZ(gi, gx * gw, gy * 1.28, gz * gw);
+      }
+      glowGeo.computeVertexNormals();
+      var glowMat = new THREE.MeshBasicMaterial({
+        color: isDk ? 0xa78bfa : 0x8b5cf6, transparent: true, opacity: 0.06, side: THREE.BackSide
+      });
+      glowMesh = new THREE.Mesh(glowGeo, glowMat);
+      scene.add(glowMesh);
+
+      var shadowGeo = new THREE.PlaneGeometry(3, 1.2);
+      var shadowMat = new THREE.MeshBasicMaterial({
+        color: 0x000000, transparent: true, opacity: isDk ? 0.15 : 0.06, depthWrite: false
+      });
+      shadowPlane = new THREE.Mesh(shadowGeo, shadowMat);
+      shadowPlane.rotation.x = -Math.PI / 2;
+      shadowPlane.position.y = -1.65;
+      scene.add(shadowPlane);
+
+      ambientLight = new THREE.AmbientLight(isDk ? 0x332255 : 0x887799, 0.6);
+      scene.add(ambientLight);
+      dirLight = new THREE.DirectionalLight(isDk ? 0xc4b5fd : 0xa78bfa, 0.8);
+      dirLight.position.set(-2, 3, 4);
+      scene.add(dirLight);
+      pointLight = new THREE.PointLight(isDk ? 0xa78bfa : 0x8b5cf6, 0.5, 10);
+      pointLight.position.set(0, 1, 3);
+      scene.add(pointLight);
+
+      var pCount = 14;
+      var pGeo = new THREE.BufferGeometry();
+      particlePositions = new Float32Array(pCount * 3);
+      var pSizes = new Float32Array(pCount);
+      for (var pi = 0; pi < pCount; pi++) {
+        particlePositions[pi * 3] = (Math.random() - 0.5) * 4;
+        particlePositions[pi * 3 + 1] = (Math.random() - 0.5) * 3;
+        particlePositions[pi * 3 + 2] = (Math.random() - 0.5) * 4;
+        pSizes[pi] = 0.03 + Math.random() * 0.06;
+      }
+      pGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+      pGeo.setAttribute('size', new THREE.BufferAttribute(pSizes, 1));
+      var pMat = new THREE.PointsMaterial({
+        color: isDk ? 0xc4b5fd : 0xa78bfa, size: 0.08,
+        transparent: true, opacity: 0.6, sizeAttenuation: true, depthWrite: false
+      });
+      particles = new THREE.Points(pGeo, pMat);
+      scene.add(particles);
+
+      var crackPaths = [
+        [[-0.15, 0.7, 0.65], [-0.08, 0.35, 0.7], [-0.22, 0.05, 0.68]],
+        [[0.2, 0.55, 0.64], [0.12, 0.2, 0.72], [0.28, -0.05, 0.66]],
+        [[-0.06, -0.15, 0.7], [0.08, -0.4, 0.68], [-0.04, -0.65, 0.6]]
+      ];
+      crackPaths.forEach(function(path) {
+        var pts = path.map(function(p) { return new THREE.Vector3(p[0], p[1], p[2]); });
+        var lineGeo = new THREE.BufferGeometry().setFromPoints(pts);
+        var lineMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, linewidth: 2 });
+        var line = new THREE.Line(lineGeo, lineMat);
+        crackGroups.push(line);
+        scene.add(line);
+        var glowLineMat = new THREE.LineBasicMaterial({
+          color: isDk ? 0xa78bfa : 0x8b5cf6, transparent: true, opacity: 0, linewidth: 4
+        });
+        var glowLine = new THREE.Line(lineGeo.clone(), glowLineMat);
+        crackGroups.push(glowLine);
+        scene.add(glowLine);
+      });
+
+      Core.on('theme-change', function(data) {
+        var dk = data.isDark;
+        eggMat.color.set(dk ? 0xa78bfa : 0x8b5cf6);
+        eggMat.emissive.set(dk ? 0x7c3aed : 0x6d28d9);
+        glowMat.color.set(dk ? 0xa78bfa : 0x8b5cf6);
+        ambientLight.color.set(dk ? 0x332255 : 0x887799);
+        dirLight.color.set(dk ? 0xc4b5fd : 0xa78bfa);
+        pointLight.color.set(dk ? 0xa78bfa : 0x8b5cf6);
+        shadowMat.opacity = dk ? 0.15 : 0.06;
+        pMat.color.set(dk ? 0xc4b5fd : 0xa78bfa);
+      });
+
+      ready = true;
+      return true;
+    } catch(e) {
+      console.warn('[EggScene] WebGL init failed, falling back to Canvas 2D', e);
+      return false;
+    }
+  }
+
+  var pOrbitData = [];
+  for (var _oi = 0; _oi < 14; _oi++) {
+    pOrbitData.push({
+      angle: Math.random() * Math.PI * 2,
+      radius: 1.4 + Math.random() * 1.2,
+      speed: 0.15 + Math.random() * 0.25,
+      yOffset: (Math.random() - 0.5) * 2,
+      ySpeed: 0.1 + Math.random() * 0.15,
+      phase: Math.random() * Math.PI * 2
+    });
+  }
+
+  function render(t, ds) {
+    if (!ready) return false;
+    var dt = clock.getDelta();
+    var elapsed = clock.getElapsedTime();
+    var avgBar = (ds.rations + ds.morale + ds.readiness) / 3;
+    var mood = Math.max(0.15, avgBar / 100);
+    var progress = Math.min(ds.xp / 1000, 1);
+    var isSleeping = curAct && curAct.id === 'sleep';
+
+    var breathSpeed = isSleeping ? 0.5 : 1.0;
+    var breathScale = 1 + Math.sin(elapsed * breathSpeed) * 0.03 * mood;
+    var heartbeat = Math.pow(Math.sin(elapsed * (isSleeping ? 1.2 : 2.5)), 2) * 0.015;
+    var totalScale = breathScale + heartbeat;
+    egg.scale.set(totalScale, totalScale * 1.05, totalScale);
+    glowMesh.scale.copy(egg.scale);
+
+    var floatY = Math.sin(elapsed * 0.6) * 0.15 * mood;
+    var floatX = Math.sin(elapsed * 0.42) * 0.06 * mood;
+    egg.position.set(floatX, floatY, 0);
+    glowMesh.position.copy(egg.position);
+
+    var wobbleAmp = (curAct && curAct.id === 'rock') ? 0.12 : 0.025;
+    var wobble = Math.sin(elapsed * 0.75) * wobbleAmp * mood;
+    var kick = Math.sin(elapsed * 0.11) > 0.92 ? Math.sin(elapsed * 8) * 0.08 : 0;
+    egg.rotation.set(0, elapsed * 0.05, wobble + kick);
+    glowMesh.rotation.copy(egg.rotation);
+
+    var leanX = mouseNDC.y * 0.15;
+    var leanZ = -mouseNDC.x * 0.15;
+    egg.rotation.x += leanX;
+    egg.rotation.z += leanZ;
+    glowMesh.rotation.copy(egg.rotation);
+
+    pointLight.position.set(mouseNDC.x * 3, 1 + mouseNDC.y * 1.5, 3);
+    var prox = Math.max(0, 1 - Math.sqrt(mouseNDC.x * mouseNDC.x + mouseNDC.y * mouseNDC.y));
+    pointLight.intensity = 0.3 + prox * 0.5;
+
+    var emI = 0.06 + heartbeat * 2 + prox * 0.08;
+    egg.material.emissiveIntensity = emI * mood;
+    glowMesh.material.opacity = 0.04 + heartbeat * 0.5 + prox * 0.04;
+
+    var shScale = 1 - Math.abs(floatY) * 2;
+    shadowPlane.scale.set(shScale, 1, shScale);
+    shadowPlane.material.opacity = (Core.isDark ? 0.15 : 0.06) * shScale;
+
+    for (var pi = 0; pi < pOrbitData.length; pi++) {
+      var po = pOrbitData[pi];
+      po.angle += po.speed * dt * (1 + prox * 0.8);
+      var pr = po.radius + Math.sin(elapsed * 0.3 + po.phase) * 0.3;
+      particlePositions[pi * 3] = Math.cos(po.angle) * pr * 0.7;
+      particlePositions[pi * 3 + 1] = po.yOffset + Math.sin(elapsed * po.ySpeed + po.phase) * 0.6 + floatY;
+      particlePositions[pi * 3 + 2] = Math.sin(po.angle) * pr * 0.5;
+    }
+    particles.geometry.attributes.position.needsUpdate = true;
+    particles.material.opacity = (0.3 + 0.3 * Math.sin(elapsed * 0.8)) * mood;
+
+    for (var ci = 0; ci < 3; ci++) {
+      var threshold = CRACK_STAGES[ci];
+      var crackLine = crackGroups[ci * 2];
+      var crackGlow = crackGroups[ci * 2 + 1];
+      if (progress >= threshold) {
+        crackLine.material.opacity = 0.5 + 0.2 * Math.sin(elapsed * 2 + ci);
+        var nextThresh = ci < 2 ? CRACK_STAGES[ci + 1] : 1.0;
+        var glowProgress = Math.min(1, (progress - threshold) / (nextThresh - threshold));
+        crackGlow.material.opacity = 0.05 + glowProgress * 0.15 + 0.05 * Math.sin(elapsed * 3 + ci);
+      } else {
+        crackLine.material.opacity = 0;
+        crackGlow.material.opacity = 0;
+      }
+      crackLine.rotation.copy(egg.rotation);
+      crackLine.position.copy(egg.position);
+      crackGlow.rotation.copy(egg.rotation);
+      crackGlow.position.copy(egg.position);
+    }
+
+    if (progress >= 0.9) {
+      var hatchIntensity = (progress - 0.9) / 0.1;
+      egg.material.emissiveIntensity += hatchIntensity * 0.2;
+      glowMesh.material.opacity += hatchIntensity * 0.08;
+      egg.rotation.z += Math.sin(elapsed * 6) * 0.06 * hatchIntensity;
+      glowMesh.rotation.copy(egg.rotation);
+    }
+
+    renderer.render(scene, camera);
+    return true;
+  }
+
+  function updateMouse(nx, ny) { mouseNDC.x = nx; mouseNDC.y = ny; }
+  function isReady() { return ready; }
+  function dispose() { if (renderer) renderer.dispose(); ready = false; }
+
+  return { init: init, render: render, updateMouse: updateMouse, isReady: isReady, dispose: dispose };
+})();
+
+var useThreeEgg = false;
+(function waitForThree() {
+  if (typeof THREE !== 'undefined') {
+    useThreeEgg = EggScene.init(dcv);
+    if (useThreeEgg) console.log('[Horizon] Three.js egg active');
+    else console.log('[Horizon] Three.js failed, using Canvas 2D egg');
+  } else {
+    var attempts = 0;
+    var poll = setInterval(function() {
+      attempts++;
+      if (typeof THREE !== 'undefined') {
+        clearInterval(poll);
+        useThreeEgg = EggScene.init(dcv);
+        if (useThreeEgg) console.log('[Horizon] Three.js egg active (delayed)');
+      }
+      if (attempts > 50) clearInterval(poll);
+    }, 100);
+  }
+})();
+
 /* ── Egg particle aura ── */
 var eggParts = [];
 for (var _ep = 0; _ep < 14; _ep++) {
@@ -854,8 +1131,16 @@ dcv.addEventListener('mousemove', function(e) {
   var rect = dcv.getBoundingClientRect();
   eggMX = (e.clientX - rect.left) * (DSZ / rect.width);
   eggMY = (e.clientY - rect.top) * (DSZ / rect.height);
+  if (useThreeEgg) {
+    var nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    var ny = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    EggScene.updateMouse(nx, ny);
+  }
 });
-dcv.addEventListener('mouseleave', function() { eggMX = DC; eggMY = DC; });
+dcv.addEventListener('mouseleave', function() {
+  eggMX = DC; eggMY = DC;
+  if (useThreeEgg) EggScene.updateMouse(0, 0);
+});
 
 /* Blink state */
 var blinkTimer = 0, blinkNext = 3000 + Math.random() * 5000, isBlinking = false;
@@ -1923,14 +2208,16 @@ setTimeout(function() {
 }, 0);
 
 function drawDragon(t) {
-  dctx.clearRect(0, 0, DSZ, DSZ);
+  var s = getStage(DS.xp);
+  if (!(s === 0 && useThreeEgg)) {
+    dctx.clearRect(0, 0, DSZ, DSZ);
+  }
   drawAmbientBG(dctx, t);
   drawWeatherFX(dctx, t);
   checkActivity(t);
   if (curAct && (curAct.id === 'sleep' || curAct.id === 'dream' || curAct.id === 'astral')) {
     isBlinking = true; blinkTimer = 0;
   }
-  var s = getStage(DS.xp);
   if (s === 0) drawEgg(dctx, t);
   else if (s === 1) drawHatchling(dctx, t);
   else if (s === 2) drawFledgling(dctx, t);
@@ -2886,7 +3173,13 @@ function drawSummonAnim(t) {
     dragonA = 1 - Math.pow(1 - dragonA, 2);
     dctx.globalAlpha = dragonA;
     var stage = getStage(DS.xp);
-    if (stage === 0) drawEgg(dctx, t);
+    if (stage === 0) {
+      if (useThreeEgg) {
+        EggScene.render(t, DS);
+      } else {
+        drawEgg(dctx, t);
+      }
+    }
     else if (stage === 1) drawHatchling(dctx, t);
     else if (stage === 2) drawFledgling(dctx, t);
     else if (stage === 3) drawJuvenile(dctx, t);
