@@ -648,7 +648,7 @@ function wmoEmoji(code) {
 }
 function fetchWeather() {
   if (!WLAT || !WLON) { weatherEl.innerHTML = ''; return; }
-  fetch('https://api.open-meteo.com/v1/forecast?latitude=' + WLAT + '&longitude=' + WLON + '&current=temperature_2m,weather_code&timezone=' + encodeURIComponent(WTZ) + '&models=gem_seamless')
+  fetch('https://api.open-meteo.com/v1/forecast?latitude=' + WLAT + '&longitude=' + WLON + '&current=temperature_2m,weather_code&timezone=' + encodeURIComponent(WTZ))
     .then(function(r) { return r.json(); })
     .then(function(d) {
       var temp = Math.round(d.current.temperature_2m);
@@ -679,7 +679,7 @@ function openForecast() {
   fetch('https://api.open-meteo.com/v1/forecast?latitude=' + WLAT + '&longitude=' + WLON +
     '&hourly=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min' +
     '&current=temperature_2m,weather_code&timezone=' + encodeURIComponent(WTZ) +
-    '&forecast_days=2&models=gem_seamless')
+    '&forecast_days=2')
     .then(function(r) { return r.json(); })
     .then(function(d) { renderForecast(d); })
     .catch(function() {
