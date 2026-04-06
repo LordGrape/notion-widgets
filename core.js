@@ -555,6 +555,66 @@ function formatFocusTime(secs) {
 
 
 /* ══════════════════════════════════════
+   PRESENCE TRACKER — Passive time-on-Notion
+   ══════════════════════════════════════
+   Runs in every widget (all load core.js).
+   Session: active tab time since this widget loaded.
+   Daily: accumulated across all widgets & sessions.
+   Leader-claim pattern: only one widget ticks the
+   daily counter (30s intervals). If it closes,
+   another widget picks up within ~30s.
+   No XP reward — purely informational.
+   ══════════════════════════════════════ */
+var _presenceAccum = 0;
+var _presenceLastActive = Date.now();
+var _presenceTabVisible = !document.hidden;
+
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden) {
+    _presenceAccum += (Date.now() - _presenceLastActive);
+    _presenceTabVisible = false;
+  } else {
+    _presenceLastActive = Date.now();
+    _presenceTabVisible = true;
+  }
+});
+
+function getSessionPresence() {
+  if (!_presenceTabVisible) return Math.floor(_presenceAccum / 1000);
+  return Math.floor((_presenceAccum + (Date.now() - _presenceLastActive)) / 1000);
+}
+
+function _presenceDateKey() {
+  var d = new Date();
+  return 'presence_' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function _tickPresence() {
+  if (document.hidden) return;
+  var now = Date.now();
+  var lastTick = SyncEngine.get('clock', 'presence_last_tick') || 0;
+  if (now - lastTick < 25000) return;
+  SyncEngine.set('clock', 'presence_last_tick', now);
+  var key = _presenceDateKey();
+  var total = (SyncEngine.get('clock', key) || 0) + 30;
+  SyncEngine.set('clock', key, total);
+}
+
+setInterval(_tickPresence, 30000);
+setTimeout(_tickPresence, 2000);
+
+function getTodayPresence() {
+  return SyncEngine.get('clock', _presenceDateKey()) || 0;
+}
+
+function formatPresenceTime(secs) {
+  if (secs < 60) return '<1m';
+  var h = Math.floor(secs / 3600), m = Math.floor((secs % 3600) / 60);
+  return h > 0 ? h + 'h ' + m + 'm' : m + 'm';
+}
+
+
+/* ══════════════════════════════════════
    DRAGON XP (cross-widget shared state)
    ══════════════════════════════════════ */
 function addDragonXP(amount) {
