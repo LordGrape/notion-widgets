@@ -552,6 +552,18 @@ function fetchWeather() {
 fetchWeather();
 setInterval(fetchWeather, 900000);
 
+/* Weather click → open full forecast */
+weatherEl.style.cursor = 'pointer';
+weatherEl.setAttribute('role', 'link');
+weatherEl.addEventListener('click', function() {
+  if (!WLAT || !WLON) return;
+  window.open(
+    'https://open-meteo.com/en/docs/forecast-api#latitude=' + WLAT + '&longitude=' + WLON +
+    '&hourly=temperature_2m,weather_code&timezone=' + encodeURIComponent(WTZ),
+    '_blank'
+  );
+});
+
 /* ══════════════════════════════════════
    PRESENCE TRACKING (self-contained)
    Session: survives soft reloads via sessionStorage.
@@ -1032,8 +1044,7 @@ initTilt('.container', { maxDeg: 2 });
 playSummon('upper');
 Core.tooltip.init();
 Core.tooltip.attach(document.getElementById('sBtn'), 'Settings');
-Core.tooltip.attach(document.getElementById('weather'), 'Click for forecast');
-modeBtns.forEach(function(btn) { Core.tooltip.attach(btn, btn.textContent); });
+Core.tooltip.attach(document.getElementById('weather'), function() { return 'Click for forecast'; });
 
 function revealClockContent() {
   var sk = document.getElementById('clockSkeleton');
