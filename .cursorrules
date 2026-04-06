@@ -124,3 +124,9 @@
 - JetBrains Mono: Monospace numbers — clocks, timers, counters, XP
 
 # quotes.html v3 — copy button removed, widget is now fully passive (no interactive elements except 3D drag spin)
+
+# Timer persistence (clock.html)
+- Timer state (running/paused) is persisted to SyncEngine `clock.timer_state` so it survives Notion iframe reload
+- saveTimerState() writes on start/pause/visibilitychange/beforeunload; restoreTimerState() resumes on load
+- SyncEngine.remove('clock', 'timer_state') on reset and completion
+- Timer presets: 25m, 50m, 90m + Custom input (evidence-based learning blocks)

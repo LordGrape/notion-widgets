@@ -133,7 +133,9 @@ body {
 .day-fill::after { content: ''; position: absolute; right: -2px; top: 50%; transform: translateY(-50%); width: 4px; height: 4px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.6); }
 .date { font-size: 11.5px; font-weight: 300; color: var(--date-color); margin-top: 10px; letter-spacing: 1.5px; opacity: 0; animation: fadeIn 1s ease-out 0.65s forwards; }
 .clock-countdown { font-size: 10px; font-weight: 300; color: var(--meta-color); margin-top: 6px; letter-spacing: 1px; opacity: 0; animation: fadeIn 1s ease-out 0.7s forwards; }
-.weather { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 8px; opacity: 0; animation: fadeIn 1s ease-out 0.75s forwards; }
+.weather { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 8px; opacity: 0; animation: fadeIn 1s ease-out 0.75s forwards; padding: 5px 14px; border-radius: 12px; transition: background 0.25s ease, transform 0.25s ease; }
+.weather:hover { background: var(--dot-bg); transform: translateY(-1px); }
+.weather:active { transform: scale(0.98); }
 .weather-icon { font-size: 16px; filter: drop-shadow(0 0 6px rgba(138, 92, 246, 0.35)); }
 .weather-temp { font-size: 11px; font-weight: 400; color: var(--date-color); letter-spacing: 0.5px; font-variant-numeric: tabular-nums; }
 .weather-cond { font-size: 9px; font-weight: 300; color: var(--meta-color); letter-spacing: 1px; text-transform: uppercase; }
@@ -748,6 +750,7 @@ setInterval(fetchWeather, WEATHER_CACHE_MS);
 weatherEl.style.cursor = 'pointer';
 weatherEl.addEventListener('click', function() {
   if (!WLAT || !WLON) return;
+  playClick();
   openForecast();
 });
 
@@ -1044,17 +1047,107 @@ document.getElementById('swReset').addEventListener('click', function() {
    TIMER
    ══════════════════════════════════════ */
 var PRESETS = [
-  { label: '15m', secs: 900 },
   { label: '25m', secs: 1500 },
-  { label: '45m', secs: 2700 },
-  { label: '60m', secs: 3600 },
+  { label: '50m', secs: 3000 },
   { label: '90m', secs: 5400 }
 ];
 var tmDuration = 1500, tmRemaining = 1500;
 var tmRunning = false, tmInterval = null, tmStartTime = 0, tmStartRemaining = 0;
-var selectedPreset = 1;
+var selectedPreset = 0;
+var tmCustomSecs = 0;
+
+/* ── Timer State Persistence (SyncEngine) ── */
+function saveTimerState() {
+  if (tmRunning) {
+    SyncEngine.set('clock', 'timer_state', JSON.stringify({
+      running: true,
+      startTime: tmStartTime,
+      startRemaining: tmStartRemaining,
+      duration: tmDuration,
+      preset: selectedPreset,
+      customSecs: tmCustomSecs
+    }));
+  } else if (tmRemaining < tmDuration && tmRemaining > 0) {
+    SyncEngine.set('clock', 'timer_state', JSON.stringify({
+      running: false,
+      remaining: tmRemaining,
+      duration: tmDuration,
+      preset: selectedPreset,
+      customSecs: tmCustomSecs
+    }));
+  } else {
+    SyncEngine.remove('clock', 'timer_state');
+  }
+}
+
+function restoreTimerState() {
+  try {
+    var raw = SyncEngine.get('clock', 'timer_state');
+    if (!raw) return false;
+    var st = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    if (!st || !st.duration) return false;
+    tmDuration = st.duration;
+    tmCustomSecs = st.customSecs || 0;
+    selectedPreset = st.preset != null ? st.preset : 0;
+    if (st.running) {
+      var elapsed = (Date.now() - st.startTime) / 1000;
+      tmRemaining = Math.max(0, st.startRemaining - elapsed);
+      if (tmRemaining <= 0) {
+        /* Timer completed while we were away */
+        SyncEngine.remove('clock', 'timer_state');
+        addFocusSeconds(st.duration); updateFocusStats();
+        tmRemaining = tmDuration;
+        updateTMDisplay();
+        /* Play completion feedback */
+        playChime(); launchConfetti('confetti');
+        document.getElementById('tmLabel').textContent = 'Complete!';
+        document.getElementById('tmLabel').className = 'session-label done';
+        document.getElementById('tmRing').classList.add('complete');
+        setTimeout(function() {
+          document.getElementById('tmLabel').textContent = 'Set duration';
+          document.getElementById('tmLabel').className = 'session-label';
+          document.getElementById('tmRing').classList.remove('complete');
+          tmRemaining = tmDuration; updateTMDisplay();
+          if (tmDuration >= 2700) showMicroBreak();
+        }, 3000);
+        return true;
+      }
+      /* Resume the running timer */
+      tmStartTime = st.startTime;
+      tmStartRemaining = st.startRemaining;
+      tmRunning = true;
+      tmInterval = setInterval(tickTimer, 100);
+      document.getElementById('tmToggle').textContent = 'Pause';
+      document.getElementById('tmLabel').textContent = 'Focusing';
+      document.getElementById('tmLabel').className = 'session-label running';
+      updateTMDisplay();
+      return true;
+    } else {
+      /* Paused state */
+      tmRemaining = st.remaining;
+      updateTMDisplay();
+      document.getElementById('tmToggle').textContent = 'Resume';
+      document.getElementById('tmLabel').textContent = 'Paused';
+      document.getElementById('tmLabel').className = 'session-label';
+      return true;
+    }
+  } catch (e) { return false; }
+}
+
+/* Save timer state on visibility change and before unload */
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden && tmRunning) saveTimerState();
+});
+window.addEventListener('beforeunload', function() {
+  if (tmRunning || (tmRemaining < tmDuration && tmRemaining > 0)) saveTimerState();
+});
 
 var presetsEl = document.getElementById('presets');
+
+function clearActivePresets() {
+  presetsEl.querySelectorAll('.preset-chip').forEach(function(c) { c.classList.remove('active'); });
+}
+
 PRESETS.forEach(function(p, i) {
   var chip = document.createElement('button');
   chip.className = 'preset-chip' + (i === selectedPreset ? ' active' : '');
@@ -1063,18 +1156,90 @@ PRESETS.forEach(function(p, i) {
     if (tmRunning) return; playPresetSelect();
     selectedPreset = parseInt(this.dataset.idx);
     tmDuration = PRESETS[selectedPreset].secs; tmRemaining = tmDuration;
+    tmCustomSecs = 0;
     updateTMDisplay();
-    presetsEl.querySelectorAll('.preset-chip').forEach(function(c, j) { c.classList.toggle('active', j === selectedPreset); });
+    clearActivePresets();
+    this.classList.add('active');
+    /* Reset custom input if open */
+    var ci = document.getElementById('customInput');
+    if (ci) ci.value = '';
+    document.getElementById('customChip').classList.remove('active');
     document.getElementById('tmLabel').textContent = 'Set duration';
     document.getElementById('tmLabel').className = 'session-label';
     document.getElementById('tmRing').classList.remove('complete');
+    saveTimerState();
   });
   chip.addEventListener('keydown', function(e) {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.click(); }
   });
   presetsEl.appendChild(chip);
 });
+
+/* Custom duration chip */
+var customChip = document.createElement('button');
+customChip.className = 'preset-chip';
+customChip.id = 'customChip';
+customChip.textContent = 'Custom';
+customChip.addEventListener('click', function() {
+  if (tmRunning) return;
+  playPresetSelect();
+  var existing = document.getElementById('customInputWrap');
+  if (existing) { existing.remove(); customChip.classList.remove('active'); return; }
+  clearActivePresets();
+  customChip.classList.add('active');
+  var wrap = document.createElement('div');
+  wrap.id = 'customInputWrap';
+  wrap.style.cssText = 'display:flex;align-items:center;gap:6px;justify-content:center;margin-top:6px;';
+  var inp = document.createElement('input');
+  inp.id = 'customInput';
+  inp.type = 'number';
+  inp.min = '1'; inp.max = '240'; inp.placeholder = 'min';
+  inp.style.cssText = 'width:56px;padding:5px 8px;border-radius:10px;border:1px solid var(--arc-track);background:var(--dot-bg);color:var(--date-color);font-family:Inter,sans-serif;font-size:10px;font-weight:500;text-align:center;outline:none;font-variant-numeric:tabular-nums;transition:border-color 0.2s;';
+  inp.addEventListener('focus', function() { this.style.borderColor = 'var(--accent)'; });
+  inp.addEventListener('blur', function() { this.style.borderColor = 'var(--arc-track)'; });
+  var setBtn = document.createElement('button');
+  setBtn.className = 'preset-chip active';
+  setBtn.textContent = 'Set';
+  setBtn.style.cssText = 'padding:5px 14px;font-size:8px;';
+  function applyCustom() {
+    var val = parseInt(inp.value);
+    if (!val || val < 1) { playError(); return; }
+    if (val > 240) val = 240;
+    playClick();
+    tmCustomSecs = val * 60;
+    tmDuration = tmCustomSecs;
+    tmRemaining = tmDuration;
+    selectedPreset = -1;
+    updateTMDisplay();
+    document.getElementById('tmLabel').textContent = 'Set duration';
+    document.getElementById('tmLabel').className = 'session-label';
+    document.getElementById('tmRing').classList.remove('complete');
+    saveTimerState();
+  }
+  setBtn.addEventListener('click', applyCustom);
+  inp.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); applyCustom(); }
+  });
+  wrap.appendChild(inp);
+  wrap.appendChild(setBtn);
+  presetsEl.parentNode.insertBefore(wrap, presetsEl.nextSibling);
+  inp.focus();
+});
+presetsEl.appendChild(customChip);
 Core.a11y.roving(presetsEl, '.preset-chip');
+
+/* ── Restore timer on load ── */
+var _timerRestored = restoreTimerState();
+if (_timerRestored) {
+  /* Sync preset chip highlight */
+  clearActivePresets();
+  if (selectedPreset >= 0 && selectedPreset < PRESETS.length) {
+    var chips = presetsEl.querySelectorAll('.preset-chip');
+    if (chips[selectedPreset]) chips[selectedPreset].classList.add('active');
+  } else if (tmCustomSecs > 0) {
+    customChip.classList.add('active');
+  }
+}
 
 function formatTM(secs) {
   var h = Math.floor(secs / 3600), m = Math.floor((secs % 3600) / 60), s = secs % 60;
@@ -1094,6 +1259,7 @@ function tickTimer() {
   updateTMDisplay();
   if (tmRemaining <= 0) {
     tmRunning = false; clearInterval(tmInterval);
+    SyncEngine.remove('clock', 'timer_state');
     document.getElementById('tmToggle').textContent = 'Start';
     document.getElementById('tmLabel').textContent = 'Complete!';
     document.getElementById('tmLabel').className = 'session-label done';
@@ -1121,6 +1287,7 @@ document.getElementById('tmToggle').addEventListener('click', function() {
     document.getElementById('tmLabel').textContent = 'Paused';
     document.getElementById('tmLabel').className = 'session-label';
     this.setAttribute('aria-label', 'Resume timer');
+    saveTimerState();
   } else {
     if (tmRemaining <= 0) { tmRemaining = tmDuration; document.getElementById('tmRing').classList.remove('complete'); }
     tmStartTime = Date.now(); tmStartRemaining = tmRemaining;
@@ -1129,6 +1296,7 @@ document.getElementById('tmToggle').addEventListener('click', function() {
     document.getElementById('tmLabel').textContent = 'Focusing';
     document.getElementById('tmLabel').className = 'session-label running';
     this.setAttribute('aria-label', 'Pause timer');
+    saveTimerState();
   }
   document.getElementById('tmRing').classList.add('pulse');
   setTimeout(function() { document.getElementById('tmRing').classList.remove('pulse'); }, 180);
@@ -1146,6 +1314,7 @@ document.getElementById('tmReset').addEventListener('click', function() {
   document.getElementById('tmLabel').textContent = 'Set duration';
   document.getElementById('tmLabel').className = 'session-label';
   document.getElementById('tmRing').classList.remove('complete');
+  SyncEngine.remove('clock', 'timer_state');
 });
 
 /* ══════════════════════════════════════
