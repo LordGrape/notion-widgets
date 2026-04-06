@@ -472,20 +472,22 @@ function getDragonStage() {
    Uses localStorage timestamps for cross-iframe sync.
    ══════════════════════════════════════ */
 
-var SUMMON_GAP = 4 * 3600000;
+var SUMMON_DELAY = 1000;
 var SUMMON_WINDOW = 4000;
+var _summonRoles = [];
 
 function _checkSummon() {
   var now = Date.now();
-  var last = parseInt(localStorage.getItem('summon_last') || '0', 10);
   var start = parseInt(localStorage.getItem('summon_start') || '0', 10);
-  if (now - start < SUMMON_WINDOW + 2000) {
+  /* Join an in-progress summon */
+  if (now - start < SUMMON_WINDOW + SUMMON_DELAY + 2000) {
     return { start: start, elapsed: now - start };
   }
-  if (now - last < SUMMON_GAP) return null;
-  localStorage.setItem('summon_start', String(now));
+  /* Start new summon with delay for seamless entry */
+  var delayedStart = now + SUMMON_DELAY;
+  localStorage.setItem('summon_start', String(delayedStart));
   localStorage.setItem('summon_last', String(now));
-  return { start: now, elapsed: 0 };
+  return { start: delayedStart, elapsed: now - delayedStart };
 }
 
 function _drawSummonEgg(ctx, x, y, size, rotation) {
@@ -626,8 +628,12 @@ function _playSummonSound() {
 
 function playSummon(role) {
   if (Core.reducedMotion) return;
+  if (_summonRoles.indexOf(role) === -1) _summonRoles.push(role);
   var summon = _checkSummon();
   if (!summon) return;
+  /* Remove any stale overlay from this role */
+  var oldCv = document.getElementById('summon-' + role);
+  if (oldCv) oldCv.remove();
   var stage = getDragonStage();
   var windows = {
     top:    { enter: 0,    exit: 1200 },
@@ -640,6 +646,7 @@ function playSummon(role) {
   if (summon.elapsed > win.exit + 1000) return;
   var dpr = window.devicePixelRatio || 1;
   var cv = document.createElement('canvas');
+  cv.id = 'summon-' + role;
   cv.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;pointer-events:none;';
   cv.width = window.innerWidth * dpr;
   cv.height = window.innerHeight * dpr;
@@ -734,4 +741,16 @@ function playSummon(role) {
   var delay = Math.max(0, win.enter - summon.elapsed);
   if (delay > 0) setTimeout(function() { requestAnimationFrame(anim); }, delay);
   else requestAnimationFrame(anim);
+  /* Safety: guarantee overlay removal even if animation logic fails */
+  setTimeout(function() { if (cv.parentNode) cv.remove(); }, SUMMON_WINDOW + SUMMON_DELAY + 3000);
 }
+
+/* ── Re-trigger summon on app resume ── */
+document.addEventListener('visibilitychange', function() {
+  if (!document.hidden && _summonRoles.length > 0) {
+    localStorage.removeItem('summon_start');
+    setTimeout(function() {
+      _summonRoles.forEach(function(r) { playSummon(r); });
+    }, 200);
+  }
+});
