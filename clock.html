@@ -615,6 +615,7 @@ var card = document.querySelector('.container');
 setTimeout(function() { card.style.opacity = '1'; card.style.animation = 'breathe 8s cubic-bezier(0.4,0,0.2,1) infinite'; }, 900);
 initBackground('bgCanvas', { orbCount: 3, particleCount: Core.isLowEnd ? (Core.isDark ? 8 : 5) : (Core.isDark ? 18 : 12), orbRadius: [80, 140], hueRange: [250, 40], mouseTracking: true });
 initTilt('.container', { maxDeg: 2 });
+playSummon('upper');
 </script>
 </body>
 </html>
