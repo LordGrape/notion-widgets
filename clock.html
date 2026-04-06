@@ -402,8 +402,8 @@ button:focus-visible, .mode-btn:focus-visible, .preset-chip:focus-visible, .ctrl
 .break-overlay {
   border-radius: var(--radius-lg);
   background: color-mix(in srgb, var(--surface-1) 88%, var(--accent-primary) 12%);
-  animation: overlayBreathe 5s ease-in-out infinite;
 }
+.break-overlay.show { animation: overlayBreathe 5s ease-in-out infinite; }
 @keyframes overlayBreathe {
   0%, 100% { opacity: 0.85; }
   50% { opacity: 0.95; }

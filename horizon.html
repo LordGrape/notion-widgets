@@ -690,10 +690,6 @@ button:focus-visible, .tab-btn:focus-visible, .rad-btn:focus-visible, .st-btn:fo
   <div class="stats-card">
     <div class="stats-hdr">&#x2694;&#xFE0F; THYMOS STATS</div>
     <div id="statsBody"></div>
-    <div class="st-btns">
-      <button class="st-btn" id="btnExport">&#x1F4E4; Export</button>
-      <button class="st-btn" id="btnImport">&#x1F4E5; Import</button>
-    </div>
     <div class="st-close" id="statsClose">TAP TO CLOSE</div>
   </div>
 </div>
@@ -2748,29 +2744,6 @@ setTimeout(function() {
   document.getElementById('infoBtn').onclick = openStats;
   document.getElementById('statsClose').onclick = function() { ov.classList.remove('show'); };
   ov.onclick = function(e) { if (e.target === ov) ov.classList.remove('show'); };
-  document.getElementById('btnExport').onclick = function() {
-    var data = {};
-    for (var i = 0; i < localStorage.length; i++) {
-      var k = localStorage.key(i);
-      if (k.indexOf('dragon_') === 0) data[k] = localStorage.getItem(k);
-    }
-    var json = JSON.stringify(data);
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(json).then(function() { showXPFloat('\uD83D\uDCCB Copied!'); });
-    } else { prompt('Copy this data:', json); }
-  };
-  document.getElementById('btnImport').onclick = function() {
-    var json = prompt('Paste exported dragon data:');
-    if (!json) return;
-    try {
-      var data = JSON.parse(json);
-      Object.keys(data).forEach(function(k) {
-        if (k.indexOf('dragon_') === 0) localStorage.setItem(k, data[k]);
-      });
-      showXPFloat('✅ Imported!');
-      setTimeout(function() { location.reload(); }, 800);
-    } catch(e) { alert('Invalid data'); }
-  };
 })();
 
 /* ══════════════════════════════════════

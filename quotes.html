@@ -362,9 +362,13 @@ function dayStr() {
 function dayIndex() {
   var d = new Date();
   var doy = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
+  if (!Array.isArray(quotes) || quotes.length === 0) return 0;
   return (d.getFullYear() * 1000 + doy) % quotes.length;
 }
-function currentQuote() { return quotes[dayIndex()]; }
+function currentQuote() {
+  if (Array.isArray(quotes) && quotes.length) return quotes[dayIndex()];
+  return FALLBACK_QUOTES[0];
+}
 
 /* ── Upgrade 1: Typewriter word reveal ── */
 function renderWords(text) {
@@ -425,7 +429,8 @@ document.getElementById('copyBtn').addEventListener('click', function(e) {
   e.stopPropagation();
   playClick();
   var q = currentQuote();
-  var str = '\u201C' + q.text + '\u201D\n\u2014 ' + q.author + ', ' + q.book;
+  var src = q.book ? (', ' + q.book) : '';
+  var str = '\u201C' + q.text + '\u201D\n\u2014 ' + q.author + src;
   navigator.clipboard.writeText(str).then(function() {
     var btn = document.getElementById('copyBtn');
     Core.ripple(btn);
@@ -459,7 +464,7 @@ function revealQuotes() {
   sk.style.transition = 'opacity 220ms ease';
   setTimeout(function() { if (sk.parentNode) sk.remove(); }, 260);
 }
-if (SyncEngine && typeof SyncEngine.onReady === 'function') SyncEngine.onReady(revealQuotes);
+if (window.SyncEngine && typeof window.SyncEngine.onReady === 'function') window.SyncEngine.onReady(revealQuotes);
 setTimeout(revealQuotes, 450);
 try {
   initBackground('bg', {
