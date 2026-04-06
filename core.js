@@ -88,12 +88,113 @@ Core.perf = {
   }
 };
 
+/* Shared CSS tokens + utilities (theme-aware, runtime injected) */
+let _coreThemeStyleId = 'core-theme-tokens';
+let _coreGlassStyleId = 'core-glass-utils';
+let _coreDarkTokens = {
+  '--surface-0': '#0a0a0f',
+  '--surface-1': '#12121a',
+  '--surface-2': '#1a1a2e',
+  '--surface-3': '#242440',
+  '--border-subtle': 'rgba(139, 92, 246, 0.08)',
+  '--border-default': 'rgba(139, 92, 246, 0.15)',
+  '--border-accent': 'rgba(139, 92, 246, 0.3)',
+  '--text-primary': '#f0eef6',
+  '--text-secondary': '#a09cb5',
+  '--text-tertiary': '#6b6680',
+  '--accent-primary': '#a78bfa',
+  '--accent-secondary': '#8b5cf6',
+  '--accent-glow': 'rgba(167, 139, 250, 0.15)',
+  '--accent-glow-strong': 'rgba(167, 139, 250, 0.3)',
+  '--success': '#34d399',
+  '--warning': '#fbbf24',
+  '--danger': '#f87171',
+  '--accent-rgb': '139, 92, 246'
+};
+let _coreLightTokens = {
+  '--surface-0': '#f8f7fc',
+  '--surface-1': '#ffffff',
+  '--surface-2': '#f3f0ff',
+  '--surface-3': '#ede9fe',
+  '--border-subtle': 'rgba(124, 58, 237, 0.06)',
+  '--border-default': 'rgba(124, 58, 237, 0.12)',
+  '--border-accent': 'rgba(124, 58, 237, 0.25)',
+  '--text-primary': '#1a1a2e',
+  '--text-secondary': '#6b6680',
+  '--text-tertiary': '#a09cb5',
+  '--accent-primary': '#7c3aed',
+  '--accent-secondary': '#8b5cf6',
+  '--accent-glow': 'rgba(124, 58, 237, 0.1)',
+  '--accent-glow-strong': 'rgba(124, 58, 237, 0.2)',
+  '--success': '#059669',
+  '--warning': '#d97706',
+  '--danger': '#dc2626',
+  '--accent-rgb': '124, 58, 237'
+};
+let _coreSharedTokens = {
+  '--radius-sm': '8px',
+  '--radius-md': '12px',
+  '--radius-lg': '20px',
+  '--radius-xl': '28px',
+  '--shadow-sm': '0 2px 8px rgba(0,0,0,0.15)',
+  '--shadow-md': '0 8px 32px rgba(0,0,0,0.25)',
+  '--shadow-lg': '0 16px 64px rgba(0,0,0,0.35)',
+  '--shadow-glow': '0 0 40px rgba(139, 92, 246, 0.12)',
+  '--blur-glass': 'blur(24px) saturate(1.5)',
+  '--transition-fast': '150ms cubic-bezier(0.4, 0, 0.2, 1)',
+  '--transition-default': '250ms cubic-bezier(0.4, 0, 0.2, 1)',
+  '--transition-slow': '400ms cubic-bezier(0.4, 0, 0.2, 1)',
+  '--transition-spring': '500ms cubic-bezier(0.34, 1.56, 0.64, 1)'
+};
+
+function _coreEnsureStyle(id) {
+  let el = document.getElementById(id);
+  if (!el) {
+    el = document.createElement('style');
+    el.id = id;
+    if (document.head) document.head.appendChild(el);
+    else document.documentElement.appendChild(el);
+  }
+  return el;
+}
+
+Core.applyThemeTokens = function() {
+  let tokens = Core.isDark ? _coreDarkTokens : _coreLightTokens;
+  let merged = Object.assign({}, _coreSharedTokens, tokens, {
+    '--bg': 'var(--surface-0)',
+    '--card-bg': 'var(--surface-1)',
+    '--card-border': 'var(--border-default)',
+    '--accent': 'var(--accent-secondary)'
+  });
+  let css = ':root{\n';
+  for (let k in merged) {
+    if (merged.hasOwnProperty(k)) css += '  ' + k + ': ' + merged[k] + ';\n';
+  }
+  css += '}\n';
+  _coreEnsureStyle(_coreThemeStyleId).textContent = css;
+};
+
+Core.injectGlassStyles = function() {
+  let css =
+'.glass-card{background:var(--surface-1);backdrop-filter:var(--blur-glass);-webkit-backdrop-filter:var(--blur-glass);border:1px solid var(--border-default);border-radius:var(--radius-lg);box-shadow:var(--shadow-md),var(--shadow-glow);transition:box-shadow var(--transition-default),border-color var(--transition-default);}\
+\n.glass-card:hover{border-color:var(--border-accent);box-shadow:var(--shadow-lg),0 0 60px rgba(139, 92, 246, 0.08);}\
+\n.glass-button{background:var(--accent-glow);border:1px solid var(--border-accent);border-radius:var(--radius-md);color:var(--accent-primary);font-weight:500;padding:8px 16px;cursor:pointer;transition:all var(--transition-fast);}\
+\n.glass-button:hover{background:var(--accent-glow-strong);box-shadow:0 0 20px var(--accent-glow);transform:translateY(-1px);}\
+\n.glass-button:active{transform:translateY(0) scale(0.98);}\
+\n.glass-pill{background:var(--surface-2);border:1px solid var(--border-subtle);border-radius:999px;padding:4px 12px;font-size:0.8rem;color:var(--text-secondary);transition:all var(--transition-fast);}\
+\n.glass-pill.active{background:var(--accent-glow-strong);border-color:var(--accent-primary);color:var(--accent-primary);}\
+\n.glass-input{background:var(--surface-0);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);padding:10px 14px;transition:border-color var(--transition-fast),box-shadow var(--transition-fast);}\
+\n.glass-input:focus{outline:none;border-color:var(--accent-primary);box-shadow:0 0 0 3px var(--accent-glow);}';
+  _coreEnsureStyle(_coreGlassStyleId).textContent = css;
+};
+
 /* Live theme tracking — updates derived constants mid-session */
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
   Core.isDark = e.matches;
   Core.orbAlpha = Core.isDark ? 0.04 : 0.02;
   Core.particleRGB = Core.isDark ? '167, 139, 250' : '124, 58, 237';
   Core.particleAlphaBase = Core.isDark ? 0.25 : 0.1;
+  Core.applyThemeTokens();
   Core.emit('theme-change', { isDark: Core.isDark });
 });
 
@@ -101,6 +202,7 @@ Core.orbAlpha = Core.isDark ? 0.04 : 0.02;
 Core.particleRGB = Core.isDark ? '167, 139, 250' : '124, 58, 237';
 Core.particleAlphaBase = Core.isDark ? 0.25 : 0.1;
 Core.confettiColors = ['#7c3aed','#8b5cf6','#a78bfa','#c4b5fd','#ddd6fe','#ede9fe','#ec4899','#f59e0b','#10b981','#6366f1'];
+Core.applyThemeTokens();
 
 
 /* ══════════════════════════════════════
@@ -343,6 +445,7 @@ function initBackground(canvasId, opts) {
   /* Particle counts per layer */
   let bgCount = opts.particleCount || (Core.isLowEnd ? (Core.isDark ? 4 : 2) : (Core.isDark ? 8 : 5));
   let fgCount = Core.isLowEnd ? 2 : (Core.isDark ? 6 : 4);
+  let bokehCount = Math.max(8, Math.min(12, opts.bokehCount || (8 + Math.floor(Math.random() * 5))));
 
   let orbs = [];
   for (let i = 0; i < defaultOrbs; i++) {
@@ -365,18 +468,76 @@ function initBackground(canvasId, opts) {
     };
   }
 
+  function makeBokeh() {
+    return {
+      x: Math.random() * W, y: Math.random() * H,
+      r: 3 + Math.random() * 2,
+      speedX: (Math.random() - 0.5) * 0.04,
+      speedY: (Math.random() - 0.5) * 0.05 - 0.02,
+      alpha: Core.particleAlphaBase * (0.12 + Math.random() * 0.12),
+      flicker: Math.random() * Math.PI * 2
+    };
+  }
+
   /* Background layer: slow, dim, large — perceived as distant */
   let bgParticles = [];
   for (let i = 0; i < bgCount; i++) bgParticles.push(makeParticle(0.4, 0.5, 1.3));
   /* Foreground layer: fast, bright, small — perceived as close */
   let fgParticles = [];
   for (let i = 0; i < fgCount; i++) fgParticles.push(makeParticle(1.2, 1.0, 0.7));
+  let bokehParticles = [];
+  for (let i = 0; i < bokehCount; i++) bokehParticles.push(makeBokeh());
+
+  let noiseCanvas = document.createElement('canvas');
+  let noiseCtx = noiseCanvas.getContext('2d');
+  noiseCanvas.width = 64;
+  noiseCanvas.height = 64;
+  let noiseImg = noiseCtx.createImageData(64, 64);
+  for (let i = 0; i < noiseImg.data.length; i += 4) {
+    let v = Math.floor(Math.random() * 255);
+    noiseImg.data[i] = v;
+    noiseImg.data[i + 1] = v;
+    noiseImg.data[i + 2] = v;
+    noiseImg.data[i + 3] = 28;
+  }
+  noiseCtx.putImageData(noiseImg, 0, 0);
+  let noisePattern = ctx.createPattern(noiseCanvas, 'repeat');
 
   let running = !Core.reducedMotion;
   let time = 0;
   let perfBound = false;
   let lastTs = 0;
-  let targetParticleTotal = bgCount + fgCount;
+  let qualityReduced = false;
+  let qualityCheckTick = 0;
+
+  function rebuildParticleLayers(multiplier, includeBokeh) {
+    let targetBg = Math.max(2, Math.round(bgCount * multiplier));
+    let targetFg = Math.max(2, Math.round(fgCount * multiplier));
+    while (bgParticles.length > targetBg) bgParticles.pop();
+    while (fgParticles.length > targetFg) fgParticles.pop();
+    while (bgParticles.length < targetBg) bgParticles.push(makeParticle(0.4, 0.5, 1.3));
+    while (fgParticles.length < targetFg) fgParticles.push(makeParticle(1.2, 1.0, 0.7));
+    if (!includeBokeh) bokehParticles.length = 0;
+    else {
+      while (bokehParticles.length > bokehCount) bokehParticles.pop();
+      while (bokehParticles.length < bokehCount) bokehParticles.push(makeBokeh());
+    }
+  }
+
+  function drawBokeh(arr, t, dt) {
+    for (let j = 0; j < arr.length; j++) {
+      let p = arr[j];
+      p.x += p.speedX * dt;
+      p.y += p.speedY * dt;
+      if (p.x < -20) p.x = W + 20;
+      if (p.x > W + 20) p.x = -20;
+      if (p.y < -20) p.y = H + 20;
+      if (p.y > H + 20) p.y = -20;
+      let a = p.alpha * (0.7 + 0.3 * Math.sin(t * 0.0007 + p.flicker));
+      ctx.fillStyle = 'rgba(' + Core.particleRGB + ', ' + a + ')';
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+    }
+  }
 
   function drawParticles(arr, t, dt) {
     for (let j = 0; j < arr.length; j++) {
@@ -418,17 +579,43 @@ function initBackground(canvasId, opts) {
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2); ctx.fill();
     }
 
+    if (qualityCheckTick++ % 45 === 0) {
+      let overBudget = Core.perf.isOverBudget();
+      let recovered = Core.perf.getFPS() > 54;
+      if (overBudget && !qualityReduced) {
+        qualityReduced = true;
+        rebuildParticleLayers(0.6, false);
+      } else if (!overBudget && qualityReduced && recovered) {
+        qualityReduced = false;
+        rebuildParticleLayers(1, true);
+      }
+    }
+
     /* Particles: background layer first (painter's order) */
     drawParticles(bgParticles, time, dt);
+    if (!qualityReduced) drawBokeh(bokehParticles, time, dt);
     drawParticles(fgParticles, time, dt);
+
+    if (Core.isDark) {
+      let vignette = ctx.createRadialGradient(W * 0.5, H * 0.45, Math.min(W, H) * 0.25, W * 0.5, H * 0.5, Math.max(W, H) * 0.8);
+      vignette.addColorStop(0, 'rgba(0,0,0,0)');
+      vignette.addColorStop(1, 'rgba(0,0,0,0.22)');
+      ctx.fillStyle = vignette;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    if (noisePattern) {
+      ctx.save();
+      ctx.globalAlpha = Core.isDark ? 0.028 : 0.02;
+      ctx.fillStyle = noisePattern;
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
+    }
   }
 
   function reduceParticlesOnDrop() {
-    targetParticleTotal = Math.max(6, Math.floor(targetParticleTotal * 0.8));
-    let keepBg = Math.max(2, Math.floor(targetParticleTotal * 0.55));
-    let keepFg = Math.max(2, targetParticleTotal - keepBg);
-    if (bgParticles.length > keepBg) bgParticles.length = keepBg;
-    if (fgParticles.length > keepFg) fgParticles.length = keepFg;
+    qualityReduced = true;
+    rebuildParticleLayers(0.6, false);
   }
 
   Core.perf.onDrop(reduceParticlesOnDrop);
@@ -484,6 +671,21 @@ function initTilt(selector, opts) {
   let targetRX = 0, targetRY = 0;
   let currentRX = 0, currentRY = 0;
   let ease = 0.08;
+  let glow = document.createElement('div');
+  glow.style.cssText = 'position:absolute;inset:0;pointer-events:none;border-radius:inherit;' +
+    'background:radial-gradient(circle at 50% 50%, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.05) 24%, rgba(255,255,255,0) 60%);' +
+    'mix-blend-mode:screen;opacity:0.45;';
+  let computedStyle = window.getComputedStyle(el);
+  if (computedStyle.position === 'static') el.style.position = 'relative';
+  if (computedStyle.overflow === 'visible') el.style.overflow = 'hidden';
+  if (!el.querySelector('[data-tilt-glow]')) {
+    glow.setAttribute('data-tilt-glow', 'true');
+    el.appendChild(glow);
+  }
+
+  function applyTilt() {
+    el.style.transform = 'perspective(800px) rotateX(' + currentRX.toFixed(3) + 'deg) rotateY(' + currentRY.toFixed(3) + 'deg)';
+  }
 
   document.addEventListener('mousemove', function(e) {
     let rect = el.getBoundingClientRect();
@@ -491,10 +693,21 @@ function initTilt(selector, opts) {
     let dy = (e.clientY - (rect.top + rect.height / 2)) / (rect.height / 2);
     targetRX = dy * -maxDeg;
     targetRY = dx * maxDeg;
+    let px = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+    let py = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+    glow.style.background = 'radial-gradient(circle at ' + px.toFixed(1) + '% ' + py.toFixed(1) + '%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.05) 26%, rgba(255,255,255,0) 60%)';
   });
 
   document.addEventListener('mouseleave', function() {
     targetRX = 0; targetRY = 0;
+    if (window.gsap) {
+      let state = { rx: currentRX, ry: currentRY };
+      window.gsap.to(state, {
+        rx: 0, ry: 0, duration: 0.7, ease: 'elastic.out(1, 0.55)',
+        overwrite: true,
+        onUpdate: function() { currentRX = state.rx; currentRY = state.ry; applyTilt(); }
+      });
+    }
   });
 
   function update(dt, dtMs) {
@@ -502,7 +715,7 @@ function initTilt(selector, opts) {
     currentRX += (targetRX - currentRX) * ease * step;
     currentRY += (targetRY - currentRY) * ease * step;
     _coreRecordFrame(dtMs || (16.667 * step));
-    el.style.transform = 'perspective(800px) rotateX(' + currentRX.toFixed(3) + 'deg) rotateY(' + currentRY.toFixed(3) + 'deg)';
+    applyTilt();
   }
 
   _gsapReady.then(function(gsap) {
@@ -548,6 +761,28 @@ function launchConfetti(canvasId) {
 
   let parts = [];
   let cx = W / 2, cy = H * 0.38;
+  let starCount = 5 + Math.floor(Math.random() * 4);
+  let flashAlpha = 0.1;
+  let flashRadius = Math.max(100, Math.min(180, Math.min(W, H) * 0.18));
+  let shakeTarget = cv.parentElement || cv;
+  let shakeStart = Date.now();
+  let shakeDuration = 300;
+  let originalShakeTransform = shakeTarget.style.transform || '';
+
+  function drawStar(ctx, spikes, outerRadius, innerRadius) {
+    let rot = Math.PI / 2 * 3;
+    let step = Math.PI / spikes;
+    ctx.beginPath();
+    ctx.moveTo(0, -outerRadius);
+    for (let i = 0; i < spikes; i++) {
+      ctx.lineTo(Math.cos(rot) * outerRadius, Math.sin(rot) * outerRadius);
+      rot += step;
+      ctx.lineTo(Math.cos(rot) * innerRadius, Math.sin(rot) * innerRadius);
+      rot += step;
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
 
   for (let i = 0; i < 150; i++) {
     let angle = Math.random() * Math.PI * 2;
@@ -564,7 +799,8 @@ function launchConfetti(canvasId) {
       gravity: 0.1 + Math.random() * 0.08,
       drag: 0.985 + Math.random() * 0.01,
       wobble: Math.random() * Math.PI * 2,
-      wobbleSpeed: 0.03 + Math.random() * 0.05
+      wobbleSpeed: 0.03 + Math.random() * 0.05,
+      shape: i < starCount ? 'star' : 'rect'
     });
   }
 
@@ -579,6 +815,23 @@ function launchConfetti(canvasId) {
   let tickFn = null;
   function frame(dt, dtMs) {
     ctx.clearRect(0, 0, W, H);
+    if (Date.now() - shakeStart < shakeDuration) {
+      let jx = (Math.random() - 0.5) * 4;
+      let jy = (Math.random() - 0.5) * 4;
+      shakeTarget.style.transform = originalShakeTransform + ' translate(' + jx.toFixed(2) + 'px,' + jy.toFixed(2) + 'px)';
+    } else if (shakeTarget.style.transform !== originalShakeTransform) {
+      shakeTarget.style.transform = originalShakeTransform;
+    }
+
+    if (flashAlpha > 0) {
+      let fg = ctx.createRadialGradient(cx, cy, 0, cx, cy, flashRadius);
+      fg.addColorStop(0, 'rgba(255,255,255,' + flashAlpha + ')');
+      fg.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = fg;
+      ctx.fillRect(cx - flashRadius, cy - flashRadius, flashRadius * 2, flashRadius * 2);
+      flashAlpha = Math.max(0, flashAlpha - 0.05 * (dt || 1));
+    }
+
     let alive = false;
     let step = dt || 1;
     _coreRecordFrame(dtMs || (16.667 * step));
@@ -600,12 +853,14 @@ function launchConfetti(canvasId) {
       ctx.rotate(p.rot);
       ctx.globalAlpha = p.a;
       ctx.fillStyle = p.color;
-      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      if (p.shape === 'star') drawStar(ctx, 5, p.w * 0.65, p.w * 0.3);
+      else ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
       ctx.restore();
     }
     if (!alive) {
       ctx.clearRect(0, 0, W, H);
       window.removeEventListener('resize', resizer);
+      shakeTarget.style.transform = originalShakeTransform;
       if (window.gsap && tickFn) window.gsap.ticker.remove(tickFn);
     }
   }
@@ -823,6 +1078,86 @@ Core.dragon = {
   getStage: _legacyGetDragonStage,
   playSummon: _legacyPlaySummon
 };
+Core.a11y = {
+  prefersReducedMotion: Core.reducedMotion,
+  announce: function(text) {
+    if (!text) return;
+    let id = 'core-a11y-live';
+    let region = document.getElementById(id);
+    if (!region) {
+      region = document.createElement('div');
+      region.id = id;
+      region.setAttribute('aria-live', 'polite');
+      region.setAttribute('aria-atomic', 'true');
+      region.style.cssText = 'position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;';
+      document.body.appendChild(region);
+    }
+    region.textContent = '';
+    setTimeout(function() { region.textContent = String(text); }, 20);
+  },
+  trap: function(container) {
+    if (!container) return function() {};
+    let selector = 'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
+    let keyHandler = function(e) {
+      if (e.key !== 'Tab') return;
+      let items = Array.prototype.slice.call(container.querySelectorAll(selector)).filter(function(node) {
+        return node.offsetParent !== null || node === document.activeElement;
+      });
+      if (!items.length) return;
+      let first = items[0];
+      let last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    container.addEventListener('keydown', keyHandler);
+    return function release() {
+      container.removeEventListener('keydown', keyHandler);
+    };
+  },
+  roving: function(container, selector) {
+    if (!container || !selector) return function() {};
+    function getItems() {
+      return Array.prototype.slice.call(container.querySelectorAll(selector));
+    }
+    function setActive(nextIdx) {
+      let items = getItems();
+      if (!items.length) return;
+      let idx = Math.max(0, Math.min(items.length - 1, nextIdx));
+      for (let i = 0; i < items.length; i++) items[i].setAttribute('tabindex', i === idx ? '0' : '-1');
+      items[idx].focus();
+    }
+    let initialItems = getItems();
+    for (let i = 0; i < initialItems.length; i++) initialItems[i].setAttribute('tabindex', i === 0 ? '0' : '-1');
+    let keyHandler = function(e) {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft' && e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+      let items = getItems();
+      if (!items.length) return;
+      let current = items.indexOf(document.activeElement);
+      if (current < 0) current = 0;
+      let next = current;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (current + 1) % items.length;
+      else next = (current - 1 + items.length) % items.length;
+      e.preventDefault();
+      setActive(next);
+    };
+    let clickHandler = function(e) {
+      let items = getItems();
+      let idx = items.indexOf(e.target.closest(selector));
+      if (idx >= 0) setActive(idx);
+    };
+    container.addEventListener('keydown', keyHandler);
+    container.addEventListener('click', clickHandler);
+    return function release() {
+      container.removeEventListener('keydown', keyHandler);
+      container.removeEventListener('click', clickHandler);
+    };
+  }
+};
 
 playClick = function() { return Core.audio.click.apply(null, arguments); };
 playOpen = function() { return Core.audio.open.apply(null, arguments); };
@@ -851,6 +1186,7 @@ addDragonXP = function() { return Core.dragon.addXP.apply(null, arguments); };
 getDragonXP = function() { return Core.dragon.getXP.apply(null, arguments); };
 getDragonStage = function() { return Core.dragon.getStage.apply(null, arguments); };
 playSummon = function() { return Core.dragon.playSummon.apply(null, arguments); };
+Core.injectGlassStyles();
 
 
 /* ══════════════════════════════════════
