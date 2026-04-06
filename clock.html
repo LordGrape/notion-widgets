@@ -662,19 +662,18 @@ function getWeatherType(code) {
   if (code >= 95) return 'storm';
   return 'clear';
 }
-function wmoEmoji(code) {
-  var h = new Date().getHours(), night = (h < 6 || h >= 20);
-  if (code === 0) return [night ? '\u{1F319}' : '\u{2600}\u{FE0F}', night ? 'Clear Night' : 'Clear'];
-  if (code <= 2) return [night ? '\u{1F319}' : '\u{1F324}\u{FE0F}', 'Partly Cloudy'];
-  if (code === 3) return ['\u{2601}\u{FE0F}', 'Overcast'];
-  if (code <= 48) return ['\u{1F32B}\u{FE0F}', 'Fog'];
-  if (code <= 57) return ['\u{1F327}\u{FE0F}', 'Drizzle'];
-  if (code <= 67) return ['\u{1F327}\u{FE0F}', 'Rain'];
-  if (code <= 77) return ['\u{1F328}\u{FE0F}', 'Snow'];
-  if (code <= 82) return ['\u{1F326}\u{FE0F}', 'Showers'];
-  if (code <= 86) return ['\u{1F328}\u{FE0F}', 'Snow Showers'];
-  if (code <= 99) return ['\u{26C8}\u{FE0F}', 'Thunder'];
-  return ['\u{1F321}\u{FE0F}', ''];
+function wmoEmoji(code, hour) {
+  /* Same WMO_ICONS / WMO_CODES as main display; night overrides for clear / mostly clear only. */
+  var h = typeof hour === 'number' ? hour : new Date().getHours();
+  var night = (h < 6 || h >= 20);
+  var icon = WMO_ICONS[code] || '\uD83C\uDF21\uFE0F';
+  var cond = WMO_CODES[code] || 'Unknown';
+  if (night && (code === 0 || code === 1)) {
+    icon = '\uD83C\uDF19';
+    if (code === 0) cond = 'Clear Night';
+    else cond = 'Mostly Clear Night';
+  }
+  return [icon, cond];
 }
 function renderClockWeatherFromPayload(wd) {
   if (!wd || wd.temp === undefined) { weatherEl.innerHTML = ''; return; }
@@ -711,11 +710,12 @@ function persistWeatherEnvelope(env) {
 function buildWeatherDataFromAPI(d) {
   if (!d || !d.current) return null;
   var wc = d.current.weather_code;
+  var w = wmoEmoji(wc, new Date().getHours());
   return {
     temp: Math.round(d.current.temperature_2m),
     code: wc,
-    condition: WMO_CODES[wc] || 'Unknown',
-    icon: WMO_ICONS[wc] || '\uD83C\uDF21\uFE0F',
+    condition: w[1],
+    icon: w[0],
     type: getWeatherType(wc),
     humidity: d.current.relative_humidity_2m,
     wind: d.current.wind_speed_10m
@@ -762,10 +762,17 @@ function openForecast() {
 
   fetch('https://api.open-meteo.com/v1/forecast?latitude=' + WLAT + '&longitude=' + WLON +
     '&hourly=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min' +
-    '&current=temperature_2m,weather_code&timezone=' + encodeURIComponent(WTZ) +
+    '&current=temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m&timezone=' + encodeURIComponent(WTZ) +
     '&forecast_days=2')
     .then(function(r) { return r.json(); })
-    .then(function(d) { renderForecast(d); })
+    .then(function(d) {
+      renderForecast(d);
+      var freshData = buildWeatherDataFromAPI(d);
+      if (freshData) {
+        persistWeatherEnvelope({ ts: Date.now(), data: freshData });
+        renderClockWeatherFromPayload(freshData);
+      }
+    })
     .catch(function() {
       document.getElementById('forecastHours').innerHTML =
         '<div class="forecast-loading">Forecast unavailable</div>';
@@ -781,7 +788,7 @@ function renderForecast(d) {
   var currentHour = now.getHours();
 
   /* Current conditions */
-  var cw = wmoEmoji(d.current.weather_code);
+  var cw = wmoEmoji(d.current.weather_code, now.getHours());
   var hi = d.daily ? Math.round(d.daily.temperature_2m_max[0]) : '--';
   var lo = d.daily ? Math.round(d.daily.temperature_2m_min[0]) : '--';
   document.getElementById('forecastNow').innerHTML =
@@ -812,7 +819,7 @@ function renderForecast(d) {
     var t = new Date(times[j] + ':00');
     var hr = t.getHours();
     var label = j === startIdx ? 'Now' : (hr === 0 ? '12a' : hr < 12 ? hr + 'a' : hr === 12 ? '12p' : (hr - 12) + 'p');
-    var w = wmoEmoji(codes[j]);
+    var w = wmoEmoji(codes[j], t.getHours());
     var isNow = j === startIdx;
 
     html += '<div class="forecast-hour' + (isNow ? ' now-hour' : '') + '">' +
