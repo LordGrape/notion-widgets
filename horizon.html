@@ -373,6 +373,47 @@ body {
   .radar-view { flex-direction: column; gap: 14px; }
   .panel { align-items: center; text-align: center; }
 }
+/* ── Achievements ── */
+.achieve-view { flex-direction:column; gap:8px; padding:2px 0 4px; max-height:280px; overflow-y:auto; opacity:0; animation:fadeIn 0.6s ease-out 0.3s forwards; }
+.achieve-view::-webkit-scrollbar { width:3px; }
+.achieve-view::-webkit-scrollbar-thumb { background:var(--accent); border-radius:3px; }
+.ach-grid { display:flex; flex-wrap:wrap; gap:5px; }
+.ach-item { display:flex; align-items:center; gap:6px; padding:5px 8px; border-radius:8px; background:var(--item-bg); border:1px solid var(--item-border); width:calc(50% - 3px); min-width:130px; transition:all 0.3s; }
+.ach-item.locked { opacity:0.3; filter:grayscale(0.7); }
+.ach-item.unlocked { border-color:rgba(251,191,36,0.25); background:rgba(251,191,36,0.04); }
+.ach-icon { font-size:14px; flex-shrink:0; }
+.ach-info { flex:1; min-width:0; }
+.ach-name { font-size:8px; font-weight:600; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ach-desc { font-size:7px; font-weight:300; color:var(--text-muted); }
+.ach-count { font-size:8px; font-weight:400; color:var(--text-muted); text-align:center; margin-top:4px; letter-spacing:0.5px; }
+/* ── XP progress ── */
+.xp-prog { display:flex; align-items:center; gap:6px; width:100%; max-width:220px; margin:3px auto 0; }
+.xp-prog-track { flex:1; height:3px; border-radius:2px; background:var(--bar-empty); overflow:hidden; }
+.xp-prog-fill { height:100%; border-radius:2px; background:linear-gradient(90deg, var(--accent), rgba(251,191,36,0.6)); transition:width 0.8s cubic-bezier(0.4,0,0.2,1); }
+.xp-prog-label { font-size:7px; font-weight:400; color:var(--text-muted); white-space:nowrap; font-variant-numeric:tabular-nums; }
+/* ── Bar danger colours ── */
+.d-bar-fill.warn { background:linear-gradient(90deg, #f59e0b, rgba(245,158,11,0.5)) !important; }
+.d-bar-fill.crit { background:linear-gradient(90deg, #ef4444, rgba(239,68,68,0.5)) !important; }
+/* ── Streak flame ── */
+@keyframes flicker { 0%,100%{transform:scaleY(1)} 50%{transform:scaleY(1.25)} }
+.s-flame { display:inline-block; animation:flicker 0.7s ease-in-out infinite; transform-origin:bottom; }
+/* ── Stats overlay ── */
+.stats-ov { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.22); z-index:150; backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity 0.3s; }
+.stats-ov.show { opacity:1; pointer-events:auto; }
+.stats-card { background:var(--card-bg); backdrop-filter:blur(24px) saturate(1.6); border:1px solid var(--card-border); border-radius:16px; padding:16px 20px; max-width:260px; width:90%; box-shadow:0 12px 40px rgba(0,0,0,0.18); transform:scale(0.88); transition:transform 0.35s cubic-bezier(0.34,1.56,0.64,1); }
+.stats-ov.show .stats-card { transform:scale(1); }
+.stats-hdr { font-size:10px; font-weight:600; color:var(--text-primary); margin-bottom:10px; text-align:center; letter-spacing:0.5px; }
+.st-row { display:flex; justify-content:space-between; padding:3px 0; border-bottom:1px solid var(--item-border); }
+.st-lbl { font-size:8px; font-weight:300; color:var(--text-muted); }
+.st-val { font-size:8px; font-weight:600; color:var(--text-primary); font-variant-numeric:tabular-nums; }
+.st-btns { display:flex; gap:6px; margin-top:10px; }
+.st-btn { all:unset; cursor:pointer; flex:1; text-align:center; font-size:8px; font-weight:500; color:var(--accent); padding:5px 8px; border-radius:8px; background:var(--item-bg); border:1px solid var(--item-border); transition:all 0.2s; }
+.st-btn:hover { background:var(--item-hover-bg); }
+.st-close { margin-top:8px; font-size:7px; font-weight:300; color:var(--text-muted); text-align:center; letter-spacing:1.5px; text-transform:uppercase; cursor:pointer; }
+/* ── Info button ── */
+.info-btn { all:unset; cursor:pointer; position:absolute; top:14px; right:18px; font-size:11px; opacity:0.25; transition:opacity 0.2s; z-index:10; }
+.info-btn:hover { opacity:0.6; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
@@ -382,12 +423,14 @@ body {
 
 <div class="wrap">
   <div class="scan"></div>
+  <button class="info-btn" id="infoBtn" title="Stats">&#x2139;&#xFE0F;</button>
 
   <!-- Header -->
   <div class="hdr">
     <div class="tab-bar">
       <button class="tab-btn active" id="tabDragon" title="Dragon">&#x1F409;</button>
       <button class="tab-btn" id="tabRadar" title="Radar">&#x1F4E1;</button>
+      <button class="tab-btn" id="tabAch" title="Achievements">&#x1F3C6;</button>
     </div>
     <div class="hdr-title">HORIZON</div>
   </div>
@@ -401,6 +444,10 @@ body {
       <div class="d-bar-row"><span class="d-bar-icon">&#x26A1;</span><span class="d-bar-label">Readiness</span><div class="d-bar-track"><div class="d-bar-fill" id="barReadiness" style="width:100%"></div></div><span class="d-bar-val" id="valReadiness">100</span></div>
     </div>
     <div class="d-status" id="dStatus"></div>
+    <div class="xp-prog">
+      <div class="xp-prog-track"><div class="xp-prog-fill" id="xpProgFill" style="width:0%"></div></div>
+      <span class="xp-prog-label" id="xpProgLabel"></span>
+    </div>
   </div>
 
   <!-- Radar View -->
@@ -412,6 +459,12 @@ body {
       <div class="events" id="evs"></div>
       <div class="legend" id="leg"></div>
     </div>
+  </div>
+
+  <!-- Achievement View -->
+  <div class="view achieve-view" id="vAch">
+    <div class="ach-grid" id="achGrid"></div>
+    <div class="ach-count" id="achCount"></div>
   </div>
 </div>
 
@@ -441,6 +494,19 @@ body {
   </div>
 </div>
 
+<!-- Stats Panel -->
+<div class="stats-ov" id="statsOv">
+  <div class="stats-card">
+    <div class="stats-hdr">&#x2694;&#xFE0F; THYMOS STATS</div>
+    <div id="statsBody"></div>
+    <div class="st-btns">
+      <button class="st-btn" id="btnExport">&#x1F4E4; Export</button>
+      <button class="st-btn" id="btnImport">&#x1F4E5; Import</button>
+    </div>
+    <div class="st-close" id="statsClose">TAP TO CLOSE</div>
+  </div>
+</div>
+
 <script src="core.js"></script>
 <script>
 /* ═══════════════════════════════════════════════════════
@@ -460,13 +526,109 @@ var STAGES = [
   { name: 'Fledgling', rank: '2Lt',     xp: 5000 },
   { name: 'Juvenile',  rank: 'Lt',      xp: 20000 },
   { name: 'Adult',     rank: 'Capt',    xp: 60000 },
-  { name: 'Elder',     rank: 'Maj',     xp: 150000 }
+  { name: 'Elder',     rank: 'Maj',     xp: 120000 }
 ];
 
-var STREAK_BASE = 15, STREAK_CAP = 150;
-var DAILY_VIS_CAP = 120;
-var INTERACT_XP = 5;
-var INTERACT_CAP = 3;
+var STREAK_BASE = 20, STREAK_CAP = 150;
+var DAILY_VIS_CAP = 200;
+var DAILY_LOGIN_XP = 40;
+var INTERACT_XP = 8;
+var INTERACT_CAP = 5;
+
+/* ══════════════════════════════════════
+   PASSIVE ACTIVITY SYSTEM
+   ══════════════════════════════════════
+   Time-aware idle behaviours per stage.
+   Night = sleep. Activities scale with rank.
+   ══════════════════════════════════════ */
+
+var ACT_POOL = {
+  0: [
+    { id:'sleep',  icon:'💤', p:['night'],                         w:6, d:[30,90] },
+    { id:'dream',  icon:'💭', p:['night'],                         w:3, d:[20,60] },
+    { id:'rock',   icon:'💪', p:['morning','afternoon'],           w:3, d:[10,25] },
+    { id:'glow',   icon:'✨', p:['morning','afternoon','evening'], w:4, d:[15,40] },
+    { id:'listen', icon:'🎵', p:['morning','afternoon','evening'], w:2, d:[15,40] },
+    { id:'warm',   icon:'☕', p:['morning'],                       w:2, d:[10,30] },
+    { id:'idle',   icon:'',   p:['morning','afternoon','evening'], w:4, d:[20,50] }
+  ],
+  1: [
+    { id:'sleep',   icon:'💤', p:['night'],                         w:6, d:[30,90] },
+    { id:'read',    icon:'📖', p:['morning','afternoon','evening'], w:4, d:[20,60] },
+    { id:'water',   icon:'💧', p:['morning','afternoon'],           w:3, d:[8,15] },
+    { id:'stretch', icon:'🧘', p:['morning','afternoon'],           w:3, d:[10,25] },
+    { id:'curious', icon:'👀', p:['morning','afternoon','evening'], w:3, d:[15,30] },
+    { id:'idle',    icon:'',   p:['morning','afternoon','evening'], w:3, d:[20,50] }
+  ],
+  2: [
+    { id:'sleep',   icon:'💤', p:['night'],                         w:6, d:[30,90] },
+    { id:'read',    icon:'📖', p:['morning','afternoon','evening'], w:4, d:[20,60] },
+    { id:'water',   icon:'💧', p:['morning','afternoon'],           w:2, d:[8,15] },
+    { id:'wings',   icon:'🦅', p:['morning','afternoon'],           w:3, d:[10,30] },
+    { id:'fire',    icon:'🔥', p:['afternoon','evening'],           w:3, d:[10,25] },
+    { id:'pushups', icon:'💪', p:['morning','afternoon'],           w:3, d:[10,25] },
+    { id:'idle',    icon:'',   p:['morning','afternoon','evening'], w:3, d:[20,50] }
+  ],
+  3: [
+    { id:'sleep',    icon:'💤', p:['night'],                         w:6, d:[30,90] },
+    { id:'read',     icon:'📖', p:['morning','afternoon','evening'], w:4, d:[20,60] },
+    { id:'sword',    icon:'⚔', p:['morning','afternoon'],            w:3, d:[15,35] },
+    { id:'fly',      icon:'🦅', p:['morning','afternoon','evening'], w:3, d:[15,40] },
+    { id:'meditate', icon:'🧘', p:['evening','night'],               w:3, d:[20,50] },
+    { id:'water',    icon:'💧', p:['morning','afternoon'],           w:2, d:[8,15] },
+    { id:'idle',     icon:'',   p:['morning','afternoon','evening'], w:3, d:[20,50] }
+  ],
+  4: [
+    { id:'sleep',   icon:'💤', p:['night'],                         w:5, d:[30,90] },
+    { id:'read',    icon:'📜', p:['morning','afternoon','evening'], w:4, d:[20,60] },
+    { id:'command', icon:'🎖', p:['morning','afternoon'],            w:3, d:[15,35] },
+    { id:'armor',   icon:'🛡', p:['afternoon','evening'],            w:2, d:[15,30] },
+    { id:'fly',     icon:'🦅', p:['morning','afternoon'],           w:3, d:[15,40] },
+    { id:'meditate',icon:'🧘', p:['evening','night'],               w:3, d:[20,50] },
+    { id:'fire',    icon:'🔥', p:['afternoon'],                     w:2, d:[10,25] },
+    { id:'idle',    icon:'',   p:['morning','afternoon','evening'], w:2, d:[20,50] }
+  ],
+  5: [
+    { id:'sleep',   icon:'💤', p:['night'],                         w:4, d:[30,90] },
+    { id:'read',    icon:'📜', p:['morning','afternoon','evening'], w:4, d:[25,70] },
+    { id:'astral',  icon:'🌌', p:['night','evening'],               w:3, d:[25,60] },
+    { id:'command', icon:'🎖', p:['morning','afternoon'],            w:3, d:[20,40] },
+    { id:'mentor',  icon:'🎓', p:['afternoon','evening'],           w:2, d:[15,35] },
+    { id:'energy',  icon:'⚡', p:['morning','afternoon'],           w:3, d:[15,35] },
+    { id:'fly',     icon:'🦅', p:['morning'],                       w:2, d:[15,30] },
+    { id:'idle',    icon:'',   p:['morning','afternoon','evening'], w:2, d:[20,50] }
+  ]
+};
+
+var curAct = null, actEnd = 0, actFade = 0;
+var sleepZs = [], lastZSpawn = 0;
+
+function pickAct(stage, phase) {
+  var pool = (ACT_POOL[stage] || ACT_POOL[0]).filter(function(a) {
+    return a.p.indexOf(phase) !== -1;
+  });
+  if (!pool.length) return null;
+  var tw = 0;
+  for (var i = 0; i < pool.length; i++) tw += pool[i].w;
+  var r = Math.random() * tw;
+  for (var j = 0; j < pool.length; j++) { r -= pool[j].w; if (r <= 0) return pool[j]; }
+  return pool[pool.length - 1];
+}
+
+function checkActivity(t) {
+  if (curAct && t < actEnd) { actFade = Math.min(1, actFade + 0.015); return; }
+  actFade = 0;
+  var stage = getStage(DS.xp);
+  var phase = getDayPhase().phase;
+  var act = pickAct(stage, phase);
+  if (act && act.id !== 'idle') {
+    curAct = act;
+    actEnd = t + (act.d[0] + Math.random() * (act.d[1] - act.d[0])) * 1000;
+  } else {
+    curAct = null;
+    actEnd = t + (15 + Math.random() * 30) * 1000;
+  }
+}
 
 function todayStr() {
   var d = new Date();
@@ -503,6 +665,7 @@ function loadDS() {
     playToday:  parseInt(localStorage.getItem('dragon_playToday') || '0'),
     restToday:  parseInt(localStorage.getItem('dragon_restToday') || '0'),
     visXPToday: parseInt(localStorage.getItem('dragon_visXPToday') || '0'),
+    loginToday: parseInt(localStorage.getItem('dragon_loginToday') || '0'),
     todayDate:  localStorage.getItem('dragon_todayDate') || '',
     lastRandom: localStorage.getItem('dragon_lastRandom') || ''
   };
@@ -520,6 +683,7 @@ function saveDS(s) {
   localStorage.setItem('dragon_playToday', String(s.playToday));
   localStorage.setItem('dragon_restToday', String(s.restToday));
   localStorage.setItem('dragon_visXPToday', String(s.visXPToday));
+  localStorage.setItem('dragon_loginToday', String(s.loginToday));
   localStorage.setItem('dragon_todayDate', s.todayDate);
   localStorage.setItem('dragon_lastRandom', s.lastRandom);
 }
@@ -561,7 +725,7 @@ function initDS() {
   var today = todayStr();
   if (s.todayDate !== today) {
     s.feedToday = 0; s.playToday = 0; s.restToday = 0;
-    s.visXPToday = 0; s.todayDate = today;
+    s.visXPToday = 0; s.loginToday = 0; s.todayDate = today;
   }
 
   /* Streak (48h grace) */
@@ -573,6 +737,12 @@ function initDS() {
     s.streakDate = today;
     var sxp = Math.min(s.streak * STREAK_BASE, STREAK_CAP);
     s.xp += Math.floor(sxp * xpMult(s));
+  }
+
+  /* Daily login XP (once per day, replaces xp-claim widget) */
+  if (!s.loginToday) {
+    s.xp += Math.floor(DAILY_LOGIN_XP * xpMult(s));
+    s.loginToday = 1;
   }
 
   /* Random bonus (5% per day) */
@@ -605,6 +775,7 @@ function addXP(amt) {
     showEvolution(ns);
   }
   showXPFloat('+' + gained + ' XP');
+  checkAch();
   return gained;
 }
 
@@ -657,8 +828,10 @@ function drawEgg(ctx, t) {
   var prox = Math.max(0, 1 - mDist / 80);
 
   /* === BREATHING === */
-  var breath = Math.sin(t * 0.0016) * 0.04;
-  var heartbeat = Math.pow(Math.sin(t * 0.0042), 2) * 0.018;
+  var bSpd = (curAct && curAct.id === 'sleep') ? 0.0008 : 0.0016;
+  var breath = Math.sin(t * bSpd) * 0.04;
+  var hSpd = (curAct && curAct.id === 'sleep') ? 0.002 : 0.0042;
+  var heartbeat = Math.pow(Math.sin(t * hSpd), 2) * 0.018;
   var scale = 1 + (breath + heartbeat) * mood;
 
   /* === LEVITATION === */
@@ -666,7 +839,8 @@ function drawEgg(ctx, t) {
   var floatX = Math.sin(t * 0.0007) * 1.8 * mood;
 
   /* === ORGANIC WOBBLE === */
-  var wobble = Math.sin(t * 0.0012) * 0.03 * mood;
+  var wobbleAmp = (curAct && curAct.id === 'rock') ? 0.12 : 0.03;
+  var wobble = Math.sin(t * 0.0012) * wobbleAmp * mood;
   if (Math.sin(t * 0.00018) > 0.9) wobble *= 3;
 
   /* === MOUSE LEAN === */
@@ -685,7 +859,8 @@ function drawEgg(ctx, t) {
   ctx.fill();
 
   /* Outer aura (breathing glow) */
-  var aInt = 0.1 + breath * 2.5 + prox * 0.12;
+  var actGlow = (curAct && curAct.id === 'glow') ? 0.15 * actFade : 0;
+  var aInt = 0.1 + breath * 2.5 + prox * 0.12 + actGlow;
   var au = ctx.createRadialGradient(0, -4, 0, 0, -4, 56);
   au.addColorStop(0, 'rgba(' + (dark ? '167,139,250' : '139,92,246') + ',' + (aInt * mood) + ')');
   au.addColorStop(0.5, 'rgba(' + (dark ? '167,139,250' : '139,92,246') + ',' + (aInt * 0.25 * mood) + ')');
@@ -1447,6 +1622,11 @@ function drawElder(ctx, t) {
 
 function drawDragon(t) {
   dctx.clearRect(0, 0, DSZ, DSZ);
+  drawAmbientBG(dctx, t);
+  checkActivity(t);
+  if (curAct && (curAct.id === 'sleep' || curAct.id === 'dream' || curAct.id === 'astral')) {
+    isBlinking = true; blinkTimer = 0;
+  }
   var s = getStage(DS.xp);
   if (s === 0) drawEgg(dctx, t);
   else if (s === 1) drawHatchling(dctx, t);
@@ -1454,6 +1634,8 @@ function drawDragon(t) {
   else if (s === 3) drawJuvenile(dctx, t);
   else if (s === 4) drawAdult(dctx, t);
   else drawElder(dctx, t);
+  /* Activity overlays */
+  drawActivityOverlays(dctx, t);
   /* Evolution flash overlay */
   if (evolFlash > 0) {
     dctx.fillStyle = 'rgba(255,255,240,' + (evolFlash * 0.35) + ')';
@@ -1462,29 +1644,105 @@ function drawDragon(t) {
   }
 }
 
+/* ── Activity overlay drawing ── */
+function drawActivityOverlays(ctx, t) {
+  if (!curAct || actFade < 0.01) return;
+  var isSleep = curAct.id === 'sleep' || curAct.id === 'dream' || curAct.id === 'astral';
+
+  /* Floating Z's for sleep states */
+  if (isSleep) {
+    if (t - lastZSpawn > 850 && sleepZs.length < 6) {
+      sleepZs.push({ x: DC + 14 + Math.random() * 8, y: DC - 30, born: t, sz: 7 + Math.random() * 5 });
+      lastZSpawn = t;
+    }
+    for (var i = sleepZs.length - 1; i >= 0; i--) {
+      var z = sleepZs[i], age = t - z.born;
+      if (age > 3200) { sleepZs.splice(i, 1); continue; }
+      z.x += Math.sin(age * 0.0018) * 0.25;
+      z.y -= 0.38;
+      var za = age < 400 ? age / 400 : age > 2700 ? 1 - (age - 2700) / 500 : 1;
+      za *= actFade * 0.6;
+      var zsc = 0.7 + (age / 3200) * 0.6;
+      ctx.font = 'bold ' + Math.round(z.sz * zsc) + 'px Inter';
+      ctx.fillStyle = 'rgba(' + (dark ? '167,139,250' : '139,92,246') + ',' + za + ')';
+      ctx.textAlign = 'center';
+      ctx.fillText('z', z.x, z.y);
+    }
+    ctx.textAlign = 'start';
+  } else {
+    sleepZs = []; lastZSpawn = 0;
+  }
+
+  /* Thought bubble for active (non-sleep) activities */
+  if (curAct.icon && !isSleep) {
+    var bx = DC + 28, by = DC - 46 + Math.sin(t * 0.0015) * 2;
+    var al = actFade * 0.85;
+    var bgc = dark ? '35,30,50' : '255,255,255';
+    var brc = '138,92,246';
+
+    /* Trail dots */
+    ctx.beginPath(); ctx.arc(DC + 10, DC - 20, 2, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(' + bgc + ',' + (al * 0.7) + ')'; ctx.fill();
+    ctx.strokeStyle = 'rgba(' + brc + ',' + (al * 0.2) + ')'; ctx.lineWidth = 0.7; ctx.stroke();
+    ctx.beginPath(); ctx.arc(DC + 17, DC - 30, 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(' + bgc + ',' + (al * 0.8) + ')'; ctx.fill(); ctx.stroke();
+
+    /* Bubble */
+    ctx.beginPath(); ctx.ellipse(bx, by, 16, 14, 0, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(' + bgc + ',' + (al * 0.9) + ')'; ctx.fill();
+    ctx.strokeStyle = 'rgba(' + brc + ',' + (al * 0.25) + ')'; ctx.lineWidth = 1; ctx.stroke();
+
+    /* Icon */
+    ctx.globalAlpha = al;
+    ctx.font = '13px sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(curAct.icon, bx, by);
+    ctx.globalAlpha = 1;
+    ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
+  }
+}
+
 /* ══════════════════════════════════════
    3. UI UPDATES (bars, status)
    ══════════════════════════════════════ */
 
 function updateBars() {
-  document.getElementById('barRations').style.width = Math.max(0, DS.rations) + '%';
-  document.getElementById('barMorale').style.width = Math.max(0, DS.morale) + '%';
-  document.getElementById('barReadiness').style.width = Math.max(0, DS.readiness) + '%';
-  document.getElementById('valRations').textContent = Math.round(DS.rations);
-  document.getElementById('valMorale').textContent = Math.round(DS.morale);
-  document.getElementById('valReadiness').textContent = Math.round(DS.readiness);
+  [['rations','Rations'],['morale','Morale'],['readiness','Readiness']].forEach(function(b) {
+    var val = Math.max(0, DS[b[0]]);
+    var fill = document.getElementById('bar' + b[1]);
+    fill.style.width = val + '%';
+    fill.classList.remove('warn', 'crit');
+    if (val < 10) fill.classList.add('crit');
+    else if (val < 30) fill.classList.add('warn');
+    document.getElementById('val' + b[1]).textContent = Math.round(val);
+  });
 }
 
 function updateStatus() {
   var stage = getStage(DS.xp);
   var si = STAGES[stage];
-  var nxt = stage < STAGES.length - 1 ? STAGES[stage + 1].xp : DS.xp;
+  var nxt = stage < STAGES.length - 1 ? STAGES[stage + 1].xp : null;
   var dp = getDayPhase();
+  var fSz = DS.streak >= 30 ? '1.3' : DS.streak >= 14 ? '1.15' : DS.streak >= 7 ? '1.05' : '0.85';
+  var fOp = Math.min(1, 0.35 + DS.streak * 0.05);
   document.getElementById('dStatus').innerHTML =
     'Thymos &middot; <span class="d-rank">' + si.rank + '</span> &middot; ' +
     Math.floor(DS.xp).toLocaleString() + ' XP &middot; ' +
-    'Streak: ' + DS.streak + 'd <span class="d-fire">&#x1F525;</span>' +
+    'Streak: ' + DS.streak + 'd <span class="s-flame" style="font-size:' + fSz + 'em;opacity:' + fOp + '">&#x1F525;</span>' +
     (dp.label ? ' ' + dp.label : '');
+  var pf = document.getElementById('xpProgFill');
+  var pl = document.getElementById('xpProgLabel');
+  if (pf && pl) {
+    if (nxt !== null) {
+      var prev = STAGES[stage].xp;
+      var pct = Math.min(100, ((DS.xp - prev) / (nxt - prev)) * 100);
+      pf.style.width = pct + '%';
+      pl.textContent = Math.floor(DS.xp).toLocaleString() + ' / ' + nxt.toLocaleString();
+    } else {
+      pf.style.width = '100%';
+      pl.textContent = 'MAX RANK';
+    }
+  }
 }
 
 function showXPFloat(text) {
@@ -1496,8 +1754,230 @@ function showXPFloat(text) {
   setTimeout(function() { el.remove(); }, 1300);
 }
 
+/* ═══ ACHIEVEMENTS ═══ */
+
+var ACHS = [
+  {id:'first_steps',icon:'\uD83D\uDC63',name:'First Steps',desc:'Earn your first XP'},
+  {id:'hatched',icon:'\uD83E\uDD5A',name:'Hatched!',desc:'Reach Hatchling (OCdt)'},
+  {id:'taking_flight',icon:'\uD83E\uDD85',name:'Taking Flight',desc:'Reach Fledgling (2Lt)'},
+  {id:'battle_tested',icon:'⚔',name:'Battle Tested',desc:'Reach Juvenile (Lt)'},
+  {id:'officer',icon:'\uD83C\uDF96',name:'Officer Material',desc:'Reach Adult (Capt)'},
+  {id:'elder',icon:'\uD83D\uDC51',name:'Elder Dragon',desc:'Reach Elder (Maj)'},
+  {id:'xp_1k',icon:'⭐',name:'Rising Star',desc:'Earn 1,000 XP'},
+  {id:'xp_10k',icon:'\uD83C\uDF1F',name:'Shining Bright',desc:'Earn 10,000 XP'},
+  {id:'xp_50k',icon:'\uD83D\uDCAB',name:'XP Machine',desc:'Earn 50,000 XP'},
+  {id:'xp_100k',icon:'\uD83C\uDFC5',name:'Legendary',desc:'Earn 100,000 XP'},
+  {id:'streak_7',icon:'\uD83D\uDD25',name:'Week Warrior',desc:'7-day streak'},
+  {id:'streak_14',icon:'\uD83D\uDD25',name:'Fortnight Fighter',desc:'14-day streak'},
+  {id:'streak_30',icon:'\uD83D\uDD25',name:'Month of Discipline',desc:'30-day streak'},
+  {id:'streak_100',icon:'\uD83D\uDC8E',name:'Century',desc:'100-day streak'},
+  {id:'all_full',icon:'\uD83D\uDCAF',name:'Battle Ready',desc:'All bars at 100%'},
+  {id:'caretaker',icon:'\uD83E\uDD1D',name:'Caretaker',desc:'Feed, Play & Rest in one day'},
+  {id:'night_owl',icon:'\uD83E\uDD89',name:'Night Owl',desc:'Visit after midnight'},
+  {id:'early_bird',icon:'\uD83D\uDC26',name:'Early Bird',desc:'Visit before 7am'},
+  {id:'resilient',icon:'\uD83D\uDCAA',name:'Resilient',desc:'Recover from all bars below 20%'},
+  {id:'lucky',icon:'\uD83C\uDF40',name:'Lucky Dragon',desc:'Get a random bonus'},
+  {id:'dedicated',icon:'\uD83C\uDFE0',name:'Dedicated',desc:'50 total visits'},
+  {id:'zen',icon:'\uD83E\uDDD8',name:'Zen Master',desc:'Witness meditation activity'}
+];
+
+var achData = JSON.parse(localStorage.getItem('dragon_ach') || '{}');
+var achVisits = parseInt(localStorage.getItem('dragon_visits') || '0') + 1;
+localStorage.setItem('dragon_visits', String(achVisits));
+var allBarsBelowFlag = DS.rations < 20 && DS.morale < 20 && DS.readiness < 20;
+
+function unlockAch(id) {
+  if (achData[id]) return false;
+  achData[id] = Date.now();
+  localStorage.setItem('dragon_ach', JSON.stringify(achData));
+  var a = ACHS.find(function(x) { return x.id === id; });
+  if (a) showXPFloat('\uD83C\uDFC6 ' + a.name);
+  renderAch();
+  return true;
+}
+
+function checkAch() {
+  if (DS.rations < 20 && DS.morale < 20 && DS.readiness < 20) allBarsBelowFlag = true;
+  if (DS.xp > 0) unlockAch('first_steps');
+  if (DS.xp >= 1000) unlockAch('xp_1k');
+  if (DS.xp >= 10000) unlockAch('xp_10k');
+  if (DS.xp >= 50000) unlockAch('xp_50k');
+  if (DS.xp >= 100000) unlockAch('xp_100k');
+  var stg = getStage(DS.xp);
+  if (stg >= 1) unlockAch('hatched');
+  if (stg >= 2) unlockAch('taking_flight');
+  if (stg >= 3) unlockAch('battle_tested');
+  if (stg >= 4) unlockAch('officer');
+  if (stg >= 5) unlockAch('elder');
+  if (DS.streak >= 7) unlockAch('streak_7');
+  if (DS.streak >= 14) unlockAch('streak_14');
+  if (DS.streak >= 30) unlockAch('streak_30');
+  if (DS.streak >= 100) unlockAch('streak_100');
+  if (DS.rations >= 100 && DS.morale >= 100 && DS.readiness >= 100) unlockAch('all_full');
+  if (DS.feedToday > 0 && DS.playToday > 0 && DS.restToday > 0) unlockAch('caretaker');
+  var h = new Date().getHours();
+  if (h >= 0 && h < 5) unlockAch('night_owl');
+  if (h >= 5 && h < 7) unlockAch('early_bird');
+  if (allBarsBelowFlag && DS.rations >= 50 && DS.morale >= 50 && DS.readiness >= 50) unlockAch('resilient');
+  if (achVisits >= 50) unlockAch('dedicated');
+  if (curAct && (curAct.id === 'meditate' || curAct.id === 'astral')) unlockAch('zen');
+  if (DS.lastRandom === todayStr()) unlockAch('lucky');
+}
+
+function renderAch() {
+  var grid = document.getElementById('achGrid');
+  var count = document.getElementById('achCount');
+  if (!grid) return;
+  var html = '', ul = 0;
+  ACHS.forEach(function(a) {
+    var u = !!achData[a.id];
+    if (u) ul++;
+    html += '<div class="ach-item ' + (u ? 'unlocked' : 'locked') + '">' +
+      '<div class="ach-icon">' + a.icon + '</div>' +
+      '<div class="ach-info"><div class="ach-name">' + a.name + '</div>' +
+      '<div class="ach-desc">' + a.desc + '</div></div></div>';
+  });
+  grid.innerHTML = html;
+  count.textContent = ul + ' / ' + ACHS.length + ' unlocked';
+}
+
+/* ═══ AMBIENT BACKGROUND + SEASONAL ═══ */
+
+var ambStars = [];
+for (var _as = 0; _as < 20; _as++) {
+  ambStars.push({x:Math.random()*DSZ, y:Math.random()*DSZ, r:0.3+Math.random()*0.8, ph:Math.random()*Math.PI*2});
+}
+var seasonParts = [];
+
+function getSeasonType() {
+  var m = new Date().getMonth();
+  if (m >= 11 || m <= 1) return 'winter';
+  if (m >= 2 && m <= 4) return 'spring';
+  if (m >= 5 && m <= 7) return 'summer';
+  return 'autumn';
+}
+
+function drawAmbientBG(ctx, t) {
+  var dp = getDayPhase();
+  if (dp.phase === 'night') {
+    for (var i = 0; i < ambStars.length; i++) {
+      var s = ambStars[i];
+      var tw = 0.15 + 0.25 * Math.sin(t * 0.001 + s.ph);
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(' + (dark ? '200,180,255' : '139,92,246') + ',' + tw + ')';
+      ctx.fill();
+    }
+  }
+  if (dp.phase === 'evening') {
+    var eg = ctx.createRadialGradient(DC, DSZ, 0, DC, DSZ, DSZ);
+    eg.addColorStop(0, 'rgba(245,158,11,0.03)');
+    eg.addColorStop(1, 'rgba(245,158,11,0)');
+    ctx.fillStyle = eg; ctx.fillRect(0, 0, DSZ, DSZ);
+  }
+  var season = getSeasonType();
+  if (season === 'winter') {
+    if (seasonParts.length < 12) seasonParts.push({x:Math.random()*DSZ,y:-5,r:0.5+Math.random(),sp:0.2+Math.random()*0.3,drift:Math.random()*0.5-0.25});
+    for (var si = seasonParts.length - 1; si >= 0; si--) {
+      var sp = seasonParts[si]; sp.y += sp.sp; sp.x += sp.drift + Math.sin(t*0.001+si)*0.15;
+      if (sp.y > DSZ+5) { sp.y = -5; sp.x = Math.random()*DSZ; }
+      ctx.beginPath(); ctx.arc(sp.x, sp.y, sp.r, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255,255,255,' + (dark?0.15:0.1) + ')'; ctx.fill();
+    }
+  } else if (season === 'spring') {
+    if (seasonParts.length < 8) seasonParts.push({x:Math.random()*DSZ,y:-5,r:1+Math.random()*1.5,sp:0.15+Math.random()*0.25,drift:0.1+Math.random()*0.3,rot:Math.random()*Math.PI*2});
+    for (var pi = seasonParts.length - 1; pi >= 0; pi--) {
+      var p = seasonParts[pi]; p.y += p.sp; p.x += p.drift + Math.sin(t*0.0008+pi)*0.3; p.rot += 0.01;
+      if (p.y > DSZ+5) { p.y = -5; p.x = Math.random()*DSZ; }
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.beginPath(); ctx.ellipse(0, 0, p.r, p.r*0.6, 0, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255,183,197,' + (dark?0.18:0.15) + ')'; ctx.fill(); ctx.restore();
+    }
+  } else if (season === 'autumn') {
+    if (seasonParts.length < 6) seasonParts.push({x:Math.random()*DSZ,y:-5,r:1.5+Math.random(),sp:0.18+Math.random()*0.2,drift:0.2+Math.random()*0.4,rot:Math.random()*Math.PI*2});
+    for (var li = seasonParts.length - 1; li >= 0; li--) {
+      var l = seasonParts[li]; l.y += l.sp; l.x += l.drift + Math.sin(t*0.0006+li)*0.4; l.rot += 0.008;
+      if (l.y > DSZ+5) { l.y = -5; l.x = Math.random()*DSZ; }
+      ctx.save(); ctx.translate(l.x, l.y); ctx.rotate(l.rot);
+      ctx.beginPath(); ctx.ellipse(0, 0, l.r, l.r*0.5, 0, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(217,119,6,' + (dark?0.15:0.12) + ')'; ctx.fill(); ctx.restore();
+    }
+  }
+}
+
 updateBars();
 updateStatus();
+checkAch();
+renderAch();
+setInterval(checkAch, 10000);
+
+/* ═══ TAB OVERRIDE ═══ */
+setTimeout(function() {
+  var tabs = ['tabDragon','tabRadar','tabAch'];
+  var views = ['vDragon','vRadar','vAch'];
+  function sw(ti) {
+    tabs.forEach(function(t,i) {
+      document.getElementById(t).classList.toggle('active', i===ti);
+      document.getElementById(views[i]).classList.toggle('active', i===ti);
+    });
+  }
+  document.getElementById('tabDragon').onclick = function() { sw(0); };
+  document.getElementById('tabRadar').onclick = function() { sw(1); };
+  document.getElementById('tabAch').onclick = function() { sw(2); renderAch(); };
+}, 0);
+
+/* ═══ STATS PANEL ═══ */
+(function() {
+  var ov = document.getElementById('statsOv');
+  var body = document.getElementById('statsBody');
+  function openStats() {
+    var stg = getStage(DS.xp);
+    var si = STAGES[stg];
+    var nxt = stg < STAGES.length - 1 ? STAGES[stg + 1] : null;
+    var rows = [
+      ['Stage', si.name + ' (' + si.rank + ')'],
+      ['Total XP', Math.floor(DS.xp).toLocaleString()],
+      ['Next Evolution', nxt ? nxt.xp.toLocaleString() + ' XP (' + nxt.rank + ')' : 'MAX'],
+      ['Streak', DS.streak + ' days'],
+      ['XP Multiplier', (xpMult(DS) * 100) + '%'],
+      ['Rations', Math.round(DS.rations) + '%'],
+      ['Morale', Math.round(DS.morale) + '%'],
+      ['Readiness', Math.round(DS.readiness) + '%'],
+      ['Total Visits', localStorage.getItem('dragon_visits') || '1'],
+      ['Achievements', Object.keys(achData).length + ' / ' + ACHS.length],
+      ['Resets At', timeToMidnight()]
+    ];
+    body.innerHTML = rows.map(function(r) {
+      return '<div class="st-row"><span class="st-lbl">' + r[0] + '</span><span class="st-val">' + r[1] + '</span></div>';
+    }).join('');
+    ov.classList.add('show');
+  }
+  document.getElementById('infoBtn').onclick = openStats;
+  document.getElementById('statsClose').onclick = function() { ov.classList.remove('show'); };
+  ov.onclick = function(e) { if (e.target === ov) ov.classList.remove('show'); };
+  document.getElementById('btnExport').onclick = function() {
+    var data = {};
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (k.indexOf('dragon_') === 0) data[k] = localStorage.getItem(k);
+    }
+    var json = JSON.stringify(data);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(json).then(function() { showXPFloat('\uD83D\uDCCB Copied!'); });
+    } else { prompt('Copy this data:', json); }
+  };
+  document.getElementById('btnImport').onclick = function() {
+    var json = prompt('Paste exported dragon data:');
+    if (!json) return;
+    try {
+      var data = JSON.parse(json);
+      Object.keys(data).forEach(function(k) {
+        if (k.indexOf('dragon_') === 0) localStorage.setItem(k, data[k]);
+      });
+      showXPFloat('✅ Imported!');
+      setTimeout(function() { location.reload(); }, 800);
+    } catch(e) { alert('Invalid data'); }
+  };
+})();
 
 /* ══════════════════════════════════════
    4. RADIAL MENU + INTERACTIONS
