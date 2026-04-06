@@ -627,6 +627,7 @@ function _playSummonSound() {
 }
 
 function playSummon(role) {
+  return; /* Cross-map summoning disabled — each widget handles its own intro */
   if (Core.reducedMotion) return;
   if (_summonRoles.indexOf(role) === -1) _summonRoles.push(role);
   var summon = _checkSummon();
@@ -745,12 +746,3 @@ function playSummon(role) {
   setTimeout(function() { if (cv.parentNode) cv.remove(); }, SUMMON_WINDOW + SUMMON_DELAY + 3000);
 }
 
-/* ── Re-trigger summon on app resume ── */
-document.addEventListener('visibilitychange', function() {
-  if (!document.hidden && _summonRoles.length > 0) {
-    localStorage.removeItem('summon_start');
-    setTimeout(function() {
-      _summonRoles.forEach(function(r) { playSummon(r); });
-    }, 200);
-  }
-});
