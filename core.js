@@ -1442,10 +1442,14 @@ var SyncEngine = (function() {
     /** Check connectivity status. */
     isOnline: function() { return online; },
 
-    /** Fetch milestones from the Notion bridge (phase 2). */
+    /** Fetch milestones from the Notion bridge (phase 2).
+     *  Database ID is stored server-side as NOTION_DB_ID secret.
+     *  Optional dbId param overrides the server default. */
     fetchMilestones: function(dbId) {
       if (!online || !passphrase) return Promise.resolve([]);
-      return fetch(WORKER_URL + '/notion/milestones?db=' + encodeURIComponent(dbId), {
+      var endpoint = WORKER_URL + '/notion/milestones';
+      if (dbId) endpoint += '?db=' + encodeURIComponent(dbId);
+      return fetch(endpoint, {
         method: 'GET',
         headers: { 'X-Widget-Key': passphrase }
       })
