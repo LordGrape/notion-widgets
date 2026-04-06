@@ -312,11 +312,16 @@ try {
   var rotX = 0, rotY = 0, spinId = null;
   var SENS = 0.4, FRICTION = 0.94, RETURN = 0.97;
 
-  /* ── Whoosh Sound Engine ── */
-  var whooshCtx = null, whooshSource = null, whooshFilter = null, whooshGain = null, whooshActive = false;
-  var WHOOSH_MAX_GAIN = 0.3;
-  var WHOOSH_MIN_FREQ = 300;
-  var WHOOSH_MAX_FREQ = 2000;
+  /* ── Whoosh Sound Engine v2 (smooth wind) ── */
+  var whooshCtx = null, whooshSource = null, whooshFilter = null, whooshGain = null;
+  var whooshTone = null, whooshToneGain = null;
+  var whooshActive = false;
+  var WHOOSH_MAX_GAIN = 0.12;
+  var WHOOSH_TONE_MAX_GAIN = 0.04;
+  var WHOOSH_MIN_FREQ = 150;
+  var WHOOSH_MAX_FREQ = 900;
+  var WHOOSH_TONE_BASE = 180;
+  var WHOOSH_TONE_RANGE = 280;
   var WHOOSH_SPEED_CAP = 35;
 
   function initWhoosh() {
@@ -325,19 +330,32 @@ try {
       whooshCtx = typeof getAudioCtx === 'function' ? getAudioCtx() : new (window.AudioContext || window.webkitAudioContext)();
       if (whooshCtx.state === 'suspended') whooshCtx.resume();
 
+      /* Generate pink noise buffer (1/f rolloff — warm, natural) */
       var bufLen = whooshCtx.sampleRate * 2;
       var buf = whooshCtx.createBuffer(1, bufLen, whooshCtx.sampleRate);
       var data = buf.getChannelData(0);
-      for (var i = 0; i < bufLen; i++) data[i] = Math.random() * 2 - 1;
+      var b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+      for (var i = 0; i < bufLen; i++) {
+        var white = Math.random() * 2 - 1;
+        b0 = 0.99886 * b0 + white * 0.0555179;
+        b1 = 0.99332 * b1 + white * 0.0750759;
+        b2 = 0.96900 * b2 + white * 0.1538520;
+        b3 = 0.86650 * b3 + white * 0.3104856;
+        b4 = 0.55000 * b4 + white * 0.5329522;
+        b5 = -0.7616 * b5 - white * 0.0168980;
+        data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
+        b6 = white * 0.115926;
+      }
 
       whooshSource = whooshCtx.createBufferSource();
       whooshSource.buffer = buf;
       whooshSource.loop = true;
 
+      /* Lowpass filter — warm cutoff, gentle slope */
       whooshFilter = whooshCtx.createBiquadFilter();
-      whooshFilter.type = 'bandpass';
+      whooshFilter.type = 'lowpass';
       whooshFilter.frequency.value = WHOOSH_MIN_FREQ;
-      whooshFilter.Q.value = 0.8;
+      whooshFilter.Q.value = 0.4;
 
       whooshGain = whooshCtx.createGain();
       whooshGain.gain.value = 0;
@@ -346,25 +364,46 @@ try {
       whooshFilter.connect(whooshGain);
       whooshGain.connect(whooshCtx.destination);
       whooshSource.start();
+
+      /* Subtle sine undertone — adds "singing wind" resonance */
+      whooshTone = whooshCtx.createOscillator();
+      whooshTone.type = 'sine';
+      whooshTone.frequency.value = WHOOSH_TONE_BASE;
+      whooshToneGain = whooshCtx.createGain();
+      whooshToneGain.gain.value = 0;
+      whooshTone.connect(whooshToneGain);
+      whooshToneGain.connect(whooshCtx.destination);
+      whooshTone.start();
+
       whooshActive = true;
     } catch (e) { whooshActive = false; }
   }
 
   function updateWhoosh(speed) {
     if (!whooshActive || !whooshGain || !whooshFilter) return;
-    var t = whooshCtx.currentTime + 0.02;
+    var t = whooshCtx.currentTime + 0.03;
     var norm = Math.min(speed / WHOOSH_SPEED_CAP, 1);
-    var gainVal = norm * norm * WHOOSH_MAX_GAIN;
-    var freqVal = WHOOSH_MIN_FREQ + norm * (WHOOSH_MAX_FREQ - WHOOSH_MIN_FREQ);
+    /* Cubic curve: very quiet at low speeds, ramps late */
+    var gainVal = norm * norm * norm * WHOOSH_MAX_GAIN;
+    var freqVal = WHOOSH_MIN_FREQ + norm * norm * (WHOOSH_MAX_FREQ - WHOOSH_MIN_FREQ);
     whooshGain.gain.linearRampToValueAtTime(gainVal, t);
     whooshFilter.frequency.linearRampToValueAtTime(freqVal, t);
+    /* Sine undertone drifts up with speed */
+    if (whooshTone && whooshToneGain) {
+      var toneGain = norm * norm * norm * WHOOSH_TONE_MAX_GAIN;
+      var toneFreq = WHOOSH_TONE_BASE + norm * WHOOSH_TONE_RANGE;
+      whooshToneGain.gain.linearRampToValueAtTime(toneGain, t);
+      whooshTone.frequency.linearRampToValueAtTime(toneFreq, t);
+    }
   }
 
   function silenceWhoosh() {
-    if (!whooshActive || !whooshGain || !whooshFilter) return;
-    var t = whooshCtx.currentTime + 0.08;
+    if (!whooshActive || !whooshGain) return;
+    var t = whooshCtx.currentTime + 0.12;
     whooshGain.gain.linearRampToValueAtTime(0, t);
-    whooshFilter.frequency.linearRampToValueAtTime(WHOOSH_MIN_FREQ, t);
+    if (whooshFilter) whooshFilter.frequency.linearRampToValueAtTime(WHOOSH_MIN_FREQ, t);
+    if (whooshToneGain) whooshToneGain.gain.linearRampToValueAtTime(0, t);
+    if (whooshTone) whooshTone.frequency.linearRampToValueAtTime(WHOOSH_TONE_BASE, t);
   }
 
   function start(e) {
