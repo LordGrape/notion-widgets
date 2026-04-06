@@ -124,6 +124,70 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); display: flex; a
 .week-detail-divider { height: 1px; background: var(--block-border); margin: 8px 0; }
 .week-detail-dur { display: inline-block; margin-top: 8px; padding: 3px 10px; border-radius: 8px; font-size: 8px; font-weight: 600; letter-spacing: 0.5px; color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
 .week-detail-close { text-align: center; margin-top: 10px; font-size: 7px; font-weight: 300; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; }
+
+/* ── Settings Panel ── */
+.settings-btn { background: none; border: none; cursor: pointer; font-size: 14px; padding: 4px; opacity: 0.35; transition: opacity 0.2s, transform 0.3s; }
+.settings-btn:hover { opacity: 0.7; transform: rotate(45deg); }
+.settings-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.25); z-index: 200; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+.settings-overlay.show { opacity: 1; pointer-events: auto; }
+.settings-card { background: var(--card-bg); backdrop-filter: blur(24px) saturate(1.6); -webkit-backdrop-filter: blur(24px) saturate(1.6); border: 1px solid var(--card-border); border-radius: 16px; padding: 20px; max-width: 360px; width: 92%; max-height: 80vh; overflow-y: auto; transform: scale(0.88) translateY(12px); transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1); box-shadow: 0 12px 40px rgba(0,0,0,0.18); }
+.settings-overlay.show .settings-card { transform: scale(1) translateY(0); }
+.settings-card::-webkit-scrollbar { width: 0; }
+.settings-title { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; letter-spacing: -0.2px; }
+.settings-sub { font-size: 8px; font-weight: 300; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 14px; }
+.course-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; background: var(--block-bg); border: 1px solid var(--block-border); margin-bottom: 6px; transition: background 0.2s; }
+.course-item:hover { background: var(--block-active-bg); }
+.course-item-accent { width: 3px; height: 28px; border-radius: 2px; flex-shrink: 0; }
+.course-item-info { flex: 1; min-width: 0; }
+.course-item-name { font-size: 10px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.course-item-meta { font-size: 8px; font-weight: 300; color: var(--text-muted); }
+.course-delete-btn { background: none; border: none; cursor: pointer; font-size: 12px; color: var(--text-muted); padding: 2px 6px; border-radius: 4px; transition: color 0.2s, background 0.2s; flex-shrink: 0; }
+.course-delete-btn:hover { color: #ef4444; background: rgba(239,68,68,0.08); }
+.add-course-btn { width: 100%; padding: 8px; border-radius: 8px; border: 1px dashed var(--block-border); background: transparent; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 9px; font-weight: 500; color: var(--text-secondary); letter-spacing: 0.5px; transition: all 0.2s; margin-top: 8px; }
+.add-course-btn:hover { border-color: var(--dot-active); color: var(--dot-active); background: rgba(138,92,246,0.04); }
+.add-form { margin-top: 10px; padding: 12px; border-radius: 10px; background: var(--block-bg); border: 1px solid var(--block-border); }
+.form-row { margin-bottom: 8px; }
+.form-label { font-size: 8px; font-weight: 500; color: var(--text-secondary); letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 3px; display: block; }
+.form-input { width: 100%; padding: 7px 10px; border-radius: 6px; border: 1px solid var(--block-border); background: var(--bg); color: var(--text-primary); font-family: 'Inter', sans-serif; font-size: 10px; outline: none; transition: border-color 0.2s; box-sizing: border-box; }
+.form-input:focus { border-color: var(--dot-active); }
+.form-input-row { display: flex; gap: 6px; }
+.form-input-row .form-row { flex: 1; }
+.color-swatches { display: flex; gap: 5px; flex-wrap: wrap; }
+.color-swatch { width: 20px; height: 20px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: transform 0.15s, border-color 0.15s; }
+.color-swatch:hover { transform: scale(1.15); }
+.color-swatch.active { border-color: var(--text-primary); transform: scale(1.15); }
+.form-actions { display: flex; gap: 6px; margin-top: 10px; }
+.form-btn { flex: 1; padding: 7px 0; border-radius: 8px; border: none; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 9px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; transition: transform 0.15s, opacity 0.15s; }
+.form-btn:hover { transform: scale(1.02); }
+.form-btn-primary { background: var(--dot-active); color: #fff; }
+.form-btn-secondary { background: transparent; border: 1px solid var(--block-border); color: var(--text-secondary); }
+
+/* ── Confirmation Dialog ── */
+.confirm-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.35); z-index: 300; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.25s ease; }
+.confirm-overlay.show { opacity: 1; pointer-events: auto; }
+.confirm-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 20px 24px; max-width: 260px; width: 88%; text-align: center; transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); box-shadow: 0 8px 30px rgba(0,0,0,0.2); }
+.confirm-overlay.show .confirm-card { transform: scale(1); }
+.confirm-title { font-size: 12px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+.confirm-msg { font-size: 9px; font-weight: 300; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.5; }
+.confirm-actions { display: flex; gap: 8px; }
+.confirm-btn { flex: 1; padding: 8px 0; border-radius: 8px; border: none; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 9px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; transition: transform 0.15s; }
+.confirm-btn:hover { transform: scale(1.03); }
+.confirm-btn-cancel { background: var(--block-bg); border: 1px solid var(--block-border); color: var(--text-secondary); }
+.confirm-btn-delete { background: #ef4444; color: #fff; }
+
+/* ── Milestones ── */
+.milestones-section { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--block-border); }
+.milestones-label { font-size: 7px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: var(--label-color); margin-bottom: 6px; }
+.milestone-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; background: var(--block-bg); border: 1px solid var(--block-border); margin-bottom: 4px; }
+.milestone-icon { font-size: 10px; flex-shrink: 0; }
+.milestone-info { flex: 1; min-width: 0; }
+.milestone-name { font-size: 9px; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.milestone-date { font-size: 7px; font-weight: 300; color: var(--text-muted); letter-spacing: 0.3px; }
+.milestone-badge { font-size: 7px; font-weight: 600; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.3px; flex-shrink: 0; color: #fff; }
+
+/* ── Day Group Labels (Settings) ── */
+.day-group-label { font-size: 7px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-secondary); margin: 8px 0 4px 2px; }
+
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; } #bg { display: none; } }
 </style>
 </head>
@@ -135,107 +199,573 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); display: flex; a
       <div class="label">Schedule</div>
       <div class="title" id="title">Today's Classes</div>
     </div>
-    <div class="view-toggle" id="viewToggle">
-      <button class="view-btn active" data-view="today">Today</button>
-      <button class="view-btn" data-view="week">Week</button>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <div class="view-toggle" id="viewToggle">
+        <button class="view-btn active" data-view="today">Today</button>
+        <button class="view-btn" data-view="week">Week</button>
+      </div>
+      <button class="settings-btn" id="settingsBtn" title="Course Settings">\u2699</button>
     </div>
   </div>
   <div id="todayView">
     <div class="day-selector" id="daySelector"></div>
     <div class="schedule" id="schedule"></div>
+    <div id="milestonesContainer"></div>
     <div class="footer"><div class="footer-text" id="footer"></div></div>
   </div>
   <div class="week-view" id="weekView" style="display:none"></div>
 </div>
+
+<!-- Settings Overlay -->
+<div class="settings-overlay" id="settingsOverlay">
+  <div class="settings-card" id="settingsCard">
+    <div class="settings-title">Course Settings</div>
+    <div class="settings-sub">Manage your schedule</div>
+    <div id="courseList"></div>
+    <button class="add-course-btn" id="addCourseBtn">+ Add Course</button>
+    <div id="addFormContainer" style="display:none"></div>
+    <div style="text-align:center;margin-top:10px;font-size:7px;font-weight:300;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;">tap outside to close</div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Overlay -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-card">
+    <div class="confirm-title" id="confirmTitle">Delete Course?</div>
+    <div class="confirm-msg" id="confirmMsg">This action cannot be undone.</div>
+    <div class="confirm-actions">
+      <button class="confirm-btn confirm-btn-cancel" id="confirmCancel">Cancel</button>
+      <button class="confirm-btn confirm-btn-delete" id="confirmDelete">Delete</button>
+    </div>
+  </div>
+</div>
+
 <script src="core.js"></script>
 <script>
-var schedule = [
-  { day: 1, name: "POLS 3550: Political Economy & Intl Trade", prof: "Dr. Lanoszka", room: "Dillon Hall 361", start: "11:30", end: "14:20", color: "#c4a235" },
-  { day: 1, name: "POLS 3140: Constitutional Law & Politics", prof: "Dr. Callaghan", room: "Erie Hall 2123", start: "14:30", end: "15:50", color: "#7cb342" },
-  { day: 1, name: "ICDS 3020: Historical Approaches to People with Disabilities", prof: "Dr. Voronka", room: "Memorial Hall 311", start: "16:00", end: "18:50", color: "#e67c73" },
-  { day: 3, name: "POLS 3140: Constitutional Law & Politics", prof: "Dr. Callaghan", room: "Erie Hall 2123", start: "14:30", end: "15:50", color: "#7cb342" },
-  { day: 4, name: "POLS 4610: International Relation Seminar", prof: "Dr. Najem", room: "Dillon Hall 366", start: "10:00", end: "12:50", color: "#ce93d8" },
-  { day: 4, name: "POLS 4420: Politics and Security in Russia and Eurasia", prof: "Dr. Maltseva", room: "Dillon Hall 366", start: "13:00", end: "15:50", color: "#4dd0e1" },
+/* ══════════════════════════════════════
+   TIMETABLE v2 — SyncEngine Migration
+   ══════════════════════════════════════
+   Data flow:
+   1. Courses stored in SyncEngine 'timetable' namespace (CRUD via settings UI)
+   2. Milestones pulled from SyncEngine.fetchMilestones() (Notion bridge)
+   3. First run seeds defaults from the old hardcoded schedule
+   ══════════════════════════════════════ */
+
+var DEFAULT_COURSES = [
+  { id:'d1', day:1, name:"POLS 3550: Political Economy & Intl Trade", prof:"Dr. Lanoszka", room:"Dillon Hall 361", start:"11:30", end:"14:20", color:"#c4a235" },
+  { id:'d2', day:1, name:"POLS 3140: Constitutional Law & Politics", prof:"Dr. Callaghan", room:"Erie Hall 2123", start:"14:30", end:"15:50", color:"#7cb342" },
+  { id:'d3', day:1, name:"ICDS 3020: Historical Approaches to People with Disabilities", prof:"Dr. Voronka", room:"Memorial Hall 311", start:"16:00", end:"18:50", color:"#e67c73" },
+  { id:'d4', day:3, name:"POLS 3140: Constitutional Law & Politics", prof:"Dr. Callaghan", room:"Erie Hall 2123", start:"14:30", end:"15:50", color:"#7cb342" },
+  { id:'d5', day:4, name:"POLS 4610: International Relation Seminar", prof:"Dr. Najem", room:"Dillon Hall 366", start:"10:00", end:"12:50", color:"#ce93d8" },
+  { id:'d6', day:4, name:"POLS 4420: Politics and Security in Russia and Eurasia", prof:"Dr. Maltseva", room:"Dillon Hall 366", start:"13:00", end:"15:50", color:"#4dd0e1" }
 ];
+
 var DAY_LABELS = ['S','M','T','W','T','F','S'];
 var DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+var COLORS = ['#c4a235','#7cb342','#e67c73','#ce93d8','#4dd0e1','#8b5cf6','#f59e0b','#ef4444','#6366f1','#10b981'];
+
+var schedule = [];
+var milestones = [];
 var today = new Date().getDay();
 var selectedDay = today;
-var selectorEl = document.getElementById('daySelector');
-for (var i = 0; i < 7; i++) {
-  var btn = document.createElement('button');
-  btn.className = 'day-dot'; btn.textContent = DAY_LABELS[i]; btn.dataset.day = i;
-  if (i === today) btn.classList.add('today');
-  if (i === selectedDay) btn.classList.add('active');
-  btn.addEventListener('click', function() { playClick(); selectedDay = parseInt(this.dataset.day); renderSchedule(); updateDots(); });
-  selectorEl.appendChild(btn);
-}
-function updateDots() { var dots = selectorEl.querySelectorAll('.day-dot'); for (var i = 0; i < dots.length; i++) dots[i].classList.toggle('active', parseInt(dots[i].dataset.day) === selectedDay); }
+var currentView = 'today';
+var pendingDeleteId = null;
+var addFormVisible = false;
+
+/* ── Helpers ── */
 function timeToMinutes(t) { var p = t.split(':'); return parseInt(p[0]) * 60 + parseInt(p[1]); }
 function formatTime(t) { var p = t.split(':'); var h = parseInt(p[0]); var m = p[1]; var ap = h >= 12 ? 'PM' : 'AM'; if (h > 12) h -= 12; if (h === 0) h = 12; return h + ':' + m + ' ' + ap; }
+function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+/* ── Course CRUD (SyncEngine-backed) ── */
+function getCourses() { return SyncEngine.get('timetable', 'courses') || []; }
+function saveCourses(arr) { SyncEngine.set('timetable', 'courses', arr); schedule = arr; }
+function addCourse(c) { var arr = getCourses(); c.id = genId(); arr.push(c); saveCourses(arr); return c; }
+function deleteCourse(id) { saveCourses(getCourses().filter(function(c) { return c.id !== id; })); }
+
+/* ── Day Selector ── */
+function buildDaySelector() {
+  var el = document.getElementById('daySelector');
+  el.innerHTML = '';
+  for (var i = 0; i < 7; i++) {
+    var btn = document.createElement('button');
+    btn.className = 'day-dot'; btn.textContent = DAY_LABELS[i]; btn.dataset.day = i;
+    if (i === today) btn.classList.add('today');
+    if (i === selectedDay) btn.classList.add('active');
+    btn.addEventListener('click', function() {
+      playClick(); selectedDay = parseInt(this.dataset.day); renderSchedule(); updateDots();
+    });
+    el.appendChild(btn);
+  }
+}
+function updateDots() {
+  var dots = document.querySelectorAll('#daySelector .day-dot');
+  for (var i = 0; i < dots.length; i++) dots[i].classList.toggle('active', parseInt(dots[i].dataset.day) === selectedDay);
+}
+
+/* ── Schedule Rendering (Today View) ── */
 function renderSchedule() {
-  var container = document.getElementById('schedule'); container.innerHTML = '';
+  var container = document.getElementById('schedule');
+  container.innerHTML = '';
   var classes = schedule.filter(function(c) { return c.day === selectedDay; });
   var isToday = selectedDay === today;
-  var titleEl = document.getElementById('title');
-  titleEl.textContent = isToday ? "Today's Classes" : DAY_NAMES[selectedDay];
-  if (classes.length === 0) { var empty = document.createElement('div'); empty.className = 'empty'; empty.innerHTML = '<div class="empty-icon">\u2728</div><div class="empty-text">No classes</div>'; container.appendChild(empty); document.getElementById('footer').textContent = 'Free day'; return; }
-  var now = new Date(); var nowMins = now.getHours() * 60 + now.getMinutes(); var nextClass = null; var activeClass = null;
+  document.getElementById('title').textContent = isToday ? "Today's Classes" : DAY_NAMES[selectedDay];
+
+  if (classes.length === 0) {
+    container.innerHTML = '<div class="empty"><div class="empty-icon">\u2728</div><div class="empty-text">No classes</div></div>';
+    document.getElementById('footer').textContent = 'Free day';
+    renderMilestones();
+    return;
+  }
+
+  var now = new Date();
+  var nowMins = now.getHours() * 60 + now.getMinutes();
+  var nextClass = null;
+
   classes.forEach(function(c, idx) {
-    var startMins = timeToMinutes(c.start); var endMins = timeToMinutes(c.end);
-    var block = document.createElement('div'); block.className = 'class-block'; block.style.animationDelay = (0.3 + idx * 0.1) + 's';
+    var startMins = timeToMinutes(c.start), endMins = timeToMinutes(c.end);
+    var block = document.createElement('div');
+    block.className = 'class-block';
+    block.style.animationDelay = (0.3 + idx * 0.1) + 's';
     var state = '';
-    if (isToday) { if (nowMins >= startMins && nowMins < endMins) { state = 'active'; activeClass = c; block.classList.add('active'); } else if (nowMins >= endMins) { state = 'past'; block.classList.add('past'); } else { state = 'upcoming'; if (!nextClass) nextClass = c; } }
-    var accent = document.createElement('div'); accent.className = 'class-accent'; accent.style.background = c.color; block.appendChild(accent);
-    var timeCol = document.createElement('div'); timeCol.className = 'time-col'; timeCol.innerHTML = '<div class="time-start">' + formatTime(c.start) + '</div><div class="time-end">' + formatTime(c.end) + '</div>'; block.appendChild(timeCol);
-    var info = document.createElement('div'); info.className = 'class-info'; info.innerHTML = '<div class="class-name">' + c.name + '</div><div class="class-meta">' + c.prof + ' \u00B7 ' + c.room + '</div>';
-    if (state === 'active') { var progress = (nowMins - startMins) / (endMins - startMins) * 100; var remaining = endMins - nowMins; info.innerHTML += '<div class="progress-wrap"><div class="progress-fill" style="width:' + progress + '%"></div></div><div class="status live">' + remaining + 'm remaining</div>'; }
-    else if (state === 'upcoming' && c === nextClass) { info.innerHTML += '<div class="status upcoming">Starts in ' + (startMins - nowMins) + 'm</div>'; }
-    else if (state === 'past') { info.innerHTML += '<div class="status done">Completed</div>'; }
+    if (isToday) {
+      if (nowMins >= startMins && nowMins < endMins) { state = 'active'; block.classList.add('active'); }
+      else if (nowMins >= endMins) { state = 'past'; block.classList.add('past'); }
+      else { state = 'upcoming'; if (!nextClass) nextClass = c; }
+    }
+
+    var accent = document.createElement('div'); accent.className = 'class-accent'; accent.style.background = c.color;
+    block.appendChild(accent);
+
+    var timeCol = document.createElement('div'); timeCol.className = 'time-col';
+    timeCol.innerHTML = '<div class="time-start">' + formatTime(c.start) + '</div><div class="time-end">' + formatTime(c.end) + '</div>';
+    block.appendChild(timeCol);
+
+    var info = document.createElement('div'); info.className = 'class-info';
+    info.innerHTML = '<div class="class-name">' + c.name + '</div><div class="class-meta">' + c.prof + ' \u00B7 ' + c.room + '</div>';
+
+    if (state === 'active') {
+      var progress = (nowMins - startMins) / (endMins - startMins) * 100;
+      var remaining = endMins - nowMins;
+      info.innerHTML += '<div class="progress-wrap"><div class="progress-fill" style="width:' + progress + '%"></div></div><div class="status live">' + remaining + 'm remaining</div>';
+    } else if (state === 'upcoming' && c === nextClass) {
+      info.innerHTML += '<div class="status upcoming">Starts in ' + (startMins - nowMins) + 'm</div>';
+    } else if (state === 'past') {
+      info.innerHTML += '<div class="status done">Completed</div>';
+    }
+
+    var dur = endMins - startMins;
+    var dH = Math.floor(dur / 60), dM = dur % 60;
+    var durStr = dH > 0 ? dH + 'h ' + (dM > 0 ? dM + 'm' : '') : dM + 'm';
     var details = document.createElement('div'); details.className = 'class-details';
-    var dur = endMins - startMins; var dH = Math.floor(dur / 60); var dM = dur % 60; var durStr = dH > 0 ? dH + 'h ' + (dM > 0 ? dM + 'm' : '') : dM + 'm';
-    details.innerHTML = '<div class="detail-divider"></div><div class="detail-row"><span class="detail-icon">\u23F1</span><span class="detail-text">Duration: ' + durStr.trim() + '</span></div><div class="detail-row"><span class="detail-icon">\uD83D\uDCCD</span><span class="detail-text">' + c.room + '</span></div><div class="detail-row"><span class="detail-icon">\uD83D\uDC64</span><span class="detail-text">' + c.prof + '</span></div><div class="duration-bar"><div class="duration-fill" style="width:' + Math.min(dur / 180 * 100, 100) + '%;background:' + c.color + '"></div></div>';
+    details.innerHTML = '<div class="detail-divider"></div>' +
+      '<div class="detail-row"><span class="detail-icon">\u23F1</span><span class="detail-text">Duration: ' + durStr.trim() + '</span></div>' +
+      '<div class="detail-row"><span class="detail-icon">\uD83D\uDCCD</span><span class="detail-text">' + c.room + '</span></div>' +
+      '<div class="detail-row"><span class="detail-icon">\uD83D\uDC64</span><span class="detail-text">' + c.prof + '</span></div>' +
+      '<div class="duration-bar"><div class="duration-fill" style="width:' + Math.min(dur / 180 * 100, 100) + '%;background:' + c.color + '"></div></div>';
     info.appendChild(details);
-    block.addEventListener('click', function() { var was = this.classList.contains('expanded'); if (was) playClose(); else playOpen(); var all = container.querySelectorAll('.class-block'); for (var j = 0; j < all.length; j++) all[j].classList.remove('expanded'); if (!was) this.classList.add('expanded'); });
-    block.appendChild(info); container.appendChild(block);
+
+    block.addEventListener('click', function() {
+      var was = this.classList.contains('expanded');
+      if (was) playClose(); else playOpen();
+      var all = container.querySelectorAll('.class-block');
+      for (var j = 0; j < all.length; j++) all[j].classList.remove('expanded');
+      if (!was) this.classList.add('expanded');
+    });
+
+    block.appendChild(info);
+    container.appendChild(block);
   });
-  var totalH = 0; classes.forEach(function(c) { totalH += (timeToMinutes(c.end) - timeToMinutes(c.start)) / 60; });
+
+  var totalH = 0;
+  classes.forEach(function(c) { totalH += (timeToMinutes(c.end) - timeToMinutes(c.start)) / 60; });
   document.getElementById('footer').textContent = classes.length + ' class' + (classes.length > 1 ? 'es' : '') + ' \u00B7 ' + totalH.toFixed(1) + 'h total';
+  renderMilestones();
 }
-renderSchedule();
-setInterval(function() { if (selectedDay === today) renderSchedule(); }, 30000);
-var hasClassesToday = schedule.some(function(c) { return c.day === today; });
-var currentView = hasClassesToday ? 'today' : 'week';
-var toggleBtns = document.querySelectorAll('.view-btn');
-var todayViewEl = document.getElementById('todayView');
-var weekViewEl = document.getElementById('weekView');
-if (!hasClassesToday) { todayViewEl.style.display = 'none'; weekViewEl.style.display = ''; document.getElementById('title').textContent = 'Weekly Overview'; toggleBtns.forEach(function(b) { b.classList.remove('active'); }); document.querySelector('.view-btn[data-view="week"]').classList.add('active'); renderWeekView(); }
-toggleBtns.forEach(function(btn) { btn.addEventListener('click', function() { var view = this.dataset.view; if (view === currentView) return; playModeSwitch(); currentView = view; toggleBtns.forEach(function(b) { b.classList.remove('active'); }); this.classList.add('active'); if (view === 'today') { todayViewEl.style.display = ''; weekViewEl.style.display = 'none'; document.getElementById('title').textContent = selectedDay === today ? "Today's Classes" : DAY_NAMES[selectedDay]; } else { todayViewEl.style.display = 'none'; weekViewEl.style.display = ''; document.getElementById('title').textContent = 'Weekly Overview'; renderWeekView(); } }); });
+
+/* ── Week View ── */
 function renderWeekView() {
   var el = document.getElementById('weekView');
-  var oldOv = document.querySelector('.week-overlay'); if (oldOv) oldOv.remove();
-  if (window._weekEsc) { document.removeEventListener('keydown', window._weekEsc); }
+  var oldOv = document.querySelector('.week-overlay');
+  if (oldOv) oldOv.remove();
+  if (window._weekEsc) document.removeEventListener('keydown', window._weekEsc);
+
+  if (!schedule.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">\u2728</div><div class="empty-text">No courses yet</div></div>';
+    return;
+  }
+
   var allStarts = schedule.map(function(c) { return timeToMinutes(c.start); });
   var allEnds = schedule.map(function(c) { return timeToMinutes(c.end); });
-  var GS = Math.min.apply(null, allStarts) - 30; var GE = Math.max.apply(null, allEnds) + 30; var SPAN = GE - GS;
-  var now = new Date(); var nowMins = now.getHours() * 60 + now.getMinutes();
+  var GS = Math.min.apply(null, allStarts) - 30;
+  var GE = Math.max.apply(null, allEnds) + 30;
+  var SPAN = GE - GS;
+  var now = new Date();
+  var nowMins = now.getHours() * 60 + now.getMinutes();
   var dayLabels = ['MON','TUE','WED','THU','FRI'];
+
   var html = '<div class="week-strip"><div class="week-time-header">';
-  for (var h = Math.ceil(GS / 60); h <= Math.floor(GE / 60); h++) { var pct = ((h * 60 - GS) / SPAN) * 100; var lbl = h > 12 ? (h - 12) + 'p' : (h === 12 ? '12p' : h + 'a'); html += '<div class="week-time-tick" style="left:' + pct + '%">' + lbl + '</div>'; }
+  for (var h = Math.ceil(GS / 60); h <= Math.floor(GE / 60); h++) {
+    var pct = ((h * 60 - GS) / SPAN) * 100;
+    var lbl = h > 12 ? (h - 12) + 'p' : (h === 12 ? '12p' : h + 'a');
+    html += '<div class="week-time-tick" style="left:' + pct + '%">' + lbl + '</div>';
+  }
   html += '</div>';
-  for (var d = 1; d <= 5; d++) { var isToday = d === today; var dayClasses = schedule.filter(function(c) { return c.day === d; }); html += '<div class="week-row"><div class="week-day-label' + (isToday ? ' today-label' : '') + '">' + dayLabels[d - 1] + '</div><div class="week-track' + (isToday ? ' today-track' : '') + '">';
-    if (isToday && nowMins >= GS && nowMins <= GE) { html += '<div class="week-now-marker" style="left:' + ((nowMins - GS) / SPAN * 100) + '%"></div>'; }
-    if (dayClasses.length === 0) { html += '<div class="week-empty-label">free</div>'; } else { dayClasses.forEach(function(c, idx) { var sm = timeToMinutes(c.start), em = timeToMinutes(c.end); var left = ((sm - GS) / SPAN) * 100; var width = ((em - sm) / SPAN) * 100; var numMatch = c.name.match(/\d{4}/); var shortNum = numMatch ? numMatch[0] : c.name.split(':')[0]; html += '<div class="week-pill" data-day="' + c.day + '" data-idx="' + idx + '" style="left:' + left + '%;width:' + width + '%;background:' + c.color + '"><span class="week-pill-name">' + shortNum + '</span></div>'; }); }
-    html += '</div></div>'; }
-  html += '</div>'; el.innerHTML = html;
-  var overlay = document.createElement('div'); overlay.className = 'week-overlay'; overlay.innerHTML = '<div class="week-detail-card" id="weekDetailCard"></div>'; document.body.appendChild(overlay);
+
+  for (var d = 1; d <= 5; d++) {
+    var isToday = d === today;
+    var dayClasses = schedule.filter(function(c) { return c.day === d; });
+    html += '<div class="week-row"><div class="week-day-label' + (isToday ? ' today-label' : '') + '">' + dayLabels[d - 1] + '</div><div class="week-track' + (isToday ? ' today-track' : '') + '">';
+    if (isToday && nowMins >= GS && nowMins <= GE) {
+      html += '<div class="week-now-marker" style="left:' + ((nowMins - GS) / SPAN * 100) + '%"></div>';
+    }
+    if (dayClasses.length === 0) {
+      html += '<div class="week-empty-label">free</div>';
+    } else {
+      dayClasses.forEach(function(c, idx) {
+        var sm = timeToMinutes(c.start), em = timeToMinutes(c.end);
+        var left = ((sm - GS) / SPAN) * 100;
+        var width = ((em - sm) / SPAN) * 100;
+        var numMatch = c.name.match(/\d{4}/);
+        var shortNum = numMatch ? numMatch[0] : c.name.split(':')[0];
+        html += '<div class="week-pill" data-day="' + c.day + '" data-idx="' + idx + '" style="left:' + left + '%;width:' + width + '%;background:' + c.color + '"><span class="week-pill-name">' + shortNum + '</span></div>';
+      });
+    }
+    html += '</div></div>';
+  }
+  html += '</div>';
+  el.innerHTML = html;
+
+  /* Week detail overlay */
+  var overlay = document.createElement('div'); overlay.className = 'week-overlay';
+  overlay.innerHTML = '<div class="week-detail-card" id="weekDetailCard"></div>';
+  document.body.appendChild(overlay);
   overlay.addEventListener('click', function(e) { if (e.target === overlay) { playClose(); overlay.classList.remove('show'); } });
-  window._weekEsc = function(e) { if (e.key === 'Escape') { playClose(); overlay.classList.remove('show'); } }; document.addEventListener('keydown', window._weekEsc);
-  el.querySelectorAll('.week-pill').forEach(function(pill) { pill.addEventListener('click', function(e) { e.stopPropagation(); playOpen(); var day = parseInt(this.dataset.day); var idx = parseInt(this.dataset.idx); var classes = schedule.filter(function(c) { return c.day === day; }); var c = classes[idx]; if (!c) return; var sm = timeToMinutes(c.start), em = timeToMinutes(c.end); var dur = em - sm; var dH = Math.floor(dur / 60), dM = dur % 60; var durStr = dH > 0 ? dH + 'h' + (dM > 0 ? ' ' + dM + 'm' : '') : dM + 'm'; var card = document.getElementById('weekDetailCard'); card.innerHTML = '<div class="week-detail-accent" style="background:' + c.color + '"></div><div class="week-detail-name">' + c.name + '</div><div class="week-detail-sub">' + DAY_NAMES[day] + '</div><div class="week-detail-divider"></div><div class="week-detail-row"><span class="week-detail-icon">\uD83D\uDD50</span><span class="week-detail-text">' + formatTime(c.start) + ' \u2013 ' + formatTime(c.end) + '</span></div><div class="week-detail-row"><span class="week-detail-icon">\uD83D\uDCCD</span><span class="week-detail-text">' + c.room + '</span></div><div class="week-detail-row"><span class="week-detail-icon">\uD83D\uDC64</span><span class="week-detail-text">' + c.prof + '</span></div><div class="week-detail-dur" style="background:' + c.color + '">' + durStr + '</div><div class="week-detail-close">tap outside to close</div>'; overlay.classList.add('show'); }); });
+  window._weekEsc = function(e) { if (e.key === 'Escape') { playClose(); overlay.classList.remove('show'); } };
+  document.addEventListener('keydown', window._weekEsc);
+
+  el.querySelectorAll('.week-pill').forEach(function(pill) {
+    pill.addEventListener('click', function(e) {
+      e.stopPropagation(); playOpen();
+      var day = parseInt(this.dataset.day), idx = parseInt(this.dataset.idx);
+      var classes = schedule.filter(function(c) { return c.day === day; });
+      var c = classes[idx]; if (!c) return;
+      var sm = timeToMinutes(c.start), em = timeToMinutes(c.end), dur = em - sm;
+      var dH = Math.floor(dur / 60), dM = dur % 60;
+      var durStr = dH > 0 ? dH + 'h' + (dM > 0 ? ' ' + dM + 'm' : '') : dM + 'm';
+      document.getElementById('weekDetailCard').innerHTML =
+        '<div class="week-detail-accent" style="background:' + c.color + '"></div>' +
+        '<div class="week-detail-name">' + c.name + '</div>' +
+        '<div class="week-detail-sub">' + DAY_NAMES[day] + '</div>' +
+        '<div class="week-detail-divider"></div>' +
+        '<div class="week-detail-row"><span class="week-detail-icon">\uD83D\uDD50</span><span class="week-detail-text">' + formatTime(c.start) + ' \u2013 ' + formatTime(c.end) + '</span></div>' +
+        '<div class="week-detail-row"><span class="week-detail-icon">\uD83D\uDCCD</span><span class="week-detail-text">' + c.room + '</span></div>' +
+        '<div class="week-detail-row"><span class="week-detail-icon">\uD83D\uDC64</span><span class="week-detail-text">' + c.prof + '</span></div>' +
+        '<div class="week-detail-dur" style="background:' + c.color + '">' + durStr + '</div>' +
+        '<div class="week-detail-close">tap outside to close</div>';
+      overlay.classList.add('show');
+    });
+  });
 }
-initBackground('bg', { orbCount: 2, orbRadius: [60, 100], orbSpeed: 0.2, hueRange: [260, 30], mouseTracking: true });
-initTilt('.container', { maxDeg: 4 });
-playSummon('lower');
+
+/* ── Milestones (Notion Bridge via SyncEngine.fetchMilestones) ── */
+function loadMilestones() {
+  SyncEngine.fetchMilestones().then(function(items) {
+    milestones = items || [];
+    renderMilestones();
+  });
+}
+
+function renderMilestones() {
+  var el = document.getElementById('milestonesContainer');
+  if (!el) return;
+  el.innerHTML = '';
+  if (!milestones.length) return;
+
+  var now = new Date();
+  var weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  var upcoming = milestones.filter(function(m) {
+    if (!m.date) return false;
+    var d = new Date(m.date);
+    return d >= now && d <= weekFromNow;
+  }).slice(0, 4);
+
+  if (!upcoming.length) return;
+
+  var section = document.createElement('div'); section.className = 'milestones-section';
+  section.innerHTML = '<div class="milestones-label">Upcoming Deadlines</div>';
+
+  upcoming.forEach(function(m) {
+    var icon = (m.category || '').indexOf('assignment') !== -1 ? '\uD83D\uDCD1' : '\uD83D\uDCCB';
+    var d = new Date(m.date);
+    var dateStr = DAY_NAMES[d.getDay()] + ', ' + d.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
+    var progColor = m.progress === 'done' ? '#10b981' : m.progress === 'pending' ? '#f59e0b' : 'var(--text-muted)';
+    var progLabel = m.progress || 'not started';
+
+    var item = document.createElement('div'); item.className = 'milestone-item';
+    item.innerHTML =
+      '<div class="milestone-icon">' + icon + '</div>' +
+      '<div class="milestone-info"><div class="milestone-name">' + m.title + '</div>' +
+      '<div class="milestone-date">' + dateStr + (m.worth ? ' \u00B7 ' + m.worth + '%' : '') + '</div></div>' +
+      '<div class="milestone-badge" style="background:' + progColor + ';">' + progLabel + '</div>';
+    section.appendChild(item);
+  });
+
+  el.appendChild(section);
+}
+
+/* ── Settings Panel ── */
+function showSettings() {
+  playOpen();
+  document.getElementById('settingsOverlay').classList.add('show');
+  renderCourseList();
+}
+function hideSettings() {
+  playClose();
+  document.getElementById('settingsOverlay').classList.remove('show');
+  hideAddForm();
+}
+
+function renderCourseList() {
+  var el = document.getElementById('courseList');
+  el.innerHTML = '';
+  var courses = getCourses();
+  if (!courses.length) {
+    el.innerHTML = '<div style="text-align:center;padding:16px;font-size:9px;color:var(--text-muted);">No courses yet</div>';
+    return;
+  }
+
+  var byDay = {};
+  courses.forEach(function(c) { if (!byDay[c.day]) byDay[c.day] = []; byDay[c.day].push(c); });
+
+  [1,2,3,4,5,6,0].forEach(function(d) {
+    if (!byDay[d]) return;
+    byDay[d].sort(function(a, b) { return timeToMinutes(a.start) - timeToMinutes(b.start); });
+    var dayLabel = document.createElement('div');
+    dayLabel.className = 'day-group-label';
+    dayLabel.textContent = DAY_NAMES[d];
+    el.appendChild(dayLabel);
+
+    byDay[d].forEach(function(c) {
+      var item = document.createElement('div'); item.className = 'course-item';
+      item.innerHTML =
+        '<div class="course-item-accent" style="background:' + c.color + '"></div>' +
+        '<div class="course-item-info"><div class="course-item-name">' + c.name + '</div>' +
+        '<div class="course-item-meta">' + formatTime(c.start) + ' \u2013 ' + formatTime(c.end) + ' \u00B7 ' + c.room + '</div></div>';
+      var delBtn = document.createElement('button'); delBtn.className = 'course-delete-btn'; delBtn.textContent = '\u2715';
+      delBtn.addEventListener('click', function(e) { e.stopPropagation(); confirmDeleteCourse(c); });
+      item.appendChild(delBtn);
+      el.appendChild(item);
+    });
+  });
+}
+
+/* ── Add Course Form ── */
+function showAddForm() {
+  if (addFormVisible) return;
+  addFormVisible = true;
+  playOpen();
+  var container = document.getElementById('addFormContainer');
+  container.style.display = '';
+  var selectedColor = COLORS[0];
+  var selectedDayVal = 1;
+
+  container.innerHTML =
+    '<div class="add-form">' +
+    '<div class="form-row"><label class="form-label">Course Name</label><input class="form-input" id="af-name" placeholder="POLS 3550: Political Economy"></div>' +
+    '<div class="form-input-row">' +
+    '<div class="form-row"><label class="form-label">Professor</label><input class="form-input" id="af-prof" placeholder="Dr. Smith"></div>' +
+    '<div class="form-row"><label class="form-label">Room</label><input class="form-input" id="af-room" placeholder="Dillon Hall 361"></div>' +
+    '</div>' +
+    '<div class="form-row"><label class="form-label">Day</label><div id="af-day" style="display:flex;gap:4px;"></div></div>' +
+    '<div class="form-input-row">' +
+    '<div class="form-row"><label class="form-label">Start</label><input class="form-input" id="af-start" type="time" value="09:00"></div>' +
+    '<div class="form-row"><label class="form-label">End</label><input class="form-input" id="af-end" type="time" value="10:00"></div>' +
+    '</div>' +
+    '<div class="form-row"><label class="form-label">Colour</label><div class="color-swatches" id="af-colors"></div></div>' +
+    '<div class="form-actions">' +
+    '<button class="form-btn form-btn-secondary" id="af-cancel">Cancel</button>' +
+    '<button class="form-btn form-btn-primary" id="af-save">Add Course</button>' +
+    '</div></div>';
+
+  /* Day picker buttons */
+  var dayPicker = document.getElementById('af-day');
+  DAY_LABELS.forEach(function(label, i) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.style.cssText = 'width:26px;height:26px;border-radius:50%;border:1px solid var(--block-border);' +
+      'background:' + (i === selectedDayVal ? 'var(--dot-active)' : 'var(--dot-bg)') + ';' +
+      'color:' + (i === selectedDayVal ? '#fff' : 'var(--text-secondary)') + ';' +
+      'font-family:Inter,sans-serif;font-size:8px;font-weight:600;cursor:pointer;transition:all 0.2s;';
+    btn.textContent = label;
+    btn.addEventListener('click', function() {
+      selectedDayVal = i; playClick();
+      var btns = dayPicker.querySelectorAll('button');
+      btns.forEach(function(b, j) {
+        b.style.background = j === i ? 'var(--dot-active)' : 'var(--dot-bg)';
+        b.style.color = j === i ? '#fff' : 'var(--text-secondary)';
+      });
+    });
+    dayPicker.appendChild(btn);
+  });
+
+  /* Colour swatches */
+  var colorContainer = document.getElementById('af-colors');
+  COLORS.forEach(function(c, i) {
+    var swatch = document.createElement('div');
+    swatch.className = 'color-swatch' + (i === 0 ? ' active' : '');
+    swatch.style.background = c;
+    swatch.addEventListener('click', function() {
+      selectedColor = c; playClick();
+      colorContainer.querySelectorAll('.color-swatch').forEach(function(s) { s.classList.remove('active'); });
+      swatch.classList.add('active');
+    });
+    colorContainer.appendChild(swatch);
+  });
+
+  /* Cancel */
+  document.getElementById('af-cancel').addEventListener('click', function() { hideAddForm(); playClose(); });
+
+  /* Save — reads selectedDayVal and selectedColor from closure */
+  document.getElementById('af-save').addEventListener('click', function() {
+    var name = document.getElementById('af-name').value.trim();
+    var prof = document.getElementById('af-prof').value.trim();
+    var room = document.getElementById('af-room').value.trim();
+    var start = document.getElementById('af-start').value;
+    var end = document.getElementById('af-end').value;
+
+    if (!name) { playError(); document.getElementById('af-name').style.borderColor = '#ef4444'; return; }
+    if (!start || !end || timeToMinutes(end) <= timeToMinutes(start)) { playError(); return; }
+
+    addCourse({ day: selectedDayVal, name: name, prof: prof || 'TBA', room: room || 'TBA', start: start, end: end, color: selectedColor });
+    playStart();
+    hideAddForm();
+    renderCourseList();
+    renderSchedule();
+    if (currentView === 'week') renderWeekView();
+  });
+}
+
+function hideAddForm() {
+  addFormVisible = false;
+  var c = document.getElementById('addFormContainer');
+  c.style.display = 'none';
+  c.innerHTML = '';
+}
+
+/* ── Delete Confirmation ── */
+function confirmDeleteCourse(course) {
+  pendingDeleteId = course.id;
+  document.getElementById('confirmTitle').textContent = 'Delete Course?';
+  document.getElementById('confirmMsg').textContent = 'Remove \"' + course.name + '\" from your schedule?';
+  document.getElementById('confirmOverlay').classList.add('show');
+  playOpen();
+}
+
+document.getElementById('confirmCancel').addEventListener('click', function() {
+  pendingDeleteId = null;
+  document.getElementById('confirmOverlay').classList.remove('show');
+  playClose();
+});
+
+document.getElementById('confirmDelete').addEventListener('click', function() {
+  if (pendingDeleteId) {
+    deleteCourse(pendingDeleteId);
+    pendingDeleteId = null;
+    playReset();
+    document.getElementById('confirmOverlay').classList.remove('show');
+    renderCourseList();
+    renderSchedule();
+    if (currentView === 'week') renderWeekView();
+  }
+});
+
+/* ── Settings Wiring ── */
+document.getElementById('settingsBtn').addEventListener('click', showSettings);
+document.getElementById('settingsOverlay').addEventListener('click', function(e) {
+  if (e.target === this) hideSettings();
+});
+document.getElementById('addCourseBtn').addEventListener('click', showAddForm);
+
+/* Layered Escape key handling */
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    if (document.getElementById('confirmOverlay').classList.contains('show')) {
+      pendingDeleteId = null;
+      document.getElementById('confirmOverlay').classList.remove('show');
+      playClose();
+    } else if (document.getElementById('settingsOverlay').classList.contains('show')) {
+      hideSettings();
+    }
+  }
+});
+
+/* ══════════════════════════════════════
+   BOOT — SyncEngine initialisation
+   ══════════════════════════════════════ */
+SyncEngine.init({
+  worker: 'https://widget-sync.lordgrape-widgets.workers.dev',
+  namespaces: ['dragon', 'clock', 'user', 'timetable']
+}).then(function() {
+  /* Seed defaults on first run */
+  if (!getCourses().length) saveCourses(DEFAULT_COURSES);
+  schedule = getCourses();
+
+  buildDaySelector();
+
+  /* Auto-switch to week view when no classes today */
+  var hasClassesToday = schedule.some(function(c) { return c.day === today; });
+  var toggleBtns = document.querySelectorAll('.view-btn');
+  var todayViewEl = document.getElementById('todayView');
+  var weekViewEl = document.getElementById('weekView');
+
+  if (!hasClassesToday) {
+    currentView = 'week';
+    todayViewEl.style.display = 'none';
+    weekViewEl.style.display = '';
+    document.getElementById('title').textContent = 'Weekly Overview';
+    toggleBtns.forEach(function(b) { b.classList.remove('active'); });
+    document.querySelector('.view-btn[data-view="week"]').classList.add('active');
+    renderWeekView();
+  } else {
+    renderSchedule();
+  }
+
+  /* View toggle */
+  toggleBtns.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var view = this.dataset.view;
+      if (view === currentView) return;
+      playModeSwitch(); currentView = view;
+      toggleBtns.forEach(function(b) { b.classList.remove('active'); });
+      this.classList.add('active');
+      if (view === 'today') {
+        todayViewEl.style.display = '';
+        weekViewEl.style.display = 'none';
+        document.getElementById('title').textContent = selectedDay === today ? "Today's Classes" : DAY_NAMES[selectedDay];
+        renderSchedule();
+      } else {
+        todayViewEl.style.display = 'none';
+        weekViewEl.style.display = '';
+        document.getElementById('title').textContent = 'Weekly Overview';
+        renderWeekView();
+      }
+    });
+  });
+
+  /* Live refresh every 30s */
+  setInterval(function() {
+    if (selectedDay === today && currentView === 'today') renderSchedule();
+  }, 30000);
+
+  /* Pull milestones from Notion bridge */
+  loadMilestones();
+
+  /* Core.js visuals */
+  initBackground('bg', { orbCount: 2, orbRadius: [60, 100], orbSpeed: 0.2, hueRange: [260, 30], mouseTracking: true });
+  initTilt('.container', { maxDeg: 4 });
+  playSummon('lower');
+});
 </script>
 </body>
 </html>
