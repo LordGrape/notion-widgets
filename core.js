@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════
-   core.js v2 — Shared Widget Engine
+   core.js v3 — Shared Widget Engine
    LordGrape/notion-widgets
    ═══════════════════════════════════════════════════════
    Single import for all widgets. Loads GSAP 3 dynamically.
@@ -11,8 +11,8 @@
    All GSAP-dependent systems wait on Core.gsapReady.
    Falls back gracefully to vanilla rAF if load fails.
    ────────────────────────────────────────────────────── */
-var _gsapReady = new Promise(function(resolve) {
-  var s = document.createElement('script');
+let _gsapReady = new Promise(function(resolve) {
+  let s = document.createElement('script');
   s.src = 'https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js';
   s.onload = function() { resolve(window.gsap); };
   s.onerror = function() {
@@ -24,12 +24,68 @@ var _gsapReady = new Promise(function(resolve) {
 
 
 /* ── Environment Detection (computed once) ── */
-var Core = {
+let Core = {
   isDark: window.matchMedia('(prefers-color-scheme: dark)').matches,
   isLowEnd: !!(navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4),
   reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
   dpr: Math.min(window.devicePixelRatio || 1, 2),
   gsapReady: _gsapReady
+};
+
+/* Core runtime primitives (event bus, registry, perf monitor) */
+let _coreEvents = {};
+let _corePlugins = {};
+let _perfFrameTimes = [];
+let _perfAvgFrameMs = 16.67;
+let _perfDropHandlers = [];
+let _perfWasLow = false;
+
+Core.on = function(event, callback) {
+  if (!_coreEvents[event]) _coreEvents[event] = [];
+  _coreEvents[event].push(callback);
+};
+
+Core.off = function(event, callback) {
+  if (!_coreEvents[event]) return;
+  _coreEvents[event] = _coreEvents[event].filter(function(cb) { return cb !== callback; });
+};
+
+Core.emit = function(event, data) {
+  if (!_coreEvents[event]) return;
+  _coreEvents[event].forEach(function(cb) {
+    try { cb(data); } catch (e) {}
+  });
+};
+
+Core.register = function(name, plugin) {
+  _corePlugins[name] = plugin;
+  return plugin;
+};
+
+Core.getPlugin = function(name) {
+  return _corePlugins[name] || null;
+};
+
+function _coreRecordFrame(dtMs) {
+  if (!dtMs || !isFinite(dtMs) || dtMs <= 0) return;
+  _perfFrameTimes.push(dtMs);
+  if (_perfFrameTimes.length > 120) _perfFrameTimes.shift();
+  let sum = 0;
+  for (let i = 0; i < _perfFrameTimes.length; i++) sum += _perfFrameTimes[i];
+  _perfAvgFrameMs = sum / _perfFrameTimes.length;
+  let lowFPS = (1000 / _perfAvgFrameMs) < 30;
+  if (lowFPS && !_perfWasLow) {
+    _perfDropHandlers.forEach(function(cb) { try { cb(Core.perf.getFPS()); } catch (e) {} });
+  }
+  _perfWasLow = lowFPS;
+}
+
+Core.perf = {
+  getFPS: function() { return 1000 / (_perfAvgFrameMs || 16.67); },
+  isOverBudget: function() { return _perfAvgFrameMs > 16.67; },
+  onDrop: function(callback) {
+    if (typeof callback === 'function') _perfDropHandlers.push(callback);
+  }
 };
 
 /* Live theme tracking — updates derived constants mid-session */
@@ -38,6 +94,7 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', fun
   Core.orbAlpha = Core.isDark ? 0.04 : 0.02;
   Core.particleRGB = Core.isDark ? '167, 139, 250' : '124, 58, 237';
   Core.particleAlphaBase = Core.isDark ? 0.25 : 0.1;
+  Core.emit('theme-change', { isDark: Core.isDark });
 });
 
 Core.orbAlpha = Core.isDark ? 0.04 : 0.02;
@@ -56,7 +113,7 @@ Core.confettiColors = ['#7c3aed','#8b5cf6','#a78bfa','#c4b5fd','#ddd6fe','#ede9f
    • Paired sounds are melodic inverses (open/close, start/reset)
    • All sounds are physically plausible — modelled on real acoustic phenomena
    ══════════════════════════════════════ */
-var _audioCtx = null;
+let _audioCtx = null;
 
 function getAudioCtx() {
   if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -66,10 +123,10 @@ function getAudioCtx() {
 
 /* ── Helper: create a gain-connected oscillator with envelope ── */
 function _tone(freq, type, attack, hold, decay, volume, startTime) {
-  var ctx = getAudioCtx();
-  var now = startTime || ctx.currentTime;
-  var osc = ctx.createOscillator();
-  var gain = ctx.createGain();
+  let ctx = getAudioCtx();
+  let now = startTime || ctx.currentTime;
+  let osc = ctx.createOscillator();
+  let gain = ctx.createGain();
   osc.type = type || 'sine';
   if (typeof freq === 'number') {
     osc.frequency.setValueAtTime(freq, now);
@@ -85,9 +142,9 @@ function _tone(freq, type, attack, hold, decay, volume, startTime) {
 
 /* ── Helper: frequency sweep ── */
 function _sweep(startHz, endHz, duration, volume, type) {
-  var ctx = getAudioCtx(), now = ctx.currentTime;
-  var osc = ctx.createOscillator();
-  var gain = ctx.createGain();
+  let ctx = getAudioCtx(), now = ctx.currentTime;
+  let osc = ctx.createOscillator();
+  let gain = ctx.createGain();
   osc.type = type || 'sine';
   osc.frequency.setValueAtTime(startHz, now);
   osc.frequency.exponentialRampToValueAtTime(endHz, now + duration);
@@ -120,9 +177,9 @@ function playStart() {
 
 /* ── 5. PAUSE ── */
 function playPause() {
-  var ctx = getAudioCtx(), now = ctx.currentTime;
-  var osc = ctx.createOscillator();
-  var gain = ctx.createGain();
+  let ctx = getAudioCtx(), now = ctx.currentTime;
+  let osc = ctx.createOscillator();
+  let gain = ctx.createGain();
   osc.type = 'sine'; osc.frequency.setValueAtTime(500, now);
   gain.gain.setValueAtTime(0.11, now);
   gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
@@ -148,18 +205,18 @@ function playLap() {
 
 /* ── 9. MODE SWITCH ── */
 function playModeSwitch() {
-  var ctx = getAudioCtx(), now = ctx.currentTime;
-  var bufferSize = ctx.sampleRate * 0.12;
-  var buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-  var data = buffer.getChannelData(0);
-  for (var i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1);
-  var src = ctx.createBufferSource(); src.buffer = buffer;
-  var bp = ctx.createBiquadFilter();
+  let ctx = getAudioCtx(), now = ctx.currentTime;
+  let bufferSize = ctx.sampleRate * 0.12;
+  let buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+  let data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1);
+  let src = ctx.createBufferSource(); src.buffer = buffer;
+  let bp = ctx.createBiquadFilter();
   bp.type = 'bandpass'; bp.frequency.setValueAtTime(800, now);
   bp.frequency.exponentialRampToValueAtTime(2400, now + 0.06);
   bp.frequency.exponentialRampToValueAtTime(600, now + 0.12);
   bp.Q.value = 1.8;
-  var gain = ctx.createGain();
+  let gain = ctx.createGain();
   gain.gain.setValueAtTime(0.001, now);
   gain.gain.linearRampToValueAtTime(0.07, now + 0.03);
   gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
@@ -169,10 +226,10 @@ function playModeSwitch() {
 
 /* ── 10. CHIME ── */
 function playChime() {
-  var ctx = getAudioCtx(), now = ctx.currentTime;
+  let ctx = getAudioCtx(), now = ctx.currentTime;
   [523.25, 659.25, 783.99].forEach(function(freq, i) {
-    var osc = ctx.createOscillator();
-    var gain = ctx.createGain();
+    let osc = ctx.createOscillator();
+    let gain = ctx.createGain();
     osc.type = 'sine'; osc.frequency.value = freq;
     gain.gain.setValueAtTime(0, now + i * 0.22);
     gain.gain.linearRampToValueAtTime(0.25, now + i * 0.22 + 0.04);
@@ -184,9 +241,9 @@ function playChime() {
 
 /* ── 11. BREAK APPEAR ── */
 function playBreakAppear() {
-  var ctx = getAudioCtx(), now = ctx.currentTime;
-  var osc = ctx.createOscillator();
-  var gain = ctx.createGain();
+  let ctx = getAudioCtx(), now = ctx.currentTime;
+  let osc = ctx.createOscillator();
+  let gain = ctx.createGain();
   osc.type = 'sine';
   osc.frequency.setValueAtTime(220, now);
   osc.frequency.exponentialRampToValueAtTime(330, now + 0.35);
@@ -196,8 +253,8 @@ function playBreakAppear() {
   gain.gain.exponentialRampToValueAtTime(0.001, now + 0.40);
   osc.connect(gain); gain.connect(ctx.destination);
   osc.start(now); osc.stop(now + 0.42);
-  var osc2 = ctx.createOscillator();
-  var gain2 = ctx.createGain();
+  let osc2 = ctx.createOscillator();
+  let gain2 = ctx.createGain();
   osc2.type = 'sine';
   osc2.frequency.setValueAtTime(330, now);
   osc2.frequency.exponentialRampToValueAtTime(495, now + 0.35);
@@ -221,14 +278,14 @@ function playError() {
 
 /* ── 14. PRESET SELECT ── */
 function playPresetSelect() {
-  var ctx = getAudioCtx(), now = ctx.currentTime;
-  var bufSize = ctx.sampleRate * 0.015;
-  var buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
-  var d = buf.getChannelData(0);
-  for (var i = 0; i < bufSize; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / bufSize);
-  var src = ctx.createBufferSource(); src.buffer = buf;
-  var hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 2000;
-  var g = ctx.createGain(); g.gain.setValueAtTime(0.06, now);
+  let ctx = getAudioCtx(), now = ctx.currentTime;
+  let bufSize = ctx.sampleRate * 0.015;
+  let buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+  let d = buf.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / bufSize);
+  let src = ctx.createBufferSource(); src.buffer = buf;
+  let hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 2000;
+  let g = ctx.createGain(); g.gain.setValueAtTime(0.06, now);
   src.connect(hp); hp.connect(g); g.connect(ctx.destination);
   src.start(now); src.stop(now + 0.02);
   _tone(900, 'sine', 0.003, 0.01, 0.06, 0.07);
@@ -253,11 +310,11 @@ function playPresetSelect() {
    ══════════════════════════════════════ */
 function initBackground(canvasId, opts) {
   opts = opts || {};
-  var canvas = document.getElementById(canvasId);
+  let canvas = document.getElementById(canvasId);
   if (!canvas) return { getMouseX: function() { return 0; }, getMouseY: function() { return 0; } };
-  var ctx = canvas.getContext('2d');
-  var dpr = Core.dpr;
-  var W, H;
+  let ctx = canvas.getContext('2d');
+  let dpr = Core.dpr;
+  let W, H;
 
   function resize() {
     W = window.innerWidth;
@@ -271,24 +328,24 @@ function initBackground(canvasId, opts) {
   resize();
   window.addEventListener('resize', resize);
 
-  var mouseX = W / 2, mouseY = H / 2;
-  var smoothMX = mouseX, smoothMY = mouseY;
-  var tracking = opts.mouseTracking !== false;
+  let mouseX = W / 2, mouseY = H / 2;
+  let smoothMX = mouseX, smoothMY = mouseY;
+  let tracking = opts.mouseTracking !== false;
   if (tracking) {
     document.addEventListener('mousemove', function(e) { mouseX = e.clientX; mouseY = e.clientY; });
   }
 
-  var orbRad = opts.orbRadius || [60, 100];
-  var orbSpd = opts.orbSpeed || 0.15;
-  var hueR = opts.hueRange || [250, 40];
-  var defaultOrbs = Core.isLowEnd ? 1 : (opts.orbCount || 2);
+  let orbRad = opts.orbRadius || [60, 100];
+  let orbSpd = opts.orbSpeed || 0.15;
+  let hueR = opts.hueRange || [250, 40];
+  let defaultOrbs = Core.isLowEnd ? 1 : (opts.orbCount || 2);
 
   /* Particle counts per layer */
-  var bgCount = opts.particleCount || (Core.isLowEnd ? (Core.isDark ? 4 : 2) : (Core.isDark ? 8 : 5));
-  var fgCount = Core.isLowEnd ? 2 : (Core.isDark ? 6 : 4);
+  let bgCount = opts.particleCount || (Core.isLowEnd ? (Core.isDark ? 4 : 2) : (Core.isDark ? 8 : 5));
+  let fgCount = Core.isLowEnd ? 2 : (Core.isDark ? 6 : 4);
 
-  var orbs = [];
-  for (var i = 0; i < defaultOrbs; i++) {
+  let orbs = [];
+  for (let i = 0; i < defaultOrbs; i++) {
     orbs.push({
       x: Math.random() * W, y: Math.random() * H,
       r: orbRad[0] + Math.random() * orbRad[1],
@@ -309,68 +366,92 @@ function initBackground(canvasId, opts) {
   }
 
   /* Background layer: slow, dim, large — perceived as distant */
-  var bgParticles = [];
-  for (var i = 0; i < bgCount; i++) bgParticles.push(makeParticle(0.4, 0.5, 1.3));
+  let bgParticles = [];
+  for (let i = 0; i < bgCount; i++) bgParticles.push(makeParticle(0.4, 0.5, 1.3));
   /* Foreground layer: fast, bright, small — perceived as close */
-  var fgParticles = [];
-  for (var i = 0; i < fgCount; i++) fgParticles.push(makeParticle(1.2, 1.0, 0.7));
+  let fgParticles = [];
+  for (let i = 0; i < fgCount; i++) fgParticles.push(makeParticle(1.2, 1.0, 0.7));
 
-  var running = !Core.reducedMotion;
-  var time = 0;
+  let running = !Core.reducedMotion;
+  let time = 0;
+  let perfBound = false;
+  let lastTs = 0;
+  let targetParticleTotal = bgCount + fgCount;
 
-  function drawParticles(arr, t) {
-    for (var j = 0; j < arr.length; j++) {
-      var p = arr[j];
-      p.y -= p.speed;
+  function drawParticles(arr, t, dt) {
+    for (let j = 0; j < arr.length; j++) {
+      let p = arr[j];
+      p.y -= p.speed * dt;
       if (p.y < -10) { p.y = H + 10; p.x = Math.random() * W; }
-      var a = p.alpha * (0.5 + 0.5 * Math.sin(t * 0.002 + p.flicker));
+      let a = p.alpha * (0.5 + 0.5 * Math.sin(t * 0.002 + p.flicker));
       ctx.fillStyle = 'rgba(' + Core.particleRGB + ', ' + a + ')';
       ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
     }
   }
 
-  function draw() {
+  function draw(dt, dtMs) {
     if (!running) return;
-    time += 16;
+    time += (16.667 * dt);
+    _coreRecordFrame(dtMs || (16.667 * dt));
     ctx.clearRect(0, 0, W, H);
 
     /* Smooth mouse interpolation — 6% lerp feels weighted */
     if (tracking) {
-      smoothMX += (mouseX - smoothMX) * 0.06;
-      smoothMY += (mouseY - smoothMY) * 0.06;
+      smoothMX += (mouseX - smoothMX) * 0.06 * dt;
+      smoothMY += (mouseY - smoothMY) * 0.06 * dt;
     }
 
     /* Orbs */
-    for (var i = 0; i < orbs.length; i++) {
-      var o = orbs[i];
+    for (let i = 0; i < orbs.length; i++) {
+      let o = orbs[i];
       if (tracking) {
-        o.x += o.dx + (smoothMX - o.x) * 0.0003;
-        o.y += o.dy + (smoothMY - o.y) * 0.0003;
+        o.x += o.dx * dt + (smoothMX - o.x) * 0.0003 * dt;
+        o.y += o.dy * dt + (smoothMY - o.y) * 0.0003 * dt;
       } else {
-        o.x += o.dx; o.y += o.dy;
+        o.x += o.dx * dt; o.y += o.dy * dt;
       }
       if (o.x < -o.r) o.x = W + o.r; if (o.x > W + o.r) o.x = -o.r;
       if (o.y < -o.r) o.y = H + o.r; if (o.y > H + o.r) o.y = -o.r;
-      var g = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r);
+      let g = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r);
       g.addColorStop(0, 'hsla(' + o.hue + ', 70%, 50%, ' + o.alpha + ')');
       g.addColorStop(1, 'hsla(' + o.hue + ', 70%, 50%, 0)');
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2); ctx.fill();
     }
 
     /* Particles: background layer first (painter's order) */
-    drawParticles(bgParticles, time);
-    drawParticles(fgParticles, time);
+    drawParticles(bgParticles, time, dt);
+    drawParticles(fgParticles, time, dt);
   }
+
+  function reduceParticlesOnDrop() {
+    targetParticleTotal = Math.max(6, Math.floor(targetParticleTotal * 0.8));
+    let keepBg = Math.max(2, Math.floor(targetParticleTotal * 0.55));
+    let keepFg = Math.max(2, targetParticleTotal - keepBg);
+    if (bgParticles.length > keepBg) bgParticles.length = keepBg;
+    if (fgParticles.length > keepFg) fgParticles.length = keepFg;
+  }
+
+  Core.perf.onDrop(reduceParticlesOnDrop);
 
   /* Use gsap.ticker if available, else vanilla rAF */
   _gsapReady.then(function(gsap) {
     if (gsap && !Core.reducedMotion) {
-      gsap.ticker.add(draw);
+      if (!perfBound) {
+        gsap.ticker.add(function() {
+          let dt = gsap.ticker.deltaRatio ? gsap.ticker.deltaRatio(60) : 1;
+          draw(dt, dt * 16.667);
+        });
+        perfBound = true;
+      }
     } else if (!Core.reducedMotion) {
-      var lastFrame = 0;
       function loop(ts) {
         if (!running) { requestAnimationFrame(loop); return; }
-        if (ts - lastFrame >= 16) { lastFrame = ts; draw(); }
+        if (!lastTs) lastTs = ts;
+        let dtMs = ts - lastTs;
+        if (dtMs < 0) dtMs = 16.667;
+        let dt = dtMs / 16.667;
+        lastTs = ts;
+        draw(dt, dtMs);
         requestAnimationFrame(loop);
       }
       requestAnimationFrame(loop);
@@ -396,18 +477,18 @@ function initBackground(canvasId, opts) {
    ══════════════════════════════════════ */
 function initTilt(selector, opts) {
   opts = opts || {};
-  var maxDeg = opts.maxDeg || 3;
-  var el = document.querySelector(selector);
+  let maxDeg = opts.maxDeg || 3;
+  let el = document.querySelector(selector);
   if (!el || Core.reducedMotion) return;
 
-  var targetRX = 0, targetRY = 0;
-  var currentRX = 0, currentRY = 0;
-  var ease = 0.08;
+  let targetRX = 0, targetRY = 0;
+  let currentRX = 0, currentRY = 0;
+  let ease = 0.08;
 
   document.addEventListener('mousemove', function(e) {
-    var rect = el.getBoundingClientRect();
-    var dx = (e.clientX - (rect.left + rect.width / 2)) / (rect.width / 2);
-    var dy = (e.clientY - (rect.top + rect.height / 2)) / (rect.height / 2);
+    let rect = el.getBoundingClientRect();
+    let dx = (e.clientX - (rect.left + rect.width / 2)) / (rect.width / 2);
+    let dy = (e.clientY - (rect.top + rect.height / 2)) / (rect.height / 2);
     targetRX = dy * -maxDeg;
     targetRY = dx * maxDeg;
   });
@@ -416,17 +497,30 @@ function initTilt(selector, opts) {
     targetRX = 0; targetRY = 0;
   });
 
-  function update() {
-    currentRX += (targetRX - currentRX) * ease;
-    currentRY += (targetRY - currentRY) * ease;
+  function update(dt, dtMs) {
+    let step = dt || 1;
+    currentRX += (targetRX - currentRX) * ease * step;
+    currentRY += (targetRY - currentRY) * ease * step;
+    _coreRecordFrame(dtMs || (16.667 * step));
     el.style.transform = 'perspective(800px) rotateX(' + currentRX.toFixed(3) + 'deg) rotateY(' + currentRY.toFixed(3) + 'deg)';
   }
 
   _gsapReady.then(function(gsap) {
     if (gsap) {
-      gsap.ticker.add(update);
+      gsap.ticker.add(function() {
+        let dt = gsap.ticker.deltaRatio ? gsap.ticker.deltaRatio(60) : 1;
+        update(dt, dt * 16.667);
+      });
     } else {
-      (function loop() { update(); requestAnimationFrame(loop); })();
+      let lastTs = 0;
+      (function loop(ts) {
+        if (!lastTs) lastTs = ts;
+        let dtMs = ts - lastTs;
+        if (dtMs < 0) dtMs = 16.667;
+        lastTs = ts;
+        update(dtMs / 16.667, dtMs);
+        requestAnimationFrame(loop);
+      })(performance.now());
     }
   });
 }
@@ -443,21 +537,21 @@ function initTilt(selector, opts) {
    - Resize handler cleanup to prevent memory leaks
    ══════════════════════════════════════ */
 function launchConfetti(canvasId) {
-  var cv = document.getElementById(canvasId);
+  let cv = document.getElementById(canvasId);
   if (!cv) return;
-  var ctx = cv.getContext('2d');
-  var dpr = Core.dpr;
-  var W = window.innerWidth, H = window.innerHeight;
+  let ctx = cv.getContext('2d');
+  let dpr = Core.dpr;
+  let W = window.innerWidth, H = window.innerHeight;
   cv.width = W * dpr; cv.height = H * dpr;
   cv.style.width = W + 'px'; cv.style.height = H + 'px';
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-  var parts = [];
-  var cx = W / 2, cy = H * 0.38;
+  let parts = [];
+  let cx = W / 2, cy = H * 0.38;
 
-  for (var i = 0; i < 150; i++) {
-    var angle = Math.random() * Math.PI * 2;
-    var speed = 3 + Math.random() * 9;
+  for (let i = 0; i < 150; i++) {
+    let angle = Math.random() * Math.PI * 2;
+    let speed = 3 + Math.random() * 9;
     parts.push({
       x: cx, y: cy,
       vx: Math.cos(angle) * speed * (0.4 + Math.random() * 0.6),
@@ -482,21 +576,24 @@ function launchConfetti(canvasId) {
   }
   window.addEventListener('resize', resizer);
 
-  function frame() {
+  let tickFn = null;
+  function frame(dt, dtMs) {
     ctx.clearRect(0, 0, W, H);
-    var alive = false;
-    for (var i = 0; i < parts.length; i++) {
-      var p = parts[i];
+    let alive = false;
+    let step = dt || 1;
+    _coreRecordFrame(dtMs || (16.667 * step));
+    for (let i = 0; i < parts.length; i++) {
+      let p = parts[i];
       if (p.a <= 0) continue;
       alive = true;
-      p.vy += p.gravity;
-      p.vx *= p.drag;
-      p.vy *= p.drag;
-      p.wobble += p.wobbleSpeed;
-      p.x += p.vx + Math.sin(p.wobble) * 0.5;
-      p.y += p.vy;
-      p.rot += p.rotV;
-      p.a -= 0.005;
+      p.vy += p.gravity * step;
+      p.vx *= Math.pow(p.drag, step);
+      p.vy *= Math.pow(p.drag, step);
+      p.wobble += p.wobbleSpeed * step;
+      p.x += (p.vx + Math.sin(p.wobble) * 0.5) * step;
+      p.y += p.vy * step;
+      p.rot += p.rotV * step;
+      p.a -= 0.005 * step;
       if (p.a < 0) p.a = 0;
       ctx.save();
       ctx.translate(p.x, p.y);
@@ -509,19 +606,30 @@ function launchConfetti(canvasId) {
     if (!alive) {
       ctx.clearRect(0, 0, W, H);
       window.removeEventListener('resize', resizer);
-      if (window.gsap) window.gsap.ticker.remove(frame);
+      if (window.gsap && tickFn) window.gsap.ticker.remove(tickFn);
     }
   }
 
   _gsapReady.then(function(gsap) {
     if (gsap) {
-      gsap.ticker.add(frame);
+      tickFn = function() {
+        let dt = gsap.ticker.deltaRatio ? gsap.ticker.deltaRatio(60) : 1;
+        frame(dt, dt * 16.667);
+      };
+      gsap.ticker.add(tickFn);
     } else {
+      let lastTs = 0;
       (function loop() {
-        frame();
-        var stillAlive = false;
-        for (var i = 0; i < parts.length; i++) { if (parts[i].a > 0) { stillAlive = true; break; } }
-        if (stillAlive) requestAnimationFrame(loop);
+        requestAnimationFrame(function(ts) {
+          if (!lastTs) lastTs = ts;
+          let dtMs = ts - lastTs;
+          if (dtMs < 0) dtMs = 16.667;
+          lastTs = ts;
+          frame(dtMs / 16.667, dtMs);
+          let stillAlive = false;
+          for (let i = 0; i < parts.length; i++) { if (parts[i].a > 0) { stillAlive = true; break; } }
+          if (stillAlive) loop();
+        });
       })();
     }
   });
@@ -532,14 +640,14 @@ function launchConfetti(canvasId) {
    FOCUS STATS (SyncEngine-backed)
    ══════════════════════════════════════ */
 function _focusKey() {
-  var d = new Date();
+  let d = new Date();
   return 'focus_' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
 function addFocusSeconds(secs) {
   if (secs < 1) return 0;
-  var key = _focusKey();
-  var total = (SyncEngine.get('clock', key) || 0) + Math.floor(secs);
+  let key = _focusKey();
+  let total = (SyncEngine.get('clock', key) || 0) + Math.floor(secs);
   SyncEngine.set('clock', key, total);
   return total;
 }
@@ -549,7 +657,7 @@ function getTodayFocus() {
 }
 
 function formatFocusTime(secs) {
-  var h = Math.floor(secs / 3600), m = Math.floor((secs % 3600) / 60);
+  let h = Math.floor(secs / 3600), m = Math.floor((secs % 3600) / 60);
   return h > 0 ? h + 'h ' + m + 'm' : m + 'm';
 }
 
@@ -565,9 +673,9 @@ function formatFocusTime(secs) {
    another widget picks up within ~30s.
    No XP reward — purely informational.
    ══════════════════════════════════════ */
-var _presenceAccum = 0;
-var _presenceLastActive = Date.now();
-var _presenceTabVisible = !document.hidden;
+let _presenceAccum = 0;
+let _presenceLastActive = Date.now();
+let _presenceTabVisible = !document.hidden;
 
 document.addEventListener('visibilitychange', function() {
   if (document.hidden) {
@@ -585,18 +693,18 @@ function getSessionPresence() {
 }
 
 function _presenceDateKey() {
-  var d = new Date();
+  let d = new Date();
   return 'presence_' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
 function _tickPresence() {
   if (document.hidden) return;
-  var now = Date.now();
-  var lastTick = SyncEngine.get('clock', 'presence_last_tick') || 0;
+  let now = Date.now();
+  let lastTick = SyncEngine.get('clock', 'presence_last_tick') || 0;
   if (now - lastTick < 25000) return;
   SyncEngine.set('clock', 'presence_last_tick', now);
-  var key = _presenceDateKey();
-  var total = (SyncEngine.get('clock', key) || 0) + 30;
+  let key = _presenceDateKey();
+  let total = (SyncEngine.get('clock', key) || 0) + 30;
   SyncEngine.set('clock', key, total);
 }
 
@@ -609,7 +717,7 @@ function getTodayPresence() {
 
 function formatPresenceTime(secs) {
   if (secs < 60) return '<1m';
-  var h = Math.floor(secs / 3600), m = Math.floor((secs % 3600) / 60);
+  let h = Math.floor(secs / 3600), m = Math.floor((secs % 3600) / 60);
   return h > 0 ? h + 'h ' + m + 'm' : m + 'm';
 }
 
@@ -618,7 +726,7 @@ function formatPresenceTime(secs) {
    DRAGON XP (cross-widget shared state)
    ══════════════════════════════════════ */
 function addDragonXP(amount) {
-  var xp = SyncEngine.get('dragon', 'xp') || 0;
+  let xp = SyncEngine.get('dragon', 'xp') || 0;
   xp += Math.floor(amount);
   SyncEngine.set('dragon', 'xp', xp);
   return xp;
@@ -629,7 +737,7 @@ function getDragonXP() {
 }
 
 function getDragonStage() {
-  var xp = getDragonXP();
+  let xp = getDragonXP();
   if (xp >= 120000) return 5;
   if (xp >= 60000)  return 4;
   if (xp >= 20000)  return 3;
@@ -638,21 +746,114 @@ function getDragonStage() {
   return 0;
 }
 
+/* v3 public namespace surface (global script, no modules) */
+let _legacyPlayClick = playClick;
+let _legacyPlayOpen = playOpen;
+let _legacyPlayClose = playClose;
+let _legacyPlayStart = playStart;
+let _legacyPlayPause = playPause;
+let _legacyPlayResume = playResume;
+let _legacyPlayReset = playReset;
+let _legacyPlayLap = playLap;
+let _legacyPlayModeSwitch = playModeSwitch;
+let _legacyPlayChime = playChime;
+let _legacyPlayBreakAppear = playBreakAppear;
+let _legacyPlayBreakDismiss = playBreakDismiss;
+let _legacyPlayError = playError;
+let _legacyPlayPresetSelect = playPresetSelect;
+let _legacyInitBackground = initBackground;
+let _legacyInitTilt = initTilt;
+let _legacyLaunchConfetti = launchConfetti;
+let _legacyAddFocusSeconds = addFocusSeconds;
+let _legacyGetTodayFocus = getTodayFocus;
+let _legacyFormatFocusTime = formatFocusTime;
+let _legacyGetSessionPresence = getSessionPresence;
+let _legacyGetTodayPresence = getTodayPresence;
+let _legacyFormatPresenceTime = formatPresenceTime;
+let _legacyAddDragonXP = addDragonXP;
+let _legacyGetDragonXP = getDragonXP;
+let _legacyGetDragonStage = getDragonStage;
+let _legacyPlaySummon = playSummon;
+
+Core.audio = {
+  click: _legacyPlayClick,
+  open: _legacyPlayOpen,
+  close: _legacyPlayClose,
+  start: _legacyPlayStart,
+  pause: _legacyPlayPause,
+  resume: _legacyPlayResume,
+  reset: _legacyPlayReset,
+  lap: _legacyPlayLap,
+  modeSwitch: _legacyPlayModeSwitch,
+  chime: _legacyPlayChime,
+  breakAppear: _legacyPlayBreakAppear,
+  breakDismiss: _legacyPlayBreakDismiss,
+  error: _legacyPlayError,
+  presetSelect: _legacyPlayPresetSelect
+};
+Core.background = { init: _legacyInitBackground };
+Core.tilt = { init: _legacyInitTilt };
+Core.confetti = { launch: _legacyLaunchConfetti };
+Core.focus = {
+  addSeconds: _legacyAddFocusSeconds,
+  getToday: _legacyGetTodayFocus,
+  formatTime: _legacyFormatFocusTime
+};
+Core.presence = {
+  getSession: _legacyGetSessionPresence,
+  getToday: _legacyGetTodayPresence,
+  formatTime: _legacyFormatPresenceTime
+};
+Core.dragon = {
+  addXP: _legacyAddDragonXP,
+  getXP: _legacyGetDragonXP,
+  getStage: _legacyGetDragonStage,
+  playSummon: _legacyPlaySummon
+};
+
+playClick = function() { return Core.audio.click.apply(null, arguments); };
+playOpen = function() { return Core.audio.open.apply(null, arguments); };
+playClose = function() { return Core.audio.close.apply(null, arguments); };
+playStart = function() { return Core.audio.start.apply(null, arguments); };
+playPause = function() { return Core.audio.pause.apply(null, arguments); };
+playResume = function() { return Core.audio.resume.apply(null, arguments); };
+playReset = function() { return Core.audio.reset.apply(null, arguments); };
+playLap = function() { return Core.audio.lap.apply(null, arguments); };
+playModeSwitch = function() { return Core.audio.modeSwitch.apply(null, arguments); };
+playChime = function() { return Core.audio.chime.apply(null, arguments); };
+playBreakAppear = function() { return Core.audio.breakAppear.apply(null, arguments); };
+playBreakDismiss = function() { return Core.audio.breakDismiss.apply(null, arguments); };
+playError = function() { return Core.audio.error.apply(null, arguments); };
+playPresetSelect = function() { return Core.audio.presetSelect.apply(null, arguments); };
+initBackground = function() { return Core.background.init.apply(null, arguments); };
+initTilt = function() { return Core.tilt.init.apply(null, arguments); };
+launchConfetti = function() { return Core.confetti.launch.apply(null, arguments); };
+addFocusSeconds = function() { return Core.focus.addSeconds.apply(null, arguments); };
+getTodayFocus = function() { return Core.focus.getToday.apply(null, arguments); };
+formatFocusTime = function() { return Core.focus.formatTime.apply(null, arguments); };
+getSessionPresence = function() { return Core.presence.getSession.apply(null, arguments); };
+getTodayPresence = function() { return Core.presence.getToday.apply(null, arguments); };
+formatPresenceTime = function() { return Core.presence.formatTime.apply(null, arguments); };
+addDragonXP = function() { return Core.dragon.addXP.apply(null, arguments); };
+getDragonXP = function() { return Core.dragon.getXP.apply(null, arguments); };
+getDragonStage = function() { return Core.dragon.getStage.apply(null, arguments); };
+playSummon = function() { return Core.dragon.playSummon.apply(null, arguments); };
+
 
 /* ══════════════════════════════════════
    CROSS-WIDGET SUMMON SEQUENCE
    ══════════════════════════════════════ */
-var SUMMON_DELAY = 1000;
-var SUMMON_WINDOW = 4000;
-var _summonRoles = [];
+let SUMMON_DELAY = 1000;
+let SUMMON_WINDOW = 4000;
+let _summonRoles = [];
 
 function _checkSummon() {
-  var now = Date.now();
-  var start = parseInt(localStorage.getItem('summon_start') || '0', 10);
+  let now = Date.now();
+  let start = parseInt(localStorage.getItem('summon_start') || '0', 10);
   if (now - start < SUMMON_WINDOW + SUMMON_DELAY + 2000) {
     return { start: start, elapsed: now - start };
   }
-  var delayedStart = now + SUMMON_DELAY;
+  let delayedStart = now + SUMMON_DELAY;
   localStorage.setItem('summon_start', String(delayedStart));
   localStorage.setItem('summon_last', String(now));
   return { start: delayedStart, elapsed: now - delayedStart };
@@ -662,7 +863,7 @@ function _drawSummonEgg(ctx, x, y, size, rotation) {
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(rotation);
-  var glow = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 2);
+  let glow = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 2);
   glow.addColorStop(0, 'rgba(' + Core.particleRGB + ', 0.4)');
   glow.addColorStop(1, 'rgba(' + Core.particleRGB + ', 0)');
   ctx.fillStyle = glow;
@@ -671,7 +872,7 @@ function _drawSummonEgg(ctx, x, y, size, rotation) {
   ctx.fill();
   ctx.beginPath();
   ctx.ellipse(0, 0, size * 0.55, size * 0.75, 0, 0, Math.PI * 2);
-  var eg = ctx.createLinearGradient(-size, -size, size, size);
+  let eg = ctx.createLinearGradient(-size, -size, size, size);
   eg.addColorStop(0, Core.isDark ? '#ddd6fe' : '#c4b5fd');
   eg.addColorStop(0.5, Core.isDark ? '#a78bfa' : '#8b5cf6');
   eg.addColorStop(1, Core.isDark ? '#7c3aed' : '#6d28d9');
@@ -684,11 +885,11 @@ function _drawSummonDragon(ctx, x, y, size, flapPhase, facing) {
   ctx.save();
   ctx.translate(x, y);
   if (facing < 0) ctx.scale(-1, 1);
-  var bc = Core.isDark ? '#a78bfa' : '#8b5cf6';
-  var belly = Core.isDark ? '#ddd6fe' : '#c4b5fd';
-  var wc = Core.isDark ? '#8b5cf6' : '#7c3aed';
-  var wingY = Math.sin(flapPhase) * size * 0.5;
-  var glow = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 2.5);
+  let bc = Core.isDark ? '#a78bfa' : '#8b5cf6';
+  let belly = Core.isDark ? '#ddd6fe' : '#c4b5fd';
+  let wc = Core.isDark ? '#8b5cf6' : '#7c3aed';
+  let wingY = Math.sin(flapPhase) * size * 0.5;
+  let glow = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 2.5);
   glow.addColorStop(0, 'rgba(' + Core.particleRGB + ', 0.25)');
   glow.addColorStop(1, 'rgba(' + Core.particleRGB + ', 0)');
   ctx.fillStyle = glow;
@@ -747,15 +948,15 @@ function _drawSummonDragon(ctx, x, y, size, flapPhase, facing) {
 }
 
 function _summonTrail() {
-  var p = [];
+  let p = [];
   return {
     add: function(x, y) {
       p.push({ x: x, y: y, life: 1, vx: (Math.random() - 0.5) * 1.5, vy: (Math.random() - 0.5) * 1.5, s: 1 + Math.random() * 3 });
       if (p.length > 40) p.shift();
     },
     draw: function(ctx) {
-      for (var i = p.length - 1; i >= 0; i--) {
-        var q = p[i];
+      for (let i = p.length - 1; i >= 0; i--) {
+        let q = p[i];
         q.x += q.vx; q.y += q.vy; q.life -= 0.025;
         if (q.life <= 0) { p.splice(i, 1); continue; }
         ctx.fillStyle = 'rgba(' + Core.particleRGB + ', ' + (q.life * 0.5) + ')';
@@ -769,9 +970,9 @@ function _summonTrail() {
 
 function _playSummonSound() {
   try {
-    var ctx = getAudioCtx(), now = ctx.currentTime;
-    var osc = ctx.createOscillator();
-    var gain = ctx.createGain();
+    let ctx = getAudioCtx(), now = ctx.currentTime;
+    let osc = ctx.createOscillator();
+    let gain = ctx.createGain();
     osc.type = 'sine';
     osc.frequency.setValueAtTime(300, now);
     osc.frequency.exponentialRampToValueAtTime(900, now + 1.2);
@@ -781,8 +982,8 @@ function _playSummonSound() {
     gain.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
     osc.connect(gain); gain.connect(ctx.destination);
     osc.start(now); osc.stop(now + 1.5);
-    var osc2 = ctx.createOscillator();
-    var gain2 = ctx.createGain();
+    let osc2 = ctx.createOscillator();
+    let gain2 = ctx.createGain();
     osc2.type = 'sine';
     osc2.frequency.setValueAtTime(450, now);
     osc2.frequency.exponentialRampToValueAtTime(1350, now + 1.2);
@@ -798,96 +999,96 @@ function playSummon(role) {
   return;
   if (Core.reducedMotion) return;
   if (_summonRoles.indexOf(role) === -1) _summonRoles.push(role);
-  var summon = _checkSummon();
+  let summon = _checkSummon();
   if (!summon) return;
-  var oldCv = document.getElementById('summon-' + role);
+  let oldCv = document.getElementById('summon-' + role);
   if (oldCv) oldCv.remove();
-  var stage = getDragonStage();
-  var windows = {
+  let stage = getDragonStage();
+  let windows = {
     top:    { enter: 0,    exit: 1200 },
     upper:  { enter: 500,  exit: 1700 },
     lower:  { enter: 1000, exit: 2200 },
     bottom: { enter: 1500, exit: 2800 }
   };
-  var win = windows[role];
+  let win = windows[role];
   if (!win) return;
   if (summon.elapsed > win.exit + 1000) return;
-  var dpr = window.devicePixelRatio || 1;
-  var cv = document.createElement('canvas');
+  let dpr = window.devicePixelRatio || 1;
+  let cv = document.createElement('canvas');
   cv.id = 'summon-' + role;
   cv.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;pointer-events:none;';
   cv.width = window.innerWidth * dpr;
   cv.height = window.innerHeight * dpr;
   document.body.appendChild(cv);
-  var ctx = cv.getContext('2d');
+  let ctx = cv.getContext('2d');
   ctx.scale(dpr, dpr);
-  var trail = _summonTrail();
-  var startTime = summon.start;
-  var soundPlayed = false;
+  let trail = _summonTrail();
+  let startTime = summon.start;
+  let soundPlayed = false;
   function easeIO(t) { return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; }
   function anim() {
-    var now = Date.now();
-    var t = now - startTime;
+    let now = Date.now();
+    let t = now - startTime;
     if (t > win.exit + 800) { cv.remove(); return; }
-    var cW = window.innerWidth, cH = window.innerHeight;
+    let cW = window.innerWidth, cH = window.innerHeight;
     ctx.clearRect(0, 0, cW, cH);
-    var progress = Math.max(0, Math.min(1, (t - win.enter) / (win.exit - win.enter)));
+    let progress = Math.max(0, Math.min(1, (t - win.enter) / (win.exit - win.enter)));
     if (progress <= 0) { requestAnimationFrame(anim); return; }
     if (progress >= 1) { cv.remove(); return; }
     if (!soundPlayed && progress > 0.02) { soundPlayed = true; _playSummonSound(); }
-    var x, y, size;
+    let x, y, size;
     size = Math.min(cW, cH) * (stage === 0 ? 0.06 : 0.055 + stage * 0.008);
     if (role === 'top') {
       if (progress < 0.6) {
-        var p1 = progress / 0.6;
+        let p1 = progress / 0.6;
         x = cW * (0.1 + p1 * 0.5);
         y = cH * (0.7 - Math.sin(p1 * Math.PI) * 0.5);
       } else {
-        var p2 = (progress - 0.6) / 0.4;
+        let p2 = (progress - 0.6) / 0.4;
         x = cW * (0.6 + p2 * 0.15);
         y = cH * (0.7 + p2 * 0.5);
       }
     } else if (role === 'upper') {
       if (progress < 0.3) {
-        var p1 = progress / 0.3;
+        let p1 = progress / 0.3;
         x = cW * (0.3 + p1 * 0.1);
         y = cH * (-0.1 + p1 * 0.5);
       } else if (progress < 0.7) {
-        var p2 = (progress - 0.3) / 0.4;
+        let p2 = (progress - 0.3) / 0.4;
         x = cW * (0.4 + p2 * 0.2);
         y = cH * (0.4 + Math.sin(p2 * Math.PI) * 0.12);
       } else {
-        var p3 = (progress - 0.7) / 0.3;
+        let p3 = (progress - 0.7) / 0.3;
         x = cW * (0.6 + p3 * 0.1);
         y = cH * (0.4 + p3 * 0.7);
       }
     } else if (role === 'lower') {
       if (progress < 0.25) {
-        var p1 = progress / 0.25;
+        let p1 = progress / 0.25;
         x = cW * (0.6 - p1 * 0.1);
         y = cH * (-0.1 + p1 * 0.45);
       } else if (progress < 0.65) {
-        var p2 = (progress - 0.25) / 0.4;
+        let p2 = (progress - 0.25) / 0.4;
         x = cW * (0.5 - p2 * 0.1);
         y = cH * (0.35 + p2 * 0.2 + Math.sin(p2 * Math.PI) * 0.08);
       } else {
-        var p3 = (progress - 0.65) / 0.35;
+        let p3 = (progress - 0.65) / 0.35;
         x = cW * (0.4 + p3 * 0.1);
         y = cH * (0.55 + p3 * 0.6);
       }
     } else {
       if (progress < 0.4) {
-        var p1 = progress / 0.4;
+        let p1 = progress / 0.4;
         x = cW * (0.7 - p1 * 0.2);
         y = cH * (-0.1 + p1 * 0.55);
       } else if (progress < 0.7) {
-        var p2 = (progress - 0.4) / 0.3;
+        let p2 = (progress - 0.4) / 0.3;
         x = cW * 0.5;
         y = cH * (0.45 + p2 * 0.08);
       } else {
-        var p3 = (progress - 0.7) / 0.3;
+        let p3 = (progress - 0.7) / 0.3;
         x = cW * 0.5;
-        var bounce = Math.sin(p3 * Math.PI * 3) * (1 - p3) * 0.04;
+        let bounce = Math.sin(p3 * Math.PI * 3) * (1 - p3) * 0.04;
         y = cH * (0.53 + bounce);
         ctx.globalAlpha = Math.max(0, 1 - Math.max(0, p3 - 0.6) / 0.4);
       }
@@ -900,13 +1101,13 @@ function playSummon(role) {
     if (stage === 0) {
       _drawSummonEgg(ctx, x, y, size, t * 0.008);
     } else {
-      var facing = (role === 'bottom' && progress > 0.4) ? -1 : 1;
+      let facing = (role === 'bottom' && progress > 0.4) ? -1 : 1;
       _drawSummonDragon(ctx, x, y, size, t * 0.012, facing);
     }
     ctx.globalAlpha = 1;
     requestAnimationFrame(anim);
   }
-  var delay = Math.max(0, win.enter - summon.elapsed);
+  let delay = Math.max(0, win.enter - summon.elapsed);
   if (delay > 0) setTimeout(function() { requestAnimationFrame(anim); }, delay);
   else requestAnimationFrame(anim);
   setTimeout(function() { if (cv.parentNode) cv.remove(); }, SUMMON_WINDOW + SUMMON_DELAY + 3000);
@@ -930,21 +1131,21 @@ function playSummon(role) {
 Core.magneticHover = function(el, opts) {
   if (Core.reducedMotion) return;
   opts = opts || {};
-  var radius = opts.radius || 100;
-  var strength = opts.strength || 0.3;
-  var ease = opts.ease || 0.1;
-  var targetX = 0, targetY = 0;
-  var currentX = 0, currentY = 0;
+  let radius = opts.radius || 100;
+  let strength = opts.strength || 0.3;
+  let ease = opts.ease || 0.1;
+  let targetX = 0, targetY = 0;
+  let currentX = 0, currentY = 0;
 
   el.addEventListener('mousemove', function(e) {
-    var rect = el.getBoundingClientRect();
-    var cx = rect.left + rect.width / 2;
-    var cy = rect.top + rect.height / 2;
-    var dx = e.clientX - cx;
-    var dy = e.clientY - cy;
-    var dist = Math.sqrt(dx * dx + dy * dy);
+    let rect = el.getBoundingClientRect();
+    let cx = rect.left + rect.width / 2;
+    let cy = rect.top + rect.height / 2;
+    let dx = e.clientX - cx;
+    let dy = e.clientY - cy;
+    let dist = Math.sqrt(dx * dx + dy * dy);
     if (dist < radius) {
-      var pull = (1 - dist / radius) * strength;
+      let pull = (1 - dist / radius) * strength;
       targetX = dx * pull;
       targetY = dy * pull;
     }
@@ -954,15 +1155,31 @@ Core.magneticHover = function(el, opts) {
     targetX = 0; targetY = 0;
   });
 
-  function update() {
-    currentX += (targetX - currentX) * ease;
-    currentY += (targetY - currentY) * ease;
+  function update(dt, dtMs) {
+    let step = dt || 1;
+    currentX += (targetX - currentX) * ease * step;
+    currentY += (targetY - currentY) * ease * step;
+    _coreRecordFrame(dtMs || (16.667 * step));
     el.style.transform = 'translate(' + currentX.toFixed(2) + 'px, ' + currentY.toFixed(2) + 'px)';
   }
 
   _gsapReady.then(function(gsap) {
-    if (gsap) gsap.ticker.add(update);
-    else (function loop() { update(); requestAnimationFrame(loop); })();
+    if (gsap) {
+      gsap.ticker.add(function() {
+        let dt = gsap.ticker.deltaRatio ? gsap.ticker.deltaRatio(60) : 1;
+        update(dt, dt * 16.667);
+      });
+    } else {
+      let lastTs = 0;
+      (function loop(ts) {
+        if (!lastTs) lastTs = ts;
+        let dtMs = ts - lastTs;
+        if (dtMs < 0) dtMs = 16.667;
+        lastTs = ts;
+        update(dtMs / 16.667, dtMs);
+        requestAnimationFrame(loop);
+      })(performance.now());
+    }
   });
 };
 
@@ -975,10 +1192,10 @@ Core.magneticHover = function(el, opts) {
 Core.staggerReveal = function(selector, opts) {
   if (Core.reducedMotion) return;
   opts = opts || {};
-  var els = document.querySelectorAll(selector);
+  let els = document.querySelectorAll(selector);
   if (!els.length) return;
 
-  for (var i = 0; i < els.length; i++) {
+  for (let i = 0; i < els.length; i++) {
     els[i].style.opacity = '0';
     els[i].style.transform = 'translateY(' + (opts.y || 30) + 'px)';
     els[i].style.transition = 'none';
@@ -986,17 +1203,17 @@ Core.staggerReveal = function(selector, opts) {
 
   _gsapReady.then(function(gsap) {
     if (!gsap) {
-      for (var i = 0; i < els.length; i++) {
+      for (let i = 0; i < els.length; i++) {
         els[i].style.opacity = '1';
         els[i].style.transform = 'translateY(0)';
       }
       return;
     }
 
-    var observer = new IntersectionObserver(function(entries) {
+    let observer = new IntersectionObserver(function(entries) {
       entries.forEach(function(entry) {
         if (entry.isIntersecting) {
-          var idx = Array.prototype.indexOf.call(els, entry.target);
+          let idx = Array.prototype.indexOf.call(els, entry.target);
           gsap.to(entry.target, {
             opacity: 1, y: 0,
             duration: opts.duration || 0.6,
@@ -1008,7 +1225,7 @@ Core.staggerReveal = function(selector, opts) {
       });
     }, { threshold: 0.1 });
 
-    for (var i = 0; i < els.length; i++) observer.observe(els[i]);
+    for (let i = 0; i < els.length; i++) observer.observe(els[i]);
   });
 };
 
@@ -1019,14 +1236,14 @@ Core.staggerReveal = function(selector, opts) {
    ────────────────────────────────────────────────────── */
 Core.smoothCounter = function(el, target, opts) {
   opts = opts || {};
-  var current = parseFloat(el.textContent) || 0;
-  var decimals = opts.decimals || 0;
-  var prefix = opts.prefix || '';
-  var suffix = opts.suffix || '';
+  let current = parseFloat(el.textContent) || 0;
+  let decimals = opts.decimals || 0;
+  let prefix = opts.prefix || '';
+  let suffix = opts.suffix || '';
 
   _gsapReady.then(function(gsap) {
     if (gsap) {
-      var obj = { val: current };
+      let obj = { val: current };
       gsap.to(obj, {
         val: target,
         duration: opts.duration || 1,
@@ -1051,8 +1268,8 @@ Core.spring = function(el, props, opts) {
   opts = opts || {};
   _gsapReady.then(function(gsap) {
     if (gsap) {
-      var tweenVars = {};
-      for (var key in props) {
+      let tweenVars = {};
+      for (let key in props) {
         if (props.hasOwnProperty(key)) tweenVars[key] = props[key];
       }
       tweenVars.duration = opts.duration || 0.5;
@@ -1060,7 +1277,7 @@ Core.spring = function(el, props, opts) {
       tweenVars.overwrite = 'auto';
       gsap.to(el, tweenVars);
     } else {
-      for (var key in props) {
+      for (let key in props) {
         if (props.hasOwnProperty(key)) el.style[key] = props[key];
       }
     }
@@ -1108,19 +1325,21 @@ Core.fadeIn = function(el, opts) {
      SyncEngine.onReady(function(engine) {}); // callback after first sync
    ══════════════════════════════════════ */
 
-var SyncEngine = (function() {
-  var PASS_KEY = '_sync_passphrase';
-  var WORKER_URL = '';
-  var passphrase = '';
-  var online = false;
-  var cache = {};       // { namespace: { key: value } }
-  var pushTimers = {};  // debounce timers per namespace
-  var DEBOUNCE = 300;
-  var RETRY_INTERVAL = 60000;
-  var retryTimer = null;
-  var readyCallbacks = [];
-  var initDone = false;
-  var namespaces = [];  // registered namespace strings
+let SyncEngine = (function() {
+  let PASS_KEY = '_sync_passphrase';
+  let WORKER_URL = '';
+  let passphrase = '';
+  let online = false;
+  let cache = {};         // { namespace: { key: value|{value,_ts} } }
+  let pushTimers = {};    // debounce timers per namespace
+  let dirtyNamespaces = {};
+  let offlineQueue = [];
+  let DEBOUNCE = 300;
+  let RETRY_INTERVAL = 60000;
+  let retryTimer = null;
+  let readyCallbacks = [];
+  let initDone = false;
+  let namespaces = [];    // registered namespace strings
 
   /* ── BroadcastChannel: cross-widget real-time sync ──
      All widgets on the same origin (lordgrape.github.io)
@@ -1129,16 +1348,62 @@ var SyncEngine = (function() {
      are broadcast so every open widget stays current
      without waiting for Cloudflare round-trips.
      ────────────────────────────────────────────────── */
-  var _channel = (typeof BroadcastChannel !== 'undefined')
+  let _channel = (typeof BroadcastChannel !== 'undefined')
     ? new BroadcastChannel('widget_sync') : null;
 
   function _broadcast(msg) {
     if (_channel) try { _channel.postMessage(msg); } catch(e) {}
   }
 
+  function _nowTs() { return Date.now(); }
+  function _entryValue(entry) {
+    if (entry && typeof entry === 'object' && entry.hasOwnProperty('_ts') && entry.hasOwnProperty('value')) {
+      return entry.value;
+    }
+    return entry;
+  }
+  function _entryTs(entry) {
+    if (entry && typeof entry === 'object' && entry.hasOwnProperty('_ts')) return entry._ts || 0;
+    return 0;
+  }
+  function _normalizeNamespaceObject(raw) {
+    let out = {};
+    if (!raw || typeof raw !== 'object') return out;
+    for (let k in raw) {
+      if (!raw.hasOwnProperty(k)) continue;
+      let entry = raw[k];
+      if (entry && typeof entry === 'object' && entry.hasOwnProperty('_ts') && entry.hasOwnProperty('value')) out[k] = entry;
+      else out[k] = { value: entry, _ts: 0 };
+    }
+    return out;
+  }
+  function _queueWrite(action) { offlineQueue.push(action); }
+  function _drainOfflineQueue() {
+    if (!online) return;
+    while (offlineQueue.length) {
+      let action = offlineQueue.shift();
+      if (!action) continue;
+      if (action.type === 'set') {
+        if (!cache[action.ns]) cache[action.ns] = {};
+        cache[action.ns][action.key] = { value: action.value, _ts: action.ts || _nowTs() };
+        dirtyNamespaces[action.ns] = true;
+      } else if (action.type === 'setMany') {
+        if (!cache[action.ns]) cache[action.ns] = {};
+        for (let k in action.obj) {
+          if (action.obj.hasOwnProperty(k)) cache[action.ns][k] = { value: action.obj[k], _ts: action.ts || _nowTs() };
+        }
+        dirtyNamespaces[action.ns] = true;
+      } else if (action.type === 'remove') {
+        if (cache[action.ns]) delete cache[action.ns][action.key];
+        dirtyNamespaces[action.ns] = true;
+      }
+      lsWrite(action.ns);
+    }
+  }
+
   if (_channel) {
     _channel.addEventListener('message', function(e) {
-      var d = e.data;
+      let d = e.data;
       if (!d || !d.type) return;
 
       /* Another widget entered the passphrase */
@@ -1146,11 +1411,11 @@ var SyncEngine = (function() {
         passphrase = d.value;
         localStorage.setItem(PASS_KEY, passphrase);
         /* Dismiss prompt if it is currently showing */
-        var ov = document.querySelector('[data-sync-prompt]');
+        let ov = document.querySelector('[data-sync-prompt]');
         if (ov) ov.remove();
         /* Kick off remote sync now that we have a passphrase */
         if (WORKER_URL && !online) {
-          var pulls = namespaces.map(function(ns) {
+          let pulls = namespaces.map(function(ns) {
             return remoteGet(ns)
               .then(function(remote) {
                 cache[ns] = merge(cache[ns], remote);
@@ -1161,6 +1426,8 @@ var SyncEngine = (function() {
           });
           Promise.all(pulls).then(function() {
             online = true;
+            _drainOfflineQueue();
+            SyncEngine.flush();
           }).catch(function() {});
         }
       }
@@ -1168,9 +1435,8 @@ var SyncEngine = (function() {
       /* Another widget wrote state — merge into our cache */
       if (d.type === 'state_update' && d.namespace && d.data) {
         if (!cache[d.namespace]) cache[d.namespace] = {};
-        for (var k in d.data) {
-          if (d.data.hasOwnProperty(k)) cache[d.namespace][k] = d.data[k];
-        }
+        let patch = _normalizeNamespaceObject(d.data);
+        cache[d.namespace] = merge(cache[d.namespace], patch);
         lsWrite(d.namespace);
       }
     });
@@ -1181,8 +1447,8 @@ var SyncEngine = (function() {
 
   function lsRead(ns) {
     try {
-      var raw = localStorage.getItem(lsKey(ns));
-      return raw ? JSON.parse(raw) : {};
+      let raw = localStorage.getItem(lsKey(ns));
+      return _normalizeNamespaceObject(raw ? JSON.parse(raw) : {});
     } catch(e) { return {}; }
   }
 
@@ -1212,14 +1478,15 @@ var SyncEngine = (function() {
     .then(function(r) { if (!r.ok) throw new Error(r.status); });
   }
 
-  /* ── Merge: remote wins on conflict ── */
+  /* ── Merge: newer timestamp wins on conflict ── */
   function merge(local, remote) {
-    var merged = {};
-    for (var k in local) {
-      if (local.hasOwnProperty(k)) merged[k] = local[k];
-    }
-    for (var k in remote) {
-      if (remote.hasOwnProperty(k)) merged[k] = remote[k];
+    let merged = {};
+    local = _normalizeNamespaceObject(local || {});
+    remote = _normalizeNamespaceObject(remote || {});
+    for (let k in local) if (local.hasOwnProperty(k)) merged[k] = local[k];
+    for (let k in remote) {
+      if (!remote.hasOwnProperty(k)) continue;
+      if (!merged.hasOwnProperty(k) || _entryTs(remote[k]) >= _entryTs(merged[k])) merged[k] = remote[k];
     }
     return merged;
   }
@@ -1228,8 +1495,11 @@ var SyncEngine = (function() {
   function schedulePush(ns) {
     if (pushTimers[ns]) clearTimeout(pushTimers[ns]);
     pushTimers[ns] = setTimeout(function() {
+      dirtyNamespaces[ns] = true;
       if (!online) return;
-      remotePut(ns).catch(function() { online = false; scheduleRetry(); });
+      remotePut(ns).then(function() {
+        delete dirtyNamespaces[ns];
+      }).catch(function() { online = false; scheduleRetry(); });
     }, DEBOUNCE);
   }
 
@@ -1246,7 +1516,8 @@ var SyncEngine = (function() {
           online = true;
           clearInterval(retryTimer);
           retryTimer = null;
-          namespaces.forEach(function(ns) { remotePut(ns).catch(function() {}); });
+          _drainOfflineQueue();
+          SyncEngine.flush();
         }
       })
       .catch(function() {});
@@ -1258,7 +1529,7 @@ var SyncEngine = (function() {
     if (localStorage.getItem('_sync_migrated')) return;
 
     /* Dragon state */
-    var dragonKeys = [
+    let dragonKeys = [
       'dragon_xp', 'dragon_rations', 'dragon_morale', 'dragon_readiness',
       'dragon_lastVisit', 'dragon_streak', 'dragon_streakDate',
       'dragon_feedToday', 'dragon_playToday', 'dragon_restToday',
@@ -1266,21 +1537,21 @@ var SyncEngine = (function() {
       'dragon_lastRandom'
     ];
     dragonKeys.forEach(function(oldKey) {
-      var val = localStorage.getItem(oldKey);
+      let val = localStorage.getItem(oldKey);
       if (val !== null) {
-        var newKey = oldKey.replace('dragon_', '');
-        var parsed = isNaN(Number(val)) ? val : Number(val);
+        let newKey = oldKey.replace('dragon_', '');
+        let parsed = isNaN(Number(val)) ? val : Number(val);
         if (!cache['dragon']) cache['dragon'] = {};
-        cache['dragon'][newKey] = parsed;
+        cache['dragon'][newKey] = { value: parsed, _ts: 0 };
       }
     });
 
     /* Focus keys (focus_YYYY-MM-DD) */
-    for (var i = 0; i < localStorage.length; i++) {
-      var k = localStorage.key(i);
+    for (let i = 0; i < localStorage.length; i++) {
+      let k = localStorage.key(i);
       if (k && k.indexOf('focus_') === 0) {
         if (!cache['clock']) cache['clock'] = {};
-        cache['clock'][k] = parseInt(localStorage.getItem(k) || '0', 10);
+        cache['clock'][k] = { value: parseInt(localStorage.getItem(k) || '0', 10), _ts: 0 };
       }
     }
 
@@ -1292,30 +1563,30 @@ var SyncEngine = (function() {
   /* ── Passphrase prompt ── */
   function showPrompt() {
     return new Promise(function(resolve) {
-      var ov = document.createElement('div');
+      let ov = document.createElement('div');
       ov.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:999999;' +
         'display:flex;align-items:center;justify-content:center;' +
         'background:rgba(0,0,0,0.4);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);';
 
-      var isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      var card = document.createElement('div');
+      let isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      let card = document.createElement('div');
       card.style.cssText = 'background:' + (isDark ? 'rgba(25,25,35,0.96)' : 'rgba(255,255,255,0.98)') +
         ';border-radius:16px;padding:28px 32px;max-width:320px;width:90%;text-align:center;' +
         'border:1px solid ' + (isDark ? 'rgba(138,92,246,0.15)' : 'rgba(138,92,246,0.12)') +
         ';box-shadow:0 8px 40px rgba(0,0,0,0.25);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;';
 
-      var title = document.createElement('div');
+      let title = document.createElement('div');
       title.textContent = 'Widget Sync Setup';
       title.style.cssText = 'font-size:14px;font-weight:600;letter-spacing:-0.3px;margin-bottom:6px;' +
         'color:' + (isDark ? 'rgba(255,255,255,0.85)' : '#37352f') + ';';
 
-      var desc = document.createElement('div');
+      let desc = document.createElement('div');
       desc.textContent = 'Enter your sync passphrase to enable cross-device state. ' +
         'Without it, widgets run in local-only mode.';
       desc.style.cssText = 'font-size:11px;font-weight:300;line-height:1.5;margin-bottom:16px;' +
         'color:' + (isDark ? 'rgba(255,255,255,0.5)' : 'rgba(100,100,120,0.6)') + ';letter-spacing:0.2px;';
 
-      var input = document.createElement('input');
+      let input = document.createElement('input');
       input.type = 'password';
       input.placeholder = 'Passphrase';
       input.style.cssText = 'width:100%;padding:10px 14px;border-radius:10px;border:1px solid ' +
@@ -1329,10 +1600,10 @@ var SyncEngine = (function() {
         input.style.borderColor = isDark ? 'rgba(138,92,246,0.2)' : 'rgba(138,92,246,0.15)';
       });
 
-      var row = document.createElement('div');
+      let row = document.createElement('div');
       row.style.cssText = 'display:flex;gap:8px;';
 
-      var btnConnect = document.createElement('button');
+      let btnConnect = document.createElement('button');
       btnConnect.textContent = 'Connect';
       btnConnect.style.cssText = 'flex:1;padding:9px 0;border-radius:10px;border:none;cursor:pointer;' +
         'font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;' +
@@ -1340,7 +1611,7 @@ var SyncEngine = (function() {
       btnConnect.addEventListener('mouseenter', function() { btnConnect.style.transform = 'scale(1.03)'; });
       btnConnect.addEventListener('mouseleave', function() { btnConnect.style.transform = 'scale(1)'; });
 
-      var btnSkip = document.createElement('button');
+      let btnSkip = document.createElement('button');
       btnSkip.textContent = 'Local Only';
       btnSkip.style.cssText = 'flex:1;padding:9px 0;border-radius:10px;border:1px solid ' +
         (isDark ? 'rgba(138,92,246,0.15)' : 'rgba(138,92,246,0.1)') +
@@ -1349,7 +1620,7 @@ var SyncEngine = (function() {
         ';font-family:inherit;transition:opacity 0.15s;';
 
       function submit() {
-        var val = input.value.trim();
+        let val = input.value.trim();
         if (val) {
           localStorage.setItem(PASS_KEY, val);
           passphrase = val;
@@ -1396,7 +1667,7 @@ var SyncEngine = (function() {
       /* Migrate old localStorage keys on first run */
       migrateOnce();
 
-      var chain;
+      let chain;
       if (!passphrase) {
         chain = showPrompt();
       } else {
@@ -1409,10 +1680,11 @@ var SyncEngine = (function() {
           online = false;
           initDone = true;
           readyCallbacks.forEach(function(cb) { cb(SyncEngine); });
+          Core.emit('sync-ready', { online: false });
           return;
         }
         /* Pull remote state for each namespace, merge, push merged copy back */
-        var pulls = namespaces.map(function(ns) {
+        let pulls = namespaces.map(function(ns) {
           return remoteGet(ns)
             .then(function(remote) {
               cache[ns] = merge(cache[ns], remote);
@@ -1425,46 +1697,59 @@ var SyncEngine = (function() {
         });
         return Promise.all(pulls).then(function() {
           online = true;
+          _drainOfflineQueue();
           initDone = true;
           readyCallbacks.forEach(function(cb) { cb(SyncEngine); });
+          Core.emit('sync-ready', { online: true });
         }).catch(function() {
           online = false;
           initDone = true;
           scheduleRetry();
           readyCallbacks.forEach(function(cb) { cb(SyncEngine); });
+          Core.emit('sync-ready', { online: false });
         });
       });
     },
 
     /** Read a single key from a namespace. */
     get: function(ns, key) {
-      return (cache[ns] || {})[key] ?? null;
+      let entry = (cache[ns] || {})[key];
+      return entry === undefined ? null : _entryValue(entry);
     },
 
     /** Read the full namespace object. */
     getAll: function(ns) {
-      return cache[ns] || {};
+      let src = cache[ns] || {};
+      let out = {};
+      for (let k in src) if (src.hasOwnProperty(k)) out[k] = _entryValue(src[k]);
+      return out;
     },
 
     /** Write a key. Saves to localStorage immediately, pushes to Worker (debounced). */
     set: function(ns, key, value) {
       if (!cache[ns]) cache[ns] = {};
-      cache[ns][key] = value;
+      let ts = _nowTs();
+      cache[ns][key] = { value: value, _ts: ts };
       lsWrite(ns);
+      if (!online) _queueWrite({ type: 'set', ns: ns, key: key, value: value, ts: ts });
       schedulePush(ns);
-      var patch = {}; patch[key] = value;
+      let patch = {}; patch[key] = { value: value, _ts: ts };
       _broadcast({ type: 'state_update', namespace: ns, data: patch });
     },
 
     /** Batch-write multiple keys in one namespace. */
     setMany: function(ns, obj) {
       if (!cache[ns]) cache[ns] = {};
-      for (var k in obj) {
-        if (obj.hasOwnProperty(k)) cache[ns][k] = obj[k];
+      let ts = _nowTs();
+      for (let k in obj) {
+        if (obj.hasOwnProperty(k)) cache[ns][k] = { value: obj[k], _ts: ts };
       }
       lsWrite(ns);
+      if (!online) _queueWrite({ type: 'setMany', ns: ns, obj: obj, ts: ts });
       schedulePush(ns);
-      _broadcast({ type: 'state_update', namespace: ns, data: obj });
+      let patch = {};
+      for (let k in obj) if (obj.hasOwnProperty(k)) patch[k] = { value: obj[k], _ts: ts };
+      _broadcast({ type: 'state_update', namespace: ns, data: patch });
     },
 
     /** Delete a key. */
@@ -1472,8 +1757,9 @@ var SyncEngine = (function() {
       if (cache[ns]) {
         delete cache[ns][key];
         lsWrite(ns);
+        if (!online) _queueWrite({ type: 'remove', ns: ns, key: key, ts: _nowTs() });
         schedulePush(ns);
-        var patch = {}; patch[key] = null;
+        let patch = {}; patch[key] = { value: null, _ts: _nowTs() };
         _broadcast({ type: 'state_update', namespace: ns, data: patch });
       }
     },
@@ -1482,6 +1768,16 @@ var SyncEngine = (function() {
     onReady: function(cb) {
       if (initDone) cb(SyncEngine);
       else readyCallbacks.push(cb);
+    },
+
+    /** Push all dirty namespaces in one batch. */
+    flush: function() {
+      if (!online) return Promise.resolve();
+      let pending = Object.keys(dirtyNamespaces).filter(function(ns) { return !!dirtyNamespaces[ns]; });
+      if (!pending.length) pending = namespaces.slice();
+      return Promise.all(pending.map(function(ns) {
+        return remotePut(ns).then(function() { delete dirtyNamespaces[ns]; }).catch(function() {});
+      }));
     },
 
     /** Force a pull from remote for a namespace. */
@@ -1496,7 +1792,9 @@ var SyncEngine = (function() {
     /** Force push current cache to remote. */
     push: function(ns) {
       if (!online) return Promise.resolve();
-      return remotePut(ns).catch(function() {});
+      return remotePut(ns).then(function() {
+        delete dirtyNamespaces[ns];
+      }).catch(function() {});
     },
 
     /** Check connectivity status. */
@@ -1507,7 +1805,7 @@ var SyncEngine = (function() {
      *  Optional dbId param overrides the server default. */
     fetchMilestones: function(dbId) {
       if (!online || !passphrase) return Promise.resolve([]);
-      var endpoint = WORKER_URL + '/notion/milestones';
+      let endpoint = WORKER_URL + '/notion/milestones';
       if (dbId) endpoint += '?db=' + encodeURIComponent(dbId);
       return fetch(endpoint, {
         method: 'GET',
