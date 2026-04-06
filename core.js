@@ -529,7 +529,7 @@ function launchConfetti(canvasId) {
 
 
 /* ══════════════════════════════════════
-   FOCUS STATS (localStorage)
+   FOCUS STATS (SyncEngine-backed)
    ══════════════════════════════════════ */
 function _focusKey() {
   var d = new Date();
@@ -539,13 +539,13 @@ function _focusKey() {
 function addFocusSeconds(secs) {
   if (secs < 1) return 0;
   var key = _focusKey();
-  var total = parseInt(localStorage.getItem(key) || '0', 10) + Math.floor(secs);
-  localStorage.setItem(key, String(total));
+  var total = (SyncEngine.get('clock', key) || 0) + Math.floor(secs);
+  SyncEngine.set('clock', key, total);
   return total;
 }
 
 function getTodayFocus() {
-  return parseInt(localStorage.getItem(_focusKey()) || '0', 10);
+  return SyncEngine.get('clock', _focusKey()) || 0;
 }
 
 function formatFocusTime(secs) {
@@ -558,14 +558,14 @@ function formatFocusTime(secs) {
    DRAGON XP (cross-widget shared state)
    ══════════════════════════════════════ */
 function addDragonXP(amount) {
-  var xp = parseInt(localStorage.getItem('dragon_xp') || '0', 10);
+  var xp = SyncEngine.get('dragon', 'xp') || 0;
   xp += Math.floor(amount);
-  localStorage.setItem('dragon_xp', String(xp));
+  SyncEngine.set('dragon', 'xp', xp);
   return xp;
 }
 
 function getDragonXP() {
-  return parseInt(localStorage.getItem('dragon_xp') || '0', 10);
+  return SyncEngine.get('dragon', 'xp') || 0;
 }
 
 function getDragonStage() {
@@ -1031,3 +1031,362 @@ Core.fadeIn = function(el, opts) {
     }
   });
 };
+
+
+/* ══════════════════════════════════════
+   SYNC ENGINE — Cross-device state layer
+   ══════════════════════════════════════
+   Self-contained addition to core.js.
+   Does not modify existing Core globals.
+
+   Usage:
+     SyncEngine.init({ worker: 'https://widget-sync.lordgrape-widgets.workers.dev' })
+       .then(function() { ... });
+     SyncEngine.get('dragon', 'xp');        // read
+     SyncEngine.set('dragon', 'xp', 1200);  // write (local + remote)
+     SyncEngine.getAll('dragon');            // full namespace object
+     SyncEngine.onReady(function(engine) {}); // callback after first sync
+   ══════════════════════════════════════ */
+
+var SyncEngine = (function() {
+  var PASS_KEY = '_sync_passphrase';
+  var WORKER_URL = '';
+  var passphrase = '';
+  var online = false;
+  var cache = {};       // { namespace: { key: value } }
+  var pushTimers = {};  // debounce timers per namespace
+  var DEBOUNCE = 300;
+  var RETRY_INTERVAL = 60000;
+  var retryTimer = null;
+  var readyCallbacks = [];
+  var initDone = false;
+  var namespaces = [];  // registered namespace strings
+
+  /* ── localStorage helpers ── */
+  function lsKey(ns) { return '_sync_' + ns; }
+
+  function lsRead(ns) {
+    try {
+      var raw = localStorage.getItem(lsKey(ns));
+      return raw ? JSON.parse(raw) : {};
+    } catch(e) { return {}; }
+  }
+
+  function lsWrite(ns) {
+    try { localStorage.setItem(lsKey(ns), JSON.stringify(cache[ns] || {})); } catch(e) {}
+  }
+
+  /* ── Remote helpers ── */
+  function remoteGet(ns) {
+    return fetch(WORKER_URL + '/state/' + ns, {
+      method: 'GET',
+      headers: { 'X-Widget-Key': passphrase }
+    })
+    .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function(d) { return d.value || {}; });
+  }
+
+  function remotePut(ns) {
+    return fetch(WORKER_URL + '/state/' + ns, {
+      method: 'PUT',
+      headers: {
+        'X-Widget-Key': passphrase,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ value: cache[ns] || {} })
+    })
+    .then(function(r) { if (!r.ok) throw new Error(r.status); });
+  }
+
+  /* ── Merge: remote wins on conflict ── */
+  function merge(local, remote) {
+    var merged = {};
+    for (var k in local) {
+      if (local.hasOwnProperty(k)) merged[k] = local[k];
+    }
+    for (var k in remote) {
+      if (remote.hasOwnProperty(k)) merged[k] = remote[k];
+    }
+    return merged;
+  }
+
+  /* ── Debounced push ── */
+  function schedulePush(ns) {
+    if (pushTimers[ns]) clearTimeout(pushTimers[ns]);
+    pushTimers[ns] = setTimeout(function() {
+      if (!online) return;
+      remotePut(ns).catch(function() { online = false; scheduleRetry(); });
+    }, DEBOUNCE);
+  }
+
+  /* ── Retry loop ── */
+  function scheduleRetry() {
+    if (retryTimer) return;
+    retryTimer = setInterval(function() {
+      fetch(WORKER_URL + '/state/ping', {
+        method: 'GET',
+        headers: { 'X-Widget-Key': passphrase }
+      })
+      .then(function(r) {
+        if (r.ok || r.status === 404) {
+          online = true;
+          clearInterval(retryTimer);
+          retryTimer = null;
+          namespaces.forEach(function(ns) { remotePut(ns).catch(function() {}); });
+        }
+      })
+      .catch(function() {});
+    }, RETRY_INTERVAL);
+  }
+
+  /* ── One-time migration from old localStorage keys ── */
+  function migrateOnce() {
+    if (localStorage.getItem('_sync_migrated')) return;
+
+    /* Dragon state */
+    var dragonKeys = [
+      'dragon_xp', 'dragon_rations', 'dragon_morale', 'dragon_readiness',
+      'dragon_lastVisit', 'dragon_streak', 'dragon_streakDate',
+      'dragon_feedToday', 'dragon_playToday', 'dragon_restToday',
+      'dragon_visXPToday', 'dragon_loginToday', 'dragon_todayDate',
+      'dragon_lastRandom'
+    ];
+    dragonKeys.forEach(function(oldKey) {
+      var val = localStorage.getItem(oldKey);
+      if (val !== null) {
+        var newKey = oldKey.replace('dragon_', '');
+        var parsed = isNaN(Number(val)) ? val : Number(val);
+        if (!cache['dragon']) cache['dragon'] = {};
+        cache['dragon'][newKey] = parsed;
+      }
+    });
+
+    /* Focus keys (focus_YYYY-MM-DD) */
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (k && k.indexOf('focus_') === 0) {
+        if (!cache['clock']) cache['clock'] = {};
+        cache['clock'][k] = parseInt(localStorage.getItem(k) || '0', 10);
+      }
+    }
+
+    /* Write migrated data to new localStorage keys */
+    namespaces.forEach(function(ns) { lsWrite(ns); });
+    localStorage.setItem('_sync_migrated', '1');
+  }
+
+  /* ── Passphrase prompt ── */
+  function showPrompt() {
+    return new Promise(function(resolve) {
+      var ov = document.createElement('div');
+      ov.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:999999;' +
+        'display:flex;align-items:center;justify-content:center;' +
+        'background:rgba(0,0,0,0.4);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);';
+
+      var isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var card = document.createElement('div');
+      card.style.cssText = 'background:' + (isDark ? 'rgba(25,25,35,0.96)' : 'rgba(255,255,255,0.98)') +
+        ';border-radius:16px;padding:28px 32px;max-width:320px;width:90%;text-align:center;' +
+        'border:1px solid ' + (isDark ? 'rgba(138,92,246,0.15)' : 'rgba(138,92,246,0.12)') +
+        ';box-shadow:0 8px 40px rgba(0,0,0,0.25);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;';
+
+      var title = document.createElement('div');
+      title.textContent = 'Widget Sync Setup';
+      title.style.cssText = 'font-size:14px;font-weight:600;letter-spacing:-0.3px;margin-bottom:6px;' +
+        'color:' + (isDark ? 'rgba(255,255,255,0.85)' : '#37352f') + ';';
+
+      var desc = document.createElement('div');
+      desc.textContent = 'Enter your sync passphrase to enable cross-device state. ' +
+        'Without it, widgets run in local-only mode.';
+      desc.style.cssText = 'font-size:11px;font-weight:300;line-height:1.5;margin-bottom:16px;' +
+        'color:' + (isDark ? 'rgba(255,255,255,0.5)' : 'rgba(100,100,120,0.6)') + ';letter-spacing:0.2px;';
+
+      var input = document.createElement('input');
+      input.type = 'password';
+      input.placeholder = 'Passphrase';
+      input.style.cssText = 'width:100%;padding:10px 14px;border-radius:10px;border:1px solid ' +
+        (isDark ? 'rgba(138,92,246,0.2)' : 'rgba(138,92,246,0.15)') +
+        ';background:' + (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(138,92,246,0.04)') +
+        ';color:' + (isDark ? '#fff' : '#37352f') +
+        ';font-size:13px;font-family:inherit;outline:none;margin-bottom:10px;' +
+        'transition:border-color 0.2s;box-sizing:border-box;';
+      input.addEventListener('focus', function() { input.style.borderColor = '#8b5cf6'; });
+      input.addEventListener('blur', function() {
+        input.style.borderColor = isDark ? 'rgba(138,92,246,0.2)' : 'rgba(138,92,246,0.15)';
+      });
+
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;gap:8px;';
+
+      var btnConnect = document.createElement('button');
+      btnConnect.textContent = 'Connect';
+      btnConnect.style.cssText = 'flex:1;padding:9px 0;border-radius:10px;border:none;cursor:pointer;' +
+        'font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;' +
+        'background:#8b5cf6;color:#fff;font-family:inherit;transition:transform 0.15s,opacity 0.15s;';
+      btnConnect.addEventListener('mouseenter', function() { btnConnect.style.transform = 'scale(1.03)'; });
+      btnConnect.addEventListener('mouseleave', function() { btnConnect.style.transform = 'scale(1)'; });
+
+      var btnSkip = document.createElement('button');
+      btnSkip.textContent = 'Local Only';
+      btnSkip.style.cssText = 'flex:1;padding:9px 0;border-radius:10px;border:1px solid ' +
+        (isDark ? 'rgba(138,92,246,0.15)' : 'rgba(138,92,246,0.1)') +
+        ';cursor:pointer;font-size:11px;font-weight:500;letter-spacing:0.5px;text-transform:uppercase;' +
+        'background:transparent;color:' + (isDark ? 'rgba(255,255,255,0.45)' : 'rgba(100,100,120,0.5)') +
+        ';font-family:inherit;transition:opacity 0.15s;';
+
+      function submit() {
+        var val = input.value.trim();
+        if (val) {
+          localStorage.setItem(PASS_KEY, val);
+          passphrase = val;
+        }
+        ov.remove();
+        resolve(val);
+      }
+
+      btnConnect.addEventListener('click', submit);
+      btnSkip.addEventListener('click', function() { ov.remove(); resolve(''); });
+      input.addEventListener('keydown', function(e) { if (e.key === 'Enter') submit(); });
+
+      row.appendChild(btnConnect);
+      row.appendChild(btnSkip);
+      card.appendChild(title);
+      card.appendChild(desc);
+      card.appendChild(input);
+      card.appendChild(row);
+      ov.appendChild(card);
+      document.body.appendChild(ov);
+      setTimeout(function() { input.focus(); }, 100);
+    });
+  }
+
+  /* ── Public API ── */
+  return {
+    /**
+     * Initialize the sync engine.
+     * @param {Object} opts
+     * @param {string} opts.worker - Full URL of your Cloudflare Worker
+     * @param {string[]} opts.namespaces - List of namespace keys to sync
+     * @returns {Promise}
+     */
+    init: function(opts) {
+      WORKER_URL = (opts.worker || '').replace(/\/+$/, '');
+      namespaces = opts.namespaces || ['dragon', 'clock', 'user'];
+      passphrase = localStorage.getItem(PASS_KEY) || '';
+
+      /* Pre-load local cache for every namespace */
+      namespaces.forEach(function(ns) { cache[ns] = lsRead(ns); });
+
+      /* Migrate old localStorage keys on first run */
+      migrateOnce();
+
+      var chain;
+      if (!passphrase) {
+        chain = showPrompt();
+      } else {
+        chain = Promise.resolve(passphrase);
+      }
+
+      return chain.then(function(pass) {
+        if (!pass || !WORKER_URL) {
+          /* Local-only mode */
+          online = false;
+          initDone = true;
+          readyCallbacks.forEach(function(cb) { cb(SyncEngine); });
+          return;
+        }
+        /* Pull remote state for each namespace, merge, push merged copy back */
+        var pulls = namespaces.map(function(ns) {
+          return remoteGet(ns)
+            .then(function(remote) {
+              cache[ns] = merge(cache[ns], remote);
+              lsWrite(ns);
+              return remotePut(ns);
+            })
+            .catch(function() {
+              /* Remote unreachable: keep local */
+            });
+        });
+        return Promise.all(pulls).then(function() {
+          online = true;
+          initDone = true;
+          readyCallbacks.forEach(function(cb) { cb(SyncEngine); });
+        }).catch(function() {
+          online = false;
+          initDone = true;
+          scheduleRetry();
+          readyCallbacks.forEach(function(cb) { cb(SyncEngine); });
+        });
+      });
+    },
+
+    /** Read a single key from a namespace. */
+    get: function(ns, key) {
+      return (cache[ns] || {})[key] ?? null;
+    },
+
+    /** Read the full namespace object. */
+    getAll: function(ns) {
+      return cache[ns] || {};
+    },
+
+    /** Write a key. Saves to localStorage immediately, pushes to Worker (debounced). */
+    set: function(ns, key, value) {
+      if (!cache[ns]) cache[ns] = {};
+      cache[ns][key] = value;
+      lsWrite(ns);
+      schedulePush(ns);
+    },
+
+    /** Batch-write multiple keys in one namespace. */
+    setMany: function(ns, obj) {
+      if (!cache[ns]) cache[ns] = {};
+      for (var k in obj) {
+        if (obj.hasOwnProperty(k)) cache[ns][k] = obj[k];
+      }
+      lsWrite(ns);
+      schedulePush(ns);
+    },
+
+    /** Delete a key. */
+    remove: function(ns, key) {
+      if (cache[ns]) { delete cache[ns][key]; lsWrite(ns); schedulePush(ns); }
+    },
+
+    /** Register a callback for when first sync completes. */
+    onReady: function(cb) {
+      if (initDone) cb(SyncEngine);
+      else readyCallbacks.push(cb);
+    },
+
+    /** Force a pull from remote for a namespace. */
+    pull: function(ns) {
+      if (!online) return Promise.resolve();
+      return remoteGet(ns).then(function(remote) {
+        cache[ns] = merge(cache[ns], remote);
+        lsWrite(ns);
+      }).catch(function() {});
+    },
+
+    /** Force push current cache to remote. */
+    push: function(ns) {
+      if (!online) return Promise.resolve();
+      return remotePut(ns).catch(function() {});
+    },
+
+    /** Check connectivity status. */
+    isOnline: function() { return online; },
+
+    /** Fetch milestones from the Notion bridge (phase 2). */
+    fetchMilestones: function(dbId) {
+      if (!online || !passphrase) return Promise.resolve([]);
+      return fetch(WORKER_URL + '/notion/milestones?db=' + encodeURIComponent(dbId), {
+        method: 'GET',
+        headers: { 'X-Widget-Key': passphrase }
+      })
+      .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function(d) { return d.items || []; })
+      .catch(function() { return []; });
+    }
+  };
+})();
