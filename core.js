@@ -1159,6 +1159,94 @@ Core.a11y = {
   }
 };
 
+Core.tooltip = (function() {
+  let tip = null;
+  let label = null;
+  let arrow = null;
+  let showTimer = null;
+  function ensure() {
+    if (tip) return tip;
+    tip = document.createElement('div');
+    tip.id = 'core-tooltip';
+    tip.setAttribute('role', 'tooltip');
+    tip.style.cssText =
+      'position:fixed;z-index:9999;pointer-events:none;opacity:0;transform:translateY(4px);' +
+      'background:var(--surface-3);border:1px solid var(--border-default);border-radius:var(--radius-sm);' +
+      'color:var(--text-primary);font-size:0.75rem;padding:4px 10px;box-shadow:var(--shadow-sm);' +
+      'transition:opacity 150ms ease,transform 150ms ease;';
+    label = document.createElement('span');
+    tip.appendChild(label);
+    arrow = document.createElement('div');
+    arrow.style.cssText = 'position:absolute;left:50%;bottom:-5px;width:8px;height:8px;transform:translateX(-50%) rotate(45deg);' +
+      'background:var(--surface-3);border-right:1px solid var(--border-default);border-bottom:1px solid var(--border-default);';
+    tip.appendChild(arrow);
+    document.body.appendChild(tip);
+    return tip;
+  }
+  function place(el) {
+    if (!tip || !el) return;
+    let r = el.getBoundingClientRect();
+    let tr = tip.getBoundingClientRect();
+    let top = Math.max(8, r.top - tr.height - 10);
+    let left = Math.min(window.innerWidth - tr.width - 8, Math.max(8, r.left + (r.width - tr.width) / 2));
+    tip.style.top = top + 'px';
+    tip.style.left = left + 'px';
+  }
+  function show(el, text) {
+    if (!el || !text) return;
+    let node = ensure();
+    label.textContent = text;
+    place(el);
+    requestAnimationFrame(function() {
+      node.style.opacity = '1';
+      node.style.transform = 'translateY(0)';
+    });
+  }
+  function hide() {
+    if (!tip) return;
+    tip.style.opacity = '0';
+    tip.style.transform = 'translateY(4px)';
+  }
+  return {
+    init: function() { ensure(); },
+    attach: function(el, text) {
+      if (!el) return;
+      let getText = function() { return typeof text === 'function' ? text() : text; };
+      let enter = function() {
+        clearTimeout(showTimer);
+        showTimer = setTimeout(function() { show(el, getText()); }, 300);
+      };
+      let leave = function() { clearTimeout(showTimer); hide(); };
+      el.addEventListener('mouseenter', enter);
+      el.addEventListener('focus', enter);
+      el.addEventListener('mouseleave', leave);
+      el.addEventListener('blur', leave);
+    }
+  };
+})();
+
+Core.ripple = function(el, colour) {
+  if (!el) return;
+  let target = el;
+  let style = getComputedStyle(target);
+  if (style.position === 'static') target.style.position = 'relative';
+  target.style.overflow = target.style.overflow || 'hidden';
+  let r = document.createElement('span');
+  let c = colour || 'var(--accent-primary)';
+  r.style.cssText = 'position:absolute;left:50%;top:50%;width:8px;height:8px;border-radius:999px;' +
+    'border:2px solid ' + c + ';transform:translate(-50%,-50%) scale(0.4);opacity:0.9;pointer-events:none;';
+  target.appendChild(r);
+  _gsapReady.then(function(gsap) {
+    if (gsap) {
+      gsap.to(r, { scale: 8, opacity: 0, duration: 0.45, ease: 'power2.out', onComplete: function() { if (r.parentNode) r.parentNode.removeChild(r); } });
+    } else {
+      r.style.transition = 'transform 450ms ease, opacity 450ms ease';
+      requestAnimationFrame(function() { r.style.transform = 'translate(-50%,-50%) scale(8)'; r.style.opacity = '0'; });
+      setTimeout(function() { if (r.parentNode) r.parentNode.removeChild(r); }, 460);
+    }
+  });
+};
+
 playClick = function() { return Core.audio.click.apply(null, arguments); };
 playOpen = function() { return Core.audio.open.apply(null, arguments); };
 playClose = function() { return Core.audio.close.apply(null, arguments); };
