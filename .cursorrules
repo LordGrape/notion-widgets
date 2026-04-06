@@ -15,6 +15,21 @@
 - timetable.html: Class schedule widget
 - quotes.html: Daily quotes widget
 
+## Milestone system (horizon.html)
+- No hardcoded milestones. All user-created via Add Milestone form (+ on radar panel).
+- Stored in localStorage (`horizon_milestones`) and SyncEngine (`dragon.milestones` JSON string).
+- Archive: `horizon_milestones_archive` + `dragon.milestones_archive`; past dates auto-archive with XP (once per id, `dragon_milestone_claimed`).
+- Completed milestones listed under Stats (info button) → Completed Milestones.
+- Categories: academic, military, career, personal, law, fitness (colours + icons in `DEFAULT_CATEGORIES`).
+- Single-click event row: detail popup. Double-click: edit. Delete in edit form.
+- `processExpiredMilestones()` runs on load, on SyncEngine ready, and on tab visibility resume.
+
+## Achievements (horizon.html — 36 total)
+- Original 22 + 14 new (milestone, weather, streak, completionist, weekend, bars, speed evolve).
+- Stored in localStorage `dragon_ach` as `{ id: timestamp }`.
+- `checkAch()` runs every 10s, on XP gain paths, and after milestone changes.
+- `all_ach` (Completionist) unlocks when every other achievement is unlocked first.
+
 ## Dragon Game (horizon.html)
 - 6 stages: Egg (0 XP) → Hatchling (1000) → Whelp (5000) → Drake (20000) → Dragon (60000) → Elder (120000)
 - Stage 0 (Egg): Rendered via Three.js (EggScene module) with Canvas 2D fallback
