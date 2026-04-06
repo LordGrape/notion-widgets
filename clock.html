@@ -143,8 +143,37 @@ body {
 .presence-stat { font-size: 10px; font-weight: 300; color: var(--meta-color); letter-spacing: 1px; text-transform: uppercase; }
 .presence-val { color: var(--date-color); font-weight: 400; font-variant-numeric: tabular-nums; }
 
+/* ── Mode Panel Stack (grid overlap, no display:none) ── */
+.modes-wrap {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+.modes-wrap > .mode {
+  grid-row: 1;
+  grid-column: 1;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateX(0);
+  transition: opacity 200ms cubic-bezier(0.4, 0, 1, 1),
+              transform 200ms cubic-bezier(0.4, 0, 1, 1),
+              visibility 0ms linear 200ms;
+  will-change: opacity, transform;
+}
+.modes-wrap > .mode.active-mode {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity 250ms cubic-bezier(0.0, 0, 0.2, 1),
+              transform 250ms cubic-bezier(0.0, 0, 0.2, 1),
+              visibility 0ms linear 0ms;
+}
+.modes-wrap > .mode.exit-forward  { transform: translateX(-12px); }
+.modes-wrap > .mode.exit-backward { transform: translateX(12px); }
+.modes-wrap > .mode.pre-enter-forward  { transform: translateX(12px); opacity: 0; }
+.modes-wrap > .mode.pre-enter-backward { transform: translateX(-12px); opacity: 0; }
+
 /* ── Stopwatch / Timer Shared ── */
-.mode.hidden { display: none; }
 .ring-wrap { position: relative; width: 180px; height: 180px; margin: 10px auto 16px; }
 .ring-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
 .ring-track { fill: none; stroke: var(--arc-track); stroke-width: 3; }
@@ -274,8 +303,9 @@ body {
     <span class="mode-indicator" aria-hidden="true"></span>
   </div>
 
+  <div class="modes-wrap">
   <!-- CLOCK MODE -->
-  <div class="mode" id="clockMode" role="tabpanel" aria-label="Clock panel">
+  <div class="mode active-mode" id="clockMode" role="tabpanel" aria-label="Clock panel">
     <div class="greeting" id="greeting"></div>
     <div class="arc-wrap">
       <svg class="arc-svg" viewBox="0 0 200 90" preserveAspectRatio="none">
@@ -296,7 +326,7 @@ body {
   </div>
 
   <!-- STOPWATCH MODE -->
-  <div class="mode hidden" id="stopwatchMode" role="tabpanel" aria-label="Stopwatch panel">
+  <div class="mode" id="stopwatchMode" role="tabpanel" aria-label="Stopwatch panel">
     <div class="ring-wrap">
       <svg class="ring-svg" viewBox="0 0 180 180">
         <circle class="ring-track" cx="90" cy="90" r="82"/>
@@ -317,7 +347,7 @@ body {
   </div>
 
   <!-- TIMER MODE -->
-  <div class="mode hidden" id="timerMode" role="tabpanel" aria-label="Timer panel">
+  <div class="mode" id="timerMode" role="tabpanel" aria-label="Timer panel">
     <div class="presets" id="presets"></div>
     <div class="ring-wrap">
       <svg class="ring-svg" viewBox="0 0 180 180">
@@ -334,6 +364,7 @@ body {
       <button class="ctrl-btn ctrl-secondary" id="tmReset">Reset</button>
     </div>
     <div class="focus-stats" id="tmStats"></div>
+  </div>
   </div>
 
   <!-- SETTINGS -->
@@ -370,21 +401,39 @@ function switchModeAnimated(mode) {
   var from = modeIndex[currentMode], to = modeIndex[mode];
   var dir = to > from ? 'forward' : 'backward';
   var oldEl = modeEls[currentMode], newEl = modeEls[mode];
-  oldEl.classList.add('exiting-' + dir);
-  newEl.classList.remove('hidden');
-  newEl.classList.add('entering-' + dir);
+
+  /* 1. Update tab buttons */
   modeBtns.forEach(function(b) {
     var is = b.dataset.mode === mode;
     b.classList.toggle('active', is);
     b.setAttribute('aria-selected', is ? 'true' : 'false');
     b.setAttribute('tabindex', is ? '0' : '-1');
   });
-  setTimeout(function() {
-    oldEl.classList.add('hidden');
-    oldEl.classList.remove('exiting-forward', 'exiting-backward', 'entered');
-    newEl.classList.remove('entering-forward', 'entering-backward');
-    newEl.classList.add('entered');
-  }, 200);
+
+  /* 2. Exit old panel — slide + fade out */
+  oldEl.classList.remove('active-mode');
+  oldEl.classList.add('exit-' + dir);
+
+  /* 3. Prep new panel at offset (no transition yet) */
+  newEl.classList.add('pre-enter-' + dir);
+
+  /* 4. Double-rAF: browser paints the pre-enter state,
+        THEN we add active-mode to trigger the transition */
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() {
+      newEl.classList.remove('pre-enter-forward', 'pre-enter-backward');
+      newEl.classList.add('active-mode');
+    });
+  });
+
+  /* 5. Clean up exit classes when old panel finishes */
+  function cleanup(e) {
+    if (e.propertyName !== 'opacity') return;
+    oldEl.removeEventListener('transitionend', cleanup);
+    oldEl.classList.remove('exit-forward', 'exit-backward');
+  }
+  oldEl.addEventListener('transitionend', cleanup);
+
   currentMode = mode;
 }
 
@@ -503,13 +552,111 @@ function fetchWeather() {
 fetchWeather();
 setInterval(fetchWeather, 900000);
 
-/* Presence display */
+/* ══════════════════════════════════════
+   PRESENCE TRACKING (self-contained)
+   Session: survives soft reloads via sessionStorage.
+   Today: accumulates across all sessions via SyncEngine.
+   Pauses when tab is hidden (visibilitychange).
+   ══════════════════════════════════════ */
+var _presNow = Date.now();
+var _preDateStr = new Date().toISOString().slice(0, 10);
+var _presTodayKey = 'presence_' + _preDateStr;
+
+/* Session continuity: sessionStorage survives soft reloads within the same
+   browser tab but clears when the tab is closed — exactly the right scope. */
+var _presSessData = (function() {
+  try {
+    var raw = sessionStorage.getItem('clock_session');
+    if (raw) {
+      var d = JSON.parse(raw);
+      /* Only reuse if same calendar day */
+      if (d && d.date === _preDateStr && typeof d.accumulated === 'number') {
+        return { start: _presNow, accumulated: d.accumulated };
+      }
+    }
+  } catch(e) {}
+  return { start: _presNow, accumulated: 0 };
+})();
+var _presSessStart = _presSessData.start;
+var _presSessAccum = _presSessData.accumulated;
+var _presHidden = false;
+var _presHiddenAt = 0;
+var _presPausedTotal = 0;
+var _presLastSave = 0;
+
+/* Read prior daily total from SyncEngine */
+var _presPriorToday = parseFloat(SyncEngine.get('clock', _presTodayKey)) || 0;
+
+/* Pause/resume on tab visibility change */
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden) {
+    _presHidden = true;
+    _presHiddenAt = Date.now();
+    /* Save immediately when user leaves tab */
+    _savePresence();
+  } else {
+    if (_presHidden && _presHiddenAt) {
+      _presPausedTotal += Date.now() - _presHiddenAt;
+    }
+    _presHidden = false;
+    /* Refresh daily total in case another widget instance wrote to it */
+    _presPriorToday = parseFloat(SyncEngine.get('clock', _presTodayKey)) || 0;
+    /* Check for date rollover (user left tab open overnight) */
+    var today = new Date().toISOString().slice(0, 10);
+    if (today !== _preDateStr) {
+      _preDateStr = today;
+      _presTodayKey = 'presence_' + today;
+      _presPriorToday = 0;
+      _presSessAccum = 0;
+      _presSessStart = Date.now();
+      _presPausedTotal = 0;
+    }
+  }
+});
+
+function _getSessionSecs() {
+  var elapsed = _presHidden
+    ? (_presHiddenAt - _presSessStart - _presPausedTotal)
+    : (Date.now() - _presSessStart - _presPausedTotal);
+  return _presSessAccum + Math.max(0, elapsed / 1000);
+}
+
+function _getTodaySecs() {
+  return _presPriorToday + (_getSessionSecs() - _presSessAccum) ;
+}
+
+function _fmtPresence(secs) {
+  secs = Math.max(0, Math.floor(secs));
+  var h = Math.floor(secs / 3600), m = Math.floor((secs % 3600) / 60), s = secs % 60;
+  if (h > 0) return h + 'h ' + m + 'm';
+  if (m > 0) return m + 'm ' + s + 's';
+  return s + 's';
+}
+
+function _savePresence() {
+  var sessSecs = _getSessionSecs();
+  var todaySecs = _presPriorToday + (sessSecs - _presSessAccum);
+  SyncEngine.set('clock', _presTodayKey, todaySecs);
+  try {
+    sessionStorage.setItem('clock_session', JSON.stringify({
+      date: _preDateStr,
+      accumulated: sessSecs
+    }));
+  } catch(e) {}
+  _presLastSave = Date.now();
+}
+
 function updatePresence() {
-  document.getElementById('presSession').textContent = formatPresenceTime(getSessionPresence());
-  document.getElementById('presDaily').textContent = formatPresenceTime(getTodayPresence());
+  document.getElementById('presSession').textContent = _fmtPresence(_getSessionSecs());
+  document.getElementById('presDaily').textContent = _fmtPresence(_getTodaySecs());
+  /* Auto-save every 30s */
+  if (Date.now() - _presLastSave > 30000) _savePresence();
 }
 updatePresence();
 setInterval(updatePresence, 1000);
+
+/* Save on page unload (best-effort) */
+window.addEventListener('beforeunload', _savePresence);
 
 /* Focus stats display — utilities from core.js */
 function updateFocusStats() {
