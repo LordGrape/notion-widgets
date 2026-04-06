@@ -197,7 +197,60 @@ body {
 .ctrl-secondary:hover { background: rgba(var(--accent-rgb), 0.15); }
 
 /* Timer Presets */
-.presets { display: flex; justify-content: center; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+.presets { display: flex; justify-content: center; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; position: relative; }
+
+/* Preset Tooltips */
+.preset-tooltip {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: var(--card-bg);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 8px 14px;
+  max-width: 220px;
+  width: max-content;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s cubic-bezier(0.4,0,0.2,1), transform 0.25s cubic-bezier(0.4,0,0.2,1);
+  z-index: 15;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08), 0 0 12px rgba(var(--accent-rgb), 0.06);
+}
+.preset-tooltip.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.preset-tooltip-title {
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 3px;
+}
+.preset-tooltip-text {
+  font-size: 9px;
+  font-weight: 300;
+  color: var(--date-color);
+  line-height: 1.45;
+  letter-spacing: 0.2px;
+}
+.preset-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--card-border);
+}
+@media (hover: none) {
+  .preset-tooltip { display: none; }
+}
+
 .preset-chip { font-family: 'Inter', sans-serif; font-size: 8px; font-weight: 500; letter-spacing: 0.5px; padding: 5px 12px; border-radius: 12px; border: 1px solid var(--arc-track); background: transparent; color: var(--date-color); cursor: pointer; transition: all 0.25s ease; }
 .preset-chip:hover { border-color: var(--accent); color: var(--accent); }
 .preset-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: var(--dot-active-glow); }
@@ -443,7 +496,12 @@ body {
 
   <!-- TIMER MODE -->
   <div class="mode" id="timerMode" role="tabpanel" aria-label="Timer panel">
-    <div class="presets" id="presets"></div>
+    <div class="presets" id="presets">
+      <div class="preset-tooltip" id="presetTooltip">
+        <div class="preset-tooltip-title" id="ttTitle"></div>
+        <div class="preset-tooltip-text" id="ttText"></div>
+      </div>
+    </div>
     <div class="ring-wrap">
       <svg class="ring-svg" viewBox="0 0 180 180">
         <circle class="ring-track" cx="90" cy="90" r="82"/>
@@ -1047,10 +1105,11 @@ document.getElementById('swReset').addEventListener('click', function() {
    TIMER
    ══════════════════════════════════════ */
 var PRESETS = [
-  { label: '25m', secs: 1500 },
-  { label: '50m', secs: 3000 },
-  { label: '90m', secs: 5400 }
+  { label: '25m', secs: 1500, ttTitle: 'Pomodoro', ttText: 'Short bursts. Best for memorisation, admin tasks, or beating procrastination.' },
+  { label: '50m', secs: 3000, ttTitle: 'Extended Focus', ttText: 'Ideal for analytical writing, problem-solving, or coding. Matches peak attention span.' },
+  { label: '90m', secs: 5400, ttTitle: 'Ultradian Cycle', ttText: 'Full biological focus cycle. Deep work, strategic thinking, or dense study material.' }
 ];
+var CUSTOM_TOOLTIP = { ttTitle: 'Custom', ttText: 'Set your own duration to match your task.' };
 var tmDuration = 1500, tmRemaining = 1500;
 var tmRunning = false, tmInterval = null, tmStartTime = 0, tmStartRemaining = 0;
 var selectedPreset = 0;
@@ -1172,6 +1231,13 @@ PRESETS.forEach(function(p, i) {
   chip.addEventListener('keydown', function(e) {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.click(); }
   });
+  chip.addEventListener('mouseenter', function() {
+    var idx = parseInt(this.dataset.idx, 10);
+    var p = PRESETS[idx];
+    if (!p) return;
+    showPresetTooltip(p.ttTitle, p.ttText, this);
+  });
+  chip.addEventListener('mouseleave', hidePresetTooltip);
   presetsEl.appendChild(chip);
 });
 
@@ -1225,8 +1291,35 @@ customChip.addEventListener('click', function() {
   presetsEl.parentNode.insertBefore(wrap, presetsEl.nextSibling);
   inp.focus();
 });
+customChip.addEventListener('mouseenter', function() {
+  showPresetTooltip(CUSTOM_TOOLTIP.ttTitle, CUSTOM_TOOLTIP.ttText, this);
+});
+customChip.addEventListener('mouseleave', hidePresetTooltip);
 presetsEl.appendChild(customChip);
 Core.a11y.roving(presetsEl, '.preset-chip');
+
+/* ── Preset Tooltip Helpers ── */
+var _ttEl = document.getElementById('presetTooltip');
+var _ttTitle = document.getElementById('ttTitle');
+var _ttText = document.getElementById('ttText');
+var _ttHideTimer = null;
+
+function showPresetTooltip(title, text, anchor) {
+  clearTimeout(_ttHideTimer);
+  _ttTitle.textContent = title;
+  _ttText.textContent = text;
+  var pRect = presetsEl.getBoundingClientRect();
+  var cRect = anchor.getBoundingClientRect();
+  var centerOffset = (cRect.left + cRect.width / 2) - (pRect.left + pRect.width / 2);
+  _ttEl.style.left = 'calc(50% + ' + Math.round(centerOffset) + 'px)';
+  _ttEl.classList.add('show');
+}
+
+function hidePresetTooltip() {
+  _ttHideTimer = setTimeout(function() {
+    _ttEl.classList.remove('show');
+  }, 80);
+}
 
 /* ── Restore timer on load ── */
 var _timerRestored = restoreTimerState();
