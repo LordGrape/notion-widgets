@@ -18,9 +18,9 @@
   --quote-grad: linear-gradient(135deg, #1a1a2e 0%, #7c3aed 40%, #8b5cf6 60%, #1a1a2e 100%);
   --author-color: rgba(100, 100, 120, 0.5);
   --book-color: rgba(100, 100, 120, 0.35);
-  --orb-alpha: 0.025;
-  --particle-rgb: 124, 58, 237;
-  --particle-alpha: 0.12;
+  --accent: #8b5cf6;
+  --accent-rgb: 138, 92, 246;
+  --dot-bg: rgba(138, 92, 246, 0.1);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -34,31 +34,25 @@
     --quote-grad: linear-gradient(135deg, #fff 0%, #c4b5fd 25%, #8b5cf6 50%, #a78bfa 75%, #fff 100%);
     --author-color: rgba(160, 160, 180, 0.5);
     --book-color: rgba(160, 160, 180, 0.35);
-      --orb-alpha: 0.045;
-    --particle-rgb: 167, 139, 250;
-    --particle-alpha: 0.3;
+    --accent: #a78bfa;
+    --accent-rgb: 167, 139, 250;
+    --dot-bg: rgba(138, 92, 246, 0.15);
   }
 }
 
 body {
   font-family: 'Inter', sans-serif;
   background: var(--bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-  overflow: hidden;
-  user-select: none;
-  -webkit-user-select: none;
+  display: flex; align-items: center; justify-content: center;
+  height: 100vh; overflow: hidden;
+  user-select: none; -webkit-user-select: none;
   transition: background 0.3s;
 }
 
 #bg {
-  position: fixed;
-  top: 0; left: 0;
+  position: fixed; top: 0; left: 0;
   width: 100%; height: 100%;
-  z-index: 0;
-  pointer-events: none;
+  z-index: 0; pointer-events: none;
 }
 
 @keyframes fadeIn {
@@ -74,8 +68,12 @@ body {
   50%  { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
+@keyframes wordReveal {
+  from { opacity: 0; transform: translateY(8px); filter: blur(2px); }
+  to   { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
 
-/* ── Thin banner card ── */
+/* Card */
 .container {
   position: relative; z-index: 1;
   text-align: center;
@@ -83,13 +81,36 @@ body {
   border-radius: 14px;
   background: var(--card-bg);
   border: 1px solid var(--card-border);
-  max-width: 100%;
-  width: 98%;
-  cursor: grab;
-  will-change: transform;
-  contain: content;
+  max-width: 100%; width: 98%;
+  will-change: transform; contain: content;
   animation: fadeIn 0.8s ease-out, breathe 8s cubic-bezier(0.4,0,0.2,1) infinite;
 }
+
+/* Copy button — hover-reveal (matches clock mode-toggle pattern) */
+.copy-btn {
+  position: absolute; top: 8px; right: 10px;
+  width: 26px; height: 26px;
+  border-radius: 8px; border: none;
+  background: var(--dot-bg);
+  color: var(--book-color);
+  font-size: 12px; line-height: 1;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transform: translateY(4px) scale(0.92);
+  transition: opacity 0.4s cubic-bezier(0.4,0,0.2,1),
+              transform 0.4s cubic-bezier(0.4,0,0.2,1),
+              background 0.2s ease, color 0.2s ease;
+  pointer-events: none; z-index: 10;
+}
+.container:hover .copy-btn {
+  opacity: 1; transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+.copy-btn:hover {
+  background: rgba(var(--accent-rgb), 0.15);
+  color: var(--accent);
+}
+.copy-btn.copied { color: #10b981; }
 
 .label {
   font-size: 9px; font-weight: 300;
@@ -100,12 +121,11 @@ body {
   opacity: 0; animation: fadeIn 1s ease-out 0.3s forwards;
 }
 
+/* Quote — gradient on parent, word spans animate opacity */
 .quote {
   font-size: clamp(13px, 1.8vw, 18px);
-  font-weight: 500;
-  font-style: italic;
-  line-height: 1.4;
-  letter-spacing: -0.2px;
+  font-weight: 500; font-style: italic;
+  line-height: 1.4; letter-spacing: -0.2px;
   background: var(--quote-grad);
   background-size: 300% 300%;
   -webkit-background-clip: text;
@@ -113,59 +133,68 @@ body {
   background-clip: text;
   animation: gradientShift 6s ease infinite;
   padding: 0 8px;
-  max-width: 900px;
-  margin: 0 auto;
+  max-width: 900px; margin: 0 auto;
+  transition: opacity 0.6s cubic-bezier(0.4,0,0.2,1);
+}
+.quote.fading { opacity: 0; }
+.quote .word {
+  display: inline-block;
+  opacity: 0;
+  animation: wordReveal 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
-/* ── Attribution row ── */
+/* Attribution */
 .attribution {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 6px;
-  opacity: 0; animation: fadeIn 1s ease-out 0.55s forwards;
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; margin-top: 6px;
+  opacity: 0;
+  transition: opacity 0.6s cubic-bezier(0.4,0,0.2,1);
 }
+.attribution.visible { opacity: 1; }
+.attribution.fading { opacity: 0; }
 
 .author {
-  font-size: clamp(9px, 1.2vw, 11px);
-  font-weight: 400;
-  color: var(--author-color);
-  letter-spacing: 0.5px;
+  font-size: clamp(9px, 1.2vw, 11px); font-weight: 400;
+  color: var(--author-color); letter-spacing: 0.5px;
 }
-
-.separator {
-  font-size: 9px;
-  color: var(--book-color);
-}
-
+.separator { font-size: 9px; color: var(--book-color); }
 .book {
-  font-size: clamp(8px, 1vw, 10px);
-  font-weight: 300;
-  color: var(--book-color);
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
+  font-size: clamp(8px, 1vw, 10px); font-weight: 300;
+  color: var(--book-color); letter-spacing: 1.5px; text-transform: uppercase;
 }
+
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
   #bg { display: none; }
+  .quote .word { opacity: 1; }
+  .attribution { opacity: 1; }
 }
 </style>
 </head>
 <body>
 <canvas id="bg"></canvas>
 <div class="container">
+  <button class="copy-btn" id="copyBtn" title="Copy quote">\uD83D\uDCCB</button>
   <div class="label" id="label">Daily Wisdom</div>
   <div class="quote" id="quote"></div>
-  <div class="attribution">
+  <div class="attribution" id="attribution">
     <div class="author" id="author"></div>
-    <div class="separator">·</div>
+    <div class="separator">&middot;</div>
     <div class="book" id="book"></div>
   </div>
 </div>
 <script src="core.js"></script>
 <script>
-var quotes = [
+/* ══════════════════════════════════════
+   QUOTES — inline fallback pool
+   Upgrade 4: fetch('quotes.json') on load;
+   falls back to this array if unavailable.
+   ══════════════════════════════════════ */
+var FALLBACK_QUOTES = [
   { text: "You have power over your mind, not outside events. Realize this, and you will find strength.", author: "Marcus Aurelius", book: "Meditations" },
   { text: "The impediment to action advances action. What stands in the way becomes the way.", author: "Marcus Aurelius", book: "Meditations" },
   { text: "Waste no more time arguing about what a good man should be. Be one.", author: "Marcus Aurelius", book: "Meditations" },
@@ -175,147 +204,133 @@ var quotes = [
   { text: "We suffer more often in imagination than in reality.", author: "Seneca", book: "Letters from a Stoic" },
   { text: "True happiness is to enjoy the present, without anxious dependence upon the future.", author: "Seneca", book: "Letters from a Stoic" },
   { text: "It is not that we have a short time to live, but that we waste a great deal of it.", author: "Seneca", book: "On the Shortness of Life" },
-  { text: "He who has a why to live can bear almost any how.", author: "Friedrich Nietzsche", book: "Twilight of the Idols" },
-  { text: "That which does not kill us makes us stronger.", author: "Friedrich Nietzsche", book: "Twilight of the Idols" },
-  { text: "Any fool can criticize, condemn, and complain. But it takes character and self-control to be understanding and forgiving.", author: "Dale Carnegie", book: "How to Win Friends & Influence People" },
-  { text: "You can make more friends in two months by becoming interested in other people than in two years by trying to get other people interested in you.", author: "Dale Carnegie", book: "How to Win Friends & Influence People" },
-  { text: "Every action you take is a vote for the type of person you wish to become.", author: "James Clear", book: "Atomic Habits" },
-  { text: "You do not rise to the level of your goals. You fall to the level of your systems.", author: "James Clear", book: "Atomic Habits" },
-  { text: "The highest form of wealth is the ability to wake up every morning and say, I can do whatever I want today.", author: "Morgan Housel", book: "The Psychology of Money" },
-  { text: "Doing well with money has little to do with how smart you are and a lot to do with how you behave.", author: "Morgan Housel", book: "The Psychology of Money" },
-  { text: "There is nothing more difficult to take in hand, more perilous to conduct, or more uncertain in its success, than to take the lead in the introduction of a new order of things.", author: "Niccolò Machiavelli", book: "The Prince" },
-  { text: "The future belongs to those who learn more skills and combine them in creative ways.", author: "Robert Greene", book: "Mastery" },
-  { text: "The key to doing well in school is not to study more. It is to study smarter.", author: "Cal Newport", book: "How to Become a Straight-A Student" },
-  { text: "The real difference between us and chimpanzees is the mythical glue that binds together large numbers of individuals, families, and groups.", author: "Yuval Noah Harari", book: "Sapiens" },
-  { text: "The universe is under no obligation to make sense to you.", author: "Neil deGrasse Tyson", book: "Astrophysics for People in a Hurry" },
-  { text: "The task of philosophy is not to explain the world but to help us live well in it.", author: "John Sellars", book: "Lessons in Stoicism" },
-  { text: "Whoever fights monsters should see to it that in the process he does not become a monster.", author: "Friedrich Nietzsche", book: "Beyond Good and Evil" },
-  { text: "Man is born free, and everywhere he is in chains.", author: "Jean-Jacques Rousseau", book: "The Social Contract" },
-  { text: "Appear weak when you are strong, and strong when you are weak.", author: "Sun Tzu", book: "The Art of War" },
-  { text: "The beginning is the most important part of the work.", author: "Plato", book: "The Republic" },
-  { text: "Stillness is what aims the archer's arrow. It inspires new ideas. It sharpens perspective and illuminates connections.", author: "Ryan Holiday", book: "Stillness is The Key" },
-  { text: "The real measure of any time management technique is whether or not it helps you neglect the right things.", author: "Oliver Burkeman", book: "Four Thousand Weeks" },
-  { text: "The time that leads to mastery is dependent on the intensity of our focus.", author: "Robert Greene", book: "Mastery" },
-  { text: "The history of all hitherto existing society is the history of class struggles.", author: "Karl Marx", book: "The Communist Manifesto" },
-  { text: "The shorter your sleep, the shorter your life span.", author: "Matthew Walker", book: "Why We Sleep" },
-  { text: "Being all equal and independent, no one ought to harm another in his life, health, liberty, or possessions.", author: "John Locke", book: "Second Treatise of Government" },
-  { text: "The richest people in the world look for and build networks; everyone else looks for work.", author: "Robert Kiyosaki", book: "Rich Dad, Poor Dad" },
-  { text: "Change might not be fast and it isn't always easy. But with time and effort, almost any habit can be reshaped.", author: "Charles Duhigg", book: "The Power of Habit" },
+  { text: "The whole future lies in uncertainty: live immediately.", author: "Seneca", book: "On the Shortness of Life" },
+  { text: "He who fears death will never do anything worthy of a living man.", author: "Seneca", book: "Letters from a Stoic" },
+  { text: "Man is not worried by real problems so much as by his imagined anxieties about real problems.", author: "Epictetus", book: "Enchiridion" },
+  { text: "If it is not right, do not do it; if it is not true, do not say it.", author: "Marcus Aurelius", book: "Meditations" },
+  { text: "The best revenge is not to be like your enemy.", author: "Marcus Aurelius", book: "Meditations" },
+  { text: "Luck is what happens when preparation meets opportunity.", author: "Seneca", book: "Letters from a Stoic" },
+  { text: "To be everywhere is to be nowhere.", author: "Seneca", book: "Letters from a Stoic" },
+  { text: "Difficulties strengthen the mind, as labor does the body.", author: "Seneca", book: "Letters from a Stoic" },
+  { text: "The soul becomes dyed with the colour of its thoughts.", author: "Marcus Aurelius", book: "Meditations" },
+  { text: "How long are you going to wait before you demand the best for yourself?", author: "Epictetus", book: "Discourses" },
+  { text: "You could leave life right now. Let that determine what you do and say and think.", author: "Marcus Aurelius", book: "Meditations" },
+  { text: "What we do now echoes in eternity.", author: "Marcus Aurelius", book: "Meditations" },
+  { text: "He suffers more than necessary, who suffers before it is necessary.", author: "Seneca", book: "Letters from a Stoic" },
+  { text: "Freedom is the only worthy goal in life. It is won by disregarding things that lie beyond our control.", author: "Epictetus", book: "Discourses" },
+  { text: "Wealth consists not in having great possessions, but in having few wants.", author: "Epictetus", book: "Fragments" },
+  { text: "Sometimes even to live is an act of courage.", author: "Seneca", book: "Letters from a Stoic" },
+  { text: "Begin at once to live, and count each separate day as a separate life.", author: "Seneca", book: "Letters from a Stoic" },
+  { text: "The happiness of your life depends upon the quality of your thoughts.", author: "Marcus Aurelius", book: "Meditations" },
+  { text: "It is not because things are difficult that we do not dare; it is because we do not dare that things are difficult.", author: "Seneca", book: "Letters from a Stoic" },
+  { text: "Attach yourself to what is spiritually superior, regardless of what other people think or do.", author: "Epictetus", book: "Enchiridion" },
+  { text: "The mind that is anxious about future events is miserable.", author: "Seneca", book: "Letters from a Stoic" }
 ];
 
-/* Deterministic daily index based on day-of-year */
-function getDailyIndex() {
-  var now = new Date();
-  var start = new Date(now.getFullYear(), 0, 0);
-  var diff = now - start;
-  var oneDay = 1000 * 60 * 60 * 24;
-  return Math.floor(diff / oneDay) % quotes.length;
+var quotes = FALLBACK_QUOTES;
+var currentDateStr = '';
+var WORD_DELAY_S = 0.04;
+
+/* ── Upgrade 4: External JSON pool ──
+   Place a quotes.json alongside the widget:
+   [{ "text": "...", "author": "...", "book": "..." }, ...]
+   Falls back silently to the inline array. */
+function loadQuotes() {
+  return fetch('quotes.json')
+    .then(function(r) { if (!r.ok) throw new Error(); return r.json(); })
+    .then(function(data) { if (Array.isArray(data) && data.length) quotes = data; })
+    .catch(function() { /* use FALLBACK_QUOTES */ })
+    .then(function() { showQuote(); startMidnightWatch(); });
 }
 
-var currentIndex = getDailyIndex();
+/* Day-seeded index (deterministic per calendar day) */
+function dayStr() {
+  var d = new Date();
+  return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+}
+function dayIndex() {
+  var d = new Date();
+  var doy = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
+  return (d.getFullYear() * 1000 + doy) % quotes.length;
+}
+function currentQuote() { return quotes[dayIndex()]; }
 
-function render() {
-  var q = quotes[currentIndex];
-  document.getElementById('quote').textContent = '\u201C' + q.text + '\u201D';
+/* ── Upgrade 1: Typewriter word reveal ── */
+function renderWords(text) {
+  var el = document.getElementById('quote');
+  el.innerHTML = '';
+  el.classList.remove('fading');
+  var words = text.split(' ');
+  words.forEach(function(w, i) {
+    var span = document.createElement('span');
+    span.className = 'word';
+    span.textContent = w;
+    span.style.animationDelay = (0.35 + i * WORD_DELAY_S) + 's';
+    el.appendChild(span);
+    if (i < words.length - 1) el.appendChild(document.createTextNode(' '));
+  });
+  /* Reveal attribution after last word lands */
+  var totalMs = (0.35 + words.length * WORD_DELAY_S + 0.45) * 1000;
+  var attr = document.getElementById('attribution');
+  attr.classList.remove('visible', 'fading');
+  setTimeout(function() { attr.classList.add('visible'); }, totalMs);
+}
+
+function showQuote() {
+  var q = currentQuote();
+  currentDateStr = dayStr();
+  renderWords(q.text);
   document.getElementById('author').textContent = q.author;
   document.getElementById('book').textContent = q.book;
 }
 
-render();
-
-/* Auto-rotate at midnight */
-function msUntilMidnight() {
-  var now = new Date();
-  var midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
-  return midnight - now;
-}
-setTimeout(function refresh() {
-  currentIndex = getDailyIndex();
-  render();
-  setTimeout(refresh, msUntilMidnight());
-}, msUntilMidnight());
-
-/* Audio from core.js */
-
-/* ── 3D Physics spin (Y-axis flip) ── */
-var card = document.querySelector('.container');
-var phAngle = 0, phVel = 0, phDrag = false, phLastX = 0, phLastT = 0;
-var phFriction = 0.97, phSpring = 0.04, phAnimating = false;
-var phReady = false, phDragged = false;
-setTimeout(function() { phReady = true; }, 900);
-
-function phStartAnim() {
-  if (phAnimating) return;
-  phAnimating = true;
-  requestAnimationFrame(phCoast);
-}
-function phApply() {
-  card.style.transform = 'perspective(800px) rotateY(' + (phAngle * 180 / Math.PI) + 'deg)';
+/* ── Upgrade 3: Crossfade at midnight ── */
+function startMidnightWatch() {
+  setInterval(function() {
+    if (dayStr() !== currentDateStr) crossfade();
+  }, 30000);
 }
 
-/* Click-to-flick — works inside Notion embeds where drag is blocked */
-card.addEventListener('click', function(e) {
-  if (!phReady || phDragged) { phDragged = false; return; }
+function crossfade() {
+  var quoteEl = document.getElementById('quote');
+  var attr = document.getElementById('attribution');
+  quoteEl.classList.add('fading');
+  attr.classList.add('fading');
+  attr.classList.remove('visible');
+  setTimeout(function() {
+    var q = currentQuote();
+    currentDateStr = dayStr();
+    document.getElementById('author').textContent = q.author;
+    document.getElementById('book').textContent = q.book;
+    quoteEl.classList.remove('fading');
+    renderWords(q.text);
+  }, 650);
+}
+
+/* ── Upgrade 2: Hover-reveal copy button ── */
+document.getElementById('copyBtn').addEventListener('click', function(e) {
+  e.stopPropagation();
   playClick();
-  var rect = card.getBoundingClientRect();
-  var cx = rect.left + rect.width / 2;
-  var dir = (e.clientX > cx) ? 1 : -1;
-  phVel += dir * 0.25;
-  phStartAnim();
+  var q = currentQuote();
+  var str = '\u201C' + q.text + '\u201D\n\u2014 ' + q.author + ', ' + q.book;
+  navigator.clipboard.writeText(str).then(function() {
+    var btn = document.getElementById('copyBtn');
+    btn.textContent = '\u2713';
+    btn.classList.add('copied');
+    setTimeout(function() {
+      btn.textContent = '\uD83D\uDCCB';
+      btn.classList.remove('copied');
+    }, 1400);
+  });
 });
 
-/* Drag to spin (fullscreen / direct browser) */
-card.addEventListener('mousedown', phStart);
-card.addEventListener('touchstart', phStart, { passive: true });
-function phStart(e) {
-  if (!phReady) return;
-  phDrag = true; phDragged = false; phVel = 0;
-  card.style.cursor = 'grabbing';
-  card.style.animation = 'breathe 8s cubic-bezier(0.4,0,0.2,1) infinite';
-  phLastX = e.touches ? e.touches[0].clientX : e.clientX;
-  phLastT = performance.now();
-}
-
-document.addEventListener('mousemove', phMove);
-document.addEventListener('touchmove', phMove, { passive: true });
-function phMove(e) {
-  if (!phDrag) return;
-  phDragged = true;
-  var ex = e.touches ? e.touches[0].clientX : e.clientX;
-  var dx = ex - phLastX;
-  phAngle += dx * 0.01;
-  var now = performance.now();
-  var dt = now - phLastT;
-  if (dt > 0) phVel = (dx * 0.01) / dt * 16;
-  phLastX = ex; phLastT = now;
-  phApply();
-}
-
-document.addEventListener('mouseup', phEnd);
-document.addEventListener('touchend', phEnd);
-function phEnd() {
-  if (!phDrag) return;
-  phDrag = false;
-  card.style.cursor = 'grab';
-  phStartAnim();
-}
-
-function phCoast() {
-  if (phDrag) { phAnimating = false; return; }
-  phVel *= phFriction;
-  phVel -= phAngle * phSpring;
-  phAngle += phVel;
-  if (Math.abs(phVel) < 0.0002 && Math.abs(phAngle) < 0.001) {
-    phAngle = 0; phVel = 0; phAnimating = false;
-    card.style.transform = '';
-    return;
-  }
-  phApply();
-  requestAnimationFrame(phCoast);
-}
-
-/* ── Init core background (no tilt — quotes uses physics spin) ── */
-initBackground('bg', { orbCount: 2, orbRadius: [60, 100], orbSpeed: 0.2, hueRange: [260, 30], mouseTracking: false });
+/* ── Init ── */
+loadQuotes();
+initBackground('bg', {
+  orbCount: 2, orbRadius: [60, 100], orbSpeed: 0.15,
+  hueRange: [250, 40], mouseTracking: true
+});
+playSummon('top');
 </script>
 </body>
 </html>
