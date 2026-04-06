@@ -2286,3 +2286,42 @@ let SyncEngine = (function() {
     }
   };
 })();
+
+/* ══════════════════════════════════════
+   FULLSCREEN TOGGLE (F key)
+   Press F while widget is focused to toggle fullscreen.
+   Works inside Notion embed iframes via Fullscreen API.
+   ══════════════════════════════════════ */
+(function() {
+  var fsEl = document.documentElement;
+
+  function isFullscreen() {
+    return !!(document.fullscreenElement || document.webkitFullscreenElement);
+  }
+
+  function enterFS() {
+    if (fsEl.requestFullscreen) return fsEl.requestFullscreen();
+    if (fsEl.webkitRequestFullscreen) return fsEl.webkitRequestFullscreen();
+  }
+
+  function exitFS() {
+    if (document.exitFullscreen) return document.exitFullscreen();
+    if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
+  }
+
+  document.addEventListener('keydown', function(e) {
+    /* Only trigger on bare 'F' — not inside inputs, not with modifiers */
+    if (e.key !== 'f' && e.key !== 'F') return;
+    if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+    var tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || e.target.isContentEditable) return;
+
+    e.preventDefault();
+    if (isFullscreen()) { exitFS(); } else { enterFS(); }
+  });
+
+  /* Also exit on Escape (backup — most browsers handle this natively) */
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && isFullscreen()) exitFS();
+  });
+})();
