@@ -122,3 +122,5 @@
 # Fonts
 - Inter: UI text (loaded via Google Fonts)
 - JetBrains Mono: Monospace numbers — clocks, timers, counters, XP
+
+# quotes.html v3 — copy button removed, widget is now fully passive (no interactive elements except 3D drag spin)
