@@ -454,7 +454,7 @@ function getDragonXP() {
 
 function getDragonStage() {
   var xp = getDragonXP();
-  if (xp >= 150000) return 5; // Major
+  if (xp >= 120000) return 5; // Major
   if (xp >= 60000)  return 4; // Captain
   if (xp >= 20000)  return 3; // Lieutenant
   if (xp >= 5000)   return 2; // 2nd Lieutenant
