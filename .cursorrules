@@ -35,12 +35,13 @@
 - Stage 0 (Egg): Rendered via Three.js (EggScene module) with Canvas 2D fallback
 - Stages 1+: Canvas 2D rendering (drawDragon function)
 
-### Weather system (horizon.html)
-- Open-Meteo API (free, no key). Cached 30min in localStorage `_weather_cache`
-- `weatherData` global: `{ temp, code, condition, icon, type, humidity, wind }`
+### Weather system (horizon.html + clock.html)
+- Open-Meteo current conditions (same `current=` field set). 30min TTL.
+- Single shared payload: localStorage `_weather_cache` and SyncEngine `user.weather` (`{ ts, data }` JSON string). Read SyncEngine first, then localStorage; writes update both.
+- `weatherData` / shared `data`: `{ temp, code, condition, icon, type, humidity, wind }`
 - `getWeatherType(code)` returns: `clear` | `cloudy` | `rain` | `snow` | `fog` | `storm`
-- Weather influences both Canvas 2D (`drawEgg`, `drawWeatherFX`) and Three.js (`EggScene.render`)
-- `fetchWeather()` reads lat/lon from SyncEngine `user` namespace (fallback Toronto-area defaults)
+- Horizon: `fetchWeather()` lat/lon from `user.lat`/`user.lon` (fallback Toronto). Weather badge positioned above XP bar (`bottom: 28px`).
+- Clock: same cache + same API when refreshing; `SyncEngine.onReady` re-runs `fetchWeather()` after pull. Forecast overlay still uses `WLAT`/`WLON` (unchanged).
 
 ### Ambient systems (horizon egg — zero-interaction, scale with `getStage()`)
 - `returnGlow`: set in `initDS()` when previous `lastVisit` was 2h+ before refresh; fades via decay in the active renderer (`drawEgg` or `EggScene.render`)

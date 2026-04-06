@@ -626,12 +626,42 @@ function updateClock() {
 updateClock();
 setInterval(updateClock, 1000);
 
-/* Weather */
+/* Weather — shared `_weather_cache` + SyncEngine `user.weather` with Horizon */
+var WEATHER_CACHE_KEY = '_weather_cache';
+var WEATHER_CACHE_MS = 30 * 60 * 1000;
 var WLAT = SyncEngine.get('user', 'lat') || null;
 var WLON = SyncEngine.get('user', 'lon') || null;
 var WLOC = SyncEngine.get('user', 'location') || '';
 var WTZ = SyncEngine.get('user', 'tz') || Intl.DateTimeFormat().resolvedOptions().timeZone;
 var weatherEl = document.getElementById('weather');
+var WMO_CODES = {
+  0: 'Clear', 1: 'Mostly Clear', 2: 'Partly Cloudy', 3: 'Overcast',
+  45: 'Foggy', 48: 'Rime Fog', 51: 'Light Drizzle', 53: 'Drizzle', 55: 'Heavy Drizzle',
+  56: 'Freezing Drizzle', 57: 'Heavy Freezing Drizzle',
+  61: 'Light Rain', 63: 'Rain', 65: 'Heavy Rain',
+  66: 'Freezing Rain', 67: 'Heavy Freezing Rain',
+  71: 'Light Snow', 73: 'Snow', 75: 'Heavy Snow', 77: 'Snow Grains',
+  80: 'Light Showers', 81: 'Showers', 82: 'Heavy Showers',
+  85: 'Light Snow Showers', 86: 'Heavy Snow Showers',
+  95: 'Thunderstorm', 96: 'Thunderstorm + Hail', 99: 'Heavy Thunderstorm + Hail'
+};
+var WMO_ICONS = {
+  0: '\u2600\uFE0F', 1: '\uD83C\uDF24\uFE0F', 2: '\u26C5', 3: '\u2601\uFE0F',
+  45: '\uD83C\uDF2B\uFE0F', 48: '\uD83C\uDF2B\uFE0F', 51: '\uD83C\uDF26\uFE0F', 53: '\uD83C\uDF27\uFE0F', 55: '\uD83C\uDF27\uFE0F',
+  56: '\uD83C\uDF27\uFE0F', 57: '\uD83C\uDF27\uFE0F', 61: '\uD83C\uDF26\uFE0F', 63: '\uD83C\uDF27\uFE0F', 65: '\uD83C\uDF27\uFE0F',
+  66: '\uD83C\uDF27\uFE0F', 67: '\uD83C\uDF27\uFE0F', 71: '\uD83C\uDF28\uFE0F', 73: '\u2744\uFE0F', 75: '\u2744\uFE0F', 77: '\u2744\uFE0F',
+  80: '\uD83C\uDF26\uFE0F', 81: '\uD83C\uDF27\uFE0F', 82: '\uD83C\uDF27\uFE0F', 85: '\uD83C\uDF28\uFE0F', 86: '\u2744\uFE0F',
+  95: '\u26C8\uFE0F', 96: '\u26C8\uFE0F', 99: '\u26C8\uFE0F'
+};
+function getWeatherType(code) {
+  if (code === 0 || code === 1) return 'clear';
+  if (code === 2 || code === 3) return 'cloudy';
+  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return 'rain';
+  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return 'snow';
+  if (code === 45 || code === 48) return 'fog';
+  if (code >= 95) return 'storm';
+  return 'clear';
+}
 function wmoEmoji(code) {
   var h = new Date().getHours(), night = (h < 6 || h >= 20);
   if (code === 0) return [night ? '\u{1F319}' : '\u{2600}\u{FE0F}', night ? 'Clear Night' : 'Clear'];
@@ -646,19 +676,73 @@ function wmoEmoji(code) {
   if (code <= 99) return ['\u{26C8}\u{FE0F}', 'Thunder'];
   return ['\u{1F321}\u{FE0F}', ''];
 }
+function renderClockWeatherFromPayload(wd) {
+  if (!wd || wd.temp === undefined) { weatherEl.innerHTML = ''; return; }
+  var wFb = wmoEmoji(typeof wd.code === 'number' ? wd.code : 0);
+  var icon = wd.icon != null && wd.icon !== '' ? wd.icon : wFb[0];
+  var cond = wd.condition || wFb[1];
+  var t = Math.round(wd.temp);
+  weatherEl.innerHTML = '<span class="weather-icon">' + icon + '</span><span class="weather-temp">' + t + '\u00B0C</span><span class="weather-cond">\u00B7 ' + cond + '</span>';
+  weatherEl.setAttribute('aria-label', 'Weather: ' + t + ' degrees, ' + String(cond).toLowerCase());
+}
+function readSharedWeatherCache() {
+  try {
+    var synced = SyncEngine.get('user', 'weather');
+    if (synced) {
+      var sw = typeof synced === 'string' ? JSON.parse(synced) : synced;
+      if (sw && sw.ts && Date.now() - sw.ts < WEATHER_CACHE_MS && sw.data) {
+        try { localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify(sw)); } catch (e) {}
+        return sw;
+      }
+    }
+  } catch (e) {}
+  try {
+    var cached = JSON.parse(localStorage.getItem(WEATHER_CACHE_KEY));
+    if (cached && Date.now() - cached.ts < WEATHER_CACHE_MS && cached.data) return cached;
+  } catch (e2) {}
+  return null;
+}
+function persistWeatherEnvelope(env) {
+  localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify(env));
+  try {
+    if (SyncEngine.isOnline()) SyncEngine.set('user', 'weather', JSON.stringify(env));
+  } catch (e) {}
+}
+function buildWeatherDataFromAPI(d) {
+  if (!d || !d.current) return null;
+  var wc = d.current.weather_code;
+  return {
+    temp: Math.round(d.current.temperature_2m),
+    code: wc,
+    condition: WMO_CODES[wc] || 'Unknown',
+    icon: WMO_ICONS[wc] || '\uD83C\uDF21\uFE0F',
+    type: getWeatherType(wc),
+    humidity: d.current.relative_humidity_2m,
+    wind: d.current.wind_speed_10m
+  };
+}
 function fetchWeather() {
-  if (!WLAT || !WLON) { weatherEl.innerHTML = ''; return; }
-  fetch('https://api.open-meteo.com/v1/forecast?latitude=' + WLAT + '&longitude=' + WLON + '&current=temperature_2m,weather_code&timezone=' + encodeURIComponent(WTZ))
+  var hit = readSharedWeatherCache();
+  if (hit) {
+    renderClockWeatherFromPayload(hit.data);
+    return;
+  }
+  var lat = (WLAT != null && WLON != null) ? WLAT : 43.65;
+  var lon = (WLAT != null && WLON != null) ? WLON : -79.38;
+  fetch('https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon +
+    '&current=temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m' +
+    '&temperature_unit=celsius&timezone=auto')
     .then(function(r) { return r.json(); })
     .then(function(d) {
-      var temp = Math.round(d.current.temperature_2m);
-      var w = wmoEmoji(d.current.weather_code);
-      weatherEl.innerHTML = '<span class="weather-icon">' + w[0] + '</span><span class="weather-temp">' + temp + '\u00B0C</span><span class="weather-cond">\u00B7 ' + w[1] + '</span>';
-      weatherEl.setAttribute('aria-label', 'Weather: ' + temp + ' degrees, ' + w[1].toLowerCase());
-    }).catch(function() { weatherEl.innerHTML = ''; });
+      var weatherData = buildWeatherDataFromAPI(d);
+      if (!weatherData) { weatherEl.innerHTML = ''; return; }
+      persistWeatherEnvelope({ ts: Date.now(), data: weatherData });
+      renderClockWeatherFromPayload(weatherData);
+    })
+    .catch(function() { weatherEl.innerHTML = ''; });
 }
 fetchWeather();
-setInterval(fetchWeather, 900000);
+setInterval(fetchWeather, WEATHER_CACHE_MS);
 
 /* Weather click → inline forecast overlay */
 weatherEl.style.cursor = 'pointer';
@@ -1231,7 +1315,12 @@ function revealClockContent() {
   sk.style.transition = 'opacity 220ms ease';
   setTimeout(function() { if (sk.parentNode) sk.remove(); }, 260);
 }
-if (SyncEngine && typeof SyncEngine.onReady === 'function') SyncEngine.onReady(revealClockContent);
+if (SyncEngine && typeof SyncEngine.onReady === 'function') {
+  SyncEngine.onReady(function() {
+    revealClockContent();
+    try { fetchWeather(); } catch (e) {}
+  });
+}
 setTimeout(revealClockContent, 650);
 </script>
 </body>

@@ -414,7 +414,7 @@ body {
 .info-btn { all:unset; cursor:pointer; position:absolute; top:14px; right:18px; font-size:11px; opacity:0.25; transition:opacity 0.2s; z-index:10; }
 .info-btn:hover { opacity:0.6; }
 /* ── Weather badge ── */
-.weather-badge { position:absolute; bottom:6px; right:6px; display:none; align-items:center; gap:4px; font-size:9px; color:var(--text-muted); opacity:0.4; transition:opacity 0.4s; z-index:5; pointer-events:none; }
+.weather-badge { position:absolute; bottom:28px; right:6px; display:none; align-items:center; gap:4px; font-size:9px; color:var(--text-muted); opacity:0.4; transition:opacity 0.4s; z-index:5; pointer-events:none; }
 .dragon-view:hover .weather-badge { opacity:0.7; }
 .w-icon { font-size:12px; }
 .w-temp { font-weight:500; font-variant-numeric:tabular-nums; }
@@ -1197,6 +1197,18 @@ function fetchWeather() {
     if (sLat !== null && sLon !== null && sLat !== undefined && sLon !== undefined) { lat = sLat; lon = sLon; }
   } catch (e) {}
   try {
+    var synced = SyncEngine.get('user', 'weather');
+    if (synced) {
+      var sw = typeof synced === 'string' ? JSON.parse(synced) : synced;
+      if (sw && sw.ts && Date.now() - sw.ts < WEATHER_CACHE_MS && sw.data) {
+        weatherData = sw.data;
+        try { localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify(sw)); } catch (e2) {}
+        renderWeatherBadge();
+        return;
+      }
+    }
+  } catch (e) {}
+  try {
     var cached = JSON.parse(localStorage.getItem(WEATHER_CACHE_KEY));
     if (cached && Date.now() - cached.ts < WEATHER_CACHE_MS) {
       weatherData = cached.data;
@@ -1220,7 +1232,13 @@ function fetchWeather() {
         humidity: d.current.relative_humidity_2m,
         wind: d.current.wind_speed_10m
       };
-      localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify({ ts: Date.now(), data: weatherData }));
+      var env = { ts: Date.now(), data: weatherData };
+      localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify(env));
+      try {
+        if (SyncEngine.isOnline()) {
+          SyncEngine.set('user', 'weather', JSON.stringify(env));
+        }
+      } catch (e) {}
       renderWeatherBadge();
     }
   }).catch(function() {});
