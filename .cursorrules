@@ -66,3 +66,24 @@
 - Full architecture specs are maintained in Notion by the user's AI assistant
 - The human will paste relevant spec content into prompts when needed
 - Always ask for the relevant spec section if making changes to unfamiliar code
+
+# Design Token System (core.js v4)
+- All colours use CSS custom properties: --surface-0/1/2/3, --text-primary/secondary/tertiary, --accent-primary/secondary, --border-subtle/default/accent
+- All radii use --radius-sm/md/lg/xl
+- All transitions use --transition-fast/default/slow/spring
+- All shadows use --shadow-sm/md/lg/glow
+- Shared glass utility classes: .glass-card, .glass-button, .glass-pill, .glass-input
+- Never hardcode colours, radii, transitions, or shadows
+
+# Accessibility
+- Core.a11y.announce(text) for screen reader announcements
+- Core.a11y.trap(container) for modal focus trapping
+- Core.a11y.roving(container, selector) for arrow-key group navigation
+- Core.tooltip.attach(el, text) for hover/focus tooltips
+- Core.ripple(el, colour?) for interaction feedback
+- All tabs use role="tablist"/role="tab"/role="tabpanel" pattern
+- All interactive elements have aria-labels and focus-visible outlines
+
+# Fonts
+- Inter: UI text (loaded via Google Fonts)
+- JetBrains Mono: Monospace numbers — clocks, timers, counters, XP
