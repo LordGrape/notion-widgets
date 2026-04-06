@@ -82,7 +82,7 @@ body {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   max-width: 100%; width: 98%;
-  will-change: transform; contain: content;
+  will-change: transform; overflow: hidden; transform-style: preserve-3d; cursor: grab;
   animation: fadeIn 0.8s ease-out, breathe 8s cubic-bezier(0.4,0,0.2,1) infinite;
 }
 
@@ -178,7 +178,7 @@ body {
 <body>
 <canvas id="bg"></canvas>
 <div class="container">
-  <button class="copy-btn" id="copyBtn" title="Copy quote">\uD83D\uDCCB</button>
+  <button class="copy-btn" id="copyBtn" title="Copy quote">📋</button>
   <div class="label" id="label">Daily Wisdom</div>
   <div class="quote" id="quote"></div>
   <div class="attribution" id="attribution">
@@ -332,6 +332,57 @@ try {
     hueRange: [250, 40], mouseTracking: true
   });
 } catch(e) {}
+
+/* ── 3D Drag Spin ── */
+(function() {
+  var card = document.querySelector('.container');
+  var dragging = false, lastX, lastY, velX = 0, velY = 0;
+  var rotX = 0, rotY = 0, spinId = null;
+  var SENS = 0.4, FRICTION = 0.94, RETURN = 0.97;
+
+  function start(e) {
+    dragging = true;
+    var p = e.touches ? e.touches[0] : e;
+    lastX = p.clientX; lastY = p.clientY;
+    velX = velY = 0;
+    if (spinId) cancelAnimationFrame(spinId);
+    card.style.cursor = 'grabbing';
+  }
+  function move(e) {
+    if (!dragging) return;
+    var p = e.touches ? e.touches[0] : e;
+    var dx = p.clientX - lastX, dy = p.clientY - lastY;
+    velX = dx; velY = dy;
+    rotY += dx * SENS; rotX -= dy * SENS;
+    card.style.transform = 'perspective(800px) rotateX(' + rotX + 'deg) rotateY(' + rotY + 'deg)';
+    lastX = p.clientX; lastY = p.clientY;
+  }
+  function end() {
+    if (!dragging) return;
+    dragging = false;
+    card.style.cursor = 'grab';
+    coast();
+  }
+  function coast() {
+    velX *= FRICTION; velY *= FRICTION;
+    rotY += velX * SENS; rotX -= velY * SENS;
+    rotX *= RETURN; rotY *= RETURN;
+    card.style.transform = 'perspective(800px) rotateX(' + rotX + 'deg) rotateY(' + rotY + 'deg)';
+    if (Math.abs(velX) > 0.05 || Math.abs(velY) > 0.05 || Math.abs(rotX) > 0.3 || Math.abs(rotY) > 0.3) {
+      spinId = requestAnimationFrame(coast);
+    } else {
+      rotX = rotY = 0;
+      card.style.transform = '';
+    }
+  }
+
+  card.addEventListener('mousedown', start);
+  document.addEventListener('mousemove', move);
+  document.addEventListener('mouseup', end);
+  card.addEventListener('touchstart', start, { passive: true });
+  document.addEventListener('touchmove', move, { passive: true });
+  document.addEventListener('touchend', end);
+})();
 
 </script>
 </body>
