@@ -86,32 +86,6 @@ body {
   animation: fadeIn 0.8s ease-out, breathe 8s cubic-bezier(0.4,0,0.2,1) infinite;
 }
 
-/* Copy button — hover-reveal (matches clock mode-toggle pattern) */
-.copy-btn {
-  position: absolute; top: 8px; right: 10px;
-  width: 26px; height: 26px;
-  border-radius: 8px; border: none;
-  background: var(--dot-bg);
-  color: var(--book-color);
-  font-size: 12px; line-height: 1;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  opacity: 0; transform: translateY(4px) scale(0.92);
-  transition: opacity 0.4s cubic-bezier(0.4,0,0.2,1),
-              transform 0.4s cubic-bezier(0.4,0,0.2,1),
-              background 0.2s ease, color 0.2s ease;
-  pointer-events: none; z-index: 10;
-}
-.container:hover .copy-btn {
-  opacity: 1; transform: translateY(0) scale(1);
-  pointer-events: auto;
-}
-.copy-btn:hover {
-  background: rgba(var(--accent-rgb), 0.15);
-  color: var(--accent);
-}
-.copy-btn.copied { color: #10b981; }
-
 .label {
   font-size: 9px; font-weight: 300;
   letter-spacing: 3px; text-transform: uppercase;
@@ -175,7 +149,6 @@ body {
     <div class="skeleton sk-line w4"></div>
   </div>
   <div class="content-shell loading" id="qtContent">
-    <button class="copy-btn" id="copyBtn" title="Copy quote" data-tip="Copy quote" aria-label="Copy quote to clipboard">📋</button>
     <div class="label" id="label">Daily Wisdom</div>
     <div class="quote" id="quote" aria-live="polite"></div>
     <div class="attribution" id="attribution">
@@ -311,37 +284,9 @@ function crossfade() {
   }, 650);
 }
 
-/* ── Upgrade 2: Hover-reveal copy button ── */
-document.getElementById('copyBtn').addEventListener('click', function(e) {
-  e.stopPropagation();
-  playClick();
-  var q = currentQuote();
-  var src = q.book ? (', ' + q.book) : '';
-  var str = '\u201C' + q.text + '\u201D\n\u2014 ' + q.author + src;
-  navigator.clipboard.writeText(str).then(function() {
-    var btn = document.getElementById('copyBtn');
-    Core.ripple(btn);
-    btn.textContent = '\u2713';
-    btn.setAttribute('data-tip', 'Copied');
-    btn.classList.add('copied');
-    var card = document.querySelector('.container');
-    card.classList.add('copy-pulse');
-    setTimeout(function() {
-      btn.textContent = '\uD83D\uDCCB';
-      btn.setAttribute('data-tip', 'Copy quote');
-      btn.classList.remove('copied');
-      card.classList.remove('copy-pulse');
-    }, 1400);
-  });
-});
-document.getElementById('copyBtn').addEventListener('keydown', function(e) {
-  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.click(); }
-});
-
 /* ── Init ── */
 loadQuotes();
 Core.tooltip.init();
-Core.tooltip.attach(document.getElementById('copyBtn'), function() { return document.getElementById('copyBtn').getAttribute('data-tip') || 'Copy to clipboard'; });
 function revealQuotes() {
   var sk = document.getElementById('qtSkeleton');
   var c = document.getElementById('qtContent');
