@@ -126,12 +126,6 @@ body {
   font-size: clamp(13px, 1.8vw, 18px);
   font-weight: 500; font-style: italic;
   line-height: 1.4; letter-spacing: -0.2px;
-  background: var(--quote-grad);
-  background-size: 300% 300%;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: gradientShift 6s ease infinite;
   padding: 0 8px;
   max-width: 900px; margin: 0 auto;
   transition: opacity 0.6s cubic-bezier(0.4,0,0.2,1);
@@ -140,7 +134,13 @@ body {
 .quote .word {
   display: inline-block;
   opacity: 0;
-  animation: wordReveal 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  background: var(--quote-grad);
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: wordReveal 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards,
+             gradientShift 6s ease infinite;
 }
 
 /* Attribution */
@@ -332,7 +332,7 @@ try {
     hueRange: [250, 40], mouseTracking: true
   });
 } catch(e) {}
-try { playSummon('top'); } catch(e) {}
+
 </script>
 </body>
 </html>
