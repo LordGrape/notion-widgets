@@ -751,6 +751,107 @@
     }
     .skip:hover{ opacity: 1; background: rgba(var(--accent-rgb),0.05); border-color: rgba(var(--accent-rgb),0.10); }
 
+    /* ── Session Exit ── */
+    .session-exit{
+      appearance: none;
+      border: 1px solid rgba(var(--accent-rgb),0.14);
+      background: rgba(var(--accent-rgb),0.05);
+      color: var(--text-secondary);
+      border-radius: 10px;
+      padding: 6px 10px;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform var(--transition), background var(--transition), border-color var(--transition), color var(--transition);
+      flex-shrink: 0;
+    }
+    .session-exit:hover{
+      transform: translateY(-1px);
+      background: rgba(239,68,68,0.08);
+      border-color: rgba(239,68,68,0.25);
+      color: var(--rate-again);
+    }
+    .session-exit:active{
+      transform: translateY(0) scale(0.98);
+    }
+
+    /* ── Confirm Dialog ── */
+    .confirm-overlay{
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(0,0,0,0.50);
+      z-index: 100;
+    }
+    .confirm-overlay.show{ display: flex; }
+    .confirm-box{
+      width: 100%;
+      max-width: 340px;
+      border-radius: 20px;
+      background: var(--card-bg);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      border: 1px solid var(--card-border);
+      box-shadow: var(--shadow);
+      padding: 20px;
+      text-align: center;
+    }
+    .confirm-box .cb-icon{
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+    .confirm-box .cb-title{
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .confirm-box .cb-desc{
+      font-size: 10px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+    .confirm-box .cb-actions{
+      display: flex;
+      gap: 10px;
+    }
+    .confirm-box .cb-stay{
+      flex: 1;
+      padding: 10px;
+      border-radius: 14px;
+      border: 1px solid rgba(var(--accent-rgb),0.18);
+      background: rgba(var(--accent-rgb),0.08);
+      color: var(--text);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background var(--transition), transform var(--transition);
+    }
+    .confirm-box .cb-stay:hover{ background: rgba(var(--accent-rgb),0.14); transform: translateY(-1px); }
+    .confirm-box .cb-leave{
+      flex: 1;
+      padding: 10px;
+      border-radius: 14px;
+      border: 1px solid rgba(239,68,68,0.2);
+      background: rgba(239,68,68,0.08);
+      color: var(--rate-again);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background var(--transition), transform var(--transition);
+    }
+    .confirm-box .cb-leave:hover{ background: rgba(239,68,68,0.14); transform: translateY(-1px); }
+
     .item-card{
       padding: 14px;
       border-radius: var(--radius-lg);
@@ -2017,6 +2118,7 @@ input[type="range"]::-moz-range-thumb{
             </div>
             <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-end">
               <div class="tier-badge" id="tierBadge"><span class="tiny">●</span> <span id="tierBadgeText">—</span></div>
+              <button class="session-exit" id="exitSessionBtn">✕ Exit</button>
               <div class="skip" id="skipBtn" role="button" tabindex="0">Skip</div>
             </div>
           </div>
@@ -2160,6 +2262,18 @@ input[type="range"]::-moz-range-thumb{
       <div class="modal-body" id="courseModalBody"></div>
       <div class="modal-actions">
         <button class="big-btn" id="courseAddBtn">Add Course</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="confirm-overlay" id="confirmExitOv">
+    <div class="confirm-box">
+      <div class="cb-icon">⚠️</div>
+      <div class="cb-title">End session early?</div>
+      <div class="cb-desc">Your progress on reviewed items is saved, but remaining items will not be scored. The FSRS schedule only updates for items you complete.</div>
+      <div class="cb-actions">
+        <button class="cb-stay" id="confirmStay">Keep studying</button>
+        <button class="cb-leave" id="confirmLeave">End session</button>
       </div>
     </div>
   </div>
@@ -3199,17 +3313,11 @@ input[type="range"]::-moz-range-thumb{
         tierArea.innerHTML = '' +
           '<div class="two-col">' +
             '<div class="panel">' +
-              '<div class="p-h">Your response (ephemeral)</div>' +
+              '<div class="p-h">Your response</div>' +
               '<textarea id="userText" rows="3" placeholder="Write your explanation. Focus on key mechanisms, not wording."></textarea>' +
               '<button class="qa-btn" id="checkBtn">Check (Space)</button>' +
-              '<div class="help">Self-rate after comparing your response to the model answer.</div>' +
             '</div>' +
-            '<div class="panel" id="modelPanel" style="display:none">' +
-              '<div class="p-h">Model answer</div>' +
-              '<div class="answer" style="margin-top:0" id="modelInline"></div>' +
-            '</div>' +
-          '</div>' +
-          rubricTemplate('explain');
+          '</div>';
         wireGenerative('explain');
       } else if (tier === 'apply') {
         /* Prompt is scenario; modelAnswer includes ideal response. Task is embedded at top of modelAnswer if provided. */
@@ -3220,11 +3328,10 @@ input[type="range"]::-moz-range-thumb{
           (task ? '<div class="divider"></div><div class="prompt" style="font-weight:700">Task</div><div class="answer" style="margin-top:8px">' + esc(task) + '</div>' : '') +
           '<div class="divider"></div>' +
           '<div class="panel">' +
-            '<div class="p-h">Your response (ephemeral)</div>' +
+            '<div class="p-h">Your response</div>' +
             '<textarea id="userText" rows="4" placeholder="Apply the concept. Use structured reasoning and conclude clearly."></textarea>' +
             '<button class="qa-btn" id="checkBtn">Check (Space)</button>' +
-          '</div>' +
-          rubricTemplate('apply');
+          '</div>';
         if (settings.showApplyTimer) startApplyTimer();
         wireGenerative('apply');
       } else if (tier === 'distinguish') {
@@ -3237,11 +3344,10 @@ input[type="range"]::-moz-range-thumb{
           '<div class="scenario">' + esc(it.scenario || it.prompt || '') + '</div>' +
           '<div class="divider"></div>' +
           '<div class="panel">' +
-            '<div class="p-h">Your justification (ephemeral)</div>' +
+            '<div class="p-h">Your response</div>' +
             '<textarea id="userText" rows="4" placeholder="State which applies, then justify with discriminating features."></textarea>' +
             '<button class="qa-btn" id="checkBtn">Check (Space)</button>' +
-          '</div>' +
-          rubricTemplate('distinguish');
+          '</div>';
         wireGenerative('distinguish');
       } else if (tier === 'mock') {
         var mins = parseInt(it.timeLimitMins || settings.mockDefaultMins || 10, 10);
@@ -3251,12 +3357,11 @@ input[type="range"]::-moz-range-thumb{
         el('timerBar').classList.add('show');
         tierArea.innerHTML = '' +
           '<div class="panel">' +
-            '<div class="p-h">Response (timed)</div>' +
+            '<div class="p-h">Your response</div>' +
             '<textarea id="userText" rows="10" placeholder="Write your full answer. Aim for structure and clear conclusions."></textarea>' +
             '<button class="qa-btn" id="submitBtn">Submit (Space)</button>' +
             '<div class="help">Timer starts immediately. Submit early if you finish.</div>' +
-          '</div>' +
-          rubricTemplate('mock');
+          '</div>';
         startMockTimer();
         wireMock();
       }
@@ -3291,7 +3396,6 @@ input[type="range"]::-moz-range-thumb{
     }
 
     function wireGenerative(tier) {
-      bindRubric(tier);
       var ta = el('userText');
       ta.addEventListener('input', function(){ autoGrowTextarea(ta); });
       autoGrowTextarea(ta);
@@ -3299,7 +3403,6 @@ input[type="range"]::-moz-range-thumb{
     }
 
     function wireMock() {
-      bindRubric('mock');
       var ta = el('userText');
       ta.addEventListener('input', function(){ autoGrowTextarea(ta); });
       autoGrowTextarea(ta);
@@ -3316,9 +3419,7 @@ input[type="range"]::-moz-range-thumb{
 
       /* Show model answer for quickfire immediately */
       if (revealTier === 'quickfire') {
-        if (el('modelPanel')) { el('modelPanel').style.display = 'block'; }
-        if (el('modelInline')) { el('modelInline').textContent = it.modelAnswer || ''; }
-        modelAnswerEl.innerHTML = '<div class="answer-header">Model Answer</div>' + esc(it.modelAnswer || '');
+        modelAnswerEl.innerHTML = '<div class="answer-header">📋 Model Answer</div><div style="white-space:pre-wrap;line-height:1.55;font-size:11px;">' + esc(it.modelAnswer || '') + '</div>';
         modelAnswerEl.style.display = 'block';
         ratingsEl.style.display = 'grid';
         try { playClick(); } catch(e) {}
@@ -3341,9 +3442,7 @@ input[type="range"]::-moz-range-thumb{
       if (submitBtn) submitBtn.style.display = 'none';
 
       /* Show model answer */
-      if (el('modelPanel')) { el('modelPanel').style.display = 'block'; }
-      if (el('modelInline')) { el('modelInline').textContent = it.modelAnswer || ''; }
-      modelAnswerEl.innerHTML = '<div class="answer-header">Model Answer</div>' + esc(it.modelAnswer || '');
+      modelAnswerEl.innerHTML = '<div class="answer-header">📋 Model Answer</div><div style="white-space:pre-wrap;line-height:1.55;font-size:11px;">' + esc(it.modelAnswer || '') + '</div>';
       modelAnswerEl.style.display = 'block';
 
       try { playClick(); } catch(e) {}
@@ -3778,10 +3877,17 @@ input[type="range"]::-moz-range-thumb{
     /* ── Keyboard shortcuts ── */
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') {
+        /* Close modals first */
+        var hadModal = modalOv.classList.contains('show') || settingsOv.classList.contains('show') || courseOv.classList.contains('show') || el('confirmExitOv').classList.contains('show');
         closeModals();
-        if (viewSession.classList.contains('active')) {
-          showView('viewDash');
-          renderDashboard();
+        el('confirmExitOv').classList.remove('show');
+        if (hadModal) return;
+
+        /* If in session, show confirmation instead of exiting immediately */
+        if (viewSession.classList.contains('active') && session) {
+          el('confirmExitOv').classList.add('show');
+          try { playPause(); } catch(e2) {}
+          return;
         }
         return;
       }
@@ -3809,9 +3915,46 @@ input[type="range"]::-moz-range-thumb{
 
     /* ── Buttons wiring ── */
     el('startBtn').addEventListener('click', function(){ startSession(); });
-    el('backBtn').addEventListener('click', function(){ showView('viewDash'); renderDashboard(); });
+    el('backBtn').addEventListener('click', function(){
+      if (viewSession.classList.contains('active') && session) {
+        el('confirmExitOv').classList.add('show');
+        try { playPause(); } catch(e) {}
+      } else {
+        showView('viewDash');
+        renderDashboard();
+      }
+    });
     el('skipBtn').addEventListener('click', function(){ skipItem(); });
     el('skipBtn').addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); skipItem(); } });
+    /* ── Session Exit with Confirmation ── */
+    el('exitSessionBtn').addEventListener('click', function() {
+      if (!session) return;
+      el('confirmExitOv').classList.add('show');
+      try { playPause(); } catch(e) {}
+    });
+
+    el('confirmStay').addEventListener('click', function() {
+      el('confirmExitOv').classList.remove('show');
+      try { playResume(); } catch(e) {}
+    });
+
+    el('confirmLeave').addEventListener('click', function() {
+      el('confirmExitOv').classList.remove('show');
+      try { playClose(); } catch(e) {}
+      /* Save progress for items already reviewed */
+      saveState();
+      /* Reset session and return to dashboard */
+      session = null;
+      clearTimers();
+      showView('viewDash');
+      renderDashboard();
+    });
+
+    el('confirmExitOv').addEventListener('click', function(e) {
+      if (e.target === el('confirmExitOv')) {
+        el('confirmExitOv').classList.remove('show');
+      }
+    });
 
     ratingsEl.querySelectorAll('button').forEach(function(b){
       b.addEventListener('click', function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); });
