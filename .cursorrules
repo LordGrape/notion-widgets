@@ -211,3 +211,16 @@
 - CSS variables: --text-tertiary added for lowest-emphasis text
 - Ratings grid is always 4-col (removed 2-col mobile breakpoint for semantic L→R ordering)
 - Rubric pills have larger tap targets (8px 12px padding, 10px font)
+# Dragon mascot (topbar)
+- mascotCanvas: 28x28 canvas (DPR-aware) replaces the old .logo div
+- Reads dragon XP from SyncEngine('dragon','xp') to determine stage (0-5)
+- drawEggMascot(): stage 0, wobbling purple egg with glow + crack lines
+- drawDragonMascot(): stages 1-5, body/wings/head/eyes scale with stage, flapping wings, breathing idle
+- Stage 2+ gets horns, stage 4+ gets amber crown glow
+- updateMascotStage() refreshes every 30s to pick up XP changes from horizon/other widgets
+- mascotFlapPhase drives all idle animations (wings, wobble, breathing, tail wag)
+
+# Standalone layout
+- body.standalone gets larger padding, wider hero value (52px), bigger prompts/textareas/buttons/rubric pills
+- .dash-grid: at 640px+ in standalone, stats-row and gauge sit side-by-side under a full-width hero
+- max-width 720px (was 900px) for better reading width
