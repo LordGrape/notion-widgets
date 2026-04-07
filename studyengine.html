@@ -1527,6 +1527,126 @@
       grid-template-columns: 1fr 1fr;
       gap: 10px;
     }
+
+    /* ── Course Colour Picker ── */
+    .color-picker{
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      padding: 4px 0;
+    }
+    .color-swatch{
+      width: 26px; height: 26px;
+      border-radius: 99px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
+      position: relative;
+    }
+    .color-swatch:hover{ transform: scale(1.15); }
+    .color-swatch.active{
+      border-color: var(--text);
+      box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text);
+      transform: scale(1.1);
+    }
+    .color-swatch::after{
+      content: '✓';
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 900;
+      color: #fff;
+    }
+    .color-swatch.active::after{ display: flex; }
+
+    /* ── Course-coloured left border on course cards ── */
+    .course-card{
+      border-left: 3px solid var(--accent);
+    }
+
+    /* ── Modal course header badge ── */
+    .modal-course-badge{
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      margin-bottom: 12px;
+      border-radius: 14px;
+      background: rgba(var(--accent-rgb),0.05);
+      border: 1px solid rgba(var(--accent-rgb),0.14);
+    }
+    .modal-course-badge .mcb-dot{
+      width: 10px; height: 10px;
+      border-radius: 99px;
+      flex-shrink: 0;
+    }
+    .modal-course-badge .mcb-name{
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--text);
+    }
+    .modal-course-badge .mcb-change{
+      margin-left: auto;
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(var(--accent-rgb),0.14);
+      background: rgba(var(--accent-rgb),0.04);
+      transition: background var(--transition), color var(--transition);
+    }
+    .modal-course-badge .mcb-change:hover{
+      background: rgba(var(--accent-rgb),0.10);
+      color: var(--text);
+    }
+
+    /* ── Course picker step in modal ── */
+    .course-picker-list{
+      display: grid;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .course-picker-item{
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(var(--accent-rgb),0.12);
+      background: rgba(var(--accent-rgb),0.03);
+      cursor: pointer;
+      transition: transform var(--transition), border-color var(--transition), background var(--transition);
+    }
+    .course-picker-item:hover{
+      transform: translateY(-1px);
+      border-color: rgba(var(--accent-rgb),0.24);
+      background: rgba(var(--accent-rgb),0.06);
+    }
+    .course-picker-item .cpi-dot{
+      width: 10px; height: 10px;
+      border-radius: 99px;
+      flex-shrink: 0;
+    }
+    .course-picker-item .cpi-name{
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .course-picker-item .cpi-count{
+      margin-left: auto;
+      font-size: 9px;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
     @media (max-width: 480px){
       .course-form-row{ grid-template-columns: 1fr; }
     }
@@ -2179,6 +2299,10 @@ input[type="range"]::-moz-range-thumb{
               </div>
             </div>
             <button class="big-btn" id="cdStartSession">Study this course</button>
+            <div class="mini-actions">
+              <button class="ghost-btn" id="cdAddCardBtn">＋ Add Card</button>
+              <button class="ghost-btn" id="cdImportBtn">📥 Import JSON</button>
+            </div>
           </div>
         </div>
 
@@ -2391,6 +2515,25 @@ input[type="range"]::-moz-range-thumb{
       mixed: 'Mixed'
     };
 
+    var COURSE_COLORS = [
+      { name: 'Purple', value: '#8b5cf6' },
+      { name: 'Blue', value: '#3b82f6' },
+      { name: 'Cyan', value: '#06b6d4' },
+      { name: 'Green', value: '#22c55e' },
+      { name: 'Yellow', value: '#eab308' },
+      { name: 'Orange', value: '#f97316' },
+      { name: 'Red', value: '#ef4444' },
+      { name: 'Pink', value: '#ec4899' },
+      { name: 'Indigo', value: '#6366f1' },
+      { name: 'Teal', value: '#14b8a6' }
+    ];
+
+    function getCourseColor(courseName) {
+      var c = getCourse(courseName);
+      if (c && c.color) return c.color;
+      return '#8b5cf6'; /* default purple */
+    }
+
     /* ── Course Objectives ── */
     var OBJECTIVES = {
       retention: {
@@ -2548,6 +2691,7 @@ input[type="range"]::-moz-range-thumb{
             examType: 'mixed',
             examDate: null,
             manualMode: false,
+            color: '#8b5cf6',
             created: it.created || isoNow()
           };
           changed = true;
@@ -2968,8 +3112,8 @@ input[type="range"]::-moz-range-thumb{
           if (daysUntil > 0) examInfo = '<span class="cc-date">📅 ' + daysUntil + 'd</span>';
           else if (daysUntil === 0) examInfo = '<span class="cc-date" style="color:var(--rate-again);">📅 Today</span>';
         }
-
-        h += '<div class="course-card" data-course-name="' + esc(c.name) + '">' +
+        var courseCol = c.color || '#8b5cf6';
+        h += '<div class="course-card" data-course-name="' + esc(c.name) + '" style="border-left-color:' + esc(courseCol) + '">' +
           '<div class="cc-left">' +
             '<div class="cc-name">' + esc(c.name) + '</div>' +
             '<div class="cc-meta">' +
@@ -4141,9 +4285,32 @@ input[type="range"]::-moz-range-thumb{
     var modalForm = el('modalForm');
     var activeTab = 'add';
     var advancedOpen = false;
+    var modalCourse = null; /* course name the modal is scoped to */
+    var modalShowingPicker = false; /* true = showing course picker step */
 
-    function openModal(tab) {
+    function openModal(tab, courseName) {
       activeTab = tab || activeTab || 'add';
+
+      /* Determine course context */
+      if (courseName) {
+        modalCourse = courseName;
+        modalShowingPicker = false;
+      } else {
+        var courses = listCourses();
+        if (courses.length === 0) {
+          /* No courses: redirect to course management */
+          toast('Create a course first');
+          openCourseModal();
+          return;
+        } else if (courses.length === 1) {
+          modalCourse = courses[0].name;
+          modalShowingPicker = false;
+        } else {
+          modalCourse = null;
+          modalShowingPicker = true;
+        }
+      }
+
       modalOv.classList.add('show');
       modalOv.setAttribute('aria-hidden','false');
       renderModal();
@@ -4181,7 +4348,6 @@ input[type="range"]::-moz-range-thumb{
     function renderModal() {
       /* tabs */
       el('modalTabs') && el('modalTabs').querySelectorAll('.tab').forEach(function(t) {
-        /* Use modalTabs instead of tierTabs */
         var on = t.getAttribute('data-tab') === activeTab;
         t.classList.toggle('active', on);
         t.setAttribute('aria-selected', on ? 'true' : 'false');
@@ -4190,43 +4356,75 @@ input[type="range"]::-moz-range-thumb{
       var showAdd = (activeTab === 'add');
       el('addNextBtn').style.display = showAdd ? 'inline-flex' : 'none';
 
-      if (activeTab === 'add') {
-        var courseOpts = '';
-        listCourses().forEach(function(c) {
-          courseOpts += '<option value="' + esc(c.name) + '">' + esc(c.name) + '</option>';
+      /* ── Course picker step ── */
+      if (modalShowingPicker) {
+        var courses = listCourses();
+        var h = '<div class="section-header">Select a course</div>';
+        h += '<div class="course-picker-list">';
+        courses.forEach(function(c) {
+          var col = c.color || '#8b5cf6';
+          var itemCount = 0;
+          for (var id in state.items) {
+            if (state.items.hasOwnProperty(id) && state.items[id] && state.items[id].course === c.name) itemCount++;
+          }
+          h += '<div class="course-picker-item" data-pick-course="' + esc(c.name) + '">' +
+              '<div class="cpi-dot" style="background:' + esc(col) + '"></div>' +
+              '<span class="cpi-name">' + esc(c.name) + '</span>' +
+              '<span class="cpi-count">' + itemCount + ' cards</span>' +
+              '</div>';
+        });
+        h += '</div>';
+        modalForm.innerHTML = h;
+
+        /* Wire course picker clicks */
+        modalForm.querySelectorAll('.course-picker-item').forEach(function(item) {
+          item.addEventListener('click', function() {
+            modalCourse = this.getAttribute('data-pick-course');
+            modalShowingPicker = false;
+            renderModal();
+            try { playClick(); } catch(e) {}
+          });
         });
 
-        modalForm.innerHTML = '' +
+        /* Hide action buttons during picker step */
+        el('addNextBtn').style.display = 'none';
+        el('doneBtn').style.display = 'none';
+        return;
+      }
+
+      /* Restore done button visibility */
+      el('doneBtn').style.display = 'inline-flex';
+
+      /* ── Card creation form (scoped to modalCourse) ── */
+      if (activeTab === 'add') {
+        var courseCol = getCourseColor(modalCourse);
+        var courseBadge = '<div class="modal-course-badge">' +
+            '<div class="mcb-dot" style="background:' + esc(courseCol) + '"></div>' +
+            '<span class="mcb-name">' + esc(modalCourse || 'Unknown') + '</span>' +
+            '<span class="mcb-change" onclick="modalShowingPicker=true;renderModal();">Change</span>' +
+            '</div>';
+
+        modalForm.innerHTML = courseBadge +
           '<div class="field">' +
-          '  <label>Course</label>' +
-          '  <div style="display:flex;gap:8px;">' +
-          '    <select id="m_course" class="input" style="flex:1;">' +
-          '      <option value="">— Select or type below —</option>' +
-                 courseOpts +
-          '    </select>' +
-          '    <input id="m_course_new" class="input" style="flex:1;" placeholder="Or new course name">' +
-          '  </div>' +
-          '</div>' +
-          '<div class="field">' +
-          '  <label>Topic <span style="opacity:0.5;">(optional)</span></label>' +
-          '  <input id="m_topic" class="input" placeholder="e.g., WTO Dispute Settlement">' +
+          '<label>Topic <span style="font-weight:500;letter-spacing:0.5px;text-transform:lowercase;opacity:0.7">(optional)</span></label>' +
+          '<input class="input" id="m_topic" placeholder="e.g., WTO Dispute Settlement">' +
           '</div>' +
           areaField('Prompt', 'm_prompt', 'Question, cue, or concept to recall') +
           areaField('Model Answer', 'm_answer', 'Ideal response to compare against') +
-          '<div class="adv-toggle' + (advancedOpen ? ' open' : '') + '" id="advToggle">' +
-          '  <span class="adv-arrow">▶</span>' +
-          '  <span class="adv-text">Advanced fields (scenario, concepts, timer)</span>' +
+          '<div class="adv-toggle" id="advToggle">' +
+          '<span class="adv-arrow">▶</span>' +
+          '<span class="adv-text">Advanced fields (scenario, concepts, timer)</span>' +
           '</div>' +
-          '<div class="adv-fields' + (advancedOpen ? ' show' : '') + '" id="advFields">' +
+          '<div class="adv-fields" id="advFields">' +
           areaField('Scenario', 'm_scenario', 'Fact pattern or context for application (enables Apply It tier)') +
           textField('Task', 'm_task', 'Instruction for the scenario (optional)') +
           '<div class="course-form-row">' +
           textField('Concept A', 'm_conceptA', 'e.g., Trade creation') +
           textField('Concept B', 'm_conceptB', 'e.g., Trade diversion') +
           '</div>' +
-          '<div class="help" style="margin-bottom:8px;">Filling Concept A + B enables the Distinguish tier.</div>' +
+          '<p class="help">Filling Concept A + B enables the Distinguish tier.</p>' +
           selectField('Mock time limit', 'm_time', [{v:'5',t:'5 min'},{v:'10',t:'10 min'},{v:'15',t:'15 min'},{v:'30',t:'30 min'}], String(settings.mockDefaultMins || 10)) +
-          '<div class="help">Setting a time limit enables the Mock Exam tier.</div>' +
+          '<p class="help">Setting a time limit enables the Mock Exam tier.</p>' +
           '</div>' +
           '<div id="tierBadgeArea"></div>';
 
@@ -4238,14 +4436,25 @@ input[type="range"]::-moz-range-thumb{
             tog.classList.toggle('open', advancedOpen);
             el('advFields').classList.toggle('show', advancedOpen);
           });
+          if (advancedOpen) {
+            tog && tog.classList.add('open');
+            el('advFields') && el('advFields').classList.add('show');
+          }
         }, 0);
 
       } else if (activeTab === 'import') {
-        modalForm.innerHTML = '' +
+        var courseCol2 = getCourseColor(modalCourse);
+        var courseBadge2 = '<div class="modal-course-badge">' +
+            '<div class="mcb-dot" style="background:' + esc(courseCol2) + '"></div>' +
+            '<span class="mcb-name">' + esc(modalCourse || 'Unknown') + '</span>' +
+            '<span class="mcb-change" onclick="modalShowingPicker=true;renderModal();">Change</span>' +
+            '</div>';
+
+        modalForm.innerHTML = courseBadge2 +
           '<div class="field">' +
-          '  <label>Paste JSON array</label>' +
-          '  <textarea id="m_import" class="input" style="min-height:150px;" placeholder=\'[{"prompt":"...","modelAnswer":"...","course":"..."}]\'></textarea>' +
-          '  <div class="help">Each object needs at minimum: prompt, modelAnswer, course. Optional: topic, task, scenario, conceptA, conceptB, timeLimitMins.</div>' +
+          '<label>Paste JSON array</label>' +
+          '<textarea class="input" id="m_import" rows="6" placeholder=\'[{"prompt":"...","modelAnswer":"..."}]\'></textarea>' +
+          '<p class="help">Each object needs at minimum: <b>prompt</b>, <b>modelAnswer</b>. Optional: topic, task, scenario, conceptA, conceptB, timeLimitMins. The course is set automatically to <b>' + esc(modalCourse) + '</b>.</p>' +
           '</div>';
       }
 
@@ -4254,18 +4463,6 @@ input[type="range"]::-moz-range-thumb{
         var first = modalForm.querySelector('textarea, input, select');
         if (first) first.focus();
       }, 0);
-    }
-
-    function commonFields(tier) {
-      return '' +
-        '<div class="field">' +
-          '<label>Course</label>' +
-          '<input class="input" id="m_course" placeholder="e.g., Evidence" />' +
-        '</div>' +
-        '<div class="field">' +
-          '<label>Topic</label>' +
-          '<input class="input" id="m_topic" placeholder="e.g., Hearsay exceptions" />' +
-        '</div>';
     }
 
     function tailFields() { return ''; }
@@ -4293,28 +4490,27 @@ input[type="range"]::-moz-range-thumb{
     }
 
     el('addNextBtn').addEventListener('click', function(){ addFromModal(true); });
-    el('doneBtn').addEventListener('click', function(){ addFromModal(false); closeModal(); renderDashboard(); });
+    el('doneBtn').addEventListener('click', function(){ addFromModal(false); });
 
     function addFromModal(stayOpen) {
       if (activeTab === 'import') {
         doImport();
-        if (!stayOpen) closeModal();
+        if (!stayOpen) { closeModal(); renderDashboard(); }
         return;
       }
 
-      /* Resolve course */
-      var courseSelect = (el('m_course').value || '').trim();
-      var courseNew = (el('m_course_new').value || '').trim();
-      var course = courseNew || courseSelect;
-      if (!course) { toast('Select or enter a course name'); return; }
+      /* Course comes from modalCourse context, not a form field */
+      var course = modalCourse;
+      if (!course) { toast('No course selected'); return; }
 
-      /* Auto-create course if new */
+      /* Auto-create course if somehow missing (safety net) */
       if (!state.courses[course]) {
         saveCourse({
           name: course,
           examType: 'mixed',
           examDate: null,
           manualMode: false,
+          color: '#8b5cf6',
           created: isoNow()
         });
       }
@@ -4370,7 +4566,7 @@ input[type="range"]::-moz-range-thumb{
       toast('Added — supports ' + supported.length + ' tier' + (supported.length !== 1 ? 's' : ''));
 
       if (stayOpen) {
-        /* Clear content fields but keep course + topic */
+        /* Clear content fields but keep topic */
         if (el('m_prompt')) el('m_prompt').value = '';
         if (el('m_answer')) el('m_answer').value = '';
         if (el('m_scenario')) el('m_scenario').value = '';
@@ -4394,9 +4590,11 @@ input[type="range"]::-moz-range-thumb{
         if (!obj.created) obj.created = isoNow();
         if (!obj.fsrs) obj.fsrs = { stability: 0, difficulty: 0, due: isoNow(), lastReview: null, reps: 0, lapses: 0, state: 'new' };
         if (!obj.variants) obj.variants = {};
-        /* Auto-create course */
+        /* Force course to modalCourse; fall back to obj.course if present */
+        obj.course = modalCourse || obj.course || 'Uncategorised';
+        /* Auto-create course if needed */
         if (obj.course && !state.courses[obj.course]) {
-          saveCourse({ name: obj.course, examType: 'mixed', examDate: null, manualMode: false, created: isoNow() });
+          saveCourse({ name: obj.course, examType: 'mixed', examDate: null, manualMode: false, color: '#8b5cf6', created: isoNow() });
         }
         state.items[obj.id] = obj;
         n++;
@@ -4698,6 +4896,13 @@ input[type="range"]::-moz-range-thumb{
           '<label>Course name</label>' +
           '<input type="text" id="nc_name" class="input" placeholder="e.g., Constitutional Law">' +
         '</div>' +
+        '<div class="field">' +
+          '<label>Colour</label>' +
+          '<div class="color-picker" id="nc_colorPicker">';
+      COURSE_COLORS.forEach(function(c, i) {
+        h += '<div class="color-swatch' + (i === 0 ? ' active' : '') + '" data-color="' + c.value + '" style="background:' + c.value + '" title="' + c.name + '"></div>';
+      });
+      h += '</div></div>' +
         '<div class="course-form-row">' +
           '<div class="field">' +
             '<label>Exam format</label>' +
@@ -4769,6 +4974,19 @@ input[type="range"]::-moz-range-thumb{
         ncObjSel.addEventListener('change', updateExamDateDesc);
         updateExamDateDesc();
       }
+
+      /* Wire colour picker swatches */
+      var ncColorPicker = el('nc_colorPicker');
+      if (ncColorPicker) {
+        ncColorPicker.querySelectorAll('.color-swatch').forEach(function(sw) {
+          sw.addEventListener('click', function() {
+            ncColorPicker.querySelectorAll('.color-swatch').forEach(function(s) { s.classList.remove('active'); });
+            this.classList.add('active');
+            if (window.gsap) gsap.fromTo(this, { scale: 0.85 }, { scale: 1, duration: 0.3, ease: 'back.out(2.5)' });
+            try { playClick(); } catch(e) {}
+          });
+        });
+      }
     }
 
     el('courseAddBtn').addEventListener('click', function() {
@@ -4778,11 +4996,18 @@ input[type="range"]::-moz-range-thumb{
       var examType = (el('nc_examType').value || 'mixed');
       var examDate = (el('nc_examDate').value || '').trim() || null;
       var objective = (el('nc_objective') && el('nc_objective').value) || 'retention';
+      var colorPicker = el('nc_colorPicker');
+      var selectedColor = '#8b5cf6';
+      if (colorPicker) {
+        var activeSwatch = colorPicker.querySelector('.color-swatch.active');
+        if (activeSwatch) selectedColor = activeSwatch.getAttribute('data-color');
+      }
       saveCourse({
         name: name,
         examType: examType,
         examDate: examDate,
         objective: objective,
+        color: selectedColor,
         manualMode: false,
         created: isoNow()
       });
@@ -4809,6 +5034,12 @@ input[type="range"]::-moz-range-thumb{
       row.innerHTML =
         '<div style="padding:10px 0;">' +
           '<div class="course-form-row">' +
+            '<div class="field">' +
+              '<label>Colour</label>' +
+              '<div class="color-picker" id="' + editId + '_colorPicker">' +
+                (function() { var ch = ''; COURSE_COLORS.forEach(function(cc) { var isAct = (c.color || '#8b5cf6') === cc.value; ch += '<div class="color-swatch' + (isAct ? ' active' : '') + '" data-color="' + cc.value + '" style="background:' + cc.value + '" title="' + cc.name + '"></div>'; }); return ch; })() +
+              '</div>' +
+            '</div>' +
             '<div class="field">' +
               '<label>Exam type</label>' +
               '<select id="' + editId + '_examType" class="input">' +
@@ -4875,6 +5106,11 @@ input[type="range"]::-moz-range-thumb{
       var saveBtn = el(editId + '_save');
       if (saveBtn) {
         saveBtn.addEventListener('click', function() {
+          var editColorPicker = el(editId + '_colorPicker');
+          if (editColorPicker) {
+            var aSw = editColorPicker.querySelector('.color-swatch.active');
+            if (aSw) c.color = aSw.getAttribute('data-color');
+          }
           c.examType = (el(editId + '_examType') && el(editId + '_examType').value) || 'mixed';
           c.examDate = ((el(editId + '_examDate') && el(editId + '_examDate').value) || '').trim() || null;
           c.objective = ((el(editId + '_objective') && el(editId + '_objective').value) || 'retention');
@@ -4890,6 +5126,19 @@ input[type="range"]::-moz-range-thumb{
         cancelBtn.addEventListener('click', function() {
           row.style.display = 'none';
           row.innerHTML = '';
+        });
+      }
+
+      /* Wire edit colour swatches */
+      var editCPicker = el(editId + '_colorPicker');
+      if (editCPicker) {
+        editCPicker.querySelectorAll('.color-swatch').forEach(function(sw) {
+          sw.addEventListener('click', function() {
+            editCPicker.querySelectorAll('.color-swatch').forEach(function(s) { s.classList.remove('active'); });
+            this.classList.add('active');
+            if (window.gsap) gsap.fromTo(this, { scale: 0.85 }, { scale: 1, duration: 0.3, ease: 'back.out(2.5)' });
+            try { playClick(); } catch(e) {}
+          });
         });
       }
 
@@ -5619,6 +5868,11 @@ input[type="range"]::-moz-range-thumb{
       if (!c) return;
 
       el('cdTitle').textContent = c.name;
+      var cdHeader = document.querySelector('#courseDetail .cd-header');
+      if (cdHeader) {
+        cdHeader.style.borderLeft = '4px solid ' + (c.color || '#8b5cf6');
+        cdHeader.style.paddingLeft = '10px';
+      }
 
       /* Badges */
       var obj = getCourseObjective(courseName);
@@ -5702,6 +5956,19 @@ input[type="range"]::-moz-range-thumb{
 
       if (window.gsap) {
         gsap.fromTo(el('courseDetail'), { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' });
+      }
+
+      var cdAddBtn = el('cdAddCardBtn');
+      if (cdAddBtn) {
+        cdAddBtn.onclick = function() {
+          openModal('add', courseName);
+        };
+      }
+      var cdImpBtn = el('cdImportBtn');
+      if (cdImpBtn) {
+        cdImpBtn.onclick = function() {
+          openModal('import', courseName);
+        };
       }
     }
 
