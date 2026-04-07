@@ -278,3 +278,10 @@
 - Want bonus system still works invisibly (no bubble UI), grants +15 XP on matching interaction.
 - tapPulse variable drives a glow flare on egg click (decays at 0.94/frame).
 - Thought bubble (canvas-drawn activity icon) is hidden at stage 0, shown at stage 1+.
+
+# Study Engine v1.1
+- Ambient CSS animations: ambientFloat, ambientGlow, heroShimmer, gradientShift, subtlePulse, breatheBorder
+- All idle animations respect prefers-reduced-motion: reduce
+- Info tooltips use position: fixed + JS positioning (positionTooltip/hideTooltip) — never position: absolute inside overflow containers
+- Settings use .mode-toggle pill groups, NOT <select> elements — ensures dark mode compatibility
+- Pill groups read via data-setting attribute + .mode-btn.active on save
