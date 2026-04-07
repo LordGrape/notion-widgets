@@ -77,13 +77,74 @@
 
     body.standalone .wrap{
       align-items: flex-start;
-      padding: 34px 20px 28px;
+      padding: 40px 24px 32px;
       overflow: auto;
     }
     body.standalone .shell{
-      max-width: 900px;
+      max-width: 720px;
       width: 100%;
       margin: 0 auto;
+    }
+
+    /* Standalone: larger hero, roomier cards */
+    body.standalone .hero-stat{
+      padding: 28px 20px 20px;
+    }
+    body.standalone .hero-stat .hero-value{
+      font-size: 52px;
+    }
+    body.standalone .view{
+      padding: 20px;
+    }
+    body.standalone .prompt{
+      font-size: 15px;
+      line-height: 1.6;
+    }
+    body.standalone textarea{
+      min-height: 120px;
+      font-size: 12px;
+    }
+    body.standalone .answer{
+      font-size: 12px;
+      padding: 14px 16px;
+    }
+    body.standalone .stat .v{
+      font-size: 22px;
+    }
+    body.standalone .big-btn{
+      padding: 16px 20px;
+      font-size: 12px;
+    }
+    body.standalone .rate{
+      padding: 13px 8px;
+      font-size: 10px;
+    }
+    body.standalone .rub-pill{
+      padding: 9px 14px;
+      font-size: 11px;
+    }
+    body.standalone .scenario{
+      padding: 18px 20px;
+      font-size: 12px;
+    }
+
+    /* Wide standalone: 2-column dashboard layout */
+    @media (min-width: 640px) {
+      body.standalone .dash-grid{
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+      body.standalone .dash-grid .hero-stat{
+        grid-column: 1 / -1;
+      }
+      body.standalone .dash-grid .gauge{
+        margin: 0;
+      }
+      body.standalone .dash-grid .stats-row{
+        margin: 0;
+      }
     }
 
     .shell{
@@ -118,10 +179,8 @@
     .logo{
       width: 28px; height: 28px;
       border-radius: 10px;
-      background: radial-gradient(circle at 30% 30%, rgba(var(--accent-rgb),0.9), rgba(var(--accent-rgb),0.2) 60%, rgba(var(--accent-rgb),0.08));
-      border: 1px solid rgba(var(--accent-rgb),0.18);
-      box-shadow: 0 0 18px rgba(var(--accent-rgb),0.18);
       flex-shrink: 0;
+      image-rendering: pixelated;
     }
     .brand h1{
       font-size: 12px;
@@ -956,7 +1015,7 @@
       <div class="card" id="rootCard">
         <div class="topbar">
           <div class="brand">
-            <div class="logo" aria-hidden="true"></div>
+            <canvas id="mascotCanvas" class="logo" width="56" height="56"></canvas>
             <div style="min-width:0">
               <h1 id="hdrTitle">Study Engine</h1>
               <div class="sub" id="hdrSub">Retrieval practice</div>
@@ -967,6 +1026,7 @@
 
         <!-- Dashboard -->
         <div class="view active" id="viewDash">
+          <div class="dash-grid">
           <!-- Hero: Items Due -->
           <div class="hero-stat" id="heroStat">
             <div class="hero-value" id="statDue">—</div>
@@ -1004,6 +1064,7 @@
             </div>
           </div>
 
+          </div><!-- /dash-grid -->
           <!-- Tier Breakdown -->
           <div class="section-header">Due by tier</div>
           <div class="breakdown" id="tierBreakdown"></div>
@@ -2465,10 +2526,225 @@
     }
 
     /* ── Boot ── */
+    /* ── Dragon Mascot (topbar icon) ── */
+    var mascotCtx = null;
+    var mascotStage = 0;
+    var mascotFlapPhase = 0;
+    var mascotAnimFrame = null;
+
+    function initMascot() {
+      var c = el('mascotCanvas');
+      if (!c) return;
+      var dpr = window.devicePixelRatio || 1;
+      dpr = Math.min(dpr, 2);
+      c.width = 28 * dpr;
+      c.height = 28 * dpr;
+      c.style.width = '28px';
+      c.style.height = '28px';
+      mascotCtx = c.getContext('2d');
+      mascotCtx.scale(dpr, dpr);
+
+      /* Read dragon stage from SyncEngine */
+      updateMascotStage();
+      startMascotLoop();
+    }
+
+    function updateMascotStage() {
+      var xp = 0;
+      try { xp = SyncEngine.get('dragon', 'xp') || 0; } catch(e) {}
+      var thresholds = [0, 1000, 5000, 20000, 60000, 120000];
+      mascotStage = 0;
+      for (var i = thresholds.length - 1; i >= 0; i--) {
+        if (xp >= thresholds[i]) { mascotStage = i; break; }
+      }
+    }
+
+    function startMascotLoop() {
+      function tick() {
+        mascotFlapPhase += 0.04;
+        drawMascot();
+        mascotAnimFrame = requestAnimationFrame(tick);
+      }
+      tick();
+    }
+
+    function drawMascot() {
+      var ctx = mascotCtx;
+      if (!ctx) return;
+      ctx.clearRect(0, 0, 28, 28);
+
+      var cx = 14, cy = 14;
+      var accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#8b5cf6';
+      var accentRGB = getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim() || '139,92,246';
+
+      if (mascotStage === 0) {
+        drawEggMascot(ctx, cx, cy, accent, accentRGB);
+      } else {
+        drawDragonMascot(ctx, cx, cy, accent, accentRGB, mascotStage);
+      }
+    }
+
+    function drawEggMascot(ctx, cx, cy, accent, rgb) {
+      /* Subtle idle wobble */
+      var wobble = Math.sin(mascotFlapPhase * 1.5) * 1.5;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(wobble * Math.PI / 180);
+
+      /* Glow */
+      var glow = ctx.createRadialGradient(0, 0, 3, 0, 0, 12);
+      glow.addColorStop(0, 'rgba(' + rgb + ',0.25)');
+      glow.addColorStop(1, 'rgba(' + rgb + ',0)');
+      ctx.fillStyle = glow;
+      ctx.fillRect(-14, -14, 28, 28);
+
+      /* Egg body */
+      ctx.beginPath();
+      ctx.ellipse(0, 1, 6, 8, 0, 0, Math.PI * 2);
+      var grad = ctx.createLinearGradient(-6, -8, 6, 8);
+      grad.addColorStop(0, accent);
+      grad.addColorStop(0.5, 'rgba(' + rgb + ',0.7)');
+      grad.addColorStop(1, 'rgba(' + rgb + ',0.4)');
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      /* Highlight */
+      ctx.beginPath();
+      ctx.ellipse(-2, -3, 2, 3, -0.3, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.fill();
+
+      /* Crack lines */
+      ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+      ctx.lineWidth = 0.6;
+      ctx.beginPath();
+      ctx.moveTo(-2, 1); ctx.lineTo(0, -1); ctx.lineTo(2, 2);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    function drawDragonMascot(ctx, cx, cy, accent, rgb, stage) {
+      var flap = Math.sin(mascotFlapPhase * 2.5);
+      var breathe = Math.sin(mascotFlapPhase * 1.2) * 0.5;
+
+      ctx.save();
+      ctx.translate(cx, cy + breathe);
+
+      /* Glow (stronger at higher stages) */
+      var glowSize = 10 + stage;
+      var glowAlpha = 0.12 + stage * 0.03;
+      var glow = ctx.createRadialGradient(0, 0, 2, 0, 0, glowSize);
+      glow.addColorStop(0, 'rgba(' + rgb + ',' + glowAlpha + ')');
+      glow.addColorStop(1, 'rgba(' + rgb + ',0)');
+      ctx.fillStyle = glow;
+      ctx.fillRect(-14, -14, 28, 28);
+
+      /* Body size scales with stage */
+      var bodyW = 4 + stage * 0.4;
+      var bodyH = 5 + stage * 0.5;
+
+      /* Wings */
+      var wingSpan = 5 + stage * 0.8;
+      var wingY = -2 + flap * 2;
+      ctx.fillStyle = 'rgba(' + rgb + ',0.5)';
+      /* Left wing */
+      ctx.beginPath();
+      ctx.moveTo(-1, 0);
+      ctx.quadraticCurveTo(-wingSpan - 2, wingY - 4, -wingSpan, wingY);
+      ctx.quadraticCurveTo(-wingSpan + 2, wingY + 2, -1, 2);
+      ctx.fill();
+      /* Right wing */
+      ctx.beginPath();
+      ctx.moveTo(1, 0);
+      ctx.quadraticCurveTo(wingSpan + 2, wingY - 4, wingSpan, wingY);
+      ctx.quadraticCurveTo(wingSpan - 2, wingY + 2, 1, 2);
+      ctx.fill();
+
+      /* Body */
+      ctx.beginPath();
+      ctx.ellipse(0, 1, bodyW, bodyH, 0, 0, Math.PI * 2);
+      var bodyGrad = ctx.createLinearGradient(-bodyW, -bodyH, bodyW, bodyH);
+      bodyGrad.addColorStop(0, accent);
+      bodyGrad.addColorStop(1, 'rgba(' + rgb + ',0.6)');
+      ctx.fillStyle = bodyGrad;
+      ctx.fill();
+
+      /* Head */
+      var headR = 3 + stage * 0.2;
+      ctx.beginPath();
+      ctx.arc(0, -bodyH + 1, headR, 0, Math.PI * 2);
+      ctx.fillStyle = accent;
+      ctx.fill();
+
+      /* Eyes */
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(-1.2, -bodyH + 0.5, 1, 0, Math.PI * 2);
+      ctx.arc(1.2, -bodyH + 0.5, 1, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#1a1a2e';
+      ctx.beginPath();
+      ctx.arc(-1, -bodyH + 0.5, 0.5, 0, Math.PI * 2);
+      ctx.arc(1.4, -bodyH + 0.5, 0.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      /* Horns (stage 2+) */
+      if (stage >= 2) {
+        ctx.strokeStyle = accent;
+        ctx.lineWidth = 1;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(-2, -bodyH - 1);
+        ctx.lineTo(-3.5, -bodyH - 4);
+        ctx.moveTo(2, -bodyH - 1);
+        ctx.lineTo(3.5, -bodyH - 4);
+        ctx.stroke();
+      }
+
+      /* Crown glow (stage 4+) */
+      if (stage >= 4) {
+        var crownGlow = ctx.createRadialGradient(0, -bodyH - 3, 0, 0, -bodyH - 3, 5);
+        crownGlow.addColorStop(0, 'rgba(245,158,11,0.35)');
+        crownGlow.addColorStop(1, 'rgba(245,158,11,0)');
+        ctx.fillStyle = crownGlow;
+        ctx.fillRect(-8, -bodyH - 8, 16, 10);
+
+        /* Tiny crown */
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath();
+        ctx.moveTo(-2.5, -bodyH - 2);
+        ctx.lineTo(-1.5, -bodyH - 4.5);
+        ctx.lineTo(0, -bodyH - 3);
+        ctx.lineTo(1.5, -bodyH - 4.5);
+        ctx.lineTo(2.5, -bodyH - 2);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      /* Tail */
+      ctx.strokeStyle = 'rgba(' + rgb + ',0.6)';
+      ctx.lineWidth = 1.2;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(0, bodyH);
+      var tailWag = Math.sin(mascotFlapPhase * 3) * 2;
+      ctx.quadraticCurveTo(3 + tailWag, bodyH + 3, 2 + tailWag, bodyH + 5);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
     function boot() {
       loadState();
+      initMascot();
       renderDashboard();
       showView('viewDash');
+
+      /* Refresh mascot stage every 30s (picks up XP changes from other widgets) */
+      setInterval(function() {
+        updateMascotStage();
+      }, 30000);
     }
 
     SyncEngine.onReady(function() {
