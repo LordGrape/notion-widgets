@@ -8,7 +8,7 @@
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-/* ── Base (light mode) ── */
+/* ââ Base (light mode) ââ */
 :root {
   --bg: #ffffff;
   --card-bg: rgba(255, 255, 255, 0.96);
@@ -42,7 +42,7 @@
   --bar-empty: rgba(138, 92, 246, 0.08);
 }
 
-/* ── Dark mode ── */
+/* ââ Dark mode ââ */
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #191919;
@@ -111,7 +111,7 @@ body {
   100% { opacity: 0; transform: translateY(-36px); }
 }
 
-/* ── Card (now column layout for dual modes) ── */
+/* ââ Card (now column layout for dual modes) ââ */
 .wrap {
   position: relative; z-index: 1;
   display: flex; flex-direction: column;
@@ -133,7 +133,7 @@ body {
   pointer-events: none; z-index: 20;
 }
 
-/* ── Header with tab toggle ── */
+/* ââ Header with tab toggle ââ */
 .hdr {
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 10px;
@@ -156,11 +156,11 @@ body {
   color: var(--label-color);
 }
 
-/* ── View toggle ── */
+/* ââ View toggle ââ */
 .view { display: none; }
 .view.active { display: flex; }
 
-/* ── Dragon view ── */
+/* ââ Dragon view ââ */
 .dragon-view {
   flex-direction: column; align-items: center; gap: 10px;
   padding: 2px 0 4px; position: relative;
@@ -195,7 +195,7 @@ body {
 .d-rank { color: var(--accent); font-weight: 600; }
 .d-fire { color: #f59e0b; }
 
-/* ── Radar view ── */
+/* ââ Radar view ââ */
 .radar-view {
   flex-direction: row; align-items: center; gap: 20px;
   opacity: 0; animation: fadeIn 0.6s ease-out 0.3s forwards;
@@ -235,7 +235,7 @@ body {
 .legend-d { width: 5px; height: 5px; border-radius: 50%; }
 .legend-t { font-size: 7px; font-weight: 300; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase; }
 
-/* ── Radial interaction menu ── */
+/* ââ Radial interaction menu ââ */
 .radial-ov {
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
   z-index: 200; display: flex; align-items: center; justify-content: center;
@@ -274,7 +274,7 @@ body {
 .want-bubble.show { opacity: 1; }
 .want-bubble::after { content: ''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 6px solid var(--card-border); }
 
-/* ── XP float popup ── */
+/* ââ XP float popup ââ */
 .xp-float {
   position: absolute; left: 50%; transform: translateX(-50%);
   font-size: 11px; font-weight: 700; color: var(--accent);
@@ -282,7 +282,7 @@ body {
   z-index: 50; text-shadow: 0 1px 4px rgba(0,0,0,0.1);
 }
 
-/* ── Blip detail popup ── */
+/* ââ Blip detail popup ââ */
 .blip-overlay {
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0,0,0,0.25); z-index: 100;
@@ -318,7 +318,7 @@ body {
 .blip-cd-unit { font-size: 8px; font-weight: 400; letter-spacing: 0.5px; opacity: 0.85; }
 .blip-close { margin-top: 10px; font-size: 7px; font-weight: 300; color: var(--text-muted); letter-spacing: 1.5px; text-transform: uppercase; }
 
-/* ── Milestone action buttons ── */
+/* ââ Milestone action buttons ââ */
 .blip-actions { display:flex; gap:6px; margin-top:12px; justify-content:center; }
 .blip-act-btn {
   all:unset; cursor:pointer;
@@ -340,7 +340,7 @@ body {
 .ev-ready { border-color:rgba(var(--accent-rgb),0.3) !important; background:rgba(var(--accent-rgb),0.06) !important; }
 .ev-ready .ev-val { color:#22c55e !important; }
 
-/* ── Evolution Ceremony ── */
+/* ââ Evolution Ceremony ââ */
 .evol-overlay {
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
   z-index: 300; display: flex; flex-direction: column;
@@ -395,7 +395,7 @@ body {
   .radar-view { flex-direction: column; gap: 14px; }
   .panel { align-items: center; text-align: center; }
 }
-/* ── Achievements ── */
+/* ââ Achievements ââ */
 .achieve-view { flex-direction:column; gap:8px; padding:2px 0 4px; max-height:280px; overflow-y:auto; opacity:0; animation:fadeIn 0.6s ease-out 0.3s forwards; }
 .achieve-view::-webkit-scrollbar { width:3px; }
 .achieve-view::-webkit-scrollbar-thumb { background:var(--accent); border-radius:3px; }
@@ -408,18 +408,18 @@ body {
 .ach-name { font-size:8px; font-weight:600; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .ach-desc { font-size:7px; font-weight:300; color:var(--text-muted); }
 .ach-count { font-size:8px; font-weight:400; color:var(--text-muted); text-align:center; margin-top:4px; letter-spacing:0.5px; }
-/* ── XP progress ── */
+/* ââ XP progress ââ */
 .xp-prog { display:flex; align-items:center; gap:6px; width:100%; max-width:220px; margin:3px auto 0; }
 .xp-prog-track { flex:1; height:3px; border-radius:2px; background:var(--bar-empty); overflow:hidden; }
 .xp-prog-fill { height:100%; border-radius:2px; background:linear-gradient(90deg, var(--accent), rgba(251,191,36,0.6)); transition:width 0.8s cubic-bezier(0.4,0,0.2,1); }
 .xp-prog-label { font-size:7px; font-weight:400; color:var(--text-muted); white-space:nowrap; font-variant-numeric:tabular-nums; }
-/* ── Bar danger colours ── */
+/* ââ Bar danger colours ââ */
 .d-bar-fill.warn { background:linear-gradient(90deg, #f59e0b, rgba(245,158,11,0.5)) !important; }
 .d-bar-fill.crit { background:linear-gradient(90deg, #ef4444, rgba(239,68,68,0.5)) !important; }
-/* ── Streak flame ── */
+/* ââ Streak flame ââ */
 @keyframes flicker { 0%,100%{transform:scaleY(1)} 50%{transform:scaleY(1.25)} }
 .s-flame { display:inline-block; animation:flicker 0.7s ease-in-out infinite; transform-origin:bottom; }
-/* ── Stats overlay ── */
+/* ââ Stats overlay ââ */
 .stats-ov { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.22); z-index:150; backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity 0.3s; }
 .stats-ov.show { opacity:1; pointer-events:auto; }
 .stats-card { background:var(--card-bg); backdrop-filter:blur(24px) saturate(1.6); border:1px solid var(--card-border); border-radius:16px; padding:16px 20px; max-width:260px; width:90%; box-shadow:0 12px 40px rgba(0,0,0,0.18); transform:scale(0.88); transition:transform 0.35s cubic-bezier(0.34,1.56,0.64,1); }
@@ -432,17 +432,32 @@ body {
 .st-btn { all:unset; cursor:pointer; flex:1; text-align:center; font-size:8px; font-weight:500; color:var(--accent); padding:5px 8px; border-radius:8px; background:var(--item-bg); border:1px solid var(--item-border); transition:all 0.2s; }
 .st-btn:hover { background:var(--item-hover-bg); }
 .st-close { margin-top:8px; font-size:7px; font-weight:300; color:var(--text-muted); text-align:center; letter-spacing:1.5px; text-transform:uppercase; cursor:pointer; }
-/* ── Info button ── */
+/* ââ Info button ââ */
 .info-btn { all:unset; cursor:pointer; position:absolute; top:14px; right:18px; font-size:11px; opacity:0.25; transition:opacity 0.2s; z-index:10; }
 .info-btn:hover { opacity:0.6; }
-/* ── Weather badge ── */
+/* ── Update button ── */
+.update-btn {
+  all:unset; cursor:pointer;
+  position:absolute; top:14px; right:42px;
+  font-size:11px; opacity:0.25;
+  transition:opacity 0.2s; z-index:10;
+}
+.update-btn:hover { opacity:0.6; }
+.update-btn.checking {
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+/* ââ Weather badge ââ */
 .weather-badge { position:absolute; bottom:28px; right:6px; display:none; align-items:center; gap:4px; font-size:9px; color:var(--text-muted); opacity:0.4; transition:opacity 0.4s; z-index:5; pointer-events:none; }
 .dragon-view:hover .weather-badge { opacity:0.7; }
 .w-icon { font-size:12px; }
 .w-temp { font-weight:500; font-variant-numeric:tabular-nums; }
 .w-cond { font-size:7px; letter-spacing:0.5px; text-transform:uppercase; }
 
-/* ── Design system overrides ── */
+/* ââ Design system overrides ââ */
 * { box-sizing: border-box; }
 body { margin: 0; font-family: 'Inter', sans-serif; background: var(--surface-0); color: var(--text-primary); }
 ::selection { background: var(--accent-glow-strong); color: var(--text-primary); }
@@ -620,17 +635,17 @@ button:focus-visible, .tab-btn:focus-visible, .rad-btn:focus-visible, .st-btn:fo
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
 
-/* ── Add Milestone Form ── */
+/* ââ Add Milestone Form ââ */
 .ms-add-btn {
   all: unset; cursor: pointer;
-  position: absolute; bottom: 8px; right: 8px;
+  position: relative;
   width: 28px; height: 28px; border-radius: 50%;
   background: var(--accent); color: #fff;
   display: flex; align-items: center; justify-content: center;
   font-size: 16px; font-weight: 300;
   box-shadow: 0 2px 8px rgba(var(--accent-rgb), 0.3);
   transition: transform 0.2s, box-shadow 0.2s;
-  z-index: 10;
+  margin: 6px auto 0;
 }
 .ms-add-btn:hover { transform: scale(1.1); box-shadow: 0 4px 14px rgba(var(--accent-rgb), 0.4); }
 
@@ -720,7 +735,7 @@ button:focus-visible, .tab-btn:focus-visible, .rad-btn:focus-visible, .st-btn:fo
 }
 .ms-btn-delete:hover { opacity: 1; background: rgba(239,68,68,0.08); }
 
-/* ── Archive in stats panel ── */
+/* ââ Archive in stats panel ââ */
 .archive-section { margin-top: 10px; }
 .archive-title {
   font-size: 8px; font-weight: 500; color: var(--text-muted);
@@ -753,9 +768,9 @@ button:focus-visible, .tab-btn:focus-visible, .rad-btn:focus-visible, .st-btn:fo
     <div class="skeleton sk-bar"></div>
   </div>
   <div class="content-shell loading" id="hzContent">
-  <div class="scan"></div>
-  <button class="info-btn" id="infoBtn" title="Stats">&#x2139;&#xFE0F;</button>
-
+    <div class="scan"></div>
+    <button class="update-btn" id="updateBtn" title="Check for updates">&#x1F504;</button>
+    <button class="info-btn" id="infoBtn" title="Stats">&#x2139;&#xFE0F;</button>
   <!-- Header -->
   <div class="hdr">
     <div class="tab-bar" role="tablist" aria-label="Horizon tabs">
@@ -791,8 +806,8 @@ button:focus-visible, .tab-btn:focus-visible, .rad-btn:focus-visible, .st-btn:fo
       <div class="panel-title">Mission Timeline</div>
       <div class="events" id="evs"></div>
       <div class="legend" id="leg"></div>
-      <button type="button" class="ms-add-btn" id="msAddBtn" aria-label="Add milestone">+</button>
     </div>
+    <button type="button" class="ms-add-btn" id="msAddBtn" aria-label="Add milestone">+</button>
   </div>
 
   <!-- Achievement View -->
@@ -819,7 +834,7 @@ button:focus-visible, .tab-btn:focus-visible, .rad-btn:focus-visible, .st-btn:fo
     </div>
     <div class="ms-field">
       <label>Icon (emoji)</label>
-      <input type="text" id="msIcon" placeholder="📌" maxlength="4">
+      <input type="text" id="msIcon" placeholder="ð" maxlength="4">
     </div>
     <div class="ms-field">
       <label>Description (optional)</label>
@@ -872,16 +887,16 @@ button:focus-visible, .tab-btn:focus-visible, .rad-btn:focus-visible, .st-btn:fo
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 <script src="core.js"></script>
 <script>
-/* ═══════════════════════════════════════════════════════
-   HORIZON + WYRM — Dragon Companion & Mission Timeline
-   ═══════════════════════════════════════════════════════ */
+/* âââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+   HORIZON + WYRM â Dragon Companion & Mission Timeline
+   âââââââââââââââââââââââââââââââââââââââââââââââââââââââ */
 
 var dark = Core.isDark;
 var DPR = window.devicePixelRatio || 1;
 
-/* ══════════════════════════════════════
+/* ââââââââââââââââââââââââââââââââââââââ
    1. DRAGON STATE ENGINE
-   ══════════════════════════════════════ */
+   ââââââââââââââââââââââââââââââââââââââ */
 
 var STAGES = [
   { name: 'Egg',       rank: 'Dormant',   xp: 0 },
@@ -898,67 +913,67 @@ var DAILY_LOGIN_XP = 40;
 var INTERACT_XP = 8;
 var INTERACT_CAP = 5;
 
-/* ══════════════════════════════════════
+/* ââââââââââââââââââââââââââââââââââââââ
    PASSIVE ACTIVITY SYSTEM
-   ══════════════════════════════════════
+   ââââââââââââââââââââââââââââââââââââââ
    Time-aware idle behaviours per stage.
    Night = sleep. Activities scale with rank.
-   ══════════════════════════════════════ */
+   ââââââââââââââââââââââââââââââââââââââ */
 
 var ACT_POOL = {
   0: [
-    { id:'sleep',  icon:'💤', p:['night'],                         w:6, d:[30,90] },
-    { id:'dream',  icon:'💭', p:['night'],                         w:3, d:[20,60] },
-    { id:'rock',   icon:'💪', p:['morning','afternoon'],           w:3, d:[10,25] },
-    { id:'glow',   icon:'✨', p:['morning','afternoon','evening'], w:4, d:[15,40] },
-    { id:'listen', icon:'🎵', p:['morning','afternoon','evening'], w:2, d:[15,40] },
-    { id:'warm',   icon:'☕', p:['morning'],                       w:2, d:[10,30] },
+    { id:'sleep',  icon:'ð¤', p:['night'],                         w:6, d:[30,90] },
+    { id:'dream',  icon:'ð­', p:['night'],                         w:3, d:[20,60] },
+    { id:'rock',   icon:'ðª', p:['morning','afternoon'],           w:3, d:[10,25] },
+    { id:'glow',   icon:'â¨', p:['morning','afternoon','evening'], w:4, d:[15,40] },
+    { id:'listen', icon:'ðµ', p:['morning','afternoon','evening'], w:2, d:[15,40] },
+    { id:'warm',   icon:'â', p:['morning'],                       w:2, d:[10,30] },
     { id:'idle',   icon:'',   p:['morning','afternoon','evening'], w:4, d:[20,50] }
   ],
   1: [
-    { id:'sleep',   icon:'💤', p:['night'],                         w:6, d:[30,90] },
-    { id:'read',    icon:'📖', p:['morning','afternoon','evening'], w:4, d:[20,60] },
-    { id:'water',   icon:'💧', p:['morning','afternoon'],           w:3, d:[8,15] },
-    { id:'stretch', icon:'🧘', p:['morning','afternoon'],           w:3, d:[10,25] },
-    { id:'curious', icon:'👀', p:['morning','afternoon','evening'], w:3, d:[15,30] },
+    { id:'sleep',   icon:'ð¤', p:['night'],                         w:6, d:[30,90] },
+    { id:'read',    icon:'ð', p:['morning','afternoon','evening'], w:4, d:[20,60] },
+    { id:'water',   icon:'ð§', p:['morning','afternoon'],           w:3, d:[8,15] },
+    { id:'stretch', icon:'ð§', p:['morning','afternoon'],           w:3, d:[10,25] },
+    { id:'curious', icon:'ð', p:['morning','afternoon','evening'], w:3, d:[15,30] },
     { id:'idle',    icon:'',   p:['morning','afternoon','evening'], w:3, d:[20,50] }
   ],
   2: [
-    { id:'sleep',   icon:'💤', p:['night'],                         w:6, d:[30,90] },
-    { id:'read',    icon:'📖', p:['morning','afternoon','evening'], w:4, d:[20,60] },
-    { id:'water',   icon:'💧', p:['morning','afternoon'],           w:2, d:[8,15] },
-    { id:'wings',   icon:'🦅', p:['morning','afternoon'],           w:3, d:[10,30] },
-    { id:'fire',    icon:'🔥', p:['afternoon','evening'],           w:3, d:[10,25] },
-    { id:'pushups', icon:'💪', p:['morning','afternoon'],           w:3, d:[10,25] },
+    { id:'sleep',   icon:'ð¤', p:['night'],                         w:6, d:[30,90] },
+    { id:'read',    icon:'ð', p:['morning','afternoon','evening'], w:4, d:[20,60] },
+    { id:'water',   icon:'ð§', p:['morning','afternoon'],           w:2, d:[8,15] },
+    { id:'wings',   icon:'ð¦', p:['morning','afternoon'],           w:3, d:[10,30] },
+    { id:'fire',    icon:'ð¥', p:['afternoon','evening'],           w:3, d:[10,25] },
+    { id:'pushups', icon:'ðª', p:['morning','afternoon'],           w:3, d:[10,25] },
     { id:'idle',    icon:'',   p:['morning','afternoon','evening'], w:3, d:[20,50] }
   ],
   3: [
-    { id:'sleep',    icon:'💤', p:['night'],                         w:6, d:[30,90] },
-    { id:'read',     icon:'📖', p:['morning','afternoon','evening'], w:4, d:[20,60] },
-    { id:'sword',    icon:'⚔', p:['morning','afternoon'],            w:3, d:[15,35] },
-    { id:'fly',      icon:'🦅', p:['morning','afternoon','evening'], w:3, d:[15,40] },
-    { id:'meditate', icon:'🧘', p:['evening','night'],               w:3, d:[20,50] },
-    { id:'water',    icon:'💧', p:['morning','afternoon'],           w:2, d:[8,15] },
+    { id:'sleep',    icon:'ð¤', p:['night'],                         w:6, d:[30,90] },
+    { id:'read',     icon:'ð', p:['morning','afternoon','evening'], w:4, d:[20,60] },
+    { id:'sword',    icon:'â', p:['morning','afternoon'],            w:3, d:[15,35] },
+    { id:'fly',      icon:'ð¦', p:['morning','afternoon','evening'], w:3, d:[15,40] },
+    { id:'meditate', icon:'ð§', p:['evening','night'],               w:3, d:[20,50] },
+    { id:'water',    icon:'ð§', p:['morning','afternoon'],           w:2, d:[8,15] },
     { id:'idle',     icon:'',   p:['morning','afternoon','evening'], w:3, d:[20,50] }
   ],
   4: [
-    { id:'sleep',   icon:'💤', p:['night'],                         w:5, d:[30,90] },
-    { id:'read',    icon:'📜', p:['morning','afternoon','evening'], w:4, d:[20,60] },
-    { id:'command', icon:'🎖', p:['morning','afternoon'],            w:3, d:[15,35] },
-    { id:'armor',   icon:'🛡', p:['afternoon','evening'],            w:2, d:[15,30] },
-    { id:'fly',     icon:'🦅', p:['morning','afternoon'],           w:3, d:[15,40] },
-    { id:'meditate',icon:'🧘', p:['evening','night'],               w:3, d:[20,50] },
-    { id:'fire',    icon:'🔥', p:['afternoon'],                     w:2, d:[10,25] },
+    { id:'sleep',   icon:'ð¤', p:['night'],                         w:5, d:[30,90] },
+    { id:'read',    icon:'ð', p:['morning','afternoon','evening'], w:4, d:[20,60] },
+    { id:'command', icon:'ð', p:['morning','afternoon'],            w:3, d:[15,35] },
+    { id:'armor',   icon:'ð¡', p:['afternoon','evening'],            w:2, d:[15,30] },
+    { id:'fly',     icon:'ð¦', p:['morning','afternoon'],           w:3, d:[15,40] },
+    { id:'meditate',icon:'ð§', p:['evening','night'],               w:3, d:[20,50] },
+    { id:'fire',    icon:'ð¥', p:['afternoon'],                     w:2, d:[10,25] },
     { id:'idle',    icon:'',   p:['morning','afternoon','evening'], w:2, d:[20,50] }
   ],
   5: [
-    { id:'sleep',   icon:'💤', p:['night'],                         w:4, d:[30,90] },
-    { id:'read',    icon:'📜', p:['morning','afternoon','evening'], w:4, d:[25,70] },
-    { id:'astral',  icon:'🌌', p:['night','evening'],               w:3, d:[25,60] },
-    { id:'command', icon:'🎖', p:['morning','afternoon'],            w:3, d:[20,40] },
-    { id:'mentor',  icon:'🎓', p:['afternoon','evening'],           w:2, d:[15,35] },
-    { id:'energy',  icon:'⚡', p:['morning','afternoon'],           w:3, d:[15,35] },
-    { id:'fly',     icon:'🦅', p:['morning'],                       w:2, d:[15,30] },
+    { id:'sleep',   icon:'ð¤', p:['night'],                         w:4, d:[30,90] },
+    { id:'read',    icon:'ð', p:['morning','afternoon','evening'], w:4, d:[25,70] },
+    { id:'astral',  icon:'ð', p:['night','evening'],               w:3, d:[25,60] },
+    { id:'command', icon:'ð', p:['morning','afternoon'],            w:3, d:[20,40] },
+    { id:'mentor',  icon:'ð', p:['afternoon','evening'],           w:2, d:[15,35] },
+    { id:'energy',  icon:'â¡', p:['morning','afternoon'],           w:3, d:[15,35] },
+    { id:'fly',     icon:'ð¦', p:['morning'],                       w:2, d:[15,30] },
     { id:'idle',    icon:'',   p:['morning','afternoon','evening'], w:2, d:[20,50] }
   ]
 };
@@ -1009,7 +1024,7 @@ function timeToMidnight() {
 
 function getDayPhase() {
   var h = new Date().getHours();
-  if (h >= 6 && h < 12) return { phase: 'morning', energy: 1.15, label: '☀️' };
+  if (h >= 6 && h < 12) return { phase: 'morning', energy: 1.15, label: 'âï¸' };
   if (h >= 12 && h < 18) return { phase: 'afternoon', energy: 1.0, label: '' };
   if (h >= 18 && h < 22) return { phase: 'evening', energy: 0.8, label: '\uD83C\uDF05' };
   return { phase: 'night', energy: 0.5, label: '\uD83C\uDF19' };
@@ -1055,7 +1070,7 @@ function saveDS(s) {
   localStorage.setItem('dragon_loginToday', String(s.loginToday));
   localStorage.setItem('dragon_todayDate', s.todayDate);
   localStorage.setItem('dragon_lastRandom', s.lastRandom);
-  /* SyncEngine mirror — push all dragon state for cross-device sync */
+  /* SyncEngine mirror â push all dragon state for cross-device sync */
   try {
     if (SyncEngine.isOnline()) {
       SyncEngine.setMany('dragon', {
@@ -1091,7 +1106,7 @@ function nextStageXP(xp) {
 var returnGlow = 0;
 var RETURN_THRESHOLD_MS = 2 * 3600000;
 
-/* ── Initialise: decay bars, check streak, daily reset ── */
+/* ââ Initialise: decay bars, check streak, daily reset ââ */
 function initDS() {
   var s = loadDS();
   var now = new Date();
@@ -1147,7 +1162,7 @@ function initDS() {
 var DS = initDS();
 var prevStage = getStage(DS.xp);
 
-/* ── SyncEngine boot — cross-device state sync ── */
+/* ââ SyncEngine boot â cross-device state sync ââ */
 SyncEngine.init({
   worker: 'https://widget-sync.lordgrape-widgets.workers.dev',
   namespaces: ['dragon', 'clock', 'user']
@@ -1168,11 +1183,11 @@ SyncEngine.init({
   } catch (e) {}
 });
 
-/* ══════════════════════════════════════
-   WEATHER SYSTEM — Open-Meteo API
+/* ââââââââââââââââââââââââââââââââââââââ
+   WEATHER SYSTEM â Open-Meteo API
    Scales with dragon stage for ambient
    particle intensity in draw functions.
-   ══════════════════════════════════════ */
+   ââââââââââââââââââââââââââââââââââââââ */
 
 var weatherData = null;
 var WEATHER_CACHE_KEY = '_weather_cache';
@@ -1189,12 +1204,12 @@ var WMO_CODES = {
   95: 'Thunderstorm', 96: 'Thunderstorm + Hail', 99: 'Heavy Thunderstorm + Hail'
 };
 var WMO_ICONS = {
-  0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️',
-  45: '🌫️', 48: '🌫️', 51: '🌦️', 53: '🌧️', 55: '🌧️',
-  56: '🌧️', 57: '🌧️', 61: '🌦️', 63: '🌧️', 65: '🌧️',
-  66: '🌧️', 67: '🌧️', 71: '🌨️', 73: '❄️', 75: '❄️', 77: '❄️',
-  80: '🌦️', 81: '🌧️', 82: '🌧️', 85: '🌨️', 86: '❄️',
-  95: '⛈️', 96: '⛈️', 99: '⛈️'
+  0: 'âï¸', 1: 'ð¤ï¸', 2: 'â', 3: 'âï¸',
+  45: 'ð«ï¸', 48: 'ð«ï¸', 51: 'ð¦ï¸', 53: 'ð§ï¸', 55: 'ð§ï¸',
+  56: 'ð§ï¸', 57: 'ð§ï¸', 61: 'ð¦ï¸', 63: 'ð§ï¸', 65: 'ð§ï¸',
+  66: 'ð§ï¸', 67: 'ð§ï¸', 71: 'ð¨ï¸', 73: 'âï¸', 75: 'âï¸', 77: 'âï¸',
+  80: 'ð¦ï¸', 81: 'ð§ï¸', 82: 'ð§ï¸', 85: 'ð¨ï¸', 86: 'âï¸',
+  95: 'âï¸', 96: 'âï¸', 99: 'âï¸'
 };
 
 function getWeatherType(code) {
@@ -1245,7 +1260,7 @@ function fetchWeather() {
         temp: Math.round(d.current.temperature_2m),
         code: wc,
         condition: WMO_CODES[wc] || 'Unknown',
-        icon: WMO_ICONS[wc] || '🌡️',
+        icon: WMO_ICONS[wc] || 'ð¡ï¸',
         type: getWeatherType(wc),
         humidity: d.current.relative_humidity_2m,
         wind: d.current.wind_speed_10m
@@ -1275,7 +1290,7 @@ setInterval(fetchWeather, WEATHER_CACHE_MS);
 
 /* returnGlow: set in initDS() when last visit was 2h+ ago (before lastVisit refresh) */
 
-/* ── Add XP helper ── */
+/* ââ Add XP helper ââ */
 function addXP(amt) {
   var gained = Math.floor(amt * xpMult(DS));
   if (gained <= 0) return 0;
@@ -1302,9 +1317,9 @@ function addXP(amt) {
   return gained;
 }
 
-/* ══════════════════════════════════════
+/* ââââââââââââââââââââââââââââââââââââââ
    2. DRAGON CANVAS + DRAWING
-   ══════════════════════════════════════ */
+   ââââââââââââââââââââââââââââââââââââââ */
 
 var dcv = document.getElementById('dc');
 var dctx = dcv.getContext('2d');
@@ -1314,9 +1329,9 @@ dcv.style.width = DSZ + 'px'; dcv.style.height = DSZ + 'px';
 dctx.scale(DPR, DPR);
 var DC = DSZ / 2;
 
-/* ══════════════════════════════════════
+/* ââââââââââââââââââââââââââââââââââââââ
    THREE.JS EGG SCENE
-   ══════════════════════════════════════ */
+   ââââââââââââââââââââââââââââââââââââââ */
 
 var EggScene = (function() {
   var ready = false;
@@ -1620,7 +1635,7 @@ var useThreeEgg = false;
   }
 })();
 
-/* ── Egg particle aura ── */
+/* ââ Egg particle aura ââ */
 var eggParts = [];
 for (var _ep = 0; _ep < 14; _ep++) {
   eggParts.push({
@@ -1633,7 +1648,7 @@ for (var _ep = 0; _ep < 14; _ep++) {
   });
 }
 
-/* ── Mouse tracking on dragon canvas ── */
+/* ââ Mouse tracking on dragon canvas ââ */
 var eggMX = DC, eggMY = DC;
 dcv.addEventListener('mousemove', function(e) {
   var rect = dcv.getBoundingClientRect();
@@ -1683,10 +1698,10 @@ function drawEgg(ctx, t) {
   /* === MOUSE LEAN === */
   var lean = (mdx / 80) * 0.07 * prox;
 
-  /* Nest (visible during sleep — layered woven bowl)
-     Render order (painter's algorithm): shadow → bowl interior → downy lining →
-     back woven strokes → rim (triple-layer) → front woven strokes → protruding
-     twigs → moss accents → egg glow. ~50 draw calls at varied opacity/thickness
+  /* Nest (visible during sleep â layered woven bowl)
+     Render order (painter's algorithm): shadow â bowl interior â downy lining â
+     back woven strokes â rim (triple-layer) â front woven strokes â protruding
+     twigs â moss accents â egg glow. ~50 draw calls at varied opacity/thickness
      suggest woven texture without drawing every fibre. Deterministic pseudo-random
      (_nR) keeps twig placement stable across frames. */
   if (curAct && curAct.id === 'sleep') {
@@ -1704,7 +1719,7 @@ function drawEgg(ctx, t) {
     ctx.beginPath(); ctx.ellipse(nCx, nCy + 6, 50, 13, 0, 0, Math.PI * 2);
     ctx.fillStyle = shG; ctx.fill();
 
-    /* 2. Bowl interior — recessed dark fill for depth */
+    /* 2. Bowl interior â recessed dark fill for depth */
     var bowlG = ctx.createRadialGradient(nCx, nCy - 4, 2, nCx, nCy + 3, 34);
     bowlG.addColorStop(0, dark ? 'rgba(38,24,10,0.9)' : 'rgba(95,65,30,0.5)');
     bowlG.addColorStop(0.5, dark ? 'rgba(52,36,16,0.7)' : 'rgba(125,90,45,0.38)');
@@ -1712,7 +1727,7 @@ function drawEgg(ctx, t) {
     ctx.beginPath(); ctx.ellipse(nCx, nCy + 1, 34, 11, 0, 0, Math.PI * 2);
     ctx.fillStyle = bowlG; ctx.fill();
 
-    /* 3. Soft downy lining — lighter warm centre */
+    /* 3. Soft downy lining â lighter warm centre */
     var lnG = ctx.createRadialGradient(nCx, nCy - 1, 0, nCx, nCy + 1, 20);
     lnG.addColorStop(0, dark ? 'rgba(100,78,48,0.4)' : 'rgba(190,160,110,0.3)');
     lnG.addColorStop(0.6, dark ? 'rgba(80,58,32,0.2)' : 'rgba(170,140,90,0.15)');
@@ -1727,7 +1742,7 @@ function drawEgg(ctx, t) {
       ctx.fill();
     }
 
-    /* 4. Back woven layer — darker, thinner strokes (perceived depth) */
+    /* 4. Back woven layer â darker, thinner strokes (perceived depth) */
     ctx.lineCap = 'round';
     for (var nbi = 0; nbi < 10; nbi++) {
       var bAng = (nbi / 10) * Math.PI + (_nR(nbi + 300) - 0.5) * 0.3;
@@ -1743,7 +1758,7 @@ function drawEgg(ctx, t) {
       ctx.stroke();
     }
 
-    /* 5. Rim structure — triple-layer for depth and solidity */
+    /* 5. Rim structure â triple-layer for depth and solidity */
     /* Outer rim (thick, dark base) */
     ctx.beginPath(); ctx.ellipse(nCx, nCy, 38, 14, 0, 0.08, Math.PI - 0.08);
     ctx.strokeStyle = dark ? '#7a5c35' : '#8a6a3e'; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.stroke();
@@ -1757,7 +1772,7 @@ function drawEgg(ctx, t) {
     ctx.beginPath(); ctx.ellipse(nCx, nCy - 1, 37, 13.8, 0, 0.25, Math.PI - 0.25);
     ctx.strokeStyle = dark ? 'rgba(170,140,85,0.2)' : 'rgba(200,170,110,0.25)'; ctx.lineWidth = 0.8; ctx.stroke();
 
-    /* 6. Front woven layer — lighter, thicker, overlapping rim */
+    /* 6. Front woven layer â lighter, thicker, overlapping rim */
     for (var nfi = 0; nfi < 7; nfi++) {
       var fAng = (nfi / 7) * Math.PI + 0.15 + (_nR(nfi + 800) - 0.5) * 0.2;
       var nfr = 32 + _nR(nfi + 850) * 5;
@@ -1772,7 +1787,7 @@ function drawEgg(ctx, t) {
       ctx.stroke();
     }
 
-    /* 7. Protruding twigs — 8 organic sprigs at varied angles */
+    /* 7. Protruding twigs â 8 organic sprigs at varied angles */
     var nTwigs = [
       [-37, -2, -46, -15, -40, -20], [37, -2, 46, -15, 40, -20],
       [-33, 0, -42, -9, -38, -15], [33, 0, 42, -9, 38, -15],
@@ -1787,7 +1802,7 @@ function drawEgg(ctx, t) {
       ctx.lineWidth = 0.7 + _nR(nti + 1400) * 0.7; ctx.stroke();
     }
 
-    /* 8. Moss/lichen accents — tiny muted-green dots along rim */
+    /* 8. Moss/lichen accents â tiny muted-green dots along rim */
     for (var nmi = 0; nmi < 10; nmi++) {
       var mAng = 0.25 + (nmi / 10) * (Math.PI - 0.5);
       var nmx = nCx + Math.cos(mAng) * (35 + (_nR(nmi + 1500) - 0.5) * 5);
@@ -1797,7 +1812,7 @@ function drawEgg(ctx, t) {
       ctx.fill();
     }
 
-    /* 9. Warm purple glow — egg light reflecting onto nest bowl */
+    /* 9. Warm purple glow â egg light reflecting onto nest bowl */
     var ngG = ctx.createRadialGradient(nCx, nCy - 10, 0, nCx, nCy - 6, 30);
     ngG.addColorStop(0, 'rgba(' + (dark ? '167,139,250' : '139,92,246') + ',0.1)');
     ngG.addColorStop(0.4, 'rgba(' + (dark ? '167,139,250' : '139,92,246') + ',0.04)');
@@ -1844,7 +1859,7 @@ function drawEgg(ctx, t) {
   ctx.fillStyle = eg; ctx.fill();
   ctx.restore();
 
-  /* Inner glow — double-pulse heartbeat */
+  /* Inner glow â double-pulse heartbeat */
   var b1 = 0.15 + 0.14 * Math.pow(Math.sin(t * 0.004), 2);
   var b2 = 0.07 * Math.pow(Math.sin(t * 0.004 + 0.8), 4);
   var bTot = (b1 + b2) * mood + prox * 0.1;
@@ -1927,10 +1942,10 @@ function drawEgg(ctx, t) {
     ctx.fill();
   }
 
-  /* ══════════════════════════════════════
-     AMBIENT SYSTEMS — Stage-aware
+  /* ââââââââââââââââââââââââââââââââââââââ
+     AMBIENT SYSTEMS â Stage-aware
      Egg = baseline. Scales via getStage().
-     ══════════════════════════════════════ */
+     ââââââââââââââââââââââââââââââââââââââ */
   var stage = getStage(DS.xp);
 
   /* === WEATHER PARTICLES === */
@@ -2158,7 +2173,7 @@ function drawHatchling(ctx, t) {
   ctx.lineTo(-bw * 0.15, -bh * 0.05);
   ctx.closePath(); ctx.fillStyle = wc; ctx.fill();
 
-  /* Body — 3D shading */
+  /* Body â 3D shading */
   ctx.beginPath(); ctx.ellipse(0, 0, bw, bh, 0, 0, Math.PI * 2);
   var bdG = ctx.createRadialGradient(-bw * 0.3, -bh * 0.35, bw * 0.08, bw * 0.08, bh * 0.08, Math.max(bw, bh) * 1.15);
   bdG.addColorStop(0, dark ? '#ddd6fe' : '#c4b5fd');
@@ -2248,14 +2263,14 @@ function drawHatchling(ctx, t) {
   ctx.globalAlpha = 1;
 }
 
-/* ── Stage particle pool (stages 2-5) ── */
+/* ââ Stage particle pool (stages 2-5) ââ */
 var stageParts = [];
 for (var _stp = 0; _stp < 24; _stp++) {
   stageParts.push({ a: Math.random() * Math.PI * 2, d: 20 + Math.random() * 50, sp: 0.0002 + Math.random() * 0.0008, r: 0.3 + Math.random() * 1.5, ph: Math.random() * Math.PI * 2 });
 }
 var evolFlash = 0;
 
-/* ── 3D shading helper ── */
+/* ââ 3D shading helper ââ */
 function add3DShading(ctx, rx, ry) {
   var mx = Math.max(rx, ry) * 1.2;
   var g = ctx.createRadialGradient(-rx * 0.3, -ry * 0.35, rx * 0.06, rx * 0.1, ry * 0.1, mx);
@@ -2271,7 +2286,7 @@ function add3DShading(ctx, rx, ry) {
   ctx.fillStyle = sg; ctx.fill();
 }
 
-/* ── Evolution ceremony ── */
+/* ââ Evolution ceremony ââ */
 var evolOv = document.getElementById('evolOv');
 function showEvolution(stageIdx) {
   var si = STAGES[stageIdx];
@@ -2299,7 +2314,7 @@ function showEvolution(stageIdx) {
 evolOv.addEventListener('click', function() { evolOv.classList.remove('show'); });
 evolOv.addEventListener('touchend', function(e) { e.preventDefault(); evolOv.classList.remove('show'); });
 
-/* ── Stage 2: Fledgling (2Lt, 5K XP) ── */
+/* ââ Stage 2: Fledgling (2Lt, 5K XP) ââ */
 function drawFledgling(ctx, t) {
   var cx = DC, cy = DC + 8, avg = (DS.rations + DS.morale + DS.readiness) / 3;
   var mood = Math.max(0.25, avg / 100), br = 1 + Math.sin(t * 0.0018) * 0.02;
@@ -2379,7 +2394,7 @@ function drawFledgling(ctx, t) {
   }
 }
 
-/* ── Stage 3: Juvenile (Lt, 20K XP) ── */
+/* ââ Stage 3: Juvenile (Lt, 20K XP) ââ */
 function drawJuvenile(ctx, t) {
   var cx = DC, cy = DC + 6, avg = (DS.rations + DS.morale + DS.readiness) / 3;
   var mood = Math.max(0.3, avg / 100), br = 1 + Math.sin(t * 0.0015) * 0.018;
@@ -2481,7 +2496,7 @@ function drawJuvenile(ctx, t) {
   }
 }
 
-/* ── Stage 4: Adult (Capt, 60K XP) ── */
+/* ââ Stage 4: Adult (Capt, 60K XP) ââ */
 function drawAdult(ctx, t) {
   var cx = DC, cy = DC + 4, avg = (DS.rations + DS.morale + DS.readiness) / 3;
   var mood = Math.max(0.35, avg / 100), br = 1 + Math.sin(t * 0.0014) * 0.015;
@@ -2618,7 +2633,7 @@ function drawAdult(ctx, t) {
   }
 }
 
-/* ── Stage 5: Elder (Maj, 150K XP) ── */
+/* ââ Stage 5: Elder (Maj, 150K XP) ââ */
 function drawElder(ctx, t) {
   var cx = DC, cy = DC + 2, avg = (DS.rations + DS.morale + DS.readiness) / 3;
   var mood = Math.max(0.4, avg / 100), br = 1 + Math.sin(t * 0.0012) * 0.012;
@@ -2778,7 +2793,7 @@ function drawElder(ctx, t) {
   }
 }
 
-/* Weather canvas FX — uses weatherData from fetchWeather(); egg stage adds richer ambient in drawEgg() */
+/* Weather canvas FX â uses weatherData from fetchWeather(); egg stage adds richer ambient in drawEgg() */
 var wxDrops = [];
 for (var _wi = 0; _wi < 25; _wi++) {
   wxDrops.push({ x: Math.random(), y: Math.random(), sp: 0.4 + Math.random() * 1.2, sz: 0.8 + Math.random() * 1.5 });
@@ -2821,9 +2836,9 @@ function drawWeatherFX(ctx, t) {
   ctx.restore();
 }
 
-/* ═══════════════════════════════════
+/* âââââââââââââââââââââââââââââââââââ
    GSAP + CONFETTI OVERRIDES
-   ═══════════════════════════════════ */
+   âââââââââââââââââââââââââââââââââââ */
 setTimeout(function() {
   /* Smooth XP float with GSAP */
   if (typeof gsap !== 'undefined' && typeof showXPFloat === 'function') {
@@ -2880,7 +2895,7 @@ function drawDragon(t) {
   }
 }
 
-/* ── Activity overlay drawing ── */
+/* ââ Activity overlay drawing ââ */
 function drawActivityOverlays(ctx, t) {
   if (!curAct || actFade < 0.01) return;
   var isSleep = curAct.id === 'sleep' || curAct.id === 'dream' || curAct.id === 'astral';
@@ -2938,9 +2953,9 @@ function drawActivityOverlays(ctx, t) {
   }
 }
 
-/* ══════════════════════════════════════
+/* ââââââââââââââââââââââââââââââââââââââ
    3. UI UPDATES (bars, status)
-   ══════════════════════════════════════ */
+   ââââââââââââââââââââââââââââââââââââââ */
 
 function updateBars() {
   [['rations','Rations','Hunger'],['morale','Morale','Spirit'],['readiness','Readiness','Energy']].forEach(function(b) {
@@ -3001,10 +3016,10 @@ function showXPFloat(text) {
   setTimeout(function() { el.remove(); }, 1300);
 }
 
-/* ══════════════════════════════════════
+/* ââââââââââââââââââââââââââââââââââââââ
    DYNAMIC MILESTONE SYSTEM
    Persisted via SyncEngine + localStorage.
-   ══════════════════════════════════════ */
+   ââââââââââââââââââââââââââââââââââââââ */
 
 var MILESTONE_STORAGE_KEY = 'horizon_milestones';
 var MILESTONE_ARCHIVE_KEY = 'horizon_milestones_archive';
@@ -3114,16 +3129,16 @@ function processExpiredMilestones() {
 
 var userMilestones = processExpiredMilestones();
 
-/* ═══ ACHIEVEMENTS ═══ */
+/* âââ ACHIEVEMENTS âââ */
 
 var ACHS = [
   {id:'first_steps',icon:'\uD83D\uDC63',name:'First Steps',desc:'Earn your first XP'},
   {id:'hatched',icon:'\uD83E\uDD5A',name:'Hatched!',desc:'Reach Hatchling (Spark)'},
   {id:'taking_flight',icon:'\uD83E\uDD85',name:'Taking Flight',desc:'Reach Fledgling (Ember)'},
-  {id:'battle_tested',icon:'⚔',name:'Tempered',desc:'Reach Juvenile (Blaze)'},
+  {id:'battle_tested',icon:'â',name:'Tempered',desc:'Reach Juvenile (Blaze)'},
   {id:'officer',icon:'\uD83C\uDF96',name:'Ascended',desc:'Reach Adult (Sovereign)'},
   {id:'elder',icon:'\uD83D\uDC51',name:'Elder Dragon',desc:'Reach Elder (Mythic)'},
-  {id:'xp_1k',icon:'⭐',name:'Rising Star',desc:'Earn 1,000 XP'},
+  {id:'xp_1k',icon:'â­',name:'Rising Star',desc:'Earn 1,000 XP'},
   {id:'xp_10k',icon:'\uD83C\uDF1F',name:'Shining Bright',desc:'Earn 10,000 XP'},
   {id:'xp_50k',icon:'\uD83D\uDCAB',name:'XP Machine',desc:'Earn 50,000 XP'},
   {id:'xp_100k',icon:'\uD83C\uDFC5',name:'Legendary',desc:'Earn 100,000 XP'},
@@ -3262,7 +3277,7 @@ function renderAch() {
   });
 }
 
-/* ═══ AMBIENT BACKGROUND + SEASONAL ═══ */
+/* âââ AMBIENT BACKGROUND + SEASONAL âââ */
 
 var ambStars = [];
 for (var _as = 0; _as < 20; _as++) {
@@ -3337,7 +3352,7 @@ document.querySelectorAll('.d-bar-label').forEach(function(el) { Core.tooltip.at
 Core.tooltip.attach(document.getElementById('dStatus'), function() { return DS.streak + ' day streak'; });
 setInterval(checkAch, 10000);
 
-/* ═══ TAB OVERRIDE ═══ */
+/* âââ TAB OVERRIDE âââ */
 setTimeout(function() {
   var tabs = ['tabDragon','tabRadar','tabAch'];
   var views = ['vDragon','vRadar','vAch'];
@@ -3352,7 +3367,7 @@ setTimeout(function() {
   document.getElementById('tabAch').onclick = function() { sw(2); renderAch(); };
 }, 0);
 
-/* ═══ STATS PANEL ═══ */
+/* âââ STATS PANEL âââ */
 (function() {
   var ov = document.getElementById('statsOv');
   var body = document.getElementById('statsBody');
@@ -3402,9 +3417,9 @@ setTimeout(function() {
   ov.onclick = function(e) { if (e.target === ov) ov.classList.remove('show'); };
 })();
 
-/* ══════════════════════════════════════
+/* ââââââââââââââââââââââââââââââââââââââ
    4. RADIAL MENU + INTERACTIONS
-   ══════════════════════════════════════ */
+   ââââââââââââââââââââââââââââââââââââââ */
 
 var radialOv = document.getElementById('radialOv');
 
@@ -3465,9 +3480,9 @@ radialOv.addEventListener('click', function(e) {
   closeRadial();
 });
 
-/* ══════════════════════════════════════
+/* ââââââââââââââââââââââââââââââââââââââ
    5. PASSIVE XP (1 XP/min while visible)
-   ══════════════════════════════════════ */
+   ââââââââââââââââââââââââââââââââââââââ */
 
 var visAccum = 0;
 setInterval(function() {
@@ -3483,9 +3498,9 @@ setInterval(function() {
   }
 }, 1000);
 
-/* ══════════════════════════════════════
+/* ââââââââââââââââââââââââââââââââââââââ
    5b. WANTS SYSTEM (thought bubble)
-   ══════════════════════════════════════ */
+   ââââââââââââââââââââââââââââââââââââââ */
 
 var WANTS_ICONS = { feed: '\uD83C\uDF56?', play: '\u2728?', rest: '\uD83D\uDCA4?' };
 var wantActive = null, wantStart = 0, lastWantCheck = 0;
@@ -3513,9 +3528,9 @@ function checkWant(t) {
   }
 }
 
-/* ══════════════════════════════════════
+/* ââââââââââââââââââââââââââââââââââââââ
    6. TAB TOGGLE
-   ══════════════════════════════════════ */
+   ââââââââââââââââââââââââââââââââââââââ */
 
 var tabDragon = document.getElementById('tabDragon');
 var tabRadar  = document.getElementById('tabRadar');
@@ -3569,9 +3584,9 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
-/* ══════════════════════════════════════
-   7. MILESTONES — user-defined, synced
-   ══════════════════════════════════════ */
+/* ââââââââââââââââââââââââââââââââââââââ
+   7. MILESTONES â user-defined, synced
+   ââââââââââââââââââââââââââââââââââââââ */
 
 var MAX_DAYS = 210;
 var RINGS = [7, 30, 90, 180];
@@ -3634,9 +3649,9 @@ function getThreatLevel() {
   return Math.min(n / 3, 1);
 }
 
-/* ══════════════════════════════════════
+/* ââââââââââââââââââââââââââââââââââââââ
    8. RADAR CANVAS (existing)
-   ══════════════════════════════════════ */
+   ââââââââââââââââââââââââââââââââââââââ */
 
 var cv = document.getElementById('r');
 var ctx = cv.getContext('2d');
@@ -3794,9 +3809,9 @@ function renderEventsPanel() {
 
 renderEventsPanel();
 
-/* ══════════════════════════════════════
-   MILESTONE FORM — Add / Edit / Delete
-   ══════════════════════════════════════ */
+/* ââââââââââââââââââââââââââââââââââââââ
+   MILESTONE FORM â Add / Edit / Delete
+   ââââââââââââââââââââââââââââââââââââââ */
 
 var msFormOv = document.getElementById('msFormOv');
 var msEditingId = null;
@@ -3906,9 +3921,9 @@ function deleteMilestone(id) {
   checkAch();
 }
 
-/* ══════════════════════════════════════
+/* ââââââââââââââââââââââââââââââââââââââ
    MILESTONE CLAIM + CELEBRATION SYSTEM
-   ══════════════════════════════════════ */
+   ââââââââââââââââââââââââââââââââââââââ */
 
 var claimCelebration = { active: false, tier: null, start: 0, duration: 0 };
 
@@ -3999,7 +4014,7 @@ function drawClaimReaction(ctx, t) {
   var cx = DC, cy = DC;
 
   if (tier === 'large') {
-    /* Radial golden burst — scales with stage */
+    /* Radial golden burst â scales with stage */
     var burstN = 12 + stage * 4;
     for (var i = 0; i < burstN; i++) {
       var a = (i / burstN) * Math.PI * 2 + elapsed * 0.001;
@@ -4194,9 +4209,9 @@ function drawRadar(t) {
   }
 }
 
-/* ══════════════════════════════════════
+/* ââââââââââââââââââââââââââââââââââââââ
    9. POPUP SYSTEM (existing)
-   ══════════════════════════════════════ */
+   ââââââââââââââââââââââââââââââââââââââ */
 
 var blipOv = document.getElementById('blipOv');
 var blipCard = document.getElementById('blipCard');
@@ -4290,9 +4305,9 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
-/* ══════════════════════════════════════
+/* ââââââââââââââââââââââââââââââââââââââ
    10. INITIAL SUMMONING ANIMATION
-   ══════════════════════════════════════ */
+   ââââââââââââââââââââââââââââââââââââââ */
 
 var summonActive = true;
 var summonStart = -1;
@@ -4442,9 +4457,9 @@ function _playSummonIntro() {
   osc2.start(now + 0.3); osc2.stop(now + 2.5);
 }
 
-/* ══════════════════════════════════════
+/* ââââââââââââââââââââââââââââââââââââââ
    11. ANIMATION LOOPS
-   ══════════════════════════════════════ */
+   ââââââââââââââââââââââââââââââââââââââ */
 
 var running = true, lastFrame = 0;
 var prefersRM = Core.reducedMotion;
@@ -4502,15 +4517,51 @@ document.addEventListener('visibilitychange', function() {
   }
 });
 
+/* ══════════════════════════════════════
+   CHECK FOR UPDATES — cache-bust reload
+   ══════════════════════════════════════ */
+(function() {
+  var btn = document.getElementById('updateBtn');
+  if (!btn) return;
+
+  btn.addEventListener('click', function() {
+    btn.classList.add('checking');
+    if (typeof playClick === 'function') playClick();
+
+    var bustUrl = window.location.href.split('?')[0] + '?_cb=' + Date.now();
+    fetch(bustUrl, { cache: 'no-store' })
+      .then(function(res) { return res.text(); })
+      .then(function(html) {
+        var currentHash = document.documentElement.outerHTML.length;
+        var fetchedHash = html.length;
+        if (currentHash !== fetchedHash) {
+          window.location.href = bustUrl;
+        } else {
+          btn.classList.remove('checking');
+          btn.style.opacity = '0.6';
+          btn.title = 'Up to date \u2713';
+          setTimeout(function() {
+            btn.style.opacity = '';
+            btn.title = 'Check for updates';
+          }, 2000);
+        }
+      })
+      .catch(function() {
+        btn.classList.remove('checking');
+        window.location.reload(true);
+      });
+  });
+})();
+
 </script>
 
 <script>
-/* ══════════════════════════════════════
-   THYMOS ↔ RADAR INTEGRATION (post-load)
+/* ââââââââââââââââââââââââââââââââââââââ
+   THYMOS â RADAR INTEGRATION (post-load)
    Dynamic milestones + radar chrome
-   ══════════════════════════════════════ */
+   ââââââââââââââââââââââââââââââââââââââ */
 
-/* ── Dragon stage → radar glow + title ── */
+/* ââ Dragon stage â radar glow + title ââ */
 (function() {
   var stage = getStage(DS.xp);
   var rd = document.querySelector('.radar');
