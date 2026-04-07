@@ -1,0 +1,2295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root{
+      --bg: #f8f7ff;
+      --card-bg: rgba(255, 255, 255, 0.6);
+      --card-border: rgba(139, 92, 246, 0.15);
+      --accent: #8b5cf6;
+      --accent-rgb: 139, 92, 246;
+      --text: #1a1a2e;
+      --text-secondary: #6b7280;
+      --shadow: 0 14px 70px rgba(0,0,0,0.10);
+      --shadow-soft: 0 8px 40px rgba(0,0,0,0.08);
+      --radius: 16px;
+      --radius-lg: 22px;
+      --blur: blur(20px) saturate(1.4);
+      --transition: 250ms cubic-bezier(0.4,0,0.2,1);
+
+      --tier-qf: #3b82f6;
+      --tier-ex: #8b5cf6;
+      --tier-ap: #f59e0b;
+      --tier-di: #ec4899;
+      --tier-mk: #ef4444;
+
+      --rate-again: #ef4444;
+      --rate-hard: #f59e0b;
+      --rate-good: #22c55e;
+      --rate-easy: #3b82f6;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root{
+        --bg: #0f0a1a;
+        --card-bg: rgba(30, 20, 50, 0.6);
+        --card-border: rgba(167, 139, 250, 0.2);
+        --accent: #a78bfa;
+        --accent-rgb: 167, 139, 250;
+        --text: #e8e0f0;
+        --text-secondary: #9ca3af;
+        --shadow: 0 18px 90px rgba(0,0,0,0.45);
+        --shadow-soft: 0 10px 50px rgba(0,0,0,0.35);
+      }
+    }
+
+    html, body { height: 100%; }
+    body{
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    #bgCanvas{
+      position: fixed; inset: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .wrap{
+      position: relative;
+      z-index: 1;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+
+    body.standalone .wrap{
+      align-items: flex-start;
+      padding: 34px 20px 28px;
+      overflow: auto;
+    }
+    body.standalone .shell{
+      max-width: 900px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .shell{
+      width: 94%;
+      max-width: 560px;
+      min-width: 280px;
+    }
+
+    .card{
+      background: var(--card-bg);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .topbar{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.02);
+    }
+    .brand{
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .logo{
+      width: 28px; height: 28px;
+      border-radius: 10px;
+      background: radial-gradient(circle at 30% 30%, rgba(var(--accent-rgb),0.9), rgba(var(--accent-rgb),0.2) 60%, rgba(var(--accent-rgb),0.08));
+      border: 1px solid rgba(var(--accent-rgb),0.18);
+      box-shadow: 0 0 18px rgba(var(--accent-rgb),0.18);
+      flex-shrink: 0;
+    }
+    .brand h1{
+      font-size: 12px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .brand .sub{
+      margin-top: 2px;
+      font-size: 9px;
+      font-weight: 400;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      opacity: 0.9;
+    }
+
+    .icon-btn{
+      appearance: none;
+      border: 1px solid rgba(var(--accent-rgb),0.15);
+      background: rgba(var(--accent-rgb),0.06);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 8px 10px;
+      cursor: pointer;
+      transition: transform var(--transition), background var(--transition), border-color var(--transition);
+      font-size: 12px;
+      line-height: 1;
+    }
+    .icon-btn:hover{ transform: translateY(-1px); border-color: rgba(var(--accent-rgb),0.28); background: rgba(var(--accent-rgb),0.10); }
+    .icon-btn:active{ transform: translateY(0) scale(0.98); }
+
+    .view{
+      display: none;
+      padding: 16px;
+    }
+    .view.active{ display: block; }
+
+    .stats-row{
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .stat{
+      padding: 12px 12px;
+      border-radius: var(--radius);
+      background: rgba(var(--accent-rgb),0.04);
+      border: 1px solid rgba(var(--accent-rgb),0.12);
+      min-width: 0;
+    }
+    .stat .k{
+      font-size: 8px;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      opacity: 0.95;
+      margin-bottom: 6px;
+    }
+    .stat .v{
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      font-variant-numeric: tabular-nums;
+      color: var(--text);
+    }
+    .stat .s{
+      margin-top: 4px;
+      font-size: 9px;
+      color: var(--text-secondary);
+      letter-spacing: 0.2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      opacity: 0.9;
+    }
+
+    .row{
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      margin: 10px 0 12px;
+    }
+
+    .big-btn{
+      width: 100%;
+      border: none;
+      cursor: pointer;
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(var(--accent-rgb),1), rgba(var(--accent-rgb),0.7));
+      color: #fff;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      box-shadow: 0 10px 30px rgba(var(--accent-rgb),0.22);
+      transition: transform var(--transition), box-shadow var(--transition);
+      font-size: 11px;
+    }
+    .big-btn:hover{ transform: translateY(-1px); box-shadow: 0 14px 40px rgba(var(--accent-rgb),0.28); }
+    .big-btn:active{ transform: translateY(0) scale(0.99); }
+    .big-btn:disabled{ opacity: 0.55; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .mini-actions{
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    .ghost-btn{
+      flex: 1;
+      min-width: 160px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(var(--accent-rgb),0.05);
+      border: 1px solid rgba(var(--accent-rgb),0.14);
+      color: var(--text);
+      cursor: pointer;
+      transition: background var(--transition), transform var(--transition), border-color var(--transition);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .ghost-btn:hover{ background: rgba(var(--accent-rgb),0.08); border-color: rgba(var(--accent-rgb),0.26); transform: translateY(-1px); }
+    .ghost-btn:active{ transform: translateY(0) scale(0.99); }
+
+    .chips{
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding: 2px 0 6px;
+      scrollbar-width: none;
+    }
+    .chips::-webkit-scrollbar{ display: none; }
+    .chip{
+      flex: 0 0 auto;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(var(--accent-rgb),0.14);
+      background: rgba(var(--accent-rgb),0.04);
+      color: var(--text-secondary);
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform var(--transition), background var(--transition), border-color var(--transition), color var(--transition);
+      user-select: none;
+      white-space: nowrap;
+    }
+    .chip.active{
+      background: rgba(var(--accent-rgb),0.18);
+      border-color: rgba(var(--accent-rgb),0.34);
+      color: var(--text);
+    }
+    .chip:hover{ transform: translateY(-1px); }
+    .chip:active{ transform: translateY(0) scale(0.98); }
+
+    .mode-toggle{
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      border-radius: 999px;
+      border: 1px solid rgba(var(--accent-rgb),0.14);
+      background: rgba(var(--accent-rgb),0.04);
+    }
+    .mode-btn{
+      border: none;
+      cursor: pointer;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      transition: background var(--transition), color var(--transition), transform var(--transition);
+    }
+    .mode-btn.active{
+      background: rgba(var(--accent-rgb),0.22);
+      color: var(--text);
+    }
+
+    .breakdown{
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin: 10px 0 12px;
+    }
+    .tier-pill{
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(var(--accent-rgb),0.14);
+      color: var(--text-secondary);
+      font-size: 9px;
+      letter-spacing: 0.7px;
+      font-weight: 600;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .tier-dot{
+      width: 8px; height: 8px; border-radius: 99px;
+      background: var(--accent);
+      box-shadow: 0 0 12px rgba(var(--accent-rgb),0.18);
+    }
+
+    .gauge{
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin: 10px 0 2px;
+      padding: 10px 12px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(var(--accent-rgb),0.12);
+      background: rgba(var(--accent-rgb),0.03);
+    }
+    .gauge svg{ flex-shrink: 0; }
+    .gauge .g-title{
+      font-size: 8px;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+    .gauge .g-val{
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 0.2px;
+    }
+    .gauge .g-sub{
+      margin-top: 4px;
+      font-size: 9px;
+      color: var(--text-secondary);
+      opacity: 0.9;
+    }
+
+    /* Session */
+    .session-top{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .progress{
+      flex: 1;
+      min-width: 0;
+    }
+    .progress .p-text{
+      font-size: 9px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .pbar{
+      height: 6px;
+      border-radius: 99px;
+      background: rgba(var(--accent-rgb),0.10);
+      overflow: hidden;
+      border: 1px solid rgba(var(--accent-rgb),0.10);
+    }
+    .pbar > div{
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, rgba(var(--accent-rgb),0.9), rgba(var(--accent-rgb),0.5));
+      border-radius: 99px;
+      transition: width var(--transition);
+    }
+    .tier-badge{
+      flex-shrink: 0;
+      padding: 7px 10px;
+      border-radius: 999px;
+      color: #fff;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      box-shadow: 0 0 18px rgba(0,0,0,0.10);
+      user-select: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      max-width: 46%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .tier-badge .tiny{
+      font-size: 10px;
+      opacity: 0.9;
+    }
+
+    .skip{
+      display: inline-block;
+      font-size: 9px;
+      font-weight: 500;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      opacity: 0.85;
+      cursor: pointer;
+      user-select: none;
+      padding: 6px 8px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      transition: background var(--transition), border-color var(--transition), opacity var(--transition);
+    }
+    .skip:hover{ opacity: 1; background: rgba(var(--accent-rgb),0.05); border-color: rgba(var(--accent-rgb),0.10); }
+
+    .item-card{
+      padding: 14px;
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(var(--accent-rgb),0.12);
+      background: rgba(var(--accent-rgb),0.03);
+    }
+
+    .prompt{
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      line-height: 1.45;
+      color: var(--text);
+      white-space: pre-wrap;
+    }
+
+    .meta{
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .meta .tag{
+      font-size: 8px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      padding: 5px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(var(--accent-rgb),0.14);
+      background: rgba(var(--accent-rgb),0.04);
+      white-space: nowrap;
+    }
+    .meta .timer-badge{
+      margin-left: auto;
+      font-variant-numeric: tabular-nums;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text);
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(var(--accent-rgb),0.16);
+      background: rgba(var(--accent-rgb),0.07);
+    }
+
+    .divider{ height: 10px; }
+
+    .qa-btn{
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 12px;
+      width: 100%;
+      padding: 11px 12px;
+      border-radius: 16px;
+      border: 1px solid rgba(var(--accent-rgb),0.18);
+      background: rgba(var(--accent-rgb),0.12);
+      color: var(--text);
+      cursor: pointer;
+      transition: transform var(--transition), background var(--transition), border-color var(--transition);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      user-select: none;
+    }
+    .qa-btn:hover{ transform: translateY(-1px); background: rgba(var(--accent-rgb),0.16); border-color: rgba(var(--accent-rgb),0.30); }
+    .qa-btn:active{ transform: translateY(0) scale(0.99); }
+
+    .answer{
+      margin-top: 12px;
+      padding: 12px 12px;
+      border-radius: 16px;
+      border: 1px solid rgba(var(--accent-rgb),0.14);
+      background: rgba(var(--accent-rgb),0.04);
+      white-space: pre-wrap;
+      line-height: 1.5;
+      font-size: 11px;
+      color: var(--text);
+    }
+
+    .study-indicator{
+      margin-top: 10px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(var(--accent-rgb),0.10);
+      border: 1px solid rgba(var(--accent-rgb),0.18);
+      color: var(--text);
+      font-size: 9px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      font-weight: 800;
+    }
+    .study-indicator.show{ display: flex; }
+    .pulse-dot{
+      width: 8px; height: 8px; border-radius: 99px;
+      background: var(--accent);
+      box-shadow: 0 0 14px rgba(var(--accent-rgb),0.35);
+      animation: pulseDot 1.0s ease-in-out infinite;
+    }
+    @keyframes pulseDot{
+      0%,100%{ transform: scale(1); opacity: 0.8; }
+      50%{ transform: scale(1.6); opacity: 1; }
+    }
+
+    textarea{
+      width: 100%;
+      min-height: 90px;
+      resize: none;
+      border-radius: 16px;
+      border: 1px solid rgba(var(--accent-rgb),0.16);
+      background: var(--card-bg);
+      color: var(--text);
+      padding: 12px 12px;
+      font-family: Inter, system-ui, sans-serif;
+      font-size: 11px;
+      line-height: 1.5;
+      outline: none;
+      transition: border-color var(--transition), background var(--transition);
+    }
+    textarea:focus{
+      border-color: rgba(var(--accent-rgb),0.42);
+      background: rgba(var(--accent-rgb),0.04);
+    }
+    textarea::placeholder{ color: var(--text-secondary); opacity: 0.85; }
+
+    .two-col{
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    @media (min-width: 620px){
+      .two-col{ grid-template-columns: 1fr 1fr; }
+    }
+    .panel{
+      padding: 12px;
+      border-radius: 16px;
+      border: 1px solid rgba(var(--accent-rgb),0.12);
+      background: rgba(var(--accent-rgb),0.03);
+      min-width: 0;
+    }
+    .panel .p-h{
+      font-size: 8px;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+
+    .scenario{
+      border-left: 3px solid var(--accent);
+      background: rgba(var(--accent-rgb),0.05);
+      padding: 16px;
+      border-radius: 14px;
+      margin-top: 12px;
+      white-space: pre-wrap;
+      color: var(--text);
+      line-height: 1.5;
+      font-size: 11px;
+    }
+
+    .concepts{
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .concept{
+      padding: 12px;
+      border-radius: 16px;
+      border: 1px solid rgba(var(--accent-rgb),0.12);
+      background: rgba(var(--accent-rgb),0.03);
+      min-width: 0;
+    }
+    .concept .c-h{
+      font-size: 8px;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+      font-weight: 800;
+    }
+    .concept .c-v{
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text);
+      word-break: break-word;
+      line-height: 1.35;
+    }
+
+    .rubric{
+      margin-top: 12px;
+      display: grid;
+      gap: 10px;
+    }
+    .rub-row{
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .rub-row .lbl{
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      width: 82px;
+      flex: 0 0 auto;
+    }
+    .rub-pills{
+      display: flex;
+      gap: 6px;
+      flex: 1;
+      min-width: 0;
+      flex-wrap: wrap;
+    }
+    .rub-pill{
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(var(--accent-rgb),0.16);
+      background: var(--card-bg);
+      color: var(--text-secondary);
+      font-size: 9px;
+      letter-spacing: 0.6px;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+      transition: transform var(--transition), background var(--transition), border-color var(--transition), color var(--transition);
+      white-space: nowrap;
+    }
+    .rub-pill.active{
+      color: #fff;
+      border-color: rgba(255,255,255,0.18);
+      background: var(--accent);
+    }
+    .rub-pill:hover{ transform: translateY(-1px); }
+    .rub-pill:active{ transform: translateY(0) scale(0.98); }
+
+    .ratings{
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    @media (min-width: 520px){
+      .ratings{ grid-template-columns: 1fr 1fr 1fr 1fr; }
+    }
+    .rate{
+      border: none;
+      cursor: pointer;
+      padding: 10px 10px;
+      border-radius: 999px;
+      color: #fff;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-size: 9px;
+      box-shadow: 0 10px 26px rgba(0,0,0,0.10);
+      transition: transform var(--transition), filter var(--transition);
+      user-select: none;
+    }
+    .rate:hover{ transform: translateY(-1px); filter: brightness(1.03); }
+    .rate:active{ transform: translateY(0) scale(0.99); }
+    .rate[disabled]{ opacity: 0.55; cursor: not-allowed; transform: none; }
+
+    .rate.again{ background: var(--rate-again); }
+    .rate.hard{ background: var(--rate-hard); }
+    .rate.good{ background: var(--rate-good); }
+    .rate.easy{ background: var(--rate-easy); }
+
+    .timerbar{
+      height: 6px;
+      border-radius: 99px;
+      overflow: hidden;
+      background: rgba(var(--accent-rgb),0.08);
+      border: 1px solid rgba(var(--accent-rgb),0.12);
+      margin-bottom: 12px;
+      display: none;
+    }
+    .timerbar.show{ display: block; }
+    .timerbar > div{
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, rgba(var(--accent-rgb),0.6), rgba(var(--accent-rgb),1));
+      transition: width 250ms linear;
+    }
+
+    /* Modal */
+    .overlay{
+      position: fixed; inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(0,0,0,0.40);
+      z-index: 50;
+    }
+    .overlay.show{ display: flex; }
+    .modal{
+      width: 100%;
+      max-width: 820px;
+      border-radius: 22px;
+      background: var(--card-bg);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      border: 1px solid var(--card-border);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      max-height: 88vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-head{
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      border-bottom: 1px solid rgba(var(--accent-rgb),0.10);
+    }
+    .tabs{
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding-bottom: 2px;
+    }
+    .tabs::-webkit-scrollbar{ display: none; }
+    .tab{
+      flex: 0 0 auto;
+      padding: 7px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(var(--accent-rgb),0.14);
+      background: rgba(var(--accent-rgb),0.04);
+      color: var(--text-secondary);
+      font-size: 9px;
+      letter-spacing: 1px;
+      font-weight: 800;
+      text-transform: uppercase;
+      cursor: pointer;
+      user-select: none;
+      transition: background var(--transition), border-color var(--transition), color var(--transition), transform var(--transition);
+      white-space: nowrap;
+    }
+    .tab.active{ background: rgba(var(--accent-rgb),0.18); color: var(--text); border-color: rgba(var(--accent-rgb),0.32); }
+    .tab:hover{ transform: translateY(-1px); }
+    .modal-body{
+      padding: 14px;
+      overflow: auto;
+    }
+    .field{
+      margin-bottom: 10px;
+    }
+    .field label{
+      display: block;
+      font-size: 8px;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin: 0 0 6px;
+      font-weight: 800;
+    }
+    .input, select{
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(var(--accent-rgb),0.16);
+      background: var(--card-bg);
+      color: var(--text);
+      font-family: Inter, system-ui, sans-serif;
+      font-size: 11px;
+      outline: none;
+      transition: border-color var(--transition), background var(--transition);
+    }
+    .input:focus, select:focus{ border-color: rgba(var(--accent-rgb),0.42); background: rgba(var(--accent-rgb),0.04); }
+    .modal-actions{
+      padding: 12px 14px;
+      border-top: 1px solid rgba(var(--accent-rgb),0.10);
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+    .modal-actions .ghost-btn{ min-width: 170px; flex: 0 0 auto; }
+    .modal-actions .big-btn{ width: auto; min-width: 180px; }
+
+    .help{
+      font-size: 9px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin-top: 6px;
+      opacity: 0.95;
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 420px){
+      .stats-row{ grid-template-columns: 1fr; }
+      .concepts{ grid-template-columns: 1fr; }
+      .rub-row .lbl{ width: 100%; }
+      .rub-row{ gap: 6px; }
+      .tier-badge{ max-width: 100%; }
+    }
+
+    /* Focus styles */
+    :focus-visible{
+      outline: 2px solid rgba(var(--accent-rgb),0.45);
+      outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+
+  <div class="wrap">
+    <div class="shell">
+      <div class="card" id="rootCard">
+        <div class="topbar">
+          <div class="brand">
+            <div class="logo" aria-hidden="true"></div>
+            <div style="min-width:0">
+              <h1 id="hdrTitle">Study Engine</h1>
+              <div class="sub" id="hdrSub">Retrieval practice</div>
+            </div>
+          </div>
+          <button class="icon-btn" id="gearBtn" aria-label="Settings">⚙️</button>
+        </div>
+
+        <!-- Dashboard -->
+        <div class="view active" id="viewDash">
+          <div class="stats-row">
+            <div class="stat">
+              <div class="k">Items due today</div>
+              <div class="v" id="statDue">—</div>
+              <div class="s" id="statDueSub">Across all tiers</div>
+            </div>
+            <div class="stat">
+              <div class="k">Streak</div>
+              <div class="v" id="statStreak">—</div>
+              <div class="s" id="statStreakSub">Days</div>
+            </div>
+            <div class="stat">
+              <div class="k">Avg retention</div>
+              <div class="v" id="statRet">—</div>
+              <div class="s" id="statRetSub">From FSRS retrievability</div>
+            </div>
+          </div>
+
+          <div class="gauge">
+            <svg width="84" height="44" viewBox="0 0 84 44" aria-hidden="true">
+              <path d="M6 40 A36 36 0 0 1 78 40" fill="none" stroke="rgba(var(--accent-rgb),0.14)" stroke-width="8" stroke-linecap="round"/>
+              <path id="calArc" d="M6 40 A36 36 0 0 1 78 40" fill="none" stroke="var(--rate-good)" stroke-width="8" stroke-linecap="round" stroke-dasharray="120" stroke-dashoffset="120"/>
+            </svg>
+            <div style="min-width:0">
+              <div class="g-title">Calibration</div>
+              <div class="g-val" id="calVal">—</div>
+              <div class="g-sub" id="calSub">Metacognitive feedback</div>
+            </div>
+          </div>
+
+          <div class="breakdown" id="tierBreakdown"></div>
+
+          <button class="big-btn" id="startBtn">Start Session</button>
+
+          <div class="row" style="margin-top: 12px">
+            <div style="flex:1; min-width:0">
+              <div style="font-size:8px; letter-spacing:1.6px; text-transform:uppercase; color:var(--text-secondary); font-weight:800; margin-bottom:6px">Course filter</div>
+              <div class="chips" id="courseChips"></div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div style="flex:1; min-width:0">
+              <div style="font-size:8px; letter-spacing:1.6px; text-transform:uppercase; color:var(--text-secondary); font-weight:800; margin-bottom:6px">Mode</div>
+              <div class="mode-toggle" role="tablist" aria-label="Mode toggle">
+                <button class="mode-btn active" id="modeGeneral" role="tab" aria-selected="true">General</button>
+                <button class="mode-btn" id="modeLaw" role="tab" aria-selected="false">Law School</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="mini-actions">
+            <button class="ghost-btn" id="addBtn">Add Items</button>
+            <button class="ghost-btn" id="importBtn">Import JSON</button>
+          </div>
+        </div>
+
+        <!-- Session -->
+        <div class="view" id="viewSession">
+          <div class="session-top">
+            <div class="progress">
+              <div class="p-text">
+                <span id="progText">—</span>
+                <span id="courseHint" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:44%">—</span>
+              </div>
+              <div class="pbar"><div id="progBar"></div></div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-end">
+              <div class="tier-badge" id="tierBadge"><span class="tiny">●</span> <span id="tierBadgeText">—</span></div>
+              <div class="skip" id="skipBtn" role="button" tabindex="0">Skip</div>
+            </div>
+          </div>
+
+          <div class="timerbar" id="timerBar"><div id="timerFill"></div></div>
+
+          <div class="item-card" id="itemCard">
+            <div class="prompt" id="promptText">—</div>
+            <div class="meta" id="metaRow">
+              <span class="tag" id="metaCourse">—</span>
+              <span class="tag" id="metaTopic">—</span>
+              <span class="timer-badge" id="metaTimer" style="display:none">00:00</span>
+            </div>
+
+            <div id="tierArea"></div>
+
+            <div class="answer" id="modelAnswer" style="display:none"></div>
+            <div class="study-indicator" id="studyIndicator"><span class="pulse-dot"></span> Study this</div>
+
+            <div class="ratings" id="ratings" style="display:none">
+              <button class="rate again" data-rate="1">Again (1)</button>
+              <button class="rate hard" data-rate="2">Hard (2)</button>
+              <button class="rate good" data-rate="3">Good (3)</button>
+              <button class="rate easy" data-rate="4">Easy (4)</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Complete -->
+        <div class="view" id="viewDone">
+          <div class="stat" style="margin-bottom:10px">
+            <div class="k">Session summary</div>
+            <div class="v" id="doneTitle">—</div>
+            <div class="s" id="doneSub">—</div>
+          </div>
+
+          <div class="stats-row" style="grid-template-columns:1fr 1fr">
+            <div class="stat">
+              <div class="k">XP earned</div>
+              <div class="v" id="doneXP">—</div>
+              <div class="s">Pushed to dragon</div>
+            </div>
+            <div class="stat">
+              <div class="k">Calibration</div>
+              <div class="v" id="doneCal">—</div>
+              <div class="s" id="doneTrend">—</div>
+            </div>
+          </div>
+
+          <div class="breakdown" id="doneBreakdown" style="margin-top:10px"></div>
+
+          <button class="big-btn" id="backBtn" style="margin-top:14px">Back to Dashboard</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Add / Import -->
+  <div class="overlay" id="modalOv" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Add items">
+      <div class="modal-head">
+        <div class="tabs" id="tierTabs" role="tablist" aria-label="Item tiers">
+          <div class="tab active" data-tab="quickfire" role="tab" aria-selected="true">Quick Fire</div>
+          <div class="tab" data-tab="explain" role="tab" aria-selected="false">Explain It</div>
+          <div class="tab" data-tab="apply" role="tab" aria-selected="false">Apply It</div>
+          <div class="tab" data-tab="distinguish" role="tab" aria-selected="false">Distinguish</div>
+          <div class="tab" data-tab="mock" role="tab" aria-selected="false">Mock</div>
+          <div class="tab" data-tab="import" role="tab" aria-selected="false">Import JSON</div>
+        </div>
+        <button class="icon-btn" id="modalClose" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="modalForm"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="ghost-btn" id="addNextBtn">Add & Next</button>
+        <button class="big-btn" id="doneBtn">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings modal (reuses overlay) -->
+  <div class="overlay" id="settingsOv" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Settings">
+      <div class="modal-head">
+        <div style="display:flex; align-items:center; gap:10px; min-width:0">
+          <div style="font-size:10px; font-weight:900; letter-spacing:2px; text-transform:uppercase; color:var(--text)">Settings</div>
+          <div style="font-size:9px; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis">Study Engine</div>
+        </div>
+        <button class="icon-btn" id="settingsClose" aria-label="Close settings">✕</button>
+      </div>
+      <div class="modal-body" id="settingsBody"></div>
+      <div class="modal-actions">
+        <button class="big-btn" id="settingsSave">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- External only: GSAP + core.js -->
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
+  <script src="https://lordgrape.github.io/notion-widgets/core.js"></script>
+  <script>
+    /* Study Engine — multi-modal retrieval practice engine (FSRS) */
+    var isEmbedded = (window.self !== window.top);
+    if (!isEmbedded) document.body.classList.add('standalone');
+
+    /* ── SyncEngine Init ── */
+    SyncEngine.init({ worker: 'https://widget-sync.lordgrape-widgets.workers.dev' });
+
+    /* ── Background ── */
+    initBackground('bgCanvas', {
+      orbCount: isEmbedded ? 2 : 3,
+      particleCount: Core.isLowEnd ? (Core.isDark ? 8 : 5) : (Core.isDark ? 18 : 12),
+      orbRadius: [80, 140],
+      hueRange: [250, 40],
+      mouseTracking: true
+    });
+
+    /* ── State ── */
+    var NS = 'studyengine';
+    var DEFAULT_STATE = {
+      items: {},
+      calibration: { totalSelfRatings: 0, totalActualCorrect: 0, history: [] },
+      stats: {
+        totalReviews: 0,
+        streakDays: 0,
+        lastSessionDate: '',
+        reviewsByTier: { quickfire: 0, explain: 0, apply: 0, distinguish: 0, mock: 0 }
+      }
+    };
+    var DEFAULT_SETTINGS = {
+      desiredRetention: 0.90,
+      sessionLimit: 12,
+      mockDefaultMins: 10,
+      showApplyTimer: true
+    };
+
+    var state = null;
+    var settings = null;
+
+    function deepClone(obj){ return JSON.parse(JSON.stringify(obj || {})); }
+
+    function loadState() {
+      var items = SyncEngine.get(NS, 'items') || null;
+      var calibration = SyncEngine.get(NS, 'calibration') || null;
+      var stats = SyncEngine.get(NS, 'stats') || null;
+      state = deepClone(DEFAULT_STATE);
+      if (items && typeof items === 'object') state.items = items;
+      if (calibration && typeof calibration === 'object') state.calibration = calibration;
+      if (stats && typeof stats === 'object') state.stats = stats;
+      var s = SyncEngine.get(NS, 'settings') || null;
+      settings = deepClone(DEFAULT_SETTINGS);
+      if (s && typeof s === 'object') {
+        for (var k in s) if (s.hasOwnProperty(k)) settings[k] = s[k];
+      }
+    }
+
+    function saveState() {
+      SyncEngine.set(NS, 'items', state.items || {});
+      SyncEngine.set(NS, 'calibration', state.calibration || deepClone(DEFAULT_STATE.calibration));
+      SyncEngine.set(NS, 'stats', state.stats || deepClone(DEFAULT_STATE.stats));
+      SyncEngine.set(NS, 'settings', settings || deepClone(DEFAULT_SETTINGS));
+    }
+
+    /* ── FSRS-5 (core formulas as specified) ── */
+    var w = [0.4072, 1.1829, 3.1262, 15.4722, 7.2102, 0.5316, 1.0651, 0.0589, 1.5747, 0.2753, 1.0120, 1.6395, 0.1367, 0.2691, 2.2307, 0.2272, 2.8755, 0.4520, 0.8095];
+
+    function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+    function daysBetween(a, b){ return (b - a) / (1000 * 60 * 60 * 24); }
+    function isoNow(){ return new Date().toISOString(); }
+    function isoDate(){ return new Date().toISOString().slice(0,10); }
+
+    function retrievability(fsrs, nowTs) {
+      if (!fsrs) return 1;
+      var S = fsrs.stability || 0;
+      var last = fsrs.lastReview ? new Date(fsrs.lastReview).getTime() : null;
+      if (!last) return 1;
+      if (!S || S <= 0) S = 0.1;
+      var t = Math.max(0, daysBetween(last, nowTs));
+      var R = Math.pow(1 + (t / (9 * S)), -1);
+      return clamp(R, 0, 1);
+    }
+
+    function initialDifficulty(rating) {
+      var D0 = w[4] - Math.exp(w[5] * (rating - 1)) + 1;
+      return clamp(D0, 1, 10);
+    }
+
+    function updateDifficulty(D, rating) {
+      if (!D || D <= 0) D = 5;
+      var Dp = D - w[6] * (rating - 3);
+      return clamp(Dp, 1, 10);
+    }
+
+    function stabilityAfterSuccess(S, D, R) {
+      if (!S || S <= 0) S = 1;
+      if (!D || D <= 0) D = 5;
+      var term = (Math.exp(w[8]) * (11 - D) * Math.pow(S, -w[9]) * (Math.exp(w[10] * (1 - R)) - 1) + 1);
+      var Sp = S * term;
+      return clamp(Sp, 0.1, 3650);
+    }
+
+    function stabilityAfterForget(S, D, R) {
+      if (!S || S < 0) S = 1;
+      if (!D || D <= 0) D = 5;
+      var Sp = w[11] * Math.pow(D, -w[12]) * (Math.pow((S + 1), w[13]) - 1) * Math.exp(w[14] * (1 - R));
+      return clamp(Sp, 0.1, 3650);
+    }
+
+    function nextIntervalDays(S, desiredRetention) {
+      var r = desiredRetention || 0.9;
+      r = clamp(r, 0.80, 0.95);
+      /* Generalized from R=(1+t/(9S))^-1 → t = 9S*(1/R - 1) */
+      return Math.max(0.1, 9 * S * (1 / r - 1));
+    }
+
+    function scheduleFsrs(item, rating, nowTs, allowWrite) {
+      if (!item.fsrs) {
+        item.fsrs = { stability: 0, difficulty: 0, due: isoNow(), lastReview: null, reps: 0, lapses: 0, state: 'new' };
+      }
+      var f = item.fsrs;
+
+      var first = !f.lastReview;
+      var lastTs = f.lastReview ? new Date(f.lastReview).getTime() : nowTs;
+      var tDays = Math.max(0, daysBetween(lastTs, nowTs));
+      var S = (f.stability && f.stability > 0) ? f.stability : (first ? 1 : 0.1);
+      var D = (f.difficulty && f.difficulty > 0) ? f.difficulty : (first ? initialDifficulty(rating) : 5);
+      var R = clamp(Math.pow(1 + (tDays / (9 * (S || 0.1))), -1), 0, 1);
+
+      var newD = first ? initialDifficulty(rating) : updateDifficulty(D, rating);
+      var newS = (rating === 1) ? stabilityAfterForget(S, newD, R) : stabilityAfterSuccess(S, newD, R);
+
+      f.reps = (f.reps || 0) + 1;
+      if (rating === 1) f.lapses = (f.lapses || 0) + 1;
+      f.difficulty = newD;
+      f.stability = newS;
+      f.lastReview = new Date(nowTs).toISOString();
+
+      if (rating === 1) f.state = (f.state === 'review') ? 'relearning' : 'learning';
+      else f.state = 'review';
+
+      var interval = nextIntervalDays(newS, settings.desiredRetention);
+      var dueTs = nowTs + interval * 24 * 60 * 60 * 1000;
+      f.due = new Date(dueTs).toISOString();
+
+      if (allowWrite) item.fsrs = f;
+      return { intervalDays: interval, retr: R };
+    }
+
+    /* ── UI + Session Engine ── */
+    var el = function(id){ return document.getElementById(id); };
+    var viewDash = el('viewDash');
+    var viewSession = el('viewSession');
+    var viewDone = el('viewDone');
+    var rootCard = el('rootCard');
+
+    var selectedCourse = 'All';
+    var modeLabel = 'General';
+
+    var session = null;
+    var sessionSummary = null;
+
+    function uid() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    }
+
+    function tierLabel(tier) {
+      return ({
+        quickfire: 'QUICK FIRE',
+        explain: 'EXPLAIN IT',
+        apply: 'APPLY IT',
+        distinguish: 'DISTINGUISH',
+        mock: 'MOCK EXAM'
+      })[tier] || '—';
+    }
+
+    function tierColour(tier) {
+      return ({
+        quickfire: getComputedStyle(document.documentElement).getPropertyValue('--tier-qf').trim(),
+        explain: getComputedStyle(document.documentElement).getPropertyValue('--tier-ex').trim(),
+        apply: getComputedStyle(document.documentElement).getPropertyValue('--tier-ap').trim(),
+        distinguish: getComputedStyle(document.documentElement).getPropertyValue('--tier-di').trim(),
+        mock: getComputedStyle(document.documentElement).getPropertyValue('--tier-mk').trim()
+      })[tier] || getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+    }
+
+    function setTierBadge(tier) {
+      var b = el('tierBadge');
+      var t = el('tierBadgeText');
+      var dot = b.querySelector('.tiny');
+      var c = tierColour(tier);
+      b.style.background = c;
+      dot.style.opacity = '0.92';
+      t.textContent = tierLabel(tier);
+    }
+
+    function showView(nextId) {
+      var views = [viewDash, viewSession, viewDone];
+      var next = el(nextId);
+      views.forEach(function(v){ v.classList.remove('active'); });
+      next.classList.add('active');
+
+      var y = 10;
+      if (window.gsap) {
+        gsap.fromTo(next, { opacity: 0, y: y }, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' });
+      } else if (Core && Core.fadeIn) {
+        Core.fadeIn(next, { y: y, duration: 0.35 });
+      }
+    }
+
+    function countDue(itemsById, course) {
+      var now = Date.now();
+      var out = { total: 0, byTier: { quickfire:0, explain:0, apply:0, distinguish:0, mock:0 } };
+      for (var id in itemsById) {
+        if (!itemsById.hasOwnProperty(id)) continue;
+        var it = itemsById[id];
+        if (!it) continue;
+        if (course && course !== 'All' && it.course !== course) continue;
+        var f = it.fsrs || null;
+        var due = f && f.due ? new Date(f.due).getTime() : 0;
+        var isDue = (!f || !f.lastReview) ? true : (due <= now);
+        if (isDue) {
+          out.total++;
+          if (out.byTier[it.tier] != null) out.byTier[it.tier]++;
+        }
+      }
+      return out;
+    }
+
+    function avgRetention(itemsById) {
+      var now = Date.now();
+      var sum = 0, n = 0;
+      for (var id in itemsById) {
+        if (!itemsById.hasOwnProperty(id)) continue;
+        var it = itemsById[id];
+        if (!it || !it.fsrs) continue;
+        sum += retrievability(it.fsrs, now);
+        n++;
+      }
+      if (!n) return null;
+      return sum / n;
+    }
+
+    function calibrationPct(cal) {
+      if (!cal || !cal.totalSelfRatings) return null;
+      var p = (cal.totalActualCorrect || 0) / Math.max(1, cal.totalSelfRatings);
+      return clamp(p, 0, 1);
+    }
+
+    function setCalArc(p) {
+      var arc = el('calArc');
+      var dash = 120;
+      var off = dash * (1 - clamp(p,0,1));
+      arc.style.strokeDasharray = String(dash);
+      arc.style.strokeDashoffset = String(off);
+      var col = (p >= 0.75) ? 'var(--rate-good)' : (p >= 0.55) ? 'var(--rate-hard)' : 'var(--rate-again)';
+      arc.style.stroke = col;
+    }
+
+    function renderDashboard() {
+      var due = countDue(state.items, selectedCourse);
+      el('statDue').textContent = String(due.total);
+      el('statStreak').textContent = String(state.stats.streakDays || 0);
+      var ar = avgRetention(state.items);
+      el('statRet').textContent = (ar == null) ? '—' : Math.round(ar * 100) + '%';
+
+      var calP = calibrationPct(state.calibration);
+      el('calVal').textContent = (calP == null) ? '—' : Math.round(calP * 100) + '%';
+      el('calSub').textContent = (calP == null) ? 'Complete a session to begin' : (calP >= 0.75 ? 'Well calibrated' : calP >= 0.55 ? 'Slight overconfidence' : 'Significant miscalibration');
+      setCalArc(calP == null ? 0 : calP);
+
+      var tiers = ['quickfire','explain','apply','distinguish','mock'];
+      var tierNames = { quickfire:'Quick Fire', explain:'Explain', apply:'Apply', distinguish:'Distinguish', mock:'Mock' };
+      var bd = '';
+      tiers.forEach(function(t) {
+        var c = due.byTier[t] || 0;
+        var col = tierColour(t);
+        bd += '<span class="tier-pill"><span class="tier-dot" style="background:'+ col +'"></span>' + tierNames[t] + ': ' + c + '</span>';
+      });
+      el('tierBreakdown').innerHTML = bd;
+
+      /* Courses */
+      var courses = {};
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        var ctag = (it && it.course) ? it.course : '';
+        if (ctag) courses[ctag] = true;
+      }
+      var courseList = Object.keys(courses).sort(function(a,b){ return a.localeCompare(b); });
+      courseList.unshift('All');
+      var chips = '';
+      courseList.forEach(function(c) {
+        chips += '<div class="chip' + (c === selectedCourse ? ' active' : '') + '" data-course="' + esc(c) + '">' + esc(c) + '</div>';
+      });
+      el('courseChips').innerHTML = chips;
+      el('courseChips').querySelectorAll('.chip').forEach(function(ch){
+        ch.addEventListener('click', function() {
+          selectedCourse = this.getAttribute('data-course');
+          renderDashboard();
+        });
+      });
+
+      el('startBtn').disabled = (due.total === 0);
+    }
+
+    function esc(s){
+      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    /* ── Session construction ── */
+    function buildSessionQueue() {
+      var now = Date.now();
+      var dueItems = [];
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (!it) continue;
+        if (selectedCourse !== 'All' && it.course !== selectedCourse) continue;
+        var f = it.fsrs || null;
+        var dueTs = f && f.due ? new Date(f.due).getTime() : 0;
+        var isDue = (!f || !f.lastReview) ? true : (dueTs <= now);
+        if (isDue) dueItems.push(it);
+      }
+
+      /* Interleave by course unless filtered */
+      var out = [];
+      if (selectedCourse !== 'All') {
+        out = dueItems;
+      } else {
+        var buckets = {};
+        dueItems.forEach(function(it){
+          var c = it.course || 'Unsorted';
+          if (!buckets[c]) buckets[c] = [];
+          buckets[c].push(it);
+        });
+        var keys = Object.keys(buckets);
+        keys.sort(function(a,b){ return a.localeCompare(b); });
+        /* Shuffle within buckets for variety */
+        keys.forEach(function(k){ shuffle(buckets[k]); });
+        var remaining = true;
+        while (remaining) {
+          remaining = false;
+          for (var i = 0; i < keys.length; i++) {
+            var k = keys[i];
+            if (buckets[k].length) {
+              out.push(buckets[k].shift());
+              remaining = true;
+            }
+          }
+        }
+      }
+
+      /* Interleave tiers lightly (stable shuffle) */
+      out = stableInterleaveByTier(out);
+
+      var limit = parseInt(settings.sessionLimit || 12, 10);
+      if (!limit || limit < 1) limit = 12;
+      out = out.slice(0, limit);
+      return out;
+    }
+
+    function shuffle(arr) {
+      for (var i = arr.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+      }
+      return arr;
+    }
+
+    function stableInterleaveByTier(items) {
+      var tiers = { quickfire: [], explain: [], apply: [], distinguish: [], mock: [] };
+      items.forEach(function(it){
+        var t = it.tier;
+        if (!tiers[t]) tiers[t] = [];
+        tiers[t].push(it);
+      });
+      var order = ['quickfire','explain','apply','distinguish','mock'];
+      order.forEach(function(t){ shuffle(tiers[t]); });
+      var out = [];
+      var remaining = true;
+      while (remaining) {
+        remaining = false;
+        for (var i = 0; i < order.length; i++) {
+          var t = order[i];
+          if (tiers[t] && tiers[t].length) {
+            out.push(tiers[t].shift());
+            remaining = true;
+          }
+        }
+      }
+      return out;
+    }
+
+    function startSession() {
+      var q = buildSessionQueue();
+      session = {
+        queue: q,
+        idx: 0,
+        loops: {}, /* itemId -> again count in-session */
+        currentShown: false,
+        startedAt: Date.now(),
+        xp: 0,
+        reviewsByTier: { quickfire:0, explain:0, apply:0, distinguish:0, mock:0 },
+        ratingSum: 0,
+        ratingN: 0,
+        calBefore: calibrationPct(state.calibration)
+      };
+      sessionSummary = null;
+      if (!q.length) return;
+      showView('viewSession');
+      renderCurrentItem();
+    }
+
+    /* ── Tier rendering ── */
+    var tierArea = el('tierArea');
+    var modelAnswerEl = el('modelAnswer');
+    var ratingsEl = el('ratings');
+    var studyIndicator = el('studyIndicator');
+
+    var activeRubric = null;
+    var tierTimer = null;
+    var mockCountdownTimer = null;
+    var mockEndsAt = 0;
+    var mockTotalMs = 0;
+
+    function clearTimers() {
+      if (tierTimer) { clearInterval(tierTimer); tierTimer = null; }
+      if (mockCountdownTimer) { clearInterval(mockCountdownTimer); mockCountdownTimer = null; }
+    }
+
+    function autoGrowTextarea(ta) {
+      if (!ta) return;
+      ta.style.height = 'auto';
+      var h = Math.min(420, Math.max(ta.scrollHeight, 90));
+      ta.style.height = h + 'px';
+    }
+
+    function rubricTemplate(tier) {
+      var col = tierColour(tier);
+      return '' +
+        '<div class="rubric" id="rubric">' +
+          rubRow('Accuracy', ['Missed key points', 'Partial', 'Complete'], 'acc', col) +
+          rubRow('Depth', ['Surface', 'Adequate', 'Thorough'], 'dep', col) +
+          rubRow('Clarity', ['Unclear', 'Decent', 'Clear'], 'cla', col) +
+        '</div>';
+    }
+
+    function rubRow(label, opts, key, col) {
+      var h = '<div class="rub-row" data-rub="'+ key +'">' +
+        '<div class="lbl">' + esc(label) + '</div>' +
+        '<div class="rub-pills">';
+      for (var i = 0; i < opts.length; i++) {
+        h += '<div class="rub-pill" data-idx="' + i + '" style="--accent:'+ col +'">' + esc(opts[i]) + '</div>';
+      }
+      h += '</div></div>';
+      return h;
+    }
+
+    function bindRubric(tier) {
+      activeRubric = { acc: null, dep: null, cla: null, tier: tier };
+      var root = el('rubric');
+      if (!root) return;
+      root.querySelectorAll('.rub-row').forEach(function(row) {
+        var key = row.getAttribute('data-rub');
+        row.querySelectorAll('.rub-pill').forEach(function(pill) {
+          pill.addEventListener('click', function() {
+            var idx = parseInt(this.getAttribute('data-idx'), 10);
+            row.querySelectorAll('.rub-pill').forEach(function(p){ p.classList.remove('active'); });
+            this.classList.add('active');
+            activeRubric[key] = idx;
+            /* GSAP bounce */
+            if (window.gsap) gsap.fromTo(this, { scale: 0.96 }, { scale: 1, duration: 0.35, ease: 'back.out(2.2)' });
+          });
+        });
+      });
+    }
+
+    function rubricToFsrsRating() {
+      if (!activeRubric) return 2;
+      var vals = [activeRubric.acc, activeRubric.dep, activeRubric.cla];
+      if (vals.some(function(v){ return v == null; })) return 2;
+      var sum = vals[0] + vals[1] + vals[2]; /* 0..6 */
+      if (sum <= 1) return 1; /* all low */
+      if (sum <= 3) return 2; /* mixed */
+      if (sum <= 5) return 3; /* mostly good */
+      return 4; /* all high */
+    }
+
+    function renderCurrentItem() {
+      clearTimers();
+      activeRubric = null;
+      session.currentShown = false;
+      modelAnswerEl.style.display = 'none';
+      ratingsEl.style.display = 'none';
+      studyIndicator.classList.remove('show');
+      el('timerBar').classList.remove('show');
+      el('metaTimer').style.display = 'none';
+      el('timerFill').style.width = '0%';
+
+      var it = session.queue[session.idx];
+      if (!it) { completeSession(); return; }
+
+      setTierBadge(it.tier);
+      /* For Apply It we render the scenario in a distinct block; avoid duplicating it in the top prompt. */
+      if (it.tier === 'apply') el('promptText').textContent = 'Scenario';
+      else el('promptText').textContent = it.prompt || '';
+      el('metaCourse').textContent = it.course || '—';
+      el('metaTopic').textContent = it.topic || '—';
+      el('courseHint').textContent = (selectedCourse === 'All') ? (it.course || '—') : selectedCourse;
+
+      var n = session.queue.length;
+      el('progText').textContent = (session.idx + 1) + ' of ' + n;
+      el('progBar').style.width = Math.round(((session.idx) / Math.max(1, n)) * 100) + '%';
+
+      tierArea.innerHTML = '';
+      if (it.tier === 'quickfire') {
+        tierArea.innerHTML = '<button class="qa-btn" id="revealBtn">Reveal (Space)</button>';
+        el('revealBtn').addEventListener('click', function(){ revealAnswer(); });
+      } else if (it.tier === 'explain') {
+        tierArea.innerHTML = '' +
+          '<div class="two-col">' +
+            '<div class="panel">' +
+              '<div class="p-h">Your response (ephemeral)</div>' +
+              '<textarea id="userText" rows="3" placeholder="Write your explanation. Focus on key mechanisms, not wording."></textarea>' +
+              '<button class="qa-btn" id="checkBtn">Check (Space)</button>' +
+              '<div class="help">Self-rate after comparing your response to the model answer.</div>' +
+            '</div>' +
+            '<div class="panel" id="modelPanel" style="display:none">' +
+              '<div class="p-h">Model answer</div>' +
+              '<div class="answer" style="margin-top:0" id="modelInline"></div>' +
+            '</div>' +
+          '</div>' +
+          rubricTemplate('explain');
+        wireGenerative('explain');
+      } else if (it.tier === 'apply') {
+        /* Prompt is scenario; modelAnswer includes ideal response. Task is embedded at top of modelAnswer if provided. */
+        var scen = it.prompt || '';
+        var task = (it.task || '');
+        tierArea.innerHTML = '' +
+          '<div class="scenario" id="scenarioBlock">' + esc(scen) + '</div>' +
+          (task ? '<div class="divider"></div><div class="prompt" style="font-weight:700">Task</div><div class="answer" style="margin-top:8px">' + esc(task) + '</div>' : '') +
+          '<div class="divider"></div>' +
+          '<div class="panel">' +
+            '<div class="p-h">Your response (ephemeral)</div>' +
+            '<textarea id="userText" rows="4" placeholder="Apply the concept. Use structured reasoning and conclude clearly."></textarea>' +
+            '<button class="qa-btn" id="checkBtn">Check (Space)</button>' +
+          '</div>' +
+          rubricTemplate('apply');
+        if (settings.showApplyTimer) startApplyTimer();
+        wireGenerative('apply');
+      } else if (it.tier === 'distinguish') {
+        tierArea.innerHTML = '' +
+          '<div class="concepts">' +
+            '<div class="concept"><div class="c-h">Concept A</div><div class="c-v">' + esc(it.conceptA || '—') + '</div></div>' +
+            '<div class="concept"><div class="c-h">Concept B</div><div class="c-v">' + esc(it.conceptB || '—') + '</div></div>' +
+          '</div>' +
+          '<div class="prompt" style="font-weight:700; margin-bottom:8px">Given the following scenario, which applies? Justify your choice.</div>' +
+          '<div class="scenario">' + esc(it.scenario || it.prompt || '') + '</div>' +
+          '<div class="divider"></div>' +
+          '<div class="panel">' +
+            '<div class="p-h">Your justification (ephemeral)</div>' +
+            '<textarea id="userText" rows="4" placeholder="State which applies, then justify with discriminating features."></textarea>' +
+            '<button class="qa-btn" id="checkBtn">Check (Space)</button>' +
+          '</div>' +
+          rubricTemplate('distinguish');
+        wireGenerative('distinguish');
+      } else if (it.tier === 'mock') {
+        var mins = parseInt(it.timeLimitMins || settings.mockDefaultMins || 10, 10);
+        mins = [5,10,15,30].indexOf(mins) >= 0 ? mins : 10;
+        mockTotalMs = mins * 60 * 1000;
+        mockEndsAt = Date.now() + mockTotalMs;
+        el('timerBar').classList.add('show');
+        tierArea.innerHTML = '' +
+          '<div class="panel">' +
+            '<div class="p-h">Response (timed)</div>' +
+            '<textarea id="userText" rows="10" placeholder="Write your full answer. Aim for structure and clear conclusions."></textarea>' +
+            '<button class="qa-btn" id="submitBtn">Submit (Space)</button>' +
+            '<div class="help">Timer starts immediately. Submit early if you finish.</div>' +
+          '</div>' +
+          rubricTemplate('mock');
+        startMockTimer();
+        wireMock();
+      }
+    }
+
+    function startApplyTimer() {
+      var start = Date.now();
+      var badge = el('metaTimer');
+      badge.style.display = 'inline-flex';
+      tierTimer = setInterval(function() {
+        var s = Math.floor((Date.now() - start) / 1000);
+        badge.textContent = fmtMMSS(s);
+      }, 250);
+    }
+
+    function startMockTimer() {
+      var badge = el('metaTimer');
+      badge.style.display = 'inline-flex';
+      badge.textContent = fmtMMSS(Math.ceil(mockTotalMs / 1000));
+      mockCountdownTimer = setInterval(function() {
+        var now = Date.now();
+        var remain = Math.max(0, Math.ceil((mockEndsAt - now) / 1000));
+        badge.textContent = fmtMMSS(remain);
+        var elapsed = clamp((now - (mockEndsAt - mockTotalMs)) / mockTotalMs, 0, 1);
+        el('timerFill').style.width = Math.round(elapsed * 100) + '%';
+        if (remain <= 0) {
+          clearInterval(mockCountdownTimer);
+          mockCountdownTimer = null;
+          revealAnswer(true);
+        }
+      }, 250);
+    }
+
+    function wireGenerative(tier) {
+      bindRubric(tier);
+      var ta = el('userText');
+      ta.addEventListener('input', function(){ autoGrowTextarea(ta); });
+      autoGrowTextarea(ta);
+      el('checkBtn').addEventListener('click', function(){ revealAnswer(true); });
+    }
+
+    function wireMock() {
+      bindRubric('mock');
+      var ta = el('userText');
+      ta.addEventListener('input', function(){ autoGrowTextarea(ta); });
+      autoGrowTextarea(ta);
+      el('submitBtn').addEventListener('click', function(){ revealAnswer(true); });
+    }
+
+    function revealAnswer(fromCheck) {
+      if (session.currentShown) return;
+      session.currentShown = true;
+      var it = session.queue[session.idx];
+      if (!it) return;
+
+      if (it.tier !== 'quickfire') {
+        var mp = el('modelPanel');
+        var mi = el('modelInline');
+        if (mp && mi) {
+          mp.style.display = 'block';
+          mi.textContent = it.modelAnswer || '';
+        }
+      }
+
+      modelAnswerEl.textContent = it.modelAnswer || '';
+      modelAnswerEl.style.display = 'block';
+      ratingsEl.style.display = 'grid';
+
+      /* focus management: keep rubric reachable with Tab */
+      var ta = el('userText');
+      if (ta && fromCheck) ta.blur();
+    }
+
+    /* ── Rating + successive relearning loop ── */
+    function rateCurrent(rating) {
+      var nowTs = Date.now();
+      var it = session.queue[session.idx];
+      if (!it) return;
+      if (!session.currentShown) return;
+
+      var tier = it.tier;
+      var mappedRating = rating;
+      if (tier !== 'quickfire' && tier !== 'mock') {
+        /* for explain/apply/distinguish: map rubric -> FSRS rating */
+        mappedRating = rubricToFsrsRating();
+      } else if (tier === 'mock') {
+        /* mock also uses rubric mapping */
+        mappedRating = rubricToFsrsRating();
+      }
+
+      /* Track calibration */
+      state.calibration.totalSelfRatings = (state.calibration.totalSelfRatings || 0) + 1;
+      var actualCorrect = (mappedRating >= 3) ? 1 : 0;
+      state.calibration.totalActualCorrect = (state.calibration.totalActualCorrect || 0) + actualCorrect;
+      state.calibration.history = state.calibration.history || [];
+      state.calibration.history.push({
+        ts: new Date(nowTs).toISOString(),
+        tier: tier,
+        rating: mappedRating,
+        actual: actualCorrect
+      });
+      if (state.calibration.history.length > 200) state.calibration.history.shift();
+
+      /* Session stats */
+      session.reviewsByTier[tier] = (session.reviewsByTier[tier] || 0) + 1;
+      session.ratingSum += mappedRating;
+      session.ratingN += 1;
+
+      /* Streak + review counts */
+      state.stats.totalReviews = (state.stats.totalReviews || 0) + 1;
+      state.stats.reviewsByTier[tier] = (state.stats.reviewsByTier[tier] || 0) + 1;
+
+      /* Successive relearning loop on Again */
+      var againCount = session.loops[it.id] || 0;
+
+      if (mappedRating === 1) {
+        session.loops[it.id] = againCount + 1;
+
+        /* Restudy phase: show model answer for 10s with indicator */
+        studyIndicator.classList.add('show');
+        disableRatings(true);
+
+        setTimeout(function() {
+          disableRatings(false);
+          studyIndicator.classList.remove('show');
+
+          if (session.loops[it.id] >= 3) {
+            /* force-exit loop */
+            toast('Review tomorrow');
+            /* schedule for tomorrow as a gentle relearning nudge */
+            ensureFsrs(it);
+            it.fsrs.due = new Date(Date.now() + 24*60*60*1000).toISOString();
+            it.fsrs.state = 'relearning';
+            it.fsrs.lapses = (it.fsrs.lapses || 0) + 1;
+            it.fsrs.reps = (it.fsrs.reps || 0) + 1;
+            it.fsrs.lastReview = new Date(nowTs).toISOString();
+            /* advance */
+            advanceItem();
+            return;
+          }
+
+          /* Re-queue item at end of current session */
+          session.queue.push(it);
+          advanceItem();
+        }, 10000);
+        return;
+      }
+
+      /* Successive relearning loop exit condition:
+         - After an in-session failure, require Good/Easy to exit.
+         - Hard keeps the item in-session (re-queued) without writing FSRS yet. */
+      if (againCount > 0 && mappedRating === 2) {
+        session.queue.push(it);
+        advanceItem();
+        return;
+      }
+      if (againCount > 0 && mappedRating >= 3) session.loops[it.id] = 0;
+
+      var res = scheduleFsrs(it, mappedRating, nowTs, true);
+
+      /* XP */
+      var xp = computeXP(it, mappedRating, res.intervalDays);
+      session.xp += xp;
+
+      saveState();
+      advanceItem();
+    }
+
+    function ensureFsrs(it) {
+      if (!it.fsrs) it.fsrs = { stability: 0, difficulty: 0, due: isoNow(), lastReview: null, reps: 0, lapses: 0, state: 'new' };
+    }
+
+    function computeXP(it, rating, intervalDays) {
+      var bloomMultiplier = { quickfire: 1, explain: 2, apply: 3, distinguish: 3, mock: 4 };
+      var tier = it.tier;
+      var mul = bloomMultiplier[tier] || 1;
+      ensureFsrs(it);
+      var diff = it.fsrs.difficulty || 5;
+      var interval = intervalDays || 1;
+
+      /* New item bonus */
+      var isNew = !it.fsrs.lastReview || it.fsrs.reps <= 1;
+      if (isNew) return Math.round(10 * mul);
+
+      var xp = Math.round(10 * mul * (diff / 5) * Math.min(interval / 7, 3));
+      /* Slight penalty for low ratings to keep incentives aligned */
+      if (rating === 2) xp = Math.max(4, Math.round(xp * 0.8));
+      if (rating === 1) xp = 0;
+      return xp;
+    }
+
+    function disableRatings(disabled) {
+      ratingsEl.querySelectorAll('button').forEach(function(b){
+        if (disabled) b.setAttribute('disabled','disabled');
+        else b.removeAttribute('disabled');
+      });
+    }
+
+    function advanceItem() {
+      clearTimers();
+      session.idx++;
+      if (session.idx >= session.queue.length) {
+        completeSession();
+        return;
+      }
+      renderCurrentItem();
+    }
+
+    function skipItem() {
+      if (!session) return;
+      var it = session.queue[session.idx];
+      if (!it) return;
+      /* Skips are discouraged but allowed: move to end */
+      session.queue.push(it);
+      session.idx++;
+      if (session.idx >= session.queue.length) {
+        completeSession();
+        return;
+      }
+      renderCurrentItem();
+    }
+
+    function completeSession() {
+      clearTimers();
+      if (!session) return;
+
+      /* Streak update */
+      var today = isoDate();
+      var last = state.stats.lastSessionDate || '';
+      if (last !== today) {
+        if (!last) {
+          state.stats.streakDays = 1;
+        } else {
+          var dt = daysBetween(new Date(last + 'T00:00:00').getTime(), new Date(today + 'T00:00:00').getTime());
+          if (dt >= 1 && dt <= 2) state.stats.streakDays = (state.stats.streakDays || 0) + 1;
+          else state.stats.streakDays = 1;
+        }
+        state.stats.lastSessionDate = today;
+      }
+
+      /* Push XP to dragon */
+      try {
+        SyncEngine.set('dragon', 'lastStudyXP', { xp: session.xp, timestamp: new Date().toISOString() });
+      } catch (e) {}
+
+      saveState();
+
+      /* Session summary screen */
+      var reviewed = 0;
+      for (var k in session.reviewsByTier) reviewed += (session.reviewsByTier[k] || 0);
+
+      el('doneTitle').textContent = reviewed + ' items reviewed';
+      el('doneSub').textContent = 'Avg self-rating: ' + (session.ratingN ? (Math.round((session.ratingSum / session.ratingN) * 10) / 10) : '—');
+      el('doneXP').textContent = String(session.xp);
+
+      var calAfter = calibrationPct(state.calibration);
+      el('doneCal').textContent = (calAfter == null) ? '—' : Math.round(calAfter * 100) + '%';
+      var before = session.calBefore;
+      if (before == null || calAfter == null) el('doneTrend').textContent = 'Calibration updates after more sessions';
+      else {
+        var d = calAfter - before;
+        el('doneTrend').textContent = (d > 0.02) ? 'Trending up' : (d < -0.02) ? 'Trending down' : 'Stable';
+      }
+
+      var tiers = ['quickfire','explain','apply','distinguish','mock'];
+      var names = { quickfire:'Quick Fire', explain:'Explain', apply:'Apply', distinguish:'Distinguish', mock:'Mock' };
+      var bd = '';
+      tiers.forEach(function(t){
+        var c = session.reviewsByTier[t] || 0;
+        var col = tierColour(t);
+        bd += '<span class="tier-pill"><span class="tier-dot" style="background:'+ col +'"></span>' + names[t] + ': ' + c + '</span>';
+      });
+      el('doneBreakdown').innerHTML = bd;
+
+      session = null;
+      showView('viewDone');
+    }
+
+    /* ── Keyboard shortcuts ── */
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeModals();
+        if (viewSession.classList.contains('active')) {
+          showView('viewDash');
+          renderDashboard();
+        }
+        return;
+      }
+
+      var inText = (e.target && (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT'));
+      if (!viewSession.classList.contains('active')) return;
+      if (!session) return;
+
+      if (e.key === ' ' && !inText) {
+        e.preventDefault();
+        if (!session.currentShown) {
+          revealAnswer(true);
+        } else {
+          /* If already shown, default to Good for speed? No — require explicit rating */
+        }
+      }
+
+      if (e.key >= '1' && e.key <= '4') {
+        if (session.currentShown) {
+          e.preventDefault();
+          rateCurrent(parseInt(e.key, 10));
+        }
+      }
+    });
+
+    /* ── Buttons wiring ── */
+    el('startBtn').addEventListener('click', function(){ startSession(); });
+    el('backBtn').addEventListener('click', function(){ showView('viewDash'); renderDashboard(); });
+    el('skipBtn').addEventListener('click', function(){ skipItem(); });
+    el('skipBtn').addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); skipItem(); } });
+
+    ratingsEl.querySelectorAll('button').forEach(function(b){
+      b.addEventListener('click', function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); });
+    });
+
+    el('modeGeneral').addEventListener('click', function(){
+      modeLabel = 'General';
+      el('modeGeneral').classList.add('active');
+      el('modeLaw').classList.remove('active');
+      el('modeGeneral').setAttribute('aria-selected','true');
+      el('modeLaw').setAttribute('aria-selected','false');
+      el('hdrSub').textContent = 'Retrieval practice';
+    });
+    el('modeLaw').addEventListener('click', function(){
+      modeLabel = 'Law School';
+      el('modeLaw').classList.add('active');
+      el('modeGeneral').classList.remove('active');
+      el('modeLaw').setAttribute('aria-selected','true');
+      el('modeGeneral').setAttribute('aria-selected','false');
+      el('hdrSub').textContent = 'Retrieval practice · Law School';
+    });
+
+    /* ── Modal: Add items / Import JSON ── */
+    var modalOv = el('modalOv');
+    var modalForm = el('modalForm');
+    var activeTab = 'quickfire';
+
+    function openModal(tab) {
+      activeTab = tab || activeTab || 'quickfire';
+      modalOv.classList.add('show');
+      modalOv.setAttribute('aria-hidden','false');
+      renderModal();
+      if (Core && Core.a11y && Core.a11y.trap) Core.a11y.trap(modalOv);
+    }
+    function closeModal() {
+      modalOv.classList.remove('show');
+      modalOv.setAttribute('aria-hidden','true');
+    }
+
+    function closeModals() {
+      closeModal();
+      closeSettings();
+    }
+
+    el('addBtn').addEventListener('click', function(){ openModal('quickfire'); });
+    el('importBtn').addEventListener('click', function(){ openModal('import'); });
+    el('modalClose').addEventListener('click', function(){ closeModal(); });
+    modalOv.addEventListener('click', function(e){ if (e.target === modalOv) closeModal(); });
+
+    el('tierTabs').querySelectorAll('.tab').forEach(function(t){
+      t.addEventListener('click', function(){
+        activeTab = this.getAttribute('data-tab');
+        renderModal();
+      });
+    });
+
+    function renderModal() {
+      /* tabs */
+      el('tierTabs').querySelectorAll('.tab').forEach(function(t){
+        var on = t.getAttribute('data-tab') === activeTab;
+        t.classList.toggle('active', on);
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+
+      var showAdd = (activeTab !== 'import');
+      el('addNextBtn').style.display = showAdd ? 'inline-flex' : 'none';
+
+      if (activeTab === 'quickfire' || activeTab === 'explain') {
+        modalForm.innerHTML = commonFields(activeTab) +
+          areaField('Prompt', 'm_prompt', 'Question or cue') +
+          areaField('Model Answer', 'm_answer', 'Ideal response to compare against') +
+          tailFields();
+      } else if (activeTab === 'apply') {
+        modalForm.innerHTML = commonFields(activeTab) +
+          areaField('Scenario', 'm_scenario', 'Fact pattern / scenario text') +
+          areaField('Task', 'm_task', 'Instruction (what to do with the scenario)') +
+          areaField('Model Answer', 'm_answer', 'Ideal application response') +
+          tailFields();
+      } else if (activeTab === 'distinguish') {
+        modalForm.innerHTML = commonFields(activeTab) +
+          textField('Concept A', 'm_conceptA', 'e.g., Negligence') +
+          textField('Concept B', 'm_conceptB', 'e.g., Strict liability') +
+          areaField('Scenario', 'm_scenario', 'Scenario for discrimination') +
+          areaField('Model Answer', 'm_answer', 'Which applies and why') +
+          tailFields();
+      } else if (activeTab === 'mock') {
+        modalForm.innerHTML = commonFields(activeTab) +
+          areaField('Question', 'm_prompt', 'Multi-part prompt') +
+          selectField('Time limit', 'm_time', [{v:'5',t:'5 min'},{v:'10',t:'10 min'},{v:'15',t:'15 min'},{v:'30',t:'30 min'}], String(settings.mockDefaultMins || 10)) +
+          areaField('Model Answer', 'm_answer', 'Ideal outline / response') +
+          tailFields();
+      } else if (activeTab === 'import') {
+        modalForm.innerHTML = '' +
+          '<div class="field">' +
+            '<label>Paste JSON array</label>' +
+            '<textarea id="m_import" rows="10" placeholder=\'[ { "id": "...", "tier": "explain", ... } ]\'></textarea>' +
+            '<div class="help">Accepts an array of item objects matching the state shape. Existing IDs will be overwritten.</div>' +
+          '</div>';
+      }
+
+      /* focus first control */
+      setTimeout(function(){
+        var first = modalForm.querySelector('textarea, input, select');
+        if (first) first.focus();
+      }, 0);
+    }
+
+    function commonFields(tier) {
+      return '' +
+        '<div class="field">' +
+          '<label>Course</label>' +
+          '<input class="input" id="m_course" placeholder="e.g., Evidence" />' +
+        '</div>' +
+        '<div class="field">' +
+          '<label>Topic</label>' +
+          '<input class="input" id="m_topic" placeholder="e.g., Hearsay exceptions" />' +
+        '</div>';
+    }
+
+    function tailFields() { return ''; }
+    function textField(label, id, ph) {
+      return '' +
+        '<div class="field">' +
+          '<label>' + esc(label) + '</label>' +
+          '<input class="input" id="' + esc(id) + '" placeholder="' + esc(ph) + '" />' +
+        '</div>';
+    }
+    function areaField(label, id, ph) {
+      return '' +
+        '<div class="field">' +
+          '<label>' + esc(label) + '</label>' +
+          '<textarea id="' + esc(id) + '" rows="4" placeholder="' + esc(ph) + '"></textarea>' +
+        '</div>';
+    }
+    function selectField(label, id, opts, defV) {
+      var h = '<div class="field"><label>' + esc(label) + '</label><select id="' + esc(id) + '">';
+      opts.forEach(function(o){
+        h += '<option value="' + esc(o.v) + '"' + (String(o.v) === String(defV) ? ' selected' : '') + '>' + esc(o.t) + '</option>';
+      });
+      h += '</select></div>';
+      return h;
+    }
+
+    el('addNextBtn').addEventListener('click', function(){ addFromModal(true); });
+    el('doneBtn').addEventListener('click', function(){ addFromModal(false); closeModal(); renderDashboard(); });
+
+    function addFromModal(stayOpen) {
+      if (activeTab === 'import') {
+        doImport();
+        if (!stayOpen) closeModal();
+        return;
+      }
+
+      var course = (el('m_course').value || '').trim();
+      var topic = (el('m_topic').value || '').trim();
+
+      var it = {
+        id: uid(),
+        tier: activeTab,
+        prompt: '',
+        modelAnswer: '',
+        course: course,
+        topic: topic,
+        created: isoNow(),
+        fsrs: { stability: 0, difficulty: 0, due: isoNow(), lastReview: null, reps: 0, lapses: 0, state: 'new' }
+      };
+
+      if (activeTab === 'quickfire' || activeTab === 'explain') {
+        it.prompt = (el('m_prompt').value || '').trim();
+        it.modelAnswer = (el('m_answer').value || '').trim();
+      } else if (activeTab === 'apply') {
+        it.prompt = (el('m_scenario').value || '').trim();
+        it.task = (el('m_task').value || '').trim();
+        it.modelAnswer = (el('m_answer').value || '').trim();
+      } else if (activeTab === 'distinguish') {
+        it.conceptA = (el('m_conceptA').value || '').trim();
+        it.conceptB = (el('m_conceptB').value || '').trim();
+        it.scenario = (el('m_scenario').value || '').trim();
+        it.prompt = 'Distinguish: ' + (it.conceptA || 'A') + ' vs ' + (it.conceptB || 'B');
+        it.modelAnswer = (el('m_answer').value || '').trim();
+      } else if (activeTab === 'mock') {
+        it.prompt = (el('m_prompt').value || '').trim();
+        it.modelAnswer = (el('m_answer').value || '').trim();
+        it.timeLimitMins = parseInt(el('m_time').value, 10) || 10;
+      }
+
+      if (!it.prompt || !it.modelAnswer) {
+        toast('Prompt and model answer are required');
+        return;
+      }
+
+      state.items[it.id] = it;
+      saveState();
+      toast('Added');
+
+      if (stayOpen) {
+        renderModal();
+      }
+    }
+
+    function doImport() {
+      var raw = (el('m_import').value || '').trim();
+      if (!raw) { toast('Paste JSON first'); return; }
+      var arr = null;
+      try { arr = JSON.parse(raw); } catch (e) { toast('Invalid JSON'); return; }
+      if (!Array.isArray(arr)) { toast('Expected an array'); return; }
+      var n = 0;
+      arr.forEach(function(obj){
+        if (!obj || typeof obj !== 'object') return;
+        if (!obj.id) obj.id = uid();
+        if (!obj.tier) return;
+        if (!obj.prompt || !obj.modelAnswer) return;
+        if (!obj.created) obj.created = isoNow();
+        if (!obj.fsrs) obj.fsrs = { stability: 0, difficulty: 0, due: isoNow(), lastReview: null, reps: 0, lapses: 0, state: 'new' };
+        state.items[obj.id] = obj;
+        n++;
+      });
+      saveState();
+      toast('Imported ' + n);
+      renderDashboard();
+    }
+
+    /* ── Settings ── */
+    var settingsOv = el('settingsOv');
+    function openSettings() {
+      renderSettings();
+      settingsOv.classList.add('show');
+      settingsOv.setAttribute('aria-hidden','false');
+      if (Core && Core.a11y && Core.a11y.trap) Core.a11y.trap(settingsOv);
+    }
+    function closeSettings() {
+      settingsOv.classList.remove('show');
+      settingsOv.setAttribute('aria-hidden','true');
+    }
+    el('gearBtn').addEventListener('click', openSettings);
+    el('settingsClose').addEventListener('click', closeSettings);
+    settingsOv.addEventListener('click', function(e){ if (e.target === settingsOv) closeSettings(); });
+
+    function renderSettings() {
+      var body = el('settingsBody');
+      body.innerHTML = '' +
+        '<div class="field">' +
+          '<label>Desired retention (' + Math.round(settings.desiredRetention * 100) + '%)</label>' +
+          '<input class="input" id="s_ret" type="range" min="0.80" max="0.95" step="0.01" value="' + esc(settings.desiredRetention) + '" />' +
+          '<div class="help">Schedules the next review when predicted retrievability falls to this threshold.</div>' +
+        '</div>' +
+        '<div class="field">' +
+          '<label>Session size limit</label>' +
+          '<input class="input" id="s_lim" type="number" min="5" max="60" value="' + esc(settings.sessionLimit) + '" />' +
+          '<div class="help">Caps items per session (due items may exceed this).</div>' +
+        '</div>' +
+        '<div class="field">' +
+          '<label>Mock exam default time</label>' +
+          '<select id="s_mock">' +
+            opt(5) + opt(10) + opt(15) + opt(30) +
+          '</select>' +
+        '</div>' +
+        '<div class="field">' +
+          '<label>Apply timer badge</label>' +
+          '<select id="s_apply">' +
+            '<option value="1"' + (settings.showApplyTimer ? ' selected' : '') + '>On</option>' +
+            '<option value="0"' + (!settings.showApplyTimer ? ' selected' : '') + '>Off</option>' +
+          '</select>' +
+        '</div>';
+
+      function opt(m) {
+        return '<option value="' + m + '"' + (parseInt(settings.mockDefaultMins,10) === m ? ' selected' : '') + '>' + m + ' min</option>';
+      }
+    }
+
+    el('settingsSave').addEventListener('click', function(){
+      var r = parseFloat(el('s_ret').value);
+      var lim = parseInt(el('s_lim').value, 10);
+      var mm = parseInt(el('s_mock').value, 10);
+      var at = el('s_apply').value === '1';
+      settings.desiredRetention = clamp(isFinite(r) ? r : 0.9, 0.80, 0.95);
+      settings.sessionLimit = clamp(isFinite(lim) ? lim : 12, 5, 60);
+      settings.mockDefaultMins = [5,10,15,30].indexOf(mm) >= 0 ? mm : 10;
+      settings.showApplyTimer = !!at;
+      saveState();
+      closeSettings();
+      renderDashboard();
+      toast('Saved');
+    });
+
+    /* ── Toast (lightweight) ── */
+    var toastEl = null;
+    var toastTimer = null;
+    function toast(msg) {
+      if (!toastEl) {
+        toastEl = document.createElement('div');
+        toastEl.style.cssText =
+          'position:fixed;left:50%;bottom:14px;transform:translateX(-50%);' +
+          'z-index:99;padding:10px 12px;border-radius:14px;' +
+          'background:rgba(var(--accent-rgb),0.16);border:1px solid rgba(var(--accent-rgb),0.22);' +
+          'backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);' +
+          'color:var(--text);font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;' +
+          'box-shadow:var(--shadow-soft);opacity:0;pointer-events:none;';
+        document.body.appendChild(toastEl);
+      }
+      toastEl.textContent = msg;
+      if (toastTimer) clearTimeout(toastTimer);
+      if (window.gsap) {
+        gsap.to(toastEl, { opacity: 1, y: -4, duration: 0.18, ease: 'power2.out' });
+      } else {
+        toastEl.style.opacity = '1';
+      }
+      toastTimer = setTimeout(function() {
+        if (window.gsap) gsap.to(toastEl, { opacity: 0, y: 0, duration: 0.22, ease: 'power2.inOut' });
+        else toastEl.style.opacity = '0';
+      }, 1400);
+    }
+
+    function fmtMMSS(totalSec) {
+      totalSec = Math.max(0, totalSec|0);
+      var m = Math.floor(totalSec / 60);
+      var s = totalSec % 60;
+      return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+    }
+
+    /* ── Boot ── */
+    function boot() {
+      loadState();
+      renderDashboard();
+      showView('viewDash');
+    }
+
+    SyncEngine.onReady(function() {
+      boot();
+    });
+
+    /* Safety: render even if onReady is slow/offline */
+    setTimeout(function() {
+      if (!state) boot();
+    }, 700);
+  </script>
+</body>
+</html>
+
