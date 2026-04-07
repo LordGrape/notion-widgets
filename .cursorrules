@@ -139,7 +139,8 @@
 - SyncEngine.remove('clock', 'timer_state') on reset and completion
 - Timer presets: 25m, 50m, 90m + Custom input (evidence-based learning blocks)
 
-# Timer preset tooltips: PRESETS array includes ttTitle/ttText for hover tooltips.
-# Shared tooltip element #presetTooltip positioned inside .presets container.
-# showPresetTooltip()/hidePresetTooltip() handle positioning + fade.
-# CUSTOM_TOOLTIP holds tooltip data for the Custom chip.
+# Timer preset hints: PRESETS array includes ttTitle/ttText for inline hover hints.
+# #presetHint element sits between .presets and .ring-wrap, expands on hover.
+# showPresetHint()/hidePresetHint() handle height expand + typewriter text reveal.
+# Typewriter: 18ms/char, blinking cursor (.preset-hint-cursor), cursor fades after 1.5s.
+# CUSTOM_TOOLTIP holds hint data for the Custom chip.

@@ -199,54 +199,55 @@ body {
 /* Timer Presets */
 .presets { display: flex; justify-content: center; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
 
-/* Preset Tooltips */
-.preset-tooltip {
-  position: fixed;
-  z-index: 9999;
-  transform: translateX(-50%) translateY(4px);
-  background: var(--card-bg);
-  backdrop-filter: blur(24px) saturate(1.5);
-  -webkit-backdrop-filter: blur(24px) saturate(1.5);
-  border: 1px solid rgba(var(--accent-rgb), 0.12);
-  border-radius: 8px;
-  padding: 6px 11px;
-  max-width: 190px;
-  width: max-content;
+/* Preset Hint (typewriter reveal) */
+.preset-hint {
+  height: 0;
+  overflow: hidden;
+  transition: height 0.3s cubic-bezier(0.4,0,0.2,1);
+  text-align: center;
   pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.2s cubic-bezier(0.4,0,0.2,1), transform 0.2s cubic-bezier(0.4,0,0.2,1);
-  box-shadow: 0 2px 12px rgba(0,0,0,0.06), 0 0 8px rgba(var(--accent-rgb), 0.04);
 }
-.preset-tooltip.show {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
+.preset-hint-inner {
+  padding: 5px 0 3px;
 }
-.preset-tooltip-title {
+.preset-hint-title {
   font-size: 7px;
   font-weight: 600;
-  letter-spacing: 1.4px;
+  letter-spacing: 1.6px;
   text-transform: uppercase;
   color: var(--accent);
   margin-bottom: 2px;
+  opacity: 0;
+  transform: translateY(3px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
-.preset-tooltip-text {
+.preset-hint.show .preset-hint-title {
+  opacity: 1;
+  transform: translateY(0);
+}
+.preset-hint-text {
   font-size: 7.5px;
   font-weight: 300;
-  color: var(--date-color);
-  line-height: 1.4;
-  letter-spacing: 0.15px;
+  color: var(--meta-color);
+  letter-spacing: 0.3px;
+  line-height: 1.35;
+  min-height: 10px;
 }
-.preset-tooltip::after {
-  content: '';
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  border: 4px solid transparent;
-  border-top-color: rgba(var(--accent-rgb), 0.12);
+.preset-hint-cursor {
+  display: inline-block;
+  width: 1px;
+  height: 8px;
+  background: var(--accent);
+  margin-left: 1px;
+  vertical-align: middle;
+  animation: phBlink 0.6s step-end infinite;
+}
+@keyframes phBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 @media (hover: none) {
-  .preset-tooltip { display: none; }
+  .preset-hint { display: none !important; }
 }
 
 .preset-chip { font-family: 'Inter', sans-serif; font-size: 8px; font-weight: 500; letter-spacing: 0.5px; padding: 5px 12px; border-radius: 12px; border: 1px solid var(--arc-track); background: transparent; color: var(--date-color); cursor: pointer; transition: all 0.25s ease; }
@@ -495,9 +496,11 @@ body {
   <!-- TIMER MODE -->
   <div class="mode" id="timerMode" role="tabpanel" aria-label="Timer panel">
     <div class="presets" id="presets"></div>
-    <div class="preset-tooltip" id="presetTooltip">
-      <div class="preset-tooltip-title" id="ttTitle"></div>
-      <div class="preset-tooltip-text" id="ttText"></div>
+    <div class="preset-hint" id="presetHint">
+      <div class="preset-hint-inner">
+        <div class="preset-hint-title" id="phTitle"></div>
+        <div class="preset-hint-text" id="phText"></div>
+      </div>
     </div>
     <div class="ring-wrap">
       <svg class="ring-svg" viewBox="0 0 180 180">
@@ -1232,9 +1235,9 @@ PRESETS.forEach(function(p, i) {
     var idx = parseInt(this.dataset.idx, 10);
     var p = PRESETS[idx];
     if (!p) return;
-    showPresetTooltip(p.ttTitle, p.ttText, this);
+    showPresetHint(p.ttTitle, p.ttText);
   });
-  chip.addEventListener('mouseleave', hidePresetTooltip);
+  chip.addEventListener('mouseleave', hidePresetHint);
   presetsEl.appendChild(chip);
 });
 
@@ -1289,34 +1292,70 @@ customChip.addEventListener('click', function() {
   inp.focus();
 });
 customChip.addEventListener('mouseenter', function() {
-  showPresetTooltip(CUSTOM_TOOLTIP.ttTitle, CUSTOM_TOOLTIP.ttText, this);
+  showPresetHint(CUSTOM_TOOLTIP.ttTitle, CUSTOM_TOOLTIP.ttText);
 });
-customChip.addEventListener('mouseleave', hidePresetTooltip);
+customChip.addEventListener('mouseleave', hidePresetHint);
 presetsEl.appendChild(customChip);
 Core.a11y.roving(presetsEl, '.preset-chip');
 
-/* ── Preset Tooltip Helpers ── */
-var _ttEl = document.getElementById('presetTooltip');
-var _ttTitle = document.getElementById('ttTitle');
-var _ttText = document.getElementById('ttText');
-var _ttHideTimer = null;
+/* ── Preset Hint Helpers (typewriter reveal) ── */
+var _phEl = document.getElementById('presetHint');
+var _phTitle = document.getElementById('phTitle');
+var _phText = document.getElementById('phText');
+var _phHideTimer = null;
+var _phVisible = false;
+var _phTypeTimer = null;
+var _phCurrentText = '';
 
-function showPresetTooltip(title, text, anchor) {
-  clearTimeout(_ttHideTimer);
-  _ttTitle.textContent = title;
-  _ttText.textContent = text;
-  var cRect = anchor.getBoundingClientRect();
-  var chipCenterX = cRect.left + cRect.width / 2;
-  _ttEl.style.left = Math.round(chipCenterX) + 'px';
-  _ttEl.style.top = Math.round(cRect.top - 8) + 'px';
-  _ttEl.style.transform = 'translateX(-50%) translateY(-100%)';
-  _ttEl.classList.add('show');
+function showPresetHint(title, text) {
+  clearTimeout(_phHideTimer);
+
+  if (_phVisible && _phCurrentText === text) return;
+
+  clearInterval(_phTypeTimer);
+
+  _phTitle.textContent = title;
+  _phText.innerHTML = '<span class="preset-hint-cursor"></span>';
+  _phCurrentText = text;
+
+  if (!_phVisible) {
+    _phEl.style.height = 'auto';
+    var h = _phEl.querySelector('.preset-hint-inner').offsetHeight;
+    _phEl.style.height = '0';
+    _phEl.offsetHeight;
+    _phEl.style.height = h + 'px';
+    _phEl.classList.add('show');
+    _phVisible = true;
+  }
+
+  var idx = 0;
+  var speed = 18;
+  _phTypeTimer = setInterval(function() {
+    if (idx < text.length) {
+      _phText.innerHTML = text.slice(0, idx + 1) + '<span class="preset-hint-cursor"></span>';
+      idx++;
+      var newH = _phEl.querySelector('.preset-hint-inner').offsetHeight;
+      _phEl.style.height = newH + 'px';
+    } else {
+      clearInterval(_phTypeTimer);
+      setTimeout(function() {
+        if (_phCurrentText === text && _phVisible) {
+          _phText.textContent = text;
+        }
+      }, 1500);
+    }
+  }, speed);
 }
 
-function hidePresetTooltip() {
-  _ttHideTimer = setTimeout(function() {
-    _ttEl.classList.remove('show');
-  }, 80);
+function hidePresetHint() {
+  _phHideTimer = setTimeout(function() {
+    clearInterval(_phTypeTimer);
+    _phEl.classList.remove('show');
+    _phEl.style.height = '0';
+    _phVisible = false;
+    _phCurrentText = '';
+    _phText.innerHTML = '';
+  }, 120);
 }
 
 /* ── Restore timer on load ── */
