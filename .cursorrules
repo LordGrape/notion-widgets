@@ -142,5 +142,5 @@
 # Timer preset hints: PRESETS array includes ttTitle/ttText for inline hover hints.
 # #presetHint element sits between .presets and .ring-wrap, expands on hover.
 # showPresetHint()/hidePresetHint() handle height expand + typewriter text reveal.
-# Typewriter: 18ms/char, blinking cursor (.preset-hint-cursor), cursor fades after 1.5s.
+# Typewriter: 18ms/char, once per preset per session (_phTyped tracker), instant on revisit.
 # CUSTOM_TOOLTIP holds hint data for the Custom chip.
