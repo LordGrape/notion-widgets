@@ -173,6 +173,8 @@
 - 🔄 button (top-right) fetches horizon.html with cache:no-store to detect updates
 - If content length differs, hard-reloads with ?_cb=timestamp to bust all cache layers
 - No manual ?v=X bumping needed after deploys
+- "🔄 UPDATE" button lives inside the stats panel (info button → top-right of panel)
+- Fetches horizon.html with cache:no-store, compares content length, hard-reloads with ?_cb= if different
 
 # Horizon bars (renamed)
 - Hunger/Spirit/Energy replace Rations/Morale/Readiness (display only, internal keys unchanged)
