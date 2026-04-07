@@ -885,14 +885,22 @@ function renderForecast(d) {
   for (var j = startIdx; j < Math.min(startIdx + 24, times.length); j++) {
     var t = new Date(times[j] + ':00');
     var hr = t.getHours();
-    var label = j === startIdx ? 'Now' : (hr === 0 ? '12a' : hr < 12 ? hr + 'a' : hr === 12 ? '12p' : (hr - 12) + 'p');
-    var w = wmoEmoji(codes[j], t.getHours());
     var isNow = j === startIdx;
+    var label = isNow ? 'Now' : (hr === 0 ? '12a' : hr < 12 ? hr + 'a' : hr === 12 ? '12p' : (hr - 12) + 'p');
+
+    var w, temp;
+    if (isNow) {
+      w = wmoEmoji(d.current.weather_code, now.getHours());
+      temp = Math.round(d.current.temperature_2m);
+    } else {
+      w = wmoEmoji(codes[j], hr);
+      temp = Math.round(temps[j]);
+    }
 
     html += '<div class="forecast-hour' + (isNow ? ' now-hour' : '') + '">' +
       '<span class="forecast-hour-time">' + label + '</span>' +
       '<span class="forecast-hour-icon">' + w[0] + '</span>' +
-      '<span class="forecast-hour-temp">' + Math.round(temps[j]) + '°</span>' +
+      '<span class="forecast-hour-temp">' + temp + '°</span>' +
     '</div>';
   }
   document.getElementById('forecastHours').innerHTML = html;
