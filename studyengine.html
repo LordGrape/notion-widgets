@@ -250,6 +250,8 @@
       letter-spacing: -0.5px;
       font-variant-numeric: tabular-nums;
       color: var(--text);
+  overflow-wrap: break-word;
+  word-break: break-word;
     }
     .stat .s{
       margin-top: 4px;
@@ -1207,7 +1209,8 @@
       border: 1px solid rgba(var(--accent-rgb),0.10);
       background: rgba(var(--accent-rgb),0.02);
       position: relative;
-      overflow: hidden;
+  overflow: visible;
+  min-height: 0;
     }
     .analytics-card .ac-title{
       font-size: 8px;
@@ -1377,6 +1380,127 @@
       outline: 2px solid rgba(var(--accent-rgb),0.45);
       outline-offset: 2px;
     }
+
+/* ── Info Tooltip ── */
+.setting-row{
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(var(--accent-rgb),0.06);
+}
+.setting-row:last-child{ border-bottom: none; }
+.setting-row .sr-left{ flex: 1; min-width: 0; }
+.setting-row .sr-label{
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+.setting-row .sr-control{ width: 100%; }
+.info-icon{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px; height: 16px;
+  border-radius: 99px;
+  background: rgba(var(--accent-rgb),0.08);
+  border: 1px solid rgba(var(--accent-rgb),0.16);
+  color: var(--text-secondary);
+  font-size: 9px;
+  font-weight: 800;
+  cursor: help;
+  position: relative;
+  flex-shrink: 0;
+  user-select: none;
+  transition: background var(--transition), border-color var(--transition);
+}
+.info-icon:hover{
+  background: rgba(var(--accent-rgb),0.14);
+  border-color: rgba(var(--accent-rgb),0.30);
+}
+.info-tooltip{
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 220px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--card-bg);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid rgba(var(--accent-rgb),0.22);
+  box-shadow: var(--shadow-soft);
+  color: var(--text);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  text-transform: none;
+  line-height: 1.5;
+  z-index: 60;
+  pointer-events: none;
+}
+.info-icon:hover .info-tooltip,
+.info-icon:focus .info-tooltip{
+  display: block;
+}
+/* Tooltip arrow */
+.info-tooltip::after{
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: rgba(var(--accent-rgb),0.22);
+}
+
+/* ── Slider Track Styling ── */
+input[type="range"]{
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 99px;
+  background: rgba(var(--accent-rgb),0.12);
+  border: 1px solid rgba(var(--accent-rgb),0.10);
+  outline: none;
+  padding: 0;
+}
+input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px; height: 20px;
+  border-radius: 99px;
+  background: var(--accent);
+  border: 2px solid rgba(255,255,255,0.2);
+  box-shadow: 0 2px 8px rgba(var(--accent-rgb),0.35);
+  cursor: grab;
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+input[type="range"]::-webkit-slider-thumb:hover{
+  transform: scale(1.12);
+  box-shadow: 0 4px 14px rgba(var(--accent-rgb),0.45);
+}
+input[type="range"]::-webkit-slider-thumb:active{
+  cursor: grabbing;
+  transform: scale(1.05);
+}
+input[type="range"]::-moz-range-thumb{
+  width: 20px; height: 20px;
+  border-radius: 99px;
+  background: var(--accent);
+  border: 2px solid rgba(255,255,255,0.2);
+  box-shadow: 0 2px 8px rgba(var(--accent-rgb),0.35);
+  cursor: grab;
+}
   </style>
 </head>
 <body>
@@ -2165,14 +2289,46 @@
       animateCounter(el('statDue'), due.total);
       el('heroCourseHint').textContent = (selectedCourse === 'All') ? 'Across all tiers' : selectedCourse;
 
-      /* Secondary stats */
-      el('statStreak').textContent = String(state.stats.streakDays || 0);
+      /* Secondary stats — animated counters */
+      animateCounter(el('statStreak'), state.stats.streakDays || 0);
       var ar = avgRetention(state.items);
-      el('statRet').textContent = (ar == null) ? '—' : Math.round(ar * 100) + '%';
+      if (ar == null) {
+        el('statRet').textContent = '—';
+      } else {
+        var retTarget = Math.round(ar * 100);
+        var retEl = el('statRet');
+        if (window.gsap) {
+          var retObj = { val: 0 };
+          gsap.to(retObj, {
+            val: retTarget,
+            duration: 0.6,
+            ease: 'power2.out',
+            onUpdate: function() { retEl.textContent = Math.round(retObj.val) + '%'; }
+          });
+        } else {
+          retEl.textContent = retTarget + '%';
+        }
+      }
 
-      /* Calibration */
+      /* Calibration — animated */
       var calP = calibrationPct(state.calibration);
-      el('calVal').textContent = (calP == null) ? '—' : Math.round(calP * 100) + '%';
+      if (calP == null) {
+        el('calVal').textContent = '—';
+      } else {
+        var calTarget = Math.round(calP * 100);
+        var calEl = el('calVal');
+        if (window.gsap) {
+          var calObj = { val: 0 };
+          gsap.to(calObj, {
+            val: calTarget,
+            duration: 0.7,
+            ease: 'power2.out',
+            onUpdate: function() { calEl.textContent = Math.round(calObj.val) + '%'; }
+          });
+        } else {
+          calEl.textContent = calTarget + '%';
+        }
+      }
       el('calSub').textContent = (calP == null) ? 'Complete a session to begin' : (calP >= 0.75 ? 'Well calibrated' : calP >= 0.55 ? 'Slight overconfidence' : 'Significant miscalibration');
       setCalArc(calP == null ? 0 : calP);
 
@@ -2224,6 +2380,7 @@
       el('courseChips').querySelectorAll('.chip').forEach(function(ch){
         ch.addEventListener('click', function() {
           selectedCourse = this.getAttribute('data-course');
+          try { playPresetSelect(); } catch(e) {}
           renderDashboard();
         });
         ch.addEventListener('dblclick', function() {
@@ -2460,6 +2617,7 @@
       sessionSummary = null;
       if (!q.length) return;
       showView('viewSession');
+      try { playStart(); } catch(e) {}
       renderCurrentItem();
     }
 
@@ -2520,6 +2678,7 @@
             row.querySelectorAll('.rub-pill').forEach(function(p){ p.classList.remove('active'); });
             this.classList.add('active');
             activeRubric[key] = idx;
+            try { playClick(); } catch(e) {}
             /* GSAP bounce */
             if (window.gsap) gsap.fromTo(this, { scale: 0.96 }, { scale: 1, duration: 0.35, ease: 'back.out(2.2)' });
           });
@@ -2712,6 +2871,7 @@
       modelAnswerEl.innerHTML = '<div class="answer-header">Model Answer</div>' + esc(it.modelAnswer || '');
       modelAnswerEl.style.display = 'block';
       ratingsEl.style.display = 'grid';
+      try { playClick(); } catch(e) {}
 
       /* focus management: keep rubric reachable with Tab */
       var ta = el('userText');
@@ -2752,6 +2912,7 @@
       session.reviewsByTier[tier] = (session.reviewsByTier[tier] || 0) + 1;
       session.ratingSum += mappedRating;
       session.ratingN += 1;
+      try { playLap(); } catch(e) {}
 
       /* Streak + review counts */
       state.stats.totalReviews = (state.stats.totalReviews || 0) + 1;
@@ -2765,6 +2926,7 @@
 
         /* Restudy phase: show model answer for 10s with indicator */
         studyIndicator.classList.add('show');
+        try { playError(); } catch(e) {}
         disableRatings(true);
 
         setTimeout(function() {
@@ -2880,6 +3042,7 @@
       if (!it) return;
       /* Skips are discouraged but allowed: move to end */
       session.queue.push(it);
+      try { playModeSwitch(); } catch(e) {}
       session.idx++;
       if (session.idx >= session.queue.length) {
         completeSession();
@@ -2944,7 +3107,8 @@
       showView('viewDone');
 
       /* Celebration animation */
-      if (typeof launchConfetti === 'function' && reviewed > 0) {
+      if (reviewed > 0) {
+        try { playChime(); } catch(e) {}
         try { launchConfetti(); } catch(e) {}
       }
       if (window.gsap) {
@@ -3022,10 +3186,12 @@
       modalOv.setAttribute('aria-hidden','false');
       renderModal();
       if (Core && Core.a11y && Core.a11y.trap) Core.a11y.trap(modalOv);
+  try { playOpen(); } catch(e) {}
     }
     function closeModal() {
       modalOv.classList.remove('show');
       modalOv.setAttribute('aria-hidden','true');
+  try { playClose(); } catch(e) {}
     }
 
     function closeModals() {
@@ -3196,6 +3362,7 @@
       var answer = (el('m_answer').value || '').trim();
 
       if (!prompt || !answer) {
+        try { playError(); } catch(e) {}
         toast('Prompt and model answer are required');
         return;
       }
@@ -3253,10 +3420,10 @@
 
     function doImport() {
       var raw = (el('m_import').value || '').trim();
-      if (!raw) { toast('Paste JSON first'); return; }
+      if (!raw) { try { playError(); } catch(e) {} toast('Paste JSON first'); return; }
       var arr = null;
       try { arr = JSON.parse(raw); } catch (e) { toast('Invalid JSON'); return; }
-      if (!Array.isArray(arr)) { toast('Expected an array'); return; }
+      if (!Array.isArray(arr)) { try { playError(); } catch(e) {} toast('Expected an array'); return; }
       var n = 0;
       arr.forEach(function(obj) {
         if (!obj || typeof obj !== 'object') return;
@@ -3284,10 +3451,12 @@
       settingsOv.classList.add('show');
       settingsOv.setAttribute('aria-hidden','false');
       if (Core && Core.a11y && Core.a11y.trap) Core.a11y.trap(settingsOv);
+  try { playOpen(); } catch(e) {}
     }
     function closeSettings() {
       settingsOv.classList.remove('show');
       settingsOv.setAttribute('aria-hidden','true');
+  try { playClose(); } catch(e) {}
     }
     el('gearBtn').addEventListener('click', openSettings);
     el('settingsClose').addEventListener('click', closeSettings);
@@ -3295,33 +3464,72 @@
 
     function renderSettings() {
       var body = el('settingsBody');
-      body.innerHTML = '' +
-        '<div class="field">' +
-          '<label>Desired retention (' + Math.round(settings.desiredRetention * 100) + '%)</label>' +
-          '<input class="input" id="s_ret" type="range" min="0.80" max="0.95" step="0.01" value="' + esc(settings.desiredRetention) + '" />' +
-          '<div class="help">Schedules the next review when predicted retrievability falls to this threshold.</div>' +
-        '</div>' +
-        '<div class="field">' +
-          '<label>Session size limit</label>' +
-          '<input class="input" id="s_lim" type="number" min="5" max="60" value="' + esc(settings.sessionLimit) + '" />' +
-          '<div class="help">Caps items per session (due items may exceed this).</div>' +
-        '</div>' +
-        '<div class="field">' +
-          '<label>Mock exam default time</label>' +
-          '<select id="s_mock">' +
-            opt(5) + opt(10) + opt(15) + opt(30) +
-          '</select>' +
-        '</div>' +
-        '<div class="field">' +
-          '<label>Apply timer badge</label>' +
-          '<select id="s_apply">' +
-            '<option value="1"' + (settings.showApplyTimer ? ' selected' : '') + '>On</option>' +
-            '<option value="0"' + (!settings.showApplyTimer ? ' selected' : '') + '>Off</option>' +
-          '</select>' +
-        '</div>';
+      var retPct = Math.round(settings.desiredRetention * 100);
+
+      function infoIcon(text) {
+        return '<span class="info-icon" tabindex="0">ⓘ<span class="info-tooltip">' + text + '</span></span>';
+      }
 
       function opt(m) {
         return '<option value="' + m + '"' + (parseInt(settings.mockDefaultMins,10) === m ? ' selected' : '') + '>' + m + ' min</option>';
+      }
+
+      body.innerHTML = '' +
+        /* Desired Retention */
+        '<div class="setting-row">' +
+          '<div class="sr-left">' +
+            '<div class="sr-label">Desired retention <span id="s_ret_display" style="color:var(--text);font-size:11px;font-weight:800;letter-spacing:-0.3px;">' + retPct + '%</span> ' +
+              infoIcon('Target probability of remembering a card when it comes due. Higher means more frequent reviews. 0.90 (90%) is the research-backed default. Raise to 0.93-0.95 before exams; lower to 0.85 for maintenance.') +
+            '</div>' +
+            '<input id="s_ret" type="range" min="0.80" max="0.95" step="0.01" value="' + settings.desiredRetention + '" class="sr-control" />' +
+          '</div>' +
+        '</div>' +
+        /* Session Size Limit */
+        '<div class="setting-row">' +
+          '<div class="sr-left">' +
+            '<div class="sr-label">Session size limit ' +
+              infoIcon('Maximum cards per study session. Smaller sessions (10-15) maintain focus and fit between classes. Larger sessions (30-60) suit dedicated cram days. Cram mode auto-scales this up when exams approach.') +
+            '</div>' +
+            '<input class="input sr-control" id="s_lim" type="number" min="5" max="60" value="' + esc(settings.sessionLimit) + '" />' +
+          '</div>' +
+        '</div>' +
+        /* Mock Exam Default Time */
+        '<div class="setting-row">' +
+          '<div class="sr-left">' +
+            '<div class="sr-label">Mock exam default time ' +
+              infoIcon('Default countdown timer for Mock Exam tier items. Adjust based on your exam format. Individual items can override this with their own time limit.') +
+            '</div>' +
+            '<select id="s_mock" class="sr-control">' +
+              opt(5) + opt(10) + opt(15) + opt(30) +
+            '</select>' +
+          '</div>' +
+        '</div>' +
+        /* Apply Timer Badge */
+        '<div class="setting-row">' +
+          '<div class="sr-left">' +
+            '<div class="sr-label">Apply timer badge ' +
+              infoIcon('Shows an elapsed-time counter on Apply It tier items. Builds time-pressure awareness and exam stamina. Purely informational; does not auto-submit.') +
+            '</div>' +
+            '<select id="s_apply" class="sr-control">' +
+              '<option value="1"' + (settings.showApplyTimer ? ' selected' : '') + '>On</option>' +
+              '<option value="0"' + (!settings.showApplyTimer ? ' selected' : '') + '>Off</option>' +
+            '</select>' +
+          '</div>' +
+        '</div>';
+
+      /* Wire live slider update */
+      var retSlider = el('s_ret');
+      var retDisplay = el('s_ret_display');
+      if (retSlider && retDisplay) {
+        retSlider.addEventListener('input', function() {
+          retDisplay.textContent = Math.round(parseFloat(this.value) * 100) + '%';
+        });
+      }
+
+      /* Entrance animation */
+      if (window.gsap) {
+        var rows = body.querySelectorAll('.setting-row');
+        gsap.fromTo(rows, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.25, stagger: 0.05, ease: 'power2.out' });
       }
     }
 
@@ -3337,6 +3545,7 @@
       saveState();
       closeSettings();
       renderDashboard();
+      try { playPresetSelect(); } catch(e) {}
       toast('Saved');
     });
 
@@ -3348,10 +3557,12 @@
       renderCourseModal();
       courseOv.classList.add('show');
       courseOv.setAttribute('aria-hidden', 'false');
+  try { playOpen(); } catch(e) {}
     }
     function closeCourseModal() {
       courseOv.classList.remove('show');
       courseOv.setAttribute('aria-hidden', 'true');
+  try { playClose(); } catch(e) {}
     }
 
     el('courseClose').addEventListener('click', closeCourseModal);
