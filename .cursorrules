@@ -187,3 +187,14 @@
 - drawClaimReaction(ctx, t): canvas overlay that scales particle count with dragon stage
 - Past-due milestones stay visible up to 30 days (auto-archive after 30d as cleanup)
 - No more auto-XP-claim from processExpiredMilestones
+
+# Study Engine (studyengine.html)
+- SyncEngine namespace: `studyengine` (items, calibration, stats), pushes XP to `dragon`
+- NOT a flashcard app — 5 retrieval tiers: Quick Fire, Explain It, Apply It, Distinguish, Mock Exam
+- FSRS-5 algorithm inline, desired retention 0.9
+- Successive relearning loop on Again ratings (re-queue in session, max 3 retries)
+- Self-assessment rubric on generative tiers (Accuracy/Depth/Clarity → FSRS rating)
+- Calibration tracking: self-rating accuracy displayed on dashboard
+- Bloom multiplier on XP: quickfire=1x, explain=2x, apply=3x, distinguish=3x, mock=4x
+- Standalone detection: compact in iframe, expanded when standalone
+- Tier badge colours: QF=blue, EI=purple, AI=amber, DI=pink, ME=red
