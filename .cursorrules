@@ -199,3 +199,15 @@
 - Standalone detection: compact in iframe, expanded when standalone
 - Tier badge colours: QF=blue, EI=purple, AI=amber, DI=pink, ME=red
 # iOS iframe fix: SyncEngine reads passphrase from URL hash fragment (#key=...) as fallback when localStorage is blocked by Safari ITP in cross-origin iframes.
+# Study Engine UI (v2 overhaul)
+- Dashboard uses hero-stat (large due count), 2-col secondary stats, section headers
+- Item cards get tier-themed borders via .tier-{tierName} class
+- Progress bar gets tier-coloured fill via .pbar.tier-{tierName}
+- renderDashboard() handles empty state (emptyState div), animated counters (animateCounter), staggered GSAP entry
+- completeSession() fires launchConfetti() and animates XP counter
+- animateCounter(el, endVal) is a reusable GSAP counter animation
+- renderCourseChips(courseList) is extracted from renderDashboard for reuse
+- Done view uses done-celebration (emoji + headline) and xp-badge styled component
+- CSS variables: --text-tertiary added for lowest-emphasis text
+- Ratings grid is always 4-col (removed 2-col mobile breakpoint for semantic L→R ordering)
+- Rubric pills have larger tap targets (8px 12px padding, 10px font)

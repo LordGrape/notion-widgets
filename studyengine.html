@@ -15,6 +15,7 @@
       --accent-rgb: 139, 92, 246;
       --text: #1a1a2e;
       --text-secondary: #6b7280;
+      --text-tertiary: #9ca3af;
       --shadow: 0 14px 70px rgba(0,0,0,0.10);
       --shadow-soft: 0 8px 40px rgba(0,0,0,0.08);
       --radius: 16px;
@@ -43,6 +44,7 @@
         --accent-rgb: 167, 139, 250;
         --text: #e8e0f0;
         --text-secondary: #9ca3af;
+        --text-tertiary: #6b7280;
         --shadow: 0 18px 90px rgba(0,0,0,0.45);
         --shadow-soft: 0 10px 50px rgba(0,0,0,0.35);
       }
@@ -696,13 +698,10 @@
     .rub-pill:active{ transform: translateY(0) scale(0.98); }
 
     .ratings{
-      margin-top: 12px;
+      margin-top: 14px;
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-    @media (min-width: 520px){
-      .ratings{ grid-template-columns: 1fr 1fr 1fr 1fr; }
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 8px;
     }
     .rate{
       border: none;
@@ -851,6 +850,85 @@
       opacity: 0.95;
     }
 
+    .topbar{ border-bottom: 1px solid rgba(var(--accent-rgb),0.06); }
+    .stats-row{ grid-template-columns: 1fr 1fr; }
+    .section-header{
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin: 14px 0 8px;
+      padding: 0 2px;
+    }
+    .hero-stat{
+      text-align: center;
+      padding: 20px 16px 16px;
+      margin-bottom: 12px;
+      border-radius: var(--radius-lg);
+      background: linear-gradient(135deg, rgba(var(--accent-rgb),0.08), rgba(var(--accent-rgb),0.02));
+      border: 1px solid rgba(var(--accent-rgb),0.18);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-stat::before{
+      content: '';
+      position: absolute;
+      top: -40%; left: -20%;
+      width: 140%; height: 140%;
+      background: radial-gradient(ellipse at 50% 0%, rgba(var(--accent-rgb),0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-stat .hero-value{ font-size: 42px; font-weight: 800; letter-spacing: -2px; line-height: 1; position: relative; }
+    .hero-stat .hero-label{ margin-top: 6px; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600; color: var(--text-secondary); position: relative; }
+    .hero-stat .hero-sub{ margin-top: 4px; font-size: 9px; color: var(--text-tertiary); position: relative; }
+    .stat{ background: rgba(var(--accent-rgb),0.03); border: 1px solid rgba(var(--accent-rgb),0.10); }
+    .stat .k, .stat .s, .gauge .g-title, .gauge .g-sub, .meta .tag, .field label, .help { color: var(--text-tertiary); opacity: 1; }
+    .tier-pill[data-count="0"]{ opacity: 0.45; }
+    .tier-pill{ transition: border-color var(--transition), background var(--transition); }
+    .big-btn{ padding: 15px 16px; letter-spacing: 1.2px; box-shadow: 0 8px 28px rgba(var(--accent-rgb),0.25); position: relative; overflow: hidden; }
+    .big-btn::after{ content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.12), transparent 60%); pointer-events: none; }
+    .big-btn:disabled{ opacity: 0.45; }
+    .empty-state{ text-align: center; padding: 28px 16px; }
+    .empty-state .empty-icon{ font-size: 36px; margin-bottom: 10px; opacity: 0.7; }
+    .empty-state .empty-title{ font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+    .empty-state .empty-desc{ font-size: 10px; color: var(--text-secondary); line-height: 1.5; max-width: 280px; margin: 0 auto; }
+    .skip{ color: var(--text-tertiary); opacity: 1; transition: background var(--transition), border-color var(--transition), opacity var(--transition), color var(--transition); }
+    .skip:hover{ color: var(--text-secondary); }
+    .item-card{ transition: border-color var(--transition); }
+    .item-card.tier-quickfire{ border-color: rgba(59,130,246,0.25); }
+    .item-card.tier-explain{ border-color: rgba(139,92,246,0.25); }
+    .item-card.tier-apply{ border-color: rgba(245,158,11,0.25); }
+    .item-card.tier-distinguish{ border-color: rgba(236,72,153,0.25); }
+    .item-card.tier-mock{ border-color: rgba(239,68,68,0.25); }
+    .answer-header{ font-size: 8px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 8px; font-weight: 800; }
+    textarea::placeholder{ color: var(--text-tertiary); }
+    .rub-pill{ padding: 8px 12px; font-size: 10px; letter-spacing: 0.5px; }
+    .done-celebration{ text-align: center; padding: 20px 16px 8px; }
+    .done-celebration .done-emoji{ font-size: 40px; margin-bottom: 8px; }
+    .done-celebration .done-headline{ font-size: 16px; font-weight: 800; letter-spacing: -0.3px; }
+    .done-celebration .done-subtitle{ margin-top: 4px; font-size: 10px; color: var(--text-secondary); letter-spacing: 0.3px; }
+    .done-stats{ display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0; }
+    .xp-badge{
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(var(--accent-rgb),0.16), rgba(var(--accent-rgb),0.06));
+      border: 1px solid rgba(var(--accent-rgb),0.22);
+      color: var(--accent);
+      font-weight: 800;
+      font-size: 14px;
+      font-variant-numeric: tabular-nums;
+    }
+    .xp-badge .xp-label{ font-size: 9px; letter-spacing: 1.2px; text-transform: uppercase; font-weight: 700; opacity: 0.8; }
+    .pbar.tier-quickfire > div{ background: linear-gradient(90deg, var(--tier-qf), rgba(59,130,246,0.5)); }
+    .pbar.tier-explain > div{ background: linear-gradient(90deg, var(--tier-ex), rgba(139,92,246,0.5)); }
+    .pbar.tier-apply > div{ background: linear-gradient(90deg, var(--tier-ap), rgba(245,158,11,0.5)); }
+    .pbar.tier-distinguish > div{ background: linear-gradient(90deg, var(--tier-di), rgba(236,72,153,0.5)); }
+    .pbar.tier-mock > div{ background: linear-gradient(90deg, var(--tier-mk), rgba(239,68,68,0.5)); }
+
     /* Mobile adjustments */
     @media (max-width: 420px){
       .stats-row{ grid-template-columns: 1fr; }
@@ -858,6 +936,9 @@
       .rub-row .lbl{ width: 100%; }
       .rub-row{ gap: 6px; }
       .tier-badge{ max-width: 100%; }
+      .hero-stat .hero-value{ font-size: 34px; }
+      .ratings{ gap: 6px; }
+      .rate{ padding: 10px 4px; font-size: 8px; }
     }
 
     /* Focus styles */
@@ -886,60 +967,75 @@
 
         <!-- Dashboard -->
         <div class="view active" id="viewDash">
+          <!-- Hero: Items Due -->
+          <div class="hero-stat" id="heroStat">
+            <div class="hero-value" id="statDue">—</div>
+            <div class="hero-label">Items due</div>
+            <div class="hero-sub" id="heroCourseHint">Across all tiers</div>
+          </div>
+
+          <!-- Secondary Stats -->
           <div class="stats-row">
-            <div class="stat">
-              <div class="k">Items due today</div>
-              <div class="v" id="statDue">—</div>
-              <div class="s" id="statDueSub">Across all tiers</div>
-            </div>
             <div class="stat">
               <div class="k">Streak</div>
               <div class="v" id="statStreak">—</div>
-              <div class="s" id="statStreakSub">Days</div>
+              <div class="s">Days</div>
             </div>
             <div class="stat">
-              <div class="k">Avg retention</div>
+              <div class="k">Avg Retention</div>
               <div class="v" id="statRet">—</div>
-              <div class="s" id="statRetSub">From FSRS retrievability</div>
+              <div class="s">FSRS retrievability</div>
             </div>
           </div>
 
-          <div class="gauge">
-            <svg width="84" height="44" viewBox="0 0 84 44" aria-hidden="true">
-              <path d="M6 40 A36 36 0 0 1 78 40" fill="none" stroke="rgba(var(--accent-rgb),0.14)" stroke-width="8" stroke-linecap="round"/>
-              <path id="calArc" d="M6 40 A36 36 0 0 1 78 40" fill="none" stroke="var(--rate-good)" stroke-width="8" stroke-linecap="round" stroke-dasharray="120" stroke-dashoffset="120"/>
+          <!-- Calibration -->
+          <div class="gauge" id="gaugeWrap">
+            <svg width="48" height="48" viewBox="0 0 48 48">
+              <circle cx="24" cy="24" r="19" fill="none" stroke="rgba(var(--accent-rgb),0.08)" stroke-width="4"/>
+              <circle id="calArc" cx="24" cy="24" r="19" fill="none" stroke="var(--accent)" stroke-width="4"
+                stroke-dasharray="120" stroke-dashoffset="120"
+                stroke-linecap="round" transform="rotate(-90 24 24)"
+                style="transition: stroke-dashoffset 0.6s ease, stroke 0.4s ease;"/>
             </svg>
-            <div style="min-width:0">
+            <div>
               <div class="g-title">Calibration</div>
               <div class="g-val" id="calVal">—</div>
               <div class="g-sub" id="calSub">Metacognitive feedback</div>
             </div>
           </div>
 
+          <!-- Tier Breakdown -->
+          <div class="section-header">Due by tier</div>
           <div class="breakdown" id="tierBreakdown"></div>
 
-          <button class="big-btn" id="startBtn">Start Session</button>
+          <!-- Start Session -->
+          <button class="big-btn" id="startBtn" disabled>Start Session</button>
 
-          <div class="row" style="margin-top: 12px">
-            <div style="flex:1; min-width:0">
-              <div style="font-size:8px; letter-spacing:1.6px; text-transform:uppercase; color:var(--text-secondary); font-weight:800; margin-bottom:6px">Course filter</div>
-              <div class="chips" id="courseChips"></div>
-            </div>
+          <!-- Course + Mode -->
+          <div class="row">
+            <div class="section-header" style="margin:0">Course filter</div>
           </div>
+          <div class="chips" id="courseChips"></div>
 
           <div class="row">
-            <div style="flex:1; min-width:0">
-              <div style="font-size:8px; letter-spacing:1.6px; text-transform:uppercase; color:var(--text-secondary); font-weight:800; margin-bottom:6px">Mode</div>
-              <div class="mode-toggle" role="tablist" aria-label="Mode toggle">
-                <button class="mode-btn active" id="modeGeneral" role="tab" aria-selected="true">General</button>
-                <button class="mode-btn" id="modeLaw" role="tab" aria-selected="false">Law School</button>
-              </div>
+            <div class="section-header" style="margin:0">Mode</div>
+            <div class="mode-toggle" role="tablist">
+              <button class="mode-btn active" role="tab" aria-selected="true" id="modeGeneral">General</button>
+              <button class="mode-btn" role="tab" aria-selected="false" id="modeLaw">Law School</button>
             </div>
           </div>
 
+          <!-- Actions -->
           <div class="mini-actions">
             <button class="ghost-btn" id="addBtn">Add Items</button>
             <button class="ghost-btn" id="importBtn">Import JSON</button>
+          </div>
+
+          <!-- Empty State (hidden by default, shown by JS) -->
+          <div class="empty-state" id="emptyState" style="display:none;">
+            <div class="empty-icon">🧠</div>
+            <div class="empty-title">No items yet</div>
+            <div class="empty-desc">Add study items manually or import a JSON batch to start your first retrieval session.</div>
           </div>
         </div>
 
@@ -985,28 +1081,35 @@
 
         <!-- Complete -->
         <div class="view" id="viewDone">
-          <div class="stat" style="margin-bottom:10px">
-            <div class="k">Session summary</div>
-            <div class="v" id="doneTitle">—</div>
-            <div class="s" id="doneSub">—</div>
+          <!-- Celebration -->
+          <div class="done-celebration" id="doneCelebration">
+            <div class="done-emoji">🎯</div>
+            <div class="done-headline" id="doneTitle">— items reviewed</div>
+            <div class="done-subtitle" id="doneSub">—</div>
           </div>
 
-          <div class="stats-row" style="grid-template-columns:1fr 1fr">
-            <div class="stat">
-              <div class="k">XP earned</div>
-              <div class="v" id="doneXP">—</div>
-              <div class="s">Pushed to dragon</div>
+          <!-- XP + Calibration -->
+          <div class="done-stats">
+            <div class="stat" style="text-align:center;">
+              <div class="k">XP Earned</div>
+              <div class="xp-badge">
+                <span id="doneXP">—</span>
+                <span class="xp-label">XP</span>
+              </div>
+              <div class="s" style="margin-top:6px;">Pushed to dragon</div>
             </div>
-            <div class="stat">
+            <div class="stat" style="text-align:center;">
               <div class="k">Calibration</div>
               <div class="v" id="doneCal">—</div>
               <div class="s" id="doneTrend">—</div>
             </div>
           </div>
 
-          <div class="breakdown" id="doneBreakdown" style="margin-top:10px"></div>
+          <!-- Tier Breakdown -->
+          <div class="breakdown" id="doneBreakdown"></div>
 
-          <button class="big-btn" id="backBtn" style="margin-top:14px">Back to Dashboard</button>
+          <!-- Back -->
+          <button class="big-btn" id="backBtn">Back to Dashboard</button>
         </div>
       </div>
     </div>
@@ -1260,11 +1363,8 @@
       views.forEach(function(v){ v.classList.remove('active'); });
       next.classList.add('active');
 
-      var y = 10;
       if (window.gsap) {
-        gsap.fromTo(next, { opacity: 0, y: y }, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' });
-      } else if (Core && Core.fadeIn) {
-        Core.fadeIn(next, { y: y, duration: 0.35 });
+        gsap.fromTo(next, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' });
       }
     }
 
@@ -1319,23 +1419,50 @@
 
     function renderDashboard() {
       var due = countDue(state.items, selectedCourse);
-      el('statDue').textContent = String(due.total);
+      var totalItems = Object.keys(state.items).length;
+
+      /* Empty state */
+      var emptyEl = el('emptyState');
+      var heroEl = el('heroStat');
+      if (totalItems === 0) {
+        emptyEl.style.display = 'block';
+        heroEl.style.display = 'none';
+        el('startBtn').disabled = true;
+        el('tierBreakdown').innerHTML = '';
+        el('statStreak').textContent = '—';
+        el('statRet').textContent = '—';
+        el('calVal').textContent = '—';
+        el('calSub').textContent = 'Add items to begin';
+        setCalArc(0);
+        renderCourseChips([]);
+        return;
+      }
+      emptyEl.style.display = 'none';
+      heroEl.style.display = 'block';
+
+      /* Hero due count with counter animation */
+      animateCounter(el('statDue'), due.total);
+      el('heroCourseHint').textContent = (selectedCourse === 'All') ? 'Across all tiers' : selectedCourse;
+
+      /* Secondary stats */
       el('statStreak').textContent = String(state.stats.streakDays || 0);
       var ar = avgRetention(state.items);
       el('statRet').textContent = (ar == null) ? '—' : Math.round(ar * 100) + '%';
 
+      /* Calibration */
       var calP = calibrationPct(state.calibration);
       el('calVal').textContent = (calP == null) ? '—' : Math.round(calP * 100) + '%';
       el('calSub').textContent = (calP == null) ? 'Complete a session to begin' : (calP >= 0.75 ? 'Well calibrated' : calP >= 0.55 ? 'Slight overconfidence' : 'Significant miscalibration');
       setCalArc(calP == null ? 0 : calP);
 
+      /* Tier breakdown with tier colours */
       var tiers = ['quickfire','explain','apply','distinguish','mock'];
       var tierNames = { quickfire:'Quick Fire', explain:'Explain', apply:'Apply', distinguish:'Distinguish', mock:'Mock' };
       var bd = '';
       tiers.forEach(function(t) {
         var c = due.byTier[t] || 0;
         var col = tierColour(t);
-        bd += '<span class="tier-pill"><span class="tier-dot" style="background:'+ col +'"></span>' + tierNames[t] + ': ' + c + '</span>';
+        bd += '<span class="tier-pill" data-count="' + c + '" style="border-color:' + col + '30;"><span class="tier-dot" style="background:' + col + ';color:' + col + ';"></span> ' + tierNames[t] + ': ' + c + '</span>';
       });
       el('tierBreakdown').innerHTML = bd;
 
@@ -1349,9 +1476,24 @@
       }
       var courseList = Object.keys(courses).sort(function(a,b){ return a.localeCompare(b); });
       courseList.unshift('All');
+      renderCourseChips(courseList);
+
+      el('startBtn').disabled = (due.total === 0);
+
+      /* Staggered entry animation */
+      if (window.gsap) {
+        var targets = viewDash.querySelectorAll('.hero-stat, .stats-row, .gauge, .breakdown, .big-btn, .chips, .mini-actions');
+        gsap.fromTo(targets,
+          { opacity: 0, y: 8 },
+          { opacity: 1, y: 0, duration: 0.3, stagger: 0.04, ease: 'power2.out' }
+        );
+      }
+    }
+
+    function renderCourseChips(courseList) {
       var chips = '';
       courseList.forEach(function(c) {
-        chips += '<div class="chip' + (c === selectedCourse ? ' active' : '') + '" data-course="' + esc(c) + '">' + esc(c) + '</div>';
+        chips += '<span class="chip' + (c === selectedCourse ? ' active' : '') + '" data-course="' + esc(c) + '">' + esc(c) + '</span>';
       });
       el('courseChips').innerHTML = chips;
       el('courseChips').querySelectorAll('.chip').forEach(function(ch){
@@ -1360,8 +1502,20 @@
           renderDashboard();
         });
       });
+    }
 
-      el('startBtn').disabled = (due.total === 0);
+    function animateCounter(target, endVal) {
+      if (!target) return;
+      if (!window.gsap) { target.textContent = String(endVal); return; }
+      var obj = { val: 0 };
+      gsap.to(obj, {
+        val: endVal,
+        duration: 0.6,
+        ease: 'power2.out',
+        onUpdate: function() {
+          target.textContent = String(Math.round(obj.val));
+        }
+      });
     }
 
     function esc(s){
@@ -1562,6 +1716,18 @@
       if (!it) { completeSession(); return; }
 
       setTierBadge(it.tier);
+      /* Tier-themed item card border */
+      var ic = document.querySelector('.item-card');
+      if (ic) {
+        ic.className = 'item-card tier-' + it.tier;
+      }
+
+      /* Tier-coloured progress bar */
+      var pb = document.querySelector('.pbar');
+      if (pb) {
+        pb.className = 'pbar tier-' + it.tier;
+      }
+
       /* For Apply It we render the scenario in a distinct block; avoid duplicating it in the top prompt. */
       if (it.tier === 'apply') el('promptText').textContent = 'Scenario';
       else el('promptText').textContent = it.prompt || '';
@@ -1703,7 +1869,7 @@
         }
       }
 
-      modelAnswerEl.textContent = it.modelAnswer || '';
+      modelAnswerEl.innerHTML = '<div class="answer-header">Model Answer</div>' + esc(it.modelAnswer || '');
       modelAnswerEl.style.display = 'block';
       ratingsEl.style.display = 'grid';
 
@@ -1915,6 +2081,30 @@
 
       session = null;
       showView('viewDone');
+
+      /* Celebration animation */
+      if (typeof launchConfetti === 'function' && reviewed > 0) {
+        try { launchConfetti(); } catch(e) {}
+      }
+      if (window.gsap) {
+        var cele = el('doneCelebration');
+        if (cele) {
+          gsap.fromTo(cele, { scale: 0.9, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.5, ease: 'back.out(1.6)' });
+        }
+        /* Animate XP counter */
+        var xpEl = el('doneXP');
+        if (xpEl) {
+          var xpObj = { val: 0 };
+          var finalXP = parseInt(xpEl.textContent, 10) || 0;
+          gsap.to(xpObj, {
+            val: finalXP,
+            duration: 0.8,
+            delay: 0.3,
+            ease: 'power2.out',
+            onUpdate: function() { xpEl.textContent = String(Math.round(xpObj.val)); }
+          });
+        }
+      }
     }
 
     /* ── Keyboard shortcuts ── */
