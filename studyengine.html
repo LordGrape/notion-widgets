@@ -2457,7 +2457,10 @@ input[type="range"]::-moz-range-thumb{
     if (!isEmbedded) document.body.classList.add('standalone');
 
     /* ── SyncEngine Init ── */
-    SyncEngine.init({ worker: 'https://widget-sync.lordgrape-widgets.workers.dev' });
+    SyncEngine.init({
+      worker: 'https://widget-sync.lordgrape-widgets.workers.dev',
+      namespaces: ['dragon', 'clock', 'user', 'studyengine']
+    });
 
     /* ── Background ── */
     initBackground('bgCanvas', {
@@ -2651,7 +2654,6 @@ input[type="range"]::-moz-range-thumb{
     function loadState() {
       var items = SyncEngine.get(NS, 'items') || null;
       var courses = SyncEngine.get(NS, 'courses') || null;
-      console.log('[SE] loadState raw from SyncEngine. items:', items, 'courses:', courses);
       var calibration = SyncEngine.get(NS, 'calibration') || null;
       var stats = SyncEngine.get(NS, 'stats') || null;
       state = deepClone(DEFAULT_STATE);
@@ -2668,8 +2670,6 @@ input[type="range"]::-moz-range-thumb{
     }
 
     function saveState() {
-      console.log('[SE] saveState called. courses:', JSON.stringify(state.courses));
-      console.log('[SE] saveState called. items count:', Object.keys(state.items || {}).length);
       SyncEngine.set(NS, 'items', state.items || {});
       SyncEngine.set(NS, 'courses', state.courses || {});
       SyncEngine.set(NS, 'calibration', state.calibration || deepClone(DEFAULT_STATE.calibration));
@@ -2742,7 +2742,6 @@ input[type="range"]::-moz-range-thumb{
     }
 
     function saveCourse(courseObj) {
-      console.log('[SE] saveCourse called with:', JSON.stringify(courseObj));
       if (!courseObj || !courseObj.name) return;
       courseObj.id = courseObj.id || courseObj.name;
       state.courses[courseObj.name] = courseObj;
@@ -6006,8 +6005,6 @@ input[type="range"]::-moz-range-thumb{
 
     function boot() {
       loadState();
-      console.log('[SE] localStorage keys:', Object.keys(localStorage).filter(function(k) { return k.indexOf('studyengine') >= 0 || k.indexOf('sync') >= 0; }));
-      console.log('[SE] localStorage raw courses:', localStorage.getItem('sync:studyengine:courses'));
       initMascot();
       renderDashboard();
       showView('viewDash');
