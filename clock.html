@@ -910,7 +910,7 @@ function renderForecast(d) {
    PRESENCE TRACKING (self-contained)
    Session: survives soft reloads via sessionStorage.
    Today: accumulates across all sessions via SyncEngine.
-   Pauses when tab is hidden (visibilitychange).
+   Hidden gaps under 10 min still count as active; longer gaps pause (visibilitychange).
    ══════════════════════════════════════ */
 var _presNow = Date.now();
 var _preDateStr = new Date().toISOString().slice(0, 10);
@@ -941,6 +941,8 @@ var _presLastSave = 0;
 /* Read prior daily total from SyncEngine */
 var _presPriorToday = parseFloat(SyncEngine.get('clock', _presTodayKey)) || 0;
 
+var _PRES_AWAY_THRESHOLD = 10 * 60 * 1000; /* 10 minutes — short gaps count as active */
+
 /* Pause/resume on tab visibility change */
 document.addEventListener('visibilitychange', function() {
   if (document.hidden) {
@@ -950,7 +952,10 @@ document.addEventListener('visibilitychange', function() {
     _savePresence();
   } else {
     if (_presHidden && _presHiddenAt) {
-      _presPausedTotal += Date.now() - _presHiddenAt;
+      var gap = Date.now() - _presHiddenAt;
+      if (gap > _PRES_AWAY_THRESHOLD) {
+        _presPausedTotal += gap;
+      }
     }
     _presHidden = false;
     /* Refresh daily total in case another widget instance wrote to it */

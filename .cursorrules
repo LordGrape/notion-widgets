@@ -145,3 +145,6 @@
 # Typewriter: 18ms/char, once per preset per session (_phTyped tracker), instant on revisit.
 # Hover intent: 300ms delay before hint opens. Passing through chips does not trigger.
 # CUSTOM_TOOLTIP holds hint data for the Custom chip.
+
+# Presence tracking: gaps under 10 min (_PRES_AWAY_THRESHOLD) count as active Notion time.
+# Only gaps >10 min are subtracted. Accounts for Notion app iframe unloading on page navigation.
