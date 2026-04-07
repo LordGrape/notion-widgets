@@ -143,6 +143,9 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); display: flex; a
 .course-item-meta { font-size: 8px; font-weight: 300; color: var(--text-muted); }
 .course-delete-btn { background: none; border: none; cursor: pointer; font-size: 12px; color: var(--text-muted); padding: 2px 6px; border-radius: 4px; transition: color 0.2s, background 0.2s; flex-shrink: 0; }
 .course-delete-btn:hover { color: #ef4444; background: rgba(239,68,68,0.08); }
+.course-edit-btn { background: none; border: none; cursor: pointer; font-size: 12px; color: var(--text-muted); padding: 2px 6px; border-radius: 4px; transition: color 0.2s, background 0.2s; flex-shrink: 0; }
+.course-edit-btn:hover { color: var(--dot-active); background: rgba(138,92,246,0.08); }
+.course-actions { display: flex; gap: 2px; flex-shrink: 0; }
 .add-course-btn { width: 100%; padding: 8px; border-radius: 8px; border: 1px dashed var(--block-border); background: transparent; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 9px; font-weight: 500; color: var(--text-secondary); letter-spacing: 0.5px; transition: all 0.2s; margin-top: 8px; }
 .add-course-btn:hover { border-color: var(--dot-active); color: var(--dot-active); background: rgba(138,92,246,0.04); }
 .add-form { margin-top: 10px; padding: 12px; border-radius: 10px; background: var(--block-bg); border: 1px solid var(--block-border); }
@@ -477,6 +480,16 @@ function getBlocks() {
 function saveBlocks(arr) { SyncEngine.set('timetable', 'courses', arr); schedule = arr; }
 function addBlock(b) { var arr = getBlocks(); b.id = genId(); arr.push(b); saveBlocks(arr); return b; }
 function deleteBlock(id) { saveBlocks(getBlocks().filter(function(b) { return b.id !== id; })); }
+function editBlock(id, data) {
+  var arr = getBlocks();
+  for (var i = 0; i < arr.length; i++) {
+    if (arr[i].id === id) {
+      arr[i] = { id: id, name: data.name, description: data.description, location: data.location, color: data.color, days: data.days };
+      break;
+    }
+  }
+  saveBlocks(arr);
+}
 
 /* Returns flat entries for a single day, sorted by start time */
 function getBlocksForDay(dayNum) {
@@ -748,24 +761,36 @@ function renderBlockList() {
       '<div class="course-item-accent" style="background:' + b.color + '"></div>' +
       '<div class="course-item-info"><div class="course-item-name">' + b.name + '</div>' +
       '<div class="course-item-meta">' + metaParts.join(' \u00B7 ') + '</div></div>';
+    var actions = document.createElement('div'); actions.className = 'course-actions';
+    var editBtn = document.createElement('button'); editBtn.className = 'course-edit-btn'; editBtn.innerHTML = '&#9998;';
+    editBtn.setAttribute('aria-label', 'Edit ' + b.name);
+    editBtn.addEventListener('click', function(e) { e.stopPropagation(); showAddForm(b); });
+    actions.appendChild(editBtn);
     var delBtn = document.createElement('button'); delBtn.className = 'course-delete-btn'; delBtn.textContent = '\u2715';
     delBtn.setAttribute('aria-label', 'Delete ' + b.name);
     delBtn.addEventListener('click', function(e) { e.stopPropagation(); confirmDeleteBlock(b); });
-    item.appendChild(delBtn);
+    actions.appendChild(delBtn);
+    item.appendChild(actions);
     el.appendChild(item);
   });
   bindSettingsRoving();
 }
 
 /* ── Add Block Form ── */
-function showAddForm() {
-  if (addFormVisible) return;
+function showAddForm(existingBlock) {
+  if (addFormVisible && !existingBlock) return;
+  if (addFormVisible) hideAddForm();
   addFormVisible = true;
   playOpen();
   var container = document.getElementById('addFormContainer');
   container.style.display = '';
-  var selectedColor = COLORS[0];
+  var selectedColor = (existingBlock && existingBlock.color) ? existingBlock.color : COLORS[0];
   var selectedDays = {}; /* { dayNum: { start, end } } */
+  if (existingBlock && existingBlock.days) {
+    existingBlock.days.forEach(function(d) {
+      selectedDays[d.day] = { start: d.start, end: d.end };
+    });
+  }
 
   container.innerHTML =
     '<div class="add-form">' +
@@ -779,7 +804,7 @@ function showAddForm() {
     '<div class="form-row"><label class="form-label">Colour</label><div class="color-swatches" id="af-colors"></div></div>' +
     '<div class="form-actions">' +
     '<button class="form-btn form-btn-secondary" id="af-cancel">Cancel</button>' +
-    '<button class="form-btn form-btn-primary" id="af-save">Add Block</button>' +
+    '<button class="form-btn form-btn-primary" id="af-save">' + (existingBlock ? 'Save' : 'Add Block') + '</button>' +
     '</div></div>';
 
   function getDefaultTimes() {
@@ -824,6 +849,10 @@ function showAddForm() {
     btn.className = 'day-dot';
     btn.textContent = label;
     btn.style.cssText = 'width:26px;height:26px;border-radius:50%;border:1px solid var(--block-border);background:var(--dot-bg);color:var(--text-secondary);font-family:Inter,sans-serif;font-size:8px;font-weight:600;cursor:pointer;transition:all 0.2s;';
+    if (selectedDays[i] !== undefined) {
+      btn.style.background = 'var(--dot-active)';
+      btn.style.color = '#fff';
+    }
     btn.addEventListener('click', function() {
       playClick();
       if (selectedDays[i] !== undefined) {
@@ -843,11 +872,13 @@ function showAddForm() {
     dayPicker.appendChild(btn);
   });
 
+  if (existingBlock) renderTimeRows();
+
   /* Colour swatches */
   var colorContainer = document.getElementById('af-colors');
   COLORS.forEach(function(c, i) {
     var swatch = document.createElement('div');
-    swatch.className = 'color-swatch' + (i === 0 ? ' active' : '');
+    swatch.className = 'color-swatch' + (c === selectedColor ? ' active' : '');
     swatch.style.background = c;
     swatch.addEventListener('click', function() {
       selectedColor = c; playClick();
@@ -856,6 +887,12 @@ function showAddForm() {
     });
     colorContainer.appendChild(swatch);
   });
+
+  if (existingBlock) {
+    document.getElementById('af-name').value = existingBlock.name || '';
+    document.getElementById('af-desc').value = (existingBlock.description && existingBlock.description !== 'TBA') ? existingBlock.description : '';
+    document.getElementById('af-loc').value = (existingBlock.location && existingBlock.location !== 'TBA') ? existingBlock.location : '';
+  }
 
   /* Cancel */
   document.getElementById('af-cancel').addEventListener('click', function() { hideAddForm(); playClose(); });
@@ -884,7 +921,11 @@ function showAddForm() {
       return { day: parseInt(k), start: d.start, end: d.end };
     });
 
-    addBlock({ name: name, description: desc || 'TBA', location: loc || 'TBA', color: selectedColor, days: days });
+    if (existingBlock) {
+      editBlock(existingBlock.id, { name: name, description: desc || 'TBA', location: loc || 'TBA', color: selectedColor, days: days });
+    } else {
+      addBlock({ name: name, description: desc || 'TBA', location: loc || 'TBA', color: selectedColor, days: days });
+    }
     playStart();
     hideAddForm();
     renderBlockList();
@@ -949,7 +990,7 @@ document.addEventListener('keydown', function(e) {
 
 function bindSettingsRoving() {
   var blockListEl = document.getElementById('blockList');
-  if (blockListEl) Core.a11y.roving(blockListEl, '.course-delete-btn');
+  if (blockListEl) Core.a11y.roving(blockListEl, '.course-edit-btn, .course-delete-btn');
 }
 
 /* ══════════════════════════════════════
