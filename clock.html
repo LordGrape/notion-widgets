@@ -227,8 +227,8 @@ body {
 }
 .preset-hint-text {
   font-size: 7.5px;
-  font-weight: 300;
-  color: var(--meta-color);
+  font-weight: 400;
+  color: var(--date-color);
   letter-spacing: 0.3px;
   line-height: 1.35;
   min-height: 10px;
@@ -1298,7 +1298,7 @@ customChip.addEventListener('mouseleave', hidePresetHint);
 presetsEl.appendChild(customChip);
 Core.a11y.roving(presetsEl, '.preset-chip');
 
-/* ── Preset Hint Helpers (typewriter reveal) ── */
+/* ── Preset Hint Helpers (typewriter on first view, instant after) ── */
 var _phEl = document.getElementById('presetHint');
 var _phTitle = document.getElementById('phTitle');
 var _phText = document.getElementById('phText');
@@ -1306,6 +1306,7 @@ var _phHideTimer = null;
 var _phVisible = false;
 var _phTypeTimer = null;
 var _phCurrentText = '';
+var _phTyped = {};
 
 function showPresetHint(title, text) {
   clearTimeout(_phHideTimer);
@@ -1315,10 +1316,12 @@ function showPresetHint(title, text) {
   clearInterval(_phTypeTimer);
 
   _phTitle.textContent = title;
-  _phText.innerHTML = '<span class="preset-hint-cursor"></span>';
   _phCurrentText = text;
 
+  var alreadySeen = _phTyped[text];
+
   if (!_phVisible) {
+    _phText.textContent = text;
     _phEl.style.height = 'auto';
     var h = _phEl.querySelector('.preset-hint-inner').offsetHeight;
     _phEl.style.height = '0';
@@ -1326,7 +1329,19 @@ function showPresetHint(title, text) {
     _phEl.style.height = h + 'px';
     _phEl.classList.add('show');
     _phVisible = true;
+
+    if (alreadySeen) return;
   }
+
+  if (alreadySeen) {
+    _phText.textContent = text;
+    var newH = _phEl.querySelector('.preset-hint-inner').offsetHeight;
+    _phEl.style.height = newH + 'px';
+    return;
+  }
+
+  _phText.innerHTML = '<span class="preset-hint-cursor"></span>';
+  _phEl.style.height = _phEl.querySelector('.preset-hint-inner').offsetHeight + 'px';
 
   var idx = 0;
   var speed = 18;
@@ -1338,6 +1353,7 @@ function showPresetHint(title, text) {
       _phEl.style.height = newH + 'px';
     } else {
       clearInterval(_phTypeTimer);
+      _phTyped[text] = true;
       setTimeout(function() {
         if (_phCurrentText === text && _phVisible) {
           _phText.textContent = text;
