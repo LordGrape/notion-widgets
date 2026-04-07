@@ -318,6 +318,28 @@ body {
 .blip-cd-unit { font-size: 8px; font-weight: 400; letter-spacing: 0.5px; opacity: 0.85; }
 .blip-close { margin-top: 10px; font-size: 7px; font-weight: 300; color: var(--text-muted); letter-spacing: 1.5px; text-transform: uppercase; }
 
+/* ── Milestone action buttons ── */
+.blip-actions { display:flex; gap:6px; margin-top:12px; justify-content:center; }
+.blip-act-btn {
+  all:unset; cursor:pointer;
+  font-size:8px; font-weight:500;
+  padding:6px 14px; border-radius:8px;
+  background:var(--item-bg); border:1px solid var(--item-border);
+  color:var(--text-secondary);
+  transition:all 0.2s; letter-spacing:0.3px;
+}
+.blip-act-btn:hover { background:var(--item-hover-bg); border-color:var(--item-hover-border); }
+.blip-claim.ready {
+  background:rgba(var(--accent-rgb),0.1);
+  border-color:var(--accent);
+  color:var(--accent); font-weight:600;
+  animation:breathe 3s ease infinite;
+}
+.blip-act-btn.blip-delete { opacity:0.6; }
+.blip-act-btn.blip-delete:hover { opacity:1; color:var(--danger, #ef4444); border-color:var(--danger, #ef4444); background:rgba(239,68,68,0.06); }
+.ev-ready { border-color:rgba(var(--accent-rgb),0.3) !important; background:rgba(var(--accent-rgb),0.06) !important; }
+.ev-ready .ev-val { color:#22c55e !important; }
+
 /* ── Evolution Ceremony ── */
 .evol-overlay {
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -749,9 +771,9 @@ button:focus-visible, .tab-btn:focus-visible, .rad-btn:focus-visible, .st-btn:fo
   <div class="view dragon-view active" id="vDragon" role="tabpanel" aria-label="Dragon panel">
     <canvas id="dc"></canvas>
     <div class="d-bars" id="dBars">
-      <div class="d-bar-row"><span class="d-bar-icon">&#x1F356;</span><span class="d-bar-label">Rations</span><div class="d-bar-track" aria-label="Rations: 100%"><div class="d-bar-fill" id="barRations" style="width:100%"></div></div><span class="d-bar-val" id="valRations">100</span></div>
-      <div class="d-bar-row"><span class="d-bar-icon">&#x2694;&#xFE0F;</span><span class="d-bar-label">Morale</span><div class="d-bar-track" aria-label="Morale: 100%"><div class="d-bar-fill" id="barMorale" style="width:100%"></div></div><span class="d-bar-val" id="valMorale">100</span></div>
-      <div class="d-bar-row"><span class="d-bar-icon">&#x26A1;</span><span class="d-bar-label">Readiness</span><div class="d-bar-track" aria-label="Readiness: 100%"><div class="d-bar-fill" id="barReadiness" style="width:100%"></div></div><span class="d-bar-val" id="valReadiness">100</span></div>
+      <div class="d-bar-row"><span class="d-bar-icon">&#x1F356;</span><span class="d-bar-label">Hunger</span><div class="d-bar-track" aria-label="Hunger: 100%"><div class="d-bar-fill" id="barRations" style="width:100%"></div></div><span class="d-bar-val" id="valRations">100</span></div>
+      <div class="d-bar-row"><span class="d-bar-icon">&#x2728;</span><span class="d-bar-label">Spirit</span><div class="d-bar-track" aria-label="Spirit: 100%"><div class="d-bar-fill" id="barMorale" style="width:100%"></div></div><span class="d-bar-val" id="valMorale">100</span></div>
+      <div class="d-bar-row"><span class="d-bar-icon">&#x26A1;</span><span class="d-bar-label">Energy</span><div class="d-bar-track" aria-label="Energy: 100%"><div class="d-bar-fill" id="barReadiness" style="width:100%"></div></div><span class="d-bar-val" id="valReadiness">100</span></div>
     </div>
     <div class="d-status" id="dStatus"></div>
     <div class="xp-prog">
@@ -814,9 +836,9 @@ button:focus-visible, .tab-btn:focus-visible, .rad-btn:focus-visible, .st-btn:fo
 <!-- Radial Menu -->
 <div class="radial-ov" id="radialOv">
   <div class="radial-menu">
-    <button class="rad-btn" id="btnFeed" data-act="feed" aria-label="Feed dragon"><span class="rad-icon">&#x1F356;</span><span>Rations</span></button>
-    <button class="rad-btn" id="btnPlay" data-act="play" aria-label="Play with dragon"><span class="rad-icon">&#x2694;&#xFE0F;</span><span>Morale</span></button>
-    <button class="rad-btn" id="btnRest" data-act="rest" aria-label="Train and rest dragon"><span class="rad-icon">&#x1F4A4;</span><span>Readiness</span></button>
+    <button class="rad-btn" id="btnFeed" data-act="feed" aria-label="Feed dragon"><span class="rad-icon">&#x1F356;</span><span>Feed</span></button>
+    <button class="rad-btn" id="btnPlay" data-act="play" aria-label="Play with dragon"><span class="rad-icon">&#x2728;</span><span>Play</span></button>
+    <button class="rad-btn" id="btnRest" data-act="rest" aria-label="Rest dragon"><span class="rad-icon">&#x1F4A4;</span><span>Rest</span></button>
   </div>
 </div>
 
@@ -2921,7 +2943,7 @@ function drawActivityOverlays(ctx, t) {
    ══════════════════════════════════════ */
 
 function updateBars() {
-  [['rations','Rations'],['morale','Morale'],['readiness','Readiness']].forEach(function(b) {
+  [['rations','Rations','Hunger'],['morale','Morale','Spirit'],['readiness','Readiness','Energy']].forEach(function(b) {
     var val = Math.max(0, DS[b[0]]);
     var fill = document.getElementById('bar' + b[1]);
     fill.style.width = val + '%';
@@ -2931,7 +2953,7 @@ function updateBars() {
     else if (val < 30) fill.classList.add('warn');
     document.getElementById('val' + b[1]).textContent = Math.round(val);
     var track = fill.parentNode;
-    if (track) track.setAttribute('aria-label', b[1] + ': ' + Math.round(val) + '%');
+    if (track) track.setAttribute('aria-label', b[2] + ': ' + Math.round(val) + '%');
   });
 }
 
@@ -3073,37 +3095,20 @@ function processExpiredMilestones() {
   var milestones = loadMilestones();
   var now = new Date();
   now.setHours(0, 0, 0, 0);
-  var claimed = {};
-  try { claimed = JSON.parse(localStorage.getItem('dragon_milestone_claimed') || '{}'); } catch (e) { claimed = {}; }
-  var changed = false, xpGained = false;
+  var changed = false;
   milestones = milestones.filter(function(ms) {
     var msDate = new Date(ms.date + 'T00:00:00');
     msDate.setHours(0, 0, 0, 0);
-    if (msDate < now) {
-      if (!claimed[ms.id]) {
-        var xp = Math.floor(scaledMilestoneXP(migrateCategoryId(ms.cat)) * xpMult(DS));
-        if (xp > 0) { DS.xp += xp; xpGained = true; }
-        claimed[ms.id] = new Date().toISOString();
-        (function(amt, ic) {
-          setTimeout(function() { showXPFloat('\uD83C\uDFAF ' + ic + ' +' + amt + ' XP'); }, 800);
-        })(xp, ms.icon || '\uD83D\uDCCC');
-      }
+    var daysPast = Math.floor((now - msDate) / 86400000);
+    /* Auto-archive only if >30 days past due and unclaimed (cleanup safety net) */
+    if (daysPast > 30) {
       archiveMilestone(ms);
       changed = true;
       return false;
     }
     return true;
   });
-  if (changed) {
-    saveMilestones(milestones);
-    localStorage.setItem('dragon_milestone_claimed', JSON.stringify(claimed));
-    if (xpGained) {
-      saveDS(DS);
-      var ns = getStage(DS.xp);
-      if (ns > prevStage) { prevStage = ns; showEvolution(ns); }
-      if (typeof checkAch === 'function') checkAch();
-    }
-  }
+  if (changed) saveMilestones(milestones);
   return milestones;
 }
 
@@ -3361,9 +3366,9 @@ setTimeout(function() {
       ['Next Evolution', nxt ? nxt.xp.toLocaleString() + ' XP (' + nxt.rank + ')' : 'MAX'],
       ['Streak', DS.streak + ' days'],
       ['XP Multiplier', (xpMult(DS) * 100) + '%'],
-      ['Rations', Math.round(DS.rations) + '%'],
-      ['Morale', Math.round(DS.morale) + '%'],
-      ['Readiness', Math.round(DS.readiness) + '%'],
+      ['Hunger', Math.round(DS.rations) + '%'],
+      ['Spirit', Math.round(DS.morale) + '%'],
+      ['Energy', Math.round(DS.readiness) + '%'],
       ['Total Visits', localStorage.getItem('dragon_visits') || '1'],
       ['Achievements', Object.keys(achData).length + ' / ' + ACHS.length],
       ['Active Milestones', String(userMilestones.length)],
@@ -3482,7 +3487,7 @@ setInterval(function() {
    5b. WANTS SYSTEM (thought bubble)
    ══════════════════════════════════════ */
 
-var WANTS_ICONS = { feed: '\uD83C\uDF56?', play: '⚔️?', rest: '\uD83D\uDCA4?' };
+var WANTS_ICONS = { feed: '\uD83C\uDF56?', play: '\u2728?', rest: '\uD83D\uDCA4?' };
 var wantActive = null, wantStart = 0, lastWantCheck = 0;
 var WANT_INTERVAL = 1800000, WANT_DURATION = 600000, WANT_BONUS = 15;
 
@@ -3609,7 +3614,7 @@ function buildItems() {
       w: ms.weight || 1, icon: ms.icon || getCatIcon(safeCat),
       xp: scaledMilestoneXP(safeCat), desc: ms.desc || ''
     };
-  }).filter(function(m) { return m.days >= 0; }).sort(function(a, b) { return a.days - b.days; });
+  }).filter(function(m) { return m.days >= -30; }).sort(function(a, b) { return a.days - b.days; });
 }
 
 var items = buildItems();
@@ -3718,11 +3723,12 @@ function renderEventsPanel() {
   }
   items.slice(0, 6).forEach(function(m, i) {
     var v, u;
-    if (m.days === 0) { v = 'TODAY'; u = ''; }
+    var isReady = m.days <= 0;
+    if (isReady) { v = '\u2705 CLAIM'; u = ''; }
     else if (m.days > 60) { var mo = Math.round(m.days / 30.44); v = mo; u = mo === 1 ? 'MONTH' : 'MONTHS'; }
     else { v = m.days; u = m.days === 1 ? 'DAY' : 'DAYS'; }
     var el = document.createElement('div');
-    el.className = 'ev';
+    el.className = 'ev' + (isReady ? ' ev-ready' : '');
     el.style.animationDelay = (0.15 + i * 0.1) + 's';
     el.innerHTML = '<div class="ev-dot" style="background:' + m.c + ';box-shadow:0 0 6px ' + m.c + '"></div>' +
       '<div class="ev-body"><div class="ev-name">' + (m.icon ? m.icon + ' ' : '') + m.n + '</div>' +
@@ -3762,7 +3768,7 @@ function renderEventsPanel() {
 
   bursts.length = 0;
   items.forEach(function(m) {
-    if (m.days === 0) {
+    if (m.days <= 0) {
       for (var bi = 0; bi < 24; bi++) {
         var ba = Math.random() * Math.PI * 2;
         var bv = 0.4 + Math.random() * 1.8;
@@ -3772,7 +3778,7 @@ function renderEventsPanel() {
   });
 
   blips = items.filter(function(m) { return m.days <= MAX_DAYS; }).map(function(m) {
-    var dist = (m.days / MAX_DAYS) * MR;
+    var dist = (Math.max(0, m.days) / MAX_DAYS) * MR;
     var angle = catSectorAngle(m.cat, hashStr(m.n));
     var orbitSpeed = 0.00012 * Math.max(0.15, 1 - dist / MR) + 0.00003;
     return {
@@ -3898,6 +3904,152 @@ function deleteMilestone(id) {
   userMilestones = milestones;
   renderEventsPanel();
   checkAch();
+}
+
+/* ══════════════════════════════════════
+   MILESTONE CLAIM + CELEBRATION SYSTEM
+   ══════════════════════════════════════ */
+
+var claimCelebration = { active: false, tier: null, start: 0, duration: 0 };
+
+function claimMilestone(msId) {
+  var ms = userMilestones.find(function(x) { return x.id === msId; });
+  if (!ms) return;
+  if (daysTo(ms.date) > 0) {
+    if (typeof playError === 'function') playError();
+    return;
+  }
+
+  var safeCat = migrateCategoryId(ms.cat);
+  var baseXP = scaledMilestoneXP(safeCat);
+
+  /* Close any open popups */
+  blipOv.classList.remove('show');
+
+  /* Archive + remove from active list */
+  archiveMilestone(ms);
+  var claimed = {};
+  try { claimed = JSON.parse(localStorage.getItem('dragon_milestone_claimed') || '{}'); } catch (e) { claimed = {}; }
+  claimed[ms.id] = new Date().toISOString();
+  localStorage.setItem('dragon_milestone_claimed', JSON.stringify(claimed));
+  userMilestones = userMilestones.filter(function(m) { return m.id !== msId; });
+  saveMilestones(userMilestones);
+
+  /* Switch to dragon tab */
+  switchTab('dragon');
+
+  /* Delay so tab switch is visible, then celebrate */
+  setTimeout(function() {
+    addXP(baseXP);
+    celebrateClaim(safeCat, ms.icon || '\uD83D\uDCCC');
+    triggerDragonReaction(safeCat);
+    renderEventsPanel();
+    updateBars();
+    updateStatus();
+    checkAch();
+    saveDS(DS);
+  }, 350);
+}
+
+function celebrateClaim(tier, icon) {
+  if (tier === 'large') {
+    evolFlash = 0.6;
+    if (typeof confetti !== 'undefined') {
+      setTimeout(function() {
+        confetti({ particleCount: 120, spread: 80, origin: { y: 0.45 },
+          colors: ['#8b5cf6', '#a78bfa', '#f59e0b', '#fbbf24', '#c4b5fd'] });
+      }, 200);
+      setTimeout(function() {
+        confetti({ particleCount: 60, spread: 100, origin: { y: 0.5, x: 0.3 }, colors: ['#7c3aed', '#fbbf24'] });
+        confetti({ particleCount: 60, spread: 100, origin: { y: 0.5, x: 0.7 }, colors: ['#7c3aed', '#fbbf24'] });
+      }, 700);
+    }
+    if (typeof playChime === 'function') { playChime(); setTimeout(playChime, 500); }
+  } else if (tier === 'medium') {
+    evolFlash = 0.3;
+    if (typeof confetti !== 'undefined') {
+      setTimeout(function() {
+        confetti({ particleCount: 50, spread: 60, origin: { y: 0.5 },
+          colors: ['#f59e0b', '#fbbf24', '#a78bfa'] });
+      }, 200);
+    }
+    if (typeof playChime === 'function') playChime();
+  } else {
+    /* Small: subtle shimmer + click */
+    evolFlash = 0.12;
+    if (typeof playClick === 'function') playClick();
+  }
+}
+
+function triggerDragonReaction(tier) {
+  claimCelebration.active = true;
+  claimCelebration.tier = tier;
+  claimCelebration.start = performance.now();
+  claimCelebration.duration = tier === 'large' ? 4000 : tier === 'medium' ? 2500 : 1500;
+}
+
+function drawClaimReaction(ctx, t) {
+  if (!claimCelebration.active) return;
+  var elapsed = t - claimCelebration.start;
+  if (elapsed > claimCelebration.duration) { claimCelebration.active = false; return; }
+  var progress = elapsed / claimCelebration.duration;
+  var fade = progress < 0.2 ? progress / 0.2 : progress > 0.8 ? (1 - progress) / 0.2 : 1;
+  var tier = claimCelebration.tier;
+  var stage = getStage(DS.xp);
+  var cx = DC, cy = DC;
+
+  if (tier === 'large') {
+    /* Radial golden burst — scales with stage */
+    var burstN = 12 + stage * 4;
+    for (var i = 0; i < burstN; i++) {
+      var a = (i / burstN) * Math.PI * 2 + elapsed * 0.001;
+      var d = 20 + progress * 60 + Math.sin(elapsed * 0.005 + i) * 8;
+      var px = cx + Math.cos(a) * d;
+      var py = cy + Math.sin(a) * d * 0.7;
+      var pr = (1.5 + Math.sin(elapsed * 0.008 + i * 0.5) * 0.8) * fade;
+      ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(251,191,36,' + (fade * 0.5) + ')'; ctx.fill();
+    }
+    /* Golden aura */
+    var ar = 40 + Math.sin(elapsed * 0.004) * 8;
+    var ag = ctx.createRadialGradient(cx, cy, 0, cx, cy, ar);
+    ag.addColorStop(0, 'rgba(251,191,36,' + (fade * 0.2) + ')');
+    ag.addColorStop(0.5, 'rgba(167,139,250,' + (fade * 0.1) + ')');
+    ag.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.beginPath(); ctx.arc(cx, cy, ar, 0, Math.PI * 2);
+    ctx.fillStyle = ag; ctx.fill();
+    /* Rising sparkles */
+    for (var ri = 0; ri < 6 + stage * 2; ri++) {
+      var rx = cx - 40 + ((elapsed * 0.03 + ri * 31) % 80);
+      var ry = cy + 30 - ((elapsed * 0.04 + ri * 23) % 80);
+      var rAlpha = fade * (0.3 + Math.sin(elapsed * 0.006 + ri) * 0.2);
+      ctx.beginPath(); ctx.arc(rx, ry, 0.8 + Math.sin(ri * 1.7) * 0.4, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(251,191,36,' + rAlpha + ')'; ctx.fill();
+    }
+  } else if (tier === 'medium') {
+    /* Sparkle ring */
+    var sparkN = 8 + stage * 2;
+    for (var j = 0; j < sparkN; j++) {
+      var sa = (j / sparkN) * Math.PI * 2 + elapsed * 0.002;
+      var sd = 30 + Math.sin(elapsed * 0.003 + j) * 10;
+      var sx = cx + Math.cos(sa) * sd;
+      var sy = cy + Math.sin(sa) * sd * 0.7;
+      var sparkle = Math.pow(Math.sin(elapsed * 0.006 + j * 1.3), 2);
+      ctx.beginPath(); ctx.arc(sx, sy, 1 + sparkle * 1.5, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(245,158,11,' + (fade * sparkle * 0.6) + ')'; ctx.fill();
+    }
+    /* Soft warm glow */
+    var mg = ctx.createRadialGradient(cx, cy, 0, cx, cy, 30);
+    mg.addColorStop(0, 'rgba(245,158,11,' + (fade * 0.08) + ')');
+    mg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.beginPath(); ctx.arc(cx, cy, 30, 0, Math.PI * 2);
+    ctx.fillStyle = mg; ctx.fill();
+  } else {
+    /* Small: brief purple shimmer across canvas */
+    var shimA = fade * 0.06;
+    ctx.fillStyle = 'rgba(167,139,250,' + shimA + ')';
+    ctx.fillRect(0, 0, DSZ, DSZ);
+  }
 }
 
 document.getElementById('msAddBtn').addEventListener('click', function() { openMsForm(null); });
@@ -4051,8 +4203,11 @@ var blipCard = document.getElementById('blipCard');
 
 function showPopup(m) {
   var v, u;
-  if (m.days === 0) { v = 'TODAY'; u = ''; }
-  else if (m.days === 1) { v = '1'; u = 'day'; }
+  var isReady = m.days <= 0;
+  if (isReady) {
+    v = Math.abs(m.days) === 0 ? 'TODAY' : Math.abs(m.days);
+    u = m.days < 0 ? (Math.abs(m.days) === 1 ? 'DAY AGO' : 'DAYS AGO') : '';
+  } else if (m.days === 1) { v = '1'; u = 'day'; }
   else if (m.days < 7) { v = m.days; u = 'days'; }
   else if (m.days < 30) { v = Math.floor(m.days / 7) + 'w ' + (m.days % 7) + 'd'; u = ''; }
   else { v = Math.floor(m.days / 30) + 'mo ' + (m.days % 30) + 'd'; u = ''; }
@@ -4061,13 +4216,36 @@ function showPopup(m) {
   var ring = m.days <= 7 ? '1W' : m.days <= 30 ? '1M' : m.days <= 90 ? '3M' : '6M';
   blipCard.innerHTML = '<div class="blip-accent" style="background:' + m.c + '"></div>'
     + '<div class="blip-name">' + (m.icon ? m.icon + ' ' : '') + m.n + '</div>'
-    + '<div class="blip-cat">' + m.cat + '</div>'
-    + (m.desc ? '<div class="blip-row"><span class="blip-text" style="font-size:8px;opacity:0.85">' + m.desc + '</span></div>' : '')
+    + '<div class="blip-cat">' + m.cat + ' \u00B7 ~' + m.xp + ' XP</div>'
+    + (m.desc ? '<div class="blip-text" style="margin-bottom:8px">' + m.desc + '</div>' : '')
     + '<div class="blip-divider"></div>'
-    + '<div class="blip-row"><span class="blip-icon">&#x1F4C5;</span><span class="blip-text">' + ds + '</span></div>'
-    + '<div class="blip-row"><span class="blip-icon">&#x1F4E1;</span><span class="blip-text">Ring ' + ring + ' &#183; ' + m.days + ' days out</span></div>'
+    + '<div class="blip-row"><span class="blip-icon">\uD83D\uDCC5</span><span class="blip-text">' + ds + '</span></div>'
+    + '<div class="blip-row"><span class="blip-icon">\uD83D\uDCE1</span><span class="blip-text">Ring ' + ring + ' \u00B7 ' + (isReady ? 'Ready to claim!' : m.days + ' days out') + '</span></div>'
     + '<div class="blip-countdown" style="background:' + m.c + '">' + v + (u ? ' <span class="blip-cd-unit">' + u + '</span>' : '') + '</div>'
+    + '<div class="blip-actions">'
+    + '<button type="button" class="blip-act-btn blip-claim' + (isReady ? ' ready' : '') + '">\u2705 Claim</button>'
+    + '<button type="button" class="blip-act-btn blip-edit">\u270F\uFE0F Edit</button>'
+    + '<button type="button" class="blip-act-btn blip-delete">\uD83D\uDDD1\uFE0F Delete</button>'
+    + '</div>'
     + '<div class="blip-close">tap outside to close</div>';
+
+  blipCard.querySelector('.blip-claim').addEventListener('click', function(e) {
+    e.stopPropagation();
+    claimMilestone(m.id);
+  });
+  blipCard.querySelector('.blip-edit').addEventListener('click', function(e) {
+    e.stopPropagation();
+    blipOv.classList.remove('show');
+    var ms = userMilestones.find(function(x) { return x.id === m.id; });
+    if (ms) openMsForm(ms);
+  });
+  blipCard.querySelector('.blip-delete').addEventListener('click', function(e) {
+    e.stopPropagation();
+    blipOv.classList.remove('show');
+    deleteMilestone(m.id);
+    renderEventsPanel();
+    if (typeof playClick === 'function') playClick();
+  });
   blipOv.classList.add('show');
 }
 
@@ -4282,7 +4460,7 @@ function loop(t) {
   lastFrame = t;
 
   if (summonActive && activeTab === 'dragon') drawSummonAnim(t);
-  else if (activeTab === 'dragon') { checkWant(t); drawDragon(t); }
+  else if (activeTab === 'dragon') { checkWant(t); drawDragon(t); drawClaimReaction(dctx, t); }
   else drawRadar(t);
 
   requestAnimationFrame(loop);

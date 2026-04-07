@@ -168,3 +168,15 @@
 - No user-defined XP field — tier determines reward
 - Evolution titles: Dormant → Spark → Ember → Blaze → Sovereign → Mythic (no military ranks)
 - visibilitychange re-pulls SyncEngine state for cross-device XP sync
+
+# Horizon bars (renamed)
+- Hunger/Spirit/Energy replace Rations/Morale/Readiness (display only, internal keys unchanged)
+- Spirit icon: ✨ (was ⚔️)
+
+# Milestone claim system
+- Milestones require manual claim via popup buttons (Claim/Edit/Delete)
+- claimMilestone() → archives ms → switchTab('dragon') → addXP → celebrateClaim + triggerDragonReaction
+- celebrateClaim(tier, icon): Small=shimmer, Medium=confetti+chime, Large=full burst+flash+double confetti
+- drawClaimReaction(ctx, t): canvas overlay that scales particle count with dragon stage
+- Past-due milestones stay visible up to 30 days (auto-archive after 30d as cleanup)
+- No more auto-XP-claim from processExpiredMilestones
