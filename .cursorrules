@@ -149,4 +149,5 @@
 # Presence tracking: gaps under 10 min (_PRES_AWAY_THRESHOLD) count as active Notion time.
 # Only gaps >10 min are subtracted. Accounts for Notion app iframe unloading on page navigation.
 
-- Dark-mode cursor glow: tilt overlay uses 0.07/0.03 white stops at opacity 0.20 (screen blend). Orb alpha 0.025. Light mode unchanged.
+- Dark-mode background orbs: Core.orbAlpha 0.025 (light 0.02).
+- Tilt glow overlay removed. initTilt provides 3D perspective tilt only, no radial-gradient spotlight.

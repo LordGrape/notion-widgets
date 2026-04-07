@@ -671,17 +671,8 @@ function initTilt(selector, opts) {
   let targetRX = 0, targetRY = 0;
   let currentRX = 0, currentRY = 0;
   let ease = 0.08;
-  let glow = document.createElement('div');
-  glow.style.cssText = 'position:absolute;inset:0;pointer-events:none;border-radius:inherit;' +
-    'background:radial-gradient(circle at 50% 50%, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.03) 22%, rgba(255,255,255,0) 55%);' +
-    'mix-blend-mode:screen;opacity:0.20;';
   let computedStyle = window.getComputedStyle(el);
   if (computedStyle.position === 'static') el.style.position = 'relative';
-  if (computedStyle.overflow === 'visible') el.style.overflow = 'hidden';
-  if (!el.querySelector('[data-tilt-glow]')) {
-    glow.setAttribute('data-tilt-glow', 'true');
-    el.appendChild(glow);
-  }
 
   function applyTilt() {
     el.style.transform = 'perspective(800px) rotateX(' + currentRX.toFixed(3) + 'deg) rotateY(' + currentRY.toFixed(3) + 'deg)';
@@ -693,9 +684,6 @@ function initTilt(selector, opts) {
     let dy = (e.clientY - (rect.top + rect.height / 2)) / (rect.height / 2);
     targetRX = dy * -maxDeg;
     targetRY = dx * maxDeg;
-    let px = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
-    let py = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
-    glow.style.background = 'radial-gradient(circle at ' + px.toFixed(1) + '% ' + py.toFixed(1) + '%, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.03) 22%, rgba(255,255,255,0) 55%)';
   });
 
   document.addEventListener('mouseleave', function() {
