@@ -1054,9 +1054,9 @@ function saveDS(s) {
   localStorage.setItem('dragon_loginToday', String(s.loginToday));
   localStorage.setItem('dragon_todayDate', s.todayDate);
   localStorage.setItem('dragon_lastRandom', s.lastRandom);
-  /* SyncEngine mirror â push all dragon state for cross-device sync */
+  /* SyncEngine mirror â always push; SyncEngine queues if offline */
   try {
-    if (SyncEngine.isOnline()) {
+    if (typeof SyncEngine !== 'undefined' && SyncEngine.setMany) {
       SyncEngine.setMany('dragon', {
         xp: Math.floor(s.xp), rations: Math.round(s.rations * 10) / 10,
         morale: Math.round(s.morale * 10) / 10, readiness: Math.round(s.readiness * 10) / 10,
@@ -1151,11 +1151,19 @@ SyncEngine.init({
   worker: 'https://widget-sync.lordgrape-widgets.workers.dev',
   namespaces: ['dragon', 'clock', 'user']
 }).then(function() {
-  /* Merge remote dragon state into local DS */
+  /* Merge remote dragon state â pick the freshest lastVisit to avoid double decay */
   var remote = SyncEngine.getAll('dragon');
   if (remote && Object.keys(remote).length > 0) {
-    DS = initDS();
-    prevStage = getStage(DS.xp);
+    var localLV = DS.lastVisit;
+    var remoteLV = remote.lastVisit || '';
+    /* Only re-init if remote is genuinely newer (cross-device update) */
+    if (remoteLV && new Date(remoteLV) > new Date(localLV)) {
+      DS = initDS();
+      prevStage = getStage(DS.xp);
+    } else {
+      /* Local is fresher or same â push local state to remote, skip re-decay */
+      saveDS(DS);
+    }
   } else {
     /* First sync: push local state to remote */
     saveDS(DS);
@@ -3517,7 +3525,7 @@ setInterval(function() {
 
 var WANTS_ICONS = { feed: '\uD83C\uDF56?', play: '\u2728?', rest: '\uD83D\uDCA4?' };
 var wantActive = null, wantStart = 0, lastWantCheck = 0;
-var WANT_INTERVAL = 1800000, WANT_DURATION = 600000, WANT_BONUS = 15;
+var WANT_INTERVAL = 120000, WANT_DURATION = 600000, WANT_BONUS = 15;
 
 var wantBubble = document.createElement('div');
 wantBubble.className = 'want-bubble';
@@ -3530,7 +3538,7 @@ function checkWant(t) {
   }
   if (t - lastWantCheck < WANT_INTERVAL) return;
   lastWantCheck = t;
-  if (Math.random() < 0.3) {
+  if (Math.random() < 0.55) {
     var avail = ['feed','play','rest'].filter(function(w) { return DS[w + 'Today'] < INTERACT_CAP; });
     if (avail.length) {
       wantActive = avail[Math.floor(Math.random() * avail.length)];
@@ -4506,8 +4514,15 @@ document.addEventListener('visibilitychange', function() {
     }).then(function() {
       var remote = SyncEngine.getAll('dragon');
       if (remote && typeof remote.xp !== 'undefined') {
-        DS = initDS();
-        prevStage = getStage(DS.xp);
+        var localLV = DS.lastVisit;
+        var remoteLV = remote.lastVisit || '';
+        if (remoteLV && new Date(remoteLV) > new Date(localLV)) {
+          DS = initDS();
+          prevStage = getStage(DS.xp);
+        } else {
+          DS.lastVisit = new Date().toISOString();
+          saveDS(DS);
+        }
       } else {
         DS.lastVisit = new Date().toISOString();
         saveDS(DS);
