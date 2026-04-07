@@ -435,21 +435,6 @@ body {
 /* ââ Info button ââ */
 .info-btn { all:unset; cursor:pointer; position:absolute; top:14px; right:18px; font-size:11px; opacity:0.25; transition:opacity 0.2s; z-index:10; }
 .info-btn:hover { opacity:0.6; }
-/* ── Update button ── */
-.update-btn {
-  all:unset; cursor:pointer;
-  position:absolute; top:14px; right:42px;
-  font-size:11px; opacity:0.25;
-  transition:opacity 0.2s; z-index:10;
-}
-.update-btn:hover { opacity:0.6; }
-.update-btn.checking {
-  animation: spin 0.8s linear infinite;
-}
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
 /* ââ Weather badge ââ */
 .weather-badge { position:absolute; bottom:28px; right:6px; display:none; align-items:center; gap:4px; font-size:9px; color:var(--text-muted); opacity:0.4; transition:opacity 0.4s; z-index:5; pointer-events:none; }
 .dragon-view:hover .weather-badge { opacity:0.7; }
@@ -769,7 +754,6 @@ button:focus-visible, .tab-btn:focus-visible, .rad-btn:focus-visible, .st-btn:fo
   </div>
   <div class="content-shell loading" id="hzContent">
     <div class="scan"></div>
-    <button class="update-btn" id="updateBtn" title="Check for updates">&#x1F504;</button>
     <button class="info-btn" id="infoBtn" title="Stats">&#x2139;&#xFE0F;</button>
   <!-- Header -->
   <div class="hdr">
@@ -3409,8 +3393,37 @@ setTimeout(function() {
       }
     }
     html += '</div>';
+    html += '<div style="display:flex;justify-content:flex-end;margin-top:2px;">'
+      + '<button id="stUpdateBtn" style="all:unset;cursor:pointer;font-size:7px;font-weight:300;'
+      + 'color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;opacity:0.4;'
+      + 'transition:opacity 0.2s;padding:2px 4px;" title="Check for updates"'
+      + '>&#x1F504; UPDATE</button></div>';
     body.innerHTML = html;
     ov.classList.add('show');
+
+    /* Wire up the update check */
+    var ubtn = document.getElementById('stUpdateBtn');
+    if (ubtn) {
+      ubtn.addEventListener('mouseenter', function() { ubtn.style.opacity = '0.7'; });
+      ubtn.addEventListener('mouseleave', function() { ubtn.style.opacity = '0.4'; });
+      ubtn.addEventListener('click', function() {
+        ubtn.textContent = '🔄 CHECKING...';
+        ubtn.style.opacity = '0.7';
+        if (typeof playClick === 'function') playClick();
+        var bustUrl = window.location.href.split('?')[0] + '?_cb=' + Date.now();
+        fetch(bustUrl, { cache: 'no-store' })
+          .then(function(res) { return res.text(); })
+          .then(function(html) {
+            if (html.length !== document.documentElement.outerHTML.length) {
+              window.location.href = bustUrl;
+            } else {
+              ubtn.textContent = '✓ UP TO DATE';
+              setTimeout(function() { ubtn.textContent = '🔄 UPDATE'; ubtn.style.opacity = '0.4'; }, 2000);
+            }
+          })
+          .catch(function() { window.location.reload(true); });
+      });
+    }
   }
   document.getElementById('infoBtn').onclick = openStats;
   document.getElementById('statsClose').onclick = function() { ov.classList.remove('show'); };
@@ -4516,42 +4529,6 @@ document.addEventListener('visibilitychange', function() {
     requestAnimationFrame(loop);
   }
 });
-
-/* ══════════════════════════════════════
-   CHECK FOR UPDATES — cache-bust reload
-   ══════════════════════════════════════ */
-(function() {
-  var btn = document.getElementById('updateBtn');
-  if (!btn) return;
-
-  btn.addEventListener('click', function() {
-    btn.classList.add('checking');
-    if (typeof playClick === 'function') playClick();
-
-    var bustUrl = window.location.href.split('?')[0] + '?_cb=' + Date.now();
-    fetch(bustUrl, { cache: 'no-store' })
-      .then(function(res) { return res.text(); })
-      .then(function(html) {
-        var currentHash = document.documentElement.outerHTML.length;
-        var fetchedHash = html.length;
-        if (currentHash !== fetchedHash) {
-          window.location.href = bustUrl;
-        } else {
-          btn.classList.remove('checking');
-          btn.style.opacity = '0.6';
-          btn.title = 'Up to date \u2713';
-          setTimeout(function() {
-            btn.style.opacity = '';
-            btn.title = 'Check for updates';
-          }, 2000);
-        }
-      })
-      .catch(function() {
-        btn.classList.remove('checking');
-        window.location.reload(true);
-      });
-  });
-})();
 
 </script>
 
