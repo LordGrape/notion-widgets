@@ -261,3 +261,14 @@
 - initDS() must only run ONCE per page load / visibility-resume. Guard re-calls behind lastVisit comparison.
 - saveDS() always pushes to SyncEngine (no isOnline gate). SyncEngine queues internally.
 - WANT_INTERVAL is 120s, trigger chance 55%. Tune these if bubble feels spammy.
+# Study Engine UI (2026-04-07)
+- All modals (settings, add items, courses) play playOpen()/playClose() from core.js
+- Session lifecycle sounds: playStart() on begin, playClick() on reveal, playLap() on rate, playChime()+launchConfetti() on complete
+- playError() on validation failures and Again ratings
+- playPresetSelect() on course chip selection and settings save
+- playModeSwitch() on skip
+- Settings modal uses .setting-row layout with .info-icon tooltip overlays
+- Desired retention slider uses 'input' event for live percentage display (not just 'change')
+- All dashboard stats use animated counters via gsap (animateCounter or inline gsap.to)
+- CSS: analytics-card uses overflow:visible (not hidden) to prevent text cutoff
+- CSS: input[type="range"] has custom styled thumb with grab cursor and hover scale
