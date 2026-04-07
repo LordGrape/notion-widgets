@@ -2118,6 +2118,21 @@ let SyncEngine = (function() {
       namespaces = opts.namespaces || ['dragon', 'clock', 'user'];
       passphrase = localStorage.getItem(PASS_KEY) || '';
 
+      /* iOS Safari blocks localStorage in cross-origin iframes (Notion embeds).
+         Fall back to reading the passphrase from the URL hash fragment.
+         Embed URL format: widget.html#key=YOUR_PASSPHRASE
+         The hash is never sent to GitHub Pages servers. */
+      if (!passphrase) {
+        try {
+          let hashParams = new URLSearchParams(window.location.hash.slice(1));
+          let hashKey = hashParams.get('key');
+          if (hashKey) {
+            passphrase = hashKey;
+            try { localStorage.setItem(PASS_KEY, hashKey); } catch(e) {}
+          }
+        } catch(e) {}
+      }
+
       /* Pre-load local cache for every namespace */
       namespaces.forEach(function(ns) { cache[ns] = lsRead(ns); });
 

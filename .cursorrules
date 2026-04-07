@@ -198,3 +198,4 @@
 - Bloom multiplier on XP: quickfire=1x, explain=2x, apply=3x, distinguish=3x, mock=4x
 - Standalone detection: compact in iframe, expanded when standalone
 - Tier badge colours: QF=blue, EI=purple, AI=amber, DI=pink, ME=red
+# iOS iframe fix: SyncEngine reads passphrase from URL hash fragment (#key=...) as fallback when localStorage is blocked by Safari ITP in cross-origin iframes.
