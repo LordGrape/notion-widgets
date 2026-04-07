@@ -432,6 +432,248 @@
       opacity: 0.9;
     }
 
+    /* ── AI Feedback Panel ── */
+    .ai-feedback{
+      margin-top: 14px;
+      padding: 16px;
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(var(--accent-rgb),0.18);
+      background: linear-gradient(135deg, rgba(var(--accent-rgb),0.04), rgba(var(--accent-rgb),0.01));
+      animation: ambientGlow 5s ease-in-out infinite;
+    }
+    .ai-feedback .af-header{
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .ai-feedback .af-icon{
+      width: 24px; height: 24px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, rgba(var(--accent-rgb),0.2), rgba(var(--accent-rgb),0.08));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    .ai-feedback .af-title{
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+    .ai-feedback .af-score-row{
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .ai-feedback .af-score{
+      flex: 1;
+      min-width: 70px;
+      padding: 10px 8px;
+      border-radius: 14px;
+      border: 1px solid rgba(var(--accent-rgb),0.12);
+      background: rgba(var(--accent-rgb),0.02);
+      text-align: center;
+      transition: border-color var(--transition), background var(--transition);
+    }
+    .ai-feedback .af-score.score-0{
+      border-color: rgba(239,68,68,0.25);
+      background: rgba(239,68,68,0.06);
+    }
+    .ai-feedback .af-score.score-1{
+      border-color: rgba(245,158,11,0.25);
+      background: rgba(245,158,11,0.06);
+    }
+    .ai-feedback .af-score.score-2{
+      border-color: rgba(34,197,94,0.25);
+      background: rgba(34,197,94,0.06);
+    }
+    .ai-feedback .af-score .af-score-val{
+      font-size: 18px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.5px;
+      line-height: 1;
+    }
+    .ai-feedback .af-score.score-0 .af-score-val{ color: var(--rate-again); }
+    .ai-feedback .af-score.score-1 .af-score-val{ color: var(--rate-hard); }
+    .ai-feedback .af-score.score-2 .af-score-val{ color: var(--rate-good); }
+    .ai-feedback .af-score .af-score-label{
+      font-size: 7px;
+      font-weight: 700;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+    .ai-feedback .af-dimension{
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(var(--accent-rgb),0.08);
+      background: rgba(var(--accent-rgb),0.02);
+      margin-bottom: 8px;
+      transition: border-color var(--transition);
+    }
+    .ai-feedback .af-dimension:hover{
+      border-color: rgba(var(--accent-rgb),0.16);
+    }
+    .ai-feedback .af-dim-header{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+    .ai-feedback .af-dim-name{
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+    .ai-feedback .af-dim-score{
+      font-size: 9px;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+    .ai-feedback .af-dim-score.score-0{ background: rgba(239,68,68,0.12); color: var(--rate-again); }
+    .ai-feedback .af-dim-score.score-1{ background: rgba(245,158,11,0.12); color: var(--rate-hard); }
+    .ai-feedback .af-dim-score.score-2{ background: rgba(34,197,94,0.12); color: var(--rate-good); }
+    .ai-feedback .af-dim-feedback{
+      font-size: 10px;
+      color: var(--text);
+      line-height: 1.55;
+      letter-spacing: 0.1px;
+    }
+    .ai-feedback .af-improvement{
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border-left: 3px solid var(--accent);
+      background: rgba(var(--accent-rgb),0.05);
+    }
+    .ai-feedback .af-improve-label{
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+    .ai-feedback .af-improve-text{
+      font-size: 10px;
+      color: var(--text);
+      line-height: 1.55;
+    }
+    .ai-feedback .af-summary{
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(var(--accent-rgb),0.04);
+      border: 1px solid rgba(var(--accent-rgb),0.10);
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.5;
+      text-align: center;
+    }
+    .ai-feedback .af-total{
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 12px;
+      padding: 10px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(var(--accent-rgb),0.10), rgba(var(--accent-rgb),0.03));
+      border: 1px solid rgba(var(--accent-rgb),0.16);
+    }
+    .ai-feedback .af-total-score{
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+    .ai-feedback .af-total-label{
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+    .ai-feedback .af-rating-hint{
+      text-align: center;
+      margin-top: 10px;
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      color: var(--text-tertiary);
+    }
+    .ai-feedback .af-rating-hint .af-suggested{
+      font-weight: 800;
+      color: var(--text);
+    }
+    .af-loading{
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 20px 16px;
+      margin-top: 14px;
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(var(--accent-rgb),0.14);
+      background: rgba(var(--accent-rgb),0.03);
+    }
+    .af-loading .af-spinner{
+      width: 18px; height: 18px;
+      border: 2px solid rgba(var(--accent-rgb),0.15);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: afSpin 0.7s linear infinite;
+    }
+    @keyframes afSpin{
+      to{ transform: rotate(360deg); }
+    }
+    .af-loading .af-loading-text{
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+    .af-error{
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(239,68,68,0.2);
+      background: rgba(239,68,68,0.06);
+      font-size: 10px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .af-error .af-error-title{
+      font-weight: 800;
+      font-size: 9px;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--rate-again);
+      margin-bottom: 4px;
+    }
+    .override-hint{
+      text-align: center;
+      margin-top: 8px;
+      font-size: 8px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      font-weight: 600;
+    }
+
     /* Session */
     .session-top{
       display: flex;
@@ -1792,6 +2034,7 @@ input[type="range"]::-moz-range-thumb{
             <div id="tierArea"></div>
 
             <div class="answer" id="modelAnswer" style="display:none"></div>
+            <div id="aiFeedbackArea"></div>
             <div class="study-indicator" id="studyIndicator"><span class="pulse-dot"></span> Study this</div>
 
             <div class="ratings" id="ratings" style="display:none">
@@ -2908,6 +3151,16 @@ input[type="range"]::-moz-range-thumb{
       el('timerBar').classList.remove('show');
       el('metaTimer').style.display = 'none';
       el('timerFill').style.width = '0%';
+      el('aiFeedbackArea').innerHTML = '';
+      if (session) session.aiRating = null;
+      /* Remove override hint if present */
+      var oldHint = document.querySelector('.override-hint');
+      if (oldHint) oldHint.remove();
+      /* Reset rating button outlines */
+      ratingsEl.querySelectorAll('button').forEach(function(b) {
+        b.style.outline = 'none';
+        b.style.outlineOffset = '0';
+      });
 
       var it = session.queue[session.idx];
       if (!it) { completeSession(); return; }
@@ -3060,23 +3313,203 @@ input[type="range"]::-moz-range-thumb{
       if (!it) return;
 
       var revealTier = it._presentTier || it.tier || 'quickfire';
-      if (revealTier !== 'quickfire') {
-        var mp = el('modelPanel');
-        var mi = el('modelInline');
-        if (mp && mi) {
-          mp.style.display = 'block';
-          mi.textContent = it.modelAnswer || '';
-        }
+
+      /* Show model answer for quickfire immediately */
+      if (revealTier === 'quickfire') {
+        if (el('modelPanel')) { el('modelPanel').style.display = 'block'; }
+        if (el('modelInline')) { el('modelInline').textContent = it.modelAnswer || ''; }
+        modelAnswerEl.innerHTML = '<div class="answer-header">Model Answer</div>' + esc(it.modelAnswer || '');
+        modelAnswerEl.style.display = 'block';
+        ratingsEl.style.display = 'grid';
+        try { playClick(); } catch(e) {}
+        return;
       }
 
+      /* For generative tiers: call AI grading */
+      var userText = el('userText') ? el('userText').value.trim() : '';
+
+      /* Lock textarea */
+      if (el('userText')) {
+        el('userText').setAttribute('readonly', 'readonly');
+        el('userText').style.opacity = '0.7';
+      }
+
+      /* Hide check/submit button */
+      var checkBtn = el('checkBtn');
+      var submitBtn = el('submitBtn');
+      if (checkBtn) checkBtn.style.display = 'none';
+      if (submitBtn) submitBtn.style.display = 'none';
+
+      /* Show model answer */
+      if (el('modelPanel')) { el('modelPanel').style.display = 'block'; }
+      if (el('modelInline')) { el('modelInline').textContent = it.modelAnswer || ''; }
       modelAnswerEl.innerHTML = '<div class="answer-header">Model Answer</div>' + esc(it.modelAnswer || '');
       modelAnswerEl.style.display = 'block';
-      ratingsEl.style.display = 'grid';
+
       try { playClick(); } catch(e) {}
 
-      /* focus management: keep rubric reachable with Tab */
-      var ta = el('userText');
-      if (ta && fromCheck) ta.blur();
+      /* If user wrote nothing, skip AI and show self-rate */
+      if (!userText) {
+        showSelfRateFallback('No response written — rate yourself against the model answer.');
+        return;
+      }
+
+      /* Show loading state */
+      var fbArea = el('aiFeedbackArea');
+      fbArea.innerHTML = '<div class="af-loading"><div class="af-spinner"></div><div class="af-loading-text">AI is grading your response...</div></div>';
+
+      if (window.gsap) {
+        gsap.fromTo(fbArea, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
+      }
+
+      /* Call the grading worker */
+      var payload = {
+        prompt: it.prompt || '',
+        modelAnswer: it.modelAnswer || '',
+        userResponse: userText,
+        tier: revealTier,
+        course: it.course || '',
+        topic: it.topic || ''
+      };
+      if (revealTier === 'distinguish') {
+        payload.conceptA = it.conceptA || '';
+        payload.conceptB = it.conceptB || '';
+      }
+
+      fetch('https://widget-sync.lordgrape-widgets.workers.dev/studyengine/grade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (data.error) {
+          showAIError(data.error, data.detail || '');
+          return;
+        }
+        showAIFeedback(data, revealTier);
+      })
+      .catch(function(err) {
+        showAIError('Network error', err.message || 'Could not reach the grading server.');
+      });
+    }
+
+    function showAIFeedback(data, tier) {
+      var fbArea = el('aiFeedbackArea');
+      var ratingNames = { 1: 'Again', 2: 'Hard', 3: 'Good', 4: 'Easy' };
+      var ratingColors = { 1: 'var(--rate-again)', 2: 'var(--rate-hard)', 3: 'var(--rate-good)', 4: 'var(--rate-easy)' };
+      var scoreLabels = { 0: 'Missed', 1: 'Partial', 2: 'Strong' };
+
+      var dimensions = [
+        { key: 'accuracy', label: 'Accuracy' },
+        { key: 'depth', label: 'Depth' },
+        { key: 'clarity', label: 'Clarity' }
+      ];
+      if (tier === 'distinguish' && data.discrimination) {
+        dimensions.push({ key: 'discrimination', label: 'Discrimination' });
+      }
+
+      /* Score cards row */
+      var scoreRowHTML = '';
+      dimensions.forEach(function(dim) {
+        var d = data[dim.key];
+        if (!d) return;
+        var s = d.score || 0;
+        scoreRowHTML += '<div class="af-score score-' + s + '">' +
+          '<div class="af-score-val">' + s + '/2</div>' +
+          '<div class="af-score-label">' + esc(dim.label) + '</div>' +
+        '</div>';
+      });
+
+      /* Dimension feedback blocks */
+      var dimHTML = '';
+      dimensions.forEach(function(dim) {
+        var d = data[dim.key];
+        if (!d) return;
+        var s = d.score || 0;
+        dimHTML += '<div class="af-dimension">' +
+          '<div class="af-dim-header">' +
+            '<span class="af-dim-name">' + esc(dim.label) + '</span>' +
+            '<span class="af-dim-score score-' + s + '">' + esc(scoreLabels[s] || '?') + '</span>' +
+          '</div>' +
+          '<div class="af-dim-feedback">' + esc(d.feedback || '') + '</div>' +
+        '</div>';
+      });
+
+      /* Suggested rating */
+      var suggestedRating = data.fsrsRating || 2;
+      var suggestedName = ratingNames[suggestedRating] || 'Hard';
+      var suggestedColor = ratingColors[suggestedRating] || 'var(--text)';
+
+      var h = '<div class="ai-feedback">' +
+        '<div class="af-header">' +
+          '<div class="af-icon">🤖</div>' +
+          '<div class="af-title">AI Feedback</div>' +
+        '</div>' +
+        '<div class="af-score-row">' + scoreRowHTML + '</div>' +
+        dimHTML +
+        '<div class="af-improvement">' +
+          '<div class="af-improve-label">↑ To improve</div>' +
+          '<div class="af-improve-text">' + esc(data.improvement || '') + '</div>' +
+        '</div>' +
+        '<div class="af-summary">' + esc(data.summary || '') + '</div>' +
+        '<div class="af-total">' +
+          '<div class="af-total-score">' + (data.totalScore || 0) + '/' + (data.maxScore || 6) + '</div>' +
+          '<div class="af-total-label">Total score</div>' +
+        '</div>' +
+        '<div class="af-rating-hint">Suggested rating: <span class="af-suggested" style="color:' + suggestedColor + '">' + esc(suggestedName) + '</span> — override below if you disagree</div>' +
+      '</div>';
+
+      fbArea.innerHTML = h;
+
+      if (window.gsap) {
+        gsap.fromTo(fbArea.querySelector('.ai-feedback'), { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' });
+        gsap.fromTo(fbArea.querySelectorAll('.af-score'), { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.3, stagger: 0.06, delay: 0.15, ease: 'back.out(1.8)' });
+        gsap.fromTo(fbArea.querySelectorAll('.af-dimension'), { opacity: 0, x: -6 }, { opacity: 1, x: 0, duration: 0.25, stagger: 0.06, delay: 0.3, ease: 'power2.out' });
+      }
+
+      /* Store the AI rating on the session for calibration tracking */
+      session.aiRating = suggestedRating;
+
+      /* Show rating buttons - pre-highlight the suggested one */
+      ratingsEl.style.display = 'grid';
+      ratingsEl.querySelectorAll('button').forEach(function(b) {
+        var r = parseInt(b.getAttribute('data-rate'), 10);
+        if (r === suggestedRating) {
+          b.style.outline = '2px solid ' + suggestedColor;
+          b.style.outlineOffset = '2px';
+        } else {
+          b.style.outline = 'none';
+          b.style.outlineOffset = '0';
+        }
+      });
+
+      /* Add override hint below ratings */
+      var existingHint = document.querySelector('.override-hint');
+      if (!existingHint) {
+        var hint = document.createElement('div');
+        hint.className = 'override-hint';
+        hint.textContent = 'AI suggested ' + suggestedName + ' — tap a different rating to override';
+        ratingsEl.parentNode.insertBefore(hint, ratingsEl.nextSibling);
+      }
+    }
+
+    function showAIError(title, detail) {
+      var fbArea = el('aiFeedbackArea');
+      fbArea.innerHTML = '<div class="af-error">' +
+        '<div class="af-error-title">⚠ ' + esc(title) + '</div>' +
+        '<div>' + esc(detail) + '</div>' +
+        '<div style="margin-top:8px;font-size:9px;color:var(--text-secondary);">Rate yourself against the model answer instead.</div>' +
+      '</div>';
+      ratingsEl.style.display = 'grid';
+    }
+
+    function showSelfRateFallback(message) {
+      var fbArea = el('aiFeedbackArea');
+      fbArea.innerHTML = '<div class="af-error">' +
+        '<div style="font-size:10px;color:var(--text-secondary);">' + esc(message) + '</div>' +
+      '</div>';
+      ratingsEl.style.display = 'grid';
     }
 
     /* ── Rating + successive relearning loop ── */
@@ -3088,23 +3521,32 @@ input[type="range"]::-moz-range-thumb{
 
       var tier = it._presentTier || it.tier || 'quickfire';
       var mappedRating = rating;
-      if (tier !== 'quickfire' && tier !== 'mock') {
-        /* for explain/apply/distinguish: map rubric -> FSRS rating */
-        mappedRating = rubricToFsrsRating();
-      } else if (tier === 'mock') {
-        /* mock also uses rubric mapping */
-        mappedRating = rubricToFsrsRating();
+      if (tier === 'quickfire') {
+        /* Quickfire: user clicks the rating button directly */
+        mappedRating = rating;
+      } else {
+        /* Generative tiers: use the button the user clicked (which may be the AI suggestion or an override) */
+        mappedRating = rating;
       }
 
-      /* Track calibration */
+      /* Track calibration — compare user rating against AI suggestion */
       state.calibration.totalSelfRatings = (state.calibration.totalSelfRatings || 0) + 1;
-      var actualCorrect = (mappedRating >= 3) ? 1 : 0;
+      var aiSuggested = (session && session.aiRating) ? session.aiRating : null;
+      var actualCorrect;
+      if (aiSuggested !== null) {
+        /* AI-graded: "correct" = user's rating is within 1 of AI's suggestion */
+        actualCorrect = (Math.abs(mappedRating - aiSuggested) <= 1) ? 1 : 0;
+      } else {
+        /* Self-assessed fallback (quickfire or AI error) */
+        actualCorrect = (mappedRating >= 3) ? 1 : 0;
+      }
       state.calibration.totalActualCorrect = (state.calibration.totalActualCorrect || 0) + actualCorrect;
       state.calibration.history = state.calibration.history || [];
       state.calibration.history.push({
         ts: new Date(nowTs).toISOString(),
         tier: tier,
         rating: mappedRating,
+        aiRating: aiSuggested,
         actual: actualCorrect
       });
       if (state.calibration.history.length > 200) state.calibration.history.shift();
@@ -3358,7 +3800,7 @@ input[type="range"]::-moz-range-thumb{
       }
 
       if (e.key >= '1' && e.key <= '4') {
-        if (session.currentShown) {
+        if (session.currentShown && ratingsEl.style.display === 'grid') {
           e.preventDefault();
           rateCurrent(parseInt(e.key, 10));
         }
