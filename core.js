@@ -191,14 +191,14 @@ Core.injectGlassStyles = function() {
 /* Live theme tracking — updates derived constants mid-session */
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
   Core.isDark = e.matches;
-  Core.orbAlpha = Core.isDark ? 0.04 : 0.02;
+  Core.orbAlpha = Core.isDark ? 0.025 : 0.02;
   Core.particleRGB = Core.isDark ? '167, 139, 250' : '124, 58, 237';
   Core.particleAlphaBase = Core.isDark ? 0.25 : 0.1;
   Core.applyThemeTokens();
   Core.emit('theme-change', { isDark: Core.isDark });
 });
 
-Core.orbAlpha = Core.isDark ? 0.04 : 0.02;
+Core.orbAlpha = Core.isDark ? 0.025 : 0.02;
 Core.particleRGB = Core.isDark ? '167, 139, 250' : '124, 58, 237';
 Core.particleAlphaBase = Core.isDark ? 0.25 : 0.1;
 Core.confettiColors = ['#7c3aed','#8b5cf6','#a78bfa','#c4b5fd','#ddd6fe','#ede9fe','#ec4899','#f59e0b','#10b981','#6366f1'];
@@ -673,8 +673,8 @@ function initTilt(selector, opts) {
   let ease = 0.08;
   let glow = document.createElement('div');
   glow.style.cssText = 'position:absolute;inset:0;pointer-events:none;border-radius:inherit;' +
-    'background:radial-gradient(circle at 50% 50%, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.05) 24%, rgba(255,255,255,0) 60%);' +
-    'mix-blend-mode:screen;opacity:0.45;';
+    'background:radial-gradient(circle at 50% 50%, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.03) 22%, rgba(255,255,255,0) 55%);' +
+    'mix-blend-mode:screen;opacity:0.20;';
   let computedStyle = window.getComputedStyle(el);
   if (computedStyle.position === 'static') el.style.position = 'relative';
   if (computedStyle.overflow === 'visible') el.style.overflow = 'hidden';
@@ -695,7 +695,7 @@ function initTilt(selector, opts) {
     targetRY = dx * maxDeg;
     let px = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
     let py = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
-    glow.style.background = 'radial-gradient(circle at ' + px.toFixed(1) + '% ' + py.toFixed(1) + '%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.05) 26%, rgba(255,255,255,0) 60%)';
+    glow.style.background = 'radial-gradient(circle at ' + px.toFixed(1) + '% ' + py.toFixed(1) + '%, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.03) 22%, rgba(255,255,255,0) 55%)';
   });
 
   document.addEventListener('mouseleave', function() {
