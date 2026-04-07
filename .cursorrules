@@ -160,3 +160,11 @@
 - Milestones removed from timetable embed — will be re-added later
 - "Block" = universal schedule item (class, shift, parade, gym, etc.)
 - Settings list: pencil (✎) opens add form in edit mode (pre-filled). `editBlock(id, data)` updates the block in SyncEngine; `showAddForm(existingBlock?)` covers add vs Save.
+
+# Horizon milestone system (v2)
+- Milestones use 3 tiers (small/medium/large) with SCALED XP based on current evolution gap
+- scaledMilestoneXP(catId) returns pct * (nextStageXP - currentStageXP)
+- Old 6-category IDs auto-migrate to 'medium' via migrateCategoryId()
+- No user-defined XP field — tier determines reward
+- Evolution titles: Dormant → Spark → Ember → Blaze → Sovereign → Mythic (no military ranks)
+- visibilitychange re-pulls SyncEngine state for cross-device XP sync

@@ -803,10 +803,6 @@ button:focus-visible, .tab-btn:focus-visible, .rad-btn:focus-visible, .st-btn:fo
       <label>Description (optional)</label>
       <input type="text" id="msDesc" placeholder="" maxlength="120">
     </div>
-    <div class="ms-field">
-      <label>XP reward on completion</label>
-      <input type="number" id="msXP" placeholder="500" min="0" max="5000">
-    </div>
     <div class="ms-form-actions" id="msFormActions">
       <button type="button" class="ms-btn-cancel" id="msCancelBtn">Cancel</button>
       <button type="button" class="ms-btn-save" id="msSaveBtn">Save</button>
@@ -866,12 +862,12 @@ var DPR = window.devicePixelRatio || 1;
    ══════════════════════════════════════ */
 
 var STAGES = [
-  { name: 'Egg',       rank: 'Recruit', xp: 0 },
-  { name: 'Hatchling', rank: 'OCdt',    xp: 1000 },
-  { name: 'Fledgling', rank: '2Lt',     xp: 5000 },
-  { name: 'Juvenile',  rank: 'Lt',      xp: 20000 },
-  { name: 'Adult',     rank: 'Capt',    xp: 60000 },
-  { name: 'Elder',     rank: 'Maj',     xp: 120000 }
+  { name: 'Egg',       rank: 'Dormant',   xp: 0 },
+  { name: 'Hatchling', rank: 'Spark',     xp: 1000 },
+  { name: 'Fledgling', rank: 'Ember',     xp: 5000 },
+  { name: 'Juvenile',  rank: 'Blaze',     xp: 20000 },
+  { name: 'Adult',     rank: 'Sovereign', xp: 60000 },
+  { name: 'Elder',     rank: 'Mythic',    xp: 120000 }
 ];
 
 var STREAK_BASE = 20, STREAK_CAP = 150;
@@ -2991,13 +2987,28 @@ function showXPFloat(text) {
 var MILESTONE_STORAGE_KEY = 'horizon_milestones';
 var MILESTONE_ARCHIVE_KEY = 'horizon_milestones_archive';
 var DEFAULT_CATEGORIES = [
-  { id: 'academic', name: 'Academic', color: '#8b5cf6', icon: '\uD83C\uDF93' },
-  { id: 'military', name: 'Military', color: '#22c55e', icon: '\uD83C\uDF96\uFE0F' },
-  { id: 'career', name: 'Career', color: '#f59e0b', icon: '\uD83D\uDCBC' },
-  { id: 'personal', name: 'Personal', color: '#ec4899', icon: '\uD83C\uDF82' },
-  { id: 'law', name: 'Law School', color: '#3b82f6', icon: '\u2696\uFE0F' },
-  { id: 'fitness', name: 'Fitness', color: '#14b8a6', icon: '\uD83D\uDCAA' }
+  { id: 'small',  name: 'Small',  color: '#22c55e', icon: '\uD83C\uDFC5', pct: 0.02, tip: 'Routine weekly tasks, short-term targets, low-stakes deadlines' },
+  { id: 'medium', name: 'Medium', color: '#f59e0b', icon: '\uD83C\uDF96\uFE0F', pct: 0.08, tip: 'Individually significant events with real preparation behind them' },
+  { id: 'large',  name: 'Large',  color: '#8b5cf6', icon: '\uD83C\uDFC6', pct: 0.25, tip: 'Major life milestones representing sustained effort over months or years' }
 ];
+
+/* Scaled XP: milestone reward = percentage of current evolution gap */
+function scaledMilestoneXP(catId) {
+  var cat = DEFAULT_CATEGORIES.find(function(c) { return c.id === catId; });
+  if (!cat) return 100;
+  var stage = getStage(DS.xp);
+  var cur = STAGES[stage].xp;
+  var nxt = stage < STAGES.length - 1 ? STAGES[stage + 1].xp : STAGES[stage].xp;
+  var gap = nxt - cur;
+  if (gap <= 0) return Math.round(cat.pct * 60000);
+  return Math.round(cat.pct * gap);
+}
+
+/* Map old 6-category IDs to new 3-tier system */
+function migrateCategoryId(catId) {
+  if (catId === 'small' || catId === 'medium' || catId === 'large') return catId;
+  return 'medium';
+}
 
 function genMilestoneId() {
   return 'ms_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 5);
@@ -3070,7 +3081,7 @@ function processExpiredMilestones() {
     msDate.setHours(0, 0, 0, 0);
     if (msDate < now) {
       if (!claimed[ms.id]) {
-        var xp = Math.floor((ms.xp || 500) * xpMult(DS));
+        var xp = Math.floor(scaledMilestoneXP(migrateCategoryId(ms.cat)) * xpMult(DS));
         if (xp > 0) { DS.xp += xp; xpGained = true; }
         claimed[ms.id] = new Date().toISOString();
         (function(amt, ic) {
@@ -3102,11 +3113,11 @@ var userMilestones = processExpiredMilestones();
 
 var ACHS = [
   {id:'first_steps',icon:'\uD83D\uDC63',name:'First Steps',desc:'Earn your first XP'},
-  {id:'hatched',icon:'\uD83E\uDD5A',name:'Hatched!',desc:'Reach Hatchling (OCdt)'},
-  {id:'taking_flight',icon:'\uD83E\uDD85',name:'Taking Flight',desc:'Reach Fledgling (2Lt)'},
-  {id:'battle_tested',icon:'⚔',name:'Battle Tested',desc:'Reach Juvenile (Lt)'},
-  {id:'officer',icon:'\uD83C\uDF96',name:'Officer Material',desc:'Reach Adult (Capt)'},
-  {id:'elder',icon:'\uD83D\uDC51',name:'Elder Dragon',desc:'Reach Elder (Maj)'},
+  {id:'hatched',icon:'\uD83E\uDD5A',name:'Hatched!',desc:'Reach Hatchling (Spark)'},
+  {id:'taking_flight',icon:'\uD83E\uDD85',name:'Taking Flight',desc:'Reach Fledgling (Ember)'},
+  {id:'battle_tested',icon:'⚔',name:'Tempered',desc:'Reach Juvenile (Blaze)'},
+  {id:'officer',icon:'\uD83C\uDF96',name:'Ascended',desc:'Reach Adult (Sovereign)'},
+  {id:'elder',icon:'\uD83D\uDC51',name:'Elder Dragon',desc:'Reach Elder (Mythic)'},
   {id:'xp_1k',icon:'⭐',name:'Rising Star',desc:'Earn 1,000 XP'},
   {id:'xp_10k',icon:'\uD83C\uDF1F',name:'Shining Bright',desc:'Earn 10,000 XP'},
   {id:'xp_50k',icon:'\uD83D\uDCAB',name:'XP Machine',desc:'Earn 50,000 XP'},
@@ -3591,11 +3602,12 @@ function getCatName(catId) {
 
 function buildItems() {
   return userMilestones.map(function(ms) {
+    var safeCat = migrateCategoryId(ms.cat);
     return {
-      id: ms.id, n: ms.name, d: ms.date, c: getCatColor(ms.cat),
-      cat: getCatName(ms.cat), catId: ms.cat, days: daysTo(ms.date),
-      w: ms.weight || 1, icon: ms.icon || getCatIcon(ms.cat),
-      xp: ms.xp || 500, desc: ms.desc || ''
+      id: ms.id, n: ms.name, d: ms.date, c: getCatColor(safeCat),
+      cat: getCatName(safeCat), catId: safeCat, days: daysTo(ms.date),
+      w: ms.weight || 1, icon: ms.icon || getCatIcon(safeCat),
+      xp: scaledMilestoneXP(safeCat), desc: ms.desc || ''
     };
   }).filter(function(m) { return m.days >= 0; }).sort(function(a, b) { return a.days - b.days; });
 }
@@ -3787,12 +3799,15 @@ function buildCatChips() {
   var row = document.getElementById('msCatRow');
   if (!row) return;
   row.innerHTML = '';
+  row.style.justifyContent = 'center';
   DEFAULT_CATEGORIES.forEach(function(cat) {
     var chip = document.createElement('button');
     chip.type = 'button';
     chip.className = 'ms-cat-chip';
-    chip.textContent = cat.icon + ' ' + cat.name;
+    chip.textContent = cat.icon + ' ' + cat.name + ' (' + scaledMilestoneXP(cat.id) + ' XP)';
     chip.dataset.cat = cat.id;
+    chip.title = cat.tip;
+    if (typeof Core !== 'undefined' && Core.tooltip) Core.tooltip.attach(chip, cat.tip);
     chip.addEventListener('click', function() {
       row.querySelectorAll('.ms-cat-chip').forEach(function(c) { c.classList.remove('active'); });
       chip.classList.add('active');
@@ -3808,10 +3823,9 @@ function openMsForm(existing) {
   document.getElementById('msDate').value = existing ? existing.date : '';
   document.getElementById('msIcon').value = existing ? (existing.icon || '') : '';
   document.getElementById('msDesc').value = existing ? (existing.desc || '') : '';
-  document.getElementById('msXP').value = existing ? (existing.xp || 500) : 500;
   buildCatChips();
   if (existing) {
-    var activeChip = document.querySelector('.ms-cat-chip[data-cat="' + existing.cat + '"]');
+    var activeChip = document.querySelector('.ms-cat-chip[data-cat="' + migrateCategoryId(existing.cat) + '"]');
     if (activeChip) activeChip.classList.add('active');
   } else {
     var first = document.querySelector('.ms-cat-chip');
@@ -3847,9 +3861,8 @@ function saveMilestoneFromForm() {
   var date = document.getElementById('msDate').value;
   var icon = document.getElementById('msIcon').value.trim() || '\uD83D\uDCCC';
   var desc = document.getElementById('msDesc').value.trim();
-  var xp = parseInt(document.getElementById('msXP').value, 10) || 500;
   var activeCat = document.querySelector('.ms-cat-chip.active');
-  var cat = activeCat ? activeCat.dataset.cat : 'personal';
+  var cat = activeCat ? activeCat.dataset.cat : 'medium';
   if (!name || !date) {
     var form = document.getElementById('msForm');
     form.style.animation = 'none';
@@ -3861,14 +3874,14 @@ function saveMilestoneFromForm() {
   if (msEditingId) {
     milestones = milestones.map(function(ms) {
       if (ms.id === msEditingId) {
-        return { id: ms.id, name: name, date: date, cat: cat, icon: icon, desc: desc, xp: Math.min(Math.max(0, xp), 5000), weight: ms.weight || 1 };
+        return { id: ms.id, name: name, date: date, cat: cat, icon: icon, desc: desc, weight: ms.weight || 1 };
       }
       return ms;
     });
   } else {
     milestones.push({
       id: genMilestoneId(), name: name, date: date,
-      cat: cat, icon: icon, desc: desc, xp: Math.min(Math.max(0, xp), 5000), weight: 1
+      cat: cat, icon: icon, desc: desc, weight: 1
     });
   }
   saveMilestones(milestones);
@@ -4280,13 +4293,33 @@ document.addEventListener('visibilitychange', function() {
   if (document.hidden) { running = false; }
   else {
     running = true;
-    DS.lastVisit = new Date().toISOString();
-    saveDS(DS);
-    try {
-      userMilestones = processExpiredMilestones();
-      if (typeof renderEventsPanel === 'function') renderEventsPanel();
-      if (typeof checkAch === 'function') checkAch();
-    } catch (e) {}
+    /* Re-pull latest state from SyncEngine for cross-device sync */
+    SyncEngine.init({
+      worker: 'https://widget-sync.lordgrape-widgets.workers.dev',
+      namespaces: ['dragon', 'clock', 'user']
+    }).then(function() {
+      var remote = SyncEngine.getAll('dragon');
+      if (remote && typeof remote.xp !== 'undefined') {
+        DS = initDS();
+        prevStage = getStage(DS.xp);
+      } else {
+        DS.lastVisit = new Date().toISOString();
+        saveDS(DS);
+      }
+      updateBars();
+      updateStatus();
+      try {
+        userMilestones = processExpiredMilestones();
+        if (typeof renderEventsPanel === 'function') renderEventsPanel();
+        if (typeof checkAch === 'function') checkAch();
+        if (typeof renderAch === 'function') renderAch();
+      } catch (e) {}
+    }).catch(function() {
+      DS.lastVisit = new Date().toISOString();
+      saveDS(DS);
+      updateBars();
+      updateStatus();
+    });
     requestAnimationFrame(loop);
   }
 });
@@ -4296,7 +4329,7 @@ document.addEventListener('visibilitychange', function() {
 <script>
 /* ══════════════════════════════════════
    THYMOS ↔ RADAR INTEGRATION (post-load)
-   Dynamic milestones + Horizon Power header
+   Dynamic milestones + radar chrome
    ══════════════════════════════════════ */
 
 /* ── Dragon stage → radar glow + title ── */
@@ -4315,22 +4348,6 @@ document.addEventListener('visibilitychange', function() {
   }
 })();
 
-/* ── 4. Horizon Power header ── */
-function getHorizonPower() {
-  var s = getStage(DS.xp), cur = STAGES[s].xp, nxt = nextStageXP(DS.xp);
-  var xpP = nxt > cur ? (DS.xp - cur) / (nxt - cur) : 1;
-  var now = Date.now(), closest = Infinity;
-  userMilestones.forEach(function(ev) { var d = new Date(ev.date + 'T00:00:00').getTime() - now; if (d > 0 && d < closest) closest = d; });
-  var mileP = closest===Infinity ? 1 : Math.max(0, 1 - closest/(180*86400000));
-  return Math.min(100, Math.round((xpP*0.5 + mileP*0.5)*100));
-}
-(function() {
-  var el = document.getElementById('hdrTitle');
-  if (!el) return;
-  function upd() { el.textContent = '⚡ HORIZON ' + getHorizonPower() + '%'; }
-  upd();
-  setInterval(upd, 60000);
-})();
 function revealHorizon() {
   var sk = document.getElementById('hzSkeleton');
   var c = document.getElementById('hzContent');
