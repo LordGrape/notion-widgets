@@ -1472,13 +1472,21 @@
 /* ── Info Tooltip ── */
 .setting-row{
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 14px 0;
-  border-bottom: 1px solid rgba(var(--accent-rgb),0.06);
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  margin-bottom: 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(var(--accent-rgb),0.10);
+  background: rgba(var(--accent-rgb),0.02);
+  transition: border-color var(--transition), background var(--transition);
 }
-.setting-row:last-child{ border-bottom: none; }
-.setting-row .sr-left{ flex: 1; min-width: 0; }
+.setting-row:hover{
+  border-color: rgba(var(--accent-rgb),0.18);
+  background: rgba(var(--accent-rgb),0.04);
+}
+.setting-row:last-child{ margin-bottom: 0; }
+.setting-row .sr-left{ width: 100%; min-width: 0; }
 .setting-row .sr-label{
   display: flex;
   align-items: center;
@@ -1488,9 +1496,49 @@
   letter-spacing: 1.4px;
   text-transform: uppercase;
   color: var(--text-secondary);
-  margin-bottom: 6px;
+  margin-bottom: 2px;
 }
-.setting-row .sr-control{ width: 100%; }
+.setting-row .sr-desc{
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  line-height: 1.5;
+  margin-top: 2px;
+  letter-spacing: 0.1px;
+  text-transform: none;
+}
+.setting-row .sr-control{
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+.setting-row .sr-value{
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.5px;
+  margin-top: 2px;
+}
+.setting-row .slider-labels{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 8px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  font-weight: 600;
+}
+.setting-row .slider-labels .sl-current{
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--accent);
+  letter-spacing: 0;
+  text-transform: none;
+}
 .info-icon{
   display: inline-flex;
   align-items: center;
@@ -1895,6 +1943,9 @@ input[type="range"]::-moz-range-thumb{
 
     /* ── State ── */
     var NS = 'studyengine';
+    function courseKey(name){
+      return String(name || '').replace(/[^a-zA-Z0-9_-]/g, '_');
+    }
     var DEFAULT_STATE = {
       items: {},
       courses: {},
@@ -3691,7 +3742,7 @@ input[type="range"]::-moz-range-thumb{
       var retPct = Math.round(settings.desiredRetention * 100);
 
       function infoIcon(text) {
-        return '<span class="info-icon" tabindex="0">ⓘ<span class="info-tooltip">' + text + '</span></span>';
+        return '<span class="info-icon" tabindex="0" role="button" aria-label="Info">ⓘ<span class="info-tooltip">' + text + '</span></span>';
       }
 
       function pillGroup(name, options, currentValue) {
@@ -3704,58 +3755,67 @@ input[type="range"]::-moz-range-thumb{
         return h;
       }
 
-      body.innerHTML = '' +
-        /* Desired Retention */
+      body.innerHTML =
         '<div class="setting-row">' +
           '<div class="sr-left">' +
-            '<div class="sr-label">Desired retention <span id="s_ret_display">' + retPct + '%</span> ' +
+            '<div class="sr-label">Desired retention ' +
               infoIcon('Target probability of remembering a card when it comes due. Higher means more frequent reviews. 0.90 (90%) is the research-backed default. Raise to 0.93-0.95 before exams; lower to 0.85 for maintenance.') +
             '</div>' +
-            '<div class="sr-control">' +
-              '<input id="s_ret" type="range" min="0.80" max="0.95" step="0.01" value="' + settings.desiredRetention + '" />' +
+            '<div class="sr-desc">How likely you want to remember each card at review time.</div>' +
+            '<div class="sr-value" id="s_ret_display">' + retPct + '%</div>' +
+          '</div>' +
+          '<div class="sr-control">' +
+            '<input type="range" id="s_ret" min="0.80" max="0.95" step="0.01" value="' + settings.desiredRetention + '">' +
+            '<div class="slider-labels">' +
+              '<span>80% (relaxed)</span>' +
+              '<span>95% (strict)</span>' +
             '</div>' +
           '</div>' +
         '</div>' +
-        /* Session Size Limit */
         '<div class="setting-row">' +
           '<div class="sr-left">' +
             '<div class="sr-label">Session size limit ' +
-              infoIcon('Maximum cards per study session. Smaller sessions (10-15) maintain focus and fit between classes. Larger sessions (30-60) suit dedicated cram days. Cram mode auto-scales this up when exams approach.') +
+              infoIcon('Maximum cards per study session. Smaller sessions (10-15) maintain focus. Larger sessions (30-60) suit dedicated cram days. Cram mode auto-scales this when exams approach.') +
             '</div>' +
-            '<div class="sr-control">' +
-              '<input type="range" id="s_lim" min="5" max="60" step="1" value="' + (settings.sessionLimit || 12) + '">' +
-              '<div style="display:flex;justify-content:space-between;margin-top:4px;"><span style="font-size:8px;color:var(--text-tertiary);letter-spacing:1px;">5</span><span id="s_lim_display" style="font-size:9px;font-weight:700;color:var(--text);letter-spacing:0.5px;">' + (settings.sessionLimit || 12) + ' cards</span><span style="font-size:8px;color:var(--text-tertiary);letter-spacing:1px;">60</span></div>' +
+            '<div class="sr-desc">Max number of cards you review in one sitting.</div>' +
+            '<div class="sr-value" id="s_lim_display">' + (settings.sessionLimit || 12) + ' cards</div>' +
+          '</div>' +
+          '<div class="sr-control">' +
+            '<input type="range" id="s_lim" min="5" max="60" step="1" value="' + (settings.sessionLimit || 12) + '">' +
+            '<div class="slider-labels">' +
+              '<span>5 (short)</span>' +
+              '<span>60 (marathon)</span>' +
             '</div>' +
           '</div>' +
         '</div>' +
-        /* Mock Exam Default Time */
         '<div class="setting-row">' +
           '<div class="sr-left">' +
             '<div class="sr-label">Mock exam default time ' +
               infoIcon('Default countdown timer for Mock Exam tier items. Adjust based on your exam format. Individual items can override this with their own time limit.') +
             '</div>' +
-            '<div class="sr-control">' +
-              pillGroup('s_mock', [
-                { value: '5', label: '5 min' },
-                { value: '10', label: '10 min' },
-                { value: '15', label: '15 min' },
-                { value: '30', label: '30 min' }
-              ], String(settings.mockDefaultMins || 10)) +
-            '</div>' +
+            '<div class="sr-desc">Countdown duration for mock exam practice items.</div>' +
+          '</div>' +
+          '<div class="sr-control">' +
+            pillGroup('s_mock', [
+              { value: '5', label: '5 min' },
+              { value: '10', label: '10 min' },
+              { value: '15', label: '15 min' },
+              { value: '30', label: '30 min' }
+            ], String(settings.mockDefaultMins || 10)) +
           '</div>' +
         '</div>' +
-        /* Apply Timer Badge */
         '<div class="setting-row">' +
           '<div class="sr-left">' +
             '<div class="sr-label">Apply timer badge ' +
-              infoIcon('Shows an elapsed-time counter on Apply It tier items. Builds time-pressure awareness and exam stamina. Purely informational; does not auto-submit.') +
+              infoIcon('Shows an elapsed-time counter on Apply It tier items. Builds time-pressure awareness and exam stamina. Purely informational — does not auto-submit.') +
             '</div>' +
-            '<div class="sr-control">' +
-              pillGroup('s_apply', [
-                { value: '1', label: 'On' },
-                { value: '0', label: 'Off' }
-              ], settings.showApplyTimer ? '1' : '0') +
-            '</div>' +
+            '<div class="sr-desc">Display a running timer during Apply It questions.</div>' +
+          '</div>' +
+          '<div class="sr-control">' +
+            pillGroup('s_apply', [
+              { value: '1', label: 'On' },
+              { value: '0', label: 'Off' }
+            ], settings.showApplyTimer ? '1' : '0') +
           '</div>' +
         '</div>';
 
@@ -3770,7 +3830,6 @@ input[type="range"]::-moz-range-thumb{
         });
       });
 
-      /* Wire live slider update */
       var retSlider = el('s_ret');
       var retDisplay = el('s_ret_display');
       if (retSlider && retDisplay) {
@@ -3786,7 +3845,6 @@ input[type="range"]::-moz-range-thumb{
         });
       }
 
-      /* Entrance animation */
       if (window.gsap) {
         var rows = body.querySelectorAll('.setting-row');
         gsap.fromTo(rows, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.25, stagger: 0.05, ease: 'power2.out' });
@@ -3843,6 +3901,7 @@ input[type="range"]::-moz-range-thumb{
       }
 
       courses.forEach(function(c) {
+        var ck = courseKey(c.name);
         var examLabel = EXAM_TYPE_LABELS[c.examType] || c.examType;
         var objLabel = OBJECTIVE_LABELS[c.objective || 'retention'] || 'Long-Term Retention';
         var examDate = c.examDate ? '<span class="cc-date">Exam: ' + c.examDate + '</span>' : '';
@@ -3851,7 +3910,7 @@ input[type="range"]::-moz-range-thumb{
           if (state.items.hasOwnProperty(id) && state.items[id] && state.items[id].course === c.name) itemCount++;
         }
 
-        h += '<div class="course-list-item" id="cli_' + esc(c.name) + '">' +
+        h += '<div class="course-list-item" id="cli_' + ck + '">' +
           '<div style="flex:1;min-width:0;">' +
             '<div class="cli-name">' + esc(c.name) + '</div>' +
             '<div style="display:flex;gap:6px;margin-top:4px;align-items:center;flex-wrap:wrap;">' +
@@ -3867,31 +3926,69 @@ input[type="range"]::-moz-range-thumb{
             '<button title="Delete course" onclick="startDeleteCourse(\'' + esc(c.name).replace(/'/g, "\\'") + '\')">🗑</button>' +
           '</div>' +
         '</div>' +
-        '<div id="editRow_' + esc(c.name) + '" style="display:none;"></div>' +
-        '<div id="deleteRow_' + esc(c.name) + '" style="display:none;"></div>' +
-        '<div id="deckRow_' + esc(c.name) + '" style="display:none;"></div>';
+        '<div id="editRow_' + ck + '" style="display:none;"></div>' +
+        '<div id="deleteRow_' + ck + '" style="display:none;"></div>' +
+        '<div id="deckRow_' + ck + '" style="display:none;"></div>';
       });
 
       /* Add course form */
-      h += '<div style="margin-top:14px;">' +
-        '<div class="field"><label>New course name</label><input id="nc_name" class="input" placeholder="e.g., POLS 3550"></div>' +
+      h += '<div class="section-header" style="margin-top:16px;">Add New Course</div>' +
+        '<div class="field">' +
+          '<label>Course name</label>' +
+          '<input type="text" id="nc_name" class="input" placeholder="e.g., Constitutional Law">' +
+        '</div>' +
         '<div class="course-form-row">' +
-        '<div class="field"><label>Exam type</label><select id="nc_examType" class="input">' +
-        '<option value="mc">Multiple Choice</option>' +
-        '<option value="short_answer">Short Answer</option>' +
-        '<option value="essay">Essay</option>' +
-        '<option value="mixed" selected>Mixed</option>' +
-        '</select></div>' +
-        '<div class="field"><label>Exam date (optional)</label><input id="nc_examDate" type="date" class="input"></div>' +
-      '</div>' +
-      '<div class="field"><label>Objective</label><select id="nc_objective" class="input">' +
-        '<option value="retention">🧠 Long-Term Retention</option>' +
-        '<option value="exam">📝 Exam Prep</option>' +
-        '<option value="mastery">⚔️ Mastery</option>' +
-      '</select></div>' +
-      '</div>';
+          '<div class="field">' +
+            '<label>Exam format</label>' +
+            '<select id="nc_examType" class="input">' +
+              '<option value="mc">Multiple Choice</option>' +
+              '<option value="short_answer">Short Answer</option>' +
+              '<option value="essay">Essay</option>' +
+              '<option value="mixed" selected>Mixed</option>' +
+            '</select>' +
+            '<div id="nc_examTypeDesc" class="help" style="margin-top:6px;line-height:1.5;"></div>' +
+          '</div>' +
+          '<div class="field">' +
+            '<label>Exam date (optional)</label>' +
+            '<input type="date" id="nc_examDate" class="input">' +
+            '<div class="help">Setting a date enables cram mode as the exam approaches.</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="field">' +
+          '<label>Learning objective</label>' +
+          '<select id="nc_objective" class="input">' +
+            '<option value="retention" selected>🧠 Long-Term Retention</option>' +
+            '<option value="exam">📝 Exam Prep</option>' +
+            '<option value="mastery">⚔️ Deep Mastery</option>' +
+          '</select>' +
+          '<div id="nc_objectiveDesc" class="help" style="margin-top:6px;line-height:1.5;"></div>' +
+        '</div>';
 
       courseModalBody.innerHTML = h;
+
+      var objDescriptions = {
+        retention: '🧠 Balanced, long-haul learning — reviews are spaced for maximum durability. Cards come back at widening intervals so knowledge sticks for months and years. Best when you have time before the exam or want permanent understanding.',
+        exam: '📝 Aggressive short-term prep — increases review frequency and session sizes, prioritises your weakest cards first. Cram mode activates automatically as the exam date approaches. Best within 2 weeks of an exam.',
+        mastery: '⚔️ Deep understanding over speed — emphasises higher-order practice (Apply, Distinguish, Mock) and sets a strict 95% retention target. You will review more often, but build genuine expertise. Best for conceptual subjects.'
+      };
+      var examTypeDescriptions = {
+        mc: 'Emphasises Quick Fire (recall speed) and Distinguish (eliminating wrong answers). Good for exams where recognition and discrimination matter most.',
+        short_answer: 'Balances Quick Fire with Explain It. Practises producing concise, accurate written answers from memory.',
+        essay: 'Emphasises Apply It and Mock Exam tiers. Builds the ability to construct extended arguments under time pressure.',
+        mixed: 'Balanced across all five tiers. A good default when your exam combines several question formats.'
+      };
+
+      function wireDescriptionUpdater(selectId, descId, descMap) {
+        var sel = el(selectId);
+        var desc = el(descId);
+        if (!sel || !desc) return;
+        function update() { desc.textContent = descMap[sel.value] || ''; }
+        sel.addEventListener('change', update);
+        update();
+      }
+
+      wireDescriptionUpdater('nc_objective', 'nc_objectiveDesc', objDescriptions);
+      wireDescriptionUpdater('nc_examType', 'nc_examTypeDesc', examTypeDescriptions);
     }
 
     el('courseAddBtn').addEventListener('click', function() {
@@ -3918,53 +4015,91 @@ input[type="range"]::-moz-range-thumb{
     window.openEditCourse = function(name) {
       var c = getCourse(name);
       if (!c) return;
-      var row = el('editRow_' + name);
+      var row = el('editRow_' + courseKey(name));
       if (!row) return;
 
       if (row.style.display === 'block') { row.style.display = 'none'; row.innerHTML = ''; return; }
 
-      var objOptions = '<option value="retention"' + (c.objective === 'retention' ? ' selected' : '') + '>🧠 Long-Term Retention</option>' +
+      var objOptions = '<option value="retention"' + (c.objective === 'retention' || !c.objective ? ' selected' : '') + '>🧠 Long-Term Retention</option>' +
         '<option value="exam"' + (c.objective === 'exam' ? ' selected' : '') + '>📝 Exam Prep</option>' +
         '<option value="mastery"' + (c.objective === 'mastery' ? ' selected' : '') + '>⚔️ Mastery</option>';
 
-      row.innerHTML = '<div style="padding:10px 12px;border-radius:14px;border:1px solid rgba(var(--accent-rgb),0.16);background:rgba(var(--accent-rgb),0.04);margin-bottom:8px;">' +
-        '<div class="course-form-row">' +
-          '<div class="field"><label>Exam type</label><select id="edit_examType" class="input">' +
-            '<option value="mc"' + (c.examType === 'mc' ? ' selected' : '') + '>Multiple Choice</option>' +
-            '<option value="short_answer"' + (c.examType === 'short_answer' ? ' selected' : '') + '>Short Answer</option>' +
-            '<option value="essay"' + (c.examType === 'essay' ? ' selected' : '') + '>Essay</option>' +
-            '<option value="mixed"' + (c.examType === 'mixed' ? ' selected' : '') + '>Mixed</option>' +
-          '</select></div>' +
-          '<div class="field"><label>Exam date</label><input id="edit_examDate" type="date" class="input" value="' + (c.examDate || '') + '"></div>' +
-        '</div>' +
-        '<div class="field"><label>Objective</label><select id="edit_objective" class="input">' + objOptions + '</select></div>' +
-        '<div style="display:flex;gap:8px;margin-top:8px;">' +
-          '<button class="ghost-btn" style="min-width:0;flex:1;" onclick="saveEditCourse(\'' + esc(name).replace(/'/g, "\\'") + '\')">Save</button>' +
-          '<button class="ghost-btn" style="min-width:0;flex:0 0 auto;opacity:0.7;" onclick="document.getElementById(\'editRow_' + esc(name) + '\').style.display=\'none\'">Cancel</button>' +
-        '</div>' +
-      '</div>';
+      var editId = 'edit_' + Date.now();
+
+      row.innerHTML =
+        '<div style="padding:10px 0;">' +
+          '<div class="course-form-row">' +
+            '<div class="field">' +
+              '<label>Exam type</label>' +
+              '<select id="' + editId + '_examType" class="input">' +
+                '<option value="mc"' + (c.examType === 'mc' ? ' selected' : '') + '>Multiple Choice</option>' +
+                '<option value="short_answer"' + (c.examType === 'short_answer' ? ' selected' : '') + '>Short Answer</option>' +
+                '<option value="essay"' + (c.examType === 'essay' ? ' selected' : '') + '>Essay</option>' +
+                '<option value="mixed"' + (c.examType === 'mixed' || !c.examType ? ' selected' : '') + '>Mixed</option>' +
+              '</select>' +
+            '</div>' +
+            '<div class="field">' +
+              '<label>Exam date</label>' +
+              '<input type="date" id="' + editId + '_examDate" class="input" value="' + esc(c.examDate || '') + '">' +
+            '</div>' +
+          '</div>' +
+          '<div class="field">' +
+            '<label>Objective</label>' +
+            '<select id="' + editId + '_objective" class="input">' + objOptions + '</select>' +
+            '<div class="obj-desc-inline" id="' + editId + '_objDesc" style="margin-top:6px;font-size:10px;color:var(--text-tertiary);line-height:1.5;"></div>' +
+          '</div>' +
+          '<div style="display:flex;gap:8px;margin-top:8px;">' +
+            '<button class="ghost-btn" id="' + editId + '_save" style="flex:1;">Save changes</button>' +
+            '<button class="ghost-btn" id="' + editId + '_cancel" style="flex:0 0 auto;min-width:auto;padding:10px 14px;">✕</button>' +
+          '</div>' +
+        '</div>';
+
       row.style.display = 'block';
 
-      if (window.gsap) gsap.fromTo(row, { opacity: 0, y: -4 }, { opacity: 1, y: 0, duration: 0.2, ease: 'power2.out' });
-    };
+      var objDescMap = {
+        retention: '🧠 Balanced, long-haul learning. Reviews are spaced for maximum durability. Best when you have time and want knowledge that sticks for years.',
+        exam: '📝 Aggressive short-term prep. Increases review frequency and prioritises weaker cards. Best within 2 weeks of an exam.',
+        mastery: '⚔️ Deep understanding over speed. Emphasises higher-order tiers (Apply, Distinguish, Mock). Best for conceptual subjects where surface recall is not enough.'
+      };
 
-    window.saveEditCourse = function(name) {
-      var c = getCourse(name);
-      if (!c) return;
-      var newType = el('edit_examType') ? el('edit_examType').value : c.examType;
-      if (TIER_PROFILES[newType]) c.examType = newType;
-      var newObj = el('edit_objective') ? el('edit_objective').value : (c.objective || 'retention');
-      if (OBJECTIVES[newObj]) c.objective = newObj;
-      var newDate = el('edit_examDate') ? (el('edit_examDate').value || '').trim() : '';
-      c.examDate = (newDate && newDate.match(/^\d{4}-\d{2}-\d{2}$/)) ? newDate : null;
-      saveCourse(c);
-      renderCourseModal();
-      renderDashboard();
-      toast('Course updated');
+      function updateObjDesc() {
+        var sel = el(editId + '_objective');
+        var desc = el(editId + '_objDesc');
+        if (sel && desc) desc.textContent = objDescMap[sel.value] || '';
+      }
+
+      var objSel = el(editId + '_objective');
+      if (objSel) {
+        objSel.addEventListener('change', updateObjDesc);
+        updateObjDesc();
+      }
+
+      var saveBtn = el(editId + '_save');
+      if (saveBtn) {
+        saveBtn.addEventListener('click', function() {
+          c.examType = (el(editId + '_examType') && el(editId + '_examType').value) || 'mixed';
+          c.examDate = ((el(editId + '_examDate') && el(editId + '_examDate').value) || '').trim() || null;
+          c.objective = ((el(editId + '_objective') && el(editId + '_objective').value) || 'retention');
+          saveCourse(c);
+          toast('Course updated');
+          renderCourseModal();
+          renderDashboard();
+        });
+      }
+
+      var cancelBtn = el(editId + '_cancel');
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', function() {
+          row.style.display = 'none';
+          row.innerHTML = '';
+        });
+      }
+
+      if (window.gsap) gsap.fromTo(row, { opacity: 0, y: -4 }, { opacity: 1, y: 0, duration: 0.25, ease: 'power2.out' });
     };
 
     window.startDeleteCourse = function(name) {
-      var row = el('deleteRow_' + name);
+      var row = el('deleteRow_' + courseKey(name));
       if (!row) return;
 
       if (row.style.display === 'block') { row.style.display = 'none'; row.innerHTML = ''; return; }
@@ -3979,7 +4114,7 @@ input[type="range"]::-moz-range-thumb{
         '<div style="font-size:9px;color:var(--text-secondary);margin-bottom:10px;">' + itemCount + ' card' + (itemCount !== 1 ? 's' : '') + ' will keep their data but lose the course tag.</div>' +
         '<div style="display:flex;gap:8px;">' +
           '<button class="ghost-btn" style="min-width:0;flex:1;border-color:rgba(239,68,68,0.3);color:#ef4444;" onclick="confirmDeleteCourseNow(\'' + esc(name).replace(/'/g, "\\'") + '\')">Delete</button>' +
-          '<button class="ghost-btn" style="min-width:0;flex:0 0 auto;opacity:0.7;" onclick="document.getElementById(\'deleteRow_' + esc(name) + '\').style.display=\'none\'">Cancel</button>' +
+          '<button class="ghost-btn" style="min-width:0;flex:0 0 auto;opacity:0.7;" onclick="document.getElementById(\'deleteRow_' + courseKey(name) + '\').style.display=\'none\'">Cancel</button>' +
         '</div>' +
       '</div>';
       row.style.display = 'block';
@@ -3995,7 +4130,7 @@ input[type="range"]::-moz-range-thumb{
     };
 
     window.viewCourseDeck = function(name) {
-      var row = el('deckRow_' + name);
+      var row = el('deckRow_' + courseKey(name));
       if (!row) return;
 
       if (row.style.display === 'block') { row.style.display = 'none'; row.innerHTML = ''; return; }
