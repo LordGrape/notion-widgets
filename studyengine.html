@@ -167,14 +167,16 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 14px 16px;
-      border-bottom: 1px solid rgba(255,255,255,0.02);
+      padding: 10px 16px;
+      border-bottom: 1px solid rgba(var(--accent-rgb),0.08);
+      gap: 8px;
     }
     .brand{
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       min-width: 0;
+      flex-shrink: 0;
     }
     .logo{
       width: 28px; height: 28px;
@@ -183,23 +185,59 @@
       image-rendering: pixelated;
     }
     .brand h1{
-      font-size: 12px;
-      letter-spacing: 2px;
+      font-size: 11px;
+      letter-spacing: 1.8px;
       text-transform: uppercase;
-      font-weight: 700;
+      font-weight: 800;
       color: var(--text);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     .brand .sub{
-      margin-top: 2px;
+      display: none;
+    }
+
+    /* ── Top Navigation ── */
+    .nav-tabs{
+      display: flex;
+      gap: 4px;
+      padding: 3px;
+      border-radius: 999px;
+      border: 1px solid rgba(var(--accent-rgb),0.12);
+      background: rgba(var(--accent-rgb),0.03);
+      flex-shrink: 0;
+    }
+    .nav-tab{
+      border: none;
+      cursor: pointer;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--text-secondary);
       font-size: 9px;
-      font-weight: 400;
+      font-weight: 700;
       letter-spacing: 1px;
       text-transform: uppercase;
-      color: var(--text-secondary);
-      opacity: 0.9;
+      transition: background var(--transition), color var(--transition), transform var(--transition);
+      white-space: nowrap;
+      user-select: none;
+    }
+    .nav-tab.active{
+      background: rgba(var(--accent-rgb),0.18);
+      color: var(--text);
+    }
+    .nav-tab:hover:not(.active){
+      background: rgba(var(--accent-rgb),0.06);
+    }
+    .nav-tab:active{
+      transform: scale(0.97);
+    }
+    .topbar-right{
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
     }
 
     .icon-btn{
@@ -222,6 +260,15 @@
       padding: 16px;
     }
     .view.active{ display: block; }
+
+    /* ── Tab Panels ── */
+    .tab-panel{
+      display: none;
+      padding: 0;
+    }
+    .tab-panel.active{
+      display: block;
+    }
 
     .stats-row{
       display: grid;
@@ -1996,113 +2043,142 @@ input[type="range"]::-moz-range-thumb{
       <div class="card" id="rootCard">
         <div class="topbar">
           <div class="brand">
-            <canvas id="mascotCanvas" class="logo" width="56" height="56"></canvas>
-            <div style="min-width:0">
-              <h1 id="hdrTitle">Study Engine</h1>
-              <div class="sub" id="hdrSub">Retrieval practice</div>
-            </div>
+            <canvas id="mascotCanvas" class="logo" width="28" height="28"></canvas>
+            <h1>Study Engine</h1>
           </div>
-          <button class="icon-btn" id="gearBtn" aria-label="Settings">⚙️</button>
+          <div class="nav-tabs">
+            <button class="nav-tab active" data-nav="home" id="navHome">Home</button>
+            <button class="nav-tab" data-nav="courses" id="navCourses">Courses</button>
+          </div>
+          <div class="topbar-right">
+            <button class="icon-btn" id="gearBtn">⚙️</button>
+          </div>
         </div>
 
         <!-- Dashboard -->
         <div class="view active" id="viewDash">
-          <div class="dash-grid">
-          <!-- Hero: Items Due -->
-          <div class="hero-stat" id="heroStat">
-            <div class="hero-value" id="statDue">—</div>
-            <div class="hero-label">Items due</div>
-            <div class="hero-sub" id="heroCourseHint">Across all tiers</div>
-          </div>
+          <!-- ── HOME TAB ── -->
+          <div id="tabHome" class="tab-panel active">
+            <div class="dash-grid">
+              <div class="hero-stat" id="heroStat">
+                <div class="hero-value" id="statDue">—</div>
+                <div class="hero-label">Items due</div>
+                <div class="hero-sub" id="heroCourseHint">Across all tiers</div>
+              </div>
 
-          <!-- Secondary Stats -->
-          <div class="stats-row">
-            <div class="stat">
-              <div class="k">Streak</div>
-              <div class="v" id="statStreak">—</div>
-              <div class="s">Days</div>
-            </div>
-            <div class="stat">
-              <div class="k">Avg Retention</div>
-              <div class="v" id="statRet">—</div>
-              <div class="s">FSRS retrievability</div>
-            </div>
-          </div>
-
-          <!-- Calibration -->
-          <div class="gauge" id="gaugeWrap">
-            <svg width="48" height="48" viewBox="0 0 48 48">
-              <circle cx="24" cy="24" r="19" fill="none" stroke="rgba(var(--accent-rgb),0.08)" stroke-width="4"/>
-              <circle id="calArc" cx="24" cy="24" r="19" fill="none" stroke="var(--accent)" stroke-width="4"
-                stroke-dasharray="120" stroke-dashoffset="120"
-                stroke-linecap="round" transform="rotate(-90 24 24)"
-                style="transition: stroke-dashoffset 0.6s ease, stroke 0.4s ease;"/>
-            </svg>
-            <div>
-              <div class="g-title">Calibration</div>
-              <div class="g-val" id="calVal">—</div>
-              <div class="g-sub" id="calSub">Metacognitive feedback</div>
-            </div>
-          </div>
-
-          </div><!-- /dash-grid -->
-          <!-- Tier Breakdown -->
-          <div class="section-header">Due by tier</div>
-          <div class="breakdown" id="tierBreakdown"></div>
-
-          <!-- Cram Mode Banner -->
-          <div class="cram-banner" id="cramBanner">
-            <span class="cram-icon">⚡</span>
-            <span class="cram-text" id="cramText">Cram mode active — exam in 2 days</span>
-          </div>
-
-          <!-- Analytics Strip -->
-          <div class="analytics-strip" id="analyticsStrip">
-            <div class="analytics-card cd-retention-graph">
-              <div class="ac-title">Predicted retention</div>
-              <canvas id="retentionCanvas" height="100"></canvas>
-            </div>
-            <div class="analytics-card">
-              <div class="analytics-row">
-                <div class="spark-wrap">
-                  <div class="ac-title">Last 30 days</div>
-                  <canvas id="sparkCanvas" height="50"></canvas>
+              <div class="stats-row">
+                <div class="stat">
+                  <div class="k">Streak</div>
+                  <div class="v" id="statStreak">—</div>
+                  <div class="s">Days</div>
                 </div>
-                <div class="ring-wrap">
+                <div class="stat">
+                  <div class="k">Avg Retention</div>
+                  <div class="v" id="statRet">—</div>
+                  <div class="s">FSRS retrievability</div>
+                </div>
+              </div>
+
+              <div class="gauge">
+                <svg width="48" height="48" viewBox="0 0 48 48">
+                  <circle cx="24" cy="24" r="19" fill="none" stroke="rgba(var(--accent-rgb),0.08)" stroke-width="5"/>
+                  <circle id="calArc" cx="24" cy="24" r="19" fill="none" stroke="var(--accent)" stroke-width="5"
+                    stroke-dasharray="120" stroke-dashoffset="120" stroke-linecap="round"
+                    transform="rotate(-90 24 24)" style="transition: stroke-dashoffset 0.6s ease, stroke 0.3s ease"/>
+                </svg>
+                <div>
+                  <div class="g-title">Calibration</div>
+                  <div class="g-val" id="calVal">—</div>
+                  <div class="g-sub" id="calSub">Metacognitive feedback</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="section-header">Due by tier</div>
+            <div class="breakdown" id="tierBreakdown"></div>
+
+            <div class="cram-banner" id="cramBanner">
+              <span class="cram-icon">⚡</span>
+              <span class="cram-text" id="cramText">Cram mode active — exam in 2 days</span>
+            </div>
+
+            <div class="analytics-strip">
+              <div class="analytics-card">
+                <div class="ac-title">Predicted retention</div>
+                <canvas id="retentionCanvas" height="100"></canvas>
+              </div>
+              <div class="analytics-row">
+                <div class="analytics-card spark-wrap">
+                  <div class="ac-title">Last 30 days</div>
+                  <canvas id="sparkCanvas"></canvas>
+                </div>
+                <div class="analytics-card ring-wrap">
                   <canvas id="ringCanvas" width="64" height="64"></canvas>
                 </div>
               </div>
             </div>
+
+            <button class="big-btn" id="startBtn" disabled>Start Session</button>
+
+            <div class="mini-actions" style="margin-top: 12px;">
+              <button class="ghost-btn" id="addBtn">Add Items</button>
+              <button class="ghost-btn" id="importBtn">Import JSON</button>
+            </div>
+
+            <div id="emptyState" class="empty-state" style="display:none">
+              <div class="empty-icon">🧠</div>
+              <div class="empty-title">No items yet</div>
+              <div class="empty-desc">Add study items manually or import a JSON batch to start your first retrieval session.</div>
+            </div>
           </div>
 
-          <!-- Start Session -->
-          <button class="big-btn" id="startBtn" disabled>Start Session</button>
+          <!-- ── COURSES TAB ── -->
+          <div id="tabCourses" class="tab-panel" style="display:none;">
+            <div class="section-header" style="margin-top:4px;">Your courses</div>
+            <div id="courseCardsArea" class="course-cards"></div>
 
-          <!-- Course + Mode -->
-          <div class="row">
-            <div class="section-header" style="margin:0">Course filter</div>
-          </div>
-          <div class="chips" id="courseChips"></div>
-          <div id="topicChipsWrap" style="display:none;">
-            <div class="section-header" style="margin-top:6px;">Topic</div>
-            <div id="topicChips" class="chips"></div>
-          </div>
+            <div style="margin-top:14px;">
+              <button class="ghost-btn" id="manageCourses" style="width:100%;">＋ Add or manage courses</button>
+            </div>
 
-          <div class="mini-actions" style="margin-top:8px;margin-bottom:4px;">
-            <button class="ghost-btn" id="manageCourses">Manage Courses</button>
-          </div>
-
-          <!-- Actions -->
-          <div class="mini-actions">
-            <button class="ghost-btn" id="addBtn">Add Items</button>
-            <button class="ghost-btn" id="importBtn">Import JSON</button>
+            <div class="section-header" style="margin-top:18px;">Filter by topic</div>
+            <div id="topicChipsWrap" style="display:none;">
+              <div id="topicChips" class="chips"></div>
+            </div>
+            <div class="help" id="topicChipsEmpty" style="text-align:center;padding:8px 0;">Select a course to see topics.</div>
           </div>
 
-          <!-- Empty State (hidden by default, shown by JS) -->
-          <div class="empty-state" id="emptyState" style="display:none;">
-            <div class="empty-icon">🧠</div>
-            <div class="empty-title">No items yet</div>
-            <div class="empty-desc">Add study items manually or import a JSON batch to start your first retrieval session.</div>
+          <!-- ── COURSE DETAIL (overlays tab content) ── -->
+          <div id="courseDetail" class="course-detail">
+            <div class="cd-header">
+              <button class="cd-back" id="cdBack">← Back</button>
+              <div class="cd-title" id="cdTitle">—</div>
+            </div>
+            <div id="cdBadges" class="cd-badges"></div>
+            <div class="cd-countdown" id="cdCountdown" style="display:none;">
+              <div class="cd-days" id="cdDays">—</div>
+              <div class="cd-days-label" id="cdDaysLabel">Days until exam</div>
+            </div>
+            <div class="stats-row">
+              <div class="stat">
+                <div class="k">Items</div>
+                <div class="v" id="cdItemCount">—</div>
+                <div class="s" id="cdDueCount">— due</div>
+              </div>
+              <div class="stat">
+                <div class="k">Avg retention</div>
+                <div class="v" id="cdAvgRet">—</div>
+                <div class="s" id="cdRetTrend">—</div>
+              </div>
+            </div>
+            <div class="cd-tier-stats" id="cdTierStats"></div>
+            <div class="cd-retention-graph">
+              <div class="analytics-card">
+                <div class="ac-title">Course retention forecast</div>
+                <canvas id="cdRetentionCanvas" height="100"></canvas>
+              </div>
+            </div>
+            <button class="big-btn" id="cdStartSession">Study this course</button>
           </div>
         </div>
 
@@ -2181,36 +2257,6 @@ input[type="range"]::-moz-range-thumb{
           <button class="big-btn" id="backBtn">Back to Dashboard</button>
         </div>
 
-        <!-- Course Detail View -->
-        <div class="course-detail" id="courseDetail">
-          <div class="cd-header">
-            <button class="cd-back" id="cdBack">← Back</button>
-            <span class="cd-title" id="cdTitle">—</span>
-          </div>
-          <div class="cd-badges" id="cdBadges"></div>
-          <div class="cd-countdown" id="cdCountdown" style="display:none;">
-            <div class="cd-days" id="cdDays">—</div>
-            <div class="cd-days-label" id="cdDaysLabel">Days until exam</div>
-          </div>
-          <div class="analytics-card cd-retention-graph" style="margin-bottom:14px;">
-            <div class="ac-title">Course retention forecast</div>
-            <canvas id="cdRetentionCanvas" height="120"></canvas>
-          </div>
-          <div class="cd-tier-stats" id="cdTierStats"></div>
-          <div class="stats-row" style="grid-template-columns:1fr 1fr;">
-            <div class="stat">
-              <div class="k">Items</div>
-              <div class="v" id="cdItemCount">—</div>
-              <div class="s" id="cdDueCount">— due</div>
-            </div>
-            <div class="stat">
-              <div class="k">Avg retention</div>
-              <div class="v" id="cdAvgRet">—</div>
-              <div class="s" id="cdRetTrend">—</div>
-            </div>
-          </div>
-          <button class="big-btn" id="cdStartSession" style="margin-top:12px;">Study this course</button>
-        </div>
       </div>
     </div>
   </div>
@@ -2712,6 +2758,21 @@ input[type="range"]::-moz-range-thumb{
       views.forEach(function(v){ v.classList.remove('active'); });
       next.classList.add('active');
 
+      /* Hide/show nav tabs during session */
+      var navTabs = document.querySelector('.nav-tabs');
+      if (navTabs) {
+        if (nextId === 'viewSession' || nextId === 'viewDone') {
+          navTabs.style.display = 'none';
+        } else {
+          navTabs.style.display = 'flex';
+        }
+      }
+
+      /* When returning to dashboard, restore the active tab */
+      if (nextId === 'viewDash') {
+        switchNav(activeNav);
+      }
+
       if (window.gsap) {
         gsap.fromTo(next, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' });
       }
@@ -2769,7 +2830,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     function renderDashboard() {
-      var due = countDue(state.items, selectedCourse, selectedTopic);
+      var due = countDue(state.items, 'All', 'All');
       var totalItems = Object.keys(state.items).length;
 
       /* Empty state */
@@ -2785,7 +2846,7 @@ input[type="range"]::-moz-range-thumb{
         el('calVal').textContent = '—';
         el('calSub').textContent = 'Add items to begin';
         setCalArc(0);
-        renderCourseChips([]);
+        renderCourseCards();
         return;
       }
       emptyEl.style.display = 'none';
@@ -2793,7 +2854,7 @@ input[type="range"]::-moz-range-thumb{
 
       /* Hero due count with counter animation */
       animateCounter(el('statDue'), due.total);
-      el('heroCourseHint').textContent = (selectedCourse === 'All') ? 'Across all tiers' : (selectedTopic !== 'All' ? selectedCourse + ' — ' + selectedTopic : selectedCourse);
+      el('heroCourseHint').textContent = 'Across all tiers';
 
       /* Secondary stats — animated counters */
       animateCounter(el('statStreak'), state.stats.streakDays || 0);
@@ -2849,19 +2910,6 @@ input[type="range"]::-moz-range-thumb{
       });
       el('tierBreakdown').innerHTML = bd;
 
-      /* Courses */
-      var courses = {};
-      for (var id in state.items) {
-        if (!state.items.hasOwnProperty(id)) continue;
-        var it = state.items[id];
-        var ctag = (it && it.course) ? it.course : '';
-        if (ctag) courses[ctag] = true;
-      }
-      var courseList = Object.keys(courses).sort(function(a,b){ return a.localeCompare(b); });
-      courseList.unshift('All');
-      renderCourseChips(courseList);
-      renderTopicChips();
-
       el('startBtn').disabled = (due.total === 0);
 
       /* Staggered entry animation */
@@ -2874,8 +2922,93 @@ input[type="range"]::-moz-range-thumb{
       }
       /* Render analytics graphs */
       setTimeout(function() {
-        renderAnalytics(selectedCourse);
+        renderAnalytics('All');
       }, 50);
+
+      /* Render course cards for Courses tab */
+      renderCourseCards();
+    }
+
+    function renderCourseCards() {
+      var container = el('courseCardsArea');
+      var topicEmpty = el('topicChipsEmpty');
+      if (!container) return;
+
+      var courses = listCourses();
+      var now = Date.now();
+
+      if (!courses.length) {
+        container.innerHTML = '<div class="empty-state" style="padding:20px 12px;">' +
+          '<div class="empty-icon">📚</div>' +
+          '<div class="empty-title">No courses yet</div>' +
+          '<div class="empty-desc">Add a course to organise your study items and track per-course retention.</div>' +
+        '</div>';
+        if (topicEmpty) topicEmpty.style.display = 'block';
+        return;
+      }
+
+      var h = '';
+      courses.forEach(function(c) {
+        var due = 0, total = 0, retSum = 0, retN = 0;
+        for (var id in state.items) {
+          if (!state.items.hasOwnProperty(id)) continue;
+          var it = state.items[id];
+          if (!it || it.course !== c.name) continue;
+          total++;
+          var f = it.fsrs || null;
+          var dueTs = f && f.due ? new Date(f.due).getTime() : 0;
+          if (!f || !f.lastReview || dueTs <= now) due++;
+          if (f && f.lastReview) { retSum += retrievability(f, now); retN++; }
+        }
+        var retPct = retN ? Math.round((retSum / retN) * 100) : null;
+        var objData = OBJECTIVES[c.objective || 'retention'] || OBJECTIVES.retention;
+        var examInfo = '';
+        if (c.examDate && c.objective === 'exam') {
+          var daysUntil = Math.ceil((new Date(c.examDate + 'T23:59:59').getTime() - now) / (1000 * 60 * 60 * 24));
+          if (daysUntil > 0) examInfo = '<span class="cc-date">📅 ' + daysUntil + 'd</span>';
+          else if (daysUntil === 0) examInfo = '<span class="cc-date" style="color:var(--rate-again);">📅 Today</span>';
+        }
+
+        h += '<div class="course-card" data-course-name="' + esc(c.name) + '">' +
+          '<div class="cc-left">' +
+            '<div class="cc-name">' + esc(c.name) + '</div>' +
+            '<div class="cc-meta">' +
+              '<span class="cc-exam-type">' + esc(EXAM_TYPE_LABELS[c.examType] || c.examType) + '</span>' +
+              '<span class="cc-exam-type">' + objData.icon + ' ' + esc(objData.label) + '</span>' +
+              examInfo +
+            '</div>' +
+          '</div>' +
+          '<div style="text-align:right;">' +
+            '<div class="cc-due">' + due + '</div>' +
+            '<div style="font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--text-secondary);font-weight:600;">due</div>' +
+            (retPct !== null ? '<div style="font-size:9px;color:var(--text-tertiary);margin-top:2px;">' + retPct + '% ret</div>' : '') +
+          '</div>' +
+        '</div>';
+      });
+
+      container.innerHTML = h;
+
+      /* Wire click → course detail */
+      container.querySelectorAll('.course-card').forEach(function(card) {
+        card.addEventListener('click', function() {
+          var name = this.getAttribute('data-course-name');
+          if (name) {
+            selectedCourse = name;
+            openCourseDetail(name);
+          }
+          try { playClick(); } catch(e) {}
+        });
+      });
+
+      if (topicEmpty) topicEmpty.style.display = 'block';
+
+      /* Animate cards in */
+      if (window.gsap) {
+        gsap.fromTo(container.querySelectorAll('.course-card'),
+          { opacity: 0, y: 6 },
+          { opacity: 1, y: 0, duration: 0.25, stagger: 0.04, ease: 'power2.out' }
+        );
+      }
     }
 
     function renderCourseChips(courseList) {
@@ -3914,7 +4047,11 @@ input[type="range"]::-moz-range-thumb{
     });
 
     /* ── Buttons wiring ── */
-    el('startBtn').addEventListener('click', function(){ startSession(); });
+    el('startBtn').addEventListener('click', function(){
+      selectedCourse = 'All';
+      selectedTopic = 'All';
+      startSession();
+    });
     el('backBtn').addEventListener('click', function(){
       if (viewSession.classList.contains('active') && session) {
         el('confirmExitOv').classList.add('show');
@@ -3926,6 +4063,45 @@ input[type="range"]::-moz-range-thumb{
     });
     el('skipBtn').addEventListener('click', function(){ skipItem(); });
     el('skipBtn').addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); skipItem(); } });
+    /* ── Navigation Tabs ── */
+    var activeNav = 'home';
+
+    function switchNav(tab) {
+      activeNav = tab;
+      document.querySelectorAll('.nav-tab').forEach(function(t) {
+        t.classList.toggle('active', t.getAttribute('data-nav') === tab);
+      });
+      var homePanel = el('tabHome');
+      var coursesPanel = el('tabCourses');
+      var detail = el('courseDetail');
+
+      if (tab === 'home') {
+        homePanel.classList.add('active');
+        homePanel.style.display = 'block';
+        coursesPanel.classList.remove('active');
+        coursesPanel.style.display = 'none';
+        detail.classList.remove('active');
+        detail.style.display = 'none';
+      } else if (tab === 'courses') {
+        homePanel.classList.remove('active');
+        homePanel.style.display = 'none';
+        coursesPanel.classList.add('active');
+        coursesPanel.style.display = 'block';
+        detail.classList.remove('active');
+        detail.style.display = 'none';
+        renderCourseCards();
+      }
+
+      if (window.gsap) {
+        var target = (tab === 'home') ? homePanel : coursesPanel;
+        gsap.fromTo(target, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.25, ease: 'power2.out' });
+      }
+
+      try { playPresetSelect(); } catch(e) {}
+    }
+
+    el('navHome').addEventListener('click', function() { switchNav('home'); });
+    el('navCourses').addEventListener('click', function() { switchNav('courses'); });
     /* ── Session Exit with Confirmation ── */
     el('exitSessionBtn').addEventListener('click', function() {
       if (!session) return;
@@ -5517,8 +5693,11 @@ input[type="range"]::-moz-range-thumb{
         drawRetentionCurve('cdRetentionCanvas', courseItems);
       }, 50);
 
-      /* Show detail, hide dashboard */
-      viewDash.classList.remove('active');
+      el('tabHome').style.display = 'none';
+      el('tabHome').classList.remove('active');
+      el('tabCourses').style.display = 'none';
+      el('tabCourses').classList.remove('active');
+      el('courseDetail').style.display = 'block';
       el('courseDetail').classList.add('active');
 
       if (window.gsap) {
@@ -5528,8 +5707,9 @@ input[type="range"]::-moz-range-thumb{
 
     function closeCourseDetail() {
       el('courseDetail').classList.remove('active');
-      viewDash.classList.add('active');
-      renderDashboard();
+      el('courseDetail').style.display = 'none';
+      /* Return to courses tab */
+      switchNav('courses');
     }
 
     el('cdBack').addEventListener('click', closeCourseDetail);
