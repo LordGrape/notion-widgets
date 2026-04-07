@@ -81,7 +81,7 @@
       overflow: auto;
     }
     body.standalone .shell{
-      max-width: 720px;
+      max-width: 1100px;
       width: 100%;
       margin: 0 auto;
     }
@@ -130,7 +130,7 @@
 
     /* Wide standalone: 2-column dashboard layout */
     @media (min-width: 640px) {
-      body.standalone .dash-grid{
+      .dash-grid{
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 12px;
@@ -148,8 +148,8 @@
     }
 
     .shell{
-      width: 94%;
-      max-width: 560px;
+      width: 96%;
+      max-width: 960px;
       min-width: 280px;
     }
 
@@ -1927,7 +1927,6 @@ input[type="range"]::-moz-range-thumb{
       mc:           { quickfire: 0.50, explain: 0.20, apply: 0.10, distinguish: 0.15, mock: 0.05 },
       short_answer: { quickfire: 0.30, explain: 0.35, apply: 0.15, distinguish: 0.15, mock: 0.05 },
       essay:        { quickfire: 0.15, explain: 0.25, apply: 0.25, distinguish: 0.15, mock: 0.20 },
-      open_book:    { quickfire: 0.10, explain: 0.20, apply: 0.30, distinguish: 0.20, mock: 0.20 },
       mixed:        { quickfire: 0.25, explain: 0.25, apply: 0.20, distinguish: 0.15, mock: 0.15 }
     };
 
@@ -1944,7 +1943,6 @@ input[type="range"]::-moz-range-thumb{
       mc: 'Multiple Choice',
       short_answer: 'Short Answer',
       essay: 'Essay',
-      open_book: 'Open Book',
       mixed: 'Mixed'
     };
 
@@ -3827,7 +3825,6 @@ input[type="range"]::-moz-range-thumb{
         '<option value="mc">Multiple Choice</option>' +
         '<option value="short_answer">Short Answer</option>' +
         '<option value="essay">Essay</option>' +
-        '<option value="open_book">Open Book</option>' +
         '<option value="mixed" selected>Mixed</option>' +
         '</select></div>' +
         '<div class="field"><label>Exam date <span style="opacity:0.5;">(optional)</span></label>' +
@@ -3868,7 +3865,7 @@ input[type="range"]::-moz-range-thumb{
     window.editCourseInline = function(name) {
       var c = getCourse(name);
       if (!c) return;
-      var newType = prompt('Exam type (mc, short_answer, essay, open_book, mixed):', c.examType);
+      var newType = prompt('Exam type (mc, short_answer, essay, mixed):', c.examType);
       if (newType && TIER_PROFILES[newType]) c.examType = newType;
       var newObj = prompt('Objective (retention, exam, mastery):', c.objective || 'retention');
       if (newObj && OBJECTIVES[newObj]) c.objective = newObj;
