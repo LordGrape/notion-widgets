@@ -270,9 +270,6 @@ body {
 }
 .rad-btn.maxed { opacity: 0.35; pointer-events: none; filter: grayscale(0.8); }
 .rad-cd { display: block; font-size: 6px; font-weight: 400; color: var(--accent); letter-spacing: 0.3px; opacity: 0.7; margin-top: 1px; }
-.want-bubble { position: absolute; top: 8%; left: 50%; transform: translateX(-50%); background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 4px 10px; font-size: 14px; opacity: 0; transition: opacity 0.4s; pointer-events: none; z-index: 30; box-shadow: var(--card-shadow); }
-.want-bubble.show { opacity: 1; }
-.want-bubble::after { content: ''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 6px solid var(--card-border); }
 
 /* ââ XP float popup ââ */
 .xp-float {
@@ -436,11 +433,6 @@ body {
 .info-btn { all:unset; cursor:pointer; position:absolute; top:14px; right:18px; font-size:11px; opacity:0.25; transition:opacity 0.2s; z-index:10; }
 .info-btn:hover { opacity:0.6; }
 /* ââ Weather badge ââ */
-.weather-badge { position:absolute; bottom:28px; right:6px; display:none; align-items:center; gap:4px; font-size:9px; color:var(--text-muted); opacity:0.4; transition:opacity 0.4s; z-index:5; pointer-events:none; }
-.dragon-view:hover .weather-badge { opacity:0.7; }
-.w-icon { font-size:12px; }
-.w-temp { font-weight:500; font-variant-numeric:tabular-nums; }
-.w-cond { font-size:7px; letter-spacing:0.5px; text-transform:uppercase; }
 
 /* ââ Design system overrides ââ */
 * { box-sizing: border-box; }
@@ -779,7 +771,6 @@ button:focus-visible, .tab-btn:focus-visible, .rad-btn:focus-visible, .st-btn:fo
       <div class="xp-prog-track"><div class="xp-prog-fill" id="xpProgFill" style="width:0%"></div></div>
       <span class="xp-prog-label" id="xpProgLabel"></span>
     </div>
-    <div class="weather-badge" id="wBadge"></div>
   </div>
 
   <!-- Radar View -->
@@ -1168,7 +1159,6 @@ SyncEngine.init({
     /* First sync: push local state to remote */
     saveDS(DS);
   }
-  fetchWeather();
   try {
     userMilestones = processExpiredMilestones();
     if (typeof renderEventsPanel === 'function') renderEventsPanel();
@@ -1181,104 +1171,8 @@ SyncEngine.init({
    particle intensity in draw functions.
    ââââââââââââââââââââââââââââââââââââââ */
 
-var weatherData = null;
-var WEATHER_CACHE_KEY = '_weather_cache';
-var WEATHER_CACHE_MS = 30 * 60 * 1000;
-var WMO_CODES = {
-  0: 'Clear', 1: 'Mostly Clear', 2: 'Partly Cloudy', 3: 'Overcast',
-  45: 'Foggy', 48: 'Rime Fog', 51: 'Light Drizzle', 53: 'Drizzle', 55: 'Heavy Drizzle',
-  56: 'Freezing Drizzle', 57: 'Heavy Freezing Drizzle',
-  61: 'Light Rain', 63: 'Rain', 65: 'Heavy Rain',
-  66: 'Freezing Rain', 67: 'Heavy Freezing Rain',
-  71: 'Light Snow', 73: 'Snow', 75: 'Heavy Snow', 77: 'Snow Grains',
-  80: 'Light Showers', 81: 'Showers', 82: 'Heavy Showers',
-  85: 'Light Snow Showers', 86: 'Heavy Snow Showers',
-  95: 'Thunderstorm', 96: 'Thunderstorm + Hail', 99: 'Heavy Thunderstorm + Hail'
-};
-var WMO_ICONS = {
-  0: 'âï¸', 1: 'ð¤ï¸', 2: 'â', 3: 'âï¸',
-  45: 'ð«ï¸', 48: 'ð«ï¸', 51: 'ð¦ï¸', 53: 'ð§ï¸', 55: 'ð§ï¸',
-  56: 'ð§ï¸', 57: 'ð§ï¸', 61: 'ð¦ï¸', 63: 'ð§ï¸', 65: 'ð§ï¸',
-  66: 'ð§ï¸', 67: 'ð§ï¸', 71: 'ð¨ï¸', 73: 'âï¸', 75: 'âï¸', 77: 'âï¸',
-  80: 'ð¦ï¸', 81: 'ð§ï¸', 82: 'ð§ï¸', 85: 'ð¨ï¸', 86: 'âï¸',
-  95: 'âï¸', 96: 'âï¸', 99: 'âï¸'
-};
-
-function getWeatherType(code) {
-  if (code === 0 || code === 1) return 'clear';
-  if (code === 2 || code === 3) return 'cloudy';
-  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return 'rain';
-  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return 'snow';
-  if (code === 45 || code === 48) return 'fog';
-  if (code >= 95) return 'storm';
-  return 'clear';
-}
-
-function fetchWeather() {
-  var lat = 43.65, lon = -79.38;
-  try {
-    var sLat = SyncEngine.get('user', 'lat');
-    var sLon = SyncEngine.get('user', 'lon');
-    if (sLat !== null && sLon !== null && sLat !== undefined && sLon !== undefined) { lat = sLat; lon = sLon; }
-  } catch (e) {}
-  try {
-    var synced = SyncEngine.get('user', 'weather');
-    if (synced) {
-      var sw = typeof synced === 'string' ? JSON.parse(synced) : synced;
-      if (sw && sw.ts && Date.now() - sw.ts < WEATHER_CACHE_MS && sw.data) {
-        weatherData = sw.data;
-        try { localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify(sw)); } catch (e2) {}
-        renderWeatherBadge();
-        return;
-      }
-    }
-  } catch (e) {}
-  try {
-    var cached = JSON.parse(localStorage.getItem(WEATHER_CACHE_KEY));
-    if (cached && Date.now() - cached.ts < WEATHER_CACHE_MS) {
-      weatherData = cached.data;
-      renderWeatherBadge();
-      return;
-    }
-  } catch (e) {}
-  var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat +
-    '&longitude=' + lon +
-    '&current=temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m' +
-    '&temperature_unit=celsius&timezone=auto';
-  fetch(url).then(function(r) { return r.json(); }).then(function(d) {
-    if (d && d.current) {
-      var wc = d.current.weather_code;
-      weatherData = {
-        temp: Math.round(d.current.temperature_2m),
-        code: wc,
-        condition: WMO_CODES[wc] || 'Unknown',
-        icon: WMO_ICONS[wc] || 'ð¡ï¸',
-        type: getWeatherType(wc),
-        humidity: d.current.relative_humidity_2m,
-        wind: d.current.wind_speed_10m
-      };
-      var env = { ts: Date.now(), data: weatherData };
-      localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify(env));
-      try {
-        if (SyncEngine.isOnline()) {
-          SyncEngine.set('user', 'weather', JSON.stringify(env));
-        }
-      } catch (e) {}
-      renderWeatherBadge();
-    }
-  }).catch(function() {});
-}
-
-function renderWeatherBadge() {
-  if (!weatherData) return;
-  var badge = document.getElementById('wBadge');
-  if (!badge) return;
-  badge.innerHTML = '<span class="w-icon">' + weatherData.icon + '</span><span class="w-temp">' + weatherData.temp + '\u00B0C</span><span class="w-cond">\u00B7 ' + weatherData.condition + '</span>';
-  badge.style.display = 'flex';
-}
-
-fetchWeather();
-setInterval(fetchWeather, WEATHER_CACHE_MS);
+/* Weather system removed — egg doesn't need a forecast to feel alive */
+var weatherData = null; /* kept as null so references don't crash */
 
 /* returnGlow: set in initDS() when last visit was 2h+ ago (before lastVisit refresh) */
 
@@ -1531,30 +1425,6 @@ var EggScene = (function() {
     }
     particles.geometry.attributes.position.needsUpdate = true;
     var pBaseOpacity = (0.3 + 0.3 * Math.sin(elapsed * 0.8)) * mood;
-    if (weatherData) {
-      if (weatherData.type === 'rain' || weatherData.type === 'storm') {
-        for (var wpi = 0; wpi < pOrbitData.length; wpi++) {
-          particlePositions[wpi * 3 + 1] -= 0.02;
-          if (particlePositions[wpi * 3 + 1] < -2) particlePositions[wpi * 3 + 1] = 2;
-        }
-        particles.geometry.attributes.position.needsUpdate = true;
-        pBaseOpacity *= 0.8;
-      }
-      if (weatherData.type === 'snow') {
-        for (var swpi = 0; swpi < pOrbitData.length; swpi++) {
-          particlePositions[swpi * 3 + 1] -= 0.008;
-          particlePositions[swpi * 3] += Math.sin(elapsed + swpi) * 0.003;
-          if (particlePositions[swpi * 3 + 1] < -2) particlePositions[swpi * 3 + 1] = 2;
-        }
-        particles.geometry.attributes.position.needsUpdate = true;
-      }
-      if (weatherData.type === 'clear') {
-        pointLight.intensity = Math.min(0.8, pointLight.intensity + 0.03);
-      }
-      if (weatherData.type === 'fog') {
-        pBaseOpacity *= 0.6;
-      }
-    }
     particles.material.opacity = pBaseOpacity;
 
     for (var ci = 0; ci < 3; ci++) {
@@ -1596,6 +1466,13 @@ var EggScene = (function() {
       returnGlow *= glowDecay3;
     }
 
+    /* Tap pulse — flare on interaction */
+    if (typeof tapPulse !== 'undefined' && tapPulse > 0.01) {
+      egg.material.emissiveIntensity += tapPulse * 0.4;
+      glowMesh.material.opacity += tapPulse * 0.15;
+      pointLight.intensity += tapPulse * 0.6;
+      tapPulse *= 0.94;
+    }
     renderer.render(scene, camera);
     return true;
   }
@@ -1689,6 +1566,11 @@ function drawEgg(ctx, t) {
 
   /* === MOUSE LEAN === */
   var lean = (mdx / 80) * 0.07 * prox;
+  /* Tap pulse for 2D egg */
+  if (typeof tapPulse !== 'undefined' && tapPulse > 0.01) {
+    scale += tapPulse * 0.06;
+    tapPulse *= 0.94;
+  }
 
   /* Nest (visible during sleep â layered woven bowl)
      Render order (painter's algorithm): shadow â bowl interior â downy lining â
@@ -1940,65 +1822,6 @@ function drawEgg(ctx, t) {
      ââââââââââââââââââââââââââââââââââââââ */
   var stage = getStage(DS.xp);
 
-  /* === WEATHER PARTICLES === */
-  if (weatherData) {
-    var wType = weatherData.type;
-    var wxCount = 6 + stage * 4;
-    if (wType === 'rain' || wType === 'storm') {
-      for (var wri = 0; wri < wxCount; wri++) {
-        var wrx = cx - 60 + ((t * 0.03 + wri * 47) % 120);
-        var wry = ((t * 0.08 + wri * 31) % (DSZ + 20)) - 10;
-        var wrLen = 6 + Math.sin(wri * 2.3) * 3;
-        var wrAlpha = wType === 'storm' ? 0.25 : 0.18;
-        ctx.beginPath();
-        ctx.moveTo(wrx, wry);
-        ctx.lineTo(wrx - 1, wry + wrLen);
-        ctx.strokeStyle = dark ? 'rgba(167,180,255,' + wrAlpha + ')' : 'rgba(100,130,200,' + (wrAlpha * 0.83) + ')';
-        ctx.lineWidth = wType === 'storm' ? 1.0 : 0.8;
-        ctx.stroke();
-      }
-      if (wType === 'storm' && Math.sin(t * 0.0007) > 0.97) {
-        ctx.fillStyle = dark ? 'rgba(200,200,255,0.04)' : 'rgba(255,255,255,0.06)';
-        ctx.fillRect(0, 0, DSZ, DSZ);
-      }
-    }
-    if (wType === 'snow') {
-      var snCount = Math.round(wxCount * 0.8);
-      for (var wsi = 0; wsi < snCount; wsi++) {
-        var wsx = cx - 55 + ((t * 0.01 + wsi * 53 + Math.sin(t * 0.0005 + wsi) * 15) % 110);
-        var wsy = ((t * 0.025 + wsi * 37) % (DSZ + 10)) - 5;
-        var wsSize = 1 + Math.sin(wsi * 1.7) * 0.6;
-        ctx.beginPath();
-        ctx.arc(wsx, wsy, wsSize, 0, Math.PI * 2);
-        ctx.fillStyle = dark ? 'rgba(220,225,255,0.25)' : 'rgba(200,210,240,0.3)';
-        ctx.fill();
-      }
-    }
-    if (wType === 'clear') {
-      var sunA = 0.04 + Math.sin(t * 0.0003) * 0.015 + stage * 0.008;
-      var rayG = ctx.createLinearGradient(DSZ - 10, 10, cx - 20, cy + 30);
-      rayG.addColorStop(0, 'rgba(255,220,120,' + sunA + ')');
-      rayG.addColorStop(1, 'rgba(255,200,80,0)');
-      ctx.fillStyle = rayG;
-      ctx.fillRect(0, 0, DSZ, DSZ);
-    }
-    if (wType === 'fog') {
-      for (var wfi = 0; wfi < 3; wfi++) {
-        var wfx = cx + Math.sin(t * 0.0002 + wfi * 2.1) * 60;
-        var wfy = cy + 20 + wfi * 15 + Math.sin(t * 0.0003 + wfi) * 8;
-        var fogG = ctx.createRadialGradient(wfx, wfy, 0, wfx, wfy, 35);
-        fogG.addColorStop(0, dark ? 'rgba(160,160,180,0.06)' : 'rgba(180,180,200,0.08)');
-        fogG.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.beginPath(); ctx.arc(wfx, wfy, 35, 0, Math.PI * 2);
-        ctx.fillStyle = fogG; ctx.fill();
-      }
-    }
-    if (wType === 'cloudy') {
-      var cloudA = 0.02 + Math.sin(t * 0.0004) * 0.008;
-      ctx.fillStyle = dark ? 'rgba(100,100,120,' + cloudA + ')' : 'rgba(140,140,160,' + cloudA + ')';
-      ctx.fillRect(0, 0, DSZ, DSZ);
-    }
-  }
 
   /* === TIME-OF-DAY AMBIENT PARTICLES === */
   var tdPhase = getDayPhase().phase;
@@ -2785,48 +2608,8 @@ function drawElder(ctx, t) {
   }
 }
 
-/* Weather canvas FX â uses weatherData from fetchWeather(); egg stage adds richer ambient in drawEgg() */
-var wxDrops = [];
-for (var _wi = 0; _wi < 25; _wi++) {
-  wxDrops.push({ x: Math.random(), y: Math.random(), sp: 0.4 + Math.random() * 1.2, sz: 0.8 + Math.random() * 1.5 });
-}
-
-function drawWeatherFX(ctx, t) {
-  if (!weatherData) return;
-  var wt = weatherData.type;
-  if (!wt || wt === 'clear' || wt === 'cloudy') return;
-  ctx.save();
-  if (wt === 'rain' || wt === 'storm') {
-    for (var i = 0; i < 18; i++) {
-      var d = wxDrops[i]; d.y += d.sp * 0.014; d.x += 0.002;
-      if (d.y > 1.05) { d.y = -0.05; d.x = Math.random(); }
-      var rx = d.x * DSZ, ry = d.y * DSZ;
-      ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(rx + 1.5, ry + d.sz * 4);
-      ctx.strokeStyle = dark ? 'rgba(167,139,250,0.12)' : 'rgba(100,120,200,0.1)';
-      ctx.lineWidth = 0.7; ctx.stroke();
-    }
-  }
-  if (wt === 'snow') {
-    for (var j = 0; j < 12; j++) {
-      var s = wxDrops[j]; s.y += s.sp * 0.005;
-      s.x += Math.sin(t * 0.0008 + j * 0.7) * 0.0015;
-      if (s.y > 1.05) { s.y = -0.05; s.x = Math.random(); }
-      ctx.beginPath(); ctx.arc(s.x * DSZ, s.y * DSZ, s.sz * 0.7, 0, Math.PI * 2);
-      ctx.fillStyle = dark ? 'rgba(220,220,255,0.18)' : 'rgba(180,180,220,0.22)'; ctx.fill();
-    }
-  }
-  if (wt === 'storm' && Math.random() > 0.996) {
-    ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fillRect(0, 0, DSZ, DSZ);
-  }
-  if (wt === 'fog') {
-    var fa = 0.035 + 0.02 * Math.sin(t * 0.0004);
-    var fg = ctx.createRadialGradient(DC, DC, 20, DC, DC, DSZ * 0.6);
-    fg.addColorStop(0, 'rgba(0,0,0,0)');
-    fg.addColorStop(1, dark ? 'rgba(80,60,120,' + fa + ')' : 'rgba(180,180,200,' + fa + ')');
-    ctx.fillStyle = fg; ctx.fillRect(0, 0, DSZ, DSZ);
-  }
-  ctx.restore();
-}
+/* Weather FX removed */
+function drawWeatherFX(ctx, t) { /* no-op */ }
 
 /* âââââââââââââââââââââââââââââââââââ
    GSAP + CONFETTI OVERRIDES
@@ -2917,7 +2700,7 @@ function drawActivityOverlays(ctx, t) {
   }
 
   /* Thought bubble for active (non-sleep) activities */
-  if (curAct.icon && !isSleep) {
+  if (curAct.icon && !isSleep && getStage(DS.xp) > 0) {
     var bx = DC + 28, by = DC - 46 + Math.sin(t * 0.0015) * 2;
     var al = actFade * 0.85;
     var bgc = dark ? '35,30,50' : '255,255,255';
@@ -2971,11 +2754,18 @@ function updateStatus() {
   var dp = getDayPhase();
   var fSz = DS.streak >= 30 ? '1.3' : DS.streak >= 14 ? '1.15' : DS.streak >= 7 ? '1.05' : '0.85';
   var fOp = Math.min(1, 0.35 + DS.streak * 0.05);
-  document.getElementById('dStatus').innerHTML =
-    'Thymos &middot; <span class="d-rank">' + si.rank + '</span> &middot; ' +
-    Math.floor(DS.xp).toLocaleString() + ' XP &middot; ' +
-    'Streak: ' + DS.streak + 'd <span class="s-flame" style="font-size:' + fSz + 'em;opacity:' + fOp + '">&#x1F525;</span>' +
-    (dp.label ? ' ' + dp.label : '');
+  /* Ambient message replaces the static status for the egg stage */
+  var stage = getStage(DS.xp);
+  var statusText;
+  if (stage === 0 && ambientMsg) {
+    statusText = '<span style="font-style:italic;opacity:0.7">' + ambientMsg + '</span>';
+  } else {
+    statusText = 'Thymos &middot; <span class="d-rank">' + si.rank + '</span> &middot; ' +
+      Math.floor(DS.xp).toLocaleString() + ' XP &middot; ' +
+      'Streak: ' + DS.streak + 'd <span class="s-flame" style="font-size:' + fSz + 'em;opacity:' + fOp + '">&#x1F525;</span>' +
+      (dp.label ? ' ' + dp.label : '');
+  }
+  document.getElementById('dStatus').innerHTML = statusText;
   var pf = document.getElementById('xpProgFill');
   var pl = document.getElementById('xpProgLabel');
   if (pf && pl) {
@@ -3151,9 +2941,6 @@ var ACHS = [
   {id:'milestone_done_1',icon:'\uD83C\uDFAF',name:'Mission Complete',desc:'Complete your first milestone'},
   {id:'milestone_done_5',icon:'\uD83C\uDFC6',name:'Five Down',desc:'Complete 5 milestones'},
   {id:'milestone_done_10',icon:'\uD83D\uDC51',name:'Milestone Master',desc:'Complete 10 milestones'},
-  {id:'weather_clear',icon:'\u2600\uFE0F',name:'Clear Skies',desc:'Visit during clear weather'},
-  {id:'weather_storm',icon:'\u26C8\uFE0F',name:'Storm Rider',desc:'Visit during a thunderstorm'},
-  {id:'weather_snow',icon:'\u2744\uFE0F',name:'Snowfall',desc:'Visit during snowfall'},
   {id:'streak_365',icon:'\uD83D\uDC8E',name:'Year of Iron',desc:'365-day streak'},
   {id:'xp_max',icon:'\uD83D\uDC09',name:'Dragon Master',desc:'Reach 120,000 XP'},
   {id:'all_ach',icon:'\u2728',name:'Completionist',desc:'Unlock every other achievement'},
@@ -3211,11 +2998,6 @@ function checkAch() {
   if (archiveLen >= 5) unlockAch('milestone_done_5');
   if (archiveLen >= 10) unlockAch('milestone_done_10');
 
-  if (weatherData) {
-    if (weatherData.type === 'clear') unlockAch('weather_clear');
-    if (weatherData.type === 'storm') unlockAch('weather_storm');
-    if (weatherData.type === 'snow') unlockAch('weather_snow');
-  }
 
   if (DS.streak >= 365) unlockAch('streak_365');
   if (DS.xp >= 120000) unlockAch('xp_max');
@@ -3471,9 +3253,17 @@ function openRadial() {
 
 function closeRadial() { radialOv.classList.remove('show'); }
 
-/* Dragon canvas tap */
-dcv.addEventListener('click', openRadial);
-dcv.addEventListener('touchend', function(e) { e.preventDefault(); openRadial(); });
+/* Dragon canvas tap — pulse + radial menu */
+var tapPulse = 0;
+dcv.addEventListener('click', function() {
+  tapPulse = 1.0; /* triggers a glow flare in the render loop */
+  openRadial();
+});
+dcv.addEventListener('touchend', function(e) {
+  e.preventDefault();
+  tapPulse = 1.0;
+  openRadial();
+});
 
 radialOv.addEventListener('click', function(e) {
   if (e.target === radialOv) { closeRadial(); return; }
@@ -3492,7 +3282,7 @@ radialOv.addEventListener('click', function(e) {
   } else { return; }
   Core.ripple(btn);
   var wantBonus = (wantActive === act) ? WANT_BONUS : 0;
-  if (wantActive === act) { wantActive = null; wantBubble.classList.remove('show'); }
+  if (wantActive === act) { wantActive = null; }
   addXP(INTERACT_XP + wantBonus);
   if (wantBonus) showXPFloat('+' + wantBonus + ' bonus!');
   saveDS(DS);
@@ -3520,31 +3310,136 @@ setInterval(function() {
 }, 1000);
 
 /* ââââââââââââââââââââââââââââââââââââââ
-   5b. WANTS SYSTEM (thought bubble)
+   5b. AMBIENT STATUS SYSTEM
    ââââââââââââââââââââââââââââââââââââââ */
 
-var WANTS_ICONS = { feed: '\uD83C\uDF56?', play: '\u2728?', rest: '\uD83D\uDCA4?' };
 var wantActive = null, wantStart = 0, lastWantCheck = 0;
-var WANT_INTERVAL = 120000, WANT_DURATION = 600000, WANT_BONUS = 15;
+var WANT_INTERVAL = 1800000, WANT_DURATION = 600000, WANT_BONUS = 15;
 
-var wantBubble = document.createElement('div');
-wantBubble.className = 'want-bubble';
-document.getElementById('vDragon').appendChild(wantBubble);
+/* Ambient messages — the egg's inner life. Rotates every 12-20s. */
+var ambientMsg = '', ambientEnd = 0;
+
+var AMB_MSGS = {
+  morning: [
+    'A faint warmth pulses within',
+    'The glow steadies with the dawn',
+    'Something stirs, reaching toward light',
+    'Warmth rises through hairline fractures',
+    'The shell hums, barely perceptible'
+  ],
+  afternoon: [
+    'A steady rhythm, like breathing',
+    'Light dances across the surface',
+    'The pulse holds, patient and sure',
+    'Faint vibrations ripple outward',
+    'The cracks catch the light'
+  ],
+  evening: [
+    'The glow dims to embers',
+    'A slow pulse, winding down',
+    'Warmth retreats deeper inside',
+    'The shell settles, heavy with rest',
+    'Something sighs within'
+  ],
+  night: [
+    'A slow rhythm, like dreaming',
+    'The glow ebbs to a whisper',
+    'Deep inside, something sleeps',
+    'Stillness. A faint heartbeat.',
+    'The darkness holds it gently'
+  ]
+};
+
+var AMB_STREAK = [
+  'The cracks hum with recognition',
+  'A familiar rhythm — it knows you',
+  'Warmth flares at your return',
+  'The pulse quickens, then steadies'
+];
+
+var AMB_RETURN = [
+  'Something stirs after a long silence',
+  'The glow reignites, slowly',
+  'A tremor — it remembers you'
+];
+
+var AMB_LOW_BAR = [
+  'The warmth fades, flickering',
+  'The pulse weakens',
+  'A dim glow, barely holding'
+];
+
+var AMB_HEALTHY = [
+  'A steady pulse, content',
+  'The glow burns strong and even',
+  'Warmth radiates outward'
+];
+
+var AMB_CRACK = [
+  'Light seeps through new fissures',
+  'The fractures widen, glowing',
+  'Hairline cracks spread like veins'
+];
+
+var AMB_NEAR_HATCH = [
+  'The shell strains from within',
+  'Something pushes against the walls',
+  'The cracks pulse with urgency'
+];
+
+function pickAmbient() {
+  var phase = getDayPhase().phase;
+  var pool = [];
+  var avgBar = (DS.rations + DS.morale + DS.readiness) / 3;
+  var progress = Math.min(DS.xp / 1000, 1);
+
+  var timePool = AMB_MSGS[phase] || AMB_MSGS.afternoon;
+  for (var i = 0; i < timePool.length; i++) pool.push(timePool[i]);
+
+  if (DS.streak >= 3) {
+    for (var si = 0; si < AMB_STREAK.length; si++) pool.push(AMB_STREAK[si]);
+    if (DS.streak >= 7) for (var sj = 0; sj < AMB_STREAK.length; sj++) pool.push(AMB_STREAK[sj]);
+  }
+
+  if (returnGlow > 0.3) {
+    for (var ri = 0; ri < AMB_RETURN.length; ri++) pool.push(AMB_RETURN[ri]);
+    for (var rj = 0; rj < AMB_RETURN.length; rj++) pool.push(AMB_RETURN[rj]);
+  }
+
+  if (avgBar < 30) {
+    for (var li = 0; li < AMB_LOW_BAR.length; li++) pool.push(AMB_LOW_BAR[li]);
+  } else if (avgBar > 75) {
+    for (var hi = 0; hi < AMB_HEALTHY.length; hi++) pool.push(AMB_HEALTHY[hi]);
+  }
+
+  if (progress >= 0.25 && progress < 0.85) {
+    for (var ci = 0; ci < AMB_CRACK.length; ci++) pool.push(AMB_CRACK[ci]);
+  }
+  if (progress >= 0.85) {
+    for (var ni = 0; ni < AMB_NEAR_HATCH.length; ni++) pool.push(AMB_NEAR_HATCH[ni]);
+    for (var nj = 0; nj < AMB_NEAR_HATCH.length; nj++) pool.push(AMB_NEAR_HATCH[nj]);
+  }
+
+  return pool[Math.floor(Math.random() * pool.length)];
+}
 
 function checkWant(t) {
+  if (t > ambientEnd) {
+    ambientMsg = pickAmbient();
+    ambientEnd = t + 12000 + Math.random() * 8000;
+  }
+
   if (wantActive) {
-    if (t - wantStart > WANT_DURATION) { wantActive = null; wantBubble.classList.remove('show'); }
+    if (t - wantStart > WANT_DURATION) { wantActive = null; }
     return;
   }
   if (t - lastWantCheck < WANT_INTERVAL) return;
   lastWantCheck = t;
-  if (Math.random() < 0.55) {
+  if (Math.random() < 0.3) {
     var avail = ['feed','play','rest'].filter(function(w) { return DS[w + 'Today'] < INTERACT_CAP; });
     if (avail.length) {
       wantActive = avail[Math.floor(Math.random() * avail.length)];
       wantStart = t;
-      wantBubble.textContent = WANTS_ICONS[wantActive];
-      wantBubble.classList.add('show');
     }
   }
 }

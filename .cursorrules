@@ -272,3 +272,9 @@
 - All dashboard stats use animated counters via gsap (animateCounter or inline gsap.to)
 - CSS: analytics-card uses overflow:visible (not hidden) to prevent text cutoff
 - CSS: input[type="range"] has custom styled thumb with grab cursor and hover scale
+- Weather system has been fully removed from horizon.html. weatherData is kept as null stub.
+- Egg stage (0) uses ambient status messages instead of static XP/rank status line.
+- Ambient messages rotate every 12-20s, context-weighted by time, streak, bars, XP progress.
+- Want bonus system still works invisibly (no bubble UI), grants +15 XP on matching interaction.
+- tapPulse variable drives a glow flare on egg click (decays at 0.94/frame).
+- Thought bubble (canvas-drawn activity icon) is hidden at stage 0, shown at stage 1+.
