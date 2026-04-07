@@ -1179,19 +1179,6 @@
     }
     .cli-actions button:hover{ background: rgba(var(--accent-rgb),0.12); color: var(--text); }
 
-    /* Manual mode indicator */
-    .manual-badge{
-      font-size: 7px;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      font-weight: 800;
-      padding: 2px 6px;
-      border-radius: 999px;
-      background: rgba(245,158,11,0.15);
-      color: #f59e0b;
-      border: 1px solid rgba(245,158,11,0.2);
-    }
-
     /* ── Analytics Strip ── */
     .analytics-strip{
       display: grid;
@@ -1705,6 +1692,10 @@ input[type="range"]::-moz-range-thumb{
             <div class="section-header" style="margin:0">Course filter</div>
           </div>
           <div class="chips" id="courseChips"></div>
+          <div id="topicChipsWrap" style="display:none;">
+            <div class="section-header" style="margin-top:6px;">Topic</div>
+            <div id="topicChips" class="chips"></div>
+          </div>
 
           <div class="mini-actions" style="margin-top:8px;margin-bottom:4px;">
             <button class="ghost-btn" id="manageCourses">Manage Courses</button>
@@ -2265,6 +2256,7 @@ input[type="range"]::-moz-range-thumb{
     var rootCard = el('rootCard');
 
     var selectedCourse = 'All';
+    var selectedTopic = 'All';
 
     var session = null;
     var sessionSummary = null;
@@ -2317,7 +2309,7 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
-    function countDue(itemsById, course) {
+    function countDue(itemsById, course, topic) {
       var now = Date.now();
       var out = { total: 0, byTier: { quickfire:0, explain:0, apply:0, distinguish:0, mock:0 } };
       for (var id in itemsById) {
@@ -2325,6 +2317,7 @@ input[type="range"]::-moz-range-thumb{
         var it = itemsById[id];
         if (!it) continue;
         if (course && course !== 'All' && it.course !== course) continue;
+        if (topic && topic !== 'All' && (it.topic || '') !== topic) continue;
         var f = it.fsrs || null;
         var due = f && f.due ? new Date(f.due).getTime() : 0;
         var isDue = (!f || !f.lastReview) ? true : (due <= now);
@@ -2368,7 +2361,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     function renderDashboard() {
-      var due = countDue(state.items, selectedCourse);
+      var due = countDue(state.items, selectedCourse, selectedTopic);
       var totalItems = Object.keys(state.items).length;
 
       /* Empty state */
@@ -2392,7 +2385,7 @@ input[type="range"]::-moz-range-thumb{
 
       /* Hero due count with counter animation */
       animateCounter(el('statDue'), due.total);
-      el('heroCourseHint').textContent = (selectedCourse === 'All') ? 'Across all tiers' : selectedCourse;
+      el('heroCourseHint').textContent = (selectedCourse === 'All') ? 'Across all tiers' : (selectedTopic !== 'All' ? selectedCourse + ' — ' + selectedTopic : selectedCourse);
 
       /* Secondary stats — animated counters */
       animateCounter(el('statStreak'), state.stats.streakDays || 0);
@@ -2459,6 +2452,7 @@ input[type="range"]::-moz-range-thumb{
       var courseList = Object.keys(courses).sort(function(a,b){ return a.localeCompare(b); });
       courseList.unshift('All');
       renderCourseChips(courseList);
+      renderTopicChips();
 
       el('startBtn').disabled = (due.total === 0);
 
@@ -2485,6 +2479,7 @@ input[type="range"]::-moz-range-thumb{
       el('courseChips').querySelectorAll('.chip').forEach(function(ch){
         ch.addEventListener('click', function() {
           selectedCourse = this.getAttribute('data-course');
+          selectedTopic = 'All';
           try { playPresetSelect(); } catch(e) {}
           renderDashboard();
         });
@@ -2495,6 +2490,55 @@ input[type="range"]::-moz-range-thumb{
           }
         });
       });
+    }
+
+    function renderTopicChips() {
+      var wrap = el('topicChipsWrap');
+      var container = el('topicChips');
+      if (!wrap || !container) return;
+
+      if (selectedCourse === 'All') {
+        wrap.style.display = 'none';
+        selectedTopic = 'All';
+        return;
+      }
+
+      var topics = {};
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (!it || it.course !== selectedCourse) continue;
+        var t = (it.topic || '').trim();
+        if (t) topics[t] = true;
+      }
+      var topicList = Object.keys(topics).sort(function(a, b) { return a.localeCompare(b); });
+
+      if (topicList.length === 0) {
+        wrap.style.display = 'none';
+        selectedTopic = 'All';
+        return;
+      }
+
+      topicList.unshift('All');
+      wrap.style.display = 'block';
+
+      var h = '';
+      topicList.forEach(function(t) {
+        h += '<span class="chip' + (t === selectedTopic ? ' active' : '') + '" data-topic="' + esc(t) + '">' + esc(t) + '</span>';
+      });
+      container.innerHTML = h;
+
+      container.querySelectorAll('.chip').forEach(function(ch) {
+        ch.addEventListener('click', function() {
+          selectedTopic = this.getAttribute('data-topic');
+          try { playPresetSelect(); } catch(e) {}
+          renderDashboard();
+        });
+      });
+
+      if (window.gsap) {
+        gsap.fromTo(container.querySelectorAll('.chip'), { opacity: 0, y: 4 }, { opacity: 1, y: 0, duration: 0.2, stagger: 0.03, ease: 'power2.out' });
+      }
     }
 
     function animateCounter(target, endVal) {
@@ -2528,6 +2572,7 @@ input[type="range"]::-moz-range-thumb{
         var it = state.items[id];
         if (!it) continue;
         if (courseFilter !== 'All' && it.course !== courseFilter) continue;
+        if (selectedTopic !== 'All' && (it.topic || '') !== selectedTopic) continue;
         var f = it.fsrs || null;
         var dueTs = f && f.due ? new Date(f.due).getTime() : 0;
         var isDue = (!f || !f.lastReview) ? true : (dueTs <= now);
@@ -2539,7 +2584,7 @@ input[type="range"]::-moz-range-thumb{
       var profile = getEffectiveProfile(courseFilter !== 'All' ? courseFilter : null);
 
       /* 3. Check manual mode */
-      var isManual = (courseFilter !== 'All') && isCourseManual(courseFilter);
+      var isManual = false;
 
       /* 4. Bucket items by supported tiers */
       var tierBuckets = { quickfire: [], explain: [], apply: [], distinguish: [], mock: [] };
@@ -3794,49 +3839,57 @@ input[type="range"]::-moz-range-thumb{
       var h = '';
 
       if (!courses.length) {
-        h += '<div style="text-align:center;padding:16px;color:var(--text-secondary);font-size:10px;letter-spacing:0.5px;">No courses yet. Add one below.</div>';
+        h += '<p class="help" style="text-align:center;padding:12px 0;">No courses yet. Add one below.</p>';
       }
 
       courses.forEach(function(c) {
-        var manualBadge = c.manualMode ? ' <span class="manual-badge">Manual</span>' : '';
-        var examDate = c.examDate ? '<span class="cli-type" style="margin-left:6px;">Exam: ' + c.examDate + '</span>' : '';
-        h += '<div class="course-list-item" data-course="' + esc(c.name) + '">' +
-          '<div>' +
-          '  <div class="cli-name">' + esc(c.name) + manualBadge + '</div>' +
-          '  <div style="display:flex;gap:6px;margin-top:3px;align-items:center;">' +
-          '    <span class="cli-type">' + esc(EXAM_TYPE_LABELS[c.examType] || c.examType) + '</span>' +
-          examDate +
-          '  </div>' +
+        var examLabel = EXAM_TYPE_LABELS[c.examType] || c.examType;
+        var objLabel = OBJECTIVE_LABELS[c.objective || 'retention'] || 'Long-Term Retention';
+        var examDate = c.examDate ? '<span class="cc-date">Exam: ' + c.examDate + '</span>' : '';
+        var itemCount = 0;
+        for (var id in state.items) {
+          if (state.items.hasOwnProperty(id) && state.items[id] && state.items[id].course === c.name) itemCount++;
+        }
+
+        h += '<div class="course-list-item" id="cli_' + esc(c.name) + '">' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div class="cli-name">' + esc(c.name) + '</div>' +
+            '<div style="display:flex;gap:6px;margin-top:4px;align-items:center;flex-wrap:wrap;">' +
+              '<span class="cc-exam-type">' + esc(examLabel) + '</span>' +
+              '<span class="cc-exam-type">' + esc(objLabel) + '</span>' +
+              '<span class="cc-exam-type">' + itemCount + ' cards</span>' +
+              examDate +
+            '</div>' +
           '</div>' +
           '<div class="cli-actions">' +
-          '  <button onclick="editCourseInline(\'' + esc(c.name) + '\')">✏️</button>' +
-          '  <button onclick="toggleManualMode(\'' + esc(c.name) + '\')">' + (c.manualMode ? '🤖' : '✋') + '</button>' +
-          '  <button onclick="confirmDeleteCourse(\'' + esc(c.name) + '\')">🗑</button>' +
+            '<button title="View cards" onclick="viewCourseDeck(\'' + esc(c.name).replace(/'/g, "\\'") + '\')">📋</button>' +
+            '<button title="Edit course" onclick="openEditCourse(\'' + esc(c.name).replace(/'/g, "\\'") + '\')">✏️</button>' +
+            '<button title="Delete course" onclick="startDeleteCourse(\'' + esc(c.name).replace(/'/g, "\\'") + '\')">🗑</button>' +
           '</div>' +
-          '</div>';
+        '</div>' +
+        '<div id="editRow_' + esc(c.name) + '" style="display:none;"></div>' +
+        '<div id="deleteRow_' + esc(c.name) + '" style="display:none;"></div>' +
+        '<div id="deckRow_' + esc(c.name) + '" style="display:none;"></div>';
       });
 
       /* Add course form */
-      h += '<div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(var(--accent-rgb),0.10);">' +
+      h += '<div style="margin-top:14px;">' +
         '<div class="field"><label>New course name</label><input id="nc_name" class="input" placeholder="e.g., POLS 3550"></div>' +
         '<div class="course-form-row">' +
-        '<div class="field"><label>Exam type</label>' +
-        '<select id="nc_examType" class="input">' +
+        '<div class="field"><label>Exam type</label><select id="nc_examType" class="input">' +
         '<option value="mc">Multiple Choice</option>' +
         '<option value="short_answer">Short Answer</option>' +
         '<option value="essay">Essay</option>' +
         '<option value="mixed" selected>Mixed</option>' +
         '</select></div>' +
-        '<div class="field"><label>Exam date <span style="opacity:0.5;">(optional)</span></label>' +
-        '<input id="nc_examDate" class="input" type="date"></div>' +
-        '<div class="field"><label>Objective</label>' +
-        '<select id="nc_objective" class="input">' +
+        '<div class="field"><label>Exam date (optional)</label><input id="nc_examDate" type="date" class="input"></div>' +
+      '</div>' +
+      '<div class="field"><label>Objective</label><select id="nc_objective" class="input">' +
         '<option value="retention">🧠 Long-Term Retention</option>' +
         '<option value="exam">📝 Exam Prep</option>' +
         '<option value="mastery">⚔️ Mastery</option>' +
-        '</select></div>' +
-        '</div>' +
-        '</div>';
+      '</select></div>' +
+      '</div>';
 
       courseModalBody.innerHTML = h;
     }
@@ -3862,36 +3915,149 @@ input[type="range"]::-moz-range-thumb{
     });
 
     /* Global helpers for inline course actions */
-    window.editCourseInline = function(name) {
+    window.openEditCourse = function(name) {
       var c = getCourse(name);
       if (!c) return;
-      var newType = prompt('Exam type (mc, short_answer, essay, mixed):', c.examType);
-      if (newType && TIER_PROFILES[newType]) c.examType = newType;
-      var newObj = prompt('Objective (retention, exam, mastery):', c.objective || 'retention');
-      if (newObj && OBJECTIVES[newObj]) c.objective = newObj;
-      var newDate = prompt('Exam date (YYYY-MM-DD or empty):', c.examDate || '');
+      var row = el('editRow_' + name);
+      if (!row) return;
+
+      if (row.style.display === 'block') { row.style.display = 'none'; row.innerHTML = ''; return; }
+
+      var objOptions = '<option value="retention"' + (c.objective === 'retention' ? ' selected' : '') + '>🧠 Long-Term Retention</option>' +
+        '<option value="exam"' + (c.objective === 'exam' ? ' selected' : '') + '>📝 Exam Prep</option>' +
+        '<option value="mastery"' + (c.objective === 'mastery' ? ' selected' : '') + '>⚔️ Mastery</option>';
+
+      row.innerHTML = '<div style="padding:10px 12px;border-radius:14px;border:1px solid rgba(var(--accent-rgb),0.16);background:rgba(var(--accent-rgb),0.04);margin-bottom:8px;">' +
+        '<div class="course-form-row">' +
+          '<div class="field"><label>Exam type</label><select id="edit_examType" class="input">' +
+            '<option value="mc"' + (c.examType === 'mc' ? ' selected' : '') + '>Multiple Choice</option>' +
+            '<option value="short_answer"' + (c.examType === 'short_answer' ? ' selected' : '') + '>Short Answer</option>' +
+            '<option value="essay"' + (c.examType === 'essay' ? ' selected' : '') + '>Essay</option>' +
+            '<option value="mixed"' + (c.examType === 'mixed' ? ' selected' : '') + '>Mixed</option>' +
+          '</select></div>' +
+          '<div class="field"><label>Exam date</label><input id="edit_examDate" type="date" class="input" value="' + (c.examDate || '') + '"></div>' +
+        '</div>' +
+        '<div class="field"><label>Objective</label><select id="edit_objective" class="input">' + objOptions + '</select></div>' +
+        '<div style="display:flex;gap:8px;margin-top:8px;">' +
+          '<button class="ghost-btn" style="min-width:0;flex:1;" onclick="saveEditCourse(\'' + esc(name).replace(/'/g, "\\'") + '\')">Save</button>' +
+          '<button class="ghost-btn" style="min-width:0;flex:0 0 auto;opacity:0.7;" onclick="document.getElementById(\'editRow_' + esc(name) + '\').style.display=\'none\'">Cancel</button>' +
+        '</div>' +
+      '</div>';
+      row.style.display = 'block';
+
+      if (window.gsap) gsap.fromTo(row, { opacity: 0, y: -4 }, { opacity: 1, y: 0, duration: 0.2, ease: 'power2.out' });
+    };
+
+    window.saveEditCourse = function(name) {
+      var c = getCourse(name);
+      if (!c) return;
+      var newType = el('edit_examType') ? el('edit_examType').value : c.examType;
+      if (TIER_PROFILES[newType]) c.examType = newType;
+      var newObj = el('edit_objective') ? el('edit_objective').value : (c.objective || 'retention');
+      if (OBJECTIVES[newObj]) c.objective = newObj;
+      var newDate = el('edit_examDate') ? (el('edit_examDate').value || '').trim() : '';
       c.examDate = (newDate && newDate.match(/^\d{4}-\d{2}-\d{2}$/)) ? newDate : null;
       saveCourse(c);
       renderCourseModal();
       renderDashboard();
-      toast('Updated');
+      toast('Course updated');
     };
 
-    window.toggleManualMode = function(name) {
-      var c = getCourse(name);
-      if (!c) return;
-      c.manualMode = !c.manualMode;
-      saveCourse(c);
-      renderCourseModal();
-      toast(c.manualMode ? 'Manual mode ON — you pick tiers' : 'Smart mode ON — engine picks tiers');
+    window.startDeleteCourse = function(name) {
+      var row = el('deleteRow_' + name);
+      if (!row) return;
+
+      if (row.style.display === 'block') { row.style.display = 'none'; row.innerHTML = ''; return; }
+
+      var itemCount = 0;
+      for (var id in state.items) {
+        if (state.items.hasOwnProperty(id) && state.items[id] && state.items[id].course === name) itemCount++;
+      }
+
+      row.innerHTML = '<div style="padding:10px 12px;border-radius:14px;border:1px solid rgba(239,68,68,0.25);background:rgba(239,68,68,0.06);margin-bottom:8px;">' +
+        '<div style="font-size:10px;font-weight:700;color:var(--text);margin-bottom:6px;">Delete "' + esc(name) + '"?</div>' +
+        '<div style="font-size:9px;color:var(--text-secondary);margin-bottom:10px;">' + itemCount + ' card' + (itemCount !== 1 ? 's' : '') + ' will keep their data but lose the course tag.</div>' +
+        '<div style="display:flex;gap:8px;">' +
+          '<button class="ghost-btn" style="min-width:0;flex:1;border-color:rgba(239,68,68,0.3);color:#ef4444;" onclick="confirmDeleteCourseNow(\'' + esc(name).replace(/'/g, "\\'") + '\')">Delete</button>' +
+          '<button class="ghost-btn" style="min-width:0;flex:0 0 auto;opacity:0.7;" onclick="document.getElementById(\'deleteRow_' + esc(name) + '\').style.display=\'none\'">Cancel</button>' +
+        '</div>' +
+      '</div>';
+      row.style.display = 'block';
+
+      if (window.gsap) gsap.fromTo(row, { opacity: 0, y: -4 }, { opacity: 1, y: 0, duration: 0.2, ease: 'power2.out' });
     };
 
-    window.confirmDeleteCourse = function(name) {
-      if (!confirm('Delete course "' + name + '"? Items will keep their course tag.')) return;
+    window.confirmDeleteCourseNow = function(name) {
       deleteCourse(name);
       renderCourseModal();
       renderDashboard();
-      toast('Deleted');
+      toast('Course deleted');
+    };
+
+    window.viewCourseDeck = function(name) {
+      var row = el('deckRow_' + name);
+      if (!row) return;
+
+      if (row.style.display === 'block') { row.style.display = 'none'; row.innerHTML = ''; return; }
+
+      var items = [];
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (it && it.course === name) items.push(it);
+      }
+
+      if (!items.length) {
+        row.innerHTML = '<div style="padding:10px 12px;border-radius:14px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.03);margin-bottom:8px;">' +
+          '<div style="font-size:10px;color:var(--text-secondary);text-align:center;">No cards in this course yet.</div>' +
+        '</div>';
+        row.style.display = 'block';
+        return;
+      }
+
+      var byTopic = {};
+      items.forEach(function(it) {
+        var t = (it.topic || '').trim() || 'Uncategorised';
+        if (!byTopic[t]) byTopic[t] = [];
+        byTopic[t].push(it);
+      });
+      var topicKeys = Object.keys(byTopic).sort(function(a, b) { return a.localeCompare(b); });
+
+      var h = '<div style="padding:10px 12px;border-radius:14px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.03);margin-bottom:8px;max-height:300px;overflow-y:auto;">';
+
+      topicKeys.forEach(function(topic) {
+        var cards = byTopic[topic];
+        h += '<div style="font-size:8px;letter-spacing:1.4px;text-transform:uppercase;color:var(--text-secondary);font-weight:700;margin:8px 0 4px;">' + esc(topic) + ' (' + cards.length + ')</div>';
+        cards.forEach(function(it) {
+          var R = it.fsrs ? retrievability(it.fsrs, Date.now()) : 1;
+          var retPct = Math.round(R * 100);
+          var retColor = retPct >= 80 ? 'var(--rate-good)' : retPct >= 50 ? 'var(--rate-hard)' : 'var(--rate-again)';
+          var promptPreview = (it.prompt || '').substring(0, 80) + ((it.prompt || '').length > 80 ? '…' : '');
+          h += '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px;border-radius:10px;border:1px solid rgba(var(--accent-rgb),0.08);background:rgba(var(--accent-rgb),0.02);margin-bottom:4px;">' +
+            '<div style="flex:1;min-width:0;font-size:10px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(promptPreview) + '</div>' +
+            '<div style="flex-shrink:0;display:flex;align-items:center;gap:6px;">' +
+              '<span style="font-size:9px;font-weight:700;color:' + retColor + ';">' + retPct + '%</span>' +
+              '<button style="border:none;background:rgba(239,68,68,0.08);color:#ef4444;border-radius:6px;padding:3px 6px;font-size:9px;cursor:pointer;" onclick="deleteCard(\'' + it.id + '\',\'' + esc(name).replace(/'/g, "\\'") + '\')">✕</button>' +
+            '</div>' +
+          '</div>';
+        });
+      });
+
+      h += '</div>';
+      row.innerHTML = h;
+      row.style.display = 'block';
+
+      if (window.gsap) gsap.fromTo(row, { opacity: 0, y: -4 }, { opacity: 1, y: 0, duration: 0.25, ease: 'power2.out' });
+    };
+
+    window.deleteCard = function(itemId, courseName) {
+      if (state.items[itemId]) {
+        delete state.items[itemId];
+        saveState();
+        toast('Card deleted');
+        viewCourseDeck(courseName);
+        viewCourseDeck(courseName);
+      }
     };
 
     /* ── Toast (lightweight) ── */
