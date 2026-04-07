@@ -3200,11 +3200,14 @@ setTimeout(function() {
         ubtn.textContent = '🔄 CHECKING...';
         ubtn.style.opacity = '0.7';
         if (typeof playClick === 'function') playClick();
-        var bustUrl = window.location.href.split('?')[0] + '?_cb=' + Date.now();
-        fetch(bustUrl, { cache: 'no-store' })
-          .then(function(res) { return res.text(); })
-          .then(function(html) {
-            if (html.length !== document.documentElement.outerHTML.length) {
+        var baseUrl = window.location.href.split('?')[0];
+        var bustUrl = baseUrl + '?_cb=' + Date.now();
+        fetch(bustUrl, { method: 'HEAD', cache: 'no-store' })
+          .then(function(res) {
+            var remote = res.headers.get('last-modified') || res.headers.get('etag') || '';
+            var stored = localStorage.getItem('horizon_last_version') || '';
+            if (!remote || remote !== stored) {
+              localStorage.setItem('horizon_last_version', remote);
               window.location.href = bustUrl;
             } else {
               ubtn.textContent = '✓ UP TO DATE';
