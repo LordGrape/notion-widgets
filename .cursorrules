@@ -169,6 +169,11 @@
 - Evolution titles: Dormant → Spark → Ember → Blaze → Sovereign → Mythic (no military ranks)
 - visibilitychange re-pulls SyncEngine state for cross-device XP sync
 
+# Cache management
+- 🔄 button (top-right) fetches horizon.html with cache:no-store to detect updates
+- If content length differs, hard-reloads with ?_cb=timestamp to bust all cache layers
+- No manual ?v=X bumping needed after deploys
+
 # Horizon bars (renamed)
 - Hunger/Spirit/Energy replace Rations/Morale/Readiness (display only, internal keys unchanged)
 - Spirit icon: ✨ (was ⚔️)
