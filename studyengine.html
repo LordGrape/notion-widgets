@@ -1375,6 +1375,101 @@
     .cram-banner .cram-icon{ font-size: 14px; }
     .cram-banner .cram-text{ flex: 1; }
 
+    /* ── Ambient Micro-Animations ── */
+    @keyframes ambientFloat {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-3px); }
+    }
+    @keyframes ambientGlow {
+      0%, 100% { border-color: rgba(var(--accent-rgb),0.12); box-shadow: 0 0 0 0 rgba(var(--accent-rgb),0); }
+      50% { border-color: rgba(var(--accent-rgb),0.22); box-shadow: 0 0 20px -4px rgba(var(--accent-rgb),0.08); }
+    }
+    @keyframes heroShimmer {
+      0% { background-position: -200% center; }
+      100% { background-position: 200% center; }
+    }
+    @keyframes gradientShift {
+      0%, 100% { filter: hue-rotate(0deg); }
+      50% { filter: hue-rotate(8deg); }
+    }
+    @keyframes subtlePulse {
+      0%, 100% { opacity: 0.85; }
+      50% { opacity: 1; }
+    }
+    @keyframes breatheBorder {
+      0%, 100% { border-color: rgba(var(--accent-rgb),0.10); }
+      50% { border-color: rgba(var(--accent-rgb),0.20); }
+    }
+
+    .stat { animation: ambientFloat 4s ease-in-out infinite; }
+    .stats-row .stat:nth-child(2) { animation-delay: 0.6s; }
+    .stats-row .stat:nth-child(3) { animation-delay: 1.2s; }
+
+    .gauge { animation: breatheBorder 3.5s ease-in-out infinite; }
+
+    .hero-stat::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(var(--accent-rgb),0.04) 25%,
+        rgba(var(--accent-rgb),0.08) 50%,
+        rgba(var(--accent-rgb),0.04) 75%,
+        transparent 100%
+      );
+      background-size: 200% 100%;
+      animation: heroShimmer 6s ease-in-out infinite;
+      pointer-events: none;
+      border-radius: inherit;
+      z-index: 0;
+    }
+    .hero-stat .hero-value,
+    .hero-stat .hero-label,
+    .hero-stat .hero-sub {
+      position: relative;
+      z-index: 1;
+    }
+
+    .big-btn:not(:disabled) { animation: gradientShift 5s ease-in-out infinite; }
+
+    .tier-pill:not([data-count="0"]) { animation: subtlePulse 3s ease-in-out infinite; }
+    .tier-pill:nth-child(2) { animation-delay: 0.4s; }
+    .tier-pill:nth-child(3) { animation-delay: 0.8s; }
+    .tier-pill:nth-child(4) { animation-delay: 1.2s; }
+    .tier-pill:nth-child(5) { animation-delay: 1.6s; }
+
+    .course-card { animation: breatheBorder 4s ease-in-out infinite; }
+    .course-card:nth-child(2) { animation-delay: 0.5s; }
+    .course-card:nth-child(3) { animation-delay: 1.0s; }
+
+    .analytics-card { animation: ambientGlow 5s ease-in-out infinite; }
+    .analytics-card:nth-child(2) { animation-delay: 1s; }
+
+    .chip:hover {
+      background: rgba(var(--accent-rgb),0.10);
+      box-shadow: 0 0 12px -2px rgba(var(--accent-rgb),0.12);
+    }
+
+    .item-card { animation: ambientGlow 4s ease-in-out infinite; }
+    .brand h1 { animation: subtlePulse 4s ease-in-out infinite; }
+    .pbar > div { box-shadow: 0 0 8px -1px rgba(var(--accent-rgb),0.25); }
+    .xp-badge { animation: ambientFloat 3s ease-in-out infinite; }
+    .tier-badge { animation: subtlePulse 2.5s ease-in-out infinite; }
+    .rate:not([disabled]) { animation: subtlePulse 2.8s ease-in-out infinite; }
+    .rate.hard { animation-delay: 0.3s; }
+    .rate.good { animation-delay: 0.6s; }
+    .rate.easy { animation-delay: 0.9s; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
     /* Focus styles */
     :focus-visible{
       outline: 2px solid rgba(var(--accent-rgb),0.45);
@@ -1426,40 +1521,45 @@
 }
 .info-tooltip{
   display: none;
-  position: absolute;
-  bottom: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
-  width: 220px;
+  position: fixed;
+  width: 240px;
+  max-width: calc(100vw - 32px);
   padding: 10px 12px;
   border-radius: 12px;
-  background: var(--card-bg);
+  background: var(--bg);
   backdrop-filter: var(--blur);
   -webkit-backdrop-filter: var(--blur);
   border: 1px solid rgba(var(--accent-rgb),0.22);
-  box-shadow: var(--shadow-soft);
+  box-shadow: var(--shadow);
   color: var(--text);
   font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.1px;
   text-transform: none;
   line-height: 1.5;
-  z-index: 60;
+  z-index: 200;
   pointer-events: none;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
-.info-icon:hover .info-tooltip,
-.info-icon:focus .info-tooltip{
+.info-tooltip.visible{
   display: block;
 }
-/* Tooltip arrow */
+/* Tooltip arrow — hidden by default, positioned by JS */
 .info-tooltip::after{
   content: '';
   position: absolute;
-  top: 100%;
   left: 50%;
   transform: translateX(-50%);
   border: 6px solid transparent;
+}
+.info-tooltip.arrow-bottom::after{
+  top: 100%;
   border-top-color: rgba(var(--accent-rgb),0.22);
+}
+.info-tooltip.arrow-top::after{
+  bottom: 100%;
+  border-bottom-color: rgba(var(--accent-rgb),0.22);
 }
 
 /* ── Slider Track Styling ── */
@@ -3462,6 +3562,79 @@ input[type="range"]::-moz-range-thumb{
     el('settingsClose').addEventListener('click', closeSettings);
     settingsOv.addEventListener('click', function(e){ if (e.target === settingsOv) closeSettings(); });
 
+    /* ── Tooltip Positioning Engine ── */
+    var activeTooltipIcon = null;
+    function positionTooltip(icon) {
+      var tip = icon.querySelector('.info-tooltip');
+      if (!tip) return;
+      tip.className = 'info-tooltip visible';
+      var rect = icon.getBoundingClientRect();
+      var tipW = Math.min(240, window.innerWidth - 16);
+      var tipH = tip.offsetHeight || 80;
+
+      var spaceAbove = rect.top;
+      var placeBelow = spaceAbove < tipH + 16;
+      var top, arrowClass;
+      if (placeBelow) {
+        top = rect.bottom + 8;
+        arrowClass = 'arrow-top';
+      } else {
+        top = rect.top - tipH - 8;
+        arrowClass = 'arrow-bottom';
+      }
+
+      var left = rect.left + rect.width / 2 - tipW / 2;
+      left = Math.max(8, Math.min(left, window.innerWidth - tipW - 8));
+
+      tip.style.top = top + 'px';
+      tip.style.left = left + 'px';
+      tip.className = 'info-tooltip visible ' + arrowClass;
+    }
+
+    function hideTooltip(icon) {
+      var tip = icon.querySelector('.info-tooltip');
+      if (!tip) return;
+      tip.className = 'info-tooltip';
+      tip.style.top = '';
+      tip.style.left = '';
+    }
+
+    document.addEventListener('mouseover', function(e) {
+      var icon = e.target.closest('.info-icon');
+      if (!icon) return;
+      if (activeTooltipIcon && activeTooltipIcon !== icon) hideTooltip(activeTooltipIcon);
+      activeTooltipIcon = icon;
+      positionTooltip(icon);
+    });
+    document.addEventListener('mouseout', function(e) {
+      var icon = e.target.closest('.info-icon');
+      if (!icon) return;
+      if (!icon.contains(e.relatedTarget)) {
+        hideTooltip(icon);
+        if (activeTooltipIcon === icon) activeTooltipIcon = null;
+      }
+    });
+    document.addEventListener('focusin', function(e) {
+      var icon = e.target.closest('.info-icon');
+      if (icon) {
+        activeTooltipIcon = icon;
+        positionTooltip(icon);
+      }
+    });
+    document.addEventListener('focusout', function(e) {
+      var icon = e.target.closest('.info-icon');
+      if (icon) {
+        hideTooltip(icon);
+        activeTooltipIcon = null;
+      }
+    });
+    window.addEventListener('resize', function() {
+      if (activeTooltipIcon) positionTooltip(activeTooltipIcon);
+    });
+    window.addEventListener('scroll', function() {
+      if (activeTooltipIcon) positionTooltip(activeTooltipIcon);
+    }, true);
+
     function renderSettings() {
       var body = el('settingsBody');
       var retPct = Math.round(settings.desiredRetention * 100);
@@ -3470,18 +3643,26 @@ input[type="range"]::-moz-range-thumb{
         return '<span class="info-icon" tabindex="0">ⓘ<span class="info-tooltip">' + text + '</span></span>';
       }
 
-      function opt(m) {
-        return '<option value="' + m + '"' + (parseInt(settings.mockDefaultMins,10) === m ? ' selected' : '') + '>' + m + ' min</option>';
+      function pillGroup(name, options, currentValue) {
+        var h = '<div class="mode-toggle" data-setting="' + name + '">';
+        options.forEach(function(o) {
+          var isActive = String(o.value) === String(currentValue);
+          h += '<button type="button" class="mode-btn' + (isActive ? ' active' : '') + '" data-val="' + esc(String(o.value)) + '">' + esc(o.label) + '</button>';
+        });
+        h += '</div>';
+        return h;
       }
 
       body.innerHTML = '' +
         /* Desired Retention */
         '<div class="setting-row">' +
           '<div class="sr-left">' +
-            '<div class="sr-label">Desired retention <span id="s_ret_display" style="color:var(--text);font-size:11px;font-weight:800;letter-spacing:-0.3px;">' + retPct + '%</span> ' +
+            '<div class="sr-label">Desired retention <span id="s_ret_display">' + retPct + '%</span> ' +
               infoIcon('Target probability of remembering a card when it comes due. Higher means more frequent reviews. 0.90 (90%) is the research-backed default. Raise to 0.93-0.95 before exams; lower to 0.85 for maintenance.') +
             '</div>' +
-            '<input id="s_ret" type="range" min="0.80" max="0.95" step="0.01" value="' + settings.desiredRetention + '" class="sr-control" />' +
+            '<div class="sr-control">' +
+              '<input id="s_ret" type="range" min="0.80" max="0.95" step="0.01" value="' + settings.desiredRetention + '" />' +
+            '</div>' +
           '</div>' +
         '</div>' +
         /* Session Size Limit */
@@ -3490,7 +3671,10 @@ input[type="range"]::-moz-range-thumb{
             '<div class="sr-label">Session size limit ' +
               infoIcon('Maximum cards per study session. Smaller sessions (10-15) maintain focus and fit between classes. Larger sessions (30-60) suit dedicated cram days. Cram mode auto-scales this up when exams approach.') +
             '</div>' +
-            '<input class="input sr-control" id="s_lim" type="number" min="5" max="60" value="' + esc(settings.sessionLimit) + '" />' +
+            '<div class="sr-control">' +
+              '<input type="range" id="s_lim" min="5" max="60" step="1" value="' + (settings.sessionLimit || 12) + '">' +
+              '<div style="display:flex;justify-content:space-between;margin-top:4px;"><span style="font-size:8px;color:var(--text-tertiary);letter-spacing:1px;">5</span><span id="s_lim_display" style="font-size:9px;font-weight:700;color:var(--text);letter-spacing:0.5px;">' + (settings.sessionLimit || 12) + ' cards</span><span style="font-size:8px;color:var(--text-tertiary);letter-spacing:1px;">60</span></div>' +
+            '</div>' +
           '</div>' +
         '</div>' +
         /* Mock Exam Default Time */
@@ -3499,9 +3683,14 @@ input[type="range"]::-moz-range-thumb{
             '<div class="sr-label">Mock exam default time ' +
               infoIcon('Default countdown timer for Mock Exam tier items. Adjust based on your exam format. Individual items can override this with their own time limit.') +
             '</div>' +
-            '<select id="s_mock" class="sr-control">' +
-              opt(5) + opt(10) + opt(15) + opt(30) +
-            '</select>' +
+            '<div class="sr-control">' +
+              pillGroup('s_mock', [
+                { value: '5', label: '5 min' },
+                { value: '10', label: '10 min' },
+                { value: '15', label: '15 min' },
+                { value: '30', label: '30 min' }
+              ], String(settings.mockDefaultMins || 10)) +
+            '</div>' +
           '</div>' +
         '</div>' +
         /* Apply Timer Badge */
@@ -3510,12 +3699,25 @@ input[type="range"]::-moz-range-thumb{
             '<div class="sr-label">Apply timer badge ' +
               infoIcon('Shows an elapsed-time counter on Apply It tier items. Builds time-pressure awareness and exam stamina. Purely informational; does not auto-submit.') +
             '</div>' +
-            '<select id="s_apply" class="sr-control">' +
-              '<option value="1"' + (settings.showApplyTimer ? ' selected' : '') + '>On</option>' +
-              '<option value="0"' + (!settings.showApplyTimer ? ' selected' : '') + '>Off</option>' +
-            '</select>' +
+            '<div class="sr-control">' +
+              pillGroup('s_apply', [
+                { value: '1', label: 'On' },
+                { value: '0', label: 'Off' }
+              ], settings.showApplyTimer ? '1' : '0') +
+            '</div>' +
           '</div>' +
         '</div>';
+
+      body.querySelectorAll('.mode-toggle').forEach(function(group) {
+        group.querySelectorAll('.mode-btn').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            group.querySelectorAll('.mode-btn').forEach(function(b) { b.classList.remove('active'); });
+            this.classList.add('active');
+            if (window.gsap) gsap.fromTo(this, { scale: 0.95 }, { scale: 1, duration: 0.25, ease: 'back.out(2)' });
+            try { playClick(); } catch(e) {}
+          });
+        });
+      });
 
       /* Wire live slider update */
       var retSlider = el('s_ret');
@@ -3523,6 +3725,13 @@ input[type="range"]::-moz-range-thumb{
       if (retSlider && retDisplay) {
         retSlider.addEventListener('input', function() {
           retDisplay.textContent = Math.round(parseFloat(this.value) * 100) + '%';
+        });
+      }
+      var limSlider = el('s_lim');
+      var limDisplay = el('s_lim_display');
+      if (limSlider && limDisplay) {
+        limSlider.addEventListener('input', function() {
+          limDisplay.textContent = this.value + ' cards';
         });
       }
 
@@ -3536,8 +3745,13 @@ input[type="range"]::-moz-range-thumb{
     el('settingsSave').addEventListener('click', function(){
       var r = parseFloat(el('s_ret').value);
       var lim = parseInt(el('s_lim').value, 10);
-      var mm = parseInt(el('s_mock').value, 10);
-      var at = el('s_apply').value === '1';
+      var mockGroup = document.querySelector('.mode-toggle[data-setting="s_mock"]');
+      var mockActive = mockGroup ? mockGroup.querySelector('.mode-btn.active') : null;
+      var mm = mockActive ? parseInt(mockActive.getAttribute('data-val'), 10) : 10;
+
+      var applyGroup = document.querySelector('.mode-toggle[data-setting="s_apply"]');
+      var applyActive = applyGroup ? applyGroup.querySelector('.mode-btn.active') : null;
+      var at = applyActive ? applyActive.getAttribute('data-val') === '1' : true;
       settings.desiredRetention = clamp(isFinite(r) ? r : 0.9, 0.80, 0.95);
       settings.sessionLimit = clamp(isFinite(lim) ? lim : 12, 5, 60);
       settings.mockDefaultMins = [5,10,15,30].indexOf(mm) >= 0 ? mm : 10;
