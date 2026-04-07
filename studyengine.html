@@ -1190,6 +1190,188 @@
       border: 1px solid rgba(245,158,11,0.2);
     }
 
+    /* ── Analytics Strip ── */
+    .analytics-strip{
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    @media (min-width: 480px){
+      .analytics-strip{ grid-template-columns: 1fr auto; }
+    }
+
+    .analytics-card{
+      padding: 12px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(var(--accent-rgb),0.10);
+      background: rgba(var(--accent-rgb),0.02);
+      position: relative;
+      overflow: hidden;
+    }
+    .analytics-card .ac-title{
+      font-size: 8px;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .analytics-card canvas{
+      display: block;
+      width: 100%;
+    }
+
+    /* Sparkline + Ring side-by-side */
+    .analytics-row{
+      display: flex;
+      gap: 10px;
+      align-items: stretch;
+    }
+    .analytics-row .spark-wrap{
+      flex: 1;
+      min-width: 0;
+    }
+    .analytics-row .ring-wrap{
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ── Course Detail View ── */
+    .course-detail{
+      display: none;
+    }
+    .course-detail.active{ display: block; }
+
+    .cd-header{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .cd-back{
+      appearance: none;
+      border: 1px solid rgba(var(--accent-rgb),0.14);
+      background: rgba(var(--accent-rgb),0.05);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 6px 10px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      cursor: pointer;
+      transition: transform var(--transition), background var(--transition);
+    }
+    .cd-back:hover{ transform: translateY(-1px); background: rgba(var(--accent-rgb),0.10); }
+
+    .cd-title{
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -0.3px;
+    }
+
+    .cd-badges{
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .cd-badge{
+      font-size: 8px;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(var(--accent-rgb),0.14);
+      background: rgba(var(--accent-rgb),0.06);
+      color: var(--text-secondary);
+    }
+    .cd-badge.objective-retention{ border-color: rgba(34,197,94,0.3); color: #22c55e; }
+    .cd-badge.objective-exam{ border-color: rgba(239,68,68,0.3); color: #ef4444; }
+    .cd-badge.objective-mastery{ border-color: rgba(139,92,246,0.3); color: var(--accent); }
+
+    .cd-countdown{
+      text-align: center;
+      padding: 14px 12px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(var(--accent-rgb),0.12);
+      background: linear-gradient(135deg, rgba(var(--accent-rgb),0.06), rgba(var(--accent-rgb),0.01));
+      margin-bottom: 14px;
+    }
+    .cd-countdown .cd-days{
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -1px;
+    }
+    .cd-countdown .cd-days-label{
+      font-size: 9px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .cd-retention-graph{
+      margin-bottom: 14px;
+    }
+
+    .cd-tier-stats{
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    @media (max-width: 420px){
+      .cd-tier-stats{ grid-template-columns: repeat(3, 1fr); }
+    }
+    .cd-tier-stat{
+      text-align: center;
+      padding: 8px 4px;
+      border-radius: 12px;
+      border: 1px solid rgba(var(--accent-rgb),0.10);
+      background: rgba(var(--accent-rgb),0.02);
+    }
+    .cd-tier-stat .cts-count{
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+    .cd-tier-stat .cts-label{
+      font-size: 7px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-top: 2px;
+      font-weight: 700;
+    }
+
+    /* Cram mode banner */
+    .cram-banner{
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(239,68,68,0.12), rgba(239,68,68,0.04));
+      border: 1px solid rgba(239,68,68,0.25);
+      margin-bottom: 12px;
+      color: var(--text);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .cram-banner.show{ display: flex; }
+    .cram-banner .cram-icon{ font-size: 14px; }
+    .cram-banner .cram-text{ flex: 1; }
+
     /* Focus styles */
     :focus-visible{
       outline: 2px solid rgba(var(--accent-rgb),0.45);
@@ -1258,6 +1440,31 @@
           <!-- Tier Breakdown -->
           <div class="section-header">Due by tier</div>
           <div class="breakdown" id="tierBreakdown"></div>
+
+          <!-- Cram Mode Banner -->
+          <div class="cram-banner" id="cramBanner">
+            <span class="cram-icon">⚡</span>
+            <span class="cram-text" id="cramText">Cram mode active — exam in 2 days</span>
+          </div>
+
+          <!-- Analytics Strip -->
+          <div class="analytics-strip" id="analyticsStrip">
+            <div class="analytics-card cd-retention-graph">
+              <div class="ac-title">Predicted retention</div>
+              <canvas id="retentionCanvas" height="100"></canvas>
+            </div>
+            <div class="analytics-card">
+              <div class="analytics-row">
+                <div class="spark-wrap">
+                  <div class="ac-title">Last 30 days</div>
+                  <canvas id="sparkCanvas" height="50"></canvas>
+                </div>
+                <div class="ring-wrap">
+                  <canvas id="ringCanvas" width="64" height="64"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <!-- Start Session -->
           <button class="big-btn" id="startBtn" disabled>Start Session</button>
@@ -1357,6 +1564,37 @@
 
           <!-- Back -->
           <button class="big-btn" id="backBtn">Back to Dashboard</button>
+        </div>
+
+        <!-- Course Detail View -->
+        <div class="course-detail" id="courseDetail">
+          <div class="cd-header">
+            <button class="cd-back" id="cdBack">← Back</button>
+            <span class="cd-title" id="cdTitle">—</span>
+          </div>
+          <div class="cd-badges" id="cdBadges"></div>
+          <div class="cd-countdown" id="cdCountdown" style="display:none;">
+            <div class="cd-days" id="cdDays">—</div>
+            <div class="cd-days-label" id="cdDaysLabel">Days until exam</div>
+          </div>
+          <div class="analytics-card cd-retention-graph" style="margin-bottom:14px;">
+            <div class="ac-title">Course retention forecast</div>
+            <canvas id="cdRetentionCanvas" height="120"></canvas>
+          </div>
+          <div class="cd-tier-stats" id="cdTierStats"></div>
+          <div class="stats-row" style="grid-template-columns:1fr 1fr;">
+            <div class="stat">
+              <div class="k">Items</div>
+              <div class="v" id="cdItemCount">—</div>
+              <div class="s" id="cdDueCount">— due</div>
+            </div>
+            <div class="stat">
+              <div class="k">Avg retention</div>
+              <div class="v" id="cdAvgRet">—</div>
+              <div class="s" id="cdRetTrend">—</div>
+            </div>
+          </div>
+          <button class="big-btn" id="cdStartSession" style="margin-top:12px;">Study this course</button>
         </div>
       </div>
     </div>
@@ -1478,6 +1716,115 @@
       open_book: 'Open Book',
       mixed: 'Mixed'
     };
+
+    /* ── Course Objectives ── */
+    var OBJECTIVES = {
+      retention: {
+        label: 'Long-Term Retention',
+        icon: '🧠',
+        retentionOverride: null,
+        tierProfileMod: {},
+        bloomBonusMod: 1.0,
+        sessionSizeMod: 1.0
+      },
+      exam: {
+        label: 'Exam Prep',
+        icon: '📝',
+        retentionOverride: 0.85,
+        tierProfileMod: { quickfire: 1.3, explain: 1.2, apply: 0.8, distinguish: 0.7, mock: 0.6 },
+        bloomBonusMod: 0.5,
+        sessionSizeMod: 1.0
+      },
+      mastery: {
+        label: 'Mastery',
+        icon: '⚔️',
+        retentionOverride: 0.95,
+        tierProfileMod: { quickfire: 0.5, explain: 0.9, apply: 1.4, distinguish: 1.4, mock: 1.5 },
+        bloomBonusMod: 1.5,
+        sessionSizeMod: 1.0
+      }
+    };
+
+    var OBJECTIVE_LABELS = { retention: 'Long-Term Retention', exam: 'Exam Prep', mastery: 'Mastery' };
+
+    function getCourseObjective(courseName) {
+      var c = getCourse(courseName);
+      return (c && c.objective) ? c.objective : 'retention';
+    }
+
+    function getEffectiveRetention(courseName) {
+      var obj = OBJECTIVES[getCourseObjective(courseName)] || OBJECTIVES.retention;
+      if (obj.retentionOverride) return obj.retentionOverride;
+      return settings.desiredRetention || 0.90;
+    }
+
+    function getEffectiveProfile(courseName) {
+      var examType = getCourseExamType(courseName);
+      var base = deepClone(TIER_PROFILES[examType] || TIER_PROFILES.mixed);
+      var obj = OBJECTIVES[getCourseObjective(courseName)] || OBJECTIVES.retention;
+      var mod = obj.tierProfileMod || {};
+      for (var t in base) {
+        if (mod[t]) base[t] = base[t] * mod[t];
+      }
+      /* Renormalize to sum to 1 */
+      var total = 0;
+      for (var t2 in base) total += base[t2];
+      if (total > 0) {
+        for (var t3 in base) base[t3] = base[t3] / total;
+      }
+      return base;
+    }
+
+    function getEffectiveBloomBonus(courseName) {
+      var obj = OBJECTIVES[getCourseObjective(courseName)] || OBJECTIVES.retention;
+      var mod = obj.bloomBonusMod || 1.0;
+      var result = {};
+      for (var t in BLOOM_STABILITY_BONUS) {
+        var base = BLOOM_STABILITY_BONUS[t];
+        result[t] = 1.0 + (base - 1.0) * mod;
+      }
+      return result;
+    }
+
+    /* ── Cram Mode Detection ── */
+    function getCramState(courseName) {
+      var c = getCourse(courseName);
+      if (!c || !c.examDate || c.objective !== 'exam') return { active: false };
+      var examTs = new Date(c.examDate + 'T23:59:59').getTime();
+      var now = Date.now();
+      var daysUntil = Math.max(0, (examTs - now) / (1000 * 60 * 60 * 24));
+      if (daysUntil > 14) return { active: false, daysUntil: Math.ceil(daysUntil) };
+
+      var intensity = 'normal';
+      var sessionMod = 1.0;
+      var intervalMod = 1.0;
+
+      if (daysUntil <= 2) {
+        intensity = 'critical';
+        sessionMod = 2.0;
+        intervalMod = 0.3;
+      } else if (daysUntil <= 5) {
+        intensity = 'high';
+        sessionMod = 1.5;
+        intervalMod = 0.5;
+      } else if (daysUntil <= 7) {
+        intensity = 'moderate';
+        sessionMod = 1.25;
+        intervalMod = 0.7;
+      } else {
+        intensity = 'low';
+        sessionMod = 1.1;
+        intervalMod = 0.85;
+      }
+
+      return {
+        active: true,
+        daysUntil: Math.ceil(daysUntil),
+        intensity: intensity,
+        sessionMod: sessionMod,
+        intervalMod: intervalMod
+      };
+    }
 
     var state = null;
     var settings = null;
@@ -1862,6 +2209,10 @@
           { opacity: 1, y: 0, duration: 0.3, stagger: 0.04, ease: 'power2.out' }
         );
       }
+      /* Render analytics graphs */
+      setTimeout(function() {
+        renderAnalytics(selectedCourse);
+      }, 50);
     }
 
     function renderCourseChips(courseList) {
@@ -1874,6 +2225,12 @@
         ch.addEventListener('click', function() {
           selectedCourse = this.getAttribute('data-course');
           renderDashboard();
+        });
+        ch.addEventListener('dblclick', function() {
+          var course = this.getAttribute('data-course');
+          if (course && course !== 'All') {
+            openCourseDetail(course);
+          }
         });
       });
     }
@@ -1917,11 +2274,7 @@
       if (!dueItems.length) return [];
 
       /* 2. Determine target profile */
-      var examType = 'mixed';
-      if (courseFilter !== 'All') {
-        examType = getCourseExamType(courseFilter);
-      }
-      var profile = deepClone(TIER_PROFILES[examType] || TIER_PROFILES.mixed);
+      var profile = getEffectiveProfile(courseFilter !== 'All' ? courseFilter : null);
 
       /* 3. Check manual mode */
       var isManual = (courseFilter !== 'All') && isCourseManual(courseFilter);
@@ -1947,6 +2300,11 @@
       /* 5. Calculate target counts with proportional reweighting */
       var limit = parseInt(settings.sessionLimit || 12, 10);
       if (!limit || limit < 1) limit = 12;
+      /* Cram mode: increase session size */
+      var cram = (courseFilter !== 'All') ? getCramState(courseFilter) : { active: false };
+      if (cram.active) {
+        limit = Math.ceil(limit * cram.sessionMod);
+      }
       var targetTotal = Math.min(limit, dueItems.length);
 
       var tierCounts = reweightProfile(profile, tierBuckets, targetTotal);
@@ -1978,6 +2336,15 @@
           it._presentTier = 'quickfire';
           queue.push(it);
           usedIds[it.id] = true;
+        });
+      }
+
+      /* Cram mode: sort by lowest stability first (most fragile knowledge) */
+      if (cram.active && cram.intensity === 'critical') {
+        queue.sort(function(a, b) {
+          var sa = (a.fsrs && a.fsrs.stability) ? a.fsrs.stability : 0;
+          var sb = (b.fsrs && b.fsrs.stability) ? b.fsrs.stability : 0;
+          return sa - sb;
         });
       }
 
@@ -2437,11 +2804,23 @@
       if (againCount > 0 && mappedRating >= 3) session.loops[it.id] = 0;
 
       var res = scheduleFsrs(it, mappedRating, nowTs, true);
-      /* Bloom stability bonus: higher tier = stronger memory trace on success */
-      if (mappedRating >= 3 && BLOOM_STABILITY_BONUS[tier]) {
-        var bonus = BLOOM_STABILITY_BONUS[tier];
+      /* Bloom stability bonus: course-objective-aware */
+      var effectiveBonus = getEffectiveBloomBonus(it.course);
+      if (mappedRating >= 3 && effectiveBonus[tier]) {
+        var bonus = effectiveBonus[tier];
         if (bonus > 1.0 && it.fsrs && it.fsrs.stability) {
           it.fsrs.stability = Math.min(3650, it.fsrs.stability * bonus);
+        }
+      }
+      /* Cram mode: compress intervals */
+      var cramInfo = getCramState(it.course);
+      if (cramInfo.active && it.fsrs && it.fsrs.due) {
+        var dueTs = new Date(it.fsrs.due).getTime();
+        var nowMs = Date.now();
+        var currentInterval = dueTs - nowMs;
+        if (currentInterval > 0) {
+          var compressed = nowMs + Math.round(currentInterval * cramInfo.intervalMod);
+          it.fsrs.due = new Date(compressed).toISOString();
         }
       }
       /* Store which tier was used for history */
@@ -3020,6 +3399,12 @@
         '</select></div>' +
         '<div class="field"><label>Exam date <span style="opacity:0.5;">(optional)</span></label>' +
         '<input id="nc_examDate" class="input" type="date"></div>' +
+        '<div class="field"><label>Objective</label>' +
+        '<select id="nc_objective" class="input">' +
+        '<option value="retention">🧠 Long-Term Retention</option>' +
+        '<option value="exam">📝 Exam Prep</option>' +
+        '<option value="mastery">⚔️ Mastery</option>' +
+        '</select></div>' +
         '</div>' +
         '</div>';
 
@@ -3032,10 +3417,12 @@
       if (state.courses[name]) { toast('Course already exists'); return; }
       var examType = (el('nc_examType').value || 'mixed');
       var examDate = (el('nc_examDate').value || '').trim() || null;
+      var objective = (el('nc_objective') && el('nc_objective').value) || 'retention';
       saveCourse({
         name: name,
         examType: examType,
         examDate: examDate,
+        objective: objective,
         manualMode: false,
         created: isoNow()
       });
@@ -3049,13 +3436,15 @@
       var c = getCourse(name);
       if (!c) return;
       var newType = prompt('Exam type (mc, short_answer, essay, open_book, mixed):', c.examType);
-      if (newType && TIER_PROFILES[newType]) {
-        c.examType = newType;
-        saveCourse(c);
-        renderCourseModal();
-        renderDashboard();
-        toast('Updated');
-      }
+      if (newType && TIER_PROFILES[newType]) c.examType = newType;
+      var newObj = prompt('Objective (retention, exam, mastery):', c.objective || 'retention');
+      if (newObj && OBJECTIVES[newObj]) c.objective = newObj;
+      var newDate = prompt('Exam date (YYYY-MM-DD or empty):', c.examDate || '');
+      c.examDate = (newDate && newDate.match(/^\d{4}-\d{2}-\d{2}$/)) ? newDate : null;
+      saveCourse(c);
+      renderCourseModal();
+      renderDashboard();
+      toast('Updated');
     };
 
     window.toggleManualMode = function(name) {
@@ -3319,6 +3708,497 @@
 
       ctx.restore();
     }
+
+    /* ═══════════════════════════════════════════
+       CANVAS ANALYTICS ENGINE
+       ═══════════════════════════════════════════ */
+
+    function getCanvasCtx(canvasId, w, h) {
+      var c = el(canvasId);
+      if (!c) return null;
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
+      c.width = w * dpr;
+      c.height = h * dpr;
+      c.style.width = w + 'px';
+      c.style.height = h + 'px';
+      var ctx = c.getContext('2d');
+      ctx.scale(dpr, dpr);
+      return { ctx: ctx, w: w, h: h };
+    }
+
+    function getAccentRGB() {
+      var s = getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim();
+      return s || '139,92,246';
+    }
+    function getTextSecondary() {
+      return getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim() || '#6b7280';
+    }
+    function getTextColor() {
+      return getComputedStyle(document.documentElement).getPropertyValue('--text').trim() || '#1a1a2e';
+    }
+
+    /* ── Graph 1: Retention Curve ── */
+    function drawRetentionCurve(canvasId, itemsByFilter, labelPrefix) {
+      var parent = el(canvasId);
+      if (!parent) return;
+      var rect = parent.parentElement;
+      var pw = rect ? rect.clientWidth - 24 : 280;
+      pw = Math.max(200, Math.min(pw, 600));
+      var ph = parseInt(parent.getAttribute('height'), 10) || 100;
+
+      var r = getCanvasCtx(canvasId, pw, ph);
+      if (!r) return;
+      var ctx = r.ctx, w = r.w, h = r.h;
+      var rgb = getAccentRGB();
+      var textSec = getTextSecondary();
+      var textCol = getTextColor();
+
+      /* Compute predicted retention for next 30 days */
+      var now = Date.now();
+      var items = [];
+      for (var id in itemsByFilter) {
+        if (!itemsByFilter.hasOwnProperty(id)) continue;
+        var it = itemsByFilter[id];
+        if (it && it.fsrs && it.fsrs.lastReview) items.push(it);
+      }
+
+      if (!items.length) {
+        ctx.fillStyle = textSec;
+        ctx.font = '500 9px Inter, system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Review items to see retention forecast', w / 2, h / 2);
+        return;
+      }
+
+      var days = 30;
+      var pad = { top: 8, right: 12, bottom: 22, left: 32 };
+      var gw = w - pad.left - pad.right;
+      var gh = h - pad.top - pad.bottom;
+
+      var points = [];
+      for (var d = 0; d <= days; d++) {
+        var futureTs = now + d * 24 * 60 * 60 * 1000;
+        var sum = 0;
+        items.forEach(function(it) {
+          sum += retrievability(it.fsrs, futureTs);
+        });
+        points.push(sum / items.length);
+      }
+
+      /* Grid lines */
+      ctx.strokeStyle = 'rgba(' + rgb + ',0.06)';
+      ctx.lineWidth = 0.5;
+      [0.25, 0.5, 0.75, 1.0].forEach(function(v) {
+        var y = pad.top + gh - (v * gh);
+        ctx.beginPath();
+        ctx.moveTo(pad.left, y);
+        ctx.lineTo(w - pad.right, y);
+        ctx.stroke();
+      });
+
+      /* Y-axis labels */
+      ctx.fillStyle = textSec;
+      ctx.font = '600 7px Inter, system-ui, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      [0, 0.25, 0.5, 0.75, 1.0].forEach(function(v) {
+        var y = pad.top + gh - (v * gh);
+        ctx.fillText(Math.round(v * 100) + '%', pad.left - 4, y);
+      });
+
+      /* X-axis labels */
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      [0, 7, 14, 21, 30].forEach(function(d) {
+        var x = pad.left + (d / days) * gw;
+        ctx.fillText(d + 'd', x, h - pad.bottom + 6);
+      });
+
+      /* Gradient fill under curve */
+      var grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + gh);
+      grad.addColorStop(0, 'rgba(' + rgb + ',0.18)');
+      grad.addColorStop(1, 'rgba(' + rgb + ',0.01)');
+
+      ctx.beginPath();
+      ctx.moveTo(pad.left, pad.top + gh);
+      points.forEach(function(v, i) {
+        var x = pad.left + (i / days) * gw;
+        var y = pad.top + gh - (clamp(v, 0, 1) * gh);
+        if (i === 0) ctx.lineTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.lineTo(pad.left + gw, pad.top + gh);
+      ctx.closePath();
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      /* Curve line */
+      ctx.beginPath();
+      points.forEach(function(v, i) {
+        var x = pad.left + (i / days) * gw;
+        var y = pad.top + gh - (clamp(v, 0, 1) * gh);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.strokeStyle = 'rgba(' + rgb + ',0.7)';
+      ctx.lineWidth = 2;
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+
+      /* Today dot */
+      var todayY = pad.top + gh - (clamp(points[0], 0, 1) * gh);
+      ctx.beginPath();
+      ctx.arc(pad.left, todayY, 3, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(' + rgb + ',0.9)';
+      ctx.fill();
+
+      /* Today label */
+      ctx.fillStyle = textCol;
+      ctx.font = '700 8px Inter, system-ui, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(Math.round(points[0] * 100) + '% today', pad.left + 8, todayY - 2);
+
+      /* Desired retention threshold line */
+      var dr = settings.desiredRetention || 0.90;
+      var drY = pad.top + gh - (dr * gh);
+      ctx.setLineDash([3, 3]);
+      ctx.strokeStyle = 'rgba(' + rgb + ',0.25)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(pad.left, drY);
+      ctx.lineTo(w - pad.right, drY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = textSec;
+      ctx.font = '600 7px Inter, system-ui, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText('target ' + Math.round(dr * 100) + '%', w - pad.right, drY - 2);
+    }
+
+    /* ── Graph 2: Session History Sparkline (30 days) ── */
+    function drawSparkline(canvasId) {
+      var parent = el(canvasId);
+      if (!parent) return;
+      var pw = parent.parentElement ? parent.parentElement.clientWidth - 24 : 200;
+      pw = Math.max(120, Math.min(pw, 400));
+      var ph = 50;
+
+      var r = getCanvasCtx(canvasId, pw, ph);
+      if (!r) return;
+      var ctx = r.ctx, w = r.w, h = r.h;
+      var rgb = getAccentRGB();
+      var textSec = getTextSecondary();
+
+      /* Build 30-day history from calibration.history */
+      var history = (state.calibration && state.calibration.history) || [];
+      var days = {};
+      var now = new Date();
+      for (var d = 29; d >= 0; d--) {
+        var dt = new Date(now);
+        dt.setDate(dt.getDate() - d);
+        var key = dt.toISOString().slice(0, 10);
+        days[key] = { count: 0, ratingSum: 0, ratingN: 0 };
+      }
+      history.forEach(function(h) {
+        if (!h.ts) return;
+        var dk = h.ts.slice(0, 10);
+        if (days[dk]) {
+          days[dk].count++;
+          days[dk].ratingSum += (h.rating || 0);
+          days[dk].ratingN++;
+        }
+      });
+
+      var dayKeys = Object.keys(days).sort();
+      var maxCount = 1;
+      dayKeys.forEach(function(k) { if (days[k].count > maxCount) maxCount = days[k].count; });
+
+      var pad = { left: 2, right: 2, top: 4, bottom: 12 };
+      var gw = w - pad.left - pad.right;
+      var gh = h - pad.top - pad.bottom;
+      var barW = Math.max(2, (gw / 30) - 2);
+
+      dayKeys.forEach(function(k, i) {
+        var d = days[k];
+        var x = pad.left + (i / 30) * gw + 1;
+        var barH = (d.count / maxCount) * gh;
+        var y = pad.top + gh - barH;
+
+        /* Colour by avg rating */
+        var col = 'rgba(' + rgb + ',0.25)';
+        if (d.count > 0) {
+          var avg = d.ratingSum / d.ratingN;
+          if (avg >= 3) col = 'rgba(34,197,94,0.6)';
+          else if (avg >= 2) col = 'rgba(245,158,11,0.6)';
+          else col = 'rgba(239,68,68,0.6)';
+        }
+
+        /* Bar */
+        if (d.count > 0) {
+          ctx.fillStyle = col;
+          if (typeof ctx.roundRect === 'function') {
+            ctx.beginPath();
+            ctx.roundRect(x, y, barW, barH, 1.5);
+            ctx.fill();
+          } else {
+            ctx.fillRect(x, y, barW, barH);
+          }
+        } else {
+          /* Empty day: thin line marker */
+          ctx.fillStyle = 'rgba(' + rgb + ',0.06)';
+          ctx.fillRect(x, pad.top + gh - 1, barW, 1);
+        }
+
+        /* Today highlight */
+        if (i === dayKeys.length - 1 && d.count > 0) {
+          ctx.shadowColor = col;
+          ctx.shadowBlur = 6;
+          ctx.fillStyle = col;
+          if (typeof ctx.roundRect === 'function') {
+            ctx.beginPath();
+            ctx.roundRect(x, y, barW, barH, 1.5);
+            ctx.fill();
+          } else {
+            ctx.fillRect(x, y, barW, barH);
+          }
+          ctx.shadowBlur = 0;
+        }
+      });
+
+      /* X labels */
+      ctx.fillStyle = textSec;
+      ctx.font = '600 6px Inter, system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      [0, 14, 29].forEach(function(i) {
+        if (dayKeys[i]) {
+          var x = pad.left + (i / 30) * gw + barW / 2;
+          var label = (i === 29) ? 'Today' : dayKeys[i].slice(5);
+          ctx.fillText(label, x, h - pad.bottom + 2);
+        }
+      });
+    }
+
+    /* ── Graph 3: Tier Distribution Ring ── */
+    function drawTierRing(canvasId) {
+      var r = getCanvasCtx(canvasId, 64, 64);
+      if (!r) return;
+      var ctx = r.ctx;
+      var cx = 32, cy = 32, radius = 22, thick = 7;
+      var rgb = getAccentRGB();
+      var textCol = getTextColor();
+
+      /* Count recent reviews by tier (last 50) */
+      var history = (state.calibration && state.calibration.history) || [];
+      var recent = history.slice(-50);
+      var tierCounts = { quickfire: 0, explain: 0, apply: 0, distinguish: 0, mock: 0 };
+      var total = 0;
+      recent.forEach(function(h) {
+        if (h.tier && tierCounts[h.tier] != null) {
+          tierCounts[h.tier]++;
+          total++;
+        }
+      });
+
+      if (total === 0) {
+        /* Empty ring */
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(' + rgb + ',0.08)';
+        ctx.lineWidth = thick;
+        ctx.stroke();
+        ctx.fillStyle = getTextSecondary();
+        ctx.font = '700 8px Inter, system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('—', cx, cy);
+        return;
+      }
+
+      var tierOrder = ['quickfire', 'explain', 'apply', 'distinguish', 'mock'];
+      var tierColors = {
+        quickfire: '#3b82f6',
+        explain: '#8b5cf6',
+        apply: '#f59e0b',
+        distinguish: '#ec4899',
+        mock: '#ef4444'
+      };
+
+      var angle = -Math.PI / 2;
+      tierOrder.forEach(function(t) {
+        var pct = tierCounts[t] / total;
+        if (pct <= 0) return;
+        var endAngle = angle + pct * Math.PI * 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, angle, endAngle);
+        ctx.strokeStyle = tierColors[t];
+        ctx.lineWidth = thick;
+        ctx.lineCap = 'butt';
+        ctx.stroke();
+        angle = endAngle;
+      });
+
+      /* Centre: total count */
+      ctx.fillStyle = textCol;
+      ctx.font = '800 11px Inter, system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(total), cx, cy - 2);
+      ctx.fillStyle = getTextSecondary();
+      ctx.font = '600 6px Inter, system-ui, sans-serif';
+      ctx.fillText('reviews', cx, cy + 8);
+    }
+
+    /* ── Draw all analytics ── */
+    function renderAnalytics(courseFilter) {
+      var items = {};
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (!it) continue;
+        if (courseFilter && courseFilter !== 'All' && it.course !== courseFilter) continue;
+        items[id] = it;
+      }
+
+      drawRetentionCurve('retentionCanvas', items);
+      drawSparkline('sparkCanvas');
+      drawTierRing('ringCanvas');
+
+      /* Cram banner */
+      var cramEl = el('cramBanner');
+      var cramTextEl = el('cramText');
+      if (courseFilter && courseFilter !== 'All') {
+        var cramState = getCramState(courseFilter);
+        if (cramState.active) {
+          cramEl.classList.add('show');
+          var labels = { critical: '⚡ CRAM MODE', high: '🔥 Exam soon', moderate: '📅 Exam approaching', low: '📋 Exam in range' };
+          cramTextEl.textContent = (labels[cramState.intensity] || 'Exam prep') + ' — ' + cramState.daysUntil + ' day' + (cramState.daysUntil !== 1 ? 's' : '') + ' remaining';
+        } else {
+          cramEl.classList.remove('show');
+        }
+      } else {
+        cramEl.classList.remove('show');
+      }
+    }
+
+    /* ── Course Detail View ── */
+    function openCourseDetail(courseName) {
+      var c = getCourse(courseName);
+      if (!c) return;
+
+      el('cdTitle').textContent = c.name;
+
+      /* Badges */
+      var obj = getCourseObjective(courseName);
+      var objData = OBJECTIVES[obj] || OBJECTIVES.retention;
+      var badges = '<span class="cd-badge objective-' + obj + '">' + objData.icon + ' ' + objData.label + '</span>';
+      badges += '<span class="cd-badge">' + esc(EXAM_TYPE_LABELS[c.examType] || c.examType) + '</span>';
+      if (c.manualMode) badges += '<span class="cd-badge" style="border-color:rgba(245,158,11,0.3);color:#f59e0b;">Manual</span>';
+      el('cdBadges').innerHTML = badges;
+
+      /* Countdown */
+      var countdownEl = el('cdCountdown');
+      if (c.examDate && c.objective === 'exam') {
+        var daysUntil = Math.ceil((new Date(c.examDate + 'T23:59:59').getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+        if (daysUntil > 0) {
+          countdownEl.style.display = 'block';
+          el('cdDays').textContent = String(daysUntil);
+          el('cdDaysLabel').textContent = daysUntil === 1 ? 'Day until exam' : 'Days until exam';
+        } else if (daysUntil === 0) {
+          countdownEl.style.display = 'block';
+          el('cdDays').textContent = 'Today';
+          el('cdDaysLabel').textContent = 'Exam day';
+        } else {
+          countdownEl.style.display = 'none';
+        }
+      } else {
+        countdownEl.style.display = 'none';
+      }
+
+      /* Course items */
+      var courseItems = {};
+      var totalItems = 0;
+      var dueCount = 0;
+      var now = Date.now();
+      var retSum = 0, retN = 0;
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (!it || it.course !== courseName) continue;
+        courseItems[id] = it;
+        totalItems++;
+        var f = it.fsrs || null;
+        var dueTs = f && f.due ? new Date(f.due).getTime() : 0;
+        if (!f || !f.lastReview || dueTs <= now) dueCount++;
+        if (f && f.lastReview) {
+          retSum += retrievability(f, now);
+          retN++;
+        }
+      }
+
+      el('cdItemCount').textContent = String(totalItems);
+      el('cdDueCount').textContent = dueCount + ' due now';
+      el('cdAvgRet').textContent = retN ? Math.round((retSum / retN) * 100) + '%' : '—';
+      el('cdRetTrend').textContent = retN ? 'Across ' + retN + ' reviewed items' : 'No reviews yet';
+
+      /* Per-tier stats */
+      var tierOrder = ['quickfire', 'explain', 'apply', 'distinguish', 'mock'];
+      var tierNames = { quickfire: 'QF', explain: 'EI', apply: 'AI', distinguish: 'DI', mock: 'ME' };
+      var tierStats = '';
+      tierOrder.forEach(function(t) {
+        var count = 0;
+        for (var id2 in courseItems) {
+          var supported = detectSupportedTiers(courseItems[id2]);
+          if (supported.indexOf(t) >= 0) count++;
+        }
+        var col = tierColour(t);
+        tierStats += '<div class="cd-tier-stat"><div class="cts-count" style="color:' + col + ';">' + count + '</div><div class="cts-label">' + tierNames[t] + '</div></div>';
+      });
+      el('cdTierStats').innerHTML = tierStats;
+
+      /* Retention curve for this course */
+      setTimeout(function() {
+        drawRetentionCurve('cdRetentionCanvas', courseItems);
+      }, 50);
+
+      /* Show detail, hide dashboard */
+      viewDash.classList.remove('active');
+      el('courseDetail').classList.add('active');
+
+      if (window.gsap) {
+        gsap.fromTo(el('courseDetail'), { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' });
+      }
+    }
+
+    function closeCourseDetail() {
+      el('courseDetail').classList.remove('active');
+      viewDash.classList.add('active');
+      renderDashboard();
+    }
+
+    el('cdBack').addEventListener('click', closeCourseDetail);
+    el('cdStartSession').addEventListener('click', function() {
+      var title = el('cdTitle').textContent;
+      if (title && title !== '—') {
+        selectedCourse = title;
+        closeCourseDetail();
+        startSession();
+      }
+    });
+
+    /* Redraw canvases on resize */
+    var resizeTimer = null;
+    window.addEventListener('resize', function() {
+      if (resizeTimer) clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function() {
+        if (viewDash.classList.contains('active')) {
+          renderAnalytics(selectedCourse);
+        }
+      }, 200);
+    });
 
     function boot() {
       loadState();
