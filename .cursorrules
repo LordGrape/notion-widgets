@@ -143,4 +143,5 @@
 # #presetHint element sits between .presets and .ring-wrap, expands on hover.
 # showPresetHint()/hidePresetHint() handle height expand + typewriter text reveal.
 # Typewriter: 18ms/char, once per preset per session (_phTyped tracker), instant on revisit.
+# Hover intent: 300ms delay before hint opens. Passing through chips does not trigger.
 # CUSTOM_TOOLTIP holds hint data for the Custom chip.

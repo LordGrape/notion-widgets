@@ -1232,12 +1232,18 @@ PRESETS.forEach(function(p, i) {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.click(); }
   });
   chip.addEventListener('mouseenter', function() {
-    var idx = parseInt(this.dataset.idx, 10);
+    var self = this;
+    var idx = parseInt(self.dataset.idx, 10);
     var p = PRESETS[idx];
     if (!p) return;
-    showPresetHint(p.ttTitle, p.ttText);
+    self._phIntent = setTimeout(function() {
+      showPresetHint(p.ttTitle, p.ttText);
+    }, 300);
   });
-  chip.addEventListener('mouseleave', hidePresetHint);
+  chip.addEventListener('mouseleave', function() {
+    clearTimeout(this._phIntent);
+    hidePresetHint();
+  });
   presetsEl.appendChild(chip);
 });
 
@@ -1292,9 +1298,15 @@ customChip.addEventListener('click', function() {
   inp.focus();
 });
 customChip.addEventListener('mouseenter', function() {
-  showPresetHint(CUSTOM_TOOLTIP.ttTitle, CUSTOM_TOOLTIP.ttText);
+  var self = this;
+  self._phIntent = setTimeout(function() {
+    showPresetHint(CUSTOM_TOOLTIP.ttTitle, CUSTOM_TOOLTIP.ttText);
+  }, 300);
 });
-customChip.addEventListener('mouseleave', hidePresetHint);
+customChip.addEventListener('mouseleave', function() {
+  clearTimeout(this._phIntent);
+  hidePresetHint();
+});
 presetsEl.appendChild(customChip);
 Core.a11y.roving(presetsEl, '.preset-chip');
 
