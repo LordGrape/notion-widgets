@@ -1294,9 +1294,15 @@
       background: rgba(var(--accent-rgb),0.06);
       color: var(--text-secondary);
     }
-    .cd-badge.objective-retention{ border-color: rgba(34,197,94,0.3); color: #22c55e; }
-    .cd-badge.objective-exam{ border-color: rgba(239,68,68,0.3); color: #ef4444; }
-    .cd-badge.objective-mastery{ border-color: rgba(139,92,246,0.3); color: var(--accent); }
+    .cd-badge.objective-retention{ border-color: rgba(34,197,94,0.3); color: #22c55e; background: rgba(34,197,94,0.08); }
+    .cd-badge.objective-exam{ border-color: rgba(239,68,68,0.3); color: #ef4444; background: rgba(239,68,68,0.08); }
+    .cd-badge.objective-mastery{ border-color: rgba(139,92,246,0.3); color: var(--accent); background: rgba(139,92,246,0.08); }
+    @media (prefers-color-scheme: dark) {
+      .cd-badge.objective-retention{ color: #4ade80; border-color: rgba(74,222,128,0.4); background: rgba(74,222,128,0.12); }
+      .cd-badge.objective-exam{ color: #f87171; border-color: rgba(248,113,113,0.4); background: rgba(248,113,113,0.12); }
+      .cd-badge.objective-mastery{ color: #c4b5fd; border-color: rgba(196,181,253,0.4); background: rgba(196,181,253,0.12); }
+      select option { background: #1e1432; color: #e8e0f0; }
+    }
 
     .cd-countdown{
       text-align: center;
@@ -1541,6 +1547,7 @@
   pointer-events: none;
   word-wrap: break-word;
   overflow-wrap: break-word;
+  white-space: normal;
 }
 .info-tooltip.visible{
   display: block;
@@ -3585,6 +3592,7 @@ input[type="range"]::-moz-range-thumb{
 
       var left = rect.left + rect.width / 2 - tipW / 2;
       left = Math.max(8, Math.min(left, window.innerWidth - tipW - 8));
+      top = Math.max(8, Math.min(top, window.innerHeight - tipH - 8));
 
       tip.style.top = top + 'px';
       tip.style.left = left + 'px';
