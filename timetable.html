@@ -175,15 +175,13 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); display: flex; a
 .confirm-btn-cancel { background: var(--block-bg); border: 1px solid var(--block-border); color: var(--text-secondary); }
 .confirm-btn-delete { background: #ef4444; color: #fff; }
 
-/* ── Milestones ── */
-.milestones-section { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--block-border); }
-.milestones-label { font-size: 7px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: var(--label-color); margin-bottom: 6px; }
-.milestone-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; background: var(--block-bg); border: 1px solid var(--block-border); margin-bottom: 4px; }
-.milestone-icon { font-size: 10px; flex-shrink: 0; }
-.milestone-info { flex: 1; min-width: 0; }
-.milestone-name { font-size: 9px; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.milestone-date { font-size: 7px; font-weight: 300; color: var(--text-muted); letter-spacing: 0.3px; }
-.milestone-badge { font-size: 7px; font-weight: 600; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.3px; flex-shrink: 0; color: #fff; }
+/* ── Day Time Rows (Add Form) ── */
+.day-time-rows { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+.day-time-row { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 6px; background: var(--block-bg); border: 1px solid var(--block-border); animation: slideIn 0.3s ease-out forwards; }
+.day-time-label { font-size: 8px; font-weight: 600; color: var(--text-secondary); letter-spacing: 1px; width: 28px; text-transform: uppercase; flex-shrink: 0; }
+.day-time-input { flex: 1; padding: 5px 6px; border-radius: 4px; border: 1px solid var(--block-border); background: var(--bg); color: var(--text-primary); font-family: 'Inter', sans-serif; font-size: 9px; outline: none; transition: border-color 0.2s; box-sizing: border-box; }
+.day-time-input:focus { border-color: var(--dot-active); }
+.day-time-arrow { font-size: 9px; color: var(--text-muted); flex-shrink: 0; }
 
 /* ── Day Group Labels (Settings) ── */
 .day-group-label { font-size: 7px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-secondary); margin: 8px 0 4px 2px; }
@@ -232,7 +230,9 @@ button:focus-visible, .week-pill:focus-visible, .day-dot:focus-visible, .view-bt
 
 .label, .title, .class-name, .week-detail-name, .settings-title, .confirm-title { color: var(--text-primary); font-weight: 600; }
 .class-meta, .status, .footer-text, .week-detail-text { color: var(--text-secondary); font-weight: 400; }
-.settings-sub, .form-label, .day-group-label, .milestones-label { color: var(--text-tertiary); font-size: 0.8rem; font-weight: 400; }
+.settings-sub, .form-label, .day-group-label { color: var(--text-tertiary); font-size: 0.8rem; font-weight: 400; }
+.day-time-row { background: var(--surface-2); border-color: var(--border-subtle); }
+.day-time-input { background: var(--surface-0); border: 1px solid var(--border-default); color: var(--text-primary); border-radius: var(--radius-md); }
 
 .view-toggle, .settings-card, .confirm-card, .week-detail-card {
   background: var(--surface-1);
@@ -383,14 +383,14 @@ button:focus-visible, .week-pill:focus-visible, .day-dot:focus-visible, .view-bt
   <div class="header">
     <div class="header-left">
       <div class="label">Schedule</div>
-      <div class="title" id="title">Today's Classes</div>
+      <div class="title" id="title">Today's Schedule</div>
     </div>
     <div style="display:flex;align-items:center;gap:6px;">
       <div class="view-toggle" id="viewToggle">
         <button class="view-btn active" data-view="today">Today</button>
         <button class="view-btn" data-view="week">Week</button>
       </div>
-      <button class="settings-btn" id="settingsBtn" title="Course Settings" aria-label="Course settings">
+      <button class="settings-btn" id="settingsBtn" title="Schedule Settings" aria-label="Schedule settings">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M9.6 3.9h4.8l.6 2.1c.4.1.9.3 1.3.6l2-.8 2.4 4.1-1.7 1.3c.1.4.1.9 0 1.3l1.7 1.3-2.4 4.1-2-.8c-.4.3-.8.5-1.3.6l-.6 2.1H9.6l-.6-2.1c-.4-.1-.9-.3-1.3-.6l-2 .8L3.3 14l1.7-1.3a4.5 4.5 0 0 1 0-1.3L3.3 10l2.4-4.1 2 .8c.4-.3.8-.5 1.3-.6z" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
           <circle cx="12" cy="12" r="2.6" stroke-width="1.6"/>
@@ -401,7 +401,6 @@ button:focus-visible, .week-pill:focus-visible, .day-dot:focus-visible, .view-bt
   <div id="todayView">
     <div class="day-selector" id="daySelector"></div>
     <div class="schedule" id="schedule"></div>
-    <div id="milestonesContainer"></div>
     <div class="footer"><div class="footer-text" id="footer"></div></div>
   </div>
   <div class="week-view" id="weekView" style="display:none"></div>
@@ -411,10 +410,10 @@ button:focus-visible, .week-pill:focus-visible, .day-dot:focus-visible, .view-bt
 <!-- Settings Overlay -->
 <div class="settings-overlay" id="settingsOverlay">
   <div class="settings-card" id="settingsCard">
-    <div class="settings-title">Course Settings</div>
-    <div class="settings-sub">Manage your schedule</div>
-    <div id="courseList"></div>
-    <button class="add-course-btn" id="addCourseBtn">+ Add Course</button>
+    <div class="settings-title">Schedule Settings</div>
+    <div class="settings-sub">Manage your blocks</div>
+    <div id="blockList"></div>
+    <button class="add-course-btn" id="addBlockBtn">+ Add Block</button>
     <div id="addFormContainer" style="display:none"></div>
     <div style="text-align:center;margin-top:10px;font-size:7px;font-weight:300;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;">tap outside to close</div>
   </div>
@@ -423,7 +422,7 @@ button:focus-visible, .week-pill:focus-visible, .day-dot:focus-visible, .view-bt
 <!-- Delete Confirmation Overlay -->
 <div class="confirm-overlay" id="confirmOverlay">
   <div class="confirm-card">
-    <div class="confirm-title" id="confirmTitle">Delete Course?</div>
+    <div class="confirm-title" id="confirmTitle">Delete Block?</div>
     <div class="confirm-msg" id="confirmMsg">This action cannot be undone.</div>
     <div class="confirm-actions">
       <button class="confirm-btn confirm-btn-cancel" id="confirmCancel">Cancel</button>
@@ -435,21 +434,20 @@ button:focus-visible, .week-pill:focus-visible, .day-dot:focus-visible, .view-bt
 <script src="core.js"></script>
 <script>
 /* ══════════════════════════════════════
-   TIMETABLE v2 — SyncEngine Migration
+   SCHEDULE v3 — Multi-Day Blocks
    ══════════════════════════════════════
    Data flow:
-   1. Courses stored in SyncEngine 'timetable' namespace (CRUD via settings UI)
-   2. Milestones pulled from SyncEngine.fetchMilestones() (Notion bridge)
+   1. Blocks stored in SyncEngine 'timetable' namespace (CRUD via settings UI)
+   2. Each block has a `days` array: [{ day, start, end }, ...]
+   3. Old flat format (v2) auto-migrates on first load
    ══════════════════════════════════════ */
-
-var DEFAULT_COURSES = [];
 
 var DAY_LABELS = ['S','M','T','W','T','F','S'];
 var DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+var DAY_SHORT = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
 var COLORS = ['#c4a235','#7cb342','#e67c73','#ce93d8','#4dd0e1','#8b5cf6','#f59e0b','#ef4444','#6366f1','#10b981'];
 
 var schedule = [];
-var milestones = [];
 var today = new Date().getDay();
 var selectedDay = today;
 var currentView = 'today';
@@ -461,11 +459,41 @@ function timeToMinutes(t) { var p = t.split(':'); return parseInt(p[0]) * 60 + p
 function formatTime(t) { var p = t.split(':'); var h = parseInt(p[0]); var m = p[1]; var ap = h >= 12 ? 'PM' : 'AM'; if (h > 12) h -= 12; if (h === 0) h = 12; return h + ':' + m + ' ' + ap; }
 function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 
-/* ── Course CRUD (SyncEngine-backed) ── */
-function getCourses() { return SyncEngine.get('timetable', 'courses') || []; }
-function saveCourses(arr) { SyncEngine.set('timetable', 'courses', arr); schedule = arr; }
-function addCourse(c) { var arr = getCourses(); c.id = genId(); arr.push(c); saveCourses(arr); return c; }
-function deleteCourse(id) { saveCourses(getCourses().filter(function(c) { return c.id !== id; })); }
+/* ── Block CRUD (SyncEngine-backed) ── */
+function getBlocks() {
+  var raw = SyncEngine.get('timetable', 'courses') || [];
+  return raw.map(function(c) {
+    if (c.days) return c;
+    /* v2 → v3 migration: flat {day,start,end,prof,room} → nested days[] */
+    return {
+      id: c.id, name: c.name,
+      description: c.prof || 'TBA',
+      location: c.room || 'TBA',
+      color: c.color,
+      days: [{ day: c.day, start: c.start, end: c.end }]
+    };
+  });
+}
+function saveBlocks(arr) { SyncEngine.set('timetable', 'courses', arr); schedule = arr; }
+function addBlock(b) { var arr = getBlocks(); b.id = genId(); arr.push(b); saveBlocks(arr); return b; }
+function deleteBlock(id) { saveBlocks(getBlocks().filter(function(b) { return b.id !== id; })); }
+
+/* Returns flat entries for a single day, sorted by start time */
+function getBlocksForDay(dayNum) {
+  var result = [];
+  schedule.forEach(function(block) {
+    block.days.forEach(function(d) {
+      if (d.day === dayNum) {
+        result.push({
+          id: block.id, name: block.name,
+          description: block.description, location: block.location,
+          color: block.color, day: d.day, start: d.start, end: d.end
+        });
+      }
+    });
+  });
+  return result.sort(function(a, b) { return timeToMinutes(a.start) - timeToMinutes(b.start); });
+}
 
 /* ── Day Selector ── */
 function buildDaySelector() {
@@ -491,24 +519,23 @@ function updateDots() {
 function renderSchedule() {
   var container = document.getElementById('schedule');
   container.innerHTML = '';
-  var classes = schedule.filter(function(c) { return c.day === selectedDay; });
+  var classes = getBlocksForDay(selectedDay);
   var isToday = selectedDay === today;
-  document.getElementById('title').textContent = isToday ? "Today's Classes" : DAY_NAMES[selectedDay];
+  document.getElementById('title').textContent = isToday ? "Today's Schedule" : DAY_NAMES[selectedDay];
 
   if (classes.length === 0) {
-    container.innerHTML = '<div class="empty"><div class="empty-icon">\ud83d\udcda</div><div class="empty-text">No classes yet</div><button class="glass-cta" id="emptyAddCourseBtn">Add your first course</button></div>';
+    container.innerHTML = '<div class="empty"><div class="empty-icon">\uD83D\uDCCB</div><div class="empty-text">No blocks yet</div><button class="glass-cta" id="emptyAddBlockBtn">Add your first block</button></div>';
     setTimeout(function() {
-      var cta = document.getElementById('emptyAddCourseBtn');
+      var cta = document.getElementById('emptyAddBlockBtn');
       if (cta) cta.addEventListener('click', showSettings);
     }, 0);
-    document.getElementById('footer').textContent = 'Free day';
-    renderMilestones();
+    document.getElementById('footer').textContent = 'Nothing scheduled';
     return;
   }
 
   var now = new Date();
   var nowMins = now.getHours() * 60 + now.getMinutes();
-  var nextClass = null;
+  var nextBlock = null;
 
   classes.forEach(function(c, idx) {
     var startMins = timeToMinutes(c.start), endMins = timeToMinutes(c.end);
@@ -520,7 +547,7 @@ function renderSchedule() {
     if (isToday) {
       if (nowMins >= startMins && nowMins < endMins) { state = 'active'; block.classList.add('active'); }
       else if (nowMins >= endMins) { state = 'past'; block.classList.add('past'); }
-      else { state = 'upcoming'; if (!nextClass) nextClass = c; }
+      else { state = 'upcoming'; if (!nextBlock) nextBlock = c; }
     }
 
     var accent = document.createElement('div'); accent.className = 'class-accent'; accent.style.background = c.color;
@@ -531,13 +558,17 @@ function renderSchedule() {
     block.appendChild(timeCol);
 
     var info = document.createElement('div'); info.className = 'class-info';
-    info.innerHTML = '<div class="class-name">' + c.name + '</div><div class="class-meta">' + c.prof + ' \u00B7 ' + c.room + '</div>';
+    var metaParts = [];
+    if (c.description && c.description !== 'TBA') metaParts.push(c.description);
+    if (c.location && c.location !== 'TBA') metaParts.push(c.location);
+    var metaStr = metaParts.join(' \u00B7 ');
+    info.innerHTML = '<div class="class-name">' + c.name + '</div>' + (metaStr ? '<div class="class-meta">' + metaStr + '</div>' : '');
 
     if (state === 'active') {
       var progress = (nowMins - startMins) / (endMins - startMins) * 100;
       var remaining = endMins - nowMins;
       info.innerHTML += '<div class="progress-wrap"><div class="progress-fill" style="width:' + progress + '%"></div></div><div class="status live">' + remaining + 'm remaining</div>';
-    } else if (state === 'upcoming' && c === nextClass) {
+    } else if (state === 'upcoming' && c === nextBlock) {
       info.innerHTML += '<div class="status upcoming">Starts in ' + (startMins - nowMins) + 'm</div>';
     } else if (state === 'past') {
       info.innerHTML += '<div class="status done">Completed</div>';
@@ -547,11 +578,12 @@ function renderSchedule() {
     var dH = Math.floor(dur / 60), dM = dur % 60;
     var durStr = dH > 0 ? dH + 'h ' + (dM > 0 ? dM + 'm' : '') : dM + 'm';
     var details = document.createElement('div'); details.className = 'class-details';
-    details.innerHTML = '<div class="detail-divider"></div>' +
-      '<div class="detail-row"><span class="detail-icon">\u23F1</span><span class="detail-text">Duration: ' + durStr.trim() + '</span></div>' +
-      '<div class="detail-row"><span class="detail-icon">\uD83D\uDCCD</span><span class="detail-text">' + c.room + '</span></div>' +
-      '<div class="detail-row"><span class="detail-icon">\uD83D\uDC64</span><span class="detail-text">' + c.prof + '</span></div>' +
-      '<div class="duration-bar"><div class="duration-fill" style="width:' + Math.min(dur / 180 * 100, 100) + '%;background:' + c.color + '"></div></div>';
+    var detailHtml = '<div class="detail-divider"></div>' +
+      '<div class="detail-row"><span class="detail-icon">\u23F1</span><span class="detail-text">Duration: ' + durStr.trim() + '</span></div>';
+    if (c.location && c.location !== 'TBA') detailHtml += '<div class="detail-row"><span class="detail-icon">\uD83D\uDCCD</span><span class="detail-text">' + c.location + '</span></div>';
+    if (c.description && c.description !== 'TBA') detailHtml += '<div class="detail-row"><span class="detail-icon">\uD83D\uDC64</span><span class="detail-text">' + c.description + '</span></div>';
+    detailHtml += '<div class="duration-bar"><div class="duration-fill" style="width:' + Math.min(dur / 180 * 100, 100) + '%;background:' + c.color + '"></div></div>';
+    details.innerHTML = detailHtml;
     info.appendChild(details);
 
     block.addEventListener('click', function() {
@@ -568,8 +600,7 @@ function renderSchedule() {
 
   var totalH = 0;
   classes.forEach(function(c) { totalH += (timeToMinutes(c.end) - timeToMinutes(c.start)) / 60; });
-  document.getElementById('footer').textContent = classes.length + ' class' + (classes.length > 1 ? 'es' : '') + ' \u00B7 ' + totalH.toFixed(1) + 'h total';
-  renderMilestones();
+  document.getElementById('footer').textContent = classes.length + ' block' + (classes.length > 1 ? 's' : '') + ' \u00B7 ' + totalH.toFixed(1) + 'h total';
 }
 
 /* ── Week View ── */
@@ -580,22 +611,40 @@ function renderWeekView() {
   if (window._weekEsc) document.removeEventListener('keydown', window._weekEsc);
 
   if (!schedule.length) {
-    el.innerHTML = '<div class="empty"><div class="empty-icon">\ud83d\udcda</div><div class="empty-text">No courses yet</div><button class="glass-cta" id="emptyAddCourseBtnWeek">Add your first course</button></div>';
+    el.innerHTML = '<div class="empty"><div class="empty-icon">\uD83D\uDCCB</div><div class="empty-text">No blocks yet</div><button class="glass-cta" id="emptyAddBlockBtnWeek">Add your first block</button></div>';
     setTimeout(function() {
-      var ctaW = document.getElementById('emptyAddCourseBtnWeek');
+      var ctaW = document.getElementById('emptyAddBlockBtnWeek');
       if (ctaW) ctaW.addEventListener('click', showSettings);
     }, 0);
     return;
   }
 
-  var allStarts = schedule.map(function(c) { return timeToMinutes(c.start); });
-  var allEnds = schedule.map(function(c) { return timeToMinutes(c.end); });
+  /* Flatten all blocks for time-range calculation */
+  var allFlat = [];
+  schedule.forEach(function(block) {
+    block.days.forEach(function(d) {
+      allFlat.push({ id: block.id, name: block.name, description: block.description, location: block.location, color: block.color, day: d.day, start: d.start, end: d.end });
+    });
+  });
+  if (!allFlat.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">\uD83D\uDCCB</div><div class="empty-text">No blocks yet</div></div>';
+    return;
+  }
+
+  var allStarts = allFlat.map(function(c) { return timeToMinutes(c.start); });
+  var allEnds = allFlat.map(function(c) { return timeToMinutes(c.end); });
   var GS = Math.min.apply(null, allStarts) - 30;
   var GE = Math.max.apply(null, allEnds) + 30;
   var SPAN = GE - GS;
   var now = new Date();
   var nowMins = now.getHours() * 60 + now.getMinutes();
-  var dayLabels = ['MON','TUE','WED','THU','FRI'];
+
+  /* Show Mon-Fri always, plus Sat/Sun if they have blocks */
+  var activeDays = {};
+  allFlat.forEach(function(c) { activeDays[c.day] = true; });
+  var showDays = [1,2,3,4,5];
+  if (activeDays[6]) showDays.push(6);
+  if (activeDays[0]) showDays.push(0);
 
   var html = '<div class="week-strip"><div class="week-time-header">';
   for (var h = Math.ceil(GS / 60); h <= Math.floor(GE / 60); h++) {
@@ -605,10 +654,10 @@ function renderWeekView() {
   }
   html += '</div>';
 
-  for (var d = 1; d <= 5; d++) {
+  showDays.forEach(function(d) {
     var isToday = d === today;
-    var dayClasses = schedule.filter(function(c) { return c.day === d; });
-    html += '<div class="week-row"><div class="week-day-label' + (isToday ? ' today-label' : '') + '">' + dayLabels[d - 1] + '</div><div class="week-track' + (isToday ? ' today-track' : '') + '">';
+    var dayClasses = getBlocksForDay(d);
+    html += '<div class="week-row"><div class="week-day-label' + (isToday ? ' today-label' : '') + '">' + DAY_SHORT[d] + '</div><div class="week-track' + (isToday ? ' today-track' : '') + '">';
     if (isToday && nowMins >= GS && nowMins <= GE) {
       html += '<div class="week-now-marker" style="left:' + ((nowMins - GS) / SPAN * 100) + '%"></div>';
     }
@@ -621,11 +670,11 @@ function renderWeekView() {
         var width = ((em - sm) / SPAN) * 100;
         var numMatch = c.name.match(/\d{4}/);
         var shortNum = numMatch ? numMatch[0] : c.name.split(':')[0];
-        html += '<div class="week-pill" tabindex="0" aria-label="' + c.name + ', ' + formatTime(c.start) + ' to ' + formatTime(c.end) + ', Room ' + c.room + '" data-day="' + c.day + '" data-idx="' + idx + '" style="left:' + left + '%;width:' + width + '%;background:' + c.color + '"><span class="week-pill-name">' + shortNum + '</span></div>';
+        html += '<div class="week-pill" tabindex="0" aria-label="' + c.name + ', ' + formatTime(c.start) + ' to ' + formatTime(c.end) + (c.location && c.location !== 'TBA' ? ', ' + c.location : '') + '" data-day="' + c.day + '" data-idx="' + idx + '" style="left:' + left + '%;width:' + width + '%;background:' + c.color + '"><span class="week-pill-name">' + shortNum + '</span></div>';
       });
     }
     html += '</div></div>';
-  }
+  });
   html += '</div>';
   el.innerHTML = html;
 
@@ -642,21 +691,22 @@ function renderWeekView() {
     pill.addEventListener('click', function(e) {
       e.stopPropagation(); playOpen();
       var day = parseInt(this.dataset.day), idx = parseInt(this.dataset.idx);
-      var classes = schedule.filter(function(c) { return c.day === day; });
+      var classes = getBlocksForDay(day);
       var c = classes[idx]; if (!c) return;
       var sm = timeToMinutes(c.start), em = timeToMinutes(c.end), dur = em - sm;
       var dH = Math.floor(dur / 60), dM = dur % 60;
       var durStr = dH > 0 ? dH + 'h' + (dM > 0 ? ' ' + dM + 'm' : '') : dM + 'm';
-      document.getElementById('weekDetailCard').innerHTML =
+      var detailHtml =
         '<div class="week-detail-accent" style="background:' + c.color + '"></div>' +
         '<div class="week-detail-name" id="weekDetailTitle">' + c.name + '</div>' +
         '<div class="week-detail-sub">' + DAY_NAMES[day] + '</div>' +
         '<div class="week-detail-divider"></div>' +
-        '<div class="week-detail-row"><span class="week-detail-icon">\uD83D\uDD50</span><span class="week-detail-text">' + formatTime(c.start) + ' \u2013 ' + formatTime(c.end) + '</span></div>' +
-        '<div class="week-detail-row"><span class="week-detail-icon">\uD83D\uDCCD</span><span class="week-detail-text">' + c.room + '</span></div>' +
-        '<div class="week-detail-row"><span class="week-detail-icon">\uD83D\uDC64</span><span class="week-detail-text">' + c.prof + '</span></div>' +
-        '<div class="week-detail-dur" style="background:' + c.color + '">' + durStr + '</div>' +
+        '<div class="week-detail-row"><span class="week-detail-icon">\uD83D\uDD50</span><span class="week-detail-text">' + formatTime(c.start) + ' \u2013 ' + formatTime(c.end) + '</span></div>';
+      if (c.location && c.location !== 'TBA') detailHtml += '<div class="week-detail-row"><span class="week-detail-icon">\uD83D\uDCCD</span><span class="week-detail-text">' + c.location + '</span></div>';
+      if (c.description && c.description !== 'TBA') detailHtml += '<div class="week-detail-row"><span class="week-detail-icon">\uD83D\uDC64</span><span class="week-detail-text">' + c.description + '</span></div>';
+      detailHtml += '<div class="week-detail-dur" style="background:' + c.color + '">' + durStr + '</div>' +
         '<div class="week-detail-close">tap outside to close</div>';
+      document.getElementById('weekDetailCard').innerHTML = detailHtml;
       overlay.classList.add('show');
     });
     pill.addEventListener('keydown', function(e) {
@@ -666,57 +716,11 @@ function renderWeekView() {
   Core.a11y.roving(el, '.week-pill');
 }
 
-/* ── Milestones (Notion Bridge via SyncEngine.fetchMilestones) ── */
-function loadMilestones() {
-  SyncEngine.fetchMilestones().then(function(items) {
-    milestones = items || [];
-    renderMilestones();
-  });
-}
-
-function renderMilestones() {
-  var el = document.getElementById('milestonesContainer');
-  if (!el) return;
-  el.innerHTML = '';
-  if (!milestones.length) return;
-
-  var now = new Date();
-  var weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-  var upcoming = milestones.filter(function(m) {
-    if (!m.date) return false;
-    var d = new Date(m.date);
-    return d >= now && d <= weekFromNow;
-  }).slice(0, 4);
-
-  if (!upcoming.length) return;
-
-  var section = document.createElement('div'); section.className = 'milestones-section';
-  section.innerHTML = '<div class="milestones-label">Upcoming Deadlines</div>';
-
-  upcoming.forEach(function(m) {
-    var icon = (m.category || '').indexOf('assignment') !== -1 ? '\uD83D\uDCD1' : '\uD83D\uDCCB';
-    var d = new Date(m.date);
-    var dateStr = DAY_NAMES[d.getDay()] + ', ' + d.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
-    var progColor = m.progress === 'done' ? '#10b981' : m.progress === 'pending' ? '#f59e0b' : 'var(--text-muted)';
-    var progLabel = m.progress || 'not started';
-
-    var item = document.createElement('div'); item.className = 'milestone-item';
-    item.innerHTML =
-      '<div class="milestone-icon">' + icon + '</div>' +
-      '<div class="milestone-info"><div class="milestone-name">' + m.title + '</div>' +
-      '<div class="milestone-date">' + dateStr + (m.worth ? ' \u00B7 ' + m.worth + '%' : '') + '</div></div>' +
-      '<div class="milestone-badge" style="background:' + progColor + ';">' + progLabel + '</div>';
-    section.appendChild(item);
-  });
-
-  el.appendChild(section);
-}
-
 /* ── Settings Panel ── */
 function showSettings() {
   playOpen();
   document.getElementById('settingsOverlay').classList.add('show');
-  renderCourseList();
+  renderBlockList();
 }
 function hideSettings() {
   playClose();
@@ -724,43 +728,36 @@ function hideSettings() {
   hideAddForm();
 }
 
-function renderCourseList() {
-  var el = document.getElementById('courseList');
+function renderBlockList() {
+  var el = document.getElementById('blockList');
   el.innerHTML = '';
-  var courses = getCourses();
-  if (!courses.length) {
-    el.innerHTML = '<div style="text-align:center;padding:16px;font-size:9px;color:var(--text-muted);">No courses yet</div>';
+  var blocks = getBlocks();
+  if (!blocks.length) {
+    el.innerHTML = '<div style="text-align:center;padding:16px;font-size:9px;color:var(--text-muted);">No blocks yet</div>';
     return;
   }
 
-  var byDay = {};
-  courses.forEach(function(c) { if (!byDay[c.day]) byDay[c.day] = []; byDay[c.day].push(c); });
-
-  [1,2,3,4,5,6,0].forEach(function(d) {
-    if (!byDay[d]) return;
-    byDay[d].sort(function(a, b) { return timeToMinutes(a.start) - timeToMinutes(b.start); });
-    var dayLabel = document.createElement('div');
-    dayLabel.className = 'day-group-label';
-    dayLabel.textContent = DAY_NAMES[d];
-    el.appendChild(dayLabel);
-
-    byDay[d].forEach(function(c) {
-      var item = document.createElement('div'); item.className = 'course-item';
-      item.innerHTML =
-        '<div class="course-item-accent" style="background:' + c.color + '"></div>' +
-        '<div class="course-item-info"><div class="course-item-name">' + c.name + '</div>' +
-        '<div class="course-item-meta">' + formatTime(c.start) + ' \u2013 ' + formatTime(c.end) + ' \u00B7 ' + c.room + '</div></div>';
-      var delBtn = document.createElement('button'); delBtn.className = 'course-delete-btn'; delBtn.textContent = '\u2715';
-      delBtn.setAttribute('aria-label', 'Delete ' + c.name);
-      delBtn.addEventListener('click', function(e) { e.stopPropagation(); confirmDeleteCourse(c); });
-      item.appendChild(delBtn);
-      el.appendChild(item);
-    });
+  blocks.forEach(function(b) {
+    var item = document.createElement('div'); item.className = 'course-item';
+    var daysStr = b.days.map(function(d) {
+      return DAY_SHORT[d.day] + ' ' + formatTime(d.start) + '\u2013' + formatTime(d.end);
+    }).join(' \u00B7 ');
+    var metaParts = [daysStr];
+    if (b.location && b.location !== 'TBA') metaParts.push(b.location);
+    item.innerHTML =
+      '<div class="course-item-accent" style="background:' + b.color + '"></div>' +
+      '<div class="course-item-info"><div class="course-item-name">' + b.name + '</div>' +
+      '<div class="course-item-meta">' + metaParts.join(' \u00B7 ') + '</div></div>';
+    var delBtn = document.createElement('button'); delBtn.className = 'course-delete-btn'; delBtn.textContent = '\u2715';
+    delBtn.setAttribute('aria-label', 'Delete ' + b.name);
+    delBtn.addEventListener('click', function(e) { e.stopPropagation(); confirmDeleteBlock(b); });
+    item.appendChild(delBtn);
+    el.appendChild(item);
   });
   bindSettingsRoving();
 }
 
-/* ── Add Course Form ── */
+/* ── Add Block Form ── */
 function showAddForm() {
   if (addFormVisible) return;
   addFormVisible = true;
@@ -768,43 +765,80 @@ function showAddForm() {
   var container = document.getElementById('addFormContainer');
   container.style.display = '';
   var selectedColor = COLORS[0];
-  var selectedDayVal = 1;
+  var selectedDays = {}; /* { dayNum: { start, end } } */
 
   container.innerHTML =
     '<div class="add-form">' +
-    '<div class="form-row"><label class="form-label">Course Name</label><input class="form-input" id="af-name" placeholder="e.g. MATH 1010: Calculus I"></div>' +
+    '<div class="form-row"><label class="form-label">Block Name</label><input class="form-input" id="af-name" placeholder="e.g. POLS 3140, Parade Night, Gym"></div>' +
     '<div class="form-input-row">' +
-    '<div class="form-row"><label class="form-label">Professor</label><input class="form-input" id="af-prof" placeholder="e.g. Dr. Johnson"></div>' +
-    '<div class="form-row"><label class="form-label">Room</label><input class="form-input" id="af-room" placeholder="e.g. Room 201"></div>' +
+    '<div class="form-row"><label class="form-label">Description</label><input class="form-input" id="af-desc" placeholder="e.g. Dr. Smith, Unit PT"></div>' +
+    '<div class="form-row"><label class="form-label">Location</label><input class="form-input" id="af-loc" placeholder="e.g. Room 201, Armoury"></div>' +
     '</div>' +
-    '<div class="form-row"><label class="form-label">Day</label><div id="af-day" style="display:flex;gap:4px;"></div></div>' +
-    '<div class="form-input-row">' +
-    '<div class="form-row"><label class="form-label">Start</label><input class="form-input" id="af-start" type="time" value="09:00"></div>' +
-    '<div class="form-row"><label class="form-label">End</label><input class="form-input" id="af-end" type="time" value="10:00"></div>' +
-    '</div>' +
+    '<div class="form-row"><label class="form-label">Days</label><div id="af-days" style="display:flex;gap:4px;"></div></div>' +
+    '<div id="af-time-rows" class="day-time-rows"></div>' +
     '<div class="form-row"><label class="form-label">Colour</label><div class="color-swatches" id="af-colors"></div></div>' +
     '<div class="form-actions">' +
     '<button class="form-btn form-btn-secondary" id="af-cancel">Cancel</button>' +
-    '<button class="form-btn form-btn-primary" id="af-save">Add Course</button>' +
+    '<button class="form-btn form-btn-primary" id="af-save">Add Block</button>' +
     '</div></div>';
 
-  /* Day picker buttons */
-  var dayPicker = document.getElementById('af-day');
+  function getDefaultTimes() {
+    var keys = Object.keys(selectedDays);
+    if (keys.length > 0) {
+      var first = selectedDays[keys[0]];
+      return { start: first.start, end: first.end };
+    }
+    return { start: '09:00', end: '10:00' };
+  }
+
+  function renderTimeRows() {
+    var rowsEl = document.getElementById('af-time-rows');
+    rowsEl.innerHTML = '';
+    var sortedKeys = Object.keys(selectedDays).map(Number).sort(function(a, b) {
+      var oa = a === 0 ? 7 : a, ob = b === 0 ? 7 : b;
+      return oa - ob;
+    });
+    sortedKeys.forEach(function(dayNum) {
+      var d = selectedDays[dayNum];
+      var row = document.createElement('div');
+      row.className = 'day-time-row';
+      row.innerHTML =
+        '<span class="day-time-label">' + DAY_SHORT[dayNum] + '</span>' +
+        '<input class="form-input day-time-input" type="time" value="' + d.start + '" data-day="' + dayNum + '" data-field="start">' +
+        '<span class="day-time-arrow">\u2192</span>' +
+        '<input class="form-input day-time-input" type="time" value="' + d.end + '" data-day="' + dayNum + '" data-field="end">';
+      row.querySelectorAll('.day-time-input').forEach(function(inp) {
+        inp.addEventListener('change', function() {
+          selectedDays[parseInt(this.dataset.day)][this.dataset.field] = this.value;
+        });
+      });
+      rowsEl.appendChild(row);
+    });
+  }
+
+  /* Day picker — multi-toggle chips */
+  var dayPicker = document.getElementById('af-days');
   DAY_LABELS.forEach(function(label, i) {
     var btn = document.createElement('button');
     btn.type = 'button';
-    btn.style.cssText = 'width:26px;height:26px;border-radius:50%;border:1px solid var(--block-border);' +
-      'background:' + (i === selectedDayVal ? 'var(--dot-active)' : 'var(--dot-bg)') + ';' +
-      'color:' + (i === selectedDayVal ? '#fff' : 'var(--text-secondary)') + ';' +
-      'font-family:Inter,sans-serif;font-size:8px;font-weight:600;cursor:pointer;transition:all 0.2s;';
+    btn.className = 'day-dot';
     btn.textContent = label;
+    btn.style.cssText = 'width:26px;height:26px;border-radius:50%;border:1px solid var(--block-border);background:var(--dot-bg);color:var(--text-secondary);font-family:Inter,sans-serif;font-size:8px;font-weight:600;cursor:pointer;transition:all 0.2s;';
     btn.addEventListener('click', function() {
-      selectedDayVal = i; playClick();
-      var btns = dayPicker.querySelectorAll('button');
-      btns.forEach(function(b, j) {
-        b.style.background = j === i ? 'var(--dot-active)' : 'var(--dot-bg)';
-        b.style.color = j === i ? '#fff' : 'var(--text-secondary)';
-      });
+      playClick();
+      if (selectedDays[i] !== undefined) {
+        /* Deselect */
+        delete selectedDays[i];
+        btn.style.background = 'var(--dot-bg)';
+        btn.style.color = 'var(--text-secondary)';
+      } else {
+        /* Select — copy times from first existing day, or use defaults */
+        var defaults = getDefaultTimes();
+        selectedDays[i] = { start: defaults.start, end: defaults.end };
+        btn.style.background = 'var(--dot-active)';
+        btn.style.color = '#fff';
+      }
+      renderTimeRows();
     });
     dayPicker.appendChild(btn);
   });
@@ -826,21 +860,34 @@ function showAddForm() {
   /* Cancel */
   document.getElementById('af-cancel').addEventListener('click', function() { hideAddForm(); playClose(); });
 
-  /* Save — reads selectedDayVal and selectedColor from closure */
+  /* Save */
   document.getElementById('af-save').addEventListener('click', function() {
     var name = document.getElementById('af-name').value.trim();
-    var prof = document.getElementById('af-prof').value.trim();
-    var room = document.getElementById('af-room').value.trim();
-    var start = document.getElementById('af-start').value;
-    var end = document.getElementById('af-end').value;
+    var desc = document.getElementById('af-desc').value.trim();
+    var loc = document.getElementById('af-loc').value.trim();
 
     if (!name) { playError(); document.getElementById('af-name').style.borderColor = '#ef4444'; return; }
-    if (!start || !end || timeToMinutes(end) <= timeToMinutes(start)) { playError(); return; }
 
-    addCourse({ day: selectedDayVal, name: name, prof: prof || 'TBA', room: room || 'TBA', start: start, end: end, color: selectedColor });
+    var dayKeys = Object.keys(selectedDays);
+    if (!dayKeys.length) { playError(); return; }
+
+    /* Validate each day's times */
+    var valid = true;
+    dayKeys.forEach(function(k) {
+      var d = selectedDays[k];
+      if (!d.start || !d.end || timeToMinutes(d.end) <= timeToMinutes(d.start)) valid = false;
+    });
+    if (!valid) { playError(); return; }
+
+    var days = dayKeys.map(function(k) {
+      var d = selectedDays[k];
+      return { day: parseInt(k), start: d.start, end: d.end };
+    });
+
+    addBlock({ name: name, description: desc || 'TBA', location: loc || 'TBA', color: selectedColor, days: days });
     playStart();
     hideAddForm();
-    renderCourseList();
+    renderBlockList();
     renderSchedule();
     if (currentView === 'week') renderWeekView();
   });
@@ -854,10 +901,10 @@ function hideAddForm() {
 }
 
 /* ── Delete Confirmation ── */
-function confirmDeleteCourse(course) {
-  pendingDeleteId = course.id;
-  document.getElementById('confirmTitle').textContent = 'Delete Course?';
-  document.getElementById('confirmMsg').textContent = 'Remove \"' + course.name + '\" from your schedule?';
+function confirmDeleteBlock(block) {
+  pendingDeleteId = block.id;
+  document.getElementById('confirmTitle').textContent = 'Delete Block?';
+  document.getElementById('confirmMsg').textContent = 'Remove \u201C' + block.name + '\u201D from your schedule?';
   document.getElementById('confirmOverlay').classList.add('show');
   playOpen();
 }
@@ -870,11 +917,11 @@ document.getElementById('confirmCancel').addEventListener('click', function() {
 
 document.getElementById('confirmDelete').addEventListener('click', function() {
   if (pendingDeleteId) {
-    deleteCourse(pendingDeleteId);
+    deleteBlock(pendingDeleteId);
     pendingDeleteId = null;
     playReset();
     document.getElementById('confirmOverlay').classList.remove('show');
-    renderCourseList();
+    renderBlockList();
     renderSchedule();
     if (currentView === 'week') renderWeekView();
   }
@@ -885,18 +932,7 @@ document.getElementById('settingsBtn').addEventListener('click', showSettings);
 document.getElementById('settingsOverlay').addEventListener('click', function(e) {
   if (e.target === this) hideSettings();
 });
-document.getElementById('addCourseBtn').addEventListener('click', showAddForm);
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') {
-    if (document.getElementById('confirmOverlay').classList.contains('show')) { hideConfirmDelete(); return; }
-    if (document.getElementById('settingsOverlay').classList.contains('show')) { hideSettings(); return; }
-  }
-});
-
-function bindSettingsRoving() {
-  var courseList = document.getElementById('courseList');
-  if (courseList) Core.a11y.roving(courseList, '.course-delete-btn');
-}
+document.getElementById('addBlockBtn').addEventListener('click', showAddForm);
 
 /* Layered Escape key handling */
 document.addEventListener('keydown', function(e) {
@@ -911,6 +947,11 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
+function bindSettingsRoving() {
+  var blockListEl = document.getElementById('blockList');
+  if (blockListEl) Core.a11y.roving(blockListEl, '.course-delete-btn');
+}
+
 /* ══════════════════════════════════════
    BOOT — SyncEngine initialisation
    ══════════════════════════════════════ */
@@ -918,17 +959,21 @@ SyncEngine.init({
   worker: 'https://widget-sync.lordgrape-widgets.workers.dev',
   namespaces: ['dragon', 'clock', 'user', 'timetable']
 }).then(function() {
-  schedule = getCourses();
+  schedule = getBlocks();
+  /* Persist migration so v2 flat entries are saved as v3 nested */
+  saveBlocks(schedule);
 
   buildDaySelector();
 
-  /* Auto-switch to week view when no classes today */
-  var hasClassesToday = schedule.some(function(c) { return c.day === today; });
+  /* Auto-switch to week view when no blocks today */
+  var hasBlocksToday = schedule.some(function(b) {
+    return b.days.some(function(d) { return d.day === today; });
+  });
   var toggleBtns = document.querySelectorAll('.view-btn');
   var todayViewEl = document.getElementById('todayView');
   var weekViewEl = document.getElementById('weekView');
 
-  if (!hasClassesToday) {
+  if (!hasBlocksToday) {
     currentView = 'week';
     todayViewEl.style.display = 'none';
     weekViewEl.style.display = '';
@@ -951,7 +996,7 @@ SyncEngine.init({
       if (view === 'today') {
         todayViewEl.style.display = '';
         weekViewEl.style.display = 'none';
-        document.getElementById('title').textContent = selectedDay === today ? "Today's Classes" : DAY_NAMES[selectedDay];
+        document.getElementById('title').textContent = selectedDay === today ? "Today's Schedule" : DAY_NAMES[selectedDay];
         renderSchedule();
       } else {
         todayViewEl.style.display = 'none';
@@ -967,15 +1012,12 @@ SyncEngine.init({
     if (selectedDay === today && currentView === 'today') renderSchedule();
   }, 30000);
 
-  /* Pull milestones from Notion bridge */
-  loadMilestones();
-
   /* Core.js visuals */
   initBackground('bg', { orbCount: 2, orbRadius: [60, 100], orbSpeed: 0.2, hueRange: [260, 30], mouseTracking: true });
   initTilt('.container', { maxDeg: 4 });
   playSummon('lower');
   Core.tooltip.init();
-  Core.tooltip.attach(document.getElementById('settingsBtn'), 'Course settings');
+  Core.tooltip.attach(document.getElementById('settingsBtn'), 'Schedule settings');
   function revealTimetable() {
     var sk = document.getElementById('ttSkeleton');
     var c = document.getElementById('ttContent');

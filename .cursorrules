@@ -12,7 +12,7 @@
 ## Widgets
 - horizon.html: Main dashboard widget — clock, timetable, dragon pet game, milestones
 - clock.html: Standalone clock widget
-- timetable.html: Class schedule widget
+- timetable.html: Schedule widget (multi-day blocks, week + today views)
 - quotes.html: Daily quotes widget
 
 ## Milestone system (horizon.html)
@@ -151,3 +151,11 @@
 
 - Dark-mode background orbs: Core.orbAlpha 0.025 (light 0.02).
 - Tilt glow overlay removed. initTilt provides 3D perspective tilt only, no radial-gradient spotlight.
+
+# Schedule Widget v3 (timetable.html)
+- Data model: blocks with nested `days` array: [{ day: 0-6, start: "HH:MM", end: "HH:MM" }]
+- SyncEngine key is still 'courses' under 'timetable' namespace (backward compat)
+- Fields: name, description (was prof), location (was room), color, days[]
+- v2 flat format auto-migrates on boot via getBlocks()
+- Milestones removed from timetable embed — will be re-added later
+- "Block" = universal schedule item (class, shift, parade, gym, etc.)
