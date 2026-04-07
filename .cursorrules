@@ -224,3 +224,19 @@
 - body.standalone gets larger padding, wider hero value (52px), bigger prompts/textareas/buttons/rubric pills
 - .dash-grid: at 640px+ in standalone, stats-row and gauge sit side-by-side under a full-width hero
 - max-width 720px (was 900px) for better reading width
+# Study Engine v2 — Course-Based Architecture
+- Items no longer have a mandatory `tier` field. The session builder assigns `_presentTier` dynamically.
+- `detectSupportedTiers(item)` returns which tiers an item's content supports:
+  - prompt + modelAnswer → quickfire + explain + mock (always)
+  - + scenario/task → + apply
+  - + conceptA + conceptB → + distinguish
+- Courses stored in SyncEngine under `studyengine.courses`. Each has: name, examType, examDate, manualMode.
+- TIER_PROFILES maps examType → tier percentage distribution (mc/short_answer/essay/open_book/mixed).
+- `reweightProfile()` handles intelligent fallback: caps tiers at available items, redistributes proportionally, applies minimum floor.
+- BLOOM_STABILITY_BONUS: on successful retrieval at higher tiers, stability gets a small multiplier (1.05–1.15). Decoupled from XP multipliers.
+- `manualMode` per course: when true, session builder uses item's stored `tier` field instead of smart assignment. Toggled via course management modal.
+- Add-items modal: single "Add Item" tab with optional advanced fields behind a toggle. Shows supported-tiers badge after adding.
+- `item.variants` field reserved for Phase B AI-generated tier-specific content (scenario wrappers, concept pairs). Not populated yet.
+- `migrateItems()` runs on boot: auto-creates course entries for orphaned course tags, adds variants field.
+- Import JSON: items only need prompt + modelAnswer + course. Optional fields enable more tiers.
+- Mode toggle (General/Law School) removed. Replaced by per-course examType setting.

@@ -1000,6 +1000,196 @@
       .rate{ padding: 10px 4px; font-size: 8px; }
     }
 
+    /* ── Course Cards ── */
+    .course-cards{
+      display: grid;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .course-card{
+      padding: 12px 14px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(var(--accent-rgb),0.12);
+      background: rgba(var(--accent-rgb),0.03);
+      cursor: pointer;
+      transition: transform var(--transition), border-color var(--transition), background var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .course-card:hover{ transform: translateY(-1px); border-color: rgba(var(--accent-rgb),0.24); background: rgba(var(--accent-rgb),0.05); }
+    .course-card:active{ transform: translateY(0) scale(0.99); }
+    .course-card.active{
+      border-color: rgba(var(--accent-rgb),0.34);
+      background: rgba(var(--accent-rgb),0.10);
+    }
+    .course-card .cc-left{ min-width: 0; }
+    .course-card .cc-name{
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .course-card .cc-meta{
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .course-card .cc-exam-type{
+      font-size: 8px;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(var(--accent-rgb),0.12);
+      background: rgba(var(--accent-rgb),0.04);
+      font-weight: 700;
+    }
+    .course-card .cc-date{
+      font-size: 8px;
+      color: var(--text-secondary);
+      letter-spacing: 0.8px;
+    }
+    .course-card .cc-due{
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
+    }
+
+    /* ── Supported Tiers Badge ── */
+    .tier-support-badge{
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: rgba(var(--accent-rgb),0.04);
+      border: 1px solid rgba(var(--accent-rgb),0.10);
+    }
+    .tier-support-badge .tsb-label{
+      font-size: 8px;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      font-weight: 700;
+      width: 100%;
+      margin-bottom: 2px;
+    }
+    .tier-support-badge .tsb-tier{
+      font-size: 8px;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 999px;
+      color: #fff;
+      white-space: nowrap;
+    }
+
+    /* ── Advanced Toggle ── */
+    .adv-toggle{
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 12px 0 6px;
+      cursor: pointer;
+      user-select: none;
+      padding: 8px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(var(--accent-rgb),0.10);
+      background: rgba(var(--accent-rgb),0.02);
+      transition: background var(--transition), border-color var(--transition);
+    }
+    .adv-toggle:hover{ background: rgba(var(--accent-rgb),0.05); border-color: rgba(var(--accent-rgb),0.18); }
+    .adv-toggle .adv-arrow{
+      font-size: 10px;
+      color: var(--text-secondary);
+      transition: transform var(--transition);
+    }
+    .adv-toggle.open .adv-arrow{ transform: rotate(90deg); }
+    .adv-toggle .adv-text{
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+    .adv-fields{
+      display: none;
+      margin-top: 4px;
+    }
+    .adv-fields.show{ display: block; }
+
+    /* ── Course Modal ── */
+    .course-form-row{
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    @media (max-width: 480px){
+      .course-form-row{ grid-template-columns: 1fr; }
+    }
+    .course-list-item{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(var(--accent-rgb),0.10);
+      background: rgba(var(--accent-rgb),0.02);
+      margin-bottom: 8px;
+    }
+    .course-list-item .cli-name{
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .course-list-item .cli-type{
+      font-size: 8px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+    .cli-actions{
+      display: flex;
+      gap: 6px;
+    }
+    .cli-actions button{
+      border: none;
+      background: rgba(var(--accent-rgb),0.06);
+      color: var(--text-secondary);
+      border-radius: 8px;
+      padding: 5px 8px;
+      font-size: 10px;
+      cursor: pointer;
+      transition: background var(--transition), color var(--transition);
+    }
+    .cli-actions button:hover{ background: rgba(var(--accent-rgb),0.12); color: var(--text); }
+
+    /* Manual mode indicator */
+    .manual-badge{
+      font-size: 7px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(245,158,11,0.15);
+      color: #f59e0b;
+      border: 1px solid rgba(245,158,11,0.2);
+    }
+
     /* Focus styles */
     :focus-visible{
       outline: 2px solid rgba(var(--accent-rgb),0.45);
@@ -1078,12 +1268,8 @@
           </div>
           <div class="chips" id="courseChips"></div>
 
-          <div class="row">
-            <div class="section-header" style="margin:0">Mode</div>
-            <div class="mode-toggle" role="tablist">
-              <button class="mode-btn active" role="tab" aria-selected="true" id="modeGeneral">General</button>
-              <button class="mode-btn" role="tab" aria-selected="false" id="modeLaw">Law School</button>
-            </div>
+          <div class="mini-actions" style="margin-top:8px;margin-bottom:4px;">
+            <button class="ghost-btn" id="manageCourses">Manage Courses</button>
           </div>
 
           <!-- Actions -->
@@ -1180,12 +1366,8 @@
   <div class="overlay" id="modalOv" aria-hidden="true">
     <div class="modal" role="dialog" aria-modal="true" aria-label="Add items">
       <div class="modal-head">
-        <div class="tabs" id="tierTabs" role="tablist" aria-label="Item tiers">
-          <div class="tab active" data-tab="quickfire" role="tab" aria-selected="true">Quick Fire</div>
-          <div class="tab" data-tab="explain" role="tab" aria-selected="false">Explain It</div>
-          <div class="tab" data-tab="apply" role="tab" aria-selected="false">Apply It</div>
-          <div class="tab" data-tab="distinguish" role="tab" aria-selected="false">Distinguish</div>
-          <div class="tab" data-tab="mock" role="tab" aria-selected="false">Mock</div>
+        <div class="tabs" id="modalTabs" role="tablist" aria-label="Item tiers">
+          <div class="tab active" data-tab="add" role="tab" aria-selected="true">Add Item</div>
           <div class="tab" data-tab="import" role="tab" aria-selected="false">Import JSON</div>
         </div>
         <button class="icon-btn" id="modalClose" aria-label="Close">✕</button>
@@ -1217,6 +1399,20 @@
     </div>
   </div>
 
+  <!-- Course Management Modal -->
+  <div class="overlay" id="courseOv" aria-hidden="true">
+    <div class="modal" style="max-width:520px;">
+      <div class="modal-head">
+        <span style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--text);">Manage Courses</span>
+        <button class="icon-btn" id="courseClose">✕</button>
+      </div>
+      <div class="modal-body" id="courseModalBody"></div>
+      <div class="modal-actions">
+        <button class="big-btn" id="courseAddBtn">Add Course</button>
+      </div>
+    </div>
+  </div>
+
   <!-- External only: GSAP + core.js -->
   <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
   <script src="https://lordgrape.github.io/notion-widgets/core.js"></script>
@@ -1241,6 +1437,7 @@
     var NS = 'studyengine';
     var DEFAULT_STATE = {
       items: {},
+      courses: {},
       calibration: { totalSelfRatings: 0, totalActualCorrect: 0, history: [] },
       stats: {
         totalReviews: 0,
@@ -1256,6 +1453,32 @@
       showApplyTimer: true
     };
 
+    /* ── Tier Distribution Profiles (by exam type) ── */
+    var TIER_PROFILES = {
+      mc:           { quickfire: 0.50, explain: 0.20, apply: 0.10, distinguish: 0.15, mock: 0.05 },
+      short_answer: { quickfire: 0.30, explain: 0.35, apply: 0.15, distinguish: 0.15, mock: 0.05 },
+      essay:        { quickfire: 0.15, explain: 0.25, apply: 0.25, distinguish: 0.15, mock: 0.20 },
+      open_book:    { quickfire: 0.10, explain: 0.20, apply: 0.30, distinguish: 0.20, mock: 0.20 },
+      mixed:        { quickfire: 0.25, explain: 0.25, apply: 0.20, distinguish: 0.15, mock: 0.15 }
+    };
+
+    /* ── Bloom Stability Bonus (higher tier = stronger memory trace on success) ── */
+    var BLOOM_STABILITY_BONUS = {
+      quickfire: 1.0,
+      explain: 1.05,
+      apply: 1.10,
+      distinguish: 1.10,
+      mock: 1.15
+    };
+
+    var EXAM_TYPE_LABELS = {
+      mc: 'Multiple Choice',
+      short_answer: 'Short Answer',
+      essay: 'Essay',
+      open_book: 'Open Book',
+      mixed: 'Mixed'
+    };
+
     var state = null;
     var settings = null;
 
@@ -1263,12 +1486,15 @@
 
     function loadState() {
       var items = SyncEngine.get(NS, 'items') || null;
+      var courses = SyncEngine.get(NS, 'courses') || null;
       var calibration = SyncEngine.get(NS, 'calibration') || null;
       var stats = SyncEngine.get(NS, 'stats') || null;
       state = deepClone(DEFAULT_STATE);
       if (items && typeof items === 'object') state.items = items;
+      if (courses && typeof courses === 'object') state.courses = courses;
       if (calibration && typeof calibration === 'object') state.calibration = calibration;
       if (stats && typeof stats === 'object') state.stats = stats;
+      migrateItems();
       var s = SyncEngine.get(NS, 'settings') || null;
       settings = deepClone(DEFAULT_SETTINGS);
       if (s && typeof s === 'object') {
@@ -1278,9 +1504,96 @@
 
     function saveState() {
       SyncEngine.set(NS, 'items', state.items || {});
+      SyncEngine.set(NS, 'courses', state.courses || {});
       SyncEngine.set(NS, 'calibration', state.calibration || deepClone(DEFAULT_STATE.calibration));
       SyncEngine.set(NS, 'stats', state.stats || deepClone(DEFAULT_STATE.stats));
       SyncEngine.set(NS, 'settings', settings || deepClone(DEFAULT_SETTINGS));
+    }
+
+    /* ── Item Migration (v1 → v2: tier field becomes optional) ── */
+    function migrateItems() {
+      var changed = false;
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (!it) continue;
+        /* Ensure variants field for Phase B AI content */
+        if (!it.variants) { it.variants = {}; changed = true; }
+        /* Auto-create course entry if item references a course not in state.courses */
+        if (it.course && !state.courses[it.course]) {
+          state.courses[it.course] = {
+            id: it.course,
+            name: it.course,
+            examType: 'mixed',
+            examDate: null,
+            manualMode: false,
+            created: it.created || isoNow()
+          };
+          changed = true;
+        }
+      }
+      if (changed) saveState();
+    }
+
+    /* ── Supported Tiers Detection ── */
+    function detectSupportedTiers(item) {
+      if (!item || !item.prompt || !item.modelAnswer) return [];
+      var tiers = ['quickfire', 'explain'];
+      if (item.task || item.scenario) tiers.push('apply');
+      if (item.conceptA && item.conceptB) tiers.push('distinguish');
+      /* Mock: any item can be presented under time pressure */
+      tiers.push('mock');
+      return tiers;
+    }
+
+    function tierSupportBadgeHTML(tiers) {
+      if (!tiers || !tiers.length) return '';
+      var h = '<div class="tier-support-badge"><span class="tsb-label">Supports</span>';
+      tiers.forEach(function(t) {
+        var col = tierColour(t);
+        h += '<span class="tsb-tier" style="background:' + col + ';">' + tierLabel(t) + '</span>';
+      });
+      h += '</div>';
+      return h;
+    }
+
+    /* ── Course Helpers ── */
+    function getCourse(courseName) {
+      if (!courseName) return null;
+      return state.courses[courseName] || null;
+    }
+
+    function getCourseExamType(courseName) {
+      var c = getCourse(courseName);
+      return (c && c.examType) ? c.examType : 'mixed';
+    }
+
+    function isCourseManual(courseName) {
+      var c = getCourse(courseName);
+      return c ? !!c.manualMode : false;
+    }
+
+    function saveCourse(courseObj) {
+      if (!courseObj || !courseObj.name) return;
+      courseObj.id = courseObj.id || courseObj.name;
+      state.courses[courseObj.name] = courseObj;
+      saveState();
+    }
+
+    function deleteCourse(courseName) {
+      if (state.courses[courseName]) {
+        delete state.courses[courseName];
+        saveState();
+      }
+    }
+
+    function listCourses() {
+      var out = [];
+      for (var k in state.courses) {
+        if (state.courses.hasOwnProperty(k)) out.push(state.courses[k]);
+      }
+      out.sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
+      return out;
     }
 
     /* ── FSRS-5 (core formulas as specified) ── */
@@ -1376,7 +1689,6 @@
     var rootCard = el('rootCard');
 
     var selectedCourse = 'All';
-    var modeLabel = 'General';
 
     var session = null;
     var sessionSummary = null;
@@ -1442,7 +1754,8 @@
         var isDue = (!f || !f.lastReview) ? true : (due <= now);
         if (isDue) {
           out.total++;
-          if (out.byTier[it.tier] != null) out.byTier[it.tier]++;
+          var dt = it.tier || 'quickfire';
+          if (out.byTier[dt] != null) out.byTier[dt]++;
         }
       }
       return out;
@@ -1584,55 +1897,94 @@
     }
 
     /* ── Session construction ── */
+    /* ── Intelligent Session Builder ── */
     function buildSessionQueue() {
       var now = Date.now();
+      var courseFilter = selectedCourse;
+
+      /* 1. Collect all due items */
       var dueItems = [];
       for (var id in state.items) {
         if (!state.items.hasOwnProperty(id)) continue;
         var it = state.items[id];
         if (!it) continue;
-        if (selectedCourse !== 'All' && it.course !== selectedCourse) continue;
+        if (courseFilter !== 'All' && it.course !== courseFilter) continue;
         var f = it.fsrs || null;
         var dueTs = f && f.due ? new Date(f.due).getTime() : 0;
         var isDue = (!f || !f.lastReview) ? true : (dueTs <= now);
         if (isDue) dueItems.push(it);
       }
+      if (!dueItems.length) return [];
 
-      /* Interleave by course unless filtered */
-      var out = [];
-      if (selectedCourse !== 'All') {
-        out = dueItems;
-      } else {
-        var buckets = {};
-        dueItems.forEach(function(it){
-          var c = it.course || 'Unsorted';
-          if (!buckets[c]) buckets[c] = [];
-          buckets[c].push(it);
-        });
-        var keys = Object.keys(buckets);
-        keys.sort(function(a,b){ return a.localeCompare(b); });
-        /* Shuffle within buckets for variety */
-        keys.forEach(function(k){ shuffle(buckets[k]); });
-        var remaining = true;
-        while (remaining) {
-          remaining = false;
-          for (var i = 0; i < keys.length; i++) {
-            var k = keys[i];
-            if (buckets[k].length) {
-              out.push(buckets[k].shift());
-              remaining = true;
-            }
-          }
-        }
+      /* 2. Determine target profile */
+      var examType = 'mixed';
+      if (courseFilter !== 'All') {
+        examType = getCourseExamType(courseFilter);
       }
+      var profile = deepClone(TIER_PROFILES[examType] || TIER_PROFILES.mixed);
 
-      /* Interleave tiers lightly (stable shuffle) */
-      out = stableInterleaveByTier(out);
+      /* 3. Check manual mode */
+      var isManual = (courseFilter !== 'All') && isCourseManual(courseFilter);
 
+      /* 4. Bucket items by supported tiers */
+      var tierBuckets = { quickfire: [], explain: [], apply: [], distinguish: [], mock: [] };
+      dueItems.forEach(function(it) {
+        /* In manual mode, use the item's stored tier if present */
+        if (isManual && it.tier && tierBuckets[it.tier]) {
+          tierBuckets[it.tier].push(it);
+          return;
+        }
+        var supported = detectSupportedTiers(it);
+        supported.forEach(function(t) {
+          if (tierBuckets[t]) tierBuckets[t].push(it);
+        });
+      });
+
+      /* Shuffle each bucket */
+      var tierOrder = ['quickfire', 'explain', 'apply', 'distinguish', 'mock'];
+      tierOrder.forEach(function(t) { shuffle(tierBuckets[t]); });
+
+      /* 5. Calculate target counts with proportional reweighting */
       var limit = parseInt(settings.sessionLimit || 12, 10);
       if (!limit || limit < 1) limit = 12;
-      out = out.slice(0, limit);
-      return out;
+      var targetTotal = Math.min(limit, dueItems.length);
+
+      var tierCounts = reweightProfile(profile, tierBuckets, targetTotal);
+
+      /* 6. Build the queue: pick items per tier, assign presentationTier */
+      var queue = [];
+      var usedIds = {};
+
+      tierOrder.forEach(function(t) {
+        var count = tierCounts[t] || 0;
+        var bucket = tierBuckets[t];
+        var picked = 0;
+        for (var i = 0; i < bucket.length && picked < count; i++) {
+          var it = bucket[i];
+          if (usedIds[it.id]) continue;
+          /* Clone item reference, attach presentation tier */
+          it._presentTier = t;
+          queue.push(it);
+          usedIds[it.id] = true;
+          picked++;
+        }
+      });
+
+      /* 7. Fill remaining slots (if reweighting left gaps) */
+      if (queue.length < targetTotal) {
+        dueItems.forEach(function(it) {
+          if (queue.length >= targetTotal) return;
+          if (usedIds[it.id]) return;
+          it._presentTier = 'quickfire';
+          queue.push(it);
+          usedIds[it.id] = true;
+        });
+      }
+
+      /* 8. Interleave: alternate tiers + courses for spacing */
+      queue = interleaveQueue(queue);
+
+      return queue;
     }
 
     function shuffle(arr) {
@@ -1643,24 +1995,81 @@
       return arr;
     }
 
-    function stableInterleaveByTier(items) {
-      var tiers = { quickfire: [], explain: [], apply: [], distinguish: [], mock: [] };
-      items.forEach(function(it){
-        var t = it.tier;
-        if (!tiers[t]) tiers[t] = [];
-        tiers[t].push(it);
+    function reweightProfile(profile, tierBuckets, targetTotal) {
+      var tierOrder = ['quickfire', 'explain', 'apply', 'distinguish', 'mock'];
+      var counts = {};
+      var remaining = targetTotal;
+
+      /* Pass 1: cap each tier at available unique items */
+      var uniqueAvailable = {};
+      var seenIds = {};
+      tierOrder.forEach(function(t) {
+        var unique = 0;
+        (tierBuckets[t] || []).forEach(function(it) {
+          if (!seenIds[t + ':' + it.id]) { unique++; seenIds[t + ':' + it.id] = true; }
+        });
+        uniqueAvailable[t] = unique;
       });
-      var order = ['quickfire','explain','apply','distinguish','mock'];
-      order.forEach(function(t){ shuffle(tiers[t]); });
+
+      /* Initial ideal counts */
+      tierOrder.forEach(function(t) {
+        counts[t] = Math.round(profile[t] * targetTotal);
+      });
+
+      /* Cap at available */
+      var excess = 0;
+      var uncapped = [];
+      tierOrder.forEach(function(t) {
+        if (counts[t] > uniqueAvailable[t]) {
+          excess += counts[t] - uniqueAvailable[t];
+          counts[t] = uniqueAvailable[t];
+        } else {
+          uncapped.push(t);
+        }
+      });
+
+      /* Redistribute excess proportionally to uncapped tiers */
+      if (excess > 0 && uncapped.length > 0) {
+        var uncappedTotal = 0;
+        uncapped.forEach(function(t) { uncappedTotal += profile[t]; });
+        if (uncappedTotal > 0) {
+          uncapped.forEach(function(t) {
+            var bonus = Math.round(excess * (profile[t] / uncappedTotal));
+            var maxAdd = uniqueAvailable[t] - counts[t];
+            counts[t] += Math.min(bonus, maxAdd);
+          });
+        }
+      }
+
+      /* Minimum floor: 1 item per tier if any available and target allows */
+      tierOrder.forEach(function(t) {
+        if (counts[t] === 0 && uniqueAvailable[t] > 0 && targetTotal > tierOrder.length) {
+          counts[t] = 1;
+        }
+      });
+
+      return counts;
+    }
+
+    function interleaveQueue(queue) {
+      /* Group by presentation tier, then round-robin */
+      var groups = {};
+      queue.forEach(function(it) {
+        var t = it._presentTier || 'quickfire';
+        if (!groups[t]) groups[t] = [];
+        groups[t].push(it);
+      });
+      var keys = Object.keys(groups);
+      keys.forEach(function(k) { shuffle(groups[k]); });
+
       var out = [];
-      var remaining = true;
-      while (remaining) {
-        remaining = false;
-        for (var i = 0; i < order.length; i++) {
-          var t = order[i];
-          if (tiers[t] && tiers[t].length) {
-            out.push(tiers[t].shift());
-            remaining = true;
+      var done = false;
+      while (!done) {
+        done = true;
+        for (var i = 0; i < keys.length; i++) {
+          if (groups[keys[i]].length) {
+            out.push(groups[keys[i]].shift());
+            done = false;
           }
         }
       }
@@ -1775,22 +2184,24 @@
 
       var it = session.queue[session.idx];
       if (!it) { completeSession(); return; }
+      /* Resolve presentation tier (smart mode) or stored tier (manual/legacy) */
+      var tier = it._presentTier || it.tier || 'quickfire';
 
-      setTierBadge(it.tier);
+      setTierBadge(tier);
       /* Tier-themed item card border */
       var ic = document.querySelector('.item-card');
       if (ic) {
-        ic.className = 'item-card tier-' + it.tier;
+        ic.className = 'item-card tier-' + tier;
       }
 
       /* Tier-coloured progress bar */
       var pb = document.querySelector('.pbar');
       if (pb) {
-        pb.className = 'pbar tier-' + it.tier;
+        pb.className = 'pbar tier-' + tier;
       }
 
       /* For Apply It we render the scenario in a distinct block; avoid duplicating it in the top prompt. */
-      if (it.tier === 'apply') el('promptText').textContent = 'Scenario';
+      if (tier === 'apply') el('promptText').textContent = 'Scenario';
       else el('promptText').textContent = it.prompt || '';
       el('metaCourse').textContent = it.course || '—';
       el('metaTopic').textContent = it.topic || '—';
@@ -1801,10 +2212,10 @@
       el('progBar').style.width = Math.round(((session.idx) / Math.max(1, n)) * 100) + '%';
 
       tierArea.innerHTML = '';
-      if (it.tier === 'quickfire') {
+      if (tier === 'quickfire') {
         tierArea.innerHTML = '<button class="qa-btn" id="revealBtn">Reveal (Space)</button>';
         el('revealBtn').addEventListener('click', function(){ revealAnswer(); });
-      } else if (it.tier === 'explain') {
+      } else if (tier === 'explain') {
         tierArea.innerHTML = '' +
           '<div class="two-col">' +
             '<div class="panel">' +
@@ -1820,7 +2231,7 @@
           '</div>' +
           rubricTemplate('explain');
         wireGenerative('explain');
-      } else if (it.tier === 'apply') {
+      } else if (tier === 'apply') {
         /* Prompt is scenario; modelAnswer includes ideal response. Task is embedded at top of modelAnswer if provided. */
         var scen = it.prompt || '';
         var task = (it.task || '');
@@ -1836,7 +2247,7 @@
           rubricTemplate('apply');
         if (settings.showApplyTimer) startApplyTimer();
         wireGenerative('apply');
-      } else if (it.tier === 'distinguish') {
+      } else if (tier === 'distinguish') {
         tierArea.innerHTML = '' +
           '<div class="concepts">' +
             '<div class="concept"><div class="c-h">Concept A</div><div class="c-v">' + esc(it.conceptA || '—') + '</div></div>' +
@@ -1852,7 +2263,7 @@
           '</div>' +
           rubricTemplate('distinguish');
         wireGenerative('distinguish');
-      } else if (it.tier === 'mock') {
+      } else if (tier === 'mock') {
         var mins = parseInt(it.timeLimitMins || settings.mockDefaultMins || 10, 10);
         mins = [5,10,15,30].indexOf(mins) >= 0 ? mins : 10;
         mockTotalMs = mins * 60 * 1000;
@@ -1921,7 +2332,8 @@
       var it = session.queue[session.idx];
       if (!it) return;
 
-      if (it.tier !== 'quickfire') {
+      var revealTier = it._presentTier || it.tier || 'quickfire';
+      if (revealTier !== 'quickfire') {
         var mp = el('modelPanel');
         var mi = el('modelInline');
         if (mp && mi) {
@@ -1946,7 +2358,7 @@
       if (!it) return;
       if (!session.currentShown) return;
 
-      var tier = it.tier;
+      var tier = it._presentTier || it.tier || 'quickfire';
       var mappedRating = rating;
       if (tier !== 'quickfire' && tier !== 'mock') {
         /* for explain/apply/distinguish: map rubric -> FSRS rating */
@@ -2025,6 +2437,15 @@
       if (againCount > 0 && mappedRating >= 3) session.loops[it.id] = 0;
 
       var res = scheduleFsrs(it, mappedRating, nowTs, true);
+      /* Bloom stability bonus: higher tier = stronger memory trace on success */
+      if (mappedRating >= 3 && BLOOM_STABILITY_BONUS[tier]) {
+        var bonus = BLOOM_STABILITY_BONUS[tier];
+        if (bonus > 1.0 && it.fsrs && it.fsrs.stability) {
+          it.fsrs.stability = Math.min(3650, it.fsrs.stability * bonus);
+        }
+      }
+      /* Store which tier was used for history */
+      it.lastTier = tier;
 
       /* XP */
       var xp = computeXP(it, mappedRating, res.intervalDays);
@@ -2040,7 +2461,7 @@
 
     function computeXP(it, rating, intervalDays) {
       var bloomMultiplier = { quickfire: 1, explain: 2, apply: 3, distinguish: 3, mock: 4 };
-      var tier = it.tier;
+      var tier = it.lastTier || it._presentTier || it.tier || 'quickfire';
       var mul = bloomMultiplier[tier] || 1;
       ensureFsrs(it);
       var diff = it.fsrs.difficulty || 5;
@@ -2210,30 +2631,14 @@
       b.addEventListener('click', function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); });
     });
 
-    el('modeGeneral').addEventListener('click', function(){
-      modeLabel = 'General';
-      el('modeGeneral').classList.add('active');
-      el('modeLaw').classList.remove('active');
-      el('modeGeneral').setAttribute('aria-selected','true');
-      el('modeLaw').setAttribute('aria-selected','false');
-      el('hdrSub').textContent = 'Retrieval practice';
-    });
-    el('modeLaw').addEventListener('click', function(){
-      modeLabel = 'Law School';
-      el('modeLaw').classList.add('active');
-      el('modeGeneral').classList.remove('active');
-      el('modeLaw').setAttribute('aria-selected','true');
-      el('modeGeneral').setAttribute('aria-selected','false');
-      el('hdrSub').textContent = 'Retrieval practice · Law School';
-    });
-
     /* ── Modal: Add items / Import JSON ── */
     var modalOv = el('modalOv');
     var modalForm = el('modalForm');
-    var activeTab = 'quickfire';
+    var activeTab = 'add';
+    var advancedOpen = false;
 
     function openModal(tab) {
-      activeTab = tab || activeTab || 'quickfire';
+      activeTab = tab || activeTab || 'add';
       modalOv.classList.add('show');
       modalOv.setAttribute('aria-hidden','false');
       renderModal();
@@ -2247,66 +2652,98 @@
     function closeModals() {
       closeModal();
       closeSettings();
+      closeCourseModal();
     }
 
-    el('addBtn').addEventListener('click', function(){ openModal('quickfire'); });
+    el('addBtn').addEventListener('click', function(){ openModal('add'); });
     el('importBtn').addEventListener('click', function(){ openModal('import'); });
     el('modalClose').addEventListener('click', function(){ closeModal(); });
     modalOv.addEventListener('click', function(e){ if (e.target === modalOv) closeModal(); });
 
-    el('tierTabs').querySelectorAll('.tab').forEach(function(t){
-      t.addEventListener('click', function(){
-        activeTab = this.getAttribute('data-tab');
-        renderModal();
+    /* Modal tabs (now "modalTabs" in HTML, but keep backward compat) */
+    var modalTabsEl = el('modalTabs') || el('tierTabs');
+    if (modalTabsEl) {
+      modalTabsEl.querySelectorAll('.tab').forEach(function(t){
+        t.addEventListener('click', function(){
+          activeTab = this.getAttribute('data-tab');
+          renderModal();
+        });
       });
-    });
+    }
 
     function renderModal() {
       /* tabs */
-      el('tierTabs').querySelectorAll('.tab').forEach(function(t){
+      el('modalTabs') && el('modalTabs').querySelectorAll('.tab').forEach(function(t) {
+        /* Use modalTabs instead of tierTabs */
         var on = t.getAttribute('data-tab') === activeTab;
         t.classList.toggle('active', on);
         t.setAttribute('aria-selected', on ? 'true' : 'false');
       });
 
-      var showAdd = (activeTab !== 'import');
+      var showAdd = (activeTab === 'add');
       el('addNextBtn').style.display = showAdd ? 'inline-flex' : 'none';
 
-      if (activeTab === 'quickfire' || activeTab === 'explain') {
-        modalForm.innerHTML = commonFields(activeTab) +
-          areaField('Prompt', 'm_prompt', 'Question or cue') +
+      if (activeTab === 'add') {
+        var courseOpts = '';
+        listCourses().forEach(function(c) {
+          courseOpts += '<option value="' + esc(c.name) + '">' + esc(c.name) + '</option>';
+        });
+
+        modalForm.innerHTML = '' +
+          '<div class="field">' +
+          '  <label>Course</label>' +
+          '  <div style="display:flex;gap:8px;">' +
+          '    <select id="m_course" class="input" style="flex:1;">' +
+          '      <option value="">— Select or type below —</option>' +
+                 courseOpts +
+          '    </select>' +
+          '    <input id="m_course_new" class="input" style="flex:1;" placeholder="Or new course name">' +
+          '  </div>' +
+          '</div>' +
+          '<div class="field">' +
+          '  <label>Topic <span style="opacity:0.5;">(optional)</span></label>' +
+          '  <input id="m_topic" class="input" placeholder="e.g., WTO Dispute Settlement">' +
+          '</div>' +
+          areaField('Prompt', 'm_prompt', 'Question, cue, or concept to recall') +
           areaField('Model Answer', 'm_answer', 'Ideal response to compare against') +
-          tailFields();
-      } else if (activeTab === 'apply') {
-        modalForm.innerHTML = commonFields(activeTab) +
-          areaField('Scenario', 'm_scenario', 'Fact pattern / scenario text') +
-          areaField('Task', 'm_task', 'Instruction (what to do with the scenario)') +
-          areaField('Model Answer', 'm_answer', 'Ideal application response') +
-          tailFields();
-      } else if (activeTab === 'distinguish') {
-        modalForm.innerHTML = commonFields(activeTab) +
-          textField('Concept A', 'm_conceptA', 'e.g., Negligence') +
-          textField('Concept B', 'm_conceptB', 'e.g., Strict liability') +
-          areaField('Scenario', 'm_scenario', 'Scenario for discrimination') +
-          areaField('Model Answer', 'm_answer', 'Which applies and why') +
-          tailFields();
-      } else if (activeTab === 'mock') {
-        modalForm.innerHTML = commonFields(activeTab) +
-          areaField('Question', 'm_prompt', 'Multi-part prompt') +
-          selectField('Time limit', 'm_time', [{v:'5',t:'5 min'},{v:'10',t:'10 min'},{v:'15',t:'15 min'},{v:'30',t:'30 min'}], String(settings.mockDefaultMins || 10)) +
-          areaField('Model Answer', 'm_answer', 'Ideal outline / response') +
-          tailFields();
+          '<div class="adv-toggle' + (advancedOpen ? ' open' : '') + '" id="advToggle">' +
+          '  <span class="adv-arrow">▶</span>' +
+          '  <span class="adv-text">Advanced fields (scenario, concepts, timer)</span>' +
+          '</div>' +
+          '<div class="adv-fields' + (advancedOpen ? ' show' : '') + '" id="advFields">' +
+          areaField('Scenario', 'm_scenario', 'Fact pattern or context for application (enables Apply It tier)') +
+          textField('Task', 'm_task', 'Instruction for the scenario (optional)') +
+          '<div class="course-form-row">' +
+          textField('Concept A', 'm_conceptA', 'e.g., Trade creation') +
+          textField('Concept B', 'm_conceptB', 'e.g., Trade diversion') +
+          '</div>' +
+          '<div class="help" style="margin-bottom:8px;">Filling Concept A + B enables the Distinguish tier.</div>' +
+          selectField('Mock time limit', 'm_time', [{v:'5',t:'5 min'},{v:'10',t:'10 min'},{v:'15',t:'15 min'},{v:'30',t:'30 min'}], String(settings.mockDefaultMins || 10)) +
+          '<div class="help">Setting a time limit enables the Mock Exam tier.</div>' +
+          '</div>' +
+          '<div id="tierBadgeArea"></div>';
+
+        /* Wire advanced toggle */
+        setTimeout(function() {
+          var tog = el('advToggle');
+          if (tog) tog.addEventListener('click', function() {
+            advancedOpen = !advancedOpen;
+            tog.classList.toggle('open', advancedOpen);
+            el('advFields').classList.toggle('show', advancedOpen);
+          });
+        }, 0);
+
       } else if (activeTab === 'import') {
         modalForm.innerHTML = '' +
           '<div class="field">' +
-            '<label>Paste JSON array</label>' +
-            '<textarea id="m_import" rows="10" placeholder=\'[ { "id": "...", "tier": "explain", ... } ]\'></textarea>' +
-            '<div class="help">Accepts an array of item objects matching the state shape. Existing IDs will be overwritten.</div>' +
+          '  <label>Paste JSON array</label>' +
+          '  <textarea id="m_import" class="input" style="min-height:150px;" placeholder=\'[{"prompt":"...","modelAnswer":"...","course":"..."}]\'></textarea>' +
+          '  <div class="help">Each object needs at minimum: prompt, modelAnswer, course. Optional: topic, task, scenario, conceptA, conceptB, timeLimitMins.</div>' +
           '</div>';
       }
 
-      /* focus first control */
-      setTimeout(function(){
+      /* Focus first control */
+      setTimeout(function() {
         var first = modalForm.querySelector('textarea, input, select');
         if (first) first.focus();
       }, 0);
@@ -2358,50 +2795,80 @@
         return;
       }
 
-      var course = (el('m_course').value || '').trim();
-      var topic = (el('m_topic').value || '').trim();
+      /* Resolve course */
+      var courseSelect = (el('m_course').value || '').trim();
+      var courseNew = (el('m_course_new').value || '').trim();
+      var course = courseNew || courseSelect;
+      if (!course) { toast('Select or enter a course name'); return; }
 
-      var it = {
-        id: uid(),
-        tier: activeTab,
-        prompt: '',
-        modelAnswer: '',
-        course: course,
-        topic: topic,
-        created: isoNow(),
-        fsrs: { stability: 0, difficulty: 0, due: isoNow(), lastReview: null, reps: 0, lapses: 0, state: 'new' }
-      };
-
-      if (activeTab === 'quickfire' || activeTab === 'explain') {
-        it.prompt = (el('m_prompt').value || '').trim();
-        it.modelAnswer = (el('m_answer').value || '').trim();
-      } else if (activeTab === 'apply') {
-        it.prompt = (el('m_scenario').value || '').trim();
-        it.task = (el('m_task').value || '').trim();
-        it.modelAnswer = (el('m_answer').value || '').trim();
-      } else if (activeTab === 'distinguish') {
-        it.conceptA = (el('m_conceptA').value || '').trim();
-        it.conceptB = (el('m_conceptB').value || '').trim();
-        it.scenario = (el('m_scenario').value || '').trim();
-        it.prompt = 'Distinguish: ' + (it.conceptA || 'A') + ' vs ' + (it.conceptB || 'B');
-        it.modelAnswer = (el('m_answer').value || '').trim();
-      } else if (activeTab === 'mock') {
-        it.prompt = (el('m_prompt').value || '').trim();
-        it.modelAnswer = (el('m_answer').value || '').trim();
-        it.timeLimitMins = parseInt(el('m_time').value, 10) || 10;
+      /* Auto-create course if new */
+      if (!state.courses[course]) {
+        saveCourse({
+          name: course,
+          examType: 'mixed',
+          examDate: null,
+          manualMode: false,
+          created: isoNow()
+        });
       }
 
-      if (!it.prompt || !it.modelAnswer) {
+      var topic = (el('m_topic').value || '').trim();
+      var prompt = (el('m_prompt').value || '').trim();
+      var answer = (el('m_answer').value || '').trim();
+
+      if (!prompt || !answer) {
         toast('Prompt and model answer are required');
         return;
       }
 
+      var it = {
+        id: uid(),
+        prompt: prompt,
+        modelAnswer: answer,
+        course: course,
+        topic: topic,
+        created: isoNow(),
+        fsrs: { stability: 0, difficulty: 0, due: isoNow(), lastReview: null, reps: 0, lapses: 0, state: 'new' },
+        variants: {}
+      };
+
+      /* Optional advanced fields */
+      var scenario = (el('m_scenario') && el('m_scenario').value || '').trim();
+      var task = (el('m_task') && el('m_task').value || '').trim();
+      var conceptA = (el('m_conceptA') && el('m_conceptA').value || '').trim();
+      var conceptB = (el('m_conceptB') && el('m_conceptB').value || '').trim();
+      var timeVal = el('m_time') ? parseInt(el('m_time').value, 10) : 0;
+
+      if (scenario) it.scenario = scenario;
+      if (task) it.task = task;
+      if (conceptA) it.conceptA = conceptA;
+      if (conceptB) it.conceptB = conceptB;
+      if (timeVal && [5,10,15,30].indexOf(timeVal) >= 0) it.timeLimitMins = timeVal;
+
+      /* For backward compat: set tier if only basic fields (manual mode users can override) */
+      /* Not setting tier — let the session builder assign dynamically */
+
       state.items[it.id] = it;
       saveState();
-      toast('Added');
+
+      /* Show supported tiers badge */
+      var supported = detectSupportedTiers(it);
+      var badgeArea = el('tierBadgeArea');
+      if (badgeArea) {
+        badgeArea.innerHTML = tierSupportBadgeHTML(supported);
+        if (window.gsap) gsap.fromTo(badgeArea, { opacity: 0, y: 4 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
+      }
+
+      toast('Added — supports ' + supported.length + ' tier' + (supported.length !== 1 ? 's' : ''));
 
       if (stayOpen) {
-        renderModal();
+        /* Clear content fields but keep course + topic */
+        if (el('m_prompt')) el('m_prompt').value = '';
+        if (el('m_answer')) el('m_answer').value = '';
+        if (el('m_scenario')) el('m_scenario').value = '';
+        if (el('m_task')) el('m_task').value = '';
+        if (el('m_conceptA')) el('m_conceptA').value = '';
+        if (el('m_conceptB')) el('m_conceptB').value = '';
       }
     }
 
@@ -2412,13 +2879,17 @@
       try { arr = JSON.parse(raw); } catch (e) { toast('Invalid JSON'); return; }
       if (!Array.isArray(arr)) { toast('Expected an array'); return; }
       var n = 0;
-      arr.forEach(function(obj){
+      arr.forEach(function(obj) {
         if (!obj || typeof obj !== 'object') return;
         if (!obj.id) obj.id = uid();
-        if (!obj.tier) return;
         if (!obj.prompt || !obj.modelAnswer) return;
         if (!obj.created) obj.created = isoNow();
         if (!obj.fsrs) obj.fsrs = { stability: 0, difficulty: 0, due: isoNow(), lastReview: null, reps: 0, lapses: 0, state: 'new' };
+        if (!obj.variants) obj.variants = {};
+        /* Auto-create course */
+        if (obj.course && !state.courses[obj.course]) {
+          saveCourse({ name: obj.course, examType: 'mixed', examDate: null, manualMode: false, created: isoNow() });
+        }
         state.items[obj.id] = obj;
         n++;
       });
@@ -2489,6 +2960,120 @@
       renderDashboard();
       toast('Saved');
     });
+
+    /* ── Course Management Modal ── */
+    var courseOv = el('courseOv');
+    var courseModalBody = el('courseModalBody');
+
+    function openCourseModal() {
+      renderCourseModal();
+      courseOv.classList.add('show');
+      courseOv.setAttribute('aria-hidden', 'false');
+    }
+    function closeCourseModal() {
+      courseOv.classList.remove('show');
+      courseOv.setAttribute('aria-hidden', 'true');
+    }
+
+    el('courseClose').addEventListener('click', closeCourseModal);
+    courseOv.addEventListener('click', function(e) { if (e.target === courseOv) closeCourseModal(); });
+    el('manageCourses').addEventListener('click', openCourseModal);
+
+    function renderCourseModal() {
+      var courses = listCourses();
+      var h = '';
+
+      if (!courses.length) {
+        h += '<div style="text-align:center;padding:16px;color:var(--text-secondary);font-size:10px;letter-spacing:0.5px;">No courses yet. Add one below.</div>';
+      }
+
+      courses.forEach(function(c) {
+        var manualBadge = c.manualMode ? ' <span class="manual-badge">Manual</span>' : '';
+        var examDate = c.examDate ? '<span class="cli-type" style="margin-left:6px;">Exam: ' + c.examDate + '</span>' : '';
+        h += '<div class="course-list-item" data-course="' + esc(c.name) + '">' +
+          '<div>' +
+          '  <div class="cli-name">' + esc(c.name) + manualBadge + '</div>' +
+          '  <div style="display:flex;gap:6px;margin-top:3px;align-items:center;">' +
+          '    <span class="cli-type">' + esc(EXAM_TYPE_LABELS[c.examType] || c.examType) + '</span>' +
+          examDate +
+          '  </div>' +
+          '</div>' +
+          '<div class="cli-actions">' +
+          '  <button onclick="editCourseInline(\'' + esc(c.name) + '\')">✏️</button>' +
+          '  <button onclick="toggleManualMode(\'' + esc(c.name) + '\')">' + (c.manualMode ? '🤖' : '✋') + '</button>' +
+          '  <button onclick="confirmDeleteCourse(\'' + esc(c.name) + '\')">🗑</button>' +
+          '</div>' +
+          '</div>';
+      });
+
+      /* Add course form */
+      h += '<div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(var(--accent-rgb),0.10);">' +
+        '<div class="field"><label>New course name</label><input id="nc_name" class="input" placeholder="e.g., POLS 3550"></div>' +
+        '<div class="course-form-row">' +
+        '<div class="field"><label>Exam type</label>' +
+        '<select id="nc_examType" class="input">' +
+        '<option value="mc">Multiple Choice</option>' +
+        '<option value="short_answer">Short Answer</option>' +
+        '<option value="essay">Essay</option>' +
+        '<option value="open_book">Open Book</option>' +
+        '<option value="mixed" selected>Mixed</option>' +
+        '</select></div>' +
+        '<div class="field"><label>Exam date <span style="opacity:0.5;">(optional)</span></label>' +
+        '<input id="nc_examDate" class="input" type="date"></div>' +
+        '</div>' +
+        '</div>';
+
+      courseModalBody.innerHTML = h;
+    }
+
+    el('courseAddBtn').addEventListener('click', function() {
+      var name = (el('nc_name').value || '').trim();
+      if (!name) { toast('Enter a course name'); return; }
+      if (state.courses[name]) { toast('Course already exists'); return; }
+      var examType = (el('nc_examType').value || 'mixed');
+      var examDate = (el('nc_examDate').value || '').trim() || null;
+      saveCourse({
+        name: name,
+        examType: examType,
+        examDate: examDate,
+        manualMode: false,
+        created: isoNow()
+      });
+      toast('Course added');
+      renderCourseModal();
+      renderDashboard();
+    });
+
+    /* Global helpers for inline course actions */
+    window.editCourseInline = function(name) {
+      var c = getCourse(name);
+      if (!c) return;
+      var newType = prompt('Exam type (mc, short_answer, essay, open_book, mixed):', c.examType);
+      if (newType && TIER_PROFILES[newType]) {
+        c.examType = newType;
+        saveCourse(c);
+        renderCourseModal();
+        renderDashboard();
+        toast('Updated');
+      }
+    };
+
+    window.toggleManualMode = function(name) {
+      var c = getCourse(name);
+      if (!c) return;
+      c.manualMode = !c.manualMode;
+      saveCourse(c);
+      renderCourseModal();
+      toast(c.manualMode ? 'Manual mode ON — you pick tiers' : 'Smart mode ON — engine picks tiers');
+    };
+
+    window.confirmDeleteCourse = function(name) {
+      if (!confirm('Delete course "' + name + '"? Items will keep their course tag.')) return;
+      deleteCourse(name);
+      renderCourseModal();
+      renderDashboard();
+      toast('Deleted');
+    };
 
     /* ── Toast (lightweight) ── */
     var toastEl = null;
