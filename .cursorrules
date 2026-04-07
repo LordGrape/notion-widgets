@@ -240,3 +240,20 @@
 - `migrateItems()` runs on boot: auto-creates course entries for orphaned course tags, adds variants field.
 - Import JSON: items only need prompt + modelAnswer + course. Optional fields enable more tiers.
 - Mode toggle (General/Law School) removed. Replaced by per-course examType setting.
+# Study Engine v3 — Analytics & Objectives
+- Course objectives: retention (default), exam, mastery. Stored in course.objective field.
+- OBJECTIVES config: each objective modifies desiredRetention, tier profile weights, Bloom bonus multiplier, and session size.
+- getEffectiveProfile/Retention/BloomBonus(courseName): resolve objective-aware values.
+- Cram mode: getCramState(courseName) detects proximity to examDate (only for exam objective).
+  - Intensity levels: low (14-7d), moderate (7-5d), high (5-2d), critical (<2d).
+  - Critical: 2x session size, 0.3x interval compression, sort by lowest stability first.
+  - Cram banner shows on dashboard when active.
+- Canvas analytics (pure Canvas 2D, no libraries, DPR-aware):
+  - drawRetentionCurve(canvasId, items): 30-day predicted retrievability with gradient fill, threshold line, today dot.
+  - drawSparkline(canvasId): 30-day session history bars, coloured by avg rating (green/amber/red).
+  - drawTierRing(canvasId): donut chart of recent tier distribution from calibration history.
+  - renderAnalytics(courseFilter): orchestrates all three + cram banner.
+- Course detail view: openCourseDetail(courseName) shows per-course analytics, objective badge, exam countdown, tier support counts.
+- Double-click a course chip to open course detail view.
+- Resize handler redraws canvases on window resize.
+- editCourseInline() now edits examType, objective, and examDate.
