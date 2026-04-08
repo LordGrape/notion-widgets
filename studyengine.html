@@ -5820,12 +5820,15 @@ input[type="range"]::-moz-range-thumb{
       session.reviewsByTier[tier] = (session.reviewsByTier[tier] || 0) + 1;
       session.ratingSum += mappedRating;
       session.ratingN += 1;
-      /* Rating-differentiated audio feedback */
+      /* Rating-differentiated audio feedback
+         Research basis: Auditory valence mapping (Bowling et al., 2010) —
+         rising pitch = positive outcome, flat = neutral, falling = negative.
+         Again is handled by the restudy flow's playError(). */
       try {
-        if (mappedRating === 1) { /* Again: handled by restudy flow below */ }
+        if (mappedRating === 1) { /* Again — playError() fires in restudy flow below */ }
         else if (mappedRating === 2) { playLap(); }
-        else if (mappedRating === 3) { playClick(); }
-        else if (mappedRating === 4) { playChime(); }
+        else if (mappedRating === 3) { playGoodRate(); }
+        else if (mappedRating === 4) { playEasyRate(); }
       } catch(e) {}
 
       /* Fatigue detection — rolling window of last 6 ratings

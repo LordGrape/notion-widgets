@@ -378,6 +378,58 @@ function playError() {
   _tone(280, 'sine', 0.003, 0.01, 0.04, 0.11, getAudioCtx().currentTime + 0.055);
 }
 
+/* ── 14a. GOOD RATE — warm rising double-tap (confirms solid retrieval) ── */
+/* Research: Rising pitch = positive valence (Bowling et al., 2010).
+   Two quick tones = "completion" signal without the celebration weight of a full chime.
+   Frequency pair chosen to form a major third (psychoacoustically "happy"). */
+function playGoodRate() {
+  let ctx = getAudioCtx(), now = ctx.currentTime;
+  // First note: E5 (659 Hz) — warm mid-high
+  let osc1 = ctx.createOscillator();
+  let g1 = ctx.createGain();
+  osc1.type = 'sine';
+  osc1.frequency.setValueAtTime(659, now);
+  g1.gain.setValueAtTime(0.001, now);
+  g1.gain.linearRampToValueAtTime(0.13, now + 0.008);
+  g1.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+  osc1.connect(g1); g1.connect(ctx.destination);
+  osc1.start(now); osc1.stop(now + 0.09);
+
+  // Second note: G5 (784 Hz) — rising major third
+  let osc2 = ctx.createOscillator();
+  let g2 = ctx.createGain();
+  osc2.type = 'sine';
+  osc2.frequency.setValueAtTime(784, now + 0.07);
+  g2.gain.setValueAtTime(0.001, now + 0.07);
+  g2.gain.linearRampToValueAtTime(0.11, now + 0.078);
+  g2.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+  osc2.connect(g2); g2.connect(ctx.destination);
+  osc2.start(now + 0.07); osc2.stop(now + 0.17);
+}
+
+/* ── 14b. EASY RATE — bright ascending triad (small celebration, lighter than full chime) ── */
+/* Research: Three-note ascending patterns trigger anticipation-reward dopamine
+   (Salimpoor et al., 2011, Nature Neuroscience). Kept under 300ms total to avoid
+   interrupting session flow. Volume lower than playChime() so it doesn't feel
+   equivalent to session completion. Uses C6-E6-G6 (major triad, one octave above chime). */
+function playEasyRate() {
+  let ctx = getAudioCtx(), now = ctx.currentTime;
+  let notes = [1047, 1319, 1568]; // C6, E6, G6
+  let gap = 0.055; // 55ms between notes — quick but perceptible
+  notes.forEach(function(freq, i) {
+    let osc = ctx.createOscillator();
+    let gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    let t = now + i * gap;
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(0.10, t + 0.006);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start(t); osc.stop(t + 0.13);
+  });
+}
+
 /* ── 14. PRESET SELECT ── */
 function playPresetSelect() {
   let ctx = getAudioCtx(), now = ctx.currentTime;
