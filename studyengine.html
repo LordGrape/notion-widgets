@@ -109,8 +109,9 @@
       font-size: 12px;
     }
     body.standalone .answer{
-      font-size: 12px;
-      padding: 14px 16px;
+      font-size: 14px;
+      padding: 16px 18px;
+      max-height: 360px;
     }
     body.standalone .stat .v{
       font-size: 22px;
@@ -920,10 +921,10 @@
     }
 
     .prompt{
-      font-size: 12px;
+      font-size: 14px;
       font-weight: 600;
       letter-spacing: 0.2px;
-      line-height: 1.45;
+      line-height: 1.55;
       color: var(--text);
       white-space: pre-wrap;
     }
@@ -968,12 +969,12 @@
       text-align: center;
     }
     .confidence-label{
-      font-size: 8px;
+      font-size: 11px;
       font-weight: 800;
-      letter-spacing: 1.6px;
+      letter-spacing: 1.8px;
       text-transform: uppercase;
-      color: var(--text-secondary);
-      margin-bottom: 8px;
+      color: var(--text);
+      margin-bottom: 10px;
     }
     .confidence-pills{
       display: flex;
@@ -982,13 +983,13 @@
     }
     .conf-pill{
       flex: 1;
-      max-width: 120px;
-      padding: 10px 8px;
+      max-width: 140px;
+      padding: 12px 10px;
       border-radius: 14px;
       border: 1px solid rgba(var(--accent-rgb),0.16);
       background: rgba(var(--accent-rgb),0.04);
       color: var(--text-secondary);
-      font-size: 10px;
+      font-size: 12px;
       font-weight: 700;
       letter-spacing: 0.8px;
       text-transform: uppercase;
@@ -1055,16 +1056,21 @@
 
     .answer{
       margin-top: 12px;
-      padding: 12px 12px;
+      padding: 14px 16px;
       border-radius: 16px;
       border: 1px solid rgba(var(--accent-rgb),0.14);
       background: rgba(var(--accent-rgb),0.04);
       white-space: pre-wrap;
-      line-height: 1.5;
-      font-size: 11px;
+      line-height: 1.65;
+      font-size: 13px;
       color: var(--text);
+      max-height: 260px;
+      overflow-y: auto;
+      scrollbar-width: thin;
     }
     .answer .md-content{ white-space: normal; }
+    .answer::-webkit-scrollbar{ width: 4px; }
+    .answer::-webkit-scrollbar-thumb{ background: rgba(var(--accent-rgb),0.18); border-radius: 99px; }
     .scenario.md-content{ white-space: normal; }
 
     /* ── Dual Coding Visual ── */
@@ -4489,11 +4495,11 @@ input[type="range"]::-moz-range-thumb{
 
     function tierLabel(tier) {
       return ({
-        quickfire: 'QUICK FIRE',
-        explain: 'EXPLAIN IT',
-        apply: 'APPLY IT',
-        distinguish: 'DISTINGUISH',
-        mock: 'MOCK EXAM'
+        quickfire: 'QF',
+        explain: 'EI',
+        apply: 'AI',
+        distinguish: 'DI',
+        mock: 'ME'
       })[tier] || '—';
     }
 
