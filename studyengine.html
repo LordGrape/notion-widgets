@@ -2281,21 +2281,48 @@
     }
 
     .analytics-card{
-      padding: 12px;
+      padding: 14px;
       border-radius: var(--radius);
-      border: 1px solid rgba(var(--accent-rgb),0.10);
-      background: rgba(var(--accent-rgb),0.02);
+      border: 1px solid rgba(var(--accent-rgb),0.12);
+      background: linear-gradient(145deg, rgba(var(--accent-rgb),0.04), rgba(var(--accent-rgb),0.01));
       position: relative;
-  overflow: visible;
-  min-height: 0;
+      overflow: visible;
+      min-height: 0;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    .analytics-card:hover{
+      border-color: rgba(var(--accent-rgb),0.20);
+      box-shadow: 0 4px 20px -4px rgba(var(--accent-rgb),0.08);
     }
     .analytics-card .ac-title{
+      display: flex;
+      align-items: center;
+      gap: 7px;
       font-size: 8px;
       letter-spacing: 1.6px;
       text-transform: uppercase;
       color: var(--text-secondary);
       font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .analytics-card .ac-title .ac-icon{
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px; height: 22px;
+      border-radius: 8px;
+      background: rgba(var(--accent-rgb),0.10);
+      border: 1px solid rgba(var(--accent-rgb),0.14);
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+    .analytics-card .ac-subtitle{
+      font-size: 9px;
+      color: var(--text-tertiary);
+      font-weight: 500;
+      margin-top: -6px;
       margin-bottom: 8px;
+      letter-spacing: 0.2px;
     }
     .analytics-card canvas{
       display: block;
@@ -2413,12 +2440,31 @@
     @media (min-width: 520px){
       .cda-grid{ grid-template-columns: 1fr 1fr; }
     }
+    .cda-section-header{
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin: 16px 0 10px;
+      padding: 0 2px;
+    }
+    .cda-section-header::before{
+      content: '';
+      flex: 0 0 3px;
+      height: 14px;
+      border-radius: 99px;
+      background: var(--accent);
+    }
     .cda-legend{
       display: flex;
       gap: 10px;
       flex-wrap: wrap;
       margin-top: 8px;
-      padding: 6px 8px;
+      padding: 6px 10px;
       border-radius: 10px;
       background: rgba(var(--accent-rgb),0.03);
       border: 1px solid rgba(var(--accent-rgb),0.08);
@@ -2438,6 +2484,7 @@
       height: 7px;
       border-radius: 99px;
       flex-shrink: 0;
+      box-shadow: 0 0 6px rgba(0,0,0,0.15);
     }
 
     /* ── Card Edit (inline expand) ── */
@@ -8528,6 +8575,14 @@ input[type="range"]::-moz-range-thumb{
         cdAnalytics = analyticsDiv;
       }
 
+      /* Inline SVG icons for analytics cards (12×12, matches Lucide style) */
+      var acIcons = {
+        rating: '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="2.5" height="5" rx="0.5"/><rect x="6.75" y="5" width="2.5" height="9" rx="0.5"/><rect x="11.5" y="7" width="2.5" height="7" rx="0.5"/></svg>',
+        stability: '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2L3 5v4c0 3.5 2.5 5.5 5 6.5 2.5-1 5-3 5-6.5V5L8 2z"/></svg>',
+        target: '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="3"/><circle cx="8" cy="8" r="0.5" fill="currentColor"/></svg>',
+        trend: '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,4 5.5,7.5 9,5.5 14,12"/><polyline points="10,4 14,4 14,8"/></svg>'
+      };
+
       var ratingLegend = [
         { label: 'Again', color: 'var(--rate-again)' },
         { label: 'Hard', color: 'var(--rate-hard)' },
@@ -8541,26 +8596,29 @@ input[type="range"]::-moz-range-thumb{
       legendHTML += '</div>';
 
       cdAnalytics.innerHTML =
-        '<div class="section-header" style="margin-top:4px">Course Analytics</div>' +
+        '<div class="cda-section-header">Course Analytics</div>' +
         '<div class="cda-grid">' +
           '<div class="analytics-card">' +
-            '<div class="ac-title">Rating History (last 30 reviews)</div>' +
+            '<div class="ac-title"><span class="ac-icon">' + acIcons.rating + '</span>Rating History</div>' +
+            '<div class="ac-subtitle">Last 30 reviews</div>' +
             '<canvas id="cdaRatingCanvas" height="70"></canvas>' +
             legendHTML +
           '</div>' +
           '<div class="analytics-card">' +
-            '<div class="ac-title">Tier Accuracy (avg rating)</div>' +
+            '<div class="ac-title"><span class="ac-icon">' + acIcons.target + '</span>Tier Accuracy</div>' +
+            '<div class="ac-subtitle">Average rating per tier</div>' +
             '<canvas id="cdaTierAccCanvas" height="90"></canvas>' +
           '</div>' +
         '</div>' +
         '<div class="cda-grid">' +
           '<div class="analytics-card">' +
-            '<div class="ac-title">Stability Distribution</div>' +
+            '<div class="ac-title"><span class="ac-icon">' + acIcons.stability + '</span>Stability</div>' +
+            '<div class="ac-subtitle">Memory strength distribution</div>' +
             '<canvas id="cdaStabilityCanvas" height="90"></canvas>' +
           '</div>' +
           '<div class="analytics-card">' +
-            '<div class="ac-title">Course Retention Forecast</div>' +
-            '<div class="help" style="margin-bottom:6px">Predicted memory decay over 30 days without review</div>' +
+            '<div class="ac-title"><span class="ac-icon">' + acIcons.trend + '</span>Retention Forecast</div>' +
+            '<div class="ac-subtitle">Predicted decay over 30 days</div>' +
             '<canvas id="cdaRetForecastCanvas" height="100"></canvas>' +
           '</div>' +
         '</div>';
@@ -8821,7 +8879,7 @@ input[type="range"]::-moz-range-thumb{
       /* Wire retention graph interactivity (after first render) */
       setTimeout(function() {
         wireRetentionInteractivity('retentionCanvas');
-        wireRetentionInteractivity('cdRetentionCanvas');
+        /* cdRetentionCanvas removed — retention now in analytics grid */
       }, 200);
 
       /* Refresh mascot stage every 30s (picks up XP changes from other widgets) */
