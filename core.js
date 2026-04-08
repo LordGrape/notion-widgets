@@ -2017,15 +2017,25 @@ let SyncEngine = (function() {
         continue;
       }
 
-      /* Strategy 3a: If both values are objects, deep-merge to prevent
-         empty-object overwrite during cross-client init races. */
+      /* Strategy 3a: If both values are objects, compare timestamps first.
+         If one side is strictly newer, it wins entirely (preserving deletions).
+         Only deep-merge when timestamps are equal or both zero (init-race protection). */
       let localValObj = _entryValue(merged[k]);
       let remoteValObj = _entryValue(remote[k]);
       if (isPlainObject(localValObj) && isPlainObject(remoteValObj)) {
-        merged[k] = {
-          value: deepMergeObjects(localValObj, remoteValObj),
-          _ts: Math.max(_entryTs(merged[k] || {}), _entryTs(remote[k]))
-        };
+        let localTs = _entryTs(merged[k] || {});
+        let remoteTs = _entryTs(remote[k]);
+        if (remoteTs > localTs) {
+          /* Remote is strictly newer — preserve remote (including deletions) */
+          merged[k] = remote[k];
+        } else if (localTs === remoteTs) {
+          /* Same timestamp or both zero — deep merge (original init-race behavior) */
+          merged[k] = {
+            value: deepMergeObjects(localValObj, remoteValObj),
+            _ts: Math.max(localTs, remoteTs)
+          };
+        }
+        /* Local strictly newer — preserve local (including deletions) */
         continue;
       }
 
