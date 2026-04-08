@@ -374,21 +374,22 @@ DIAGRAM STRATEGY BY TIER:
 - quickfire: Show the key fact's context — where it fits in a classification, timeline, or hierarchy.
 - explain: Show the causal chain or mechanism — WHY something works, with cause → effect arrows.
 - apply: Show rule → fact mapping — how the principle connects to the scenario's specific elements.
-- distinguish: Show a COMPARISON — two parallel branches with the distinguishing criteria highlighted.
-- mock: Show the argument structure — thesis, supporting points, counter-arguments.
+- distinguish: Show a COMPARISON — two parallel branches from a shared root, with the distinguishing criteria highlighted on the edges.
+- mock: Show the argument structure — thesis, supporting points, and counter-arguments.
 
 STRICT RULES:
 1. Output ONLY valid Mermaid markup. No code fences, no prose, no explanation before or after.
-2. Use graph TD or graph LR. Do NOT use mindmap (rendering issues), sequenceDiagram, pie, or other diagram types.
-3. Node labels must use FULL WORDS drawn from the question or answer. NEVER abbreviate concepts into opaque acronyms (no "DSU", "Comp", "Dev" alone). Use recognizable names from the material (e.g. "Development as Freedom", "Capabilities Approach").
-4. Edge labels should describe the RELATIONSHIP (e.g. "expands", "requires", "distinguishes", "causes"). Use -->|"label"| syntax.
-5. Use 5-12 nodes. Fewer than 5 is too vague; more than 12 is cluttered for a small display.
-6. Every node must map to a real idea from the question or answer. Do not invent unrelated concepts.
-7. The diagram must be self-contained — a student should grasp the structure from the diagram alone.
-8. The diagram is shown at thumbnail size; keep labels concise in length but never at the cost of meaning — prefer short phrases of real terms, not acronyms.
+2. Use graph TD or graph LR only. Do NOT use mindmap syntax.
+3. Node labels must use FULL WORDS from the source material. NEVER abbreviate concepts into acronyms (no "DSU", "Comp", "Dev", "Inst"). Write "Development as Freedom", "Capabilities Approach", "Instrumental Freedoms", etc.
+4. Edge labels (on arrows) should describe the RELATIONSHIP between nodes (e.g. "expands", "requires", "enables", "causes", "distinguishes").
+5. Aim for 5-12 nodes. Fewer than 5 is too vague. More than 12 is cluttered.
+6. Every node must map to a real concept from the question or answer. Do not invent concepts not present in the material.
+7. The diagram must be self-contained — a student should understand the concept's structure from the diagram alone.
+8. Wrap all node labels in double quotes inside square brackets: A["Label Here"]
+9. Wrap all edge labels in double quotes: -->|"label"|
+10. Make sure every edge has both a source and target node. Never end a line on an arrow.
 
 EXAMPLE (for "What are the five instrumental freedoms in Sen's framework?"):
-
 graph TD
     A["Development as Freedom"] -->|"requires"| B["Instrumental Freedoms"]
     B --> C["Political Freedoms"]
@@ -405,7 +406,7 @@ graph TD
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               contents: [{ parts: [{ text: visualPrompt }] }],
-              generationConfig: { temperature: 0.3, maxOutputTokens: 2048 }
+              generationConfig: { temperature: 0.3, maxOutputTokens: 1536 }
             })
           }
         );
@@ -421,25 +422,25 @@ graph TD
         const finishReason = cand?.finishReason || "";
         let visual = cand?.content?.parts?.[0]?.text || "";
         visual = visual.replace(/^```mermaid\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/i, "").trim();
-        /* Drop preamble ("Here is…") so Mermaid sees graph TD/LR first */
-        const graphIdx = visual.search(/\bgraph\s+(TD|LR)\b/i);
+        const graphIdx = visual.search(/\b(graph|flowchart)\s+(TD|LR|BT|RL)\b/i);
         if (graphIdx > 0) visual = visual.slice(graphIdx).trim();
         else if (graphIdx === -1) visual = "";
 
-        if (finishReason === "MAX_TOKENS" || isIncompleteMermaidOutput(visual)) {
-          console.warn("[visual] incomplete or truncated Mermaid; not caching", { finishReason, tail: visual && visual.slice(-80) });
-          visual = "";
+        const isTruncated = finishReason === "MAX_TOKENS" || isIncompleteMermaidOutput(visual);
+        if (!visual || isTruncated) {
+          console.warn("[Visual] Rejected: truncated or empty", { finishReason, tail: visual && visual.slice(-80) });
+          return new Response(JSON.stringify({ visual: null, reason: "truncated" }), {
+            status: 200, headers: { ...visCorsHeaders, "Content-Type": "application/json" }
+          });
         }
 
-        if (visual) {
-          try {
-            await env.WIDGET_KV.put(cacheKey, visual, { expirationTtl: 30 * 24 * 60 * 60 });
-          } catch (kvErr) {
-            console.error("KV cache write failed (likely daily limit):", kvErr.message);
-          }
+        try {
+          await env.WIDGET_KV.put(cacheKey, visual, { expirationTtl: 30 * 24 * 60 * 60 });
+        } catch (kvErr) {
+          console.error("KV cache write failed (likely daily limit):", kvErr.message);
         }
 
-        return new Response(JSON.stringify({ visual: visual || null }), {
+        return new Response(JSON.stringify({ visual }), {
           status: 200, headers: { ...visCorsHeaders, "Content-Type": "application/json" }
         });
 
@@ -655,21 +656,23 @@ async function handleNotion(resource, request, env) {
 }
 
 // ── Helpers ──
-/** True if string is missing graph, too short, or last line ends mid-edge (truncated output). */
+/** True if string is missing graph, too short, last line ends mid-edge, or unbalanced brackets/quotes. */
 function isIncompleteMermaidOutput(s) {
   if (!s || typeof s !== "string") return true;
   let t = s.trim();
   if (!t) return true;
   t = t.replace(/^```mermaid\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/i, "").trim();
-  const graphIdx = t.search(/\bgraph\s+(TD|LR)\b/i);
+  const graphIdx = t.search(/\b(graph|flowchart)\s+(TD|LR|BT|RL)\b/i);
   if (graphIdx === -1) return true;
   t = t.slice(graphIdx).trim();
   const lines = t.split(/\n/).map((l) => l.trim()).filter((l) => l.length > 0);
   if (lines.length < 2) return true;
   const last = lines[lines.length - 1];
-  /* Ends with arrow (optional |label|) but no target node */
   if (/(?:-->|--o)(?:\|[^|]*\|)?\s*$/i.test(last)) return true;
   if (/--\s*$/.test(last)) return true;
+  if (/-->[\s|]*$/.test(last)) return true;
+  if ((last.match(/\[/g) || []).length > (last.match(/\]/g) || []).length) return true;
+  if ((last.match(/"/g) || []).length % 2 !== 0) return true;
   return false;
 }
 
