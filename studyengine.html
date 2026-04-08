@@ -3044,71 +3044,31 @@ input[type="range"]::-moz-range-thumb{
       return '#8b5cf6'; /* default purple */
     }
 
-    /* ── Course Objectives ── */
-    var OBJECTIVES = {
-      retention: {
-        label: 'Long-Term Retention',
-        icon: '🧠',
-        retentionOverride: null,
-        tierProfileMod: {},
-        bloomBonusMod: 1.0,
-        sessionSizeMod: 1.0
-      },
-      exam: {
-        label: 'Exam Prep',
-        icon: '📝',
-        retentionOverride: 0.85,
-        tierProfileMod: { quickfire: 1.3, explain: 1.2, apply: 0.8, distinguish: 0.7, mock: 0.6 },
-        bloomBonusMod: 0.5,
-        sessionSizeMod: 1.0
-      },
-      mastery: {
-        label: 'Mastery',
-        icon: '⚔️',
-        retentionOverride: 0.95,
-        tierProfileMod: { quickfire: 0.5, explain: 0.9, apply: 1.4, distinguish: 1.4, mock: 1.5 },
-        bloomBonusMod: 1.5,
-        sessionSizeMod: 1.0
-      }
-    };
-
-    var OBJECTIVE_LABELS = { retention: 'Long-Term Retention', exam: 'Exam Prep', mastery: 'Mastery' };
-
-    function getCourseObjective(courseName) {
-      var c = getCourse(courseName);
-      return (c && c.objective) ? c.objective : 'retention';
-    }
+    /* ── Exam-Aware Scheduling (replaces old objective modes) ── */
+    /* No separate "modes" — FSRS runs identically for all items.
+       The only modifier is whether a course has an exam date.
+       When an exam date is set and within 14 days, cram mode activates. */
 
     function getEffectiveRetention(courseName) {
-      var obj = OBJECTIVES[getCourseObjective(courseName)] || OBJECTIVES.retention;
-      if (obj.retentionOverride) return obj.retentionOverride;
+      /* If exam is imminent, slightly lower retention target to increase review volume */
+      var cram = getCramState(courseName);
+      if (cram.active && cram.intensity === 'critical') return Math.min(settings.desiredRetention || 0.90, 0.85);
+      if (cram.active && cram.intensity === 'high') return Math.min(settings.desiredRetention || 0.90, 0.87);
       return settings.desiredRetention || 0.90;
     }
 
     function getEffectiveProfile(courseName) {
       var examType = getCourseExamType(courseName);
       var base = deepClone(TIER_PROFILES[examType] || TIER_PROFILES.mixed);
-      var obj = OBJECTIVES[getCourseObjective(courseName)] || OBJECTIVES.retention;
-      var mod = obj.tierProfileMod || {};
-      for (var t in base) {
-        if (mod[t]) base[t] = base[t] * mod[t];
-      }
-      /* Renormalize to sum to 1 */
-      var total = 0;
-      for (var t2 in base) total += base[t2];
-      if (total > 0) {
-        for (var t3 in base) base[t3] = base[t3] / total;
-      }
+      /* No objective-based modification — exam type alone shapes tier distribution */
       return base;
     }
 
     function getEffectiveBloomBonus(courseName) {
-      var obj = OBJECTIVES[getCourseObjective(courseName)] || OBJECTIVES.retention;
-      var mod = obj.bloomBonusMod || 1.0;
+      /* Flat — no objective-based scaling. Bloom bonuses always apply at their natural rate. */
       var result = {};
       for (var t in BLOOM_STABILITY_BONUS) {
-        var base = BLOOM_STABILITY_BONUS[t];
-        result[t] = 1.0 + (base - 1.0) * mod;
+        result[t] = BLOOM_STABILITY_BONUS[t];
       }
       return result;
     }
@@ -3116,7 +3076,7 @@ input[type="range"]::-moz-range-thumb{
     /* ── Cram Mode Detection ── */
     function getCramState(courseName) {
       var c = getCourse(courseName);
-      if (!c || !c.examDate || c.objective !== 'exam') return { active: false };
+      if (!c || !c.examDate) return { active: false };
       var examTs = new Date(c.examDate + 'T23:59:59').getTime();
       var now = Date.now();
       var daysUntil = Math.max(0, (examTs - now) / (1000 * 60 * 60 * 24));
@@ -3708,22 +3668,15 @@ input[type="range"]::-moz-range-thumb{
           if (f && f.lastReview) { retSum += retrievability(f, now); retN++; }
         }
         var retPct = retN ? Math.round((retSum / retN) * 100) : null;
-        var objData = OBJECTIVES[c.objective || 'retention'] || OBJECTIVES.retention;
-        var examInfo = '';
-        if (c.examDate && c.objective === 'exam') {
-          var daysUntil = Math.ceil((new Date(c.examDate + 'T23:59:59').getTime() - now) / (1000 * 60 * 60 * 24));
-          if (daysUntil > 0) examInfo = '<span class="cc-date">📅 ' + daysUntil + 'd</span>';
-          else if (daysUntil === 0) examInfo = '<span class="cc-date" style="color:var(--rate-again);">📅 Today</span>';
-        }
+        var cramState = getCramState(c.name);
         var courseCol = c.color || '#8b5cf6';
         h += '<div class="course-card" data-course-name="' + esc(c.name) + '" style="border-left-color:' + esc(courseCol) + '">' +
           '<div class="cc-left">' +
-            '<div class="cc-name">' + esc(c.name) + '</div>' +
-            '<div class="cc-meta">' +
-              '<span class="cc-exam-type">' + esc(EXAM_TYPE_LABELS[c.examType] || c.examType) + '</span>' +
-              '<span class="cc-exam-type">' + objData.icon + ' ' + esc(objData.label) + '</span>' +
-              examInfo +
-            '</div>' +
+          '<div class="cc-name">' + esc(c.name) + '</div>' +
+          '<div class="cc-meta">' +
+          '<span class="cc-exam-type">' + esc(EXAM_TYPE_LABELS[c.examType] || c.examType) + '</span>' +
+          (c.examDate ? '<span class="cc-exam-type" style="border-color:rgba(239,68,68,0.2);color:var(--rate-again);background:rgba(239,68,68,0.06);">' + (cramState.active ? '🔥 Cram' : '📅 Exam set') + '</span>' : '<span class="cc-exam-type" style="border-color:rgba(34,197,94,0.2);color:var(--rate-good);background:rgba(34,197,94,0.06);">🧠 Long-term</span>') +
+          '</div>' +
           '</div>' +
           '<div style="text-align:right;">' +
             '<div class="cc-due">' + due + '</div>' +
@@ -5881,7 +5834,7 @@ input[type="range"]::-moz-range-thumb{
       courses.forEach(function(c) {
         var ck = courseKey(c.name);
         var examLabel = EXAM_TYPE_LABELS[c.examType] || c.examType;
-        var objLabel = OBJECTIVE_LABELS[c.objective || 'retention'] || 'Long-Term Retention';
+        var objLabel = c.examDate ? (getCramState(c.name).active ? '🔥 Cram' : '📅 Exam set') : '🧠 Long-term';
         var examDate = c.examDate ? '<span class="cc-date">Exam: ' + c.examDate + '</span>' : '';
         var itemCount = 0;
         var archivedCount = 0;
@@ -5925,40 +5878,26 @@ input[type="range"]::-moz-range-thumb{
         h += '<div class="color-swatch' + (i === 0 ? ' active' : '') + '" data-color="' + c.value + '" style="background:' + c.value + '" title="' + c.name + '"></div>';
       });
       h += '</div></div>' +
-        '<div class="course-form-row">' +
+          '<div class="course-form-row">' +
           '<div class="field">' +
-            '<label>Exam format</label>' +
-            '<select id="nc_examType" class="input">' +
-              '<option value="mc">Multiple Choice</option>' +
-              '<option value="short_answer">Short Answer</option>' +
-              '<option value="essay">Essay</option>' +
-              '<option value="mixed" selected>Mixed</option>' +
-            '</select>' +
-            '<div id="nc_examTypeDesc" class="help" style="margin-top:6px;line-height:1.5;"></div>' +
-          '</div>' +
-          '<div class="field">' +
-            '<label>Exam date (optional)</label>' +
-            '<input type="date" id="nc_examDate" class="input">' +
-            '<div id="nc_examDateDesc" class="help" style="line-height:1.5;"></div>' +
-          '</div>' +
-        '</div>' +
-        '<div class="field">' +
-          '<label>Learning objective</label>' +
-          '<select id="nc_objective" class="input">' +
-            '<option value="retention" selected>🧠 Long-Term Retention</option>' +
-            '<option value="exam">📝 Exam Prep</option>' +
-            '<option value="mastery">⚔️ Deep Mastery</option>' +
+          '<label>Exam format</label>' +
+          '<select id="nc_examType" class="input">' +
+          '<option value="mc">Multiple Choice</option>' +
+          '<option value="short_answer">Short Answer</option>' +
+          '<option value="essay">Essay</option>' +
+          '<option value="mixed" selected>Mixed</option>' +
           '</select>' +
-          '<div id="nc_objectiveDesc" class="help" style="margin-top:6px;line-height:1.5;"></div>' +
+          '<div id="nc_examTypeDesc" class="help" style="margin-top:6px;line-height:1.5;"></div>' +
+          '</div>' +
+          '<div class="field">' +
+          '<label>Exam date (optional)</label>' +
+          '<input type="date" id="nc_examDate" class="input">' +
+          '<div id="nc_examDateDesc" class="help" style="line-height:1.5;"><span class="info-icon" tabindex="0">ⓘ</span> When set, the engine activates cram mode as the date approaches — reviews intensify, session sizes increase, and your weakest cards are prioritised automatically. When left empty, FSRS schedules reviews for long-term retention at your configured desired retention rate.</div>' +
+          '</div>' +
         '</div>';
 
       courseModalBody.innerHTML = h;
 
-      var objDescriptions = {
-        retention: '🧠 Balanced, long-haul learning — reviews are spaced for maximum durability. Cards come back at widening intervals so knowledge sticks for months and years. Best when you have time before the exam or want permanent understanding.',
-        exam: '📝 Aggressive short-term prep — increases review frequency and session sizes, prioritises your weakest cards first. Cram mode activates automatically as the exam date approaches. Best within 2 weeks of an exam.',
-        mastery: '⚔️ Deep understanding over speed — emphasises higher-order practice (Apply, Distinguish, Mock) and sets a strict 95% retention target. You will review more often, but build genuine expertise. Best for conceptual subjects.'
-      };
       var examTypeDescriptions = {
         mc: 'Emphasises Quick Fire (recall speed) and Distinguish (eliminating wrong answers). Good for exams where recognition and discrimination matter most.',
         short_answer: 'Balances Quick Fire with Explain It. Practises producing concise, accurate written answers from memory.',
@@ -5975,27 +5914,7 @@ input[type="range"]::-moz-range-thumb{
         update();
       }
 
-      wireDescriptionUpdater('nc_objective', 'nc_objectiveDesc', objDescriptions);
       wireDescriptionUpdater('nc_examType', 'nc_examTypeDesc', examTypeDescriptions);
-
-      var examDateDescriptions = {
-        retention: 'Optional. Tracks days remaining but does not change your review schedule.',
-        exam: 'Activates cram mode as your exam approaches — reviews intensify and session sizes increase automatically.',
-        mastery: 'Optional. Tracks days remaining but does not change your review schedule.'
-      };
-
-      function updateExamDateDesc() {
-        var objSel = el('nc_objective');
-        var desc = el('nc_examDateDesc');
-        if (!objSel || !desc) return;
-        desc.textContent = examDateDescriptions[objSel.value] || examDateDescriptions.retention;
-      }
-
-      var ncObjSel = el('nc_objective');
-      if (ncObjSel) {
-        ncObjSel.addEventListener('change', updateExamDateDesc);
-        updateExamDateDesc();
-      }
 
       /* Wire colour picker swatches */
       var ncColorPicker = el('nc_colorPicker');
@@ -6015,10 +5934,9 @@ input[type="range"]::-moz-range-thumb{
       var name = (el('nc_name').value || '').trim();
       if (!name) { toast('Enter a course name'); return; }
       if (state.courses[name]) { toast('Course already exists'); return; }
-      var examType = (el('nc_examType').value || 'mixed');
-      var examDate = (el('nc_examDate').value || '').trim() || null;
-      var objective = (el('nc_objective') && el('nc_objective').value) || 'retention';
-      var colorPicker = el('nc_colorPicker');
+        var examType = (el('nc_examType').value || 'mixed');
+        var examDate = (el('nc_examDate').value || '').trim() || null;
+        var colorPicker = el('nc_colorPicker');
       var selectedColor = '#8b5cf6';
       if (colorPicker) {
         var activeSwatch = colorPicker.querySelector('.color-swatch.active');
@@ -6028,7 +5946,6 @@ input[type="range"]::-moz-range-thumb{
         name: name,
         examType: examType,
         examDate: examDate,
-        objective: objective,
         color: selectedColor,
         manualMode: false,
         created: isoNow()
@@ -6047,83 +5964,42 @@ input[type="range"]::-moz-range-thumb{
 
       if (row.style.display === 'block') { row.style.display = 'none'; row.innerHTML = ''; return; }
 
-      var objOptions = '<option value="retention"' + (c.objective === 'retention' || !c.objective ? ' selected' : '') + '>🧠 Long-Term Retention</option>' +
-        '<option value="exam"' + (c.objective === 'exam' ? ' selected' : '') + '>📝 Exam Prep</option>' +
-        '<option value="mastery"' + (c.objective === 'mastery' ? ' selected' : '') + '>⚔️ Mastery</option>';
+      /* Objective modes removed — scheduling is driven by exam date presence */
 
       var editId = 'edit_' + Date.now();
 
       row.innerHTML =
-        '<div style="padding:10px 0;">' +
-          '<div class="course-form-row">' +
-            '<div class="field">' +
-              '<label>Colour</label>' +
-              '<div class="color-picker" id="' + editId + '_colorPicker">' +
-                (function() { var ch = ''; COURSE_COLORS.forEach(function(cc) { var isAct = (c.color || '#8b5cf6') === cc.value; ch += '<div class="color-swatch' + (isAct ? ' active' : '') + '" data-color="' + cc.value + '" style="background:' + cc.value + '" title="' + cc.name + '"></div>'; }); return ch; })() +
-              '</div>' +
-            '</div>' +
-            '<div class="field">' +
-              '<label>Exam type</label>' +
-              '<select id="' + editId + '_examType" class="input">' +
-                '<option value="mc"' + (c.examType === 'mc' ? ' selected' : '') + '>Multiple Choice</option>' +
-                '<option value="short_answer"' + (c.examType === 'short_answer' ? ' selected' : '') + '>Short Answer</option>' +
-                '<option value="essay"' + (c.examType === 'essay' ? ' selected' : '') + '>Essay</option>' +
-                '<option value="mixed"' + (c.examType === 'mixed' || !c.examType ? ' selected' : '') + '>Mixed</option>' +
-              '</select>' +
-            '</div>' +
-            '<div class="field">' +
-              '<label>Exam date</label>' +
-              '<input type="date" id="' + editId + '_examDate" class="input" value="' + esc(c.examDate || '') + '">' +
-              '<div id="' + editId + '_examDateDesc" class="help" style="margin-top:6px;line-height:1.5;"></div>' +
-            '</div>' +
-          '</div>' +
-          '<div class="field">' +
-            '<label>Objective</label>' +
-            '<select id="' + editId + '_objective" class="input">' + objOptions + '</select>' +
-            '<div class="obj-desc-inline" id="' + editId + '_objDesc" style="margin-top:6px;font-size:10px;color:var(--text-tertiary);line-height:1.5;"></div>' +
-          '</div>' +
-          '<div style="display:flex;gap:8px;margin-top:8px;">' +
-            '<button class="ghost-btn" id="' + editId + '_save" style="flex:1;">Save changes</button>' +
-            '<button class="ghost-btn" id="' + editId + '_cancel" style="flex:0 0 auto;min-width:auto;padding:10px 14px;">✕</button>' +
-          '</div>' +
+        '<div style="padding:10px;">' +
+        '<div class="course-form-row">' +
+        '<div class="field">' +
+        '<label>Colour</label>' +
+        '<div class="color-picker" id="' + editId + '_colorPicker">' +
+        (function() { var ch = ''; COURSE_COLORS.forEach(function(cc) { var isAct = (c.color || '#8b5cf6') === cc.value; ch += '<div class="color-swatch' + (isAct ? ' active' : '') + '" data-color="' + cc.value + '" style="background:' + cc.value + '"></div>'; }); return ch; })() +
+        '</div>' +
+        '</div>' +
+        '<div class="field">' +
+        '<label>Exam type</label>' +
+        '<select class="input" id="' + editId + '_examType">' +
+        '<option value="mc"' + (c.examType === 'mc' ? ' selected' : '') + '>Multiple Choice</option>' +
+        '<option value="short_answer"' + (c.examType === 'short_answer' ? ' selected' : '') + '>Short Answer</option>' +
+        '<option value="essay"' + (c.examType === 'essay' ? ' selected' : '') + '>Essay</option>' +
+        '<option value="mixed"' + (c.examType === 'mixed' ? ' selected' : '') + '>Mixed</option>' +
+        '</select>' +
+        '</div>' +
+        '</div>' +
+        '<div class="field">' +
+        '<label>Exam date <span class="info-icon" tabindex="0">ⓘ<span class="info-tooltip visible">When set, cram mode activates automatically as the date approaches — reviews intensify, session sizes increase, and your weakest cards are prioritised. When empty, FSRS schedules reviews for long-term retention.<span class="tip-arrow"></span></span></span></label>' +
+        '<input type="date" class="input" id="' + editId + '_examDate" value="' + (c.examDate || '') + '">' +
+        '</div>' +
+        '<div style="display:flex;gap:8px;margin-top:10px;">' +
+        '<button class="ghost-btn" id="' + editId + '_save">Save changes</button>' +
+        '<button class="ghost-btn" id="' + editId + '_cancel" style="min-width:auto;padding:8px 12px;">✕</button>' +
+        '</div>' +
         '</div>';
 
       row.style.display = 'block';
 
-      var objDescMap = {
-        retention: '🧠 Balanced, long-haul learning. Reviews are spaced for maximum durability. Best when you have time and want knowledge that sticks for years.',
-        exam: '📝 Aggressive short-term prep. Increases review frequency and prioritises weaker cards. Best within 2 weeks of an exam.',
-        mastery: '⚔️ Deep understanding over speed. Emphasises higher-order tiers (Apply, Distinguish, Mock). Best for conceptual subjects where surface recall is not enough.'
-      };
-
-      function updateObjDesc() {
-        var sel = el(editId + '_objective');
-        var desc = el(editId + '_objDesc');
-        if (sel && desc) desc.textContent = objDescMap[sel.value] || '';
-      }
-
-      var objSel = el(editId + '_objective');
-      if (objSel) {
-        objSel.addEventListener('change', updateObjDesc);
-        updateObjDesc();
-      }
-
-      var editExamDateDescs = {
-        retention: 'Optional. Tracks days remaining but does not change your review schedule.',
-        exam: 'Activates cram mode as your exam approaches — reviews intensify automatically.',
-        mastery: 'Optional. Tracks days remaining but does not change your review schedule.'
-      };
-
-      function updateEditExamDateDesc() {
-        var sel = el(editId + '_objective');
-        var desc = el(editId + '_examDateDesc');
-        if (sel && desc) desc.textContent = editExamDateDescs[sel.value] || editExamDateDescs.retention;
-      }
-
-      if (objSel) {
-        objSel.addEventListener('change', updateEditExamDateDesc);
-        updateEditExamDateDesc();
-      }
+      /* No objective wiring needed — exam date tooltip is static */
 
       var saveBtn = el(editId + '_save');
       if (saveBtn) {
@@ -6135,7 +6011,6 @@ input[type="range"]::-moz-range-thumb{
           }
           c.examType = (el(editId + '_examType') && el(editId + '_examType').value) || 'mixed';
           c.examDate = ((el(editId + '_examDate') && el(editId + '_examDate').value) || '').trim() || null;
-          c.objective = ((el(editId + '_objective') && el(editId + '_objective').value) || 'retention');
           saveCourse(c);
           toast('Course updated');
           renderCourseModal();
@@ -7219,16 +7094,16 @@ input[type="range"]::-moz-range-thumb{
       }
 
       /* Badges */
-      var obj = getCourseObjective(courseName);
-      var objData = OBJECTIVES[obj] || OBJECTIVES.retention;
-      var badges = '<span class="cd-badge objective-' + obj + '">' + objData.icon + ' ' + objData.label + '</span>';
+      var examStatus = c.examDate ? (getCramState(c.name).active ? '🔥 Cram Mode Active' : '📅 Exam Date Set') : '🧠 Long-Term Retention';
+      var examBadgeClass = c.examDate ? (getCramState(c.name).active ? 'objective-exam' : 'objective-exam') : 'objective-retention';
+      var badges = '<span class="cd-badge ' + examBadgeClass + '">' + examStatus + '</span>';
       badges += '<span class="cd-badge">' + esc(EXAM_TYPE_LABELS[c.examType] || c.examType) + '</span>';
       if (c.manualMode) badges += '<span class="cd-badge" style="border-color:rgba(245,158,11,0.3);color:#f59e0b;">Manual</span>';
       el('cdBadges').innerHTML = badges;
 
       /* Countdown */
       var countdownEl = el('cdCountdown');
-      if (c.examDate && c.objective === 'exam') {
+      if (c.examDate) {
         var daysUntil = Math.ceil((new Date(c.examDate + 'T23:59:59').getTime() - Date.now()) / (1000 * 60 * 60 * 24));
         if (daysUntil > 0) {
           countdownEl.style.display = 'block';

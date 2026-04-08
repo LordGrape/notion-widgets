@@ -240,6 +240,17 @@
 - `migrateItems()` runs on boot: auto-creates course entries for orphaned course tags, adds variants field.
 - Import JSON: items only need prompt + modelAnswer + course. Optional fields enable more tiers.
 - Mode toggle (General/Law School) removed. Replaced by per-course examType setting.
+
+## Study Engine — Scheduling Model (post-refactor)
+- NO separate learning objective modes. There is one unified FSRS-based scheduler.
+- The only modifier is the `examDate` field on each course:
+  - No exam date → pure long-term retention (FSRS at user's configured desired retention)
+  - Exam date set → cram mode activates automatically within 14 days (intensity scales: low/moderate/high/critical)
+  - Cram mode adjusts: session size multiplier, interval compression, retention target floor, lowest-stability-first ordering
+- Exam type (mc/short_answer/essay/mixed) still controls TIER_PROFILES (which tiers are weighted in sessions)
+- BLOOM_STABILITY_BONUS applies uniformly — no objective-based scaling
+- The `objective` field may still exist on old course objects in SyncEngine state — it is simply ignored
+
 # Study Engine v3 — Analytics & Objectives
 - Course objectives: retention (default), exam, mastery. Stored in course.objective field.
 - OBJECTIVES config: each objective modifies desiredRetention, tier profile weights, Bloom bonus multiplier, and session size.
