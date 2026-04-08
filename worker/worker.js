@@ -173,6 +173,7 @@ SCORING RULES:
 
 IMPROVEMENT SUGGESTION RULES:
 - Give ONE specific, actionable suggestion. Not "study more" — tell them exactly WHAT to add, fix, or restructure.
+- Provide 2-5 inline annotations on specific phrases from the STUDENT'S RESPONSE. Each annotation highlights a span of their text and tags it. Tags: "accurate" (correct claim), "partial" (right direction but vague/incomplete), "inaccurate" (factual error), "missing" (key omission area — annotate the phrase where it should have been elaborated), "insight" (goes beyond model answer). Keep annotated text spans short (5-20 words from the student's actual text).
 
 Respond in this EXACT JSON format and nothing else:
 {
@@ -180,7 +181,10 @@ Respond in this EXACT JSON format and nothing else:
   "depth": { "score": 0, "feedback": "One specific sentence referencing the student's response." },
   "clarity": { "score": 0, "feedback": "One specific sentence referencing the student's response." },${isDistinguish ? '\n  "discrimination": { "score": 0, "feedback": "One specific sentence about whether the student correctly distinguished between the two concepts." },' : ''}
   "improvement": "One specific, actionable sentence.",
-  "summary": "One sentence overall assessment that tells the student where they stand."
+  "summary": "One sentence overall assessment that tells the student where they stand.",
+  "annotations": [
+    { "text": "exact short phrase from student response", "tag": "accurate|partial|inaccurate|missing|insight", "note": "Brief explanation of why this phrase is tagged this way." }
+  ]
 }`;
         }
 

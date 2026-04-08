@@ -296,3 +296,14 @@
 - Info tooltips use position: fixed + JS positioning (positionTooltip/hideTooltip) — never position: absolute inside overflow containers
 - Settings use .mode-toggle pill groups, NOT <select> elements — ensures dark mode compatibility
 - Pill groups read via data-setting attribute + .mode-btn.active on save
+
+## Study Engine — Post-Reveal Layout
+- After reveal on generative tiers, the session card uses a two-column `.reveal-columns` grid:
+  - Left: `.user-response-locked` (user's text with inline annotation highlights)
+  - Right: model answer + `#aiFeedbackRight` (AI feedback panel)
+- Inline annotations come from the worker's `/studyengine/grade` response (`annotations[]` array)
+- `applyInlineAnnotations()` does fuzzy string matching to highlight spans in the locked response
+- Annotation tooltip uses `#annoTip` (fixed-position, shown on hover)
+- `#revealColumnsWrap` is created by `revealAnswer()` and removed by `renderCurrentItem()` on next card
+- Quick Fire tier does NOT use side-by-side layout (no user text to compare)
+- Standalone max-width is 1400px to use full-screen real estate during study sessions
