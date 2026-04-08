@@ -8184,6 +8184,26 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ── Focus mode: isolate one course in manage modal ── */
+    function focusCourseModalItem(row) {
+      var wrapper = row.parentElement;
+      if (!wrapper || wrapper === courseModalBody) return;
+      Array.from(courseModalBody.children).forEach(function(child) {
+        if (child !== wrapper) {
+          child.dataset.hiddenByFocus = '1';
+          child.style.display = 'none';
+        }
+      });
+    }
+    function unfocusCourseModalItems() {
+      Array.from(courseModalBody.children).forEach(function(child) {
+        if (child.dataset.hiddenByFocus) {
+          delete child.dataset.hiddenByFocus;
+          child.style.display = '';
+        }
+      });
+    }
+
     /* Global helpers for inline course actions */
     window.openEditCourse = function(name) {
       var c = getCourse(name);
@@ -8191,7 +8211,7 @@ input[type="range"]::-moz-range-thumb{
       var row = el('editRow_' + courseKey(name));
       if (!row) return;
 
-      if (row.style.display === 'block') { row.style.display = 'none'; row.innerHTML = ''; return; }
+      if (row.style.display === 'block') { row.style.display = 'none'; row.innerHTML = ''; unfocusCourseModalItems(); return; }
 
       /* Objective modes removed — scheduling is driven by exam date presence */
 
@@ -8252,6 +8272,7 @@ input[type="range"]::-moz-range-thumb{
         cancelBtn.addEventListener('click', function() {
           row.style.display = 'none';
           row.innerHTML = '';
+          unfocusCourseModalItems();
         });
       }
 
@@ -8268,6 +8289,7 @@ input[type="range"]::-moz-range-thumb{
         });
       }
 
+      focusCourseModalItem(row);
       if (window.gsap) gsap.fromTo(row, { opacity: 0, y: -4 }, { opacity: 1, y: 0, duration: 0.25, ease: 'power2.out' });
     };
 
@@ -8275,7 +8297,7 @@ input[type="range"]::-moz-range-thumb{
       var row = el('deleteRow_' + courseKey(name));
       if (!row) return;
 
-      if (row.style.display === 'block') { row.style.display = 'none'; row.innerHTML = ''; return; }
+      if (row.style.display === 'block') { row.style.display = 'none'; row.innerHTML = ''; unfocusCourseModalItems(); return; }
 
       var itemCount = 0;
       for (var id in state.items) {
@@ -8334,9 +8356,11 @@ input[type="range"]::-moz-range-thumb{
         cancelBtn.addEventListener('click', function() {
           row.style.display = 'none';
           row.innerHTML = '';
+          unfocusCourseModalItems();
         });
       }
 
+      focusCourseModalItem(row);
       if (window.gsap) gsap.fromTo(row, { opacity: 0, y: -4 }, { opacity: 1, y: 0, duration: 0.2, ease: 'power2.out' });
     };
 
