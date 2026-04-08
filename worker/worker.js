@@ -359,60 +359,44 @@ Respond in this EXACT JSON format and nothing else:
           }
         }
 
-        const visualPrompt = `You generate a SINGLE compact Mermaid.js diagram that serves as a spatial memory cue for a flashcard. The goal is dual coding: the student reads the text AND glances at a small diagram that encodes the structural relationship they need to recall.
+        const visualPrompt = `You are generating a Mermaid.js diagram for a spaced repetition study card. The diagram must be EDUCATIONALLY MEANINGFUL — it should help the student recall the concept's internal structure, not just decorate the card.
 
-Course: ${course || "Unknown"}
-Topic: ${topic || "General"}
-Card tier: ${tier || "explain"}
+COURSE: ${course || "Unknown"}
+TOPIC: ${topic || "General"}
+TIER: ${tier || "explain"}
 
-Question: ${prompt}
-Answer: ${modelAnswer}
+QUESTION: ${prompt}
+ANSWER: ${modelAnswer}
 ${conceptA ? `Concept A: ${conceptA}` : ""}
 ${conceptB ? `Concept B: ${conceptB}` : ""}
 
-DIAGRAM RULES (strict):
-1. Output ONLY raw Mermaid markup. No code fences, no backticks, no explanation text.
-2. Use graph TD or graph LR only. No mindmap, no sequenceDiagram, no pie, no other chart types.
-3. EXACTLY 3 to 5 nodes. Never fewer, never more. This is a thumbnail, not a textbook figure.
-4. Each node label is 2-5 words max. Use abbreviations if needed (e.g. "MFN Principle" not "Most-Favoured-Nation Principle requires all WTO members to treat each other equally").
-5. Encode RELATIONAL STRUCTURE, not labels. The diagram must show one of these patterns:
-   - CAUSAL CHAIN: A causes B causes C (mechanism)
-   - CONTRAST: A vs B, with a shared parent or distinguishing arrow labels
-   - HIERARCHY: A contains/governs B and C (classification)
-   - PROCESS: Step 1 → Step 2 → Step 3 (sequence)
-6. Arrow labels are optional but powerful. Use "|label|" syntax to show the relationship type (e.g. -->|"requires"| or -->|"contrast"|). Keep labels to 1-3 words.
-7. Use node shapes meaningfully:
-   - ["text"] rectangle = concept/entity
-   - ("text") rounded = process/action
-   - {"text"} diamond = decision/condition
-   - (["text"]) stadium = outcome/result
-8. Do NOT just restate the question as a single node. The diagram must encode information that helps RECALL the answer.
-9. The student will see this diagram at thumbnail size (~120px tall). Design for glanceability.
+DIAGRAM STRATEGY BY TIER:
+- quickfire: Show the key fact's context — where it fits in a classification, timeline, or hierarchy.
+- explain: Show the causal chain or mechanism — WHY something works, with cause → effect arrows.
+- apply: Show rule → fact mapping — how the principle connects to the scenario's specific elements.
+- distinguish: Show a COMPARISON — two parallel branches with the distinguishing criteria highlighted.
+- mock: Show the argument structure — thesis, supporting points, counter-arguments.
 
-${tier === "distinguish" ? `DISTINGUISH TIER: You MUST show both Concept A and Concept B as separate nodes with a shared parent or a contrast arrow. Show the distinguishing criterion on the edge label.` : ""}
-${tier === "quickfire" ? `QUICKFIRE TIER: Show the key fact embedded in a minimal causal chain or hierarchy. The student sees this BEFORE answering — it should prime spatial recall without giving away the answer directly.` : ""}
-${tier === "explain" || tier === "apply" || tier === "mock" ? `GENERATIVE TIER: The student sees this AFTER answering. Show the core mechanism or structure from the model answer so they can compare their mental model against the diagram.` : ""}
+STRICT RULES:
+1. Output ONLY valid Mermaid markup. No code fences, no prose, no explanation before or after.
+2. Use graph TD or graph LR. Do NOT use mindmap (rendering issues), sequenceDiagram, pie, or other diagram types.
+3. Node labels must use FULL WORDS drawn from the question or answer. NEVER abbreviate concepts into opaque acronyms (no "DSU", "Comp", "Dev" alone). Use recognizable names from the material (e.g. "Development as Freedom", "Capabilities Approach").
+4. Edge labels should describe the RELATIONSHIP (e.g. "expands", "requires", "distinguishes", "causes"). Use -->|"label"| syntax.
+5. Use 5-12 nodes. Fewer than 5 is too vague; more than 12 is cluttered for a small display.
+6. Every node must map to a real idea from the question or answer. Do not invent unrelated concepts.
+7. The diagram must be self-contained — a student should grasp the structure from the diagram alone.
+8. The diagram is shown at thumbnail size; keep labels concise in length but never at the cost of meaning — prefer short phrases of real terms, not acronyms.
 
-EXAMPLES of good 3-5 node diagrams:
+EXAMPLE (for "What are the five instrumental freedoms in Sen's framework?"):
 
-Example 1 (causal chain):
 graph TD
-    A["Bretton Woods 1944"] -->|"created"| B["IMF"]
-    A -->|"created"| C["World Bank"]
-    B -->|"monetary stability"| D(["Exchange Rate Order"])
-    C -->|"development loans"| E(["Post-War Reconstruction"])
-
-Example 2 (contrast):
-graph LR
-    P["WTO Membership"] -->|"Single Undertaking"| ALL["Accept ALL agreements"]
-    P -->|"Old GATT"| PICK["Cherry-pick agreements"]
-    ALL -->|"no opt-out"| R(["Universal obligation"])
-
-Example 3 (hierarchy):
-graph TD
-    MFN["MFN Principle"] --> A["Treat all members equally"]
-    MFN --> B["No preferential tariffs"]
-    A --> C(["Exception: FTAs/RTAs"])`;
+    A["Development as Freedom"] -->|"requires"| B["Instrumental Freedoms"]
+    B --> C["Political Freedoms"]
+    B --> D["Economic Facilities"]
+    B --> E["Social Opportunities"]
+    B --> F["Transparency Guarantees"]
+    B --> G["Protective Security"]
+    C & D & E & F & G -->|"expand"| H["Individual Agency"]`;
 
         const geminiRes = await fetch(
           "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + env.GEMINI_API_KEY,
@@ -421,7 +405,7 @@ graph TD
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               contents: [{ parts: [{ text: visualPrompt }] }],
-              generationConfig: { temperature: 0.25, maxOutputTokens: 1536 }
+              generationConfig: { temperature: 0.3, maxOutputTokens: 2048 }
             })
           }
         );
