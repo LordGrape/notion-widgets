@@ -105,7 +105,7 @@
       line-height: 1.45;
     }
     body.standalone textarea{
-      min-height: 120px;
+      min-height: 160px;
       font-size: 12px;
     }
     body.standalone .answer{
@@ -1242,6 +1242,75 @@
       animation: ambientGlow 3s ease-in-out infinite;
     }
     .restudy-screen.show{ display: block; }
+
+/* ── Restudy Mode: animate existing answer block ── */
+.answer.restudy-active{
+  font-size: 16px;
+  line-height: 1.7;
+  border-color: rgba(var(--accent-rgb),0.40);
+  box-shadow: 0 0 30px rgba(var(--accent-rgb),0.10), 0 0 60px rgba(var(--accent-rgb),0.05);
+  max-height: 420px;
+  position: relative;
+}
+body.standalone .answer.restudy-active{
+  font-size: 17px;
+  max-height: 520px;
+}
+.restudy-bar{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(var(--accent-rgb),0.14);
+  background: rgba(var(--accent-rgb),0.04);
+}
+.restudy-bar .rb-icon{
+  font-size: 14px;
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+.restudy-bar .rb-label{
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+.restudy-bar .rb-progress{
+  flex: 1;
+  height: 4px;
+  border-radius: 99px;
+  background: rgba(var(--accent-rgb),0.10);
+  overflow: hidden;
+}
+.restudy-bar .rb-progress > div{
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, rgba(var(--accent-rgb),0.8), rgba(var(--accent-rgb),0.4));
+  border-radius: 99px;
+  transition: width 250ms linear;
+}
+.restudy-bar .rb-timer{
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+  min-width: 28px;
+  text-align: right;
+}
+.restudy-elaboration{
+  margin-top: 8px;
+  font-size: 10px;
+  font-style: italic;
+  color: var(--text-secondary);
+  letter-spacing: 0.2px;
+  text-align: center;
+  opacity: 0.8;
+}
     .restudy-screen .rs-header{
       display: flex;
       align-items: center;
@@ -1323,7 +1392,7 @@
 
     textarea{
       width: 100%;
-      min-height: 90px;
+      min-height: 120px;
       resize: none;
       border-radius: 16px;
       border: 1px solid rgba(var(--accent-rgb),0.16);
@@ -1357,6 +1426,9 @@
       border: 1px solid rgba(var(--accent-rgb),0.12);
       background: rgba(var(--accent-rgb),0.03);
       min-width: 0;
+    }
+    .two-col.single{
+      grid-template-columns: 1fr !important;
     }
     .panel .p-h{
       font-size: 8px;
@@ -5669,6 +5741,13 @@ input[type="range"]::-moz-range-thumb{
       if (breakHint) breakHint.classList.remove('show');
       var restudyScreen = el('restudyScreen');
       if (restudyScreen) restudyScreen.classList.remove('show');
+      modelAnswerEl.classList.remove('restudy-active');
+      var oldBarAtRender = document.getElementById('restudyBarInline');
+      if (oldBarAtRender) {
+        var oldElabAtRender = oldBarAtRender.nextElementSibling;
+        if (oldElabAtRender && oldElabAtRender.classList.contains('restudy-elaboration')) oldElabAtRender.remove();
+        oldBarAtRender.remove();
+      }
       el('timerBar').classList.remove('show');
       el('metaTimer').style.display = 'none';
       el('timerFill').style.width = '0%';
@@ -5758,7 +5837,7 @@ input[type="range"]::-moz-range-thumb{
         if (qfVisual) setTimeout(initMermaidBlocks, 50);
       } else if (tier === 'explain') {
         tierArea.innerHTML = '' +
-          '<div class="two-col">' +
+          '<div class="two-col single">' +
             '<div class="panel">' +
               '<div class="p-h">Your response</div>' +
               '<textarea id="userText" rows="3" placeholder="Write your explanation. Focus on key mechanisms, not wording."></textarea>' +
@@ -6298,22 +6377,45 @@ input[type="range"]::-moz-range-thumb{
       if (mappedRating === 1) {
         session.loops[it.id] = againCount + 1;
 
-        /* Structured restudy phase with adaptive duration.
-           Research chain:
-           1) Arnold & McDermott (2013): failed retrieval primes deeper encoding on subsequent restudy.
-           2) Pastötter et al. (2017): potentiation effect is strongest with brief restudy; longer windows dilute the advantage.
-           3) Duration scales with reading time, not tier or cram state. */
-        var restudyScreen = el('restudyScreen');
-        var restudyAnswer = el('restudyAnswer');
-        var restudyTimerEl = el('restudyTimer');
-        var restudyProgress = el('restudyProgress');
+        /* Structured restudy phase — animate existing answer block.
+           Research: Arnold & McDermott (2013), Pastötter et al. (2017).
+           Instead of duplicating the answer in a separate panel, we enlarge
+           the existing model answer block to draw focus for re-encoding. */
         var restudyDuration = calcRestudyDuration(it.modelAnswer);
 
-        /* Populate restudy screen */
-        if (restudyAnswer) restudyAnswer.innerHTML = '<div class="md-content">' + renderMd(it.modelAnswer || '') + '</div>';
-        if (restudyTimerEl) restudyTimerEl.textContent = Math.ceil(restudyDuration / 1000) + 's';
-        if (restudyProgress) restudyProgress.style.width = '0%';
-        if (restudyScreen) restudyScreen.classList.add('show');
+        /* Inject inline timer bar + elaboration below the answer block */
+        var restudyBarId = 'restudyBarInline';
+        var existingBar = document.getElementById(restudyBarId);
+        if (existingBar) existingBar.remove();
+
+        var barHTML = '<div id="' + restudyBarId + '" class="restudy-bar">' +
+          '<span class="rb-icon">🔁</span>' +
+          '<span class="rb-label">Re-encode</span>' +
+          '<div class="rb-progress"><div id="rbProgressFill"></div></div>' +
+          '<span class="rb-timer" id="rbTimer">' + Math.ceil(restudyDuration / 1000) + 's</span>' +
+          '</div>' +
+          '<div class="restudy-elaboration">Why is this the correct answer? How does it connect to what you already know?</div>';
+        modelAnswerEl.insertAdjacentHTML('afterend', barHTML);
+
+        /* Animate the existing answer block into restudy mode */
+        modelAnswerEl.classList.add('restudy-active');
+        modelAnswerEl.scrollTop = 0;
+
+        if (window.gsap) {
+          gsap.to(modelAnswerEl, {
+            duration: 0.5,
+            ease: 'power2.out',
+            boxShadow: '0 0 30px rgba(var(--accent-rgb),0.10), 0 0 60px rgba(var(--accent-rgb),0.05)'
+          });
+          var barEl = document.getElementById(restudyBarId);
+          if (barEl) {
+            gsap.fromTo(barEl, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.35, delay: 0.15, ease: 'power2.out' });
+          }
+          var elabEl = barEl ? barEl.nextElementSibling : null;
+          if (elabEl && elabEl.classList.contains('restudy-elaboration')) {
+            gsap.fromTo(elabEl, { opacity: 0 }, { opacity: 0.8, duration: 0.4, delay: 0.3, ease: 'power2.out' });
+          }
+        }
 
         studyIndicator.classList.add('show');
         try { playError(); } catch(e) {}
@@ -6324,17 +6426,15 @@ input[type="range"]::-moz-range-thumb{
         restudyIntervalTimer = setInterval(function() {
           var elapsed = Date.now() - restudyStart;
           var remaining = Math.max(0, Math.ceil((restudyDuration - elapsed) / 1000));
-          if (restudyTimerEl) restudyTimerEl.textContent = remaining + 's';
-          if (restudyProgress) restudyProgress.style.width = Math.min(100, Math.round((elapsed / restudyDuration) * 100)) + '%';
+          var rbTimer = document.getElementById('rbTimer');
+          var rbFill = document.getElementById('rbProgressFill');
+          if (rbTimer) rbTimer.textContent = remaining + 's';
+          if (rbFill) rbFill.style.width = Math.min(100, Math.round((elapsed / restudyDuration) * 100)) + '%';
           if (elapsed >= restudyDuration) {
             clearInterval(restudyIntervalTimer);
             restudyIntervalTimer = null;
           }
         }, 250);
-
-        if (window.gsap && restudyScreen) {
-          gsap.fromTo(restudyScreen, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' });
-        }
 
         if (restudyTimeoutTimer) { clearTimeout(restudyTimeoutTimer); restudyTimeoutTimer = null; }
         restudyTimeoutTimer = setTimeout(function() {
@@ -6342,7 +6442,19 @@ input[type="range"]::-moz-range-thumb{
 
           disableRatings(false);
           studyIndicator.classList.remove('show');
-          if (restudyScreen) restudyScreen.classList.remove('show');
+
+          /* Reverse the restudy animation on the answer block */
+          modelAnswerEl.classList.remove('restudy-active');
+          if (window.gsap) {
+            gsap.to(modelAnswerEl, { duration: 0.3, ease: 'power2.inOut', clearProps: 'boxShadow' });
+          }
+          /* Remove inline timer bar + elaboration */
+          var oldBar = document.getElementById('restudyBarInline');
+          if (oldBar) {
+            var oldElab = oldBar.nextElementSibling;
+            if (oldElab && oldElab.classList.contains('restudy-elaboration')) oldElab.remove();
+            oldBar.remove();
+          }
 
           if (session.loops[it.id] >= 3) {
             /* force-exit loop */
