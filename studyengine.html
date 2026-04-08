@@ -2684,6 +2684,11 @@
       0%,100%{ opacity: 1; }
       50%{ opacity: 0.85; }
     }
+    @keyframes syncPulse{
+      0%,100%{ opacity: 1; transform: scale(1); }
+      50%{ opacity: 0.75; transform: scale(0.97); }
+    }
+    .sync-saving{ animation: syncPulse 1s ease-in-out infinite; }
 
     /* ── Priority Badge (inline in meta row) ── */
     #metaPriority{
@@ -9879,14 +9884,29 @@ input[type="range"]::-moz-range-thumb{
 
       /* Show sync status badge */
       var syncBadge = el('syncBadge');
-      if (syncBadge) {
+      function setSyncBadge(status) {
+        if (!syncBadge) return;
         syncBadge.style.display = 'inline-block';
-        if (SyncEngine.isOnline()) {
+        syncBadge.classList.remove('sync-saving');
+        if (status === 'saving') {
+          syncBadge.textContent = '⏳ Saving';
+          syncBadge.title = 'Pushing changes to cloud...';
+          syncBadge.style.borderColor = 'rgba(245,158,11,0.3)';
+          syncBadge.style.color = '#f59e0b';
+          syncBadge.style.background = 'rgba(245,158,11,0.08)';
+          syncBadge.classList.add('sync-saving');
+        } else if (status === 'synced') {
           syncBadge.textContent = '☁️ Synced';
-          syncBadge.title = 'Connected to Cloudflare KV — data syncs across devices';
+          syncBadge.title = 'All changes saved to Cloudflare KV';
           syncBadge.style.borderColor = 'rgba(34,197,94,0.3)';
           syncBadge.style.color = '#22c55e';
           syncBadge.style.background = 'rgba(34,197,94,0.08)';
+        } else if (status === 'error') {
+          syncBadge.textContent = '⚠️ Retry';
+          syncBadge.title = 'Sync failed — will retry automatically';
+          syncBadge.style.borderColor = 'rgba(239,68,68,0.3)';
+          syncBadge.style.color = '#ef4444';
+          syncBadge.style.background = 'rgba(239,68,68,0.08)';
         } else {
           syncBadge.textContent = '💾 Local';
           syncBadge.title = 'Local-only mode — enter sync passphrase to enable cross-device sync';
@@ -9895,6 +9915,10 @@ input[type="range"]::-moz-range-thumb{
           syncBadge.style.background = 'rgba(245,158,11,0.08)';
         }
       }
+      setSyncBadge(SyncEngine.isOnline() ? 'synced' : 'local');
+      SyncEngine.onSyncStatus(function(status) {
+        setSyncBadge(status);
+      });
     }
 
     SyncEngine.onReady(function() {
