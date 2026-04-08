@@ -6145,19 +6145,16 @@ input[type="range"]::-moz-range-thumb{
         else if (mappedRating === 4) { playEasyRate(); }
       } catch(e) {}
 
-      /* Fatigue detection — rolling window of last 6 ratings
-         Research basis: Bjork & Bjork (2011) — difficulty is desirable only when
-         the learner has cognitive resources to meet it. Sustained low ratings
-         signal fatigue, not productive struggle. */
-      session.recentRatings.push(mappedRating);
-      if (session.recentRatings.length > 6) session.recentRatings.shift();
-      if (!session.fatigueWarningShown && session.recentRatings.length >= 6) {
-        var recentAvg = session.recentRatings.reduce(function(a, b) { return a + b; }, 0) / session.recentRatings.length;
-        if (recentAvg < 1.5) {
-          session.fatigueWarningShown = true;
-          toast('Your last 6 ratings averaged ' + recentAvg.toFixed(1) + '. Consider a break — even 20 min of rest improves subsequent encoding.');
-        }
+      /* Only track ratings on REVIEW cards for fatigue detection.
+         New cards (reps <= 1) produce low ratings during normal first-exposure
+         learning. Including them would false-trigger fatigue warnings when the
+         student is learning, not fatiguing. */
+      var isReviewCard = it.fsrs && it.fsrs.reps && it.fsrs.reps > 1;
+      if (isReviewCard) {
+        session.recentRatings.push(mappedRating);
+        if (session.recentRatings.length > 6) session.recentRatings.shift();
       }
+      /* Fatigue detection now handled by break system (checkBreakTriggers) */
 
       /* Streak + review counts */
       state.stats.totalReviews = (state.stats.totalReviews || 0) + 1;
