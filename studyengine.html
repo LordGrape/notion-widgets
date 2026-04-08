@@ -3009,6 +3009,17 @@ input[type="range"]::-moz-range-thumb{
       mixed:        { quickfire: 0.25, explain: 0.25, apply: 0.20, distinguish: 0.15, mock: 0.15 }
     };
 
+    /* ── Cram Tier Modifier (shifts tier distribution under time pressure) ── */
+    /* Research basis: Dunlosky et al. (2013) — practice testing utility is highest
+       when high-frequency and low-stakes. Under severe time constraints, maximise
+       retrieval attempts per unit time by favouring fast-cycle tiers. */
+    var CRAM_TIER_MOD = {
+      critical: { quickfire: 1.6, explain: 1.3, apply: 0.7, distinguish: 0.8, mock: 0.2 },
+      high:     { quickfire: 1.3, explain: 1.2, apply: 0.9, distinguish: 0.9, mock: 0.5 },
+      moderate: { quickfire: 1.1, explain: 1.1, apply: 1.0, distinguish: 1.0, mock: 0.8 },
+      low:      { quickfire: 1.0, explain: 1.0, apply: 1.0, distinguish: 1.0, mock: 1.0 }
+    };
+
     /* ── Bloom Stability Bonus (higher tier = stronger memory trace on success) ── */
     var BLOOM_STABILITY_BONUS = {
       quickfire: 1.0,
@@ -3060,7 +3071,20 @@ input[type="range"]::-moz-range-thumb{
     function getEffectiveProfile(courseName) {
       var examType = getCourseExamType(courseName);
       var base = deepClone(TIER_PROFILES[examType] || TIER_PROFILES.mixed);
-      /* No objective-based modification — exam type alone shapes tier distribution */
+      /* Apply cram tier modifier when exam is imminent */
+      var cram = getCramState(courseName);
+      if (cram.active && CRAM_TIER_MOD[cram.intensity]) {
+        var mod = CRAM_TIER_MOD[cram.intensity];
+        for (var t in base) {
+          if (mod[t]) base[t] = base[t] * mod[t];
+        }
+        /* Renormalize to sum to 1 */
+        var total = 0;
+        for (var t2 in base) total += base[t2];
+        if (total > 0) {
+          for (var t3 in base) base[t3] = base[t3] / total;
+        }
+      }
       return base;
     }
 
@@ -4053,13 +4077,29 @@ input[type="range"]::-moz-range-thumb{
         });
       }
 
-      /* Cram mode: sort by lowest stability first (most fragile knowledge) */
-      if (cram.active && cram.intensity === 'critical') {
+      /* Cram mode: stability-aware interleaving
+         Research basis: Brunmair & Richter (2019) — interleaving benefits hold
+         under time pressure. Pure stability sorting creates blocked practice.
+         Fix: sort by stability, chunk into quartile bands, interleave within bands. */
+      if (cram.active && (cram.intensity === 'critical' || cram.intensity === 'high')) {
+        /* Sort by stability ascending (weakest first) */
         queue.sort(function(a, b) {
           var sa = (a.fsrs && a.fsrs.stability) ? a.fsrs.stability : 0;
           var sb = (b.fsrs && b.fsrs.stability) ? b.fsrs.stability : 0;
           return sa - sb;
         });
+        /* Chunk into quartile bands */
+        var bandSize = Math.max(1, Math.ceil(queue.length / 4));
+        var bands = [];
+        for (var bi = 0; bi < queue.length; bi += bandSize) {
+          bands.push(queue.slice(bi, bi + bandSize));
+        }
+        /* Interleave within each band (by course + tier) */
+        var interleavedQueue = [];
+        bands.forEach(function(band) {
+          interleavedQueue = interleavedQueue.concat(interleaveQueue(band));
+        });
+        queue = interleavedQueue;
       }
 
       /* 8. Interleave: alternate tiers + courses for spacing */
@@ -4170,7 +4210,9 @@ input[type="range"]::-moz-range-thumb{
         ratingSum: 0,
         ratingN: 0,
         calBefore: calibrationPct(state.calibration),
-        confidence: null  /* 'low' | 'medium' | 'high' — set before reveal on quickfire */
+        confidence: null,  /* 'low' | 'medium' | 'high' — set before reveal on quickfire */
+        recentRatings: [], /* rolling window for fatigue detection */
+        fatigueWarningShown: false /* only show once per session */
       };
       sessionSummary = null;
       if (!q.length) return;
@@ -4702,6 +4744,20 @@ input[type="range"]::-moz-range-thumb{
       session.ratingN += 1;
       try { playLap(); } catch(e) {}
 
+      /* Fatigue detection — rolling window of last 6 ratings
+         Research basis: Bjork & Bjork (2011) — difficulty is desirable only when
+         the learner has cognitive resources to meet it. Sustained low ratings
+         signal fatigue, not productive struggle. */
+      session.recentRatings.push(mappedRating);
+      if (session.recentRatings.length > 6) session.recentRatings.shift();
+      if (!session.fatigueWarningShown && session.recentRatings.length >= 6) {
+        var recentAvg = session.recentRatings.reduce(function(a, b) { return a + b; }, 0) / session.recentRatings.length;
+        if (recentAvg < 1.5) {
+          session.fatigueWarningShown = true;
+          toast('Your last 6 ratings averaged ' + recentAvg.toFixed(1) + '. Consider a break — even 20 min of rest improves subsequent encoding.');
+        }
+      }
+
       /* Streak + review counts */
       state.stats.totalReviews = (state.stats.totalReviews || 0) + 1;
       state.stats.reviewsByTier[tier] = (state.stats.reviewsByTier[tier] || 0) + 1;
@@ -4736,8 +4792,14 @@ input[type="range"]::-moz-range-thumb{
             return;
           }
 
-          /* Re-queue item at end of current session */
-          session.queue.push(it);
+          /* Re-queue with minimum spacing offset
+             Research basis: Cepeda et al. (2006) — optimal inter-study interval
+             scales with retention interval. Even within a session, a minimum gap
+             of ~5 items ensures spacing rather than near-immediate re-encounter. */
+          var remainingItems = session.queue.length - (session.idx + 1);
+          var minOffset = Math.max(5, Math.floor(remainingItems * 0.4));
+          var insertPos = Math.min(session.idx + 1 + minOffset, session.queue.length);
+          session.queue.splice(insertPos, 0, it);
           advanceItem();
         }, 10000);
         return;
@@ -4747,7 +4809,11 @@ input[type="range"]::-moz-range-thumb{
          - After an in-session failure, require Good/Easy to exit.
          - Hard keeps the item in-session (re-queued) without writing FSRS yet. */
       if (againCount > 0 && mappedRating === 2) {
-        session.queue.push(it);
+        /* Re-queue with minimum spacing (same logic as Again) */
+        var remainingItems2 = session.queue.length - (session.idx + 1);
+        var minOffset2 = Math.max(5, Math.floor(remainingItems2 * 0.4));
+        var insertPos2 = Math.min(session.idx + 1 + minOffset2, session.queue.length);
+        session.queue.splice(insertPos2, 0, it);
         advanceItem();
         return;
       }
