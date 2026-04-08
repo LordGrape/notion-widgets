@@ -3912,6 +3912,9 @@ input[type="range"]::-moz-range-thumb{
         <button class="icon-btn" id="settingsClose" aria-label="Close settings"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg></button>
       </div>
       <div class="modal-body" id="settingsBody"></div>
+      <div style="padding:0 14px 4px;">
+        <button id="exportStateBtn" class="ghost-btn" style="width:100%;text-align:center;">⬇ Export All Data (Backup)</button>
+      </div>
       <div class="modal-actions">
         <button class="big-btn" id="settingsSave">Save</button>
       </div>
@@ -7064,6 +7067,33 @@ input[type="range"]::-moz-range-thumb{
     function doImport() {
       var raw = (el('m_import').value || '').trim();
       if (!raw) { try { playError(); } catch(e) {} toast('Paste JSON first'); return; }
+
+      /* Full-state restore from backup file */
+      try {
+        var parsed = JSON.parse(raw);
+        if (parsed && parsed._export === 'studyengine-full-backup' && parsed.items) {
+          var count = Object.keys(parsed.items).length;
+          if (count > 0) {
+            state.items = parsed.items;
+            if (parsed.courses) state.courses = parsed.courses;
+            if (parsed.calibration) state.calibration = parsed.calibration;
+            if (parsed.stats) state.stats = parsed.stats;
+            if (parsed.settings) {
+              for (var k in parsed.settings) {
+                if (parsed.settings.hasOwnProperty(k)) settings[k] = parsed.settings[k];
+              }
+            }
+            reconcileStats();
+            saveState();
+            closeModal();
+            renderDashboard();
+            toast('Restored ' + count + ' items from backup');
+            try { playChime(); } catch(e2) {}
+            return;
+          }
+        }
+      } catch(e) { /* not a backup file, fall through to normal import */ }
+
       var arr = null;
       try { arr = JSON.parse(raw); } catch (e) { toast('Invalid JSON'); return; }
       if (!Array.isArray(arr)) { try { playError(); } catch(e) {} toast('Expected an array'); return; }
@@ -7387,6 +7417,31 @@ input[type="range"]::-moz-range-thumb{
       settingsOv.classList.add('show');
       settingsOv.setAttribute('aria-hidden','false');
       if (Core && Core.a11y && Core.a11y.trap) Core.a11y.trap(settingsOv);
+      var expBtn = el('exportStateBtn');
+      if (expBtn) {
+        expBtn.onclick = function() {
+          var exportData = {
+            _export: 'studyengine-full-backup',
+            _version: 1,
+            _date: new Date().toISOString(),
+            items: state.items || {},
+            courses: state.courses || {},
+            calibration: state.calibration || {},
+            stats: state.stats || {},
+            settings: settings || {}
+          };
+          var blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url;
+          a.download = 'studyengine-backup-' + new Date().toISOString().slice(0,10) + '.json';
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(function() { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+          toast('Backup downloaded');
+          try { playPresetSelect(); } catch(e) {}
+        };
+      }
   try { playOpen(); } catch(e) {}
     }
     function closeSettings() {
