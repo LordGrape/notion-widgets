@@ -3913,7 +3913,7 @@ input[type="range"]::-moz-range-thumb{
       </div>
       <div class="modal-body" id="settingsBody"></div>
       <div style="padding:0 14px 4px;">
-        <button id="exportStateBtn" class="ghost-btn" style="width:100%;text-align:center;">⬇ Export All Data (Backup)</button>
+        <button id="exportStateBtn" class="ghost-btn" style="width:100%;text-align:center;">📋 Copy All Data to Clipboard</button>
       </div>
       <div class="modal-actions">
         <button class="big-btn" id="settingsSave">Save</button>
@@ -7431,15 +7431,28 @@ input[type="range"]::-moz-range-thumb{
             stats: state.stats || {},
             settings: settings || {}
           };
-          var blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-          var url = URL.createObjectURL(blob);
-          var a = document.createElement('a');
-          a.href = url;
-          a.download = 'studyengine-backup-' + new Date().toISOString().slice(0,10) + '.json';
-          document.body.appendChild(a);
-          a.click();
-          setTimeout(function() { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
-          toast('Backup downloaded');
+          var jsonStr = JSON.stringify(exportData, null, 2);
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(jsonStr).then(function() {
+              toast('Backup copied to clipboard (' + Object.keys(exportData.items || {}).length + ' items)');
+            }).catch(function() {
+              /* Clipboard blocked — fall back to download */
+              dlFallback(jsonStr);
+            });
+          } else {
+            dlFallback(jsonStr);
+          }
+          function dlFallback(str) {
+            var blob = new Blob([str], { type: 'application/json' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = 'studyengine-backup-' + new Date().toISOString().slice(0,10) + '.json';
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(function() { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+            toast('Backup downloaded');
+          }
           try { playPresetSelect(); } catch(e) {}
         };
       }
