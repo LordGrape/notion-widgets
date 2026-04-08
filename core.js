@@ -2116,7 +2116,12 @@ let SyncEngine = (function() {
           retryTimer = null;
           _drainOfflineQueue();
           startPolling();
-          SyncEngine.flush();
+          notifySyncStatus('saving');
+          SyncEngine.flush().then(function() {
+            notifySyncStatus('synced');
+          }).catch(function() {
+            notifySyncStatus('error');
+          });
         }
       })
       .catch(function() {});

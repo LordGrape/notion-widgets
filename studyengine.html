@@ -8004,7 +8004,8 @@ input[type="range"]::-moz-range-thumb{
           else itemCount++;
         }
 
-        h += '<div class="course-list-item" id="cli_' + ck + '" style="border-left:5px solid ' + (c.color || '#8b5cf6') + ';">' +
+        h += '<div class="course-modal-item" id="cmi_' + ck + '">' +
+          '<div class="course-list-item" id="cli_' + ck + '" style="border-left:5px solid ' + (c.color || '#8b5cf6') + ';">' +
           '<div style="flex:1;min-width:0;">' +
             '<div class="cli-name">' + esc(c.name) + '</div>' +
             '<div style="display:flex;gap:6px;margin-top:4px;align-items:center;flex-wrap:wrap;">' +
@@ -8019,10 +8020,11 @@ input[type="range"]::-moz-range-thumb{
             '<button title="Edit course" onclick="openEditCourse(\'' + esc(c.name).replace(/'/g, "\\'") + '\')">✏️</button>' +
             '<button class="btn-delete" title="Delete course" onclick="startDeleteCourse(\'' + esc(c.name).replace(/'/g, "\\'") + '\')"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,4 13,4"/><path d="M6 4V2.5h4V4"/><path d="M4 4l.7 9.5a1 1 0 001 .9h4.6a1 1 0 001-.9L12 4"/></svg></button>' +
           '</div>' +
-        '</div>' +
-        '<div id="editRow_' + ck + '" style="display:none;"></div>' +
-        '<div id="deleteRow_' + ck + '" style="display:none;"></div>' +
-        '<div id="deckRow_' + ck + '" style="display:none;"></div>';
+          '</div>' +
+          '<div id="editRow_' + ck + '" style="display:none;"></div>' +
+          '<div id="deleteRow_' + ck + '" style="display:none;"></div>' +
+          '<div id="deckRow_' + ck + '" style="display:none;"></div>' +
+        '</div>';
       });
 
       /* Add course toggle button + collapsible form */
@@ -8185,8 +8187,8 @@ input[type="range"]::-moz-range-thumb{
 
     /* ── Focus mode: isolate one course in manage modal ── */
     function focusCourseModalItem(row) {
-      var wrapper = row.parentElement;
-      if (!wrapper || wrapper === courseModalBody) return;
+      var wrapper = row.closest('.course-modal-item');
+      if (!wrapper) return;
       Array.from(courseModalBody.children).forEach(function(child) {
         if (child !== wrapper) {
           child.dataset.hiddenByFocus = '1';
@@ -8363,6 +8365,118 @@ input[type="range"]::-moz-range-thumb{
       if (window.gsap) gsap.fromTo(row, { opacity: 0, y: -4 }, { opacity: 1, y: 0, duration: 0.2, ease: 'power2.out' });
     };
 
+    window.editCard = function(id) {
+      var it = state.items[id];
+      if (!it) { toast('Card not found'); return; }
+      var cardEl = document.querySelector('[data-card-id="' + id + '"]');
+      if (!cardEl) return;
+
+      /* Toggle: if already editing, close */
+      var existingForm = cardEl.querySelector('.edit-card-form');
+      if (existingForm) {
+        existingForm.remove();
+        return;
+      }
+
+      var formId = 'ef_' + Date.now();
+      var formHTML =
+        '<div class="edit-card-form" style="margin-top:10px;padding:14px;border-radius:16px;border:1px solid rgba(var(--accent-rgb),0.18);background:rgba(var(--accent-rgb),0.04);">' +
+        '<div style="font-size:8px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:10px;">Edit Card</div>' +
+        '<div class="field"><label>Prompt</label>' +
+        '<textarea id="' + formId + '_prompt" class="input" style="min-height:60px;resize:vertical;font-family:Inter,system-ui,sans-serif;font-size:11px;line-height:1.5;padding:10px 12px;">' + esc(it.prompt || '') + '</textarea></div>' +
+        '<div class="field"><label>Model Answer</label>' +
+        '<textarea id="' + formId + '_answer" class="input" style="min-height:80px;resize:vertical;font-family:Inter,system-ui,sans-serif;font-size:11px;line-height:1.5;padding:10px 12px;">' + esc(it.modelAnswer || '') + '</textarea></div>' +
+        '<div class="field"><label>Topic</label>' +
+        '<input id="' + formId + '_topic" class="input" value="' + esc(it.topic || '') + '" placeholder="Topic tag" /></div>' +
+        '<div class="field"><label>Scenario (optional)</label>' +
+        '<textarea id="' + formId + '_scenario" class="input" style="min-height:40px;resize:vertical;font-family:Inter,system-ui,sans-serif;font-size:11px;line-height:1.5;padding:10px 12px;">' + esc(it.scenario || '') + '</textarea></div>' +
+        '<div class="field"><label>Task (optional)</label>' +
+        '<input id="' + formId + '_task" class="input" value="' + esc(it.task || '') + '" placeholder="Apply It task instruction" /></div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
+        '<div class="field"><label>Concept A (optional)</label>' +
+        '<input id="' + formId + '_conceptA" class="input" value="' + esc(it.conceptA || '') + '" /></div>' +
+        '<div class="field"><label>Concept B (optional)</label>' +
+        '<input id="' + formId + '_conceptB" class="input" value="' + esc(it.conceptB || '') + '" /></div>' +
+        '</div>' +
+        '<div class="field"><label>Priority</label>' +
+        '<select id="' + formId + '_priority" class="input">' +
+        '<option value="critical"' + (it.priority === 'critical' ? ' selected' : '') + '>Critical</option>' +
+        '<option value="high"' + (it.priority === 'high' ? ' selected' : '') + '>High</option>' +
+        '<option value="medium"' + ((it.priority === 'medium' || !it.priority) ? ' selected' : '') + '>Medium</option>' +
+        '<option value="low"' + (it.priority === 'low' ? ' selected' : '') + '>Low</option>' +
+        '</select></div>' +
+        '<div style="display:flex;gap:8px;margin-top:10px;">' +
+        '<button id="' + formId + '_save" class="ghost-btn" style="flex:1;background:rgba(34,197,94,0.08);border-color:rgba(34,197,94,0.25);color:var(--rate-good);">Save changes</button>' +
+        '<button id="' + formId + '_cancel" class="ghost-btn" style="flex:0 0 auto;">Cancel</button>' +
+        '</div>' +
+        '</div>';
+
+      cardEl.insertAdjacentHTML('beforeend', formHTML);
+
+      var form = cardEl.querySelector('.edit-card-form');
+      if (window.gsap && form) gsap.fromTo(form, { opacity: 0, y: -4 }, { opacity: 1, y: 0, duration: 0.25, ease: 'power2.out' });
+
+      var saveBtn = el(formId + '_save');
+      if (saveBtn) {
+        saveBtn.addEventListener('click', function() {
+          var newPrompt = (el(formId + '_prompt').value || '').trim();
+          var newAnswer = (el(formId + '_answer').value || '').trim();
+          if (!newPrompt || !newAnswer) { toast('Prompt and model answer are required'); return; }
+
+          it.prompt = newPrompt;
+          it.modelAnswer = newAnswer;
+          it.topic = (el(formId + '_topic').value || '').trim();
+          it.priority = el(formId + '_priority').value || 'medium';
+
+          var newScenario = (el(formId + '_scenario').value || '').trim();
+          var newTask = (el(formId + '_task').value || '').trim();
+          var newConceptA = (el(formId + '_conceptA').value || '').trim();
+          var newConceptB = (el(formId + '_conceptB').value || '').trim();
+
+          if (newScenario) it.scenario = newScenario; else delete it.scenario;
+          if (newTask) it.task = newTask; else delete it.task;
+          if (newConceptA) it.conceptA = newConceptA; else delete it.conceptA;
+          if (newConceptB) it.conceptB = newConceptB; else delete it.conceptB;
+
+          /* Regenerate visual if prompt/answer changed significantly */
+          it.visual = null;
+          state.items[id] = it;
+          saveState();
+
+          /* Async visual regeneration */
+          generateVisual(it).then(function(visual) {
+            if (visual) {
+              it.visual = visual;
+              state.items[id] = it;
+              saveState();
+            }
+          }).catch(function() {});
+
+          toast('Card updated');
+          try { playPresetSelect(); } catch(e) {}
+
+          /* Re-render the deck to reflect changes */
+          var courseName = it.course;
+          viewCourseDeck(courseName); /* close */
+          viewCourseDeck(courseName); /* reopen with updated data */
+        });
+      }
+
+      var cancelBtn = el(formId + '_cancel');
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', function() {
+          if (form) {
+            if (window.gsap) {
+              gsap.to(form, { opacity: 0, y: -4, duration: 0.15, ease: 'power2.in', onComplete: function() { form.remove(); } });
+            } else {
+              form.remove();
+            }
+          }
+          try { playClick(); } catch(e) {}
+        });
+      }
+    };
+
     window.confirmDeleteCourseNow = function(name) {
       deleteCourse(name);
       reconcileStats();
@@ -8376,7 +8490,7 @@ input[type="range"]::-moz-range-thumb{
       var row = el('deckRow_' + courseKey(name));
       if (!row) return;
 
-      if (row.style.display === 'block') { row.style.display = 'none'; row.innerHTML = ''; return; }
+      if (row.style.display === 'block') { row.style.display = 'none'; row.innerHTML = ''; unfocusCourseModalItems(); return; }
 
       var items = [];
       for (var id in state.items) {
@@ -8390,6 +8504,7 @@ input[type="range"]::-moz-range-thumb{
           '<div style="font-size:10px;color:var(--text-secondary);text-align:center;">No cards in this course yet.</div>' +
         '</div>';
         row.style.display = 'block';
+        focusCourseModalItem(row);
         return;
       }
 
@@ -8411,10 +8526,11 @@ input[type="range"]::-moz-range-thumb{
           var retPct = Math.round(R * 100);
           var retColor = retPct >= 80 ? 'var(--rate-good)' : retPct >= 50 ? 'var(--rate-hard)' : 'var(--rate-again)';
           var promptPreview = (it.prompt || '').substring(0, 80) + ((it.prompt || '').length > 80 ? '…' : '');
-          h += '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px;border-radius:10px;border:1px solid rgba(var(--accent-rgb),0.08);background:rgba(var(--accent-rgb),0.02);margin-bottom:4px;">' +
+          h += '<div data-card-id="' + it.id + '" style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px;border-radius:10px;border:1px solid rgba(var(--accent-rgb),0.08);background:rgba(var(--accent-rgb),0.02);margin-bottom:4px;">' +
             '<div style="flex:1;min-width:0;font-size:10px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(promptPreview) + '</div>' +
             '<div style="flex-shrink:0;display:flex;align-items:center;gap:6px;">' +
               '<span style="font-size:9px;font-weight:700;color:' + retColor + ';">' + retPct + '%</span>' +
+              '<button style="border:none;background:rgba(59,130,246,0.10);color:#60a5fa;border-radius:6px;padding:3px 6px;font-size:9px;cursor:pointer;" onclick="editCard(\'' + it.id + '\')"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 2.5a1.8 1.8 0 012.5 2.5L6 13l-3.5 1 1-3.5z"/><line x1="9.5" y1="4.5" x2="12" y2="7"/></svg></button>' +
               '<button style="border:none;background:rgba(239,68,68,0.08);color:#ef4444;border-radius:6px;padding:3px 6px;font-size:9px;cursor:pointer;" onclick="deleteCard(\'' + it.id + '\',\'' + esc(name).replace(/'/g, "\\'") + '\')"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg></button>' +
             '</div>' +
           '</div>';
@@ -8424,6 +8540,7 @@ input[type="range"]::-moz-range-thumb{
       h += '</div>';
       row.innerHTML = h;
       row.style.display = 'block';
+      focusCourseModalItem(row);
 
       if (window.gsap) gsap.fromTo(row, { opacity: 0, y: -4 }, { opacity: 1, y: 0, duration: 0.25, ease: 'power2.out' });
     };
