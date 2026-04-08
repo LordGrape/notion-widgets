@@ -435,7 +435,7 @@ graph TD
           try {
             await env.WIDGET_KV.put(cacheKey, visual, { expirationTtl: 30 * 24 * 60 * 60 });
           } catch (kvErr) {
-            console.error("KV cache write failed (likely daily limit):", kvErr.message);
+            console.error("KV VISUAL CACHE WRITE ERROR:", JSON.stringify({ message: kvErr.message, name: kvErr.name, key: cacheKey }));
           }
         }
 
@@ -514,7 +514,7 @@ graph TD
           try {
             await env.WIDGET_KV.put(cacheKey, audioContent, { expirationTtl: 30 * 24 * 60 * 60 });
           } catch (kvErr) {
-            console.error("KV TTS cache write failed (likely daily limit):", kvErr.message);
+            console.error("KV TTS CACHE WRITE ERROR:", JSON.stringify({ message: kvErr.message, name: kvErr.name, key: cacheKey }));
           }
         }
 
@@ -580,7 +580,15 @@ graph TD
         try {
           await env.WIDGET_KV.put(key, JSON.stringify(newState));
         } catch (kvErr) {
-          console.error("KV state write failed (likely daily limit):", kvErr.message);
+          console.error(
+            "KV WRITE ERROR:",
+            JSON.stringify({
+              message: kvErr.message,
+              name: kvErr.name,
+              stack: kvErr.stack,
+              key
+            })
+          );
           return json({ error: "KV write failed", detail: kvErr.message, key, ok: false }, 503);
         }
         return json({ key, ok: true });
