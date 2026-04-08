@@ -255,6 +255,15 @@
     .icon-btn:hover{ transform: translateY(-1px); border-color: rgba(var(--accent-rgb),0.28); background: rgba(var(--accent-rgb),0.10); }
     .icon-btn:active{ transform: translateY(0) scale(0.98); }
 
+    .se-icon{
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      vertical-align: middle;
+      line-height: 0;
+      flex-shrink: 0;
+    }
+
     .view{
       display: none;
       padding: 16px;
@@ -2057,6 +2066,29 @@
       transform: translateY(-1px);
     }
 
+    /* ── Course Detail Settings Button ── */
+    .cd-settings-btn{
+      appearance: none;
+      border: 1px solid rgba(var(--accent-rgb),0.15);
+      background: rgba(var(--accent-rgb),0.06);
+      color: var(--text-secondary);
+      border-radius: 10px;
+      padding: 6px 8px;
+      cursor: pointer;
+      transition: transform var(--transition), background var(--transition), border-color var(--transition), color var(--transition);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .cd-settings-btn:hover{
+      transform: translateY(-1px);
+      background: rgba(var(--accent-rgb),0.12);
+      border-color: rgba(var(--accent-rgb),0.28);
+      color: var(--text);
+    }
+    .cd-settings-btn:active{ transform: translateY(0) scale(0.97); }
+
     /* Restore button — green treatment */
     .cd-restore-card{
       background: rgba(34,197,94,0.08) !important;
@@ -3196,7 +3228,7 @@ input[type="range"]::-moz-range-thumb{
             <button class="nav-tab" data-nav="courses" id="navCourses">Courses</button>
           </div>
           <div class="topbar-right">
-            <button class="icon-btn" id="gearBtn">⚙️</button>
+            <button class="icon-btn" id="gearBtn"><span class="se-icon"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.5"/><path d="M8 1.5v1.2M8 13.3v1.2M1.5 8h1.2M13.3 8h1.2M3.4 3.4l.85.85M11.75 11.75l.85.85M3.4 12.6l.85-.85M11.75 4.25l.85-.85"/></svg></span></button>
           </div>
         </div>
 
@@ -3243,7 +3275,7 @@ input[type="range"]::-moz-range-thumb{
             <div class="breakdown" id="tierBreakdown"></div>
 
             <div class="cram-banner" id="cramBanner">
-              <span class="cram-icon">⚡</span>
+              <span class="cram-icon" id="cramIcon"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="9,1.5 3.5,9 8,9 7,14.5 12.5,7 8,7"/></svg></span>
               <span class="cram-text" id="cramText">Cram mode active — exam in 2 days</span>
             </div>
 
@@ -3272,7 +3304,7 @@ input[type="range"]::-moz-range-thumb{
             </div>
 
             <div id="emptyState" class="empty-state" style="display:none">
-              <div class="empty-icon">🧠</div>
+              <div class="empty-icon"><svg width="36" height="36" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7"><path d="M8 14V8"/><path d="M5.5 8C3.5 8 2 6.5 2 4.8 2 3.2 3.3 2 5 2c.7 0 1.4.3 1.9.7C7.3 2.3 7.6 2 8 2s.7.3 1.1.7C9.6 2.3 10.3 2 11 2c1.7 0 3 1.2 3 2.8C14 6.5 12.5 8 10.5 8"/><path d="M4 8.5c-1.1.4-2 1.5-2 2.7C2 12.7 3.3 14 5 14h6c1.7 0 3-1.3 3-2.8 0-1.2-.9-2.3-2-2.7"/></svg></div>
               <div class="empty-title">No items yet</div>
               <div class="empty-desc">Add study items manually or import a JSON batch to start your first retrieval session.</div>
             </div>
@@ -3297,8 +3329,9 @@ input[type="range"]::-moz-range-thumb{
           <!-- ── COURSE DETAIL (overlays tab content) ── -->
           <div id="courseDetail" class="course-detail">
             <div class="cd-header">
-              <button class="cd-back" id="cdBack">← Back</button>
+              <button class="cd-back" id="cdBack"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px"><line x1="13" y1="8" x2="3" y2="8"/><polyline points="7,4 3,8 7,12"/></svg>Back</button>
               <div class="cd-title" id="cdTitle">—</div>
+              <button class="cd-settings-btn" id="cdSettingsBtn" title="Course settings"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.5"/><path d="M8 1.5v1.2M8 13.3v1.2M1.5 8h1.2M13.3 8h1.2M3.4 3.4l.85.85M11.75 11.75l.85.85M3.4 12.6l.85-.85M11.75 4.25l.85-.85"/></svg></button>
             </div>
             <div id="cdBadges" class="cd-badges"></div>
             <div class="cd-countdown" id="cdCountdown" style="display:none;">
@@ -3329,7 +3362,7 @@ input[type="range"]::-moz-range-thumb{
             <button class="big-btn" id="cdStartSession">Study this course</button>
             <div class="mini-actions">
               <button class="ghost-btn" id="cdAddCardBtn">＋ Add Card</button>
-              <button class="ghost-btn" id="cdImportBtn">📥 Import JSON</button>
+              <button class="ghost-btn" id="cdImportBtn"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><line x1="8" y1="2" x2="8" y2="10.5"/><polyline points="4.5,7 8,10.5 11.5,7"/><path d="M2.5 12.5h11"/></svg>Import JSON</button>
             </div>
           </div>
         </div>
@@ -3394,7 +3427,7 @@ input[type="range"]::-moz-range-thumb{
         <div class="view" id="viewDone">
           <!-- Celebration -->
           <div class="done-celebration" id="doneCelebration">
-            <div class="done-emoji">🎯</div>
+            <div class="done-emoji"><svg width="40" height="40" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="3.5"/><circle cx="8" cy="8" r="1"/></svg></div>
             <div class="done-headline" id="doneTitle">— items reviewed</div>
             <div class="done-subtitle" id="doneSub">—</div>
           </div>
@@ -3435,7 +3468,7 @@ input[type="range"]::-moz-range-thumb{
           <div class="tab active" data-tab="add" role="tab" aria-selected="true">Add Item</div>
           <div class="tab" data-tab="import" role="tab" aria-selected="false">Import JSON</div>
         </div>
-        <button class="icon-btn" id="modalClose" aria-label="Close">✕</button>
+        <button class="icon-btn" id="modalClose" aria-label="Close"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg></button>
       </div>
       <div class="modal-body">
         <div id="modalForm"></div>
@@ -3455,7 +3488,7 @@ input[type="range"]::-moz-range-thumb{
           <div style="font-size:10px; font-weight:900; letter-spacing:2px; text-transform:uppercase; color:var(--text)">Settings</div>
           <div style="font-size:9px; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis">Study Engine</div>
         </div>
-        <button class="icon-btn" id="settingsClose" aria-label="Close settings">✕</button>
+        <button class="icon-btn" id="settingsClose" aria-label="Close settings"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg></button>
       </div>
       <div class="modal-body" id="settingsBody"></div>
       <div class="modal-actions">
@@ -3469,7 +3502,7 @@ input[type="range"]::-moz-range-thumb{
     <div class="modal" style="max-width:520px;">
       <div class="modal-head">
         <span style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--text);">Manage Courses</span>
-        <button class="icon-btn" id="courseClose">✕</button>
+        <button class="icon-btn" id="courseClose"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg></button>
       </div>
       <div class="modal-body" id="courseModalBody"></div>
       <div class="modal-actions">
@@ -3480,7 +3513,7 @@ input[type="range"]::-moz-range-thumb{
 
   <div class="confirm-overlay" id="confirmExitOv">
     <div class="confirm-box">
-      <div class="cb-icon">⚠️</div>
+      <div class="cb-icon"><svg width="28" height="28" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.5L1.5 13.5h13z"/><line x1="8" y1="6.5" x2="8" y2="9.5"/><circle cx="8" cy="11.5" r="0.5" fill="currentColor" stroke="none"/></svg></div>
       <div class="cb-title">End session early?</div>
       <div class="cb-desc">Your progress on reviewed items is saved, but remaining items will not be scored. The FSRS schedule only updates for items you complete.</div>
       <div class="cb-actions">
@@ -3966,6 +3999,44 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* ── UI + Session Engine ── */
+    /* ═══════════════════════════════════════════
+       SVG ICON SYSTEM (Lucide-style, 16×16, 1.5px stroke)
+       All icons use currentColor — inherit from parent.
+       ═══════════════════════════════════════════ */
+    var ICONS = {
+      gear: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.5"/><path d="M8 1.5v1.2M8 13.3v1.2M1.5 8h1.2M13.3 8h1.2M3.4 3.4l.85.85M11.75 11.75l.85.85M3.4 12.6l.85-.85M11.75 4.25l.85-.85"/></svg>',
+      close: '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>',
+      plus: '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>',
+      brain: '<svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8 14V8"/><path d="M5.5 8C3.5 8 2 6.5 2 4.8 2 3.2 3.3 2 5 2c.7 0 1.4.3 1.9.7C7.3 2.3 7.6 2 8 2s.7.3 1.1.7C9.6 2.3 10.3 2 11 2c1.7 0 3 1.2 3 2.8C14 6.5 12.5 8 10.5 8"/><path d="M4 8.5c-1.1.4-2 1.5-2 2.7C2 12.7 3.3 14 5 14h6c1.7 0 3-1.3 3-2.8 0-1.2-.9-2.3-2-2.7"/></svg>',
+      book: '<svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12.5V3a1.5 1.5 0 011.5-1.5h9A1.5 1.5 0 0114 3v9.5"/><path d="M2 12.5A1.5 1.5 0 013.5 11h9a1.5 1.5 0 011.5 1.5v0a1.5 1.5 0 01-1.5 1.5h-9A1.5 1.5 0 012 12.5z"/></svg>',
+      target: '<svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="3.5"/><circle cx="8" cy="8" r="1"/></svg>',
+      zap: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="9,1.5 3.5,9 8,9 7,14.5 12.5,7 8,7"/></svg>',
+      flame: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.5c0 2.5 3.5 4 3.5 7a3.5 3.5 0 01-7 0C4.5 5.5 8 4 8 1.5z"/></svg>',
+      calendar: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="1.5"/><line x1="2" y1="6.5" x2="14" y2="6.5"/><line x1="5.5" y1="1.5" x2="5.5" y2="4"/><line x1="10.5" y1="1.5" x2="10.5" y2="4"/></svg>',
+      clipboard: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="2.5" width="9" height="12" rx="1.5"/><path d="M6 2.5V2a2 2 0 014 0v.5"/></svg>',
+      robot: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="10" height="8" rx="2"/><line x1="8" y1="2" x2="8" y2="5"/><circle cx="8" cy="1.5" r="0.8"/><circle cx="6" cy="9" r="1"/><circle cx="10" cy="9" r="1"/><line x1="1" y1="9" x2="3" y2="9"/><line x1="13" y1="9" x2="15" y2="9"/></svg>',
+      archive: '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2" width="13" height="3.5" rx="1"/><path d="M2.5 5.5V13a1 1 0 001 1h9a1 1 0 001-1V5.5"/><line x1="6.5" y1="8.5" x2="9.5" y2="8.5"/></svg>',
+      restore: '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,7 5,4 8,7"/><path d="M5 4v5a3 3 0 003 3h4"/></svg>',
+      edit: '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 2.5a1.8 1.8 0 012.5 2.5L6 13l-3.5 1 1-3.5z"/><line x1="9.5" y1="4.5" x2="12" y2="7"/></svg>',
+      trash: '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,4 13,4"/><path d="M6 4V2.5h4V4"/><path d="M4 4l.7 9.5a1 1 0 001 .9h4.6a1 1 0 001-.9L12 4"/></svg>',
+      warning: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.5L1.5 13.5h13z"/><line x1="8" y1="6.5" x2="8" y2="9.5"/><circle cx="8" cy="11.5" r="0.5" fill="currentColor" stroke="none"/></svg>',
+      download: '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="2" x2="8" y2="10.5"/><polyline points="4.5,7 8,10.5 11.5,7"/><path d="M2.5 12.5h11"/></svg>',
+      sparkle: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1v3M8 12v3M1 8h3M12 8h3M3.5 3.5l2 2M10.5 10.5l2 2M3.5 12.5l2-2M10.5 5.5l2-2"/></svg>',
+      notepad: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="1.5" width="10" height="13" rx="1.5"/><line x1="6" y1="5" x2="10" y2="5"/><line x1="6" y1="7.5" x2="10" y2="7.5"/><line x1="6" y1="10" x2="8.5" y2="10"/></svg>',
+      sword: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="13" x2="13" y2="3"/><polyline points="9,3 13,3 13,7"/><line x1="5" y1="8.5" x2="7.5" y2="11"/></svg>',
+      arrowLeft: '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="13" y1="8" x2="3" y2="8"/><polyline points="7,4 3,8 7,12"/></svg>',
+      check: '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3.5,8.5 6.5,11.5 12.5,4.5"/></svg>',
+      model: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="10" rx="1.5"/><polyline points="2,5 8,9 14,5"/></svg>'
+    };
+
+    function icon(name, size) {
+      var svg = ICONS[name] || '';
+      if (size) {
+        svg = svg.replace(/width="\d+"/, 'width="' + size + '"').replace(/height="\d+"/, 'height="' + size + '"');
+      }
+      return '<span class="se-icon" aria-hidden="true">' + svg + '</span>';
+    }
+
     var el = function(id){ return document.getElementById(id); };
     var viewDash = el('viewDash');
     var viewSession = el('viewSession');
@@ -4230,7 +4301,7 @@ input[type="range"]::-moz-range-thumb{
 
       if (!courses.length) {
         container.innerHTML = '<div class="empty-state" style="padding:20px 12px;">' +
-          '<div class="empty-icon">📚</div>' +
+          '<div class="empty-icon"><svg width="36" height="36" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7"><path d="M2 12.5V3a1.5 1.5 0 011.5-1.5h9A1.5 1.5 0 0114 3v9.5"/><path d="M2 12.5A1.5 1.5 0 013.5 11h9a1.5 1.5 0 011.5 1.5v0a1.5 1.5 0 01-1.5 1.5h-9A1.5 1.5 0 012 12.5z"/></svg></div>' +
           '<div class="empty-title">No courses yet</div>' +
           '<div class="empty-desc">Add a course to organise your study items and track per-course retention.</div>' +
         '</div>';
@@ -5060,7 +5131,7 @@ input[type="range"]::-moz-range-thumb{
       /* Show model answer for quickfire immediately */
       if (revealTier === 'quickfire') {
         var qfAnswerVisual = it.visual ? renderMermaidBlock(it.visual, 'answer') : '';
-        modelAnswerEl.innerHTML = '<div class="answer-header">📋 Model Answer</div><div class="md-content">' + renderMd(it.modelAnswer || '') + '</div>' + qfAnswerVisual;
+        modelAnswerEl.innerHTML = '<div class="answer-header"><span class="se-icon" style="margin-right:4px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="10" rx="1.5"/><polyline points="2,5 8,9 14,5"/></svg></span>Model Answer</div><div class="md-content">' + renderMd(it.modelAnswer || '') + '</div>' + qfAnswerVisual;
         modelAnswerEl.style.display = 'block';
         if (qfAnswerVisual) setTimeout(initMermaidBlocks, 50);
         ratingsEl.style.display = 'grid';
@@ -5085,7 +5156,7 @@ input[type="range"]::-moz-range-thumb{
 
       /* Show model answer */
       var answerVisual = it.visual ? renderMermaidBlock(it.visual, 'answer') : '';
-      modelAnswerEl.innerHTML = '<div class="answer-header">📋 Model Answer</div><div class="md-content">' + renderMd(it.modelAnswer || '') + '</div>' + answerVisual;
+      modelAnswerEl.innerHTML = '<div class="answer-header"><span class="se-icon" style="margin-right:4px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="10" rx="1.5"/><polyline points="2,5 8,9 14,5"/></svg></span>Model Answer</div><div class="md-content">' + renderMd(it.modelAnswer || '') + '</div>' + answerVisual;
       modelAnswerEl.style.display = 'block';
       if (answerVisual) setTimeout(initMermaidBlocks, 50);
 
@@ -5189,7 +5260,7 @@ input[type="range"]::-moz-range-thumb{
 
       var h = '<div class="ai-feedback">' +
         '<div class="af-header">' +
-          '<div class="af-icon">🤖</div>' +
+          '<div class="af-icon"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="10" height="8" rx="2"/><line x1="8" y1="2" x2="8" y2="5"/><circle cx="8" cy="1.5" r="0.8"/><circle cx="6" cy="9" r="1"/><circle cx="10" cy="9" r="1"/></svg></div>' +
           '<div class="af-title">AI Feedback</div>' +
         '</div>' +
         '<div class="af-score-row">' + scoreRowHTML + '</div>' +
@@ -6792,7 +6863,7 @@ input[type="range"]::-moz-range-thumb{
           '<div class="cli-actions">' +
             '<button title="View cards" onclick="viewCourseDeck(\'' + esc(c.name).replace(/'/g, "\\'") + '\')">📋</button>' +
             '<button title="Edit course" onclick="openEditCourse(\'' + esc(c.name).replace(/'/g, "\\'") + '\')">✏️</button>' +
-            '<button class="btn-delete" title="Delete course" onclick="startDeleteCourse(\'' + esc(c.name).replace(/'/g, "\\'") + '\')">🗑</button>' +
+            '<button class="btn-delete" title="Delete course" onclick="startDeleteCourse(\'' + esc(c.name).replace(/'/g, "\\'") + '\')"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,4 13,4"/><path d="M6 4V2.5h4V4"/><path d="M4 4l.7 9.5a1 1 0 001 .9h4.6a1 1 0 001-.9L12 4"/></svg></button>' +
           '</div>' +
         '</div>' +
         '<div id="editRow_' + ck + '" style="display:none;"></div>' +
@@ -7098,7 +7169,7 @@ input[type="range"]::-moz-range-thumb{
             '<div style="flex:1;min-width:0;font-size:10px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(promptPreview) + '</div>' +
             '<div style="flex-shrink:0;display:flex;align-items:center;gap:6px;">' +
               '<span style="font-size:9px;font-weight:700;color:' + retColor + ';">' + retPct + '%</span>' +
-              '<button style="border:none;background:rgba(239,68,68,0.08);color:#ef4444;border-radius:6px;padding:3px 6px;font-size:9px;cursor:pointer;" onclick="deleteCard(\'' + it.id + '\',\'' + esc(name).replace(/'/g, "\\'") + '\')">✕</button>' +
+              '<button style="border:none;background:rgba(239,68,68,0.08);color:#ef4444;border-radius:6px;padding:3px 6px;font-size:9px;cursor:pointer;" onclick="deleteCard(\'' + it.id + '\',\'' + esc(name).replace(/'/g, "\\'") + '\')"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg></button>' +
             '</div>' +
           '</div>';
         });
@@ -8025,7 +8096,7 @@ input[type="range"]::-moz-range-thumb{
         var cramState = getCramState(courseFilter);
         if (cramState.active) {
           cramEl.classList.add('show');
-          var labels = { critical: '⚡ CRAM MODE', high: '🔥 Exam soon', moderate: '📅 Exam approaching', low: '📋 Exam in range' };
+          var labels = { critical: 'CRAM MODE', high: 'Exam soon', moderate: 'Exam approaching', low: 'Exam in range' };
           cramTextEl.textContent = (labels[cramState.intensity] || 'Exam prep') + ' — ' + cramState.daysUntil + ' day' + (cramState.daysUntil !== 1 ? 's' : '') + ' remaining';
         } else {
           cramEl.classList.remove('show');
@@ -8459,7 +8530,7 @@ input[type="range"]::-moz-range-thumb{
           return aD - bD;
         });
         if (sortedIds.length === 0) {
-          cardListEl.innerHTML = '<div class="empty-state" style="padding:16px;"><div class="empty-icon">📝</div><div class="empty-title">No cards yet</div><div class="empty-desc">Add cards to this course to start studying.</div></div>';
+          cardListEl.innerHTML = '<div class="empty-state" style="padding:16px;"><div class="empty-icon"><svg width="36" height="36" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7"><rect x="3" y="1.5" width="10" height="13" rx="1.5"/><line x1="6" y1="5" x2="10" y2="5"/><line x1="6" y1="7.5" x2="10" y2="7.5"/><line x1="6" y1="10" x2="8.5" y2="10"/></svg></div><div class="empty-title">No cards yet</div><div class="empty-desc">Add cards to this course to start studying.</div></div>';
         } else {
           var clHTML = '';
           sortedIds.forEach(function(cid) {
@@ -8477,9 +8548,9 @@ input[type="range"]::-moz-range-thumb{
               '</div>' +
               '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">' +
               '<span style="font-size:10px;font-weight:700;color:' + retCol + ';">' + retDisplay + '</span>' +
-              '<button class="cd-edit-card" data-edit-id="' + esc(delId) + '" title="Edit card">✏️</button>' +
-              '<button class="cd-archive-card" data-archive-id="' + esc(delId) + '" title="Archive card">📦</button>' +
-                '<button class="cd-delete-card" data-delete-id="' + esc(delId) + '" title="Delete card permanently">✕</button>' +
+              '<button class="cd-edit-card" data-edit-id="' + esc(delId) + '" title="Edit card"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 2.5a1.8 1.8 0 012.5 2.5L6 13l-3.5 1 1-3.5z"/><line x1="9.5" y1="4.5" x2="12" y2="7"/></svg></button>' +
+              '<button class="cd-archive-card" data-archive-id="' + esc(delId) + '" title="Archive card"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2" width="13" height="3.5" rx="1"/><path d="M2.5 5.5V13a1 1 0 001 1h9a1 1 0 001-1V5.5"/><line x1="6.5" y1="8.5" x2="9.5" y2="8.5"/></svg></button>' +
+                '<button class="cd-delete-card" data-delete-id="' + esc(delId) + '" title="Delete card permanently"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg></button>' +
               '</div>' +
           '</div>' +
           '<div class="cd-edit-wrap" id="editWrap_' + delId + '"></div>';
@@ -8496,7 +8567,7 @@ input[type="range"]::-moz-range-thumb{
           var archiveHTML = '';
           if (archivedItems.length > 0) {
             archiveHTML = '<div class="archive-toggle" id="archiveToggle_' + courseKey(courseName) + '">' +
-              '<span class="archive-arrow">▶</span> 📦 Archived (' + archivedItems.length + ')' +
+              '<span class="archive-arrow">▶</span> <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><rect x="1.5" y="2" width="13" height="3.5" rx="1"/><path d="M2.5 5.5V13a1 1 0 001 1h9a1 1 0 001-1V5.5"/><line x1="6.5" y1="8.5" x2="9.5" y2="8.5"/></svg>Archived (' + archivedItems.length + ')' +
               '</div>' +
               '<div class="archive-section" id="archiveSection_' + courseKey(courseName) + '">';
             archivedItems.forEach(function(a) {
@@ -8506,8 +8577,8 @@ input[type="range"]::-moz-range-thumb{
               archiveHTML += '<div class="archive-item">' +
                 '<span class="ai-prompt">' + esc(aPreview) + '</span>' +
                 '<div class="ai-actions">' +
-                '<button class="cd-restore-card" data-restore-id="' + esc(aId) + '" title="Restore card">↩ Restore</button>' +
-                '<button class="cd-delete-card" data-delete-id="' + esc(aId) + '" title="Delete permanently">✕</button>' +
+                '<button class="cd-restore-card" data-restore-id="' + esc(aId) + '" title="Restore card"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px"><polyline points="2,7 5,4 8,7"/><path d="M5 4v5a3 3 0 003 3h4"/></svg>Restore</button>' +
+                '<button class="cd-delete-card" data-delete-id="' + esc(aId) + '" title="Delete permanently"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg></button>' +
                 '</div></div>';
             });
             archiveHTML += '</div>';
@@ -8628,6 +8699,23 @@ input[type="range"]::-moz-range-thumb{
 
       if (window.gsap) {
         gsap.fromTo(el('courseDetail'), { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' });
+      }
+
+      /* Wire course settings shortcut */
+      var cdSettingsBtn = el('cdSettingsBtn');
+      if (cdSettingsBtn) {
+        cdSettingsBtn.onclick = function() {
+          openCourseModal();
+          /* Auto-open the edit panel for this course after the modal renders */
+          setTimeout(function() {
+            if (typeof openEditCourse === 'function') {
+              openEditCourse(courseName);
+            } else if (typeof window.openEditCourse === 'function') {
+              window.openEditCourse(courseName);
+            }
+          }, 100);
+          try { playClick(); } catch(e) {}
+        };
       }
 
       var cdAddBtn = el('cdAddCardBtn');
