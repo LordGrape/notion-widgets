@@ -3635,6 +3635,7 @@ input[type="range"]::-moz-range-thumb{
             <button class="nav-tab" data-nav="courses" id="navCourses">Courses</button>
           </div>
           <div class="topbar-right">
+            <span id="syncBadge" title="Sync status" style="font-size:10px;padding:4px 8px;border-radius:999px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.04);color:var(--text-tertiary);letter-spacing:1px;font-weight:700;text-transform:uppercase;cursor:default;display:none;">⏳</span>
             <button class="icon-btn" id="gearBtn"><span class="se-icon"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.5"/><path d="M8 1.5v1.2M8 13.3v1.2M1.5 8h1.2M13.3 8h1.2M3.4 3.4l.85.85M11.75 11.75l.85.85M3.4 12.6l.85-.85M11.75 4.25l.85-.85"/></svg></span></button>
           </div>
         </div>
@@ -9826,6 +9827,7 @@ input[type="range"]::-moz-range-thumb{
       }, 200);
     });
 
+    var focusResyncBound = false;
     function boot() {
       loadState();
       /* Re-sync from SyncEngine when a remote device writes new state.
@@ -9839,6 +9841,26 @@ input[type="range"]::-moz-range-thumb{
           }
         }
       });
+      /* Re-pull from KV when tab/window regains focus (bridges embed↔standalone) */
+      if (!focusResyncBound) {
+        focusResyncBound = true;
+        document.addEventListener('visibilitychange', function() {
+          if (document.visibilityState === 'visible' && SyncEngine.isOnline()) {
+            SyncEngine.pull('studyengine').then(function() {
+              var freshItems = SyncEngine.get(NS, 'items');
+              if (freshItems && typeof freshItems === 'object') {
+                var freshCount = Object.keys(freshItems).length;
+                var localCount = state.items ? Object.keys(state.items).length : 0;
+                if (freshCount !== localCount) {
+                  loadState();
+                  renderDashboard();
+                  toast('Synced ' + freshCount + ' items from cloud');
+                }
+              }
+            }).catch(function() {});
+          }
+        });
+      }
       loadOptimizedWeights();
       initMascot();
       renderDashboard();
@@ -9854,6 +9876,25 @@ input[type="range"]::-moz-range-thumb{
       setInterval(function() {
         updateMascotStage();
       }, 30000);
+
+      /* Show sync status badge */
+      var syncBadge = el('syncBadge');
+      if (syncBadge) {
+        syncBadge.style.display = 'inline-block';
+        if (SyncEngine.isOnline()) {
+          syncBadge.textContent = '☁️ Synced';
+          syncBadge.title = 'Connected to Cloudflare KV — data syncs across devices';
+          syncBadge.style.borderColor = 'rgba(34,197,94,0.3)';
+          syncBadge.style.color = '#22c55e';
+          syncBadge.style.background = 'rgba(34,197,94,0.08)';
+        } else {
+          syncBadge.textContent = '💾 Local';
+          syncBadge.title = 'Local-only mode — enter sync passphrase to enable cross-device sync';
+          syncBadge.style.borderColor = 'rgba(245,158,11,0.3)';
+          syncBadge.style.color = '#f59e0b';
+          syncBadge.style.background = 'rgba(245,158,11,0.08)';
+        }
+      }
     }
 
     SyncEngine.onReady(function() {
@@ -9863,7 +9904,7 @@ input[type="range"]::-moz-range-thumb{
     /* Safety: render even if onReady is slow/offline */
     setTimeout(function() {
       if (!state) boot();
-    }, 700);
+    }, 3000);
   </script>
   <div class="canvas-tooltip" id="canvasTooltip">
     <div class="ct-day" id="ctDay"></div>
