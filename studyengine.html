@@ -2883,6 +2883,127 @@ body.standalone .answer.restudy-active{
       transition: background var(--transition), transform var(--transition);
     }
     .break-card .bc-skip:hover{ background: rgba(var(--accent-rgb),0.12); transform: translateY(-1px); }
+
+    /* ── Card Edit Overlay ── */
+    .edit-card-form {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 900;
+      max-height: 70vh;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      padding: 20px 18px 24px;
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      border: 1px solid rgba(var(--accent-rgb), 0.18);
+      border-bottom: none;
+      background: var(--card-bg);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      box-shadow: 0 -16px 60px rgba(0,0,0,0.25);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .edit-card-form::-webkit-scrollbar { width: 4px; }
+    .edit-card-form::-webkit-scrollbar-thumb { background: rgba(var(--accent-rgb), 0.15); border-radius: 99px; }
+    .edit-card-form .ef-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2px;
+    }
+    .edit-card-form .ef-title {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      color: var(--text);
+    }
+    .edit-card-form .ef-close {
+      appearance: none;
+      border: none;
+      background: rgba(var(--accent-rgb), 0.08);
+      color: var(--text-secondary);
+      border-radius: 10px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 700;
+      transition: background var(--transition);
+    }
+    .edit-card-form .ef-close:hover { background: rgba(var(--accent-rgb), 0.16); }
+    .edit-card-form label {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      display: block;
+      margin-bottom: 4px;
+    }
+    .edit-card-form textarea,
+    .edit-card-form input[type="text"],
+    .edit-card-form select {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(var(--accent-rgb), 0.16);
+      background: rgba(var(--accent-rgb), 0.04);
+      color: var(--text);
+      font-family: Inter, system-ui, sans-serif;
+      font-size: 11px;
+      line-height: 1.55;
+      resize: vertical;
+      outline: none;
+      transition: border-color var(--transition), background var(--transition);
+    }
+    .edit-card-form textarea:focus,
+    .edit-card-form input[type="text"]:focus,
+    .edit-card-form select:focus {
+      border-color: rgba(var(--accent-rgb), 0.4);
+      background: rgba(var(--accent-rgb), 0.06);
+    }
+    .edit-card-form textarea { min-height: 60px; max-height: 120px; }
+    .edit-card-form .ef-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .edit-card-form .ef-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .edit-card-form .ef-actions button {
+      flex: 1;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(var(--accent-rgb), 0.16);
+      background: rgba(var(--accent-rgb), 0.06);
+      color: var(--text);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background var(--transition), transform var(--transition);
+    }
+    .edit-card-form .ef-actions button:hover { background: rgba(var(--accent-rgb), 0.12); transform: translateY(-1px); }
+    .edit-card-form .ef-actions .ef-save {
+      background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.9), rgba(var(--accent-rgb), 0.6));
+      color: #fff;
+      border: none;
+      box-shadow: 0 6px 20px rgba(var(--accent-rgb), 0.2);
+    }
+    .edit-card-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 899;
+      background: rgba(0,0,0,0.4);
+    }
+
     @keyframes subtlePulse{
       0%,100%{ opacity: 1; }
       50%{ opacity: 0.85; }
@@ -8790,57 +8911,97 @@ input[type="range"]::-moz-range-thumb{
     window.editCard = function(id) {
       var it = state.items[id];
       if (!it) { toast('Card not found'); return; }
-      var cardEl = document.querySelector('[data-card-id="' + id + '"]');
-      if (!cardEl) { toast('Card element not found'); return; }
 
-      /* Toggle: if already editing, close */
-      var existingForm = cardEl.querySelector('.edit-card-form');
-      if (existingForm) {
-        if (window.gsap) {
-          gsap.to(existingForm, { opacity: 0, y: -4, duration: 0.15, ease: 'power2.in', onComplete: function() { existingForm.remove(); } });
+      function closeSheet(animated) {
+        var fe = document.querySelector('.edit-card-form');
+        var bd = document.querySelector('.edit-card-backdrop');
+        if (!fe && !bd) return;
+        var done = function() {
+          if (bd && bd.parentNode) bd.remove();
+          if (fe && fe.parentNode) fe.remove();
+        };
+        if (animated && window.gsap && fe) {
+          if (bd) gsap.to(bd, { opacity: 0, duration: 0.2 });
+          gsap.to(fe, { y: '100%', duration: 0.25, ease: 'power2.in', onComplete: done });
         } else {
-          existingForm.remove();
+          done();
         }
-        return;
       }
 
+      var existing = document.querySelector('.edit-card-form');
+      if (existing) {
+        if (existing.getAttribute('data-edit-card-id') === id) {
+          closeSheet(true);
+          return;
+        }
+        closeSheet(false);
+      }
+      var orphanBd = document.querySelector('.edit-card-backdrop');
+      if (orphanBd) orphanBd.remove();
+
       var formId = 'ef_' + Date.now();
-      var formHTML =
-        '<div class="edit-card-form" style="margin-top:10px;padding:14px;border-radius:16px;border:1px solid rgba(var(--accent-rgb),0.18);background:rgba(var(--accent-rgb),0.04);">' +
-        '<div style="font-size:8px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:10px;">Edit Card</div>' +
-        '<div class="field"><label>Prompt</label>' +
-        '<textarea id="' + formId + '_prompt" class="input" style="min-height:60px;resize:vertical;font-family:Inter,system-ui,sans-serif;font-size:11px;line-height:1.5;padding:10px 12px;">' + esc(it.prompt || '') + '</textarea></div>' +
-        '<div class="field"><label>Model Answer</label>' +
-        '<textarea id="' + formId + '_answer" class="input" style="min-height:80px;resize:vertical;font-family:Inter,system-ui,sans-serif;font-size:11px;line-height:1.5;padding:10px 12px;">' + esc(it.modelAnswer || '') + '</textarea></div>' +
-        '<div class="field"><label>Topic</label>' +
-        '<input id="' + formId + '_topic" class="input" value="' + esc(it.topic || '') + '" placeholder="Topic tag" /></div>' +
-        '<div class="field"><label>Scenario (optional)</label>' +
-        '<textarea id="' + formId + '_scenario" class="input" style="min-height:40px;resize:vertical;font-family:Inter,system-ui,sans-serif;font-size:11px;line-height:1.5;padding:10px 12px;">' + esc(it.scenario || '') + '</textarea></div>' +
-        '<div class="field"><label>Task (optional)</label>' +
-        '<input id="' + formId + '_task" class="input" value="' + esc(it.task || '') + '" placeholder="Apply It task instruction" /></div>' +
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
-        '<div class="field"><label>Concept A (optional)</label>' +
-        '<input id="' + formId + '_conceptA" class="input" value="' + esc(it.conceptA || '') + '" /></div>' +
-        '<div class="field"><label>Concept B (optional)</label>' +
-        '<input id="' + formId + '_conceptB" class="input" value="' + esc(it.conceptB || '') + '" /></div>' +
+      var optionalHTML = '';
+      if (it.scenario) {
+        optionalHTML += '<div><label>Scenario</label><textarea id="' + formId + '_scenario" rows="3">' + esc(it.scenario || '') + '</textarea></div>';
+      }
+      if (it.task) {
+        optionalHTML += '<div><label>Task</label><input type="text" id="' + formId + '_task" value="' + esc(it.task || '') + '" placeholder="Apply It task instruction" /></div>';
+      }
+      if (it.conceptA && it.conceptB) {
+        optionalHTML += '<div class="ef-row">' +
+          '<div><label>Concept A</label><input type="text" id="' + formId + '_conceptA" value="' + esc(it.conceptA || '') + '" /></div>' +
+          '<div><label>Concept B</label><input type="text" id="' + formId + '_conceptB" value="' + esc(it.conceptB || '') + '" /></div>' +
+          '</div>';
+      } else {
+        if (it.conceptA) optionalHTML += '<div><label>Concept A</label><input type="text" id="' + formId + '_conceptA" value="' + esc(it.conceptA || '') + '" /></div>';
+        if (it.conceptB) optionalHTML += '<div><label>Concept B</label><input type="text" id="' + formId + '_conceptB" value="' + esc(it.conceptB || '') + '" /></div>';
+      }
+
+      var backdrop = document.createElement('div');
+      backdrop.className = 'edit-card-backdrop';
+      document.body.appendChild(backdrop);
+
+      var form = document.createElement('div');
+      form.className = 'edit-card-form';
+      form.setAttribute('data-edit-card-id', id);
+      form.innerHTML =
+        '<div class="ef-header"><span class="ef-title">Edit Card</span><button type="button" class="ef-close" aria-label="Close">✕</button></div>' +
+        '<div><label>Prompt</label><textarea id="' + formId + '_prompt" rows="3">' + esc(it.prompt || '') + '</textarea></div>' +
+        '<div><label>Model Answer</label><textarea id="' + formId + '_answer" rows="4">' + esc(it.modelAnswer || '') + '</textarea></div>' +
+        '<div class="ef-row">' +
+          '<div><label>Topic</label><input type="text" id="' + formId + '_topic" value="' + esc(it.topic || '') + '" placeholder="Topic tag" /></div>' +
+          '<div><label>Priority</label><select id="' + formId + '_priority">' +
+            '<option value="critical"' + (it.priority === 'critical' ? ' selected' : '') + '>Critical</option>' +
+            '<option value="high"' + (it.priority === 'high' ? ' selected' : '') + '>High</option>' +
+            '<option value="medium"' + ((it.priority === 'medium' || !it.priority) ? ' selected' : '') + '>Medium</option>' +
+            '<option value="low"' + (it.priority === 'low' ? ' selected' : '') + '>Low</option>' +
+          '</select></div>' +
         '</div>' +
-        '<div class="field"><label>Priority</label>' +
-        '<select id="' + formId + '_priority" class="input">' +
-        '<option value="critical"' + (it.priority === 'critical' ? ' selected' : '') + '>Critical</option>' +
-        '<option value="high"' + (it.priority === 'high' ? ' selected' : '') + '>High</option>' +
-        '<option value="medium"' + ((it.priority === 'medium' || !it.priority) ? ' selected' : '') + '>Medium</option>' +
-        '<option value="low"' + (it.priority === 'low' ? ' selected' : '') + '>Low</option>' +
-        '</select></div>' +
-        '<div style="display:flex;gap:8px;margin-top:10px;">' +
-        '<button id="' + formId + '_save" class="ghost-btn" style="flex:1;background:rgba(34,197,94,0.08);border-color:rgba(34,197,94,0.25);color:var(--rate-good);">Save changes</button>' +
-        '<button id="' + formId + '_cancel" class="ghost-btn" style="flex:0 0 auto;">Cancel</button>' +
-        '</div>' +
+        optionalHTML +
+        '<div class="ef-actions">' +
+          '<button type="button" id="' + formId + '_cancel">Cancel</button>' +
+          '<button type="button" class="ef-save" id="' + formId + '_save">Save changes</button>' +
         '</div>';
+      document.body.appendChild(form);
 
-      cardEl.insertAdjacentHTML('beforeend', formHTML);
+      backdrop.addEventListener('click', function(e) {
+        if (e.target === backdrop) {
+          closeSheet(true);
+          try { playClick(); } catch (err) {}
+        }
+      });
+      var closeBtn = form.querySelector('.ef-close');
+      if (closeBtn) {
+        closeBtn.addEventListener('click', function() {
+          closeSheet(true);
+          try { playClick(); } catch (err2) {}
+        });
+      }
 
-      var form = cardEl.querySelector('.edit-card-form');
-      if (window.gsap && form) gsap.fromTo(form, { opacity: 0, y: -4 }, { opacity: 1, y: 0, duration: 0.25, ease: 'power2.out' });
+      if (window.gsap) {
+        gsap.fromTo(backdrop, { opacity: 0 }, { opacity: 1, duration: 0.25 });
+        gsap.fromTo(form, { y: '100%' }, { y: 0, duration: 0.35, ease: 'power3.out' });
+      }
 
       el(formId + '_save').addEventListener('click', function() {
         var newPrompt = (el(formId + '_prompt').value || '').trim();
@@ -8852,15 +9013,26 @@ input[type="range"]::-moz-range-thumb{
         it.topic = (el(formId + '_topic').value || '').trim();
         it.priority = el(formId + '_priority').value || 'medium';
 
-        var newScenario = (el(formId + '_scenario').value || '').trim();
-        var newTask = (el(formId + '_task').value || '').trim();
-        var newConceptA = (el(formId + '_conceptA').value || '').trim();
-        var newConceptB = (el(formId + '_conceptB').value || '').trim();
-
-        if (newScenario) it.scenario = newScenario; else delete it.scenario;
-        if (newTask) it.task = newTask; else delete it.task;
-        if (newConceptA) it.conceptA = newConceptA; else delete it.conceptA;
-        if (newConceptB) it.conceptB = newConceptB; else delete it.conceptB;
+        var scenarioField = el(formId + '_scenario');
+        if (scenarioField) {
+          var newScenario = (scenarioField.value || '').trim();
+          if (newScenario) it.scenario = newScenario; else delete it.scenario;
+        }
+        var taskField = el(formId + '_task');
+        if (taskField) {
+          var newTask = (taskField.value || '').trim();
+          if (newTask) it.task = newTask; else delete it.task;
+        }
+        var conceptAField = el(formId + '_conceptA');
+        if (conceptAField) {
+          var newConceptA = (conceptAField.value || '').trim();
+          if (newConceptA) it.conceptA = newConceptA; else delete it.conceptA;
+        }
+        var conceptBField = el(formId + '_conceptB');
+        if (conceptBField) {
+          var newConceptB = (conceptBField.value || '').trim();
+          if (newConceptB) it.conceptB = newConceptB; else delete it.conceptB;
+        }
 
         it.visual = null;
         state.items[id] = it;
@@ -8871,11 +9043,11 @@ input[type="range"]::-moz-range-thumb{
         }).catch(function() {});
 
         toast('Card updated');
-        try { playPresetSelect(); } catch(e) {}
+        try { playPresetSelect(); } catch (e3) {}
 
-        /* Re-render the deck to reflect changes */
+        closeSheet(true);
+
         var courseName = it.course;
-        window.viewCourseDeck(courseName);
         window.viewCourseDeck(courseName);
         var cd = el('courseDetail');
         if (cd && cd.classList.contains('active')) {
@@ -8884,12 +9056,8 @@ input[type="range"]::-moz-range-thumb{
       });
 
       el(formId + '_cancel').addEventListener('click', function() {
-        if (window.gsap) {
-          gsap.to(form, { opacity: 0, y: -4, duration: 0.15, ease: 'power2.in', onComplete: function() { form.remove(); } });
-        } else {
-          form.remove();
-        }
-        try { playClick(); } catch(e) {}
+        closeSheet(true);
+        try { playClick(); } catch (e4) {}
       });
     };
 
