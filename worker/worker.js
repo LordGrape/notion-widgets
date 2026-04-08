@@ -1,6 +1,6 @@
 // worker.js — Cloudflare Worker for widget state sync + AI grading
 // Bindings: WIDGET_KV (KV namespace)
-// Secrets: WIDGET_SECRET, GEMINI_API_KEY, NOTION_TOKEN (optional), NOTION_DB_ID (optional)
+// Secrets: WIDGET_SECRET, GEMINI_API_KEY, GOOGLE_TTS_KEY, NOTION_TOKEN (optional), NOTION_DB_ID (optional)
 
 export default {
   async fetch(request, env) {
@@ -400,6 +400,83 @@ Rules:
       } catch (err) {
         return new Response(JSON.stringify({ error: "Visual generation failed", detail: err.message }), {
           status: 500, headers: { ...visCorsHeaders, "Content-Type": "application/json" }
+        });
+      }
+    }
+
+    // ── TTS Audio Route ──
+    if (url.pathname === "/studyengine/tts") {
+      const origin = request.headers.get("Origin") || "";
+      const allowedOrigins = ["https://lordgrape.github.io", "http://localhost", "http://127.0.0.1"];
+      const isAllowed = allowedOrigins.some(o => origin.startsWith(o));
+      const ttsCorsHeaders = {
+        "Access-Control-Allow-Origin": isAllowed ? origin : "https://lordgrape.github.io",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, X-Widget-Key",
+        "Access-Control-Max-Age": "86400"
+      };
+
+      if (request.method === "OPTIONS") {
+        return new Response(null, { status: 204, headers: ttsCorsHeaders });
+      }
+      if (request.method !== "POST") {
+        return new Response(JSON.stringify({ error: "Method not allowed" }), {
+          status: 405, headers: { ...ttsCorsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      try {
+        const body = await request.json();
+        const text = String(body.text || "").trim();
+        const voiceName = body.voiceName || "en-US-Studio-O";
+        const languageCode = body.languageCode || "en-US";
+
+        if (!text) {
+          return new Response(JSON.stringify({ error: "Missing text" }), {
+            status: 400, headers: { ...ttsCorsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
+        const cacheKey = `tts:${hashString(text + voiceName + languageCode)}`;
+        const cached = await env.WIDGET_KV.get(cacheKey);
+        if (cached) {
+          return new Response(JSON.stringify({ audioContent: cached }), {
+            status: 200, headers: { ...ttsCorsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
+        const ttsRes = await fetch(
+          "https://texttospeech.googleapis.com/v1/text:synthesize?key=" + env.GOOGLE_TTS_KEY,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              input: { text },
+              voice: { languageCode, name: voiceName },
+              audioConfig: { audioEncoding: "MP3", speakingRate: 0.95, pitch: 0 }
+            })
+          }
+        );
+
+        if (!ttsRes.ok) {
+          const errText = await ttsRes.text();
+          return new Response(JSON.stringify({ error: "Google TTS error", detail: errText }), {
+            status: 502, headers: { ...ttsCorsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
+        const ttsData = await ttsRes.json();
+        const audioContent = ttsData.audioContent || "";
+        if (audioContent) {
+          await env.WIDGET_KV.put(cacheKey, audioContent, { expirationTtl: 30 * 24 * 60 * 60 });
+        }
+
+        return new Response(JSON.stringify({ audioContent }), {
+          status: 200, headers: { ...ttsCorsHeaders, "Content-Type": "application/json" }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: "TTS failed", detail: err.message }), {
+          status: 500, headers: { ...ttsCorsHeaders, "Content-Type": "application/json" }
         });
       }
     }
