@@ -2727,6 +2727,149 @@ input[type="range"]::-moz-range-thumb{
   box-shadow: 0 2px 8px rgba(var(--accent-rgb),0.35);
   cursor: grab;
 }
+
+/* ── Import Preview ── */
+.import-preview{
+  margin-top: 12px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(var(--accent-rgb),0.14);
+  overflow: hidden;
+}
+.import-preview .ip-header{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(var(--accent-rgb),0.05);
+  border-bottom: 1px solid rgba(var(--accent-rgb),0.10);
+}
+.import-preview .ip-title{
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.import-preview .ip-count{
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.5px;
+}
+.import-preview .ip-list{
+  max-height: 260px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.import-preview .ip-row{
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(var(--accent-rgb),0.06);
+  font-size: 10px;
+  color: var(--text);
+  transition: background var(--transition);
+}
+.import-preview .ip-row:last-child{ border-bottom: none; }
+.import-preview .ip-row:hover{ background: rgba(var(--accent-rgb),0.03); }
+.import-preview .ip-row.ip-skipped{
+  opacity: 0.5;
+  text-decoration: line-through;
+}
+.import-preview .ip-row.ip-duplicate{
+  background: rgba(245,158,11,0.06);
+  border-left: 3px solid var(--rate-hard);
+}
+.import-preview .ip-prompt{
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  font-weight: 600;
+}
+.import-preview .ip-topic{
+  font-size: 8px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.import-preview .ip-tiers{
+  display: flex;
+  gap: 3px;
+  flex-shrink: 0;
+}
+.import-preview .ip-tier-dot{
+  width: 6px; height: 6px;
+  border-radius: 99px;
+}
+.import-summary{
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0.2px;
+}
+.import-summary.is-clean{
+  background: rgba(34,197,94,0.08);
+  border: 1px solid rgba(34,197,94,0.20);
+  color: var(--rate-good);
+}
+.import-summary.has-issues{
+  background: rgba(245,158,11,0.08);
+  border: 1px solid rgba(245,158,11,0.20);
+  color: var(--rate-hard);
+}
+.import-summary .is-detail{
+  display: block;
+  margin-top: 4px;
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+.import-actions{
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.import-actions .import-confirm-btn{
+  flex: 1;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(135deg, rgba(var(--accent-rgb),1), rgba(var(--accent-rgb),0.7));
+  color: #fff;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  box-shadow: 0 8px 24px rgba(var(--accent-rgb),0.22);
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+.import-actions .import-confirm-btn:hover{ transform: translateY(-1px); box-shadow: 0 12px 32px rgba(var(--accent-rgb),0.28); }
+.import-actions .import-confirm-btn:active{ transform: translateY(0) scale(0.99); }
+.import-actions .import-confirm-btn:disabled{ opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+.import-actions .import-skip-dups-btn{
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(245,158,11,0.25);
+  background: rgba(245,158,11,0.08);
+  color: var(--rate-hard);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background var(--transition), transform var(--transition);
+  white-space: nowrap;
+}
+.import-actions .import-skip-dups-btn:hover{ background: rgba(245,158,11,0.14); transform: translateY(-1px); }
   </style>
 </head>
 <body>
@@ -5322,6 +5465,9 @@ input[type="range"]::-moz-range-thumb{
     function closeModal() {
       modalOv.classList.remove('show');
       modalOv.setAttribute('aria-hidden','true');
+      pendingImport = null;
+      var previewArea = document.getElementById('importPreviewArea');
+      if (previewArea) previewArea.innerHTML = '';
   try { playClose(); } catch(e) {}
     }
 
@@ -5354,6 +5500,13 @@ input[type="range"]::-moz-range-thumb{
         t.classList.toggle('active', on);
         t.setAttribute('aria-selected', on ? 'true' : 'false');
       });
+
+      /* Clear any pending import preview when switching tabs or reopening */
+      if (activeTab !== 'import' && pendingImport) {
+        pendingImport = null;
+        var previewArea = document.getElementById('importPreviewArea');
+        if (previewArea) previewArea.innerHTML = '';
+      }
 
       var showAdd = (activeTab === 'add');
       el('addNextBtn').style.display = showAdd ? 'inline-flex' : 'none';
@@ -5501,10 +5654,13 @@ input[type="range"]::-moz-range-thumb{
     el('addNextBtn').addEventListener('click', function(){ addFromModal(true); });
     el('doneBtn').addEventListener('click', function(){ addFromModal(false); });
 
+    /* ── Import: Parse → Preview → Commit (3-phase) ── */
+    var pendingImport = null; /* { valid: [], skipped: [], duplicates: [], skipDuplicates: false } */
+
     function addFromModal(stayOpen) {
       if (activeTab === 'import') {
         doImport();
-        if (!stayOpen) { closeModal(); renderDashboard(); }
+        /* Preview is now shown inline — don't close modal yet */
         return;
       }
 
@@ -5596,36 +5752,279 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ── Import: Parse → Preview → Commit (3-phase) ── */
     function doImport() {
       var raw = (el('m_import').value || '').trim();
       if (!raw) { try { playError(); } catch(e) {} toast('Paste JSON first'); return; }
       var arr = null;
       try { arr = JSON.parse(raw); } catch (e) { toast('Invalid JSON'); return; }
       if (!Array.isArray(arr)) { try { playError(); } catch(e) {} toast('Expected an array'); return; }
+
+      /* Phase 1: Parse and classify each item */
+      var valid = [];
+      var skipped = [];
+      var duplicates = [];
+
+      /* Build prompt index for duplicate detection */
+      var existingPrompts = {};
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var existing = state.items[id];
+        if (!existing || existing.archived) continue;
+        var course = existing.course || '';
+        var key = course + ':::' + (existing.prompt || '').trim().toLowerCase();
+        existingPrompts[key] = true;
+      }
+
+      /* Also track duplicates within the batch itself */
+      var batchPrompts = {};
+
+      arr.forEach(function(obj, idx) {
+        if (!obj || typeof obj !== 'object') {
+          skipped.push({ idx: idx, reason: 'Not an object', obj: obj });
+          return;
+        }
+        if (!obj.prompt || !String(obj.prompt).trim()) {
+          skipped.push({ idx: idx, reason: 'Missing prompt', obj: obj });
+          return;
+        }
+        if (!obj.modelAnswer && !obj.model_answer && !obj.answer) {
+          skipped.push({ idx: idx, reason: 'Missing modelAnswer', obj: obj });
+          return;
+        }
+
+        /* Normalize modelAnswer aliases */
+        if (!obj.modelAnswer && obj.model_answer) obj.modelAnswer = obj.model_answer;
+        if (!obj.modelAnswer && obj.answer) obj.modelAnswer = obj.answer;
+
+        var itemCourse = modalCourse || obj.course || 'Uncategorised';
+        var promptKey = itemCourse + ':::' + String(obj.prompt).trim().toLowerCase();
+
+        var isDuplicate = false;
+        if (existingPrompts[promptKey]) {
+          isDuplicate = true;
+        } else if (batchPrompts[promptKey]) {
+          isDuplicate = true;
+        }
+        batchPrompts[promptKey] = true;
+
+        /* Detect supported tiers */
+        var tempItem = {
+          prompt: obj.prompt,
+          modelAnswer: obj.modelAnswer,
+          task: obj.task || '',
+          scenario: obj.scenario || '',
+          conceptA: obj.conceptA || '',
+          conceptB: obj.conceptB || ''
+        };
+        var tiers = detectSupportedTiers(tempItem);
+
+        var entry = {
+          idx: idx,
+          obj: obj,
+          course: itemCourse,
+          topic: (obj.topic || '').trim(),
+          promptPreview: String(obj.prompt).trim().substring(0, 120),
+          tiers: tiers,
+          isDuplicate: isDuplicate
+        };
+
+        if (isDuplicate) {
+          duplicates.push(entry);
+        }
+        valid.push(entry);
+      });
+
+      pendingImport = {
+        valid: valid,
+        skipped: skipped,
+        duplicates: duplicates,
+        skipDuplicates: false
+      };
+
+      renderImportPreview();
+    }
+
+    function renderImportPreview() {
+      if (!pendingImport) return;
+      var valid = pendingImport.valid;
+      var skipped = pendingImport.skipped;
+      var duplicates = pendingImport.duplicates;
+      var skipDups = pendingImport.skipDuplicates;
+
+      var importable = skipDups ? valid.filter(function(v) { return !v.isDuplicate; }) : valid;
+      var dupCount = duplicates.length;
+      var skipCount = skipped.length;
+      var importCount = importable.length;
+
+      var tierColors = {
+        quickfire: tierColour('quickfire'),
+        explain: tierColour('explain'),
+        apply: tierColour('apply'),
+        distinguish: tierColour('distinguish'),
+        mock: tierColour('mock')
+      };
+
+      /* Build preview table */
+      var h = '<div class="import-preview">';
+      h += '<div class="ip-header">';
+      h += '<span class="ip-title">Preview</span>';
+      h += '<span class="ip-count">' + importCount + ' item' + (importCount !== 1 ? 's' : '') + ' to import</span>';
+      h += '</div>';
+      h += '<div class="ip-list">';
+
+      /* Show valid items */
+      valid.forEach(function(entry) {
+        var isSkippedDup = skipDups && entry.isDuplicate;
+        var cls = 'ip-row';
+        if (isSkippedDup) cls += ' ip-skipped ip-duplicate';
+        else if (entry.isDuplicate) cls += ' ip-duplicate';
+
+        h += '<div class="' + cls + '">';
+        h += '<span class="ip-prompt">' + esc(entry.promptPreview) + '</span>';
+        h += '<span class="ip-topic">' + esc(entry.topic || '—') + '</span>';
+        h += '<span class="ip-tiers">';
+        entry.tiers.forEach(function(t) {
+          h += '<span class="ip-tier-dot" style="background:' + (tierColors[t] || 'var(--accent)') + ';" title="' + esc(tierLabel(t)) + '"></span>';
+        });
+        h += '</span>';
+        h += '</div>';
+      });
+
+      /* Show skipped items */
+      skipped.forEach(function(entry) {
+        h += '<div class="ip-row ip-skipped">';
+        h += '<span class="ip-prompt">Item #' + (entry.idx + 1) + ': ' + esc(entry.reason) + '</span>';
+        h += '<span class="ip-topic">—</span>';
+        h += '<span class="ip-tiers"></span>';
+        h += '</div>';
+      });
+
+      h += '</div></div>';
+
+      /* Summary message */
+      var hasIssues = (skipCount > 0 || dupCount > 0);
+      var summaryClass = hasIssues ? 'has-issues' : 'is-clean';
+      var summaryText = '';
+
+      if (!hasIssues) {
+        summaryText = '✓ All ' + importCount + ' items are valid and ready to import.';
+      } else {
+        var parts = [];
+        if (importCount > 0) parts.push(importCount + ' valid');
+        if (skipCount > 0) parts.push(skipCount + ' skipped (missing required fields)');
+        if (dupCount > 0) parts.push(dupCount + ' duplicate' + (dupCount !== 1 ? 's' : '') + ' detected');
+        summaryText = parts.join(' · ');
+      }
+
+      h += '<div class="import-summary ' + summaryClass + '">';
+      h += esc(summaryText);
+      if (skipCount > 0) {
+        h += '<span class="is-detail">Skipped items need at minimum: prompt + modelAnswer</span>';
+      }
+      if (dupCount > 0 && !skipDups) {
+        h += '<span class="is-detail">Duplicates matched by identical prompt text within the same course</span>';
+      }
+      h += '</div>';
+
+      /* Action buttons */
+      h += '<div class="import-actions">';
+      h += '<button class="import-confirm-btn" id="importConfirmBtn"' + (importCount === 0 ? ' disabled' : '') + '>';
+      h += 'Import ' + importCount + ' item' + (importCount !== 1 ? 's' : '');
+      h += '</button>';
+      if (dupCount > 0 && !skipDups) {
+        h += '<button class="import-skip-dups-btn" id="importSkipDupsBtn">Skip ' + dupCount + ' dup' + (dupCount !== 1 ? 's' : '') + '</button>';
+      }
+      h += '</div>';
+
+      /* Render into modal form area (replace the textarea) */
+      var previewArea = document.getElementById('importPreviewArea');
+      if (!previewArea) {
+        previewArea = document.createElement('div');
+        previewArea.id = 'importPreviewArea';
+        modalForm.appendChild(previewArea);
+      }
+      previewArea.innerHTML = h;
+
+      /* Hide the textarea and original import help text */
+      var ta = el('m_import');
+      if (ta) ta.style.display = 'none';
+      var helpEls = modalForm.querySelectorAll('.help');
+      helpEls.forEach(function(he) { he.style.display = 'none'; });
+      var labelEls = modalForm.querySelectorAll('.field label');
+      labelEls.forEach(function(le) { le.style.display = 'none'; });
+
+      /* Hide the modal's own Done/Add buttons — we use our own confirm button */
+      el('addNextBtn').style.display = 'none';
+      el('doneBtn').style.display = 'none';
+
+      /* Wire buttons */
+      var confirmBtn = document.getElementById('importConfirmBtn');
+      if (confirmBtn) {
+        confirmBtn.addEventListener('click', function() {
+          commitImport();
+        });
+      }
+      var skipDupsBtn = document.getElementById('importSkipDupsBtn');
+      if (skipDupsBtn) {
+        skipDupsBtn.addEventListener('click', function() {
+          pendingImport.skipDuplicates = true;
+          renderImportPreview();
+          try { playClick(); } catch(e) {}
+        });
+      }
+
+      /* Animate preview in */
+      if (window.gsap) {
+        gsap.fromTo(previewArea, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
+      }
+    }
+
+    function commitImport() {
+      if (!pendingImport) return;
+      var valid = pendingImport.valid;
+      var skipDups = pendingImport.skipDuplicates;
+
+      var toImport = skipDups ? valid.filter(function(v) { return !v.isDuplicate; }) : valid;
       var n = 0;
-      arr.forEach(function(obj) {
-        if (!obj || typeof obj !== 'object') return;
+      var importedIds = [];
+
+      toImport.forEach(function(entry) {
+        var obj = entry.obj;
         if (!obj.id) obj.id = uid();
-        if (!obj.prompt || !obj.modelAnswer) return;
         if (!obj.created) obj.created = isoNow();
         if (!obj.fsrs) obj.fsrs = { stability: 0, difficulty: 0, due: isoNow(), lastReview: null, reps: 0, lapses: 0, state: 'new' };
         if (!obj.variants) obj.variants = {};
-        /* Force course to modalCourse; fall back to obj.course if present */
-        obj.course = modalCourse || obj.course || 'Uncategorised';
+
+        /* Normalize modelAnswer aliases */
+        if (!obj.modelAnswer && obj.model_answer) obj.modelAnswer = obj.model_answer;
+        if (!obj.modelAnswer && obj.answer) obj.modelAnswer = obj.answer;
+
+        obj.course = entry.course;
+
         /* Auto-create course if needed */
         if (obj.course && !state.courses[obj.course]) {
           saveCourse({ name: obj.course, examType: 'mixed', examDate: null, manualMode: false, color: '#8b5cf6', created: isoNow() });
         }
+
         state.items[obj.id] = obj;
+        importedIds.push(obj.id);
         n++;
       });
+
       saveState();
-      toast('Imported ' + n + ' — generating visuals...');
+
+      var dupSkipped = skipDups ? pendingImport.duplicates.length : 0;
+      var skipCount = pendingImport.skipped.length;
+      var msg = 'Imported ' + n;
+      if (dupSkipped > 0) msg += ' · ' + dupSkipped + ' dups skipped';
+      if (skipCount > 0) msg += ' · ' + skipCount + ' invalid skipped';
+      msg += ' — generating visuals...';
+      toast(msg);
 
       /* Generate visuals for imported items (async batch, non-blocking) */
-      var importedIds = arr.filter(function(o) { return o && o.id && state.items[o.id]; }).map(function(o) { return o.id; });
       var visualQueue = importedIds.slice();
-      var visualBatchSize = 3; /* Process 3 at a time to avoid rate limits */
+      var visualBatchSize = 3;
 
       function processVisualBatch() {
         if (!visualQueue.length) {
@@ -5635,21 +6034,27 @@ input[type="range"]::-moz-range-thumb{
           return;
         }
         var batch = visualQueue.splice(0, visualBatchSize);
-        Promise.all(batch.map(function(id) {
-          var it2 = state.items[id];
-          if (!it2) return Promise.resolve();
-          return generateVisual(it2).then(function(visual) {
+        var promises = batch.map(function(itemId) {
+          var item = state.items[itemId];
+          if (!item) return Promise.resolve();
+          return generateVisual(item).then(function(visual) {
             if (visual) {
-              it2.visual = visual;
-              state.items[id] = it2;
+              item.visual = visual;
+              state.items[itemId] = item;
             }
           }).catch(function() {});
-        })).then(function() {
+        });
+        Promise.all(promises).then(function() {
           saveState();
           setTimeout(processVisualBatch, 500);
         });
       }
       processVisualBatch();
+
+      /* Clean up and close */
+      pendingImport = null;
+      closeModal();
+      renderDashboard();
     }
 
     /* ── Settings ── */
