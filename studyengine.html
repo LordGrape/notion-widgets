@@ -1562,9 +1562,21 @@
     }
     .color-swatch.active::after{ display: flex; }
 
+    /* ── Topic Suggestions ── */
+    .topic-suggestions{
+      display: none;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 4px 0 2px;
+    }
+    .topic-suggestions .chip{
+      font-size: 9px;
+      padding: 5px 10px;
+    }
+
     /* ── Course-coloured left border on course cards ── */
     .course-card{
-      border-left: 3px solid var(--accent);
+      border-left: 5px solid var(--accent);
     }
 
     /* ── Modal course header badge ── */
@@ -3252,6 +3264,60 @@ input[type="range"]::-moz-range-thumb{
       return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
+    /* ── Topic Tag Suggestions (course-scoped) ── */
+    function getTopicsForCourse(courseName) {
+      if (!courseName) return [];
+      var topics = {};
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (!it || it.course !== courseName) continue;
+        var t = (it.topic || '').trim();
+        if (t) topics[t] = (topics[t] || 0) + 1;
+      }
+      /* Sort by usage count descending, then alphabetical */
+      return Object.keys(topics).sort(function(a, b) {
+        if (topics[b] !== topics[a]) return topics[b] - topics[a];
+        return a.localeCompare(b);
+      });
+    }
+
+    function renderTopicSuggestions(inputId, courseName, containerId) {
+      var existing = getTopicsForCourse(courseName);
+      var container = el(containerId);
+      if (!container) return;
+      if (!existing.length) {
+        container.innerHTML = '';
+        container.style.display = 'none';
+        return;
+      }
+      var h = '';
+      existing.forEach(function(t) {
+        h += '<span class="chip topic-suggestion" data-topic-val="' + esc(t) + '" style="cursor:pointer;">' + esc(t) + '</span>';
+      });
+      container.innerHTML = h;
+      container.style.display = 'flex';
+
+      container.querySelectorAll('.topic-suggestion').forEach(function(chip) {
+        chip.addEventListener('click', function() {
+          var input = el(inputId);
+          if (input) {
+            input.value = this.getAttribute('data-topic-val');
+            input.focus();
+          }
+          /* Highlight selected chip */
+          container.querySelectorAll('.topic-suggestion').forEach(function(c) { c.classList.remove('active'); });
+          this.classList.add('active');
+          try { playClick(); } catch(e) {}
+          if (window.gsap) gsap.fromTo(this, { scale: 0.94 }, { scale: 1, duration: 0.25, ease: 'back.out(2)' });
+        });
+      });
+
+      if (window.gsap) {
+        gsap.fromTo(container.querySelectorAll('.chip'), { opacity: 0, y: 3 }, { opacity: 1, y: 0, duration: 0.2, stagger: 0.03, ease: 'power2.out' });
+      }
+    }
+
     /* ── Session construction ── */
     /* ── Intelligent Session Builder ── */
     function buildSessionQueue() {
@@ -4416,6 +4482,7 @@ input[type="range"]::-moz-range-thumb{
           '<div class="field">' +
           '<label>Topic <span style="font-weight:500;letter-spacing:0.5px;text-transform:lowercase;opacity:0.7">(optional)</span></label>' +
           '<input class="input" id="m_topic" placeholder="e.g., WTO Dispute Settlement">' +
+          '<div class="chips topic-suggestions" id="topicSuggestions"></div>' +
           '</div>' +
           areaField('Prompt', 'm_prompt', 'Question, cue, or concept to recall') +
           areaField('Model Answer', 'm_answer', 'Ideal response to compare against') +
@@ -4449,6 +4516,11 @@ input[type="range"]::-moz-range-thumb{
             el('advFields') && el('advFields').classList.add('show');
           }
         }, 0);
+
+        /* Render topic suggestions for this course */
+        setTimeout(function() {
+          renderTopicSuggestions('m_topic', modalCourse, 'topicSuggestions');
+        }, 10);
 
       } else if (activeTab === 'import') {
         var courseCol2 = getCourseColor(modalCourse);
@@ -4581,6 +4653,8 @@ input[type="range"]::-moz-range-thumb{
         if (el('m_task')) el('m_task').value = '';
         if (el('m_conceptA')) el('m_conceptA').value = '';
         if (el('m_conceptB')) el('m_conceptB').value = '';
+        /* Refresh topic suggestions (new topic may have been created) */
+        renderTopicSuggestions('m_topic', modalCourse, 'topicSuggestions');
       }
     }
 
@@ -4877,7 +4951,7 @@ input[type="range"]::-moz-range-thumb{
           if (state.items.hasOwnProperty(id) && state.items[id] && state.items[id].course === c.name) itemCount++;
         }
 
-        h += '<div class="course-list-item" id="cli_' + ck + '">' +
+        h += '<div class="course-list-item" id="cli_' + ck + '" style="border-left:5px solid ' + (c.color || '#8b5cf6') + ';">' +
           '<div style="flex:1;min-width:0;">' +
             '<div class="cli-name">' + esc(c.name) + '</div>' +
             '<div style="display:flex;gap:6px;margin-top:4px;align-items:center;flex-wrap:wrap;">' +
@@ -5878,8 +5952,9 @@ input[type="range"]::-moz-range-thumb{
       el('cdTitle').textContent = c.name;
       var cdHeader = document.querySelector('#courseDetail .cd-header');
       if (cdHeader) {
-        cdHeader.style.borderLeft = '4px solid ' + (c.color || '#8b5cf6');
+        cdHeader.style.borderLeft = '5px solid ' + (c.color || '#8b5cf6');
         cdHeader.style.paddingLeft = '10px';
+        cdHeader.style.borderRadius = '6px';
       }
 
       /* Badges */
