@@ -2089,8 +2089,8 @@
   text-transform: none;
   letter-spacing: 0.1px;
   font-weight: 500;
-  font-size: 10px;
-  line-height: 1.5;
+  font-size: 11px;
+  line-height: 1.55;
 }
 .breakdown .tier-pill.info-icon{
   width: auto;
@@ -2112,48 +2112,78 @@
   background: rgba(255,255,255,0.08);
   border-color: rgba(var(--accent-rgb),0.22);
 }
+/* ── Tooltip v2: measure-then-place, auto-flip, arrow-tracks-source ── */
 .info-tooltip{
   display: none;
   position: fixed;
-  width: 240px;
-  max-width: calc(100vw - 32px);
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: var(--bg);
+  width: 260px;
+  max-width: calc(100vw - 24px);
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--card-bg);
   backdrop-filter: var(--blur);
   -webkit-backdrop-filter: var(--blur);
   border: 1px solid rgba(var(--accent-rgb),0.22);
-  box-shadow: var(--shadow);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.22), 0 0 0 1px rgba(var(--accent-rgb),0.06);
   color: var(--text);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.1px;
   text-transform: none;
-  line-height: 1.5;
-  z-index: 200;
+  line-height: 1.55;
+  z-index: 9999;
   pointer-events: none;
   word-wrap: break-word;
   overflow-wrap: break-word;
   white-space: normal;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 150ms ease, transform 150ms ease;
 }
 .info-tooltip.visible{
   display: block;
 }
-/* Tooltip arrow — hidden by default, positioned by JS */
-.info-tooltip::after{
+.info-tooltip.shown{
+  opacity: 1;
+  transform: translateY(0);
+}
+/* Arrow */
+.info-tooltip .tip-arrow{
+  position: absolute;
+  width: 12px;
+  height: 6px;
+  overflow: hidden;
+  pointer-events: none;
+}
+.info-tooltip .tip-arrow::after{
   content: '';
   position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  border: 6px solid transparent;
+  width: 10px;
+  height: 10px;
+  background: var(--card-bg);
+  border: 1px solid rgba(var(--accent-rgb),0.22);
+  border-radius: 2px;
+  transform: rotate(45deg);
 }
-.info-tooltip.arrow-bottom::after{
-  top: 100%;
-  border-top-color: rgba(var(--accent-rgb),0.22);
+/* Arrow below tooltip (tooltip is above icon) */
+.info-tooltip.arrow-bottom .tip-arrow{
+  bottom: -6px;
 }
-.info-tooltip.arrow-top::after{
-  bottom: 100%;
-  border-bottom-color: rgba(var(--accent-rgb),0.22);
+.info-tooltip.arrow-bottom .tip-arrow::after{
+  top: -6px;
+  left: 0;
+  border-top: none;
+  border-left: none;
+}
+/* Arrow above tooltip (tooltip is below icon) */
+.info-tooltip.arrow-top .tip-arrow{
+  top: -6px;
+}
+.info-tooltip.arrow-top .tip-arrow::after{
+  bottom: -6px;
+  left: 0;
+  border-bottom: none;
+  border-right: none;
 }
 
 /* ── Slider Track Styling ── */
@@ -2235,7 +2265,7 @@ input[type="range"]::-moz-range-thumb{
                   <div class="s">Days</div>
                 </div>
                 <div class="stat">
-                  <div class="k">Avg Retention <span class="info-icon" tabindex="0" aria-label="Info">ⓘ<span class="info-tooltip">Average probability you can recall all your reviewed cards right now. Calculated by FSRS from each card's stability and time since last review. The retention forecast graph shows how this decays over 30 days without review.</span></span></div>
+                  <div class="k">Avg Retention <span class="info-icon" tabindex="0" aria-label="Info">ⓘ<span class="info-tooltip">Average probability you can recall all your reviewed cards right now. Calculated by FSRS from each card's stability and time since last review. The retention forecast graph shows how this decays over 30 days without review.<span class="tip-arrow"></span></span></span></div>
                   <div class="v" id="statRet">—</div>
                   <div class="s">FSRS retrievability</div>
                 </div>
@@ -2249,7 +2279,7 @@ input[type="range"]::-moz-range-thumb{
                     transform="rotate(-90 24 24)" style="transition: stroke-dashoffset 0.6s ease, stroke 0.3s ease"/>
                 </svg>
                 <div>
-                  <div class="g-title">Calibration <span class="info-icon" tabindex="0" aria-label="Info">ⓘ<span class="info-tooltip">Measures how accurately you judge your own knowledge. Compares your self-ratings against AI grading on generative tiers (Explain, Apply, Distinguish, Mock). 75%+ means well-calibrated. Below 55% means you may be overconfident. Only updates after generative-tier reviews.</span></span></div>
+                  <div class="g-title">Calibration <span class="info-icon" tabindex="0" aria-label="Info">ⓘ<span class="info-tooltip">Measures how accurately you judge your own knowledge. Compares your self-ratings against AI grading on generative tiers (Explain, Apply, Distinguish, Mock). 75%+ means well-calibrated. Below 55% means you may be overconfident. Only updates after generative-tier reviews.<span class="tip-arrow"></span></span></span></div>
                   <div class="g-val" id="calVal">—</div>
                   <div class="g-sub" id="calSub">Metacognitive feedback</div>
                 </div>
@@ -3104,7 +3134,7 @@ input[type="range"]::-moz-range-thumb{
       tiers.forEach(function(t) {
         var c = due.byTier[t] || 0;
         var col = tierColour(t);
-        bd += '<span class="tier-pill info-icon" data-count="' + c + '" tabindex="0" aria-label="' + esc(tierNames[t]) + ' info" style="border-color:' + col + '30;cursor:help;position:relative;"><span class="tier-dot" style="background:' + col + ';box-shadow:0 0 12px ' + col + '33;"></span>' + tierNames[t] + ': ' + c + '<span class="info-tooltip">' + esc(tierDescs[t]) + '</span></span>';
+        bd += '<span class="tier-pill info-icon" data-count="' + c + '" tabindex="0" aria-label="' + esc(tierNames[t]) + ' info" style="border-color:' + col + '30;cursor:help;position:relative;"><span class="tier-dot" style="background:' + col + ';box-shadow:0 0 12px ' + col + '33;"></span>' + tierNames[t] + ': ' + c + '<span class="info-tooltip">' + esc(tierDescs[t]) + '<span class="tip-arrow"></span></span></span>';
       });
       el('tierBreakdown').innerHTML = bd;
 
@@ -4738,73 +4768,144 @@ input[type="range"]::-moz-range-thumb{
     el('settingsClose').addEventListener('click', closeSettings);
     settingsOv.addEventListener('click', function(e){ if (e.target === settingsOv) closeSettings(); });
 
-    /* ── Tooltip Positioning Engine ── */
+    /* ── Tooltip Positioning Engine v2 ── */
+    /* Best practices: measure-after-render, auto-flip, arrow-tracks-source,
+       show delay, dismiss on Escape, GSAP entrance if available. */
     var activeTooltipIcon = null;
+    var tooltipShowTimer = null;
+    var TOOLTIP_DELAY = 180; /* ms — prevents flicker on accidental hover */
+
     function positionTooltip(icon) {
       var tip = icon.querySelector('.info-tooltip');
       if (!tip) return;
-      tip.className = 'info-tooltip visible';
-      var rect = icon.getBoundingClientRect();
-      var tipW = Math.min(240, window.innerWidth - 16);
-      var tipH = tip.offsetHeight || 80;
 
-      var spaceAbove = rect.top;
-      var placeBelow = spaceAbove < tipH + 16;
-      var top, arrowClass;
-      if (placeBelow) {
-        top = rect.bottom + 8;
-        arrowClass = 'arrow-top';
-      } else {
-        top = rect.top - tipH - 8;
+      /* 1. Make visible off-screen to measure true dimensions */
+      tip.style.top = '-9999px';
+      tip.style.left = '-9999px';
+      tip.className = 'info-tooltip visible';
+      tip.classList.remove('shown');
+
+      /* Force layout so offsetWidth/Height are accurate */
+      var tipW = tip.offsetWidth;
+      var tipH = tip.offsetHeight;
+
+      /* 2. Get icon position (viewport-relative via getBoundingClientRect) */
+      var rect = icon.getBoundingClientRect();
+      var iconCX = rect.left + rect.width / 2;
+      var iconTop = rect.top;
+      var iconBottom = rect.bottom;
+      var vw = window.innerWidth;
+      var vh = window.innerHeight;
+
+      /* 3. Decide above vs below (prefer above; flip if not enough space) */
+      var gap = 10;
+      var above = iconTop - gap - tipH >= 4;
+      var arrowClass, top;
+      if (above) {
+        top = iconTop - gap - tipH;
         arrowClass = 'arrow-bottom';
+      } else {
+        top = iconBottom + gap;
+        arrowClass = 'arrow-top';
       }
 
-      var left = rect.left + rect.width / 2 - tipW / 2;
-      left = Math.max(8, Math.min(left, window.innerWidth - tipW - 8));
-      top = Math.max(8, Math.min(top, window.innerHeight - tipH - 8));
+      /* 4. Horizontal: centre on icon, clamp to viewport */
+      var left = iconCX - tipW / 2;
+      left = Math.max(8, Math.min(left, vw - tipW - 8));
 
+      /* 5. Vertical clamp */
+      top = Math.max(4, Math.min(top, vh - tipH - 4));
+
+      /* 6. Arrow position: track icon centre relative to tooltip left */
+      var arrow = tip.querySelector('.tip-arrow');
+      if (arrow) {
+        var arrowLeft = iconCX - left - 6; /* 6 = half arrow width */
+        arrowLeft = Math.max(12, Math.min(arrowLeft, tipW - 24));
+        arrow.style.left = arrowLeft + 'px';
+      }
+
+      /* 7. Apply position */
       tip.style.top = top + 'px';
       tip.style.left = left + 'px';
       tip.className = 'info-tooltip visible ' + arrowClass;
+
+      /* 8. Trigger entrance animation (next frame so transition applies) */
+      requestAnimationFrame(function() {
+        tip.classList.add('shown');
+      });
     }
 
     function hideTooltip(icon) {
       var tip = icon.querySelector('.info-tooltip');
       if (!tip) return;
-      tip.className = 'info-tooltip';
-      tip.style.top = '';
-      tip.style.left = '';
+      tip.classList.remove('shown');
+      /* After fade-out transition, fully hide */
+      setTimeout(function() {
+        if (!tip.classList.contains('shown')) {
+          tip.className = 'info-tooltip';
+          tip.style.top = '';
+          tip.style.left = '';
+        }
+      }, 170);
     }
 
+    function clearTooltipTimer() {
+      if (tooltipShowTimer) { clearTimeout(tooltipShowTimer); tooltipShowTimer = null; }
+    }
+
+    /* Event delegation (works everywhere: dashboard, settings, modals) */
     document.addEventListener('mouseover', function(e) {
       var icon = e.target.closest('.info-icon');
       if (!icon) return;
-      if (activeTooltipIcon && activeTooltipIcon !== icon) hideTooltip(activeTooltipIcon);
+      if (activeTooltipIcon && activeTooltipIcon !== icon) {
+        clearTooltipTimer();
+        hideTooltip(activeTooltipIcon);
+      }
       activeTooltipIcon = icon;
-      positionTooltip(icon);
+      clearTooltipTimer();
+      tooltipShowTimer = setTimeout(function() {
+        positionTooltip(icon);
+      }, TOOLTIP_DELAY);
     });
+
     document.addEventListener('mouseout', function(e) {
       var icon = e.target.closest('.info-icon');
       if (!icon) return;
       if (!icon.contains(e.relatedTarget)) {
+        clearTooltipTimer();
         hideTooltip(icon);
         if (activeTooltipIcon === icon) activeTooltipIcon = null;
       }
     });
+
     document.addEventListener('focusin', function(e) {
       var icon = e.target.closest('.info-icon');
       if (icon) {
+        if (activeTooltipIcon && activeTooltipIcon !== icon) hideTooltip(activeTooltipIcon);
         activeTooltipIcon = icon;
         positionTooltip(icon);
       }
     });
+
     document.addEventListener('focusout', function(e) {
       var icon = e.target.closest('.info-icon');
       if (icon) {
+        clearTooltipTimer();
         hideTooltip(icon);
         activeTooltipIcon = null;
       }
     });
+
+    /* Dismiss on Escape (W3C tooltip pattern) */
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && activeTooltipIcon) {
+        clearTooltipTimer();
+        hideTooltip(activeTooltipIcon);
+        activeTooltipIcon = null;
+      }
+    }, true);
+
+    /* Reposition on scroll/resize */
     window.addEventListener('resize', function() {
       if (activeTooltipIcon) positionTooltip(activeTooltipIcon);
     });
@@ -4817,7 +4918,7 @@ input[type="range"]::-moz-range-thumb{
       var retPct = Math.round(settings.desiredRetention * 100);
 
       function infoIcon(text) {
-        return '<span class="info-icon" tabindex="0" role="button" aria-label="Info">ⓘ<span class="info-tooltip">' + text + '</span></span>';
+        return '<span class="info-icon" tabindex="0" role="button" aria-label="Info">ⓘ<span class="info-tooltip">' + text + '<span class="tip-arrow"></span></span></span>';
       }
 
       function pillGroup(name, options, currentValue) {
