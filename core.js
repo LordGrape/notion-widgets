@@ -1814,6 +1814,8 @@ let SyncEngine = (function() {
   let DEBOUNCE = 300;
   let RETRY_INTERVAL = 60000;
   let retryTimer = null;
+  let POLL_INTERVAL = 60000; /* Cross-device sync poll: check KV every 60s */
+  let pollTimer = null;
   let readyCallbacks = [];
   let initDone = false;
   let namespaces = [];    // registered namespace strings
@@ -2012,6 +2014,45 @@ let SyncEngine = (function() {
     }, DEBOUNCE);
   }
 
+  /* ── Cross-device KV polling ──
+     Periodically pulls remote state for all namespaces and merges
+     with local cache. Catches cross-device writes (deletes, imports,
+     property changes) without requiring a page reload.
+     Only runs when tab is visible and engine is online.
+     Uses timestamp-based merge — remote wins if newer. */
+  function startPolling() {
+    if (pollTimer) return;
+    pollTimer = setInterval(function() {
+      if (!online || document.hidden) return;
+      namespaces.forEach(function(ns) {
+        remoteGet(ns).then(function(remote) {
+          if (!remote || typeof remote !== 'object') return;
+          let normalizedRemote = _normalizeNamespaceObject(remote);
+          let before = JSON.stringify(cache[ns] || {});
+          cache[ns] = merge(cache[ns], normalizedRemote);
+          let after = JSON.stringify(cache[ns]);
+          if (before !== after) {
+            lsWrite(ns);
+            /* Notify other tabs on this device via BroadcastChannel */
+            _broadcast({ type: 'state_update', namespace: ns, data: cache[ns] });
+            /* Emit event so widgets can react to remote changes */
+            Core.emit('sync-remote-update', { namespace: ns });
+          }
+        }).catch(function() { /* KV unreachable — skip this cycle */ });
+      });
+    }, POLL_INTERVAL);
+  }
+
+  function stopPolling() {
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  }
+
+  /* Pause polling when tab is hidden, resume when visible */
+  document.addEventListener('visibilitychange', function() {
+    if (document.hidden) stopPolling();
+    else if (online && initDone) startPolling();
+  });
+
   /* ── Retry loop ── */
   function scheduleRetry() {
     if (retryTimer) return;
@@ -2026,6 +2067,7 @@ let SyncEngine = (function() {
           clearInterval(retryTimer);
           retryTimer = null;
           _drainOfflineQueue();
+          startPolling();
           SyncEngine.flush();
         }
       })
@@ -2223,6 +2265,7 @@ let SyncEngine = (function() {
           online = true;
           _drainOfflineQueue();
           initDone = true;
+          startPolling();
           readyCallbacks.forEach(function(cb) { cb(SyncEngine); });
           Core.emit('sync-ready', { online: true });
         }).catch(function() {
