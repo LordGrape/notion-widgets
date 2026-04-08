@@ -85,7 +85,7 @@
       overflow: auto;
     }
     body.standalone .shell{
-      max-width: 1100px;
+      max-width: 1400px;
       width: 100%;
       margin: 0 auto;
     }
@@ -491,6 +491,137 @@
       font-size: 9px;
       color: var(--text-secondary);
       opacity: 0.9;
+    }
+
+    /* ── Side-by-Side Reveal Layout ── */
+    .reveal-columns{
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+      margin-top: 14px;
+    }
+    @media (min-width: 800px){
+      .reveal-columns{
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+      }
+    }
+    .reveal-col{
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .reveal-col .col-label{
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 2px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .reveal-col .col-label .col-icon{
+      font-size: 12px;
+      opacity: 0.7;
+    }
+    .reveal-col .user-response-locked{
+      padding: 14px 16px;
+      border-radius: 16px;
+      border: 1px solid rgba(var(--accent-rgb),0.14);
+      background: rgba(var(--accent-rgb),0.03);
+      font-size: 12px;
+      line-height: 1.65;
+      color: var(--text);
+      white-space: pre-wrap;
+      max-height: 500px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+    }
+    .reveal-col .user-response-locked::-webkit-scrollbar{ width: 4px; }
+    .reveal-col .user-response-locked::-webkit-scrollbar-thumb{ background: rgba(var(--accent-rgb),0.18); border-radius: 99px; }
+    body.standalone .reveal-col .user-response-locked{
+      font-size: 13px;
+      max-height: 600px;
+    }
+
+    /* ── Inline Annotations ── */
+    .anno-highlight{
+      position: relative;
+      border-radius: 3px;
+      padding: 1px 2px;
+      margin: 0 -2px;
+      cursor: pointer;
+      transition: background var(--transition), box-shadow var(--transition);
+    }
+    .anno-highlight:hover{
+      box-shadow: 0 0 0 2px rgba(var(--accent-rgb),0.25);
+    }
+    .anno-highlight[data-tag="accurate"]{
+      background: rgba(34,197,94,0.15);
+      border-bottom: 2px solid rgba(34,197,94,0.5);
+    }
+    .anno-highlight[data-tag="partial"]{
+      background: rgba(245,158,11,0.15);
+      border-bottom: 2px solid rgba(245,158,11,0.5);
+    }
+    .anno-highlight[data-tag="inaccurate"],
+    .anno-highlight[data-tag="missing"]{
+      background: rgba(239,68,68,0.15);
+      border-bottom: 2px solid rgba(239,68,68,0.5);
+    }
+    .anno-highlight[data-tag="insight"]{
+      background: rgba(59,130,246,0.15);
+      border-bottom: 2px solid rgba(59,130,246,0.5);
+    }
+
+    /* Annotation tooltip */
+    .anno-tip{
+      position: fixed;
+      display: none;
+      max-width: 300px;
+      padding: 10px 14px;
+      border-radius: 14px;
+      background: var(--card-bg);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      border: 1px solid rgba(var(--accent-rgb),0.22);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.22);
+      z-index: 9999;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity 150ms ease, transform 150ms ease;
+    }
+    .anno-tip.show{
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .anno-tip .at-tag{
+      font-size: 7px;
+      font-weight: 800;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .anno-tip .at-tag[data-tag="accurate"]{ color: var(--rate-good); }
+    .anno-tip .at-tag[data-tag="partial"]{ color: var(--rate-hard); }
+    .anno-tip .at-tag[data-tag="inaccurate"],
+    .anno-tip .at-tag[data-tag="missing"]{ color: var(--rate-again); }
+    .anno-tip .at-tag[data-tag="insight"]{ color: var(--rate-easy); }
+    .anno-tip .at-note{
+      font-size: 10px;
+      color: var(--text);
+      line-height: 1.55;
+      letter-spacing: 0.1px;
+    }
+
+    /* Rating bar pinned full-width below columns */
+    .reveal-rating-bar{
+      margin-top: 14px;
     }
 
     /* ── AI Feedback Panel ── */
@@ -5751,6 +5882,9 @@ input[type="range"]::-moz-range-thumb{
       el('metaTimer').style.display = 'none';
       el('timerFill').style.width = '0%';
       el('aiFeedbackArea').innerHTML = '';
+      /* Remove side-by-side reveal columns from previous item */
+      var oldReveal = document.getElementById('revealColumnsWrap');
+      if (oldReveal) oldReveal.remove();
       if (session) session.aiRating = null;
       /* Remove override hint if present */
       var oldHint = document.querySelector('.override-hint');
@@ -6093,22 +6227,37 @@ input[type="range"]::-moz-range-thumb{
       /* For generative tiers: call AI grading */
       var userText = el('userText') ? el('userText').value.trim() : '';
 
-      /* Lock textarea */
-      if (el('userText')) {
-        el('userText').setAttribute('readonly', 'readonly');
-        el('userText').style.opacity = '0.7';
-      }
-
-      /* Hide check/submit button */
+      /* Hide the original textarea and check/submit button */
+      if (el('userText')) el('userText').style.display = 'none';
       var checkBtn = el('checkBtn');
       var submitBtn = el('submitBtn');
       if (checkBtn) checkBtn.style.display = 'none';
       if (submitBtn) submitBtn.style.display = 'none';
 
-      /* Show model answer */
+      /* Build side-by-side reveal layout */
       var answerVisual = it.visual ? renderMermaidBlock(it.visual, 'answer') : '';
-      modelAnswerEl.innerHTML = '<div class="answer-header"><span class="se-icon" style="margin-right:4px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="10" rx="1.5"/><polyline points="2,5 8,9 14,5"/></svg></span>Model Answer</div><div class="md-content">' + renderMd(it.modelAnswer || '') + '</div>' + answerVisual;
-      modelAnswerEl.style.display = 'block';
+
+      /* Remove old tierArea content that's no longer needed (scenario stays via item-card) */
+      var revealHTML = '<div class="reveal-columns">' +
+        '<div class="reveal-col">' +
+          '<div class="col-label"><span class="col-icon">✍️</span> Your Response</div>' +
+          '<div class="user-response-locked" id="userResponseLocked">' + esc(userText || '(No response)') + '</div>' +
+        '</div>' +
+        '<div class="reveal-col">' +
+          '<div class="col-label"><span class="col-icon">📋</span> Model Answer</div>' +
+          '<div class="answer" id="modelAnswerRight"><span class="answer-header">Model Answer</span>' + renderMd(it.modelAnswer || '') + '<div class="visual-slot"></div>' + answerVisual + '</div>' +
+          '<div id="aiFeedbackRight"></div>' +
+        '</div>' +
+      '</div>';
+
+      /* Insert the columns after tierArea */
+      var revealContainer = document.createElement('div');
+      revealContainer.id = 'revealColumnsWrap';
+      revealContainer.innerHTML = revealHTML;
+      tierArea.insertAdjacentElement('afterend', revealContainer);
+
+      /* Hide original modelAnswer element — we use the right-column copy */
+      modelAnswerEl.style.display = 'none';
       if (answerVisual) setTimeout(initMermaidBlocks, 50);
       else ensureAnswerVisual(it, revealTier);
 
@@ -6120,9 +6269,9 @@ input[type="range"]::-moz-range-thumb{
         return;
       }
 
-      /* Show loading state */
-      var fbArea = el('aiFeedbackArea');
-      fbArea.innerHTML = '<div class="af-loading"><div class="af-spinner"></div><div class="af-loading-text">AI is grading your response...</div></div>';
+      /* Show loading state — in the right column feedback area */
+      var fbArea = document.getElementById('aiFeedbackRight') || el('aiFeedbackArea');
+      fbArea.innerHTML = '<div class="af-loading"><div class="af-spinner"></div><span class="af-loading-text">AI is grading your response...</span></div>';
 
       if (window.gsap) {
         gsap.fromTo(fbArea, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
@@ -6165,7 +6314,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     function showAIFeedback(data, tier) {
-      var fbArea = el('aiFeedbackArea');
+      var fbArea = document.getElementById('aiFeedbackRight') || el('aiFeedbackArea');
       var ratingNames = { 1: 'Again', 2: 'Hard', 3: 'Good', 4: 'Easy' };
       var ratingColors = { 1: 'var(--rate-again)', 2: 'var(--rate-hard)', 3: 'var(--rate-good)', 4: 'var(--rate-easy)' };
       var scoreLabels = { 0: 'Missed', 1: 'Partial', 2: 'Strong' };
@@ -6249,6 +6398,11 @@ input[type="range"]::-moz-range-thumb{
         gsap.fromTo(fbArea.querySelectorAll('.af-dimension'), { opacity: 0, x: -6 }, { opacity: 1, x: 0, duration: 0.25, stagger: 0.06, delay: 0.3, ease: 'power2.out' });
       }
 
+      /* ── Inline Annotations ── */
+      if (data.annotations && Array.isArray(data.annotations) && data.annotations.length > 0) {
+        applyInlineAnnotations(data.annotations);
+      }
+
       /* Store the AI rating on the session for calibration tracking */
       session.aiRating = suggestedRating;
 
@@ -6272,6 +6426,106 @@ input[type="range"]::-moz-range-thumb{
         hint.className = 'override-hint';
         hint.textContent = 'AI suggested ' + suggestedName + ' — tap a different rating to override';
         ratingsEl.parentNode.insertBefore(hint, ratingsEl.nextSibling);
+      }
+    }
+
+    /* ── Inline Annotation Engine ── */
+    function applyInlineAnnotations(annotations) {
+      var lockedEl = document.getElementById('userResponseLocked');
+      if (!lockedEl) return;
+      var text = lockedEl.textContent || '';
+      if (!text) return;
+
+      /* Sort annotations by position in text (longest match first for overlap safety) */
+      var validAnnos = [];
+      annotations.forEach(function(a) {
+        if (!a.text || !a.tag) return;
+        var idx = text.toLowerCase().indexOf(a.text.toLowerCase());
+        var usedFuzzy = false;
+        var sub = '';
+        if (idx === -1) {
+          /* Fuzzy: try first 40 chars as substring */
+          sub = a.text.substring(0, 40).toLowerCase();
+          idx = text.toLowerCase().indexOf(sub);
+          usedFuzzy = idx >= 0;
+        }
+        if (idx >= 0) {
+          /* Find the actual matched length in original text */
+          var matchLen = a.text.length;
+          /* If we used fuzzy, match up to end of sentence or original length */
+          if (usedFuzzy) {
+            matchLen = Math.min(sub.length + 20, text.length - idx);
+          }
+          validAnnos.push({ idx: idx, len: matchLen, tag: a.tag, note: a.note || '' });
+        }
+      });
+
+      if (!validAnnos.length) return;
+
+      /* Sort by position descending so we can insert from end without shifting indices */
+      validAnnos.sort(function(a, b) { return b.idx - a.idx; });
+
+      /* Remove overlaps (keep the one that appears first) */
+      var used = [];
+      var filtered = [];
+      validAnnos.reverse(); /* now ascending */
+      validAnnos.forEach(function(a) {
+        var overlaps = false;
+        for (var i = 0; i < used.length; i++) {
+          if (a.idx < used[i].end && (a.idx + a.len) > used[i].start) {
+            overlaps = true; break;
+          }
+        }
+        if (!overlaps) {
+          filtered.push(a);
+          used.push({ start: a.idx, end: a.idx + a.len });
+        }
+      });
+
+      /* Build annotated HTML (process from end to preserve indices) */
+      filtered.sort(function(a, b) { return b.idx - a.idx; });
+      var result = text;
+      filtered.forEach(function(a) {
+        var before = result.substring(0, a.idx);
+        var match = result.substring(a.idx, a.idx + a.len);
+        var after = result.substring(a.idx + a.len);
+        result = before +
+          '<span class="anno-highlight" data-tag="' + esc(a.tag) + '" data-note="' + esc(a.note) + '">' +
+          esc(match) + '</span>' +
+          after;
+      });
+
+      lockedEl.innerHTML = result;
+
+      /* Wire tooltip hover */
+      var tip = document.getElementById('annoTip');
+      if (!tip) return;
+      lockedEl.querySelectorAll('.anno-highlight').forEach(function(el) {
+        el.addEventListener('mouseenter', function() {
+          var tag = this.getAttribute('data-tag') || '';
+          var note = this.getAttribute('data-note') || '';
+          if (!note) return;
+          var tagLabels = { accurate: '✓ Accurate', partial: '◐ Partial', inaccurate: '✗ Inaccurate', missing: '✗ Missing', insight: '★ Good Insight' };
+          tip.querySelector('.at-tag').textContent = tagLabels[tag] || tag;
+          tip.querySelector('.at-tag').setAttribute('data-tag', tag);
+          tip.querySelector('.at-note').textContent = note;
+          var rect = this.getBoundingClientRect();
+          tip.style.left = Math.min(rect.left, window.innerWidth - 320) + 'px';
+          tip.style.top = (rect.bottom + 8) + 'px';
+          tip.classList.add('show');
+        });
+        el.addEventListener('mouseleave', function() {
+          tip.classList.remove('show');
+        });
+      });
+
+      /* Animate annotations in */
+      if (window.gsap) {
+        gsap.fromTo(lockedEl.querySelectorAll('.anno-highlight'),
+          { backgroundColor: 'transparent' },
+          { backgroundColor: null, duration: 0.4, stagger: 0.08, delay: 0.5, ease: 'power2.out',
+            clearProps: 'backgroundColor' }
+        );
       }
     }
 
@@ -10264,6 +10518,7 @@ input[type="range"]::-moz-range-thumb{
       if (!state) boot();
     }, 3000);
   </script>
+  <div class="anno-tip" id="annoTip"><div class="at-tag"></div><div class="at-note"></div></div>
   <div class="canvas-tooltip" id="canvasTooltip">
     <div class="ct-day" id="ctDay"></div>
     <div class="ct-ret" id="ctRet"></div>
