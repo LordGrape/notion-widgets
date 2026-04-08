@@ -4157,7 +4157,7 @@ input[type="range"]::-moz-range-thumb{
           fontFamily: 'Inter, system-ui, sans-serif'
         },
         flowchart: { curve: 'basis', padding: 14, htmlLabels: true, useMaxWidth: true },
-        securityLevel: 'strict'
+        securityLevel: 'loose'
       });
       /* Listen for colour scheme changes and re-init Mermaid theme */
       window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
@@ -4180,7 +4180,7 @@ input[type="range"]::-moz-range-thumb{
               fontFamily: 'Inter, system-ui, sans-serif'
             },
             flowchart: { curve: 'basis', padding: 14, htmlLabels: true, useMaxWidth: true },
-            securityLevel: 'strict'
+            securityLevel: 'loose'
           });
         } catch (ex) {}
       });
@@ -5276,8 +5276,16 @@ input[type="range"]::-moz-range-thumb{
       var lines = t.split(/\n/).map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 0; });
       if (lines.length < 2) return true;
       var last = lines[lines.length - 1];
-      if (/(?:-->|--o)(?:\|[^|]*\|)?\s*$/i.test(last)) return true;
+      /* Truncated mid-edge: ends with arrow or arrow+partial label */
+      if (/(?:-->|--o|-.->|==>)(?:\|[^|]*\|)?\s*$/i.test(last)) return true;
       if (/--\s*$/.test(last)) return true;
+      /* Unclosed pipe label: has opening | after arrow but no closing | */
+      if (/(?:-->|--o|-.->|==>)\|[^|]*$/i.test(last)) return true;
+      /* Truncated node definition: opening paren/bracket never closed */
+      if (/\([^)]*$/.test(last) || /\[[^\]]*$/.test(last) || /\{[^}]*$/.test(last)) return true;
+      /* Truncated quoted string: odd number of double quotes */
+      var quoteCount = (last.match(/"/g) || []).length;
+      if (quoteCount % 2 !== 0) return true;
       return false;
     }
 
@@ -5307,6 +5315,28 @@ input[type="range"]::-moz-range-thumb{
       return true;
     }
 
+    function sanitizeMermaidCode(raw) {
+      if (!raw || typeof raw !== 'string') return '';
+      var t = raw.trim();
+      /* Strip markdown fences */
+      t = t.replace(/^```mermaid\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
+      /* Ensure it starts with a valid diagram keyword */
+      if (!/^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|mindmap)\b/i.test(t)) {
+        var idx = t.search(/\b(graph|flowchart)\s+(TD|LR|TB|BT|RL)\b/i);
+        if (idx > 0) t = t.slice(idx);
+      }
+      /* Remove lines that are clearly truncated (end with dangling arrow or unclosed pipe) */
+      var lines = t.split('\n');
+      var cleaned = [];
+      for (var i = 0; i < lines.length; i++) {
+        var line = lines[i].trimEnd();
+        if (/(?:-->|--o|-.->|==>)\|[^|]*$/i.test(line)) continue;
+        if (/(?:-->|--o|-.->|==>)\s*$/i.test(line) && i === lines.length - 1) continue;
+        cleaned.push(line);
+      }
+      return cleaned.join('\n').trim();
+    }
+
     function initMermaidBlocks() {
       if (typeof mermaid === 'undefined') {
         console.warn('[StudyEngine] Mermaid.js not loaded — visual cues will show as code');
@@ -5315,8 +5345,15 @@ input[type="range"]::-moz-range-thumb{
       var blocks = document.querySelectorAll('.mermaid-render[data-mermaid]');
       if (!blocks.length) return;
       blocks.forEach(function(elm) {
-        var code = elm.getAttribute('data-mermaid');
-        if (!code || elm.querySelector('svg')) return;
+        var rawCode = elm.getAttribute('data-mermaid');
+        if (!rawCode || elm.querySelector('svg')) return;
+        var code = sanitizeMermaidCode(rawCode);
+        if (!code) {
+          if (attemptRecoverTruncatedMermaid(elm, rawCode)) return;
+          elm.innerHTML = '<pre class="mermaid-fallback">' + esc(rawCode) + '</pre>';
+          elm.removeAttribute('data-mermaid');
+          return;
+        }
         var id = elm.id || ('mermaid-auto-' + (++mermaidIdCounter));
         elm.id = id;
         try {
@@ -5328,14 +5365,14 @@ input[type="range"]::-moz-range-thumb{
             }
           }).catch(function(err) {
             console.warn('[StudyEngine] Mermaid render failed:', err);
-            if (attemptRecoverTruncatedMermaid(elm, code)) return;
-            elm.innerHTML = '<pre class="mermaid-fallback">' + esc(code) + '</pre>';
+            if (attemptRecoverTruncatedMermaid(elm, rawCode)) return;
+            elm.innerHTML = '<pre class="mermaid-fallback">' + esc(rawCode) + '</pre>';
             elm.removeAttribute('data-mermaid');
           });
         } catch (e) {
           console.warn('[StudyEngine] Mermaid render exception:', e);
-          if (attemptRecoverTruncatedMermaid(elm, code)) return;
-          elm.innerHTML = '<pre class="mermaid-fallback">' + esc(code) + '</pre>';
+          if (attemptRecoverTruncatedMermaid(elm, rawCode)) return;
+          elm.innerHTML = '<pre class="mermaid-fallback">' + esc(rawCode) + '</pre>';
           elm.removeAttribute('data-mermaid');
         }
       });
