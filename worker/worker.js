@@ -397,7 +397,11 @@ Rules:
         visual = visual.replace(/^```mermaid\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/i, "").trim();
 
         if (visual) {
-          await env.WIDGET_KV.put(cacheKey, visual, { expirationTtl: 30 * 24 * 60 * 60 });
+          try {
+            await env.WIDGET_KV.put(cacheKey, visual, { expirationTtl: 30 * 24 * 60 * 60 });
+          } catch (kvErr) {
+            console.error("KV cache write failed (likely daily limit):", kvErr.message);
+          }
         }
 
         return new Response(JSON.stringify({ visual: visual || null }), {
@@ -472,7 +476,11 @@ Rules:
         const ttsData = await ttsRes.json();
         const audioContent = ttsData.audioContent || "";
         if (audioContent) {
-          await env.WIDGET_KV.put(cacheKey, audioContent, { expirationTtl: 30 * 24 * 60 * 60 });
+          try {
+            await env.WIDGET_KV.put(cacheKey, audioContent, { expirationTtl: 30 * 24 * 60 * 60 });
+          } catch (kvErr) {
+            console.error("KV TTS cache write failed (likely daily limit):", kvErr.message);
+          }
         }
 
         return new Response(JSON.stringify({ audioContent }), {
@@ -534,7 +542,12 @@ Rules:
           }
         }
 
-        await env.WIDGET_KV.put(key, JSON.stringify(newState));
+        try {
+          await env.WIDGET_KV.put(key, JSON.stringify(newState));
+        } catch (kvErr) {
+          console.error("KV state write failed (likely daily limit):", kvErr.message);
+          return json({ error: "KV write failed", detail: kvErr.message, key, ok: false }, 503);
+        }
         return json({ key, ok: true });
       }
       return json({ error: "Method not allowed" }, 405);
