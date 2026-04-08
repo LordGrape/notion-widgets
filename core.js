@@ -1811,7 +1811,8 @@ let SyncEngine = (function() {
   let pushTimers = {};    // debounce timers per namespace
   let dirtyNamespaces = {};
   let offlineQueue = [];
-  let DEBOUNCE = 300;
+  /* Paid Workers: moderate debounce + no-op skip in remotePut (lastPushedPayload). */
+  let DEBOUNCE = 5000;
   let RETRY_INTERVAL = 60000;
   let retryTimer = null;
   let POLL_INTERVAL = 120000; /* Cross-device sync poll: check KV every 2min */
@@ -1821,6 +1822,7 @@ let SyncEngine = (function() {
   let namespaces = [];    // registered namespace strings
   let syncStatusListeners = [];
   let activePushCount = 0;
+  let lastPushedPayload = {}; /* last successful PUT body per namespace (no-op skip) */
 
   /* ── BroadcastChannel: cross-widget real-time sync ──
      All widgets on the same origin (lordgrape.github.io)
@@ -1947,16 +1949,28 @@ let SyncEngine = (function() {
     .then(function(d) { return d.value || {}; });
   }
 
-  function remotePut(ns) {
-    return fetch(WORKER_URL + '/state/' + ns, {
+  function payloadBody(ns) {
+    return JSON.stringify({ value: cache[ns] || {} });
+  }
+
+  function remotePut(ns, opts) {
+    opts = opts || {};
+    let body = payloadBody(ns);
+    if (lastPushedPayload[ns] === body) {
+      return Promise.resolve();
+    }
+    let fetchOpts = {
       method: 'PUT',
       headers: {
         'X-Widget-Key': passphrase,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ value: cache[ns] || {} })
-    })
-    .then(function(r) { if (!r.ok) throw new Error(r.status); });
+      body: body
+    };
+    if (opts.keepalive) fetchOpts.keepalive = true;
+    return fetch(WORKER_URL + '/state/' + ns, fetchOpts)
+      .then(function(r) { if (!r.ok) throw new Error(r.status); })
+      .then(function() { lastPushedPayload[ns] = body; });
   }
 
   /* Keys where highest-value-wins, not newest-timestamp-wins */
@@ -2055,8 +2069,13 @@ let SyncEngine = (function() {
   function schedulePush(ns) {
     if (pushTimers[ns]) clearTimeout(pushTimers[ns]);
     pushTimers[ns] = setTimeout(function() {
+      delete pushTimers[ns];
       dirtyNamespaces[ns] = true;
       if (!online) return;
+      if (lastPushedPayload[ns] === payloadBody(ns)) {
+        delete dirtyNamespaces[ns];
+        return;
+      }
       activePushCount++;
       notifySyncStatus('saving');
       remotePut(ns).then(function() {
@@ -2109,6 +2128,27 @@ let SyncEngine = (function() {
   document.addEventListener('visibilitychange', function() {
     if (document.hidden) stopPolling();
     else if (online && initDone) startPolling();
+  });
+
+  /* Best-effort flush on close: clear debounce timers, keepalive PUT per dirty namespace (no .then — page may die). */
+  window.addEventListener('pagehide', function() {
+    if (!online || !passphrase) return;
+    namespaces.forEach(function(ns) {
+      if (pushTimers[ns]) {
+        clearTimeout(pushTimers[ns]);
+        delete pushTimers[ns];
+      }
+      let body = payloadBody(ns);
+      if (lastPushedPayload[ns] === body) return;
+      try {
+        fetch(WORKER_URL + '/state/' + ns, {
+          method: 'PUT',
+          headers: { 'X-Widget-Key': passphrase, 'Content-Type': 'application/json' },
+          body: body,
+          keepalive: true
+        });
+      } catch (e) {}
+    });
   });
 
   /* ── Retry loop ── */
