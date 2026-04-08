@@ -342,13 +342,21 @@ Respond in this EXACT JSON format and nothing else:
           });
         }
 
-        // Check KV cache
+        // Check KV cache (drop truncated / invalid entries so they regenerate)
         const cacheKey = `visual:${hashString(prompt + modelAnswer + (tier || ""))}`;
         const cached = await env.WIDGET_KV.get(cacheKey);
         if (cached) {
-          return new Response(JSON.stringify({ visual: cached }), {
-            status: 200, headers: { ...visCorsHeaders, "Content-Type": "application/json" }
-          });
+          if (isIncompleteMermaidOutput(cached)) {
+            try {
+              await env.WIDGET_KV.delete(cacheKey);
+            } catch (delErr) {
+              console.error("KV delete stale visual failed:", delErr.message);
+            }
+          } else {
+            return new Response(JSON.stringify({ visual: cached }), {
+              status: 200, headers: { ...visCorsHeaders, "Content-Type": "application/json" }
+            });
+          }
         }
 
         const visualPrompt = `You generate a SINGLE compact Mermaid.js diagram that serves as a spatial memory cue for a flashcard. The goal is dual coding: the student reads the text AND glances at a small diagram that encodes the structural relationship they need to recall.
@@ -413,7 +421,7 @@ graph TD
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               contents: [{ parts: [{ text: visualPrompt }] }],
-              generationConfig: { temperature: 0.25, maxOutputTokens: 400 }
+              generationConfig: { temperature: 0.25, maxOutputTokens: 1536 }
             })
           }
         );
@@ -425,8 +433,19 @@ graph TD
         }
 
         const data = await geminiRes.json();
-        let visual = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        const cand = data?.candidates?.[0];
+        const finishReason = cand?.finishReason || "";
+        let visual = cand?.content?.parts?.[0]?.text || "";
         visual = visual.replace(/^```mermaid\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/i, "").trim();
+        /* Drop preamble ("Here is…") so Mermaid sees graph TD/LR first */
+        const graphIdx = visual.search(/\bgraph\s+(TD|LR)\b/i);
+        if (graphIdx > 0) visual = visual.slice(graphIdx).trim();
+        else if (graphIdx === -1) visual = "";
+
+        if (finishReason === "MAX_TOKENS" || isIncompleteMermaidOutput(visual)) {
+          console.warn("[visual] incomplete or truncated Mermaid; not caching", { finishReason, tail: visual && visual.slice(-80) });
+          visual = "";
+        }
 
         if (visual) {
           try {
@@ -652,6 +671,24 @@ async function handleNotion(resource, request, env) {
 }
 
 // ── Helpers ──
+/** True if string is missing graph, too short, or last line ends mid-edge (truncated output). */
+function isIncompleteMermaidOutput(s) {
+  if (!s || typeof s !== "string") return true;
+  let t = s.trim();
+  if (!t) return true;
+  t = t.replace(/^```mermaid\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/i, "").trim();
+  const graphIdx = t.search(/\bgraph\s+(TD|LR)\b/i);
+  if (graphIdx === -1) return true;
+  t = t.slice(graphIdx).trim();
+  const lines = t.split(/\n/).map((l) => l.trim()).filter((l) => l.length > 0);
+  if (lines.length < 2) return true;
+  const last = lines[lines.length - 1];
+  /* Ends with arrow (optional |label|) but no target node */
+  if (/(?:-->|--o)(?:\|[^|]*\|)?\s*$/i.test(last)) return true;
+  if (/--\s*$/.test(last)) return true;
+  return false;
+}
+
 function hashString(str) {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
