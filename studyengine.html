@@ -4216,6 +4216,8 @@ input[type="range"]::-moz-range-thumb{
       sessionLimit: 12,
       mockDefaultMins: 10,
       showApplyTimer: true,
+      revealMode: 'visual',
+      ttsVoice: 'en-US-Studio-O',
       breakReminders: true,
       breakIntervalMins: 25,
       performanceBreaks: true
@@ -5131,6 +5133,9 @@ input[type="range"]::-moz-range-thumb{
 
     /* ── Dual Coding: Visual Generation ── */
     var VISUAL_WORKER_URL = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/visual';
+    var TTS_WORKER_URL = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/tts';
+    var ttsAudioCtx = null;
+    var ttsCurrentSource = null;
 
     function getWidgetKey() {
       try {
@@ -5143,6 +5148,65 @@ input[type="range"]::-moz-range-thumb{
       try { if (window.WIDGET_KEY) return window.WIDGET_KEY; } catch (e2) {}
       try { return localStorage.getItem('WIDGET_KEY') || localStorage.getItem('widgetKey') || ''; } catch (e3) {}
       return '';
+    }
+
+    function playTTS(text) {
+      return new Promise(function(resolve) {
+        if (!text || text.length < 3) { resolve(); return; }
+        var voiceName = settings.ttsVoice || 'en-US-Studio-O';
+        fetch(TTS_WORKER_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Widget-Key': getWidgetKey()
+          },
+          body: JSON.stringify({
+            text: String(text).slice(0, 2000),
+            voiceName: voiceName
+          })
+        })
+        .then(function(r) { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
+        .then(function(d) {
+          if (!d || !d.audioContent) { resolve(); return null; }
+          var binary = atob(d.audioContent);
+          var len = binary.length;
+          var bytes = new Uint8Array(len);
+          for (var i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+          if (!ttsAudioCtx) ttsAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          if (ttsAudioCtx.state === 'suspended') {
+            return ttsAudioCtx.resume().then(function() {
+              return ttsAudioCtx.decodeAudioData(bytes.buffer);
+            });
+          }
+          return ttsAudioCtx.decodeAudioData(bytes.buffer);
+        })
+        .then(function(buffer) {
+          if (!buffer || !ttsAudioCtx) { resolve(); return; }
+          if (ttsCurrentSource) {
+            try { ttsCurrentSource.stop(); } catch (e) {}
+          }
+          var source = ttsAudioCtx.createBufferSource();
+          source.buffer = buffer;
+          source.connect(ttsAudioCtx.destination);
+          source.onended = function() {
+            if (ttsCurrentSource === source) ttsCurrentSource = null;
+            resolve();
+          };
+          ttsCurrentSource = source;
+          source.start(0);
+        })
+        .catch(function(err) {
+          console.warn('TTS playback failed:', err);
+          resolve();
+        });
+      });
+    }
+
+    function stopTTS() {
+      if (ttsCurrentSource) {
+        try { ttsCurrentSource.stop(); } catch (e) {}
+        ttsCurrentSource = null;
+      }
     }
 
     async function generateVisual(item) {
@@ -6221,6 +6285,10 @@ input[type="range"]::-moz-range-thumb{
         else ensureAnswerVisual(it, revealTier);
         ratingsEl.style.display = 'grid';
         try { playClick(); } catch(e) {}
+        var rmQf = settings.revealMode || 'visual';
+        if (rmQf === 'audio' || rmQf === 'both') {
+          playTTS(it.modelAnswer || '');
+        }
         return;
       }
 
@@ -6262,6 +6330,10 @@ input[type="range"]::-moz-range-thumb{
       else ensureAnswerVisual(it, revealTier);
 
       try { playClick(); } catch(e) {}
+      var rm = settings.revealMode || 'visual';
+      if (rm === 'audio' || rm === 'both') {
+        playTTS(it.modelAnswer || '');
+      }
 
       /* If user wrote nothing, skip AI and show self-rate */
       if (!userText) {
@@ -6838,6 +6910,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     function advanceItem() {
+      stopTTS();
       clearTimers();
       session.idx++;
       if (session.idx >= session.queue.length) {
@@ -6864,6 +6937,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     function completeSession() {
+      stopTTS();
       clearTimers();
       if (!session) return;
 
@@ -8100,6 +8174,35 @@ input[type="range"]::-moz-range-thumb{
         '</div>' +
         '<div class="setting-row">' +
           '<div class="sr-left">' +
+            '<div class="sr-label">Audio reveal mode</div>' +
+            '<div class="sr-desc">Choose how answers are revealed: visual, audio, or both.</div>' +
+          '</div>' +
+          '<div class="sr-control">' +
+            pillGroup('s_revealMode', [
+              { value: 'visual', label: 'Visual' },
+              { value: 'audio', label: 'Audio' },
+              { value: 'both', label: 'Both' }
+            ], settings.revealMode || 'visual') +
+          '</div>' +
+        '</div>' +
+        '<div class="setting-row">' +
+          '<div class="sr-left">' +
+            '<div class="sr-label">TTS voice</div>' +
+            '<div class="sr-desc">Google Cloud voice used when audio reveal is enabled.</div>' +
+          '</div>' +
+          '<div class="sr-control">' +
+            '<select id="s_tts_voice">' +
+              '<option value="en-US-Studio-O"' + ((settings.ttsVoice || 'en-US-Studio-O') === 'en-US-Studio-O' ? ' selected' : '') + '>Studio O (Warm Narrator)</option>' +
+              '<option value="en-US-Studio-Q"' + ((settings.ttsVoice || 'en-US-Studio-O') === 'en-US-Studio-Q' ? ' selected' : '') + '>Studio Q (Smooth Narrator)</option>' +
+              '<option value="en-US-Chirp3-HD-Kore"' + ((settings.ttsVoice || 'en-US-Studio-O') === 'en-US-Chirp3-HD-Kore' ? ' selected' : '') + '>Chirp HD - Kore</option>' +
+              '<option value="en-US-Chirp3-HD-Aoede"' + ((settings.ttsVoice || 'en-US-Studio-O') === 'en-US-Chirp3-HD-Aoede' ? ' selected' : '') + '>Chirp HD - Aoede</option>' +
+              '<option value="en-US-Chirp3-HD-Charon"' + ((settings.ttsVoice || 'en-US-Studio-O') === 'en-US-Chirp3-HD-Charon' ? ' selected' : '') + '>Chirp HD - Charon</option>' +
+              '<option value="en-US-Chirp3-HD-Puck"' + ((settings.ttsVoice || 'en-US-Studio-O') === 'en-US-Chirp3-HD-Puck' ? ' selected' : '') + '>Chirp HD - Puck</option>' +
+            '</select>' +
+          '</div>' +
+        '</div>' +
+        '<div class="setting-row">' +
+          '<div class="sr-left">' +
             '<div class="sr-label">FSRS Optimization <span class="info-icon" tabindex="0" aria-label="Info">ⓘ<span class="info-tooltip">Personalizes FSRS weights from your review history (heuristic tune + ts-fsrs validation). Requires at least 30 reviews in calibration history. Also runs automatically every 50 reviews.<span class="tip-arrow"></span></span></span></div>' +
             '<div class="sr-desc">Tune scheduling to your memory patterns.</div>' +
           '</div>' +
@@ -8193,6 +8296,9 @@ input[type="range"]::-moz-range-thumb{
       var applyGroup = document.querySelector('.mode-toggle[data-setting="s_apply"]');
       var applyActive = applyGroup ? applyGroup.querySelector('.mode-btn.active') : null;
       var at = applyActive ? applyActive.getAttribute('data-val') === '1' : true;
+      var revealGroup = document.querySelector('.mode-toggle[data-setting="s_revealMode"]');
+      var revealActive = revealGroup ? revealGroup.querySelector('.mode-btn.active') : null;
+      var revealMode = revealActive ? revealActive.getAttribute('data-val') : 'visual';
       settings.desiredRetention = clamp(isFinite(r) ? r : 0.9, 0.80, 0.95);
       /* Sync retention target to fsrsInstance */
       if (typeof FSRS !== 'undefined' && FSRS.FSRS && FSRS.generatorParameters) {
@@ -8207,6 +8313,8 @@ input[type="range"]::-moz-range-thumb{
       settings.sessionLimit = clamp(isFinite(lim) ? lim : 12, 5, 60);
       settings.mockDefaultMins = [5,10,15,30].indexOf(mm) >= 0 ? mm : 10;
       settings.showApplyTimer = !!at;
+      settings.revealMode = (revealMode === 'audio' || revealMode === 'both') ? revealMode : 'visual';
+      settings.ttsVoice = (el('s_tts_voice') && el('s_tts_voice').value) ? el('s_tts_voice').value : 'en-US-Studio-O';
       settings.breakReminders = (el('s_breakReminders') && el('s_breakReminders').value === 'true');
       settings.breakIntervalMins = parseInt(el('s_breakInterval') ? el('s_breakInterval').value : '25', 10);
       settings.performanceBreaks = (el('s_perfBreaks') && el('s_perfBreaks').value === 'true');
