@@ -1712,6 +1712,15 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .cc-color-dot{
+      width: 10px; height: 10px;
+      border-radius: 99px;
+      flex-shrink: 0;
+      box-shadow: 0 0 8px rgba(0,0,0,0.15);
     }
     .course-card .cc-meta{
       display: flex;
@@ -3794,9 +3803,9 @@ input[type="range"]::-moz-range-thumb{
         var retPct = retN ? Math.round((retSum / retN) * 100) : null;
         var cramState = getCramState(c.name);
         var courseCol = c.color || '#8b5cf6';
-        h += '<div class="course-card" data-course-name="' + esc(c.name) + '" style="border-left-color:' + esc(courseCol) + '">' +
+        h += '<div class="course-card" data-course-name="' + esc(c.name) + '" style="border-left-color:' + esc(courseCol) + '; background: linear-gradient(135deg, ' + esc(courseCol) + '12, ' + esc(courseCol) + '06);">' +
           '<div class="cc-left">' +
-          '<div class="cc-name">' + esc(c.name) + '</div>' +
+          '<div class="cc-name"><span class="cc-color-dot" style="background:' + esc(courseCol) + ';"></span>' + esc(c.name) + '</div>' +
           '<div class="cc-meta">' +
           '<span class="cc-exam-type">' + esc(EXAM_TYPE_LABELS[c.examType] || c.examType) + '</span>' +
           (c.examDate ? '<span class="cc-exam-type" style="border-color:rgba(239,68,68,0.2);color:var(--rate-again);background:rgba(239,68,68,0.06);">' + (cramState.active ? '🔥 Cram' : '📅 Exam set') + '</span>' : '<span class="cc-exam-type" style="border-color:rgba(34,197,94,0.2);color:var(--rate-good);background:rgba(34,197,94,0.06);">🧠 Long-term</span>') +
@@ -5231,6 +5240,10 @@ input[type="range"]::-moz-range-thumb{
       }
 
       try { playPresetSelect(); } catch(e) {}
+
+      /* Hide settings gear on Courses tab — not contextually relevant there */
+      var gearBtn = document.querySelector('.topbar-right .icon-btn');
+      if (gearBtn) gearBtn.style.display = (tab === 'courses') ? 'none' : '';
     }
 
     el('navHome').addEventListener('click', function() { switchNav('home'); });
@@ -7314,6 +7327,9 @@ input[type="range"]::-moz-range-thumb{
       var c = getCourse(courseName);
       if (!c) return;
 
+      var gearBtn = document.querySelector('.topbar-right .icon-btn');
+      if (gearBtn) gearBtn.style.display = 'none';
+
       el('cdTitle').textContent = c.name;
       var cdHeader = document.querySelector('#courseDetail .cd-header');
       if (cdHeader) {
@@ -7579,6 +7595,8 @@ input[type="range"]::-moz-range-thumb{
       el('courseDetail').style.display = 'none';
       /* Return to courses tab */
       switchNav('courses');
+      var gearBtn = document.querySelector('.topbar-right .icon-btn');
+      if (gearBtn) gearBtn.style.display = (activeNav === 'courses') ? 'none' : '';
     }
 
     el('cdBack').addEventListener('click', closeCourseDetail);
