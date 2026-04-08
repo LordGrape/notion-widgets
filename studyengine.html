@@ -1241,6 +1241,17 @@
     .visual-container .mermaid-render svg{
       max-width: 100%;
       height: auto;
+      border-radius: 12px;
+      filter: drop-shadow(0 2px 8px rgba(var(--accent-rgb), 0.08));
+    }
+    .visual-container .mermaid-render svg text{
+      font-family: Inter, system-ui, sans-serif !important;
+    }
+    .visual-container .mermaid-render .node rect,
+    .visual-container .mermaid-render .node circle,
+    .visual-container .mermaid-render .node polygon{
+      rx: 12;
+      ry: 12;
     }
     .visual-container .mermaid-fallback{
       font-family: 'JetBrains Mono', 'Fira Code', monospace;
@@ -4107,7 +4118,7 @@ input[type="range"]::-moz-range-thumb{
   <script src="https://lordgrape.github.io/notion-widgets/core.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked@15/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.3/dist/mermaid.min.js"></script>
   <script>
     try {
       var _mermaidDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -4115,19 +4126,53 @@ input[type="range"]::-moz-range-thumb{
         startOnLoad: false,
         theme: _mermaidDark ? 'dark' : 'default',
         themeVariables: {
-          primaryColor: '#8b5cf6',
+          primaryColor: _mermaidDark ? '#a78bfa' : '#8b5cf6',
           primaryTextColor: _mermaidDark ? '#e8e0f0' : '#1a1a2e',
-          primaryBorderColor: 'rgba(139,92,246,0.3)',
-          lineColor: '#a78bfa',
-          secondaryColor: 'rgba(139,92,246,0.08)',
-          tertiaryColor: 'rgba(139,92,246,0.04)',
+          primaryBorderColor: _mermaidDark ? 'rgba(167,139,250,0.35)' : 'rgba(139,92,246,0.3)',
+          lineColor: _mermaidDark ? '#a78bfa' : '#8b5cf6',
+          secondaryColor: _mermaidDark ? 'rgba(167,139,250,0.12)' : 'rgba(139,92,246,0.08)',
+          tertiaryColor: _mermaidDark ? 'rgba(167,139,250,0.06)' : 'rgba(139,92,246,0.04)',
+          background: 'transparent',
+          mainBkg: _mermaidDark ? 'rgba(30,20,50,0.6)' : 'rgba(255,255,255,0.6)',
+          nodeBorder: _mermaidDark ? '#a78bfa' : '#8b5cf6',
+          clusterBkg: _mermaidDark ? 'rgba(167,139,250,0.06)' : 'rgba(139,92,246,0.04)',
+          clusterBorder: _mermaidDark ? 'rgba(167,139,250,0.2)' : 'rgba(139,92,246,0.15)',
+          titleColor: _mermaidDark ? '#e8e0f0' : '#1a1a2e',
+          edgeLabelBackground: _mermaidDark ? '#1e1432' : '#f8f7ff',
           fontSize: '12px',
           fontFamily: 'Inter, system-ui, sans-serif'
         },
-        flowchart: { curve: 'basis', padding: 12 },
+        flowchart: { curve: 'basis', padding: 14, htmlLabels: true, useMaxWidth: true },
         securityLevel: 'strict'
       });
-    } catch (e) {}
+      /* Listen for colour scheme changes and re-init Mermaid theme */
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+        var dk = e.matches;
+        try {
+          mermaid.initialize({
+            startOnLoad: false,
+            theme: dk ? 'dark' : 'default',
+            themeVariables: {
+              primaryColor: dk ? '#a78bfa' : '#8b5cf6',
+              primaryTextColor: dk ? '#e8e0f0' : '#1a1a2e',
+              primaryBorderColor: dk ? 'rgba(167,139,250,0.35)' : 'rgba(139,92,246,0.3)',
+              lineColor: dk ? '#a78bfa' : '#8b5cf6',
+              secondaryColor: dk ? 'rgba(167,139,250,0.12)' : 'rgba(139,92,246,0.08)',
+              tertiaryColor: dk ? 'rgba(167,139,250,0.06)' : 'rgba(139,92,246,0.04)',
+              background: 'transparent',
+              mainBkg: dk ? 'rgba(30,20,50,0.6)' : 'rgba(255,255,255,0.6)',
+              nodeBorder: dk ? '#a78bfa' : '#8b5cf6',
+              fontSize: '12px',
+              fontFamily: 'Inter, system-ui, sans-serif'
+            },
+            flowchart: { curve: 'basis', padding: 14, htmlLabels: true, useMaxWidth: true },
+            securityLevel: 'strict'
+          });
+        } catch (ex) {}
+      });
+    } catch (e) {
+      console.warn('[StudyEngine] Mermaid init failed:', e);
+    }
   </script>
   <!-- ts-fsrs UMD exposes global FSRS ({ FSRS, generatorParameters, … }) — browser scheduling still uses shared w[] + inline formulas -->
   <script src="https://cdn.jsdelivr.net/npm/ts-fsrs@5.3.2/dist/index.umd.js"></script>
@@ -5207,8 +5252,13 @@ input[type="range"]::-moz-range-thumb{
     }
 
     function initMermaidBlocks() {
-      if (typeof mermaid === 'undefined') return;
-      document.querySelectorAll('.mermaid-render[data-mermaid]').forEach(function(elm) {
+      if (typeof mermaid === 'undefined') {
+        console.warn('[StudyEngine] Mermaid.js not loaded — visual cues will show as code');
+        return;
+      }
+      var blocks = document.querySelectorAll('.mermaid-render[data-mermaid]');
+      if (!blocks.length) return;
+      blocks.forEach(function(elm) {
         var code = elm.getAttribute('data-mermaid');
         if (!code || elm.querySelector('svg')) return;
         var id = elm.id || ('mermaid-auto-' + (++mermaidIdCounter));
@@ -5217,15 +5267,23 @@ input[type="range"]::-moz-range-thumb{
           mermaid.render(id + '-svg', code).then(function(result) {
             elm.innerHTML = result.svg;
             elm.removeAttribute('data-mermaid');
+            /* Style the SVG to fit the container */
+            var svg = elm.querySelector('svg');
+            if (svg) {
+              svg.style.maxWidth = '100%';
+              svg.style.height = 'auto';
+              svg.style.borderRadius = '12px';
+            }
             if (window.gsap) {
               gsap.fromTo(elm, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' });
             }
           }).catch(function(err) {
-            console.warn('Mermaid render failed:', err);
+            console.warn('[StudyEngine] Mermaid render failed:', err);
             elm.innerHTML = '<pre class="mermaid-fallback">' + esc(code) + '</pre>';
             elm.removeAttribute('data-mermaid');
           });
         } catch (e) {
+          console.warn('[StudyEngine] Mermaid render exception:', e);
           elm.innerHTML = '<pre class="mermaid-fallback">' + esc(code) + '</pre>';
           elm.removeAttribute('data-mermaid');
         }
