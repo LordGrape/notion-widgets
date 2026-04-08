@@ -1963,6 +1963,27 @@ let SyncEngine = (function() {
   let MONOTONIC_KEYS = { xp: true, streak: true };
   /* Keys where values are JSON arrays merged via set union */
   let UNION_KEYS = { achievements: true };
+  function isPlainObject(v) {
+    return !!v && typeof v === 'object' && !Array.isArray(v);
+  }
+  function deepMergeObjects(localObj, remoteObj) {
+    if (!isPlainObject(localObj)) return remoteObj;
+    if (!isPlainObject(remoteObj)) return (remoteObj === undefined ? localObj : remoteObj);
+    let out = {};
+    let allKeys = {};
+    let k;
+    for (k in localObj) if (localObj.hasOwnProperty(k)) allKeys[k] = true;
+    for (k in remoteObj) if (remoteObj.hasOwnProperty(k)) allKeys[k] = true;
+    for (k in allKeys) {
+      let lv = localObj[k];
+      let rv = remoteObj[k];
+      if (lv === undefined) out[k] = rv;
+      else if (rv === undefined) out[k] = lv;
+      else if (isPlainObject(lv) && isPlainObject(rv)) out[k] = deepMergeObjects(lv, rv);
+      else out[k] = rv;
+    }
+    return out;
+  }
 
   /* ── Merge: strategy-aware conflict resolution ── */
   function merge(local, remote) {
@@ -1996,7 +2017,19 @@ let SyncEngine = (function() {
         continue;
       }
 
-      /* Strategy 3 (default): Newest timestamp wins */
+      /* Strategy 3a: If both values are objects, deep-merge to prevent
+         empty-object overwrite during cross-client init races. */
+      let localValObj = _entryValue(merged[k]);
+      let remoteValObj = _entryValue(remote[k]);
+      if (isPlainObject(localValObj) && isPlainObject(remoteValObj)) {
+        merged[k] = {
+          value: deepMergeObjects(localValObj, remoteValObj),
+          _ts: Math.max(_entryTs(merged[k] || {}), _entryTs(remote[k]))
+        };
+        continue;
+      }
+
+      /* Strategy 3b (default): Newest timestamp wins */
       if (!merged.hasOwnProperty(k) || _entryTs(remote[k]) >= _entryTs(merged[k])) {
         merged[k] = remote[k];
       }
@@ -2266,11 +2299,13 @@ let SyncEngine = (function() {
         }
         /* Pull remote state for each namespace, merge, push merged copy back */
         let pulls = namespaces.map(function(ns) {
+          /* Empty/trivial local namespaces should not push during init. */
+          let localWeight = JSON.stringify(cache[ns] || {}).length;
           return remoteGet(ns)
             .then(function(remote) {
               cache[ns] = merge(cache[ns], remote);
               lsWrite(ns);
-              return remotePut(ns);
+              if (localWeight > 4) return remotePut(ns);
             })
             .catch(function() {
               /* Remote unreachable: keep local */
