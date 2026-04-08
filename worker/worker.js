@@ -4,6 +4,19 @@
 
 export default {
   async fetch(request, env) {
+    // ── Global CORS preflight — must run before auth or any route branch ──
+    if (request.method === "OPTIONS") {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, PUT, POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, X-Widget-Key",
+          "Access-Control-Max-Age": "86400"
+        }
+      });
+    }
+
     const url = new URL(request.url);
 
     // ── AI Grading Route ──
@@ -18,9 +31,6 @@ export default {
         "Access-Control-Max-Age": "86400"
       };
 
-      if (request.method === "OPTIONS") {
-        return new Response(null, { status: 204, headers: gradeCorsHeaders });
-      }
       if (request.method !== "POST") {
         return new Response(JSON.stringify({ error: "Method not allowed" }), {
           status: 405, headers: { ...gradeCorsHeaders, "Content-Type": "application/json" }
@@ -321,9 +331,6 @@ Respond in this EXACT JSON format and nothing else:
         "Access-Control-Max-Age": "86400"
       };
 
-      if (request.method === "OPTIONS") {
-        return new Response(null, { status: 204, headers: visCorsHeaders });
-      }
       if (request.method !== "POST") {
         return new Response(JSON.stringify({ error: "Method not allowed" }), {
           status: 405, headers: { ...visCorsHeaders, "Content-Type": "application/json" }
@@ -416,9 +423,6 @@ Rules:
         "Access-Control-Max-Age": "86400"
       };
 
-      if (request.method === "OPTIONS") {
-        return new Response(null, { status: 204, headers: ttsCorsHeaders });
-      }
       if (request.method !== "POST") {
         return new Response(JSON.stringify({ error: "Method not allowed" }), {
           status: 405, headers: { ...ttsCorsHeaders, "Content-Type": "application/json" }
@@ -482,10 +486,6 @@ Rules:
     }
 
     // ── Existing routes below (state sync, notion bridge) ──
-    if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: corsHeaders() });
-    }
-
     const passphrase = request.headers.get("X-Widget-Key");
     if (!passphrase || passphrase !== env.WIDGET_SECRET) {
       return json({ error: "Unauthorized" }, 401);
