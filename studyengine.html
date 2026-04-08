@@ -2085,6 +2085,33 @@
   background: rgba(var(--accent-rgb),0.14);
   border-color: rgba(var(--accent-rgb),0.30);
 }
+.tier-pill .info-tooltip{
+  text-transform: none;
+  letter-spacing: 0.1px;
+  font-weight: 500;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.breakdown .tier-pill.info-icon{
+  width: auto;
+  height: auto;
+  min-width: 0;
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.06);
+  font-weight: 600;
+  font-size: 9px;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+.breakdown .tier-pill.info-icon:hover{
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(var(--accent-rgb),0.22);
+}
 .info-tooltip{
   display: none;
   position: fixed;
@@ -2245,7 +2272,7 @@ input[type="range"]::-moz-range-thumb{
               <div class="analytics-row">
                 <div class="analytics-card spark-wrap">
                   <div class="ac-title">Last 30 days</div>
-                  <canvas id="sparkCanvas"></canvas>
+                  <canvas id="sparkCanvas" height="80"></canvas>
                 </div>
                 <div class="analytics-card ring-wrap">
                   <canvas id="ringCanvas" width="64" height="64"></canvas>
@@ -3066,11 +3093,18 @@ input[type="range"]::-moz-range-thumb{
       /* Tier breakdown with tier colours */
       var tiers = ['quickfire','explain','apply','distinguish','mock'];
       var tierNames = { quickfire:'Quick Fire', explain:'Explain', apply:'Apply', distinguish:'Distinguish', mock:'Mock' };
+      var tierDescs = {
+        quickfire: 'Cued recall — see a prompt, retrieve the answer from memory. Tests raw factual knowledge (Remember level). Best for definitions, key terms, and MC prep.',
+        explain: 'Write an explanation, then compare to a model answer. Tests conceptual understanding (Understand/Analyse). Builds the ability to articulate why, not just what.',
+        apply: 'Read a scenario and apply a concept to it. Tests transfer to new contexts (Apply/Analyse). Builds essay and short-answer exam skills.',
+        distinguish: 'Two similar concepts side by side — decide which applies to a given scenario. Tests discrimination (Analyse/Evaluate). Prevents confusing related ideas under pressure.',
+        mock: 'Full synthesis under a countdown timer. Tests everything at once (Evaluate/Create). Builds exam stamina and time management.'
+      };
       var bd = '';
       tiers.forEach(function(t) {
         var c = due.byTier[t] || 0;
         var col = tierColour(t);
-        bd += '<span class="tier-pill" data-count="' + c + '" style="border-color:' + col + '30;"><span class="tier-dot" style="background:' + col + ';color:' + col + ';"></span> ' + tierNames[t] + ': ' + c + '</span>';
+        bd += '<span class="tier-pill info-icon" data-count="' + c + '" tabindex="0" aria-label="' + esc(tierNames[t]) + ' info" style="border-color:' + col + '30;cursor:help;position:relative;"><span class="tier-dot" style="background:' + col + ';box-shadow:0 0 12px ' + col + '33;"></span>' + tierNames[t] + ': ' + c + '<span class="info-tooltip">' + esc(tierDescs[t]) + '</span></span>';
       });
       el('tierBreakdown').innerHTML = bd;
 
@@ -5743,14 +5777,15 @@ input[type="range"]::-moz-range-thumb{
       var parent = el(canvasId);
       if (!parent) return;
       var pw = parent.parentElement ? parent.parentElement.clientWidth - 24 : 200;
-      pw = Math.max(120, Math.min(pw, 400));
-      var ph = 50;
+      pw = Math.max(140, Math.min(pw, 500));
+      var ph = 80;
 
       var r = getCanvasCtx(canvasId, pw, ph);
       if (!r) return;
       var ctx = r.ctx, w = r.w, h = r.h;
       var rgb = getAccentRGB();
       var textSec = getTextSecondary();
+      var textCol = getTextColor();
 
       /* Build 30-day history from calibration.history */
       var history = (state.calibration && state.calibration.history) || [];
@@ -5762,12 +5797,12 @@ input[type="range"]::-moz-range-thumb{
         var key = dt.toISOString().slice(0, 10);
         days[key] = { count: 0, ratingSum: 0, ratingN: 0 };
       }
-      history.forEach(function(h) {
-        if (!h.ts) return;
-        var dk = h.ts.slice(0, 10);
+      history.forEach(function(entry) {
+        if (!entry.ts) return;
+        var dk = entry.ts.slice(0, 10);
         if (days[dk]) {
           days[dk].count++;
-          days[dk].ratingSum += (h.rating || 0);
+          days[dk].ratingSum += (entry.rating || 0);
           days[dk].ratingN++;
         }
       });
@@ -5776,70 +5811,115 @@ input[type="range"]::-moz-range-thumb{
       var maxCount = 1;
       dayKeys.forEach(function(k) { if (days[k].count > maxCount) maxCount = days[k].count; });
 
-      var pad = { left: 2, right: 2, top: 4, bottom: 12 };
+      var pad = { left: 4, right: 4, top: 8, bottom: 18 };
       var gw = w - pad.left - pad.right;
       var gh = h - pad.top - pad.bottom;
-      var barW = Math.max(2, (gw / 30) - 2);
+      var gap = 2;
+      var barW = Math.max(3, Math.floor((gw - gap * 29) / 30));
 
+      /* Empty state */
+      var totalReviews = 0;
+      dayKeys.forEach(function(k) { totalReviews += days[k].count; });
+      if (totalReviews === 0) {
+        ctx.fillStyle = textSec;
+        ctx.font = '600 9px Inter, system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('Complete a session to see activity', w / 2, h / 2);
+        return;
+      }
+
+      /* Subtle horizontal grid lines */
+      ctx.strokeStyle = 'rgba(' + rgb + ',0.06)';
+      ctx.lineWidth = 0.5;
+      [0.25, 0.5, 0.75].forEach(function(v) {
+        var y = pad.top + gh - (v * gh);
+        ctx.beginPath();
+        ctx.moveTo(pad.left, y);
+        ctx.lineTo(w - pad.right, y);
+        ctx.stroke();
+      });
+
+      /* Bars */
       dayKeys.forEach(function(k, i) {
         var d = days[k];
-        var x = pad.left + (i / 30) * gw + 1;
-        var barH = (d.count / maxCount) * gh;
+        var x = pad.left + i * (barW + gap);
+        var barH = Math.max(d.count > 0 ? 3 : 0, (d.count / maxCount) * gh);
         var y = pad.top + gh - barH;
 
         /* Colour by avg rating */
-        var col = 'rgba(' + rgb + ',0.25)';
+        var col = 'rgba(' + rgb + ',0.15)';
         if (d.count > 0) {
           var avg = d.ratingSum / d.ratingN;
-          if (avg >= 3) col = 'rgba(34,197,94,0.6)';
-          else if (avg >= 2) col = 'rgba(245,158,11,0.6)';
-          else col = 'rgba(239,68,68,0.6)';
+          if (avg >= 3) col = 'rgba(34,197,94,0.7)';
+          else if (avg >= 2) col = 'rgba(245,158,11,0.7)';
+          else col = 'rgba(239,68,68,0.7)';
         }
 
-        /* Bar */
         if (d.count > 0) {
           ctx.fillStyle = col;
+          var radius = Math.min(barW / 2, 3);
           if (typeof ctx.roundRect === 'function') {
             ctx.beginPath();
-            ctx.roundRect(x, y, barW, barH, 1.5);
+            ctx.roundRect(x, y, barW, barH, [radius, radius, 0, 0]);
             ctx.fill();
           } else {
             ctx.fillRect(x, y, barW, barH);
+          }
+
+          /* Today: glow effect */
+          if (i === dayKeys.length - 1) {
+            ctx.shadowColor = col;
+            ctx.shadowBlur = 8;
+            ctx.fillStyle = col;
+            if (typeof ctx.roundRect === 'function') {
+              ctx.beginPath();
+              ctx.roundRect(x, y, barW, barH, [radius, radius, 0, 0]);
+              ctx.fill();
+            } else {
+              ctx.fillRect(x, y, barW, barH);
+            }
+            ctx.shadowBlur = 0;
           }
         } else {
-          /* Empty day: thin line marker */
-          ctx.fillStyle = 'rgba(' + rgb + ',0.06)';
-          ctx.fillRect(x, pad.top + gh - 1, barW, 1);
-        }
-
-        /* Today highlight */
-        if (i === dayKeys.length - 1 && d.count > 0) {
-          ctx.shadowColor = col;
-          ctx.shadowBlur = 6;
-          ctx.fillStyle = col;
-          if (typeof ctx.roundRect === 'function') {
-            ctx.beginPath();
-            ctx.roundRect(x, y, barW, barH, 1.5);
-            ctx.fill();
-          } else {
-            ctx.fillRect(x, y, barW, barH);
-          }
-          ctx.shadowBlur = 0;
+          /* Empty day: subtle dot at baseline */
+          ctx.fillStyle = 'rgba(' + rgb + ',0.10)';
+          ctx.beginPath();
+          ctx.arc(x + barW / 2, pad.top + gh - 1, 1, 0, Math.PI * 2);
+          ctx.fill();
         }
       });
 
-      /* X labels */
+      /* X-axis labels */
       ctx.fillStyle = textSec;
-      ctx.font = '600 6px Inter, system-ui, sans-serif';
+      ctx.font = '600 7px Inter, system-ui, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
-      [0, 14, 29].forEach(function(i) {
-        if (dayKeys[i]) {
-          var x = pad.left + (i / 30) * gw + barW / 2;
-          var label = (i === 29) ? 'Today' : dayKeys[i].slice(5);
-          ctx.fillText(label, x, h - pad.bottom + 2);
+      var labelIndices = [0, 7, 14, 21, 29];
+      labelIndices.forEach(function(i) {
+        if (!dayKeys[i]) return;
+        var x = pad.left + i * (barW + gap) + barW / 2;
+        var label;
+        if (i === 29) {
+          label = 'Today';
+        } else {
+          var parts = dayKeys[i].split('-');
+          label = parts[1] + '-' + parts[2];
         }
+        ctx.fillText(label, x, h - pad.bottom + 4);
       });
+
+      /* Legend: review count for today */
+      var todayCount = days[dayKeys[29]] ? days[dayKeys[29]].count : 0;
+      if (todayCount > 0) {
+        var tx = pad.left + 29 * (barW + gap) + barW / 2;
+        var ty = pad.top + gh - Math.max(3, (todayCount / maxCount) * gh) - 6;
+        ctx.fillStyle = textCol;
+        ctx.font = '800 8px Inter, system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(String(todayCount), tx, ty);
+      }
     }
 
     /* ── Graph 3: Tier Distribution Ring ── */
