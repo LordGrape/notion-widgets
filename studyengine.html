@@ -2676,6 +2676,12 @@
       50%{ opacity: 0.85; }
     }
 
+    /* ── Priority Badge (inline in meta row) ── */
+    #metaPriority{
+      display: inline-flex;
+      align-items: center;
+    }
+
     /* ── Per-Card XP Flash ── */
     .xp-flash{
       position: fixed;
@@ -4014,6 +4020,29 @@ input[type="range"]::-moz-range-thumb{
     };
 
     /* ── Bloom Stability Bonus (higher tier = stronger memory trace on success) ── */
+    /* ── Card Priority/Importance System ── */
+    var PRIORITY_LEVELS = ['critical', 'high', 'medium', 'low'];
+    var PRIORITY_LABELS = { critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low' };
+    var PRIORITY_COLORS = { critical: '#ef4444', high: '#f59e0b', medium: '#8b5cf6', low: '#6b7280' };
+    var PRIORITY_WEIGHT = { critical: 3.0, high: 2.0, medium: 1.0, low: 0.5 };
+    var CRAM_PRIORITY_BOOST = { critical: 1.5, high: 1.2, medium: 1.0, low: 0.7 };
+    function getPriority(item) {
+      if (!item || !item.priority) return 'medium';
+      return PRIORITY_LEVELS.indexOf(item.priority) >= 0 ? item.priority : 'medium';
+    }
+    function priorityWeight(item, cramActive) {
+      var p = getPriority(item);
+      var base = PRIORITY_WEIGHT[p] || 1.0;
+      if (cramActive) base *= (CRAM_PRIORITY_BOOST[p] || 1.0);
+      return base;
+    }
+    function priorityBadgeHTML(priority) {
+      var p = priority || 'medium';
+      var col = PRIORITY_COLORS[p] || PRIORITY_COLORS.medium;
+      var label = PRIORITY_LABELS[p] || 'Medium';
+      return '<span style="display:inline-block;padding:2px 7px;border-radius:999px;font-size:7px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#fff;background:' + col + ';">' + label + '</span>';
+    }
+
     var BLOOM_STABILITY_BONUS = {
       quickfire: 1.0,
       explain: 1.05,
@@ -5293,15 +5322,38 @@ input[type="range"]::-moz-range-thumb{
         }
       });
 
-      /* 7. Fill remaining slots (if reweighting left gaps) */
+      /* 7. Fill remaining slots — prioritise by importance weight */
       if (queue.length < targetTotal) {
-        dueItems.forEach(function(it) {
+        var remaining = dueItems.filter(function(it) { return !usedIds[it.id]; });
+        var cramActive = cram && cram.active;
+        remaining.sort(function(a, b) {
+          return priorityWeight(b, cramActive) - priorityWeight(a, cramActive);
+        });
+        remaining.forEach(function(it) {
           if (queue.length >= targetTotal) return;
-          if (usedIds[it.id]) return;
           it._presentTier = 'quickfire';
           queue.push(it);
           usedIds[it.id] = true;
         });
+      }
+
+      /* Priority-weighted duplicate injection: critical/high items get extra slots in cram mode. */
+      if (cram.active) {
+        var extras = [];
+        var cramActive2 = true;
+        queue.forEach(function(it) {
+          var w = priorityWeight(it, cramActive2);
+          if (w >= 2.5 && extras.length < Math.ceil(targetTotal * 0.3)) {
+            var clone = Object.assign({}, it);
+            clone._presentTier = clone._presentTier || 'quickfire';
+            clone._priorityExtra = true;
+            extras.push(clone);
+          }
+        });
+        if (extras.length > 0) {
+          shuffle(extras);
+          queue = queue.concat(extras);
+        }
       }
 
       /* Cram mode: stability-aware interleaving
@@ -5584,6 +5636,15 @@ input[type="range"]::-moz-range-thumb{
       if (tier === 'apply') el('promptText').textContent = 'Scenario';
       else el('promptText').innerHTML = '<div class="md-content">' + renderMd(it.prompt) + '</div>';
       el('metaCourse').textContent = it.course || '—';
+      var metaEl = document.querySelector('.meta');
+      var existingPriBadge = document.getElementById('metaPriority');
+      if (existingPriBadge) existingPriBadge.remove();
+      if (metaEl && it.priority && it.priority !== 'medium') {
+        var badge = document.createElement('span');
+        badge.id = 'metaPriority';
+        badge.innerHTML = priorityBadgeHTML(it.priority);
+        metaEl.appendChild(badge);
+      }
       el('metaTopic').textContent = it.topic || '—';
       el('courseHint').textContent = (selectedCourse === 'All') ? (it.course || '—') : selectedCourse;
 
@@ -6735,6 +6796,15 @@ input[type="range"]::-moz-range-thumb{
           '<input class="input" id="m_topic" placeholder="e.g., WTO Dispute Settlement">' +
           '<div class="chips topic-suggestions" id="topicSuggestions"></div>' +
           '</div>' +
+          '<div class="field">' +
+          '  <label>Priority</label>' +
+          '  <select id="m_priority" class="input">' +
+          '    <option value="critical">🔴 Critical — almost certainly on exam</option>' +
+          '    <option value="high">🟡 High — very likely tested</option>' +
+          '    <option value="medium" selected>🟣 Medium — default</option>' +
+          '    <option value="low">⚪ Low — peripheral context</option>' +
+          '  </select>' +
+          '</div>' +
           areaField('Prompt', 'm_prompt', 'Question, cue, or concept to recall') +
           areaField('Model Answer', 'm_answer', 'Ideal response to compare against') +
           '<div class="adv-toggle" id="advToggle">' +
@@ -6876,6 +6946,8 @@ input[type="range"]::-moz-range-thumb{
       var conceptA = (el('m_conceptA') && el('m_conceptA').value || '').trim();
       var conceptB = (el('m_conceptB') && el('m_conceptB').value || '').trim();
       var timeVal = el('m_time') ? parseInt(el('m_time').value, 10) : 0;
+      var priority = (el('m_priority') && el('m_priority').value) || 'medium';
+      it.priority = priority;
 
       if (scenario) it.scenario = scenario;
       if (task) it.task = task;
@@ -7170,6 +7242,7 @@ input[type="range"]::-moz-range-thumb{
         if (!obj.modelAnswer && obj.answer) obj.modelAnswer = obj.answer;
 
         obj.course = entry.course;
+        obj.priority = obj.priority || 'medium';
 
         /* Auto-create course if needed */
         if (obj.course && !state.courses[obj.course]) {
@@ -9464,10 +9537,11 @@ input[type="range"]::-moz-range-thumb{
             var retDisplay = retVal !== null ? retVal + '%' : 'New';
             var retCol = retVal === null ? 'var(--text-secondary)' : retVal >= 80 ? 'var(--rate-good)' : retVal >= 50 ? 'var(--rate-hard)' : 'var(--rate-again)';
             var topicTag = it.topic ? '<span class="meta"><span class="tag" style="font-size:7px;padding:3px 6px;">' + esc(it.topic) + '</span></span>' : '';
+            var priorityTag = (it.priority && it.priority !== 'medium') ? priorityBadgeHTML(it.priority) : '';
             clHTML += '<div class="course-list-item" style="flex-wrap:wrap;">' +
               '<div style="flex:1;min-width:0;">' +
               '<div class="cli-name">' + esc(preview) + '</div>' +
-                '<div style="display:flex;gap:6px;margin-top:3px;align-items:center;">' + topicTag + '</div>' +
+                '<div style="display:flex;gap:6px;margin-top:3px;align-items:center;">' + topicTag + (priorityTag ? '<span class="meta">' + priorityTag + '</span>' : '') + '</div>' +
               '</div>' +
               '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">' +
               '<span style="font-size:10px;font-weight:700;color:' + retCol + ';">' + retDisplay + '</span>' +
