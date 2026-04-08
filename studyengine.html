@@ -2536,6 +2536,29 @@
       box-shadow: 0 0 6px rgba(0,0,0,0.15);
     }
 
+    /* ── Per-Card XP Flash ── */
+    .xp-flash{
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 9999;
+      font-family: Inter, system-ui, sans-serif;
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      color: var(--accent);
+      text-shadow: 0 0 20px rgba(var(--accent-rgb),0.4);
+      opacity: 0;
+      font-variant-numeric: tabular-nums;
+    }
+    .xp-flash.zero{
+      color: var(--rate-again);
+      text-shadow: 0 0 20px rgba(239,68,68,0.3);
+      font-size: 18px;
+    }
+
     /* ── Card Edit (inline expand) ── */
     function openCardEdit(itemId, courseName) {
       var wrap = el('editWrap_' + itemId);
@@ -5797,7 +5820,13 @@ input[type="range"]::-moz-range-thumb{
       session.reviewsByTier[tier] = (session.reviewsByTier[tier] || 0) + 1;
       session.ratingSum += mappedRating;
       session.ratingN += 1;
-      try { playLap(); } catch(e) {}
+      /* Rating-differentiated audio feedback */
+      try {
+        if (mappedRating === 1) { /* Again: handled by restudy flow below */ }
+        else if (mappedRating === 2) { playLap(); }
+        else if (mappedRating === 3) { playClick(); }
+        else if (mappedRating === 4) { playChime(); }
+      } catch(e) {}
 
       /* Fatigue detection — rolling window of last 6 ratings
          Research basis: Bjork & Bjork (2011) — difficulty is desirable only when
@@ -5934,9 +5963,10 @@ input[type="range"]::-moz-range-thumb{
       /* Store which tier was used for history */
       it.lastTier = tier;
 
-      /* XP */
+      /* XP — compute and flash */
       var xp = computeXP(it, mappedRating, res.intervalDays);
       session.xp += xp;
+      flashXP(xp);
 
       saveState();
       advanceItem();
@@ -5944,6 +5974,30 @@ input[type="range"]::-moz-range-thumb{
 
     function ensureFsrs(it) {
       if (!it.fsrs) it.fsrs = { stability: 0, difficulty: 0, due: isoNow(), lastReview: null, reps: 0, lapses: 0, state: 'new' };
+    }
+
+    /* ── Per-Card XP Flash ── */
+    function flashXP(xp) {
+      var flash = document.createElement('div');
+      flash.className = 'xp-flash' + (xp === 0 ? ' zero' : '');
+      flash.textContent = xp === 0 ? '0 XP' : '+' + xp + ' XP';
+      document.body.appendChild(flash);
+      if (window.gsap) {
+        gsap.fromTo(flash,
+          { opacity: 0, y: 0, scale: 0.7 },
+          { opacity: 1, y: -30, scale: 1, duration: 0.35, ease: 'back.out(1.8)',
+            onComplete: function() {
+              gsap.to(flash, {
+                opacity: 0, y: -70, duration: 0.5, delay: 0.4, ease: 'power2.in',
+                onComplete: function() { flash.remove(); }
+              });
+            }
+          }
+        );
+      } else {
+        flash.style.opacity = '1';
+        setTimeout(function() { flash.remove(); }, 1200);
+      }
     }
 
     function computeXP(it, rating, intervalDays) {
