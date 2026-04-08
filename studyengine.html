@@ -2962,6 +2962,99 @@
       }
     }
 
+    /* ── Essay Mode (Mock tier expansion) ── */
+    .essay-outline-phase{
+      margin-bottom: 12px;
+    }
+    .essay-phase-label{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .essay-phase-label .epl-title{
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .essay-phase-label .epl-timer{
+      font-size: 11px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      color: var(--text);
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(var(--accent-rgb),0.10);
+      border: 1px solid rgba(var(--accent-rgb),0.18);
+    }
+    .essay-structure-hint{
+      font-size: 9px;
+      letter-spacing: 0.8px;
+      color: var(--text-tertiary);
+      margin-bottom: 8px;
+      padding: 8px 12px;
+      border-radius: 12px;
+      border-left: 3px solid var(--accent);
+      background: rgba(var(--accent-rgb),0.04);
+      line-height: 1.6;
+    }
+    .essay-structure-hint strong{
+      color: var(--text-secondary);
+      font-weight: 700;
+    }
+    .essay-outline-ref{
+      margin-bottom: 10px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(var(--accent-rgb),0.14);
+      background: rgba(var(--accent-rgb),0.04);
+      max-height: 120px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+    }
+    .essay-outline-ref .eor-label{
+      font-size: 7px;
+      font-weight: 800;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin-bottom: 4px;
+    }
+    .essay-outline-ref .eor-text{
+      font-size: 10px;
+      color: var(--text-secondary);
+      white-space: pre-wrap;
+      line-height: 1.5;
+    }
+    .essay-word-count{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 6px;
+      padding: 4px 0;
+    }
+    .essay-word-count .ewc-current{
+      font-size: 10px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: var(--text-secondary);
+      letter-spacing: 0.3px;
+    }
+    .essay-word-count .ewc-target{
+      font-size: 8px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      font-weight: 600;
+    }
+    .essay-word-count .ewc-current.in-range{ color: var(--rate-good); }
+    .essay-word-count .ewc-current.under-range{ color: var(--rate-hard); }
+    .essay-word-count .ewc-current.over-range{ color: var(--rate-again); }
+
     /* Focus styles */
     :focus-visible{
       outline: 2px solid rgba(var(--accent-rgb),0.45);
@@ -4750,6 +4843,50 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ── Essay Mode Detection + Helpers ── */
+    function getCourseExamType(course) {
+      if (!course) return '';
+      if (settings && settings.courseExamTypes && settings.courseExamTypes[course]) {
+        return String(settings.courseExamTypes[course]).toLowerCase();
+      }
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var item = state.items[id];
+        if (item && item.course === course && item.examType) return String(item.examType).toLowerCase();
+      }
+      return '';
+    }
+
+    function isEssayMode(item) {
+      var course = item ? item.course : null;
+      var examType = (item && item.examType) ? String(item.examType).toLowerCase() : getCourseExamType(course);
+      var mins = parseInt(item.timeLimitMins || settings.mockDefaultMins || 10, 10);
+      return (examType === 'essay' || examType === 'short_answer' || mins >= 15);
+    }
+
+    function getEssayWordTarget(mins) {
+      if (mins >= 30) return { min: 625, max: 875, label: '2.5-3.5 pages' };
+      if (mins >= 15) return { min: 375, max: 625, label: '1.5-2.5 pages' };
+      return { min: 200, max: 400, label: '1-1.5 pages' };
+    }
+
+    function countWords(text) {
+      if (!text || !text.trim()) return 0;
+      return text.trim().split(/\s+/).length;
+    }
+
+    function getEssayStructureHint(examType) {
+      if (examType === 'short_answer') {
+        return '<strong>Structure:</strong> Opening claim -> 2-3 evidence paragraphs with specific data -> Concluding synthesis';
+      }
+      return '<strong>Structure:</strong> Thesis statement -> 3-4 body paragraphs (topic sentence + evidence: dates, stats, theorists) -> Conclusion (synthesize, do not summarize)';
+    }
+
+    var essayPhase = null; /* null | 'outline' | 'writing' */
+    var essayOutlineText = '';
+    var essayOutlineTimer = null;
+    var essayOutlineEndsAt = 0;
+
     /* ── Session construction ── */
     /* ── Intelligent Session Builder ── */
     function buildSessionQueue() {
@@ -5000,6 +5137,9 @@ input[type="range"]::-moz-range-thumb{
       if (mockCountdownTimer) { clearInterval(mockCountdownTimer); mockCountdownTimer = null; }
       if (restudyIntervalTimer) { clearInterval(restudyIntervalTimer); restudyIntervalTimer = null; }
       if (restudyTimeoutTimer) { clearTimeout(restudyTimeoutTimer); restudyTimeoutTimer = null; }
+      if (essayOutlineTimer) { clearInterval(essayOutlineTimer); essayOutlineTimer = null; }
+      essayPhase = null;
+      essayOutlineText = '';
     }
 
     function autoGrowTextarea(ta) {
@@ -5195,15 +5335,61 @@ input[type="range"]::-moz-range-thumb{
         mockTotalMs = mins * 60 * 1000;
         mockEndsAt = Date.now() + mockTotalMs;
         el('timerBar').classList.add('show');
-        tierArea.innerHTML = '' +
-          '<div class="panel">' +
-            '<div class="p-h">Your response</div>' +
-            '<textarea id="userText" rows="10" placeholder="Write your full answer. Aim for structure and clear conclusions."></textarea>' +
-            '<button class="qa-btn" id="submitBtn">Submit (Space)</button>' +
-            '<div class="help">Timer starts immediately. Submit early if you finish.</div>' +
-          '</div>';
-        startMockTimer();
-        wireMock();
+
+        if (isEssayMode(it)) {
+          var examType = (it.examType ? String(it.examType).toLowerCase() : getCourseExamType(it.course));
+          var outlineMins = Math.max(1, Math.round(mins * 0.2));
+          var writingMins = mins - outlineMins;
+          var wordTarget = getEssayWordTarget(mins);
+          essayPhase = 'outline';
+          essayOutlineText = '';
+          essayOutlineEndsAt = Date.now() + (outlineMins * 60 * 1000);
+
+          tierArea.innerHTML = '' +
+            '<div class="panel">' +
+              '<div class="p-h">Response (timed)</div>' +
+              '<div class="essay-outline-phase">' +
+                '<div class="essay-phase-label">' +
+                  '<span class="epl-title">Phase 1: Outline</span>' +
+                  '<span class="epl-timer" id="essayPhaseTimer">' + fmtMMSS(outlineMins * 60) + '</span>' +
+                '</div>' +
+                '<div class="essay-structure-hint">' + getEssayStructureHint(examType) + '</div>' +
+                '<textarea id="userText" rows="7" placeholder="Outline your argument:\n- Thesis: ...\n- Body 1: [topic] + [evidence]\n- Body 2: [topic] + [evidence]\n- Body 3: [topic] + [evidence]\n- Conclusion: ..."></textarea>' +
+                '<div class="essay-word-count">' +
+                  '<span class="ewc-current" id="essayWordCount">0 words</span>' +
+                  '<span class="ewc-target">Target: ' + esc(wordTarget.label) + ' (' + wordTarget.min + '-' + wordTarget.max + ' words)</span>' +
+                '</div>' +
+              '</div>' +
+              '<button class="qa-btn" id="essayNextPhase">Start Writing -></button>' +
+              '<button class="qa-btn" id="submitBtn" style="display:none">Submit (Space)</button>' +
+              '<div class="help">Outline: ' + outlineMins + ' min. Writing: ' + writingMins + ' min. Total: ' + mins + ' min.</div>' +
+            '</div>' +
+            rubricTemplate('mock');
+
+          var outlineTA = el('userText');
+          outlineTA.addEventListener('input', function() {
+            autoGrowTextarea(outlineTA);
+            updateEssayWordCount(outlineTA.value);
+          });
+          autoGrowTextarea(outlineTA);
+          startEssayOutlineTimer(outlineMins);
+          el('essayNextPhase').addEventListener('click', function() {
+            transitionToWritingPhase(it, writingMins, wordTarget, examType);
+          });
+          startMockTimer();
+        } else {
+          essayPhase = null;
+          tierArea.innerHTML = '' +
+            '<div class="panel">' +
+              '<div class="p-h">Response (timed)</div>' +
+              '<textarea id="userText" rows="10" placeholder="Write your full answer. Aim for structure and clear conclusions."></textarea>' +
+              '<button class="qa-btn" id="submitBtn">Submit (Space)</button>' +
+              '<div class="help">Timer starts immediately. Submit early if you finish.</div>' +
+            '</div>' +
+            rubricTemplate('mock');
+          startMockTimer();
+          wireMock();
+        }
       }
     }
 
@@ -5233,6 +5419,96 @@ input[type="range"]::-moz-range-thumb{
           revealAnswer(true);
         }
       }, 250);
+    }
+
+    /* ── Essay Mode Phase Functions ── */
+    function startEssayOutlineTimer(outlineMins) {
+      essayOutlineEndsAt = Date.now() + (outlineMins * 60 * 1000);
+      var phaseTimerEl = el('essayPhaseTimer');
+      if (essayOutlineTimer) clearInterval(essayOutlineTimer);
+      essayOutlineTimer = setInterval(function() {
+        var remain = Math.max(0, Math.ceil((essayOutlineEndsAt - Date.now()) / 1000));
+        if (phaseTimerEl) phaseTimerEl.textContent = fmtMMSS(remain);
+        if (remain <= 0) {
+          clearInterval(essayOutlineTimer);
+          essayOutlineTimer = null;
+          var it = session ? session.queue[session.idx] : null;
+          if (it && essayPhase === 'outline') {
+            var mins = parseInt(it.timeLimitMins || settings.mockDefaultMins || 10, 10);
+            mins = [5,10,15,30].indexOf(mins) >= 0 ? mins : 10;
+            var outlinePhaseMins = Math.max(1, Math.round(mins * 0.2));
+            var writingMins = mins - outlinePhaseMins;
+            var wordTarget = getEssayWordTarget(mins);
+            var examType = (it.examType ? String(it.examType).toLowerCase() : getCourseExamType(it.course));
+            transitionToWritingPhase(it, writingMins, wordTarget, examType);
+          }
+        }
+      }, 250);
+    }
+
+    function transitionToWritingPhase(item, writingMins, wordTarget, examType) {
+      if (essayPhase !== 'outline') return;
+      essayPhase = 'writing';
+      if (essayOutlineTimer) { clearInterval(essayOutlineTimer); essayOutlineTimer = null; }
+
+      var outlineTA = el('userText');
+      essayOutlineText = outlineTA ? outlineTA.value.trim() : '';
+      try { if (typeof playClick === 'function') playClick(); } catch (e) {}
+
+      tierArea.innerHTML = '' +
+        '<div class="panel">' +
+          '<div class="p-h">Response (timed)</div>' +
+          (essayOutlineText ? '<div class="essay-outline-ref"><div class="eor-label">Your Outline</div><div class="eor-text">' + esc(essayOutlineText) + '</div></div>' : '') +
+          '<div class="essay-phase-label">' +
+            '<span class="epl-title">Phase 2: Write</span>' +
+            '<span class="epl-timer" id="essayPhaseTimer">' + fmtMMSS(writingMins * 60) + '</span>' +
+          '</div>' +
+          '<div class="essay-structure-hint">' + getEssayStructureHint(examType) + '</div>' +
+          '<textarea id="userText" rows="10" placeholder="Write your full response here..."></textarea>' +
+          '<div class="essay-word-count">' +
+            '<span class="ewc-current" id="essayWordCount">0 words</span>' +
+            '<span class="ewc-target">Target: ' + esc(wordTarget.label) + ' (' + wordTarget.min + '-' + wordTarget.max + ' words)</span>' +
+          '</div>' +
+          '<button class="qa-btn" id="submitBtn">Submit (Space)</button>' +
+          '<div class="help">Use your outline as a guide. ' + writingMins + ' min remaining.</div>' +
+        '</div>' +
+        rubricTemplate('mock');
+
+      var writeTA = el('userText');
+      writeTA.addEventListener('input', function() {
+        autoGrowTextarea(writeTA);
+        updateEssayWordCount(writeTA.value, wordTarget);
+      });
+      autoGrowTextarea(writeTA);
+      writeTA.focus();
+
+      var writeEndMs = Date.now() + (writingMins * 60 * 1000);
+      var phaseTimerEl = el('essayPhaseTimer');
+      essayOutlineTimer = setInterval(function() {
+        var remain = Math.max(0, Math.ceil((writeEndMs - Date.now()) / 1000));
+        if (phaseTimerEl) phaseTimerEl.textContent = fmtMMSS(remain);
+        if (remain <= 0) {
+          clearInterval(essayOutlineTimer);
+          essayOutlineTimer = null;
+        }
+      }, 250);
+
+      wireMock();
+      if (window.gsap) gsap.fromTo(tierArea, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' });
+      toast('Writing phase - go!');
+    }
+
+    function updateEssayWordCount(text, wordTarget) {
+      var wc = countWords(text);
+      var wcEl = el('essayWordCount');
+      if (!wcEl) return;
+      wcEl.textContent = wc + ' word' + (wc !== 1 ? 's' : '');
+      wcEl.classList.remove('in-range', 'under-range', 'over-range');
+      if (wordTarget) {
+        if (wc >= wordTarget.min && wc <= wordTarget.max) wcEl.classList.add('in-range');
+        else if (wc < wordTarget.min) wcEl.classList.add('under-range');
+        else wcEl.classList.add('over-range');
+      }
     }
 
     function wireGenerative(tier) {
@@ -5824,6 +6100,9 @@ input[type="range"]::-moz-range-thumb{
           var currentTier = session.queue[session.idx] ? (session.queue[session.idx]._presentTier || session.queue[session.idx].tier || 'quickfire') : '';
           if (currentTier === 'quickfire' && !session.confidence) {
             toast('Pick a confidence level first');
+          } else if (currentTier === 'mock' && essayPhase === 'outline') {
+            var nextBtn = el('essayNextPhase');
+            if (nextBtn) nextBtn.click();
           } else {
             revealAnswer(true);
           }
