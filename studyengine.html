@@ -1213,8 +1213,11 @@
       border-radius: var(--radius);
       border: 1px solid rgba(var(--accent-rgb),0.16);
       background: rgba(var(--accent-rgb),0.03);
-      overflow-x: auto;
       position: relative;
+      max-height: 180px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
     .visual-container .visual-label{
       font-size: 7px;
@@ -1233,16 +1236,27 @@
       color: var(--accent);
     }
     .visual-container .mermaid-render{
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 60px;
     }
     .visual-container .mermaid-render svg{
       max-width: 100%;
+      max-height: 120px;
       height: auto;
-      border-radius: 12px;
+      width: auto;
+      border-radius: 10px;
       filter: drop-shadow(0 2px 8px rgba(var(--accent-rgb), 0.08));
+      object-fit: contain;
+    }
+    body.standalone .visual-container{
+      max-height: 220px;
+    }
+    body.standalone .visual-container .mermaid-render svg{
+      max-height: 160px;
     }
     .visual-container .mermaid-render svg text{
       font-family: Inter, system-ui, sans-serif !important;
@@ -5267,13 +5281,6 @@ input[type="range"]::-moz-range-thumb{
           mermaid.render(id + '-svg', code).then(function(result) {
             elm.innerHTML = result.svg;
             elm.removeAttribute('data-mermaid');
-            /* Style the SVG to fit the container */
-            var svg = elm.querySelector('svg');
-            if (svg) {
-              svg.style.maxWidth = '100%';
-              svg.style.height = 'auto';
-              svg.style.borderRadius = '12px';
-            }
             if (window.gsap) {
               gsap.fromTo(elm, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' });
             }
