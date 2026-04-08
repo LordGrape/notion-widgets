@@ -4117,6 +4117,17 @@ input[type="range"]::-moz-range-thumb{
       <div class="modal-body" id="settingsBody"></div>
       <div style="padding:0 14px 4px;">
         <button id="exportStateBtn" class="ghost-btn" style="width:100%;text-align:center;">📋 Copy All Data to Clipboard</button>
+        <button type="button" id="showDataBtn" class="ghost-btn" style="width:100%;min-width:auto;margin-top:8px">👁 Show Data (for manual copy)</button>
+        <div id="showDataArea" style="display:none;margin-top:8px">
+          <textarea id="showDataText" readonly style="width:100%;min-height:120px;max-height:200px;padding:10px;border-radius:10px;border:1px solid var(--card-border);background:rgba(var(--accent-rgb),0.03);color:var(--text);font-size:9px;font-family:JetBrains Mono,ui-monospace,monospace;resize:vertical;box-sizing:border-box" aria-label="Exported backup JSON for manual copy"></textarea>
+          <div style="font-size:9px;color:var(--text-tertiary);margin-top:4px">Click the box, then Ctrl+A → Ctrl+C to copy all</div>
+        </div>
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--card-border)">
+          <div style="font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px">📥 Restore full backup</div>
+          <textarea id="pasteDataText" placeholder="Paste exported data here..." style="width:100%;min-height:80px;max-height:160px;padding:10px;border-radius:10px;border:1px solid var(--card-border);background:rgba(var(--accent-rgb),0.03);color:var(--text);font-size:9px;font-family:JetBrains Mono,ui-monospace,monospace;resize:vertical;box-sizing:border-box" aria-label="Paste backup JSON"></textarea>
+          <button type="button" id="restoreDataBtn" class="ghost-btn" style="width:100%;min-width:auto;margin-top:6px">📥 Restore from pasted data</button>
+          <div id="restoreStatus" style="font-size:9px;color:var(--text-tertiary);margin-top:4px;line-height:1.35" aria-live="polite"></div>
+        </div>
       </div>
       <div class="modal-actions">
         <button class="big-btn" id="settingsSave">Save</button>
@@ -7954,6 +7965,100 @@ input[type="range"]::-moz-range-thumb{
             toast('Backup downloaded');
           }
           try { playPresetSelect(); } catch(e) {}
+        };
+      }
+
+      var showDataAreaReset = el('showDataArea');
+      if (showDataAreaReset) showDataAreaReset.style.display = 'none';
+      var restoreStatusReset = el('restoreStatus');
+      if (restoreStatusReset) restoreStatusReset.textContent = '';
+
+      var showDataBtn = el('showDataBtn');
+      if (showDataBtn) {
+        showDataBtn.onclick = function() {
+          var area = el('showDataArea');
+          var textEl = el('showDataText');
+          if (!area || !textEl) return;
+          var exportData = {
+            _export: 'studyengine-full-backup',
+            _version: 1,
+            _date: new Date().toISOString(),
+            items: state.items || {},
+            courses: state.courses || {},
+            calibration: state.calibration || {},
+            stats: state.stats || {},
+            settings: settings || {}
+          };
+          textEl.value = JSON.stringify(exportData, null, 2);
+          area.style.display = 'block';
+          textEl.focus();
+          textEl.select();
+          toast('Data shown — select all and copy (Ctrl+A → Ctrl+C)');
+        };
+      }
+
+      var showDataTextEl = el('showDataText');
+      if (showDataTextEl) {
+        showDataTextEl.onclick = function() { this.select(); };
+      }
+
+      var restoreBtn = el('restoreDataBtn');
+      if (restoreBtn) {
+        restoreBtn.onclick = function() {
+          var textEl = el('pasteDataText');
+          var statusEl = el('restoreStatus');
+          if (!textEl) return;
+          var raw = (textEl.value || '').trim();
+          if (!raw) {
+            if (statusEl) statusEl.textContent = 'Paste your data first';
+            return;
+          }
+          try {
+            var imported = JSON.parse(raw);
+            if (!imported.items || typeof imported.items !== 'object') {
+              if (statusEl) statusEl.textContent = 'Invalid data — missing items';
+              return;
+            }
+            var itemCount = Object.keys(imported.items).length;
+            var courseCount = imported.courses ? Object.keys(imported.courses).length : 0;
+
+            for (var id in imported.items) {
+              if (imported.items.hasOwnProperty(id)) {
+                state.items[id] = imported.items[id];
+              }
+            }
+            if (imported.courses) {
+              for (var cName in imported.courses) {
+                if (imported.courses.hasOwnProperty(cName)) {
+                  state.courses[cName] = imported.courses[cName];
+                }
+              }
+            }
+            if (imported.calibration && imported.calibration.history &&
+                imported.calibration.history.length > ((state.calibration || {}).history || []).length) {
+              state.calibration = imported.calibration;
+            }
+            if (imported.stats && (imported.stats.totalReviews || 0) > ((state.stats || {}).totalReviews || 0)) {
+              state.stats = imported.stats;
+            }
+            if (imported.settings && typeof imported.settings === 'object') {
+              for (var sk in imported.settings) {
+                if (imported.settings.hasOwnProperty(sk)) {
+                  settings[sk] = imported.settings[sk];
+                }
+              }
+            }
+            migrateItems();
+            saveState();
+            if (statusEl) statusEl.textContent = 'Restored ' + itemCount + ' items, ' + courseCount + ' courses';
+            toast('Restored ' + itemCount + ' items');
+            setTimeout(function() {
+              renderDashboard();
+            }, 500);
+            try { playPresetSelect(); } catch(e2) {}
+          } catch (e) {
+            if (statusEl) statusEl.textContent = 'Invalid JSON — ' + (e.message || String(e));
+          }
         };
       }
   try { playOpen(); } catch(e) {}
