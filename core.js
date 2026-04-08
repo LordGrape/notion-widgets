@@ -1819,6 +1819,8 @@ let SyncEngine = (function() {
   let readyCallbacks = [];
   let initDone = false;
   let namespaces = [];    // registered namespace strings
+  let syncStatusListeners = [];
+  let activePushCount = 0;
 
   /* ── BroadcastChannel: cross-widget real-time sync ──
      All widgets on the same origin (lordgrape.github.io)
@@ -2003,14 +2005,27 @@ let SyncEngine = (function() {
   }
 
   /* ── Debounced push ── */
+  function notifySyncStatus(status) {
+    syncStatusListeners.forEach(function(cb) { try { cb(status); } catch(e) {} });
+  }
+
   function schedulePush(ns) {
     if (pushTimers[ns]) clearTimeout(pushTimers[ns]);
     pushTimers[ns] = setTimeout(function() {
       dirtyNamespaces[ns] = true;
       if (!online) return;
+      activePushCount++;
+      notifySyncStatus('saving');
       remotePut(ns).then(function() {
         delete dirtyNamespaces[ns];
-      }).catch(function() { online = false; scheduleRetry(); });
+        activePushCount = Math.max(0, activePushCount - 1);
+        if (activePushCount === 0) notifySyncStatus('synced');
+      }).catch(function() {
+        activePushCount = Math.max(0, activePushCount - 1);
+        online = false;
+        notifySyncStatus('error');
+        scheduleRetry();
+      });
     }, DEBOUNCE);
   }
 
@@ -2362,6 +2377,11 @@ let SyncEngine = (function() {
       return remotePut(ns).then(function() {
         delete dirtyNamespaces[ns];
       }).catch(function() {});
+    },
+
+    /** Register a callback for sync status changes: 'saving', 'synced', 'error' */
+    onSyncStatus: function(cb) {
+      if (typeof cb === 'function') syncStatusListeners.push(cb);
     },
 
     /** Check connectivity status. */
