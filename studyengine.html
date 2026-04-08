@@ -2922,196 +2922,6 @@ body.standalone .answer.restudy-active{
       font-size: 18px;
     }
 
-    /* ── Card Edit (inline expand) ── */
-    function openCardEdit(itemId, courseName) {
-      var wrap = el('editWrap_' + itemId);
-      if (!wrap) return;
-
-      /* Toggle off if already open */
-      if (wrap.classList.contains('open')) {
-        wrap.classList.remove('open');
-        wrap.innerHTML = '';
-        return;
-      }
-
-      /* Close any other open edit forms */
-      document.querySelectorAll('.cd-edit-wrap.open').forEach(function(w) {
-        w.classList.remove('open');
-        w.innerHTML = '';
-      });
-
-      var it = state.items[itemId];
-      if (!it) return;
-
-      var editId = 'cedit_' + itemId.substring(0, 8);
-
-      var h = '<div class="edit-field">' +
-        '<label>Prompt</label>' +
-        '<textarea id="' + editId + '_prompt" rows="3">' + esc(it.prompt || '') + '</textarea>' +
-        '</div>' +
-        '<div class="edit-field">' +
-        '<label>Model Answer</label>' +
-        '<textarea id="' + editId + '_answer" rows="4">' + esc(it.modelAnswer || '') + '</textarea>' +
-        '</div>' +
-        '<div class="cd-edit-row">' +
-        '<div class="edit-field">' +
-        '<label>Topic</label>' +
-        '<input type="text" id="' + editId + '_topic" value="' + esc(it.topic || '') + '" placeholder="e.g., Chapter 3">' +
-        '</div>' +
-        '<div class="edit-field">' +
-        '<label>Course</label>' +
-        '<select id="' + editId + '_course" class="input">';
-
-      var courses = listCourses();
-      courses.forEach(function(c) {
-        var sel = (c.name === it.course) ? ' selected' : '';
-        h += '<option value="' + esc(c.name) + '"' + sel + '>' + esc(c.name) + '</option>';
-      });
-
-      h += '</select></div></div>';
-
-      /* Scenario / Task */
-      h += '<div class="edit-field">' +
-        '<label>Scenario <span style="font-weight:500;letter-spacing:0;text-transform:none;font-size:9px;color:var(--text-tertiary)">(enables Apply It tier)</span></label>' +
-        '<textarea id="' + editId + '_scenario" rows="2" placeholder="Fact pattern or context...">' + esc(it.scenario || '') + '</textarea>' +
-        '</div>' +
-        '<div class="edit-field">' +
-        '<label>Task <span style="font-weight:500;letter-spacing:0;text-transform:none;font-size:9px;color:var(--text-tertiary)">(optional instruction for scenario)</span></label>' +
-        '<input type="text" id="' + editId + '_task" value="' + esc(it.task || '') + '" placeholder="e.g., Analyse using...">' +
-        '</div>';
-
-      /* Concepts */
-      h += '<div class="cd-edit-row">' +
-        '<div class="edit-field">' +
-        '<label>Concept A <span style="font-weight:500;letter-spacing:0;text-transform:none;font-size:9px;color:var(--text-tertiary)">(enables Distinguish)</span></label>' +
-        '<input type="text" id="' + editId + '_conceptA" value="' + esc(it.conceptA || '') + '" placeholder="e.g., Trade creation">' +
-        '</div>' +
-        '<div class="edit-field">' +
-        '<label>Concept B</label>' +
-        '<input type="text" id="' + editId + '_conceptB" value="' + esc(it.conceptB || '') + '" placeholder="e.g., Trade diversion">' +
-        '</div>' +
-        '</div>';
-
-      /* Time limit */
-      h += '<div class="edit-field">' +
-        '<label>Mock Time Limit</label>' +
-        '<select id="' + editId + '_time" class="input">' +
-        '<option value=""' + (!it.timeLimitMins ? ' selected' : '') + '>Default (' + (settings.mockDefaultMins || 10) + ' min)</option>' +
-        '<option value="5"' + (it.timeLimitMins === 5 ? ' selected' : '') + '>5 min</option>' +
-        '<option value="10"' + (it.timeLimitMins === 10 ? ' selected' : '') + '>10 min</option>' +
-        '<option value="15"' + (it.timeLimitMins === 15 ? ' selected' : '') + '>15 min</option>' +
-        '<option value="30"' + (it.timeLimitMins === 30 ? ' selected' : '') + '>30 min</option>' +
-        '</select></div>';
-
-      /* Supported tiers preview */
-      h += '<div id="' + editId + '_tierPreview"></div>';
-
-      /* Actions */
-      h += '<div class="cd-edit-actions">' +
-        '<button class="cd-edit-save" id="' + editId + '_save">Save Changes</button>' +
-        '<button class="cd-edit-cancel" id="' + editId + '_cancel">Cancel</button>' +
-        '</div>';
-
-      wrap.innerHTML = h;
-      wrap.classList.add('open');
-
-      if (window.gsap) {
-        gsap.fromTo(wrap, { opacity: 0, y: -6 }, { opacity: 1, y: 0, duration: 0.25, ease: 'power2.out' });
-      }
-
-      /* Auto-grow textareas */
-      wrap.querySelectorAll('textarea').forEach(function(ta) {
-        autoGrowTextarea(ta);
-        ta.addEventListener('input', function() { autoGrowTextarea(ta); });
-      });
-
-      /* Live tier preview */
-      function updateTierPreview() {
-        var tempItem = {
-          prompt: (el(editId + '_prompt') || {}).value || '',
-          modelAnswer: (el(editId + '_answer') || {}).value || '',
-          task: (el(editId + '_task') || {}).value || '',
-          scenario: (el(editId + '_scenario') || {}).value || '',
-          conceptA: (el(editId + '_conceptA') || {}).value || '',
-          conceptB: (el(editId + '_conceptB') || {}).value || ''
-        };
-        var tiers = detectSupportedTiers(tempItem);
-        var previewEl = el(editId + '_tierPreview');
-        if (previewEl) previewEl.innerHTML = tierSupportBadgeHTML(tiers);
-      }
-      updateTierPreview();
-      wrap.querySelectorAll('textarea, input[type="text"]').forEach(function(input) {
-        input.addEventListener('input', updateTierPreview);
-      });
-
-      /* Save handler */
-      var saveBtn = el(editId + '_save');
-      if (saveBtn) {
-        saveBtn.addEventListener('click', function() {
-          var newPrompt = (el(editId + '_prompt').value || '').trim();
-          var newAnswer = (el(editId + '_answer').value || '').trim();
-          if (!newPrompt || !newAnswer) {
-            toast('Prompt and model answer are required');
-            try { playError(); } catch(e) {}
-            return;
-          }
-
-          var promptChanged = newPrompt !== (it.prompt || '');
-          var answerChanged = newAnswer !== (it.modelAnswer || '');
-
-          it.prompt = newPrompt;
-          it.modelAnswer = newAnswer;
-          it.topic = (el(editId + '_topic').value || '').trim();
-          it.scenario = (el(editId + '_scenario').value || '').trim() || undefined;
-          it.task = (el(editId + '_task').value || '').trim() || undefined;
-          it.conceptA = (el(editId + '_conceptA').value || '').trim() || undefined;
-          it.conceptB = (el(editId + '_conceptB').value || '').trim() || undefined;
-
-          var timeVal = el(editId + '_time') ? parseInt(el(editId + '_time').value, 10) : 0;
-          it.timeLimitMins = (timeVal && [5,10,15,30].indexOf(timeVal) >= 0) ? timeVal : undefined;
-
-          /* Handle course reassignment */
-          var newCourse = (el(editId + '_course').value || '').trim();
-          var courseChanged = newCourse && newCourse !== it.course;
-          if (courseChanged) it.course = newCourse;
-
-          state.items[itemId] = it;
-          saveState();
-
-          /* Regenerate visual if prompt or answer changed */
-          if (promptChanged || answerChanged) {
-            toast('Saved — regenerating visual...');
-            generateVisual(it).then(function(visual) {
-              if (visual) {
-                it.visual = visual;
-                state.items[itemId] = it;
-                saveState();
-                toast('Visual updated');
-              }
-            });
-          } else {
-            toast('Card updated');
-          }
-
-          try { playPresetSelect(); } catch(e) {}
-
-          /* Re-render course detail (use new course if reassigned) */
-          var renderCourse = courseChanged ? newCourse : courseName;
-          openCourseDetail(renderCourse);
-          renderDashboard();
-        });
-      }
-
-      /* Cancel handler */
-      var cancelBtn = el(editId + '_cancel');
-      if (cancelBtn) {
-        cancelBtn.addEventListener('click', function() {
-          wrap.classList.remove('open');
-          wrap.innerHTML = '';
-          try { playClick(); } catch(e) {}
-        });
-      }
-    }
     .course-detail{
       display: none;
     }
@@ -9067,6 +8877,10 @@ input[type="range"]::-moz-range-thumb{
         var courseName = it.course;
         window.viewCourseDeck(courseName);
         window.viewCourseDeck(courseName);
+        var cd = el('courseDetail');
+        if (cd && cd.classList.contains('active')) {
+          openCourseDetail(courseName);
+        }
       });
 
       el(formId + '_cancel').addEventListener('click', function() {
@@ -10553,7 +10367,7 @@ input[type="range"]::-moz-range-thumb{
             var retCol = retVal === null ? 'var(--text-secondary)' : retVal >= 80 ? 'var(--rate-good)' : retVal >= 50 ? 'var(--rate-hard)' : 'var(--rate-again)';
             var topicTag = it.topic ? '<span class="meta"><span class="tag" style="font-size:7px;padding:3px 6px;">' + esc(it.topic) + '</span></span>' : '';
             var priorityTag = (it.priority && it.priority !== 'medium') ? priorityBadgeHTML(it.priority) : '';
-            clHTML += '<div class="course-list-item" style="flex-wrap:wrap;">' +
+            clHTML += '<div class="course-list-item" data-card-id="' + esc(delId) + '" style="flex-wrap:wrap;">' +
               '<div style="flex:1;min-width:0;">' +
               '<div class="cli-name">' + esc(preview) + '</div>' +
                 '<div style="display:flex;gap:6px;margin-top:3px;align-items:center;">' + topicTag + (priorityTag ? '<span class="meta">' + priorityTag + '</span>' : '') + '</div>' +
@@ -10629,7 +10443,7 @@ input[type="range"]::-moz-range-thumb{
             btn.addEventListener('click', function(e) {
               e.stopPropagation();
               var editId = this.getAttribute('data-edit-id');
-              if (editId) openCardEdit(editId, courseName);
+              if (editId) window.editCard(editId);
               try { playClick(); } catch(e2) {}
             });
           });
