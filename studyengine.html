@@ -4964,32 +4964,52 @@ input[type="range"]::-moz-range-thumb{
     var TOOLTIP_DELAY = 180;
 
     function positionTooltip(icon) {
-      /* 1. Find the tooltip template inside the icon */
       var src = icon.querySelector('.info-tooltip');
       if (!src) return;
-
-      /* 2. Remove any previous portaled tooltip */
       removePortaledTooltip();
 
-      /* 3. Clone the tooltip and portal it to body */
       var tip = src.cloneNode(true);
-      tip.style.cssText = ''; /* clear any stale inline styles */
       document.body.appendChild(tip);
       activeTooltipEl = tip;
 
-      /* 4. Make visible off-screen to measure */
-      tip.style.position = 'fixed';
-      tip.style.top = '-9999px';
-      tip.style.left = '-9999px';
-      tip.style.display = 'block';
-      tip.style.opacity = '0';
-      tip.style.zIndex = '99999';
+      /* Inline-only visibility/layout so cascade cannot hide the portaled clone */
+      tip.setAttribute('style',
+        'position:fixed;' +
+        'display:block;' +
+        'opacity:0;' +
+        'z-index:99999;' +
+        'top:-9999px;' +
+        'left:-9999px;' +
+        'pointer-events:none;' +
+        'max-width:260px;' +
+        'width:260px;' +
+        'padding:12px 14px;' +
+        'border-radius:14px;' +
+        'font-size:11px;' +
+        'font-weight:500;' +
+        'line-height:1.55;' +
+        'letter-spacing:0.1px;' +
+        'text-transform:none;' +
+        'white-space:normal;' +
+        'word-wrap:break-word;' +
+        'transition:opacity 150ms ease,transform 150ms ease;' +
+        'transform:translateY(4px);'
+      );
 
-      /* Force layout for accurate measurement */
+      var cs = getComputedStyle(document.documentElement);
+      var cardBg = cs.getPropertyValue('--card-bg').trim() || 'rgba(30,20,50,0.95)';
+      var textCol = cs.getPropertyValue('--text').trim() || '#e8e0f0';
+      var accentRgb = cs.getPropertyValue('--accent-rgb').trim() || '167,139,250';
+      tip.style.background = cardBg;
+      tip.style.color = textCol;
+      tip.style.border = '1px solid rgba(' + accentRgb + ',0.22)';
+      tip.style.boxShadow = '0 12px 40px rgba(0,0,0,0.25), 0 0 0 1px rgba(' + accentRgb + ',0.06)';
+      tip.style.backdropFilter = 'blur(20px) saturate(1.4)';
+      tip.style.webkitBackdropFilter = 'blur(20px) saturate(1.4)';
+
       var tipW = tip.offsetWidth;
       var tipH = tip.offsetHeight;
 
-      /* 5. Get icon position (truly viewport-relative now) */
       var rect = icon.getBoundingClientRect();
       var iconCX = rect.left + rect.width / 2;
       var iconTop = rect.top;
@@ -4997,42 +5017,41 @@ input[type="range"]::-moz-range-thumb{
       var vw = window.innerWidth;
       var vh = window.innerHeight;
 
-      /* 6. Place above by default; flip below if no room */
       var gap = 10;
       var above = iconTop - gap - tipH >= 4;
-      var arrowClass, top;
+      var top;
       if (above) {
         top = iconTop - gap - tipH;
-        arrowClass = 'arrow-bottom';
       } else {
         top = iconBottom + gap;
-        arrowClass = 'arrow-top';
       }
 
-      /* 7. Horizontal: centre on icon, clamp to viewport */
       var left = iconCX - tipW / 2;
       left = Math.max(8, Math.min(left, vw - tipW - 8));
-
-      /* 8. Vertical clamp */
       top = Math.max(4, Math.min(top, vh - tipH - 4));
 
-      /* 9. Arrow position: track icon centre relative to tooltip */
       var arrow = tip.querySelector('.tip-arrow');
       if (arrow) {
         var arrowLeft = iconCX - left - 6;
         arrowLeft = Math.max(12, Math.min(arrowLeft, tipW - 24));
         arrow.style.left = arrowLeft + 'px';
+        arrow.style.position = 'absolute';
+        if (above) {
+          arrow.style.bottom = '-6px';
+          arrow.style.top = '';
+        } else {
+          arrow.style.top = '-6px';
+          arrow.style.bottom = '';
+        }
       }
 
-      /* 10. Apply final position and classes */
       tip.style.top = top + 'px';
       tip.style.left = left + 'px';
-      tip.className = 'info-tooltip visible ' + arrowClass;
 
-      /* 11. Entrance animation (next frame so transition fires) */
       requestAnimationFrame(function() {
         if (activeTooltipEl === tip) {
-          tip.classList.add('shown');
+          tip.style.opacity = '1';
+          tip.style.transform = 'translateY(0)';
         }
       });
     }
@@ -5047,8 +5066,8 @@ input[type="range"]::-moz-range-thumb{
     function hideTooltip() {
       if (!activeTooltipEl) return;
       var tip = activeTooltipEl;
-      tip.classList.remove('shown');
-      /* After fade-out, remove from DOM */
+      tip.style.opacity = '0';
+      tip.style.transform = 'translateY(4px)';
       setTimeout(function() {
         if (activeTooltipEl === tip) {
           removePortaledTooltip();
