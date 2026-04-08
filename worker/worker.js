@@ -226,24 +226,19 @@ Respond in this EXACT JSON format and nothing else:
 
         let grading;
         function cleanJsonString(s) {
+          s = s.replace(/^[\s\S]*?(?=\{)/m, "");
+          s = s.replace(/\}[\s\S]*$/, "}");
           s = s.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
           s = s.replace(/,\s*([\]}])/g, "$1");
+          s = s.replace(/[\x00-\x1f]/g, " ");
           return s;
         }
-        try {
-          grading = JSON.parse(rawText);
-        } catch (e) {
-          try {
-            grading = JSON.parse(cleanJsonString(rawText));
-          } catch (e2) {
-            const match = rawText.match(/\{[\s\S]*\}/);
-            if (match) {
-              try { grading = JSON.parse(cleanJsonString(match[0])); } catch (e3) { grading = null; }
-            } else {
-              grading = null;
-            }
-          }
+        function tryParse(s) {
+          try { return JSON.parse(s); } catch (e) { return null; }
         }
+        grading = tryParse(rawText)
+          || tryParse(cleanJsonString(rawText))
+          || (() => { const m = rawText.match(/\{[\s\S]*\}/); return m ? tryParse(cleanJsonString(m[0])) : null; })();
 
         // ── Calculate scores and FSRS rating ──
         if (isEssayMode) {
