@@ -1209,6 +1209,92 @@
       box-shadow: 0 0 14px rgba(var(--accent-rgb),0.35);
       animation: pulseDot 1.0s ease-in-out infinite;
     }
+
+    /* ── Structured Restudy Screen ── */
+    .restudy-screen{
+      display: none;
+      margin-top: 12px;
+      padding: 16px;
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(239,68,68,0.25);
+      background: linear-gradient(135deg, rgba(239,68,68,0.06), rgba(239,68,68,0.02));
+      animation: ambientGlow 3s ease-in-out infinite;
+    }
+    .restudy-screen.show{ display: block; }
+    .restudy-screen .rs-header{
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .restudy-screen .rs-icon{
+      font-size: 16px;
+    }
+    .restudy-screen .rs-title{
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      color: var(--rate-again);
+    }
+    .restudy-screen .rs-meta{
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .restudy-screen .rs-timer{
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+    .restudy-screen .rs-answer{
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(var(--accent-rgb),0.14);
+      background: rgba(var(--accent-rgb),0.04);
+      font-size: 11px;
+      line-height: 1.5;
+      color: var(--text);
+      white-space: pre-wrap;
+      margin-bottom: 10px;
+    }
+    .restudy-screen .rs-answer .md-content{ white-space: normal; }
+    .restudy-screen .rs-elaboration{
+      font-size: 10px;
+      font-weight: 600;
+      font-style: italic;
+      color: var(--text-secondary);
+      letter-spacing: 0.2px;
+      padding: 8px 12px;
+      border-radius: 12px;
+      border-left: 3px solid var(--rate-again);
+      background: rgba(239,68,68,0.04);
+    }
+    .restudy-screen .rs-progress{
+      height: 4px;
+      border-radius: 99px;
+      background: rgba(239,68,68,0.12);
+      margin-top: 10px;
+      overflow: hidden;
+    }
+    .restudy-screen .rs-progress > div{
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, rgba(239,68,68,0.8), rgba(239,68,68,0.4));
+      border-radius: 99px;
+      transition: width 250ms linear;
+    }
+    .restudy-screen .rs-source{
+      margin-top: 8px;
+      font-size: 8px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      font-weight: 600;
+      text-align: right;
+    }
     @keyframes pulseDot{
       0%,100%{ transform: scale(1); opacity: 0.8; }
       50%{ transform: scale(1.6); opacity: 1; }
@@ -2819,7 +2905,21 @@ input[type="range"]::-moz-range-thumb{
 
             <div class="answer" id="modelAnswer" style="display:none"></div>
             <div id="aiFeedbackArea"></div>
-            <div class="study-indicator" id="studyIndicator"><span class="pulse-dot"></span> Study this</div>
+            <div class="study-indicator" id="studyIndicator"><span class="pulse-dot"></span> Re-encoding — read the answer carefully</div>
+
+            <div class="restudy-screen" id="restudyScreen">
+              <div class="rs-header">
+                <div class="rs-icon">📖</div>
+                <div class="rs-title">Restudy — Encode Deeply</div>
+                <div class="rs-meta">
+                  <div class="rs-timer" id="restudyTimer">—</div>
+                </div>
+              </div>
+              <div class="rs-answer" id="restudyAnswer"></div>
+              <div class="rs-elaboration">Ask yourself: Why is this the correct answer? How does it connect to what you already know?</div>
+              <div class="rs-progress"><div id="restudyProgress"></div></div>
+              <div class="rs-source">Duration scaled to answer length · Pastötter et al. 2017</div>
+            </div>
 
             <div class="ratings" id="ratings" style="display:none">
               <button class="rate again" data-rate="1">Again (1)</button>
@@ -4232,10 +4332,14 @@ input[type="range"]::-moz-range-thumb{
     var mockCountdownTimer = null;
     var mockEndsAt = 0;
     var mockTotalMs = 0;
+    var restudyIntervalTimer = null;
+    var restudyTimeoutTimer = null;
 
     function clearTimers() {
       if (tierTimer) { clearInterval(tierTimer); tierTimer = null; }
       if (mockCountdownTimer) { clearInterval(mockCountdownTimer); mockCountdownTimer = null; }
+      if (restudyIntervalTimer) { clearInterval(restudyIntervalTimer); restudyIntervalTimer = null; }
+      if (restudyTimeoutTimer) { clearTimeout(restudyTimeoutTimer); restudyTimeoutTimer = null; }
     }
 
     function autoGrowTextarea(ta) {
@@ -4305,6 +4409,8 @@ input[type="range"]::-moz-range-thumb{
       modelAnswerEl.style.display = 'none';
       ratingsEl.style.display = 'none';
       studyIndicator.classList.remove('show');
+      var restudyScreen = el('restudyScreen');
+      if (restudyScreen) restudyScreen.classList.remove('show');
       el('timerBar').classList.remove('show');
       el('metaTimer').style.display = 'none';
       el('timerFill').style.width = '0%';
@@ -4768,14 +4874,51 @@ input[type="range"]::-moz-range-thumb{
       if (mappedRating === 1) {
         session.loops[it.id] = againCount + 1;
 
-        /* Restudy phase: show model answer for 10s with indicator */
+        /* Structured restudy phase with adaptive duration.
+           Research chain:
+           1) Arnold & McDermott (2013): failed retrieval primes deeper encoding on subsequent restudy.
+           2) Pastötter et al. (2017): potentiation effect is strongest with brief restudy; longer windows dilute the advantage.
+           3) Duration scales with reading time, not tier or cram state. */
+        var restudyScreen = el('restudyScreen');
+        var restudyAnswer = el('restudyAnswer');
+        var restudyTimerEl = el('restudyTimer');
+        var restudyProgress = el('restudyProgress');
+        var restudyDuration = calcRestudyDuration(it.modelAnswer);
+
+        /* Populate restudy screen */
+        if (restudyAnswer) restudyAnswer.innerHTML = '<div class="md-content">' + renderMd(it.modelAnswer || '') + '</div>';
+        if (restudyTimerEl) restudyTimerEl.textContent = Math.ceil(restudyDuration / 1000) + 's';
+        if (restudyProgress) restudyProgress.style.width = '0%';
+        if (restudyScreen) restudyScreen.classList.add('show');
+
         studyIndicator.classList.add('show');
         try { playError(); } catch(e) {}
         disableRatings(true);
 
-        setTimeout(function() {
+        var restudyStart = Date.now();
+        if (restudyIntervalTimer) { clearInterval(restudyIntervalTimer); restudyIntervalTimer = null; }
+        restudyIntervalTimer = setInterval(function() {
+          var elapsed = Date.now() - restudyStart;
+          var remaining = Math.max(0, Math.ceil((restudyDuration - elapsed) / 1000));
+          if (restudyTimerEl) restudyTimerEl.textContent = remaining + 's';
+          if (restudyProgress) restudyProgress.style.width = Math.min(100, Math.round((elapsed / restudyDuration) * 100)) + '%';
+          if (elapsed >= restudyDuration) {
+            clearInterval(restudyIntervalTimer);
+            restudyIntervalTimer = null;
+          }
+        }, 250);
+
+        if (window.gsap && restudyScreen) {
+          gsap.fromTo(restudyScreen, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' });
+        }
+
+        if (restudyTimeoutTimer) { clearTimeout(restudyTimeoutTimer); restudyTimeoutTimer = null; }
+        restudyTimeoutTimer = setTimeout(function() {
+          if (restudyIntervalTimer) { clearInterval(restudyIntervalTimer); restudyIntervalTimer = null; }
+
           disableRatings(false);
           studyIndicator.classList.remove('show');
+          if (restudyScreen) restudyScreen.classList.remove('show');
 
           if (session.loops[it.id] >= 3) {
             /* force-exit loop */
@@ -4801,7 +4944,7 @@ input[type="range"]::-moz-range-thumb{
           var insertPos = Math.min(session.idx + 1 + minOffset, session.queue.length);
           session.queue.splice(insertPos, 0, it);
           advanceItem();
-        }, 10000);
+        }, restudyDuration);
         return;
       }
 
@@ -6279,6 +6422,26 @@ input[type="range"]::-moz-range-thumb{
         if (window.gsap) gsap.to(toastEl, { opacity: 0, y: 0, duration: 0.22, ease: 'power2.inOut' });
         else toastEl.style.opacity = '0';
       }, 1400);
+    }
+
+    /* ── Restudy Duration Calculator ──
+       Scales with model answer word count (reading time).
+
+       Research basis:
+       - Pastötter et al. (2017): test-potentiated learning effect decreases as restudy trial time increases.
+       - Murphy, Bjork, & Bjork (2023): multiple brief exposures > one long one.
+
+       Reading rate ~25 words per 5 seconds (deliberately slow to account for re-encoding effort).
+       Minimum 6s, maximum 20s (diminishing returns beyond that). */
+    function calcRestudyDuration(modelAnswer) {
+      if (!modelAnswer) return 8000; /* 8s default */
+      var txt = String(modelAnswer).trim();
+      if (!txt) return 8000;
+      var parts = txt.split(/\s+/);
+      var wordCount = parts.length;
+      var seconds = Math.ceil(wordCount / 25) * 5;
+      seconds = Math.max(6, Math.min(20, seconds));
+      return seconds * 1000; /* milliseconds */
     }
 
     function fmtMMSS(totalSec) {
