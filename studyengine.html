@@ -1851,12 +1851,15 @@
       font-variant-numeric: tabular-nums;
     }
     .cd-tier-stat .cts-label{
-      font-size: 7px;
-      letter-spacing: 1px;
+      font-size: 6px;
+      letter-spacing: 0.6px;
       text-transform: uppercase;
       color: var(--text-secondary);
       margin-top: 2px;
       font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     /* Cram mode banner */
@@ -2193,7 +2196,7 @@ input[type="range"]::-moz-range-thumb{
                   <div class="s">Days</div>
                 </div>
                 <div class="stat">
-                  <div class="k">Avg Retention</div>
+                  <div class="k">Avg Retention <span class="info-icon" tabindex="0" aria-label="Info">ⓘ<span class="info-tooltip">Average probability you can recall all your reviewed cards right now. Calculated by FSRS from each card's stability and time since last review. The retention forecast graph shows how this decays over 30 days without review.</span></span></div>
                   <div class="v" id="statRet">—</div>
                   <div class="s">FSRS retrievability</div>
                 </div>
@@ -2207,7 +2210,7 @@ input[type="range"]::-moz-range-thumb{
                     transform="rotate(-90 24 24)" style="transition: stroke-dashoffset 0.6s ease, stroke 0.3s ease"/>
                 </svg>
                 <div>
-                  <div class="g-title">Calibration</div>
+                  <div class="g-title">Calibration <span class="info-icon" tabindex="0" aria-label="Info">ⓘ<span class="info-tooltip">Measures how accurately you judge your own knowledge. Compares your self-ratings against AI grading on generative tiers (Explain, Apply, Distinguish, Mock). 75%+ means well-calibrated. Below 55% means you may be overconfident. Only updates after generative-tier reviews.</span></span></div>
                   <div class="g-val" id="calVal">—</div>
                   <div class="g-sub" id="calSub">Metacognitive feedback</div>
                 </div>
@@ -2298,6 +2301,8 @@ input[type="range"]::-moz-range-thumb{
                 <canvas id="cdRetentionCanvas" height="100"></canvas>
               </div>
             </div>
+            <div class="section-header" style="margin-top:14px;">Cards</div>
+            <div id="cdCardList" style="max-height:260px;overflow-y:auto;margin-bottom:14px;scrollbar-width:thin;"></div>
             <button class="big-btn" id="cdStartSession">Study this course</button>
             <div class="mini-actions">
               <button class="ghost-btn" id="cdAddCardBtn">＋ Add Card</button>
@@ -5932,7 +5937,7 @@ input[type="range"]::-moz-range-thumb{
 
       /* Per-tier stats */
       var tierOrder = ['quickfire', 'explain', 'apply', 'distinguish', 'mock'];
-      var tierNames = { quickfire: 'QF', explain: 'EI', apply: 'AI', distinguish: 'DI', mock: 'ME' };
+      var tierNames = { quickfire: 'Quick Fire', explain: 'Explain', apply: 'Apply', distinguish: 'Distinguish', mock: 'Mock' };
       var tierStats = '';
       tierOrder.forEach(function(t) {
         var count = 0;
@@ -5944,6 +5949,70 @@ input[type="range"]::-moz-range-thumb{
         tierStats += '<div class="cd-tier-stat"><div class="cts-count" style="color:' + col + ';">' + count + '</div><div class="cts-label">' + tierNames[t] + '</div></div>';
       });
       el('cdTierStats').innerHTML = tierStats;
+
+      /* ── Card list with delete ── */
+      var cardListEl = el('cdCardList');
+      if (cardListEl) {
+        var sortedIds = Object.keys(courseItems);
+        sortedIds.sort(function(aId, bId) {
+          var a = courseItems[aId], b = courseItems[bId];
+          var aD = (a.fsrs && a.fsrs.due) ? new Date(a.fsrs.due).getTime() : 0;
+          var bD = (b.fsrs && b.fsrs.due) ? new Date(b.fsrs.due).getTime() : 0;
+          return aD - bD;
+        });
+        if (sortedIds.length === 0) {
+          cardListEl.innerHTML = '<div class="empty-state" style="padding:16px;"><div class="empty-icon">📝</div><div class="empty-title">No cards yet</div><div class="empty-desc">Add cards to this course to start studying.</div></div>';
+        } else {
+          var clHTML = '';
+          sortedIds.forEach(function(cid) {
+            var it = courseItems[cid];
+            var delId = it.id || cid;
+            var preview = (it.prompt || '').substring(0, 80) + ((it.prompt || '').length > 80 ? '…' : '');
+            var retVal = (it.fsrs && it.fsrs.lastReview) ? Math.round(retrievability(it.fsrs, now) * 100) : null;
+            var retDisplay = retVal !== null ? retVal + '%' : 'New';
+            var retCol = retVal === null ? 'var(--text-secondary)' : retVal >= 80 ? 'var(--rate-good)' : retVal >= 50 ? 'var(--rate-hard)' : 'var(--rate-again)';
+            var topicTag = it.topic ? '<span class="meta"><span class="tag" style="font-size:7px;padding:3px 6px;">' + esc(it.topic) + '</span></span>' : '';
+            clHTML += '<div class="course-list-item" style="flex-wrap:wrap;">' +
+              '<div style="flex:1;min-width:0;">' +
+                '<div class="cli-name">' + esc(preview) + '</div>' +
+                '<div style="display:flex;gap:6px;margin-top:3px;align-items:center;">' + topicTag + '</div>' +
+              '</div>' +
+              '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">' +
+                '<span style="font-size:10px;font-weight:700;color:' + retCol + ';">' + retDisplay + '</span>' +
+                '<button class="cd-delete-card" data-delete-id="' + esc(delId) + '" title="Delete card" style="' +
+                  'border:none;background:rgba(239,68,68,0.08);color:var(--rate-again);border-radius:8px;' +
+                  'padding:5px 8px;font-size:10px;cursor:pointer;transition:background 200ms,transform 200ms;' +
+                '">🗑</button>' +
+              '</div>' +
+            '</div>';
+          });
+          cardListEl.innerHTML = clHTML;
+
+          cardListEl.querySelectorAll('.cd-delete-card').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+              e.stopPropagation();
+              var delId = this.getAttribute('data-delete-id');
+              if (!delId || !state.items[delId]) return;
+              var row = this.closest('.course-list-item');
+              if (window.gsap && row) {
+                gsap.to(row, { opacity: 0, x: -20, height: 0, marginBottom: 0, padding: 0, duration: 0.3, ease: 'power2.in', onComplete: function() {
+                  delete state.items[delId];
+                  saveState();
+                  openCourseDetail(courseName);
+                  renderDashboard();
+                  toast('Card deleted');
+                }});
+              } else {
+                delete state.items[delId];
+                saveState();
+                openCourseDetail(courseName);
+                renderDashboard();
+                toast('Card deleted');
+              }
+            });
+          });
+        }
+      }
 
       /* Retention curve for this course */
       setTimeout(function() {
