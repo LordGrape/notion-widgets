@@ -2051,6 +2051,90 @@
     .analytics-card canvas{
       display: block;
       width: 100%;
+      cursor: crosshair;
+    }
+
+    /* ── Canvas Hover Tooltip ── */
+    .canvas-tooltip{
+      position: fixed;
+      display: none;
+      padding: 8px 12px;
+      border-radius: 12px;
+      background: var(--card-bg);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      border: 1px solid rgba(var(--accent-rgb),0.22);
+      box-shadow: 0 8px 28px rgba(0,0,0,0.18);
+      pointer-events: none;
+      z-index: 9998;
+      white-space: nowrap;
+      transition: opacity 120ms ease, transform 120ms ease;
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    .canvas-tooltip.show{
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .canvas-tooltip .ct-day{
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 3px;
+    }
+    .canvas-tooltip .ct-ret{
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.3px;
+    }
+    .canvas-tooltip .ct-course{
+      font-size: 8px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      color: var(--text-tertiary);
+      margin-top: 2px;
+    }
+
+    /* ── Retention Course Filter Chips ── */
+    .ret-filter-chips{
+      display: flex;
+      gap: 5px;
+      overflow-x: auto;
+      padding: 2px 0 6px;
+      scrollbar-width: none;
+      margin-bottom: 6px;
+    }
+    .ret-filter-chips::-webkit-scrollbar{ display: none; }
+    .ret-chip{
+      flex: 0 0 auto;
+      padding: 4px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(var(--accent-rgb),0.12);
+      background: rgba(var(--accent-rgb),0.03);
+      color: var(--text-secondary);
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform var(--transition), background var(--transition), border-color var(--transition), color var(--transition);
+      user-select: none;
+      white-space: nowrap;
+    }
+    .ret-chip.active{
+      background: rgba(var(--accent-rgb),0.18);
+      border-color: rgba(var(--accent-rgb),0.34);
+      color: var(--text);
+    }
+    .ret-chip:hover{ transform: translateY(-1px); }
+    .ret-chip:active{ transform: translateY(0) scale(0.97); }
+    .ret-chip[data-color]{
+      border-color: currentColor;
     }
 
     /* Sparkline + Ring side-by-side */
@@ -2620,6 +2704,7 @@ input[type="range"]::-moz-range-thumb{
             <div class="analytics-strip">
               <div class="analytics-card">
                 <div class="ac-title">Predicted retention</div>
+                <div class="ret-filter-chips" id="retFilterChips"></div>
                 <canvas id="retentionCanvas" height="100"></canvas>
               </div>
               <div class="analytics-row">
@@ -3345,6 +3430,7 @@ input[type="range"]::-moz-range-thumb{
 
     var selectedCourse = 'All';
     var selectedTopic = 'All';
+    var retentionFilter = 'All'; /* controls which course the retention graph shows */
 
     var session = null;
     var sessionSummary = null;
@@ -6499,7 +6585,10 @@ input[type="range"]::-moz-range-thumb{
       return getComputedStyle(document.documentElement).getPropertyValue('--text').trim() || '#1a1a2e';
     }
 
-    /* ── Graph 1: Retention Curve ── */
+    /* ── Graph 1: Retention Curve (interactive) ── */
+    /* Stores computed point data per canvas for hover lookups */
+    var retentionGraphData = {};
+
     function drawRetentionCurve(canvasId, itemsByFilter, labelPrefix) {
       var parent = el(canvasId);
       if (!parent) return;
@@ -6524,6 +6613,9 @@ input[type="range"]::-moz-range-thumb{
         if (it && it.fsrs && it.fsrs.lastReview) items.push(it);
       }
 
+      /* Clear stored data */
+      retentionGraphData[canvasId] = null;
+
       if (!items.length) {
         ctx.fillStyle = textSec;
         ctx.font = '500 9px Inter, system-ui, sans-serif';
@@ -6544,17 +6636,35 @@ input[type="range"]::-moz-range-thumb{
         items.forEach(function(it) {
           sum += retrievability(it.fsrs, futureTs);
         });
-        points.push(sum / items.length);
+        var avg = sum / items.length;
+        var x = pad.left + (d / days) * gw;
+        var y = pad.top + gh - (clamp(avg, 0, 1) * gh);
+        points.push({ day: d, retention: avg, x: x, y: y });
       }
+
+      /* Store for hover lookups + redraws */
+      retentionGraphData[canvasId] = {
+        points: points,
+        pad: pad,
+        gw: gw,
+        gh: gh,
+        w: w,
+        h: h,
+        days: days,
+        itemCount: items.length,
+        label: labelPrefix || 'All courses',
+        lastItemsByFilter: itemsByFilter,
+        lastLabelPrefix: labelPrefix || 'All courses'
+      };
 
       /* Grid lines */
       ctx.strokeStyle = 'rgba(' + rgb + ',0.06)';
       ctx.lineWidth = 0.5;
       [0.25, 0.5, 0.75, 1.0].forEach(function(v) {
-        var y = pad.top + gh - (v * gh);
+        var gy = pad.top + gh - (v * gh);
         ctx.beginPath();
-        ctx.moveTo(pad.left, y);
-        ctx.lineTo(w - pad.right, y);
+        ctx.moveTo(pad.left, gy);
+        ctx.lineTo(w - pad.right, gy);
         ctx.stroke();
       });
 
@@ -6564,16 +6674,16 @@ input[type="range"]::-moz-range-thumb{
       ctx.textAlign = 'right';
       ctx.textBaseline = 'middle';
       [0, 0.25, 0.5, 0.75, 1.0].forEach(function(v) {
-        var y = pad.top + gh - (v * gh);
-        ctx.fillText(Math.round(v * 100) + '%', pad.left - 4, y);
+        var gy = pad.top + gh - (v * gh);
+        ctx.fillText(Math.round(v * 100) + '%', pad.left - 4, gy);
       });
 
       /* X-axis labels */
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
       [0, 7, 14, 21, 30].forEach(function(d) {
-        var x = pad.left + (d / days) * gw;
-        ctx.fillText(d + 'd', x, h - pad.bottom + 6);
+        var gx = pad.left + (d / days) * gw;
+        ctx.fillText(d + 'd', gx, h - pad.bottom + 6);
       });
 
       /* Gradient fill under curve */
@@ -6582,35 +6692,37 @@ input[type="range"]::-moz-range-thumb{
       grad.addColorStop(1, 'rgba(' + rgb + ',0.01)');
 
       ctx.beginPath();
-      ctx.moveTo(pad.left, pad.top + gh);
-      points.forEach(function(v, i) {
-        var x = pad.left + (i / days) * gw;
-        var y = pad.top + gh - (clamp(v, 0, 1) * gh);
-        if (i === 0) ctx.lineTo(x, y);
-        else ctx.lineTo(x, y);
-      });
-      ctx.lineTo(pad.left + gw, pad.top + gh);
+      ctx.moveTo(points[0].x, pad.top + gh);
+      points.forEach(function(p) { ctx.lineTo(p.x, p.y); });
+      ctx.lineTo(points[points.length - 1].x, pad.top + gh);
       ctx.closePath();
       ctx.fillStyle = grad;
       ctx.fill();
 
       /* Curve line */
       ctx.beginPath();
-      points.forEach(function(v, i) {
-        var x = pad.left + (i / days) * gw;
-        var y = pad.top + gh - (clamp(v, 0, 1) * gh);
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
+      points.forEach(function(p, i) {
+        if (i === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
       });
       ctx.strokeStyle = 'rgba(' + rgb + ',0.7)';
       ctx.lineWidth = 2;
       ctx.lineJoin = 'round';
       ctx.stroke();
 
-      /* Today dot */
-      var todayY = pad.top + gh - (clamp(points[0], 0, 1) * gh);
+      /* Dot markers at key intervals for visual anchoring */
+      [0, 7, 14, 21, 30].forEach(function(d) {
+        var p = points[d];
+        if (!p) return;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(' + rgb + ',0.5)';
+        ctx.fill();
+      });
+
+      /* Today dot (larger, solid) */
       ctx.beginPath();
-      ctx.arc(pad.left, todayY, 3, 0, Math.PI * 2);
+      ctx.arc(points[0].x, points[0].y, 3.5, 0, Math.PI * 2);
       ctx.fillStyle = 'rgba(' + rgb + ',0.9)';
       ctx.fill();
 
@@ -6619,7 +6731,7 @@ input[type="range"]::-moz-range-thumb{
       ctx.font = '700 8px Inter, system-ui, sans-serif';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'bottom';
-      ctx.fillText(Math.round(points[0] * 100) + '% today', pad.left + 8, todayY - 2);
+      ctx.fillText(Math.round(points[0].retention * 100) + '% today', points[0].x + 8, points[0].y - 2);
 
       /* Desired retention threshold line */
       var dr = settings.desiredRetention || 0.90;
@@ -6638,6 +6750,146 @@ input[type="range"]::-moz-range-thumb{
       ctx.textAlign = 'right';
       ctx.textBaseline = 'bottom';
       ctx.fillText('target ' + Math.round(dr * 100) + '%', w - pad.right, drY - 2);
+    }
+
+    /* ── Retention Graph Hover Interactivity ── */
+    function hideCanvasTooltip() {
+      var tooltip = el('canvasTooltip');
+      if (tooltip) tooltip.classList.remove('show');
+    }
+
+    function showCanvasTooltip(canvasId, pt, label, itemCount, clientX, clientY) {
+      var tooltip = el('canvasTooltip');
+      if (!tooltip) return;
+
+      var dayLabel = pt.day === 0 ? 'Today' : pt.day === 1 ? 'Tomorrow' : 'Day ' + pt.day;
+      el('ctDay').textContent = dayLabel;
+      el('ctRet').textContent = Math.round(pt.retention * 100) + '%';
+      el('ctCourse').textContent = (label || 'All courses') + ' · ' + itemCount + ' card' + (itemCount !== 1 ? 's' : '');
+
+      var retCol = pt.retention >= 0.85 ? 'var(--rate-good)' : pt.retention >= 0.65 ? 'var(--rate-hard)' : 'var(--rate-again)';
+      el('ctRet').style.color = retCol;
+
+      var tipW = 160;
+      var left = clientX - (tipW / 2);
+      left = Math.max(8, Math.min(left, window.innerWidth - tipW - 8));
+      var top = clientY - 68;
+      if (top < 6) top = clientY + 16;
+      tooltip.style.left = left + 'px';
+      tooltip.style.top = top + 'px';
+      tooltip.classList.add('show');
+    }
+
+    function drawRetentionHighlight(canvasId, idx) {
+      if (idx == null || idx < 0) return;
+      var data = retentionGraphData[canvasId];
+      var canvas = el(canvasId);
+      if (!data || !canvas || !data.points || !data.points.length) return;
+
+      var pt = data.points[idx];
+      var rgb = getAccentRGB();
+      var ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      /* Canvas is already scaled in getCanvasCtx() */
+      ctx.save();
+      ctx.setLineDash([2, 2]);
+      ctx.strokeStyle = 'rgba(' + rgb + ',0.2)';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(pt.x, data.pad.top);
+      ctx.lineTo(pt.x, data.pad.top + data.gh);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      var glow = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, 10);
+      glow.addColorStop(0, 'rgba(' + rgb + ',0.3)');
+      glow.addColorStop(1, 'rgba(' + rgb + ',0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, 10, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(' + rgb + ',1)';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, 2, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    function redrawRetentionBase(canvasId) {
+      var data = retentionGraphData[canvasId];
+      if (!data) return;
+      drawRetentionCurve(canvasId, data.lastItemsByFilter || {}, data.lastLabelPrefix || '');
+    }
+
+    function handleRetentionHover(canvasId, clientX, clientY) {
+      var canvas = el(canvasId);
+      var data = retentionGraphData[canvasId];
+      if (!canvas || !data || !data.points || !data.points.length) { hideCanvasTooltip(); return; }
+
+      var cRect = canvas.getBoundingClientRect();
+      var mx = clientX - cRect.left;
+
+      /* Find nearest point by x-distance in screen space */
+      var scaleX = cRect.width / data.w;
+      var nearest = -1;
+      var nearestDist = Infinity;
+      data.points.forEach(function(p, i) {
+        var px = p.x * scaleX;
+        var dist = Math.abs(mx - px);
+        if (dist < nearestDist) {
+          nearestDist = dist;
+          nearest = i;
+        }
+      });
+
+      if (nearest < 0 || nearestDist > 22) {
+        hideCanvasTooltip();
+        redrawRetentionBase(canvasId);
+        return;
+      }
+
+      var pt = data.points[nearest];
+      showCanvasTooltip(canvasId, pt, data.label, data.itemCount, clientX, clientY);
+
+      redrawRetentionBase(canvasId);
+      drawRetentionHighlight(canvasId, nearest);
+    }
+
+    /* Wire canvas mouse/touch events for retention graphs */
+    var wiredRetentionCanvases = {};
+    function wireRetentionInteractivity(canvasId) {
+      if (wiredRetentionCanvases[canvasId]) return;
+      var canvas = el(canvasId);
+      if (!canvas) return;
+
+      wiredRetentionCanvases[canvasId] = true;
+
+      canvas.addEventListener('mousemove', function(e) {
+        handleRetentionHover(canvasId, e.clientX, e.clientY);
+      });
+      canvas.addEventListener('mouseleave', function() {
+        hideCanvasTooltip();
+        redrawRetentionBase(canvasId);
+      });
+
+      canvas.addEventListener('touchmove', function(e) {
+        if (e.touches && e.touches.length === 1) {
+          e.preventDefault();
+          var t = e.touches[0];
+          handleRetentionHover(canvasId, t.clientX, t.clientY);
+        }
+      }, { passive: false });
+      canvas.addEventListener('touchend', function() {
+        setTimeout(hideCanvasTooltip, 1200);
+        redrawRetentionBase(canvasId);
+      });
     }
 
     /* ── Graph 2: Session History Sparkline (30 days) ── */
@@ -6861,6 +7113,66 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* ── Draw all analytics ── */
+    function renderRetentionFilterChips() {
+      var container = el('retFilterChips');
+      if (!container) return;
+
+      /* Collect courses that have reviewed (non-archived) items */
+      var coursesWithData = {};
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (!it || it.archived || !it.fsrs || !it.fsrs.lastReview) continue;
+        if (it.course) coursesWithData[it.course] = true;
+      }
+      var courseNames = Object.keys(coursesWithData).sort();
+
+      /* Don't show chips if 0 or 1 course */
+      if (courseNames.length <= 1) {
+        container.innerHTML = '';
+        retentionFilter = 'All';
+        return;
+      }
+
+      var h = '<span class="ret-chip ' + (retentionFilter === 'All' ? 'active' : '') + '" data-ret-filter="All">Average</span>';
+      courseNames.forEach(function(name) {
+        var col = getCourseColor(name);
+        var isActive = retentionFilter === name;
+        h += '<span class="ret-chip ' + (isActive ? 'active' : '') + '" data-ret-filter="' + esc(name) + '" style="' +
+          (col ? 'border-color:' + col + ';' + (isActive ? 'background:' + col + '22;color:' + col : '') : '') +
+          '">' + esc(name) + '</span>';
+      });
+      container.innerHTML = h;
+
+      container.querySelectorAll('.ret-chip').forEach(function(chip) {
+        chip.addEventListener('click', function() {
+          retentionFilter = this.getAttribute('data-ret-filter') || 'All';
+          try { playPresetSelect(); } catch(e) {}
+          renderRetentionFilterChips();
+          renderRetentionGraph();
+        });
+      });
+
+      if (window.gsap) {
+        gsap.fromTo(container.querySelectorAll('.ret-chip'),
+          { opacity: 0, y: 3 }, { opacity: 1, y: 0, duration: 0.2, stagger: 0.03, ease: 'power2.out' });
+      }
+    }
+
+    function renderRetentionGraph() {
+      var items = {};
+      var filterCourse = retentionFilter || 'All';
+      var label = filterCourse === 'All' ? 'All courses' : filterCourse;
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (!it || it.archived) continue;
+        if (filterCourse !== 'All' && it.course !== filterCourse) continue;
+        items[id] = it;
+      }
+      drawRetentionCurve('retentionCanvas', items, label);
+    }
+
     function renderAnalytics(courseFilter) {
       var items = {};
       for (var id in state.items) {
@@ -6871,7 +7183,8 @@ input[type="range"]::-moz-range-thumb{
         items[id] = it;
       }
 
-      drawRetentionCurve('retentionCanvas', items);
+      renderRetentionFilterChips();
+      renderRetentionGraph();
       drawSparkline('sparkCanvas');
       drawTierRing('ringCanvas');
 
@@ -7127,7 +7440,9 @@ input[type="range"]::-moz-range-thumb{
 
       /* Retention curve for this course */
       setTimeout(function() {
-        drawRetentionCurve('cdRetentionCanvas', courseItems);
+        drawRetentionCurve('cdRetentionCanvas', courseItems, c.name);
+        /* Re-wire interactivity for course detail canvas */
+        wireRetentionInteractivity('cdRetentionCanvas');
       }, 50);
 
       el('tabHome').style.display = 'none';
@@ -7190,6 +7505,12 @@ input[type="range"]::-moz-range-thumb{
       renderDashboard();
       showView('viewDash');
 
+      /* Wire retention graph interactivity (after first render) */
+      setTimeout(function() {
+        wireRetentionInteractivity('retentionCanvas');
+        wireRetentionInteractivity('cdRetentionCanvas');
+      }, 200);
+
       /* Refresh mascot stage every 30s (picks up XP changes from other widgets) */
       setInterval(function() {
         updateMascotStage();
@@ -7205,6 +7526,11 @@ input[type="range"]::-moz-range-thumb{
       if (!state) boot();
     }, 700);
   </script>
+  <div class="canvas-tooltip" id="canvasTooltip">
+    <div class="ct-day" id="ctDay"></div>
+    <div class="ct-ret" id="ctRet"></div>
+    <div class="ct-course" id="ctCourse"></div>
+  </div>
 </body>
 </html>
 
