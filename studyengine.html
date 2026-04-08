@@ -4407,7 +4407,6 @@ input[type="range"]::-moz-range-thumb{
     function deleteCourse(courseName) {
       if (state.courses[courseName]) {
         delete state.courses[courseName];
-        saveState();
       }
     }
 
