@@ -9796,6 +9796,17 @@ input[type="range"]::-moz-range-thumb{
 
     function boot() {
       loadState();
+      /* Re-sync from SyncEngine when a remote device writes new state.
+         Core.js polls KV every 60s; this listener reloads local state
+         and refreshes the dashboard when remote changes arrive. */
+      Core.on('sync-remote-update', function(data) {
+        if (data && data.namespace === 'studyengine') {
+          loadState();
+          if (viewDash.classList.contains('active')) {
+            renderDashboard();
+          }
+        }
+      });
       loadOptimizedWeights();
       initMascot();
       renderDashboard();
