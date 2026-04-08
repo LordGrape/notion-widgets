@@ -2143,6 +2143,10 @@
 .info-tooltip.visible{
   display: block;
 }
+/* In-place tooltip templates stay hidden — only the portaled clone shows */
+.info-icon > .info-tooltip.visible{
+  display: none;
+}
 .info-tooltip.shown{
   opacity: 1;
   transform: translateY(0);
@@ -4768,28 +4772,41 @@ input[type="range"]::-moz-range-thumb{
     el('settingsClose').addEventListener('click', closeSettings);
     settingsOv.addEventListener('click', function(e){ if (e.target === settingsOv) closeSettings(); });
 
-    /* ── Tooltip Positioning Engine v2 ── */
-    /* Best practices: measure-after-render, auto-flip, arrow-tracks-source,
-       show delay, dismiss on Escape, CSS entrance transition. */
+    /* ── Tooltip Positioning Engine v3 — portal to body ── */
+    /* Moves tooltip to document.body so position:fixed works
+       regardless of ancestor backdrop-filter / transform. */
     var activeTooltipIcon = null;
+    var activeTooltipEl = null;   /* the portaled tooltip clone in <body> */
     var tooltipShowTimer = null;
-    var TOOLTIP_DELAY = 180; /* ms — prevents flicker on accidental hover */
+    var TOOLTIP_DELAY = 180;
 
     function positionTooltip(icon) {
-      var tip = icon.querySelector('.info-tooltip');
-      if (!tip) return;
+      /* 1. Find the tooltip template inside the icon */
+      var src = icon.querySelector('.info-tooltip');
+      if (!src) return;
 
-      /* 1. Make visible off-screen to measure true dimensions */
+      /* 2. Remove any previous portaled tooltip */
+      removePortaledTooltip();
+
+      /* 3. Clone the tooltip and portal it to body */
+      var tip = src.cloneNode(true);
+      tip.style.cssText = ''; /* clear any stale inline styles */
+      document.body.appendChild(tip);
+      activeTooltipEl = tip;
+
+      /* 4. Make visible off-screen to measure */
+      tip.style.position = 'fixed';
       tip.style.top = '-9999px';
       tip.style.left = '-9999px';
-      tip.className = 'info-tooltip visible';
-      tip.classList.remove('shown');
+      tip.style.display = 'block';
+      tip.style.opacity = '0';
+      tip.style.zIndex = '99999';
 
-      /* Force layout so offsetWidth/Height are accurate */
+      /* Force layout for accurate measurement */
       var tipW = tip.offsetWidth;
       var tipH = tip.offsetHeight;
 
-      /* 2. Get icon position (viewport-relative via getBoundingClientRect) */
+      /* 5. Get icon position (truly viewport-relative now) */
       var rect = icon.getBoundingClientRect();
       var iconCX = rect.left + rect.width / 2;
       var iconTop = rect.top;
@@ -4797,7 +4814,7 @@ input[type="range"]::-moz-range-thumb{
       var vw = window.innerWidth;
       var vh = window.innerHeight;
 
-      /* 3. Decide above vs below (prefer above; flip if not enough space) */
+      /* 6. Place above by default; flip below if no room */
       var gap = 10;
       var above = iconTop - gap - tipH >= 4;
       var arrowClass, top;
@@ -4809,42 +4826,49 @@ input[type="range"]::-moz-range-thumb{
         arrowClass = 'arrow-top';
       }
 
-      /* 4. Horizontal: centre on icon, clamp to viewport */
+      /* 7. Horizontal: centre on icon, clamp to viewport */
       var left = iconCX - tipW / 2;
       left = Math.max(8, Math.min(left, vw - tipW - 8));
 
-      /* 5. Vertical clamp */
+      /* 8. Vertical clamp */
       top = Math.max(4, Math.min(top, vh - tipH - 4));
 
-      /* 6. Arrow position: track icon centre relative to tooltip left */
+      /* 9. Arrow position: track icon centre relative to tooltip */
       var arrow = tip.querySelector('.tip-arrow');
       if (arrow) {
-        var arrowLeft = iconCX - left - 6; /* 6 = half arrow width */
+        var arrowLeft = iconCX - left - 6;
         arrowLeft = Math.max(12, Math.min(arrowLeft, tipW - 24));
         arrow.style.left = arrowLeft + 'px';
       }
 
-      /* 7. Apply position */
+      /* 10. Apply final position and classes */
       tip.style.top = top + 'px';
       tip.style.left = left + 'px';
       tip.className = 'info-tooltip visible ' + arrowClass;
 
-      /* 8. Trigger entrance animation (next frame so transition applies) */
+      /* 11. Entrance animation (next frame so transition fires) */
       requestAnimationFrame(function() {
-        tip.classList.add('shown');
+        if (activeTooltipEl === tip) {
+          tip.classList.add('shown');
+        }
       });
     }
 
-    function hideTooltip(icon) {
-      var tip = icon.querySelector('.info-tooltip');
-      if (!tip) return;
+    function removePortaledTooltip() {
+      if (activeTooltipEl && activeTooltipEl.parentNode) {
+        activeTooltipEl.parentNode.removeChild(activeTooltipEl);
+      }
+      activeTooltipEl = null;
+    }
+
+    function hideTooltip() {
+      if (!activeTooltipEl) return;
+      var tip = activeTooltipEl;
       tip.classList.remove('shown');
-      /* After fade-out transition, fully hide */
+      /* After fade-out, remove from DOM */
       setTimeout(function() {
-        if (!tip.classList.contains('shown')) {
-          tip.className = 'info-tooltip';
-          tip.style.top = '';
-          tip.style.left = '';
+        if (activeTooltipEl === tip) {
+          removePortaledTooltip();
         }
       }, 170);
     }
@@ -4853,13 +4877,13 @@ input[type="range"]::-moz-range-thumb{
       if (tooltipShowTimer) { clearTimeout(tooltipShowTimer); tooltipShowTimer = null; }
     }
 
-    /* Event delegation (works everywhere: dashboard, settings, modals) */
+    /* Event delegation */
     document.addEventListener('mouseover', function(e) {
       var icon = e.target.closest('.info-icon');
       if (!icon) return;
       if (activeTooltipIcon && activeTooltipIcon !== icon) {
         clearTooltipTimer();
-        hideTooltip(activeTooltipIcon);
+        hideTooltip();
       }
       activeTooltipIcon = icon;
       clearTooltipTimer();
@@ -4873,7 +4897,7 @@ input[type="range"]::-moz-range-thumb{
       if (!icon) return;
       if (!icon.contains(e.relatedTarget)) {
         clearTooltipTimer();
-        hideTooltip(icon);
+        hideTooltip();
         if (activeTooltipIcon === icon) activeTooltipIcon = null;
       }
     });
@@ -4881,7 +4905,8 @@ input[type="range"]::-moz-range-thumb{
     document.addEventListener('focusin', function(e) {
       var icon = e.target.closest('.info-icon');
       if (icon) {
-        if (activeTooltipIcon && activeTooltipIcon !== icon) hideTooltip(activeTooltipIcon);
+        clearTooltipTimer();
+        if (activeTooltipIcon && activeTooltipIcon !== icon) hideTooltip();
         activeTooltipIcon = icon;
         positionTooltip(icon);
       }
@@ -4891,16 +4916,16 @@ input[type="range"]::-moz-range-thumb{
       var icon = e.target.closest('.info-icon');
       if (icon) {
         clearTooltipTimer();
-        hideTooltip(icon);
+        hideTooltip();
         activeTooltipIcon = null;
       }
     });
 
-    /* Dismiss on Escape (W3C tooltip pattern) */
+    /* Dismiss on Escape */
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape' && activeTooltipIcon) {
         clearTooltipTimer();
-        hideTooltip(activeTooltipIcon);
+        hideTooltip();
         activeTooltipIcon = null;
       }
     }, true);
