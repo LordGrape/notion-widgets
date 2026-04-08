@@ -7250,9 +7250,19 @@ input[type="range"]::-moz-range-thumb{
         obj.course = entry.course;
         obj.priority = obj.priority || 'medium';
 
-        /* Auto-create course if needed */
+        /* Auto-create course directly — avoid saveCourse() mid-loop which triggers
+           premature saveState(), causing KV sync race conditions where courses
+           sync but items don't (the premature save writes incomplete items to KV) */
         if (obj.course && !state.courses[obj.course]) {
-          saveCourse({ name: obj.course, examType: 'mixed', examDate: null, manualMode: false, color: '#8b5cf6', created: isoNow() });
+          state.courses[obj.course] = {
+            id: obj.course,
+            name: obj.course,
+            examType: 'mixed',
+            examDate: null,
+            manualMode: false,
+            color: '#8b5cf6',
+            created: isoNow()
+          };
         }
 
         state.items[obj.id] = obj;
@@ -7261,6 +7271,10 @@ input[type="range"]::-moz-range-thumb{
       });
 
       saveState();
+      /* Safety net: force a delayed second save to ensure KV sync completes.
+         The first save fires the async KV push; this catches cases where the
+         push was throttled, batched, or the tab closes before it resolves. */
+      setTimeout(function() { saveState(); }, 2500);
 
       var dupSkipped = skipDups ? pendingImport.duplicates.length : 0;
       var skipCount = pendingImport.skipped.length;
@@ -8618,6 +8632,12 @@ input[type="range"]::-moz-range-thumb{
       ctx.textAlign = 'right';
       ctx.textBaseline = 'bottom';
       ctx.fillText('target ' + Math.round(dr * 100) + '%', w - pad.right, drY - 2);
+
+      /* Cache base graph pixels for O(1) hover restore (avoids full redraw on mousemove) */
+      var cacheCanvas = el(canvasId);
+      if (cacheCanvas && retentionGraphData[canvasId]) {
+        retentionGraphData[canvasId].baseImage = cacheCanvas.getContext('2d').getImageData(0, 0, cacheCanvas.width, cacheCanvas.height);
+      }
     }
 
     /* ── Retention Graph Hover Interactivity ── */
@@ -8719,15 +8739,21 @@ input[type="range"]::-moz-range-thumb{
 
       if (nearest < 0 || nearestDist > 22) {
         hideCanvasTooltip();
-        redrawRetentionBase(canvasId);
+        /* Restore cached base graph (clears old highlight) — no full redraw */
+        if (data.baseImage) {
+          canvas.getContext('2d').putImageData(data.baseImage, 0, 0);
+        }
         return;
       }
 
       var pt = data.points[nearest];
       showCanvasTooltip(canvasId, pt, data.label, data.itemCount, clientX, clientY);
 
-      redrawRetentionBase(canvasId);
-      drawRetentionHighlight(canvasId, nearest);
+      /* Restore cached base pixels then overlay highlight dot — O(1) blit, no redraw */
+      if (data.baseImage) {
+        canvas.getContext('2d').putImageData(data.baseImage, 0, 0);
+        drawRetentionHighlight(canvasId, nearest);
+      }
     }
 
     /* Wire canvas mouse/touch events for retention graphs */
@@ -8744,7 +8770,11 @@ input[type="range"]::-moz-range-thumb{
       });
       canvas.addEventListener('mouseleave', function() {
         hideCanvasTooltip();
-        redrawRetentionBase(canvasId);
+        /* Restore cached base graph instead of full redraw */
+        var data = retentionGraphData[canvasId];
+        if (data && data.baseImage) {
+          canvas.getContext('2d').putImageData(data.baseImage, 0, 0);
+        }
       });
 
       canvas.addEventListener('touchmove', function(e) {
@@ -8756,7 +8786,11 @@ input[type="range"]::-moz-range-thumb{
       }, { passive: false });
       canvas.addEventListener('touchend', function() {
         setTimeout(hideCanvasTooltip, 1200);
-        redrawRetentionBase(canvasId);
+        /* Restore cached base graph instead of full redraw */
+        var data = retentionGraphData[canvasId];
+        if (data && data.baseImage) {
+          canvas.getContext('2d').putImageData(data.baseImage, 0, 0);
+        }
       });
     }
 
