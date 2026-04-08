@@ -2536,6 +2536,146 @@
       box-shadow: 0 0 6px rgba(0,0,0,0.15);
     }
 
+    /* ── Break System ── */
+    .break-banner{
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      margin: 10px 0;
+      border-radius: var(--radius);
+      border: 1px solid rgba(var(--accent-rgb),0.18);
+      background: linear-gradient(135deg, rgba(var(--accent-rgb),0.06), rgba(var(--accent-rgb),0.02));
+      animation: subtlePulse 3s ease-in-out infinite;
+    }
+    .break-banner.show{ display: flex; }
+    .break-banner .bb-icon{ font-size: 18px; flex-shrink: 0; }
+    .break-banner .bb-text{
+      flex: 1;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.5;
+      letter-spacing: 0.2px;
+    }
+    .break-banner .bb-sub{
+      font-weight: 400;
+      color: var(--text-secondary);
+      font-size: 9px;
+      display: block;
+      margin-top: 2px;
+    }
+    .break-banner .bb-dismiss{
+      flex-shrink: 0;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(var(--accent-rgb),0.16);
+      background: rgba(var(--accent-rgb),0.06);
+      color: var(--text-secondary);
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background var(--transition), transform var(--transition);
+    }
+    .break-banner .bb-dismiss:hover{ background: rgba(var(--accent-rgb),0.12); transform: translateY(-1px); }
+    .break-banner .bb-take{
+      flex-shrink: 0;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: none;
+      background: linear-gradient(135deg, rgba(var(--accent-rgb),0.9), rgba(var(--accent-rgb),0.6));
+      color: #fff;
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background var(--transition), transform var(--transition);
+    }
+    .break-banner .bb-take:hover{ transform: translateY(-1px); }
+
+    .break-banner.fatigue{
+      border-color: rgba(245,158,11,0.25);
+      background: linear-gradient(135deg, rgba(245,158,11,0.08), rgba(245,158,11,0.02));
+    }
+    .break-banner.hard-stop{
+      border-color: rgba(239,68,68,0.25);
+      background: linear-gradient(135deg, rgba(239,68,68,0.06), rgba(239,68,68,0.02));
+    }
+    .break-hint{
+      display: none;
+      text-align: center;
+      padding: 4px 0;
+      font-size: 8px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      font-weight: 600;
+      opacity: 0.6;
+    }
+    .break-hint.show{ display: block; }
+    .break-overlay{
+      display: none;
+      position: fixed;
+      inset: 0;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.50);
+      z-index: 80;
+      padding: 20px;
+    }
+    .break-overlay.show{ display: flex; }
+    .break-card{
+      width: 100%;
+      max-width: 360px;
+      padding: 28px 24px;
+      border-radius: 22px;
+      background: var(--card-bg);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      border: 1px solid var(--card-border);
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+    .break-card .bc-emoji{ font-size: 36px; margin-bottom: 10px; }
+    .break-card .bc-title{ font-size: 14px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+    .break-card .bc-timer{
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+      margin: 16px 0;
+      letter-spacing: -1px;
+    }
+    .break-card .bc-tip{
+      font-size: 10px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin-bottom: 16px;
+      padding: 0 8px;
+    }
+    .break-card .bc-actions{ display: flex; gap: 10px; justify-content: center; }
+    .break-card .bc-skip{
+      padding: 10px 20px;
+      border-radius: 14px;
+      border: 1px solid rgba(var(--accent-rgb),0.16);
+      background: rgba(var(--accent-rgb),0.06);
+      color: var(--text-secondary);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background var(--transition), transform var(--transition);
+    }
+    .break-card .bc-skip:hover{ background: rgba(var(--accent-rgb),0.12); transform: translateY(-1px); }
+    @keyframes subtlePulse{
+      0%,100%{ opacity: 1; }
+      50%{ opacity: 0.85; }
+    }
+
     /* ── Per-Card XP Flash ── */
     .xp-flash{
       position: fixed;
@@ -3661,6 +3801,8 @@ input[type="range"]::-moz-range-thumb{
               <div class="rs-source">Duration scaled to answer length · Pastötter et al. 2017</div>
             </div>
 
+            <div class="break-banner" id="breakBanner"></div>
+            <div class="break-hint" id="breakHint"></div>
             <div class="ratings" id="ratings" style="display:none">
               <button class="rate again" data-rate="1">Again (1)</button>
               <button class="rate hard" data-rate="2">Hard (2)</button>
@@ -3703,6 +3845,17 @@ input[type="range"]::-moz-range-thumb{
           <button class="big-btn" id="backBtn">Back to Dashboard</button>
         </div>
 
+      </div>
+      <div class="break-overlay" id="breakOverlay">
+        <div class="break-card">
+          <div class="bc-emoji">🧘</div>
+          <div class="bc-title" id="breakTitle">Time for a break</div>
+          <div class="bc-timer" id="breakTimer">5:00</div>
+          <div class="bc-tip" id="breakTip">Stand up, stretch, look at something 20 feet away for 20 seconds. Your brain is consolidating what you just reviewed.</div>
+          <div class="bc-actions">
+            <button class="bc-skip" id="breakSkip">Skip break</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -3835,7 +3988,10 @@ input[type="range"]::-moz-range-thumb{
       desiredRetention: 0.90,
       sessionLimit: 12,
       mockDefaultMins: 10,
-      showApplyTimer: true
+      showApplyTimer: true,
+      breakReminders: true,
+      breakIntervalMins: 25,
+      performanceBreaks: true
     };
 
     /* ── Tier Distribution Profiles (by exam type) ── */
@@ -4910,6 +5066,157 @@ input[type="range"]::-moz-range-thumb{
     var essayOutlineTimer = null;
     var essayOutlineEndsAt = 0;
 
+    /* ── Break System ── */
+    var breakState = {
+      sessionStartTime: 0,
+      lastBreakTime: 0,
+      breaksTaken: 0,
+      bannerDismissed: false,
+      breakTimerInterval: null,
+      breakDurationMs: 5 * 60 * 1000
+    };
+    var BREAK_TIPS = [
+      'Stand up, stretch, look at something 20 feet away for 20 seconds.',
+      'Take 5 deep breaths. Inhale for 4 seconds, hold for 4, exhale for 6.',
+      'Walk to another room and back. Physical movement improves hippocampal encoding.',
+      'Drink water. Even mild dehydration reduces working memory capacity by ~15%.',
+      'Close your eyes and mentally review the last 3 items you studied.',
+      'Do 10 squats or push-ups. Exercise-induced BDNF enhances memory consolidation.',
+      'Look out a window. Natural light exposure resets attentional circuitry.'
+    ];
+    function getBreakTip() { return BREAK_TIPS[Math.floor(Math.random() * BREAK_TIPS.length)]; }
+    function isHotStreak() {
+      if (!session || !session.recentRatings || session.recentRatings.length < 6) return false;
+      var recent = session.recentRatings.slice(-6);
+      return recent.every(function(r) { return r >= 3; });
+    }
+    function getSessionElapsedMins() {
+      if (!breakState.sessionStartTime) return 0;
+      return (Date.now() - breakState.sessionStartTime) / (1000 * 60);
+    }
+    function getTimeSinceBreakMins() {
+      var ref = breakState.lastBreakTime || breakState.sessionStartTime;
+      if (!ref) return 0;
+      return (Date.now() - ref) / (1000 * 60);
+    }
+    function showBreakBanner(type, title, sub, showTakeBtn) {
+      var banner = el('breakBanner');
+      if (!banner) return;
+      banner.className = 'break-banner show ' + (type === 'hard-stop' ? 'hard-stop' : type === 'fatigue' ? 'fatigue' : '');
+      var iconMap = { 'hard-stop': '🛑', 'fatigue': '😮‍💨', 'time': '☕' };
+      banner.innerHTML =
+        '<span class="bb-icon">' + (iconMap[type] || '☕') + '</span>' +
+        '<div class="bb-text">' + esc(title) + '<span class="bb-sub">' + esc(sub) + '</span></div>' +
+        (showTakeBtn ? '<button class="bb-take" id="bbTake">Take break</button>' : '') +
+        '<button class="bb-dismiss" id="bbDismiss">' + (showTakeBtn ? 'Later' : 'Dismiss') + '</button>';
+      var dismissBtn = banner.querySelector('#bbDismiss');
+      if (dismissBtn) dismissBtn.addEventListener('click', function() {
+        breakState.bannerDismissed = true;
+        banner.classList.remove('show');
+        var dismissIdx = session ? session.idx : 0;
+        var checkReenable = setInterval(function() {
+          if (!session || session.idx >= dismissIdx + 5) {
+            breakState.bannerDismissed = false;
+            clearInterval(checkReenable);
+          }
+        }, 2000);
+        try { playClick(); } catch (e) {}
+      });
+      var takeBtn = banner.querySelector('#bbTake');
+      if (takeBtn) takeBtn.addEventListener('click', function() {
+        startBreakTimer(type === 'hard-stop' ? 10 : 5);
+        try { playBreakAppear(); } catch (e) {}
+      });
+      if (window.gsap) gsap.fromTo(banner, { opacity: 0, y: -6 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
+    }
+    function checkBreakTriggers() {
+      if (!session || !settings.breakReminders) return;
+      var banner = el('breakBanner');
+      var hint = el('breakHint');
+      if (!banner || !hint) return;
+      if (breakState.bannerDismissed) {
+        banner.classList.remove('show');
+        hint.classList.remove('show');
+        return;
+      }
+      var elapsed = getSessionElapsedMins();
+      var sinceLast = getTimeSinceBreakMins();
+      var interval = settings.breakIntervalMins || 25;
+      var recentAvg = 0;
+      if (session.recentRatings && session.recentRatings.length >= 6) {
+        recentAvg = session.recentRatings.reduce(function(a, b) { return a + b; }, 0) / session.recentRatings.length;
+      }
+      if (settings.performanceBreaks && session.recentRatings && session.recentRatings.length >= 6 && recentAvg < 1.3) {
+        showBreakBanner('hard-stop', '⚠️ Performance has dropped significantly', 'Your last 6 ratings averaged ' + recentAvg.toFixed(1) + '. Continued study at this level can encode errors as correct. A break will help.', true);
+        return;
+      }
+      if (elapsed > 90 && sinceLast > 30) {
+        showBreakBanner('hard-stop', '⏰ 90+ minutes of continuous study', 'Extended sessions without breaks show diminishing returns. Take 15-20 minutes.', true);
+        return;
+      }
+      if (settings.performanceBreaks && session.recentRatings && session.recentRatings.length >= 6 && recentAvg < 1.8) {
+        showBreakBanner('fatigue', '😮‍💨 Your recall is dipping', 'Average rating: ' + recentAvg.toFixed(1) + ' over last 6 cards. A short break resets attentional focus.', false);
+        return;
+      }
+      if (sinceLast >= interval) {
+        if (isHotStreak()) {
+          banner.classList.remove('show');
+          hint.textContent = Math.round(sinceLast) + ' min — stretch when ready';
+          hint.classList.add('show');
+        } else {
+          hint.classList.remove('show');
+          showBreakBanner('time', '☕ ' + Math.round(sinceLast) + ' minutes since your last break', 'Brief diversions restore sustained attention.', false);
+        }
+        return;
+      }
+      banner.classList.remove('show');
+      hint.classList.remove('show');
+    }
+    function startBreakTimer(durationMins) {
+      var overlay = el('breakOverlay');
+      var timerEl = el('breakTimer');
+      var tipEl = el('breakTip');
+      var titleEl = el('breakTitle');
+      var skipBtn = el('breakSkip');
+      if (!overlay) return;
+      breakState.breakDurationMs = durationMins * 60 * 1000;
+      var endTime = Date.now() + breakState.breakDurationMs;
+      titleEl.textContent = durationMins >= 10 ? 'Extended break' : 'Quick recharge';
+      tipEl.textContent = getBreakTip();
+      overlay.classList.add('show');
+      var banner = el('breakBanner');
+      if (banner) banner.classList.remove('show');
+      var hint = el('breakHint');
+      if (hint) hint.classList.remove('show');
+      if (breakState.breakTimerInterval) clearInterval(breakState.breakTimerInterval);
+      breakState.breakTimerInterval = setInterval(function() {
+        var remain = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
+        timerEl.textContent = fmtMMSS(remain);
+        if (remain <= 0) endBreak();
+      }, 250);
+      var tipRotate = setInterval(function() {
+        if (!overlay.classList.contains('show')) { clearInterval(tipRotate); return; }
+        tipEl.textContent = getBreakTip();
+        if (window.gsap) gsap.fromTo(tipEl, { opacity: 0 }, { opacity: 1, duration: 0.4 });
+      }, 45000);
+      skipBtn.onclick = function() { endBreak(); try { playBreakDismiss(); } catch (e) {} };
+      if (window.gsap) {
+        gsap.fromTo(overlay.querySelector('.break-card'),
+          { scale: 0.9, opacity: 0 },
+          { scale: 1, opacity: 1, duration: 0.4, ease: 'back.out(1.6)' });
+      }
+    }
+    function endBreak() {
+      var overlay = el('breakOverlay');
+      if (overlay) overlay.classList.remove('show');
+      if (breakState.breakTimerInterval) { clearInterval(breakState.breakTimerInterval); breakState.breakTimerInterval = null; }
+      breakState.lastBreakTime = Date.now();
+      breakState.breaksTaken++;
+      breakState.bannerDismissed = false;
+      try { playResume(); } catch (e) {}
+      toast('Break complete — back to it');
+    }
+
     /* ── Session construction ── */
     /* ── Intelligent Session Builder ── */
     function buildSessionQueue() {
@@ -5135,6 +5442,10 @@ input[type="range"]::-moz-range-thumb{
         fatigueWarningShown: false /* only show once per session */
       };
       sessionSummary = null;
+      breakState.sessionStartTime = Date.now();
+      breakState.lastBreakTime = 0;
+      breakState.breaksTaken = 0;
+      breakState.bannerDismissed = false;
       if (!q.length) return;
       showView('viewSession');
       try { playStart(); } catch(e) {}
@@ -5163,6 +5474,7 @@ input[type="range"]::-moz-range-thumb{
       if (essayOutlineTimer) { clearInterval(essayOutlineTimer); essayOutlineTimer = null; }
       essayPhase = null;
       essayOutlineText = '';
+      if (breakState.breakTimerInterval) { clearInterval(breakState.breakTimerInterval); breakState.breakTimerInterval = null; }
     }
 
     function autoGrowTextarea(ta) {
@@ -5232,6 +5544,8 @@ input[type="range"]::-moz-range-thumb{
       modelAnswerEl.style.display = 'none';
       ratingsEl.style.display = 'none';
       studyIndicator.classList.remove('show');
+      var breakHint = el('breakHint');
+      if (breakHint) breakHint.classList.remove('show');
       var restudyScreen = el('restudyScreen');
       if (restudyScreen) restudyScreen.classList.remove('show');
       el('timerBar').classList.remove('show');
@@ -6036,6 +6350,7 @@ input[type="range"]::-moz-range-thumb{
         completeSession();
         return;
       }
+      checkBreakTriggers();
       renderCurrentItem();
     }
 
@@ -7206,6 +7521,33 @@ input[type="range"]::-moz-range-thumb{
           '<div class="sr-control">' +
             '<button class="ghost-btn" id="s_optimize" style="width:100%;min-width:0;">Optimize Now (' + ((state.calibration && state.calibration.history) || []).length + ' reviews)</button>' +
           '</div>' +
+        '</div>' +
+        '<div class="setting-row">' +
+          '<div class="sr-left">' +
+            '<div class="sr-label">Break reminders</div>' +
+            '<div class="sr-desc">Evidence-based break prompts during study sessions.</div>' +
+          '</div>' +
+          '<div class="sr-control">' +
+            '<select id="s_breakReminders"><option value="true"' + (settings.breakReminders !== false ? ' selected' : '') + '>On (recommended)</option><option value="false"' + (settings.breakReminders === false ? ' selected' : '') + '>Off</option></select>' +
+          '</div>' +
+        '</div>' +
+        '<div class="setting-row">' +
+          '<div class="sr-left">' +
+            '<div class="sr-label">Break interval (minutes)</div>' +
+            '<div class="sr-desc">How often time-based break notices appear.</div>' +
+          '</div>' +
+          '<div class="sr-control">' +
+            '<select id="s_breakInterval"><option value="20"' + (settings.breakIntervalMins == 20 ? ' selected' : '') + '>20 min</option><option value="25"' + (settings.breakIntervalMins == 25 || !settings.breakIntervalMins ? ' selected' : '') + '>25 min (default)</option><option value="30"' + (settings.breakIntervalMins == 30 ? ' selected' : '') + '>30 min</option><option value="35"' + (settings.breakIntervalMins == 35 ? ' selected' : '') + '>35 min</option><option value="40"' + (settings.breakIntervalMins == 40 ? ' selected' : '') + '>40 min</option></select>' +
+          '</div>' +
+        '</div>' +
+        '<div class="setting-row">' +
+          '<div class="sr-left">' +
+            '<div class="sr-label">Performance-based breaks</div>' +
+            '<div class="sr-desc">Detects fatigue from declining ratings and suggests breaks.</div>' +
+          '</div>' +
+          '<div class="sr-control">' +
+            '<select id="s_perfBreaks"><option value="true"' + (settings.performanceBreaks !== false ? ' selected' : '') + '>On (recommended)</option><option value="false"' + (settings.performanceBreaks === false ? ' selected' : '') + '>Off</option></select>' +
+          '</div>' +
         '</div>';
 
       body.querySelectorAll('.mode-toggle').forEach(function(group) {
@@ -7280,6 +7622,9 @@ input[type="range"]::-moz-range-thumb{
       settings.sessionLimit = clamp(isFinite(lim) ? lim : 12, 5, 60);
       settings.mockDefaultMins = [5,10,15,30].indexOf(mm) >= 0 ? mm : 10;
       settings.showApplyTimer = !!at;
+      settings.breakReminders = (el('s_breakReminders') && el('s_breakReminders').value === 'true');
+      settings.breakIntervalMins = parseInt(el('s_breakInterval') ? el('s_breakInterval').value : '25', 10);
+      settings.performanceBreaks = (el('s_perfBreaks') && el('s_perfBreaks').value === 'true');
       saveState();
       closeSettings();
       renderDashboard();
