@@ -1054,6 +1054,62 @@
     .answer .md-content{ white-space: normal; }
     .scenario.md-content{ white-space: normal; }
 
+    /* ── Dual Coding Visual ── */
+    .visual-container{
+      margin-top: 12px;
+      padding: 14px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(var(--accent-rgb),0.16);
+      background: rgba(var(--accent-rgb),0.03);
+      overflow-x: auto;
+      position: relative;
+    }
+    .visual-container .visual-label{
+      font-size: 7px;
+      font-weight: 800;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .visual-container .visual-label::before{
+      content: '◆';
+      font-size: 8px;
+      color: var(--accent);
+    }
+    .visual-container .mermaid-render{
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 60px;
+    }
+    .visual-container .mermaid-render svg{
+      max-width: 100%;
+      height: auto;
+    }
+    .visual-container .mermaid-fallback{
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 9px;
+      color: var(--text-secondary);
+      white-space: pre-wrap;
+      padding: 8px;
+      border-radius: 10px;
+      background: rgba(var(--accent-rgb),0.04);
+      border: 1px solid rgba(var(--accent-rgb),0.10);
+    }
+    .visual-container.loading .mermaid-render::after{
+      content: 'Generating visual...';
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      animation: subtlePulse 2s ease-in-out infinite;
+    }
+
     /* ── Markdown content inside cards ── */
     .md-content p{ margin: 0 0 8px; }
     .md-content p:last-child{ margin-bottom: 0; }
@@ -2677,6 +2733,27 @@ input[type="range"]::-moz-range-thumb{
   <script src="https://lordgrape.github.io/notion-widgets/core.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked@15/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+  <script>
+    try {
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default',
+        themeVariables: {
+          primaryColor: '#8b5cf6',
+          primaryTextColor: '#e8e0f0',
+          primaryBorderColor: 'rgba(139,92,246,0.3)',
+          lineColor: '#a78bfa',
+          secondaryColor: 'rgba(139,92,246,0.08)',
+          tertiaryColor: 'rgba(139,92,246,0.04)',
+          fontSize: '12px',
+          fontFamily: 'Inter, system-ui, sans-serif'
+        },
+        flowchart: { curve: 'basis', padding: 12 },
+        securityLevel: 'strict'
+      });
+    } catch (e) {}
+  </script>
   <!-- ts-fsrs UMD exposes global FSRS ({ FSRS, generatorParameters, … }) — browser scheduling still uses shared w[] + inline formulas -->
   <script src="https://cdn.jsdelivr.net/npm/ts-fsrs@5.3.2/dist/index.umd.js"></script>
   <script>
@@ -3547,6 +3624,88 @@ input[type="range"]::-moz-range-thumb{
       return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
+    /* ── Dual Coding: Visual Generation ── */
+    var VISUAL_WORKER_URL = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/visual';
+
+    function getWidgetKey() {
+      try {
+        if (typeof SyncEngine !== 'undefined') {
+          if (SyncEngine._key) return SyncEngine._key;
+          if (SyncEngine.key) return SyncEngine.key;
+          if (SyncEngine.passphrase) return SyncEngine.passphrase;
+        }
+      } catch (e) {}
+      try { if (window.WIDGET_KEY) return window.WIDGET_KEY; } catch (e2) {}
+      try { return localStorage.getItem('WIDGET_KEY') || localStorage.getItem('widgetKey') || ''; } catch (e3) {}
+      return '';
+    }
+
+    async function generateVisual(item) {
+      if (!item || !item.prompt || !item.modelAnswer) return null;
+      try {
+        var res = await fetch(VISUAL_WORKER_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Widget-Key': getWidgetKey()
+          },
+          body: JSON.stringify({
+            prompt: item.prompt,
+            modelAnswer: item.modelAnswer,
+            tier: item.tier || item._presentTier || 'explain',
+            course: item.course || '',
+            topic: item.topic || '',
+            conceptA: item.conceptA || '',
+            conceptB: item.conceptB || ''
+          })
+        });
+        if (!res.ok) return null;
+        var data = await res.json();
+        return data.visual || null;
+      } catch (e) {
+        console.warn('Visual generation failed:', e);
+        return null;
+      }
+    }
+
+    var mermaidIdCounter = 0;
+    function renderMermaidBlock(mermaidCode, placement) {
+      if (!mermaidCode) return '';
+      var id = 'mermaid-' + (++mermaidIdCounter);
+      var label = (placement === 'prompt') ? 'Visual Cue' : 'Visual Summary';
+      return '' +
+        '<div class="visual-container">' +
+          '<div class="visual-label">' + label + '</div>' +
+          '<div class="mermaid-render" id="' + id + '" data-mermaid="' + esc(mermaidCode) + '"></div>' +
+        '</div>';
+    }
+
+    function initMermaidBlocks() {
+      if (typeof mermaid === 'undefined') return;
+      document.querySelectorAll('.mermaid-render[data-mermaid]').forEach(function(elm) {
+        var code = elm.getAttribute('data-mermaid');
+        if (!code || elm.querySelector('svg')) return;
+        var id = elm.id || ('mermaid-auto-' + (++mermaidIdCounter));
+        elm.id = id;
+        try {
+          mermaid.render(id + '-svg', code).then(function(result) {
+            elm.innerHTML = result.svg;
+            elm.removeAttribute('data-mermaid');
+            if (window.gsap) {
+              gsap.fromTo(elm, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' });
+            }
+          }).catch(function(err) {
+            console.warn('Mermaid render failed:', err);
+            elm.innerHTML = '<pre class="mermaid-fallback">' + esc(code) + '</pre>';
+            elm.removeAttribute('data-mermaid');
+          });
+        } catch (e) {
+          elm.innerHTML = '<pre class="mermaid-fallback">' + esc(code) + '</pre>';
+          elm.removeAttribute('data-mermaid');
+        }
+      });
+    }
+
     /* ── Safe Markdown rendering (Marked + DOMPurify) ── */
     function renderMd(text) {
       if (!text) return '';
@@ -3973,7 +4132,9 @@ input[type="range"]::-moz-range-thumb{
 
       tierArea.innerHTML = '';
       if (tier === 'quickfire') {
+        var qfVisual = it.visual ? renderMermaidBlock(it.visual, 'prompt') : '';
         tierArea.innerHTML =
+          qfVisual +
           '<div class="confidence-prompt">' +
             '<div class="confidence-label">How confident are you?</div>' +
             '<div class="confidence-pills">' +
@@ -4003,6 +4164,7 @@ input[type="range"]::-moz-range-thumb{
           }
           revealAnswer();
         });
+        if (qfVisual) setTimeout(initMermaidBlocks, 50);
       } else if (tier === 'explain') {
         tierArea.innerHTML = '' +
           '<div class="two-col">' +
@@ -4113,8 +4275,10 @@ input[type="range"]::-moz-range-thumb{
 
       /* Show model answer for quickfire immediately */
       if (revealTier === 'quickfire') {
-        modelAnswerEl.innerHTML = '<div class="answer-header">📋 Model Answer</div><div class="md-content">' + renderMd(it.modelAnswer || '') + '</div>';
+        var qfAnswerVisual = it.visual ? renderMermaidBlock(it.visual, 'answer') : '';
+        modelAnswerEl.innerHTML = '<div class="answer-header">📋 Model Answer</div><div class="md-content">' + renderMd(it.modelAnswer || '') + '</div>' + qfAnswerVisual;
         modelAnswerEl.style.display = 'block';
+        if (qfAnswerVisual) setTimeout(initMermaidBlocks, 50);
         ratingsEl.style.display = 'grid';
         try { playClick(); } catch(e) {}
         return;
@@ -4136,8 +4300,10 @@ input[type="range"]::-moz-range-thumb{
       if (submitBtn) submitBtn.style.display = 'none';
 
       /* Show model answer */
-      modelAnswerEl.innerHTML = '<div class="answer-header">📋 Model Answer</div><div class="md-content">' + renderMd(it.modelAnswer || '') + '</div>';
+      var answerVisual = it.visual ? renderMermaidBlock(it.visual, 'answer') : '';
+      modelAnswerEl.innerHTML = '<div class="answer-header">📋 Model Answer</div><div class="md-content">' + renderMd(it.modelAnswer || '') + '</div>' + answerVisual;
       modelAnswerEl.style.display = 'block';
+      if (answerVisual) setTimeout(initMermaidBlocks, 50);
 
       try { playClick(); } catch(e) {}
 
@@ -4171,7 +4337,10 @@ input[type="range"]::-moz-range-thumb{
 
       fetch('https://widget-sync.lordgrape-widgets.workers.dev/studyengine/grade', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Widget-Key': getWidgetKey()
+        },
         body: JSON.stringify(payload)
       })
       .then(function(res) { return res.json(); })
@@ -4996,6 +5165,15 @@ input[type="range"]::-moz-range-thumb{
       state.items[it.id] = it;
       saveState();
 
+      /* Generate visual (async, non-blocking) */
+      generateVisual(it).then(function(visual) {
+        if (visual) {
+          it.visual = visual;
+          state.items[it.id] = it;
+          saveState();
+        }
+      });
+
       /* Show supported tiers badge */
       var supported = detectSupportedTiers(it);
       var badgeArea = el('tierBadgeArea');
@@ -5043,8 +5221,36 @@ input[type="range"]::-moz-range-thumb{
         n++;
       });
       saveState();
-      toast('Imported ' + n);
-      renderDashboard();
+      toast('Imported ' + n + ' — generating visuals...');
+
+      /* Generate visuals for imported items (async batch, non-blocking) */
+      var importedIds = arr.filter(function(o) { return o && o.id && state.items[o.id]; }).map(function(o) { return o.id; });
+      var visualQueue = importedIds.slice();
+      var visualBatchSize = 3; /* Process 3 at a time to avoid rate limits */
+
+      function processVisualBatch() {
+        if (!visualQueue.length) {
+          saveState();
+          toast('Visuals generated');
+          renderDashboard();
+          return;
+        }
+        var batch = visualQueue.splice(0, visualBatchSize);
+        Promise.all(batch.map(function(id) {
+          var it2 = state.items[id];
+          if (!it2) return Promise.resolve();
+          return generateVisual(it2).then(function(visual) {
+            if (visual) {
+              it2.visual = visual;
+              state.items[id] = it2;
+            }
+          }).catch(function() {});
+        })).then(function() {
+          saveState();
+          setTimeout(processVisualBatch, 500);
+        });
+      }
+      processVisualBatch();
     }
 
     /* ── Settings ── */
