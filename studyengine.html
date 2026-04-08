@@ -5266,49 +5266,45 @@ input[type="range"]::-moz-range-thumb{
         '</div>';
     }
 
-    function looksIncomplete(src) {
-      if (!src || typeof src !== 'string') return true;
-      var t = src.trim().replace(/^```mermaid\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
-      var graphIdx = t.search(/\b(graph|flowchart)\s+(TD|LR|BT|RL)\b/i);
+    /** Same heuristics as worker: truncated mid-edge → Mermaid parse fails → raw fallback */
+    function looksIncompleteMermaid(s) {
+      if (!s || typeof s !== 'string') return true;
+      var t = s.trim().replace(/^```mermaid\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
+      var graphIdx = t.search(/\bgraph\s+(TD|LR)\b/i);
       if (graphIdx === -1) return true;
       t = t.slice(graphIdx).trim();
-      var lines = t.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 0; });
+      var lines = t.split(/\n/).map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 0; });
       if (lines.length < 2) return true;
       var last = lines[lines.length - 1];
       if (/(?:-->|--o)(?:\|[^|]*\|)?\s*$/i.test(last)) return true;
       if (/--\s*$/.test(last)) return true;
-      if (/-->[\s|]*$/.test(last)) return true;
-      if ((last.match(/\[/g) || []).length > (last.match(/\]/g) || []).length) return true;
-      if ((last.match(/"/g) || []).length % 2 !== 0) return true;
       return false;
     }
 
-    function retryVisualForItem(itemId, elm) {
-      if (!itemId) return;
+    function attemptRecoverTruncatedMermaid(elm, code) {
+      var wrap = elm.closest('.visual-container');
+      var itemId = wrap && wrap.getAttribute('data-item-id');
+      var placement = (wrap && wrap.getAttribute('data-visual-placement')) || 'answer';
+      if (!itemId || elm.dataset.mermaidRetryDone || !looksIncompleteMermaid(code)) return false;
+      elm.dataset.mermaidRetryDone = '1';
       var it = state.items[itemId];
-      if (!it) return;
-      var wrapper = elm && elm.closest ? elm.closest('.visual-container') : null;
-      console.log('[StudyEngine] Retrying visual generation for:', itemId);
+      if (!it) return false;
       delete it.visual;
       state.items[itemId] = it;
       saveState();
       generateVisual(it).then(function(visual) {
-        if (!visual || looksIncomplete(visual)) {
-          console.warn('[StudyEngine] Retry also produced bad visual; removing block.');
-          if (wrapper && wrapper.parentNode) wrapper.parentNode.removeChild(wrapper);
+        if (!visual || !wrap || !wrap.parentNode) {
+          elm.innerHTML = '<pre class="mermaid-fallback">' + esc(code) + '</pre>';
+          elm.removeAttribute('data-mermaid');
           return;
         }
         it.visual = visual;
         state.items[itemId] = it;
         saveState();
-        var placement = (wrapper && wrapper.getAttribute('data-visual-placement')) || 'answer';
-        if (wrapper && wrapper.parentNode) {
-          wrapper.outerHTML = renderMermaidBlock(visual, placement, itemId);
-          setTimeout(initMermaidBlocks, 50);
-        }
-      }).catch(function() {
-        if (wrapper && wrapper.parentNode) wrapper.parentNode.removeChild(wrapper);
+        wrap.outerHTML = renderMermaidBlock(visual, placement, itemId);
+        setTimeout(initMermaidBlocks, 50);
       });
+      return true;
     }
 
     function initMermaidBlocks() {
@@ -5323,20 +5319,6 @@ input[type="range"]::-moz-range-thumb{
         if (!code || elm.querySelector('svg')) return;
         var id = elm.id || ('mermaid-auto-' + (++mermaidIdCounter));
         elm.id = id;
-
-        if (looksIncomplete(code) && !elm.getAttribute('data-mermaid-retry-done')) {
-          elm.setAttribute('data-mermaid-retry-done', '1');
-          elm.removeAttribute('data-mermaid');
-          var container = elm.closest('.visual-container');
-          var itemId = container ? container.getAttribute('data-item-id') : null;
-          if (itemId) {
-            retryVisualForItem(itemId, elm);
-          } else {
-            elm.innerHTML = '';
-          }
-          return;
-        }
-
         try {
           mermaid.render(id + '-svg', code).then(function(result) {
             elm.innerHTML = result.svg;
@@ -5346,31 +5328,13 @@ input[type="range"]::-moz-range-thumb{
             }
           }).catch(function(err) {
             console.warn('[StudyEngine] Mermaid render failed:', err);
-            if (looksIncomplete(code) && !elm.getAttribute('data-mermaid-retry-done')) {
-              elm.setAttribute('data-mermaid-retry-done', '1');
-              elm.removeAttribute('data-mermaid');
-              var container2 = elm.closest('.visual-container');
-              var itemId2 = container2 ? container2.getAttribute('data-item-id') : null;
-              if (itemId2) {
-                retryVisualForItem(itemId2, elm);
-                return;
-              }
-            }
+            if (attemptRecoverTruncatedMermaid(elm, code)) return;
             elm.innerHTML = '<pre class="mermaid-fallback">' + esc(code) + '</pre>';
             elm.removeAttribute('data-mermaid');
           });
         } catch (e) {
           console.warn('[StudyEngine] Mermaid render exception:', e);
-          if (looksIncomplete(code) && !elm.getAttribute('data-mermaid-retry-done')) {
-            elm.setAttribute('data-mermaid-retry-done', '1');
-            elm.removeAttribute('data-mermaid');
-            var container3 = elm.closest('.visual-container');
-            var itemId3 = container3 ? container3.getAttribute('data-item-id') : null;
-            if (itemId3) {
-              retryVisualForItem(itemId3, elm);
-              return;
-            }
-          }
+          if (attemptRecoverTruncatedMermaid(elm, code)) return;
           elm.innerHTML = '<pre class="mermaid-fallback">' + esc(code) + '</pre>';
           elm.removeAttribute('data-mermaid');
         }
