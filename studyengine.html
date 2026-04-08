@@ -4572,7 +4572,18 @@ input[type="range"]::-moz-range-thumb{
         var isDue = (!f || !f.lastReview) ? true : (due <= now);
         if (isDue) {
           out.total++;
-          var dt = it.tier || 'quickfire';
+          var supported = detectSupportedTiers(it);
+          var hasMockField = it.timeLimitMins && it.timeLimitMins > 0;
+          var dt = 'quickfire';
+          if (hasMockField) {
+            dt = 'mock';
+          } else if (supported.indexOf('distinguish') >= 0) {
+            dt = 'distinguish';
+          } else if (supported.indexOf('apply') >= 0) {
+            dt = 'apply';
+          } else if (supported.indexOf('explain') >= 0) {
+            dt = 'explain';
+          }
           if (out.byTier[dt] != null) out.byTier[dt]++;
         }
       }
@@ -4603,7 +4614,19 @@ input[type="range"]::-moz-range-thumb{
         if (!it || it.archived) continue;
         var reps = (it.fsrs && it.fsrs.reps) ? it.fsrs.reps : 0;
         totalReviews += reps;
-        var t = it.lastTier || it.tier || 'quickfire';
+        var t = it.lastTier;
+        if (!t) {
+          var hasMockField = it.timeLimitMins && it.timeLimitMins > 0;
+          if (hasMockField) {
+            t = 'mock';
+          } else {
+            var sup = detectSupportedTiers(it);
+            if (sup.indexOf('distinguish') >= 0) t = 'distinguish';
+            else if (sup.indexOf('apply') >= 0) t = 'apply';
+            else if (sup.indexOf('explain') >= 0) t = 'explain';
+            else t = 'quickfire';
+          }
+        }
         if (byTier[t] != null) byTier[t] += reps;
       }
       state.stats.totalReviews = totalReviews;
