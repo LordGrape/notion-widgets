@@ -1899,9 +1899,126 @@
       padding: 5px 8px;
       font-size: 10px;
       cursor: pointer;
-      transition: background var(--transition), color var(--transition);
+      transition: background var(--transition), color var(--transition), transform var(--transition);
     }
-    .cli-actions button:hover{ background: rgba(var(--accent-rgb),0.12); color: var(--text); }
+    .cli-actions button:hover{ background: rgba(var(--accent-rgb),0.12); color: var(--text); transform: translateY(-1px); }
+    .cli-actions button:active{ transform: translateY(0) scale(0.97); }
+
+    /* Delete button — red treatment */
+    .cli-actions .btn-delete,
+    .cd-delete-card{
+      background: rgba(239,68,68,0.08) !important;
+      color: var(--rate-again) !important;
+      border: 1px solid rgba(239,68,68,0.18) !important;
+      border-radius: 8px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .cli-actions .btn-delete:hover,
+    .cd-delete-card:hover{
+      background: rgba(239,68,68,0.16) !important;
+      color: #fff !important;
+      border-color: rgba(239,68,68,0.4) !important;
+      transform: translateY(-1px);
+    }
+
+    /* Archive button — amber treatment */
+    .cd-archive-card{
+      background: rgba(245,158,11,0.08) !important;
+      color: var(--rate-hard) !important;
+      border: 1px solid rgba(245,158,11,0.18) !important;
+      border-radius: 8px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      font-size: 10px;
+      padding: 5px 8px;
+      cursor: pointer;
+      transition: background var(--transition), color var(--transition), transform var(--transition);
+    }
+    .cd-archive-card:hover{
+      background: rgba(245,158,11,0.16) !important;
+      color: #fff !important;
+      border-color: rgba(245,158,11,0.4) !important;
+      transform: translateY(-1px);
+    }
+
+    /* Restore button — green treatment */
+    .cd-restore-card{
+      background: rgba(34,197,94,0.08) !important;
+      color: var(--rate-good) !important;
+      border: 1px solid rgba(34,197,94,0.18) !important;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 10px;
+      padding: 5px 8px;
+      cursor: pointer;
+      transition: background var(--transition), color var(--transition), transform var(--transition);
+    }
+    .cd-restore-card:hover{
+      background: rgba(34,197,94,0.16) !important;
+      color: #fff !important;
+      border-color: rgba(34,197,94,0.4) !important;
+      transform: translateY(-1px);
+    }
+
+    /* Archive section toggle */
+    .archive-toggle{
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 14px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(245,158,11,0.14);
+      background: rgba(245,158,11,0.04);
+      cursor: pointer;
+      user-select: none;
+      transition: background var(--transition), border-color var(--transition);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+    .archive-toggle:hover{ background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.24); }
+    .archive-toggle .archive-arrow{
+      font-size: 10px;
+      transition: transform var(--transition);
+    }
+    .archive-toggle.open .archive-arrow{ transform: rotate(90deg); }
+    .archive-section{
+      display: none;
+      margin-top: 8px;
+    }
+    .archive-section.show{ display: block; }
+    .archive-item{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(245,158,11,0.10);
+      background: rgba(245,158,11,0.03);
+      margin-bottom: 6px;
+      opacity: 0.75;
+      transition: opacity var(--transition);
+    }
+    .archive-item:hover{ opacity: 1; }
+    .archive-item .ai-prompt{
+      font-size: 10px;
+      color: var(--text-secondary);
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .archive-item .ai-actions{
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
 
     /* ── Analytics Strip ── */
     .analytics-strip{
@@ -3301,7 +3418,7 @@ input[type="range"]::-moz-range-thumb{
       for (var id in itemsById) {
         if (!itemsById.hasOwnProperty(id)) continue;
         var it = itemsById[id];
-        if (!it) continue;
+        if (!it || it.archived) continue;
         if (course && course !== 'All' && it.course !== course) continue;
         if (topic && topic !== 'All' && (it.topic || '') !== topic) continue;
         var f = it.fsrs || null;
@@ -3322,12 +3439,29 @@ input[type="range"]::-moz-range-thumb{
       for (var id in itemsById) {
         if (!itemsById.hasOwnProperty(id)) continue;
         var it = itemsById[id];
-        if (!it || !it.fsrs) continue;
+        if (!it || !it.fsrs || it.archived) continue;
         sum += retrievability(it.fsrs, now);
         n++;
       }
       if (!n) return null;
       return sum / n;
+    }
+
+    /* Recompute stats from actual item data — call after any delete/archive */
+    function reconcileStats() {
+      var totalReviews = 0;
+      var byTier = { quickfire: 0, explain: 0, apply: 0, distinguish: 0, mock: 0 };
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (!it || it.archived) continue;
+        var reps = (it.fsrs && it.fsrs.reps) ? it.fsrs.reps : 0;
+        totalReviews += reps;
+        var t = it.lastTier || it.tier || 'quickfire';
+        if (byTier[t] != null) byTier[t] += reps;
+      }
+      state.stats.totalReviews = totalReviews;
+      state.stats.reviewsByTier = byTier;
     }
 
     function calibrationPct(cal) {
@@ -3348,7 +3482,10 @@ input[type="range"]::-moz-range-thumb{
 
     function renderDashboard() {
       var due = countDue(state.items, 'All', 'All');
-      var totalItems = Object.keys(state.items).length;
+      var totalItems = 0;
+      for (var _id in state.items) {
+        if (state.items.hasOwnProperty(_id) && state.items[_id] && !state.items[_id].archived) totalItems++;
+      }
 
       /* Empty state */
       var emptyEl = el('emptyState');
@@ -3477,7 +3614,7 @@ input[type="range"]::-moz-range-thumb{
         for (var id in state.items) {
           if (!state.items.hasOwnProperty(id)) continue;
           var it = state.items[id];
-          if (!it || it.course !== c.name) continue;
+          if (!it || it.course !== c.name || it.archived) continue;
           total++;
           var f = it.fsrs || null;
           var dueTs = f && f.due ? new Date(f.due).getTime() : 0;
@@ -3801,7 +3938,7 @@ input[type="range"]::-moz-range-thumb{
       for (var id in state.items) {
         if (!state.items.hasOwnProperty(id)) continue;
         var it = state.items[id];
-        if (!it) continue;
+        if (!it || it.archived) continue;
         if (courseFilter !== 'All' && it.course !== courseFilter) continue;
         if (selectedTopic !== 'All' && (it.topic || '') !== selectedTopic) continue;
         var f = it.fsrs || null;
@@ -4969,7 +5106,8 @@ input[type="range"]::-moz-range-thumb{
           var col = c.color || '#8b5cf6';
           var itemCount = 0;
           for (var id in state.items) {
-            if (state.items.hasOwnProperty(id) && state.items[id] && state.items[id].course === c.name) itemCount++;
+            if (!state.items.hasOwnProperty(id) || !state.items[id] || state.items[id].course !== c.name) continue;
+            if (!state.items[id].archived) itemCount++;
           }
           h += '<div class="course-picker-item" data-pick-course="' + esc(c.name) + '">' +
               '<div class="cpi-dot" style="background:' + esc(col) + '"></div>' +
@@ -5660,8 +5798,11 @@ input[type="range"]::-moz-range-thumb{
         var objLabel = OBJECTIVE_LABELS[c.objective || 'retention'] || 'Long-Term Retention';
         var examDate = c.examDate ? '<span class="cc-date">Exam: ' + c.examDate + '</span>' : '';
         var itemCount = 0;
+        var archivedCount = 0;
         for (var id in state.items) {
-          if (state.items.hasOwnProperty(id) && state.items[id] && state.items[id].course === c.name) itemCount++;
+          if (!state.items.hasOwnProperty(id) || !state.items[id] || state.items[id].course !== c.name) continue;
+          if (state.items[id].archived) archivedCount++;
+          else itemCount++;
         }
 
         h += '<div class="course-list-item" id="cli_' + ck + '" style="border-left:5px solid ' + (c.color || '#8b5cf6') + ';">' +
@@ -5670,14 +5811,14 @@ input[type="range"]::-moz-range-thumb{
             '<div style="display:flex;gap:6px;margin-top:4px;align-items:center;flex-wrap:wrap;">' +
               '<span class="cc-exam-type">' + esc(examLabel) + '</span>' +
               '<span class="cc-exam-type">' + esc(objLabel) + '</span>' +
-              '<span class="cc-exam-type">' + itemCount + ' cards</span>' +
+              '<span class="cc-exam-type">' + itemCount + ' card' + (itemCount !== 1 ? 's' : '') + (archivedCount > 0 ? ' · ' + archivedCount + ' archived' : '') + '</span>' +
               examDate +
             '</div>' +
           '</div>' +
           '<div class="cli-actions">' +
             '<button title="View cards" onclick="viewCourseDeck(\'' + esc(c.name).replace(/'/g, "\\'") + '\')">📋</button>' +
             '<button title="Edit course" onclick="openEditCourse(\'' + esc(c.name).replace(/'/g, "\\'") + '\')">✏️</button>' +
-            '<button title="Delete course" onclick="startDeleteCourse(\'' + esc(c.name).replace(/'/g, "\\'") + '\')">🗑</button>' +
+            '<button class="btn-delete" title="Delete course" onclick="startDeleteCourse(\'' + esc(c.name).replace(/'/g, "\\'") + '\')">🗑</button>' +
           '</div>' +
         '</div>' +
         '<div id="editRow_' + ck + '" style="display:none;"></div>' +
@@ -5948,24 +6089,71 @@ input[type="range"]::-moz-range-thumb{
 
       var itemCount = 0;
       for (var id in state.items) {
-        if (state.items.hasOwnProperty(id) && state.items[id] && state.items[id].course === name) itemCount++;
+        if (state.items.hasOwnProperty(id) && state.items[id] && state.items[id].course === name && !state.items[id].archived) itemCount++;
       }
+      var archivedCount = 0;
+      for (var id2 in state.items) {
+        if (state.items.hasOwnProperty(id2) && state.items[id2] && state.items[id2].course === name && state.items[id2].archived) archivedCount++;
+      }
+      var totalCards = itemCount + archivedCount;
 
-      row.innerHTML = '<div style="padding:10px 12px;border-radius:14px;border:1px solid rgba(239,68,68,0.25);background:rgba(239,68,68,0.06);margin-bottom:8px;">' +
-        '<div style="font-size:10px;font-weight:700;color:var(--text);margin-bottom:6px;">Delete "' + esc(name) + '"?</div>' +
-        '<div style="font-size:9px;color:var(--text-secondary);margin-bottom:10px;">' + itemCount + ' card' + (itemCount !== 1 ? 's' : '') + ' will keep their data but lose the course tag.</div>' +
-        '<div style="display:flex;gap:8px;">' +
-          '<button class="ghost-btn" style="min-width:0;flex:1;border-color:rgba(239,68,68,0.3);color:#ef4444;" onclick="confirmDeleteCourseNow(\'' + esc(name).replace(/'/g, "\\'") + '\')">Delete</button>' +
-          '<button class="ghost-btn" style="min-width:0;flex:0 0 auto;opacity:0.7;" onclick="document.getElementById(\'deleteRow_' + courseKey(name) + '\').style.display=\'none\'">Cancel</button>' +
+      row.innerHTML = '<div style="padding:12px;border-radius:14px;border:1px solid rgba(239,68,68,0.2);background:rgba(239,68,68,0.06);margin-top:8px">' +
+        '<div style="font-size:11px;font-weight:700;color:var(--rate-again);margin-bottom:6px">Delete "' + esc(name) + '"?</div>' +
+        '<div style="font-size:9px;color:var(--text-secondary);line-height:1.5;margin-bottom:6px">' + totalCards + ' card' + (totalCards !== 1 ? 's' : '') + ' (' + itemCount + ' active, ' + archivedCount + ' archived).</div>' +
+        '<label style="display:flex;align-items:center;gap:6px;font-size:9px;font-weight:600;color:var(--text-secondary);margin-bottom:10px;cursor:pointer"><input type="checkbox" id="delCards_' + courseKey(name) + '"> Also permanently delete all cards</label>' +
+        '<div style="display:flex;gap:8px">' +
+          '<button class="ghost-btn" data-action="confirm-delete-course" style="min-width:0;flex:1;border-color:rgba(239,68,68,0.3);color:#ef4444;">Confirm delete</button>' +
+          '<button class="ghost-btn" data-action="cancel-delete-course" style="min-width:0;flex:0 0 auto;opacity:0.7;">Cancel</button>' +
         '</div>' +
       '</div>';
       row.style.display = 'block';
+
+      /* Wire confirm/cancel buttons */
+      var confirmBtn = row.querySelector('[data-action="confirm-delete-course"]');
+      var cancelBtn = row.querySelector('[data-action="cancel-delete-course"]');
+      if (confirmBtn) {
+        confirmBtn.addEventListener('click', function() {
+          var delCardsCheckbox = el('delCards_' + courseKey(name));
+          var shouldDeleteCards = delCardsCheckbox && delCardsCheckbox.checked;
+          if (shouldDeleteCards) {
+            /* Permanently delete all items in this course */
+            var toDelete = [];
+            for (var did in state.items) {
+              if (state.items.hasOwnProperty(did) && state.items[did] && state.items[did].course === name) {
+                toDelete.push(did);
+              }
+            }
+            toDelete.forEach(function(did2) { delete state.items[did2]; });
+          } else {
+            /* Just clear the course tag from items */
+            for (var id3 in state.items) {
+              if (state.items.hasOwnProperty(id3) && state.items[id3] && state.items[id3].course === name) {
+                state.items[id3].course = '';
+              }
+            }
+          }
+          deleteCourse(name);
+          reconcileStats();
+          saveState();
+          toast(shouldDeleteCards ? 'Course and all cards deleted' : 'Course removed');
+          renderCourseModal();
+          renderDashboard();
+        });
+      }
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', function() {
+          row.style.display = 'none';
+          row.innerHTML = '';
+        });
+      }
 
       if (window.gsap) gsap.fromTo(row, { opacity: 0, y: -4 }, { opacity: 1, y: 0, duration: 0.2, ease: 'power2.out' });
     };
 
     window.confirmDeleteCourseNow = function(name) {
       deleteCourse(name);
+      reconcileStats();
+      saveState();
       renderCourseModal();
       renderDashboard();
       toast('Course deleted');
@@ -6030,6 +6218,7 @@ input[type="range"]::-moz-range-thumb{
     window.deleteCard = function(itemId, courseName) {
       if (state.items[itemId]) {
         delete state.items[itemId];
+        reconcileStats();
         saveState();
         toast('Card deleted');
         viewCourseDeck(courseName);
@@ -6677,7 +6866,7 @@ input[type="range"]::-moz-range-thumb{
       for (var id in state.items) {
         if (!state.items.hasOwnProperty(id)) continue;
         var it = state.items[id];
-        if (!it) continue;
+        if (!it || it.archived) continue;
         if (courseFilter && courseFilter !== 'All' && it.course !== courseFilter) continue;
         items[id] = it;
       }
@@ -6752,7 +6941,7 @@ input[type="range"]::-moz-range-thumb{
       for (var id in state.items) {
         if (!state.items.hasOwnProperty(id)) continue;
         var it = state.items[id];
-        if (!it || it.course !== courseName) continue;
+        if (!it || it.course !== courseName || it.archived) continue;
         courseItems[id] = it;
         totalItems++;
         var f = it.fsrs || null;
@@ -6811,16 +7000,43 @@ input[type="range"]::-moz-range-thumb{
                 '<div class="cli-name">' + esc(preview) + '</div>' +
                 '<div style="display:flex;gap:6px;margin-top:3px;align-items:center;">' + topicTag + '</div>' +
               '</div>' +
-              '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">' +
+              '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">' +
                 '<span style="font-size:10px;font-weight:700;color:' + retCol + ';">' + retDisplay + '</span>' +
-                '<button class="cd-delete-card" data-delete-id="' + esc(delId) + '" title="Delete card" style="' +
-                  'border:none;background:rgba(239,68,68,0.08);color:var(--rate-again);border-radius:8px;' +
-                  'padding:5px 8px;font-size:10px;cursor:pointer;transition:background 200ms,transform 200ms;' +
-                '">🗑</button>' +
+                '<button class="cd-archive-card" data-archive-id="' + esc(delId) + '" title="Archive card">📦</button>' +
+                '<button class="cd-delete-card" data-delete-id="' + esc(delId) + '" title="Delete card permanently">✕</button>' +
               '</div>' +
             '</div>';
           });
-          cardListEl.innerHTML = clHTML;
+          /* Build archived cards section */
+          var archivedItems = [];
+          for (var aid in state.items) {
+            if (!state.items.hasOwnProperty(aid)) continue;
+            var ait = state.items[aid];
+            if (!ait || ait.course !== courseName || !ait.archived) continue;
+            archivedItems.push({ key: aid, it: ait });
+          }
+
+          var archiveHTML = '';
+          if (archivedItems.length > 0) {
+            archiveHTML = '<div class="archive-toggle" id="archiveToggle_' + courseKey(courseName) + '">' +
+              '<span class="archive-arrow">▶</span> 📦 Archived (' + archivedItems.length + ')' +
+              '</div>' +
+              '<div class="archive-section" id="archiveSection_' + courseKey(courseName) + '">';
+            archivedItems.forEach(function(a) {
+              var ait = a.it;
+              var aPreview = (ait.prompt || '').substring(0, 60) + ((ait.prompt || '').length > 60 ? '…' : '');
+              var aId = ait.id || a.key;
+              archiveHTML += '<div class="archive-item">' +
+                '<span class="ai-prompt">' + esc(aPreview) + '</span>' +
+                '<div class="ai-actions">' +
+                '<button class="cd-restore-card" data-restore-id="' + esc(aId) + '" title="Restore card">↩ Restore</button>' +
+                '<button class="cd-delete-card" data-delete-id="' + esc(aId) + '" title="Delete permanently">✕</button>' +
+                '</div></div>';
+            });
+            archiveHTML += '</div>';
+          }
+
+          cardListEl.innerHTML = clHTML + archiveHTML;
 
           cardListEl.querySelectorAll('.cd-delete-card').forEach(function(btn) {
             btn.addEventListener('click', function(e) {
@@ -6831,6 +7047,7 @@ input[type="range"]::-moz-range-thumb{
               if (window.gsap && row) {
                 gsap.to(row, { opacity: 0, x: -20, height: 0, marginBottom: 0, padding: 0, duration: 0.3, ease: 'power2.in', onComplete: function() {
                   delete state.items[delId];
+                  reconcileStats();
                   saveState();
                   openCourseDetail(courseName);
                   renderDashboard();
@@ -6838,11 +7055,71 @@ input[type="range"]::-moz-range-thumb{
                 }});
               } else {
                 delete state.items[delId];
+                reconcileStats();
                 saveState();
                 openCourseDetail(courseName);
                 renderDashboard();
                 toast('Card deleted');
               }
+            });
+          });
+
+          /* Archive button handlers */
+          cardListEl.querySelectorAll('.cd-archive-card').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+              e.stopPropagation();
+              var archId = this.getAttribute('data-archive-id');
+              if (!archId || !state.items[archId]) return;
+              var row = this.closest('.course-list-item');
+              if (window.gsap && row) {
+                gsap.to(row, { opacity: 0, x: 20, height: 0, marginBottom: 0, padding: 0, duration: 0.3, ease: 'power2.in', onComplete: function() {
+                  state.items[archId].archived = true;
+                  reconcileStats();
+                  saveState();
+                  openCourseDetail(courseName);
+                  renderDashboard();
+                  toast('Card archived');
+                }});
+              } else {
+                state.items[archId].archived = true;
+                reconcileStats();
+                saveState();
+                openCourseDetail(courseName);
+                renderDashboard();
+                toast('Card archived');
+              }
+            });
+          });
+
+          /* Archive section toggle */
+          var archToggle = el('archiveToggle_' + courseKey(courseName));
+          var archSection = el('archiveSection_' + courseKey(courseName));
+          if (archToggle && archSection) {
+            archToggle.addEventListener('click', function() {
+              var isOpen = archSection.classList.contains('show');
+              archSection.classList.toggle('show', !isOpen);
+              archToggle.classList.toggle('open', !isOpen);
+              if (window.gsap && !isOpen) {
+                gsap.fromTo(archSection.querySelectorAll('.archive-item'),
+                  { opacity: 0, y: 4 }, { opacity: 0.75, y: 0, duration: 0.2, stagger: 0.04, ease: 'power2.out' });
+              }
+              try { playClick(); } catch(e) {}
+            });
+          }
+
+          /* Restore button handlers (inside archive section) */
+          cardListEl.querySelectorAll('.cd-restore-card').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+              e.stopPropagation();
+              var restoreId = this.getAttribute('data-restore-id');
+              if (!restoreId || !state.items[restoreId]) return;
+              delete state.items[restoreId].archived;
+              reconcileStats();
+              saveState();
+              openCourseDetail(courseName);
+              renderDashboard();
+              toast('Card restored');
+              try { playPresetSelect(); } catch(e2) {}
             });
           });
         }
