@@ -70,10 +70,14 @@
       z-index: 1;
       height: 100%;
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: center;
-      padding: 0;
+      padding: 12px 0;
+      overflow-y: auto;
+      scrollbar-width: thin;
     }
+    .wrap::-webkit-scrollbar{ width: 4px; }
+    .wrap::-webkit-scrollbar-thumb{ background: rgba(var(--accent-rgb),0.15); border-radius: 99px; }
 
     body.standalone .wrap{
       align-items: flex-start;
@@ -2399,7 +2403,43 @@
       justify-content: center;
     }
 
-    /* ── Course Detail View ── */
+    /* ── Course Detail Analytics Grid ── */
+    .cda-grid{
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    @media (min-width: 520px){
+      .cda-grid{ grid-template-columns: 1fr 1fr; }
+    }
+    .cda-legend{
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+      padding: 6px 8px;
+      border-radius: 10px;
+      background: rgba(var(--accent-rgb),0.03);
+      border: 1px solid rgba(var(--accent-rgb),0.08);
+    }
+    .cda-legend-item{
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+    .cda-legend-dot{
+      width: 7px;
+      height: 7px;
+      border-radius: 99px;
+      flex-shrink: 0;
+    }
+
     /* ── Card Edit (inline expand) ── */
     function openCardEdit(itemId, courseName) {
       var wrap = el('editWrap_' + itemId);
@@ -3351,12 +3391,7 @@ input[type="range"]::-moz-range-thumb{
               </div>
             </div>
             <div class="cd-tier-stats" id="cdTierStats"></div>
-            <div class="cd-retention-graph">
-              <div class="analytics-card">
-                <div class="ac-title">Course retention forecast</div>
-                <canvas id="cdRetentionCanvas" height="100"></canvas>
-              </div>
-            </div>
+            <!-- Retention forecast moved into analytics grid -->
             <div class="section-header" style="margin-top:14px;">Cards</div>
             <div id="cdCardList" style="max-height:260px;overflow-y:auto;margin-bottom:14px;scrollbar-width:thin;"></div>
             <button class="big-btn" id="cdStartSession">Study this course</button>
@@ -8493,30 +8528,49 @@ input[type="range"]::-moz-range-thumb{
         cdAnalytics = analyticsDiv;
       }
 
+      var ratingLegend = [
+        { label: 'Again', color: 'var(--rate-again)' },
+        { label: 'Hard', color: 'var(--rate-hard)' },
+        { label: 'Good', color: 'var(--rate-good)' },
+        { label: 'Easy', color: 'var(--rate-easy)' }
+      ];
+      var legendHTML = '<div class="cda-legend">';
+      ratingLegend.forEach(function(r) {
+        legendHTML += '<span class="cda-legend-item"><span class="cda-legend-dot" style="background:' + r.color + '"></span>' + r.label + '</span>';
+      });
+      legendHTML += '</div>';
+
       cdAnalytics.innerHTML =
-        '<div class="cda-card cda-full">' +
-        '<div class="cda-title">Rating History (last 30 reviews)</div>' +
-        '<canvas id="cdaRatingCanvas" height="70"></canvas>' +
-        '<div class="cda-legend">' +
-        '<span class="cda-legend-item"><span class="cda-legend-dot" style="background:var(--rate-again)"></span>Again</span>' +
-        '<span class="cda-legend-item"><span class="cda-legend-dot" style="background:var(--rate-hard)"></span>Hard</span>' +
-        '<span class="cda-legend-item"><span class="cda-legend-dot" style="background:var(--rate-good)"></span>Good</span>' +
-        '<span class="cda-legend-item"><span class="cda-legend-dot" style="background:var(--rate-easy)"></span>Easy</span>' +
+        '<div class="section-header" style="margin-top:4px">Course Analytics</div>' +
+        '<div class="cda-grid">' +
+          '<div class="analytics-card">' +
+            '<div class="ac-title">Rating History (last 30 reviews)</div>' +
+            '<canvas id="cdaRatingCanvas" height="70"></canvas>' +
+            legendHTML +
+          '</div>' +
+          '<div class="analytics-card">' +
+            '<div class="ac-title">Tier Accuracy (avg rating)</div>' +
+            '<canvas id="cdaTierAccCanvas" height="90"></canvas>' +
+          '</div>' +
         '</div>' +
-        '</div>' +
-        '<div class="cda-card">' +
-        '<div class="cda-title">Stability Distribution</div>' +
-        '<canvas id="cdaStabilityCanvas" height="90"></canvas>' +
-        '</div>' +
-        '<div class="cda-card">' +
-        '<div class="cda-title">Tier Accuracy (avg rating)</div>' +
-        '<canvas id="cdaTierAccCanvas" height="90"></canvas>' +
+        '<div class="cda-grid">' +
+          '<div class="analytics-card">' +
+            '<div class="ac-title">Stability Distribution</div>' +
+            '<canvas id="cdaStabilityCanvas" height="90"></canvas>' +
+          '</div>' +
+          '<div class="analytics-card">' +
+            '<div class="ac-title">Course Retention Forecast</div>' +
+            '<div class="help" style="margin-bottom:6px">Predicted memory decay over 30 days without review</div>' +
+            '<canvas id="cdaRetForecastCanvas" height="100"></canvas>' +
+          '</div>' +
         '</div>';
 
       setTimeout(function() {
         drawCourseRatingHistory('cdaRatingCanvas', courseName);
         drawStabilityDistribution('cdaStabilityCanvas', courseItems);
         drawTierAccuracy('cdaTierAccCanvas', courseName);
+        drawRetentionCurve('cdaRetForecastCanvas', courseItems, c.name);
+        wireRetentionInteractivity('cdaRetForecastCanvas');
       }, 60);
 
       /* ── Card list with delete ── */
@@ -8683,12 +8737,7 @@ input[type="range"]::-moz-range-thumb{
         }
       }
 
-      /* Retention curve for this course */
-      setTimeout(function() {
-        drawRetentionCurve('cdRetentionCanvas', courseItems, c.name);
-        /* Re-wire interactivity for course detail canvas */
-        wireRetentionInteractivity('cdRetentionCanvas');
-      }, 50);
+      /* Retention curve now drawn inside cdAnalytics grid via cdaRetForecastCanvas */
 
       el('tabHome').style.display = 'none';
       el('tabHome').classList.remove('active');
