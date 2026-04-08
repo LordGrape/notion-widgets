@@ -14,7 +14,7 @@ export default {
       const gradeCorsHeaders = {
         "Access-Control-Allow-Origin": isAllowed ? origin : "https://lordgrape.github.io",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Headers": "Content-Type, X-Widget-Key",
         "Access-Control-Max-Age": "86400"
       };
 
