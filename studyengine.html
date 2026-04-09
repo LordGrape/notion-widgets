@@ -4861,14 +4861,631 @@ input[type="range"]::-moz-range-thumb{
       overflow-y: auto;
     }
     .model-answer-collapsible.open .mac-content{ display: block; }
+
+    /* ── App Layout (Standalone Only) ── */
+    body.standalone .app-layout {
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    body:not(.standalone) .app-layout {
+      display: block;
+      height: 100%;
+    }
+
+    /* Hide sidebar + main-topbar in embedded mode */
+    body:not(.standalone) .sidebar { display: none; }
+    body:not(.standalone) .main-topbar { display: none; }
+
+    /* Hide old topbar in standalone mode (replaced by main-topbar + sidebar) */
+    body.standalone .topbar { display: none; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 260px;
+      flex-shrink: 0;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      background: var(--card-bg);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      border-right: 1px solid var(--card-border);
+      transition: width 250ms cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 10;
+    }
+
+    .sidebar.collapsed {
+      width: 48px;
+    }
+
+    .sidebar.collapsed .sb-brand,
+    .sidebar.collapsed .sb-search,
+    .sidebar.collapsed .sb-tree .tree-label,
+    .sidebar.collapsed .sb-tree .tree-count,
+    .sidebar.collapsed .sb-tree .tree-badge,
+    .sidebar.collapsed .sb-footer-btn span,
+    .sidebar.collapsed .sb-footer .sb-sync-status {
+      display: none;
+    }
+
+    .sidebar.collapsed .sb-footer-btn {
+      justify-content: center;
+      padding: 8px;
+    }
+
+    .sb-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 14px 10px;
+      border-bottom: 1px solid rgba(var(--accent-rgb), 0.08);
+      flex-shrink: 0;
+    }
+
+    .sb-brand {
+      font-size: 10px;
+      letter-spacing: 2px;
+      font-weight: 800;
+      color: var(--text);
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .sb-collapse-btn {
+      padding: 4px 6px !important;
+      font-size: 10px !important;
+      flex-shrink: 0;
+    }
+
+    .sb-search {
+      padding: 8px 12px;
+      flex-shrink: 0;
+    }
+
+    .sb-search-input {
+      width: 100%;
+      padding: 7px 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(var(--accent-rgb), 0.14);
+      background: rgba(var(--accent-rgb), 0.04);
+      color: var(--text);
+      font-size: 11px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color var(--transition);
+    }
+
+    .sb-search-input:focus {
+      border-color: rgba(var(--accent-rgb), 0.35);
+    }
+
+    /* ── Course Tree ── */
+    .sb-tree {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 6px 0;
+      scrollbar-width: thin;
+    }
+
+    .sb-tree::-webkit-scrollbar { width: 4px; }
+    .sb-tree::-webkit-scrollbar-thumb { background: rgba(var(--accent-rgb), 0.15); border-radius: 99px; }
+
+    .tree-node {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      cursor: pointer;
+      transition: background var(--transition);
+      user-select: none;
+      min-height: 32px;
+      border-left: 3px solid transparent;
+    }
+
+    .tree-node:hover {
+      background: rgba(var(--accent-rgb), 0.06);
+    }
+
+    .tree-node.active {
+      background: rgba(var(--accent-rgb), 0.10);
+      border-left-color: var(--accent);
+    }
+
+    .tree-node .tree-icon {
+      font-size: 12px;
+      flex-shrink: 0;
+      width: 18px;
+      text-align: center;
+    }
+
+    .tree-node .tree-chevron {
+      font-size: 8px;
+      flex-shrink: 0;
+      width: 12px;
+      text-align: center;
+      color: var(--text-tertiary);
+      transition: transform var(--transition);
+    }
+
+    .tree-node .tree-chevron.expanded {
+      transform: rotate(90deg);
+    }
+
+    .tree-node .tree-label {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: 0.2px;
+    }
+
+    .tree-node .tree-count {
+      font-size: 9px;
+      color: var(--text-tertiary);
+      flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .tree-node .tree-badge {
+      font-size: 8px;
+      padding: 1px 5px;
+      border-radius: 99px;
+      background: rgba(var(--accent-rgb), 0.15);
+      color: var(--accent);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .tree-node.depth-0 { padding-left: 12px; }
+    .tree-node.depth-0 .tree-label { font-weight: 700; text-transform: uppercase; font-size: 10px; letter-spacing: 1px; }
+    .tree-node.depth-1 { padding-left: 16px; }
+    .tree-node.depth-1 .tree-label { font-weight: 600; }
+    .tree-node.depth-2 { padding-left: 32px; }
+    .tree-node.depth-2 .tree-label { font-weight: 500; font-size: 10px; color: var(--text-secondary); }
+    .tree-node.depth-3 { padding-left: 48px; }
+    .tree-node.depth-3 .tree-label { font-weight: 400; font-size: 10px; color: var(--text-secondary); }
+
+    .tree-cram-badge {
+      font-size: 8px;
+      padding: 1px 6px;
+      border-radius: 99px;
+      background: rgba(239, 68, 68, 0.12);
+      color: var(--rate-again);
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      margin-left: 4px;
+    }
+
+    .tree-section-divider {
+      height: 1px;
+      background: rgba(var(--accent-rgb), 0.08);
+      margin: 8px 12px;
+    }
+
+    /* ── Sidebar Footer ── */
+    .sb-footer {
+      flex-shrink: 0;
+      padding: 8px;
+      border-top: 1px solid rgba(var(--accent-rgb), 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .sb-footer-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: 10px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 11px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background var(--transition), color var(--transition);
+      width: 100%;
+      text-align: left;
+    }
+
+    .sb-footer-btn:hover {
+      background: rgba(var(--accent-rgb), 0.08);
+      color: var(--text);
+    }
+
+    .sb-sync-status {
+      padding: 4px 10px;
+      font-size: 9px;
+      color: var(--rate-good);
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Main Area ── */
+    .main-area {
+      flex: 1;
+      min-width: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    body:not(.standalone) .main-area {
+      height: 100%;
+    }
+
+    .main-topbar {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 20px;
+      border-bottom: 1px solid rgba(var(--accent-rgb), 0.08);
+      background: var(--card-bg);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      gap: 12px;
+      min-height: 48px;
+      z-index: 9;
+    }
+
+    .main-breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .bc-segment {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: color var(--transition);
+    }
+
+    .bc-segment:hover { color: var(--text); }
+    .bc-segment:last-child { color: var(--text); font-weight: 700; }
+    .bc-separator { font-size: 9px; color: var(--text-tertiary); margin: 0 2px; }
+
+    .main-tabs {
+      display: flex;
+      gap: 4px;
+      padding: 3px;
+      border-radius: 999px;
+      border: 1px solid rgba(var(--accent-rgb), 0.12);
+      background: rgba(var(--accent-rgb), 0.03);
+      flex-shrink: 0;
+    }
+
+    .main-topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .main-content {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    /* In standalone, remove old wrap padding since main-content handles it */
+    body.standalone .main-content .wrap {
+      padding: 20px 24px 32px;
+      align-items: flex-start;
+      height: auto;
+      overflow: visible;
+    }
+
+    body.standalone .main-content .shell {
+      max-width: 1100px;
+    }
+
+    /* ── Session mode: collapse sidebar ── */
+    body.standalone.in-session .sidebar {
+      width: 48px;
+    }
+
+    body.standalone.in-session .sidebar .sb-brand,
+    body.standalone.in-session .sidebar .sb-search,
+    body.standalone.in-session .sidebar .sb-tree .tree-label,
+    body.standalone.in-session .sidebar .sb-tree .tree-count,
+    body.standalone.in-session .sidebar .sb-tree .tree-badge,
+    body.standalone.in-session .sidebar .sb-footer-btn span,
+    body.standalone.in-session .sidebar .sb-footer .sb-sync-status {
+      display: none;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 1024px) {
+      .sidebar { width: 48px; }
+      .sidebar:hover { width: 260px; position: absolute; height: 100vh; box-shadow: var(--shadow); z-index: 100; }
+      .sidebar .sb-brand, .sidebar .sb-search,
+      .sidebar .sb-tree .tree-label, .sidebar .sb-tree .tree-count,
+      .sidebar .sb-tree .tree-badge, .sidebar .sb-footer-btn span,
+      .sidebar .sb-footer .sb-sync-status { display: none; }
+      .sidebar:hover .sb-brand, .sidebar:hover .sb-search,
+      .sidebar:hover .sb-tree .tree-label, .sidebar:hover .sb-tree .tree-count,
+      .sidebar:hover .sb-tree .tree-badge, .sidebar:hover .sb-footer-btn span,
+      .sidebar:hover .sb-footer .sb-sync-status { display: initial; }
+    }
+
+    @media (max-width: 640px) {
+      .sidebar { display: none; }
+      body.standalone .main-topbar { display: none; }
+      body.standalone .topbar { display: flex; } /* Show old topbar on mobile */
+    }
+
+    /* ── Context Views (Course/Module/Topic dashboards) ── */
+    .ctx-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .ctx-color-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 99px;
+      flex-shrink: 0;
+    }
+
+    .ctx-title {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      color: var(--text);
+    }
+
+    body.standalone .ctx-title { font-size: 22px; }
+
+    .ctx-subtitle {
+      font-size: 11px;
+      color: var(--text-secondary);
+      letter-spacing: 0.3px;
+    }
+
+    .ctx-actions {
+      display: flex;
+      gap: 8px;
+      margin: 14px 0;
+      flex-wrap: wrap;
+    }
+
+    .ctx-study-btn {
+      padding: 10px 18px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(var(--accent-rgb),1), rgba(var(--accent-rgb),0.7));
+      color: #fff;
+      font-weight: 700;
+      font-size: 11px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(var(--accent-rgb), 0.2);
+      transition: transform var(--transition), box-shadow var(--transition);
+    }
+
+    .ctx-study-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 30px rgba(var(--accent-rgb), 0.28);
+    }
+    .ctx-study-btn:active { transform: translateY(0) scale(0.99); }
+
+    .ctx-modules-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 10px;
+      margin: 14px 0;
+    }
+
+    .ctx-module-card {
+      padding: 14px 16px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(var(--accent-rgb), 0.14);
+      background: rgba(var(--accent-rgb), 0.03);
+      cursor: pointer;
+      transition: border-color var(--transition), transform var(--transition), background var(--transition);
+    }
+
+    .ctx-module-card:hover {
+      border-color: rgba(var(--accent-rgb), 0.3);
+      transform: translateY(-1px);
+      background: rgba(var(--accent-rgb), 0.06);
+    }
+
+    .ctx-module-card .mc-name {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .ctx-module-card .mc-stats {
+      font-size: 10px;
+      color: var(--text-secondary);
+      display: flex;
+      gap: 10px;
+    }
+
+    .ctx-module-card .mc-progress {
+      margin-top: 8px;
+      height: 4px;
+      border-radius: 99px;
+      background: rgba(var(--accent-rgb), 0.1);
+      overflow: hidden;
+    }
+
+    .ctx-module-card .mc-progress-fill {
+      height: 100%;
+      border-radius: 99px;
+      background: var(--accent);
+      transition: width 400ms ease;
+    }
+
+    .ctx-card-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin: 12px 0;
+    }
+
+    .ctx-card-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(var(--accent-rgb), 0.10);
+      background: rgba(var(--accent-rgb), 0.02);
+      transition: background var(--transition);
+      cursor: default;
+    }
+
+    .ctx-card-row:hover { background: rgba(var(--accent-rgb), 0.05); }
+
+    .ctx-card-row .cr-tier {
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
+
+    .ctx-card-row .cr-prompt {
+      flex: 1;
+      min-width: 0;
+      font-size: 11px;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .ctx-card-row .cr-meta {
+      font-size: 9px;
+      color: var(--text-tertiary);
+      flex-shrink: 0;
+      text-align: right;
+    }
+
+    .ctx-card-row .cr-due-badge {
+      font-size: 8px;
+      padding: 1px 5px;
+      border-radius: 99px;
+      background: rgba(var(--accent-rgb), 0.15);
+      color: var(--accent);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .ctx-section-title {
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin: 18px 0 8px;
+    }
+
+    .ctx-lecture-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 10px;
+      background: rgba(var(--accent-rgb), 0.06);
+      border: 1px solid rgba(var(--accent-rgb), 0.14);
+      font-size: 9px;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    .ctx-empty {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-tertiary);
+      font-size: 12px;
+    }
   </style>
 </head>
 <body>
   <canvas id="bgCanvas"></canvas>
 
-  <div class="wrap">
-    <div class="shell">
-      <div class="card" id="rootCard">
+  <!-- New: App layout wrapper (standalone only; sidebar hidden when embedded) -->
+  <div class="app-layout">
+
+    <!-- New: Sidebar (standalone) -->
+    <aside class="sidebar" id="sidebar" aria-label="Sidebar">
+      <div class="sb-header">
+        <div class="logo" aria-hidden="true" style="width:18px;height:18px;border-radius:6px;background:rgba(var(--accent-rgb),0.18);border:1px solid rgba(var(--accent-rgb),0.18);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:10px;color:var(--accent);flex-shrink:0;">◆</div>
+        <h1 class="sb-brand">STUDY ENGINE</h1>
+        <button class="sb-collapse-btn icon-btn" id="sidebarCollapseBtn" type="button" title="Collapse sidebar" aria-label="Collapse sidebar">◀</button>
+      </div>
+
+      <div class="sb-search">
+        <input type="text" class="se-input sb-search-input" id="sidebarSearch" placeholder="Search cards..." aria-label="Search cards">
+      </div>
+
+      <nav class="sb-tree" id="sidebarTree" aria-label="Course tree"></nav>
+
+      <div class="sb-footer">
+        <button class="sb-footer-btn" id="sbAddCard" type="button"><span aria-hidden="true">＋</span><span>Add Card</span></button>
+        <button class="sb-footer-btn" id="sbImport" type="button"><span aria-hidden="true">📥</span><span>Import</span></button>
+        <button class="sb-footer-btn" id="sbSettings" type="button"><span aria-hidden="true">⚙</span><span>Settings</span></button>
+        <div class="sb-sync-status" id="sbSyncStatus">● Synced</div>
+      </div>
+    </aside>
+
+    <!-- Main area wraps existing content -->
+    <div class="main-area">
+
+      <!-- New: Top bar with breadcrumb + tabs (standalone) -->
+      <div class="main-topbar" id="mainTopbar">
+        <div class="main-breadcrumb" id="mainBreadcrumb">
+          <span class="bc-segment bc-root" data-level="all">All Courses</span>
+        </div>
+        <div class="main-tabs" id="mainTabs" role="tablist" aria-label="Main navigation">
+          <button class="nav-tab active" data-nav="home" type="button">Home</button>
+          <button class="nav-tab" data-nav="courses" type="button">Courses</button>
+        </div>
+        <div class="main-topbar-actions">
+          <button class="icon-btn" id="mainAddCard" type="button" title="Add card" aria-label="Add card">＋</button>
+          <button class="icon-btn" id="mainSettingsBtn" type="button" title="Settings" aria-label="Settings">⚙</button>
+        </div>
+      </div>
+
+      <div class="main-content">
+        <div class="wrap">
+          <div class="shell">
+            <div class="card" id="rootCard">
         <div class="topbar">
           <div class="brand">
             <canvas id="mascotCanvas" class="logo" width="28" height="28"></canvas>
@@ -5146,6 +5763,21 @@ input[type="range"]::-moz-range-thumb{
           <button class="big-btn" id="backBtn">Back to Dashboard</button>
         </div>
 
+        <!-- Course Dashboard (shown when course selected in sidebar) -->
+        <div class="view" id="courseDashView" style="display:none;">
+          <div id="courseDashContent"></div>
+        </div>
+
+        <!-- Module Detail (shown when module selected in sidebar) -->
+        <div class="view" id="moduleDetailView" style="display:none;">
+          <div id="moduleDetailContent"></div>
+        </div>
+
+        <!-- Topic Detail (shown when topic selected in sidebar) -->
+        <div class="view" id="topicDetailView" style="display:none;">
+          <div id="topicDetailContent"></div>
+        </div>
+
       </div>
       <div class="break-overlay" id="breakOverlay">
         <div class="break-card">
@@ -5157,7 +5789,11 @@ input[type="range"]::-moz-range-thumb{
             <button class="bc-skip" id="breakSkip">Skip break</button>
           </div>
         </div>
+            </div>
+          </div>
+        </div>
       </div>
+
     </div>
   </div>
 
@@ -5733,6 +6369,8 @@ input[type="range"]::-moz-range-thumb{
       if (!c) return c;
       if (c.examWeight === undefined) c.examWeight = null;
       if (c.syllabusContext === undefined) c.syllabusContext = null;
+      if (c._lectureCount === undefined) c._lectureCount = 0;
+      if (!Array.isArray(c.modules)) c.modules = [];
       if (c.professorValues === undefined) c.professorValues = null;
       if (c.allowedMaterials === undefined) c.allowedMaterials = null;
       if (c.rawSyllabusText === undefined) c.rawSyllabusText = null;
@@ -5742,10 +6380,134 @@ input[type="range"]::-moz-range-thumb{
       return c;
     }
 
+    /* ── Module Helpers ── */
+    function ensureCourseModules(courseName) {
+      var c = state.courses && state.courses[courseName];
+      if (!c) return;
+      if (!Array.isArray(c.modules)) c.modules = [];
+    }
+
+    function generateModuleId() {
+      var chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+      var s = 'mod_';
+      for (var i = 0; i < 8; i++) s += chars[Math.floor(Math.random() * chars.length)];
+      return s;
+    }
+
+    function addModuleToCourse(courseName, moduleObj) {
+      ensureCourseModules(courseName);
+      var c = state.courses && state.courses[courseName];
+      if (!c) return null;
+      if (!moduleObj) moduleObj = {};
+      if (!moduleObj.id) moduleObj.id = generateModuleId();
+      if (moduleObj.order == null) moduleObj.order = c.modules.length;
+      if (!Array.isArray(moduleObj.topics)) moduleObj.topics = [];
+      c.modules.push(moduleObj);
+      saveCourse(c);
+      return moduleObj;
+    }
+
+    function removeModuleFromCourse(courseName, moduleId) {
+      ensureCourseModules(courseName);
+      var c = state.courses && state.courses[courseName];
+      if (!c) return;
+      c.modules = c.modules.filter(function(m) { return m && m.id !== moduleId; });
+      saveCourse(c);
+    }
+
+    function renameModule(courseName, moduleId, newName) {
+      ensureCourseModules(courseName);
+      var c = state.courses && state.courses[courseName];
+      if (!c) return;
+      var mod = c.modules.find(function(m) { return m && m.id === moduleId; });
+      if (mod) { mod.name = newName; saveCourse(c); }
+    }
+
+    function getModuleForTopic(courseName, topic) {
+      var c = state.courses && state.courses[courseName];
+      if (!c || !c.modules) return null;
+      for (var i = 0; i < c.modules.length; i++) {
+        if (c.modules[i] && c.modules[i].topics && c.modules[i].topics.indexOf(topic) >= 0) return c.modules[i];
+      }
+      return null;
+    }
+
+    function getModuleById(courseName, moduleId) {
+      var c = state.courses && state.courses[courseName];
+      if (!c || !c.modules) return null;
+      return c.modules.find(function(m) { return m && m.id === moduleId; }) || null;
+    }
+
+    function getCardsForModule(courseName, moduleId) {
+      var mod = getModuleById(courseName, moduleId);
+      if (!mod || !mod.topics) return [];
+      var cards = [];
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (!it || it.archived || it.course !== courseName) continue;
+        if (mod.topics.indexOf(it.topic) >= 0) cards.push(it);
+      }
+      return cards;
+    }
+
+    function getCardsForTopic(courseName, topic) {
+      var cards = [];
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (!it || it.archived) continue;
+        if (courseName && it.course !== courseName) continue;
+        if ((it.topic || 'General') === topic) cards.push(it);
+      }
+      return cards;
+    }
+
+    function getCardsForCourse(courseName) {
+      var cards = [];
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (!it || it.archived || it.course !== courseName) continue;
+        cards.push(it);
+      }
+      return cards;
+    }
+
+    function isDueNow(item) {
+      if (!item || !item.fsrs || !item.fsrs.due) return true;
+      return new Date(item.fsrs.due) <= new Date();
+    }
+
+    function getCourseStats(courseName) {
+      var cards = getCardsForCourse(courseName);
+      var total = cards.length;
+      var due = cards.filter(isDueNow).length;
+      var reviewed = cards.filter(function(c) { return c.fsrs && c.fsrs.reps > 0; }).length;
+      var avgStability = 0;
+      var stableCount = 0;
+      cards.forEach(function(c) {
+        if (c.fsrs && c.fsrs.stability > 0) { avgStability += c.fsrs.stability; stableCount++; }
+      });
+      if (stableCount > 0) avgStability = avgStability / stableCount;
+      var tierDist = {};
+      cards.forEach(function(c) { var t = c.tier || 'quickfire'; tierDist[t] = (tierDist[t] || 0) + 1; });
+      return { total: total, due: due, reviewed: reviewed, avgStability: Math.round(avgStability), tierDist: tierDist };
+    }
+
+    function getModuleStats(courseName, moduleId) {
+      var cards = getCardsForModule(courseName, moduleId);
+      var total = cards.length;
+      var due = cards.filter(isDueNow).length;
+      var reviewed = cards.filter(function(c) { return c.fsrs && c.fsrs.reps > 0; }).length;
+      return { total: total, due: due, reviewed: reviewed };
+    }
+
     function clampCourseStringFields(c) {
       if (!c) return;
-      if (c.syllabusContext && String(c.syllabusContext).length > 2000) {
-        c.syllabusContext = String(c.syllabusContext).slice(0, 2000);
+      // Used both as syllabus summary and (now) lecture digest, so allow a bit more room.
+      if (c.syllabusContext && String(c.syllabusContext).length > 4000) {
+        c.syllabusContext = String(c.syllabusContext).slice(0, 4000);
       }
       if (c.professorValues && String(c.professorValues).length > 500) {
         c.professorValues = String(c.professorValues).slice(0, 500);
@@ -5765,6 +6527,8 @@ input[type="range"]::-moz-range-thumb{
         var c0 = state.courses[k];
         var snap = JSON.stringify(c0);
         normalizeCoursePhase6(c0);
+        // Ensure modules array exists
+        if (!Array.isArray(c0.modules)) { c0.modules = []; }
         if (JSON.stringify(c0) !== snap) changed = true;
       }
       if (changed && typeof SyncEngine !== 'undefined' && SyncEngine.set) {
@@ -6023,6 +6787,19 @@ input[type="range"]::-moz-range-thumb{
       var next = el(nextId);
       views.forEach(function(v){ v.classList.remove('active'); });
       next.classList.add('active');
+
+      /* Standalone: session mode collapses sidebar */
+      if (!isEmbedded) {
+        if (nextId === 'viewSession' || nextId === 'viewDone') document.body.classList.add('in-session');
+        else if (nextId === 'viewDash') document.body.classList.remove('in-session');
+      }
+
+      /* Standalone: avoid context views "sticking" outside dashboard */
+      if (!isEmbedded) {
+        if (nextId !== 'viewDash') {
+          try { hideContextViews(); } catch (eCtx) {}
+        }
+      }
 
       /* Hide/show nav tabs during session */
       var navTabs = document.querySelector('.nav-tabs');
@@ -6487,6 +7264,532 @@ input[type="range"]::-moz-range-thumb{
 
     function esc(s){
       return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    /* ── Sidebar State (Standalone) ── */
+    var sidebarSelection = { level: 'all', course: null, module: null, topic: null };
+    var sidebarExpanded = {}; // keys: course names or module ids, values: booleans
+
+    function buildCourseTree() {
+      var tree = {};
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (!it || it.archived) continue;
+        var course = it.course || 'Uncategorized';
+        var topic = it.topic || 'General';
+        if (!tree[course]) tree[course] = { topics: {}, totalCards: 0, dueCards: 0 };
+        if (!tree[course].topics[topic]) tree[course].topics[topic] = { cards: [], dueCards: 0 };
+        tree[course].topics[topic].cards.push(id);
+        tree[course].totalCards++;
+        var f = it.fsrs && it.fsrs.due ? it.fsrs : null;
+        if (!f || !f.lastReview) {
+          tree[course].dueCards++;
+          tree[course].topics[topic].dueCards++;
+        } else {
+          var dueDate = new Date(f.due);
+          if (dueDate <= new Date()) {
+            tree[course].dueCards++;
+            tree[course].topics[topic].dueCards++;
+          }
+        }
+      }
+      return tree;
+    }
+
+    function renderSidebar() {
+      if (isEmbedded) return;
+      var container = document.getElementById('sidebarTree');
+      if (!container) return;
+
+      var tree = buildCourseTree();
+      var html = '';
+
+      var totalCards = 0, totalDue = 0;
+      for (var cName in tree) {
+        totalCards += tree[cName].totalCards;
+        totalDue += tree[cName].dueCards;
+      }
+
+      var allActive = sidebarSelection.level === 'all' ? ' active' : '';
+      html += '<div class="tree-node depth-0' + allActive + '" data-level="all">';
+      html += '<span class="tree-icon">📚</span>';
+      html += '<span class="tree-label">All Courses</span>';
+      html += '<span class="tree-count">' + totalCards + '</span>';
+      if (totalDue > 0) html += '<span class="tree-badge">' + totalDue + ' due</span>';
+      html += '</div>';
+      html += '<div class="tree-section-divider"></div>';
+
+      var courseNames = Object.keys(tree).sort();
+      courseNames.forEach(function(courseName) {
+        var courseData = state.courses ? state.courses[courseName] : null;
+        if (courseData) ensureCourseModules(courseName);
+        var ct = tree[courseName];
+        var color = (courseData && courseData.color) || '#8b5cf6';
+        var isExpanded = sidebarExpanded[courseName] !== false;
+        var courseActive = (sidebarSelection.level === 'course' && sidebarSelection.course === courseName) ? ' active' : '';
+        var cram = (typeof getCramState === 'function') ? getCramState(courseName) : { active: false };
+
+        html += '<div class="tree-node depth-0' + courseActive + '" data-level="course" data-course="' + esc(courseName) + '">';
+        html += '<span class="tree-chevron' + (isExpanded ? ' expanded' : '') + '">▸</span>';
+        html += '<span class="tree-icon" style="color:' + color + '">●</span>';
+        html += '<span class="tree-label">' + esc(courseName) + '</span>';
+        if (ct.dueCards > 0) html += '<span class="tree-badge">' + ct.dueCards + '</span>';
+        html += '</div>';
+
+        if (cram && cram.active) {
+          html += '<div style="padding:2px 12px 4px 42px;"><span class="tree-cram-badge">🔥 ' + (cram.daysUntil || 0) + 'd</span></div>';
+        }
+
+        if (isExpanded) {
+          var modules = (courseData && courseData.modules) ? courseData.modules.slice() : [];
+          modules.sort(function(a, b) { return (a && a.order != null ? a.order : 999) - (b && b.order != null ? b.order : 999); });
+          var assignedTopics = {};
+
+          modules.forEach(function(mod) {
+            if (!mod || !mod.id) return;
+            var modActive = (sidebarSelection.level === 'module' && sidebarSelection.module === mod.id) ? ' active' : '';
+            var modExpanded = sidebarExpanded[mod.id] !== false;
+            var modCards = 0, modDue = 0;
+            (mod.topics || []).forEach(function(t) {
+              if (ct.topics[t]) { modCards += ct.topics[t].cards.length; modDue += ct.topics[t].dueCards; }
+              assignedTopics[t] = true;
+            });
+
+            html += '<div class="tree-node depth-1' + modActive + '" data-level="module" data-course="' + esc(courseName) + '" data-module="' + esc(mod.id) + '">';
+            html += '<span class="tree-chevron' + (modExpanded ? ' expanded' : '') + '">▸</span>';
+            html += '<span class="tree-icon">' + (mod.lectureImported ? '📖' : '📁') + '</span>';
+            html += '<span class="tree-label">' + esc(mod.name || 'Module') + '</span>';
+            if (modCards > 0) html += '<span class="tree-count">' + modCards + '</span>';
+            if (modDue > 0) html += '<span class="tree-badge">' + modDue + '</span>';
+            html += '</div>';
+
+            if (modExpanded) {
+              (mod.topics || []).forEach(function(t) {
+                if (!ct.topics[t]) return;
+                var topicActive = (sidebarSelection.level === 'topic' && sidebarSelection.topic === t && sidebarSelection.course === courseName) ? ' active' : '';
+                html += '<div class="tree-node depth-2' + topicActive + '" data-level="topic" data-course="' + esc(courseName) + '" data-module="' + esc(mod.id) + '" data-topic="' + esc(t) + '">';
+                html += '<span class="tree-label">' + esc(t) + '</span>';
+                html += '<span class="tree-count">' + ct.topics[t].cards.length + '</span>';
+                if (ct.topics[t].dueCards > 0) html += '<span class="tree-badge">' + ct.topics[t].dueCards + '</span>';
+                html += '</div>';
+              });
+            }
+          });
+
+          var ungroupedTopics = Object.keys(ct.topics).filter(function(t) { return !assignedTopics[t]; }).sort();
+          if (ungroupedTopics.length > 0 && modules.length > 0) {
+            html += '<div class="tree-node depth-1" style="opacity:0.7;">';
+            html += '<span class="tree-icon">📦</span>';
+            html += '<span class="tree-label">Ungrouped</span>';
+            html += '</div>';
+          }
+          ungroupedTopics.forEach(function(t) {
+            var topicActive = (sidebarSelection.level === 'topic' && sidebarSelection.topic === t && sidebarSelection.course === courseName) ? ' active' : '';
+            var depth = modules.length > 0 ? 'depth-3' : 'depth-2';
+            html += '<div class="tree-node ' + depth + topicActive + '" data-level="topic" data-course="' + esc(courseName) + '" data-topic="' + esc(t) + '">';
+            html += '<span class="tree-label">' + esc(t) + '</span>';
+            html += '<span class="tree-count">' + ct.topics[t].cards.length + '</span>';
+            if (ct.topics[t].dueCards > 0) html += '<span class="tree-badge">' + ct.topics[t].dueCards + '</span>';
+            html += '</div>';
+          });
+        }
+      });
+
+      container.innerHTML = html;
+
+      container.onclick = function(e) {
+        var node = e.target && e.target.closest ? e.target.closest('.tree-node') : null;
+        if (!node) return;
+        var level = node.dataset.level;
+        var courseName = node.dataset.course || null;
+        var moduleId = node.dataset.module || null;
+        var topic = node.dataset.topic || null;
+
+        if (level === 'course' && courseName && e.target && e.target.classList && e.target.classList.contains('tree-chevron')) {
+          sidebarExpanded[courseName] = !sidebarExpanded[courseName];
+          renderSidebar();
+          return;
+        }
+
+        if (level === 'module' && moduleId && e.target && e.target.classList && e.target.classList.contains('tree-chevron')) {
+          sidebarExpanded[moduleId] = !sidebarExpanded[moduleId];
+          renderSidebar();
+          return;
+        }
+
+        sidebarSelection = { level: level, course: courseName, module: moduleId, topic: topic };
+        renderSidebar();
+        updateBreadcrumb();
+        applySidebarFilter();
+        try { playClick(); } catch(e2) {}
+      };
+    }
+
+    function updateBreadcrumb() {
+      if (isEmbedded) return;
+      var bc = document.getElementById('mainBreadcrumb');
+      if (!bc) return;
+      var html = '<span class="bc-segment bc-root" data-level="all">All Courses</span>';
+      if (sidebarSelection.course) {
+        html += '<span class="bc-separator">›</span>';
+        html += '<span class="bc-segment" data-level="course" data-course="' + esc(sidebarSelection.course) + '">' + esc(sidebarSelection.course) + '</span>';
+      }
+      if (sidebarSelection.module && sidebarSelection.course) {
+        var mod = getModuleById(sidebarSelection.course, sidebarSelection.module);
+        if (mod) {
+          html += '<span class="bc-separator">›</span>';
+          html += '<span class="bc-segment" data-level="module" data-course="' + esc(sidebarSelection.course) + '" data-module="' + esc(mod.id) + '">' + esc(mod.name || 'Module') + '</span>';
+        }
+      }
+      if (sidebarSelection.topic) {
+        html += '<span class="bc-separator">›</span>';
+        html += '<span class="bc-segment" data-level="topic" data-course="' + esc(sidebarSelection.course || '') + '" data-module="' + esc(sidebarSelection.module || '') + '" data-topic="' + esc(sidebarSelection.topic) + '">' + esc(sidebarSelection.topic) + '</span>';
+      }
+      bc.innerHTML = html;
+
+      bc.onclick = function(e) {
+        var seg = e.target && e.target.closest ? e.target.closest('.bc-segment') : null;
+        if (!seg) return;
+        var level = seg.dataset.level;
+        if (level === 'all') sidebarSelection = { level: 'all', course: null, module: null, topic: null };
+        else if (level === 'course') sidebarSelection = { level: 'course', course: seg.dataset.course, module: null, topic: null };
+        else if (level === 'module') sidebarSelection = { level: 'module', course: seg.dataset.course || sidebarSelection.course, module: seg.dataset.module, topic: null };
+        else if (level === 'topic') sidebarSelection = { level: 'topic', course: seg.dataset.course || sidebarSelection.course, module: seg.dataset.module || null, topic: seg.dataset.topic || sidebarSelection.topic };
+        renderSidebar();
+        updateBreadcrumb();
+        applySidebarFilter();
+      };
+    }
+
+    function applySidebarFilter() {
+      // 1) Bridge to existing course filter
+      applySidebarFilterChipsOnly();
+
+      // Ensure we're on the dashboard view in standalone so context views can render
+      if (!isEmbedded) {
+        try { showView('viewDash'); } catch (e0) {}
+        try { switchNav('home'); } catch (e1) {}
+      }
+
+      // 2) Context views
+      if (!isEmbedded) {
+        if (sidebarSelection.level === 'course' && sidebarSelection.course) {
+          showCourseDashboard(sidebarSelection.course);
+          return;
+        } else if (sidebarSelection.level === 'module' && sidebarSelection.course && sidebarSelection.module) {
+          showModuleView(sidebarSelection.course, sidebarSelection.module);
+          return;
+        } else if (sidebarSelection.level === 'topic' && sidebarSelection.course && sidebarSelection.topic) {
+          showTopicView(sidebarSelection.course, sidebarSelection.topic);
+          return;
+        } else {
+          hideContextViews();
+        }
+      }
+
+      try { renderDashboard(); } catch (e2) {}
+    }
+
+    function hideContextViews() {
+      var cv = document.getElementById('courseDashView');
+      var mv = document.getElementById('moduleDetailView');
+      var tv = document.getElementById('topicDetailView');
+      if (cv) cv.style.display = 'none';
+      if (mv) mv.style.display = 'none';
+      if (tv) tv.style.display = 'none';
+      var normalDash = document.getElementById('viewDash');
+      if (normalDash) normalDash.style.display = '';
+    }
+
+    function applySidebarFilterChipsOnly() {
+      try {
+        if (sidebarSelection.level === 'all' || !sidebarSelection.course) {
+          if (typeof selectedCourse !== 'undefined') selectedCourse = 'All';
+        } else if (sidebarSelection.course) {
+          if (typeof selectedCourse !== 'undefined') selectedCourse = sidebarSelection.course;
+        }
+      } catch (e) {}
+    }
+
+    function renderCardList(cards) {
+      cards = (cards || []).slice();
+      cards.sort(function(a, b) {
+        var aDue = isDueNow(a) ? 0 : 1;
+        var bDue = isDueNow(b) ? 0 : 1;
+        if (aDue !== bDue) return aDue - bDue;
+        var aStab = (a.fsrs && a.fsrs.stability) || 0;
+        var bStab = (b.fsrs && b.fsrs.stability) || 0;
+        return aStab - bStab;
+      });
+
+      var h = '<div class="ctx-card-list">';
+      cards.forEach(function(card) {
+        var tier = card.tier || 'quickfire';
+        var tColor = tierColour(tier);
+        var prompt = (card.prompt || '').substring(0, 120);
+        var due = isDueNow(card);
+        var stability = (card.fsrs && card.fsrs.stability) ? (Math.round(card.fsrs.stability) + 'd') : 'new';
+        var reps = (card.fsrs && card.fsrs.reps) || 0;
+
+        h += '<div class="ctx-card-row">';
+        h += '<span class="cr-tier" style="background:' + tColor + '22;color:' + tColor + ';">' + esc(String(tierLabel(tier) || '').substring(0, 2).toUpperCase()) + '</span>';
+        h += '<span class="cr-prompt">' + esc(prompt) + '</span>';
+        h += '<span class="cr-meta">' + esc(stability) + ' · ' + reps + ' reps</span>';
+        if (due) h += '<span class="cr-due-badge">DUE</span>';
+        h += '</div>';
+      });
+      h += '</div>';
+      return h;
+    }
+
+    function showCourseDashboard(courseName) {
+      hideContextViews();
+      var view = document.getElementById('courseDashView');
+      var content = document.getElementById('courseDashContent');
+      if (!view || !content) return;
+
+      var normalDash = document.getElementById('viewDash');
+      if (normalDash) normalDash.style.display = 'none';
+      view.style.display = 'block';
+
+      var courseData = state.courses && state.courses[courseName] ? state.courses[courseName] : {};
+      ensureCourseModules(courseName);
+      var stats = getCourseStats(courseName);
+      var color = courseData.color || '#8b5cf6';
+      var cram = (typeof getCramState === 'function') ? getCramState(courseName) : { active: false };
+      var modules = courseData.modules || [];
+
+      var h = '';
+      h += '<div class="ctx-header">';
+      h += '<div class="ctx-color-dot" style="background:' + color + ';"></div>';
+      h += '<div>';
+      h += '<div class="ctx-title">' + esc(courseName) + '</div>';
+      var subtitleParts = [];
+      subtitleParts.push(stats.total + ' cards');
+      if (stats.due > 0) subtitleParts.push(stats.due + ' due');
+      if (courseData.examDate) {
+        var daysLeft = (typeof getCramState === 'function') ? getCramState(courseName).daysUntil : null;
+        subtitleParts.push('Exam: ' + courseData.examDate + (daysLeft != null ? ' (' + daysLeft + 'd)' : ''));
+      }
+      h += '<div class="ctx-subtitle">' + esc(subtitleParts.join(' · ')) + '</div>';
+      h += '</div>';
+      if (cram && cram.active) h += '<span class="tree-cram-badge">🔥 CRAM</span>';
+      h += '</div>';
+
+      h += '<div class="ctx-actions">';
+      h += '<button class="ctx-study-btn" id="ctxStudyCourse">▶ Study This Course' + (stats.due > 0 ? ' (' + stats.due + ' due)' : '') + '</button>';
+      h += '<button class="ghost-btn" id="ctxManageCourse">⚙ Manage</button>';
+      h += '<button class="ghost-btn" id="ctxImportLecture">📖 Import Lecture</button>';
+      h += '</div>';
+
+      h += '<div class="stats-row">';
+      h += '<div class="stat"><div class="k">TOTAL</div><div class="v">' + stats.total + '</div></div>';
+      h += '<div class="stat"><div class="k">DUE</div><div class="v">' + stats.due + '</div></div>';
+      h += '<div class="stat"><div class="k">AVG STABILITY</div><div class="v">' + stats.avgStability + 'd</div></div>';
+      h += '</div>';
+
+      if (stats.total > 0) {
+        h += '<div class="ctx-section-title">Tier Distribution</div>';
+        h += '<div class="breakdown">';
+        var tiers = ['quickfire', 'explain', 'apply', 'distinguish', 'mock', 'worked'];
+        tiers.forEach(function(t) {
+          var count = stats.tierDist[t] || 0;
+          if (count > 0) {
+            h += '<div class="tier-pill"><span class="tier-dot" style="background:' + tierColour(t) + ';"></span>' + esc(tierLabel(t)) + ' ' + count + '</div>';
+          }
+        });
+        h += '</div>';
+      }
+
+      if (modules.length > 0) {
+        h += '<div class="ctx-section-title">Modules</div>';
+        h += '<div class="ctx-modules-grid">';
+        modules.forEach(function(mod) {
+          if (!mod || !mod.id) return;
+          var ms = getModuleStats(courseName, mod.id);
+          var pct = ms.total > 0 ? Math.round((ms.reviewed / ms.total) * 100) : 0;
+          h += '<div class="ctx-module-card" data-module="' + esc(mod.id) + '">';
+          h += '<div class="mc-name">' + (mod.lectureImported ? '📖 ' : '📁 ') + esc(mod.name || 'Module') + '</div>';
+          h += '<div class="mc-stats"><span>' + ms.total + ' cards</span>';
+          if (ms.due > 0) h += '<span style="color:var(--accent);">' + ms.due + ' due</span>';
+          h += '<span>' + pct + '% reviewed</span></div>';
+          h += '<div class="mc-progress"><div class="mc-progress-fill" style="width:' + pct + '%;"></div></div>';
+          h += '</div>';
+        });
+        h += '</div>';
+      }
+
+      h += '<div class="ctx-section-title">Lecture Materials</div>';
+      var importedCount = modules.filter(function(m) { return m && m.lectureImported; }).length;
+      if (importedCount > 0) {
+        h += '<div class="ctx-lecture-badge">📚 ' + importedCount + ' lecture' + (importedCount !== 1 ? 's' : '') + ' imported · Context active for AI grading</div>';
+      } else {
+        h += '<div style="font-size:11px;color:var(--text-tertiary);margin:4px 0;">No lectures imported yet. Import lectures to improve AI grading accuracy.</div>';
+      }
+
+      content.innerHTML = h;
+
+      var studyBtn = document.getElementById('ctxStudyCourse');
+      if (studyBtn) studyBtn.addEventListener('click', function() {
+        sidebarSelection = { level: 'course', course: courseName, module: null, topic: null };
+        applySidebarFilterChipsOnly();
+        startSession();
+      });
+
+      var manageBtn = document.getElementById('ctxManageCourse');
+      if (manageBtn) manageBtn.addEventListener('click', function() {
+        openCourseModal();
+        try { window.openEditCourse && window.openEditCourse(courseName); } catch(e) {}
+      });
+
+      var importBtn = document.getElementById('ctxImportLecture');
+      if (importBtn) importBtn.addEventListener('click', function() {
+        openCourseModal();
+        try { window.openEditCourse && window.openEditCourse(courseName); } catch(e) {}
+      });
+
+      content.querySelectorAll('.ctx-module-card').forEach(function(card) {
+        card.addEventListener('click', function() {
+          var modId = this.dataset.module;
+          sidebarSelection = { level: 'module', course: courseName, module: modId, topic: null };
+          renderSidebar();
+          updateBreadcrumb();
+          showModuleView(courseName, modId);
+          try { playClick(); } catch(e) {}
+        });
+      });
+
+      if (window.gsap) gsap.fromTo(content, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
+    }
+
+    function showModuleView(courseName, moduleId) {
+      hideContextViews();
+      var view = document.getElementById('moduleDetailView');
+      var content = document.getElementById('moduleDetailContent');
+      if (!view || !content) return;
+
+      var normalDash = document.getElementById('viewDash');
+      if (normalDash) normalDash.style.display = 'none';
+      view.style.display = 'block';
+
+      var mod = getModuleById(courseName, moduleId);
+      if (!mod) { content.innerHTML = '<div class="ctx-empty">Module not found.</div>'; return; }
+
+      var cards = getCardsForModule(courseName, moduleId);
+      var due = cards.filter(isDueNow);
+      var courseData = state.courses && state.courses[courseName] ? state.courses[courseName] : {};
+      var color = courseData.color || '#8b5cf6';
+
+      var h = '';
+      h += '<div class="ctx-header">';
+      h += '<div class="ctx-color-dot" style="background:' + color + ';"></div>';
+      h += '<div>';
+      h += '<div class="ctx-title">' + (mod.lectureImported ? '📖 ' : '📁 ') + esc(mod.name || 'Module') + '</div>';
+      h += '<div class="ctx-subtitle">' + cards.length + ' cards · ' + due.length + ' due · ' + ((mod.topics || []).length) + ' topics</div>';
+      h += '</div>';
+      if (mod.lectureImported) h += '<span class="ctx-lecture-badge">📖 Lecture context active</span>';
+      h += '</div>';
+
+      h += '<div class="ctx-actions">';
+      h += '<button class="ctx-study-btn" id="ctxStudyModule">▶ Study This Module' + (due.length > 0 ? ' (' + due.length + ' due)' : '') + '</button>';
+      h += '<button class="ghost-btn" id="ctxRenameModule">✏ Rename</button>';
+      h += '</div>';
+
+      if (mod.topics && mod.topics.length > 0) {
+        h += '<div class="ctx-section-title">Topics</div>';
+        h += '<div class="breakdown">';
+        mod.topics.forEach(function(t) {
+          var topicCards = getCardsForTopic(courseName, t);
+          var topicDue = topicCards.filter(isDueNow).length;
+          h += '<div class="tier-pill" style="cursor:pointer;" data-nav-topic="' + esc(t) + '">';
+          h += esc(t) + ' <span style="opacity:0.6;">' + topicCards.length + '</span>';
+          if (topicDue > 0) h += ' <span style="color:var(--accent);">' + topicDue + '</span>';
+          h += '</div>';
+        });
+        h += '</div>';
+      }
+
+      h += '<div class="ctx-section-title">Cards (' + cards.length + ')</div>';
+      if (cards.length === 0) h += '<div class="ctx-empty">No cards in this module yet.</div>';
+      else h += renderCardList(cards);
+
+      content.innerHTML = h;
+
+      var studyBtn = document.getElementById('ctxStudyModule');
+      if (studyBtn) studyBtn.addEventListener('click', function() {
+        sidebarSelection = { level: 'module', course: courseName, module: moduleId, topic: null };
+        applySidebarFilterChipsOnly();
+        startSession();
+      });
+
+      var renameBtn = document.getElementById('ctxRenameModule');
+      if (renameBtn) renameBtn.addEventListener('click', function() {
+        var newName = prompt('Rename module:', mod.name || 'Module');
+        if (newName && newName.trim()) {
+          renameModule(courseName, moduleId, newName.trim());
+          renderSidebar();
+          showModuleView(courseName, moduleId);
+        }
+      });
+
+      content.querySelectorAll('[data-nav-topic]').forEach(function(pill) {
+        pill.addEventListener('click', function() {
+          var t = this.dataset.navTopic;
+          sidebarSelection = { level: 'topic', course: courseName, module: moduleId, topic: t };
+          renderSidebar();
+          updateBreadcrumb();
+          showTopicView(courseName, t);
+          try { playClick(); } catch(e) {}
+        });
+      });
+
+      if (window.gsap) gsap.fromTo(content, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
+    }
+
+    function showTopicView(courseName, topic) {
+      hideContextViews();
+      var view = document.getElementById('topicDetailView');
+      var content = document.getElementById('topicDetailContent');
+      if (!view || !content) return;
+
+      var normalDash = document.getElementById('viewDash');
+      if (normalDash) normalDash.style.display = 'none';
+      view.style.display = 'block';
+
+      var cards = getCardsForTopic(courseName, topic);
+      var due = cards.filter(isDueNow);
+      var courseData = state.courses && state.courses[courseName] ? state.courses[courseName] : {};
+      var color = courseData.color || '#8b5cf6';
+      var mod = getModuleForTopic(courseName, topic);
+
+      var h = '';
+      h += '<div class="ctx-header">';
+      h += '<div class="ctx-color-dot" style="background:' + color + ';"></div>';
+      h += '<div>';
+      h += '<div class="ctx-title">' + esc(topic) + '</div>';
+      h += '<div class="ctx-subtitle">' + cards.length + ' cards · ' + due.length + ' due' + (mod ? (' · in ' + esc(mod.name || 'Module')) : '') + '</div>';
+      h += '</div>';
+      h += '</div>';
+
+      h += '<div class="ctx-actions">';
+      h += '<button class="ctx-study-btn" id="ctxStudyTopic">▶ Study This Topic' + (due.length > 0 ? ' (' + due.length + ' due)' : '') + '</button>';
+      h += '</div>';
+
+      h += '<div class="ctx-section-title">Cards (' + cards.length + ')</div>';
+      if (cards.length === 0) h += '<div class="ctx-empty">No cards with this topic.</div>';
+      else h += renderCardList(cards);
+
+      content.innerHTML = h;
+
+      var studyBtn = document.getElementById('ctxStudyTopic');
+      if (studyBtn) studyBtn.addEventListener('click', function() {
+        sidebarSelection = { level: 'topic', course: courseName, module: null, topic: topic };
+        applySidebarFilterChipsOnly();
+        startSession();
+      });
+
+      if (window.gsap) gsap.fromTo(content, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
     }
 
     /* ── Dual Coding: Visual Generation ── */
@@ -7200,6 +8503,18 @@ input[type="range"]::-moz-range-thumb{
         if (!it || it.archived) continue;
         if (courseFilter !== 'All' && it.course !== courseFilter) continue;
         if (selectedTopic !== 'All' && (it.topic || '') !== selectedTopic) continue;
+        // Sidebar topic/module scoping (standalone)
+        if (!isEmbedded && sidebarSelection) {
+          if (sidebarSelection.level === 'topic' && sidebarSelection.topic) {
+            if ((it.topic || 'General') !== sidebarSelection.topic) continue;
+          }
+          if (sidebarSelection.level === 'module' && sidebarSelection.course && sidebarSelection.module) {
+            var studyMod = getModuleById(sidebarSelection.course, sidebarSelection.module);
+            if (studyMod && studyMod.topics && studyMod.topics.length) {
+              if (studyMod.topics.indexOf(it.topic) < 0) continue;
+            }
+          }
+        }
         var f = it.fsrs || null;
         var dueTs = f && f.due ? new Date(f.due).getTime() : 0;
         var isDue = (!f || !f.lastReview) ? true : (dueTs <= now);
@@ -8100,6 +9415,9 @@ input[type="range"]::-moz-range-thumb{
     var SYLLABUS_ENDPOINT = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/syllabus';
     var SUMMARY_ENDPOINT = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/summary';
     var PREPARE_ENDPOINT = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/prepare';
+    var FETCH_LECTURE_ENDPOINT = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/fetch-lecture';
+    var DISTILL_ENDPOINT = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/distill';
+    var LECTURE_CTX_ENDPOINT = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/lecture-context';
 
     function defaultTutorStats() {
       return {
@@ -8945,22 +10263,44 @@ input[type="range"]::-moz-range-thumb{
       if (item.conceptA) payload.item.conceptA = item.conceptA;
       if (item.conceptB) payload.item.conceptB = item.conceptB;
       if (item.task) payload.item.task = item.task;
-      return fetch(TUTOR_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Widget-Key': getWidgetKey()
-        },
-        body: JSON.stringify(payload)
-      }).then(function(res) {
-        return res.json().then(function(data) {
-          if (res.ok && data && !data.error) {
-            recordTutorApiSuccess(mode, modelEff);
-          }
-          if (!res.ok && data && !data.error) {
-            data = { error: 'Request failed', detail: String(res.status) };
-          }
-          return data;
+
+      // Attach lecture context if available (course digest + topic chunk)
+      var courseData = (item && item.course) ? (state.courses && state.courses[item.course]) : null;
+      if (courseData && courseData.syllabusContext) {
+        payload.lectureContext = { courseDigest: courseData.syllabusContext };
+      }
+
+      var topicChunkPromise = (item && item.topic && item.course)
+        ? fetch(LECTURE_CTX_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Widget-Key': getWidgetKey() },
+          body: JSON.stringify({ courseName: item.course, topic: item.topic })
+        }).then(function(r) { return r.json(); }).catch(function() { return { topicChunk: null }; })
+        : Promise.resolve({ topicChunk: null });
+
+      return topicChunkPromise.then(function(ctxData) {
+        if (ctxData && ctxData.topicChunk && ctxData.topicChunk.content) {
+          if (!payload.lectureContext) payload.lectureContext = {};
+          payload.lectureContext.topicChunk = ctxData.topicChunk.content;
+        }
+
+        return fetch(TUTOR_ENDPOINT, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Widget-Key': getWidgetKey()
+          },
+          body: JSON.stringify(payload)
+        }).then(function(res) {
+          return res.json().then(function(data) {
+            if (res.ok && data && !data.error) {
+              recordTutorApiSuccess(mode, modelEff);
+            }
+            if (!res.ok && data && !data.error) {
+              data = { error: 'Request failed', detail: String(res.status) };
+            }
+            return data;
+          });
         });
       });
     }
@@ -9745,17 +11085,39 @@ input[type="range"]::-moz-range-thumb{
       if ((essayOutlineText || '').trim()) {
         payload.essayOutline = essayOutlineText;
       }
-      fetch('https://widget-sync.lordgrape-widgets.workers.dev/studyengine/grade', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Widget-Key': getWidgetKey() },
-        body: JSON.stringify(payload)
-      })
-        .then(function(res) { return res.json(); })
-        .then(function(data) {
-          if (data.error) { showAIError(data.error, data.detail || ''); return; }
-          showAIFeedback(data, tier);
+
+      // Attach lecture context if available (course digest + topic chunk)
+      var courseData = (item && item.course) ? (state.courses && state.courses[item.course]) : null;
+      if (courseData && courseData.syllabusContext) {
+        payload.lectureContext = { courseDigest: courseData.syllabusContext };
+      }
+
+      var topicChunkPromise = (item && item.topic && item.course)
+        ? fetch(LECTURE_CTX_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Widget-Key': getWidgetKey() },
+          body: JSON.stringify({ courseName: item.course, topic: item.topic })
+        }).then(function(r) { return r.json(); }).catch(function() { return { topicChunk: null }; })
+        : Promise.resolve({ topicChunk: null });
+
+      topicChunkPromise.then(function(ctxData) {
+        if (ctxData && ctxData.topicChunk && ctxData.topicChunk.content) {
+          if (!payload.lectureContext) payload.lectureContext = {};
+          payload.lectureContext.topicChunk = ctxData.topicChunk.content;
+        }
+
+        fetch('https://widget-sync.lordgrape-widgets.workers.dev/studyengine/grade', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Widget-Key': getWidgetKey() },
+          body: JSON.stringify(payload)
         })
-        .catch(function(err) { showAIError('Network error', err.message || ''); });
+          .then(function(res) { return res.json(); })
+          .then(function(data) {
+            if (data.error) { showAIError(data.error, data.detail || ''); return; }
+            showAIFeedback(data, tier);
+          })
+          .catch(function(err) { showAIError('Network error', err.message || ''); });
+      });
     }
 
     function appendModelAnswerCollapsible(fbArea, it) {
@@ -13569,6 +14931,18 @@ input[type="range"]::-moz-range-thumb{
         '<div class="syllabus-preview" id="' + editId + '_syllabusPreview">' + (c.syllabusContext ? esc(c.syllabusContext) : '') + '</div>' +
         '<button type="button" class="ghost-btn" id="' + editId + '_reprocessSyllabus" style="margin-top:6px;min-width:auto;">Re-process</button>' +
         '</div>' +
+        '<div class="or-divider">LECTURE MATERIALS</div>' +
+        '<div style="padding:0 4px;">' +
+        '<div style="font-size:9px;letter-spacing:1.4px;text-transform:uppercase;font-weight:700;color:var(--text-secondary);margin-bottom:8px;">Import lectures for better AI grading context</div>' +
+        '<input type="text" class="input" id="' + editId + '_lectureUrlInput" placeholder="Paste any URL (published Notion page, article, etc.)" style="width:100%;margin-bottom:8px;font-size:11px;">' +
+        '<div style="display:flex;gap:8px;margin-bottom:8px;">' +
+        '<button type="button" class="ghost-btn" id="' + editId + '_importLectureUrl" style="flex:1;">🌐 Import from URL</button>' +
+        '<input type="file" accept="application/pdf,.pdf" id="' + editId + '_importLecturePdf" style="display:none">' +
+        '<button type="button" class="ghost-btn" id="' + editId + '_importLecturePdfBtn" style="flex:1;min-width:auto;">📄 Import PDF</button>' +
+        '</div>' +
+        '<div class="syllabus-status" id="' + editId + '_lectureImportStatus" style="min-height:0;"></div>' +
+        '<div id="' + editId + '_lectureManifestDisplay" style="margin-top:8px;"></div>' +
+        '</div>' +
         '</div>' +
         '<div class="field">' +
         '<label>Professor values</label>' +
@@ -13626,7 +15000,7 @@ input[type="range"]::-moz-range-thumb{
           c.rawSyllabusText = trimmed.length > 15000 ? trimmed.slice(0, 15000) : trimmed;
           var ctxTa = el(editId + '_courseContextText');
           if (ctxTa) ctxTa.value = c.rawSyllabusText;
-          if (data.syllabusContext != null) c.syllabusContext = String(data.syllabusContext).slice(0, 2000);
+          if (data.syllabusContext != null) c.syllabusContext = String(data.syllabusContext).slice(0, 4000);
           if (data.professorValues != null && data.professorValues !== 'null') {
             c.professorValues = String(data.professorValues).slice(0, 500);
           }
@@ -13696,6 +15070,161 @@ input[type="range"]::-moz-range-thumb{
             raw = ta2 ? ta2.value : '';
           }
           runSyllabusProcess(raw);
+        });
+      }
+
+      // ── Lecture Import (URL + PDF) ──
+      function setLectureStatus(msg, cls) {
+        var st = el(editId + '_lectureImportStatus');
+        if (!st) return;
+        st.className = 'syllabus-status' + (cls ? ' ' + cls : '');
+        st.innerHTML = msg || '';
+      }
+
+      function updateLectureManifestDisplay() {
+        var box = el(editId + '_lectureManifestDisplay');
+        if (!box) return;
+        var count = Number(c._lectureCount || 0) || 0;
+        if (count > 0) {
+          box.innerHTML =
+            '<div style="font-size:9px;color:var(--text-secondary);padding:6px 8px;border-radius:10px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.03);">' +
+            '📚 ' + count + ' lecture' + (count !== 1 ? 's' : '') + ' imported · Context active for grading' +
+            '</div>';
+        } else {
+          box.innerHTML = '';
+        }
+      }
+
+      updateLectureManifestDisplay();
+
+      function importLectureFromText(lectureTitle, rawText) {
+        var trimmed = (rawText || '').trim();
+        if (!trimmed) { toast('Paste text or import a PDF first'); return Promise.resolve(null); }
+
+        setLectureStatus('<span class="af-spinner"></span> Processing lecture...', '');
+
+        return fetch(DISTILL_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Widget-Key': getWidgetKey() },
+          body: JSON.stringify({
+            courseName: c.name,
+            lectureTitle: lectureTitle || 'Lecture',
+            rawText: trimmed,
+            existingSyllabusContext: c.syllabusContext || ''
+          })
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (!data || data.error) {
+            setLectureStatus(esc(data && data.error ? String(data.error) : 'Could not process lecture'), '');
+            return null;
+          }
+
+          if (data.courseDigestUpdate != null && String(data.courseDigestUpdate).trim()) {
+            c.syllabusContext = String(data.courseDigestUpdate).slice(0, 4000);
+            var prevEl = el(editId + '_syllabusPreview');
+            if (prevEl) prevEl.textContent = c.syllabusContext || '';
+            var wrap = el(editId + '_previewWrap');
+            if (wrap && c.syllabusContext) wrap.style.display = '';
+          }
+
+          // Auto-create a module from the distilled topic chunks
+          try {
+            if (data.topicChunks && data.topicChunks.length > 0) {
+              var modTopics = data.topicChunks.map(function(tc) { return tc && tc.topic ? tc.topic : null; }).filter(Boolean);
+              if (modTopics.length > 0) {
+                addModuleToCourse(c.name, {
+                  name: lectureTitle || 'Imported Lecture',
+                  topics: modTopics,
+                  lectureImported: true,
+                  importDate: new Date().toISOString()
+                });
+                renderSidebar();
+              }
+            }
+          } catch (eMod) {}
+
+          c._lectureCount = (Number(c._lectureCount || 0) || 0) + 1;
+          saveCourse(c);
+          updateLectureManifestDisplay();
+
+          var chunkCount = Number(data.totalChunksStored || 0) || 0;
+          setLectureStatus('✓ Imported lecture — ' + chunkCount + ' topic chunk' + (chunkCount !== 1 ? 's' : '') + ' indexed', 'ok');
+
+          if (data.suggestedCards && data.suggestedCards.length) {
+            toast(data.suggestedCards.length + ' card suggestion' + (data.suggestedCards.length !== 1 ? 's' : '') + ' generated');
+            try {
+              var safeCourseKey = String(c.name || '').replace(/[^a-zA-Z0-9]/g, '_');
+              if (typeof SyncEngine !== 'undefined' && SyncEngine.set) {
+                SyncEngine.set(NS, 'pendingLectureSuggestions_' + safeCourseKey, data.suggestedCards);
+              }
+            } catch (e) {}
+          }
+
+          return data;
+        })
+        .catch(function(err) {
+          setLectureStatus('Network error — try again', '');
+          return null;
+        });
+      }
+
+      function handleLectureUrlImport() {
+        var inEl = el(editId + '_lectureUrlInput');
+        var url = inEl ? String(inEl.value || '').trim() : '';
+        if (!url || url.indexOf('http') !== 0) { toast('Paste a valid URL'); return; }
+
+        setLectureStatus('<span class="af-spinner"></span> Fetching page…', '');
+        fetch(FETCH_LECTURE_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Widget-Key': getWidgetKey() },
+          body: JSON.stringify({ url: url })
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (!data || data.error) {
+            setLectureStatus(esc(data && data.error ? String(data.error) : 'Could not fetch URL'), '');
+            return;
+          }
+          if (!data.text || String(data.text).length < 200) {
+            setLectureStatus('Could not extract enough text from this page', '');
+            return;
+          }
+          var title = data.title || (url.split('/').pop() || 'Lecture');
+          importLectureFromText(title, String(data.text));
+        })
+        .catch(function() {
+          setLectureStatus('Network error — try again', '');
+        });
+      }
+
+      function handleLecturePdfImport(file) {
+        if (!file) return;
+        setLectureStatus('<span class="af-spinner"></span> Extracting PDF text…', '');
+        extractPdfText(file).then(function(text) {
+          if (!text || String(text).length < 200) {
+            setLectureStatus('Could not extract enough text from this PDF', '');
+            return;
+          }
+          var title = String(file.name || 'Lecture').replace(/\.pdf$/i, '');
+          importLectureFromText(title, String(text));
+        }).catch(function(err) {
+          setLectureStatus(esc(err && err.message ? err.message : 'Could not read PDF'), '');
+        });
+      }
+
+      var importUrlBtn = el(editId + '_importLectureUrl');
+      if (importUrlBtn) importUrlBtn.addEventListener('click', handleLectureUrlImport);
+
+      var lecturePdfBtn = el(editId + '_importLecturePdfBtn');
+      var lecturePdfFile = el(editId + '_importLecturePdf');
+      if (lecturePdfBtn && lecturePdfFile) {
+        lecturePdfBtn.addEventListener('click', function() { lecturePdfFile.click(); });
+        lecturePdfFile.addEventListener('change', function() {
+          var f = lecturePdfFile.files && lecturePdfFile.files[0];
+          if (!f) return;
+          handleLecturePdfImport(f);
+          lecturePdfFile.value = '';
         });
       }
 
@@ -16006,6 +17535,69 @@ input[type="range"]::-moz-range-thumb{
       wireGlobalTutorNotesUI();
       renderDashboard();
       showView('viewDash');
+
+      // ── Sidebar Init (standalone only) ──
+      if (!isEmbedded) {
+        try { renderSidebar(); } catch (eSb) {}
+        try { updateBreadcrumb(); } catch (eBc) {}
+
+        var collapseBtn = document.getElementById('sidebarCollapseBtn');
+        if (collapseBtn) {
+          collapseBtn.addEventListener('click', function() {
+            var sb = document.getElementById('sidebar');
+            if (sb) sb.classList.toggle('collapsed');
+          });
+        }
+
+        // Footer + topbar actions bridge to existing buttons
+        var sbAdd = document.getElementById('sbAddCard');
+        if (sbAdd) sbAdd.addEventListener('click', function() {
+          var b = el('addBtn');
+          if (b) b.click();
+        });
+        var sbImport = document.getElementById('sbImport');
+        if (sbImport) sbImport.addEventListener('click', function() {
+          var b = el('importBtn');
+          if (b) b.click();
+        });
+        var sbSettings = document.getElementById('sbSettings');
+        if (sbSettings) sbSettings.addEventListener('click', function() {
+          var b = el('gearBtn');
+          if (b) b.click();
+        });
+        var mainAdd = document.getElementById('mainAddCard');
+        if (mainAdd) mainAdd.addEventListener('click', function() {
+          var b = el('addBtn');
+          if (b) b.click();
+        });
+        var mainSet = document.getElementById('mainSettingsBtn');
+        if (mainSet) mainSet.addEventListener('click', function() {
+          var b = el('gearBtn');
+          if (b) b.click();
+        });
+
+        // Main tabs: wire to existing switchNav
+        var mainTabs = document.getElementById('mainTabs');
+        if (mainTabs) {
+          mainTabs.querySelectorAll('.nav-tab').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+              var tab = btn.getAttribute('data-nav');
+              if (tab) switchNav(tab);
+            });
+          });
+        }
+
+        // Refresh sidebar after local state saves
+        if (!window.__seSidebarSaveWrapped) {
+          window.__seSidebarSaveWrapped = true;
+          var _origSaveState = saveState;
+          saveState = function() {
+            _origSaveState();
+            try { renderSidebar(); } catch (eR) {}
+            try { updateBreadcrumb(); } catch (eB) {}
+          };
+        }
+      }
 
       /* Wire retention graph interactivity (after first render) */
       setTimeout(function() {
