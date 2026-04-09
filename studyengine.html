@@ -180,35 +180,116 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 10px 16px;
+      gap: 12px;
+      padding: 14px 18px;
       border-bottom: 1px solid rgba(var(--accent-rgb),0.08);
-      gap: 8px;
+      background:
+        linear-gradient(135deg, rgba(var(--accent-rgb),0.08), rgba(var(--accent-rgb),0.02) 44%, transparent 72%);
+      position: relative;
+      overflow: hidden;
+    }
+    .topbar::after{
+      content: "";
+      position: absolute;
+      inset: auto 16px 0;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(var(--accent-rgb),0.32), rgba(var(--accent-rgb),0.04) 72%, transparent);
+      pointer-events: none;
     }
     .brand{
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 12px;
       min-width: 0;
+      flex: 1 1 auto;
+    }
+    .brand-mark{
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
       flex-shrink: 0;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(255,255,255,0.55), transparent 42%),
+        linear-gradient(145deg, rgba(var(--accent-rgb),0.24), rgba(var(--accent-rgb),0.08));
+      border: 1px solid rgba(var(--accent-rgb),0.16);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.18),
+        0 10px 24px rgba(var(--accent-rgb),0.14);
+    }
+    .brand-mark::after{
+      content: "";
+      position: absolute;
+      inset: 5px;
+      border-radius: 11px;
+      border: 1px solid rgba(var(--accent-rgb),0.10);
+      pointer-events: none;
     }
     .logo{
-      width: 28px; height: 28px;
+      width: 28px;
+      height: 28px;
       border-radius: 10px;
       flex-shrink: 0;
       image-rendering: pixelated;
     }
-    .brand h1{
-      font-size: 11px;
-      letter-spacing: 1.8px;
+    .brand-copy{
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .brand-kicker{
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 8px;
+      letter-spacing: 2.2px;
       text-transform: uppercase;
       font-weight: 800;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+    .brand-kicker::before{
+      content: "";
+      width: 16px;
+      height: 1px;
+      border-radius: 99px;
+      background: rgba(var(--accent-rgb),0.48);
+    }
+    .brand h1{
+      font-size: 13px;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      font-weight: 900;
       color: var(--text);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      line-height: 1.05;
     }
     .brand .sub{
-      display: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      font-size: 9px;
+      color: var(--text-secondary);
+      letter-spacing: 0.3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .brand .sub::before{
+      content: "";
+      width: 5px;
+      height: 5px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(var(--accent-rgb),0.12);
+      flex-shrink: 0;
     }
 
     /* ── CSS SECTION: Top Navigation ── */
@@ -265,6 +346,40 @@
       transition: transform var(--transition), background var(--transition), border-color var(--transition);
       font-size: 12px;
       line-height: 1;
+    }
+    @media (max-width: 640px){
+      .topbar{
+        padding: 12px 14px;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .brand{
+        min-width: 0;
+      }
+      .brand-mark{
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+      }
+      .brand-kicker{
+        font-size: 7px;
+        letter-spacing: 1.8px;
+      }
+      .brand h1{
+        font-size: 11px;
+        letter-spacing: 1.3px;
+      }
+      .brand .sub{
+        font-size: 8px;
+      }
+      .nav-tabs{
+        order: 3;
+        width: 100%;
+        justify-content: center;
+      }
+      .topbar-right{
+        margin-left: auto;
+      }
     }
     .icon-btn:hover{ transform: translateY(-1px); border-color: rgba(var(--accent-rgb),0.28); background: rgba(var(--accent-rgb),0.10); }
     .icon-btn:active{ transform: translateY(0) scale(0.98); }
@@ -6048,8 +6163,14 @@ input[type="range"]::-moz-range-thumb{
             <div class="card" id="rootCard">
         <div class="topbar">
           <div class="brand">
-            <canvas id="mascotCanvas" class="logo" width="28" height="28"></canvas>
-            <h1>Study Engine</h1>
+            <div class="brand-mark" aria-hidden="true">
+              <canvas id="mascotCanvas" class="logo" width="28" height="28"></canvas>
+            </div>
+            <div class="brand-copy">
+              <div class="brand-kicker">Adaptive recall desk</div>
+              <h1>Study Engine</h1>
+              <div class="sub">Focus dashboard for spaced retrieval</div>
+            </div>
           </div>
           <div class="nav-tabs">
             <button class="nav-tab active" data-nav="home" id="navHome">Home</button>
