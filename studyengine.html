@@ -4421,6 +4421,52 @@ input[type="range"]::-moz-range-thumb{
       font-size: 8px;
       color: var(--text-tertiary);
     }
+    /* ── Quick Fire insight mini-input ── */
+    .qf-insight-ta{
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(var(--accent-rgb),0.2);
+      background: rgba(var(--accent-rgb),0.04);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 11px;
+      line-height: 1.5;
+      resize: none;
+      outline: none;
+      transition: border-color var(--transition);
+    }
+    .qf-insight-ta:focus{
+      border-color: rgba(var(--accent-rgb),0.4);
+    }
+    .qf-insight-input-row{
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+    }
+    .qf-insight-send{
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      border: 1px solid rgba(var(--accent-rgb),0.2);
+      background: rgba(var(--accent-rgb),0.08);
+      color: var(--text);
+      font-size: 14px;
+      cursor: pointer;
+      transition: background var(--transition), transform var(--transition);
+    }
+    .qf-insight-send:hover{
+      background: rgba(var(--accent-rgb),0.15);
+      transform: translateY(-1px);
+    }
+    .qf-insight-answer{
+      margin-top: 10px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(34,197,94,0.2);
+      background: rgba(34,197,94,0.04);
+    }
     .tutor-typing{
       align-self: flex-start;
       display: inline-flex;
@@ -7249,9 +7295,7 @@ input[type="range"]::-moz-range-thumb{
 
       tierArea.innerHTML = '';
       if (tier === 'quickfire') {
-        var qfVisual = it.visual ? renderMermaidBlock(it.visual, 'prompt', it.id) : '';
         tierArea.innerHTML =
-          qfVisual +
           '<div class="confidence-prompt">' +
             '<div class="confidence-label">How confident are you?</div>' +
             '<div class="confidence-pills">' +
@@ -8973,22 +9017,58 @@ input[type="range"]::-moz-range-thumb{
 
     function buildInsightUI(container, data) {
       var h = '<div class="quick-feedback">';
-      h += '<div class="qf-section"><div class="qf-label bridge">💡 Key anchor</div>';
-      h += '<div class="qf-text">' + esc(data.insight || '') + '</div></div>';
+      h += '<div class="qf-section-label">💡 Key anchor</div>';
+      h += '<div class="qf-section-body">' + esc(data.insight || '') + '</div>';
       if (data.followUpQuestion) {
-        h += '<div class="qf-check" id="qfInsightCheck">';
-        h += '<div class="qf-check-label">Self-check — tap to reveal</div>';
-        h += '<div class="qf-check-q">' + esc(data.followUpQuestion) + '</div>';
-        h += '<div class="qf-check-a">' + esc(data.followUpAnswer || '') + '</div>';
+        h += '<div class="qf-insight-interact" id="qfInsightInteract">';
+        h += '<div class="qf-section-label" style="margin-top:12px;">🧠 Quick check</div>';
+        h += '<div class="qf-section-body" style="margin-bottom:8px;">' + esc(data.followUpQuestion) + '</div>';
+        h += '<div class="qf-insight-input-row" id="qfInsightInputRow">';
+        h += '<textarea id="qfInsightInput" class="qf-insight-ta" placeholder="Type your answer…" rows="2"></textarea>';
+        h += '<button type="button" id="qfInsightSend" class="qf-insight-send">→</button>';
+        h += '</div>';
+        h += '<div class="qf-insight-answer" id="qfInsightAnswer" style="display:none;">';
+        h += '<div class="qf-section-label" style="color:var(--rate-good);">✓ Answer</div>';
+        h += '<div class="qf-section-body">' + esc(data.followUpAnswer || '') + '</div>';
+        h += '</div>';
         h += '</div>';
       }
       h += '</div>';
       container.innerHTML = h;
-      var qfI = document.getElementById('qfInsightCheck');
-      if (qfI) {
-        qfI.addEventListener('click', function() {
-          this.classList.add('revealed');
-          try { playClick(); } catch (e6) {}
+
+      var inputRow = document.getElementById('qfInsightInputRow');
+      var ta = document.getElementById('qfInsightInput');
+      var sendBtn = document.getElementById('qfInsightSend');
+      var answerDiv = document.getElementById('qfInsightAnswer');
+
+      function revealInsightAnswer() {
+        if (!ta || !answerDiv) return;
+        if (inputRow) inputRow.style.display = 'none';
+        answerDiv.style.display = 'block';
+        if (window.gsap) {
+          gsap.fromTo(answerDiv, { opacity: 0, y: 4 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
+        }
+        try { playClick(); } catch (e6) {}
+      }
+
+      if (sendBtn) {
+        sendBtn.addEventListener('click', function() {
+          var text = ta ? ta.value.trim() : '';
+          if (!text) return;
+          revealInsightAnswer();
+        });
+      }
+      if (ta) {
+        ta.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            var text = ta.value.trim();
+            if (!text) return;
+            revealInsightAnswer();
+          }
+        });
+        ta.addEventListener('keydown', function(e) {
+          e.stopPropagation();
         });
       }
       if (window.gsap && container.querySelector('.quick-feedback')) {
@@ -10473,6 +10553,8 @@ input[type="range"]::-moz-range-thumb{
       /* Also block shortcuts when typing in Ask the Tutor input */
       var askTutorInput = document.getElementById('askTutorInput');
       var askTutorBlocking = askTutorInput && !askTutorInput.disabled && document.activeElement === askTutorInput;
+      var qfInsightInput = document.getElementById('qfInsightInput');
+      if (document.activeElement && qfInsightInput && document.activeElement.id === 'qfInsightInput') return;
       if (askTutorBlocking) tutorBlocking = true;
 
       if (e.key === ' ' && !inText) {
