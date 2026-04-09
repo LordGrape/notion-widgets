@@ -185,9 +185,21 @@ export default {
           return lines.join("\n");
         }
 
+        const tutorVoice = body.tutorVoice === "supportive" ? "supportive" : "rigorous";
+        const supportiveVoiceBlock =
+          tutorVoice === "supportive"
+            ? `\n\nVOICE MODIFIER — SUPPORTIVE MODE:\n\n` +
+              "Adjust your tone to be warmer and more encouraging. Still be substantive — never give empty praise.\n\n" +
+              "But lead with what the student got right before addressing gaps. Use phrases like \"You're on the right track\" " +
+              'and "Let\'s build on that." When asking follow-up questions, frame them as collaborative ("Let\'s think about...") ' +
+              'rather than challenging ("Why didn\'t you consider..."). The student still needs to do the thinking — you\'re ' +
+              "just creating a warmer environment for it.\n"
+            : "";
+
         const learnerProfileBlock = formatLearnerProfileBlock(context.learner, item);
         const examContextBlock = formatExamContextBlock(context.courseContext);
-        const systemPromptAugmented = systemPrompt + learnerProfileBlock + examContextBlock;
+        const systemPromptAugmented =
+          systemPrompt + supportiveVoiceBlock + learnerProfileBlock + examContextBlock;
 
         const modeInstructionsBase = {
           socratic:
@@ -656,6 +668,246 @@ export default {
       } catch (e) {
         return new Response(JSON.stringify({ action: null }), {
           status: 200, headers: { ...memCorsHeaders, "Content-Type": "application/json" }
+        });
+      }
+    }
+
+    // ── Session summary (Flash, plain text) ──
+    if (url.pathname === "/studyengine/summary") {
+      const sumCorsHeaders = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, X-Widget-Key",
+        "Access-Control-Max-Age": "86400"
+      };
+
+      if (request.method !== "POST") {
+        return new Response(JSON.stringify({ error: "Method not allowed" }), {
+          status: 405, headers: { ...sumCorsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      try {
+        const body = await request.json();
+        const userName = String(body.userName || "there").trim() || "there";
+        const sessionStats = body.sessionStats && typeof body.sessionStats === "object" ? body.sessionStats : {};
+        const weakCards = Array.isArray(body.weakCards) ? body.weakCards : [];
+        const strongCards = Array.isArray(body.strongCards) ? body.strongCards : [];
+        const calibrationBefore =
+          body.calibrationBefore != null && !Number.isNaN(Number(body.calibrationBefore))
+            ? Number(body.calibrationBefore)
+            : null;
+        const calibrationAfter =
+          body.calibrationAfter != null && !Number.isNaN(Number(body.calibrationAfter))
+            ? Number(body.calibrationAfter)
+            : null;
+
+        const totalCards = Number(sessionStats.totalCards) || 0;
+        const avgRating = Number(sessionStats.avgRating) || 0;
+        const dist = sessionStats.ratingDistribution || {};
+        const courses = sessionStats.courseBreakdown || {};
+        const dontKnows = Number(sessionStats.dontKnows) || 0;
+        const skips = Number(sessionStats.skips) || 0;
+        const tutorModes = sessionStats.tutorModes || {};
+
+        const weakLine =
+          weakCards.length > 0
+            ? `- Struggled with: ${weakCards
+                .map((c) => `${c.topic || "General"} (${String(c.prompt || "").substring(0, 60)})`)
+                .join("; ")}`
+            : "";
+        const strongLine =
+          strongCards.length > 0
+            ? `- Strong on: ${strongCards.map((c) => c.topic || "General").join(", ")}`
+            : "";
+
+        const calLine =
+          calibrationBefore != null && calibrationAfter != null
+            ? `- Calibration: was ${Math.round(calibrationBefore * 100)}%, now ${Math.round(calibrationAfter * 100)}%`
+            : "- Calibration: Not enough data";
+
+        const summaryPrompt =
+          `You are generating a brief session summary for a study engine. Be specific and actionable.\n\n` +
+          `STUDENT: ${userName}\n\n` +
+          `SESSION DATA:\n` +
+          `- ${totalCards} cards reviewed\n` +
+          `- Average rating: ${avgRating.toFixed(1)} (1=Again, 4=Easy)\n` +
+          `- Rating distribution: ${JSON.stringify(dist)}\n` +
+          `- Courses: ${JSON.stringify(courses)}\n` +
+          `- Don't Knows: ${dontKnows}\n` +
+          `- Skipped dialogues: ${skips}\n` +
+          `- Tutor modes used: ${JSON.stringify(tutorModes)}\n` +
+          `${weakLine ? weakLine + "\n" : ""}` +
+          `${strongLine ? strongLine + "\n" : ""}` +
+          `${calLine}\n\n` +
+          "Write a 3-4 sentence summary that:\n" +
+          "1. Highlights what went well (cite specific topics)\n" +
+          "2. Identifies the key weakness or pattern (cite specific topics or card types)\n" +
+          "3. Gives one specific, actionable suggestion for the next session\n" +
+          "4. Notes calibration change if meaningful\n\n" +
+          "Keep it concise and direct. No fluff. Address the student by name once.\n\n" +
+          "Respond as plain text (NOT JSON). Just the summary paragraph.";
+
+        const sumUrl =
+          "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" +
+          env.GEMINI_API_KEY;
+
+        const sumRes = await fetch(sumUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: summaryPrompt }] }],
+            generationConfig: { temperature: 0.4, maxOutputTokens: 512 }
+          })
+        });
+
+        if (!sumRes.ok) {
+          const errText = await sumRes.text();
+          return new Response(JSON.stringify({ error: "Gemini API error", detail: errText }), {
+            status: 502, headers: { ...sumCorsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
+        const sumData = await sumRes.json();
+        const summaryText = String(sumData?.candidates?.[0]?.content?.parts?.[0]?.text || "").trim();
+        if (!summaryText) {
+          return new Response(JSON.stringify({ error: "Empty summary" }), {
+            status: 500, headers: { ...sumCorsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
+        return new Response(JSON.stringify({ summary: summaryText }), {
+          status: 200, headers: { ...sumCorsHeaders, "Content-Type": "application/json" }
+        });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: "Summary failed", detail: e.message }), {
+          status: 500, headers: { ...sumCorsHeaders, "Content-Type": "application/json" }
+        });
+      }
+    }
+
+    // ── Auto-prepare course context from imported cards (Flash) ──
+    if (url.pathname === "/studyengine/prepare") {
+      const prepCorsHeaders = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, X-Widget-Key",
+        "Access-Control-Max-Age": "86400"
+      };
+
+      if (request.method !== "POST") {
+        return new Response(JSON.stringify({ error: "Method not allowed" }), {
+          status: 405, headers: { ...prepCorsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      function cleanJsonPrep(s) {
+        s = s.replace(/^[\s\S]*?(?=\{)/m, "");
+        s = s.replace(/\}[\s\S]*$/, "}");
+        s = s.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
+        s = s.replace(/,\s*([\]}])/g, "$1");
+        s = s.replace(/[\x00-\x1f]/g, " ");
+        return s;
+      }
+      function tryParsePrep(s) {
+        try {
+          return JSON.parse(s);
+        } catch (e) {
+          return null;
+        }
+      }
+
+      try {
+        const body = await request.json();
+        const courseName = body.courseName != null ? String(body.courseName).trim() : "";
+        let cards = Array.isArray(body.cards) ? body.cards : [];
+        const existingCourseContext =
+          body.existingCourseContext && typeof body.existingCourseContext === "object"
+            ? body.existingCourseContext
+            : {};
+
+        if (!courseName || cards.length < 1) {
+          return new Response(JSON.stringify({ error: "courseName and cards (min 1) required" }), {
+            status: 400, headers: { ...prepCorsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
+        cards = cards.slice(0, 50);
+        const sampleBlock = cards
+          .map((c, i) => {
+            const p = String(c.prompt != null ? c.prompt : "").substring(0, 200);
+            const top = c.topic != null ? String(c.topic) : "General";
+            return `${i + 1}. [${top}] ${p}`;
+          })
+          .join("\n");
+
+        const prepPrompt =
+          `You are analysing a batch of study cards just imported into a spaced repetition study engine.\n\n` +
+          `COURSE: ${courseName}\n` +
+          `NUMBER OF CARDS: ${cards.length}\n` +
+          `EXISTING COURSE CONTEXT: ${existingCourseContext.syllabusContext || "None yet"}\n\n` +
+          `SAMPLE CARDS (up to 50):\n${sampleBlock}\n\n` +
+          `Analyse this batch and produce:\n` +
+          `1. If no existing syllabusContext: infer a 2-3 sentence course scope summary from the card topics and prompts.\n` +
+          `2. Identify the key topics/themes present in this batch.\n` +
+          `3. Generate 1-2 initial learner observations useful for an AI tutor (e.g., "This batch is heavily weighted toward application questions" or "Cards span 6 topics — initial sessions should reveal weak areas").\n` +
+          `4. A one-line summary for the user.\n\n` +
+          `Respond in EXACT JSON:\n` +
+          `{\n` +
+          `  "syllabusContext": "2-3 sentence inferred scope, or null if existing is adequate",\n` +
+          `  "keyTopics": ["topic1", "topic2"],\n` +
+          `  "initialMemories": [\n` +
+          `    { "type": "pattern", "content": "under 200 chars", "scope": "course", "confidence": 0.3 }\n` +
+          `  ],\n` +
+          `  "userSummary": "Imported X cards across Y topics. Key themes: ..."\n` +
+          `}\n`;
+
+        const prepUrl =
+          "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" +
+          env.GEMINI_API_KEY;
+
+        const prepRes = await fetch(prepUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prepPrompt }] }],
+            generationConfig: {
+              temperature: 0.35,
+              maxOutputTokens: 2048,
+              responseMimeType: "application/json"
+            }
+          })
+        });
+
+        if (!prepRes.ok) {
+          const errText = await prepRes.text();
+          return new Response(JSON.stringify({ error: "Gemini API error", detail: errText }), {
+            status: 502, headers: { ...prepCorsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
+        const prepData = await prepRes.json();
+        const prepRaw = prepData?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+        let parsedPrep =
+          tryParsePrep(prepRaw) ||
+          tryParsePrep(cleanJsonPrep(prepRaw)) ||
+          (() => {
+            const m = prepRaw.match(/\{[\s\S]*\}/);
+            return m ? tryParsePrep(cleanJsonPrep(m[0])) : null;
+          })();
+
+        if (!parsedPrep || typeof parsedPrep !== "object") {
+          return new Response(JSON.stringify({ error: "Failed to parse prepare response" }), {
+            status: 500, headers: { ...prepCorsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
+        return new Response(JSON.stringify(parsedPrep), {
+          status: 200, headers: { ...prepCorsHeaders, "Content-Type": "application/json" }
+        });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: "Prepare failed", detail: e.message }), {
+          status: 500, headers: { ...prepCorsHeaders, "Content-Type": "application/json" }
         });
       }
     }
