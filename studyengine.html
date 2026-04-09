@@ -7162,7 +7162,7 @@ input[type="range"]::-moz-range-thumb{
           proM += row.proCalls || 0;
         }
       });
-      var cost = flashM * 0.0007 + proM * 0.004;
+      var cost = flashM * 0.0003 + proM * 0.002;
       var costStr = cost < 0.01 && cost > 0 ? '<$0.01' : '$' + cost.toFixed(2);
       box.textContent = 'This month: ' + flashM + ' Flash / ' + proM + ' Pro calls · Estimated cost: ~' + costStr;
     }
