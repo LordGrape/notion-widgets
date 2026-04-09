@@ -1470,6 +1470,149 @@
       color: var(--text-tertiary);
       animation: subtlePulse 2s ease-in-out infinite;
     }
+    .visual-container{
+      cursor: pointer;
+    }
+    .visual-container::after{
+      content: '🔍';
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      font-size: 14px;
+      opacity: 0;
+      transition: opacity 200ms ease;
+      pointer-events: none;
+    }
+    .visual-container:hover::after{
+      opacity: 0.6;
+    }
+
+    /* ── Visual Lightbox ── */
+    .visual-lightbox-overlay{
+      position: fixed;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.70);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      z-index: 200;
+      padding: 20px;
+    }
+    .visual-lightbox-overlay.show{
+      display: flex;
+    }
+    .visual-lightbox-header{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 900px;
+      margin-bottom: 12px;
+    }
+    .visual-lightbox-title{
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .visual-lightbox-close{
+      appearance: none;
+      border: 1px solid rgba(var(--accent-rgb),0.25);
+      background: rgba(var(--accent-rgb),0.08);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 8px 14px;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 200ms ease, transform 200ms ease;
+    }
+    .visual-lightbox-close:hover{
+      background: rgba(var(--accent-rgb),0.14);
+      transform: translateY(-1px);
+    }
+    .visual-lightbox-body{
+      width: 100%;
+      max-width: 900px;
+      max-height: calc(100vh - 140px);
+      overflow: auto;
+      border-radius: 18px;
+      background: var(--card-bg);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      border: 1px solid var(--card-border);
+      box-shadow: var(--shadow);
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: none;
+      cursor: grab;
+    }
+    .visual-lightbox-body:active{
+      cursor: grabbing;
+    }
+    .visual-lightbox-body svg{
+      max-width: 100%;
+      height: auto;
+      width: auto;
+      border-radius: 10px;
+      transition: transform 120ms ease;
+    }
+    .visual-lightbox-hint{
+      margin-top: 10px;
+      font-size: 8px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.4);
+    }
+
+    /* ── TTS Listen Button ── */
+    .listen-tts-btn{
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+      padding: 7px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(var(--accent-rgb),0.16);
+      background: rgba(var(--accent-rgb),0.05);
+      color: var(--text-secondary);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 200ms ease, border-color 200ms ease, color 200ms ease, transform 200ms ease;
+    }
+    .listen-tts-btn:hover{
+      background: rgba(var(--accent-rgb),0.10);
+      border-color: rgba(var(--accent-rgb),0.28);
+      color: var(--text);
+      transform: translateY(-1px);
+    }
+    .listen-tts-btn:active{
+      transform: translateY(0) scale(0.98);
+    }
+    .listen-tts-btn.playing{
+      background: rgba(239,68,68,0.08);
+      border-color: rgba(239,68,68,0.25);
+      color: var(--rate-again);
+      animation: listenPulse 1.5s ease-in-out infinite;
+    }
+    @keyframes listenPulse{
+      0%,100%{ box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+      50%{ box-shadow: 0 0 0 4px rgba(239,68,68,0.12); }
+    }
 
     /* ── Markdown content inside cards ── */
     .md-content p{ margin: 0 0 8px; }
@@ -5866,7 +6009,46 @@ input[type="range"]::-moz-range-thumb{
         try { ttsCurrentSource.stop(); } catch (e) {}
         ttsCurrentSource = null;
       }
+      document.querySelectorAll('.listen-tts-btn.playing').forEach(function(btn) {
+        btn.classList.remove('playing');
+        btn.innerHTML = '🔊 Listen';
+      });
     }
+
+    function insertListenButton(targetEl, text) {
+      if (!targetEl || !text || text.length < 10) return;
+      if (!targetEl.parentElement) return;
+      if (targetEl.parentElement.querySelector('.listen-tts-btn')) return;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'listen-tts-btn';
+      btn.setAttribute('aria-label', 'Listen to answer');
+      btn.innerHTML = '🔊 Listen';
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (btn.classList.contains('playing')) {
+          stopTTS();
+          return;
+        }
+        stopTTS();
+        btn.classList.add('playing');
+        btn.innerHTML = '⏹ Stop';
+        playTTS(text).then(function() {
+          if (!btn.isConnected) return;
+          btn.classList.remove('playing');
+          btn.innerHTML = '🔊 Listen';
+        });
+      });
+      targetEl.insertAdjacentElement('afterend', btn);
+      if (window.gsap) {
+        gsap.fromTo(btn, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.25, ease: 'power2.out' });
+      }
+    }
+
+    document.addEventListener('visibilitychange', function() {
+      if (document.hidden) stopTTS();
+    });
 
     async function generateVisual(item) {
       if (!item || !item.prompt || !item.modelAnswer) return null;
@@ -5898,6 +6080,113 @@ input[type="range"]::-moz-range-thumb{
 
     var mermaidIdCounter = 0;
     var visualGenerationPending = {};
+
+    /* ── Visual Lightbox (click-to-expand) ── */
+    var lightboxZoom = 1;
+    var lightboxPanX = 0;
+    var lightboxPanY = 0;
+    var lightboxDragging = false;
+    var lightboxLastX = 0;
+    var lightboxLastY = 0;
+
+    function applyLightboxTransform(body) {
+      var svg = body && body.querySelector('svg');
+      if (!svg) return;
+      svg.style.transform = 'translate(' + lightboxPanX + 'px,' + lightboxPanY + 'px) scale(' + lightboxZoom + ')';
+      svg.style.transformOrigin = 'center center';
+    }
+
+    function openVisualLightbox(svgHTML) {
+      var ov = el('visualLightbox');
+      var body = el('visualLightboxBody');
+      if (!ov || !body) return;
+      body.innerHTML = svgHTML;
+      lightboxZoom = 1;
+      lightboxPanX = 0;
+      lightboxPanY = 0;
+      applyLightboxTransform(body);
+      ov.classList.add('show');
+      ov.setAttribute('aria-hidden', 'false');
+      try { playOpen(); } catch (e) {}
+    }
+
+    function closeVisualLightbox() {
+      var ov = el('visualLightbox');
+      if (!ov) return;
+      ov.classList.remove('show');
+      ov.setAttribute('aria-hidden', 'true');
+      try { playClose(); } catch (e) {}
+    }
+
+    (function wireVisualLightbox() {
+      document.addEventListener('click', function(e) {
+        var closeBtn = e.target.closest('#visualLightboxClose');
+        if (closeBtn) {
+          e.preventDefault();
+          closeVisualLightbox();
+          return;
+        }
+        var ov = el('visualLightbox');
+        if (ov && e.target === ov) {
+          closeVisualLightbox();
+          return;
+        }
+        var vc = e.target.closest('.visual-container');
+        if (!vc) return;
+        var svg = vc.querySelector('.mermaid-render svg');
+        if (!svg) return;
+        e.preventDefault();
+        e.stopPropagation();
+        openVisualLightbox(svg.outerHTML);
+      });
+
+      document.addEventListener('wheel', function(e) {
+        var body = el('visualLightboxBody');
+        var ov = el('visualLightbox');
+        if (!body || !ov || !ov.classList.contains('show')) return;
+        if (!body.contains(e.target)) return;
+        e.preventDefault();
+        var delta = e.deltaY > 0 ? -0.1 : 0.1;
+        lightboxZoom = Math.max(0.5, Math.min(4, lightboxZoom + delta));
+        applyLightboxTransform(body);
+      }, { passive: false });
+
+      document.addEventListener('mousedown', function(e) {
+        var body = el('visualLightboxBody');
+        var ov = el('visualLightbox');
+        if (!body || !ov || !ov.classList.contains('show')) return;
+        if (!body.contains(e.target)) return;
+        lightboxDragging = true;
+        lightboxLastX = e.clientX;
+        lightboxLastY = e.clientY;
+      });
+
+      document.addEventListener('mousemove', function(e) {
+        if (!lightboxDragging) return;
+        var body = el('visualLightboxBody');
+        if (!body) return;
+        var dx = (e.clientX - lightboxLastX);
+        var dy = (e.clientY - lightboxLastY);
+        lightboxPanX += dx;
+        lightboxPanY += dy;
+        lightboxLastX = e.clientX;
+        lightboxLastY = e.clientY;
+        applyLightboxTransform(body);
+      });
+
+      document.addEventListener('mouseup', function() {
+        lightboxDragging = false;
+      });
+
+      document.addEventListener('keydown', function(e) {
+        var ov = el('visualLightbox');
+        if (e.key === 'Escape' && ov && ov.classList.contains('show')) {
+          closeVisualLightbox();
+          e.stopPropagation();
+        }
+      }, true);
+    })();
+
     function renderMermaidBlock(mermaidCode, placement, itemId) {
       if (!mermaidCode) return '';
       var id = 'mermaid-' + (++mermaidIdCounter);
@@ -8746,40 +9035,8 @@ input[type="range"]::-moz-range-thumb{
       else ensureAnswerVisual(it, revealTier);
 
       try { playClick(); } catch (e) {}
-
-      var rm = settings.revealMode || 'auto';
-      if (rm === 'audio' || rm === 'both') {
-        playTTS(it.modelAnswer || '');
-      } else if (rm === 'auto' && revealTier !== 'quickfire') {
-        var answerContainer = document.getElementById('modelAnswerRight') || document.getElementById('revealColumnsWrap');
-        if (answerContainer) {
-          var listenBtn = document.createElement('button');
-          listenBtn.type = 'button';
-          listenBtn.className = 'ghost-btn listen-tts-btn';
-          listenBtn.innerHTML = '🔊 Listen to Answer';
-          listenBtn.setAttribute('aria-label', 'Listen to model answer');
-          listenBtn.style.cssText = 'margin-top:10px;display:inline-flex;align-items:center;gap:6px;padding:8px 14px;font-size:10px;min-width:auto;flex:none;';
-          listenBtn.addEventListener('click', function() {
-            var text = it.modelAnswer || '';
-            listenBtn.innerHTML = '🔊 Playing...';
-            listenBtn.disabled = true;
-            listenBtn.style.opacity = '0.6';
-            playTTS(text).then(function() {
-              listenBtn.innerHTML = '🔊 Listen Again';
-              listenBtn.disabled = false;
-              listenBtn.style.opacity = '1';
-            });
-          });
-          if (ratingsEl && ratingsEl.parentNode) {
-            ratingsEl.parentNode.insertBefore(listenBtn, ratingsEl);
-          } else {
-            answerContainer.appendChild(listenBtn);
-          }
-          if (window.gsap) {
-            gsap.fromTo(listenBtn, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
-          }
-        }
-      }
+      var rightAnswerEl = el('modelAnswerRight');
+      if (rightAnswerEl && it.modelAnswer) insertListenButton(rightAnswerEl, it.modelAnswer);
 
       var fbArea = document.getElementById('aiFeedbackRight');
       if (!fbArea) return;
@@ -8910,14 +9167,7 @@ input[type="range"]::-moz-range-thumb{
         else ensureAnswerVisual(it, revealTier);
         ratingsEl.style.display = 'grid';
         try { playClick(); } catch(e) {}
-        var rmQf = settings.revealMode || 'auto';
-        if (rmQf === 'auto') {
-          if (revealTier === 'quickfire') {
-            playTTS(it.modelAnswer || '');
-          }
-        } else if (rmQf === 'audio' || rmQf === 'both') {
-          playTTS(it.modelAnswer || '');
-        }
+        if (it.modelAnswer) insertListenButton(modelAnswerEl, it.modelAnswer);
         var qfFbMode = selectFeedbackMode(it, session);
         var qfInsightEl = el('aiFeedbackArea');
         if (qfInsightEl) qfInsightEl.innerHTML = '';
@@ -8979,41 +9229,8 @@ input[type="range"]::-moz-range-thumb{
       else ensureAnswerVisual(it, revealTier);
 
       try { playClick(); } catch(e) {}
-      var rm = settings.revealMode || 'auto';
-      if (rm === 'audio' || rm === 'both') {
-        playTTS(it.modelAnswer || '');
-      }
-
-      if (rm === 'auto' && revealTier !== 'quickfire') {
-        var answerContainer = document.getElementById('modelAnswerRight') || document.getElementById('revealColumnsWrap') || document.querySelector('.reveal-columns');
-        if (answerContainer) {
-          var listenBtn = document.createElement('button');
-          listenBtn.type = 'button';
-          listenBtn.className = 'ghost-btn listen-tts-btn';
-          listenBtn.innerHTML = '🔊 Listen to Answer';
-          listenBtn.setAttribute('aria-label', 'Listen to model answer');
-          listenBtn.style.cssText = 'margin-top:10px;display:inline-flex;align-items:center;gap:6px;padding:8px 14px;font-size:10px;min-width:auto;flex:none;';
-          listenBtn.addEventListener('click', function() {
-            var text = it.modelAnswer || '';
-            listenBtn.innerHTML = '🔊 Playing...';
-            listenBtn.disabled = true;
-            listenBtn.style.opacity = '0.6';
-            playTTS(text).then(function() {
-              listenBtn.innerHTML = '🔊 Listen Again';
-              listenBtn.disabled = false;
-              listenBtn.style.opacity = '1';
-            });
-          });
-          if (ratingsEl && ratingsEl.parentNode) {
-            ratingsEl.parentNode.insertBefore(listenBtn, ratingsEl);
-          } else {
-            answerContainer.appendChild(listenBtn);
-          }
-          if (window.gsap) {
-            gsap.fromTo(listenBtn, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
-          }
-        }
-      }
+      var rightAnswerEl = el('modelAnswerRight');
+      if (rightAnswerEl && it.modelAnswer) insertListenButton(rightAnswerEl, it.modelAnswer);
 
       /* If user wrote nothing, skip AI and show self-rate */
       if (!userText) {
@@ -14129,6 +14346,14 @@ input[type="range"]::-moz-range-thumb{
     <div class="ct-day" id="ctDay"></div>
     <div class="ct-ret" id="ctRet"></div>
     <div class="ct-course" id="ctCourse"></div>
+  </div>
+  <div id="visualLightbox" class="visual-lightbox-overlay" aria-hidden="true">
+    <div class="visual-lightbox-header">
+      <div class="visual-lightbox-title">◆ Visual Cue</div>
+      <button class="visual-lightbox-close" id="visualLightboxClose" type="button">✕ Close</button>
+    </div>
+    <div class="visual-lightbox-body" id="visualLightboxBody"></div>
+    <div class="visual-lightbox-hint">Pinch to zoom · Drag to pan · Scroll to zoom</div>
   </div>
 </body>
 </html>
