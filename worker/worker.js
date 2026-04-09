@@ -21,11 +21,8 @@ export default {
 
     // ── AI Grading Route ──
     if (url.pathname === "/studyengine/grade") {
-      const origin = request.headers.get("Origin") || "";
-      const allowedOrigins = ["https://lordgrape.github.io", "http://localhost", "http://127.0.0.1"];
-      const isAllowed = allowedOrigins.some(o => origin.startsWith(o));
       const gradeCorsHeaders = {
-        "Access-Control-Allow-Origin": isAllowed ? origin : "https://lordgrape.github.io",
+        "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, X-Widget-Key",
         "Access-Control-Max-Age": "86400"
@@ -316,11 +313,8 @@ Respond in this EXACT JSON format and nothing else:
 
     // ── Visual Generation Route ──
     if (url.pathname === "/studyengine/visual") {
-      const origin = request.headers.get("Origin") || "";
-      const allowedOrigins = ["https://lordgrape.github.io", "http://localhost", "http://127.0.0.1"];
-      const isAllowed = allowedOrigins.some(o => origin.startsWith(o));
       const visCorsHeaders = {
-        "Access-Control-Allow-Origin": isAllowed ? origin : "https://lordgrape.github.io",
+        "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, X-Widget-Key",
         "Access-Control-Max-Age": "86400"
@@ -452,11 +446,8 @@ graph TD
 
     // ── TTS Audio Route ──
     if (url.pathname === "/studyengine/tts") {
-      const origin = request.headers.get("Origin") || "";
-      const allowedOrigins = ["https://lordgrape.github.io", "http://localhost", "http://127.0.0.1"];
-      const isAllowed = allowedOrigins.some(o => origin.startsWith(o));
       const ttsCorsHeaders = {
-        "Access-Control-Allow-Origin": isAllowed ? origin : "https://lordgrape.github.io",
+        "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, X-Widget-Key",
         "Access-Control-Max-Age": "86400"
