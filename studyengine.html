@@ -519,8 +519,34 @@
       grid-template-columns: 1fr 1fr 1fr;
       gap: 10px;
       margin-top: 2px;
-      margin-bottom: 14px;
+      margin-bottom: 0;
       text-align: left;
+    }
+    .tutor-cal-row{
+      display: flex;
+      gap: 12px;
+      align-items: stretch;
+      margin-bottom: 14px;
+    }
+    .tutor-cal-left{
+      flex: 1;
+      min-width: 0;
+    }
+    .tutor-cal-right{
+      flex: 0 0 auto;
+      display: flex;
+      align-items: stretch;
+    }
+    .tutor-cal-right .gauge{
+      margin: 0;
+      height: 100%;
+      display: flex;
+      align-items: center;
+    }
+    @media (max-width: 520px){
+      .tutor-cal-row{
+        flex-direction: column;
+      }
     }
 
     .cost-estimate{
@@ -4327,39 +4353,44 @@ input[type="range"]::-moz-range-thumb{
                 </div>
               </div>
 
-              <div style="font-size:8px;letter-spacing:1.6px;text-transform:uppercase;color:var(--text-secondary);font-weight:700;margin-top:8px;margin-bottom:6px;padding:0 2px;display:flex;align-items:center;gap:8px;">
-                <span style="flex:0 0 3px;height:14px;border-radius:99px;background:var(--accent);"></span>
-                Tutor stats
-              </div>
-              <div class="tutor-stats-row" id="tutorStatsRow">
-                <div class="stat">
-                  <div class="k">Avg dialogue turns</div>
-                  <div class="v" id="tutorStatAvgTurns">—</div>
-                  <div class="s">per session</div>
+              <div class="tutor-cal-row">
+                <div class="tutor-cal-left">
+                  <div style="font-size:8px;letter-spacing:1.6px;text-transform:uppercase;color:var(--text-secondary);font-weight:700;margin-top:8px;margin-bottom:6px;padding:0 2px;display:flex;align-items:center;gap:8px;">
+                    <span style="flex:0 0 3px;height:14px;border-radius:99px;background:var(--accent);"></span>
+                    Tutor stats
+                  </div>
+                  <div class="tutor-stats-row" id="tutorStatsRow">
+                    <div class="stat">
+                      <div class="k">Avg dialogue turns</div>
+                      <div class="v" id="tutorStatAvgTurns">—</div>
+                      <div class="s">per session</div>
+                    </div>
+                    <div class="stat">
+                      <div class="k">Reconstruction rate</div>
+                      <div class="v" id="tutorStatRecon">—</div>
+                      <div class="s">success after re-study</div>
+                    </div>
+                    <div class="stat">
+                      <div class="k">Model split</div>
+                      <div class="v" id="tutorStatModel" style="font-size:11px;line-height:1.35;">—</div>
+                      <div class="s">Flash / Pro calls</div>
+                    </div>
+                  </div>
                 </div>
-                <div class="stat">
-                  <div class="k">Reconstruction rate</div>
-                  <div class="v" id="tutorStatRecon">—</div>
-                  <div class="s">success after re-study</div>
-                </div>
-                <div class="stat">
-                  <div class="k">Model split</div>
-                  <div class="v" id="tutorStatModel" style="font-size:11px;line-height:1.35;">—</div>
-                  <div class="s">Flash / Pro calls</div>
-                </div>
-              </div>
-
-              <div class="gauge">
-                <svg width="48" height="48" viewBox="0 0 48 48">
-                  <circle cx="24" cy="24" r="19" fill="none" stroke="rgba(var(--accent-rgb),0.08)" stroke-width="5"/>
-                  <circle id="calArc" cx="24" cy="24" r="19" fill="none" stroke="var(--accent)" stroke-width="5"
-                    stroke-dasharray="120" stroke-dashoffset="120" stroke-linecap="round"
-                    transform="rotate(-90 24 24)" style="transition: stroke-dashoffset 0.6s ease, stroke 0.3s ease"/>
-                </svg>
-                <div>
-                  <div class="g-title">Calibration <span class="info-icon" tabindex="0" aria-label="Info">ⓘ<span class="info-tooltip">Measures how accurately you judge your own knowledge. Compares your self-ratings against AI grading on generative tiers (Explain, Apply, Distinguish, Mock). 75%+ means well-calibrated. Below 55% means you may be overconfident. Only updates after generative-tier reviews.<span class="tip-arrow"></span></span></span></div>
-                  <div class="g-val" id="calVal">—</div>
-                  <div class="g-sub" id="calSub">Metacognitive feedback</div>
+                <div class="tutor-cal-right">
+                  <div class="gauge">
+                    <svg width="48" height="48" viewBox="0 0 48 48">
+                      <circle cx="24" cy="24" r="19" fill="none" stroke="rgba(var(--accent-rgb),0.08)" stroke-width="5"/>
+                      <circle id="calArc" cx="24" cy="24" r="19" fill="none" stroke="var(--accent)" stroke-width="5"
+                        stroke-dasharray="120" stroke-dashoffset="120" stroke-linecap="round"
+                        transform="rotate(-90 24 24)" style="transition: stroke-dashoffset 0.6s ease, stroke 0.3s ease"/>
+                    </svg>
+                    <div>
+                      <div class="g-title">Calibration <span class="info-icon" tabindex="0" aria-label="Info">ⓘ<span class="info-tooltip">Measures how accurately you judge your own knowledge. Compares your self-ratings against AI grading on generative tiers (Explain, Apply, Distinguish, Mock). 75%+ means well-calibrated. Below 55% means you may be overconfident. Only updates after generative-tier reviews.<span class="tip-arrow"></span></span></span></div>
+                      <div class="g-val" id="calVal">—</div>
+                      <div class="g-sub" id="calSub">Metacognitive feedback</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -4393,7 +4424,7 @@ input[type="range"]::-moz-range-thumb{
             <div class="mini-actions" style="margin-top: 12px;">
               <button class="ghost-btn" id="addBtn">Add Items</button>
               <button class="ghost-btn" id="importBtn">Import JSON</button>
-              <button class="ghost-btn" id="dashGlobalTutorNotesBtn" type="button" title="Cross-course tutor observations">🧠 Tutor Notes</button>
+              <button class="ghost-btn" id="dashGlobalTutorNotesBtn" type="button" title="Cross-course tutor observations">🧠 Tutor Notes <span class="info-icon" tabindex="0" role="button" aria-label="What are tutor notes?">ⓘ<span class="info-tooltip">Tutor notes are observations the AI tutor builds about your learning over time. It tracks recurring mistakes (patterns), specific misunderstandings (misconceptions), reliable knowledge areas (strengths), and links between topics (connections). These memories persist across sessions, so the tutor can reference past struggles, connect new material to things you already know, and avoid repeating feedback you have already absorbed. Course-specific notes apply only within one course; global notes inform the tutor across all your courses.<span class="tip-arrow"></span></span></span></button>
             </div>
 
             <div id="emptyState" class="empty-state" style="display:none">
@@ -7389,46 +7420,126 @@ input[type="range"]::-moz-range-thumb{
       return map[t] || (t ? String(t) : 'Note');
     }
 
+    function tutorNotesInfoIconHTML() {
+      return '<span class="info-icon" tabindex="0" role="button" aria-label="What are tutor notes?">ⓘ' +
+        '<span class="info-tooltip">Tutor notes are observations the AI tutor builds about your learning over time. It tracks recurring mistakes (patterns), specific misunderstandings (misconceptions), reliable knowledge areas (strengths), and links between topics (connections). These memories persist across sessions, so the tutor can reference past struggles, connect new material to things you already know, and avoid repeating feedback you have already absorbed. Course-specific notes apply only within one course; global notes inform the tutor across all your courses.<span class="tip-arrow"></span></span></span>';
+    }
+
+    function renderSingleTutorNoteHTML(m) {
+      var confPct = Math.min(100, Math.max(0, Math.round((Number(m.confidence) || 0.5) * 100)));
+      var scopeLabel = m && m.scope === 'global' ? 'GLOBAL' : 'COURSE';
+      return '<div class="tutor-note-item">' +
+        '<span class="tn-type">' + esc(memoryTypeLabel(m.type)) + '</span>' +
+        '<span class="tn-scope" style="display:inline-block;font-size:6px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:2px 5px;border-radius:4px;margin-left:4px;background:rgba(var(--accent-rgb),0.06);color:var(--text-tertiary);border:1px solid rgba(var(--accent-rgb),0.08);">' + scopeLabel + '</span>' +
+        '<div class="tn-content">' + esc(m.content || '') + '</div>' +
+        '<div class="tn-confidence"><div style="width:' + confPct + '%"></div></div>' +
+        '</div>';
+    }
+
+    function renderTutorNotesClearControls(scope, courseName) {
+      var attrs = ' data-clear-scope="' + esc(scope || '') + '"';
+      if (scope === 'course' && courseName) attrs += ' data-course-enc="' + esc(encodeURIComponent(courseName)) + '"';
+      return '' +
+        '<div class="tn-clear-wrap" style="margin-top:8px;">' +
+        '<button class="ghost-btn tn-clear-trigger" type="button" style="width:100%;min-width:auto;padding:8px;font-size:8px;">Clear memories</button>' +
+        '<div class="tn-clear-confirm" style="display:none;margin-top:8px;">' +
+        '<div style="font-size:9px;color:var(--rate-again);font-weight:700;letter-spacing:0.8px;text-transform:uppercase;text-align:center;margin-bottom:8px;">' +
+        '⚠ This will permanently delete all tutor notes for this scope. Are you sure?' +
+        '</div>' +
+        '<div style="display:flex;gap:8px;">' +
+        '<button class="ghost-btn tn-clear-yes" type="button" ' + attrs + ' style="flex:1;border-color:rgba(239,68,68,0.25);color:var(--rate-again);background:rgba(239,68,68,0.06);">Yes, delete</button>' +
+        '<button class="ghost-btn tn-clear-no" type="button" style="flex:1;">Cancel</button>' +
+        '</div></div></div>';
+    }
+
     function renderCourseTutorNotesPanelHTML(courseName) {
-      var mems = getCourseScopedMemoriesForDisplay(courseName);
-      var n = mems.length;
+      var courseNotes = getCourseScopedMemoriesForDisplay(courseName);
+      var globalNotes = getGlobalMemoriesForDisplay();
+      var n = courseNotes.length + globalNotes.length;
       var bodyInner = '';
       if (!n) {
-        bodyInner = '<div class="help" style="padding:0 0 4px;font-size:9px;color:var(--text-secondary);">No course-specific notes yet — they appear as you use the AI tutor.</div>';
+        bodyInner = '<div class="help" style="padding:0 0 4px;font-size:9px;color:var(--text-secondary);">No tutor notes yet — they appear as you use the AI tutor.</div>';
       } else {
-        mems.forEach(function(m) {
-          var confPct = Math.min(100, Math.max(0, Math.round((Number(m.confidence) || 0.5) * 100)));
-          bodyInner += '<div class="tutor-note-item">' +
-            '<span class="tn-type">' + esc(memoryTypeLabel(m.type)) + '</span>' +
-            '<div class="tn-content">' + esc(m.content || '') + '</div>' +
-            '<div class="tn-confidence"><div style="width:' + confPct + '%"></div></div>' +
-            '</div>';
-        });
+        if (courseNotes.length > 0) {
+          bodyInner += '<div style="font-size:7px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--accent);margin:8px 0 6px;display:flex;align-items:center;gap:6px;"><span style="font-size:10px;">📚</span> Course-Specific</div>';
+          courseNotes.forEach(function(m) {
+            bodyInner += renderSingleTutorNoteHTML(m);
+          });
+        }
+        if (globalNotes.length > 0) {
+          bodyInner += '<div style="font-size:7px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--text-secondary);margin:' + (courseNotes.length > 0 ? '12' : '8') + 'px 0 6px;display:flex;align-items:center;gap:6px;"><span style="font-size:10px;">🌐</span> Global (All Courses)</div>';
+          globalNotes.forEach(function(m) {
+            bodyInner += renderSingleTutorNoteHTML(m);
+          });
+        }
       }
       return '<div class="tutor-notes open">' +
         '<button type="button" class="tutor-notes-toggle" aria-expanded="true">' +
-        '<span>Tutor Notes' + (n ? ' (' + n + ')' : '') + '</span><span style="opacity:0.5;font-size:8px;">▼</span></button>' +
+        '<span>Tutor Notes' + (n ? ' (' + n + ')' : '') + ' ' + tutorNotesInfoIconHTML() + '</span><span style="opacity:0.5;font-size:8px;">▼</span></button>' +
         '<div class="tutor-notes-body">' + bodyInner +
-        '<button type="button" class="ghost-btn tutor-notes-clear-btn" data-course-enc="' + esc(encodeURIComponent(courseName)) + '" style="min-width:auto;width:100%;margin-top:8px;padding:8px;font-size:8px;">Clear memories</button>' +
+        renderTutorNotesClearControls('course', courseName) +
         '</div></div>';
     }
 
     function renderGlobalTutorNotesOverlayHTML() {
-      var mems = getGlobalMemoriesForDisplay();
+      var mems = getAllTutorMemories().slice().sort(function(a, b) { return (b.confidence || 0) - (a.confidence || 0); });
+      var courseNotes = mems.filter(function(m) { return m && m.scope !== 'global'; });
+      var globalNotes = mems.filter(function(m) { return m && m.scope === 'global'; });
       var n = mems.length;
+      var h = '<div style="font-size:10px;font-weight:800;letter-spacing:0.8px;text-transform:uppercase;color:var(--text);margin:0 0 10px;display:flex;align-items:center;gap:6px;">🧠 Tutor Notes ' + tutorNotesInfoIconHTML() + '</div>';
       if (!n) {
-        return '<p class="help" style="text-align:center;padding:16px;">No cross-course tutor notes yet. The tutor records general learning patterns as you study.</p>';
+        h += '<p class="help" style="text-align:center;padding:16px;">No tutor notes yet. The tutor records learning patterns as you study.</p>';
+        h += renderTutorNotesClearControls('global');
+        return h;
       }
-      var h = '';
-      mems.forEach(function(m) {
-        var confPct = Math.min(100, Math.max(0, Math.round((Number(m.confidence) || 0.5) * 100)));
-        h += '<div class="tutor-note-item">' +
-          '<span class="tn-type">' + esc(memoryTypeLabel(m.type)) + '</span>' +
-          '<div class="tn-content">' + esc(m.content || '') + '</div>' +
-          '<div class="tn-confidence"><div style="width:' + confPct + '%"></div></div>' +
-          '</div>';
-      });
+      if (courseNotes.length > 0) {
+        h += '<div style="font-size:7px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--accent);margin:8px 0 6px;display:flex;align-items:center;gap:6px;"><span style="font-size:10px;">📚</span> Course-Specific</div>';
+        courseNotes.forEach(function(m) { h += renderSingleTutorNoteHTML(m); });
+      }
+      if (globalNotes.length > 0) {
+        h += '<div style="font-size:7px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--text-secondary);margin:' + (courseNotes.length > 0 ? '12' : '8') + 'px 0 6px;display:flex;align-items:center;gap:6px;"><span style="font-size:10px;">🌐</span> Global (All Courses)</div>';
+        globalNotes.forEach(function(m) { h += renderSingleTutorNoteHTML(m); });
+      }
+      h += renderTutorNotesClearControls('global');
       return h;
+    }
+
+    function wireTutorNotesClearConfirmation(container) {
+      if (!container) return;
+      var clearTrigger = container.querySelector('.tn-clear-trigger');
+      var clearConfirm = container.querySelector('.tn-clear-confirm');
+      var clearYes = container.querySelector('.tn-clear-yes');
+      var clearNo = container.querySelector('.tn-clear-no');
+      if (clearTrigger && clearConfirm) {
+        clearTrigger.addEventListener('click', function() {
+          clearTrigger.style.display = 'none';
+          clearConfirm.style.display = 'block';
+          if (window.gsap) gsap.fromTo(clearConfirm, { opacity: 0, y: -4 }, { opacity: 1, y: 0, duration: 0.25, ease: 'power2.out' });
+          try { playClick(); } catch (e0) {}
+        });
+      }
+      if (clearNo) {
+        clearNo.addEventListener('click', function() {
+          clearConfirm.style.display = 'none';
+          clearTrigger.style.display = '';
+          try { playClick(); } catch (e1) {}
+        });
+      }
+      if (clearYes) {
+        clearYes.addEventListener('click', function() {
+          var scope = clearYes.getAttribute('data-clear-scope') || '';
+          if (scope === 'global') {
+            clearGlobalTutorMemories();
+          } else if (scope === 'course') {
+            var enc = clearYes.getAttribute('data-course-enc');
+            if (!enc) return;
+            try {
+              clearCourseTutorMemoriesForCourse(decodeURIComponent(enc));
+            } catch (e2) {}
+          }
+          try { playClick(); } catch (e3) {}
+        });
+      }
     }
 
     function wireTutorNotesPanelToggle(host) {
@@ -7441,16 +7552,7 @@ input[type="range"]::-moz-range-thumb{
           btn.setAttribute('aria-expanded', open ? 'true' : 'false');
         });
       }
-      var clr = host.querySelector('.tutor-notes-clear-btn');
-      if (clr) {
-        clr.addEventListener('click', function() {
-          var enc = clr.getAttribute('data-course-enc');
-          if (!enc) return;
-          try {
-            clearCourseTutorMemoriesForCourse(decodeURIComponent(enc));
-          } catch (e2) {}
-        });
-      }
+      wireTutorNotesClearConfirmation(host);
     }
 
     function clearCourseTutorMemoriesForCourse(courseName) {
@@ -7471,11 +7573,25 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    function clearGlobalTutorMemories() {
+      if (typeof SyncEngine === 'undefined' || !SyncEngine.get || !SyncEngine.set) return;
+      var all = SyncEngine.get(NS, 'tutorMemories') || [];
+      var next = all.filter(function(m) { return m && m.scope !== 'global'; });
+      SyncEngine.set(NS, 'tutorMemories', next);
+      toast('Cleared global tutor notes');
+      var body = el('globalTutorNotesBody');
+      if (body) {
+        body.innerHTML = renderGlobalTutorNotesOverlayHTML();
+        wireTutorNotesClearConfirmation(body);
+      }
+    }
+
     function openGlobalTutorNotesOverlay() {
       var ov = el('globalTutorNotesOv');
       var body = el('globalTutorNotesBody');
       if (!ov || !body) return;
       body.innerHTML = renderGlobalTutorNotesOverlayHTML();
+      wireTutorNotesClearConfirmation(body);
       ov.classList.add('show');
       ov.setAttribute('aria-hidden', 'false');
       try { playOpen(); } catch (e0) {}
