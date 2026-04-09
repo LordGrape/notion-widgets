@@ -4093,8 +4093,10 @@ input[type="range"]::-moz-range-thumb{
           <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--card-border)">
             <div style="font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px">📊 Dual coding visuals</div>
             <div style="font-size:9px;color:var(--text-tertiary);margin-bottom:8px;line-height:1.4">Generate Mermaid diagrams for cards that are missing cached visuals (uses the Worker).</div>
-            <button type="button" id="regenVisuals" class="ghost-btn" style="width:100%;min-width:auto">Regenerate missing visuals</button>
+            <button type="button" id="regenVisuals" class="ghost-btn" style="width:100%;min-width:auto">🖼 Regenerate missing visuals</button>
             <div id="regenStatus" style="font-size:9px;color:var(--text-tertiary);margin-top:6px"></div>
+            <button type="button" id="regenOverrideAll" class="big-btn" style="width:100%;margin-top:8px;background:linear-gradient(135deg,rgba(239,68,68,0.85),rgba(239,68,68,0.55));border:none">🔄 Override all visuals</button>
+            <span id="overrideStatus" style="display:block;margin-top:6px;font-size:9px;color:var(--text-secondary);letter-spacing:0.8px;text-align:center"></span>
           </div>
         </div>
       </div>
@@ -8600,6 +8602,63 @@ input[type="range"]::-moz-range-thumb{
             });
           }
           runBatch();
+        });
+      }
+
+      var overrideBtn = el('regenOverrideAll');
+      if (overrideBtn) {
+        overrideBtn.addEventListener('click', function() {
+          var statusEl = el('overrideStatus');
+          var allItems = [];
+          for (var rid in state.items) {
+            if (!state.items.hasOwnProperty(rid)) continue;
+            var rit = state.items[rid];
+            if (rit && !rit.archived && rit.prompt && rit.modelAnswer) {
+              allItems.push(rit);
+            }
+          }
+          if (allItems.length === 0) {
+            if (statusEl) statusEl.textContent = 'No cards to regenerate.';
+            toast('No cards to regenerate');
+            return;
+          }
+          allItems.forEach(function(item) {
+            item.visual = null;
+            state.items[item.id] = item;
+          });
+          saveState();
+
+          overrideBtn.disabled = true;
+          var ok = 0;
+          var total = allItems.length;
+          if (statusEl) statusEl.textContent = 'Overriding 0/' + total + '...';
+          var queue = allItems.slice();
+          var concurrency = 3;
+
+          function runOverrideBatch() {
+            if (!queue.length) {
+              saveState();
+              overrideBtn.disabled = false;
+              if (statusEl) statusEl.textContent = 'Done — regenerated ' + ok + ' of ' + total + '.';
+              toast('Override complete: ' + ok + ' visuals regenerated');
+              return;
+            }
+            var batch = queue.splice(0, concurrency);
+            Promise.all(batch.map(function(item) {
+              return generateVisual(item).then(function(visual) {
+                if (visual) {
+                  item.visual = visual;
+                  state.items[item.id] = item;
+                  ok++;
+                }
+              }).catch(function() {});
+            })).then(function() {
+              saveState();
+              if (statusEl) statusEl.textContent = 'Overriding ' + ok + '/' + total + '...';
+              setTimeout(runOverrideBatch, 400);
+            });
+          }
+          runOverrideBatch();
         });
       }
     }
