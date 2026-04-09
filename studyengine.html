@@ -1575,6 +1575,172 @@
       color: rgba(255,255,255,0.4);
     }
 
+    /* ── Ask the Tutor ── */
+    .ask-tutor-wrap{
+      margin-top: 12px;
+      border-radius: 16px;
+      border: 1px solid rgba(var(--accent-rgb),0.12);
+      background: rgba(var(--accent-rgb),0.02);
+      overflow: hidden;
+      transition: border-color var(--transition);
+    }
+    .ask-tutor-wrap:focus-within{
+      border-color: rgba(var(--accent-rgb),0.28);
+    }
+    .ask-tutor-toggle{
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      cursor: pointer;
+      font-family: inherit;
+      transition: color var(--transition), background var(--transition);
+    }
+    .ask-tutor-toggle:hover{
+      color: var(--text);
+      background: rgba(var(--accent-rgb),0.04);
+    }
+    .ask-tutor-toggle .at-icon{ font-size: 14px; opacity: 0.7; }
+    .ask-tutor-toggle .at-arrow{
+      margin-left: auto;
+      font-size: 8px;
+      transition: transform var(--transition);
+    }
+    .ask-tutor-wrap.open .ask-tutor-toggle .at-arrow{ transform: rotate(90deg); }
+    .ask-tutor-body{
+      display: none;
+      padding: 0 14px 14px;
+    }
+    .ask-tutor-wrap.open .ask-tutor-body{ display: block; }
+    .ask-tutor-input-row{
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+    }
+    .ask-tutor-input-row input{
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(var(--accent-rgb),0.16);
+      background: rgba(var(--accent-rgb),0.03);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 11px;
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    .ask-tutor-input-row input:focus{
+      border-color: rgba(var(--accent-rgb),0.35);
+      box-shadow: 0 0 0 3px rgba(var(--accent-rgb),0.08);
+    }
+    .ask-tutor-input-row input::placeholder{
+      color: var(--text-tertiary);
+    }
+    .ask-tutor-send{
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      border: none;
+      background: linear-gradient(135deg, rgba(var(--accent-rgb),1), rgba(var(--accent-rgb),0.7));
+      color: #fff;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: transform var(--transition), box-shadow var(--transition);
+    }
+    .ask-tutor-send:hover{
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(var(--accent-rgb),0.25);
+    }
+    .ask-tutor-send:active{ transform: translateY(0) scale(0.97); }
+    .ask-tutor-send:disabled{ opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+    .ask-tutor-messages{
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .ask-tutor-msg{
+      padding: 10px 14px;
+      border-radius: 14px;
+      font-size: 11px;
+      line-height: 1.6;
+      max-width: 95%;
+      word-break: break-word;
+    }
+    body.standalone .ask-tutor-msg{ font-size: 12px; }
+    .ask-tutor-msg.from-student{
+      align-self: flex-end;
+      background: linear-gradient(135deg, rgba(var(--accent-rgb),0.16), rgba(var(--accent-rgb),0.08));
+      border: 1px solid rgba(var(--accent-rgb),0.20);
+      color: var(--text);
+    }
+    .ask-tutor-msg.from-tutor{
+      align-self: flex-start;
+      background: rgba(var(--accent-rgb),0.05);
+      border: 1px solid rgba(var(--accent-rgb),0.12);
+      color: var(--text);
+    }
+    .ask-tutor-msg .atm-label{
+      font-size: 7px;
+      font-weight: 800;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 3px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .ask-tutor-msg.from-tutor .atm-label{ color: var(--accent); }
+    .ask-tutor-msg .atm-question{
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(var(--accent-rgb),0.08);
+      font-weight: 600;
+      font-style: italic;
+    }
+    .ask-tutor-footer{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 8px;
+      gap: 8px;
+    }
+    .ask-tutor-footer .at-exchanges{
+      font-size: 8px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+    }
+    .ask-tutor-continue{
+      padding: 8px 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(var(--accent-rgb),0.16);
+      background: rgba(var(--accent-rgb),0.06);
+      color: var(--text);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background var(--transition), transform var(--transition);
+    }
+    .ask-tutor-continue:hover{ background: rgba(var(--accent-rgb),0.12); transform: translateY(-1px); }
+
     /* ── TTS Listen Button ── */
     .listen-tts-btn{
       display: inline-flex;
@@ -6985,6 +7151,7 @@ input[type="range"]::-moz-range-thumb{
     function renderCurrentItem() {
       document.querySelectorAll('.listen-tts-btn').forEach(function(btn) { btn.remove(); });
       clearTimers();
+      cleanupAskTutor();
       activeRubric = null;
       session.currentShown = false;
       if (session) session.confidence = null;
@@ -9554,7 +9721,8 @@ input[type="range"]::-moz-range-thumb{
       session.xp += xp;
       flashXP(xp);
       saveState();
-      advanceItem();
+      /* Show Ask the Tutor before advancing */
+      mountAskTutor(mappedRating);
     }
 
     function mountQuickFireFollowup(it, data, done) {
@@ -9854,8 +10022,238 @@ input[type="range"]::-moz-range-thumb{
       });
     }
 
+    /* ══════════════════════════════════════
+       Ask the Tutor — student-initiated Q&A
+       ══════════════════════════════════════ */
+    var askTutorMaxExchanges = 2;
+    var askTutorExchangeCount = 0;
+    var askTutorConversation = [];
+    var askTutorItem = null;
+    var askTutorActive = false;
+
+    function mountAskTutor(afterRating) {
+      /* Don't show if feedback mode is self_rate */
+      if (settings.feedbackMode === 'self_rate') return;
+
+      /* Remove any existing ask-tutor panel */
+      var existing = document.getElementById('askTutorWrap');
+      if (existing) existing.remove();
+
+      var it = session ? session.queue[session.idx] : null;
+      if (!it) return;
+
+      askTutorItem = it;
+      askTutorExchangeCount = 0;
+      askTutorConversation = [];
+      askTutorActive = true;
+
+      var rating = afterRating || 0;
+      var isStruggling = rating <= 2;
+
+      var wrap = document.createElement('div');
+      wrap.id = 'askTutorWrap';
+      wrap.className = 'ask-tutor-wrap' + (isStruggling ? ' open' : '');
+      wrap.innerHTML =
+        '<button class="ask-tutor-toggle" id="askTutorToggle">' +
+          '<span class="at-icon">💬</span>' +
+          '<span>' + esc(isStruggling ? 'Something unclear? Ask the tutor' : 'Explore further') + '</span>' +
+          '<span class="at-arrow">▶</span>' +
+        '</button>' +
+        '<div class="ask-tutor-body" id="askTutorBody">' +
+          '<div class="ask-tutor-input-row">' +
+            '<input type="text" id="askTutorInput" placeholder="Type your question..." autocomplete="off" />' +
+            '<button class="ask-tutor-send" id="askTutorSend" aria-label="Send">→</button>' +
+          '</div>' +
+          '<div class="ask-tutor-messages" id="askTutorMessages"></div>' +
+          '<div class="ask-tutor-footer" id="askTutorFooter" style="display:none;">' +
+            '<span class="at-exchanges" id="askTutorCount">0 of ' + askTutorMaxExchanges + ' exchanges</span>' +
+            '<button class="ask-tutor-continue" id="askTutorContinue">Next card →</button>' +
+          '</div>' +
+        '</div>';
+
+      /* Insert after ratings */
+      if (ratingsEl && ratingsEl.parentNode) {
+        var hintEl = ratingsEl.parentNode.querySelector('.override-hint');
+        var insertAfter = hintEl || ratingsEl;
+        insertAfter.insertAdjacentElement('afterend', wrap);
+      }
+
+      /* Wire toggle */
+      var toggleBtn = document.getElementById('askTutorToggle');
+      if (toggleBtn) {
+        toggleBtn.addEventListener('click', function() {
+          wrap.classList.toggle('open');
+          if (wrap.classList.contains('open')) {
+            var inp = document.getElementById('askTutorInput');
+            if (inp) setTimeout(function() { inp.focus(); }, 100);
+          }
+          try { playClick(); } catch(e) {}
+        });
+      }
+
+      /* Wire send */
+      var sendBtn = document.getElementById('askTutorSend');
+      var inputEl = document.getElementById('askTutorInput');
+      if (sendBtn) sendBtn.addEventListener('click', submitAskTutor);
+      if (inputEl) {
+        inputEl.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            submitAskTutor();
+          }
+        });
+      }
+
+      /* Wire continue button */
+      var contBtn = document.getElementById('askTutorContinue');
+      if (contBtn) {
+        contBtn.addEventListener('click', function() {
+          cleanupAskTutor();
+          advanceItem();
+        });
+      }
+
+      /* Animate in */
+      if (window.gsap) {
+        gsap.fromTo(wrap, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.35, delay: 0.2, ease: 'power2.out' });
+      }
+    }
+
+    function submitAskTutor() {
+      var inputEl = document.getElementById('askTutorInput');
+      var sendBtn = document.getElementById('askTutorSend');
+      if (!inputEl || !askTutorItem) return;
+
+      var question = inputEl.value.trim();
+      if (!question) return;
+
+      if (askTutorExchangeCount >= askTutorMaxExchanges) {
+        toast('Max questions reached for this card');
+        return;
+      }
+
+      /* Show student message */
+      addAskTutorMessage('student', esc(question));
+      inputEl.value = '';
+      inputEl.disabled = true;
+      if (sendBtn) sendBtn.disabled = true;
+
+      /* Add to conversation */
+      askTutorConversation.push({ role: 'user', text: question });
+
+      /* Show typing indicator */
+      var msgsEl = document.getElementById('askTutorMessages');
+      var typingDiv = document.createElement('div');
+      typingDiv.className = 'tutor-typing';
+      typingDiv.id = 'askTutorTyping';
+      typingDiv.innerHTML = 'Thinking...';
+      if (msgsEl) msgsEl.appendChild(typingDiv);
+
+      /* Call tutor */
+      var ctx = tutorContextForItem(askTutorItem);
+      var model = selectModel(askTutorItem, session);
+      callTutor('freeform', model, askTutorItem, question, askTutorConversation.slice(0, -1), ctx)
+        .then(function(data) {
+          var typing = document.getElementById('askTutorTyping');
+          if (typing) typing.remove();
+          if (!data || data.error) {
+            addAskTutorMessage('tutor', esc('Sorry, I couldn\'t process that. Try rephrasing or move on to the next card.'));
+            enableAskTutorInput();
+            return;
+          }
+
+          askTutorExchangeCount++;
+          var msg = data.tutorMessage || '';
+          var followUp = data.followUpQuestion || '';
+          askTutorConversation.push({ role: 'tutor', text: msg + (followUp ? '\n\n' + followUp : '') });
+
+          var html = esc(msg);
+          if (followUp) {
+            html += '<div class="atm-question">' + esc(followUp) + '</div>';
+          }
+          addAskTutorMessage('tutor', html);
+
+          /* Update footer */
+          var footer = document.getElementById('askTutorFooter');
+          var countEl = document.getElementById('askTutorCount');
+          if (footer) footer.style.display = 'flex';
+          if (countEl) countEl.textContent = askTutorExchangeCount + ' of ' + askTutorMaxExchanges + ' exchanges';
+
+          /* Feed into memory system if we had a meaningful exchange */
+          if (askTutorExchangeCount >= 1 && askTutorConversation.length >= 2) {
+            try {
+              updateTutorMemories(askTutorItem, askTutorConversation.slice(), session.aiRating || 2);
+            } catch(e) {}
+          }
+
+          /* Check if done */
+          var isDone = data.isComplete || askTutorExchangeCount >= askTutorMaxExchanges;
+          if (isDone) {
+            disableAskTutorInput();
+            /* Auto-show continue button prominently */
+            var contBtn = document.getElementById('askTutorContinue');
+            if (contBtn && window.gsap) {
+              gsap.fromTo(contBtn, { scale: 0.95, opacity: 0.5 }, { scale: 1, opacity: 1, duration: 0.3, ease: 'back.out(1.5)' });
+            }
+          } else {
+            enableAskTutorInput();
+          }
+        })
+        .catch(function(err) {
+          var typing = document.getElementById('askTutorTyping');
+          if (typing) typing.remove();
+          console.warn('[StudyEngine] Ask tutor failed:', err);
+          addAskTutorMessage('tutor', esc('Network error — try again or move on.'));
+          enableAskTutorInput();
+        });
+    }
+
+    function addAskTutorMessage(role, html) {
+      var msgsEl = document.getElementById('askTutorMessages');
+      if (!msgsEl) return;
+
+      var div = document.createElement('div');
+      var isStudent = role === 'student';
+      div.className = 'ask-tutor-msg from-' + (isStudent ? 'student' : 'tutor');
+      var icon = isStudent ? '✍️' : '🧠';
+      var label = isStudent ? 'You' : 'AI Tutor';
+      div.innerHTML =
+        '<div class="atm-label">' + icon + ' ' + esc(label) + '</div>' +
+        '<div class="atm-body">' + html + '</div>';
+      msgsEl.appendChild(div);
+      if (window.gsap) {
+        var fromX = isStudent ? 8 : -8;
+        gsap.fromTo(div, { opacity: 0, x: fromX }, { opacity: 1, x: 0, duration: 0.3, ease: 'back.out(1.3)' });
+      }
+      msgsEl.scrollTop = msgsEl.scrollHeight;
+    }
+
+    function enableAskTutorInput() {
+      var inputEl = document.getElementById('askTutorInput');
+      var sendBtn = document.getElementById('askTutorSend');
+      if (inputEl) { inputEl.disabled = false; inputEl.style.opacity = ''; inputEl.focus(); }
+      if (sendBtn) sendBtn.disabled = false;
+    }
+
+    function disableAskTutorInput() {
+      var inputEl = document.getElementById('askTutorInput');
+      var sendBtn = document.getElementById('askTutorSend');
+      if (inputEl) { inputEl.disabled = true; inputEl.style.opacity = '0.4'; }
+      if (sendBtn) sendBtn.disabled = true;
+    }
+
+    function cleanupAskTutor() {
+      askTutorActive = false;
+      askTutorItem = null;
+      askTutorConversation = [];
+      askTutorExchangeCount = 0;
+      var wrap = document.getElementById('askTutorWrap');
+      if (wrap) wrap.remove();
+    }
+
     function advanceItem() {
       stopTTS();
+      cleanupAskTutor();
       document.querySelectorAll('.listen-tts-btn').forEach(function(btn) { btn.remove(); });
       clearTimers();
       session.idx++;
@@ -9870,6 +10268,7 @@ input[type="range"]::-moz-range-thumb{
     function skipItem() {
       if (!session) return;
       stopTTS();
+      cleanupAskTutor();
       document.querySelectorAll('.listen-tts-btn').forEach(function(btn) { btn.remove(); });
       var it = session.queue[session.idx];
       if (!it) return;
@@ -9886,6 +10285,7 @@ input[type="range"]::-moz-range-thumb{
 
     function completeSession() {
       stopTTS();
+      cleanupAskTutor();
       document.querySelectorAll('.listen-tts-btn').forEach(function(btn) { btn.remove(); });
       clearTimers();
       if (!session) return;
@@ -10015,6 +10415,10 @@ input[type="range"]::-moz-range-thumb{
       var tutorTa = document.getElementById('tutorInput');
       var tutorRow = document.getElementById('tutorInputRow');
       var tutorBlocking = tutorTa && tutorRow && tutorRow.style.display !== 'none' && !tutorTa.disabled;
+      /* Also block shortcuts when typing in Ask the Tutor input */
+      var askTutorInput = document.getElementById('askTutorInput');
+      var askTutorBlocking = askTutorInput && !askTutorInput.disabled && document.activeElement === askTutorInput;
+      if (askTutorBlocking) tutorBlocking = true;
 
       if (e.key === ' ' && !inText) {
         if (tutorBlocking) return;
@@ -10040,6 +10444,13 @@ input[type="range"]::-moz-range-thumb{
           e.preventDefault();
           rateCurrent(parseInt(e.key, 10));
         }
+      }
+
+      /* Space after rating = skip Ask Tutor and advance */
+      if (e.key === ' ' && !inText && askTutorActive) {
+        e.preventDefault();
+        cleanupAskTutor();
+        advanceItem();
       }
     });
 
