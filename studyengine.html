@@ -13709,6 +13709,18 @@ input[type="range"]::-moz-range-thumb{
               advanceItem();
               return;
             }
+            // Don't Know path already ran a full teach dialogue — re-running
+            // startRelearningDialogue would be redundant and confusing. Instead,
+            // re-queue the card later in the session so spaced retrieval does
+            // the work on the second pass.
+            if (session._dontKnow) {
+              var remainingDk = session.queue.length - (session.idx + 1);
+              var minOffsetDk = Math.max(5, Math.floor(remainingDk * 0.4));
+              var insertPosDk = Math.min(session.idx + 1 + minOffsetDk, session.queue.length);
+              session.queue.splice(insertPosDk, 0, it);
+              advanceItem();
+              return;
+            }
             startRelearningDialogue(it, nowTs);
             return;
           }
