@@ -481,6 +481,59 @@
       background: var(--accent);
     }
 
+    .session-summary{
+      margin-top: 14px;
+      padding: 16px;
+      border-radius: var(--radius-lg, 16px);
+      border: 1px solid rgba(var(--accent-rgb), 0.14);
+      border-left: 3px solid var(--accent);
+      background: rgba(var(--accent-rgb), 0.03);
+    }
+    .session-summary .ss-header{
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      list-style: none;
+    }
+    .session-summary summary.ss-header::-webkit-details-marker{ display: none; }
+    .session-summary .ss-icon{ font-size: 14px; }
+    .session-summary .ss-title{
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .session-summary .ss-body{
+      font-size: 11px;
+      line-height: 1.65;
+      color: var(--text);
+      letter-spacing: 0.1px;
+    }
+    body.standalone .session-summary .ss-body{ font-size: 12px; }
+
+    .tutor-stats-row{
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+      margin-bottom: 14px;
+    }
+
+    .cost-estimate{
+      margin-top: 8px;
+      padding: 8px 12px;
+      border-radius: 10px;
+      background: rgba(var(--accent-rgb), 0.03);
+      border: 1px solid rgba(var(--accent-rgb), 0.08);
+      font-size: 9px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      letter-spacing: 0.2px;
+    }
+
     .chips{
       display: flex;
       gap: 6px;
@@ -4273,6 +4326,25 @@ input[type="range"]::-moz-range-thumb{
                 </div>
               </div>
 
+              <div class="section-header" style="margin-top:4px;font-size:9px;letter-spacing:1.2px;">Tutor stats</div>
+              <div class="tutor-stats-row" id="tutorStatsRow">
+                <div class="stat">
+                  <div class="k">Avg dialogue turns</div>
+                  <div class="v" id="tutorStatAvgTurns">—</div>
+                  <div class="s">per session</div>
+                </div>
+                <div class="stat">
+                  <div class="k">Reconstruction rate</div>
+                  <div class="v" id="tutorStatRecon">—</div>
+                  <div class="s">success after re-study</div>
+                </div>
+                <div class="stat">
+                  <div class="k">Model split</div>
+                  <div class="v" id="tutorStatModel" style="font-size:11px;line-height:1.35;">—</div>
+                  <div class="s">Flash / Pro calls</div>
+                </div>
+              </div>
+
               <div class="gauge">
                 <svg width="48" height="48" viewBox="0 0 48 48">
                   <circle cx="24" cy="24" r="19" fill="none" stroke="rgba(var(--accent-rgb),0.08)" stroke-width="5"/>
@@ -4467,6 +4539,16 @@ input[type="range"]::-moz-range-thumb{
 
           <!-- Tier Breakdown -->
           <div class="breakdown" id="doneBreakdown"></div>
+
+          <details class="session-summary" id="sessionAiSummaryWrap" style="display:none;">
+            <summary class="ss-header">
+              <span class="ss-icon">✨</span>
+              <span class="ss-title">AI session summary</span>
+            </summary>
+            <div class="ss-body" id="sessionAiSummaryBody">
+              <div class="syllabus-status" id="sessionAiSummaryLoading"><span class="af-spinner"></span> Generating summary…</div>
+            </div>
+          </details>
 
           <!-- Back -->
           <button class="big-btn" id="backBtn">Back to Dashboard</button>
@@ -4978,7 +5060,8 @@ input[type="range"]::-moz-range-thumb{
             allowedMaterials: null,
             rawSyllabusText: null,
             examFormat: null,
-            syllabusKeyTopics: []
+            syllabusKeyTopics: [],
+            prepared: false
           };
           changed = true;
         }
@@ -5017,6 +5100,7 @@ input[type="range"]::-moz-range-thumb{
       if (c.rawSyllabusText === undefined) c.rawSyllabusText = null;
       if (c.examFormat === undefined) c.examFormat = null;
       if (!Array.isArray(c.syllabusKeyTopics)) c.syllabusKeyTopics = [];
+      if (c.prepared === undefined) c.prepared = false;
       return c;
     }
 
@@ -5415,6 +5499,7 @@ input[type="range"]::-moz-range-thumb{
         el('calVal').textContent = '—';
         el('calSub').textContent = 'Add items to begin';
         setCalArc(0);
+        renderTutorAnalyticsDashboard();
         renderCourseCards();
         return;
       }
@@ -5488,9 +5573,11 @@ input[type="range"]::-moz-range-thumb{
 
       el('startBtn').disabled = (due.total === 0);
 
+      renderTutorAnalyticsDashboard();
+
       /* Staggered entry animation */
       if (window.gsap) {
-        var targets = viewDash.querySelectorAll('.hero-stat, .stats-row, .gauge, .breakdown, .big-btn, .chips, .mini-actions');
+        var targets = viewDash.querySelectorAll('.hero-stat, .stats-row, .tutor-stats-row, .gauge, .breakdown, .big-btn, .chips, .mini-actions');
         gsap.fromTo(targets,
           { opacity: 0, y: 8 },
           { opacity: 1, y: 0, duration: 0.3, stagger: 0.04, ease: 'power2.out' }
@@ -6470,7 +6557,10 @@ input[type="range"]::-moz-range-thumb{
         calBefore: calibrationPct(state.calibration),
         confidence: null,  /* 'low' | 'medium' | 'high' — set before reveal on quickfire */
         recentRatings: [], /* rolling window for fatigue detection */
-        fatigueWarningShown: false /* only show once per session */
+        fatigueWarningShown: false, /* only show once per session */
+        tutorStats: defaultTutorStats(),
+        tutorModeCounts: defaultTutorModeCounts(),
+        sessionRatingsLog: []
       };
       sessionSummary = null;
       breakState.sessionStartTime = Date.now();
@@ -6478,6 +6568,8 @@ input[type="range"]::-moz-range-thumb{
       breakState.breaksTaken = 0;
       breakState.bannerDismissed = false;
       if (!q.length) return;
+      var prevSum = el('sessionAiSummaryWrap');
+      if (prevSum) prevSum.style.display = 'none';
       showView('viewSession');
       try { playStart(); } catch(e) {}
       renderCurrentItem();
@@ -6574,6 +6666,7 @@ input[type="range"]::-moz-range-thumb{
       session.currentShown = false;
       if (session) session.confidence = null;
       if (session) session._dontKnow = false;
+      if (session) session._reconstructionPending = false;
       modelAnswerEl.style.display = 'none';
       ratingsEl.style.display = 'none';
       studyIndicator.classList.remove('show');
@@ -6930,6 +7023,290 @@ input[type="range"]::-moz-range-thumb{
     var TUTOR_ENDPOINT = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/tutor';
     var MEMORY_ENDPOINT = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/memory';
     var SYLLABUS_ENDPOINT = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/syllabus';
+    var SUMMARY_ENDPOINT = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/summary';
+    var PREPARE_ENDPOINT = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/prepare';
+
+    function defaultTutorStats() {
+      return {
+        totalCalls: 0,
+        flashCalls: 0,
+        proCalls: 0,
+        socraticTurns: 0,
+        quickFeedbacks: 0,
+        insights: 0,
+        teaches: 0,
+        acknowledges: 0,
+        skipsToRating: 0,
+        reconstructions: 0,
+        reconstructionSuccesses: 0,
+        dontKnows: 0,
+        avgTurnsPerCard: 0
+      };
+    }
+
+    function defaultTutorModeCounts() {
+      return { socratic: 0, quick: 0, teach: 0, insight: 0, acknowledge: 0 };
+    }
+
+    function recordTutorApiSuccess(mode, model) {
+      if (!session || !session.tutorStats) return;
+      var ts = session.tutorStats;
+      ts.totalCalls++;
+      if (model === 'pro') ts.proCalls++;
+      else ts.flashCalls++;
+      if (mode === 'socratic') ts.socraticTurns++;
+      else if (mode === 'quick') ts.quickFeedbacks++;
+      else if (mode === 'insight') ts.insights++;
+      else if (mode === 'teach') ts.teaches++;
+      else if (mode === 'acknowledge') ts.acknowledges++;
+      if (!session.tutorModeCounts) session.tutorModeCounts = defaultTutorModeCounts();
+      if (session.tutorModeCounts[mode] != null) session.tutorModeCounts[mode]++;
+    }
+
+    function noteReconstructionPromptShown() {
+      if (!session || !session.tutorStats) return;
+      session.tutorStats.reconstructions++;
+      session._reconstructionPending = true;
+    }
+
+    function updateTutorAnalytics() {
+      if (typeof SyncEngine === 'undefined' || !SyncEngine.get || !SyncEngine.set) return;
+      var analytics = SyncEngine.get(NS, 'tutorAnalytics') || {
+        totalSessions: 0,
+        totalTutorCalls: 0,
+        totalFlashCalls: 0,
+        totalProCalls: 0,
+        totalSkips: 0,
+        totalReconstructions: 0,
+        totalReconstructionSuccesses: 0,
+        totalDontKnows: 0,
+        sessionHistory: []
+      };
+      var ts = session && session.tutorStats ? session.tutorStats : {};
+      analytics.totalSessions++;
+      analytics.totalTutorCalls += ts.totalCalls || 0;
+      analytics.totalFlashCalls += ts.flashCalls || 0;
+      analytics.totalProCalls += ts.proCalls || 0;
+      analytics.totalSkips += ts.skipsToRating || 0;
+      analytics.totalReconstructions += ts.reconstructions || 0;
+      analytics.totalReconstructionSuccesses += ts.reconstructionSuccesses || 0;
+      analytics.totalDontKnows += ts.dontKnows || 0;
+      analytics.sessionHistory.push({
+        date: new Date().toISOString().split('T')[0],
+        cards: (session && session.ratingN) || 0,
+        avgTurns: ts.avgTurnsPerCard || 0,
+        flashCalls: ts.flashCalls || 0,
+        proCalls: ts.proCalls || 0,
+        skips: ts.skipsToRating || 0
+      });
+      if (analytics.sessionHistory.length > 30) {
+        analytics.sessionHistory = analytics.sessionHistory.slice(-30);
+      }
+      SyncEngine.set(NS, 'tutorAnalytics', analytics);
+    }
+
+    function renderTutorAnalyticsDashboard() {
+      var avgEl = el('tutorStatAvgTurns');
+      var reconEl = el('tutorStatRecon');
+      var modelEl = el('tutorStatModel');
+      if (!avgEl || !reconEl || !modelEl) return;
+      if (typeof SyncEngine === 'undefined' || !SyncEngine.get) {
+        avgEl.textContent = '—';
+        reconEl.textContent = '—';
+        modelEl.textContent = '—';
+        return;
+      }
+      var a = SyncEngine.get(NS, 'tutorAnalytics');
+      if (!a || !a.totalSessions) {
+        avgEl.textContent = '—';
+        reconEl.textContent = '—';
+        modelEl.textContent = '—';
+        return;
+      }
+      var avgTurns = a.totalTutorCalls / Math.max(1, a.totalSessions);
+      avgEl.textContent = String(Math.round(avgTurns * 10) / 10);
+      var reconPct = Math.round((a.totalReconstructionSuccesses / Math.max(1, a.totalReconstructions)) * 100);
+      reconEl.textContent = a.totalReconstructions > 0 ? reconPct + '%' : '—';
+      var f = a.totalFlashCalls || 0;
+      var p = a.totalProCalls || 0;
+      var tot = f + p;
+      if (tot <= 0) modelEl.textContent = '—';
+      else {
+        var fp = Math.round((f / tot) * 100);
+        var pp = 100 - fp;
+        modelEl.innerHTML = 'Flash ' + fp + '% / Pro ' + pp + '%';
+      }
+    }
+
+    function refreshCostEstimateInSettings() {
+      var box = el('s_costEstimate');
+      if (!box || typeof SyncEngine === 'undefined' || !SyncEngine.get) return;
+      var analytics = SyncEngine.get(NS, 'tutorAnalytics');
+      if (!analytics || !analytics.sessionHistory || !analytics.sessionHistory.length) {
+        box.textContent = 'This month: 0 Flash / 0 Pro calls · Estimated cost: ~$0.00';
+        return;
+      }
+      var now = new Date();
+      var y = now.getFullYear();
+      var m = now.getMonth();
+      var flashM = 0;
+      var proM = 0;
+      analytics.sessionHistory.forEach(function(row) {
+        if (!row || !row.date) return;
+        var d = new Date(row.date + 'T12:00:00');
+        if (d.getFullYear() === y && d.getMonth() === m) {
+          flashM += row.flashCalls || 0;
+          proM += row.proCalls || 0;
+        }
+      });
+      var cost = flashM * 0.0007 + proM * 0.004;
+      var costStr = cost < 0.01 && cost > 0 ? '<$0.01' : '$' + cost.toFixed(2);
+      box.textContent = 'This month: ' + flashM + ' Flash / ' + proM + ' Pro calls · Estimated cost: ~' + costStr;
+    }
+
+    function requestSessionAiSummary(sessionSnap, reviewedCount) {
+      var wrap = el('sessionAiSummaryWrap');
+      var body = el('sessionAiSummaryBody');
+      if (!wrap || !body) return;
+      if (!reviewedCount || reviewedCount <= 0) {
+        wrap.style.display = 'none';
+        return;
+      }
+      wrap.style.display = '';
+      body.innerHTML = '<div class="syllabus-status" id="sessionAiSummaryLoading"><span class="af-spinner"></span> Generating summary…</div>';
+
+      var log = sessionSnap.sessionRatingsLog || [];
+      var dist = { '1': 0, '2': 0, '3': 0, '4': 0 };
+      var courseBreakdown = {};
+      log.forEach(function(r) {
+        var k = String(r.rating);
+        if (dist[k] != null) dist[k]++;
+        var c = r.course || 'General';
+        courseBreakdown[c] = (courseBreakdown[c] || 0) + 1;
+      });
+      var weakCards = log.filter(function(r) { return r.rating === 1; }).map(function(r) {
+        return { prompt: (r.prompt || '').substring(0, 100), topic: r.topic || '', rating: 1 };
+      });
+      var strongCards = log.filter(function(r) { return r.rating === 4; }).map(function(r) {
+        return { prompt: (r.prompt || '').substring(0, 100), topic: r.topic || '', rating: 4 };
+      });
+      var ts = sessionSnap.tutorStats || {};
+      var avgRating = sessionSnap.ratingN ? sessionSnap.ratingSum / sessionSnap.ratingN : 0;
+      var payload = {
+        userName: getTutorUserName(),
+        sessionStats: {
+          totalCards: sessionSnap.ratingN || 0,
+          avgRating: avgRating,
+          ratingDistribution: dist,
+          courseBreakdown: courseBreakdown,
+          dontKnows: ts.dontKnows || 0,
+          skips: ts.skipsToRating || 0,
+          tutorModes: sessionSnap.tutorModeCounts || defaultTutorModeCounts()
+        },
+        weakCards: weakCards.slice(0, 12),
+        strongCards: strongCards.slice(0, 12),
+        calibrationBefore: sessionSnap.calBefore,
+        calibrationAfter: calibrationPct(state.calibration)
+      };
+
+      fetch(SUMMARY_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Widget-Key': getWidgetKey()
+        },
+        body: JSON.stringify(payload)
+      })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (!data || data.error || !data.summary) {
+            wrap.style.display = 'none';
+            return;
+          }
+          body.textContent = data.summary;
+        })
+        .catch(function() {
+          wrap.style.display = 'none';
+        });
+    }
+
+    function autoPrepareAfterImport(courseName, importedItems) {
+      if (!courseName || !importedItems || importedItems.length < 3) return;
+      if (settings.feedbackMode === 'self_rate') return;
+      var cardSummaries = importedItems.slice(0, 50).map(function(entry) {
+        var obj = entry.obj || entry;
+        return {
+          prompt: (obj.prompt || '').substring(0, 200),
+          topic: obj.topic || ''
+        };
+      });
+      var courseData = state.courses && state.courses[courseName];
+      var existingContext = {
+        syllabusContext: (courseData && courseData.syllabusContext) || null,
+        professorValues: (courseData && courseData.professorValues) || null
+      };
+      fetch(PREPARE_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Widget-Key': getWidgetKey()
+        },
+        body: JSON.stringify({ courseName: courseName, cards: cardSummaries, existingCourseContext: existingContext })
+      })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (!data || data.error) return;
+          var cd = state.courses && state.courses[courseName];
+          if (data.syllabusContext && cd && !cd.syllabusContext) {
+            cd.syllabusContext = String(data.syllabusContext).slice(0, 2000);
+            if (data.keyTopics) cd.syllabusKeyTopics = data.keyTopics;
+            cd.prepared = true;
+            saveCourse(cd);
+          } else if (cd && !cd.prepared) {
+            cd.prepared = true;
+            saveCourse(cd);
+          }
+          if (data.initialMemories && Array.isArray(data.initialMemories)) {
+            var memories = SyncEngine.get(NS, 'tutorMemories') || [];
+            data.initialMemories.forEach(function(m) {
+              if (!m || !m.content) return;
+              m.id = 'mem_' + Math.random().toString(36).replace(/[^a-z0-9]+/g, '').slice(0, 10);
+              m.course = courseName;
+              m.scope = m.scope || 'course';
+              m.confidence = m.confidence != null ? m.confidence : 0.3;
+              m.created = new Date().toISOString();
+              m.lastRelevant = new Date().toISOString();
+              m.relatedTopics = data.keyTopics ? data.keyTopics.slice(0, 3) : [];
+              memories.push(m);
+            });
+            if (memories.length > 50) {
+              memories.sort(function(a, b) { return (b.confidence || 0) - (a.confidence || 0); });
+              memories = memories.slice(0, 50);
+            }
+            SyncEngine.set(NS, 'tutorMemories', memories);
+          }
+          if (data.userSummary) toast(data.userSummary);
+        })
+        .catch(function() {});
+    }
+
+    function maybeAutoPrepare(courseName) {
+      var courseData = state.courses && state.courses[courseName];
+      if (!courseData || courseData.prepared) return;
+      if (settings.feedbackMode === 'self_rate') return;
+      var count = 0;
+      var allItems = [];
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (it && !it.archived && it.course === courseName) {
+          count++;
+          allItems.push({ obj: it });
+        }
+      }
+      if (count < 5) return;
+      autoPrepareAfterImport(courseName, allItems);
+    }
 
     function extractPdfText(file) {
       return new Promise(function(resolve, reject) {
@@ -7295,9 +7672,10 @@ input[type="range"]::-moz-range-thumb{
     }
 
     function callTutor(mode, model, item, userResponse, conversation, context) {
+      var modelEff = model || 'flash';
       var payload = {
         mode: mode,
-        model: model,
+        model: modelEff,
         item: {
           prompt: item.prompt || '',
           modelAnswer: item.modelAnswer || '',
@@ -7306,6 +7684,7 @@ input[type="range"]::-moz-range-thumb{
           topic: item.topic || ''
         },
         userName: getTutorUserName(),
+        tutorVoice: (settings && settings.tutorVoice === 'supportive') ? 'supportive' : 'rigorous',
         userResponse: userResponse || '',
         conversation: conversation || [],
         context: context || {}
@@ -7322,6 +7701,9 @@ input[type="range"]::-moz-range-thumb{
         body: JSON.stringify(payload)
       }).then(function(res) {
         return res.json().then(function(data) {
+          if (res.ok && data && !data.error) {
+            recordTutorApiSuccess(mode, modelEff);
+          }
           if (!res.ok && data && !data.error) {
             data = { error: 'Request failed', detail: String(res.status) };
           }
@@ -7567,6 +7949,7 @@ input[type="range"]::-moz-range-thumb{
       var fullT = ack + (ext ? '\n\n' + ext : '');
       if (ackData && ackData.reconstructionPrompt) {
         fullT += (fullT ? '\n\n' : '') + ackData.reconstructionPrompt;
+        noteReconstructionPromptShown();
       }
       tutorConversation.push({ role: 'tutor', text: fullT });
       var htmlA = '<div>' + esc(ack) + '</div>';
@@ -7804,6 +8187,7 @@ input[type="range"]::-moz-range-thumb{
         var fullTextRl = tutorTextRl + (questionRl ? '\n\n' + questionRl : '');
         if (data.reconstructionPrompt) {
           fullTextRl += (fullTextRl ? '\n\n' : '') + data.reconstructionPrompt;
+          noteReconstructionPromptShown();
         }
         tutorConversation.push({ role: 'tutor', text: fullTextRl });
         var htmlRl = '<div>' + esc(tutorTextRl) + '</div>';
@@ -7870,6 +8254,7 @@ input[type="range"]::-moz-range-thumb{
       var fullText = tutorText + (question ? '\n\n' + question : '');
       if (data.reconstructionPrompt) {
         fullText += (fullText ? '\n\n' : '') + data.reconstructionPrompt;
+        noteReconstructionPromptShown();
       }
       tutorConversation.push({ role: 'tutor', text: fullText });
       var html = '<div>' + esc(tutorText) + '</div>';
@@ -7941,6 +8326,7 @@ input[type="range"]::-moz-range-thumb{
         finishRelearningRequeue(tutorCurrentItem, Date.now());
         return;
       }
+      if (session && session.tutorStats) session.tutorStats.skipsToRating++;
       disableTutorInput();
       addTutorMessage('tutor', '<em>Skipped to rating. Review the model answer below.</em>');
       var mac = document.querySelector('.model-answer-collapsible');
@@ -8190,6 +8576,7 @@ input[type="range"]::-moz-range-thumb{
 
     function handleDontKnowReveal(it, revealTier) {
       session._dontKnow = true;
+      if (session.tutorStats) session.tutorStats.dontKnows++;
       session.currentShown = true;
       clearTimers();
       try {
@@ -8953,6 +9340,17 @@ input[type="range"]::-moz-range-thumb{
       session.reviewsByTier[tier] = (session.reviewsByTier[tier] || 0) + 1;
       session.ratingSum += mappedRating;
       session.ratingN += 1;
+      session.sessionRatingsLog = session.sessionRatingsLog || [];
+      session.sessionRatingsLog.push({
+        prompt: (it.prompt || '').substring(0, 100),
+        topic: it.topic || '',
+        rating: mappedRating,
+        course: it.course || ''
+      });
+      if (session._reconstructionPending) {
+        if (mappedRating >= 3 && session.tutorStats) session.tutorStats.reconstructionSuccesses++;
+        session._reconstructionPending = false;
+      }
       /* Rating-differentiated audio feedback
          Research basis: Auditory valence mapping (Bowling et al., 2010) —
          rising pitch = positive outcome, flat = neutral, falling = negative.
@@ -9149,12 +9547,27 @@ input[type="range"]::-moz-range-thumb{
         state.stats.lastSessionDate = today;
       }
 
+      if (session.tutorStats) {
+        session.tutorStats.avgTurnsPerCard = session.tutorStats.socraticTurns / Math.max(1, session.ratingN || 0);
+      }
+      updateTutorAnalytics();
+
       /* Push XP to dragon */
       try {
         SyncEngine.set('dragon', 'lastStudyXP', { xp: session.xp, timestamp: new Date().toISOString() });
       } catch (e) {}
 
       saveState();
+
+      var sessionSnap = {
+        xp: session.xp,
+        ratingN: session.ratingN,
+        ratingSum: session.ratingSum,
+        calBefore: session.calBefore,
+        tutorStats: session.tutorStats ? JSON.parse(JSON.stringify(session.tutorStats)) : defaultTutorStats(),
+        tutorModeCounts: session.tutorModeCounts ? JSON.parse(JSON.stringify(session.tutorModeCounts)) : defaultTutorModeCounts(),
+        sessionRatingsLog: session.sessionRatingsLog ? session.sessionRatingsLog.slice() : []
+      };
 
       /* Auto-optimize FSRS parameters every 50 reviews */
       if (state.stats.totalReviews > 0 && state.stats.totalReviews % 50 === 0) {
@@ -9191,6 +9604,8 @@ input[type="range"]::-moz-range-thumb{
 
       session = null;
       showView('viewDone');
+
+      requestSessionAiSummary(sessionSnap, reviewed);
 
       /* Celebration animation */
       if (reviewed > 0) {
@@ -9690,6 +10105,8 @@ input[type="range"]::-moz-range-thumb{
 
       toast('Added — supports ' + supported.length + ' tier' + (supported.length !== 1 ? 's' : ''));
 
+      maybeAutoPrepare(course);
+
       if (stayOpen) {
         /* Clear content fields but keep topic */
         if (el('m_prompt')) el('m_prompt').value = '';
@@ -9999,7 +10416,8 @@ input[type="range"]::-moz-range-thumb{
             allowedMaterials: null,
             rawSyllabusText: null,
             examFormat: null,
-            syllabusKeyTopics: []
+            syllabusKeyTopics: [],
+            prepared: false
           };
         }
 
@@ -10050,6 +10468,10 @@ input[type="range"]::-moz-range-thumb{
         });
       }
       processVisualBatch();
+
+      if (n > 0 && modalCourse) {
+        autoPrepareAfterImport(modalCourse, toImport);
+      }
 
       /* Clean up and close */
       pendingImport = null;
@@ -10113,6 +10535,7 @@ input[type="range"]::-moz-range-thumb{
       var restoreStatusReset = el('restoreStatus');
       if (restoreStatusReset) restoreStatusReset.textContent = '';
       renderSettings();
+      refreshCostEstimateInSettings();
       bindSettingsTabListeners();
       settingsOv.classList.add('show');
       settingsOv.setAttribute('aria-hidden','false');
@@ -10552,13 +10975,14 @@ input[type="range"]::-moz-range-thumb{
         '<div class="setting-row">' +
           '<div class="sr-left">' +
             '<div class="sr-label">AI Tutor voice</div>' +
-            '<div class="sr-desc">Reserved for future tone presets.</div>' +
+            '<div class="sr-desc">Supportive mode warms tone while keeping substantive feedback (sent to the tutor API).</div>' +
           '</div>' +
           '<div class="sr-control">' +
             '<select id="s_tutorVoice">' +
               '<option value="rigorous"' + ((settings.tutorVoice || 'rigorous') === 'rigorous' ? ' selected' : '') + '>Rigorous TA</option>' +
               '<option value="supportive"' + (settings.tutorVoice === 'supportive' ? ' selected' : '') + '>Supportive</option>' +
             '</select>' +
+            '<div class="cost-estimate" id="s_costEstimate">This month: — · Estimated cost: —</div>' +
           '</div>' +
         '</div>' +
         '<div class="setting-row">' +
