@@ -9430,27 +9430,6 @@ input[type="range"]::-moz-range-thumb{
           b.onclick = function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); };
         });
         if (it.modelAnswer) insertListenButton(modelAnswerEl, it.modelAnswer);
-        var qfFbMode = selectFeedbackMode(it, session);
-        var qfInsightEl = el('aiFeedbackArea');
-        if (qfInsightEl) qfInsightEl.innerHTML = '';
-        if (qfFbMode === 'insight') {
-          try {
-            var qfCtx0 = tutorContextForItem(it);
-            var qfModel0 = selectModel(it, session);
-            callTutor('insight', qfModel0, it, '', [], qfCtx0).then(function(data) {
-              try {
-                if (!data || data.error) return;
-                buildInsightUI(qfInsightEl, data);
-              } catch (insightErr) {
-                console.warn('[StudyEngine] Insight UI build failed:', insightErr);
-              }
-            }).catch(function(err) {
-              console.warn('[StudyEngine] Insight call failed:', err);
-            });
-          } catch (insightSetupErr) {
-            console.warn('[StudyEngine] Insight setup failed:', insightSetupErr);
-          }
-        }
         return;
       }
 
@@ -10073,7 +10052,52 @@ input[type="range"]::-moz-range-thumb{
         return;
       }
 
-      scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount);
+      if (tier === 'quickfire' && settings.feedbackMode !== 'self_rate') {
+        var qfInsightArea = el('aiFeedbackArea');
+        ratingsEl.style.display = 'none';
+        var oldHint = document.querySelector('.override-hint');
+        if (oldHint) oldHint.remove();
+        if (qfInsightArea) {
+          qfInsightArea.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text-secondary);font-size:10px;letter-spacing:1px;text-transform:uppercase;">Loading insight…</div>';
+        }
+        var qfCtxPost = tutorContextForItem(it);
+        var qfModelPost = selectModel(it, session);
+        callTutor('insight', qfModelPost, it, '', [], qfCtxPost).then(function(insData) {
+          if (!qfInsightArea || !insData || insData.error || (!insData.insight && !insData.followUpQuestion)) {
+            scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount);
+            return;
+          }
+          buildInsightUI(qfInsightArea, insData);
+          var contWrap = document.createElement('div');
+          contWrap.className = 'qf-post-insight-cont';
+          contWrap.innerHTML = '<button type="button" class="ghost-btn" id="qfInsightContinue" style="margin-top:12px;width:100%;">Continue (Space)</button>';
+          qfInsightArea.appendChild(contWrap);
+          if (window.gsap) {
+            gsap.fromTo(contWrap, { opacity: 0, y: 4 }, { opacity: 1, y: 0, duration: 0.3, delay: 0.2, ease: 'power2.out' });
+          }
+          var insightDone = false;
+          function finishInsight() {
+            if (insightDone) return;
+            insightDone = true;
+            document.removeEventListener('keydown', insightKeyHandler);
+            scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount);
+          }
+          function insightKeyHandler(e) {
+            if (document.activeElement && (document.activeElement.id === 'qfInsightInput' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT')) return;
+            if (e.code === 'Space' || e.key === ' ') {
+              e.preventDefault();
+              finishInsight();
+            }
+          }
+          document.addEventListener('keydown', insightKeyHandler);
+          var contBtn = document.getElementById('qfInsightContinue');
+          if (contBtn) contBtn.addEventListener('click', finishInsight);
+        }).catch(function() {
+          scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount);
+        });
+      } else {
+        scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount);
+      }
     }
 
     function ensureFsrs(it) {
