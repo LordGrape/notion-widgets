@@ -4533,6 +4533,28 @@ input[type="range"]::-moz-range-thumb{
       background: rgba(var(--accent-rgb),0.15);
       transform: translateY(-1px);
     }
+    .qf-insight-dk{
+      display: block;
+      width: 100%;
+      margin-top: 6px;
+      padding: 7px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(var(--accent-rgb), 0.1);
+      background: transparent;
+      color: var(--text-tertiary);
+      font-family: inherit;
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: color var(--transition), border-color var(--transition), background var(--transition);
+    }
+    .qf-insight-dk:hover{
+      color: var(--text-secondary);
+      border-color: rgba(var(--accent-rgb), 0.2);
+      background: rgba(var(--accent-rgb), 0.03);
+    }
     .qf-insight-answer{
       margin-top: 10px;
       padding: 12px 14px;
@@ -9103,6 +9125,7 @@ input[type="range"]::-moz-range-thumb{
         h += '<textarea id="qfInsightInput" class="qf-insight-ta" placeholder="Type your answer…" rows="2"></textarea>';
         h += '<button type="button" id="qfInsightSend" class="qf-insight-send">→</button>';
         h += '</div>';
+        h += '<button type="button" id="qfInsightDk" class="qf-insight-dk">🤷 Don’t know</button>';
         h += '<div class="qf-insight-answer" id="qfInsightAnswer" style="display:none;">';
         h += '<div class="qf-section-label" style="color:var(--rate-good);">✓ Answer</div>';
         h += '<div class="qf-section-body">' + esc(data.followUpAnswer || '') + '</div>';
@@ -9115,6 +9138,7 @@ input[type="range"]::-moz-range-thumb{
       var inputRow = document.getElementById('qfInsightInputRow');
       var ta = document.getElementById('qfInsightInput');
       var sendBtn = document.getElementById('qfInsightSend');
+      var dkInsBtn = document.getElementById('qfInsightDk');
       var answerDiv = document.getElementById('qfInsightAnswer');
 
       function revealInsightAnswer() {
@@ -9132,6 +9156,12 @@ input[type="range"]::-moz-range-thumb{
           var text = ta ? ta.value.trim() : '';
           if (!text) return;
           revealInsightAnswer();
+        });
+      }
+      if (dkInsBtn) {
+        dkInsBtn.addEventListener('click', function() {
+          revealInsightAnswer();
+          try { playClick(); } catch (edk) {}
         });
       }
       if (ta) {
@@ -10296,7 +10326,9 @@ input[type="range"]::-moz-range-thumb{
         var qfModelPost = selectModel(it, session);
         callTutor('insight', qfModelPost, it, '', [], qfCtxPost).then(function(insData) {
           if (!qfInsightArea || !insData || insData.error || (!insData.insight && !insData.followUpQuestion)) {
-            scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount);
+            mountAskTutor(function() {
+              scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount);
+            });
             return;
           }
           buildInsightUI(qfInsightArea, insData);
@@ -10312,7 +10344,9 @@ input[type="range"]::-moz-range-thumb{
             if (insightDone) return;
             insightDone = true;
             document.removeEventListener('keydown', insightKeyHandler);
-            scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount);
+            mountAskTutor(function() {
+              scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount);
+            });
           }
           function insightKeyHandler(e) {
             if (document.activeElement && (document.activeElement.id === 'qfInsightInput' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT')) return;
@@ -10325,7 +10359,9 @@ input[type="range"]::-moz-range-thumb{
           var contBtn = document.getElementById('qfInsightContinue');
           if (contBtn) contBtn.addEventListener('click', finishInsight);
         }).catch(function() {
-          scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount);
+          mountAskTutor(function() {
+            scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount);
+          });
         });
       } else {
         scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount);
@@ -10394,6 +10430,7 @@ input[type="range"]::-moz-range-thumb{
     var askTutorConversation = [];
     var askTutorItem = null;
     var askTutorActive = false;
+    var askTutorContinueHandler = null;
 
     function mountAskTutor(afterRating) {
       /* Don't show if feedback mode is self_rate */
@@ -10411,7 +10448,9 @@ input[type="range"]::-moz-range-thumb{
       askTutorConversation = [];
       askTutorActive = true;
 
-      var rating = afterRating || 0;
+      var isCallbackMode = typeof afterRating === 'function';
+      askTutorContinueHandler = isCallbackMode ? afterRating : null;
+      var rating = isCallbackMode ? (session.aiRating || 0) : (afterRating || 0);
       var isStruggling = rating <= 2;
       var tc = (session && session.lastTutorContext) || {};
       var tier = tc.tier || (it._presentTier || it.tier || 'quickfire');
@@ -10420,9 +10459,9 @@ input[type="range"]::-moz-range-thumb{
       var label = '';
       var autoExpand = false;
       if (tier === 'quickfire') {
-        /* Quick Fire: no prior dialogue — this is the main chance to dig deeper */
-        label = isStruggling ? 'Something unclear? Ask the tutor' : 'Curious about something? Ask the tutor';
-        autoExpand = isStruggling;
+        /* Quick Fire: always present and expanded */
+        label = '💬 Got a question about this card?';
+        autoExpand = true;
       } else if (tc.wasDontKnow) {
         /* Don't Know path ran — reframe as self-check */
         label = 'Want to test your understanding?';
@@ -10499,8 +10538,10 @@ input[type="range"]::-moz-range-thumb{
       var contBtn = document.getElementById('askTutorContinue');
       if (contBtn) {
         contBtn.addEventListener('click', function() {
+          var cb = askTutorContinueHandler;
           cleanupAskTutor();
-          advanceItem();
+          if (typeof cb === 'function') cb();
+          else advanceItem();
         });
       }
 
@@ -10635,6 +10676,7 @@ input[type="range"]::-moz-range-thumb{
 
     function cleanupAskTutor() {
       askTutorActive = false;
+      askTutorContinueHandler = null;
       askTutorItem = null;
       askTutorConversation = [];
       askTutorExchangeCount = 0;
@@ -10842,8 +10884,10 @@ input[type="range"]::-moz-range-thumb{
       /* Space after rating = skip Ask Tutor and advance */
       if (e.key === ' ' && !inText && askTutorActive) {
         e.preventDefault();
+        var cb = askTutorContinueHandler;
         cleanupAskTutor();
-        advanceItem();
+        if (typeof cb === 'function') cb();
+        else advanceItem();
       }
     });
 
