@@ -7335,6 +7335,10 @@ input[type="range"]::-moz-range-thumb{
       /* Remove side-by-side reveal columns from previous item */
       var oldReveal = document.getElementById('revealColumnsWrap');
       if (oldReveal) oldReveal.remove();
+      var oldDkWrap = document.getElementById('dkRevealWrap');
+      if (oldDkWrap) oldDkWrap.remove();
+      // Re-show tier area in case it was hidden by Don't Know flow
+      if (tierArea) tierArea.style.display = '';
       if (session) session.aiRating = null;
       if (session) session._isRelearning = false;
       tutorAcknowledgeDone = false;
@@ -9374,6 +9378,8 @@ input[type="range"]::-moz-range-thumb{
       if (dkBtn) dkBtn.style.display = 'none';
       var essayNext = el('essayNextPhase');
       if (essayNext) essayNext.style.display = 'none';
+      // Hide the entire tier area (concepts, scenario, prompt details)
+      if (tierArea) tierArea.style.display = 'none';
 
       var oldWrap = document.getElementById('revealColumnsWrap');
       if (oldWrap) oldWrap.remove();
@@ -9635,6 +9641,12 @@ input[type="range"]::-moz-range-thumb{
       hint.className = 'override-hint';
       hint.textContent = 'Auto-rated Again — override if you partially knew this';
       ratingsEl.parentNode.insertBefore(hint, ratingsEl.nextSibling);
+      // Re-bind rating buttons to ensure clean handler
+      ratingsEl.querySelectorAll('button').forEach(function(b) {
+        b.onclick = function() {
+          rateCurrent(parseInt(this.getAttribute('data-rate'), 10));
+        };
+      });
     }
 
     function wireGenerative(tier) {
@@ -10856,6 +10868,11 @@ input[type="range"]::-moz-range-thumb{
       if (askTutorBlocking) tutorBlocking = true;
 
       if (e.key === ' ' && !inText) {
+        // Don't advance if DK tutor flow is active (waiting for tutor or user is in dialogue)
+        if (document.getElementById('dkTutorSlot') && ratingsEl.style.display === 'none') {
+          e.preventDefault();
+          return;
+        }
         if (tutorBlocking) return;
         e.preventDefault();
         if (!session.currentShown) {
