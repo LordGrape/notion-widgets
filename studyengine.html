@@ -10212,6 +10212,7 @@ input[type="range"]::-moz-range-thumb{
 
       state.items[it.id] = it;
       saveState();
+      renderDashboard();
 
       /* Generate visual (async, non-blocking) */
       generateVisual(it).then(function(visual) {
@@ -10219,6 +10220,7 @@ input[type="range"]::-moz-range-thumb{
           it.visual = visual;
           state.items[it.id] = it;
           saveState();
+          renderDashboard();
         }
       });
 
@@ -10566,6 +10568,17 @@ input[type="range"]::-moz-range-thumb{
       if (skipCount > 0) msg += ' · ' + skipCount + ' invalid skipped';
       msg += ' — generating visuals...';
       toast(msg);
+
+      /* Immediately update UI so user sees imported cards */
+      saveState();
+      renderDashboard();
+
+      /* If a course detail panel is open, refresh it too */
+      var openDetail = document.querySelector('#courseDetail.active');
+      if (openDetail) {
+        var detailCourse = openDetail.getAttribute('data-course');
+        if (detailCourse) openCourseDetail(detailCourse);
+      }
 
       /* Generate visuals for imported items (async batch, non-blocking) */
       var visualQueue = importedIds.slice();
