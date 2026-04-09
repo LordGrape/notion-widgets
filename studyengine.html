@@ -7795,9 +7795,17 @@ input[type="range"]::-moz-range-thumb{
         /* Prompt is scenario; modelAnswer includes ideal response. Task is embedded at top of modelAnswer if provided. */
         var scen = it.prompt || '';
         var task = (it.task || '');
+        /* Skip Task block if it's essentially the same as the scenario (normalise and compare). */
+        var normScen = scen.toLowerCase().replace(/[^a-z0-9]/g, '');
+        var normTask = task ? task.toLowerCase().replace(/[^a-z0-9]/g, '') : '';
+        var maxLen = Math.max(normScen.length, normTask.length, 1);
+        var taskIsDuplicate = !task || !normTask || normScen === normTask ||
+          (normTask.length > 0 && normScen.length > 0 &&
+            (normScen.indexOf(normTask) >= 0 || normTask.indexOf(normScen) >= 0 ||
+              (Math.abs(normScen.length - normTask.length) / maxLen) < 0.15));
         tierArea.innerHTML = '' +
           '<div class="scenario md-content" id="scenarioBlock">' + renderMd(scen) + '</div>' +
-          (task ? '<div class="divider"></div><div class="prompt" style="font-weight:700">Task</div><div class="answer" style="margin-top:8px"><div class="md-content">' + renderMd(task) + '</div></div>' : '') +
+          (task && !taskIsDuplicate ? '<div class="divider"></div><div class="prompt" style="font-weight:700">Task</div><div class="answer" style="margin-top:8px"><div class="md-content">' + renderMd(task) + '</div></div>' : '') +
           '<div class="divider"></div>' +
           '<div class="panel">' +
             '<div class="p-h">Your response</div>' +
