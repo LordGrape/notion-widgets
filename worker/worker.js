@@ -57,7 +57,7 @@ export default {
         });
       }
 
-      const TUTOR_MODES = ["socratic", "quick", "teach", "insight", "acknowledge"];
+      const TUTOR_MODES = ["socratic", "quick", "teach", "insight", "acknowledge", "freeform"];
 
       try {
         const body = await request.json();
@@ -80,7 +80,7 @@ export default {
           });
         }
 
-        const needsUserResponse = mode === "socratic" || mode === "quick" || mode === "acknowledge";
+        const needsUserResponse = mode === "socratic" || mode === "quick" || mode === "acknowledge" || mode === "freeform";
         if (needsUserResponse && !userResponse.trim()) {
           return new Response(JSON.stringify({ error: "userResponse required for this mode" }), {
             status: 400, headers: { ...tutorCorsHeaders, "Content-Type": "application/json" }
@@ -253,7 +253,21 @@ export default {
             "The student's answer is strong — it hits all key points from the model answer. " +
             "Acknowledge what was specifically good (cite their exact phrases), then ask ONE extension question that pushes BEYOND the model answer — " +
             "deeper analysis, a counter-argument, a specific mechanism, a real-world application. " +
-            "This extends encoding without wasting time on material they already know."
+            "This extends encoding without wasting time on material they already know.",
+          freeform:
+            `MODE: Freeform student question.\n\n` +
+            "The student has just reviewed a study card and is asking their own follow-up question. " +
+            "Your job is to answer their question accurately, grounded in the card's content and model answer. " +
+            "Do NOT just give a flat answer. After answering the core question (2-3 sentences max), do ONE of:\n" +
+            "- Ask a short follow-up that extends their thinking (\"Now consider: ...\")\n" +
+            "- Connect their question to a related concept they should know (\"This links to ...\")\n" +
+            "- Point out an implication they might not have considered\n\n" +
+            "Keep your total response under 5 sentences. The student initiated this — respect their curiosity but keep the session moving.\n\n" +
+            "If their question is off-topic or unanswerable from the card context, say so briefly and redirect: " +
+            "\"That's outside this card's scope — but good instinct. For now, the key takeaway is...\"\n\n" +
+            "If conversation history exists, this is a follow-up exchange. Keep it to max 1 additional turn after your first response. " +
+            "On the second turn, always mark isComplete: true.\n\n" +
+            "Provide annotations only if the student's question reveals a misconception worth flagging."
         };
 
         const modeInstructionsForMode =
@@ -294,6 +308,13 @@ export default {
   "extensionQuestion": "One question pushing beyond the model answer.",
   "isComplete": false,
   "suggestedRating": null
+}`,
+          freeform: `{
+  "tutorMessage": "2-5 sentences answering the question + one extension.",
+  "followUpQuestion": "Optional short follow-up to deepen thinking. Null if isComplete.",
+  "isComplete": false,
+  "suggestedRating": null,
+  "annotations": []
 }`
         };
 
@@ -339,7 +360,8 @@ export default {
           quick: 512,
           acknowledge: 512,
           socratic: 1024,
-          teach: 1024
+          teach: 1024,
+          freeform: 512
         };
         const maxOut = modeTokenLimits[mode] || 1024;
         const dynamicPrompt =
