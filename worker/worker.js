@@ -25,6 +25,19 @@ function parseJsonResponse(rawText) {
   );
 }
 
+// Gemini 2.5 models may include "thought" parts before the actual response.
+// This helper extracts the last non-thought text part from the candidates.
+function extractGeminiText(geminiData) {
+  const parts = geminiData?.candidates?.[0]?.content?.parts;
+  if (!Array.isArray(parts) || parts.length === 0) return "{}";
+  const textParts = parts.filter((p) => !p.thought && typeof p.text === "string");
+  if (textParts.length === 0) {
+    const last = parts[parts.length - 1];
+    return (last && typeof last.text === "string") ? last.text : "{}";
+  }
+  return textParts[textParts.length - 1].text;
+}
+
 export default {
   async fetch(request, env) {
     // ── Global CORS preflight — must run before auth or any route branch ──
@@ -382,7 +395,8 @@ export default {
             generationConfig: {
               temperature: 0.35,
               maxOutputTokens: maxOut,
-              responseMimeType: "application/json"
+              responseMimeType: "application/json",
+              thinkingConfig: { thinkingBudget: 0 }
             }
           })
         });
@@ -395,7 +409,7 @@ export default {
         }
 
         const geminiData = await geminiRes.json();
-        const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+        const rawText = extractGeminiText(geminiData);
 
         const parsed = parseJsonResponse(rawText);
 
@@ -477,7 +491,8 @@ export default {
             generationConfig: {
               temperature: 0.35,
               maxOutputTokens: 1024,
-              responseMimeType: "application/json"
+              responseMimeType: "application/json",
+              thinkingConfig: { thinkingBudget: 0 }
             }
           })
         });
@@ -490,7 +505,7 @@ export default {
         }
 
         const sylData = await sylRes.json();
-        const sylRaw = sylData?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+        const sylRaw = extractGeminiText(sylData);
         let parsedSyl = parseJsonResponse(sylRaw);
 
         if (!parsedSyl || typeof parsedSyl !== "object") {
@@ -612,7 +627,8 @@ export default {
             generationConfig: {
               temperature: 0.35,
               maxOutputTokens: 256,
-              responseMimeType: "application/json"
+              responseMimeType: "application/json",
+              thinkingConfig: { thinkingBudget: 0 }
             }
           })
         });
@@ -624,7 +640,7 @@ export default {
         }
 
         const memData = await memRes.json();
-        const memRaw = memData?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+        const memRaw = extractGeminiText(memData);
         let parsedMem = parseJsonResponse(memRaw);
 
         if (!parsedMem || typeof parsedMem !== "object") {
@@ -758,7 +774,7 @@ export default {
               parts: [{ text: "You are generating a brief session summary for a study engine. Be specific and actionable. Respond as plain text, not JSON. 3-4 sentences." }]
             },
             contents: [{ parts: [{ text: summaryPrompt }] }],
-            generationConfig: { temperature: 0.4, maxOutputTokens: 256 }
+            generationConfig: { temperature: 0.4, maxOutputTokens: 256, thinkingConfig: { thinkingBudget: 0 } }
           })
         });
 
@@ -770,7 +786,7 @@ export default {
         }
 
         const sumData = await sumRes.json();
-        const summaryText = String(sumData?.candidates?.[0]?.content?.parts?.[0]?.text || "").trim();
+        const summaryText = String(extractGeminiText(sumData) || "").trim();
         if (!summaryText) {
           return new Response(JSON.stringify({ error: "Empty summary" }), {
             status: 500, headers: { ...sumCorsHeaders, "Content-Type": "application/json" }
@@ -862,7 +878,8 @@ export default {
             generationConfig: {
               temperature: 0.35,
               maxOutputTokens: 1024,
-              responseMimeType: "application/json"
+              responseMimeType: "application/json",
+              thinkingConfig: { thinkingBudget: 0 }
             }
           })
         });
@@ -875,7 +892,7 @@ export default {
         }
 
         const prepData = await prepRes.json();
-        const prepRaw = prepData?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+        const prepRaw = extractGeminiText(prepData);
         let parsedPrep = parseJsonResponse(prepRaw);
 
         if (!parsedPrep || typeof parsedPrep !== "object") {
@@ -958,7 +975,7 @@ Respond in this EXACT JSON format and nothing else:
                   parts: [{ text: "You are a patient, expert tutor embedded in a spaced repetition study engine. When a student doesn't know the answer, you TEACH — explain WHY the answer is what it is for deep encoding. Respond in JSON." }]
                 },
                 contents: [{ parts: [{ text: explainPrompt }] }],
-                generationConfig: { temperature: 0.4, maxOutputTokens: 512, responseMimeType: "application/json" }
+                generationConfig: { temperature: 0.4, maxOutputTokens: 512, responseMimeType: "application/json", thinkingConfig: { thinkingBudget: 0 } }
               })
             }
           );
@@ -971,7 +988,7 @@ Respond in this EXACT JSON format and nothing else:
           }
 
           const explainData = await explainRes.json();
-          const explainRaw = explainData?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+          const explainRaw = extractGeminiText(explainData);
           let explainResult = parseJsonResponse(explainRaw);
 
           if (!explainResult || typeof explainResult !== "object") {
@@ -1151,7 +1168,8 @@ Respond in this EXACT JSON format and nothing else:
               generationConfig: {
                 temperature: 0.2,
                 maxOutputTokens: 1024,
-                responseMimeType: "application/json"
+                responseMimeType: "application/json",
+                thinkingConfig: { thinkingBudget: 0 }
               }
             })
           }
@@ -1165,7 +1183,7 @@ Respond in this EXACT JSON format and nothing else:
         }
 
         const geminiData = await geminiRes.json();
-        const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+        const rawText = extractGeminiText(geminiData);
 
         let grading;
         grading = parseJsonResponse(rawText);
@@ -1342,7 +1360,7 @@ graph LR
                 parts: [{ text: "You generate minimal Mermaid.js diagrams for study cards. Output ONLY valid Mermaid markup. graph TD or graph LR only. Target 5-7 nodes max 8. Short real-term labels. No code fences, no prose, no explanation." }]
               },
               contents: [{ parts: [{ text: visualPrompt }] }],
-              generationConfig: { temperature: 0.3, maxOutputTokens: 1024 }
+              generationConfig: { temperature: 0.3, maxOutputTokens: 1024, thinkingConfig: { thinkingBudget: 0 } }
             })
           }
         );
@@ -1356,7 +1374,12 @@ graph LR
         const data = await geminiRes.json();
         const cand = data?.candidates?.[0];
         const finishReason = cand?.finishReason || "";
-        let visual = cand?.content?.parts?.[0]?.text || "";
+        const visParts = cand?.content?.parts;
+        let visual = "";
+        if (Array.isArray(visParts)) {
+          const vTextParts = visParts.filter((p) => !p.thought && typeof p.text === "string");
+          visual = vTextParts.length > 0 ? vTextParts[vTextParts.length - 1].text : (visParts[visParts.length - 1]?.text || "");
+        }
         visual = visual.replace(/^```mermaid\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/i, "").trim();
         /* Drop preamble ("Here is…") so Mermaid sees graph TD/LR first */
         const graphIdx = visual.search(/\bgraph\s+(TD|LR)\b/i);
