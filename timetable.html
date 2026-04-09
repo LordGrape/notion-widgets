@@ -805,7 +805,9 @@ function showAddForm(existingBlock) {
     '<div class="form-actions">' +
     '<button class="form-btn form-btn-secondary" id="af-cancel">Cancel</button>' +
     '<button class="form-btn form-btn-primary" id="af-save">' + (existingBlock ? 'Save' : 'Add Block') + '</button>' +
-    '</div></div>';
+    '</div>' +
+    (existingBlock ? '<div style="margin-top:8px;"><button type="button" id="af-delete" style="width:100%;padding:7px 0;border-radius:var(--radius-md);border:1px solid rgba(239,68,68,0.25);background:rgba(239,68,68,0.06);cursor:pointer;font-family:Inter,sans-serif;font-size:9px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#ef4444;transition:all 0.15s;">Delete Block</button></div>' : '') +
+    '</div>';
 
   function getDefaultTimes() {
     var keys = Object.keys(selectedDays);
@@ -897,6 +899,13 @@ function showAddForm(existingBlock) {
   /* Cancel */
   document.getElementById('af-cancel').addEventListener('click', function() { hideAddForm(); playClose(); });
 
+  /* Delete (only present when editing) */
+  if (existingBlock) {
+    document.getElementById('af-delete').addEventListener('click', function() {
+      confirmDeleteBlock(existingBlock);
+    });
+  }
+
   /* Save */
   document.getElementById('af-save').addEventListener('click', function() {
     var name = document.getElementById('af-name').value.trim();
@@ -962,6 +971,7 @@ document.getElementById('confirmDelete').addEventListener('click', function() {
     pendingDeleteId = null;
     playReset();
     document.getElementById('confirmOverlay').classList.remove('show');
+    hideAddForm();
     renderBlockList();
     renderSchedule();
     if (currentView === 'week') renderWeekView();
