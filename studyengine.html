@@ -6752,6 +6752,98 @@ input[type="range"]::-moz-range-thumb{
        Socratic Tutor — adaptive router + UI
        ══════════════════════════════════════ */
     var TUTOR_ENDPOINT = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/tutor';
+    var MEMORY_ENDPOINT = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/memory';
+
+    function buildLearnerContext(item, stateObj) {
+      var course = item.course || '';
+      var topic = item.topic || '';
+      var cardHistory = {
+        lapses: (item.fsrs && item.fsrs.lapses) || 0,
+        reps: (item.fsrs && item.fsrs.reps) || 0,
+        stability: (item.fsrs && item.fsrs.stability) || 0,
+        isNew: !(item.fsrs && item.fsrs.lastReview)
+      };
+      var allMemories = [];
+      if (typeof SyncEngine !== 'undefined' && SyncEngine.get) {
+        allMemories = SyncEngine.get(NS, 'tutorMemories') || [];
+      }
+      var relevantMemories = allMemories
+        .filter(function(m) {
+          if (!m) return false;
+          return m.course === course || (Array.isArray(m.relatedTopics) && topic && m.relatedTopics.indexOf(topic) >= 0);
+        })
+        .sort(function(a, b) { return (b.confidence || 0) - (a.confidence || 0); })
+        .slice(0, 8)
+        .map(function(m) { return m.content; });
+      var calAcc = null;
+      var streak = 0;
+      if (stateObj) {
+        if (typeof calibrationPct === 'function' && stateObj.calibration) {
+          calAcc = calibrationPct(stateObj.calibration);
+        }
+        if (stateObj.stats && stateObj.stats.streakDays != null) {
+          streak = stateObj.stats.streakDays;
+        }
+      }
+      if (!stateObj || !stateObj.items) {
+        return {
+          courseStats: { totalCards: 0, reviewedCards: 0 },
+          currentTopic: { name: topic, stats: null },
+          strongTopics: [],
+          weakTopics: [],
+          cardHistory: cardHistory,
+          calibrationAccuracy: calAcc,
+          overallStreak: streak,
+          relevantMemories: relevantMemories
+        };
+      }
+      var courseItems = [];
+      for (var id in stateObj.items) {
+        if (!stateObj.items.hasOwnProperty(id)) continue;
+        var it = stateObj.items[id];
+        if (!it || it.archived || it.course !== course) continue;
+        courseItems.push(it);
+      }
+      var topicMap = {};
+      courseItems.forEach(function(it2) {
+        var t = it2.topic || 'General';
+        if (!topicMap[t]) {
+          topicMap[t] = { total: 0, mastered: 0, struggling: 0, totalStability: 0, totalLapses: 0 };
+        }
+        topicMap[t].total++;
+        var s = (it2.fsrs && it2.fsrs.stability) || 0;
+        var lapses = (it2.fsrs && it2.fsrs.lapses) || 0;
+        topicMap[t].totalStability += s;
+        topicMap[t].totalLapses += lapses;
+        if (s > 30 && lapses === 0) topicMap[t].mastered++;
+        if (lapses >= 2 || (s < 3 && it2.fsrs && it2.fsrs.lastReview)) topicMap[t].struggling++;
+      });
+      var strongTopics = [];
+      var weakTopics = [];
+      for (var tk in topicMap) {
+        if (!topicMap.hasOwnProperty(tk)) continue;
+        var tm = topicMap[tk];
+        tm.avgStability = tm.total > 0 ? (tm.totalStability / tm.total) : 0;
+        if (tm.total >= 2 && tm.mastered / tm.total > 0.7) strongTopics.push(tk);
+        if (tm.total >= 2 && tm.struggling / tm.total > 0.3) weakTopics.push(tk);
+      }
+      return {
+        courseStats: {
+          totalCards: courseItems.length,
+          reviewedCards: courseItems.filter(function(i) { return i.fsrs && i.fsrs.lastReview; }).length
+        },
+        currentTopic: {
+          name: topic,
+          stats: topicMap[topic] || null
+        },
+        strongTopics: strongTopics.slice(0, 5),
+        weakTopics: weakTopics.slice(0, 5),
+        cardHistory: cardHistory,
+        calibrationAccuracy: calAcc,
+        overallStreak: streak,
+        relevantMemories: relevantMemories
+      };
+    }
 
     function getFeedbackArea() {
       return document.getElementById('aiFeedbackRight') || el('aiFeedbackArea');
@@ -6982,12 +7074,84 @@ input[type="range"]::-moz-range-thumb{
     }
 
     function tutorContextForItem(tItem) {
-      return {
+      var ctx = {
         lapses: (tItem.fsrs && tItem.fsrs.lapses) || 0,
         sessionRetryCount: (session && session.loops && tItem && session.loops[tItem.id]) || 0,
         recentAvgRating: getRecentAvg(),
         isRelearning: !!(session && session._isRelearning)
       };
+      if (typeof state !== 'undefined' && state) {
+        ctx.learner = buildLearnerContext(tItem, state);
+      }
+      return ctx;
+    }
+
+    function updateTutorMemories(item, conversation, suggestedRating) {
+      if (!conversation || conversation.length < 2) return;
+      if (settings.feedbackMode === 'self_rate') return;
+      if (typeof SyncEngine === 'undefined' || !SyncEngine.get || !SyncEngine.set) return;
+      var allMem0 = SyncEngine.get(NS, 'tutorMemories') || [];
+      var courseMemories = allMem0.filter(function(m) {
+        return m && m.course === item.course;
+      }).slice(0, 10);
+      var payload = {
+        userName: getTutorUserName(),
+        item: {
+          prompt: item.prompt || '',
+          modelAnswer: item.modelAnswer || '',
+          course: item.course || '',
+          topic: item.topic || ''
+        },
+        dialogue: conversation,
+        suggestedRating: suggestedRating != null ? suggestedRating : 2,
+        existingMemories: courseMemories
+      };
+      fetch(MEMORY_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Widget-Key': getWidgetKey()
+        },
+        body: JSON.stringify(payload)
+      })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (!data || data.action === null || data.action === undefined) return;
+          var memories = SyncEngine.get(NS, 'tutorMemories') || [];
+          if (data.action === 'create' && data.memory) {
+            data.memory.created = new Date().toISOString();
+            data.memory.lastRelevant = new Date().toISOString();
+            memories.push(data.memory);
+          } else if (data.action === 'update' && data.memory && data.memory.id) {
+            for (var i = 0; i < memories.length; i++) {
+              if (memories[i].id === data.memory.id) {
+                memories[i].content = data.memory.content || memories[i].content;
+                memories[i].confidence = data.memory.confidence != null ? data.memory.confidence : memories[i].confidence;
+                memories[i].relatedTopics = data.memory.relatedTopics || memories[i].relatedTopics;
+                memories[i].lastRelevant = new Date().toISOString();
+                break;
+              }
+            }
+          }
+          if (memories.length > 50) {
+            memories.sort(function(a, b) {
+              return (b.confidence || 0) - (a.confidence || 0);
+            });
+            memories = memories.slice(0, 50);
+          }
+          SyncEngine.set(NS, 'tutorMemories', memories);
+        })
+        .catch(function() { /* silent — memories are supplementary */ });
+    }
+
+    function queueTutorMemoryUpdateIfEligible(item, convSnapshot, suggestedRating) {
+      if (!item || tutorInRelearning) return;
+      if (!convSnapshot || convSnapshot.length < 2) return;
+      if (settings.feedbackMode === 'self_rate') return;
+      var tm = tutorCurrentMode;
+      if (tm !== 'socratic' && tm !== 'teach' && tm !== 'acknowledge') return;
+      var r = suggestedRating != null ? suggestedRating : session.aiRating;
+      updateTutorMemories(item, convSnapshot.slice(), r != null ? r : 2);
     }
 
     function getLastUserTextForTutor() {
@@ -7024,6 +7188,7 @@ input[type="range"]::-moz-range-thumb{
         disableTutorInput();
         var srA = (ackData && ackData.suggestedRating != null) ? ackData.suggestedRating : tutorAcknowledgeOriginalRating;
         showRatingButtons(srA != null ? srA : null);
+        queueTutorMemoryUpdateIfEligible(tutorCurrentItem, tutorConversation, srA != null ? srA : tutorAcknowledgeOriginalRating);
         try { playClick(); } catch (ea) {}
         return;
       }
@@ -7290,6 +7455,7 @@ input[type="range"]::-moz-range-thumb{
             hideTypingIndicator();
             if (ackD && ackD.error) {
               showRatingButtons(tutorAcknowledgeOriginalRating);
+              queueTutorMemoryUpdateIfEligible(tutorCurrentItem, tutorConversation, tutorAcknowledgeOriginalRating);
               return;
             }
             tutorCurrentMode = 'acknowledge';
@@ -7298,6 +7464,7 @@ input[type="range"]::-moz-range-thumb{
           .catch(function() {
             hideTypingIndicator();
             showRatingButtons(tutorAcknowledgeOriginalRating);
+            queueTutorMemoryUpdateIfEligible(tutorCurrentItem, tutorConversation, tutorAcknowledgeOriginalRating);
           });
         return;
       }
@@ -7329,6 +7496,7 @@ input[type="range"]::-moz-range-thumb{
         var suggOut = data.suggestedRating != null ? data.suggestedRating : null;
         if (tutorCurrentMode === 'acknowledge' && suggOut == null) suggOut = tutorAcknowledgeOriginalRating;
         showRatingButtons(suggOut);
+        queueTutorMemoryUpdateIfEligible(tutorCurrentItem, tutorConversation, suggOut);
         try { playClick(); } catch (e3) {}
       } else {
         var ta2 = document.getElementById('tutorInput');
