@@ -7049,7 +7049,8 @@ input[type="range"]::-moz-range-thumb{
         fatigueWarningShown: false, /* only show once per session */
         tutorStats: defaultTutorStats(),
         tutorModeCounts: defaultTutorModeCounts(),
-        sessionRatingsLog: []
+        sessionRatingsLog: [],
+        lastTutorContext: null  /* { mode, turns, hadDialogue, wasDontKnow } — set by tutor flows */
       };
       sessionSummary = null;
       breakState.sessionStartTime = Date.now();
@@ -7152,6 +7153,7 @@ input[type="range"]::-moz-range-thumb{
       document.querySelectorAll('.listen-tts-btn').forEach(function(btn) { btn.remove(); });
       clearTimers();
       cleanupAskTutor();
+      if (session) session.lastTutorContext = null;
       activeRubric = null;
       session.currentShown = false;
       if (session) session.confidence = null;
@@ -9721,6 +9723,22 @@ input[type="range"]::-moz-range-thumb{
       session.xp += xp;
       flashXP(xp);
       saveState();
+      /* Build tutor context for Ask the Tutor */
+      if (session) {
+        var prevMode = tutorCurrentMode || null;
+        var prevTurns = tutorTurnCount || 0;
+        var prevDontKnow = !!(session._dontKnow);
+        var hadSocratic = (prevMode === 'socratic' || prevMode === 'teach' || prevMode === 'acknowledge') && prevTurns >= 1;
+        var hadQuickFeedback = prevMode === 'quick' && prevTurns >= 1;
+        session.lastTutorContext = {
+          mode: prevMode,
+          turns: prevTurns,
+          hadDialogue: hadSocratic,
+          hadQuickFeedback: hadQuickFeedback,
+          wasDontKnow: prevDontKnow,
+          tier: tier
+        };
+      }
       /* Show Ask the Tutor before advancing */
       mountAskTutor(mappedRating);
     }
@@ -10049,14 +10067,41 @@ input[type="range"]::-moz-range-thumb{
 
       var rating = afterRating || 0;
       var isStruggling = rating <= 2;
+      var tc = (session && session.lastTutorContext) || {};
+      var tier = tc.tier || (it._presentTier || it.tier || 'quickfire');
+
+      /* ── Context-aware label + auto-expand logic ── */
+      var label = '';
+      var autoExpand = false;
+      if (tier === 'quickfire') {
+        /* Quick Fire: no prior dialogue — this is the main chance to dig deeper */
+        label = isStruggling ? 'Something unclear? Ask the tutor' : 'Curious about something? Ask the tutor';
+        autoExpand = isStruggling;
+      } else if (tc.wasDontKnow) {
+        /* Don't Know path ran — reframe as self-check */
+        label = 'Want to test your understanding?';
+        autoExpand = false;
+      } else if (tc.hadDialogue) {
+        /* Full Socratic dialogue ran (2+ turns) — softer prompt, never auto-expand */
+        label = 'Still have questions?';
+        autoExpand = false;
+      } else if (tc.hadQuickFeedback) {
+        /* Quick feedback only (1 turn, no real dialogue) — follow-up warranted */
+        label = isStruggling ? 'Need more clarity? Ask the tutor' : 'Want to explore this further?';
+        autoExpand = isStruggling;
+      } else {
+        /* No AI ran at all (edge case / fallback) */
+        label = isStruggling ? 'Something unclear? Ask the tutor' : 'Explore further';
+        autoExpand = isStruggling;
+      }
 
       var wrap = document.createElement('div');
       wrap.id = 'askTutorWrap';
-      wrap.className = 'ask-tutor-wrap' + (isStruggling ? ' open' : '');
+      wrap.className = 'ask-tutor-wrap' + (autoExpand ? ' open' : '');
       wrap.innerHTML =
         '<button class="ask-tutor-toggle" id="askTutorToggle">' +
           '<span class="at-icon">💬</span>' +
-          '<span>' + esc(isStruggling ? 'Something unclear? Ask the tutor' : 'Explore further') + '</span>' +
+          '<span>' + esc(label) + '</span>' +
           '<span class="at-arrow">▶</span>' +
         '</button>' +
         '<div class="ask-tutor-body" id="askTutorBody">' +
