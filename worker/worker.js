@@ -19,6 +19,261 @@ export default {
 
     const url = new URL(request.url);
 
+    // ── Socratic Tutor Route ──
+    if (url.pathname === "/studyengine/tutor") {
+      const tutorCorsHeaders = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, X-Widget-Key",
+        "Access-Control-Max-Age": "86400"
+      };
+
+      if (request.method !== "POST") {
+        return new Response(JSON.stringify({ error: "Method not allowed" }), {
+          status: 405, headers: { ...tutorCorsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      function cleanJsonString(s) {
+        s = s.replace(/^[\s\S]*?(?=\{)/m, "");
+        s = s.replace(/\}[\s\S]*$/, "}");
+        s = s.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
+        s = s.replace(/,\s*([\]}])/g, "$1");
+        s = s.replace(/[\x00-\x1f]/g, " ");
+        return s;
+      }
+      function tryParse(s) {
+        try { return JSON.parse(s); } catch (e) { return null; }
+      }
+
+      const TUTOR_MODES = ["socratic", "quick", "teach", "insight", "acknowledge"];
+
+      try {
+        const body = await request.json();
+        const mode = body.mode;
+        const item = body.item || {};
+        const userName = String(body.userName || "there").trim() || "there";
+        const userResponse = body.userResponse != null ? String(body.userResponse) : "";
+        const conversation = Array.isArray(body.conversation) ? body.conversation : [];
+        const context = body.context && typeof body.context === "object" ? body.context : {};
+
+        if (!mode || !item.prompt || !item.modelAnswer) {
+          return new Response(JSON.stringify({ error: "Missing required fields" }), {
+            status: 400, headers: { ...tutorCorsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
+        if (!TUTOR_MODES.includes(mode)) {
+          return new Response(JSON.stringify({ error: "Invalid mode" }), {
+            status: 400, headers: { ...tutorCorsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
+        const needsUserResponse = mode === "socratic" || mode === "quick" || mode === "acknowledge";
+        if (needsUserResponse && !userResponse.trim()) {
+          return new Response(JSON.stringify({ error: "userResponse required for this mode" }), {
+            status: 400, headers: { ...tutorCorsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
+        const modelMap = {
+          flash: "gemini-2.5-flash",
+          pro: "gemini-2.5-pro"
+        };
+        const selectedModel = modelMap[body.model] || "gemini-2.5-flash";
+        const geminiUrl =
+          "https://generativelanguage.googleapis.com/v1beta/models/" +
+          selectedModel +
+          ":generateContent?key=" +
+          env.GEMINI_API_KEY;
+
+        const coursePhrase = item.course || "university-level courses";
+        const systemPrompt =
+          `You are an expert tutor embedded in ${userName}'s personal study engine.\n\n` +
+          "You are warm but rigorous. You use their name occasionally (not every message — roughly every other turn).\n\n" +
+          "You never give empty praise — when you acknowledge something correct, you cite the specific claim from their response.\n\n" +
+          "You believe struggling to retrieve is where learning happens, so you ASK QUESTIONS rather than explain whenever possible. " +
+          "You only explain directly when the student has no foothold to build from (e.g., \"Don't Know\" path).\n\n" +
+          `This student studies ${coursePhrase} at the university level. Their material involves open-ended reasoning, not binary answers. ` +
+          "You evaluate reasoning quality, analytical structure, and evidence usage — not just factual accuracy. Multiple valid analytical approaches can exist.\n\n" +
+          "When the student gets something wrong, you don't say \"incorrect.\" You ask a question that leads them to see the error themselves.\n\n" +
+          "You keep turns concise: 3-5 sentences max. Never lecture. The student should be writing more than you.\n\n" +
+          "Tone: like a sharp TA who genuinely wants the student to succeed. Respect their intelligence. Challenge them.";
+
+        const modeInstructions = {
+          socratic:
+            `MODE: Socratic dialogue.\n\n` +
+            "The student has submitted a response to a study question. Your job is to identify the SINGLE most important gap between their answer and the model answer, " +
+            "then ask ONE targeted follow-up question that forces the student to bridge that gap. Do NOT reveal the correct answer. Do NOT explain. Ask a question.\n\n" +
+            "If this is a follow-up turn (conversation history exists), evaluate whether the student's latest response closes the gap. " +
+            "If yes: confirm with a specific tie-back to their words, mark isComplete true, provide suggestedRating (1-4 based on overall quality across turns), " +
+            "and optionally provide a reconstructionPrompt if the student struggled (e.g., \"Now put the full answer together in your own words\"). " +
+            "If partially: narrow the scaffold with a more specific hint question, keep isComplete false. " +
+            "If this is the 3rd turn (conversation has 4+ entries): always mark isComplete true and provide a synthesis that ties together what the student got right and wrong across all turns.\n\n" +
+            "If the student used a different but valid analytical framework than the model answer, acknowledge it: " +
+            "\"Your response uses a different analytical lens than the model answer, but the reasoning is internally coherent. Here's what the model answer emphasises...\"\n\n" +
+            "Provide 2-5 inline annotations on the student's original response (from their first submission, not follow-up turns). " +
+            'Tags: "accurate", "partial", "inaccurate", "missing", "insight".',
+
+          quick:
+            `MODE: Quick feedback (single turn).\n\n` +
+            "Provide four components: (1) What they got right — one sentence citing their specific words. " +
+            "(2) What's missing — the single most important gap. " +
+            "(3) The bridge — one sentence connecting what they knew to what they missed. " +
+            "(4) A quick-check question with its answer for self-testing. " +
+            "Also provide a suggested FSRS rating (1-4) and annotations.",
+
+          teach:
+            `MODE: Teach (Don't Know path).\n\n` +
+            "The student doesn't know the answer. Your job is to TEACH, not grade. Start from whatever they might know and build up. " +
+            "Ask a simple entry question that finds their foothold. " +
+            "If conversation history exists: they've responded to your previous question — anchor on what they offered and extend to the next piece. " +
+            "On the final turn (3rd, or conversation has 4+ entries): ask them to reconstruct the full answer from memory (\"Now put it together for me — ...\"). " +
+            "Mark isComplete true. Provide suggestedRating based on reconstruction quality (1 if they still can't, 2 if partial, 3 if good).",
+
+          insight:
+            `MODE: Insight (Quick Fire tier).\n\n` +
+            "The student has already seen the model answer. Provide ONE targeted insight line (max 2 sentences) that gives the student a mental anchor — " +
+            "the key distinguishing feature, a vivid analogy, or the \"why\" behind the fact. This is not grading. This is encoding assistance.",
+
+          acknowledge:
+            `MODE: Acknowledge strong answer.\n\n` +
+            "The student's answer is strong — it hits all key points from the model answer. " +
+            "Acknowledge what was specifically good (cite their exact phrases), then ask ONE extension question that pushes BEYOND the model answer — " +
+            "deeper analysis, a counter-argument, a specific mechanism, a real-world application. " +
+            "This extends encoding without wasting time on material they already know."
+        };
+
+        const responseSchemas = {
+          socratic: `{
+  "tutorMessage": "3-5 sentences. Acknowledge what's right, identify the gap.",
+  "followUpQuestion": "One targeted question. Null if isComplete.",
+  "isComplete": false,
+  "suggestedRating": null,
+  "annotations": [{ "text": "exact phrase from student", "tag": "accurate|partial|inaccurate|missing|insight", "note": "brief explanation" }],
+  "reconstructionPrompt": null
+}`,
+          quick: `{
+  "correct": "One sentence citing student's words.",
+  "missing": "One sentence — the key gap.",
+  "bridge": "One sentence connecting known to unknown.",
+  "quickCheck": { "question": "...", "answer": "..." },
+  "suggestedRating": 3,
+  "annotations": [{ "text": "...", "tag": "...", "note": "..." }]
+}`,
+          teach: `{
+  "tutorMessage": "3-5 sentences. Acknowledge what's right, identify the gap.",
+  "followUpQuestion": "One targeted question. Null if isComplete.",
+  "isComplete": false,
+  "suggestedRating": null,
+  "annotations": [{ "text": "exact phrase from student", "tag": "accurate|partial|inaccurate|missing|insight", "note": "brief explanation" }],
+  "reconstructionPrompt": null
+}`,
+          insight: `{
+  "insight": "One or two sentences — the key anchor for this fact.",
+  "followUpQuestion": "Optional. A quick self-test question if the item is important. Null otherwise.",
+  "followUpAnswer": "The answer to the follow-up. Null if no question."
+}`,
+          acknowledge: `{
+  "acknowledgment": "2-3 sentences citing specific strengths.",
+  "extensionQuestion": "One question pushing beyond the model answer.",
+  "isComplete": false,
+  "suggestedRating": null
+}`
+        };
+
+        const tier = item.tier || "explain";
+        let itemBlock =
+          `QUESTION: ${item.prompt}\n` +
+          `MODEL ANSWER: ${item.modelAnswer}\n` +
+          `TIER: ${tier}\n` +
+          `TOPIC: ${item.topic || ""}\n`;
+
+        if (tier === "distinguish") {
+          itemBlock += `CONCEPT A: ${item.conceptA || ""}\nCONCEPT B: ${item.conceptB || ""}\n`;
+        }
+        if (tier === "apply" && item.task) {
+          itemBlock += `TASK: ${item.task}\n`;
+        }
+
+        let userBlock = `STUDENT'S RESPONSE: ${userResponse}\n`;
+
+        if (conversation.length > 0) {
+          userBlock += "CONVERSATION SO FAR:\n";
+          for (const turn of conversation) {
+            const role = turn.role === "tutor" ? "Tutor" : "Student";
+            const text = turn.text != null ? String(turn.text) : "";
+            userBlock += `${role}: ${text}\n`;
+          }
+        }
+
+        const lapses = context.lapses != null ? context.lapses : 0;
+        const sessionRetryCount = context.sessionRetryCount != null ? context.sessionRetryCount : 0;
+        const recentAvgRating = context.recentAvgRating != null ? context.recentAvgRating : 2.5;
+
+        userBlock +=
+          `Context: This card has been forgotten ${lapses} times. Session retry: ${sessionRetryCount}. ` +
+          `Student's recent avg rating: ${recentAvgRating}.\n\n` +
+          "Respond in EXACT JSON format and nothing else:\n" +
+          responseSchemas[mode];
+
+        const fullPrompt =
+          systemPrompt +
+          "\n\n---\n\n" +
+          modeInstructions[mode] +
+          "\n\n---\n\n" +
+          itemBlock +
+          "\n" +
+          userBlock;
+
+        const geminiRes = await fetch(geminiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: fullPrompt }] }],
+            generationConfig: {
+              temperature: 0.35,
+              maxOutputTokens: 2048,
+              responseMimeType: "application/json"
+            }
+          })
+        });
+
+        if (!geminiRes.ok) {
+          const errText = await geminiRes.text();
+          return new Response(JSON.stringify({ error: "Gemini API error", detail: errText }), {
+            status: 502, headers: { ...tutorCorsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
+        const geminiData = await geminiRes.json();
+        const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+
+        const parsed =
+          tryParse(rawText) ||
+          tryParse(cleanJsonString(rawText)) ||
+          (() => {
+            const m = rawText.match(/\{[\s\S]*\}/);
+            return m ? tryParse(cleanJsonString(m[0])) : null;
+          })();
+
+        if (!parsed || typeof parsed !== "object") {
+          return new Response(
+            JSON.stringify({ error: "Failed to parse tutor response", raw: rawText }),
+            { status: 500, headers: { ...tutorCorsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        return new Response(JSON.stringify(parsed), {
+          status: 200, headers: { ...tutorCorsHeaders, "Content-Type": "application/json" }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: "Internal error", detail: err.message }), {
+          status: 500, headers: { ...tutorCorsHeaders, "Content-Type": "application/json" }
+        });
+      }
+    }
+
     // ── AI Grading Route ──
     if (url.pathname === "/studyengine/grade") {
       const gradeCorsHeaders = {
