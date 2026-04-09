@@ -6120,6 +6120,7 @@ input[type="range"]::-moz-range-thumb{
 
     (function wireVisualLightbox() {
       document.addEventListener('click', function(e) {
+        if (e.target.closest('button, input, textarea, select, .rate, [data-rate], .conf-pill, .listen-tts-btn')) return;
         var closeBtn = e.target.closest('#visualLightboxClose');
         if (closeBtn) {
           e.preventDefault();
@@ -6136,7 +6137,6 @@ input[type="range"]::-moz-range-thumb{
         var svg = vc.querySelector('.mermaid-render svg');
         if (!svg) return;
         e.preventDefault();
-        e.stopPropagation();
         openVisualLightbox(svg.outerHTML);
       });
 
@@ -9167,17 +9167,30 @@ input[type="range"]::-moz-range-thumb{
         else ensureAnswerVisual(it, revealTier);
         ratingsEl.style.display = 'grid';
         try { playClick(); } catch(e) {}
+        ratingsEl.querySelectorAll('button').forEach(function(b) {
+          b.onclick = function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); };
+        });
         if (it.modelAnswer) insertListenButton(modelAnswerEl, it.modelAnswer);
         var qfFbMode = selectFeedbackMode(it, session);
         var qfInsightEl = el('aiFeedbackArea');
         if (qfInsightEl) qfInsightEl.innerHTML = '';
         if (qfFbMode === 'insight') {
-          var qfCtx0 = tutorContextForItem(it);
-          var qfModel0 = selectModel(it, session);
-          callTutor('insight', qfModel0, it, '', [], qfCtx0).then(function(data) {
-            if (!data || data.error) return;
-            buildInsightUI(qfInsightEl, data);
-          }).catch(function() {});
+          try {
+            var qfCtx0 = tutorContextForItem(it);
+            var qfModel0 = selectModel(it, session);
+            callTutor('insight', qfModel0, it, '', [], qfCtx0).then(function(data) {
+              try {
+                if (!data || data.error) return;
+                buildInsightUI(qfInsightEl, data);
+              } catch (insightErr) {
+                console.warn('[StudyEngine] Insight UI build failed:', insightErr);
+              }
+            }).catch(function(err) {
+              console.warn('[StudyEngine] Insight call failed:', err);
+            });
+          } catch (insightSetupErr) {
+            console.warn('[StudyEngine] Insight setup failed:', insightSetupErr);
+          }
         }
         return;
       }
