@@ -4887,6 +4887,7 @@ input[type="range"]::-moz-range-thumb{
       flex-shrink: 0;
       height: 100vh;
       overflow: hidden;
+      position: relative;
       display: flex;
       flex-direction: column;
       background: var(--card-bg);
@@ -4898,64 +4899,41 @@ input[type="range"]::-moz-range-thumb{
     }
 
     .sidebar.collapsed {
-      width: 48px;
+      width: 0;
+      overflow: visible;
+      border-right: none;
     }
 
-    .sidebar.collapsed .sb-brand,
-    .sidebar.collapsed .sb-search,
-    .sidebar.collapsed .sb-tree .tree-label,
-    .sidebar.collapsed .sb-tree .tree-count,
-    .sidebar.collapsed .sb-tree .tree-badge,
-    .sidebar.collapsed .sb-footer-btn span,
-    .sidebar.collapsed .sb-footer .sb-sync-status {
-      display: none;
+    .sidebar.collapsed > * {
+      opacity: 0;
+      pointer-events: none;
     }
 
-    .sidebar.collapsed .sb-footer-btn {
-      justify-content: center;
-      padding: 8px;
+    .sidebar.collapsed:hover {
+      width: 260px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      position: absolute;
+      height: 100vh;
+      z-index: 100;
+      box-shadow: var(--shadow);
+      border-right: 1px solid var(--card-border);
     }
 
-    /* Collapsed rail: show icons (course colour dots) only */
-    .sidebar.collapsed .sb-tree .tree-node {
-      justify-content: center;
-      padding: 6px 0;
+    .sidebar.collapsed:hover > * {
+      opacity: 1;
+      pointer-events: auto;
     }
 
-    .sidebar.collapsed .sb-tree .tree-node.depth-0,
-    .sidebar.collapsed .sb-tree .tree-node.depth-1,
-    .sidebar.collapsed .sb-tree .tree-node.depth-2,
-    .sidebar.collapsed .sb-tree .tree-node.depth-3 {
-      padding-left: 0;
-      padding-right: 0;
-      justify-content: center;
-    }
-
-    .sidebar.collapsed .sb-tree .tree-node .tree-icon {
-      display: inline-flex;
-      font-size: 14px;
-    }
-
-    .sidebar.collapsed .sb-tree .tree-node .tree-label,
-    .sidebar.collapsed .sb-tree .tree-node .tree-count,
-    .sidebar.collapsed .sb-tree .tree-node .tree-badge,
-    .sidebar.collapsed .sb-tree .tree-node .tree-chevron,
-    .sidebar.collapsed .sb-tree .tree-node .tree-hover-actions {
-      display: none;
-    }
-
-    .sidebar.collapsed .sb-tree .tree-node.depth-1,
-    .sidebar.collapsed .sb-tree .tree-node.depth-2,
-    .sidebar.collapsed .sb-tree .tree-node.depth-3 {
-      display: none;
-    }
-
-    .sidebar.collapsed .sb-tree .tree-section-divider {
-      margin: 4px 8px;
-    }
-
-    .sidebar.collapsed .sb-tree .tree-inline-badge {
-      display: none;
+    .sidebar.collapsed::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 8px;
+      height: 100%;
+      z-index: 101;
+      pointer-events: auto;
     }
 
     .sb-header {
@@ -5406,17 +5384,41 @@ input[type="range"]::-moz-range-thumb{
 
     /* ── Session mode: collapse sidebar ── */
     body.standalone.in-session .sidebar {
-      width: 48px;
+      width: 0;
+      overflow: visible;
+      border-right: none;
     }
 
-    body.standalone.in-session .sidebar .sb-brand,
-    body.standalone.in-session .sidebar .sb-search,
-    body.standalone.in-session .sidebar .sb-tree .tree-label,
-    body.standalone.in-session .sidebar .sb-tree .tree-count,
-    body.standalone.in-session .sidebar .sb-tree .tree-badge,
-    body.standalone.in-session .sidebar .sb-footer-btn span,
-    body.standalone.in-session .sidebar .sb-footer .sb-sync-status {
-      display: none;
+    body.standalone.in-session .sidebar > * {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    body.standalone.in-session .sidebar:hover {
+      width: 260px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      position: absolute;
+      height: 100vh;
+      z-index: 100;
+      box-shadow: var(--shadow);
+      border-right: 1px solid var(--card-border);
+    }
+
+    body.standalone.in-session .sidebar:hover > * {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    body.standalone.in-session .sidebar::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 8px;
+      height: 100%;
+      z-index: 101;
+      pointer-events: auto;
     }
 
     /* ── Responsive ── */
