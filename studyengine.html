@@ -377,6 +377,110 @@
     .ghost-btn:hover{ background: rgba(var(--accent-rgb),0.08); border-color: rgba(var(--accent-rgb),0.26); transform: translateY(-1px); }
     .ghost-btn:active{ transform: translateY(0) scale(0.99); }
 
+    .syllabus-preview{
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(var(--accent-rgb), 0.2);
+      background: rgba(var(--accent-rgb), 0.04);
+      font-size: 10px;
+      line-height: 1.55;
+      color: var(--text-secondary);
+      max-height: 120px;
+      overflow-y: auto;
+    }
+    .syllabus-status{
+      margin-top: 8px;
+      font-size: 9px;
+      color: var(--text-tertiary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 18px;
+    }
+    .syllabus-status.ok{ color: var(--rate-good); }
+    .syllabus-status .af-spinner{
+      width: 12px;
+      height: 12px;
+      border-width: 2px;
+    }
+    .pdf-import-btn{
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      margin-top: 0;
+    }
+    .or-divider{
+      text-align: center;
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin: 10px 0;
+    }
+    .tutor-notes{
+      margin-bottom: 12px;
+      border: 1px solid rgba(var(--accent-rgb), 0.12);
+      border-radius: 14px;
+      background: rgba(var(--accent-rgb), 0.03);
+      overflow: hidden;
+    }
+    .tutor-notes-toggle{
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border: none;
+      background: transparent;
+      color: var(--text);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .tutor-notes-body{
+      padding: 0 12px 12px;
+      display: none;
+    }
+    .tutor-notes.open .tutor-notes-body{ display: block; }
+    .tutor-note-item{
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(var(--accent-rgb), 0.1);
+      background: var(--card-bg);
+      margin-bottom: 6px;
+      font-size: 9px;
+    }
+    .tutor-note-item .tn-type{
+      display: inline-block;
+      font-size: 7px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: rgba(var(--accent-rgb), 0.12);
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+    .tutor-note-item .tn-content{ color: var(--text); line-height: 1.45; }
+    .tn-confidence{
+      margin-top: 6px;
+      height: 3px;
+      border-radius: 99px;
+      background: rgba(var(--accent-rgb), 0.1);
+      overflow: hidden;
+    }
+    .tn-confidence > div{
+      height: 100%;
+      border-radius: 99px;
+      background: var(--accent);
+    }
+
     .chips{
       display: flex;
       gap: 6px;
@@ -4214,6 +4318,7 @@ input[type="range"]::-moz-range-thumb{
             <div class="mini-actions" style="margin-top: 12px;">
               <button class="ghost-btn" id="addBtn">Add Items</button>
               <button class="ghost-btn" id="importBtn">Import JSON</button>
+              <button class="ghost-btn" id="dashGlobalTutorNotesBtn" type="button" title="Cross-course tutor observations">🧠 Tutor Notes</button>
             </div>
 
             <div id="emptyState" class="empty-state" style="display:none">
@@ -4264,6 +4369,7 @@ input[type="range"]::-moz-range-thumb{
               </div>
             </div>
             <div class="cd-tier-stats" id="cdTierStats"></div>
+            <div id="cdTutorNotesHost"></div>
             <!-- Retention forecast moved into analytics grid -->
             <div class="section-header" style="margin-top:14px;">Cards</div>
             <div id="cdCardList" style="max-height:260px;overflow-y:auto;margin-bottom:14px;scrollbar-width:thin;"></div>
@@ -4458,6 +4564,16 @@ input[type="range"]::-moz-range-thumb{
     </div>
   </div>
 
+  <div class="overlay" id="globalTutorNotesOv" aria-hidden="true">
+    <div class="modal" style="max-width:480px;">
+      <div class="modal-head">
+        <span style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--text);">Global tutor notes</span>
+        <button type="button" class="icon-btn" id="globalTutorNotesClose" aria-label="Close"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg></button>
+      </div>
+      <div class="modal-body" id="globalTutorNotesBody"></div>
+    </div>
+  </div>
+
   <div class="confirm-overlay" id="confirmExitOv">
     <div class="confirm-box">
       <div class="cb-icon"><svg width="28" height="28" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.5L1.5 13.5h13z"/><line x1="8" y1="6.5" x2="8" y2="9.5"/><circle cx="8" cy="11.5" r="0.5" fill="currentColor" stroke="none"/></svg></div>
@@ -4471,6 +4587,14 @@ input[type="range"]::-moz-range-thumb{
   </div>
 
   <!-- External only: GSAP + core.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    try {
+      if (typeof pdfjsLib !== 'undefined') {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      }
+    } catch (ePdf) {}
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
   <script src="https://lordgrape.github.io/notion-widgets/core.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked@15/marked.min.js"></script>
@@ -4813,6 +4937,7 @@ input[type="range"]::-moz-range-thumb{
       if (calibration && typeof calibration === 'object') state.calibration = calibration;
       if (stats && typeof stats === 'object') state.stats = stats;
       migrateItems();
+      migrateCoursesPhase6();
       var s = SyncEngine.get(NS, 'settings') || null;
       settings = deepClone(DEFAULT_SETTINGS);
       if (s && typeof s === 'object') {
@@ -4846,7 +4971,14 @@ input[type="range"]::-moz-range-thumb{
             examDate: null,
             manualMode: false,
             color: '#8b5cf6',
-            created: it.created || isoNow()
+            created: it.created || isoNow(),
+            examWeight: null,
+            syllabusContext: null,
+            professorValues: null,
+            allowedMaterials: null,
+            rawSyllabusText: null,
+            examFormat: null,
+            syllabusKeyTopics: []
           };
           changed = true;
         }
@@ -4876,6 +5008,48 @@ input[type="range"]::-moz-range-thumb{
       return h;
     }
 
+    function normalizeCoursePhase6(c) {
+      if (!c) return c;
+      if (c.examWeight === undefined) c.examWeight = null;
+      if (c.syllabusContext === undefined) c.syllabusContext = null;
+      if (c.professorValues === undefined) c.professorValues = null;
+      if (c.allowedMaterials === undefined) c.allowedMaterials = null;
+      if (c.rawSyllabusText === undefined) c.rawSyllabusText = null;
+      if (c.examFormat === undefined) c.examFormat = null;
+      if (!Array.isArray(c.syllabusKeyTopics)) c.syllabusKeyTopics = [];
+      return c;
+    }
+
+    function clampCourseStringFields(c) {
+      if (!c) return;
+      if (c.syllabusContext && String(c.syllabusContext).length > 2000) {
+        c.syllabusContext = String(c.syllabusContext).slice(0, 2000);
+      }
+      if (c.professorValues && String(c.professorValues).length > 500) {
+        c.professorValues = String(c.professorValues).slice(0, 500);
+      }
+      if (c.rawSyllabusText && String(c.rawSyllabusText).length > 15000) {
+        c.rawSyllabusText = String(c.rawSyllabusText).slice(0, 15000);
+      }
+      if (c.examFormat && String(c.examFormat).length > 300) {
+        c.examFormat = String(c.examFormat).slice(0, 300);
+      }
+    }
+
+    function migrateCoursesPhase6() {
+      var changed = false;
+      for (var k in state.courses) {
+        if (!state.courses.hasOwnProperty(k)) continue;
+        var c0 = state.courses[k];
+        var snap = JSON.stringify(c0);
+        normalizeCoursePhase6(c0);
+        if (JSON.stringify(c0) !== snap) changed = true;
+      }
+      if (changed && typeof SyncEngine !== 'undefined' && SyncEngine.set) {
+        SyncEngine.set(NS, 'courses', state.courses || {});
+      }
+    }
+
     /* ── Course Helpers ── */
     function getCourse(courseName) {
       if (!courseName) return null;
@@ -4895,6 +5069,8 @@ input[type="range"]::-moz-range-thumb{
     function saveCourse(courseObj) {
       if (!courseObj || !courseObj.name) return;
       courseObj.id = courseObj.id || courseObj.name;
+      normalizeCoursePhase6(courseObj);
+      clampCourseStringFields(courseObj);
       state.courses[courseObj.name] = courseObj;
       saveState();
     }
@@ -6753,6 +6929,201 @@ input[type="range"]::-moz-range-thumb{
        ══════════════════════════════════════ */
     var TUTOR_ENDPOINT = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/tutor';
     var MEMORY_ENDPOINT = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/memory';
+    var SYLLABUS_ENDPOINT = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/syllabus';
+
+    function extractPdfText(file) {
+      return new Promise(function(resolve, reject) {
+        if (typeof pdfjsLib === 'undefined') {
+          reject(new Error('PDF library not loaded'));
+          return;
+        }
+        var reader = new FileReader();
+        reader.onload = function() {
+          var typedArray = new Uint8Array(reader.result);
+          pdfjsLib.getDocument({ data: typedArray }).promise.then(function(pdf) {
+            var pages = [];
+            var total = pdf.numPages;
+            function extractPage(i) {
+              if (i > total) {
+                resolve(pages.join('\n\n'));
+                return;
+              }
+              pdf.getPage(i).then(function(page) {
+                page.getTextContent().then(function(content) {
+                  var text = content.items.map(function(item) { return item.str; }).join(' ');
+                  pages.push(text);
+                  extractPage(i + 1);
+                }).catch(reject);
+              }).catch(reject);
+            }
+            extractPage(1);
+          }).catch(reject);
+        };
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    function postSyllabusDistill(rawText, courseName, existingExamType) {
+      var t = rawText != null ? String(rawText) : '';
+      var truncated = t.length > 15000 ? t.slice(0, 15000) : t;
+      return fetch(SYLLABUS_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Widget-Key': getWidgetKey()
+        },
+        body: JSON.stringify({
+          rawText: truncated,
+          courseName: courseName,
+          existingExamType: existingExamType || 'mixed'
+        })
+      }).then(function(res) { return res.json(); });
+    }
+
+    function getAllTutorMemories() {
+      if (typeof SyncEngine === 'undefined' || !SyncEngine.get) return [];
+      return SyncEngine.get(NS, 'tutorMemories') || [];
+    }
+
+    function getCourseScopedMemoriesForDisplay(courseName) {
+      return getAllTutorMemories()
+        .filter(function(m) {
+          return m && m.course === courseName && (!m.scope || m.scope === 'course');
+        })
+        .sort(function(a, b) { return (b.confidence || 0) - (a.confidence || 0); });
+    }
+
+    function getGlobalMemoriesForDisplay() {
+      return getAllTutorMemories()
+        .filter(function(m) { return m && m.scope === 'global'; })
+        .sort(function(a, b) { return (b.confidence || 0) - (a.confidence || 0); });
+    }
+
+    function memoryTypeLabel(t) {
+      var map = { pattern: 'Pattern', misconception: 'Misconception', strength: 'Strength', connection: 'Connection' };
+      return map[t] || (t ? String(t) : 'Note');
+    }
+
+    function renderCourseTutorNotesPanelHTML(courseName) {
+      var mems = getCourseScopedMemoriesForDisplay(courseName);
+      var n = mems.length;
+      var bodyInner = '';
+      if (!n) {
+        bodyInner = '<div class="help" style="padding:0 0 4px;font-size:9px;color:var(--text-secondary);">No course-specific notes yet — they appear as you use the AI tutor.</div>';
+      } else {
+        mems.forEach(function(m) {
+          var confPct = Math.min(100, Math.max(0, Math.round((Number(m.confidence) || 0.5) * 100)));
+          bodyInner += '<div class="tutor-note-item">' +
+            '<span class="tn-type">' + esc(memoryTypeLabel(m.type)) + '</span>' +
+            '<div class="tn-content">' + esc(m.content || '') + '</div>' +
+            '<div class="tn-confidence"><div style="width:' + confPct + '%"></div></div>' +
+            '</div>';
+        });
+      }
+      return '<div class="tutor-notes open">' +
+        '<button type="button" class="tutor-notes-toggle" aria-expanded="true">' +
+        '<span>Tutor Notes' + (n ? ' (' + n + ')' : '') + '</span><span style="opacity:0.5;font-size:8px;">▼</span></button>' +
+        '<div class="tutor-notes-body">' + bodyInner +
+        '<button type="button" class="ghost-btn tutor-notes-clear-btn" data-course-enc="' + esc(encodeURIComponent(courseName)) + '" style="min-width:auto;width:100%;margin-top:8px;padding:8px;font-size:8px;">Clear memories</button>' +
+        '</div></div>';
+    }
+
+    function renderGlobalTutorNotesOverlayHTML() {
+      var mems = getGlobalMemoriesForDisplay();
+      var n = mems.length;
+      if (!n) {
+        return '<p class="help" style="text-align:center;padding:16px;">No cross-course tutor notes yet. The tutor records general learning patterns as you study.</p>';
+      }
+      var h = '';
+      mems.forEach(function(m) {
+        var confPct = Math.min(100, Math.max(0, Math.round((Number(m.confidence) || 0.5) * 100)));
+        h += '<div class="tutor-note-item">' +
+          '<span class="tn-type">' + esc(memoryTypeLabel(m.type)) + '</span>' +
+          '<div class="tn-content">' + esc(m.content || '') + '</div>' +
+          '<div class="tn-confidence"><div style="width:' + confPct + '%"></div></div>' +
+          '</div>';
+      });
+      return h;
+    }
+
+    function wireTutorNotesPanelToggle(host) {
+      if (!host) return;
+      var btn = host.querySelector('.tutor-notes-toggle');
+      var panel = host.querySelector('.tutor-notes');
+      if (btn && panel) {
+        btn.addEventListener('click', function() {
+          var open = panel.classList.toggle('open');
+          btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+      }
+      var clr = host.querySelector('.tutor-notes-clear-btn');
+      if (clr) {
+        clr.addEventListener('click', function() {
+          var enc = clr.getAttribute('data-course-enc');
+          if (!enc) return;
+          try {
+            clearCourseTutorMemoriesForCourse(decodeURIComponent(enc));
+          } catch (e2) {}
+        });
+      }
+    }
+
+    function clearCourseTutorMemoriesForCourse(courseName) {
+      if (!courseName || typeof SyncEngine === 'undefined' || !SyncEngine.get || !SyncEngine.set) return;
+      var all = SyncEngine.get(NS, 'tutorMemories') || [];
+      var next = all.filter(function(m) {
+        if (!m) return false;
+        if (m.scope === 'global') return true;
+        if (m.course === courseName && (!m.scope || m.scope === 'course')) return false;
+        return true;
+      });
+      SyncEngine.set(NS, 'tutorMemories', next);
+      toast('Cleared tutor notes for this course');
+      var host = el('cdTutorNotesHost');
+      if (host) {
+        host.innerHTML = renderCourseTutorNotesPanelHTML(courseName);
+        wireTutorNotesPanelToggle(host);
+      }
+    }
+
+    function openGlobalTutorNotesOverlay() {
+      var ov = el('globalTutorNotesOv');
+      var body = el('globalTutorNotesBody');
+      if (!ov || !body) return;
+      body.innerHTML = renderGlobalTutorNotesOverlayHTML();
+      ov.classList.add('show');
+      ov.setAttribute('aria-hidden', 'false');
+      try { playOpen(); } catch (e0) {}
+    }
+
+    function closeGlobalTutorNotesOverlay() {
+      var ov = el('globalTutorNotesOv');
+      if (!ov) return;
+      ov.classList.remove('show');
+      ov.setAttribute('aria-hidden', 'true');
+      try { playClose(); } catch (e1) {}
+    }
+
+    var globalTutorNotesWired = false;
+    function wireGlobalTutorNotesUI() {
+      if (globalTutorNotesWired) return;
+      globalTutorNotesWired = true;
+      var btn = el('dashGlobalTutorNotesBtn');
+      var ov = el('globalTutorNotesOv');
+      var closeBtn = el('globalTutorNotesClose');
+      if (btn) {
+        btn.addEventListener('click', function() {
+          openGlobalTutorNotesOverlay();
+        });
+      }
+      if (closeBtn) closeBtn.addEventListener('click', closeGlobalTutorNotesOverlay);
+      if (ov) {
+        ov.addEventListener('click', function(e) {
+          if (e.target === ov) closeGlobalTutorNotesOverlay();
+        });
+      }
+    }
 
     function buildLearnerContext(item, stateObj) {
       var course = item.course || '';
@@ -6770,7 +7141,10 @@ input[type="range"]::-moz-range-thumb{
       var relevantMemories = allMemories
         .filter(function(m) {
           if (!m) return false;
-          return m.course === course || (Array.isArray(m.relatedTopics) && topic && m.relatedTopics.indexOf(topic) >= 0);
+          if (m.scope === 'global') return true;
+          if (m.course === course && (!m.scope || m.scope === 'course')) return true;
+          if (topic && Array.isArray(m.relatedTopics) && m.relatedTopics.indexOf(topic) >= 0) return true;
+          return false;
         })
         .sort(function(a, b) { return (b.confidence || 0) - (a.confidence || 0); })
         .slice(0, 8)
@@ -7083,6 +7457,20 @@ input[type="range"]::-moz-range-thumb{
       if (typeof state !== 'undefined' && state) {
         ctx.learner = buildLearnerContext(tItem, state);
       }
+      if (typeof state !== 'undefined' && state && state.courses && tItem && tItem.course) {
+        var courseData = state.courses[tItem.course];
+        if (courseData) {
+          ctx.courseContext = {
+            syllabusContext: courseData.syllabusContext || null,
+            professorValues: courseData.professorValues || null,
+            allowedMaterials: courseData.allowedMaterials || null,
+            examWeight: courseData.examWeight != null ? courseData.examWeight : null,
+            examDate: courseData.examDate || null,
+            examType: courseData.examType || null,
+            examFormat: courseData.examFormat || null
+          };
+        }
+      }
       return ctx;
     }
 
@@ -7091,9 +7479,14 @@ input[type="range"]::-moz-range-thumb{
       if (settings.feedbackMode === 'self_rate') return;
       if (typeof SyncEngine === 'undefined' || !SyncEngine.get || !SyncEngine.set) return;
       var allMem0 = SyncEngine.get(NS, 'tutorMemories') || [];
+      var globalMemories = allMem0.filter(function(m) { return m && m.scope === 'global'; })
+        .sort(function(a, b) { return (b.confidence || 0) - (a.confidence || 0); })
+        .slice(0, 6);
       var courseMemories = allMem0.filter(function(m) {
-        return m && m.course === item.course;
-      }).slice(0, 10);
+        return m && (!m.scope || m.scope === 'course') && m.course === item.course;
+      }).sort(function(a, b) { return (b.confidence || 0) - (a.confidence || 0); })
+        .slice(0, 8);
+      var mergedMemories = globalMemories.concat(courseMemories);
       var payload = {
         userName: getTutorUserName(),
         item: {
@@ -7104,7 +7497,7 @@ input[type="range"]::-moz-range-thumb{
         },
         dialogue: conversation,
         suggestedRating: suggestedRating != null ? suggestedRating : 2,
-        existingMemories: courseMemories
+        existingMemories: mergedMemories
       };
       fetch(MEMORY_ENDPOINT, {
         method: 'POST',
@@ -7119,6 +7512,7 @@ input[type="range"]::-moz-range-thumb{
           if (!data || data.action === null || data.action === undefined) return;
           var memories = SyncEngine.get(NS, 'tutorMemories') || [];
           if (data.action === 'create' && data.memory) {
+            if (!data.memory.scope) data.memory.scope = 'course';
             data.memory.created = new Date().toISOString();
             data.memory.lastRelevant = new Date().toISOString();
             memories.push(data.memory);
@@ -7128,6 +7522,8 @@ input[type="range"]::-moz-range-thumb{
                 memories[i].content = data.memory.content || memories[i].content;
                 memories[i].confidence = data.memory.confidence != null ? data.memory.confidence : memories[i].confidence;
                 memories[i].relatedTopics = data.memory.relatedTopics || memories[i].relatedTopics;
+                if (data.memory.scope) memories[i].scope = data.memory.scope;
+                if (data.memory.course != null) memories[i].course = data.memory.course;
                 memories[i].lastRelevant = new Date().toISOString();
                 break;
               }
@@ -9596,7 +9992,14 @@ input[type="range"]::-moz-range-thumb{
             examDate: null,
             manualMode: false,
             color: '#8b5cf6',
-            created: isoNow()
+            created: isoNow(),
+            examWeight: null,
+            syllabusContext: null,
+            professorValues: null,
+            allowedMaterials: null,
+            rawSyllabusText: null,
+            examFormat: null,
+            syllabusKeyTopics: []
           };
         }
 
@@ -10683,6 +11086,33 @@ input[type="range"]::-moz-range-thumb{
         '<label>Exam date <span class="info-icon" tabindex="0">ⓘ<span class="info-tooltip visible">When set, cram mode activates automatically as the date approaches — reviews intensify, session sizes increase, and your weakest cards are prioritised. When empty, FSRS schedules reviews for long-term retention.<span class="tip-arrow"></span></span></span></label>' +
         '<input type="date" class="input" id="' + editId + '_examDate" value="' + (c.examDate || '') + '">' +
         '</div>' +
+        '<div class="field">' +
+        '<label>Exam Weight (%)</label>' +
+        '<input type="number" class="input" id="' + editId + '_examWeight" min="0" max="100" step="1" placeholder="e.g., 40 for 40%" value="' + (c.examWeight != null && c.examWeight !== '' ? esc(String(c.examWeight)) : '') + '">' +
+        '</div>' +
+        '<div class="field">' +
+        '<label>Syllabus / Exam Info</label>' +
+        '<textarea class="input" id="' + editId + '_courseContextText" rows="6" placeholder="Paste syllabus text, exam instructions, or course outline...">' + esc(c.rawSyllabusText || '') + '</textarea>' +
+        '<div class="or-divider">OR</div>' +
+        '<input type="file" accept="application/pdf,.pdf" id="' + editId + '_pdfFile" style="display:none">' +
+        '<button type="button" class="ghost-btn pdf-import-btn" id="' + editId + '_pdfBtn" style="min-width:auto;flex:0 0 auto;width:100%;">📄 Import PDF</button>' +
+        '<button type="button" class="ghost-btn" id="' + editId + '_processSyllabus" style="margin-top:8px;width:100%;">Process syllabus with AI</button>' +
+        '<div class="syllabus-status" id="' + editId + '_contextStatus"></div>' +
+        '<div class="chips" id="' + editId + '_suggestedTopics" style="margin-top:6px;"></div>' +
+        '<div id="' + editId + '_previewWrap" style="' + (c.syllabusContext ? '' : 'display:none;') + '">' +
+        '<div style="font-size:9px;font-weight:700;margin:10px 0 4px;color:var(--text-secondary);">Processed summary</div>' +
+        '<div class="syllabus-preview" id="' + editId + '_syllabusPreview">' + (c.syllabusContext ? esc(c.syllabusContext) : '') + '</div>' +
+        '<button type="button" class="ghost-btn" id="' + editId + '_reprocessSyllabus" style="margin-top:6px;min-width:auto;">Re-process</button>' +
+        '</div>' +
+        '</div>' +
+        '<div class="field">' +
+        '<label>Professor values</label>' +
+        '<textarea class="input" id="' + editId + '_professorValues" rows="3" placeholder="What does the professor value? e.g., analytical depth over breadth, rewards counter-arguments">' + esc(c.professorValues || '') + '</textarea>' +
+        '</div>' +
+        '<div class="field">' +
+        '<label>Allowed materials</label>' +
+        '<input type="text" class="input" id="' + editId + '_allowedMaterials" placeholder="e.g., Open book with statute sheet" value="' + esc(c.allowedMaterials || '') + '">' +
+        '</div>' +
         '<div style="display:flex;gap:8px;margin-top:10px;">' +
         '<button class="ghost-btn" id="' + editId + '_save">Save changes</button>' +
         '<button class="ghost-btn" id="' + editId + '_cancel" style="min-width:auto;padding:8px 12px;">✕</button>' +
@@ -10691,7 +11121,118 @@ input[type="range"]::-moz-range-thumb{
 
       row.style.display = 'block';
 
-      /* No objective wiring needed — exam date tooltip is static */
+      function setCtxStatus(msg, cls) {
+        var st = el(editId + '_contextStatus');
+        if (!st) return;
+        st.className = 'syllabus-status' + (cls ? ' ' + cls : '');
+        st.innerHTML = msg || '';
+      }
+
+      function renderSuggestedTopics(topics) {
+        var box = el(editId + '_suggestedTopics');
+        if (!box) return;
+        box.innerHTML = '';
+        if (!topics || !topics.length) return;
+        topics.forEach(function(t) {
+          var tClean = String(t).trim();
+          if (!tClean) return;
+          var chip = document.createElement('span');
+          chip.className = 'chip';
+          chip.textContent = tClean;
+          chip.title = 'Suggested topic from syllabus';
+          box.appendChild(chip);
+        });
+      }
+
+      if (c.syllabusKeyTopics && c.syllabusKeyTopics.length) {
+        renderSuggestedTopics(c.syllabusKeyTopics);
+      }
+
+      function runSyllabusProcess(rawText) {
+        var trimmed = (rawText || '').trim();
+        if (!trimmed) { toast('Paste text or import a PDF first'); return; }
+        setCtxStatus('<span class="af-spinner"></span> Processing syllabus...', '');
+        var examT = (el(editId + '_examType') && el(editId + '_examType').value) || c.examType || 'mixed';
+        postSyllabusDistill(trimmed, c.name, examT).then(function(data) {
+          if (!data || data.error) {
+            setCtxStatus(esc(data && data.error ? String(data.error) : 'Could not process syllabus'), '');
+            return;
+          }
+          c.rawSyllabusText = trimmed.length > 15000 ? trimmed.slice(0, 15000) : trimmed;
+          var ctxTa = el(editId + '_courseContextText');
+          if (ctxTa) ctxTa.value = c.rawSyllabusText;
+          if (data.syllabusContext != null) c.syllabusContext = String(data.syllabusContext).slice(0, 2000);
+          if (data.professorValues != null && data.professorValues !== 'null') {
+            c.professorValues = String(data.professorValues).slice(0, 500);
+          }
+          if (data.allowedMaterials != null && data.allowedMaterials !== 'null') {
+            c.allowedMaterials = String(data.allowedMaterials);
+          }
+          if (data.examFormat != null && data.examFormat !== 'null') {
+            c.examFormat = String(data.examFormat).slice(0, 300);
+          }
+          c.syllabusKeyTopics = Array.isArray(data.keyTopics) ? data.keyTopics.slice(0, 20) : [];
+          var ewIn = el(editId + '_examWeight');
+          if (data.examWeight != null && !Number.isNaN(Number(data.examWeight))) {
+            var suggestedEw = Math.round(Number(data.examWeight));
+            if (suggestedEw >= 0 && suggestedEw <= 100 && ewIn && !String(ewIn.value).trim()) {
+              ewIn.value = String(suggestedEw);
+            }
+          }
+          var profEl = el(editId + '_professorValues');
+          var alEl = el(editId + '_allowedMaterials');
+          if (profEl && c.professorValues) profEl.value = c.professorValues;
+          if (alEl && c.allowedMaterials) alEl.value = c.allowedMaterials;
+          var prevEl = el(editId + '_syllabusPreview');
+          if (prevEl) prevEl.textContent = c.syllabusContext || '';
+          var wrap = el(editId + '_previewWrap');
+          if (wrap && c.syllabusContext) wrap.style.display = '';
+          var nTopics = (c.syllabusKeyTopics && c.syllabusKeyTopics.length) || 0;
+          renderSuggestedTopics(c.syllabusKeyTopics);
+          setCtxStatus('✓ Syllabus processed' + (nTopics ? ' — ' + nTopics + ' topics identified' : ''), 'ok');
+          saveCourse(c);
+        }).catch(function() {
+          setCtxStatus('Network error — try again', '');
+        });
+      }
+
+      var pdfBtn = el(editId + '_pdfBtn');
+      var pdfFile = el(editId + '_pdfFile');
+      if (pdfBtn && pdfFile) {
+        pdfBtn.addEventListener('click', function() { pdfFile.click(); });
+        pdfFile.addEventListener('change', function() {
+          var f = pdfFile.files && pdfFile.files[0];
+          if (!f) return;
+          extractPdfText(f).then(function(text) {
+            var ctxTa = el(editId + '_courseContextText');
+            if (ctxTa) ctxTa.value = text || '';
+            pdfFile.value = '';
+            runSyllabusProcess(text || '');
+          }).catch(function(err) {
+            toast(err && err.message ? err.message : 'Could not read PDF');
+          });
+        });
+      }
+
+      var procBtn = el(editId + '_processSyllabus');
+      if (procBtn) {
+        procBtn.addEventListener('click', function() {
+          var ta = el(editId + '_courseContextText');
+          runSyllabusProcess(ta ? ta.value : '');
+        });
+      }
+
+      var reprocBtn = el(editId + '_reprocessSyllabus');
+      if (reprocBtn) {
+        reprocBtn.addEventListener('click', function() {
+          var raw = c.rawSyllabusText || '';
+          if (!raw.trim()) {
+            var ta2 = el(editId + '_courseContextText');
+            raw = ta2 ? ta2.value : '';
+          }
+          runSyllabusProcess(raw);
+        });
+      }
 
       var saveBtn = el(editId + '_save');
       if (saveBtn) {
@@ -10703,6 +11244,17 @@ input[type="range"]::-moz-range-thumb{
           }
           c.examType = (el(editId + '_examType') && el(editId + '_examType').value) || 'mixed';
           c.examDate = ((el(editId + '_examDate') && el(editId + '_examDate').value) || '').trim() || null;
+          var ewEl = el(editId + '_examWeight');
+          var ewRaw = ewEl && String(ewEl.value).trim() !== '' ? Number(ewEl.value) : null;
+          c.examWeight = ewRaw != null && !Number.isNaN(ewRaw) ? Math.max(0, Math.min(100, Math.round(ewRaw))) : null;
+          var ctxTaSave = el(editId + '_courseContextText');
+          if (ctxTaSave && ctxTaSave.value.trim()) {
+            c.rawSyllabusText = ctxTaSave.value.trim().slice(0, 15000);
+          }
+          var profSave = el(editId + '_professorValues');
+          var alSave = el(editId + '_allowedMaterials');
+          c.professorValues = (profSave && profSave.value.trim()) ? profSave.value.trim().slice(0, 500) : null;
+          c.allowedMaterials = (alSave && alSave.value.trim()) ? alSave.value.trim() : null;
           saveCourse(c);
           toast('Course updated');
           renderCourseModal();
@@ -10984,9 +11536,13 @@ input[type="range"]::-moz-range-thumb{
 
       if (!items.length) {
         row.innerHTML = '<div style="padding:10px 12px;border-radius:14px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.03);margin-bottom:8px;">' +
+          renderCourseTutorNotesPanelHTML(name) +
+          '<div style="height:8px"></div>' +
           '<div style="font-size:10px;color:var(--text-secondary);text-align:center;">No cards in this course yet.</div>' +
         '</div>';
         row.style.display = 'block';
+        var emptyWrap = row.firstElementChild;
+        if (emptyWrap) wireTutorNotesPanelToggle(emptyWrap);
         focusCourseModalItem(row);
         return;
       }
@@ -11000,6 +11556,8 @@ input[type="range"]::-moz-range-thumb{
       var topicKeys = Object.keys(byTopic).sort(function(a, b) { return a.localeCompare(b); });
 
       var h = '<div style="padding:10px 12px;border-radius:14px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.03);margin-bottom:8px;max-height:300px;overflow-y:auto;">';
+      h += renderCourseTutorNotesPanelHTML(name);
+      h += '<div style="height:8px"></div>';
 
       topicKeys.forEach(function(topic) {
         var cards = byTopic[topic];
@@ -11023,6 +11581,8 @@ input[type="range"]::-moz-range-thumb{
       h += '</div>';
       row.innerHTML = h;
       row.style.display = 'block';
+      var deckInner = row.querySelector('div[style*="max-height:300px"]');
+      if (deckInner) wireTutorNotesPanelToggle(deckInner);
       focusCourseModalItem(row);
 
       if (window.gsap) gsap.fromTo(row, { opacity: 0, y: -4 }, { opacity: 1, y: 0, duration: 0.25, ease: 'power2.out' });
@@ -12349,6 +12909,12 @@ input[type="range"]::-moz-range-thumb{
       });
       el('cdTierStats').innerHTML = tierStats;
 
+      var tnHost = el('cdTutorNotesHost');
+      if (tnHost) {
+        tnHost.innerHTML = renderCourseTutorNotesPanelHTML(courseName);
+        wireTutorNotesPanelToggle(tnHost);
+      }
+
       /* ── Advanced Analytics ── */
       var cdAnalytics = el('cdAnalytics');
       if (!cdAnalytics) {
@@ -12695,6 +13261,7 @@ input[type="range"]::-moz-range-thumb{
       }
       loadOptimizedWeights();
       initMascot();
+      wireGlobalTutorNotesUI();
       renderDashboard();
       showView('viewDash');
 
