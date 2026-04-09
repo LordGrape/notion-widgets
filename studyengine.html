@@ -11529,7 +11529,7 @@ input[type="range"]::-moz-range-thumb{
       showRatingButtons(data.suggestedRating != null ? data.suggestedRating : null);
     }
 
-    function buildInsightUI(container, data) {
+    function buildInsightUI(container, data, onDone) {
       var h = '<div class="quick-feedback">';
       h += '<div class="qf-section-label">💡 Key anchor</div>';
       h += '<div class="qf-section-body">' + esc(data.insight || '') + '</div>';
@@ -11598,6 +11598,59 @@ input[type="range"]::-moz-range-thumb{
           { opacity: 0, y: 8 },
           { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' }
         );
+      }
+      if (data.suggestedRating != null) session.aiRating = data.suggestedRating;
+      if (typeof onDone === 'function') {
+        var nextWrap = document.createElement('div');
+        nextWrap.style.marginTop = '14px';
+        nextWrap.style.display = 'flex';
+        nextWrap.style.gap = '10px';
+        nextWrap.style.alignItems = 'center';
+
+        var nextBtn = document.createElement('button');
+        nextBtn.type = 'button';
+        nextBtn.className = 'big-btn';
+        nextBtn.style.flex = '1';
+        nextBtn.textContent = 'NEXT CARD →';
+        nextBtn.addEventListener('click', function() {
+          nextWrap.remove();
+          onDone();
+        });
+
+        var askBtn = document.createElement('button');
+        askBtn.type = 'button';
+        askBtn.className = 'ghost-btn';
+        askBtn.style.flex = '0 0 auto';
+        askBtn.style.minWidth = '0';
+        askBtn.textContent = 'Ask Tutor';
+        askBtn.addEventListener('click', function() {
+          nextWrap.remove();
+          if (session) session._forceAskTutorExpand = true;
+          onDone();
+        });
+
+        nextWrap.appendChild(nextBtn);
+        nextWrap.appendChild(askBtn);
+        container.appendChild(nextWrap);
+
+        if (window.gsap) {
+          gsap.fromTo(nextWrap, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.3, delay: 0.15, ease: 'power2.out' });
+        }
+
+        var spaceRef = function(e) {
+          if (document.activeElement && (document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT')) return;
+          if (e.code === 'Space' || e.key === ' ') {
+            e.preventDefault();
+            document.removeEventListener('keydown', spaceRef);
+            nextWrap.remove();
+            onDone();
+          }
+        };
+        document.addEventListener('keydown', spaceRef);
+        nextBtn.addEventListener('click', function() { document.removeEventListener('keydown', spaceRef); }, { once: true });
+        askBtn.addEventListener('click', function() { document.removeEventListener('keydown', spaceRef); }, { once: true });
+      } else {
+        showRatingButtons(data.suggestedRating != null ? data.suggestedRating : null);
       }
     }
 
@@ -12525,6 +12578,9 @@ input[type="range"]::-moz-range-thumb{
       }
       it.lastTier = tier;
       var xp = computeXP(it, mappedRating, res.intervalDays);
+      var flashKey = (it.id || '') + '_' + nowTs;
+      if (session._xpFlashGuard && session._xpFlashGuard === flashKey) return;
+      session._xpFlashGuard = flashKey;
       session.xp += xp;
       flashXP(xp);
       saveState();
@@ -13036,8 +13092,9 @@ input[type="range"]::-moz-range-thumb{
             scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount);
             return;
           }
-          buildInsightUI(qfInsightArea, insData);
-          scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount);
+          buildInsightUI(qfInsightArea, insData, function onInsightDone() {
+            scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount);
+          });
         }).catch(function() {
           scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount);
         });
@@ -13138,7 +13195,8 @@ input[type="range"]::-moz-range-thumb{
       var autoExpand = false;
       if (tier === 'quickfire') {
         label = '💬 Got a question about this card?';
-        autoExpand = isStruggling;
+        autoExpand = !!(session && session._forceAskTutorExpand);
+        if (session) session._forceAskTutorExpand = false;
       } else if (tc.wasDontKnow) {
         /* Don't Know path ran — reframe as self-check */
         label = 'Want to test your understanding?';
@@ -13186,7 +13244,29 @@ input[type="range"]::-moz-range-thumb{
       if (ratingsEl && ratingsEl.parentNode) {
         var hintEl = ratingsEl.parentNode.querySelector('.override-hint');
         var insertAfter = hintEl || ratingsEl;
-        insertAfter.insertAdjacentElement('afterend', wrap);
+
+        var nextCardBtn = document.createElement('button');
+        nextCardBtn.type = 'button';
+        nextCardBtn.id = 'askTutorNextCard';
+        nextCardBtn.className = 'big-btn';
+        nextCardBtn.style.marginTop = '14px';
+        nextCardBtn.textContent = 'NEXT CARD →';
+        nextCardBtn.addEventListener('click', function() {
+          var cb = askTutorContinueHandler;
+          cleanupAskTutor();
+          if (typeof cb === 'function') cb();
+          else advanceItem();
+          try { playClick(); } catch(e) {}
+        });
+        insertAfter.insertAdjacentElement('afterend', nextCardBtn);
+        nextCardBtn.insertAdjacentElement('afterend', wrap);
+
+        if (window.gsap) {
+          gsap.fromTo(nextCardBtn,
+            { opacity: 0, y: 8 },
+            { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' }
+          );
+        }
       }
 
       /* Wire toggle */
@@ -13383,15 +13463,24 @@ input[type="range"]::-moz-range-thumb{
       askTutorExchangeCount = 0;
       var wrap = document.getElementById('askTutorWrap');
       if (wrap) wrap.remove();
+      var ncBtn = document.getElementById('askTutorNextCard');
+      if (ncBtn) ncBtn.remove();
     }
 
     function advanceItem() {
       stopTTS();
       cleanupAskTutor();
       document.querySelectorAll('.listen-tts-btn').forEach(function(btn) { btn.remove(); });
+      var staleRe = document.getElementById('qfReRetrievalRoot');
+      if (staleRe) staleRe.remove();
+      var staleFollow = document.getElementById('qfFollowupRoot');
+      if (staleFollow) staleFollow.remove();
       clearTimers();
       var cardEl = document.querySelector('.item-card');
+      var stepped = false;
       var step = function() {
+        if (stepped) return;
+        stepped = true;
         session.idx++;
         if (session.idx >= session.queue.length) {
           completeSession();
@@ -13400,11 +13489,12 @@ input[type="range"]::-moz-range-thumb{
         checkBreakTriggers();
         renderCurrentItem();
       };
-      if (window.gsap && cardEl && viewSession && viewSession.classList.contains('active')) {
+      if (window.gsap && cardEl && cardEl.isConnected && viewSession && viewSession.classList.contains('active')) {
+        gsap.killTweensOf(cardEl);
         gsap.to(cardEl, {
           opacity: 0,
           y: -12,
-          duration: 0.2,
+          duration: 0.18,
           ease: 'power2.in',
           onComplete: step
         });
