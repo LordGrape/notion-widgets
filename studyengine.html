@@ -3853,6 +3853,70 @@ input[type="range"]::-moz-range-thumb{
       font-style: italic;
       color: var(--text);
     }
+    .qf-followup{
+      margin-top: 10px;
+      padding: 12px;
+      border-radius: 14px;
+      font-size: 10px;
+      line-height: 1.5;
+      background: var(--card-bg);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      border: 1px solid var(--card-border);
+      box-shadow: var(--shadow-soft);
+      color: var(--text);
+    }
+    .qf-followup .qf-followup-q{
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+    .qf-followup .qf-followup-row{
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .qf-followup input.qf-followup-input{
+      flex: 1;
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(var(--accent-rgb), 0.18);
+      background: rgba(var(--accent-rgb), 0.03);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 10px;
+      outline: none;
+    }
+    .qf-followup input.qf-followup-input:focus{
+      border-color: rgba(var(--accent-rgb), 0.35);
+      box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.08);
+    }
+    .qf-followup .qf-followup-send{
+      flex-shrink: 0;
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .qf-followup .qf-followup-answer{
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(var(--accent-rgb), 0.10);
+      color: var(--text-secondary);
+    }
+    .qf-followup.qf-followup-done{
+      cursor: pointer;
+    }
+    .qf-followup .qf-followup-hint{
+      margin-top: 8px;
+      font-size: 8px;
+      color: var(--text-tertiary);
+    }
     .tutor-typing{
       align-self: flex-start;
       display: inline-flex;
@@ -6356,6 +6420,14 @@ input[type="range"]::-moz-range-thumb{
       var oldReveal = document.getElementById('revealColumnsWrap');
       if (oldReveal) oldReveal.remove();
       if (session) session.aiRating = null;
+      if (session) session._isRelearning = false;
+      tutorAcknowledgeDone = false;
+      tutorAcknowledgeOriginalRating = null;
+      tutorOpeningUserText = '';
+      tutorInRelearning = false;
+      tutorMaxTurns = 3;
+      var qfRoot = document.getElementById('qfFollowupRoot');
+      if (qfRoot) qfRoot.remove();
       /* Remove override hint if present */
       var oldHint = document.querySelector('.override-hint');
       if (oldHint) oldHint.remove();
@@ -6798,6 +6870,10 @@ input[type="range"]::-moz-range-thumb{
     var tutorCurrentMode = null;
     var tutorCurrentItem = null;
     var tutorCurrentTier = null;
+    var tutorOpeningUserText = '';
+    var tutorAcknowledgeDone = false;
+    var tutorAcknowledgeOriginalRating = null;
+    var tutorInRelearning = false;
 
     function buildTutorUI(container) {
       container.innerHTML =
@@ -6910,8 +6986,213 @@ input[type="range"]::-moz-range-thumb{
         lapses: (tItem.fsrs && tItem.fsrs.lapses) || 0,
         sessionRetryCount: (session && session.loops && tItem && session.loops[tItem.id]) || 0,
         recentAvgRating: getRecentAvg(),
-        isRelearning: false
+        isRelearning: !!(session && session._isRelearning)
       };
+    }
+
+    function getLastUserTextForTutor() {
+      for (var i = tutorConversation.length - 1; i >= 0; i--) {
+        if (tutorConversation[i].role === 'user') return tutorConversation[i].text || '';
+      }
+      return tutorOpeningUserText || '';
+    }
+
+    function handleAcknowledgeFollowupResponse(ackData) {
+      if (!ackData) {
+        showRatingButtons(tutorAcknowledgeOriginalRating);
+        return;
+      }
+      var ack = ackData.acknowledgment || '';
+      var ext = ackData.extensionQuestion || '';
+      var fullT = ack + (ext ? '\n\n' + ext : '');
+      if (ackData && ackData.reconstructionPrompt) {
+        fullT += (fullT ? '\n\n' : '') + ackData.reconstructionPrompt;
+      }
+      tutorConversation.push({ role: 'tutor', text: fullT });
+      var htmlA = '<div>' + esc(ack) + '</div>';
+      if (ext) htmlA += '<div class="msg-question">' + esc(ext) + '</div>';
+      if (ackData && ackData.reconstructionPrompt) {
+        htmlA += '<div class="msg-question">' + esc(ackData.reconstructionPrompt) + '</div>';
+      }
+      addTutorMessage('tutor', htmlA);
+      if (ackData && ackData.suggestedRating != null && ackData.suggestedRating !== '') {
+        session.aiRating = ackData.suggestedRating;
+      }
+      tutorTurnCount++;
+      updateTurnCounter();
+      if ((ackData && ackData.isComplete) || tutorTurnCount >= tutorMaxTurns) {
+        disableTutorInput();
+        var srA = (ackData && ackData.suggestedRating != null) ? ackData.suggestedRating : tutorAcknowledgeOriginalRating;
+        showRatingButtons(srA != null ? srA : null);
+        try { playClick(); } catch (ea) {}
+        return;
+      }
+      var taA = document.getElementById('tutorInput');
+      var btnA = document.getElementById('tutorSend');
+      if (taA) { taA.disabled = false; taA.style.opacity = '1'; taA.focus(); }
+      if (btnA) btnA.disabled = false;
+      try { playClick(); } catch (eb) {}
+    }
+
+    function finishRelearningRequeue(it, nowTs) {
+      nowTs = nowTs || Date.now();
+      hideTypingIndicator();
+      disableTutorInput();
+      studyIndicator.classList.remove('show');
+      disableRatings(false);
+      if (session) session._isRelearning = false;
+      tutorInRelearning = false;
+      tutorMaxTurns = 3;
+      tutorCurrentMode = null;
+
+      if (session.loops[it.id] >= 3) {
+        toast('Review tomorrow');
+        ensureFsrs(it);
+        it.fsrs.due = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+        it.fsrs.state = 'relearning';
+        it.fsrs.lapses = (it.fsrs.lapses || 0) + 1;
+        it.fsrs.reps = (it.fsrs.reps || 0) + 1;
+        it.fsrs.lastReview = new Date(nowTs).toISOString();
+        advanceItem();
+        return;
+      }
+      var remainingItems = session.queue.length - (session.idx + 1);
+      var minOffset = Math.max(5, Math.floor(remainingItems * 0.4));
+      var insertPos = Math.min(session.idx + 1 + minOffset, session.queue.length);
+      session.queue.splice(insertPos, 0, it);
+      advanceItem();
+    }
+
+    function beginPassiveRestudyFlow(it, nowTs) {
+      var restudyDuration = calcRestudyDuration(it.modelAnswer);
+      var restudyBarId = 'restudyBarInline';
+      var existingBar = document.getElementById(restudyBarId);
+      if (existingBar) existingBar.remove();
+
+      var barHTML = '<div id="' + restudyBarId + '" class="restudy-bar">' +
+        '<span class="rb-icon">🔁</span>' +
+        '<span class="rb-label">Re-encode</span>' +
+        '<div class="rb-progress"><div id="rbProgressFill"></div></div>' +
+        '<span class="rb-timer" id="rbTimer">' + Math.ceil(restudyDuration / 1000) + 's</span>' +
+        '</div>' +
+        '<div class="restudy-elaboration">Why is this the correct answer? How does it connect to what you already know?</div>';
+      modelAnswerEl.insertAdjacentHTML('afterend', barHTML);
+
+      modelAnswerEl.classList.add('restudy-active');
+      modelAnswerEl.scrollTop = 0;
+
+      if (window.gsap) {
+        gsap.to(modelAnswerEl, {
+          duration: 0.5,
+          ease: 'power2.out',
+          boxShadow: '0 0 30px rgba(var(--accent-rgb),0.10), 0 0 60px rgba(var(--accent-rgb),0.05)'
+        });
+        var barEl0 = document.getElementById(restudyBarId);
+        if (barEl0) {
+          gsap.fromTo(barEl0, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.35, delay: 0.15, ease: 'power2.out' });
+        }
+        var elabEl0 = barEl0 ? barEl0.nextElementSibling : null;
+        if (elabEl0 && elabEl0.classList.contains('restudy-elaboration')) {
+          gsap.fromTo(elabEl0, { opacity: 0 }, { opacity: 0.8, duration: 0.4, delay: 0.3, ease: 'power2.out' });
+        }
+      }
+
+      studyIndicator.classList.add('show');
+      try { playError(); } catch (ePr) {}
+      disableRatings(true);
+
+      var restudyStart = Date.now();
+      if (restudyIntervalTimer) { clearInterval(restudyIntervalTimer); restudyIntervalTimer = null; }
+      restudyIntervalTimer = setInterval(function() {
+        var elapsed = Date.now() - restudyStart;
+        var remaining = Math.max(0, Math.ceil((restudyDuration - elapsed) / 1000));
+        var rbTimer = document.getElementById('rbTimer');
+        var rbFill = document.getElementById('rbProgressFill');
+        if (rbTimer) rbTimer.textContent = remaining + 's';
+        if (rbFill) rbFill.style.width = Math.min(100, Math.round((elapsed / restudyDuration) * 100)) + '%';
+        if (elapsed >= restudyDuration) {
+          clearInterval(restudyIntervalTimer);
+          restudyIntervalTimer = null;
+        }
+      }, 250);
+
+      if (restudyTimeoutTimer) { clearTimeout(restudyTimeoutTimer); restudyTimeoutTimer = null; }
+      restudyTimeoutTimer = setTimeout(function() {
+        if (restudyIntervalTimer) { clearInterval(restudyIntervalTimer); restudyIntervalTimer = null; }
+
+        disableRatings(false);
+        studyIndicator.classList.remove('show');
+
+        modelAnswerEl.classList.remove('restudy-active');
+        if (window.gsap) {
+          gsap.to(modelAnswerEl, { duration: 0.3, ease: 'power2.inOut', clearProps: 'boxShadow' });
+        }
+        var oldBar = document.getElementById('restudyBarInline');
+        if (oldBar) {
+          var oldElab = oldBar.nextElementSibling;
+          if (oldElab && oldElab.classList.contains('restudy-elaboration')) oldElab.remove();
+          oldBar.remove();
+        }
+
+        if (session.loops[it.id] >= 3) {
+          toast('Review tomorrow');
+          ensureFsrs(it);
+          it.fsrs.due = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+          it.fsrs.state = 'relearning';
+          it.fsrs.lapses = (it.fsrs.lapses || 0) + 1;
+          it.fsrs.reps = (it.fsrs.reps || 0) + 1;
+          it.fsrs.lastReview = new Date(nowTs).toISOString();
+          advanceItem();
+          return;
+        }
+
+        var remainingItemsB = session.queue.length - (session.idx + 1);
+        var minOffsetB = Math.max(5, Math.floor(remainingItemsB * 0.4));
+        var insertPosB = Math.min(session.idx + 1 + minOffsetB, session.queue.length);
+        session.queue.splice(insertPosB, 0, it);
+        advanceItem();
+      }, restudyDuration);
+    }
+
+    function startRelearningDialogue(it, nowTs) {
+      var fbR = getFeedbackArea();
+      if (!fbR) {
+        beginPassiveRestudyFlow(it, nowTs);
+        return;
+      }
+      studyIndicator.classList.add('show');
+      try { playError(); } catch (er) {}
+      disableRatings(true);
+      if (session) session._isRelearning = true;
+      tutorInRelearning = true;
+      tutorMaxTurns = 2;
+      tutorTurnCount = 0;
+      tutorConversation = [];
+      tutorAcknowledgeDone = false;
+      tutorAcknowledgeOriginalRating = null;
+      tutorCurrentMode = 'socratic';
+      tutorCurrentItem = it;
+      tutorOpeningUserText =
+        '[Session relearning] The student rated Again after feedback. Lead a very short active re-encoding pass (max 2 student turns), ' +
+        'then end with isComplete true. Prefer a diagnostic question first; on the final turn include a reconstruction prompt if helpful.';
+      buildTutorUI(fbR);
+      updateTurnCounter();
+      showTypingIndicator();
+      var modelR = selectModel(it, session);
+      var ctxR = tutorContextForItem(it);
+      callTutor('socratic', modelR, it, tutorOpeningUserText, [], ctxR)
+        .then(function(dataR) {
+          hideTypingIndicator();
+          if (dataR && dataR.error) {
+            finishRelearningRequeue(it, nowTs);
+            return;
+          }
+          handleTutorResponse(dataR);
+        })
+        .catch(function() {
+          hideTypingIndicator();
+          finishRelearningRequeue(it, nowTs);
+        });
     }
 
     function submitTutorResponse() {
@@ -6934,20 +7215,93 @@ input[type="range"]::-moz-range-thumb{
         .then(function(data) {
           hideTypingIndicator();
           if (data && data.error) {
+            if (tutorInRelearning) {
+              finishRelearningRequeue(tutorCurrentItem, Date.now());
+              return;
+            }
             addTutorMessage('tutor', '⚠ ' + esc(data.error));
-            showRatingButtons(null);
+            showRatingButtons(tutorCurrentMode === 'acknowledge' ? tutorAcknowledgeOriginalRating : null);
             return;
           }
           handleTutorResponse(data);
         })
         .catch(function() {
           hideTypingIndicator();
+          if (tutorInRelearning) {
+            finishRelearningRequeue(tutorCurrentItem, Date.now());
+            return;
+          }
           addTutorMessage('tutor', '⚠ Could not reach the tutor. Rate yourself against the model answer.');
-          showRatingButtons(null);
+          showRatingButtons(tutorCurrentMode === 'acknowledge' ? tutorAcknowledgeOriginalRating : null);
         });
     }
 
     function handleTutorResponse(data) {
+      if (tutorInRelearning) {
+        var tutorTextRl = data.tutorMessage || data.acknowledgment || data.correct || data.insight || '';
+        var questionRl = data.followUpQuestion || data.extensionQuestion || '';
+        var fullTextRl = tutorTextRl + (questionRl ? '\n\n' + questionRl : '');
+        if (data.reconstructionPrompt) {
+          fullTextRl += (fullTextRl ? '\n\n' : '') + data.reconstructionPrompt;
+        }
+        tutorConversation.push({ role: 'tutor', text: fullTextRl });
+        var htmlRl = '<div>' + esc(tutorTextRl) + '</div>';
+        if (questionRl) htmlRl += '<div class="msg-question">' + esc(questionRl) + '</div>';
+        if (data.reconstructionPrompt) htmlRl += '<div class="msg-question">' + esc(data.reconstructionPrompt) + '</div>';
+        addTutorMessage('tutor', htmlRl);
+        if (data.annotations && data.annotations.length > 0 && typeof applyInlineAnnotations === 'function') {
+          applyInlineAnnotations(data.annotations);
+        }
+        var doneRl = data.isComplete || tutorTurnCount >= tutorMaxTurns;
+        if (doneRl) {
+          disableTutorInput();
+          finishRelearningRequeue(tutorCurrentItem, Date.now());
+          try { playClick(); } catch (eRl1) {}
+          return;
+        }
+        var taRl = document.getElementById('tutorInput');
+        var btnRl = document.getElementById('tutorSend');
+        if (taRl) { taRl.disabled = false; taRl.style.opacity = '1'; taRl.focus(); }
+        if (btnRl) btnRl.disabled = false;
+        try { playClick(); } catch (eRl2) {}
+        return;
+      }
+
+      if (tutorCurrentMode === 'socratic' && data.isComplete && data.suggestedRating != null && data.suggestedRating >= 3 && !tutorAcknowledgeDone) {
+        tutorAcknowledgeDone = true;
+        tutorAcknowledgeOriginalRating = data.suggestedRating;
+        session.aiRating = data.suggestedRating;
+        var confirmMsg = data.tutorMessage || '';
+        tutorConversation.push({ role: 'tutor', text: confirmMsg });
+        var htmlAck0 = '<div>' + esc(confirmMsg) + '</div>';
+        addTutorMessage('tutor', htmlAck0);
+        if (data.annotations && data.annotations.length > 0 && typeof applyInlineAnnotations === 'function') {
+          applyInlineAnnotations(data.annotations);
+        }
+        tutorTurnCount++;
+        updateTurnCounter();
+        showTypingIndicator();
+        disableTutorInput();
+        var modelAck = selectModel(tutorCurrentItem, session);
+        var urAck = getLastUserTextForTutor();
+        if (!String(urAck).trim()) urAck = '(The student gave a strong response; acknowledge specifics and ask one extension question.)';
+        callTutor('acknowledge', modelAck, tutorCurrentItem, urAck, tutorConversation, tutorContextForItem(tutorCurrentItem))
+          .then(function(ackD) {
+            hideTypingIndicator();
+            if (ackD && ackD.error) {
+              showRatingButtons(tutorAcknowledgeOriginalRating);
+              return;
+            }
+            tutorCurrentMode = 'acknowledge';
+            handleAcknowledgeFollowupResponse(ackD);
+          })
+          .catch(function() {
+            hideTypingIndicator();
+            showRatingButtons(tutorAcknowledgeOriginalRating);
+          });
+        return;
+      }
+
       var tutorText = data.tutorMessage || data.acknowledgment || data.correct || data.insight || '';
       var question = data.followUpQuestion || data.extensionQuestion || '';
       var fullText = tutorText + (question ? '\n\n' + question : '');
@@ -6969,9 +7323,12 @@ input[type="range"]::-moz-range-thumb{
       if (data.suggestedRating != null && data.suggestedRating !== '') {
         session.aiRating = data.suggestedRating;
       }
-      if (data.isComplete || tutorTurnCount >= tutorMaxTurns) {
+      var terminal = data.isComplete || tutorTurnCount >= tutorMaxTurns;
+      if (terminal) {
         disableTutorInput();
-        showRatingButtons(data.suggestedRating != null ? data.suggestedRating : null);
+        var suggOut = data.suggestedRating != null ? data.suggestedRating : null;
+        if (tutorCurrentMode === 'acknowledge' && suggOut == null) suggOut = tutorAcknowledgeOriginalRating;
+        showRatingButtons(suggOut);
         try { playClick(); } catch (e3) {}
       } else {
         var ta2 = document.getElementById('tutorInput');
@@ -7015,11 +7372,18 @@ input[type="range"]::-moz-range-thumb{
     }
 
     function skipToRating() {
+      if (tutorInRelearning) {
+        disableTutorInput();
+        finishRelearningRequeue(tutorCurrentItem, Date.now());
+        return;
+      }
       disableTutorInput();
       addTutorMessage('tutor', '<em>Skipped to rating. Review the model answer below.</em>');
       var mac = document.querySelector('.model-answer-collapsible');
       if (mac) mac.classList.add('open');
-      showRatingButtons(session.aiRating != null ? session.aiRating : null);
+      var skipSugg = session.aiRating != null ? session.aiRating : null;
+      if (tutorCurrentMode === 'acknowledge' && skipSugg == null) skipSugg = tutorAcknowledgeOriginalRating;
+      showRatingButtons(skipSugg);
     }
 
     function buildQuickFeedbackUI(container, data) {
@@ -7147,6 +7511,9 @@ input[type="range"]::-moz-range-thumb{
       }
       tutorConversation = [];
       tutorTurnCount = 0;
+      tutorOpeningUserText = userText || '';
+      tutorAcknowledgeDone = false;
+      tutorAcknowledgeOriginalRating = null;
       tutorCurrentMode = feedbackMode;
       tutorCurrentItem = it;
       tutorCurrentTier = revealTier;
@@ -7341,6 +7708,9 @@ input[type="range"]::-moz-range-thumb{
 
       tutorConversation = [];
       tutorTurnCount = 0;
+      tutorOpeningUserText = '';
+      tutorAcknowledgeDone = false;
+      tutorAcknowledgeOriginalRating = null;
       tutorCurrentMode = 'teach';
       tutorCurrentItem = it;
       tutorCurrentTier = revealTier;
@@ -7851,6 +8221,123 @@ input[type="range"]::-moz-range-thumb{
       ratingsEl.style.display = 'grid';
     }
 
+    function scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount) {
+      if (againCount > 0 && mappedRating >= 3) session.loops[it.id] = 0;
+      var res = scheduleFsrs(it, mappedRating, nowTs, true);
+      var effectiveBonus = getEffectiveBloomBonus(it.course);
+      if (mappedRating >= 3 && effectiveBonus[tier]) {
+        var bonus = effectiveBonus[tier];
+        if (bonus > 1.0 && it.fsrs && it.fsrs.stability) {
+          it.fsrs.stability = Math.min(3650, it.fsrs.stability * bonus);
+        }
+      }
+      var cramInfo = getCramState(it.course);
+      if (cramInfo.active && it.fsrs && it.fsrs.due) {
+        var dueTs = new Date(it.fsrs.due).getTime();
+        var nowMs = Date.now();
+        var currentInterval = dueTs - nowMs;
+        if (currentInterval > 0) {
+          var compressed = nowMs + Math.round(currentInterval * cramInfo.intervalMod);
+          it.fsrs.due = new Date(compressed).toISOString();
+        }
+      }
+      it.lastTier = tier;
+      var xp = computeXP(it, mappedRating, res.intervalDays);
+      session.xp += xp;
+      flashXP(xp);
+      saveState();
+      advanceItem();
+    }
+
+    function mountQuickFireFollowup(it, data, done) {
+      var oldQ = document.getElementById('qfFollowupRoot');
+      if (oldQ) oldQ.remove();
+      if (!ratingsEl || !ratingsEl.parentNode) {
+        done();
+        return;
+      }
+      var root = document.createElement('div');
+      root.id = 'qfFollowupRoot';
+      root.className = 'qf-followup';
+      root.innerHTML =
+        '<div class="qf-followup-q">' + esc(data.followUpQuestion) + '</div>' +
+        '<div class="qf-followup-row">' +
+        '<input type="text" class="qf-followup-input" placeholder="Quick answer..." autocomplete="off" />' +
+        '<button type="button" class="qf-followup-send" aria-label="Submit">✓</button>' +
+        '</div>';
+      ratingsEl.parentNode.insertBefore(root, ratingsEl.nextSibling);
+      if (window.gsap) {
+        gsap.fromTo(root, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' });
+      }
+      var input = root.querySelector('.qf-followup-input');
+      var sendB = root.querySelector('.qf-followup-send');
+      var advanceTimer = null;
+      var qfFinished = false;
+      function finishQf() {
+        if (qfFinished) return;
+        qfFinished = true;
+        if (advanceTimer) clearTimeout(advanceTimer);
+        root.remove();
+        done();
+      }
+      function revealFollowupAnswer() {
+        var ans = (data.followUpAnswer != null && data.followUpAnswer !== '') ? String(data.followUpAnswer) : 'Nice — keep that link in mind.';
+        var ansDiv = document.createElement('div');
+        ansDiv.className = 'qf-followup-answer';
+        ansDiv.textContent = ans;
+        root.appendChild(ansDiv);
+        var hint = document.createElement('div');
+        hint.className = 'qf-followup-hint';
+        hint.textContent = 'Tap to continue — or wait 2s';
+        root.appendChild(hint);
+        root.classList.add('qf-followup-done');
+        if (window.gsap) {
+          gsap.fromTo(ansDiv, { opacity: 0, scale: 0.96 }, { opacity: 1, scale: 1, duration: 0.4, ease: 'back.out(1.5)' });
+        }
+        advanceTimer = setTimeout(finishQf, 2000);
+        root.addEventListener('click', function() { finishQf(); }, { once: true });
+      }
+      function submitQf() {
+        var t = input.value.trim();
+        if (!t) return;
+        input.disabled = true;
+        sendB.disabled = true;
+        try { playClick(); } catch (eq) {}
+        revealFollowupAnswer();
+      }
+      sendB.addEventListener('click', submitQf);
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          submitQf();
+        }
+      });
+      input.focus();
+    }
+
+    function runQuickFireFollowupMicro(it, done) {
+      disableRatings(true);
+      var ctxQ = tutorContextForItem(it);
+      ctxQ.quickFireFollowUp = true;
+      var modelQ = selectModel(it, session);
+      callTutor('insight', modelQ, it, '', [], ctxQ)
+        .then(function(dq) {
+          if (!dq || dq.error || !dq.followUpQuestion) {
+            disableRatings(false);
+            done();
+            return;
+          }
+          mountQuickFireFollowup(it, dq, function() {
+            disableRatings(false);
+            done();
+          });
+        })
+        .catch(function() {
+          disableRatings(false);
+          done();
+        });
+    }
+
     /* ── Rating + successive relearning loop ── */
     function rateCurrent(rating) {
       var nowTs = Date.now();
@@ -7934,110 +8421,48 @@ input[type="range"]::-moz-range-thumb{
       if (mappedRating === 1) {
         session.loops[it.id] = againCount + 1;
 
-        /* Structured restudy phase — animate existing answer block.
-           Research: Arnold & McDermott (2013), Pastötter et al. (2017).
-           Instead of duplicating the answer in a separate panel, we enlarge
-           the existing model answer block to draw focus for re-encoding. */
-        var restudyDuration = calcRestudyDuration(it.modelAnswer);
-
-        /* Inject inline timer bar + elaboration below the answer block */
-        var restudyBarId = 'restudyBarInline';
-        var existingBar = document.getElementById(restudyBarId);
-        if (existingBar) existingBar.remove();
-
-        var barHTML = '<div id="' + restudyBarId + '" class="restudy-bar">' +
-          '<span class="rb-icon">🔁</span>' +
-          '<span class="rb-label">Re-encode</span>' +
-          '<div class="rb-progress"><div id="rbProgressFill"></div></div>' +
-          '<span class="rb-timer" id="rbTimer">' + Math.ceil(restudyDuration / 1000) + 's</span>' +
-          '</div>' +
-          '<div class="restudy-elaboration">Why is this the correct answer? How does it connect to what you already know?</div>';
-        modelAnswerEl.insertAdjacentHTML('afterend', barHTML);
-
-        /* Animate the existing answer block into restudy mode */
-        modelAnswerEl.classList.add('restudy-active');
-        modelAnswerEl.scrollTop = 0;
-
-        if (window.gsap) {
-          gsap.to(modelAnswerEl, {
-            duration: 0.5,
-            ease: 'power2.out',
-            boxShadow: '0 0 30px rgba(var(--accent-rgb),0.10), 0 0 60px rgba(var(--accent-rgb),0.05)'
-          });
-          var barEl = document.getElementById(restudyBarId);
-          if (barEl) {
-            gsap.fromTo(barEl, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.35, delay: 0.15, ease: 'power2.out' });
+        var proceedAfterAgain = function() {
+          var generativeTier =
+            tier === 'explain' || tier === 'apply' || tier === 'distinguish' || tier === 'mock';
+          if (generativeTier && settings.feedbackMode !== 'self_rate') {
+            if (againCount >= 2) {
+              toast('Scheduled for next session — spacing will help more than repeating now');
+              ensureFsrs(it);
+              it.fsrs.due = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+              it.fsrs.state = 'relearning';
+              it.fsrs.lapses = (it.fsrs.lapses || 0) + 1;
+              it.fsrs.reps = (it.fsrs.reps || 0) + 1;
+              it.fsrs.lastReview = new Date(nowTs).toISOString();
+              advanceItem();
+              return;
+            }
+            startRelearningDialogue(it, nowTs);
+            return;
           }
-          var elabEl = barEl ? barEl.nextElementSibling : null;
-          if (elabEl && elabEl.classList.contains('restudy-elaboration')) {
-            gsap.fromTo(elabEl, { opacity: 0 }, { opacity: 0.8, duration: 0.4, delay: 0.3, ease: 'power2.out' });
-          }
+          beginPassiveRestudyFlow(it, nowTs);
+        };
+
+        if (tier === 'quickfire' && settings.feedbackMode !== 'self_rate') {
+          runQuickFireFollowupMicro(it, proceedAfterAgain);
+          return;
         }
+        proceedAfterAgain();
+        return;
+      }
 
-        studyIndicator.classList.add('show');
-        try { playError(); } catch(e) {}
-        disableRatings(true);
-
-        var restudyStart = Date.now();
-        if (restudyIntervalTimer) { clearInterval(restudyIntervalTimer); restudyIntervalTimer = null; }
-        restudyIntervalTimer = setInterval(function() {
-          var elapsed = Date.now() - restudyStart;
-          var remaining = Math.max(0, Math.ceil((restudyDuration - elapsed) / 1000));
-          var rbTimer = document.getElementById('rbTimer');
-          var rbFill = document.getElementById('rbProgressFill');
-          if (rbTimer) rbTimer.textContent = remaining + 's';
-          if (rbFill) rbFill.style.width = Math.min(100, Math.round((elapsed / restudyDuration) * 100)) + '%';
-          if (elapsed >= restudyDuration) {
-            clearInterval(restudyIntervalTimer);
-            restudyIntervalTimer = null;
-          }
-        }, 250);
-
-        if (restudyTimeoutTimer) { clearTimeout(restudyTimeoutTimer); restudyTimeoutTimer = null; }
-        restudyTimeoutTimer = setTimeout(function() {
-          if (restudyIntervalTimer) { clearInterval(restudyIntervalTimer); restudyIntervalTimer = null; }
-
-          disableRatings(false);
-          studyIndicator.classList.remove('show');
-
-          /* Reverse the restudy animation on the answer block */
-          modelAnswerEl.classList.remove('restudy-active');
-          if (window.gsap) {
-            gsap.to(modelAnswerEl, { duration: 0.3, ease: 'power2.inOut', clearProps: 'boxShadow' });
-          }
-          /* Remove inline timer bar + elaboration */
-          var oldBar = document.getElementById('restudyBarInline');
-          if (oldBar) {
-            var oldElab = oldBar.nextElementSibling;
-            if (oldElab && oldElab.classList.contains('restudy-elaboration')) oldElab.remove();
-            oldBar.remove();
-          }
-
-          if (session.loops[it.id] >= 3) {
-            /* force-exit loop */
-            toast('Review tomorrow');
-            /* schedule for tomorrow as a gentle relearning nudge */
-            ensureFsrs(it);
-            it.fsrs.due = new Date(Date.now() + 24*60*60*1000).toISOString();
-            it.fsrs.state = 'relearning';
-            it.fsrs.lapses = (it.fsrs.lapses || 0) + 1;
-            it.fsrs.reps = (it.fsrs.reps || 0) + 1;
-            it.fsrs.lastReview = new Date(nowTs).toISOString();
-            /* advance */
+      /* Quick Fire Hard — optional insight follow-up before FSRS / re-queue */
+      if (tier === 'quickfire' && mappedRating === 2 && settings.feedbackMode !== 'self_rate') {
+        runQuickFireFollowupMicro(it, function() {
+          if (againCount > 0 && mappedRating === 2) {
+            var remainingItemsQ = session.queue.length - (session.idx + 1);
+            var minOffsetQ = Math.max(5, Math.floor(remainingItemsQ * 0.4));
+            var insertPosQ = Math.min(session.idx + 1 + minOffsetQ, session.queue.length);
+            session.queue.splice(insertPosQ, 0, it);
             advanceItem();
             return;
           }
-
-          /* Re-queue with minimum spacing offset
-             Research basis: Cepeda et al. (2006) — optimal inter-study interval
-             scales with retention interval. Even within a session, a minimum gap
-             of ~5 items ensures spacing rather than near-immediate re-encounter. */
-          var remainingItems = session.queue.length - (session.idx + 1);
-          var minOffset = Math.max(5, Math.floor(remainingItems * 0.4));
-          var insertPos = Math.min(session.idx + 1 + minOffset, session.queue.length);
-          session.queue.splice(insertPos, 0, it);
-          advanceItem();
-        }, restudyDuration);
+          scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount);
+        });
         return;
       }
 
@@ -8045,7 +8470,6 @@ input[type="range"]::-moz-range-thumb{
          - After an in-session failure, require Good/Easy to exit.
          - Hard keeps the item in-session (re-queued) without writing FSRS yet. */
       if (againCount > 0 && mappedRating === 2) {
-        /* Re-queue with minimum spacing (same logic as Again) */
         var remainingItems2 = session.queue.length - (session.idx + 1);
         var minOffset2 = Math.max(5, Math.floor(remainingItems2 * 0.4));
         var insertPos2 = Math.min(session.idx + 1 + minOffset2, session.queue.length);
@@ -8053,38 +8477,8 @@ input[type="range"]::-moz-range-thumb{
         advanceItem();
         return;
       }
-      if (againCount > 0 && mappedRating >= 3) session.loops[it.id] = 0;
 
-      var res = scheduleFsrs(it, mappedRating, nowTs, true);
-      /* Bloom stability bonus: course-objective-aware */
-      var effectiveBonus = getEffectiveBloomBonus(it.course);
-      if (mappedRating >= 3 && effectiveBonus[tier]) {
-        var bonus = effectiveBonus[tier];
-        if (bonus > 1.0 && it.fsrs && it.fsrs.stability) {
-          it.fsrs.stability = Math.min(3650, it.fsrs.stability * bonus);
-        }
-      }
-      /* Cram mode: compress intervals */
-      var cramInfo = getCramState(it.course);
-      if (cramInfo.active && it.fsrs && it.fsrs.due) {
-        var dueTs = new Date(it.fsrs.due).getTime();
-        var nowMs = Date.now();
-        var currentInterval = dueTs - nowMs;
-        if (currentInterval > 0) {
-          var compressed = nowMs + Math.round(currentInterval * cramInfo.intervalMod);
-          it.fsrs.due = new Date(compressed).toISOString();
-        }
-      }
-      /* Store which tier was used for history */
-      it.lastTier = tier;
-
-      /* XP — compute and flash */
-      var xp = computeXP(it, mappedRating, res.intervalDays);
-      session.xp += xp;
-      flashXP(xp);
-
-      saveState();
-      advanceItem();
+      scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount);
     }
 
     function ensureFsrs(it) {
