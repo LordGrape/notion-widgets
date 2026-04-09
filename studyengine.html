@@ -7471,7 +7471,7 @@ input[type="range"]::-moz-range-thumb{
       tierArea.innerHTML = '';
       if (tier === 'quickfire') {
         tierArea.innerHTML =
-          '<div class="confidence-prompt">' +
+          '<div class="confidence-prompt" id="confidencePrompt">' +
             '<div class="confidence-label">How confident are you?</div>' +
             '<div class="confidence-pills">' +
               '<div class="conf-pill" data-conf="low">Low</div>' +
@@ -7500,8 +7500,7 @@ input[type="range"]::-moz-range-thumb{
           }
           revealAnswer();
         });
-        if (qfVisual) setTimeout(initMermaidBlocks, 50);
-        else if (it.prompt && it.modelAnswer) ensureAnswerVisual(it, tier);
+        if (it.prompt && it.modelAnswer) ensureAnswerVisual(it, tier);
       } else if (tier === 'explain') {
         tierArea.innerHTML = '' +
           '<div class="two-col single">' +
@@ -9451,6 +9450,8 @@ input[type="range"]::-moz-range-thumb{
       if (dkBtn) dkBtn.style.display = 'none';
       var essayNext = el('essayNextPhase');
       if (essayNext) essayNext.style.display = 'none';
+      var confPrompt = el('confidencePrompt');
+      if (confPrompt) confPrompt.style.display = 'none';
       // Hide the entire tier area (concepts, scenario, prompt details)
       if (tierArea) tierArea.style.display = 'none';
 
@@ -9764,6 +9765,10 @@ input[type="range"]::-moz-range-thumb{
 
       /* Show model answer for quickfire immediately */
       if (revealTier === 'quickfire') {
+        var confPrompt = el('confidencePrompt');
+        if (confPrompt) confPrompt.style.display = 'none';
+        var revealBtn = el('revealBtn');
+        if (revealBtn) revealBtn.style.display = 'none';
         var qfAnswerVisual = it.visual ? renderMermaidBlock(it.visual, 'answer', it.id) : '';
         modelAnswerEl.innerHTML = '<div class="answer-header"><span class="se-icon" style="margin-right:4px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="10" rx="1.5"/><polyline points="2,5 8,9 14,5"/></svg></span>Model Answer</div><div class="md-content">' + renderMd(it.modelAnswer || '') + '</div>' + qfAnswerVisual;
         modelAnswerEl.style.display = 'block';
@@ -9785,6 +9790,9 @@ input[type="range"]::-moz-range-thumb{
         handleDontKnowReveal(it, revealTier);
         return;
       }
+
+      var confPromptGen = el('confidencePrompt');
+      if (confPromptGen) confPromptGen.style.display = 'none';
 
       /* Hide the original textarea and check/submit button */
       if (el('userText')) el('userText').style.display = 'none';
@@ -10252,6 +10260,11 @@ input[type="range"]::-moz-range-thumb{
       var it = session.queue[session.idx];
       if (!it) return;
       if (!session.currentShown) return;
+
+      /* Immediately hide rating UI — rating captured */
+      ratingsEl.style.display = 'none';
+      var hintElRate = document.querySelector('.override-hint');
+      if (hintElRate) hintElRate.remove();
 
       var tier = it._presentTier || it.tier || 'quickfire';
       var mappedRating = rating;
