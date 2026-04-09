@@ -1822,6 +1822,8 @@ let SyncEngine = (function() {
   let namespaces = [];    // registered namespace strings
   let syncStatusListeners = [];
   let activePushCount = 0;
+  let _freshOriginGrace = false; /* true = suppress pushes until grace period ends */
+  let _freshOriginTimer = null;
   let lastPushedPayload = {}; /* last successful PUT body per namespace (no-op skip) */
 
   /* ── BroadcastChannel: cross-widget real-time sync ──
@@ -1974,7 +1976,7 @@ let SyncEngine = (function() {
   }
 
   /* Keys where highest-value-wins, not newest-timestamp-wins */
-  let MONOTONIC_KEYS = { xp: true, streak: true };
+  let MONOTONIC_KEYS = { xp: true, streak: true, totalReviews: true };
   /* Keys where values are JSON arrays merged via set union */
   let UNION_KEYS = { achievements: true };
   function isPlainObject(v) {
@@ -2072,6 +2074,9 @@ let SyncEngine = (function() {
       delete pushTimers[ns];
       dirtyNamespaces[ns] = true;
       if (!online) return;
+      /* Fresh-origin grace: don't push widget boot writes to KV.
+         Data is already correct from the init pull; dirty stays set for a later push. */
+      if (_freshOriginGrace) return;
       if (lastPushedPayload[ns] === payloadBody(ns)) {
         delete dirtyNamespaces[ns];
         return;
@@ -2353,14 +2358,19 @@ let SyncEngine = (function() {
           return;
         }
         /* Pull remote state for each namespace, merge, push merged copy back */
+        let totalLocalWeight = 0;
+        namespaces.forEach(function(ns) {
+          totalLocalWeight += JSON.stringify(cache[ns] || {}).length;
+        });
+        let isFreshOrigin = totalLocalWeight <= namespaces.length * 4;
+
         let pulls = namespaces.map(function(ns) {
-          /* Empty/trivial local namespaces should not push during init. */
           let localWeight = JSON.stringify(cache[ns] || {}).length;
           return remoteGet(ns)
             .then(function(remote) {
               cache[ns] = merge(cache[ns], remote);
               lsWrite(ns);
-              if (localWeight > 4) return remotePut(ns);
+              if (!isFreshOrigin && localWeight > 4) return remotePut(ns);
             })
             .catch(function() {
               /* Remote unreachable: keep local */
@@ -2371,6 +2381,17 @@ let SyncEngine = (function() {
           _drainOfflineQueue();
           initDone = true;
           startPolling();
+          if (isFreshOrigin) {
+            if (_freshOriginTimer) {
+              clearTimeout(_freshOriginTimer);
+              _freshOriginTimer = null;
+            }
+            _freshOriginGrace = true;
+            _freshOriginTimer = setTimeout(function() {
+              _freshOriginGrace = false;
+              _freshOriginTimer = null;
+            }, 10000);
+          }
           readyCallbacks.forEach(function(cb) { cb(SyncEngine); });
           Core.emit('sync-ready', { online: true });
         }).catch(function() {
