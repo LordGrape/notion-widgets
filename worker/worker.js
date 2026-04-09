@@ -102,14 +102,49 @@ export default {
 
         const isRelearningPass = !!context.isRelearning;
 
-        const socraticRelearningAddendum =
-          `\n\n---\n\nRELEARNING PASS\n\n` +
-          "This is a RELEARNING pass. The student already attempted this card, saw the model answer, and rated Again. " +
-          "They are re-encountering it within the same session. Your job is different from a first pass: do NOT ask broad diagnostic questions. " +
-          "Instead, target the specific point they missed. Ask them to reconstruct the key claim. Keep it to 1-2 turns. " +
-          "They've already seen the answer — the goal is active re-encoding, not discovery.";
+        const relearningModePrefix =
+          "RELEARNING PASS: The student already attempted this card, saw the model answer, and rated Again. This is a re-encounter within the same session. Do NOT ask broad diagnostic questions — target the specific point they missed. Ask them to reconstruct the key claim. Keep it to 1-2 turns. They have already seen the answer — the goal is active re-encoding, not discovery.\n\n";
 
-        const modeInstructions = {
+        function formatLearnerProfileBlock(learner, itemRef) {
+          if (!learner || typeof learner !== "object") return "";
+          const cs = learner.courseStats || {};
+          const card = learner.cardHistory || {};
+          const strong = Array.isArray(learner.strongTopics) ? learner.strongTopics : [];
+          const weak = Array.isArray(learner.weakTopics) ? learner.weakTopics : [];
+          const mems = Array.isArray(learner.relevantMemories) ? learner.relevantMemories : [];
+          const cal = learner.calibrationAccuracy;
+          const streak = learner.overallStreak != null ? learner.overallStreak : 0;
+          const cardLine = card.isNew
+            ? "First time"
+            : `${card.reps ?? 0} reviews, ${card.lapses ?? 0} lapses, stability ${Math.round(Number(card.stability) || 0)} days`;
+          const lines = [
+            "\n\n---\n\nLEARNER PROFILE FOR THIS SESSION:\n",
+            `- Course: ${itemRef.course || ""} (${Number(cs.totalCards) || 0} cards, ${Number(cs.reviewedCards) || 0} reviewed)`,
+            `- Strong topics: ${strong.length ? strong.join(", ") : "None identified yet"}`,
+            `- Weak topics: ${weak.length ? weak.join(", ") : "None identified yet"}`,
+            `- This card: ${cardLine}`,
+            `- Calibration accuracy: ${cal != null && !Number.isNaN(Number(cal)) ? Math.round(Number(cal) * 100) + "%" : "Not enough data"}`,
+            `- Study streak: ${streak} days`
+          ];
+          if (mems.length > 0) {
+            lines.push("- Known patterns about this student:");
+            for (const mline of mems) lines.push(`  * ${String(mline)}`);
+          }
+          lines.push(
+            "",
+            "Use this profile to personalise your tutoring:",
+            "- Reference their known strengths to build bridges to weak areas",
+            "- If their error matches a known pattern, address the pattern directly",
+            "- If calibration is low (below 70%), gently challenge their self-assessment",
+            "- If this card has high lapses, acknowledge the difficulty and try a different angle than previous attempts"
+          );
+          return lines.join("\n");
+        }
+
+        const learnerProfileBlock = formatLearnerProfileBlock(context.learner, item);
+        const systemPromptAugmented = systemPrompt + learnerProfileBlock;
+
+        const modeInstructionsBase = {
           socratic:
             `MODE: Socratic dialogue.\n\n` +
             "The student has submitted a response to a study question. Your job is to identify the SINGLE most important gap between their answer and the model answer, " +
@@ -122,8 +157,7 @@ export default {
             "If the student used a different but valid analytical framework than the model answer, acknowledge it: " +
             "\"Your response uses a different analytical lens than the model answer, but the reasoning is internally coherent. Here's what the model answer emphasises...\"\n\n" +
             "Provide 2-5 inline annotations on the student's original response (from their first submission, not follow-up turns). " +
-            'Tags: "accurate", "partial", "inaccurate", "missing", "insight".' +
-            (isRelearningPass ? socraticRelearningAddendum : ""),
+            'Tags: "accurate", "partial", "inaccurate", "missing", "insight".',
 
           quick:
             `MODE: Quick feedback (single turn).\n\n` +
@@ -153,6 +187,9 @@ export default {
             "deeper analysis, a counter-argument, a specific mechanism, a real-world application. " +
             "This extends encoding without wasting time on material they already know."
         };
+
+        const modeInstructionsForMode =
+          (isRelearningPass ? relearningModePrefix : "") + modeInstructionsBase[mode];
 
         const responseSchemas = {
           socratic: `{
@@ -230,9 +267,9 @@ export default {
           responseSchemas[mode];
 
         const fullPrompt =
-          systemPrompt +
+          systemPromptAugmented +
           "\n\n---\n\n" +
-          modeInstructions[mode] +
+          modeInstructionsForMode +
           "\n\n---\n\n" +
           itemBlock +
           "\n" +
@@ -282,6 +319,182 @@ export default {
       } catch (err) {
         return new Response(JSON.stringify({ error: "Internal error", detail: err.message }), {
           status: 500, headers: { ...tutorCorsHeaders, "Content-Type": "application/json" }
+        });
+      }
+    }
+
+    // ── Tutor memory extraction (background / Flash) ──
+    if (url.pathname === "/studyengine/memory") {
+      const memCorsHeaders = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, X-Widget-Key",
+        "Access-Control-Max-Age": "86400"
+      };
+
+      if (request.method !== "POST") {
+        return new Response(JSON.stringify({ error: "Method not allowed" }), {
+          status: 405, headers: { ...memCorsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      function cleanJsonStringMem(s) {
+        s = s.replace(/^[\s\S]*?(?=\{)/m, "");
+        s = s.replace(/\}[\s\S]*$/, "}");
+        s = s.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
+        s = s.replace(/,\s*([\]}])/g, "$1");
+        s = s.replace(/[\x00-\x1f]/g, " ");
+        return s;
+      }
+      function tryParseMem(s) {
+        try {
+          return JSON.parse(s);
+        } catch (e) {
+          return null;
+        }
+      }
+
+      try {
+        const body = await request.json();
+        const item = body.item || {};
+        const userName = String(body.userName || "there").trim() || "there";
+        const dialogue = Array.isArray(body.dialogue) ? body.dialogue : [];
+        const suggestedRating =
+          body.suggestedRating != null ? Number(body.suggestedRating) : 2;
+        const existingMemories = Array.isArray(body.existingMemories) ? body.existingMemories : [];
+
+        if (!item.prompt || !item.modelAnswer || dialogue.length < 1) {
+          return new Response(JSON.stringify({ action: null }), {
+            status: 200, headers: { ...memCorsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
+        let dialogueText = "";
+        for (const turn of dialogue) {
+          const role = turn.role === "tutor" ? "Tutor" : "Student";
+          const text = turn.text != null ? String(turn.text) : "";
+          dialogueText += `${role}: ${text}\n`;
+        }
+
+        let existingBlock = "None yet";
+        if (existingMemories.length > 0) {
+          existingBlock = existingMemories
+            .map(
+              (m) =>
+                `- [${m.id || "?"}] (${m.type || "?"}, confidence ${m.confidence ?? "?"}) ${m.content || ""}`
+            )
+            .join("\n");
+        }
+
+        const memoryPrompt =
+          `You are a learning analytics engine. You just observed a tutoring dialogue between a student and an AI tutor. Your job is to extract durable observations about the student's learning patterns.\n\n` +
+          `STUDENT: ${userName}\n` +
+          `COURSE: ${item.course || ""}\n` +
+          `TOPIC: ${item.topic || ""}\n` +
+          `QUESTION: ${item.prompt}\n` +
+          `SUGGESTED RATING: ${suggestedRating} (1=Again, 2=Hard, 3=Good, 4=Easy)\n\n` +
+          `DIALOGUE:\n${dialogueText}\n` +
+          `EXISTING MEMORIES ABOUT THIS STUDENT (for this course):\n${existingBlock}\n\n` +
+          `INSTRUCTIONS:\n` +
+          `Analyse the dialogue and decide ONE of:\n` +
+          `1. CREATE a new memory if you observe a pattern, misconception, strength, or cross-topic connection that is NOT already captured in existing memories.\n` +
+          `2. UPDATE an existing memory if this dialogue reinforces, contradicts, or refines a prior observation. Reference the memory ID.\n` +
+          `3. Return null if the dialogue was unremarkable or the existing memories already cover this pattern.\n\n` +
+          `Memory types:\n` +
+          `- "pattern": A recurring error or behaviour (e.g., "Consistently misses application step — identifies rules but cannot map them to facts")\n` +
+          `- "misconception": A specific wrong mental model (e.g., "Conflates trade creation with trade diversion — treats them as the same concept")\n` +
+          `- "strength": Reliable knowledge the student consistently demonstrates (e.g., "Strong recall of GATT article numbers and their functions")\n` +
+          `- "connection": A cross-topic or cross-course link (e.g., "Weakness on collective action in International Trade mirrors weakness on interest group theory in Canadian Politics")\n\n` +
+          `Rules:\n` +
+          `- Be specific. "Struggles with trade" is useless. "Misses the political economy dimension of trade agreements — understands welfare effects but not lobbying mechanisms" is useful.\n` +
+          `- Confidence (0.0-1.0): How sure are you this is a real pattern vs a one-off? Single occurrence = 0.3-0.5. Reinforced by existing memory = 0.7-0.9.\n` +
+          `- Keep content under 200 characters.\n` +
+          `- If updating, increase confidence if reinforced, decrease if contradicted.\n` +
+          `- relatedTopics: list 0-3 topic names this memory connects to.\n\n` +
+          `Respond in EXACT JSON:\n` +
+          `{\n` +
+          `  "action": "create" | "update" | null,\n` +
+          `  "memory": {\n` +
+          `    "id": "mem_<random8chars>" (for create) or existing ID (for update),\n` +
+          `    "type": "pattern" | "misconception" | "strength" | "connection",\n` +
+          `    "content": "Specific observation under 200 chars",\n` +
+          `    "course": "course name",\n` +
+          `    "relatedTopics": ["topic1", "topic2"],\n` +
+          `    "confidence": 0.6\n` +
+          `  }\n` +
+          `}\n\n` +
+          `If no action needed, respond: { "action": null }`;
+
+        const flashUrl =
+          "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" +
+          env.GEMINI_API_KEY;
+
+        const memRes = await fetch(flashUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: memoryPrompt }] }],
+            generationConfig: {
+              temperature: 0.35,
+              maxOutputTokens: 1024,
+              responseMimeType: "application/json"
+            }
+          })
+        });
+
+        if (!memRes.ok) {
+          return new Response(JSON.stringify({ action: null }), {
+            status: 200, headers: { ...memCorsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
+        const memData = await memRes.json();
+        const memRaw = memData?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+        let parsedMem =
+          tryParseMem(memRaw) ||
+          tryParseMem(cleanJsonStringMem(memRaw)) ||
+          (() => {
+            const m = memRaw.match(/\{[\s\S]*\}/);
+            return m ? tryParseMem(cleanJsonStringMem(m[0])) : null;
+          })();
+
+        if (!parsedMem || typeof parsedMem !== "object") {
+          return new Response(JSON.stringify({ action: null }), {
+            status: 200, headers: { ...memCorsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
+        if (parsedMem.action !== "create" && parsedMem.action !== "update") {
+          return new Response(JSON.stringify({ action: null }), {
+            status: 200, headers: { ...memCorsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
+        const mem = parsedMem.memory;
+        if (!mem || typeof mem !== "object" || !mem.content) {
+          return new Response(JSON.stringify({ action: null }), {
+            status: 200, headers: { ...memCorsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
+        if (parsedMem.action === "create" && !String(mem.id || "").startsWith("mem_")) {
+          const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+          let suf = "";
+          const arr = new Uint8Array(8);
+          crypto.getRandomValues(arr);
+          for (let i = 0; i < 8; i++) suf += chars[arr[i] % chars.length];
+          mem.id = "mem_" + suf;
+        }
+
+        mem.course = mem.course || item.course || "";
+        if (!Array.isArray(mem.relatedTopics)) mem.relatedTopics = [];
+
+        return new Response(JSON.stringify({ action: parsedMem.action, memory: mem }), {
+          status: 200, headers: { ...memCorsHeaders, "Content-Type": "application/json" }
+        });
+      } catch (e) {
+        return new Response(JSON.stringify({ action: null }), {
+          status: 200, headers: { ...memCorsHeaders, "Content-Type": "application/json" }
         });
       }
     }
