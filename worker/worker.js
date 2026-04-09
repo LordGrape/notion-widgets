@@ -238,7 +238,7 @@ export default {
             "The student has submitted a response to a study question. Your job is to identify the SINGLE most important gap between their answer and the model answer, " +
             "then ask ONE targeted follow-up question that forces the student to bridge that gap. Do NOT reveal the correct answer. Do NOT explain. Ask a question.\n\n" +
             "If this is a follow-up turn (conversation history exists), evaluate whether the student's latest response closes the gap. " +
-            "If yes: confirm with a specific tie-back to their words, mark isComplete true, provide suggestedRating (1-4 based on overall quality across turns), " +
+            "If yes: confirm with a specific tie-back to their words, mark isComplete true, provide suggestedRating using strict criteria: 1=missed core even after scaffolding, 2=got there with significant help or major gaps, 3=solid understanding with minor scaffolding, 4=full mastery. Most students needing 2+ turns of scaffolding should be rated 2, " +
             "and optionally provide a reconstructionPrompt if the student struggled (e.g., \"Now put the full answer together in your own words\"). " +
             "If partially: narrow the scaffold with a more specific hint question, keep isComplete false. " +
             "If this is the 3rd turn (conversation has 4+ entries): always mark isComplete true and provide a synthesis that ties together what the student got right and wrong across all turns.\n\n" +
@@ -253,7 +253,8 @@ export default {
             "(2) What's missing — the single most important gap. " +
             "(3) The bridge — one sentence connecting what they knew to what they missed. " +
             "(4) A quick-check question with its answer for self-testing. " +
-            "Also provide a suggested FSRS rating (1-4) and annotations.",
+            "Also provide a suggested FSRS rating with strict criteria: 1=wrong/blank/missed core, 2=right conclusion but missing significant reasoning or mechanisms (most partial responses should be 2), 3=covers most key claims with adequate reasoning, 4=comprehensive full understanding. Be CALIBRATED not generous. " +
+            "If the student asks a question in their response, address it in the bridge field. Also provide annotations.",
 
           teach:
             `MODE: Teach (Don't Know path).\n\n` +
@@ -356,7 +357,8 @@ export default {
           modeInstructionsForMode +=
             "\n\nQUICK FIRE RE-RETRIEVAL: The student cannot see the model answer yet. They just typed a short answer to a retrieval question after rating Again. " +
             "Compare their attempt to the model answer. Keep each JSON field (correct, missing, bridge) to 1–2 sentences max. " +
-            "Do not paste the full model answer in your response — they will see it in a consolidation step next.\n";
+            "Do not paste the full model answer in your response — they will see it in a consolidation step next. " +
+            "If the student asks a question in their response, address it briefly in the bridge field. Do NOT ignore student questions — they represent active engagement.\n";
         }
 
         const jsonFieldSeparationHint = {
@@ -1124,6 +1126,337 @@ export default {
         return new Response(JSON.stringify({ error: "Prime failed", detail: e.message }), {
           status: 500,
           headers: { ...primeCorsHeaders, "Content-Type": "application/json" }
+        });
+      }
+    }
+
+    // ── StudyEngine Lecture Distillation Route ──
+    if (url.pathname === "/studyengine/distill") {
+      const distillCorsHeaders = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, X-Widget-Key",
+        "Access-Control-Max-Age": "86400"
+      };
+
+      if (request.method !== "POST") {
+        return new Response(JSON.stringify({ error: "Method not allowed" }), {
+          status: 405,
+          headers: { ...distillCorsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      try {
+        const body = await request.json();
+        const courseName = String(body.courseName || "").trim();
+        const lectureTitle = String(body.lectureTitle || "").trim();
+        const existingSyllabusContext = String(body.existingSyllabusContext || "").trim();
+        const rawText = String(body.rawText || "");
+
+        if (!courseName || !rawText.trim()) {
+          return new Response(JSON.stringify({ error: "courseName and rawText are required" }), {
+            status: 400,
+            headers: { ...distillCorsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
+        const courseKey = hashString(courseName.toLowerCase());
+        const truncatedText = rawText.slice(0, 30000);
+        const ttl180Days = 60 * 60 * 24 * 180;
+
+        const distillPrompt =
+          `You are distilling lecture material into reusable context for a study engine.\n\n` +
+          `COURSE: ${courseName}\n` +
+          `LECTURE TITLE: ${lectureTitle || "Untitled lecture"}\n` +
+          `EXISTING SYLLABUS CONTEXT: ${existingSyllabusContext || "None provided"}\n\n` +
+          `LECTURE TEXT (truncated):\n${truncatedText}\n\n` +
+          `Return EXACT JSON with this schema:\n` +
+          `{\n` +
+          `  "courseDigestUpdate": "2-4 sentence update that can extend course context",\n` +
+          `  "topicChunks": [\n` +
+          `    {\n` +
+          `      "topic": "short topic name",\n` +
+          `      "keyTerms": ["term1", "term2"],\n` +
+          `      "content": "120-300 word focused explanation for this topic from the lecture"\n` +
+          `    }\n` +
+          `  ],\n` +
+          `  "suggestedCards": [\n` +
+          `    { "prompt": "question", "answer": "model answer", "topic": "topic label", "tier": "quickfire|explain|apply|distinguish|worked" }\n` +
+          `  ]\n` +
+          `}\n` +
+          `Rules: Keep topicChunks specific and non-overlapping. Use valid JSON only.`;
+
+        const distillRes = await fetch(
+          "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + env.GEMINI_API_KEY,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              systemInstruction: {
+                parts: [
+                  {
+                    text: "You convert lecture text into compact, reusable study context. Respond with strict JSON only."
+                  }
+                ]
+              },
+              contents: [{ parts: [{ text: distillPrompt }] }],
+              generationConfig: {
+                temperature: 0.35,
+                maxOutputTokens: 2048,
+                responseMimeType: "application/json",
+                thinkingConfig: { thinkingBudget: 0 }
+              }
+            })
+          }
+        );
+
+        if (!distillRes.ok) {
+          const errText = await distillRes.text();
+          return new Response(JSON.stringify({ error: "Gemini API error", detail: errText }), {
+            status: 502,
+            headers: { ...distillCorsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
+        const distillData = await distillRes.json();
+        const distillRaw = extractGeminiText(distillData);
+        const parsed = parseJsonResponse(distillRaw);
+
+        if (!parsed || typeof parsed !== "object") {
+          return new Response(JSON.stringify({ error: "Failed to parse distill response" }), {
+            status: 500,
+            headers: { ...distillCorsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
+        const topicChunks = Array.isArray(parsed.topicChunks) ? parsed.topicChunks : [];
+        const manifestKey = `lectureManifest:${courseKey}`;
+        const existingManifestRaw = await env.WIDGET_KV.get(manifestKey);
+        const existingManifest = existingManifestRaw ? (JSON.parse(existingManifestRaw) || {}) : {};
+        const existingTopics = Array.isArray(existingManifest.topics) ? existingManifest.topics : [];
+        const manifestByKey = new Map(existingTopics.map((t) => [String(t.storageKey || ""), t]));
+
+        for (const chunk of topicChunks) {
+          if (!chunk || typeof chunk !== "object") continue;
+          const topic = String(chunk.topic || "").trim();
+          const content = String(chunk.content || "").trim();
+          if (!topic || !content) continue;
+          const keyTerms = Array.isArray(chunk.keyTerms)
+            ? chunk.keyTerms.map((t) => String(t).trim()).filter(Boolean).slice(0, 20)
+            : [];
+          const topicHash = hashString(topic.toLowerCase());
+          const storageKey = `lectureCtx:${courseKey}:${topicHash}`;
+          const payload = {
+            courseName,
+            lectureTitle,
+            topic,
+            keyTerms,
+            content,
+            updatedAt: new Date().toISOString()
+          };
+
+          await env.WIDGET_KV.put(storageKey, JSON.stringify(payload), { expirationTtl: ttl180Days });
+          manifestByKey.set(storageKey, {
+            topic,
+            keyTerms,
+            topicHash,
+            storageKey,
+            updatedAt: payload.updatedAt
+          });
+        }
+
+        const manifest = {
+          courseName,
+          updatedAt: new Date().toISOString(),
+          topics: Array.from(manifestByKey.values()).slice(0, 500)
+        };
+        await env.WIDGET_KV.put(manifestKey, JSON.stringify(manifest), { expirationTtl: ttl180Days });
+
+        return new Response(JSON.stringify({
+          courseDigestUpdate: parsed.courseDigestUpdate || "",
+          topicChunks,
+          suggestedCards: Array.isArray(parsed.suggestedCards) ? parsed.suggestedCards : []
+        }), {
+          status: 200,
+          headers: { ...distillCorsHeaders, "Content-Type": "application/json" }
+        });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: "Distill failed", detail: e.message }), {
+          status: 500,
+          headers: { ...distillCorsHeaders, "Content-Type": "application/json" }
+        });
+      }
+    }
+
+    // ── StudyEngine Lecture Fetch Route ──
+    if (url.pathname === "/studyengine/fetch-lecture") {
+      const fetchLectureCorsHeaders = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, X-Widget-Key",
+        "Access-Control-Max-Age": "86400"
+      };
+
+      if (request.method !== "POST") {
+        return new Response(JSON.stringify({ error: "Method not allowed" }), {
+          status: 405,
+          headers: { ...fetchLectureCorsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      try {
+        const body = await request.json();
+        const sourceUrl = String(body.url || "").trim();
+        if (!sourceUrl) {
+          return new Response(JSON.stringify({ error: "url is required" }), {
+            status: 400,
+            headers: { ...fetchLectureCorsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
+        const fetched = await fetch(sourceUrl, {
+          method: "GET",
+          headers: {
+            "User-Agent": "Mozilla/5.0 (compatible; StudyEngineFetcher/1.0)"
+          }
+        });
+
+        if (!fetched.ok) {
+          return new Response(JSON.stringify({ error: "Failed to fetch source", status: fetched.status }), {
+            status: 502,
+            headers: { ...fetchLectureCorsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
+        const html = await fetched.text();
+        const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+        const title = (titleMatch?.[1] || "")
+          .replace(/\s+/g, " ")
+          .replace(/&nbsp;/gi, " ")
+          .trim();
+
+        const withoutBoilerplate = html
+          .replace(/<script[\s\S]*?<\/script>/gi, " ")
+          .replace(/<style[\s\S]*?<\/style>/gi, " ")
+          .replace(/<nav[\s\S]*?<\/nav>/gi, " ")
+          .replace(/<footer[\s\S]*?<\/footer>/gi, " ")
+          .replace(/<header[\s\S]*?<\/header>/gi, " ");
+        const text = withoutBoilerplate
+          .replace(/<[^>]+>/g, " ")
+          .replace(/&nbsp;/gi, " ")
+          .replace(/&amp;/gi, "&")
+          .replace(/&lt;/gi, "<")
+          .replace(/&gt;/gi, ">")
+          .replace(/&#39;/gi, "'")
+          .replace(/&quot;/gi, "\"")
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 60000);
+
+        return new Response(JSON.stringify({
+          text,
+          title: title || new URL(sourceUrl).hostname,
+          charCount: text.length,
+          source: sourceUrl
+        }), {
+          status: 200,
+          headers: { ...fetchLectureCorsHeaders, "Content-Type": "application/json" }
+        });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: "Fetch lecture failed", detail: e.message }), {
+          status: 500,
+          headers: { ...fetchLectureCorsHeaders, "Content-Type": "application/json" }
+        });
+      }
+    }
+
+    // ── StudyEngine Lecture Context Lookup Route ──
+    if (url.pathname === "/studyengine/lecture-context") {
+      const lectureCtxCorsHeaders = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, X-Widget-Key",
+        "Access-Control-Max-Age": "86400"
+      };
+
+      if (request.method !== "POST") {
+        return new Response(JSON.stringify({ error: "Method not allowed" }), {
+          status: 405,
+          headers: { ...lectureCtxCorsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      try {
+        const body = await request.json();
+        const courseName = String(body.courseName || "").trim();
+        const topic = String(body.topic || "").trim();
+
+        if (!courseName || !topic) {
+          return new Response(JSON.stringify({ error: "courseName and topic are required" }), {
+            status: 400,
+            headers: { ...lectureCtxCorsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
+        const courseKey = hashString(courseName.toLowerCase());
+        const topicHash = hashString(topic.toLowerCase());
+        const exactKey = `lectureCtx:${courseKey}:${topicHash}`;
+        const exactRaw = await env.WIDGET_KV.get(exactKey);
+        if (exactRaw) {
+          return new Response(JSON.stringify({ topicChunk: JSON.parse(exactRaw) }), {
+            status: 200,
+            headers: { ...lectureCtxCorsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
+        const manifestRaw = await env.WIDGET_KV.get(`lectureManifest:${courseKey}`);
+        const manifest = manifestRaw ? (JSON.parse(manifestRaw) || {}) : {};
+        const topics = Array.isArray(manifest.topics) ? manifest.topics : [];
+
+        const tokenize = (s) =>
+          new Set(
+            String(s || "")
+              .toLowerCase()
+              .split(/[^a-z0-9]+/)
+              .filter((t) => t.length >= 3)
+          );
+        const topicTokens = tokenize(topic);
+
+        let best = null;
+        let bestScore = 0;
+        for (const candidate of topics) {
+          const combined = `${candidate.topic || ""} ${(Array.isArray(candidate.keyTerms) ? candidate.keyTerms.join(" ") : "")}`;
+          const candidateTokens = tokenize(combined);
+          let overlap = 0;
+          for (const tok of topicTokens) {
+            if (candidateTokens.has(tok)) overlap++;
+          }
+          const denom = Math.max(topicTokens.size, 1);
+          const score = overlap / denom;
+          if (score > bestScore) {
+            bestScore = score;
+            best = candidate;
+          }
+        }
+
+        if (best && best.storageKey && bestScore > 0) {
+          const bestRaw = await env.WIDGET_KV.get(best.storageKey);
+          if (bestRaw) {
+            return new Response(JSON.stringify({ topicChunk: JSON.parse(bestRaw) }), {
+              status: 200,
+              headers: { ...lectureCtxCorsHeaders, "Content-Type": "application/json" }
+            });
+          }
+        }
+
+        return new Response(JSON.stringify({ topicChunk: null }), {
+          status: 200,
+          headers: { ...lectureCtxCorsHeaders, "Content-Type": "application/json" }
+        });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: "Lecture context lookup failed", detail: e.message }), {
+          status: 500,
+          headers: { ...lectureCtxCorsHeaders, "Content-Type": "application/json" }
         });
       }
     }
