@@ -5596,6 +5596,11 @@ input[type="range"]::-moz-range-thumb{
       gap: 12px;
       min-height: 48px;
       z-index: 9;
+      position: relative;
+    }
+    .main-topbar > * {
+      position: relative;
+      z-index: 1;
     }
 
     .main-breadcrumb {
@@ -5605,6 +5610,60 @@ input[type="range"]::-moz-range-thumb{
       flex: 1;
       min-width: 0;
       overflow: hidden;
+    }
+
+    .main-wordmark {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 0;
+      min-width: 0;
+    }
+    .main-wordmark-title {
+      position: relative;
+      display: inline-block;
+      padding: 6px 18px;
+      border-radius: 999px;
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 0.42em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      color: rgba(245, 236, 255, 0.92);
+      text-shadow:
+        0 0 18px rgba(var(--accent-rgb), 0.18),
+        0 2px 18px rgba(0, 0, 0, 0.22);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.02)),
+        radial-gradient(circle at 50% 50%, rgba(var(--accent-rgb), 0.14), rgba(var(--accent-rgb), 0.02) 72%);
+      border: 1px solid rgba(var(--accent-rgb), 0.12);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.08),
+        0 10px 30px rgba(0,0,0,0.14);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    .main-wordmark-title::before,
+    .main-wordmark-title::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 44px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(var(--accent-rgb), 0.55), transparent);
+      transform: translateY(-50%);
+      opacity: 0.8;
+    }
+    .main-wordmark-title::before {
+      right: calc(100% + 10px);
+    }
+    .main-wordmark-title::after {
+      left: calc(100% + 10px);
     }
 
     .bc-segment {
@@ -5635,6 +5694,23 @@ input[type="range"]::-moz-range-thumb{
       align-items: center;
       gap: 6px;
       flex-shrink: 0;
+    }
+
+    @media (max-width: 1100px) {
+      .main-wordmark-title {
+        font-size: 15px;
+        letter-spacing: 0.28em;
+        padding: 5px 14px;
+      }
+      .main-wordmark-title::before,
+      .main-wordmark-title::after {
+        width: 28px;
+      }
+    }
+    @media (max-width: 900px) {
+      .main-wordmark {
+        display: none;
+      }
     }
 
     .main-content {
@@ -5953,6 +6029,9 @@ input[type="range"]::-moz-range-thumb{
       <div class="main-topbar" id="mainTopbar">
         <div class="main-breadcrumb" id="mainBreadcrumb">
           <span class="bc-segment bc-root" data-level="all">All Courses</span>
+        </div>
+        <div class="main-wordmark" aria-hidden="true">
+          <div class="main-wordmark-title">Study Engine</div>
         </div>
         <div class="main-tabs" id="mainTabs" role="tablist" aria-label="Main navigation">
           <button class="nav-tab active" data-nav="home" type="button">Home</button>
