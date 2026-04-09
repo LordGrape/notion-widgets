@@ -518,8 +518,9 @@
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
       gap: 10px;
-      margin-top: 10px;
+      margin-top: 2px;
       margin-bottom: 14px;
+      text-align: left;
     }
 
     .cost-estimate{
@@ -4326,7 +4327,10 @@ input[type="range"]::-moz-range-thumb{
                 </div>
               </div>
 
-              <div class="section-header" style="margin-top:4px;font-size:9px;letter-spacing:1.2px;">Tutor stats</div>
+              <div style="font-size:8px;letter-spacing:1.6px;text-transform:uppercase;color:var(--text-secondary);font-weight:700;margin-top:8px;margin-bottom:6px;padding:0 2px;display:flex;align-items:center;gap:8px;">
+                <span style="flex:0 0 3px;height:14px;border-radius:99px;background:var(--accent);"></span>
+                Tutor stats
+              </div>
               <div class="tutor-stats-row" id="tutorStatsRow">
                 <div class="stat">
                   <div class="k">Avg dialogue turns</div>
@@ -4374,13 +4378,12 @@ input[type="range"]::-moz-range-thumb{
                 <div class="ret-filter-chips" id="retFilterChips"></div>
                 <canvas id="retentionCanvas" height="100"></canvas>
               </div>
-              <div class="analytics-row">
-                <div class="analytics-card spark-wrap">
-                  <div class="ac-title">Last 30 days</div>
-                  <canvas id="sparkCanvas" height="80"></canvas>
-                </div>
-                <div class="analytics-card ring-wrap">
-                  <canvas id="ringCanvas" width="64" height="64"></canvas>
+              <div class="analytics-card" id="activityCard">
+                <div class="ac-title"><span class="ac-icon">📊</span> Last 30 days</div>
+                <div class="ac-subtitle">Session activity</div>
+                <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;">
+                  <canvas id="heatmapCanvas" style="display:block;cursor:crosshair;"></canvas>
+                  <div id="activityStats" style="display:flex;flex-direction:column;gap:6px;min-width:80px;"></div>
                 </div>
               </div>
             </div>
@@ -12863,6 +12866,152 @@ input[type="range"]::-moz-range-thumb{
       ctx.fillText('reviews', cx, cy + 8);
     }
 
+    /* ── Activity heatmap (dashboard; sparkline + tier ring replaced in UI) ── */
+    function drawActivityHeatmap(canvasId) {
+      var canvas = el(canvasId);
+      if (!canvas) return;
+      var pw = canvas.parentElement ? canvas.parentElement.clientWidth - 120 : 220;
+      pw = Math.max(180, Math.min(pw, 380));
+      var cellSize = Math.max(8, Math.floor((pw - 6 * 5) / 30));
+      if (cellSize > 14) cellSize = 14;
+      var gap = 2;
+      var w = 30 * (cellSize + gap) + gap;
+      var h = rows * (cellSize + gap) + gap + 22;
+
+      var r = getCanvasCtx(canvasId, w, h);
+      if (!r) return;
+      var ctx = r.ctx;
+      var rgb = getAccentRGB();
+      var textSec = getTextSecondary();
+
+      var history = (state.calibration && state.calibration.history) || [];
+      var days = {};
+      var now = new Date();
+      for (var d = 29; d >= 0; d--) {
+        var dt = new Date(now);
+        dt.setDate(dt.getDate() - d);
+        var key = dt.toISOString().slice(0, 10);
+        days[key] = { count: 0, ratingSum: 0, ratingN: 0 };
+      }
+      history.forEach(function(entry) {
+        if (!entry.ts) return;
+        var dk = entry.ts.slice(0, 10);
+        if (days[dk]) {
+          days[dk].count++;
+          days[dk].ratingSum += (entry.rating || 0);
+          days[dk].ratingN++;
+        }
+      });
+
+      var dayKeys = Object.keys(days).sort();
+      var maxCount = 1;
+      dayKeys.forEach(function(k) { if (days[k].count > maxCount) maxCount = days[k].count; });
+
+      var totalReviews = 0;
+      dayKeys.forEach(function(k) { totalReviews += days[k].count; });
+
+      if (totalReviews === 0) {
+        ctx.fillStyle = textSec;
+        ctx.font = '600 9px Inter, system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('Complete a session to see activity', w / 2, h / 2);
+        return;
+      }
+
+      dayKeys.forEach(function(k, i) {
+        var d = days[k];
+        var x = gap + i * (cellSize + gap);
+        var y = gap;
+
+        if (d.count === 0) {
+          ctx.fillStyle = 'rgba(' + rgb + ',0.06)';
+        } else {
+          var intensity = d.count / maxCount;
+          var avg = d.ratingSum / d.ratingN;
+          if (avg >= 3) {
+            var alpha = 0.2 + intensity * 0.6;
+            ctx.fillStyle = 'rgba(34,197,94,' + alpha.toFixed(2) + ')';
+          } else if (avg >= 2) {
+            var alpha2 = 0.2 + intensity * 0.6;
+            ctx.fillStyle = 'rgba(245,158,11,' + alpha2.toFixed(2) + ')';
+          } else {
+            var alpha3 = 0.2 + intensity * 0.6;
+            ctx.fillStyle = 'rgba(239,68,68,' + alpha3.toFixed(2) + ')';
+          }
+        }
+
+        var radius = Math.min(3, cellSize / 3);
+        if (typeof ctx.roundRect === 'function') {
+          ctx.beginPath();
+          ctx.roundRect(x, y, cellSize, cellSize, radius);
+          ctx.fill();
+        } else {
+          ctx.fillRect(x, y, cellSize, cellSize);
+        }
+
+        if (i === dayKeys.length - 1 && d.count > 0) {
+          ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+          ctx.lineWidth = 1;
+          if (typeof ctx.roundRect === 'function') {
+            ctx.beginPath();
+            ctx.roundRect(x, y, cellSize, cellSize, radius);
+            ctx.stroke();
+          }
+        }
+      });
+
+      ctx.fillStyle = textSec;
+      ctx.font = '600 7px Inter, system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      var labelY = gap + cellSize + gap + 4;
+      [0, 7, 14, 21, 29].forEach(function(i) {
+        if (!dayKeys[i]) return;
+        var lx = gap + i * (cellSize + gap) + cellSize / 2;
+        var label;
+        if (i === 29) {
+          label = 'Today';
+        } else {
+          var parts = dayKeys[i].split('-');
+          label = parts[1] + '-' + parts[2];
+        }
+        ctx.fillText(label, lx, labelY);
+      });
+    }
+
+    function renderActivityStats() {
+      var container = el('activityStats');
+      if (!container) return;
+
+      var history = (state.calibration && state.calibration.history) || [];
+      var now = new Date();
+      var thirtyDaysAgo = new Date(now);
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      var recent = history.filter(function(h) {
+        return h.ts && new Date(h.ts) >= thirtyDaysAgo;
+      });
+
+      var totalReviews = recent.length;
+      var activeDays = {};
+      recent.forEach(function(h) {
+        if (h.ts) activeDays[h.ts.slice(0, 10)] = true;
+      });
+      var activeDayCount = Object.keys(activeDays).length;
+
+      var h = '';
+      h += '<div style="text-align:center;">';
+      h += '<div style="font-size:22px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-0.5px;line-height:1;">' + totalReviews + '</div>';
+      h += '<div style="font-size:7px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--text-secondary);margin-top:3px;">reviews</div>';
+      h += '</div>';
+      h += '<div style="text-align:center;">';
+      h += '<div style="font-size:14px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;line-height:1;">' + activeDayCount + '<span style="font-size:9px;font-weight:600;color:var(--text-secondary);">/30</span></div>';
+      h += '<div style="font-size:7px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--text-secondary);margin-top:3px;">active days</div>';
+      h += '</div>';
+
+      container.innerHTML = h;
+    }
+
     /* ── Draw all analytics ── */
     function renderRetentionFilterChips() {
       var container = el('retFilterChips');
@@ -12936,8 +13085,8 @@ input[type="range"]::-moz-range-thumb{
 
       renderRetentionFilterChips();
       renderRetentionGraph();
-      drawSparkline('sparkCanvas');
-      drawTierRing('ringCanvas');
+      drawActivityHeatmap('heatmapCanvas');
+      renderActivityStats();
 
       /* Cram banner */
       var cramEl = el('cramBanner');
@@ -12960,6 +13109,22 @@ input[type="range"]::-moz-range-thumb{
        PER-COURSE ADVANCED ANALYTICS
        ═══════════════════════════════════════════ */
 
+    function colorToRgbaBottom(colorStr, alpha) {
+      if (!colorStr) return 'rgba(128,128,128,' + alpha + ')';
+      colorStr = String(colorStr).trim();
+      if (colorStr.charAt(0) === '#') {
+        var hex = colorStr.slice(1);
+        if (hex.length === 3) hex = hex.split('').map(function(c) { return c + c; }).join('');
+        var r = parseInt(hex.slice(0, 2), 16);
+        var g = parseInt(hex.slice(2, 4), 16);
+        var b = parseInt(hex.slice(4, 6), 16);
+        return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+      }
+      var m = colorStr.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+      if (m) return 'rgba(' + m[1] + ',' + m[2] + ',' + m[3] + ',' + alpha + ')';
+      return colorStr;
+    }
+
     /* ── Rating History (last 30 reviews for this course) ── */
     function drawCourseRatingHistory(canvasId, courseName) {
       var canvas = el(canvasId);
@@ -12967,7 +13132,7 @@ input[type="range"]::-moz-range-thumb{
       var parent = canvas.parentElement;
       var pw = parent ? parent.clientWidth - 24 : 280;
       pw = Math.max(180, Math.min(pw, 600));
-      var ph = 70;
+      var ph = 100;
 
       var r = getCanvasCtx(canvasId, pw, ph);
       if (!r) return;
@@ -13000,21 +13165,48 @@ input[type="range"]::-moz-range-thumb{
       var gap = 3;
       var barW = Math.max(4, Math.floor((gw - gap * (last30.length - 1)) / last30.length));
 
+      ctx.strokeStyle = 'rgba(' + rgb + ',0.06)';
+      ctx.lineWidth = 0.5;
+      [0.25, 0.5, 0.75].forEach(function(v) {
+        var gy = pad.top + gh - (v * gh);
+        ctx.beginPath();
+        ctx.moveTo(pad.left, gy);
+        ctx.lineTo(w - pad.right, gy);
+        ctx.stroke();
+      });
+
       last30.forEach(function(entry, i) {
         var rating = entry.rating || 2;
         var col = ratingColors[rating] || ratingColors[2];
-        var barH = (rating / 4) * gh;
+        var barH = Math.max(rating > 0 ? 4 : 0, (rating / 4) * gh);
         var x = pad.left + i * (barW + gap);
         var y = pad.top + gh - barH;
 
-        ctx.fillStyle = col;
-        var radius = Math.min(barW / 2, 3);
+        var grad = ctx.createLinearGradient(x, y, x, y + barH);
+        grad.addColorStop(0, col);
+        grad.addColorStop(1, colorToRgbaBottom(col, 0.4));
+        ctx.fillStyle = grad;
+        var radius = Math.min(barW / 2, 4);
         if (typeof ctx.roundRect === 'function') {
           ctx.beginPath();
           ctx.roundRect(x, y, barW, barH, [radius, radius, 0, 0]);
           ctx.fill();
         } else {
           ctx.fillRect(x, y, barW, barH);
+        }
+
+        if (i === last30.length - 1) {
+          ctx.shadowColor = col;
+          ctx.shadowBlur = 10;
+          ctx.fillStyle = col;
+          if (typeof ctx.roundRect === 'function') {
+            ctx.beginPath();
+            ctx.roundRect(x, y, barW, barH, [radius, radius, 0, 0]);
+            ctx.fill();
+          } else {
+            ctx.fillRect(x, y, barW, barH);
+          }
+          ctx.shadowBlur = 0;
         }
       });
 
@@ -13044,13 +13236,14 @@ input[type="range"]::-moz-range-thumb{
       var parent = canvas.parentElement;
       var pw = parent ? parent.clientWidth - 24 : 200;
       pw = Math.max(140, Math.min(pw, 400));
-      var ph = 90;
+      var ph = 100;
 
       var r = getCanvasCtx(canvasId, pw, ph);
       if (!r) return;
       var ctx = r.ctx, w = r.w, h = r.h;
       var textSec = getTextSecondary();
       var textCol = getTextColor();
+      var rgb = getAccentRGB();
 
       var buckets = [
         { label: 'Fragile', min: 0, max: 5, color: '#ef4444', count: 0 },
@@ -13090,12 +13283,25 @@ input[type="range"]::-moz-range-thumb{
       var barW = Math.max(20, Math.floor((gw - gap * 3) / 4));
       var maxCount = Math.max(1, Math.max.apply(null, buckets.map(function(b) { return b.count; })));
 
+      ctx.strokeStyle = 'rgba(' + rgb + ',0.06)';
+      ctx.lineWidth = 0.5;
+      [0.25, 0.5, 0.75].forEach(function(v) {
+        var gy = pad.top + gh - (v * gh);
+        ctx.beginPath();
+        ctx.moveTo(pad.left, gy);
+        ctx.lineTo(w - pad.right, gy);
+        ctx.stroke();
+      });
+
       buckets.forEach(function(bucket, i) {
         var x = pad.left + i * (barW + gap);
         var barH = Math.max(bucket.count > 0 ? 4 : 0, (bucket.count / maxCount) * gh);
         var y = pad.top + gh - barH;
 
-        ctx.fillStyle = bucket.color;
+        var grad = ctx.createLinearGradient(x, y, x, y + barH);
+        grad.addColorStop(0, bucket.color);
+        grad.addColorStop(1, colorToRgbaBottom(bucket.color, 0.4));
+        ctx.fillStyle = grad;
         var radius = Math.min(barW / 2, 4);
         if (typeof ctx.roundRect === 'function') {
           ctx.beginPath();
@@ -13103,6 +13309,20 @@ input[type="range"]::-moz-range-thumb{
           ctx.fill();
         } else {
           ctx.fillRect(x, y, barW, barH);
+        }
+
+        if (bucket.count === maxCount && bucket.count > 0) {
+          ctx.shadowColor = bucket.color;
+          ctx.shadowBlur = 10;
+          ctx.fillStyle = bucket.color;
+          if (typeof ctx.roundRect === 'function') {
+            ctx.beginPath();
+            ctx.roundRect(x, y, barW, barH, [radius, radius, 0, 0]);
+            ctx.fill();
+          } else {
+            ctx.fillRect(x, y, barW, barH);
+          }
+          ctx.shadowBlur = 0;
         }
 
         /* Count label above bar */
@@ -13135,7 +13355,7 @@ input[type="range"]::-moz-range-thumb{
       var parent = canvas.parentElement;
       var pw = parent ? parent.clientWidth - 24 : 200;
       pw = Math.max(140, Math.min(pw, 400));
-      var ph = 90;
+      var ph = 100;
 
       var r = getCanvasCtx(canvasId, pw, ph);
       if (!r) return;
@@ -13190,6 +13410,8 @@ input[type="range"]::-moz-range-thumb{
       var gap = 6;
       var barW = Math.max(16, Math.floor((gw - gap * 4) / 5));
 
+      var maxTierCount = Math.max.apply(null, tierOrder.map(function(tt) { return tierData[tt].count; }));
+
       /* Rating scale lines (1-4) */
       var rgb = getAccentRGB();
       ctx.strokeStyle = 'rgba(' + rgb + ',0.06)';
@@ -13213,7 +13435,10 @@ input[type="range"]::-moz-range-thumb{
         var barCol = tierColors[t];
         if (d.count === 0) barCol = 'rgba(' + rgb + ',0.08)';
 
-        ctx.fillStyle = barCol;
+        var grad = ctx.createLinearGradient(x, y, x, y + barH);
+        grad.addColorStop(0, barCol);
+        grad.addColorStop(1, colorToRgbaBottom(barCol, 0.4));
+        ctx.fillStyle = grad;
         var radius = Math.min(barW / 2, 4);
         if (typeof ctx.roundRect === 'function') {
           ctx.beginPath();
@@ -13221,6 +13446,20 @@ input[type="range"]::-moz-range-thumb{
           ctx.fill();
         } else {
           ctx.fillRect(x, y, barW, barH);
+        }
+
+        if (d.count > 0 && d.count === maxTierCount) {
+          ctx.shadowColor = barCol;
+          ctx.shadowBlur = 10;
+          ctx.fillStyle = barCol;
+          if (typeof ctx.roundRect === 'function') {
+            ctx.beginPath();
+            ctx.roundRect(x, y, barW, barH, [radius, radius, 0, 0]);
+            ctx.fill();
+          } else {
+            ctx.fillRect(x, y, barW, barH);
+          }
+          ctx.shadowBlur = 0;
         }
 
         /* Average value above bar */
@@ -13380,20 +13619,20 @@ input[type="range"]::-moz-range-thumb{
           '<div class="analytics-card">' +
             '<div class="ac-title"><span class="ac-icon">' + acIcons.rating + '</span>Rating History</div>' +
             '<div class="ac-subtitle">Last 30 reviews</div>' +
-            '<canvas id="cdaRatingCanvas" height="70"></canvas>' +
+            '<canvas id="cdaRatingCanvas" height="100"></canvas>' +
             legendHTML +
           '</div>' +
           '<div class="analytics-card">' +
             '<div class="ac-title"><span class="ac-icon">' + acIcons.target + '</span>Tier Accuracy</div>' +
             '<div class="ac-subtitle">Average rating per tier</div>' +
-            '<canvas id="cdaTierAccCanvas" height="90"></canvas>' +
+            '<canvas id="cdaTierAccCanvas" height="100"></canvas>' +
           '</div>' +
         '</div>' +
         '<div class="cda-grid">' +
           '<div class="analytics-card">' +
             '<div class="ac-title"><span class="ac-icon">' + acIcons.stability + '</span>Stability</div>' +
             '<div class="ac-subtitle">Memory strength distribution</div>' +
-            '<canvas id="cdaStabilityCanvas" height="90"></canvas>' +
+            '<canvas id="cdaStabilityCanvas" height="100"></canvas>' +
           '</div>' +
           '<div class="analytics-card">' +
             '<div class="ac-title"><span class="ac-icon">' + acIcons.trend + '</span>Retention Forecast</div>' +
