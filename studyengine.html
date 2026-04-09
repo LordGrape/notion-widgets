@@ -730,6 +730,72 @@
       font-size: 13px;
       max-height: 600px;
     }
+    .dk-reveal-wrap{
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .dk-label{
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      padding: 8px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(var(--accent-rgb),0.14);
+      background: rgba(var(--accent-rgb),0.03);
+    }
+    .dk-tutor-slot{
+      min-height: 80px;
+    }
+    .dk-tutor-fallback{
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(var(--accent-rgb),0.16);
+      background: rgba(var(--accent-rgb),0.04);
+    }
+    .dk-tutor-fallback-text{
+      font-size: 10px;
+      color: var(--text-secondary);
+    }
+    .dk-consolidation{
+      padding: 18px 20px;
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(34, 197, 94, 0.18);
+      border-left: 3px solid var(--rate-good);
+      background: rgba(34, 197, 94, 0.03);
+    }
+    .dk-consol-header{
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--rate-good);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .dk-ma-body{
+      font-size: 12px;
+      line-height: 1.65;
+      color: var(--text);
+    }
+    .dk-actions{
+      margin-top: 10px;
+    }
+    .dk-listen-btn{
+      width: 100%;
+    }
+    .dk-listen-active{
+      border-color: rgba(var(--accent-rgb),0.35) !important;
+      background: rgba(var(--accent-rgb),0.12) !important;
+    }
+    .dk-visual-slot{
+      margin-top: 12px;
+    }
 
     /* ── Inline Annotations ── */
     .anno-highlight{
@@ -9258,8 +9324,6 @@ input[type="range"]::-moz-range-thumb{
         el('timerBar').classList.remove('show');
         el('metaTimer').style.display = 'none';
       } catch (e2) {}
-      var oldWrap = document.getElementById('revealColumnsWrap');
-      if (oldWrap) oldWrap.remove();
 
       if (el('userText')) el('userText').style.display = 'none';
       var checkBtn = el('checkBtn');
@@ -9271,34 +9335,38 @@ input[type="range"]::-moz-range-thumb{
       var essayNext = el('essayNextPhase');
       if (essayNext) essayNext.style.display = 'none';
 
-      var answerVisual = it.visual ? renderMermaidBlock(it.visual, 'answer', it.id) : '';
-      var revealHTML = '<div class="reveal-columns">' +
-        '<div class="reveal-col">' +
-        '<div class="col-label"><span class="col-icon">🤷</span> Your Response</div>' +
-        '<div class="user-response-locked" id="userResponseLocked" style="opacity:0.85;font-style:italic;">I didn\u2019t know this one</div>' +
-        '</div>' +
-        '<div class="reveal-col">' +
-        '<div class="col-label"><span class="col-icon">📋</span> Model Answer</div>' +
-        '<div class="answer" id="modelAnswerRight"><span class="answer-header">Model Answer</span>' + renderMd(it.modelAnswer || '') + '<div class="visual-slot"></div>' + answerVisual + '</div>' +
-        '<div id="aiFeedbackRight"></div>' +
-        '</div>' +
+      var oldWrap = document.getElementById('revealColumnsWrap');
+      if (oldWrap) oldWrap.remove();
+      var oldDkWrap = document.getElementById('dkRevealWrap');
+      if (oldDkWrap) oldDkWrap.remove();
+
+      modelAnswerEl.style.display = 'none';
+
+      var wrapHTML =
+        '<div id="dkRevealWrap" class="dk-reveal-wrap">' +
+          '<div class="dk-label">🤷 Let\'s work through this together</div>' +
+          '<div class="dk-tutor-slot" id="dkTutorSlot"></div>' +
+          '<div class="dk-consolidation" id="dkConsolidation" style="display:none;">' +
+            '<div class="dk-consol-header">' +
+              '<span class="col-icon">📋</span> Model Answer — consolidate what you just learned' +
+            '</div>' +
+            '<div class="dk-ma-body" id="dkConsolBody"></div>' +
+            '<div class="dk-visual-slot" id="dkVisualSlot"></div>' +
+            '<div class="dk-actions" id="dkActions"></div>' +
+          '</div>' +
         '</div>';
 
       var revealContainer = document.createElement('div');
-      revealContainer.id = 'revealColumnsWrap';
-      revealContainer.innerHTML = revealHTML;
-      tierArea.insertAdjacentElement('afterend', revealContainer);
-
-      modelAnswerEl.style.display = 'none';
-      if (answerVisual) setTimeout(initMermaidBlocks, 50);
-      else ensureAnswerVisual(it, revealTier);
+      revealContainer.innerHTML = wrapHTML;
+      tierArea.insertAdjacentElement('afterend', revealContainer.firstChild);
 
       try { playClick(); } catch (e) {}
-      var rightAnswerEl = el('modelAnswerRight');
-      if (rightAnswerEl && it.modelAnswer) insertListenButton(rightAnswerEl, it.modelAnswer);
 
-      var fbArea = document.getElementById('aiFeedbackRight');
-      if (!fbArea) return;
+      var tutorSlot = document.getElementById('dkTutorSlot');
+      if (settings.feedbackMode === 'self_rate' || !tutorSlot) {
+        revealDkModelAnswer(it, revealTier);
+        return;
+      }
 
       tutorConversation = [];
       tutorTurnCount = 0;
@@ -9308,57 +9376,209 @@ input[type="range"]::-moz-range-thumb{
       tutorCurrentMode = 'teach';
       tutorCurrentItem = it;
       tutorCurrentTier = revealTier;
-      var dkModel = selectModel(it, session);
-      var dkCtx = tutorContextForItem(it);
-      buildTutorUI(fbArea);
+      session.lastTutorContext = 'teach';
+
+      buildTutorUI(tutorSlot);
       updateTurnCounter();
       showTypingIndicator();
-      appendModelAnswerCollapsible(fbArea, it);
+
+      if (window.gsap) {
+        gsap.fromTo(tutorSlot, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' });
+      }
+
+      var skipBtn = document.getElementById('tutorSkip');
+      if (skipBtn) {
+        var newSkip = skipBtn.cloneNode(true);
+        skipBtn.parentNode.replaceChild(newSkip, skipBtn);
+        newSkip.textContent = 'Show Answer →';
+        newSkip.addEventListener('click', function() {
+          if (session && session.tutorStats) session.tutorStats.skipsToRating++;
+          disableTutorInput();
+          addTutorMessage('tutor', '<em>Skipped to model answer. Review it carefully below.</em>');
+          revealDkModelAnswer(it, revealTier);
+          try { playClick(); } catch (es) {}
+        });
+      }
+
+      var dkModel = selectModel(it, session);
+      var dkCtx = tutorContextForItem(it);
       callTutor('teach', dkModel, it, '', [], dkCtx)
         .then(function(data) {
           hideTypingIndicator();
           if (!data || data.error) {
-            fbArea.innerHTML = '<div class="af-loading"><div class="af-spinner"></div><span class="af-loading-text">AI is preparing an explanation...</span></div>';
-            var explainPayload = {
-              prompt: it.prompt || '',
-              modelAnswer: it.modelAnswer || '',
-              tier: revealTier,
-              course: it.course || '',
-              topic: it.topic || '',
-              mode: 'explain'
-            };
-            if (revealTier === 'distinguish') {
-              explainPayload.conceptA = it.conceptA || '';
-              explainPayload.conceptB = it.conceptB || '';
-            }
-            fetch('https://widget-sync.lordgrape-widgets.workers.dev/studyengine/grade', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'X-Widget-Key': getWidgetKey()
-              },
-              body: JSON.stringify(explainPayload)
-            })
-              .then(function(res) { return res.json().then(function(d) { return { ok: res.ok, data: d }; }); })
-              .then(function(result) {
-                if (!result.ok || (result.data && result.data.error)) {
-                  showDontKnowFallback(fbArea);
-                } else {
-                  showDontKnowExplanation(fbArea, result.data);
-                }
-              })
-              .catch(function() { showDontKnowFallback(fbArea); });
+            tutorSlot.innerHTML = '<div class="dk-tutor-fallback"><div class="dk-tutor-fallback-text">Could not reach the tutor.</div></div>';
+            revealDkModelAnswer(it, revealTier);
             return;
           }
-          handleTutorResponse(data);
+          handleDkTutorResponse(data, it, revealTier);
         })
         .catch(function() {
           hideTypingIndicator();
-          showDontKnowFallback(fbArea);
+          tutorSlot.innerHTML = '<div class="dk-tutor-fallback"><div class="dk-tutor-fallback-text">Could not reach the tutor.</div></div>';
+          revealDkModelAnswer(it, revealTier);
         });
 
-      session.aiRating = 1;
+      ratingsEl.style.display = 'none';
+    }
+
+    function handleDkTutorResponse(data, it, revealTier) {
+      var tutorText = data.tutorMessage || data.correct || '';
+      var question = data.followUpQuestion || '';
+      var fullText = tutorText + (question ? '\n\n' + question : '');
+      if (data.reconstructionPrompt) {
+        fullText += (fullText ? '\n\n' : '') + data.reconstructionPrompt;
+        noteReconstructionPromptShown();
+      }
+      tutorConversation.push({ role: 'tutor', text: fullText });
+
+      var html = '<span class="tutor-text">' + esc(tutorText) + '</span>';
+      if (question) html += '<span class="tutor-question">' + esc(question) + '</span>';
+      if (data.reconstructionPrompt) html += '<span class="tutor-question">' + esc(data.reconstructionPrompt) + '</span>';
+      addTutorMessage('tutor', html);
+
+      if (data.suggestedRating != null && data.suggestedRating !== '') {
+        session.aiRating = data.suggestedRating;
+      }
+
+      var terminal = data.isComplete || tutorTurnCount >= tutorMaxTurns;
+      if (terminal) {
+        disableTutorInput();
+        queueTutorMemoryUpdateIfEligible(tutorCurrentItem, tutorConversation, data.suggestedRating);
+        revealDkModelAnswer(it, revealTier);
+        try { playClick(); } catch (e3) {}
+      } else {
+        var ta2 = document.getElementById('tutorInput');
+        var btn2 = document.getElementById('tutorSend');
+        if (ta2) { ta2.disabled = false; ta2.style.opacity = '1'; ta2.focus(); }
+        if (btn2) btn2.disabled = false;
+        overrideDkTutorSubmit(it, revealTier);
+        try { playClick(); } catch (e4) {}
+      }
+    }
+
+    function overrideDkTutorSubmit(it, revealTier) {
+      var ta = document.getElementById('tutorInput');
+      var sendBtn = document.getElementById('tutorSend');
+
+      function dkSubmit() {
+        var taNow = document.getElementById('tutorInput');
+        var sendNow = document.getElementById('tutorSend');
+        if (!taNow || taNow.disabled) return;
+        var text = taNow.value.trim();
+        if (!text) return;
+        addTutorMessage('user', esc(text));
+        tutorConversation.push({ role: 'user', text: text });
+        tutorTurnCount++;
+        updateTurnCounter();
+        taNow.value = '';
+        taNow.style.height = '42px';
+        showTypingIndicator();
+        taNow.disabled = true;
+        if (sendNow) sendNow.disabled = true;
+        var model = selectModel(tutorCurrentItem, session);
+        callTutor('teach', model, tutorCurrentItem, text, tutorConversation, tutorContextForItem(tutorCurrentItem))
+          .then(function(data) {
+            hideTypingIndicator();
+            if (data && data.error) {
+              addTutorMessage('tutor', '⚠ ' + esc(data.error));
+              revealDkModelAnswer(it, revealTier);
+              return;
+            }
+            handleDkTutorResponse(data, it, revealTier);
+          })
+          .catch(function() {
+            hideTypingIndicator();
+            addTutorMessage('tutor', '⚠ Could not reach the tutor.');
+            revealDkModelAnswer(it, revealTier);
+          });
+      }
+
+      if (sendBtn) {
+        var newSend = sendBtn.cloneNode(true);
+        sendBtn.parentNode.replaceChild(newSend, sendBtn);
+        newSend.addEventListener('click', dkSubmit);
+      }
+      if (ta) {
+        var newTa = ta.cloneNode(true);
+        ta.parentNode.replaceChild(newTa, ta);
+        newTa.addEventListener('input', function() {
+          this.style.height = 'auto';
+          this.style.height = Math.min(120, Math.max(42, this.scrollHeight)) + 'px';
+        });
+        newTa.addEventListener('keydown', function(e) {
+          e.stopPropagation();
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            dkSubmit();
+          }
+        });
+        newTa.disabled = false;
+        newTa.style.opacity = '1';
+        newTa.focus();
+      }
+    }
+
+    function revealDkModelAnswer(it, revealTier) {
+      var consolWrap = document.getElementById('dkConsolidation');
+      var consolBody = document.getElementById('dkConsolBody');
+      var dkActions = document.getElementById('dkActions');
+      var dkVisualSlot = document.getElementById('dkVisualSlot');
+      if (!consolWrap || !consolBody) return;
+
+      consolBody.innerHTML = renderMd(it.modelAnswer || '');
+      consolWrap.style.display = 'block';
+
+      if (window.gsap) {
+        gsap.fromTo(consolWrap, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' });
+      }
+      consolWrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+      if (dkActions) {
+        dkActions.innerHTML =
+          '<button type="button" class="ghost-btn dk-listen-btn" id="dkListenBtn">🔊 Listen</button>';
+        var listenBtn = document.getElementById('dkListenBtn');
+        if (listenBtn) {
+          if (window.gsap) {
+            gsap.fromTo(listenBtn, { opacity: 0 }, { opacity: 1, duration: 0.25, delay: 0.2, ease: 'power2.out' });
+          }
+          listenBtn.addEventListener('click', function() {
+            var text = it.modelAnswer || '';
+            listenBtn.innerHTML = '⏹ Stop';
+            listenBtn.classList.add('dk-listen-active');
+            playTTS(text).then(function() {
+              listenBtn.innerHTML = '🔊 Listen';
+              listenBtn.classList.remove('dk-listen-active');
+            });
+          });
+        }
+      }
+
+      if (it.visual && dkVisualSlot) {
+        dkVisualSlot.innerHTML = renderMermaidBlock(it.visual, 'answer', it.id);
+        setTimeout(initMermaidBlocks, 50);
+        if (window.gsap) {
+          gsap.fromTo(dkVisualSlot, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.35, delay: 0.3, ease: 'power2.out' });
+        }
+      } else {
+        ensureAnswerVisual(it, revealTier);
+        var visualCheck = setInterval(function() {
+          if (it.visual && dkVisualSlot && !dkVisualSlot.hasChildNodes()) {
+            clearInterval(visualCheck);
+            dkVisualSlot.innerHTML = renderMermaidBlock(it.visual, 'answer', it.id);
+            setTimeout(initMermaidBlocks, 50);
+            if (window.gsap) {
+              gsap.fromTo(dkVisualSlot, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' });
+            }
+          }
+        }, 500);
+        setTimeout(function() { clearInterval(visualCheck); }, 15000);
+      }
+
+      session.aiRating = session.aiRating || 1;
       ratingsEl.style.display = 'grid';
+      if (window.gsap) {
+        gsap.fromTo(ratingsEl, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.3, delay: 0.3, ease: 'power2.out' });
+      }
       ratingsEl.querySelectorAll('button').forEach(function(b) {
         var r = parseInt(b.getAttribute('data-rate'), 10);
         if (r === 1) {
