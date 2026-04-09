@@ -3781,6 +3781,283 @@ input[type="range"]::-moz-range-thumb{
   white-space: nowrap;
 }
 .import-actions .import-skip-dups-btn:hover{ background: rgba(245,158,11,0.14); transform: translateY(-1px); }
+
+    /* ── Socratic Tutor conversation ── */
+    .tutor-wrap{
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .tutor-messages{
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 400px;
+      overflow-y: auto;
+      padding: 4px 2px 8px;
+      scrollbar-width: thin;
+    }
+    .tutor-messages::-webkit-scrollbar{ width: 4px; }
+    .tutor-messages::-webkit-scrollbar-thumb{
+      background: rgba(var(--accent-rgb),0.15);
+      border-radius: 99px;
+    }
+    body.standalone .tutor-messages{ max-height: 500px; }
+    .tutor-msg{
+      max-width: 85%;
+      padding: 12px 16px;
+      border-radius: 18px;
+      font-size: 11px;
+      line-height: 1.65;
+      letter-spacing: 0.1px;
+      word-wrap: break-word;
+      position: relative;
+    }
+    body.standalone .tutor-msg{
+      font-size: 12px;
+      padding: 14px 18px;
+    }
+    .tutor-msg.from-tutor{
+      align-self: flex-start;
+      background: rgba(var(--accent-rgb), 0.06);
+      border: 1px solid rgba(var(--accent-rgb), 0.14);
+      border-bottom-left-radius: 6px;
+      color: var(--text);
+    }
+    .tutor-msg.from-user{
+      align-self: flex-end;
+      background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.18), rgba(var(--accent-rgb), 0.10));
+      border: 1px solid rgba(var(--accent-rgb), 0.22);
+      border-bottom-right-radius: 6px;
+      color: var(--text);
+    }
+    .tutor-msg .msg-label{
+      font-size: 7px;
+      font-weight: 800;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tutor-msg.from-tutor .msg-label{ color: var(--accent); }
+    .tutor-msg .msg-body{ color: var(--text); }
+    .tutor-msg .msg-question{
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(var(--accent-rgb), 0.10);
+      font-weight: 600;
+      font-style: italic;
+      color: var(--text);
+    }
+    .tutor-typing{
+      align-self: flex-start;
+      display: inline-flex;
+      gap: 4px;
+      padding: 12px 18px;
+      border-radius: 18px;
+      border-bottom-left-radius: 6px;
+      background: rgba(var(--accent-rgb), 0.06);
+      border: 1px solid rgba(var(--accent-rgb), 0.14);
+    }
+    .tutor-typing .dot{
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      opacity: 0.4;
+      animation: tutorDotBounce 1.4s ease-in-out infinite;
+    }
+    .tutor-typing .dot:nth-child(2){ animation-delay: 0.15s; }
+    .tutor-typing .dot:nth-child(3){ animation-delay: 0.3s; }
+    @keyframes tutorDotBounce{
+      0%, 60%, 100%{ transform: translateY(0); opacity: 0.4; }
+      30%{ transform: translateY(-6px); opacity: 1; }
+    }
+    .tutor-input-row{
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      align-items: flex-end;
+    }
+    .tutor-input-row textarea{
+      flex: 1;
+      min-height: 42px;
+      max-height: 120px;
+      padding: 10px 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(var(--accent-rgb), 0.18);
+      background: rgba(var(--accent-rgb), 0.03);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 11px;
+      line-height: 1.5;
+      resize: none;
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    .tutor-input-row textarea:focus{
+      border-color: rgba(var(--accent-rgb), 0.35);
+      box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.08);
+    }
+    .tutor-input-row .send-btn{
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      border: none;
+      background: linear-gradient(135deg, rgba(var(--accent-rgb), 1), rgba(var(--accent-rgb), 0.7));
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform var(--transition), box-shadow var(--transition);
+      flex-shrink: 0;
+    }
+    .tutor-input-row .send-btn:hover{
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(var(--accent-rgb), 0.25);
+    }
+    .tutor-input-row .send-btn:active{ transform: translateY(0) scale(0.97); }
+    .tutor-input-row .send-btn:disabled{
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    .tutor-footer{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 8px;
+      padding: 0 2px;
+    }
+    .tutor-footer .turn-counter{
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+    }
+    .tutor-footer .skip-btn{
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      background: none;
+      border: 1px solid rgba(var(--accent-rgb), 0.12);
+      border-radius: 999px;
+      padding: 5px 12px;
+      cursor: pointer;
+      transition: background var(--transition), color var(--transition), border-color var(--transition);
+    }
+    .tutor-footer .skip-btn:hover{
+      background: rgba(var(--accent-rgb), 0.06);
+      border-color: rgba(var(--accent-rgb), 0.22);
+      color: var(--text);
+    }
+    .quick-feedback{
+      margin-top: 14px;
+      padding: 16px;
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(var(--accent-rgb), 0.14);
+      background: rgba(var(--accent-rgb), 0.03);
+    }
+    .quick-feedback .qf-section{ margin-bottom: 10px; }
+    .quick-feedback .qf-section:last-child{ margin-bottom: 0; }
+    .quick-feedback .qf-label{
+      font-size: 7px;
+      font-weight: 800;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .quick-feedback .qf-label.correct{ color: var(--rate-good); }
+    .quick-feedback .qf-label.missing{ color: var(--rate-hard); }
+    .quick-feedback .qf-label.bridge{ color: var(--accent); }
+    .quick-feedback .qf-text{
+      font-size: 11px;
+      line-height: 1.6;
+      color: var(--text);
+    }
+    .quick-feedback .qf-check{
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px dashed rgba(var(--accent-rgb), 0.2);
+      background: rgba(var(--accent-rgb), 0.02);
+      cursor: pointer;
+      transition: background var(--transition), border-color var(--transition);
+    }
+    .quick-feedback .qf-check:hover{
+      background: rgba(var(--accent-rgb), 0.05);
+      border-color: rgba(var(--accent-rgb), 0.3);
+    }
+    .quick-feedback .qf-check .qf-check-q{
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .quick-feedback .qf-check .qf-check-label{
+      font-size: 7px;
+      font-weight: 800;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin-bottom: 4px;
+    }
+    .quick-feedback .qf-check .qf-check-a{
+      margin-top: 8px;
+      font-size: 10px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      display: none;
+    }
+    .quick-feedback .qf-check.revealed .qf-check-a{ display: block; }
+    .quick-feedback .qf-check.revealed{ border-style: solid; }
+    .model-answer-collapsible{ margin-top: 10px; }
+    .model-answer-collapsible .mac-toggle{
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(var(--accent-rgb), 0.10);
+      background: rgba(var(--accent-rgb), 0.02);
+      cursor: pointer;
+      transition: background var(--transition);
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+    .model-answer-collapsible .mac-toggle:hover{ background: rgba(var(--accent-rgb), 0.05); }
+    .model-answer-collapsible .mac-toggle .mac-arrow{
+      transition: transform var(--transition);
+      font-size: 8px;
+    }
+    .model-answer-collapsible.open .mac-toggle .mac-arrow{ transform: rotate(90deg); }
+    .model-answer-collapsible .mac-content{
+      display: none;
+      margin-top: 8px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(var(--accent-rgb), 0.10);
+      background: rgba(var(--accent-rgb), 0.02);
+      font-size: 11px;
+      line-height: 1.6;
+      color: var(--text);
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .model-answer-collapsible.open .mac-content{ display: block; }
   </style>
 </head>
 <body>
@@ -4237,7 +4514,11 @@ input[type="range"]::-moz-range-thumb{
       ttsVoice: 'en-US-Studio-O',
       breakReminders: true,
       breakIntervalMins: 25,
-      performanceBreaks: true
+      performanceBreaks: true,
+      feedbackMode: 'adaptive',
+      modelOverride: 'adaptive',
+      userName: '',
+      tutorVoice: 'rigorous'
     };
 
     /* ── Tier Distribution Profiles (by exam type) ── */
@@ -6052,6 +6333,7 @@ input[type="range"]::-moz-range-thumb{
       activeRubric = null;
       session.currentShown = false;
       if (session) session.confidence = null;
+      if (session) session._dontKnow = false;
       modelAnswerEl.style.display = 'none';
       ratingsEl.style.display = 'none';
       studyIndicator.classList.remove('show');
@@ -6394,6 +6676,517 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ══════════════════════════════════════
+       Socratic Tutor — adaptive router + UI
+       ══════════════════════════════════════ */
+    var TUTOR_ENDPOINT = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/tutor';
+
+    function getFeedbackArea() {
+      return document.getElementById('aiFeedbackRight') || el('aiFeedbackArea');
+    }
+
+    function getTutorUserName() {
+      if (settings.userName && String(settings.userName).trim()) return String(settings.userName).trim();
+      try {
+        if (typeof SyncEngine !== 'undefined' && SyncEngine.get) {
+          var n = SyncEngine.get('user', 'name');
+          if (n) return String(n).trim();
+        }
+      } catch (e1) {}
+      return 'there';
+    }
+
+    function selectModel(item, sess) {
+      var mo = settings.modelOverride || 'adaptive';
+      if (mo === 'pro') return 'pro';
+      if (mo === 'flash') return 'flash';
+      var proScore = 0;
+      if (sess && sess.recentRatings && sess.recentRatings.length >= 4) {
+        var recent = sess.recentRatings.slice(-6);
+        var avg = recent.reduce(function(a, b) { return a + b; }, 0) / recent.length;
+        if (avg < 1.5) proScore += 3;
+        else if (avg < 2.0) proScore += 2;
+        else if (avg > 3.2) proScore -= 2;
+      }
+      var lapses = (item.fsrs && item.fsrs.lapses) || 0;
+      if (lapses >= 3) proScore += 2;
+      else if (lapses >= 1) proScore += 1;
+      if ((item.fsrs && item.fsrs.difficulty) > 7) proScore += 1;
+      if (item.priority === 'critical') proScore += 2;
+      else if (item.priority === 'high') proScore += 1;
+      var tier = item._presentTier || item.tier || 'quickfire';
+      if (tier === 'mock' || tier === 'distinguish') proScore += 2;
+      else if (tier === 'apply') proScore += 1;
+      else if (tier === 'quickfire') proScore -= 1;
+      if (sess && sess._dontKnow) proScore += 3;
+      var cram = (typeof getCramState === 'function') ? getCramState(item.course) : { active: false };
+      if (cram && cram.active) proScore -= 2;
+      return proScore >= 3 ? 'pro' : 'flash';
+    }
+
+    function selectFeedbackMode(item, sess) {
+      var fm = settings.feedbackMode || 'adaptive';
+      if (fm === 'always_socratic') {
+        var t0 = item._presentTier || item.tier || 'quickfire';
+        if (t0 === 'quickfire') return 'insight';
+        return 'socratic';
+      }
+      if (fm === 'always_quick') {
+        var t1 = item._presentTier || item.tier || 'quickfire';
+        if (t1 === 'quickfire') return 'insight';
+        return 'quick';
+      }
+      if (fm === 'self_rate') return 'self_rate';
+
+      var tier = item._presentTier || item.tier || 'quickfire';
+      if (tier === 'quickfire') return 'insight';
+      if (sess && sess._dontKnow) return 'teach';
+      var retries = (sess && sess.loops && item && sess.loops[item.id]) || 0;
+      if (retries >= 2) return 'quick';
+      var cram = (typeof getCramState === 'function') ? getCramState(item.course) : { active: false };
+      if (cram && cram.active) return 'quick';
+      if (sess && sess.recentRatings && sess.recentRatings.length >= 6) {
+        var avg6 = sess.recentRatings.slice(-6).reduce(function(a, b) { return a + b; }, 0) / 6;
+        if (avg6 < 1.5) return 'quick';
+      }
+      if (item.priority === 'critical' || item.priority === 'high') return 'socratic';
+      var lapses = (item.fsrs && item.fsrs.lapses) || 0;
+      if (lapses >= 2) return 'socratic';
+      if (tier === 'distinguish' || tier === 'mock' || tier === 'apply' || tier === 'explain') return 'socratic';
+      return 'quick';
+    }
+
+    function callTutor(mode, model, item, userResponse, conversation, context) {
+      var payload = {
+        mode: mode,
+        model: model,
+        item: {
+          prompt: item.prompt || '',
+          modelAnswer: item.modelAnswer || '',
+          tier: item._presentTier || item.tier || 'explain',
+          course: item.course || '',
+          topic: item.topic || ''
+        },
+        userName: getTutorUserName(),
+        userResponse: userResponse || '',
+        conversation: conversation || [],
+        context: context || {}
+      };
+      if (item.conceptA) payload.item.conceptA = item.conceptA;
+      if (item.conceptB) payload.item.conceptB = item.conceptB;
+      if (item.task) payload.item.task = item.task;
+      return fetch(TUTOR_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Widget-Key': getWidgetKey()
+        },
+        body: JSON.stringify(payload)
+      }).then(function(res) {
+        return res.json().then(function(data) {
+          if (!res.ok && data && !data.error) {
+            data = { error: 'Request failed', detail: String(res.status) };
+          }
+          return data;
+        });
+      });
+    }
+
+    var tutorConversation = [];
+    var tutorTurnCount = 0;
+    var tutorMaxTurns = 3;
+    var tutorCurrentMode = null;
+    var tutorCurrentItem = null;
+    var tutorCurrentTier = null;
+
+    function buildTutorUI(container) {
+      container.innerHTML =
+        '<div class="tutor-wrap">' +
+        '  <div class="tutor-messages" id="tutorMessages"></div>' +
+        '  <div class="tutor-input-row" id="tutorInputRow">' +
+        '    <textarea id="tutorInput" placeholder="Type your response..." rows="1"></textarea>' +
+        '    <button type="button" class="send-btn" id="tutorSend" aria-label="Send">→</button>' +
+        '  </div>' +
+        '  <div class="tutor-footer">' +
+        '    <span class="turn-counter" id="tutorTurnCounter">Turn 1 of 3</span>' +
+        '    <button type="button" class="skip-btn" id="tutorSkip">Skip to Rating →</button>' +
+        '  </div>' +
+        '</div>';
+      var ta = document.getElementById('tutorInput');
+      var sendBtn = document.getElementById('tutorSend');
+      if (ta) {
+        ta.addEventListener('input', function() {
+          this.style.height = 'auto';
+          this.style.height = Math.min(120, Math.max(42, this.scrollHeight)) + 'px';
+        });
+        ta.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            submitTutorResponse();
+          }
+        });
+      }
+      if (sendBtn) sendBtn.addEventListener('click', submitTutorResponse);
+      var skip = document.getElementById('tutorSkip');
+      if (skip) {
+        skip.addEventListener('click', function() {
+          skipToRating();
+          try { playClick(); } catch (e2) {}
+        });
+      }
+      if (window.gsap && container.querySelector('.tutor-wrap')) {
+        gsap.fromTo(container.querySelector('.tutor-wrap'),
+          { opacity: 0, y: 10 },
+          { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }
+        );
+      }
+    }
+
+    function addTutorMessage(role, html) {
+      var msgs = document.getElementById('tutorMessages');
+      if (!msgs) return;
+      var div = document.createElement('div');
+      div.className = 'tutor-msg from-' + role;
+      var icon = role === 'tutor' ? '🧠' : '✍️';
+      var label = role === 'tutor' ? 'AI Tutor' : 'You';
+      div.innerHTML = '<div class="msg-label">' + icon + ' ' + esc(label) + '</div>' +
+        '<div class="msg-body">' + html + '</div>';
+      msgs.appendChild(div);
+      if (window.gsap) {
+        var fromX = role === 'tutor' ? -12 : 12;
+        gsap.fromTo(div,
+          { opacity: 0, x: fromX, scale: 0.97 },
+          { opacity: 1, x: 0, scale: 1, duration: 0.35, ease: 'back.out(1.4)' }
+        );
+      }
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+
+    function showTypingIndicator() {
+      var msgs = document.getElementById('tutorMessages');
+      if (!msgs) return;
+      var existing = document.getElementById('tutorTyping');
+      if (existing) existing.remove();
+      var div = document.createElement('div');
+      div.id = 'tutorTyping';
+      div.className = 'tutor-typing';
+      div.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+      msgs.appendChild(div);
+      msgs.scrollTop = msgs.scrollHeight;
+      if (window.gsap) {
+        gsap.fromTo(div, { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.25, ease: 'power2.out' });
+      }
+    }
+
+    function hideTypingIndicator() {
+      var tel = document.getElementById('tutorTyping');
+      if (tel) tel.remove();
+    }
+
+    function updateTurnCounter() {
+      var counter = document.getElementById('tutorTurnCounter');
+      if (counter) {
+        counter.textContent = 'Turn ' + (tutorTurnCount + 1) + ' of ' + tutorMaxTurns;
+      }
+    }
+
+    function disableTutorInput() {
+      var ta = document.getElementById('tutorInput');
+      var btn = document.getElementById('tutorSend');
+      var row = document.getElementById('tutorInputRow');
+      if (ta) { ta.disabled = true; ta.style.opacity = '0.4'; }
+      if (btn) btn.disabled = true;
+      if (row) row.style.display = 'none';
+    }
+
+    function getRecentAvg() {
+      if (!session || !session.recentRatings || session.recentRatings.length === 0) return 2.5;
+      var r = session.recentRatings.slice(-6);
+      return r.reduce(function(a, b) { return a + b; }, 0) / r.length;
+    }
+
+    function tutorContextForItem(tItem) {
+      return {
+        lapses: (tItem.fsrs && tItem.fsrs.lapses) || 0,
+        sessionRetryCount: (session && session.loops && tItem && session.loops[tItem.id]) || 0,
+        recentAvgRating: getRecentAvg(),
+        isRelearning: false
+      };
+    }
+
+    function submitTutorResponse() {
+      var ta = document.getElementById('tutorInput');
+      if (!ta || ta.disabled) return;
+      var text = ta.value.trim();
+      if (!text) return;
+      addTutorMessage('user', esc(text));
+      tutorConversation.push({ role: 'user', text: text });
+      tutorTurnCount++;
+      updateTurnCounter();
+      ta.value = '';
+      ta.style.height = '42px';
+      showTypingIndicator();
+      ta.disabled = true;
+      var sendB = document.getElementById('tutorSend');
+      if (sendB) sendB.disabled = true;
+      var model = selectModel(tutorCurrentItem, session);
+      callTutor(tutorCurrentMode, model, tutorCurrentItem, text, tutorConversation, tutorContextForItem(tutorCurrentItem))
+        .then(function(data) {
+          hideTypingIndicator();
+          if (data && data.error) {
+            addTutorMessage('tutor', '⚠ ' + esc(data.error));
+            showRatingButtons(null);
+            return;
+          }
+          handleTutorResponse(data);
+        })
+        .catch(function() {
+          hideTypingIndicator();
+          addTutorMessage('tutor', '⚠ Could not reach the tutor. Rate yourself against the model answer.');
+          showRatingButtons(null);
+        });
+    }
+
+    function handleTutorResponse(data) {
+      var tutorText = data.tutorMessage || data.acknowledgment || data.correct || data.insight || '';
+      var question = data.followUpQuestion || data.extensionQuestion || '';
+      var fullText = tutorText + (question ? '\n\n' + question : '');
+      if (data.reconstructionPrompt) {
+        fullText += (fullText ? '\n\n' : '') + data.reconstructionPrompt;
+      }
+      tutorConversation.push({ role: 'tutor', text: fullText });
+      var html = '<div>' + esc(tutorText) + '</div>';
+      if (question) {
+        html += '<div class="msg-question">' + esc(question) + '</div>';
+      }
+      if (data.reconstructionPrompt) {
+        html += '<div class="msg-question">' + esc(data.reconstructionPrompt) + '</div>';
+      }
+      addTutorMessage('tutor', html);
+      if (data.annotations && data.annotations.length > 0 && typeof applyInlineAnnotations === 'function') {
+        applyInlineAnnotations(data.annotations);
+      }
+      if (data.suggestedRating != null && data.suggestedRating !== '') {
+        session.aiRating = data.suggestedRating;
+      }
+      if (data.isComplete || tutorTurnCount >= tutorMaxTurns) {
+        disableTutorInput();
+        showRatingButtons(data.suggestedRating != null ? data.suggestedRating : null);
+        try { playClick(); } catch (e3) {}
+      } else {
+        var ta2 = document.getElementById('tutorInput');
+        var btn2 = document.getElementById('tutorSend');
+        if (ta2) { ta2.disabled = false; ta2.style.opacity = '1'; ta2.focus(); }
+        if (btn2) btn2.disabled = false;
+        try { playClick(); } catch (e4) {}
+      }
+    }
+
+    function showRatingButtons(suggestedRating) {
+      ratingsEl.style.display = 'grid';
+      document.querySelectorAll('.override-hint').forEach(function(h) { h.remove(); });
+      ratingsEl.querySelectorAll('button').forEach(function(b) {
+        b.style.outline = 'none';
+        b.style.outlineOffset = '0';
+      });
+      if (window.gsap) {
+        gsap.fromTo(ratingsEl,
+          { opacity: 0, y: 8 },
+          { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' }
+        );
+      }
+      var ratingColors = { 1: 'var(--rate-again)', 2: 'var(--rate-hard)', 3: 'var(--rate-good)', 4: 'var(--rate-easy)' };
+      var ratingNames = { 1: 'Again', 2: 'Hard', 3: 'Good', 4: 'Easy' };
+      if (suggestedRating != null && suggestedRating >= 1 && suggestedRating <= 4) {
+        ratingsEl.querySelectorAll('button').forEach(function(b) {
+          var r = parseInt(b.getAttribute('data-rate'), 10);
+          if (r === suggestedRating) {
+            b.style.outline = '2px solid ' + (ratingColors[r] || 'var(--accent)');
+            b.style.outlineOffset = '2px';
+          }
+        });
+        var hint = document.createElement('div');
+        hint.className = 'override-hint';
+        hint.textContent = 'AI suggested ' + (ratingNames[suggestedRating] || '') + ' — tap a different rating to override';
+        if (ratingsEl.parentNode) {
+          ratingsEl.parentNode.insertBefore(hint, ratingsEl.nextSibling);
+        }
+      }
+    }
+
+    function skipToRating() {
+      disableTutorInput();
+      addTutorMessage('tutor', '<em>Skipped to rating. Review the model answer below.</em>');
+      var mac = document.querySelector('.model-answer-collapsible');
+      if (mac) mac.classList.add('open');
+      showRatingButtons(session.aiRating != null ? session.aiRating : null);
+    }
+
+    function buildQuickFeedbackUI(container, data) {
+      var h = '<div class="quick-feedback">';
+      if (data.correct) {
+        h += '<div class="qf-section"><div class="qf-label correct">✓ What you got right</div>';
+        h += '<div class="qf-text">' + esc(data.correct) + '</div></div>';
+      }
+      if (data.missing) {
+        h += '<div class="qf-section"><div class="qf-label missing">△ What\'s missing</div>';
+        h += '<div class="qf-text">' + esc(data.missing) + '</div></div>';
+      }
+      if (data.bridge) {
+        h += '<div class="qf-section"><div class="qf-label bridge">↔ The bridge</div>';
+        h += '<div class="qf-text">' + esc(data.bridge) + '</div></div>';
+      }
+      if (data.quickCheck) {
+        h += '<div class="qf-check" id="qfCheck">';
+        h += '<div class="qf-check-label">Quick check — tap to reveal</div>';
+        h += '<div class="qf-check-q">' + esc(data.quickCheck.question) + '</div>';
+        h += '<div class="qf-check-a">' + esc(data.quickCheck.answer) + '</div>';
+        h += '</div>';
+      }
+      h += '</div>';
+      container.innerHTML = h;
+      var qfCheck = document.getElementById('qfCheck');
+      if (qfCheck) {
+        qfCheck.addEventListener('click', function() {
+          this.classList.add('revealed');
+          try { playClick(); } catch (e5) {}
+        });
+      }
+      if (window.gsap && container.querySelector('.quick-feedback')) {
+        gsap.fromTo(container.querySelector('.quick-feedback'),
+          { opacity: 0, y: 8 },
+          { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' }
+        );
+      }
+      if (data.suggestedRating != null) session.aiRating = data.suggestedRating;
+      showRatingButtons(data.suggestedRating != null ? data.suggestedRating : null);
+    }
+
+    function buildInsightUI(container, data) {
+      var h = '<div class="quick-feedback">';
+      h += '<div class="qf-section"><div class="qf-label bridge">💡 Key anchor</div>';
+      h += '<div class="qf-text">' + esc(data.insight || '') + '</div></div>';
+      if (data.followUpQuestion) {
+        h += '<div class="qf-check" id="qfInsightCheck">';
+        h += '<div class="qf-check-label">Self-check — tap to reveal</div>';
+        h += '<div class="qf-check-q">' + esc(data.followUpQuestion) + '</div>';
+        h += '<div class="qf-check-a">' + esc(data.followUpAnswer || '') + '</div>';
+        h += '</div>';
+      }
+      h += '</div>';
+      container.innerHTML = h;
+      var qfI = document.getElementById('qfInsightCheck');
+      if (qfI) {
+        qfI.addEventListener('click', function() {
+          this.classList.add('revealed');
+          try { playClick(); } catch (e6) {}
+        });
+      }
+      if (window.gsap && container.querySelector('.quick-feedback')) {
+        gsap.fromTo(container.querySelector('.quick-feedback'),
+          { opacity: 0, y: 8 },
+          { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' }
+        );
+      }
+    }
+
+    function fallbackToGrade(item, userText, tier) {
+      var fbArea = getFeedbackArea();
+      if (fbArea) {
+        fbArea.innerHTML = '<div class="af-loading"><div class="af-spinner"></div><span class="af-loading-text">Using classic grader…</span></div>';
+      }
+      var payload = {
+        prompt: item.prompt || '',
+        modelAnswer: item.modelAnswer || '',
+        userResponse: userText,
+        tier: tier,
+        course: item.course || '',
+        topic: item.topic || ''
+      };
+      if (tier === 'distinguish') {
+        payload.conceptA = item.conceptA || '';
+        payload.conceptB = item.conceptB || '';
+      }
+      if ((essayOutlineText || '').trim()) {
+        payload.essayOutline = essayOutlineText;
+      }
+      fetch('https://widget-sync.lordgrape-widgets.workers.dev/studyengine/grade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Widget-Key': getWidgetKey() },
+        body: JSON.stringify(payload)
+      })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (data.error) { showAIError(data.error, data.detail || ''); return; }
+          showAIFeedback(data, tier);
+        })
+        .catch(function(err) { showAIError('Network error', err.message || ''); });
+    }
+
+    function appendModelAnswerCollapsible(fbArea, it) {
+      var macDiv = document.createElement('div');
+      macDiv.className = 'model-answer-collapsible';
+      macDiv.innerHTML = '<button type="button" class="mac-toggle" aria-expanded="false"><span class="mac-arrow">▸</span> View model answer</button>' +
+        '<div class="mac-content"><div class="md-content">' + renderMd(it.modelAnswer || '') + '</div></div>';
+      fbArea.appendChild(macDiv);
+      var btn = macDiv.querySelector('.mac-toggle');
+      if (btn) {
+        btn.addEventListener('click', function() {
+          macDiv.classList.toggle('open');
+          btn.setAttribute('aria-expanded', macDiv.classList.contains('open') ? 'true' : 'false');
+          try { playClick(); } catch (e7) {}
+        });
+      }
+    }
+
+    function startGenerativeTutorFlow(it, revealTier, userText) {
+      var feedbackMode = selectFeedbackMode(it, session);
+      if (feedbackMode === 'self_rate') {
+        showSelfRateFallback('Rate yourself against the model answer.');
+        return;
+      }
+      tutorConversation = [];
+      tutorTurnCount = 0;
+      tutorCurrentMode = feedbackMode;
+      tutorCurrentItem = it;
+      tutorCurrentTier = revealTier;
+      var model = selectModel(it, session);
+      var context = tutorContextForItem(it);
+      var fbArea = getFeedbackArea();
+
+      if (feedbackMode === 'socratic' || feedbackMode === 'teach') {
+        buildTutorUI(fbArea);
+        updateTurnCounter();
+        showTypingIndicator();
+        appendModelAnswerCollapsible(fbArea, it);
+        var initialUser = (feedbackMode === 'teach' && session._dontKnow) ? '' : userText;
+        callTutor(feedbackMode, model, it, initialUser, [], context)
+          .then(function(data) {
+            hideTypingIndicator();
+            if (data && data.error) {
+              fallbackToGrade(it, userText, revealTier);
+              return;
+            }
+            handleTutorResponse(data);
+          })
+          .catch(function() {
+            hideTypingIndicator();
+            fallbackToGrade(it, userText, revealTier);
+          });
+      } else if (feedbackMode === 'quick') {
+        fbArea.innerHTML = '<div class="af-loading"><div class="af-spinner"></div><span class="af-loading-text">Generating feedback…</span></div>';
+        callTutor('quick', model, it, userText, [], context)
+          .then(function(data) {
+            if (data && data.error) { fallbackToGrade(it, userText, revealTier); return; }
+            buildQuickFeedbackUI(fbArea, data);
+            if (data.annotations && typeof applyInlineAnnotations === 'function') {
+              applyInlineAnnotations(data.annotations);
+            }
+          })
+          .catch(function() { fallbackToGrade(it, userText, revealTier); });
+      }
+    }
+
     /* ── "Don't know" — skip grading, teaching explanation + Again default ── */
     var DONT_KNOW_PATTERNS = [
       /^\s*i\s*(don'?t|do not|dont)\s*know/i,
@@ -6465,6 +7258,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     function handleDontKnowReveal(it, revealTier) {
+      session._dontKnow = true;
       session.currentShown = true;
       clearTimers();
       try {
@@ -6544,41 +7338,60 @@ input[type="range"]::-moz-range-thumb{
 
       var fbArea = document.getElementById('aiFeedbackRight');
       if (!fbArea) return;
-      fbArea.innerHTML = '<div class="af-loading"><div class="af-spinner"></div><span class="af-loading-text">AI is preparing an explanation...</span></div>';
-      if (window.gsap) gsap.fromTo(fbArea, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
 
-      var explainPayload = {
-        prompt: it.prompt || '',
-        modelAnswer: it.modelAnswer || '',
-        tier: revealTier,
-        course: it.course || '',
-        topic: it.topic || '',
-        mode: 'explain'
-      };
-      if (revealTier === 'distinguish') {
-        explainPayload.conceptA = it.conceptA || '';
-        explainPayload.conceptB = it.conceptB || '';
-      }
-
-      fetch('https://widget-sync.lordgrape-widgets.workers.dev/studyengine/grade', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Widget-Key': getWidgetKey()
-        },
-        body: JSON.stringify(explainPayload)
-      })
-      .then(function(res) { return res.json().then(function(data) { return { ok: res.ok, data: data }; }); })
-      .then(function(result) {
-        if (!result.ok || (result.data && result.data.error)) {
+      tutorConversation = [];
+      tutorTurnCount = 0;
+      tutorCurrentMode = 'teach';
+      tutorCurrentItem = it;
+      tutorCurrentTier = revealTier;
+      var dkModel = selectModel(it, session);
+      var dkCtx = tutorContextForItem(it);
+      buildTutorUI(fbArea);
+      updateTurnCounter();
+      showTypingIndicator();
+      appendModelAnswerCollapsible(fbArea, it);
+      callTutor('teach', dkModel, it, '', [], dkCtx)
+        .then(function(data) {
+          hideTypingIndicator();
+          if (!data || data.error) {
+            fbArea.innerHTML = '<div class="af-loading"><div class="af-spinner"></div><span class="af-loading-text">AI is preparing an explanation...</span></div>';
+            var explainPayload = {
+              prompt: it.prompt || '',
+              modelAnswer: it.modelAnswer || '',
+              tier: revealTier,
+              course: it.course || '',
+              topic: it.topic || '',
+              mode: 'explain'
+            };
+            if (revealTier === 'distinguish') {
+              explainPayload.conceptA = it.conceptA || '';
+              explainPayload.conceptB = it.conceptB || '';
+            }
+            fetch('https://widget-sync.lordgrape-widgets.workers.dev/studyengine/grade', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Widget-Key': getWidgetKey()
+              },
+              body: JSON.stringify(explainPayload)
+            })
+              .then(function(res) { return res.json().then(function(d) { return { ok: res.ok, data: d }; }); })
+              .then(function(result) {
+                if (!result.ok || (result.data && result.data.error)) {
+                  showDontKnowFallback(fbArea);
+                } else {
+                  showDontKnowExplanation(fbArea, result.data);
+                }
+              })
+              .catch(function() { showDontKnowFallback(fbArea); });
+            return;
+          }
+          handleTutorResponse(data);
+        })
+        .catch(function() {
+          hideTypingIndicator();
           showDontKnowFallback(fbArea);
-        } else {
-          showDontKnowExplanation(fbArea, result.data);
-        }
-      })
-      .catch(function() {
-        showDontKnowFallback(fbArea);
-      });
+        });
 
       session.aiRating = 1;
       ratingsEl.style.display = 'grid';
@@ -6656,6 +7469,17 @@ input[type="range"]::-moz-range-thumb{
           }
         } else if (rmQf === 'audio' || rmQf === 'both') {
           playTTS(it.modelAnswer || '');
+        }
+        var qfFbMode = selectFeedbackMode(it, session);
+        var qfInsightEl = el('aiFeedbackArea');
+        if (qfInsightEl) qfInsightEl.innerHTML = '';
+        if (qfFbMode === 'insight') {
+          var qfCtx0 = tutorContextForItem(it);
+          var qfModel0 = selectModel(it, session);
+          callTutor('insight', qfModel0, it, '', [], qfCtx0).then(function(data) {
+            if (!data || data.error) return;
+            buildInsightUI(qfInsightEl, data);
+          }).catch(function() {});
         }
         return;
       }
@@ -6749,52 +7573,52 @@ input[type="range"]::-moz-range-thumb{
         return;
       }
 
-      /* Show loading state — in the right column feedback area */
-      var fbArea = document.getElementById('aiFeedbackRight') || el('aiFeedbackArea');
-      fbArea.innerHTML = '<div class="af-loading"><div class="af-spinner"></div><span class="af-loading-text">AI is grading your response...</span></div>';
-
-      if (window.gsap) {
-        gsap.fromTo(fbArea, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
-      }
-
-      /* Call the grading worker */
-      var payload = {
-        prompt: it.prompt || '',
-        modelAnswer: it.modelAnswer || '',
-        userResponse: userText,
-        tier: revealTier,
-        course: it.course || '',
-        topic: it.topic || '',
-        essayOutline: essayOutlineText || ''
-      };
-      if (revealTier === 'distinguish') {
-        payload.conceptA = it.conceptA || '';
-        payload.conceptB = it.conceptB || '';
-      }
-
-      fetch('https://widget-sync.lordgrape-widgets.workers.dev/studyengine/grade', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Widget-Key': getWidgetKey()
-        },
-        body: JSON.stringify(payload)
-      })
-      .then(function(res) { return res.json(); })
-      .then(function(data) {
-        if (data.error) {
-          showAIError(data.error, data.detail || '');
-          return;
+      var fbArea = getFeedbackArea();
+      if ((essayOutlineText || '').trim()) {
+        fbArea.innerHTML = '<div class="af-loading"><div class="af-spinner"></div><span class="af-loading-text">AI is grading your response...</span></div>';
+        if (window.gsap) {
+          gsap.fromTo(fbArea, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
         }
-        showAIFeedback(data, revealTier);
-      })
-      .catch(function(err) {
-        showAIError('Network error', err.message || 'Could not reach the grading server.');
-      });
+        var essayPayload = {
+          prompt: it.prompt || '',
+          modelAnswer: it.modelAnswer || '',
+          userResponse: userText,
+          tier: revealTier,
+          course: it.course || '',
+          topic: it.topic || '',
+          essayOutline: essayOutlineText || ''
+        };
+        if (revealTier === 'distinguish') {
+          essayPayload.conceptA = it.conceptA || '';
+          essayPayload.conceptB = it.conceptB || '';
+        }
+        fetch('https://widget-sync.lordgrape-widgets.workers.dev/studyengine/grade', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Widget-Key': getWidgetKey()
+          },
+          body: JSON.stringify(essayPayload)
+        })
+          .then(function(res) { return res.json(); })
+          .then(function(data) {
+            if (data.error) {
+              showAIError(data.error, data.detail || '');
+              return;
+            }
+            showAIFeedback(data, revealTier);
+          })
+          .catch(function(err) {
+            showAIError('Network error', err.message || 'Could not reach the grading server.');
+          });
+        return;
+      }
+
+      startGenerativeTutorFlow(it, revealTier, userText);
     }
 
     function showAIFeedback(data, tier) {
-      var fbArea = document.getElementById('aiFeedbackRight') || el('aiFeedbackArea');
+      var fbArea = getFeedbackArea();
       var ratingNames = { 1: 'Again', 2: 'Hard', 3: 'Good', 4: 'Easy' };
       var ratingColors = { 1: 'var(--rate-again)', 2: 'var(--rate-hard)', 3: 'var(--rate-good)', 4: 'var(--rate-easy)' };
       var scoreLabels = { 0: 'Missed', 1: 'Partial', 2: 'Strong' };
@@ -7010,7 +7834,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     function showAIError(title, detail) {
-      var fbArea = el('aiFeedbackArea');
+      var fbArea = getFeedbackArea();
       fbArea.innerHTML = '<div class="af-error">' +
         '<div class="af-error-title">⚠ ' + esc(title) + '</div>' +
         '<div>' + esc(detail) + '</div>' +
@@ -7020,7 +7844,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     function showSelfRateFallback(message) {
-      var fbArea = el('aiFeedbackArea');
+      var fbArea = getFeedbackArea();
       fbArea.innerHTML = '<div class="af-error">' +
         '<div style="font-size:10px;color:var(--text-secondary);">' + esc(message) + '</div>' +
       '</div>';
@@ -7458,7 +8282,12 @@ input[type="range"]::-moz-range-thumb{
       if (!viewSession.classList.contains('active')) return;
       if (!session) return;
 
+      var tutorTa = document.getElementById('tutorInput');
+      var tutorRow = document.getElementById('tutorInputRow');
+      var tutorBlocking = tutorTa && tutorRow && tutorRow.style.display !== 'none' && !tutorTa.disabled;
+
       if (e.key === ' ' && !inText) {
+        if (tutorBlocking) return;
         e.preventDefault();
         if (!session.currentShown) {
           var currentTier = session.queue[session.idx] ? (session.queue[session.idx]._presentTier || session.queue[session.idx].tier || 'quickfire') : '';
@@ -7476,6 +8305,7 @@ input[type="range"]::-moz-range-thumb{
       }
 
       if (e.key >= '1' && e.key <= '4') {
+        if (tutorBlocking) return;
         if (session.currentShown && ratingsEl.style.display === 'grid') {
           e.preventDefault();
           rateCurrent(parseInt(e.key, 10));
@@ -8720,6 +9550,54 @@ input[type="range"]::-moz-range-thumb{
         '</div>' +
         '<div class="setting-row">' +
           '<div class="sr-left">' +
+            '<div class="sr-label">AI Tutor — feedback mode</div>' +
+            '<div class="sr-desc">Depth of post-check dialogue: adaptive uses your performance and card type.</div>' +
+          '</div>' +
+          '<div class="sr-control">' +
+            '<select id="s_feedbackMode">' +
+              '<option value="adaptive"' + ((settings.feedbackMode || 'adaptive') === 'adaptive' ? ' selected' : '') + '>Adaptive (recommended)</option>' +
+              '<option value="always_socratic"' + (settings.feedbackMode === 'always_socratic' ? ' selected' : '') + '>Always Socratic</option>' +
+              '<option value="always_quick"' + (settings.feedbackMode === 'always_quick' ? ' selected' : '') + '>Always quick</option>' +
+              '<option value="self_rate"' + (settings.feedbackMode === 'self_rate' ? ' selected' : '') + '>Self-rate only (no AI)</option>' +
+            '</select>' +
+          '</div>' +
+        '</div>' +
+        '<div class="setting-row">' +
+          '<div class="sr-left">' +
+            '<div class="sr-label">AI Tutor — model</div>' +
+            '<div class="sr-desc">Gemini model: adaptive picks Flash or Pro from context.</div>' +
+          '</div>' +
+          '<div class="sr-control">' +
+            '<select id="s_modelOverride">' +
+              '<option value="adaptive"' + ((settings.modelOverride || 'adaptive') === 'adaptive' ? ' selected' : '') + '>Adaptive (recommended)</option>' +
+              '<option value="pro"' + (settings.modelOverride === 'pro' ? ' selected' : '') + '>Always Pro</option>' +
+              '<option value="flash"' + (settings.modelOverride === 'flash' ? ' selected' : '') + '>Always Flash</option>' +
+            '</select>' +
+          '</div>' +
+        '</div>' +
+        '<div class="setting-row">' +
+          '<div class="sr-left">' +
+            '<div class="sr-label">Your name</div>' +
+            '<div class="sr-desc">Used by the tutor in prompts (optional).</div>' +
+          '</div>' +
+          '<div class="sr-control">' +
+            '<input type="text" id="s_userName" placeholder="Your name" value="' + esc(settings.userName || (typeof SyncEngine !== 'undefined' && SyncEngine.get ? (SyncEngine.get('user', 'name') || '') : '')) + '" style="width:100%;padding:10px 12px;border-radius:12px;border:1px solid rgba(var(--accent-rgb),0.2);background:rgba(var(--accent-rgb),0.04);color:var(--text);font-size:11px;">' +
+          '</div>' +
+        '</div>' +
+        '<div class="setting-row">' +
+          '<div class="sr-left">' +
+            '<div class="sr-label">AI Tutor voice</div>' +
+            '<div class="sr-desc">Reserved for future tone presets.</div>' +
+          '</div>' +
+          '<div class="sr-control">' +
+            '<select id="s_tutorVoice">' +
+              '<option value="rigorous"' + ((settings.tutorVoice || 'rigorous') === 'rigorous' ? ' selected' : '') + '>Rigorous TA</option>' +
+              '<option value="supportive"' + (settings.tutorVoice === 'supportive' ? ' selected' : '') + '>Supportive</option>' +
+            '</select>' +
+          '</div>' +
+        '</div>' +
+        '<div class="setting-row">' +
+          '<div class="sr-left">' +
             '<div class="sr-label">FSRS Optimization <span class="info-icon" tabindex="0" aria-label="Info">ⓘ<span class="info-tooltip">Personalizes FSRS weights from your review history (heuristic tune + ts-fsrs validation). Requires at least 30 reviews in calibration history. Also runs automatically every 50 reviews.<span class="tip-arrow"></span></span></span></div>' +
             '<div class="sr-desc">Tune scheduling to your memory patterns.</div>' +
           '</div>' +
@@ -8947,6 +9825,17 @@ input[type="range"]::-moz-range-thumb{
       settings.breakReminders = (el('s_breakReminders') && el('s_breakReminders').value === 'true');
       settings.breakIntervalMins = parseInt(el('s_breakInterval') ? el('s_breakInterval').value : '25', 10);
       settings.performanceBreaks = (el('s_perfBreaks') && el('s_perfBreaks').value === 'true');
+      var fmEl = el('s_feedbackMode');
+      var fm = fmEl ? fmEl.value : 'adaptive';
+      settings.feedbackMode = (['adaptive', 'always_socratic', 'always_quick', 'self_rate'].indexOf(fm) >= 0) ? fm : 'adaptive';
+      var moEl = el('s_modelOverride');
+      var mo = moEl ? moEl.value : 'adaptive';
+      settings.modelOverride = (['adaptive', 'pro', 'flash'].indexOf(mo) >= 0) ? mo : 'adaptive';
+      var unEl = el('s_userName');
+      settings.userName = unEl ? String(unEl.value || '').trim() : '';
+      var tvEl = el('s_tutorVoice');
+      var tv = tvEl ? tvEl.value : 'rigorous';
+      settings.tutorVoice = (tv === 'supportive') ? 'supportive' : 'rigorous';
       saveState();
       closeSettings();
       renderDashboard();
