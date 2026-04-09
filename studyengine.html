@@ -204,6 +204,7 @@
       display: none;
     }
 
+    /* ── CSS SECTION: Top Navigation ── */
     /* ── Top Navigation ── */
     .nav-tabs{
       display: flex;
@@ -276,6 +277,7 @@
     }
     .view.active{ display: block; }
 
+    /* ── CSS SECTION: Tab Panels ── */
     /* ── Tab Panels ── */
     .tab-panel{
       display: none;
@@ -678,6 +680,7 @@
       opacity: 0.9;
     }
 
+    /* ── CSS SECTION: Side-by-Side Reveal Layout ── */
     /* ── Side-by-Side Reveal Layout ── */
     .reveal-columns{
       display: grid;
@@ -798,6 +801,7 @@
       margin-top: 12px;
     }
 
+    /* ── CSS SECTION: Inline Annotations ── */
     /* ── Inline Annotations ── */
     .anno-highlight{
       position: relative;
@@ -875,6 +879,7 @@
       margin-top: 14px;
     }
 
+    /* ── CSS SECTION: AI Feedback Panel ── */
     /* ── AI Feedback Panel ── */
     .ai-feedback{
       margin-top: 14px;
@@ -993,6 +998,7 @@
       line-height: 1.55;
       letter-spacing: 0.1px;
     }
+    /* ── CSS SECTION: Re-encode: red outline to draw attention to model answer ── */
     /* ── Re-encode: red outline to draw attention to model answer ── */
     .restudy-active{
       border: 2px solid var(--rate-again) !important;
@@ -1207,6 +1213,7 @@
     }
     .skip:hover{ opacity: 1; background: rgba(var(--accent-rgb),0.05); border-color: rgba(var(--accent-rgb),0.10); }
 
+    /* ── CSS SECTION: Session Exit ── */
     /* ── Session Exit ── */
     .session-exit{
       appearance: none;
@@ -1233,6 +1240,7 @@
       transform: translateY(0) scale(0.98);
     }
 
+    /* ── CSS SECTION: Confirm Dialog ── */
     /* ── Confirm Dialog ── */
     .confirm-overlay{
       position: fixed;
@@ -1358,6 +1366,7 @@
 
     .divider{ height: 10px; }
 
+    /* ── CSS SECTION: Confidence prompt (Quick Fire) ── */
     /* ── Confidence prompt (Quick Fire) ── */
     .confidence-prompt{
       margin-top: 12px;
@@ -1468,6 +1477,7 @@
     .answer::-webkit-scrollbar-thumb{ background: rgba(var(--accent-rgb),0.18); border-radius: 99px; }
     .scenario.md-content{ white-space: normal; }
 
+    /* ── CSS SECTION: Dual Coding Visual ── */
     /* ── Dual Coding Visual ── */
     .visual-container{
       margin-top: 12px;
@@ -1565,6 +1575,7 @@
       opacity: 0.6;
     }
 
+    /* ── CSS SECTION: Visual Lightbox ── */
     /* ── Visual Lightbox ── */
     .visual-lightbox-overlay{
       position: fixed;
@@ -1653,6 +1664,7 @@
       color: rgba(255,255,255,0.4);
     }
 
+    /* ── CSS SECTION: Ask the Tutor ── */
     /* ── Ask the Tutor ── */
     .ask-tutor-wrap{
       margin-top: 14px;
@@ -1876,6 +1888,7 @@
     }
     .ask-tutor-continue:hover{ background: rgba(var(--accent-rgb),0.12); transform: translateY(-1px); }
 
+    /* ── CSS SECTION: TTS Listen Button ── */
     /* ── TTS Listen Button ── */
     .listen-tts-btn{
       display: inline-flex;
@@ -1915,6 +1928,7 @@
       50%{ box-shadow: 0 0 0 4px rgba(239,68,68,0.12); }
     }
 
+    /* ── CSS SECTION: Markdown content inside cards ── */
     /* ── Markdown content inside cards ── */
     .md-content p{ margin: 0 0 8px; }
     .md-content p:last-child{ margin-bottom: 0; }
@@ -2015,6 +2029,7 @@
       animation: pulseDot 1.0s ease-in-out infinite;
     }
 
+    /* ── CSS SECTION: Structured Restudy Screen ── */
     /* ── Structured Restudy Screen ── */
     .restudy-screen{
       display: none;
@@ -2027,6 +2042,7 @@
     }
     .restudy-screen.show{ display: block; }
 
+/* ── CSS SECTION: Restudy Mode: animate existing answer block ── */
 /* ── Restudy Mode: animate existing answer block ── */
 .answer.restudy-active{
   font-size: 16px;
@@ -2560,6 +2576,7 @@ body.standalone .answer.restudy-active{
       .session-top{ flex-wrap: wrap; }
     }
 
+    /* ── CSS SECTION: Course Cards ── */
     /* ── Course Cards ── */
     .course-cards{
       display: grid;
@@ -2633,6 +2650,7 @@ body.standalone .answer.restudy-active{
       flex-shrink: 0;
     }
 
+    /* ── CSS SECTION: Supported Tiers Badge ── */
     /* ── Supported Tiers Badge ── */
     .tier-support-badge{
       display: flex;
@@ -2664,6 +2682,7 @@ body.standalone .answer.restudy-active{
       white-space: nowrap;
     }
 
+    /* ── CSS SECTION: Advanced Toggle ── */
     /* ── Advanced Toggle ── */
     .adv-toggle{
       display: flex;
@@ -2698,6 +2717,7 @@ body.standalone .answer.restudy-active{
     }
     .adv-fields.show{ display: block; }
 
+    /* ── CSS SECTION: Course Modal ── */
     /* ── Course Modal ── */
     .course-form-row{
       display: grid;
@@ -2705,6 +2725,7 @@ body.standalone .answer.restudy-active{
       gap: 10px;
     }
 
+    /* ── CSS SECTION: Add Course Toggle ── */
     /* ── Add Course Toggle ── */
     .add-course-toggle{
       width: 100%;
@@ -2754,6 +2775,7 @@ body.standalone .answer.restudy-active{
       margin-top: 10px;
     }
 
+    /* ── CSS SECTION: Course Colour Picker ── */
     /* ── Course Colour Picker ── */
     .color-picker{
       display: flex;
@@ -2788,6 +2810,7 @@ body.standalone .answer.restudy-active{
     }
     .color-swatch.active::after{ display: flex; }
 
+    /* ── CSS SECTION: Topic Suggestions ── */
     /* ── Topic Suggestions ── */
     .topic-suggestions{
       display: none;
@@ -2800,11 +2823,13 @@ body.standalone .answer.restudy-active{
       padding: 5px 10px;
     }
 
+    /* ── CSS SECTION: Course-coloured left border on course cards ── */
     /* ── Course-coloured left border on course cards ── */
     .course-card{
       border-left: 5px solid var(--accent);
     }
 
+    /* ── CSS SECTION: Modal course header badge ── */
     /* ── Modal course header badge ── */
     .modal-course-badge{
       display: flex;
@@ -2847,6 +2872,7 @@ body.standalone .answer.restudy-active{
       color: var(--text);
     }
 
+    /* ── CSS SECTION: Course picker step in modal ── */
     /* ── Course picker step in modal ── */
     .course-picker-list{
       display: grid;
@@ -2986,6 +3012,7 @@ body.standalone .answer.restudy-active{
       transform: translateY(-1px);
     }
 
+    /* ── CSS SECTION: Course Detail Settings Button ── */
     /* ── Course Detail Settings Button ── */
     .cd-settings-btn{
       appearance: none;
@@ -3087,6 +3114,7 @@ body.standalone .answer.restudy-active{
       flex-shrink: 0;
     }
 
+    /* ── CSS SECTION: Card Edit Form (inline expand) ── */
     /* ── Card Edit Form (inline expand) ── */
     .cd-edit-wrap{
       display: none;
@@ -3185,6 +3213,7 @@ body.standalone .answer.restudy-active{
       margin-top: 4px;
     }
 
+    /* ── CSS SECTION: Analytics Strip ── */
     /* ── Analytics Strip ── */
     .analytics-strip{
       display: grid;
@@ -3246,6 +3275,7 @@ body.standalone .answer.restudy-active{
       cursor: crosshair;
     }
 
+    /* ── CSS SECTION: Canvas Hover Tooltip ── */
     /* ── Canvas Hover Tooltip ── */
     .canvas-tooltip{
       position: fixed;
@@ -3292,6 +3322,7 @@ body.standalone .answer.restudy-active{
       margin-top: 2px;
     }
 
+    /* ── CSS SECTION: Retention Course Filter Chips ── */
     /* ── Retention Course Filter Chips ── */
     .ret-filter-chips{
       display: flex;
@@ -3346,6 +3377,7 @@ body.standalone .answer.restudy-active{
       justify-content: center;
     }
 
+    /* ── CSS SECTION: Course Detail Analytics Grid ── */
     /* ── Course Detail Analytics Grid ── */
     .cda-grid{
       display: grid;
@@ -3403,6 +3435,7 @@ body.standalone .answer.restudy-active{
       box-shadow: 0 0 6px rgba(0,0,0,0.15);
     }
 
+    /* ── CSS SECTION: Break System ── */
     /* ── Break System ── */
     .break-banner{
       display: none;
@@ -3539,6 +3572,7 @@ body.standalone .answer.restudy-active{
     }
     .break-card .bc-skip:hover{ background: rgba(var(--accent-rgb),0.12); transform: translateY(-1px); }
 
+    /* ── CSS SECTION: Card Edit Overlay ── */
     /* ── Card Edit Overlay ── */
     .edit-card-form {
       position: fixed;
@@ -3669,12 +3703,14 @@ body.standalone .answer.restudy-active{
     }
     .sync-saving{ animation: syncPulse 1s ease-in-out infinite; }
 
+    /* ── CSS SECTION: Priority Badge (inline in meta row) ── */
     /* ── Priority Badge (inline in meta row) ── */
     #metaPriority{
       display: inline-flex;
       align-items: center;
     }
 
+    /* ── CSS SECTION: Per-Card XP Flash ── */
     /* ── Per-Card XP Flash ── */
     .xp-flash{
       position: fixed;
@@ -3839,6 +3875,7 @@ body.standalone .answer.restudy-active{
     .cram-banner .cram-icon{ font-size: 14px; }
     .cram-banner .cram-text{ flex: 1; }
 
+    /* ── CSS SECTION: Ambient Micro-Animations ── */
     /* ── Ambient Micro-Animations ── */
     @keyframes ambientFloat {
       0%, 100% { transform: translateY(0px); }
@@ -3934,6 +3971,7 @@ body.standalone .answer.restudy-active{
       }
     }
 
+    /* ── CSS SECTION: Essay Mode (Mock tier expansion) ── */
     /* ── Essay Mode (Mock tier expansion) ── */
     .essay-outline-phase{
       margin-bottom: 12px;
@@ -4033,6 +4071,7 @@ body.standalone .answer.restudy-active{
       outline-offset: 2px;
     }
 
+/* ── CSS SECTION: Info Tooltip ── */
 /* ── Info Tooltip ── */
 .setting-row{
   display: flex;
@@ -4151,6 +4190,7 @@ body.standalone .answer.restudy-active{
   background: rgba(255,255,255,0.08);
   border-color: rgba(var(--accent-rgb),0.22);
 }
+/* ── CSS SECTION: Tooltip v2: measure-then-place, auto-flip, arrow-tracks-source ── */
 /* ── Tooltip v2: measure-then-place, auto-flip, arrow-tracks-source ── */
 .info-tooltip{
   display: none;
@@ -4229,6 +4269,7 @@ body.standalone .answer.restudy-active{
   border-right: none;
 }
 
+/* ── CSS SECTION: Slider Track Styling ── */
 /* ── Slider Track Styling ── */
 input[type="range"]{
   -webkit-appearance: none;
@@ -4269,6 +4310,7 @@ input[type="range"]::-moz-range-thumb{
   cursor: grab;
 }
 
+/* ── CSS SECTION: Import Preview ── */
 /* ── Import Preview ── */
 .import-preview{
   margin-top: 12px;
@@ -4412,6 +4454,7 @@ input[type="range"]::-moz-range-thumb{
 }
 .import-actions .import-skip-dups-btn:hover{ background: rgba(245,158,11,0.14); transform: translateY(-1px); }
 
+    /* ── CSS SECTION: Socratic Tutor conversation ── */
     /* ── Socratic Tutor conversation ── */
     .tutor-relearn-banner{
       display: flex;
@@ -4562,6 +4605,7 @@ input[type="range"]::-moz-range-thumb{
       font-size: 8px;
       color: var(--text-tertiary);
     }
+    /* ── CSS SECTION: Quick Fire insight mini-input ── */
     /* ── Quick Fire insight mini-input ── */
     .qf-insight-ta{
       width: 100%;
@@ -4862,6 +4906,7 @@ input[type="range"]::-moz-range-thumb{
     }
     .model-answer-collapsible.open .mac-content{ display: block; }
 
+    /* ── CSS SECTION: App Layout (Standalone Only) ── */
     /* ── App Layout (Standalone Only) ── */
     body.standalone .app-layout {
       display: flex;
@@ -4881,6 +4926,7 @@ input[type="range"]::-moz-range-thumb{
     /* Hide old topbar in standalone mode (replaced by main-topbar + sidebar) */
     body.standalone .topbar { display: none !important; }
 
+    /* ── CSS SECTION: Sidebar ── */
     /* ── Sidebar ── */
     .sidebar {
       width: 260px;
@@ -4985,6 +5031,7 @@ input[type="range"]::-moz-range-thumb{
       border-color: rgba(var(--accent-rgb), 0.35);
     }
 
+    /* ── CSS SECTION: Course Tree ── */
     /* ── Course Tree ── */
     .sb-tree {
       flex: 1;
@@ -5090,6 +5137,7 @@ input[type="range"]::-moz-range-thumb{
     .tree-node.depth-3 { padding-left: 60px; }
     .tree-node.depth-3 .tree-label { font-weight: 400; font-size: 10px; color: var(--text-secondary); }
 
+    /* ── CSS SECTION: Hover Action Buttons ── */
     /* ── Hover Action Buttons ── */
     .tree-hover-actions {
       display: none;
@@ -5127,6 +5175,7 @@ input[type="range"]::-moz-range-thumb{
       color: var(--text);
     }
 
+    /* ── CSS SECTION: Context Menu ── */
     /* ── Context Menu ── */
     .tree-ctx-menu {
       position: fixed;
@@ -5173,6 +5222,7 @@ input[type="range"]::-moz-range-thumb{
       margin: 4px 8px;
     }
 
+    /* ── CSS SECTION: Tighter Tree Spacing ── */
     /* ── Tighter Tree Spacing ── */
     .tree-node {
       padding: 5px 12px;
@@ -5189,6 +5239,7 @@ input[type="range"]::-moz-range-thumb{
       font-size: 9px;
     }
 
+    /* ── CSS SECTION: Inline Sidebar Input ── */
     /* ── Inline Sidebar Input ── */
     .sb-inline-input-wrap {
       padding: 4px 12px 4px 28px;
@@ -5256,6 +5307,7 @@ input[type="range"]::-moz-range-thumb{
       margin: 8px 12px;
     }
 
+    /* ── CSS SECTION: Sidebar Footer ── */
     /* ── Sidebar Footer ── */
     .sb-footer {
       flex-shrink: 0;
@@ -5296,6 +5348,7 @@ input[type="range"]::-moz-range-thumb{
       letter-spacing: 0.5px;
     }
 
+    /* ── CSS SECTION: Main Area ── */
     /* ── Main Area ── */
     .main-area {
       flex: 1;
@@ -5382,6 +5435,7 @@ input[type="range"]::-moz-range-thumb{
       max-width: 1100px;
     }
 
+    /* ── CSS SECTION: Session mode: collapse sidebar ── */
     /* ── Session mode: collapse sidebar ── */
     body.standalone.in-session .sidebar {
       width: 0;
@@ -5421,6 +5475,7 @@ input[type="range"]::-moz-range-thumb{
       pointer-events: auto;
     }
 
+    /* ── CSS SECTION: Responsive ── */
     /* ── Responsive ── */
     @media (max-width: 1024px) {
       body:not(.standalone) .sidebar { width: 48px; }
@@ -5441,6 +5496,7 @@ input[type="range"]::-moz-range-thumb{
       body.standalone .topbar { display: flex; } /* Show old topbar on mobile */
     }
 
+    /* ── CSS SECTION: Context Views (Course/Module/Topic dashboards) ── */
     /* ── Context Views (Course/Module/Topic dashboards) ── */
     .ctx-header {
       display: flex;
@@ -6174,6 +6230,347 @@ input[type="range"]::-moz-range-thumb{
   <script src="https://cdn.jsdelivr.net/npm/ts-fsrs@5.3.2/dist/index.umd.js"></script>
   <script>
     /* Study Engine — multi-modal retrieval practice engine (FSRS) */
+    /* FUNCTION INDEX (Auto-generated)
+       Navigation aid only — no runtime behavior changes.
+       - courseKey: Handles course key workflow and state updates.
+       - getPriority: Handles get priority workflow and state updates.
+       - priorityWeight: Handles priority weight workflow and state updates.
+       - priorityBadgeHTML: Handles priority badge html workflow and state updates.
+       - getCourseColor: Handles get course color workflow and state updates.
+       - getEffectiveRetention: Handles get effective retention workflow and state updates.
+       - getEffectiveProfile: Handles get effective profile workflow and state updates.
+       - getEffectiveBloomBonus: Handles get effective bloom bonus workflow and state updates.
+       - getCramState: Handles get cram state workflow and state updates.
+       - deepClone: Handles deep clone workflow and state updates.
+       - optimizeFsrsParams: Handles optimize fsrs params workflow and state updates.
+       - loadOptimizedWeights: Handles load optimized weights workflow and state updates.
+       - loadState: Handles load state workflow and state updates.
+       - saveState: Handles save state workflow and state updates.
+       - migrateItems: Handles migrate items workflow and state updates.
+       - detectSupportedTiers: Handles detect supported tiers workflow and state updates.
+       - getPromotionCandidates: Handles get promotion candidates workflow and state updates.
+       - promoteItemTier: Handles promote item tier workflow and state updates.
+       - tierSupportBadgeHTML: Handles tier support badge html workflow and state updates.
+       - normalizeCoursePhase6: Handles normalize course phase6 workflow and state updates.
+       - ensureCourseModules: Handles ensure course modules workflow and state updates.
+       - generateModuleId: Handles generate module id workflow and state updates.
+       - addModuleToCourse: Handles add module to course workflow and state updates.
+       - removeModuleFromCourse: Handles remove module from course workflow and state updates.
+       - renameModule: Handles rename module workflow and state updates.
+       - getModuleForTopic: Handles get module for topic workflow and state updates.
+       - getModuleById: Handles get module by id workflow and state updates.
+       - getCardsForModule: Handles get cards for module workflow and state updates.
+       - getCardsForTopic: Handles get cards for topic workflow and state updates.
+       - getCardsForCourse: Handles get cards for course workflow and state updates.
+       - isDueNow: Handles is due now workflow and state updates.
+       - getCourseStats: Handles get course stats workflow and state updates.
+       - getModuleStats: Handles get module stats workflow and state updates.
+       - clampCourseStringFields: Handles clamp course string fields workflow and state updates.
+       - migrateCoursesPhase6: Handles migrate courses phase6 workflow and state updates.
+       - getCourse: Handles get course workflow and state updates.
+       - getCourseExamType: Handles get course exam type workflow and state updates.
+       - isCourseManual: Handles is course manual workflow and state updates.
+       - saveCourse: Handles save course workflow and state updates.
+       - deleteCourse: Handles delete course workflow and state updates.
+       - listCourses: Handles list courses workflow and state updates.
+       - clamp: Handles clamp workflow and state updates.
+       - daysBetween: Handles days between workflow and state updates.
+       - isoNow: Handles iso now workflow and state updates.
+       - isoDate: Handles iso date workflow and state updates.
+       - getFsrsDecay: Handles get fsrs decay workflow and state updates.
+       - getFsrsFactor: Handles get fsrs factor workflow and state updates.
+       - retrievability: Handles retrievability workflow and state updates.
+       - initialDifficulty: Handles initial difficulty workflow and state updates.
+       - updateDifficulty: Handles update difficulty workflow and state updates.
+       - stabilityAfterSuccess: Handles stability after success workflow and state updates.
+       - stabilityAfterForget: Handles stability after forget workflow and state updates.
+       - nextIntervalDays: Handles next interval days workflow and state updates.
+       - scheduleFsrs: Handles schedule fsrs workflow and state updates.
+       - icon: Handles icon workflow and state updates.
+       - uid: Handles uid workflow and state updates.
+       - tierLabel: Handles tier label workflow and state updates.
+       - tierColour: Handles tier colour workflow and state updates.
+       - setTierBadge: Handles set tier badge workflow and state updates.
+       - showView: Handles show view workflow and state updates.
+       - countDue: Handles count due workflow and state updates.
+       - avgRetention: Handles avg retention workflow and state updates.
+       - reconcileStats: Handles reconcile stats workflow and state updates.
+       - calibrationPct: Handles calibration pct workflow and state updates.
+       - getOverconfidentTopics: Handles get overconfident topics workflow and state updates.
+       - getSleepAwareAdvice: Handles get sleep aware advice workflow and state updates.
+       - setCalArc: Handles set cal arc workflow and state updates.
+       - renderDashboard: Handles render dashboard workflow and state updates.
+       - renderCourseCards: Handles render course cards workflow and state updates.
+       - renderCourseChips: Handles render course chips workflow and state updates.
+       - renderTopicChips: Handles render topic chips workflow and state updates.
+       - animateCounter: Handles animate counter workflow and state updates.
+       - esc: Handles esc workflow and state updates.
+       - buildCourseTree: Handles build course tree workflow and state updates.
+       - renderSidebar: Handles render sidebar workflow and state updates.
+       - updateBreadcrumb: Handles update breadcrumb workflow and state updates.
+       - applySidebarFilter: Handles apply sidebar filter workflow and state updates.
+       - hideContextViews: Handles hide context views workflow and state updates.
+       - applySidebarFilterChipsOnly: Handles apply sidebar filter chips only workflow and state updates.
+       - renderCardList: Handles render card list workflow and state updates.
+       - dismissInlineSidebarInput: Handles dismiss inline sidebar input workflow and state updates.
+       - showInlineSidebarInput: Handles show inline sidebar input workflow and state updates.
+       - submit: Handles submit workflow and state updates.
+       - cancel: Handles cancel workflow and state updates.
+       - dismissCtxMenu: Handles dismiss ctx menu workflow and state updates.
+       - showCtxMenuAt: Handles show ctx menu at workflow and state updates.
+       - showCourseContextMenu: Handles show course context menu workflow and state updates.
+       - showModuleContextMenu: Handles show module context menu workflow and state updates.
+       - showCourseDashboard: Handles show course dashboard workflow and state updates.
+       - showModuleView: Handles show module view workflow and state updates.
+       - showTopicView: Handles show topic view workflow and state updates.
+       - getWidgetKey: Handles get widget key workflow and state updates.
+       - playTTS: Handles play tts workflow and state updates.
+       - stopTTS: Handles stop tts workflow and state updates.
+       - insertListenButton: Handles insert listen button workflow and state updates.
+       - applyLightboxTransform: Handles apply lightbox transform workflow and state updates.
+       - openVisualLightbox: Handles open visual lightbox workflow and state updates.
+       - closeVisualLightbox: Handles close visual lightbox workflow and state updates.
+       - renderMermaidBlock: Handles render mermaid block workflow and state updates.
+       - looksIncompleteMermaid: Handles looks incomplete mermaid workflow and state updates.
+       - attemptRecoverTruncatedMermaid: Handles attempt recover truncated mermaid workflow and state updates.
+       - sanitizeMermaidCode: Handles sanitize mermaid code workflow and state updates.
+       - initMermaidBlocks: Handles init mermaid blocks workflow and state updates.
+       - ensureAnswerVisual: Handles ensure answer visual workflow and state updates.
+       - renderMd: Handles render md workflow and state updates.
+       - getTopicsForCourse: Handles get topics for course workflow and state updates.
+       - renderTopicSuggestions: Handles render topic suggestions workflow and state updates.
+       - isEssayMode: Handles is essay mode workflow and state updates.
+       - getEssayWordTarget: Handles get essay word target workflow and state updates.
+       - countWords: Handles count words workflow and state updates.
+       - getEssayStructureHint: Handles get essay structure hint workflow and state updates.
+       - getBreakTip: Handles get break tip workflow and state updates.
+       - isHotStreak: Handles is hot streak workflow and state updates.
+       - getSessionElapsedMins: Handles get session elapsed mins workflow and state updates.
+       - getTimeSinceBreakMins: Handles get time since break mins workflow and state updates.
+       - showBreakBanner: Handles show break banner workflow and state updates.
+       - checkBreakTriggers: Handles check break triggers workflow and state updates.
+       - startBreakTimer: Handles start break timer workflow and state updates.
+       - endBreak: Handles end break workflow and state updates.
+       - buildSessionQueue: Handles build session queue workflow and state updates.
+       - shuffle: Handles shuffle workflow and state updates.
+       - reweightProfile: Handles reweight profile workflow and state updates.
+       - interleaveQueue: Handles interleave queue workflow and state updates.
+       - startPrimeMode: Handles start prime mode workflow and state updates.
+       - showPrimeOverlay: Handles show prime overlay workflow and state updates.
+       - startSession: Handles start session workflow and state updates.
+       - clearTimers: Handles clear timers workflow and state updates.
+       - autoGrowTextarea: Handles auto grow textarea workflow and state updates.
+       - rubricTemplate: Handles rubric template workflow and state updates.
+       - rubRow: Handles rub row workflow and state updates.
+       - bindRubric: Handles bind rubric workflow and state updates.
+       - rubricToFsrsRating: Handles rubric to fsrs rating workflow and state updates.
+       - renderCurrentItem: Handles render current item workflow and state updates.
+       - isNearDuplicateInstruction: Handles is near duplicate instruction workflow and state updates.
+       - startApplyTimer: Handles start apply timer workflow and state updates.
+       - startMockTimer: Handles start mock timer workflow and state updates.
+       - startEssayOutlineTimer: Handles start essay outline timer workflow and state updates.
+       - transitionToWritingPhase: Handles transition to writing phase workflow and state updates.
+       - updateEssayWordCount: Handles update essay word count workflow and state updates.
+       - defaultTutorStats: Handles default tutor stats workflow and state updates.
+       - defaultTutorModeCounts: Handles default tutor mode counts workflow and state updates.
+       - recordTutorApiSuccess: Handles record tutor api success workflow and state updates.
+       - noteReconstructionPromptShown: Handles note reconstruction prompt shown workflow and state updates.
+       - upsertTutorSessionHistoryRow: Handles upsert tutor session history row workflow and state updates.
+       - persistTutorAnalyticsDeltas: Handles persist tutor analytics deltas workflow and state updates.
+       - finalizeTutorAnalyticsSession: Handles finalize tutor analytics session workflow and state updates.
+       - renderTutorAnalyticsDashboard: Handles render tutor analytics dashboard workflow and state updates.
+       - refreshCostEstimateInSettings: Handles refresh cost estimate in settings workflow and state updates.
+       - requestSessionAiSummary: Handles request session ai summary workflow and state updates.
+       - autoPrepareAfterImport: Handles auto prepare after import workflow and state updates.
+       - maybeAutoPrepare: Handles maybe auto prepare workflow and state updates.
+       - extractPdfText: Handles extract pdf text workflow and state updates.
+       - extractPage: Handles extract page workflow and state updates.
+       - postSyllabusDistill: Handles post syllabus distill workflow and state updates.
+       - getAllTutorMemories: Handles get all tutor memories workflow and state updates.
+       - getCourseScopedMemoriesForDisplay: Handles get course scoped memories for display workflow and state updates.
+       - getGlobalMemoriesForDisplay: Handles get global memories for display workflow and state updates.
+       - memoryTypeLabel: Handles memory type label workflow and state updates.
+       - tutorNotesInfoIconHTML: Handles tutor notes info icon html workflow and state updates.
+       - renderSingleTutorNoteHTML: Handles render single tutor note html workflow and state updates.
+       - renderTutorNotesClearControls: Handles render tutor notes clear controls workflow and state updates.
+       - renderCourseTutorNotesPanelHTML: Handles render course tutor notes panel html workflow and state updates.
+       - renderGlobalTutorNotesOverlayHTML: Handles render global tutor notes overlay html workflow and state updates.
+       - wireTutorNotesClearConfirmation: Handles wire tutor notes clear confirmation workflow and state updates.
+       - wireTutorNotesPanelToggle: Handles wire tutor notes panel toggle workflow and state updates.
+       - clearCourseTutorMemoriesForCourse: Handles clear course tutor memories for course workflow and state updates.
+       - clearGlobalTutorMemories: Handles clear global tutor memories workflow and state updates.
+       - openGlobalTutorNotesOverlay: Handles open global tutor notes overlay workflow and state updates.
+       - closeGlobalTutorNotesOverlay: Handles close global tutor notes overlay workflow and state updates.
+       - wireGlobalTutorNotesUI: Handles wire global tutor notes ui workflow and state updates.
+       - buildLearnerContext: Handles build learner context workflow and state updates.
+       - getFeedbackArea: Handles get feedback area workflow and state updates.
+       - getTutorUserName: Handles get tutor user name workflow and state updates.
+       - selectModel: Handles select model workflow and state updates.
+       - selectFeedbackMode: Handles select feedback mode workflow and state updates.
+       - callTutor: Handles call tutor workflow and state updates.
+       - buildTutorUI: Handles build tutor ui workflow and state updates.
+       - addTutorMessage: Handles add tutor message workflow and state updates.
+       - showTypingIndicator: Handles show typing indicator workflow and state updates.
+       - hideTypingIndicator: Handles hide typing indicator workflow and state updates.
+       - updateTurnCounter: Handles update turn counter workflow and state updates.
+       - disableTutorInput: Handles disable tutor input workflow and state updates.
+       - getRecentAvg: Handles get recent avg workflow and state updates.
+       - tutorContextForItem: Handles tutor context for item workflow and state updates.
+       - updateTutorMemories: Handles update tutor memories workflow and state updates.
+       - queueTutorMemoryUpdateIfEligible: Handles queue tutor memory update if eligible workflow and state updates.
+       - getLastUserTextForTutor: Handles get last user text for tutor workflow and state updates.
+       - handleAcknowledgeFollowupResponse: Handles handle acknowledge followup response workflow and state updates.
+       - finishRelearningRequeue: Handles finish relearning requeue workflow and state updates.
+       - beginPassiveRestudyFlow: Handles begin passive restudy flow workflow and state updates.
+       - requeueAfterRestudy: Handles requeue after restudy workflow and state updates.
+       - startRelearningDialogue: Handles start relearning dialogue workflow and state updates.
+       - submitTutorResponse: Handles submit tutor response workflow and state updates.
+       - handleTutorResponse: Handles handle tutor response workflow and state updates.
+       - showRatingButtons: Handles show rating buttons workflow and state updates.
+       - skipToRating: Handles skip to rating workflow and state updates.
+       - buildQuickFeedbackUI: Handles build quick feedback ui workflow and state updates.
+       - buildInsightUI: Handles build insight ui workflow and state updates.
+       - revealInsightAnswer: Handles reveal insight answer workflow and state updates.
+       - fallbackToGrade: Handles fallback to grade workflow and state updates.
+       - appendModelAnswerCollapsible: Handles append model answer collapsible workflow and state updates.
+       - startGenerativeTutorFlow: Handles start generative tutor flow workflow and state updates.
+       - isDontKnowResponse: Handles is dont know response workflow and state updates.
+       - showDontKnowExplanation: Handles show dont know explanation workflow and state updates.
+       - showDontKnowFallback: Handles show dont know fallback workflow and state updates.
+       - handleDontKnowReveal: Handles handle dont know reveal workflow and state updates.
+       - handleDkTutorResponse: Handles handle dk tutor response workflow and state updates.
+       - overrideDkTutorSubmit: Handles override dk tutor submit workflow and state updates.
+       - dkSubmit: Handles dk submit workflow and state updates.
+       - revealDkModelAnswer: Handles reveal dk model answer workflow and state updates.
+       - wireGenerative: Handles wire generative workflow and state updates.
+       - wireMock: Handles wire mock workflow and state updates.
+       - revealAnswer: Handles reveal answer workflow and state updates.
+       - showAIFeedback: Handles show aifeedback workflow and state updates.
+       - applyInlineAnnotations: Handles apply inline annotations workflow and state updates.
+       - showAIError: Handles show aierror workflow and state updates.
+       - showSelfRateFallback: Handles show self rate fallback workflow and state updates.
+       - scheduleRatingAndAdvance: Handles schedule rating and advance workflow and state updates.
+       - mountQuickFireFollowup: Handles mount quick fire followup workflow and state updates.
+       - finishQf: Handles finish qf workflow and state updates.
+       - revealFollowupAnswer: Handles reveal followup answer workflow and state updates.
+       - submitQf: Handles submit qf workflow and state updates.
+       - mountQuickFireReRetrieval: Handles mount quick fire re retrieval workflow and state updates.
+       - finishFlow: Handles finish flow workflow and state updates.
+       - showConsolidation: Handles show consolidation workflow and state updates.
+       - spaceHandler: Handles space handler workflow and state updates.
+       - submitResponse: Handles submit response workflow and state updates.
+       - skipToAnswer: Handles skip to answer workflow and state updates.
+       - runQuickFireFollowupMicro: Handles run quick fire followup micro workflow and state updates.
+       - cleanupPreviousDialogueUI: Handles cleanup previous dialogue ui workflow and state updates.
+       - rateCurrent: Handles rate current workflow and state updates.
+       - ensureFsrs: Handles ensure fsrs workflow and state updates.
+       - flashXP: Handles flash xp workflow and state updates.
+       - computeXP: Handles compute xp workflow and state updates.
+       - disableRatings: Handles disable ratings workflow and state updates.
+       - mountAskTutor: Handles mount ask tutor workflow and state updates.
+       - submitAskTutor: Handles submit ask tutor workflow and state updates.
+       - addAskTutorMessage: Handles add ask tutor message workflow and state updates.
+       - enableAskTutorInput: Handles enable ask tutor input workflow and state updates.
+       - disableAskTutorInput: Handles disable ask tutor input workflow and state updates.
+       - cleanupAskTutor: Handles cleanup ask tutor workflow and state updates.
+       - advanceItem: Handles advance item workflow and state updates.
+       - skipItem: Handles skip item workflow and state updates.
+       - completeSession: Handles complete session workflow and state updates.
+       - switchNav: Handles switch nav workflow and state updates.
+       - openModal: Handles open modal workflow and state updates.
+       - closeModal: Handles close modal workflow and state updates.
+       - closeModals: Handles close modals workflow and state updates.
+       - renderModal: Handles render modal workflow and state updates.
+       - tailFields: Handles tail fields workflow and state updates.
+       - textField: Handles text field workflow and state updates.
+       - areaField: Handles area field workflow and state updates.
+       - selectField: Handles select field workflow and state updates.
+       - addFromModal: Handles add from modal workflow and state updates.
+       - doImport: Handles do import workflow and state updates.
+       - renderImportPreview: Handles render import preview workflow and state updates.
+       - commitImport: Handles commit import workflow and state updates.
+       - processVisualBatch: Handles process visual batch workflow and state updates.
+       - resetSettingsModalTabs: Handles reset settings modal tabs workflow and state updates.
+       - bindSettingsTabListeners: Handles bind settings tab listeners workflow and state updates.
+       - openSettings: Handles open settings workflow and state updates.
+       - closeSettings: Handles close settings workflow and state updates.
+       - positionTooltip: Handles position tooltip workflow and state updates.
+       - removePortaledTooltip: Handles remove portaled tooltip workflow and state updates.
+       - hideTooltip: Handles hide tooltip workflow and state updates.
+       - clearTooltipTimer: Handles clear tooltip timer workflow and state updates.
+       - renderSettings: Handles render settings workflow and state updates.
+       - infoIcon: Handles info icon workflow and state updates.
+       - pillGroup: Handles pill group workflow and state updates.
+       - setVisualJobsBusy: Handles set visual jobs busy workflow and state updates.
+       - runBatch: Handles run batch workflow and state updates.
+       - runOverrideBatch: Handles run override batch workflow and state updates.
+       - openCourseModal: Handles open course modal workflow and state updates.
+       - closeCourseModal: Handles close course modal workflow and state updates.
+       - renderCourseModal: Handles render course modal workflow and state updates.
+       - collapseAddForm: Handles collapse add form workflow and state updates.
+       - expandAddForm: Handles expand add form workflow and state updates.
+       - wireDescriptionUpdater: Handles wire description updater workflow and state updates.
+       - update: Handles update workflow and state updates.
+       - focusCourseModalItem: Handles focus course modal item workflow and state updates.
+       - unfocusCourseModalItems: Handles unfocus course modal items workflow and state updates.
+       - courseModalRefreshShell: Handles course modal refresh shell workflow and state updates.
+       - getUniqueCourseTopics: Handles get unique course topics workflow and state updates.
+       - removeTopicFromAllModules: Handles remove topic from all modules workflow and state updates.
+       - assignTopicToModule: Handles assign topic to module workflow and state updates.
+       - unassignTopicFromModules: Handles unassign topic from modules workflow and state updates.
+       - renderCourseModalEditor: Handles render course modal editor workflow and state updates.
+       - renderTabContent: Handles render tab content workflow and state updates.
+       - wireEditorTabInteractions: Handles wire editor tab interactions workflow and state updates.
+       - setCtxStatus: Handles set ctx status workflow and state updates.
+       - renderSuggestedTopics: Handles render suggested topics workflow and state updates.
+       - runSyllabusProcess: Handles run syllabus process workflow and state updates.
+       - setLectureStatus: Handles set lecture status workflow and state updates.
+       - updateLectureManifestDisplay: Handles update lecture manifest display workflow and state updates.
+       - importLectureFromText: Handles import lecture from text workflow and state updates.
+       - openEditCourse: Handles open edit course workflow and state updates.
+       - startDeleteCourse: Handles start delete course workflow and state updates.
+       - confirmDeleteCourseNow: Handles confirm delete course now workflow and state updates.
+       - editCard: Handles edit card workflow and state updates.
+       - closeSheet: Handles close sheet workflow and state updates.
+       - viewCourseDeck: Handles view course deck workflow and state updates.
+       - deleteCard: Handles delete card workflow and state updates.
+       - toast: Handles toast workflow and state updates.
+       - calcRestudyDuration: Handles calc restudy duration workflow and state updates.
+       - fmtMMSS: Handles fmt mmss workflow and state updates.
+       - initMascot: Handles init mascot workflow and state updates.
+       - updateMascotStage: Handles update mascot stage workflow and state updates.
+       - startMascotLoop: Handles start mascot loop workflow and state updates.
+       - tick: Handles tick workflow and state updates.
+       - drawMascot: Handles draw mascot workflow and state updates.
+       - drawEggMascot: Handles draw egg mascot workflow and state updates.
+       - drawDragonMascot: Handles draw dragon mascot workflow and state updates.
+       - getCanvasCtx: Handles get canvas ctx workflow and state updates.
+       - getAccentRGB: Handles get accent rgb workflow and state updates.
+       - getTextSecondary: Handles get text secondary workflow and state updates.
+       - getTextColor: Handles get text color workflow and state updates.
+       - drawRetentionCurve: Handles draw retention curve workflow and state updates.
+       - hideCanvasTooltip: Handles hide canvas tooltip workflow and state updates.
+       - showCanvasTooltip: Handles show canvas tooltip workflow and state updates.
+       - drawRetentionHighlight: Handles draw retention highlight workflow and state updates.
+       - redrawRetentionBase: Handles redraw retention base workflow and state updates.
+       - handleRetentionHover: Handles handle retention hover workflow and state updates.
+       - wireRetentionInteractivity: Handles wire retention interactivity workflow and state updates.
+       - drawSparkline: Handles draw sparkline workflow and state updates.
+       - drawTierRing: Handles draw tier ring workflow and state updates.
+       - drawActivityHeatmap: Handles draw activity heatmap workflow and state updates.
+       - renderActivityStats: Handles render activity stats workflow and state updates.
+       - renderRetentionFilterChips: Handles render retention filter chips workflow and state updates.
+       - renderRetentionGraph: Handles render retention graph workflow and state updates.
+       - renderAnalytics: Handles render analytics workflow and state updates.
+       - colorToRgbaBottom: Handles color to rgba bottom workflow and state updates.
+       - drawCourseRatingHistory: Handles draw course rating history workflow and state updates.
+       - drawStabilityDistribution: Handles draw stability distribution workflow and state updates.
+       - drawTierAccuracy: Handles draw tier accuracy workflow and state updates.
+       - openCourseDetail: Handles open course detail workflow and state updates.
+       - closeCourseDetail: Handles close course detail workflow and state updates.
+       - boot: Handles boot workflow and state updates.
+       - setSyncBadge: Handles set sync badge workflow and state updates.
+       END FUNCTION INDEX */
     var isEmbedded = (window.self !== window.top);
     if (!isEmbedded) document.body.classList.add('standalone');
 
@@ -6194,6 +6591,7 @@ input[type="range"]::-moz-range-thumb{
 
     /* ── State ── */
     var NS = 'studyengine';
+    /* ═══ SECTION: Course Key | Functions: courseKey ═══ */
     function courseKey(name){
       return String(name || '').replace(/[^a-zA-Z0-9_-]/g, '_');
     }
@@ -6250,16 +6648,19 @@ input[type="range"]::-moz-range-thumb{
     var PRIORITY_COLORS = { critical: '#ef4444', high: '#f59e0b', medium: '#8b5cf6', low: '#6b7280' };
     var PRIORITY_WEIGHT = { critical: 3.0, high: 2.0, medium: 1.0, low: 0.5 };
     var CRAM_PRIORITY_BOOST = { critical: 1.5, high: 1.2, medium: 1.0, low: 0.7 };
+    /* ═══ SECTION: Get Priority | Functions: getPriority ═══ */
     function getPriority(item) {
       if (!item || !item.priority) return 'medium';
       return PRIORITY_LEVELS.indexOf(item.priority) >= 0 ? item.priority : 'medium';
     }
+    /* ═══ SECTION: Priority Weight | Functions: priorityWeight ═══ */
     function priorityWeight(item, cramActive) {
       var p = getPriority(item);
       var base = PRIORITY_WEIGHT[p] || 1.0;
       if (cramActive) base *= (CRAM_PRIORITY_BOOST[p] || 1.0);
       return base;
     }
+    /* ═══ SECTION: Priority Badge Html | Functions: priorityBadgeHTML ═══ */
     function priorityBadgeHTML(priority) {
       var p = priority || 'medium';
       var col = PRIORITY_COLORS[p] || PRIORITY_COLORS.medium;
@@ -6296,6 +6697,7 @@ input[type="range"]::-moz-range-thumb{
       { name: 'Teal', value: '#14b8a6' }
     ];
 
+    /* ═══ SECTION: Get Course Color | Functions: getCourseColor ═══ */
     function getCourseColor(courseName) {
       var c = getCourse(courseName);
       if (c && c.color) return c.color;
@@ -6307,6 +6709,7 @@ input[type="range"]::-moz-range-thumb{
        The only modifier is whether a course has an exam date.
        When an exam date is set and within 14 days, cram mode activates. */
 
+    /* ═══ SECTION: Get Effective Retention | Functions: getEffectiveRetention ═══ */
     function getEffectiveRetention(courseName) {
       /* If exam is imminent, slightly lower retention target to increase review volume */
       var cram = getCramState(courseName);
@@ -6315,6 +6718,7 @@ input[type="range"]::-moz-range-thumb{
       return settings.desiredRetention || 0.90;
     }
 
+    /* ═══ SECTION: Get Effective Profile | Functions: getEffectiveProfile ═══ */
     function getEffectiveProfile(courseName) {
       var examType = getCourseExamType(courseName);
       var base = deepClone(TIER_PROFILES[examType] || TIER_PROFILES.mixed);
@@ -6335,6 +6739,7 @@ input[type="range"]::-moz-range-thumb{
       return base;
     }
 
+    /* ═══ SECTION: Get Effective Bloom Bonus | Functions: getEffectiveBloomBonus ═══ */
     function getEffectiveBloomBonus(courseName) {
       /* Flat — no objective-based scaling. Bloom bonuses always apply at their natural rate. */
       var result = {};
@@ -6345,6 +6750,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* ── Cram Mode Detection ── */
+    /* ═══ SECTION: Get Cram State | Functions: getCramState ═══ */
     function getCramState(courseName) {
       var c = getCourse(courseName);
       if (!c || !c.examDate) return { active: false };
@@ -6388,9 +6794,11 @@ input[type="range"]::-moz-range-thumb{
     var state = null;
     var settings = null;
 
+    /* ═══ SECTION: Deep Clone | Functions: deepClone ═══ */
     function deepClone(obj){ return JSON.parse(JSON.stringify(obj || {})); }
 
     /* ── FSRS Parameter Optimization (ts-fsrs: clip/check — full training not in browser bundle) ── */
+    /* ═══ SECTION: Optimize Fsrs Params | Functions: optimizeFsrsParams ═══ */
     function optimizeFsrsParams() {
       var TS = typeof FSRS !== 'undefined' ? FSRS : null;
       var history = (state.calibration && state.calibration.history) || [];
@@ -6429,6 +6837,7 @@ input[type="range"]::-moz-range-thumb{
       return false;
     }
 
+    /* ═══ SECTION: Load Optimized Weights | Functions: loadOptimizedWeights ═══ */
     function loadOptimizedWeights() {
       var saved = SyncEngine.get(NS, 'optimizedWeights');
       var TS = typeof FSRS !== 'undefined' ? FSRS : null;
@@ -6448,6 +6857,7 @@ input[type="range"]::-moz-range-thumb{
       } catch (e) {}
     }
 
+    /* ═══ SECTION: Load State | Functions: loadState ═══ */
     function loadState() {
       var items = SyncEngine.get(NS, 'items') || null;
       var courses = SyncEngine.get(NS, 'courses') || null;
@@ -6467,6 +6877,7 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Save State | Functions: saveState ═══ */
     function saveState() {
       SyncEngine.set(NS, 'items', state.items || {});
       SyncEngine.set(NS, 'courses', state.courses || {});
@@ -6476,6 +6887,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* ── Item Migration (v1 → v2: tier field becomes optional) ── */
+    /* ═══ SECTION: Migrate Items | Functions: migrateItems ═══ */
     function migrateItems() {
       var changed = false;
       for (var id in state.items) {
@@ -6510,6 +6922,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* ── Supported Tiers Detection ── */
+    /* ═══ SECTION: Detect Supported Tiers | Functions: detectSupportedTiers ═══ */
     function detectSupportedTiers(item) {
       if (!item || !item.prompt || !item.modelAnswer) return [];
       var tiers = ['quickfire', 'explain'];
@@ -6521,6 +6934,7 @@ input[type="range"]::-moz-range-thumb{
       return tiers;
     }
 
+    /* ═══ SECTION: Get Promotion Candidates | Functions: getPromotionCandidates ═══ */
     function getPromotionCandidates(courseName) {
       var candidates = [];
       var TIER_ORDER = ['quickfire', 'explain', 'apply', 'distinguish', 'mock'];
@@ -6546,6 +6960,7 @@ input[type="range"]::-moz-range-thumb{
       return candidates;
     }
 
+    /* ═══ SECTION: Promote Item Tier | Functions: promoteItemTier ═══ */
     function promoteItemTier(itemId, newTier) {
       var it = state.items[itemId];
       if (!it) return;
@@ -6559,6 +6974,7 @@ input[type="range"]::-moz-range-thumb{
       toast('Promoted to ' + tierLabel(newTier).toUpperCase());
     }
 
+    /* ═══ SECTION: Tier Support Badge Html | Functions: tierSupportBadgeHTML ═══ */
     function tierSupportBadgeHTML(tiers) {
       if (!tiers || !tiers.length) return '';
       var h = '<div class="tier-support-badge"><span class="tsb-label">Supports</span>';
@@ -6570,6 +6986,7 @@ input[type="range"]::-moz-range-thumb{
       return h;
     }
 
+    /* ═══ SECTION: Normalize Course Phase6 | Functions: normalizeCoursePhase6 ═══ */
     function normalizeCoursePhase6(c) {
       if (!c) return c;
       if (c.examWeight === undefined) c.examWeight = null;
@@ -6586,12 +7003,14 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* ── Module Helpers ── */
+    /* ═══ SECTION: Ensure Course Modules | Functions: ensureCourseModules ═══ */
     function ensureCourseModules(courseName) {
       var c = state.courses && state.courses[courseName];
       if (!c) return;
       if (!Array.isArray(c.modules)) c.modules = [];
     }
 
+    /* ═══ SECTION: Generate Module Id | Functions: generateModuleId ═══ */
     function generateModuleId() {
       var chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
       var s = 'mod_';
@@ -6599,6 +7018,7 @@ input[type="range"]::-moz-range-thumb{
       return s;
     }
 
+    /* ═══ SECTION: Add Module To Course | Functions: addModuleToCourse ═══ */
     function addModuleToCourse(courseName, moduleObj) {
       ensureCourseModules(courseName);
       var c = state.courses && state.courses[courseName];
@@ -6612,6 +7032,7 @@ input[type="range"]::-moz-range-thumb{
       return moduleObj;
     }
 
+    /* ═══ SECTION: Remove Module From Course | Functions: removeModuleFromCourse ═══ */
     function removeModuleFromCourse(courseName, moduleId) {
       ensureCourseModules(courseName);
       var c = state.courses && state.courses[courseName];
@@ -6620,6 +7041,7 @@ input[type="range"]::-moz-range-thumb{
       saveCourse(c);
     }
 
+    /* ═══ SECTION: Rename Module | Functions: renameModule ═══ */
     function renameModule(courseName, moduleId, newName) {
       ensureCourseModules(courseName);
       var c = state.courses && state.courses[courseName];
@@ -6628,6 +7050,7 @@ input[type="range"]::-moz-range-thumb{
       if (mod) { mod.name = newName; saveCourse(c); }
     }
 
+    /* ═══ SECTION: Get Module For Topic | Functions: getModuleForTopic ═══ */
     function getModuleForTopic(courseName, topic) {
       var c = state.courses && state.courses[courseName];
       if (!c || !c.modules) return null;
@@ -6637,12 +7060,14 @@ input[type="range"]::-moz-range-thumb{
       return null;
     }
 
+    /* ═══ SECTION: Get Module By Id | Functions: getModuleById ═══ */
     function getModuleById(courseName, moduleId) {
       var c = state.courses && state.courses[courseName];
       if (!c || !c.modules) return null;
       return c.modules.find(function(m) { return m && m.id === moduleId; }) || null;
     }
 
+    /* ═══ SECTION: Get Cards For Module | Functions: getCardsForModule ═══ */
     function getCardsForModule(courseName, moduleId) {
       var mod = getModuleById(courseName, moduleId);
       if (!mod || !mod.topics) return [];
@@ -6656,6 +7081,7 @@ input[type="range"]::-moz-range-thumb{
       return cards;
     }
 
+    /* ═══ SECTION: Get Cards For Topic | Functions: getCardsForTopic ═══ */
     function getCardsForTopic(courseName, topic) {
       var cards = [];
       for (var id in state.items) {
@@ -6668,6 +7094,7 @@ input[type="range"]::-moz-range-thumb{
       return cards;
     }
 
+    /* ═══ SECTION: Get Cards For Course | Functions: getCardsForCourse ═══ */
     function getCardsForCourse(courseName) {
       var cards = [];
       for (var id in state.items) {
@@ -6679,11 +7106,13 @@ input[type="range"]::-moz-range-thumb{
       return cards;
     }
 
+    /* ═══ SECTION: Is Due Now | Functions: isDueNow ═══ */
     function isDueNow(item) {
       if (!item || !item.fsrs || !item.fsrs.due) return true;
       return new Date(item.fsrs.due) <= new Date();
     }
 
+    /* ═══ SECTION: Get Course Stats | Functions: getCourseStats ═══ */
     function getCourseStats(courseName) {
       var cards = getCardsForCourse(courseName);
       var total = cards.length;
@@ -6700,6 +7129,7 @@ input[type="range"]::-moz-range-thumb{
       return { total: total, due: due, reviewed: reviewed, avgStability: Math.round(avgStability), tierDist: tierDist };
     }
 
+    /* ═══ SECTION: Get Module Stats | Functions: getModuleStats ═══ */
     function getModuleStats(courseName, moduleId) {
       var cards = getCardsForModule(courseName, moduleId);
       var total = cards.length;
@@ -6708,6 +7138,7 @@ input[type="range"]::-moz-range-thumb{
       return { total: total, due: due, reviewed: reviewed };
     }
 
+    /* ═══ SECTION: Clamp Course String Fields | Functions: clampCourseStringFields ═══ */
     function clampCourseStringFields(c) {
       if (!c) return;
       // Used both as syllabus summary and (now) lecture digest, so allow a bit more room.
@@ -6725,6 +7156,7 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Migrate Courses Phase6 | Functions: migrateCoursesPhase6 ═══ */
     function migrateCoursesPhase6() {
       var changed = false;
       for (var k in state.courses) {
@@ -6742,21 +7174,25 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* ── Course Helpers ── */
+    /* ═══ SECTION: Get Course | Functions: getCourse ═══ */
     function getCourse(courseName) {
       if (!courseName) return null;
       return state.courses[courseName] || null;
     }
 
+    /* ═══ SECTION: Get Course Exam Type | Functions: getCourseExamType ═══ */
     function getCourseExamType(courseName) {
       var c = getCourse(courseName);
       return (c && c.examType) ? c.examType : 'mixed';
     }
 
+    /* ═══ SECTION: Is Course Manual | Functions: isCourseManual ═══ */
     function isCourseManual(courseName) {
       var c = getCourse(courseName);
       return c ? !!c.manualMode : false;
     }
 
+    /* ═══ SECTION: Save Course | Functions: saveCourse ═══ */
     function saveCourse(courseObj) {
       if (!courseObj || !courseObj.name) return;
       courseObj.id = courseObj.id || courseObj.name;
@@ -6766,12 +7202,14 @@ input[type="range"]::-moz-range-thumb{
       saveState();
     }
 
+    /* ═══ SECTION: Delete Course | Functions: deleteCourse ═══ */
     function deleteCourse(courseName) {
       if (state.courses[courseName]) {
         delete state.courses[courseName];
       }
     }
 
+    /* ═══ SECTION: List Courses | Functions: listCourses ═══ */
     function listCourses() {
       var out = [];
       for (var k in state.courses) {
@@ -6798,18 +7236,25 @@ input[type="range"]::-moz-range-thumb{
       console.warn('ts-fsrs not loaded; inline FSRS only');
     }
 
+    /* ═══ SECTION: Clamp | Functions: clamp ═══ */
     function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+    /* ═══ SECTION: Days Between | Functions: daysBetween ═══ */
     function daysBetween(a, b){ return (b - a) / (1000 * 60 * 60 * 24); }
+    /* ═══ SECTION: Iso Now | Functions: isoNow ═══ */
     function isoNow(){ return new Date().toISOString(); }
+    /* ═══ SECTION: Iso Date | Functions: isoDate ═══ */
     function isoDate(){ return new Date().toISOString().slice(0,10); }
 
+    /* ═══ SECTION: Get Fsrs Decay | Functions: getFsrsDecay ═══ */
     function getFsrsDecay() {
       return (w.length >= 21 && w[20] > 0) ? w[20] : FSRS6_DEFAULT_DECAY;
     }
+    /* ═══ SECTION: Get Fsrs Factor | Functions: getFsrsFactor ═══ */
     function getFsrsFactor() {
       var decay = getFsrsDecay();
       return Math.pow(0.9, 1.0 / -decay) - 1.0;
     }
+    /* ═══ SECTION: Retrievability | Functions: retrievability ═══ */
     function retrievability(fsrs, nowTs) {
       if (!fsrs) return 1;
       var S = fsrs.stability || 0;
@@ -6823,17 +7268,20 @@ input[type="range"]::-moz-range-thumb{
       return clamp(R, 0, 1);
     }
 
+    /* ═══ SECTION: Initial Difficulty | Functions: initialDifficulty ═══ */
     function initialDifficulty(rating) {
       var D0 = w[4] - Math.exp(w[5] * (rating - 1)) + 1;
       return clamp(D0, 1, 10);
     }
 
+    /* ═══ SECTION: Update Difficulty | Functions: updateDifficulty ═══ */
     function updateDifficulty(D, rating) {
       if (!D || D <= 0) D = 5;
       var Dp = D - w[6] * (rating - 3);
       return clamp(Dp, 1, 10);
     }
 
+    /* ═══ SECTION: Stability After Success | Functions: stabilityAfterSuccess ═══ */
     function stabilityAfterSuccess(S, D, R) {
       if (!S || S <= 0) S = 1;
       if (!D || D <= 0) D = 5;
@@ -6842,6 +7290,7 @@ input[type="range"]::-moz-range-thumb{
       return clamp(Sp, 0.1, 3650);
     }
 
+    /* ═══ SECTION: Stability After Forget | Functions: stabilityAfterForget ═══ */
     function stabilityAfterForget(S, D, R) {
       if (!S || S < 0) S = 1;
       if (!D || D <= 0) D = 5;
@@ -6849,6 +7298,7 @@ input[type="range"]::-moz-range-thumb{
       return clamp(Sp, 0.1, 3650);
     }
 
+    /* ═══ SECTION: Next Interval Days | Functions: nextIntervalDays ═══ */
     function nextIntervalDays(S, desiredRetention) {
       var r = desiredRetention || 0.9;
       r = clamp(r, 0.80, 0.95);
@@ -6858,6 +7308,7 @@ input[type="range"]::-moz-range-thumb{
       return Math.max(0.1, S / factor * (Math.pow(r, -1.0 / decay) - 1.0));
     }
 
+    /* ═══ SECTION: Schedule Fsrs | Functions: scheduleFsrs ═══ */
     function scheduleFsrs(item, rating, nowTs, allowWrite) {
       if (!item.fsrs) {
         item.fsrs = { stability: 0, difficulty: 0, due: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), lastReview: null, reps: 0, lapses: 0, state: 'new' };
@@ -6927,6 +7378,7 @@ input[type="range"]::-moz-range-thumb{
       model: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="10" rx="1.5"/><polyline points="2,5 8,9 14,5"/></svg>'
     };
 
+    /* ═══ SECTION: Icon | Functions: icon ═══ */
     function icon(name, size) {
       var svg = ICONS[name] || '';
       if (size) {
@@ -6948,6 +7400,7 @@ input[type="range"]::-moz-range-thumb{
     var session = null;
     var sessionSummary = null;
 
+    /* ═══ SECTION: Uid | Functions: uid ═══ */
     function uid() {
       return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
         var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
@@ -6955,6 +7408,7 @@ input[type="range"]::-moz-range-thumb{
       });
     }
 
+    /* ═══ SECTION: Tier Label | Functions: tierLabel ═══ */
     function tierLabel(tier) {
       return ({
         quickfire: 'QF',
@@ -6966,6 +7420,7 @@ input[type="range"]::-moz-range-thumb{
       })[tier] || '—';
     }
 
+    /* ═══ SECTION: Tier Colour | Functions: tierColour ═══ */
     function tierColour(tier) {
       return ({
         quickfire: getComputedStyle(document.documentElement).getPropertyValue('--tier-qf').trim(),
@@ -6977,6 +7432,7 @@ input[type="range"]::-moz-range-thumb{
       })[tier] || getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
     }
 
+    /* ═══ SECTION: Set Tier Badge | Functions: setTierBadge ═══ */
     function setTierBadge(tier) {
       var b = el('tierBadge');
       var t = el('tierBadgeText');
@@ -6987,6 +7443,7 @@ input[type="range"]::-moz-range-thumb{
       t.textContent = tierLabel(tier);
     }
 
+    /* ═══ SECTION: Show View | Functions: showView ═══ */
     function showView(nextId) {
       var views = [viewDash, viewSession, viewDone];
       var next = el(nextId);
@@ -7026,6 +7483,7 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Count Due | Functions: countDue ═══ */
     function countDue(itemsById, course, topic) {
       var now = Date.now();
       var out = { total: 0, byTier: { quickfire:0, explain:0, apply:0, distinguish:0, mock:0, worked:0 } };
@@ -7060,6 +7518,7 @@ input[type="range"]::-moz-range-thumb{
       return out;
     }
 
+    /* ═══ SECTION: Avg Retention | Functions: avgRetention ═══ */
     function avgRetention(itemsById) {
       var now = Date.now();
       var sum = 0, n = 0;
@@ -7075,6 +7534,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* Recompute stats from actual item data — call after any delete/archive */
+    /* ═══ SECTION: Reconcile Stats | Functions: reconcileStats ═══ */
     function reconcileStats() {
       var totalReviews = 0;
       var byTier = { quickfire: 0, explain: 0, apply: 0, distinguish: 0, mock: 0, worked: 0 };
@@ -7108,12 +7568,14 @@ input[type="range"]::-moz-range-thumb{
       state.stats.reviewsByTier = byTier;
     }
 
+    /* ═══ SECTION: Calibration Pct | Functions: calibrationPct ═══ */
     function calibrationPct(cal) {
       if (!cal || !cal.totalSelfRatings) return null;
       var p = (cal.totalActualCorrect || 0) / Math.max(1, cal.totalSelfRatings);
       return clamp(p, 0, 1);
     }
 
+    /* ═══ SECTION: Get Overconfident Topics | Functions: getOverconfidentTopics ═══ */
     function getOverconfidentTopics(courseName) {
       var topicStats = {};
       for (var id in state.items) {
@@ -7140,6 +7602,7 @@ input[type="range"]::-moz-range-thumb{
       return overconfident;
     }
 
+    /* ═══ SECTION: Get Sleep Aware Advice | Functions: getSleepAwareAdvice ═══ */
     function getSleepAwareAdvice() {
       var hour = new Date().getHours();
       if (hour >= 19 || hour < 5) {
@@ -7163,6 +7626,7 @@ input[type="range"]::-moz-range-thumb{
       return { show: false, bias: 'neutral' };
     }
 
+    /* ═══ SECTION: Set Cal Arc | Functions: setCalArc ═══ */
     function setCalArc(p) {
       var arc = el('calArc');
       var dash = 120;
@@ -7173,6 +7637,7 @@ input[type="range"]::-moz-range-thumb{
       arc.style.stroke = col;
     }
 
+    /* ═══ SECTION: Render Dashboard | Functions: renderDashboard ═══ */
     function renderDashboard() {
       var due = countDue(state.items, 'All', 'All');
       var totalItems = 0;
@@ -7307,6 +7772,7 @@ input[type="range"]::-moz-range-thumb{
       renderCourseCards();
     }
 
+    /* ═══ SECTION: Render Course Cards | Functions: renderCourseCards ═══ */
     function renderCourseCards() {
       var container = el('courseCardsArea');
       var topicEmpty = el('topicChipsEmpty');
@@ -7390,6 +7856,7 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Render Course Chips | Functions: renderCourseChips ═══ */
     function renderCourseChips(courseList) {
       var chips = '';
       courseList.forEach(function(c) {
@@ -7412,6 +7879,7 @@ input[type="range"]::-moz-range-thumb{
       });
     }
 
+    /* ═══ SECTION: Render Topic Chips | Functions: renderTopicChips ═══ */
     function renderTopicChips() {
       var wrap = el('topicChipsWrap');
       var container = el('topicChips');
@@ -7461,6 +7929,7 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Animate Counter | Functions: animateCounter ═══ */
     function animateCounter(target, endVal) {
       if (!target) return;
       if (!window.gsap) { target.textContent = String(endVal); return; }
@@ -7475,6 +7944,7 @@ input[type="range"]::-moz-range-thumb{
       });
     }
 
+    /* ═══ SECTION: Esc | Functions: esc ═══ */
     function esc(s){
       return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
@@ -7483,6 +7953,7 @@ input[type="range"]::-moz-range-thumb{
     var sidebarSelection = { level: 'all', course: null, module: null, topic: null };
     var sidebarExpanded = {}; // keys: course names or module ids, values: booleans
 
+    /* ═══ SECTION: Build Course Tree | Functions: buildCourseTree ═══ */
     function buildCourseTree() {
       var tree = {};
       for (var id in state.items) {
@@ -7510,6 +7981,7 @@ input[type="range"]::-moz-range-thumb{
       return tree;
     }
 
+    /* ═══ SECTION: Render Sidebar | Functions: renderSidebar ═══ */
     function renderSidebar() {
       if (isEmbedded) return;
       var container = document.getElementById('sidebarTree');
@@ -7724,6 +8196,7 @@ input[type="range"]::-moz-range-thumb{
       };
     }
 
+    /* ═══ SECTION: Update Breadcrumb | Functions: updateBreadcrumb ═══ */
     function updateBreadcrumb() {
       if (isEmbedded) return;
       var bc = document.getElementById('mainBreadcrumb');
@@ -7760,6 +8233,7 @@ input[type="range"]::-moz-range-thumb{
       };
     }
 
+    /* ═══ SECTION: Apply Sidebar Filter | Functions: applySidebarFilter ═══ */
     function applySidebarFilter() {
       // 1) Bridge to existing course filter
       applySidebarFilterChipsOnly();
@@ -7789,6 +8263,7 @@ input[type="range"]::-moz-range-thumb{
       try { renderDashboard(); } catch (e2) {}
     }
 
+    /* ═══ SECTION: Hide Context Views | Functions: hideContextViews ═══ */
     function hideContextViews() {
       var cv = document.getElementById('courseDashView');
       var mv = document.getElementById('moduleDetailView');
@@ -7800,6 +8275,7 @@ input[type="range"]::-moz-range-thumb{
       if (normalDash) normalDash.style.display = '';
     }
 
+    /* ═══ SECTION: Apply Sidebar Filter Chips Only | Functions: applySidebarFilterChipsOnly ═══ */
     function applySidebarFilterChipsOnly() {
       try {
         if (sidebarSelection.level === 'all' || !sidebarSelection.course) {
@@ -7810,6 +8286,7 @@ input[type="range"]::-moz-range-thumb{
       } catch (e) {}
     }
 
+    /* ═══ SECTION: Render Card List | Functions: renderCardList ═══ */
     function renderCardList(cards) {
       cards = (cards || []).slice();
       cards.sort(function(a, b) {
@@ -7842,11 +8319,13 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* ── Inline Sidebar Input ── */
+    /* ═══ SECTION: Dismiss Inline Sidebar Input | Functions: dismissInlineSidebarInput ═══ */
     function dismissInlineSidebarInput() {
       var existing = document.querySelector('.sb-inline-input-wrap');
       if (existing) existing.remove();
     }
 
+    /* ═══ SECTION: Show Inline Sidebar Input | Functions: showInlineSidebarInput ═══ */
     function showInlineSidebarInput(parentNode, placeholder, callback) {
       dismissInlineSidebarInput();
 
@@ -7871,12 +8350,14 @@ input[type="range"]::-moz-range-thumb{
       var confirmBtn = wrapper.querySelector('.sb-inline-confirm');
       var cancelBtn = wrapper.querySelector('.sb-inline-cancel');
 
+      /* ═══ SECTION: Submit | Functions: submit ═══ */
       function submit() {
         var val = (input && input.value) ? input.value.trim() : '';
         dismissInlineSidebarInput();
         if (val && callback) callback(val);
       }
 
+      /* ═══ SECTION: Cancel | Functions: cancel ═══ */
       function cancel() {
         dismissInlineSidebarInput();
       }
@@ -7897,6 +8378,7 @@ input[type="range"]::-moz-range-thumb{
     /* ── Sidebar Context Menus ── */
     var _activeCtxMenu = null;
 
+    /* ═══ SECTION: Dismiss Ctx Menu | Functions: dismissCtxMenu ═══ */
     function dismissCtxMenu() {
       if (_activeCtxMenu) {
         _activeCtxMenu.remove();
@@ -7905,6 +8387,7 @@ input[type="range"]::-moz-range-thumb{
       document.removeEventListener('click', dismissCtxMenu);
     }
 
+    /* ═══ SECTION: Show Ctx Menu At | Functions: showCtxMenuAt ═══ */
     function showCtxMenuAt(anchorEl, items) {
       dismissCtxMenu();
       var menu = document.createElement('div');
@@ -7943,6 +8426,7 @@ input[type="range"]::-moz-range-thumb{
       }, 10);
     }
 
+    /* ═══ SECTION: Show Course Context Menu | Functions: showCourseContextMenu ═══ */
     function showCourseContextMenu(courseName, anchor) {
       showCtxMenuAt(anchor, [
         {
@@ -8012,6 +8496,7 @@ input[type="range"]::-moz-range-thumb{
       ]);
     }
 
+    /* ═══ SECTION: Show Module Context Menu | Functions: showModuleContextMenu ═══ */
     function showModuleContextMenu(courseName, moduleId, anchor) {
       var mod = getModuleById(courseName, moduleId);
       if (!mod) return;
@@ -8068,6 +8553,7 @@ input[type="range"]::-moz-range-thumb{
       ]);
     }
 
+    /* ═══ SECTION: Show Course Dashboard | Functions: showCourseDashboard ═══ */
     function showCourseDashboard(courseName) {
       hideContextViews();
       var view = document.getElementById('courseDashView');
@@ -8188,6 +8674,7 @@ input[type="range"]::-moz-range-thumb{
       if (window.gsap) gsap.fromTo(content, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
     }
 
+    /* ═══ SECTION: Show Module View | Functions: showModuleView ═══ */
     function showModuleView(courseName, moduleId) {
       hideContextViews();
       var view = document.getElementById('moduleDetailView');
@@ -8274,6 +8761,7 @@ input[type="range"]::-moz-range-thumb{
       if (window.gsap) gsap.fromTo(content, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
     }
 
+    /* ═══ SECTION: Show Topic View | Functions: showTopicView ═══ */
     function showTopicView(courseName, topic) {
       hideContextViews();
       var view = document.getElementById('topicDetailView');
@@ -8325,6 +8813,7 @@ input[type="range"]::-moz-range-thumb{
     var ttsAudioCtx = null;
     var ttsCurrentSource = null;
 
+    /* ═══ SECTION: Get Widget Key | Functions: getWidgetKey ═══ */
     function getWidgetKey() {
       try {
         if (typeof SyncEngine !== 'undefined') {
@@ -8338,6 +8827,7 @@ input[type="range"]::-moz-range-thumb{
       return '';
     }
 
+    /* ═══ SECTION: Play Tts | Functions: playTTS ═══ */
     function playTTS(text) {
       return new Promise(function(resolve) {
         if (!text || text.length < 3) { resolve(); return; }
@@ -8390,6 +8880,7 @@ input[type="range"]::-moz-range-thumb{
       });
     }
 
+    /* ═══ SECTION: Stop Tts | Functions: stopTTS ═══ */
     function stopTTS() {
       if (ttsCurrentSource) {
         try { ttsCurrentSource.stop(); } catch (e) {}
@@ -8401,6 +8892,7 @@ input[type="range"]::-moz-range-thumb{
       });
     }
 
+    /* ═══ SECTION: Insert Listen Button | Functions: insertListenButton ═══ */
     function insertListenButton(targetEl, text) {
       if (!targetEl || !text || text.length < 10) return;
       if (!targetEl.parentElement) return;
@@ -8475,6 +8967,7 @@ input[type="range"]::-moz-range-thumb{
     var lightboxLastX = 0;
     var lightboxLastY = 0;
 
+    /* ═══ SECTION: Apply Lightbox Transform | Functions: applyLightboxTransform ═══ */
     function applyLightboxTransform(body) {
       var svg = body && body.querySelector('svg');
       if (!svg) return;
@@ -8482,6 +8975,7 @@ input[type="range"]::-moz-range-thumb{
       svg.style.transformOrigin = 'center center';
     }
 
+    /* ═══ SECTION: Open Visual Lightbox | Functions: openVisualLightbox ═══ */
     function openVisualLightbox(svgHTML) {
       var ov = el('visualLightbox');
       var body = el('visualLightboxBody');
@@ -8496,6 +8990,7 @@ input[type="range"]::-moz-range-thumb{
       try { playOpen(); } catch (e) {}
     }
 
+    /* ═══ SECTION: Close Visual Lightbox | Functions: closeVisualLightbox ═══ */
     function closeVisualLightbox() {
       var ov = el('visualLightbox');
       if (!ov) return;
@@ -8573,6 +9068,7 @@ input[type="range"]::-moz-range-thumb{
       }, true);
     })();
 
+    /* ═══ SECTION: Render Mermaid Block | Functions: renderMermaidBlock ═══ */
     function renderMermaidBlock(mermaidCode, placement, itemId) {
       if (!mermaidCode) return '';
       var id = 'mermaid-' + (++mermaidIdCounter);
@@ -8586,6 +9082,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /** Same heuristics as worker: truncated mid-edge → Mermaid parse fails → raw fallback */
+    /* ═══ SECTION: Looks Incomplete Mermaid | Functions: looksIncompleteMermaid ═══ */
     function looksIncompleteMermaid(s) {
       if (!s || typeof s !== 'string') return true;
       var t = s.trim().replace(/^```mermaid\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
@@ -8617,6 +9114,7 @@ input[type="range"]::-moz-range-thumb{
       return false;
     }
 
+    /* ═══ SECTION: Attempt Recover Truncated Mermaid | Functions: attemptRecoverTruncatedMermaid ═══ */
     function attemptRecoverTruncatedMermaid(elm, code) {
       var wrap = elm.closest('.visual-container');
       var itemId = wrap && wrap.getAttribute('data-item-id');
@@ -8643,6 +9141,7 @@ input[type="range"]::-moz-range-thumb{
       return true;
     }
 
+    /* ═══ SECTION: Sanitize Mermaid Code | Functions: sanitizeMermaidCode ═══ */
     function sanitizeMermaidCode(raw) {
       if (!raw || typeof raw !== 'string') return '';
       var t = raw.trim();
@@ -8665,6 +9164,7 @@ input[type="range"]::-moz-range-thumb{
       return cleaned.join('\n').trim();
     }
 
+    /* ═══ SECTION: Init Mermaid Blocks | Functions: initMermaidBlocks ═══ */
     function initMermaidBlocks() {
       if (typeof mermaid === 'undefined') {
         console.warn('[StudyEngine] Mermaid.js not loaded — visual cues will show as code');
@@ -8706,6 +9206,7 @@ input[type="range"]::-moz-range-thumb{
       });
     }
 
+    /* ═══ SECTION: Ensure Answer Visual | Functions: ensureAnswerVisual ═══ */
     function ensureAnswerVisual(it, revealTier) {
       if (!it || !it.id || it.visual || visualGenerationPending[it.id]) return;
       visualGenerationPending[it.id] = true;
@@ -8747,6 +9248,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* ── Safe Markdown rendering (Marked + DOMPurify) ── */
+    /* ═══ SECTION: Render Md | Functions: renderMd ═══ */
     function renderMd(text) {
       if (!text) return '';
       if (typeof marked === 'undefined' || typeof DOMPurify === 'undefined') {
@@ -8777,6 +9279,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* ── Topic Tag Suggestions (course-scoped) ── */
+    /* ═══ SECTION: Get Topics For Course | Functions: getTopicsForCourse ═══ */
     function getTopicsForCourse(courseName) {
       if (!courseName) return [];
       var topics = {};
@@ -8794,6 +9297,7 @@ input[type="range"]::-moz-range-thumb{
       });
     }
 
+    /* ═══ SECTION: Render Topic Suggestions | Functions: renderTopicSuggestions ═══ */
     function renderTopicSuggestions(inputId, courseName, containerId) {
       var existing = getTopicsForCourse(courseName);
       var container = el(containerId);
@@ -8831,6 +9335,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* ── Essay Mode Detection + Helpers ── */
+    /* ═══ SECTION: Get Course Exam Type | Functions: getCourseExamType ═══ */
     function getCourseExamType(course) {
       if (!course) return '';
       if (settings && settings.courseExamTypes && settings.courseExamTypes[course]) {
@@ -8844,6 +9349,7 @@ input[type="range"]::-moz-range-thumb{
       return '';
     }
 
+    /* ═══ SECTION: Is Essay Mode | Functions: isEssayMode ═══ */
     function isEssayMode(item) {
       var course = item ? item.course : null;
       var examType = (item && item.examType) ? String(item.examType).toLowerCase() : getCourseExamType(course);
@@ -8851,17 +9357,20 @@ input[type="range"]::-moz-range-thumb{
       return (examType === 'essay' || examType === 'short_answer' || mins >= 15);
     }
 
+    /* ═══ SECTION: Get Essay Word Target | Functions: getEssayWordTarget ═══ */
     function getEssayWordTarget(mins) {
       if (mins >= 30) return { min: 625, max: 875, label: '2.5-3.5 pages' };
       if (mins >= 15) return { min: 375, max: 625, label: '1.5-2.5 pages' };
       return { min: 200, max: 400, label: '1-1.5 pages' };
     }
 
+    /* ═══ SECTION: Count Words | Functions: countWords ═══ */
     function countWords(text) {
       if (!text || !text.trim()) return 0;
       return text.trim().split(/\s+/).length;
     }
 
+    /* ═══ SECTION: Get Essay Structure Hint | Functions: getEssayStructureHint ═══ */
     function getEssayStructureHint(examType) {
       if (examType === 'short_answer') {
         return '<strong>Structure:</strong> Opening claim -> 2-3 evidence paragraphs with specific data -> Concluding synthesis';
@@ -8892,21 +9401,26 @@ input[type="range"]::-moz-range-thumb{
       'Do 10 squats or push-ups. Exercise-induced BDNF enhances memory consolidation.',
       'Look out a window. Natural light exposure resets attentional circuitry.'
     ];
+    /* ═══ SECTION: Get Break Tip | Functions: getBreakTip ═══ */
     function getBreakTip() { return BREAK_TIPS[Math.floor(Math.random() * BREAK_TIPS.length)]; }
+    /* ═══ SECTION: Is Hot Streak | Functions: isHotStreak ═══ */
     function isHotStreak() {
       if (!session || !session.recentRatings || session.recentRatings.length < 6) return false;
       var recent = session.recentRatings.slice(-6);
       return recent.every(function(r) { return r >= 3; });
     }
+    /* ═══ SECTION: Get Session Elapsed Mins | Functions: getSessionElapsedMins ═══ */
     function getSessionElapsedMins() {
       if (!breakState.sessionStartTime) return 0;
       return (Date.now() - breakState.sessionStartTime) / (1000 * 60);
     }
+    /* ═══ SECTION: Get Time Since Break Mins | Functions: getTimeSinceBreakMins ═══ */
     function getTimeSinceBreakMins() {
       var ref = breakState.lastBreakTime || breakState.sessionStartTime;
       if (!ref) return 0;
       return (Date.now() - ref) / (1000 * 60);
     }
+    /* ═══ SECTION: Show Break Banner | Functions: showBreakBanner ═══ */
     function showBreakBanner(type, title, sub, showTakeBtn) {
       var banner = el('breakBanner');
       if (!banner) return;
@@ -8937,6 +9451,7 @@ input[type="range"]::-moz-range-thumb{
       });
       if (window.gsap) gsap.fromTo(banner, { opacity: 0, y: -6 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
     }
+    /* ═══ SECTION: Check Break Triggers | Functions: checkBreakTriggers ═══ */
     function checkBreakTriggers() {
       if (!session || !settings.breakReminders) return;
       var banner = el('breakBanner');
@@ -8980,6 +9495,7 @@ input[type="range"]::-moz-range-thumb{
       banner.classList.remove('show');
       hint.classList.remove('show');
     }
+    /* ═══ SECTION: Start Break Timer | Functions: startBreakTimer ═══ */
     function startBreakTimer(durationMins) {
       var overlay = el('breakOverlay');
       var timerEl = el('breakTimer');
@@ -9014,6 +9530,7 @@ input[type="range"]::-moz-range-thumb{
           { scale: 1, opacity: 1, duration: 0.4, ease: 'back.out(1.6)' });
       }
     }
+    /* ═══ SECTION: End Break | Functions: endBreak ═══ */
     function endBreak() {
       var overlay = el('breakOverlay');
       if (overlay) overlay.classList.remove('show');
@@ -9027,6 +9544,7 @@ input[type="range"]::-moz-range-thumb{
 
     /* ── Session construction ── */
     /* ── Intelligent Session Builder ── */
+    /* ═══ SECTION: Build Session Queue | Functions: buildSessionQueue ═══ */
     function buildSessionQueue() {
       var now = Date.now();
       var courseFilter = selectedCourse;
@@ -9207,6 +9725,7 @@ input[type="range"]::-moz-range-thumb{
       return queue;
     }
 
+    /* ═══ SECTION: Shuffle | Functions: shuffle ═══ */
     function shuffle(arr) {
       for (var i = arr.length - 1; i > 0; i--) {
         var j = Math.floor(Math.random() * (i + 1));
@@ -9215,6 +9734,7 @@ input[type="range"]::-moz-range-thumb{
       return arr;
     }
 
+    /* ═══ SECTION: Reweight Profile | Functions: reweightProfile ═══ */
     function reweightProfile(profile, tierBuckets, targetTotal) {
       var tierOrder = ['quickfire', 'explain', 'apply', 'distinguish', 'mock', 'worked'];
       var counts = {};
@@ -9271,6 +9791,7 @@ input[type="range"]::-moz-range-thumb{
       return counts;
     }
 
+    /* ═══ SECTION: Interleave Queue | Functions: interleaveQueue ═══ */
     function interleaveQueue(queue) {
       /* Group by presentation tier, then round-robin */
       var groups = {};
@@ -9298,6 +9819,7 @@ input[type="range"]::-moz-range-thumb{
 
     var PRIME_WORKER_URL = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/prime';
 
+    /* ═══ SECTION: Start Prime Mode | Functions: startPrimeMode ═══ */
     function startPrimeMode(courseName) {
       var course = getCourse(courseName);
       if (!course) { toast('Course not found'); return; }
@@ -9336,6 +9858,7 @@ input[type="range"]::-moz-range-thumb{
         });
     }
 
+    /* ═══ SECTION: Show Prime Overlay | Functions: showPrimeOverlay ═══ */
     function showPrimeOverlay(questions, courseName) {
       var overlay = document.createElement('div');
       overlay.className = 'overlay show';
@@ -9373,6 +9896,7 @@ input[type="range"]::-moz-range-thumb{
       document.body.appendChild(overlay);
     }
 
+    /* ═══ SECTION: Start Session | Functions: startSession ═══ */
     function startSession() {
       var q = buildSessionQueue();
       session = {
@@ -9422,6 +9946,7 @@ input[type="range"]::-moz-range-thumb{
     var restudyIntervalTimer = null;
     var restudyTimeoutTimer = null;
 
+    /* ═══ SECTION: Clear Timers | Functions: clearTimers ═══ */
     function clearTimers() {
       if (tierTimer) { clearInterval(tierTimer); tierTimer = null; }
       if (mockCountdownTimer) { clearInterval(mockCountdownTimer); mockCountdownTimer = null; }
@@ -9433,6 +9958,7 @@ input[type="range"]::-moz-range-thumb{
       if (breakState.breakTimerInterval) { clearInterval(breakState.breakTimerInterval); breakState.breakTimerInterval = null; }
     }
 
+    /* ═══ SECTION: Auto Grow Textarea | Functions: autoGrowTextarea ═══ */
     function autoGrowTextarea(ta) {
       if (!ta) return;
       ta.style.height = 'auto';
@@ -9440,6 +9966,7 @@ input[type="range"]::-moz-range-thumb{
       ta.style.height = h + 'px';
     }
 
+    /* ═══ SECTION: Rubric Template | Functions: rubricTemplate ═══ */
     function rubricTemplate(tier) {
       var col = tierColour(tier);
       return '' +
@@ -9450,6 +9977,7 @@ input[type="range"]::-moz-range-thumb{
         '</div>';
     }
 
+    /* ═══ SECTION: Rub Row | Functions: rubRow ═══ */
     function rubRow(label, opts, key, col) {
       var h = '<div class="rub-row" data-rub="'+ key +'">' +
         '<div class="lbl">' + esc(label) + '</div>' +
@@ -9461,6 +9989,7 @@ input[type="range"]::-moz-range-thumb{
       return h;
     }
 
+    /* ═══ SECTION: Bind Rubric | Functions: bindRubric ═══ */
     function bindRubric(tier) {
       activeRubric = { acc: null, dep: null, cla: null, tier: tier };
       var root = el('rubric');
@@ -9481,6 +10010,7 @@ input[type="range"]::-moz-range-thumb{
       });
     }
 
+    /* ═══ SECTION: Rubric To Fsrs Rating | Functions: rubricToFsrsRating ═══ */
     function rubricToFsrsRating() {
       if (!activeRubric) return 2;
       var vals = [activeRubric.acc, activeRubric.dep, activeRubric.cla];
@@ -9492,6 +10022,7 @@ input[type="range"]::-moz-range-thumb{
       return 4; /* all high */
     }
 
+    /* ═══ SECTION: Render Current Item | Functions: renderCurrentItem ═══ */
     function renderCurrentItem() {
       document.querySelectorAll('.listen-tts-btn').forEach(function(btn) { btn.remove(); });
       clearTimers();
@@ -9650,6 +10181,7 @@ input[type="range"]::-moz-range-thumb{
         /* Prompt is scenario; modelAnswer includes ideal response. Task is embedded at top of modelAnswer if provided. */
         var scen = it.prompt || '';
         var task = (it.task || '');
+        /* ═══ SECTION: Is Near Duplicate Instruction | Functions: isNearDuplicateInstruction ═══ */
         function isNearDuplicateInstruction(longText, shortText) {
           var longNorm = String(longText || '')
             .toLowerCase()
@@ -9822,6 +10354,7 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Start Apply Timer | Functions: startApplyTimer ═══ */
     function startApplyTimer() {
       var start = Date.now();
       var badge = el('metaTimer');
@@ -9832,6 +10365,7 @@ input[type="range"]::-moz-range-thumb{
       }, 250);
     }
 
+    /* ═══ SECTION: Start Mock Timer | Functions: startMockTimer ═══ */
     function startMockTimer() {
       var badge = el('metaTimer');
       badge.style.display = 'inline-flex';
@@ -9851,6 +10385,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* ── Essay Mode Phase Functions ── */
+    /* ═══ SECTION: Start Essay Outline Timer | Functions: startEssayOutlineTimer ═══ */
     function startEssayOutlineTimer(outlineMins) {
       essayOutlineEndsAt = Date.now() + (outlineMins * 60 * 1000);
       var phaseTimerEl = el('essayPhaseTimer');
@@ -9875,6 +10410,7 @@ input[type="range"]::-moz-range-thumb{
       }, 250);
     }
 
+    /* ═══ SECTION: Transition To Writing Phase | Functions: transitionToWritingPhase ═══ */
     function transitionToWritingPhase(item, writingMins, wordTarget, examType) {
       if (essayPhase !== 'outline') return;
       essayPhase = 'writing';
@@ -9930,6 +10466,7 @@ input[type="range"]::-moz-range-thumb{
       toast('Writing phase - go!');
     }
 
+    /* ═══ SECTION: Update Essay Word Count | Functions: updateEssayWordCount ═══ */
     function updateEssayWordCount(text, wordTarget) {
       var wc = countWords(text);
       var wcEl = el('essayWordCount');
@@ -9955,6 +10492,7 @@ input[type="range"]::-moz-range-thumb{
     var DISTILL_ENDPOINT = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/distill';
     var LECTURE_CTX_ENDPOINT = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/lecture-context';
 
+    /* ═══ SECTION: Default Tutor Stats | Functions: defaultTutorStats ═══ */
     function defaultTutorStats() {
       return {
         totalCalls: 0,
@@ -9973,10 +10511,12 @@ input[type="range"]::-moz-range-thumb{
       };
     }
 
+    /* ═══ SECTION: Default Tutor Mode Counts | Functions: defaultTutorModeCounts ═══ */
     function defaultTutorModeCounts() {
       return { socratic: 0, quick: 0, teach: 0, insight: 0, acknowledge: 0 };
     }
 
+    /* ═══ SECTION: Record Tutor Api Success | Functions: recordTutorApiSuccess ═══ */
     function recordTutorApiSuccess(mode, model) {
       if (!session || !session.tutorStats) return;
       var ts = session.tutorStats;
@@ -9993,6 +10533,7 @@ input[type="range"]::-moz-range-thumb{
       persistTutorAnalyticsDeltas();
     }
 
+    /* ═══ SECTION: Note Reconstruction Prompt Shown | Functions: noteReconstructionPromptShown ═══ */
     function noteReconstructionPromptShown() {
       if (!session || !session.tutorStats) return;
       session.tutorStats.reconstructions++;
@@ -10000,6 +10541,7 @@ input[type="range"]::-moz-range-thumb{
       persistTutorAnalyticsDeltas();
     }
 
+    /* ═══ SECTION: Upsert Tutor Session History Row | Functions: upsertTutorSessionHistoryRow ═══ */
     function upsertTutorSessionHistoryRow(analytics, ts, historyKey) {
       var hist = analytics.sessionHistory || (analytics.sessionHistory = []);
       var today = new Date().toISOString().split('T')[0];
@@ -10027,6 +10569,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* Merge only deltas since last persist so we can flush after each tutor API call without double-counting. */
+    /* ═══ SECTION: Persist Tutor Analytics Deltas | Functions: persistTutorAnalyticsDeltas ═══ */
     function persistTutorAnalyticsDeltas() {
       if (typeof SyncEngine === 'undefined' || !SyncEngine.get || !SyncEngine.set) return;
       if (!session || !session.tutorStats) return;
@@ -10094,6 +10637,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* Call once when a study session ends (complete or early leave). */
+    /* ═══ SECTION: Finalize Tutor Analytics Session | Functions: finalizeTutorAnalyticsSession ═══ */
     function finalizeTutorAnalyticsSession() {
       if (!session || session._tutorAnalyticsSessionFinalized) return;
       if (typeof SyncEngine === 'undefined' || !SyncEngine.get || !SyncEngine.set) return;
@@ -10121,6 +10665,7 @@ input[type="range"]::-moz-range-thumb{
       } catch (e) {}
     }
 
+    /* ═══ SECTION: Render Tutor Analytics Dashboard | Functions: renderTutorAnalyticsDashboard ═══ */
     function renderTutorAnalyticsDashboard() {
       var avgEl = el('tutorStatAvgTurns');
       var reconEl = el('tutorStatRecon');
@@ -10154,6 +10699,7 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Refresh Cost Estimate In Settings | Functions: refreshCostEstimateInSettings ═══ */
     function refreshCostEstimateInSettings() {
       var box = el('s_costEstimate');
       if (!box || typeof SyncEngine === 'undefined' || !SyncEngine.get) return;
@@ -10180,6 +10726,7 @@ input[type="range"]::-moz-range-thumb{
       box.textContent = 'This month: ' + flashM + ' Flash / ' + proM + ' Pro calls · Estimated cost: ~' + costStr;
     }
 
+    /* ═══ SECTION: Request Session Ai Summary | Functions: requestSessionAiSummary ═══ */
     function requestSessionAiSummary(sessionSnap, reviewedCount) {
       var wrap = el('sessionAiSummaryWrap');
       var body = el('sessionAiSummaryBody');
@@ -10250,6 +10797,7 @@ input[type="range"]::-moz-range-thumb{
         });
     }
 
+    /* ═══ SECTION: Auto Prepare After Import | Functions: autoPrepareAfterImport ═══ */
     function autoPrepareAfterImport(courseName, importedItems) {
       if (!courseName || !importedItems || importedItems.length < 3) return;
       if (settings.feedbackMode === 'self_rate') return;
@@ -10310,6 +10858,7 @@ input[type="range"]::-moz-range-thumb{
         .catch(function() {});
     }
 
+    /* ═══ SECTION: Maybe Auto Prepare | Functions: maybeAutoPrepare ═══ */
     function maybeAutoPrepare(courseName) {
       var courseData = state.courses && state.courses[courseName];
       if (!courseData || courseData.prepared) return;
@@ -10328,6 +10877,7 @@ input[type="range"]::-moz-range-thumb{
       autoPrepareAfterImport(courseName, allItems);
     }
 
+    /* ═══ SECTION: Extract Pdf Text | Functions: extractPdfText ═══ */
     function extractPdfText(file) {
       return new Promise(function(resolve, reject) {
         if (typeof pdfjsLib === 'undefined') {
@@ -10340,6 +10890,7 @@ input[type="range"]::-moz-range-thumb{
           pdfjsLib.getDocument({ data: typedArray }).promise.then(function(pdf) {
             var pages = [];
             var total = pdf.numPages;
+            /* ═══ SECTION: Extract Page | Functions: extractPage ═══ */
             function extractPage(i) {
               if (i > total) {
                 resolve(pages.join('\n\n'));
@@ -10361,6 +10912,7 @@ input[type="range"]::-moz-range-thumb{
       });
     }
 
+    /* ═══ SECTION: Post Syllabus Distill | Functions: postSyllabusDistill ═══ */
     function postSyllabusDistill(rawText, courseName, existingExamType) {
       var t = rawText != null ? String(rawText) : '';
       var truncated = t.length > 15000 ? t.slice(0, 15000) : t;
@@ -10378,11 +10930,13 @@ input[type="range"]::-moz-range-thumb{
       }).then(function(res) { return res.json(); });
     }
 
+    /* ═══ SECTION: Get All Tutor Memories | Functions: getAllTutorMemories ═══ */
     function getAllTutorMemories() {
       if (typeof SyncEngine === 'undefined' || !SyncEngine.get) return [];
       return SyncEngine.get(NS, 'tutorMemories') || [];
     }
 
+    /* ═══ SECTION: Get Course Scoped Memories For Display | Functions: getCourseScopedMemoriesForDisplay ═══ */
     function getCourseScopedMemoriesForDisplay(courseName) {
       return getAllTutorMemories()
         .filter(function(m) {
@@ -10391,22 +10945,26 @@ input[type="range"]::-moz-range-thumb{
         .sort(function(a, b) { return (b.confidence || 0) - (a.confidence || 0); });
     }
 
+    /* ═══ SECTION: Get Global Memories For Display | Functions: getGlobalMemoriesForDisplay ═══ */
     function getGlobalMemoriesForDisplay() {
       return getAllTutorMemories()
         .filter(function(m) { return m && m.scope === 'global'; })
         .sort(function(a, b) { return (b.confidence || 0) - (a.confidence || 0); });
     }
 
+    /* ═══ SECTION: Memory Type Label | Functions: memoryTypeLabel ═══ */
     function memoryTypeLabel(t) {
       var map = { pattern: 'Pattern', misconception: 'Misconception', strength: 'Strength', connection: 'Connection' };
       return map[t] || (t ? String(t) : 'Note');
     }
 
+    /* ═══ SECTION: Tutor Notes Info Icon Html | Functions: tutorNotesInfoIconHTML ═══ */
     function tutorNotesInfoIconHTML() {
       return '<span class="info-icon" tabindex="0" role="button" aria-label="What are tutor notes?">ⓘ' +
         '<span class="info-tooltip">Tutor notes are observations the AI tutor builds about your learning over time. It tracks recurring mistakes (patterns), specific misunderstandings (misconceptions), reliable knowledge areas (strengths), and links between topics (connections). These memories persist across sessions, so the tutor can reference past struggles, connect new material to things you already know, and avoid repeating feedback you have already absorbed. Course-specific notes apply only within one course; global notes inform the tutor across all your courses.<span class="tip-arrow"></span></span></span>';
     }
 
+    /* ═══ SECTION: Render Single Tutor Note Html | Functions: renderSingleTutorNoteHTML ═══ */
     function renderSingleTutorNoteHTML(m) {
       var confPct = Math.min(100, Math.max(0, Math.round((Number(m.confidence) || 0.5) * 100)));
       var scopeLabel = m && m.scope === 'global' ? 'GLOBAL' : 'COURSE';
@@ -10418,6 +10976,7 @@ input[type="range"]::-moz-range-thumb{
         '</div>';
     }
 
+    /* ═══ SECTION: Render Tutor Notes Clear Controls | Functions: renderTutorNotesClearControls ═══ */
     function renderTutorNotesClearControls(scope, courseName) {
       var attrs = ' data-clear-scope="' + esc(scope || '') + '"';
       if (scope === 'course' && courseName) attrs += ' data-course-enc="' + esc(encodeURIComponent(courseName)) + '"';
@@ -10434,6 +10993,7 @@ input[type="range"]::-moz-range-thumb{
         '</div></div></div>';
     }
 
+    /* ═══ SECTION: Render Course Tutor Notes Panel Html | Functions: renderCourseTutorNotesPanelHTML ═══ */
     function renderCourseTutorNotesPanelHTML(courseName) {
       var courseNotes = getCourseScopedMemoriesForDisplay(courseName);
       var globalNotes = getGlobalMemoriesForDisplay();
@@ -10463,6 +11023,7 @@ input[type="range"]::-moz-range-thumb{
         '</div></div>';
     }
 
+    /* ═══ SECTION: Render Global Tutor Notes Overlay Html | Functions: renderGlobalTutorNotesOverlayHTML ═══ */
     function renderGlobalTutorNotesOverlayHTML() {
       var mems = getAllTutorMemories().slice().sort(function(a, b) { return (b.confidence || 0) - (a.confidence || 0); });
       var courseNotes = mems.filter(function(m) { return m && m.scope !== 'global'; });
@@ -10486,6 +11047,7 @@ input[type="range"]::-moz-range-thumb{
       return h;
     }
 
+    /* ═══ SECTION: Wire Tutor Notes Clear Confirmation | Functions: wireTutorNotesClearConfirmation ═══ */
     function wireTutorNotesClearConfirmation(container) {
       if (!container) return;
       var clearTrigger = container.querySelector('.tn-clear-trigger');
@@ -10524,6 +11086,7 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Wire Tutor Notes Panel Toggle | Functions: wireTutorNotesPanelToggle ═══ */
     function wireTutorNotesPanelToggle(host) {
       if (!host) return;
       var btn = host.querySelector('.tutor-notes-toggle');
@@ -10537,6 +11100,7 @@ input[type="range"]::-moz-range-thumb{
       wireTutorNotesClearConfirmation(host);
     }
 
+    /* ═══ SECTION: Clear Course Tutor Memories For Course | Functions: clearCourseTutorMemoriesForCourse ═══ */
     function clearCourseTutorMemoriesForCourse(courseName) {
       if (!courseName || typeof SyncEngine === 'undefined' || !SyncEngine.get || !SyncEngine.set) return;
       var all = SyncEngine.get(NS, 'tutorMemories') || [];
@@ -10555,6 +11119,7 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Clear Global Tutor Memories | Functions: clearGlobalTutorMemories ═══ */
     function clearGlobalTutorMemories() {
       if (typeof SyncEngine === 'undefined' || !SyncEngine.get || !SyncEngine.set) return;
       var all = SyncEngine.get(NS, 'tutorMemories') || [];
@@ -10568,6 +11133,7 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Open Global Tutor Notes Overlay | Functions: openGlobalTutorNotesOverlay ═══ */
     function openGlobalTutorNotesOverlay() {
       var ov = el('globalTutorNotesOv');
       var body = el('globalTutorNotesBody');
@@ -10579,6 +11145,7 @@ input[type="range"]::-moz-range-thumb{
       try { playOpen(); } catch (e0) {}
     }
 
+    /* ═══ SECTION: Close Global Tutor Notes Overlay | Functions: closeGlobalTutorNotesOverlay ═══ */
     function closeGlobalTutorNotesOverlay() {
       var ov = el('globalTutorNotesOv');
       if (!ov) return;
@@ -10588,6 +11155,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     var globalTutorNotesWired = false;
+    /* ═══ SECTION: Wire Global Tutor Notes Ui | Functions: wireGlobalTutorNotesUI ═══ */
     function wireGlobalTutorNotesUI() {
       if (globalTutorNotesWired) return;
       globalTutorNotesWired = true;
@@ -10607,6 +11175,7 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Build Learner Context | Functions: buildLearnerContext ═══ */
     function buildLearnerContext(item, stateObj) {
       var course = item.course || '';
       var topic = item.topic || '';
@@ -10703,10 +11272,12 @@ input[type="range"]::-moz-range-thumb{
       };
     }
 
+    /* ═══ SECTION: Get Feedback Area | Functions: getFeedbackArea ═══ */
     function getFeedbackArea() {
       return document.getElementById('aiFeedbackRight') || el('aiFeedbackArea');
     }
 
+    /* ═══ SECTION: Get Tutor User Name | Functions: getTutorUserName ═══ */
     function getTutorUserName() {
       if (settings.userName && String(settings.userName).trim()) return String(settings.userName).trim();
       try {
@@ -10718,6 +11289,7 @@ input[type="range"]::-moz-range-thumb{
       return 'there';
     }
 
+    /* ═══ SECTION: Select Model | Functions: selectModel ═══ */
     function selectModel(item, sess) {
       var mo = settings.modelOverride || 'adaptive';
       if (mo === 'pro') return 'pro';
@@ -10746,6 +11318,7 @@ input[type="range"]::-moz-range-thumb{
       return proScore >= 3 ? 'pro' : 'flash';
     }
 
+    /* ═══ SECTION: Select Feedback Mode | Functions: selectFeedbackMode ═══ */
     function selectFeedbackMode(item, sess) {
       var fm = settings.feedbackMode || 'adaptive';
       if (fm === 'always_socratic') {
@@ -10778,6 +11351,7 @@ input[type="range"]::-moz-range-thumb{
       return 'quick';
     }
 
+    /* ═══ SECTION: Call Tutor | Functions: callTutor ═══ */
     function callTutor(mode, model, item, userResponse, conversation, context) {
       var modelEff = model || 'flash';
       var payload = {
@@ -10852,6 +11426,7 @@ input[type="range"]::-moz-range-thumb{
     var tutorAcknowledgeOriginalRating = null;
     var tutorInRelearning = false;
 
+    /* ═══ SECTION: Build Tutor Ui | Functions: buildTutorUI ═══ */
     function buildTutorUI(container) {
       var relearningHeader = tutorInRelearning
         ? '<div class="tutor-relearn-banner"><span aria-hidden="true">🔁</span> Re-encoding — Active Recall</div>'
@@ -10898,6 +11473,7 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Add Tutor Message | Functions: addTutorMessage ═══ */
     function addTutorMessage(role, html) {
       var msgs = document.getElementById('tutorMessages');
       if (!msgs) return;
@@ -10918,6 +11494,7 @@ input[type="range"]::-moz-range-thumb{
       msgs.scrollTop = msgs.scrollHeight;
     }
 
+    /* ═══ SECTION: Show Typing Indicator | Functions: showTypingIndicator ═══ */
     function showTypingIndicator() {
       var msgs = document.getElementById('tutorMessages');
       if (!msgs) return;
@@ -10934,11 +11511,13 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Hide Typing Indicator | Functions: hideTypingIndicator ═══ */
     function hideTypingIndicator() {
       var tel = document.getElementById('tutorTyping');
       if (tel) tel.remove();
     }
 
+    /* ═══ SECTION: Update Turn Counter | Functions: updateTurnCounter ═══ */
     function updateTurnCounter() {
       var counter = document.getElementById('tutorTurnCounter');
       if (counter) {
@@ -10946,6 +11525,7 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Disable Tutor Input | Functions: disableTutorInput ═══ */
     function disableTutorInput() {
       var ta = document.getElementById('tutorInput');
       var btn = document.getElementById('tutorSend');
@@ -10955,12 +11535,14 @@ input[type="range"]::-moz-range-thumb{
       if (row) row.style.display = 'none';
     }
 
+    /* ═══ SECTION: Get Recent Avg | Functions: getRecentAvg ═══ */
     function getRecentAvg() {
       if (!session || !session.recentRatings || session.recentRatings.length === 0) return 2.5;
       var r = session.recentRatings.slice(-6);
       return r.reduce(function(a, b) { return a + b; }, 0) / r.length;
     }
 
+    /* ═══ SECTION: Tutor Context For Item | Functions: tutorContextForItem ═══ */
     function tutorContextForItem(tItem) {
       var ctx = {
         lapses: (tItem.fsrs && tItem.fsrs.lapses) || 0,
@@ -10988,6 +11570,7 @@ input[type="range"]::-moz-range-thumb{
       return ctx;
     }
 
+    /* ═══ SECTION: Update Tutor Memories | Functions: updateTutorMemories ═══ */
     function updateTutorMemories(item, conversation, suggestedRating) {
       if (!conversation || conversation.length < 2) return;
       if (settings.feedbackMode === 'self_rate') return;
@@ -11054,6 +11637,7 @@ input[type="range"]::-moz-range-thumb{
         .catch(function() { /* silent — memories are supplementary */ });
     }
 
+    /* ═══ SECTION: Queue Tutor Memory Update If Eligible | Functions: queueTutorMemoryUpdateIfEligible ═══ */
     function queueTutorMemoryUpdateIfEligible(item, convSnapshot, suggestedRating) {
       if (!item || tutorInRelearning) return;
       if (!convSnapshot || convSnapshot.length < 2) return;
@@ -11068,6 +11652,7 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Get Last User Text For Tutor | Functions: getLastUserTextForTutor ═══ */
     function getLastUserTextForTutor() {
       for (var i = tutorConversation.length - 1; i >= 0; i--) {
         if (tutorConversation[i].role === 'user') return tutorConversation[i].text || '';
@@ -11075,6 +11660,7 @@ input[type="range"]::-moz-range-thumb{
       return tutorOpeningUserText || '';
     }
 
+    /* ═══ SECTION: Handle Acknowledge Followup Response | Functions: handleAcknowledgeFollowupResponse ═══ */
     function handleAcknowledgeFollowupResponse(ackData) {
       if (!ackData) {
         showRatingButtons(tutorAcknowledgeOriginalRating);
@@ -11115,6 +11701,7 @@ input[type="range"]::-moz-range-thumb{
       try { playClick(); } catch (eb) {}
     }
 
+    /* ═══ SECTION: Finish Relearning Requeue | Functions: finishRelearningRequeue ═══ */
     function finishRelearningRequeue(it, nowTs) {
       nowTs = nowTs || Date.now();
       hideTypingIndicator();
@@ -11147,6 +11734,7 @@ input[type="range"]::-moz-range-thumb{
       advanceItem();
     }
 
+    /* ═══ SECTION: Begin Passive Restudy Flow | Functions: beginPassiveRestudyFlow ═══ */
     function beginPassiveRestudyFlow(it, nowTs) {
       var restudyDuration = calcRestudyDuration(it.modelAnswer);
       var restudyBarId = 'restudyBarInline';
@@ -11229,6 +11817,7 @@ input[type="range"]::-moz-range-thumb{
           return;
         }
 
+        /* ═══ SECTION: Requeue After Restudy | Functions: requeueAfterRestudy ═══ */
         function requeueAfterRestudy() {
           var remainingItemsB = session.queue.length - (session.idx + 1);
           var minOffsetB = Math.max(5, Math.floor(remainingItemsB * 0.4));
@@ -11246,6 +11835,7 @@ input[type="range"]::-moz-range-thumb{
       }, restudyDuration);
     }
 
+    /* ═══ SECTION: Start Relearning Dialogue | Functions: startRelearningDialogue ═══ */
     function startRelearningDialogue(it, nowTs) {
       var fbR = getFeedbackArea();
       if (!fbR) {
@@ -11289,6 +11879,7 @@ input[type="range"]::-moz-range-thumb{
         });
     }
 
+    /* ═══ SECTION: Submit Tutor Response | Functions: submitTutorResponse ═══ */
     function submitTutorResponse() {
       var ta = document.getElementById('tutorInput');
       if (!ta || ta.disabled) return;
@@ -11330,6 +11921,7 @@ input[type="range"]::-moz-range-thumb{
         });
     }
 
+    /* ═══ SECTION: Handle Tutor Response | Functions: handleTutorResponse ═══ */
     function handleTutorResponse(data) {
       if (tutorInRelearning) {
         var tutorTextRl = data.tutorMessage || data.acknowledgment || data.correct || data.insight || '';
@@ -11440,6 +12032,7 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Show Rating Buttons | Functions: showRatingButtons ═══ */
     function showRatingButtons(suggestedRating) {
       ratingsEl.style.display = 'grid';
       document.querySelectorAll('.override-hint').forEach(function(h) { h.remove(); });
@@ -11472,6 +12065,7 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Skip To Rating | Functions: skipToRating ═══ */
     function skipToRating() {
       if (tutorInRelearning) {
         disableTutorInput();
@@ -11489,6 +12083,7 @@ input[type="range"]::-moz-range-thumb{
       showRatingButtons(skipSugg);
     }
 
+    /* ═══ SECTION: Build Quick Feedback Ui | Functions: buildQuickFeedbackUI ═══ */
     function buildQuickFeedbackUI(container, data) {
       var h = '<div class="quick-feedback">';
       if (data.correct) {
@@ -11529,6 +12124,7 @@ input[type="range"]::-moz-range-thumb{
       showRatingButtons(data.suggestedRating != null ? data.suggestedRating : null);
     }
 
+    /* ═══ SECTION: Build Insight Ui | Functions: buildInsightUI ═══ */
     function buildInsightUI(container, data, onDone) {
       var h = '<div class="quick-feedback">';
       h += '<div class="qf-section-label">💡 Key anchor</div>';
@@ -11557,6 +12153,7 @@ input[type="range"]::-moz-range-thumb{
       var dkInsBtn = document.getElementById('qfInsightDk');
       var answerDiv = document.getElementById('qfInsightAnswer');
 
+      /* ═══ SECTION: Reveal Insight Answer | Functions: revealInsightAnswer ═══ */
       function revealInsightAnswer() {
         if (!ta || !answerDiv) return;
         if (inputRow) inputRow.style.display = 'none';
@@ -11654,6 +12251,7 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Fallback To Grade | Functions: fallbackToGrade ═══ */
     function fallbackToGrade(item, userText, tier) {
       var fbArea = getFeedbackArea();
       if (fbArea) {
@@ -11709,6 +12307,7 @@ input[type="range"]::-moz-range-thumb{
       });
     }
 
+    /* ═══ SECTION: Append Model Answer Collapsible | Functions: appendModelAnswerCollapsible ═══ */
     function appendModelAnswerCollapsible(fbArea, it) {
       var macDiv = document.createElement('div');
       macDiv.className = 'model-answer-collapsible';
@@ -11725,6 +12324,7 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Start Generative Tutor Flow | Functions: startGenerativeTutorFlow ═══ */
     function startGenerativeTutorFlow(it, revealTier, userText) {
       var feedbackMode = selectFeedbackMode(it, session);
       if (feedbackMode === 'self_rate') {
@@ -11797,6 +12397,7 @@ input[type="range"]::-moz-range-thumb{
       /^\s*\?\s*$/i
     ];
 
+    /* ═══ SECTION: Is Dont Know Response | Functions: isDontKnowResponse ═══ */
     function isDontKnowResponse(text) {
       if (!text || !text.trim()) return false;
       var t = text.trim();
@@ -11804,6 +12405,7 @@ input[type="range"]::-moz-range-thumb{
       return DONT_KNOW_PATTERNS.some(function(p) { return p.test(t); });
     }
 
+    /* ═══ SECTION: Show Dont Know Explanation | Functions: showDontKnowExplanation ═══ */
     function showDontKnowExplanation(fbArea, data) {
       var h = '<div class="ai-feedback">' +
         '<div class="af-header">' +
@@ -11838,6 +12440,7 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Show Dont Know Fallback | Functions: showDontKnowFallback ═══ */
     function showDontKnowFallback(fbArea) {
       fbArea.innerHTML = '<div class="af-error">' +
         '<div class="af-error-title">Could not load explanation</div>' +
@@ -11846,6 +12449,7 @@ input[type="range"]::-moz-range-thumb{
       ratingsEl.style.display = 'grid';
     }
 
+    /* ═══ SECTION: Handle Dont Know Reveal | Functions: handleDontKnowReveal ═══ */
     function handleDontKnowReveal(it, revealTier) {
       session._dontKnow = true;
       if (session.tutorStats) session.tutorStats.dontKnows++;
@@ -11972,6 +12576,7 @@ input[type="range"]::-moz-range-thumb{
       ratingsEl.style.display = 'none';
     }
 
+    /* ═══ SECTION: Handle Dk Tutor Response | Functions: handleDkTutorResponse ═══ */
     function handleDkTutorResponse(data, it, revealTier) {
       var tutorText = data.tutorMessage || data.correct || '';
       var question = data.followUpQuestion || '';
@@ -12008,10 +12613,12 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Override Dk Tutor Submit | Functions: overrideDkTutorSubmit ═══ */
     function overrideDkTutorSubmit(it, revealTier) {
       var ta = document.getElementById('tutorInput');
       var sendBtn = document.getElementById('tutorSend');
 
+      /* ═══ SECTION: Dk Submit | Functions: dkSubmit ═══ */
       function dkSubmit() {
         var taNow = document.getElementById('tutorInput');
         var sendNow = document.getElementById('tutorSend');
@@ -12070,6 +12677,7 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Reveal Dk Model Answer | Functions: revealDkModelAnswer ═══ */
     function revealDkModelAnswer(it, revealTier) {
       var consolWrap = document.getElementById('dkConsolidation');
       var consolBody = document.getElementById('dkConsolBody');
@@ -12155,6 +12763,7 @@ input[type="range"]::-moz-range-thumb{
       });
     }
 
+    /* ═══ SECTION: Wire Generative | Functions: wireGenerative ═══ */
     function wireGenerative(tier) {
       var ta = el('userText');
       ta.addEventListener('input', function(){ autoGrowTextarea(ta); });
@@ -12171,6 +12780,7 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Wire Mock | Functions: wireMock ═══ */
     function wireMock() {
       var ta = el('userText');
       ta.addEventListener('input', function(){ autoGrowTextarea(ta); });
@@ -12187,6 +12797,7 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Reveal Answer | Functions: revealAnswer ═══ */
     function revealAnswer(fromCheck) {
       if (session.currentShown) return;
       session.currentShown = true;
@@ -12318,6 +12929,7 @@ input[type="range"]::-moz-range-thumb{
       startGenerativeTutorFlow(it, revealTier, userText);
     }
 
+    /* ═══ SECTION: Show Aifeedback | Functions: showAIFeedback ═══ */
     function showAIFeedback(data, tier) {
       var fbArea = getFeedbackArea();
       var ratingNames = { 1: 'Again', 2: 'Hard', 3: 'Good', 4: 'Easy' };
@@ -12435,6 +13047,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* ── Inline Annotation Engine ── */
+    /* ═══ SECTION: Apply Inline Annotations | Functions: applyInlineAnnotations ═══ */
     function applyInlineAnnotations(annotations) {
       var lockedEl = document.getElementById('userResponseLocked');
       if (!lockedEl) return;
@@ -12534,6 +13147,7 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Show Aierror | Functions: showAIError ═══ */
     function showAIError(title, detail) {
       var fbArea = getFeedbackArea();
       fbArea.innerHTML = '<div class="af-error">' +
@@ -12544,6 +13158,7 @@ input[type="range"]::-moz-range-thumb{
       ratingsEl.style.display = 'grid';
     }
 
+    /* ═══ SECTION: Show Self Rate Fallback | Functions: showSelfRateFallback ═══ */
     function showSelfRateFallback(message) {
       var fbArea = getFeedbackArea();
       fbArea.innerHTML = '<div class="af-error">' +
@@ -12552,6 +13167,7 @@ input[type="range"]::-moz-range-thumb{
       ratingsEl.style.display = 'grid';
     }
 
+    /* ═══ SECTION: Schedule Rating And Advance | Functions: scheduleRatingAndAdvance ═══ */
     function scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount) {
       if (mappedRating < 2) {
         advanceItem();
@@ -12603,6 +13219,7 @@ input[type="range"]::-moz-range-thumb{
       mountAskTutor(mappedRating);
     }
 
+    /* ═══ SECTION: Mount Quick Fire Followup | Functions: mountQuickFireFollowup ═══ */
     function mountQuickFireFollowup(it, data, done) {
       var oldQ = document.getElementById('qfFollowupRoot');
       if (oldQ) oldQ.remove();
@@ -12627,6 +13244,7 @@ input[type="range"]::-moz-range-thumb{
       var sendB = root.querySelector('.qf-followup-send');
       var advanceTimer = null;
       var qfFinished = false;
+      /* ═══ SECTION: Finish Qf | Functions: finishQf ═══ */
       function finishQf() {
         if (qfFinished) return;
         qfFinished = true;
@@ -12634,6 +13252,7 @@ input[type="range"]::-moz-range-thumb{
         root.remove();
         done();
       }
+      /* ═══ SECTION: Reveal Followup Answer | Functions: revealFollowupAnswer ═══ */
       function revealFollowupAnswer() {
         var ans = (data.followUpAnswer != null && data.followUpAnswer !== '') ? String(data.followUpAnswer) : 'Nice — keep that link in mind.';
         var ansDiv = document.createElement('div');
@@ -12651,6 +13270,7 @@ input[type="range"]::-moz-range-thumb{
         advanceTimer = setTimeout(finishQf, 2000);
         root.addEventListener('click', function() { finishQf(); }, { once: true });
       }
+      /* ═══ SECTION: Submit Qf | Functions: submitQf ═══ */
       function submitQf() {
         var t = input.value.trim();
         if (!t) return;
@@ -12669,6 +13289,7 @@ input[type="range"]::-moz-range-thumb{
       input.focus();
     }
 
+    /* ═══ SECTION: Mount Quick Fire Re Retrieval | Functions: mountQuickFireReRetrieval ═══ */
     function mountQuickFireReRetrieval(it, data, done) {
       var oldQ = document.getElementById('qfFollowupRoot');
       if (oldQ) oldQ.remove();
@@ -12718,6 +13339,7 @@ input[type="range"]::-moz-range-thumb{
       var finished = false;
       var spaceHandlerRef = null;
 
+      /* ═══ SECTION: Finish Flow | Functions: finishFlow ═══ */
       function finishFlow() {
         if (finished) return;
         finished = true;
@@ -12730,6 +13352,7 @@ input[type="range"]::-moz-range-thumb{
         done();
       }
 
+      /* ═══ SECTION: Show Consolidation | Functions: showConsolidation ═══ */
       function showConsolidation() {
         if (modelBody) modelBody.innerHTML = renderMd(it.modelAnswer || '');
         if (consolidation) {
@@ -12752,6 +13375,7 @@ input[type="range"]::-moz-range-thumb{
           document.removeEventListener('keydown', spaceHandlerRef);
           spaceHandlerRef = null;
         }
+        /* ═══ SECTION: Space Handler | Functions: spaceHandler ═══ */
         function spaceHandler(e) {
           if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) return;
           if (e.code === 'Space' || e.key === ' ') {
@@ -12763,6 +13387,7 @@ input[type="range"]::-moz-range-thumb{
         document.addEventListener('keydown', spaceHandler);
       }
 
+      /* ═══ SECTION: Submit Response | Functions: submitResponse ═══ */
       function submitResponse() {
         if (!input || finished) return;
         var text = input.value.trim();
@@ -12819,6 +13444,7 @@ input[type="range"]::-moz-range-thumb{
           });
       }
 
+      /* ═══ SECTION: Skip To Answer | Functions: skipToAnswer ═══ */
       function skipToAnswer() {
         if (finished) return;
         if (input) input.disabled = true;
@@ -12842,6 +13468,7 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Run Quick Fire Followup Micro | Functions: runQuickFireFollowupMicro ═══ */
     function runQuickFireFollowupMicro(it, done, opts) {
       opts = opts || {};
       var useReRetrieval = !!opts.reRetrieval;
@@ -12875,6 +13502,7 @@ input[type="range"]::-moz-range-thumb{
         });
     }
 
+    /* ═══ SECTION: Cleanup Previous Dialogue Ui | Functions: cleanupPreviousDialogueUI ═══ */
     function cleanupPreviousDialogueUI() {
       document.querySelectorAll('.dk-reveal-wrap, .dk-tutor-slot, .dk-consolidation, .dk-label').forEach(function(el) {
         el.style.display = 'none';
@@ -12898,6 +13526,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* ── Rating + successive relearning loop ── */
+    /* ═══ SECTION: Rate Current | Functions: rateCurrent ═══ */
     function rateCurrent(rating) {
       var nowTs = Date.now();
       var it = session.queue[session.idx];
@@ -13103,11 +13732,13 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Ensure Fsrs | Functions: ensureFsrs ═══ */
     function ensureFsrs(it) {
       if (!it.fsrs) it.fsrs = { stability: 0, difficulty: 0, due: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), lastReview: null, reps: 0, lapses: 0, state: 'new' };
     }
 
     /* ── Per-Card XP Flash ── */
+    /* ═══ SECTION: Flash Xp | Functions: flashXP ═══ */
     function flashXP(xp) {
       var flash = document.createElement('div');
       flash.className = 'xp-flash' + (xp === 0 ? ' zero' : '');
@@ -13131,6 +13762,7 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Compute Xp | Functions: computeXP ═══ */
     function computeXP(it, rating, intervalDays) {
       var bloomMultiplier = { quickfire: 1, explain: 2, apply: 3, distinguish: 3, mock: 4, worked: 2.5 };
       var tier = it.lastTier || it._presentTier || it.tier || 'quickfire';
@@ -13150,6 +13782,7 @@ input[type="range"]::-moz-range-thumb{
       return xp;
     }
 
+    /* ═══ SECTION: Disable Ratings | Functions: disableRatings ═══ */
     function disableRatings(disabled) {
       ratingsEl.querySelectorAll('button').forEach(function(b){
         if (disabled) b.setAttribute('disabled','disabled');
@@ -13167,6 +13800,7 @@ input[type="range"]::-moz-range-thumb{
     var askTutorActive = false;
     var askTutorContinueHandler = null;
 
+    /* ═══ SECTION: Mount Ask Tutor | Functions: mountAskTutor ═══ */
     function mountAskTutor(afterRating) {
       /* Don't show if feedback mode is self_rate */
       if (settings.feedbackMode === 'self_rate') return;
@@ -13328,6 +13962,7 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Submit Ask Tutor | Functions: submitAskTutor ═══ */
     function submitAskTutor() {
       var inputEl = document.getElementById('askTutorInput');
       var sendBtn = document.getElementById('askTutorSend');
@@ -13421,6 +14056,7 @@ input[type="range"]::-moz-range-thumb{
         });
     }
 
+    /* ═══ SECTION: Add Ask Tutor Message | Functions: addAskTutorMessage ═══ */
     function addAskTutorMessage(role, html) {
       var msgsEl = document.getElementById('askTutorMessages');
       if (!msgsEl) return;
@@ -13441,6 +14077,7 @@ input[type="range"]::-moz-range-thumb{
       msgsEl.scrollTop = msgsEl.scrollHeight;
     }
 
+    /* ═══ SECTION: Enable Ask Tutor Input | Functions: enableAskTutorInput ═══ */
     function enableAskTutorInput() {
       var inputEl = document.getElementById('askTutorInput');
       var sendBtn = document.getElementById('askTutorSend');
@@ -13448,6 +14085,7 @@ input[type="range"]::-moz-range-thumb{
       if (sendBtn) sendBtn.disabled = false;
     }
 
+    /* ═══ SECTION: Disable Ask Tutor Input | Functions: disableAskTutorInput ═══ */
     function disableAskTutorInput() {
       var inputEl = document.getElementById('askTutorInput');
       var sendBtn = document.getElementById('askTutorSend');
@@ -13455,6 +14093,7 @@ input[type="range"]::-moz-range-thumb{
       if (sendBtn) sendBtn.disabled = true;
     }
 
+    /* ═══ SECTION: Cleanup Ask Tutor | Functions: cleanupAskTutor ═══ */
     function cleanupAskTutor() {
       askTutorActive = false;
       askTutorContinueHandler = null;
@@ -13467,6 +14106,7 @@ input[type="range"]::-moz-range-thumb{
       if (ncBtn) ncBtn.remove();
     }
 
+    /* ═══ SECTION: Advance Item | Functions: advanceItem ═══ */
     function advanceItem() {
       stopTTS();
       cleanupAskTutor();
@@ -13503,6 +14143,7 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Skip Item | Functions: skipItem ═══ */
     function skipItem() {
       if (!session) return;
       stopTTS();
@@ -13521,6 +14162,7 @@ input[type="range"]::-moz-range-thumb{
       renderCurrentItem();
     }
 
+    /* ═══ SECTION: Complete Session | Functions: completeSession ═══ */
     function completeSession() {
       stopTTS();
       cleanupAskTutor();
@@ -13718,6 +14360,7 @@ input[type="range"]::-moz-range-thumb{
     /* ── Navigation Tabs ── */
     var activeNav = 'home';
 
+    /* ═══ SECTION: Switch Nav | Functions: switchNav ═══ */
     function switchNav(tab) {
       activeNav = tab;
       document.querySelectorAll('.nav-tab').forEach(function(t) {
@@ -13803,6 +14446,7 @@ input[type="range"]::-moz-range-thumb{
     var modalCourse = null; /* course name the modal is scoped to */
     var modalShowingPicker = false; /* true = showing course picker step */
 
+    /* ═══ SECTION: Open Modal | Functions: openModal ═══ */
     function openModal(tab, courseName) {
       activeTab = tab || activeTab || 'add';
 
@@ -13832,6 +14476,7 @@ input[type="range"]::-moz-range-thumb{
       if (Core && Core.a11y && Core.a11y.trap) Core.a11y.trap(modalOv);
   try { playOpen(); } catch(e) {}
     }
+    /* ═══ SECTION: Close Modal | Functions: closeModal ═══ */
     function closeModal() {
       modalOv.classList.remove('show');
       modalOv.setAttribute('aria-hidden','true');
@@ -13841,6 +14486,7 @@ input[type="range"]::-moz-range-thumb{
   try { playClose(); } catch(e) {}
     }
 
+    /* ═══ SECTION: Close Modals | Functions: closeModals ═══ */
     function closeModals() {
       closeModal();
       closeSettings();
@@ -13863,6 +14509,7 @@ input[type="range"]::-moz-range-thumb{
       });
     }
 
+    /* ═══ SECTION: Render Modal | Functions: renderModal ═══ */
     function renderModal() {
       /* tabs */
       el('modalTabs') && el('modalTabs').querySelectorAll('.tab').forEach(function(t) {
@@ -14006,7 +14653,9 @@ input[type="range"]::-moz-range-thumb{
       }, 0);
     }
 
+    /* ═══ SECTION: Tail Fields | Functions: tailFields ═══ */
     function tailFields() { return ''; }
+    /* ═══ SECTION: Text Field | Functions: textField ═══ */
     function textField(label, id, ph) {
       return '' +
         '<div class="field">' +
@@ -14014,6 +14663,7 @@ input[type="range"]::-moz-range-thumb{
           '<input class="input" id="' + esc(id) + '" placeholder="' + esc(ph) + '" />' +
         '</div>';
     }
+    /* ═══ SECTION: Area Field | Functions: areaField ═══ */
     function areaField(label, id, ph) {
       return '' +
         '<div class="field">' +
@@ -14021,6 +14671,7 @@ input[type="range"]::-moz-range-thumb{
           '<textarea id="' + esc(id) + '" rows="4" placeholder="' + esc(ph) + '"></textarea>' +
         '</div>';
     }
+    /* ═══ SECTION: Select Field | Functions: selectField ═══ */
     function selectField(label, id, opts, defV) {
       var h = '<div class="field"><label>' + esc(label) + '</label><select id="' + esc(id) + '">';
       opts.forEach(function(o){
@@ -14036,6 +14687,7 @@ input[type="range"]::-moz-range-thumb{
     /* ── Import: Parse → Preview → Commit (3-phase) ── */
     var pendingImport = null; /* { valid: [], skipped: [], duplicates: [], skipDuplicates: false } */
 
+    /* ═══ SECTION: Add From Modal | Functions: addFromModal ═══ */
     function addFromModal(stayOpen) {
       if (activeTab === 'import') {
         doImport();
@@ -14138,6 +14790,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* ── Import: Parse → Preview → Commit (3-phase) ── */
+    /* ═══ SECTION: Do Import | Functions: doImport ═══ */
     function doImport() {
       var raw = (el('m_import').value || '').trim();
       if (!raw) { try { playError(); } catch(e) {} toast('Paste JSON first'); return; }
@@ -14257,6 +14910,7 @@ input[type="range"]::-moz-range-thumb{
       renderImportPreview();
     }
 
+    /* ═══ SECTION: Render Import Preview | Functions: renderImportPreview ═══ */
     function renderImportPreview() {
       if (!pendingImport) return;
       var valid = pendingImport.valid;
@@ -14393,6 +15047,7 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Commit Import | Functions: commitImport ═══ */
     function commitImport() {
       if (!pendingImport) return;
       var valid = pendingImport.valid;
@@ -14473,6 +15128,7 @@ input[type="range"]::-moz-range-thumb{
       var visualQueue = importedIds.slice();
       var visualBatchSize = 3;
 
+      /* ═══ SECTION: Process Visual Batch | Functions: processVisualBatch ═══ */
       function processVisualBatch() {
         if (!visualQueue.length) {
           saveState();
@@ -14512,6 +15168,7 @@ input[type="range"]::-moz-range-thumb{
     var settingsOv = el('settingsOv');
     var settingsTabListenersBound = false;
 
+    /* ═══ SECTION: Reset Settings Modal Tabs | Functions: resetSettingsModalTabs ═══ */
     function resetSettingsModalTabs() {
       var generalPanel = el('settingsTabGeneral');
       var dataPanel = el('settingsTabData');
@@ -14527,6 +15184,7 @@ input[type="range"]::-moz-range-thumb{
       });
     }
 
+    /* ═══ SECTION: Bind Settings Tab Listeners | Functions: bindSettingsTabListeners ═══ */
     function bindSettingsTabListeners() {
       if (settingsTabListenersBound || !settingsOv) return;
       settingsOv.querySelectorAll('.settings-tab').forEach(function(tab) {
@@ -14557,6 +15215,7 @@ input[type="range"]::-moz-range-thumb{
       settingsTabListenersBound = true;
     }
 
+    /* ═══ SECTION: Open Settings | Functions: openSettings ═══ */
     function openSettings() {
       resetSettingsModalTabs();
       var showDataAreaReset = el('showDataArea');
@@ -14660,6 +15319,7 @@ input[type="range"]::-moz-range-thumb{
       }
   try { playOpen(); } catch(e) {}
     }
+    /* ═══ SECTION: Close Settings | Functions: closeSettings ═══ */
     function closeSettings() {
       settingsOv.classList.remove('show');
       settingsOv.setAttribute('aria-hidden','true');
@@ -14677,6 +15337,7 @@ input[type="range"]::-moz-range-thumb{
     var tooltipShowTimer = null;
     var TOOLTIP_DELAY = 180;
 
+    /* ═══ SECTION: Position Tooltip | Functions: positionTooltip ═══ */
     function positionTooltip(icon) {
       var src = icon.querySelector('.info-tooltip');
       if (!src) return;
@@ -14770,6 +15431,7 @@ input[type="range"]::-moz-range-thumb{
       });
     }
 
+    /* ═══ SECTION: Remove Portaled Tooltip | Functions: removePortaledTooltip ═══ */
     function removePortaledTooltip() {
       if (activeTooltipEl && activeTooltipEl.parentNode) {
         activeTooltipEl.parentNode.removeChild(activeTooltipEl);
@@ -14777,6 +15439,7 @@ input[type="range"]::-moz-range-thumb{
       activeTooltipEl = null;
     }
 
+    /* ═══ SECTION: Hide Tooltip | Functions: hideTooltip ═══ */
     function hideTooltip() {
       if (!activeTooltipEl) return;
       var tip = activeTooltipEl;
@@ -14789,6 +15452,7 @@ input[type="range"]::-moz-range-thumb{
       }, 170);
     }
 
+    /* ═══ SECTION: Clear Tooltip Timer | Functions: clearTooltipTimer ═══ */
     function clearTooltipTimer() {
       if (tooltipShowTimer) { clearTimeout(tooltipShowTimer); tooltipShowTimer = null; }
     }
@@ -14854,14 +15518,17 @@ input[type="range"]::-moz-range-thumb{
       if (activeTooltipIcon) positionTooltip(activeTooltipIcon);
     }, true);
 
+    /* ═══ SECTION: Render Settings | Functions: renderSettings ═══ */
     function renderSettings() {
       var body = el('settingsTabGeneral');
       var retPct = Math.round(settings.desiredRetention * 100);
 
+      /* ═══ SECTION: Info Icon | Functions: infoIcon ═══ */
       function infoIcon(text) {
         return '<span class="info-icon" tabindex="0" role="button" aria-label="Info">ⓘ<span class="info-tooltip">' + text + '<span class="tip-arrow"></span></span></span>';
       }
 
+      /* ═══ SECTION: Pill Group | Functions: pillGroup ═══ */
       function pillGroup(name, options, currentValue) {
         var h = '<div class="mode-toggle" data-setting="' + name + '">';
         options.forEach(function(o) {
@@ -15100,6 +15767,7 @@ input[type="range"]::-moz-range-thumb{
 
       var regenBtn = el('regenVisuals');
       var overrideBtn = el('regenOverrideAll');
+      /* ═══ SECTION: Set Visual Jobs Busy | Functions: setVisualJobsBusy ═══ */
       function setVisualJobsBusy(busy) {
         if (regenBtn) regenBtn.disabled = busy;
         if (overrideBtn) overrideBtn.disabled = busy;
@@ -15127,6 +15795,7 @@ input[type="range"]::-moz-range-thumb{
           var queue = itemsNeedingVisuals.slice();
           var concurrency = 3;
 
+          /* ═══ SECTION: Run Batch | Functions: runBatch ═══ */
           function runBatch() {
             if (!queue.length) {
               saveState();
@@ -15183,6 +15852,7 @@ input[type="range"]::-moz-range-thumb{
           var queue = allItems.slice();
           var concurrency = 3;
 
+          /* ═══ SECTION: Run Override Batch | Functions: runOverrideBatch ═══ */
           function runOverrideBatch() {
             if (!queue.length) {
               saveState();
@@ -15266,6 +15936,7 @@ input[type="range"]::-moz-range-thumb{
     var courseModalBody = el('courseModalBody');
     var courseModalState = { mode: 'list', course: null, tab: 'details' };
 
+    /* ═══ SECTION: Open Course Modal | Functions: openCourseModal ═══ */
     function openCourseModal(courseName, tab) {
       if (courseName && getCourse(courseName)) {
         courseModalState.mode = 'editor';
@@ -15288,6 +15959,7 @@ input[type="range"]::-moz-range-thumb{
         gsap.fromTo(courseModalEl, { opacity: 0, scale: 0.97, y: 8 }, { opacity: 1, scale: 1, y: 0, duration: 0.3, ease: 'power2.out' });
       }
     }
+    /* ═══ SECTION: Close Course Modal | Functions: closeCourseModal ═══ */
     function closeCourseModal() {
       courseOv.classList.remove('show');
       courseOv.setAttribute('aria-hidden', 'true');
@@ -15298,6 +15970,7 @@ input[type="range"]::-moz-range-thumb{
     courseOv.addEventListener('click', function(e) { if (e.target === courseOv) closeCourseModal(); });
     el('manageCourses').addEventListener('click', openCourseModal);
 
+    /* ═══ SECTION: Render Course Modal | Functions: renderCourseModal ═══ */
     function renderCourseModal() {
       if (courseModalState.mode === 'editor' && courseModalState.course) {
         renderCourseModalEditor(courseModalState.course, courseModalState.tab || 'details');
@@ -15389,6 +16062,7 @@ input[type="range"]::-moz-range-thumb{
       /* Wire add-course toggle */
       var addToggle = el('addCourseToggle');
       var addFormWrap = el('addCourseFormWrap');
+      /* ═══ SECTION: Collapse Add Form | Functions: collapseAddForm ═══ */
       function collapseAddForm() {
         if (!addToggle || !addFormWrap) return;
         addToggle.classList.remove('open');
@@ -15413,6 +16087,7 @@ input[type="range"]::-moz-range-thumb{
           addFormWrap.style.maxHeight = '';
         }
       }
+      /* ═══ SECTION: Expand Add Form | Functions: expandAddForm ═══ */
       function expandAddForm() {
         if (!addToggle || !addFormWrap) return;
         addToggle.classList.add('open');
@@ -15450,10 +16125,12 @@ input[type="range"]::-moz-range-thumb{
         mixed: 'Balanced across all five tiers. A good default when your exam combines several question formats.'
       };
 
+      /* ═══ SECTION: Wire Description Updater | Functions: wireDescriptionUpdater ═══ */
       function wireDescriptionUpdater(selectId, descId, descMap) {
         var sel = el(selectId);
         var desc = el(descId);
         if (!sel || !desc) return;
+        /* ═══ SECTION: Update | Functions: update ═══ */
         function update() { desc.textContent = descMap[sel.value] || ''; }
         sel.addEventListener('change', update);
         update();
@@ -15505,6 +16182,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* ── Focus mode: isolate one course in manage modal ── */
+    /* ═══ SECTION: Focus Course Modal Item | Functions: focusCourseModalItem ═══ */
     function focusCourseModalItem(row) {
       var wrapper = row.closest('.course-modal-item');
       if (!wrapper) return;
@@ -15515,6 +16193,7 @@ input[type="range"]::-moz-range-thumb{
         }
       });
     }
+    /* ═══ SECTION: Unfocus Course Modal Items | Functions: unfocusCourseModalItems ═══ */
     function unfocusCourseModalItems() {
       Array.from(courseModalBody.children).forEach(function(child) {
         if (child.dataset.hiddenByFocus) {
@@ -15524,6 +16203,7 @@ input[type="range"]::-moz-range-thumb{
       });
     }
 
+    /* ═══ SECTION: Course Modal Refresh Shell | Functions: courseModalRefreshShell ═══ */
     function courseModalRefreshShell() {
       var courseModalEl = courseOv ? courseOv.querySelector('.modal') : null;
       if (courseModalEl) {
@@ -15531,6 +16211,7 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Get Unique Course Topics | Functions: getUniqueCourseTopics ═══ */
     function getUniqueCourseTopics(courseName) {
       var topics = {};
       for (var id in state.items) {
@@ -15543,6 +16224,7 @@ input[type="range"]::-moz-range-thumb{
       return Object.keys(topics).sort(function(a, b) { return a.localeCompare(b); });
     }
 
+    /* ═══ SECTION: Remove Topic From All Modules | Functions: removeTopicFromAllModules ═══ */
     function removeTopicFromAllModules(courseObj, topic) {
       if (!courseObj || !Array.isArray(courseObj.modules)) return;
       courseObj.modules.forEach(function(m) {
@@ -15551,6 +16233,7 @@ input[type="range"]::-moz-range-thumb{
       });
     }
 
+    /* ═══ SECTION: Assign Topic To Module | Functions: assignTopicToModule ═══ */
     function assignTopicToModule(courseName, topic, moduleId) {
       var c = getCourse(courseName);
       if (!c) return;
@@ -15564,6 +16247,7 @@ input[type="range"]::-moz-range-thumb{
       if (!isEmbedded) renderSidebar();
     }
 
+    /* ═══ SECTION: Unassign Topic From Modules | Functions: unassignTopicFromModules ═══ */
     function unassignTopicFromModules(courseName, topic) {
       var c = getCourse(courseName);
       if (!c) return;
@@ -15573,6 +16257,7 @@ input[type="range"]::-moz-range-thumb{
       if (!isEmbedded) renderSidebar();
     }
 
+    /* ═══ SECTION: Render Course Modal Editor | Functions: renderCourseModalEditor ═══ */
     function renderCourseModalEditor(courseName, tab) {
       var c = getCourse(courseName);
       if (!c) {
@@ -15609,6 +16294,7 @@ input[type="range"]::-moz-range-thumb{
       h += '<div id="cmTabContent"></div>';
       courseModalBody.innerHTML = h;
 
+      /* ═══ SECTION: Render Tab Content | Functions: renderTabContent ═══ */
       function renderTabContent() {
         var activeTab = courseModalState.tab || 'details';
         var inner = '';
@@ -15704,6 +16390,7 @@ input[type="range"]::-moz-range-thumb{
         wireEditorTabInteractions(activeTab);
       }
 
+      /* ═══ SECTION: Wire Editor Tab Interactions | Functions: wireEditorTabInteractions ═══ */
       function wireEditorTabInteractions(activeTab) {
         var back = el('cmBackToList');
         if (back) back.onclick = function() {
@@ -15753,12 +16440,14 @@ input[type="range"]::-moz-range-thumb{
             renderCourseModalEditor(courseName, 'details');
           };
         } else if (activeTab === 'syllabus') {
+          /* ═══ SECTION: Set Ctx Status | Functions: setCtxStatus ═══ */
           function setCtxStatus(msg, cls) {
             var st = el('cm_contextStatus');
             if (!st) return;
             st.className = 'syllabus-status' + (cls ? ' ' + cls : '');
             st.innerHTML = msg || '';
           }
+          /* ═══ SECTION: Render Suggested Topics | Functions: renderSuggestedTopics ═══ */
           function renderSuggestedTopics(topics) {
             var box = el('cm_suggestedTopics');
             if (!box) return;
@@ -15771,6 +16460,7 @@ input[type="range"]::-moz-range-thumb{
             });
           }
           renderSuggestedTopics(c.syllabusKeyTopics || []);
+          /* ═══ SECTION: Run Syllabus Process | Functions: runSyllabusProcess ═══ */
           function runSyllabusProcess(rawText) {
             var trimmed = (rawText || '').trim();
             if (!trimmed) { toast('Paste text or import a PDF first'); return; }
@@ -15814,18 +16504,21 @@ input[type="range"]::-moz-range-thumb{
           var reprocBtn = el('cm_reprocessSyllabus');
           if (reprocBtn) reprocBtn.onclick = function() { runSyllabusProcess(c.rawSyllabusText || (el('cm_courseContextText') ? el('cm_courseContextText').value : '')); };
 
+          /* ═══ SECTION: Set Lecture Status | Functions: setLectureStatus ═══ */
           function setLectureStatus(msg, cls) {
             var st = el('cm_lectureImportStatus');
             if (!st) return;
             st.className = 'syllabus-status' + (cls ? ' ' + cls : '');
             st.innerHTML = msg || '';
           }
+          /* ═══ SECTION: Update Lecture Manifest Display | Functions: updateLectureManifestDisplay ═══ */
           function updateLectureManifestDisplay() {
             var box = el('cm_lectureManifestDisplay');
             if (!box) return;
             var count = Number(c._lectureCount || 0) || 0;
             box.innerHTML = count > 0 ? '<div style="font-size:9px;color:var(--text-secondary);padding:6px 8px;border-radius:10px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.03);">📚 ' + count + ' lecture' + (count !== 1 ? 's' : '') + ' imported</div>' : '';
           }
+          /* ═══ SECTION: Import Lecture From Text | Functions: importLectureFromText ═══ */
           function importLectureFromText(lectureTitle, rawText) {
             var trimmed = (rawText || '').trim();
             if (!trimmed) { toast('Paste text or import a PDF first'); return Promise.resolve(null); }
@@ -15954,6 +16647,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* Global helpers for inline course actions */
+    /* ═══ SECTION: Open Edit Course | Functions: openEditCourse ═══ */
     window.openEditCourse = function(name) {
       courseModalState.mode = 'editor';
       courseModalState.course = name;
@@ -15961,6 +16655,7 @@ input[type="range"]::-moz-range-thumb{
       renderCourseModalEditor(name, 'details');
     };
 
+    /* ═══ SECTION: Start Delete Course | Functions: startDeleteCourse ═══ */
     window.startDeleteCourse = function(name) {
       var row = el('deleteRow_' + courseKey(name));
       if (!row) return;
@@ -16032,6 +16727,7 @@ input[type="range"]::-moz-range-thumb{
       if (window.gsap) gsap.fromTo(row, { opacity: 0, y: -4 }, { opacity: 1, y: 0, duration: 0.2, ease: 'power2.out' });
     };
 
+    /* ═══ SECTION: Confirm Delete Course Now | Functions: confirmDeleteCourseNow ═══ */
     window.confirmDeleteCourseNow = function(name) {
       deleteCourse(name);
       reconcileStats();
@@ -16041,10 +16737,12 @@ input[type="range"]::-moz-range-thumb{
       toast('Course deleted');
     };
 
+    /* ═══ SECTION: Edit Card | Functions: editCard ═══ */
     window.editCard = function(id) {
       var it = state.items[id];
       if (!it) { toast('Card not found'); return; }
 
+      /* ═══ SECTION: Close Sheet | Functions: closeSheet ═══ */
       function closeSheet(animated) {
         var fe = document.querySelector('.edit-card-form');
         var bd = document.querySelector('.edit-card-backdrop');
@@ -16194,6 +16892,7 @@ input[type="range"]::-moz-range-thumb{
       });
     };
 
+    /* ═══ SECTION: View Course Deck | Functions: viewCourseDeck ═══ */
     window.viewCourseDeck = function(name) {
       var row = el('deckRow_' + courseKey(name));
       if (!row) return;
@@ -16261,6 +16960,7 @@ input[type="range"]::-moz-range-thumb{
       if (window.gsap) gsap.fromTo(row, { opacity: 0, y: -4 }, { opacity: 1, y: 0, duration: 0.25, ease: 'power2.out' });
     };
 
+    /* ═══ SECTION: Delete Card | Functions: deleteCard ═══ */
     window.deleteCard = function(itemId, courseName) {
       if (state.items[itemId]) {
         delete state.items[itemId];
@@ -16275,6 +16975,7 @@ input[type="range"]::-moz-range-thumb{
     /* ── Toast (lightweight) ── */
     var toastEl = null;
     var toastTimer = null;
+    /* ═══ SECTION: Toast | Functions: toast ═══ */
     function toast(msg) {
       if (!toastEl) {
         toastEl = document.createElement('div');
@@ -16309,6 +17010,7 @@ input[type="range"]::-moz-range-thumb{
 
        Reading rate ~25 words per 5 seconds (deliberately slow to account for re-encoding effort).
        Minimum 6s, maximum 20s (diminishing returns beyond that). */
+    /* ═══ SECTION: Calc Restudy Duration | Functions: calcRestudyDuration ═══ */
     function calcRestudyDuration(modelAnswer) {
       if (!modelAnswer) return 8000; /* 8s default */
       var txt = String(modelAnswer).trim();
@@ -16320,6 +17022,7 @@ input[type="range"]::-moz-range-thumb{
       return seconds * 1000; /* milliseconds */
     }
 
+    /* ═══ SECTION: Fmt Mmss | Functions: fmtMMSS ═══ */
     function fmtMMSS(totalSec) {
       totalSec = Math.max(0, totalSec|0);
       var m = Math.floor(totalSec / 60);
@@ -16334,6 +17037,7 @@ input[type="range"]::-moz-range-thumb{
     var mascotFlapPhase = 0;
     var mascotAnimFrame = null;
 
+    /* ═══ SECTION: Init Mascot | Functions: initMascot ═══ */
     function initMascot() {
       var c = el('mascotCanvas');
       if (!c) return;
@@ -16351,6 +17055,7 @@ input[type="range"]::-moz-range-thumb{
       startMascotLoop();
     }
 
+    /* ═══ SECTION: Update Mascot Stage | Functions: updateMascotStage ═══ */
     function updateMascotStage() {
       var xp = 0;
       try { xp = SyncEngine.get('dragon', 'xp') || 0; } catch(e) {}
@@ -16361,7 +17066,9 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Start Mascot Loop | Functions: startMascotLoop ═══ */
     function startMascotLoop() {
+      /* ═══ SECTION: Tick | Functions: tick ═══ */
       function tick() {
         mascotFlapPhase += 0.04;
         drawMascot();
@@ -16370,6 +17077,7 @@ input[type="range"]::-moz-range-thumb{
       tick();
     }
 
+    /* ═══ SECTION: Draw Mascot | Functions: drawMascot ═══ */
     function drawMascot() {
       var ctx = mascotCtx;
       if (!ctx) return;
@@ -16386,6 +17094,7 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Draw Egg Mascot | Functions: drawEggMascot ═══ */
     function drawEggMascot(ctx, cx, cy, accent, rgb) {
       /* Subtle idle wobble */
       var wobble = Math.sin(mascotFlapPhase * 1.5) * 1.5;
@@ -16426,6 +17135,7 @@ input[type="range"]::-moz-range-thumb{
       ctx.restore();
     }
 
+    /* ═══ SECTION: Draw Dragon Mascot | Functions: drawDragonMascot ═══ */
     function drawDragonMascot(ctx, cx, cy, accent, rgb, stage) {
       var flap = Math.sin(mascotFlapPhase * 2.5);
       var breathe = Math.sin(mascotFlapPhase * 1.2) * 0.5;
@@ -16541,6 +17251,7 @@ input[type="range"]::-moz-range-thumb{
        CANVAS ANALYTICS ENGINE
        ═══════════════════════════════════════════ */
 
+    /* ═══ SECTION: Get Canvas Ctx | Functions: getCanvasCtx ═══ */
     function getCanvasCtx(canvasId, w, h) {
       var c = el(canvasId);
       if (!c) return null;
@@ -16554,13 +17265,16 @@ input[type="range"]::-moz-range-thumb{
       return { ctx: ctx, w: w, h: h };
     }
 
+    /* ═══ SECTION: Get Accent Rgb | Functions: getAccentRGB ═══ */
     function getAccentRGB() {
       var s = getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim();
       return s || '139,92,246';
     }
+    /* ═══ SECTION: Get Text Secondary | Functions: getTextSecondary ═══ */
     function getTextSecondary() {
       return getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim() || '#6b7280';
     }
+    /* ═══ SECTION: Get Text Color | Functions: getTextColor ═══ */
     function getTextColor() {
       return getComputedStyle(document.documentElement).getPropertyValue('--text').trim() || '#1a1a2e';
     }
@@ -16569,6 +17283,7 @@ input[type="range"]::-moz-range-thumb{
     /* Stores computed point data per canvas for hover lookups */
     var retentionGraphData = {};
 
+    /* ═══ SECTION: Draw Retention Curve | Functions: drawRetentionCurve ═══ */
     function drawRetentionCurve(canvasId, itemsByFilter, labelPrefix) {
       var parent = el(canvasId);
       if (!parent) return;
@@ -16739,11 +17454,13 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* ── Retention Graph Hover Interactivity ── */
+    /* ═══ SECTION: Hide Canvas Tooltip | Functions: hideCanvasTooltip ═══ */
     function hideCanvasTooltip() {
       var tooltip = el('canvasTooltip');
       if (tooltip) tooltip.classList.remove('show');
     }
 
+    /* ═══ SECTION: Show Canvas Tooltip | Functions: showCanvasTooltip ═══ */
     function showCanvasTooltip(canvasId, pt, label, itemCount, clientX, clientY) {
       var tooltip = el('canvasTooltip');
       if (!tooltip) return;
@@ -16766,6 +17483,7 @@ input[type="range"]::-moz-range-thumb{
       tooltip.classList.add('show');
     }
 
+    /* ═══ SECTION: Draw Retention Highlight | Functions: drawRetentionHighlight ═══ */
     function drawRetentionHighlight(canvasId, idx) {
       if (idx == null || idx < 0) return;
       var data = retentionGraphData[canvasId];
@@ -16808,12 +17526,14 @@ input[type="range"]::-moz-range-thumb{
       ctx.restore();
     }
 
+    /* ═══ SECTION: Redraw Retention Base | Functions: redrawRetentionBase ═══ */
     function redrawRetentionBase(canvasId) {
       var data = retentionGraphData[canvasId];
       if (!data) return;
       drawRetentionCurve(canvasId, data.lastItemsByFilter || {}, data.lastLabelPrefix || '');
     }
 
+    /* ═══ SECTION: Handle Retention Hover | Functions: handleRetentionHover ═══ */
     function handleRetentionHover(canvasId, clientX, clientY) {
       var canvas = el(canvasId);
       var data = retentionGraphData[canvasId];
@@ -16856,6 +17576,7 @@ input[type="range"]::-moz-range-thumb{
 
     /* Wire canvas mouse/touch events for retention graphs */
     var wiredRetentionCanvases = {};
+    /* ═══ SECTION: Wire Retention Interactivity | Functions: wireRetentionInteractivity ═══ */
     function wireRetentionInteractivity(canvasId) {
       if (wiredRetentionCanvases[canvasId]) return;
       var canvas = el(canvasId);
@@ -16893,6 +17614,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* ── Graph 2: Session History Sparkline (30 days) ── */
+    /* ═══ SECTION: Draw Sparkline | Functions: drawSparkline ═══ */
     function drawSparkline(canvasId) {
       var parent = el(canvasId);
       if (!parent) return;
@@ -17043,6 +17765,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* ── Graph 3: Tier Distribution Ring ── */
+    /* ═══ SECTION: Draw Tier Ring | Functions: drawTierRing ═══ */
     function drawTierRing(canvasId) {
       var r = getCanvasCtx(canvasId, 64, 64);
       if (!r) return;
@@ -17114,6 +17837,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* ── Activity heatmap (dashboard; sparkline + tier ring replaced in UI) ── */
+    /* ═══ SECTION: Draw Activity Heatmap | Functions: drawActivityHeatmap ═══ */
     function drawActivityHeatmap(canvasId) {
       var canvas = el(canvasId);
       if (!canvas) return;
@@ -17227,6 +17951,7 @@ input[type="range"]::-moz-range-thumb{
       });
     }
 
+    /* ═══ SECTION: Render Activity Stats | Functions: renderActivityStats ═══ */
     function renderActivityStats() {
       var container = el('activityStats');
       if (!container) return;
@@ -17260,6 +17985,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* ── Draw all analytics ── */
+    /* ═══ SECTION: Render Retention Filter Chips | Functions: renderRetentionFilterChips ═══ */
     function renderRetentionFilterChips() {
       var container = el('retFilterChips');
       if (!container) return;
@@ -17306,6 +18032,7 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Render Retention Graph | Functions: renderRetentionGraph ═══ */
     function renderRetentionGraph() {
       var items = {};
       var filterCourse = retentionFilter || 'All';
@@ -17320,6 +18047,7 @@ input[type="range"]::-moz-range-thumb{
       drawRetentionCurve('retentionCanvas', items, label);
     }
 
+    /* ═══ SECTION: Render Analytics | Functions: renderAnalytics ═══ */
     function renderAnalytics(courseFilter) {
       var items = {};
       for (var id in state.items) {
@@ -17356,6 +18084,7 @@ input[type="range"]::-moz-range-thumb{
        PER-COURSE ADVANCED ANALYTICS
        ═══════════════════════════════════════════ */
 
+    /* ═══ SECTION: Color To Rgba Bottom | Functions: colorToRgbaBottom ═══ */
     function colorToRgbaBottom(colorStr, alpha) {
       if (!colorStr) return 'rgba(128,128,128,' + alpha + ')';
       colorStr = String(colorStr).trim();
@@ -17373,6 +18102,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* ── Rating History (last 30 reviews for this course) ── */
+    /* ═══ SECTION: Draw Course Rating History | Functions: drawCourseRatingHistory ═══ */
     function drawCourseRatingHistory(canvasId, courseName) {
       var canvas = el(canvasId);
       if (!canvas) return;
@@ -17477,6 +18207,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* ── Stability Distribution ── */
+    /* ═══ SECTION: Draw Stability Distribution | Functions: drawStabilityDistribution ═══ */
     function drawStabilityDistribution(canvasId, courseItems) {
       var canvas = el(canvasId);
       if (!canvas) return;
@@ -17596,6 +18327,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* ── Tier Accuracy (avg FSRS rating per tier) ── */
+    /* ═══ SECTION: Draw Tier Accuracy | Functions: drawTierAccuracy ═══ */
     function drawTierAccuracy(canvasId, courseName) {
       var canvas = el(canvasId);
       if (!canvas) return;
@@ -17736,6 +18468,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* ── Course Detail View ── */
+    /* ═══ SECTION: Open Course Detail | Functions: openCourseDetail ═══ */
     function openCourseDetail(courseName) {
       var c = getCourse(courseName);
       if (!c) return;
@@ -18145,6 +18878,7 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ═══ SECTION: Close Course Detail | Functions: closeCourseDetail ═══ */
     function closeCourseDetail() {
       el('courseDetail').classList.remove('active');
       el('courseDetail').style.display = 'none';
@@ -18176,6 +18910,7 @@ input[type="range"]::-moz-range-thumb{
     });
 
     var focusResyncBound = false;
+    /* ═══ SECTION: Boot | Functions: boot ═══ */
     function boot() {
       loadState();
       /* Re-sync from SyncEngine when a remote device writes new state.
@@ -18305,6 +19040,7 @@ input[type="range"]::-moz-range-thumb{
 
       /* Show sync status badge */
       var syncBadge = el('syncBadge');
+      /* ═══ SECTION: Set Sync Badge | Functions: setSyncBadge ═══ */
       function setSyncBadge(status) {
         if (!syncBadge) return;
         syncBadge.style.display = 'inline-block';
