@@ -105,6 +105,15 @@ export default {
         const relearningModePrefix =
           "RELEARNING PASS: The student already attempted this card, saw the model answer, and rated Again. This is a re-encounter within the same session. Do NOT ask broad diagnostic questions — target the specific point they missed. Ask them to reconstruct the key claim. Keep it to 1-2 turns. They have already seen the answer — the goal is active re-encoding, not discovery.\n\n";
 
+        function daysUntilExam(dateStr) {
+          if (!dateStr) return null;
+          const s = String(dateStr).trim();
+          const d = new Date(s.length <= 10 ? `${s}T12:00:00` : s);
+          if (Number.isNaN(d.getTime())) return null;
+          const now = new Date();
+          return Math.max(0, Math.ceil((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+        }
+
         function formatLearnerProfileBlock(learner, itemRef) {
           if (!learner || typeof learner !== "object") return "";
           const cs = learner.courseStats || {};
@@ -141,8 +150,44 @@ export default {
           return lines.join("\n");
         }
 
+        function formatExamContextBlock(cc) {
+          if (!cc || typeof cc !== "object") return "";
+          const fmt = cc.examType || "Unknown";
+          const fmtExtra = cc.examFormat ? ` — ${cc.examFormat}` : "";
+          const days = cc.examDate ? daysUntilExam(cc.examDate) : null;
+          const dateLine =
+            cc.examDate && days != null
+              ? `${cc.examDate} (${days} days away)`
+              : cc.examDate
+                ? String(cc.examDate)
+                : "Not set";
+          const weightLine =
+            cc.examWeight != null && !Number.isNaN(Number(cc.examWeight))
+              ? `${cc.examWeight}% of final grade`
+              : "Unknown";
+          const mats = cc.allowedMaterials || "Unknown";
+          const lines = [
+            "\n\n---\n\nEXAM CONTEXT:\n",
+            `- Format: ${fmt}${fmtExtra}`,
+            `- Date: ${dateLine}`,
+            `- Weight: ${weightLine}`,
+            `- Allowed materials: ${mats}`
+          ];
+          if (cc.professorValues) lines.push(`- Professor values: ${cc.professorValues}`);
+          if (cc.syllabusContext) lines.push(`- Course scope: ${cc.syllabusContext}`);
+          lines.push(
+            "",
+            "Tailor your feedback to this exam context:",
+            "- If the professor values specific things (case citations, counter-arguments, etc.), check for them",
+            "- If the exam is essay format, evaluate argument structure; if MC, focus on precision of key distinctions",
+            "- As the exam date approaches, increase urgency and focus on high-yield review"
+          );
+          return lines.join("\n");
+        }
+
         const learnerProfileBlock = formatLearnerProfileBlock(context.learner, item);
-        const systemPromptAugmented = systemPrompt + learnerProfileBlock;
+        const examContextBlock = formatExamContextBlock(context.courseContext);
+        const systemPromptAugmented = systemPrompt + learnerProfileBlock + examContextBlock;
 
         const modeInstructionsBase = {
           socratic:
@@ -323,6 +368,118 @@ export default {
       }
     }
 
+    // ── Syllabus / course context distillation (Flash) ──
+    if (url.pathname === "/studyengine/syllabus") {
+      const sylCorsHeaders = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, X-Widget-Key",
+        "Access-Control-Max-Age": "86400"
+      };
+
+      if (request.method !== "POST") {
+        return new Response(JSON.stringify({ error: "Method not allowed" }), {
+          status: 405, headers: { ...sylCorsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      function cleanJsonSyl(s) {
+        s = s.replace(/^[\s\S]*?(?=\{)/m, "");
+        s = s.replace(/\}[\s\S]*$/, "}");
+        s = s.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
+        s = s.replace(/,\s*([\]}])/g, "$1");
+        s = s.replace(/[\x00-\x1f]/g, " ");
+        return s;
+      }
+      function tryParseSyl(s) {
+        try {
+          return JSON.parse(s);
+        } catch (e) {
+          return null;
+        }
+      }
+
+      try {
+        const body = await request.json();
+        const rawTextIn = body.rawText != null ? String(body.rawText).trim() : "";
+        const courseName = body.courseName != null ? String(body.courseName).trim() : "";
+        const existingExamType = body.existingExamType != null ? String(body.existingExamType) : "";
+
+        if (!rawTextIn || !courseName) {
+          return new Response(JSON.stringify({ error: "rawText and courseName required" }), {
+            status: 400, headers: { ...sylCorsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
+        const rawText = rawTextIn.length > 15000 ? rawTextIn.slice(0, 15000) : rawTextIn;
+
+        const sylPrompt =
+          `You are analysing a university course syllabus or exam document. Extract structured information that will help an AI study tutor personalise its feedback for this course.\n\n` +
+          `COURSE: ${courseName}\n` +
+          `KNOWN EXAM TYPE: ${existingExamType || "Unknown"}\n\n` +
+          `RAW DOCUMENT TEXT:\n${rawText}\n\n` +
+          `Extract the following. If information is not available, use null.\n\n` +
+          `Respond in EXACT JSON:\n` +
+          `{\n` +
+          `  "syllabusContext": "2-4 sentence summary of the course scope, key themes, and learning objectives. Max 500 chars.",\n` +
+          `  "examFormat": "Specific exam format details beyond just the type. e.g., '3 essay questions, choose 2, 3 hours, worth 40%'. Max 200 chars. Null if not found.",\n` +
+          `  "professorValues": "What the instructor explicitly values in student work. Look for grading criteria, rubric descriptions, or stated expectations. Max 300 chars. Null if not found.",\n` +
+          `  "allowedMaterials": "What materials are allowed in the exam. Null if not found.",\n` +
+          `  "keyTopics": ["List of 5-15 key topics or themes mentioned in the syllabus"],\n` +
+          `  "examWeight": null\n` +
+          `}\n\n` +
+          `examWeight should be a number 0-100 if the document states a final exam or midterm percentage, else null.`;
+
+        const sylUrl =
+          "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" +
+          env.GEMINI_API_KEY;
+
+        const sylRes = await fetch(sylUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: sylPrompt }] }],
+            generationConfig: {
+              temperature: 0.35,
+              maxOutputTokens: 2048,
+              responseMimeType: "application/json"
+            }
+          })
+        });
+
+        if (!sylRes.ok) {
+          const errText = await sylRes.text();
+          return new Response(JSON.stringify({ error: "Gemini API error", detail: errText }), {
+            status: 502, headers: { ...sylCorsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
+        const sylData = await sylRes.json();
+        const sylRaw = sylData?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+        let parsedSyl =
+          tryParseSyl(sylRaw) ||
+          tryParseSyl(cleanJsonSyl(sylRaw)) ||
+          (() => {
+            const m = sylRaw.match(/\{[\s\S]*\}/);
+            return m ? tryParseSyl(cleanJsonSyl(m[0])) : null;
+          })();
+
+        if (!parsedSyl || typeof parsedSyl !== "object") {
+          return new Response(JSON.stringify({ error: "Failed to parse syllabus response" }), {
+            status: 500, headers: { ...sylCorsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
+        return new Response(JSON.stringify(parsedSyl), {
+          status: 200, headers: { ...sylCorsHeaders, "Content-Type": "application/json" }
+        });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: "Syllabus processing failed", detail: e.message }), {
+          status: 500, headers: { ...sylCorsHeaders, "Content-Type": "application/json" }
+        });
+      }
+    }
+
     // ── Tutor memory extraction (background / Flash) ──
     if (url.pathname === "/studyengine/memory") {
       const memCorsHeaders = {
@@ -394,12 +551,13 @@ export default {
           `QUESTION: ${item.prompt}\n` +
           `SUGGESTED RATING: ${suggestedRating} (1=Again, 2=Hard, 3=Good, 4=Easy)\n\n` +
           `DIALOGUE:\n${dialogueText}\n` +
-          `EXISTING MEMORIES ABOUT THIS STUDENT (for this course):\n${existingBlock}\n\n` +
+          `EXISTING MEMORIES ABOUT THIS STUDENT (course-specific and global):\n${existingBlock}\n\n` +
           `INSTRUCTIONS:\n` +
           `Analyse the dialogue and decide ONE of:\n` +
           `1. CREATE a new memory if you observe a pattern, misconception, strength, or cross-topic connection that is NOT already captured in existing memories.\n` +
           `2. UPDATE an existing memory if this dialogue reinforces, contradicts, or refines a prior observation. Reference the memory ID.\n` +
           `3. Return null if the dialogue was unremarkable or the existing memories already cover this pattern.\n\n` +
+          `- scope: "course" if the observation is specific to this course's content, "global" if it's about the student's general learning behaviour (e.g., "Tends to write conclusions before fully developing evidence" is global; "Confuses trade creation with trade diversion" is course-specific).\n\n` +
           `Memory types:\n` +
           `- "pattern": A recurring error or behaviour (e.g., "Consistently misses application step — identifies rules but cannot map them to facts")\n` +
           `- "misconception": A specific wrong mental model (e.g., "Conflates trade creation with trade diversion — treats them as the same concept")\n` +
@@ -418,7 +576,8 @@ export default {
           `    "id": "mem_<random8chars>" (for create) or existing ID (for update),\n` +
           `    "type": "pattern" | "misconception" | "strength" | "connection",\n` +
           `    "content": "Specific observation under 200 chars",\n` +
-          `    "course": "course name",\n` +
+          `    "course": "course name (use empty string for global-only observations)",\n` +
+          `    "scope": "course" | "global",\n` +
           `    "relatedTopics": ["topic1", "topic2"],\n` +
           `    "confidence": 0.6\n` +
           `  }\n` +
@@ -487,6 +646,8 @@ export default {
         }
 
         mem.course = mem.course || item.course || "";
+        if (mem.scope !== "global" && mem.scope !== "course") mem.scope = "course";
+        if (mem.scope === "global" && !mem.course) mem.course = "";
         if (!Array.isArray(mem.relatedTopics)) mem.relatedTopics = [];
 
         return new Response(JSON.stringify({ action: parsedMem.action, memory: mem }), {
