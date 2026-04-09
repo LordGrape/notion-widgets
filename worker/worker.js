@@ -2,6 +2,29 @@
 // Bindings: WIDGET_KV (KV namespace)
 // Secrets: WIDGET_SECRET, GEMINI_API_KEY, GOOGLE_TTS_KEY, NOTION_TOKEN (optional), NOTION_DB_ID (optional)
 
+// ── Shared Helpers (used by multiple routes) ──
+function cleanJsonString(s) {
+  s = s.replace(/^[\s\S]*?(?=\{)/m, "");
+  s = s.replace(/\}[\s\S]*$/, "}");
+  s = s.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
+  s = s.replace(/,\s*([\]}])/g, "$1");
+  s = s.replace(/[\x00-\x1f]/g, " ");
+  return s;
+}
+function tryParse(s) {
+  try { return JSON.parse(s); } catch (e) { return null; }
+}
+function parseJsonResponse(rawText) {
+  return (
+    tryParse(rawText) ||
+    tryParse(cleanJsonString(rawText)) ||
+    (() => {
+      const m = rawText.match(/\{[\s\S]*\}/);
+      return m ? tryParse(cleanJsonString(m[0])) : null;
+    })()
+  );
+}
+
 export default {
   async fetch(request, env) {
     // ── Global CORS preflight — must run before auth or any route branch ──
@@ -32,18 +55,6 @@ export default {
         return new Response(JSON.stringify({ error: "Method not allowed" }), {
           status: 405, headers: { ...tutorCorsHeaders, "Content-Type": "application/json" }
         });
-      }
-
-      function cleanJsonString(s) {
-        s = s.replace(/^[\s\S]*?(?=\{)/m, "");
-        s = s.replace(/\}[\s\S]*$/, "}");
-        s = s.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
-        s = s.replace(/,\s*([\]}])/g, "$1");
-        s = s.replace(/[\x00-\x1f]/g, " ");
-        return s;
-      }
-      function tryParse(s) {
-        try { return JSON.parse(s); } catch (e) { return null; }
       }
 
       const TUTOR_MODES = ["socratic", "quick", "teach", "insight", "acknowledge"];
@@ -323,9 +334,15 @@ export default {
           "Respond in EXACT JSON format and nothing else:\n" +
           responseSchemas[mode];
 
-        const fullPrompt =
-          systemPromptAugmented +
-          "\n\n---\n\n" +
+        const modeTokenLimits = {
+          insight: 256,
+          quick: 512,
+          acknowledge: 512,
+          socratic: 1024,
+          teach: 1024
+        };
+        const maxOut = modeTokenLimits[mode] || 1024;
+        const dynamicPrompt =
           modeInstructionsForMode +
           "\n\n---\n\n" +
           itemBlock +
@@ -336,10 +353,13 @@ export default {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: fullPrompt }] }],
+            systemInstruction: {
+              parts: [{ text: systemPromptAugmented }]
+            },
+            contents: [{ parts: [{ text: dynamicPrompt }] }],
             generationConfig: {
               temperature: 0.35,
-              maxOutputTokens: 2048,
+              maxOutputTokens: maxOut,
               responseMimeType: "application/json"
             }
           })
@@ -355,13 +375,7 @@ export default {
         const geminiData = await geminiRes.json();
         const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
 
-        const parsed =
-          tryParse(rawText) ||
-          tryParse(cleanJsonString(rawText)) ||
-          (() => {
-            const m = rawText.match(/\{[\s\S]*\}/);
-            return m ? tryParse(cleanJsonString(m[0])) : null;
-          })();
+        const parsed = parseJsonResponse(rawText);
 
         if (!parsed || typeof parsed !== "object") {
           return new Response(
@@ -395,22 +409,6 @@ export default {
         });
       }
 
-      function cleanJsonSyl(s) {
-        s = s.replace(/^[\s\S]*?(?=\{)/m, "");
-        s = s.replace(/\}[\s\S]*$/, "}");
-        s = s.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
-        s = s.replace(/,\s*([\]}])/g, "$1");
-        s = s.replace(/[\x00-\x1f]/g, " ");
-        return s;
-      }
-      function tryParseSyl(s) {
-        try {
-          return JSON.parse(s);
-        } catch (e) {
-          return null;
-        }
-      }
-
       try {
         const body = await request.json();
         const rawTextIn = body.rawText != null ? String(body.rawText).trim() : "";
@@ -425,8 +423,8 @@ export default {
 
         const rawText = rawTextIn.length > 15000 ? rawTextIn.slice(0, 15000) : rawTextIn;
 
-        const sylPrompt =
-          `You are analysing a university course syllabus or exam document. Extract structured information that will help an AI study tutor personalise its feedback for this course.\n\n` +
+        const sylSystemInstruction = "You are analysing a university course syllabus or exam document. Extract structured information that will help an AI study tutor personalise its feedback for this course.";
+        const sylDynamicContent =
           `COURSE: ${courseName}\n` +
           `KNOWN EXAM TYPE: ${existingExamType || "Unknown"}\n\n` +
           `RAW DOCUMENT TEXT:\n${rawText}\n\n` +
@@ -450,10 +448,13 @@ export default {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: sylPrompt }] }],
+            systemInstruction: {
+              parts: [{ text: sylSystemInstruction }]
+            },
+            contents: [{ parts: [{ text: sylDynamicContent }] }],
             generationConfig: {
               temperature: 0.35,
-              maxOutputTokens: 2048,
+              maxOutputTokens: 1024,
               responseMimeType: "application/json"
             }
           })
@@ -468,13 +469,7 @@ export default {
 
         const sylData = await sylRes.json();
         const sylRaw = sylData?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-        let parsedSyl =
-          tryParseSyl(sylRaw) ||
-          tryParseSyl(cleanJsonSyl(sylRaw)) ||
-          (() => {
-            const m = sylRaw.match(/\{[\s\S]*\}/);
-            return m ? tryParseSyl(cleanJsonSyl(m[0])) : null;
-          })();
+        let parsedSyl = parseJsonResponse(sylRaw);
 
         if (!parsedSyl || typeof parsedSyl !== "object") {
           return new Response(JSON.stringify({ error: "Failed to parse syllabus response" }), {
@@ -505,22 +500,6 @@ export default {
         return new Response(JSON.stringify({ error: "Method not allowed" }), {
           status: 405, headers: { ...memCorsHeaders, "Content-Type": "application/json" }
         });
-      }
-
-      function cleanJsonStringMem(s) {
-        s = s.replace(/^[\s\S]*?(?=\{)/m, "");
-        s = s.replace(/\}[\s\S]*$/, "}");
-        s = s.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
-        s = s.replace(/,\s*([\]}])/g, "$1");
-        s = s.replace(/[\x00-\x1f]/g, " ");
-        return s;
-      }
-      function tryParseMem(s) {
-        try {
-          return JSON.parse(s);
-        } catch (e) {
-          return null;
-        }
       }
 
       try {
@@ -604,10 +583,13 @@ export default {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            systemInstruction: {
+              parts: [{ text: "You are a learning analytics engine. You observe tutoring dialogues and extract durable observations about a student's learning patterns. You output JSON." }]
+            },
             contents: [{ parts: [{ text: memoryPrompt }] }],
             generationConfig: {
               temperature: 0.35,
-              maxOutputTokens: 1024,
+              maxOutputTokens: 256,
               responseMimeType: "application/json"
             }
           })
@@ -621,13 +603,7 @@ export default {
 
         const memData = await memRes.json();
         const memRaw = memData?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-        let parsedMem =
-          tryParseMem(memRaw) ||
-          tryParseMem(cleanJsonStringMem(memRaw)) ||
-          (() => {
-            const m = memRaw.match(/\{[\s\S]*\}/);
-            return m ? tryParseMem(cleanJsonStringMem(m[0])) : null;
-          })();
+        let parsedMem = parseJsonResponse(memRaw);
 
         if (!parsedMem || typeof parsedMem !== "object") {
           return new Response(JSON.stringify({ action: null }), {
@@ -756,8 +732,11 @@ export default {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            systemInstruction: {
+              parts: [{ text: "You are generating a brief session summary for a study engine. Be specific and actionable. Respond as plain text, not JSON. 3-4 sentences." }]
+            },
             contents: [{ parts: [{ text: summaryPrompt }] }],
-            generationConfig: { temperature: 0.4, maxOutputTokens: 512 }
+            generationConfig: { temperature: 0.4, maxOutputTokens: 256 }
           })
         });
 
@@ -799,22 +778,6 @@ export default {
         return new Response(JSON.stringify({ error: "Method not allowed" }), {
           status: 405, headers: { ...prepCorsHeaders, "Content-Type": "application/json" }
         });
-      }
-
-      function cleanJsonPrep(s) {
-        s = s.replace(/^[\s\S]*?(?=\{)/m, "");
-        s = s.replace(/\}[\s\S]*$/, "}");
-        s = s.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
-        s = s.replace(/,\s*([\]}])/g, "$1");
-        s = s.replace(/[\x00-\x1f]/g, " ");
-        return s;
-      }
-      function tryParsePrep(s) {
-        try {
-          return JSON.parse(s);
-        } catch (e) {
-          return null;
-        }
       }
 
       try {
@@ -870,10 +833,13 @@ export default {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            systemInstruction: {
+              parts: [{ text: "You are analysing a batch of study cards imported into a spaced repetition study engine. Infer course scope, key topics, and initial learner observations. Respond in JSON." }]
+            },
             contents: [{ parts: [{ text: prepPrompt }] }],
             generationConfig: {
               temperature: 0.35,
-              maxOutputTokens: 2048,
+              maxOutputTokens: 1024,
               responseMimeType: "application/json"
             }
           })
@@ -888,13 +854,7 @@ export default {
 
         const prepData = await prepRes.json();
         const prepRaw = prepData?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-        let parsedPrep =
-          tryParsePrep(prepRaw) ||
-          tryParsePrep(cleanJsonPrep(prepRaw)) ||
-          (() => {
-            const m = prepRaw.match(/\{[\s\S]*\}/);
-            return m ? tryParsePrep(cleanJsonPrep(m[0])) : null;
-          })();
+        let parsedPrep = parseJsonResponse(prepRaw);
 
         if (!parsedPrep || typeof parsedPrep !== "object") {
           return new Response(JSON.stringify({ error: "Failed to parse prepare response" }), {
@@ -932,18 +892,6 @@ export default {
         const { prompt, modelAnswer, userResponse, tier, course, topic, conceptA, conceptB, mode } = body;
         const essayOutline = body.essayOutline || "";
         const isEssayMode = essayOutline.length > 0;
-
-        function cleanJsonString(s) {
-          s = s.replace(/^[\s\S]*?(?=\{)/m, "");
-          s = s.replace(/\}[\s\S]*$/, "}");
-          s = s.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
-          s = s.replace(/,\s*([\]}])/g, "$1");
-          s = s.replace(/[\x00-\x1f]/g, " ");
-          return s;
-        }
-        function tryParse(s) {
-          try { return JSON.parse(s); } catch (e) { return null; }
-        }
 
         if (!prompt || !modelAnswer) {
           return new Response(JSON.stringify({ error: "Missing required fields" }), {
@@ -984,8 +932,11 @@ Respond in this EXACT JSON format and nothing else:
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
+                systemInstruction: {
+                  parts: [{ text: "You are a patient, expert tutor embedded in a spaced repetition study engine. When a student doesn't know the answer, you TEACH — explain WHY the answer is what it is for deep encoding. Respond in JSON." }]
+                },
                 contents: [{ parts: [{ text: explainPrompt }] }],
-                generationConfig: { temperature: 0.4, maxOutputTokens: 1024, responseMimeType: "application/json" }
+                generationConfig: { temperature: 0.4, maxOutputTokens: 512, responseMimeType: "application/json" }
               })
             }
           );
@@ -999,9 +950,7 @@ Respond in this EXACT JSON format and nothing else:
 
           const explainData = await explainRes.json();
           const explainRaw = explainData?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-          let explainResult = tryParse(explainRaw)
-            || tryParse(cleanJsonString(explainRaw))
-            || (() => { const m = explainRaw.match(/\{[\s\S]*\}/); return m ? tryParse(cleanJsonString(m[0])) : null; })();
+          let explainResult = parseJsonResponse(explainRaw);
 
           if (!explainResult || typeof explainResult !== "object") {
             explainResult = { explanation: "Could not generate explanation.", keyPoints: [], memoryHook: "" };
@@ -1173,10 +1122,13 @@ Respond in this EXACT JSON format and nothing else:
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
+              systemInstruction: {
+                parts: [{ text: "You are an expert academic grader embedded in a spaced repetition study engine. Provide precise, calibrated, evidence-based feedback. Grade against the model answer as the reference standard. Respond in JSON." }]
+              },
               contents: [{ parts: [{ text: gradingPrompt }] }],
               generationConfig: {
                 temperature: 0.2,
-                maxOutputTokens: 2048,
+                maxOutputTokens: 1024,
                 responseMimeType: "application/json"
               }
             })
@@ -1194,9 +1146,7 @@ Respond in this EXACT JSON format and nothing else:
         const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
 
         let grading;
-        grading = tryParse(rawText)
-          || tryParse(cleanJsonString(rawText))
-          || (() => { const m = rawText.match(/\{[\s\S]*\}/); return m ? tryParse(cleanJsonString(m[0])) : null; })();
+        grading = parseJsonResponse(rawText);
 
         // ── Calculate scores and FSRS rating ──
         if (isEssayMode) {
@@ -1359,8 +1309,11 @@ graph TD
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
+              systemInstruction: {
+                parts: [{ text: "You are generating Mermaid.js diagrams for spaced repetition study cards. Output ONLY valid Mermaid markup. Use graph TD or graph LR only. 5-12 nodes with full-word labels from the source material. No code fences, no prose." }]
+              },
               contents: [{ parts: [{ text: visualPrompt }] }],
-              generationConfig: { temperature: 0.3, maxOutputTokens: 2048 }
+              generationConfig: { temperature: 0.3, maxOutputTokens: 1024 }
             })
           }
         );

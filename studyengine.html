@@ -7171,6 +7171,10 @@ input[type="range"]::-moz-range-thumb{
       var wrap = el('sessionAiSummaryWrap');
       var body = el('sessionAiSummaryBody');
       if (!wrap || !body) return;
+      if ((Number(reviewedCount) || 0) <= 3) {
+        wrap.style.display = 'none';
+        return;
+      }
       if (!reviewedCount || reviewedCount <= 0) {
         wrap.style.display = 'none';
         return;
@@ -7932,7 +7936,11 @@ input[type="range"]::-moz-range-thumb{
       var tm = tutorCurrentMode;
       if (tm !== 'socratic' && tm !== 'teach' && tm !== 'acknowledge') return;
       var r = suggestedRating != null ? suggestedRating : session.aiRating;
-      updateTutorMemories(item, convSnapshot.slice(), r != null ? r : 2);
+      // Only extract memories from multi-turn dialogues (2+ student turns).
+      var studentTurns = convSnapshot.filter(function(t) { return t && t.role === 'user'; }).length;
+      if (studentTurns >= 2) {
+        updateTutorMemories(item, convSnapshot.slice(), r != null ? r : 2);
+      }
     }
 
     function getLastUserTextForTutor() {
