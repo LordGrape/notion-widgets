@@ -6868,13 +6868,8 @@ input[type="range"]::-moz-range-thumb{
         var currentTier = current._presentTier || current.tier || 'quickfire';
         if (currentTier !== revealTier) return;
 
-        /* Quick Fire: prompt-side before reveal; answer-side after reveal */
+        /* Quick Fire: answer-side only after reveal (no prompt-side duplicate; Phase 8) */
         if (currentTier === 'quickfire') {
-          if (!session.currentShown && tierArea && !tierArea.querySelector('.visual-container')) {
-            tierArea.insertAdjacentHTML('afterbegin', renderMermaidBlock(visual, 'prompt', it.id));
-            setTimeout(initMermaidBlocks, 50);
-            return;
-          }
           if (session.currentShown && modelAnswerEl && modelAnswerEl.style.display !== 'none' && !modelAnswerEl.querySelector('.visual-container')) {
             modelAnswerEl.insertAdjacentHTML('beforeend', renderMermaidBlock(visual, 'answer', it.id));
             setTimeout(initMermaidBlocks, 50);
@@ -7753,7 +7748,18 @@ input[type="range"]::-moz-range-thumb{
           }
           revealAnswer();
         });
-        if (it.prompt && it.modelAnswer) ensureAnswerVisual(it, tier);
+        /* Visual deferred to revealAnswer() — answer-side only. Background-generate so reveal stays snappy. */
+        if (!it.visual && it.prompt && it.modelAnswer && !visualGenerationPending[it.id]) {
+          visualGenerationPending[it.id] = true;
+          generateVisual(it).then(function(v) {
+            visualGenerationPending[it.id] = false;
+            if (v) {
+              it.visual = v;
+              state.items[it.id] = it;
+              saveState();
+            }
+          }).catch(function() { visualGenerationPending[it.id] = false; });
+        }
       } else if (tier === 'explain') {
         tierArea.innerHTML = '' +
           '<div class="two-col single">' +
@@ -7886,6 +7892,16 @@ input[type="range"]::-moz-range-thumb{
             rubricTemplate('mock');
           startMockTimer();
           wireMock();
+        }
+      }
+
+      if (window.gsap) {
+        var cardEnter = document.querySelector('.item-card');
+        if (cardEnter) {
+          gsap.fromTo(cardEnter,
+            { opacity: 0, y: 16, scale: 0.98 },
+            { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: 'power2.out' }
+          );
         }
       }
     }
@@ -9178,11 +9194,20 @@ input[type="range"]::-moz-range-thumb{
           return;
         }
 
-        var remainingItemsB = session.queue.length - (session.idx + 1);
-        var minOffsetB = Math.max(5, Math.floor(remainingItemsB * 0.4));
-        var insertPosB = Math.min(session.idx + 1 + minOffsetB, session.queue.length);
-        session.queue.splice(insertPosB, 0, it);
-        advanceItem();
+        function requeueAfterRestudy() {
+          var remainingItemsB = session.queue.length - (session.idx + 1);
+          var minOffsetB = Math.max(5, Math.floor(remainingItemsB * 0.4));
+          var insertPosB = Math.min(session.idx + 1 + minOffsetB, session.queue.length);
+          session.queue.splice(insertPosB, 0, it);
+          advanceItem();
+        }
+
+        var tierRestudy = it._presentTier || it.tier || 'quickfire';
+        if (tierRestudy === 'quickfire' && settings.feedbackMode !== 'self_rate') {
+          runQuickFireFollowupMicro(it, requeueAfterRestudy);
+        } else {
+          requeueAfterRestudy();
+        }
       }, restudyDuration);
     }
 
@@ -10396,6 +10421,10 @@ input[type="range"]::-moz-range-thumb{
     }
 
     function scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount) {
+      if (mappedRating < 2) {
+        advanceItem();
+        return;
+      }
       if (againCount > 0 && mappedRating >= 3) session.loops[it.id] = 0;
       var res = scheduleFsrs(it, mappedRating, nowTs, true);
       var effectiveBonus = getEffectiveBloomBonus(it.course);
@@ -10436,7 +10465,6 @@ input[type="range"]::-moz-range-thumb{
           tier: tier
         };
       }
-      /* Show Ask the Tutor before advancing */
       mountAskTutor(mappedRating);
     }
 
@@ -10649,10 +10677,7 @@ input[type="range"]::-moz-range-thumb{
           beginPassiveRestudyFlow(it, nowTs);
         };
 
-        if (tier === 'quickfire' && settings.feedbackMode !== 'self_rate') {
-          runQuickFireFollowupMicro(it, proceedAfterAgain);
-          return;
-        }
+        /* Restudy first, then micro follow-up (Arnold & McDermott, 2013) — see beginPassiveRestudyFlow */
         proceedAfterAgain();
         return;
       }
@@ -10699,42 +10724,13 @@ input[type="range"]::-moz-range-thumb{
         var qfModelPost = selectModel(it, session);
         callTutor('insight', qfModelPost, it, '', [], qfCtxPost).then(function(insData) {
           if (!qfInsightArea || !insData || insData.error || (!insData.insight && !insData.followUpQuestion)) {
-            mountAskTutor(function() {
-              scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount);
-            });
+            scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount);
             return;
           }
           buildInsightUI(qfInsightArea, insData);
-          var contWrap = document.createElement('div');
-          contWrap.className = 'qf-post-insight-cont';
-          contWrap.innerHTML = '<button type="button" class="ghost-btn" id="qfInsightContinue" style="margin-top:12px;width:100%;">Continue (Space)</button>';
-          qfInsightArea.appendChild(contWrap);
-          if (window.gsap) {
-            gsap.fromTo(contWrap, { opacity: 0, y: 4 }, { opacity: 1, y: 0, duration: 0.3, delay: 0.2, ease: 'power2.out' });
-          }
-          var insightDone = false;
-          function finishInsight() {
-            if (insightDone) return;
-            insightDone = true;
-            document.removeEventListener('keydown', insightKeyHandler);
-            mountAskTutor(function() {
-              scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount);
-            });
-          }
-          function insightKeyHandler(e) {
-            if (document.activeElement && (document.activeElement.id === 'qfInsightInput' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT')) return;
-            if (e.code === 'Space' || e.key === ' ') {
-              e.preventDefault();
-              finishInsight();
-            }
-          }
-          document.addEventListener('keydown', insightKeyHandler);
-          var contBtn = document.getElementById('qfInsightContinue');
-          if (contBtn) contBtn.addEventListener('click', finishInsight);
+          scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount);
         }).catch(function() {
-          mountAskTutor(function() {
-            scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount);
-          });
+          scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount);
         });
       } else {
         scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount);
@@ -10832,9 +10828,8 @@ input[type="range"]::-moz-range-thumb{
       var label = '';
       var autoExpand = false;
       if (tier === 'quickfire') {
-        /* Quick Fire: always present and expanded */
         label = '💬 Got a question about this card?';
-        autoExpand = true;
+        autoExpand = isStruggling;
       } else if (tc.wasDontKnow) {
         /* Don't Know path ran — reframe as self-check */
         label = 'Want to test your understanding?';
@@ -11082,13 +11077,27 @@ input[type="range"]::-moz-range-thumb{
       cleanupAskTutor();
       document.querySelectorAll('.listen-tts-btn').forEach(function(btn) { btn.remove(); });
       clearTimers();
-      session.idx++;
-      if (session.idx >= session.queue.length) {
-        completeSession();
-        return;
+      var cardEl = document.querySelector('.item-card');
+      var step = function() {
+        session.idx++;
+        if (session.idx >= session.queue.length) {
+          completeSession();
+          return;
+        }
+        checkBreakTriggers();
+        renderCurrentItem();
+      };
+      if (window.gsap && cardEl && viewSession && viewSession.classList.contains('active')) {
+        gsap.to(cardEl, {
+          opacity: 0,
+          y: -12,
+          duration: 0.2,
+          ease: 'power2.in',
+          onComplete: step
+        });
+      } else {
+        step();
       }
-      checkBreakTriggers();
-      renderCurrentItem();
     }
 
     function skipItem() {
