@@ -36,11 +36,90 @@ export default {
 
       try {
         const body = await request.json();
-        const { prompt, modelAnswer, userResponse, tier, course, topic, conceptA, conceptB } = body;
+        const { prompt, modelAnswer, userResponse, tier, course, topic, conceptA, conceptB, mode } = body;
         const essayOutline = body.essayOutline || "";
         const isEssayMode = essayOutline.length > 0;
 
-        if (!prompt || !modelAnswer || !userResponse) {
+        function cleanJsonString(s) {
+          s = s.replace(/^[\s\S]*?(?=\{)/m, "");
+          s = s.replace(/\}[\s\S]*$/, "}");
+          s = s.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
+          s = s.replace(/,\s*([\]}])/g, "$1");
+          s = s.replace(/[\x00-\x1f]/g, " ");
+          return s;
+        }
+        function tryParse(s) {
+          try { return JSON.parse(s); } catch (e) { return null; }
+        }
+
+        if (!prompt || !modelAnswer) {
+          return new Response(JSON.stringify({ error: "Missing required fields" }), {
+            status: 400, headers: { ...gradeCorsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
+        if (mode === "explain") {
+          const explainPrompt = `You are a patient, expert tutor embedded in a spaced repetition study engine. The student just admitted they don't know the answer to this question. Your job is NOT to grade — it is to TEACH. Help them understand WHY the answer is what it is so they encode it deeply for next time.
+
+COURSE: ${course || "General"}
+TOPIC: ${topic || "General"}
+TIER: ${tier || "explain"}
+
+QUESTION/PROMPT:
+${prompt}
+
+MODEL ANSWER (the correct answer):
+${modelAnswer}
+${conceptA ? `\nConcept A: ${conceptA}` : ""}${conceptB ? `\nConcept B: ${conceptB}` : ""}
+
+INSTRUCTIONS:
+1. Explain the answer in a way that builds understanding, not just states facts. Focus on the WHY and HOW.
+2. Break the model answer into 3-5 key points the student should remember.
+3. Provide a memory hook — a vivid analogy, mnemonic, or mental image that makes the answer stick.
+4. Keep it concise. The student will see this alongside the model answer.
+
+Respond in this EXACT JSON format and nothing else:
+{
+  "explanation": "2-4 sentences explaining WHY this is the answer. Focus on causal logic, not just restating facts.",
+  "keyPoints": ["Key point 1", "Key point 2", "Key point 3"],
+  "memoryHook": "A vivid analogy, mnemonic, or mental image to aid recall."
+}`;
+
+          const explainRes = await fetch(
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + env.GEMINI_API_KEY,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: explainPrompt }] }],
+                generationConfig: { temperature: 0.4, maxOutputTokens: 1024, responseMimeType: "application/json" }
+              })
+            }
+          );
+
+          if (!explainRes.ok) {
+            const errText = await explainRes.text();
+            return new Response(JSON.stringify({ error: "Gemini API error", detail: errText }), {
+              status: 502, headers: { ...gradeCorsHeaders, "Content-Type": "application/json" }
+            });
+          }
+
+          const explainData = await explainRes.json();
+          const explainRaw = explainData?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+          let explainResult = tryParse(explainRaw)
+            || tryParse(cleanJsonString(explainRaw))
+            || (() => { const m = explainRaw.match(/\{[\s\S]*\}/); return m ? tryParse(cleanJsonString(m[0])) : null; })();
+
+          if (!explainResult || typeof explainResult !== "object") {
+            explainResult = { explanation: "Could not generate explanation.", keyPoints: [], memoryHook: "" };
+          }
+
+          return new Response(JSON.stringify(explainResult), {
+            status: 200, headers: { ...gradeCorsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
+        if (!userResponse) {
           return new Response(JSON.stringify({ error: "Missing required fields" }), {
             status: 400, headers: { ...gradeCorsHeaders, "Content-Type": "application/json" }
           });
@@ -222,17 +301,6 @@ Respond in this EXACT JSON format and nothing else:
         const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
 
         let grading;
-        function cleanJsonString(s) {
-          s = s.replace(/^[\s\S]*?(?=\{)/m, "");
-          s = s.replace(/\}[\s\S]*$/, "}");
-          s = s.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
-          s = s.replace(/,\s*([\]}])/g, "$1");
-          s = s.replace(/[\x00-\x1f]/g, " ");
-          return s;
-        }
-        function tryParse(s) {
-          try { return JSON.parse(s); } catch (e) { return null; }
-        }
         grading = tryParse(rawText)
           || tryParse(cleanJsonString(rawText))
           || (() => { const m = rawText.match(/\{[\s\S]*\}/); return m ? tryParse(cleanJsonString(m[0])) : null; })();
