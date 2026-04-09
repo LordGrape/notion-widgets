@@ -12251,6 +12251,7 @@ input[type="range"]::-moz-range-thumb{
       if (data.suggestedRating != null) session.aiRating = data.suggestedRating;
       if (typeof onDone === 'function') {
         var nextWrap = document.createElement('div');
+        nextWrap.id = 'qfInsightNextWrap';
         nextWrap.style.marginTop = '14px';
         nextWrap.style.display = 'flex';
         nextWrap.style.gap = '10px';
@@ -12262,6 +12263,8 @@ input[type="range"]::-moz-range-thumb{
         nextBtn.style.flex = '1';
         nextBtn.textContent = 'NEXT CARD →';
         nextBtn.addEventListener('click', function() {
+          document.removeEventListener('keydown', spaceRef);
+          if (session) session._insightSpaceRef = null;
           nextWrap.remove();
           onDone();
         });
@@ -12273,6 +12276,8 @@ input[type="range"]::-moz-range-thumb{
         askBtn.style.minWidth = '0';
         askBtn.textContent = 'Ask Tutor';
         askBtn.addEventListener('click', function() {
+          document.removeEventListener('keydown', spaceRef);
+          if (session) session._insightSpaceRef = null;
           nextWrap.remove();
           if (session) session._forceAskTutorExpand = true;
           onDone();
@@ -12295,9 +12300,8 @@ input[type="range"]::-moz-range-thumb{
             onDone();
           }
         };
+        if (session) session._insightSpaceRef = spaceRef;
         document.addEventListener('keydown', spaceRef);
-        nextBtn.addEventListener('click', function() { document.removeEventListener('keydown', spaceRef); }, { once: true });
-        askBtn.addEventListener('click', function() { document.removeEventListener('keydown', spaceRef); }, { once: true });
       } else {
         showRatingButtons(data.suggestedRating != null ? data.suggestedRating : null);
       }
@@ -14167,6 +14171,14 @@ input[type="range"]::-moz-range-thumb{
       if (staleRe) staleRe.remove();
       var staleFollow = document.getElementById('qfFollowupRoot');
       if (staleFollow) staleFollow.remove();
+      if (session && session._insightSpaceRef) {
+        document.removeEventListener('keydown', session._insightSpaceRef);
+        session._insightSpaceRef = null;
+      }
+      var staleInsightNext = document.getElementById('qfInsightNextWrap');
+      if (staleInsightNext) staleInsightNext.remove();
+      var aiFbArea = document.getElementById('aiFeedbackArea');
+      if (aiFbArea) aiFbArea.innerHTML = '';
       clearTimers();
       var cardEl = document.querySelector('.item-card');
       var stepped = false;
