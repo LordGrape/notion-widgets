@@ -290,8 +290,9 @@
     .stats-row{
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
-      gap: 10px;
+      gap: 8px;
       margin-bottom: 14px;
+      padding: 10px 0;
     }
     .stat{
       padding: 12px 12px;
@@ -642,6 +643,15 @@
       font-weight: 600;
       text-transform: uppercase;
       white-space: nowrap;
+    }
+    .breakdown .tier-pill{
+      border-radius: 8px;
+      padding: 5px 10px;
+      font-size: 11px;
+      transition: background 0.15s;
+    }
+    .breakdown .tier-pill:hover{
+      background: rgba(var(--accent-rgb), 0.06);
     }
     .tier-dot{
       width: 8px; height: 8px; border-radius: 99px;
@@ -3238,6 +3248,64 @@ body.standalone .answer.restudy-active{
     .analytics-card:hover{
       border-color: rgba(var(--accent-rgb),0.20);
       box-shadow: 0 4px 20px -4px rgba(var(--accent-rgb),0.08);
+    }
+    .retention-panel{
+      max-height: 140px;
+    }
+    .stat,
+    .retention-panel,
+    #activityCard{
+      background: rgba(255, 255, 255, 0.035);
+      backdrop-filter: blur(12px) saturate(160%);
+      -webkit-backdrop-filter: blur(12px) saturate(160%);
+      border: 1px solid rgba(var(--accent-rgb), 0.15);
+      border-radius: 12px;
+      transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+    .stat:hover,
+    .retention-panel:hover,
+    #activityCard:hover{
+      border-color: rgba(var(--accent-rgb), 0.3);
+      box-shadow: 0 0 20px rgba(var(--accent-rgb), 0.08);
+    }
+    [id="statDue"], [id="statStreak"], [id="statRet"] {
+      font-size: clamp(22px, 4vw, 32px);
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, var(--text) 40%, rgba(var(--accent-rgb), 0.8));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .retention-panel .section-header,
+    .retention-panel [class*="label"] {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0.5;
+    }
+    #activityCard{
+      padding: 10px 12px;
+    }
+    #activityCard .ac-title{
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      opacity: 0.5;
+      margin-bottom: 6px;
+    }
+    [data-streak-active="true"] {
+      box-shadow: 0 0 18px rgba(var(--accent-rgb), 0.25), 0 0 6px rgba(var(--accent-rgb), 0.15);
+      border-color: rgba(var(--accent-rgb), 0.3) !important;
+    }
+    [data-streak-active="true"] .k::before {
+      content: "🔥 ";
+    }
+    [data-streak-active="false"] .k::before {
+      content: "—  ";
+      opacity: 0.4;
     }
     .analytics-card .ac-title{
       display: flex;
@@ -5837,14 +5905,15 @@ input[type="range"]::-moz-range-thumb{
             </div>
 
             <div class="analytics-strip">
-              <div class="analytics-card">
+              <div class="analytics-card retention-panel">
                 <div class="ac-title">Predicted retention</div>
                 <div class="ret-filter-chips" id="retFilterChips"></div>
-                <canvas id="retentionCanvas" height="100"></canvas>
+                <canvas id="retentionCanvas" height="70"></canvas>
               </div>
               <div class="analytics-card" id="activityCard">
                 <div class="ac-title"><span class="ac-icon">📊</span> Last 30 days</div>
                 <div class="ac-subtitle">Session activity</div>
+                <canvas id="sparklineCanvas" height="80" style="display:block;width:100%;cursor:default;"></canvas>
                 <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;">
                   <canvas id="heatmapCanvas" style="display:block;cursor:crosshair;"></canvas>
                   <div id="activityStats" style="display:flex;flex-direction:column;gap:6px;min-width:80px;"></div>
@@ -7243,7 +7312,11 @@ input[type="range"]::-moz-range-thumb{
     /* ═══ SECTION: Iso Now | Functions: isoNow ═══ */
     function isoNow(){ return new Date().toISOString(); }
     /* ═══ SECTION: Iso Date | Functions: isoDate ═══ */
-    function isoDate(){ return new Date().toISOString().slice(0,10); }
+    function isoDate() {
+      var d = new Date();
+      var pad = function(n) { return String(n).padStart(2, '0'); };
+      return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    }
 
     /* ═══ SECTION: Get Fsrs Decay | Functions: getFsrsDecay ═══ */
     function getFsrsDecay() {
@@ -7659,6 +7732,9 @@ input[type="range"]::-moz-range-thumb{
           sleepBannerEmpty.innerHTML = '';
         }
         el('statStreak').textContent = '—';
+        var streakElEmpty = el('statStreak');
+        var streakParentEmpty = streakElEmpty ? streakElEmpty.closest('.stat') : null;
+        if (streakParentEmpty) streakParentEmpty.setAttribute('data-streak-active', 'false');
         el('statRet').textContent = '—';
         el('calVal').textContent = '—';
         el('calSub').textContent = 'Add items to begin';
@@ -7676,6 +7752,12 @@ input[type="range"]::-moz-range-thumb{
 
       /* Secondary stats — animated counters */
       animateCounter(el('statStreak'), state.stats.streakDays || 0);
+      var streakEl = el('statStreak');
+      var streakDays = state.stats.streakDays || 0;
+      var streakParent = streakEl ? streakEl.closest('.stat') : null;
+      if (streakParent) {
+        streakParent.setAttribute('data-streak-active', streakDays > 0 ? 'true' : 'false');
+      }
       var ar = avgRetention(state.items);
       if (ar == null) {
         el('statRet').textContent = '—';
@@ -17410,7 +17492,7 @@ input[type="range"]::-moz-range-thumb{
       var rect = parent.parentElement;
       var pw = rect ? rect.clientWidth - 24 : 280;
       pw = Math.max(200, Math.min(pw, 600));
-      var ph = parseInt(parent.getAttribute('height'), 10) || 100;
+      var ph = parseInt(parent.getAttribute('height'), 10) || 70;
 
       var r = getCanvasCtx(canvasId, pw, ph);
       if (!r) return;
@@ -17967,6 +18049,7 @@ input[type="range"]::-moz-range-thumb{
       if (cellSize > 14) cellSize = 14;
       var gap = 2;
       var w = 30 * (cellSize + gap) + gap;
+      var rows = 1;
       var h = rows * (cellSize + gap) + gap + 22;
 
       var r = getCanvasCtx(canvasId, w, h);
@@ -18182,6 +18265,7 @@ input[type="range"]::-moz-range-thumb{
       renderRetentionGraph();
       drawActivityHeatmap('heatmapCanvas');
       renderActivityStats();
+      drawSparkline('sparklineCanvas');
 
       /* Cram banner */
       var cramEl = el('cramBanner');
