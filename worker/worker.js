@@ -310,6 +310,22 @@ export default {
             "Do not paste the full model answer in your response — they will see it in a consolidation step next.\n";
         }
 
+        const jsonFieldSeparationHint = {
+          tutorAndFollowUp:
+            "\n\nIMPORTANT: Do NOT include the follow-up question inside \"tutorMessage\". " +
+            'The "tutorMessage" field must contain ONLY your diagnostic response, acknowledgment, or scaffold — it must END before any question. ' +
+            'Put your follow-up question EXCLUSIVELY in \"followUpQuestion\". If you have no follow-up question, set \"followUpQuestion\" to null. ' +
+            "Never duplicate content across the two fields.",
+          acknowledgmentAndExtension:
+            "\n\nIMPORTANT: Do NOT include the extension question inside \"acknowledgment\". " +
+            'Put your extension question EXCLUSIVELY in \"extensionQuestion\". If you have none, set \"extensionQuestion\" to null. ' +
+            "Never duplicate content across the two fields.",
+          insightAndFollowUp:
+            "\n\nIMPORTANT: Do NOT include the self-test question inside \"insight\". " +
+            'Put the follow-up EXCLUSIVELY in \"followUpQuestion\". If you have no question, set \"followUpQuestion\" to null. ' +
+            "Never duplicate content across those fields."
+        };
+
         const responseSchemas = {
           socratic: `{
   "tutorMessage": "3-5 sentences. Acknowledge what's right, identify the gap.",
@@ -393,13 +409,24 @@ export default {
             `RETRIEVAL QUESTION THEY ANSWERED: ${String(context.quickFireFollowUpQuestion).slice(0, 800)}\n`;
         }
 
+        const schemaForMode = responseSchemas[mode];
+        const fieldSepForMode =
+          mode === "socratic" || mode === "teach" || mode === "freeform"
+            ? jsonFieldSeparationHint.tutorAndFollowUp
+            : mode === "acknowledge"
+              ? jsonFieldSeparationHint.acknowledgmentAndExtension
+              : mode === "insight"
+                ? jsonFieldSeparationHint.insightAndFollowUp
+                : "";
+
         userBlock +=
           `Context: This card has been forgotten ${lapses} times. Session retry: ${sessionRetryCount}. ` +
           `Student's recent avg rating: ${recentAvgRating}.` +
           (isRelearningPass ? " Relearning pass: yes (same session, after Again — prioritize targeted re-encoding)." : "") +
           `\n\n` +
           "Respond in EXACT JSON format and nothing else:\n" +
-          responseSchemas[mode];
+          schemaForMode +
+          fieldSepForMode;
 
         const modeTokenLimits = {
           insight: 256,

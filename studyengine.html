@@ -9159,14 +9159,15 @@ input[type="range"]::-moz-range-thumb{
       }
       var ack = ackData.acknowledgment || '';
       var ext = ackData.extensionQuestion || '';
-      var fullT = ack + (ext ? '\n\n' + ext : '');
+      var alreadyIncludedAck = ext && ack.trim().endsWith(ext.trim());
+      var fullT = ack + (!alreadyIncludedAck && ext ? '\n\n' + ext : '');
       if (ackData && ackData.reconstructionPrompt) {
         fullT += (fullT ? '\n\n' : '') + ackData.reconstructionPrompt;
         noteReconstructionPromptShown();
       }
       tutorConversation.push({ role: 'tutor', text: fullT });
       var htmlA = '<div>' + esc(ack) + '</div>';
-      if (ext) htmlA += '<div class="msg-question">' + esc(ext) + '</div>';
+      if (ext && !alreadyIncludedAck) htmlA += '<div class="msg-question">' + esc(ext) + '</div>';
       if (ackData && ackData.reconstructionPrompt) {
         htmlA += '<div class="msg-question">' + esc(ackData.reconstructionPrompt) + '</div>';
       }
@@ -9410,14 +9411,15 @@ input[type="range"]::-moz-range-thumb{
       if (tutorInRelearning) {
         var tutorTextRl = data.tutorMessage || data.acknowledgment || data.correct || data.insight || '';
         var questionRl = data.followUpQuestion || data.extensionQuestion || '';
-        var fullTextRl = tutorTextRl + (questionRl ? '\n\n' + questionRl : '');
+        var alreadyIncludedRl = questionRl && tutorTextRl.trim().endsWith(questionRl.trim());
+        var fullTextRl = tutorTextRl + (!alreadyIncludedRl && questionRl ? '\n\n' + questionRl : '');
         if (data.reconstructionPrompt) {
           fullTextRl += (fullTextRl ? '\n\n' : '') + data.reconstructionPrompt;
           noteReconstructionPromptShown();
         }
         tutorConversation.push({ role: 'tutor', text: fullTextRl });
         var htmlRl = '<div>' + esc(tutorTextRl) + '</div>';
-        if (questionRl) htmlRl += '<div class="msg-question">' + esc(questionRl) + '</div>';
+        if (questionRl && !alreadyIncludedRl) htmlRl += '<div class="msg-question">' + esc(questionRl) + '</div>';
         if (data.reconstructionPrompt) htmlRl += '<div class="msg-question">' + esc(data.reconstructionPrompt) + '</div>';
         addTutorMessage('tutor', htmlRl);
         if (data.annotations && data.annotations.length > 0 && typeof applyInlineAnnotations === 'function') {
@@ -9477,14 +9479,15 @@ input[type="range"]::-moz-range-thumb{
 
       var tutorText = data.tutorMessage || data.acknowledgment || data.correct || data.insight || '';
       var question = data.followUpQuestion || data.extensionQuestion || '';
-      var fullText = tutorText + (question ? '\n\n' + question : '');
+      var alreadyIncluded = question && tutorText.trim().endsWith(question.trim());
+      var fullText = tutorText + (!alreadyIncluded && question ? '\n\n' + question : '');
       if (data.reconstructionPrompt) {
         fullText += (fullText ? '\n\n' : '') + data.reconstructionPrompt;
         noteReconstructionPromptShown();
       }
       tutorConversation.push({ role: 'tutor', text: fullText });
       var html = '<div>' + esc(tutorText) + '</div>';
-      if (question) {
+      if (question && !alreadyIncluded) {
         html += '<div class="msg-question">' + esc(question) + '</div>';
       }
       if (data.reconstructionPrompt) {
@@ -9960,7 +9963,8 @@ input[type="range"]::-moz-range-thumb{
     function handleDkTutorResponse(data, it, revealTier) {
       var tutorText = data.tutorMessage || data.correct || '';
       var question = data.followUpQuestion || '';
-      var fullText = tutorText + (question ? '\n\n' + question : '');
+      var alreadyIncludedDk = question && tutorText.trim().endsWith(question.trim());
+      var fullText = tutorText + (!alreadyIncludedDk && question ? '\n\n' + question : '');
       if (data.reconstructionPrompt) {
         fullText += (fullText ? '\n\n' : '') + data.reconstructionPrompt;
         noteReconstructionPromptShown();
@@ -9968,7 +9972,7 @@ input[type="range"]::-moz-range-thumb{
       tutorConversation.push({ role: 'tutor', text: fullText });
 
       var html = '<span class="tutor-text">' + esc(tutorText) + '</span>';
-      if (question) html += '<span class="tutor-question">' + esc(question) + '</span>';
+      if (question && !alreadyIncludedDk) html += '<span class="tutor-question">' + esc(question) + '</span>';
       if (data.reconstructionPrompt) html += '<span class="tutor-question">' + esc(data.reconstructionPrompt) + '</span>';
       addTutorMessage('tutor', html);
 
@@ -11331,10 +11335,14 @@ input[type="range"]::-moz-range-thumb{
           askTutorExchangeCount++;
           var msg = data.tutorMessage || '';
           var followUp = data.followUpQuestion || '';
-          askTutorConversation.push({ role: 'tutor', text: msg + (followUp ? '\n\n' + followUp : '') });
+          var alreadyIncludedAt = followUp && msg.trim().endsWith(followUp.trim());
+          askTutorConversation.push({
+            role: 'tutor',
+            text: msg + (!alreadyIncludedAt && followUp ? '\n\n' + followUp : '')
+          });
 
           var html = esc(msg);
-          if (followUp) {
+          if (followUp && !alreadyIncludedAt) {
             html += '<div class="atm-question">' + esc(followUp) + '</div>';
           }
           addAskTutorMessage('tutor', html);
