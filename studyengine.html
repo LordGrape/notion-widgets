@@ -926,6 +926,17 @@
       line-height: 1.55;
       letter-spacing: 0.1px;
     }
+    /* ── Re-encode: red outline to draw attention to model answer ── */
+    .restudy-active{
+      border: 2px solid var(--rate-again) !important;
+      box-shadow: 0 0 20px rgba(239,68,68,0.15), 0 0 50px rgba(239,68,68,0.06) !important;
+      transition: border-color 0.4s ease, box-shadow 0.4s ease;
+    }
+    @media (prefers-color-scheme: dark){
+      .restudy-active{
+        box-shadow: 0 0 25px rgba(239,68,68,0.20), 0 0 60px rgba(239,68,68,0.08) !important;
+      }
+    }
     .ai-feedback .af-improvement{
       margin-top: 12px;
       padding: 12px 14px;
@@ -1896,8 +1907,8 @@
 .answer.restudy-active{
   font-size: 16px;
   line-height: 1.7;
-  border-color: rgba(var(--accent-rgb),0.40);
-  box-shadow: 0 0 30px rgba(var(--accent-rgb),0.10), 0 0 60px rgba(var(--accent-rgb),0.05);
+  border-color: var(--rate-again);
+  box-shadow: 0 0 20px rgba(239,68,68,0.15), 0 0 50px rgba(239,68,68,0.06);
   max-height: 420px;
   position: relative;
 }
@@ -1932,13 +1943,13 @@ body.standalone .answer.restudy-active{
   flex: 1;
   height: 4px;
   border-radius: 99px;
-  background: rgba(var(--accent-rgb),0.10);
+  background: rgba(239,68,68,0.14);
   overflow: hidden;
 }
 .restudy-bar .rb-progress > div{
   height: 100%;
   width: 0%;
-  background: linear-gradient(90deg, rgba(var(--accent-rgb),0.8), rgba(var(--accent-rgb),0.4));
+  background: var(--rate-again);
   border-radius: 99px;
   transition: width 250ms linear;
 }
@@ -8611,11 +8622,10 @@ input[type="range"]::-moz-range-thumb{
       modelAnswerEl.scrollTop = 0;
 
       if (window.gsap) {
-        gsap.to(modelAnswerEl, {
-          duration: 0.5,
-          ease: 'power2.out',
-          boxShadow: '0 0 30px rgba(var(--accent-rgb),0.10), 0 0 60px rgba(var(--accent-rgb),0.05)'
-        });
+        gsap.fromTo(modelAnswerEl,
+          { borderColor: 'transparent' },
+          { borderColor: 'var(--rate-again)', duration: 0.6, ease: 'power2.out' }
+        );
         var barEl0 = document.getElementById(restudyBarId);
         if (barEl0) {
           gsap.fromTo(barEl0, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.35, delay: 0.15, ease: 'power2.out' });
@@ -8654,7 +8664,7 @@ input[type="range"]::-moz-range-thumb{
 
         modelAnswerEl.classList.remove('restudy-active');
         if (window.gsap) {
-          gsap.to(modelAnswerEl, { duration: 0.3, ease: 'power2.inOut', clearProps: 'boxShadow' });
+          gsap.to(modelAnswerEl, { duration: 0.3, ease: 'power2.inOut', clearProps: 'boxShadow,borderColor' });
         }
         var oldBar = document.getElementById('restudyBarInline');
         if (oldBar) {
