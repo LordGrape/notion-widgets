@@ -15174,12 +15174,29 @@ input[type="range"]::-moz-range-thumb{
     /* ── Course Management Modal ── */
     var courseOv = el('courseOv');
     var courseModalBody = el('courseModalBody');
+    var courseModalState = { mode: 'list', course: null, tab: 'details' };
 
-    function openCourseModal() {
+    function openCourseModal(courseName, tab) {
+      if (courseName && getCourse(courseName)) {
+        courseModalState.mode = 'editor';
+        courseModalState.course = courseName;
+        courseModalState.tab = tab || 'details';
+      } else {
+        courseModalState.mode = 'list';
+        courseModalState.course = null;
+        courseModalState.tab = 'details';
+      }
       renderCourseModal();
       courseOv.classList.add('show');
       courseOv.setAttribute('aria-hidden', 'false');
+      var courseModalEl = courseOv ? courseOv.querySelector('.modal') : null;
+      if (courseModalEl) {
+        courseModalEl.style.maxWidth = isEmbedded ? '95%' : (courseModalState.mode === 'editor' ? '820px' : '520px');
+      }
   try { playOpen(); } catch(e) {}
+      if (window.gsap && courseModalEl) {
+        gsap.fromTo(courseModalEl, { opacity: 0, scale: 0.97, y: 8 }, { opacity: 1, scale: 1, y: 0, duration: 0.3, ease: 'power2.out' });
+      }
     }
     function closeCourseModal() {
       courseOv.classList.remove('show');
@@ -15192,6 +15209,10 @@ input[type="range"]::-moz-range-thumb{
     el('manageCourses').addEventListener('click', openCourseModal);
 
     function renderCourseModal() {
+      if (courseModalState.mode === 'editor' && courseModalState.course) {
+        renderCourseModalEditor(courseModalState.course, courseModalState.tab || 'details');
+        return;
+      }
       var courses = listCourses();
       var h = '';
 
@@ -15413,8 +15434,443 @@ input[type="range"]::-moz-range-thumb{
       });
     }
 
+    function courseModalRefreshShell() {
+      var courseModalEl = courseOv ? courseOv.querySelector('.modal') : null;
+      if (courseModalEl) {
+        courseModalEl.style.maxWidth = isEmbedded ? '95%' : (courseModalState.mode === 'editor' ? '820px' : '520px');
+      }
+    }
+
+    function getUniqueCourseTopics(courseName) {
+      var topics = {};
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (!it || it.archived || it.course !== courseName) continue;
+        var t = String(it.topic || 'General').trim() || 'General';
+        topics[t] = true;
+      }
+      return Object.keys(topics).sort(function(a, b) { return a.localeCompare(b); });
+    }
+
+    function removeTopicFromAllModules(courseObj, topic) {
+      if (!courseObj || !Array.isArray(courseObj.modules)) return;
+      courseObj.modules.forEach(function(m) {
+        if (!m || !Array.isArray(m.topics)) return;
+        m.topics = m.topics.filter(function(t) { return t !== topic; });
+      });
+    }
+
+    function assignTopicToModule(courseName, topic, moduleId) {
+      var c = getCourse(courseName);
+      if (!c) return;
+      ensureCourseModules(courseName);
+      removeTopicFromAllModules(c, topic);
+      var mod = getModuleById(courseName, moduleId);
+      if (!mod) return;
+      if (!Array.isArray(mod.topics)) mod.topics = [];
+      if (mod.topics.indexOf(topic) < 0) mod.topics.push(topic);
+      saveCourse(c);
+      if (!isEmbedded) renderSidebar();
+    }
+
+    function unassignTopicFromModules(courseName, topic) {
+      var c = getCourse(courseName);
+      if (!c) return;
+      ensureCourseModules(courseName);
+      removeTopicFromAllModules(c, topic);
+      saveCourse(c);
+      if (!isEmbedded) renderSidebar();
+    }
+
+    function renderCourseModalEditor(courseName, tab) {
+      var c = getCourse(courseName);
+      if (!c) {
+        courseModalState.mode = 'list';
+        renderCourseModal();
+        return;
+      }
+      courseModalState.mode = 'editor';
+      courseModalState.course = courseName;
+      courseModalState.tab = tab || courseModalState.tab || 'details';
+      courseModalRefreshShell();
+
+      var tabs = [
+        { id: 'details', label: 'Details' },
+        { id: 'syllabus', label: 'Syllabus & AI' },
+        { id: 'subdecks', label: 'Subdecks & Topics' },
+        { id: 'notes', label: 'Tutor Notes' }
+      ];
+      var cards = getCardsForCourse(courseName);
+      var cram = getCramState(courseName);
+      var subtitle = (EXAM_TYPE_LABELS[c.examType] || c.examType) + (cram.active ? ' 🔥 Cram' : '') + ' · ' + cards.length + ' cards' + (c.examDate ? ' · Exam: ' + c.examDate : '');
+      var tabNav = tabs.map(function(t) {
+        var active = courseModalState.tab === t.id ? ' active' : '';
+        return '<button class="nav-tab' + active + '" type="button" data-course-tab="' + t.id + '" style="font-size:' + (isEmbedded ? '8px' : '9px') + ';">' + t.label + '</button>';
+      }).join('');
+
+      var h = '';
+      h += '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;">';
+      h += '<button class="ghost-btn" id="cmBackToList" type="button" style="min-width:0;padding:6px 10px;">← Back to courses</button>';
+      h += '<div style="font-size:11px;font-weight:800;letter-spacing:0.5px;">' + esc(courseName) + '</div>';
+      h += '</div>';
+      h += '<div style="font-size:10px;color:var(--text-secondary);margin-bottom:10px;">' + esc(subtitle) + '</div>';
+      h += '<div class="nav-tabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">' + tabNav + '</div>';
+      h += '<div id="cmTabContent"></div>';
+      courseModalBody.innerHTML = h;
+
+      function renderTabContent() {
+        var activeTab = courseModalState.tab || 'details';
+        var inner = '';
+        if (activeTab === 'details') {
+          inner += '<div class="field"><label>Course name</label><input id="cm_name" class="input" value="' + esc(c.name) + '" /></div>';
+          inner += '<div class="field"><label>Colour</label><div class="color-picker" id="cm_colorPicker">';
+          COURSE_COLORS.forEach(function(cc) {
+            var isAct = (c.color || '#8b5cf6') === cc.value;
+            inner += '<div class="color-swatch' + (isAct ? ' active' : '') + '" data-color="' + cc.value + '" style="background:' + cc.value + '" title="' + esc(cc.name) + '"></div>';
+          });
+          inner += '</div></div>';
+          inner += '<div class="course-form-row"><div class="field"><label>Exam type</label><select id="cm_examType" class="input">';
+          inner += '<option value="mc"' + (c.examType === 'mc' ? ' selected' : '') + '>Multiple Choice</option>';
+          inner += '<option value="short_answer"' + (c.examType === 'short_answer' ? ' selected' : '') + '>Short Answer</option>';
+          inner += '<option value="essay"' + (c.examType === 'essay' ? ' selected' : '') + '>Essay</option>';
+          inner += '<option value="mixed"' + (c.examType === 'mixed' ? ' selected' : '') + '>Mixed</option>';
+          inner += '</select></div>';
+          inner += '<div class="field"><label>Exam date</label><input id="cm_examDate" type="date" class="input" value="' + esc(c.examDate || '') + '" /></div></div>';
+          inner += '<div class="field"><label>Exam Weight (%)</label><input id="cm_examWeight" type="number" min="0" max="100" step="1" class="input" value="' + esc(c.examWeight != null ? String(c.examWeight) : '') + '" /></div>';
+          inner += '<div style="display:flex;justify-content:flex-end;margin-top:12px;"><button class="big-btn" id="cmSaveDetails" type="button">Save Details</button></div>';
+        } else if (activeTab === 'syllabus') {
+          inner += '<div class="field"><label>Syllabus / Exam Info</label><textarea class="input" id="cm_courseContextText" rows="7" placeholder="Paste syllabus text, exam instructions, or course outline...">' + esc(c.rawSyllabusText || '') + '</textarea></div>';
+          inner += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+          inner += '<input type="file" accept="application/pdf,.pdf" id="cm_pdfFile" style="display:none">';
+          inner += '<button type="button" class="ghost-btn" id="cm_pdfBtn">📄 Import PDF</button>';
+          inner += '<button type="button" class="ghost-btn" id="cm_processSyllabus">Process syllabus with AI</button>';
+          inner += '<button type="button" class="ghost-btn" id="cm_reprocessSyllabus">Re-process</button>';
+          inner += '</div>';
+          inner += '<div class="syllabus-status" id="cm_contextStatus"></div>';
+          inner += '<div class="chips" id="cm_suggestedTopics" style="margin-top:6px;"></div>';
+          inner += '<div id="cm_previewWrap" style="' + (c.syllabusContext ? '' : 'display:none;') + 'margin-top:8px;"><div style="font-size:9px;font-weight:700;margin-bottom:4px;color:var(--text-secondary);">Processed summary</div><div class="syllabus-preview" id="cm_syllabusPreview">' + esc(c.syllabusContext || '') + '</div></div>';
+          inner += '<div class="field"><label>Professor values</label><textarea class="input" id="cm_professorValues" rows="3">' + esc(c.professorValues || '') + '</textarea></div>';
+          inner += '<div class="field"><label>Allowed materials</label><input type="text" class="input" id="cm_allowedMaterials" value="' + esc(c.allowedMaterials || '') + '"></div>';
+          inner += '<div class="or-divider">LECTURE MATERIALS</div>';
+          inner += '<div class="field"><input type="text" class="input" id="cm_lectureUrlInput" placeholder="Paste any URL (published Notion page, article, etc.)"></div>';
+          inner += '<div style="display:flex;gap:8px;">';
+          inner += '<button type="button" class="ghost-btn" id="cm_importLectureUrl" style="flex:1;">🌐 Import from URL</button>';
+          inner += '<input type="file" accept="application/pdf,.pdf" id="cm_importLecturePdf" style="display:none">';
+          inner += '<button type="button" class="ghost-btn" id="cm_importLecturePdfBtn" style="flex:1;">📄 Import PDF</button>';
+          inner += '</div>';
+          inner += '<div class="syllabus-status" id="cm_lectureImportStatus" style="min-height:0;"></div>';
+          inner += '<div id="cm_lectureManifestDisplay" style="margin-top:8px;"></div>';
+          inner += '<div style="display:flex;justify-content:flex-end;margin-top:12px;"><button class="big-btn" id="cmSaveSyllabus" type="button">Save Syllabus & AI</button></div>';
+        } else if (activeTab === 'subdecks') {
+          ensureCourseModules(courseName);
+          var modules = c.modules || [];
+          inner += '<div style="display:flex;gap:8px;margin-bottom:10px;">';
+          inner += '<input type="text" class="input" id="cm_newModuleName" placeholder="New subdeck name" />';
+          inner += '<button type="button" class="ghost-btn" id="cm_addModule">＋ Add Subdeck</button>';
+          inner += '</div>';
+          if (!modules.length) inner += '<p class="help" style="margin-bottom:10px;">No subdecks yet. Create one to group topics.</p>';
+          modules.forEach(function(mod) {
+            var mTopics = Array.isArray(mod.topics) ? mod.topics : [];
+            inner += '<div style="border:1px solid rgba(var(--accent-rgb),0.16);border-radius:12px;padding:10px;margin-bottom:10px;">';
+            inner += '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">';
+            inner += '<input class="input" data-mod-rename="' + esc(mod.id) + '" value="' + esc(mod.name || 'Subdeck') + '" style="flex:1;">';
+            inner += '<button class="ghost-btn" type="button" data-mod-save="' + esc(mod.id) + '" style="min-width:0;padding:6px 10px;">Save</button>';
+            inner += '<button class="ghost-btn" type="button" data-mod-del="' + esc(mod.id) + '" style="min-width:0;padding:6px 10px;color:#ef4444;border-color:rgba(239,68,68,0.25);">Delete</button>';
+            inner += '</div>';
+            inner += '<div class="chips">';
+            if (!mTopics.length) inner += '<span class="help">No topics assigned</span>';
+            mTopics.forEach(function(t) {
+              inner += '<span class="chip" style="display:inline-flex;align-items:center;gap:6px;">' + esc(t) + '<button type="button" data-unassign-topic="' + esc(t) + '" style="border:none;background:transparent;color:var(--text-secondary);cursor:pointer;">✕</button></span>';
+            });
+            inner += '</div></div>';
+          });
+          var allTopics = getUniqueCourseTopics(courseName);
+          var assigned = {};
+          modules.forEach(function(m) { (m.topics || []).forEach(function(t) { assigned[t] = true; }); });
+          var unassigned = allTopics.filter(function(t) { return !assigned[t]; });
+          inner += '<div class="section-header" style="margin-top:6px;">Unassigned Topics</div>';
+          if (!unassigned.length) inner += '<p class="help">All topics are assigned.</p>';
+          unassigned.forEach(function(t) {
+            inner += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">';
+            inner += '<span class="chip" style="transform-origin:center;">' + esc(t) + '</span>';
+            inner += '<select class="input" data-topic-target="' + esc(t) + '" style="max-width:220px;">';
+            inner += '<option value="">Assign to subdeck...</option>';
+            modules.forEach(function(m) { inner += '<option value="' + esc(m.id) + '">' + esc(m.name || 'Subdeck') + '</option>'; });
+            inner += '</select>';
+            inner += '</div>';
+          });
+        } else {
+          inner += '<div id="cmCourseNotesHost">' + renderCourseTutorNotesPanelHTML(courseName) + '</div>';
+          inner += '<div style="display:flex;justify-content:flex-end;margin-top:10px;">';
+          inner += '<button class="ghost-btn" id="cmClearCourseNotes" type="button" style="border-color:rgba(239,68,68,0.3);color:#ef4444;">Clear memories</button>';
+          inner += '</div>';
+        }
+        var tabHost = el('cmTabContent');
+        if (tabHost) {
+          tabHost.innerHTML = inner;
+          if (window.gsap) gsap.fromTo(tabHost, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.25, ease: 'power2.out' });
+        }
+        wireEditorTabInteractions(activeTab);
+      }
+
+      function wireEditorTabInteractions(activeTab) {
+        var back = el('cmBackToList');
+        if (back) back.onclick = function() {
+          courseModalState.mode = 'list';
+          courseModalState.course = null;
+          courseModalState.tab = 'details';
+          renderCourseModal();
+        };
+        courseModalBody.querySelectorAll('[data-course-tab]').forEach(function(btn) {
+          btn.onclick = function() {
+            courseModalState.tab = btn.getAttribute('data-course-tab') || 'details';
+            renderTabContent();
+            try { playClick(); } catch (e) {}
+          };
+        });
+
+        if (activeTab === 'details') {
+          var cp = el('cm_colorPicker');
+          if (cp) cp.querySelectorAll('.color-swatch').forEach(function(sw) {
+            sw.onclick = function() {
+              cp.querySelectorAll('.color-swatch').forEach(function(s) { s.classList.remove('active'); });
+              sw.classList.add('active');
+            };
+          });
+          var saveDetails = el('cmSaveDetails');
+          if (saveDetails) saveDetails.onclick = function() {
+            var oldName = c.name;
+            var newName = (el('cm_name').value || '').trim();
+            if (!newName) { toast('Course name required'); return; }
+            if (newName !== oldName && state.courses[newName]) { toast('Course name already exists'); return; }
+            var activeSwatch = cp ? cp.querySelector('.color-swatch.active') : null;
+            c.color = activeSwatch ? activeSwatch.getAttribute('data-color') : (c.color || '#8b5cf6');
+            c.examType = (el('cm_examType').value || 'mixed');
+            c.examDate = (el('cm_examDate').value || '').trim() || null;
+            var ew = (el('cm_examWeight').value || '').trim();
+            c.examWeight = ew ? Math.max(0, Math.min(100, Math.round(Number(ew) || 0))) : null;
+            if (newName !== oldName) {
+              renameCourse(oldName, newName);
+              c = getCourse(newName);
+              courseName = newName;
+              courseModalState.course = newName;
+            }
+            saveCourse(c);
+            renderDashboard();
+            if (!isEmbedded) renderSidebar();
+            toast('Course details saved');
+            renderCourseModalEditor(courseName, 'details');
+          };
+        } else if (activeTab === 'syllabus') {
+          function setCtxStatus(msg, cls) {
+            var st = el('cm_contextStatus');
+            if (!st) return;
+            st.className = 'syllabus-status' + (cls ? ' ' + cls : '');
+            st.innerHTML = msg || '';
+          }
+          function renderSuggestedTopics(topics) {
+            var box = el('cm_suggestedTopics');
+            if (!box) return;
+            box.innerHTML = '';
+            (topics || []).forEach(function(t) {
+              var chip = document.createElement('span');
+              chip.className = 'chip';
+              chip.textContent = String(t || '').trim();
+              box.appendChild(chip);
+            });
+          }
+          renderSuggestedTopics(c.syllabusKeyTopics || []);
+          function runSyllabusProcess(rawText) {
+            var trimmed = (rawText || '').trim();
+            if (!trimmed) { toast('Paste text or import a PDF first'); return; }
+            setCtxStatus('<span class="af-spinner"></span> Processing syllabus...', '');
+            var examT = (el('cm_examType') && el('cm_examType').value) || c.examType || 'mixed';
+            postSyllabusDistill(trimmed, c.name, examT).then(function(data) {
+              if (!data || data.error) { setCtxStatus(esc(data && data.error ? String(data.error) : 'Could not process syllabus'), ''); return; }
+              c.rawSyllabusText = trimmed.length > 15000 ? trimmed.slice(0, 15000) : trimmed;
+              if (data.syllabusContext != null) c.syllabusContext = String(data.syllabusContext).slice(0, 4000);
+              c.professorValues = data.professorValues != null && data.professorValues !== 'null' ? String(data.professorValues).slice(0, 500) : c.professorValues;
+              c.allowedMaterials = data.allowedMaterials != null && data.allowedMaterials !== 'null' ? String(data.allowedMaterials) : c.allowedMaterials;
+              c.syllabusKeyTopics = Array.isArray(data.keyTopics) ? data.keyTopics.slice(0, 20) : [];
+              saveCourse(c);
+              var prev = el('cm_syllabusPreview');
+              if (prev) prev.textContent = c.syllabusContext || '';
+              var wrap = el('cm_previewWrap');
+              if (wrap && c.syllabusContext) wrap.style.display = '';
+              var profEl = el('cm_professorValues'); if (profEl) profEl.value = c.professorValues || '';
+              var alEl = el('cm_allowedMaterials'); if (alEl) alEl.value = c.allowedMaterials || '';
+              renderSuggestedTopics(c.syllabusKeyTopics);
+              setCtxStatus('✓ Syllabus processed', 'ok');
+            }).catch(function() { setCtxStatus('Network error — try again', ''); });
+          }
+          var pdfBtn = el('cm_pdfBtn');
+          var pdfFile = el('cm_pdfFile');
+          if (pdfBtn && pdfFile) {
+            pdfBtn.onclick = function() { pdfFile.click(); };
+            pdfFile.onchange = function() {
+              var f = pdfFile.files && pdfFile.files[0];
+              if (!f) return;
+              extractPdfText(f).then(function(text) {
+                var ta = el('cm_courseContextText');
+                if (ta) ta.value = text || '';
+                runSyllabusProcess(text || '');
+                pdfFile.value = '';
+              }).catch(function(err) { toast(err && err.message ? err.message : 'Could not read PDF'); });
+            };
+          }
+          var procBtn = el('cm_processSyllabus');
+          if (procBtn) procBtn.onclick = function() { runSyllabusProcess(el('cm_courseContextText') ? el('cm_courseContextText').value : ''); };
+          var reprocBtn = el('cm_reprocessSyllabus');
+          if (reprocBtn) reprocBtn.onclick = function() { runSyllabusProcess(c.rawSyllabusText || (el('cm_courseContextText') ? el('cm_courseContextText').value : '')); };
+
+          function setLectureStatus(msg, cls) {
+            var st = el('cm_lectureImportStatus');
+            if (!st) return;
+            st.className = 'syllabus-status' + (cls ? ' ' + cls : '');
+            st.innerHTML = msg || '';
+          }
+          function updateLectureManifestDisplay() {
+            var box = el('cm_lectureManifestDisplay');
+            if (!box) return;
+            var count = Number(c._lectureCount || 0) || 0;
+            box.innerHTML = count > 0 ? '<div style="font-size:9px;color:var(--text-secondary);padding:6px 8px;border-radius:10px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.03);">📚 ' + count + ' lecture' + (count !== 1 ? 's' : '') + ' imported</div>' : '';
+          }
+          function importLectureFromText(lectureTitle, rawText) {
+            var trimmed = (rawText || '').trim();
+            if (!trimmed) { toast('Paste text or import a PDF first'); return Promise.resolve(null); }
+            setLectureStatus('<span class="af-spinner"></span> Processing lecture...', '');
+            return fetch(DISTILL_ENDPOINT, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-Widget-Key': getWidgetKey() },
+              body: JSON.stringify({ courseName: c.name, lectureTitle: lectureTitle || 'Lecture', rawText: trimmed, existingSyllabusContext: c.syllabusContext || '' })
+            }).then(function(res) { return res.json(); }).then(function(data) {
+              if (!data || data.error) { setLectureStatus(esc(data && data.error ? String(data.error) : 'Could not process lecture'), ''); return null; }
+              if (data.courseDigestUpdate != null && String(data.courseDigestUpdate).trim()) c.syllabusContext = String(data.courseDigestUpdate).slice(0, 4000);
+              if (data.topicChunks && data.topicChunks.length > 0) {
+                var modTopics = data.topicChunks.map(function(tc) { return tc && tc.topic ? tc.topic : null; }).filter(Boolean);
+                if (modTopics.length > 0) addModuleToCourse(c.name, { name: lectureTitle || 'Imported Lecture', topics: modTopics, lectureImported: true, importDate: new Date().toISOString() });
+              }
+              c._lectureCount = (Number(c._lectureCount || 0) || 0) + 1;
+              saveCourse(c);
+              if (!isEmbedded) renderSidebar();
+              updateLectureManifestDisplay();
+              setLectureStatus('✓ Imported lecture context', 'ok');
+              return data;
+            }).catch(function() { setLectureStatus('Network error — try again', ''); return null; });
+          }
+          updateLectureManifestDisplay();
+          var importUrlBtn = el('cm_importLectureUrl');
+          if (importUrlBtn) importUrlBtn.onclick = function() {
+            var inEl = el('cm_lectureUrlInput');
+            var url = inEl ? String(inEl.value || '').trim() : '';
+            if (!url || url.indexOf('http') !== 0) { toast('Paste a valid URL'); return; }
+            setLectureStatus('<span class="af-spinner"></span> Fetching page…', '');
+            fetch(FETCH_LECTURE_ENDPOINT, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-Widget-Key': getWidgetKey() },
+              body: JSON.stringify({ url: url })
+            }).then(function(res) { return res.json(); }).then(function(data) {
+              if (!data || data.error || !data.text || String(data.text).length < 200) { setLectureStatus('Could not extract enough text from this page', ''); return; }
+              var title = data.title || (url.split('/').pop() || 'Lecture');
+              importLectureFromText(title, String(data.text));
+            }).catch(function() { setLectureStatus('Network error — try again', ''); });
+          };
+          var lecturePdfBtn = el('cm_importLecturePdfBtn');
+          var lecturePdfFile = el('cm_importLecturePdf');
+          if (lecturePdfBtn && lecturePdfFile) {
+            lecturePdfBtn.onclick = function() { lecturePdfFile.click(); };
+            lecturePdfFile.onchange = function() {
+              var f = lecturePdfFile.files && lecturePdfFile.files[0];
+              if (!f) return;
+              setLectureStatus('<span class="af-spinner"></span> Extracting PDF text…', '');
+              extractPdfText(f).then(function(text) {
+                if (!text || String(text).length < 200) { setLectureStatus('Could not extract enough text from this PDF', ''); return; }
+                importLectureFromText(String(f.name || 'Lecture').replace(/\.pdf$/i, ''), String(text));
+              }).catch(function(err) { setLectureStatus(esc(err && err.message ? err.message : 'Could not read PDF'), ''); });
+              lecturePdfFile.value = '';
+            };
+          }
+          var saveSyllabus = el('cmSaveSyllabus');
+          if (saveSyllabus) saveSyllabus.onclick = function() {
+            c.rawSyllabusText = (el('cm_courseContextText') && el('cm_courseContextText').value.trim()) ? el('cm_courseContextText').value.trim().slice(0, 15000) : null;
+            c.professorValues = (el('cm_professorValues') && el('cm_professorValues').value.trim()) ? el('cm_professorValues').value.trim().slice(0, 500) : null;
+            c.allowedMaterials = (el('cm_allowedMaterials') && el('cm_allowedMaterials').value.trim()) ? el('cm_allowedMaterials').value.trim() : null;
+            saveCourse(c);
+            toast('Syllabus settings saved');
+          };
+        } else if (activeTab === 'subdecks') {
+          var addModBtn = el('cm_addModule');
+          if (addModBtn) addModBtn.onclick = function() {
+            var input = el('cm_newModuleName');
+            var name = input ? String(input.value || '').trim() : '';
+            if (!name) { toast('Enter a subdeck name'); return; }
+            addModuleToCourse(courseName, { name: name, topics: [], lectureImported: false });
+            if (!isEmbedded) renderSidebar();
+            renderCourseModalEditor(courseName, 'subdecks');
+            toast('Created subdeck: ' + name);
+          };
+          courseModalBody.querySelectorAll('[data-mod-save]').forEach(function(btn) {
+            btn.onclick = function() {
+              var id = btn.getAttribute('data-mod-save');
+              var input = courseModalBody.querySelector('[data-mod-rename="' + id + '"]');
+              var newName = input ? String(input.value || '').trim() : '';
+              if (!newName) { toast('Name cannot be empty'); return; }
+              renameModule(courseName, id, newName);
+              if (!isEmbedded) renderSidebar();
+              toast('Subdeck renamed');
+              renderCourseModalEditor(courseName, 'subdecks');
+            };
+          });
+          courseModalBody.querySelectorAll('[data-mod-del]').forEach(function(btn) {
+            btn.onclick = function() {
+              var id = btn.getAttribute('data-mod-del');
+              removeModuleFromCourse(courseName, id);
+              if (!isEmbedded) renderSidebar();
+              toast('Subdeck deleted');
+              renderCourseModalEditor(courseName, 'subdecks');
+            };
+          });
+          courseModalBody.querySelectorAll('[data-unassign-topic]').forEach(function(btn) {
+            btn.onclick = function() {
+              var topic = btn.getAttribute('data-unassign-topic');
+              unassignTopicFromModules(courseName, topic);
+              renderCourseModalEditor(courseName, 'subdecks');
+            };
+          });
+          courseModalBody.querySelectorAll('[data-topic-target]').forEach(function(sel) {
+            sel.onchange = function() {
+              var topic = sel.getAttribute('data-topic-target');
+              var targetModule = sel.value;
+              if (!targetModule) return;
+              assignTopicToModule(courseName, topic, targetModule);
+              if (window.gsap) {
+                var chip = sel.parentNode && sel.parentNode.querySelector('.chip');
+                if (chip) gsap.fromTo(chip, { x: -8, opacity: 0.4 }, { x: 0, opacity: 1, duration: 0.25, ease: 'power2.out' });
+              }
+              renderCourseModalEditor(courseName, 'subdecks');
+            };
+          });
+        } else if (activeTab === 'notes') {
+          var clearBtn = el('cmClearCourseNotes');
+          if (clearBtn) clearBtn.onclick = function() {
+            clearCourseTutorMemoriesForCourse(courseName);
+            renderCourseModalEditor(courseName, 'notes');
+          };
+        }
+      }
+
+      renderTabContent();
+    }
+
     /* Global helpers for inline course actions */
     window.openEditCourse = function(name) {
+      courseModalState.mode = 'editor';
+      courseModalState.course = name;
+      courseModalState.tab = 'details';
+      renderCourseModalEditor(name, 'details');
+      return;
+
       var c = getCourse(name);
       if (!c) return;
       var row = el('editRow_' + courseKey(name));
