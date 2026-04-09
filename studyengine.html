@@ -8555,6 +8555,11 @@ input[type="range"]::-moz-range-thumb{
       }
 
       var regenBtn = el('regenVisuals');
+      var overrideBtn = el('regenOverrideAll');
+      function setVisualJobsBusy(busy) {
+        if (regenBtn) regenBtn.disabled = busy;
+        if (overrideBtn) overrideBtn.disabled = busy;
+      }
       if (regenBtn) {
         regenBtn.addEventListener('click', function() {
           var statusEl = el('regenStatus');
@@ -8571,7 +8576,7 @@ input[type="range"]::-moz-range-thumb{
             toast('All cards already have visuals');
             return;
           }
-          regenBtn.disabled = true;
+          setVisualJobsBusy(true);
           var ok = 0;
           var total = itemsNeedingVisuals.length;
           if (statusEl) statusEl.textContent = 'Generating 0/' + total + '...';
@@ -8581,7 +8586,7 @@ input[type="range"]::-moz-range-thumb{
           function runBatch() {
             if (!queue.length) {
               saveState();
-              regenBtn.disabled = false;
+              setVisualJobsBusy(false);
               if (statusEl) statusEl.textContent = 'Done — generated ' + ok + ' of ' + total + '.';
               toast('Regenerated ' + ok + ' visuals');
               return;
@@ -8605,7 +8610,6 @@ input[type="range"]::-moz-range-thumb{
         });
       }
 
-      var overrideBtn = el('regenOverrideAll');
       if (overrideBtn) {
         overrideBtn.addEventListener('click', function() {
           var statusEl = el('overrideStatus');
@@ -8628,7 +8632,7 @@ input[type="range"]::-moz-range-thumb{
           });
           saveState();
 
-          overrideBtn.disabled = true;
+          setVisualJobsBusy(true);
           var ok = 0;
           var total = allItems.length;
           if (statusEl) statusEl.textContent = 'Overriding 0/' + total + '...';
@@ -8638,7 +8642,7 @@ input[type="range"]::-moz-range-thumb{
           function runOverrideBatch() {
             if (!queue.length) {
               saveState();
-              overrideBtn.disabled = false;
+              setVisualJobsBusy(false);
               if (statusEl) statusEl.textContent = 'Done — regenerated ' + ok + ' of ' + total + '.';
               toast('Override complete: ' + ok + ' visuals regenerated');
               return;
