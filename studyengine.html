@@ -7674,8 +7674,12 @@ input[type="range"]::-moz-range-thumb{
       if (oldReveal) oldReveal.remove();
       var oldDkWrap = document.getElementById('dkRevealWrap');
       if (oldDkWrap) oldDkWrap.remove();
-      // Re-show tier area in case it was hidden by Don't Know flow
-      if (tierArea) tierArea.style.display = '';
+      // Re-show tier area in case it was hidden/dimmed by Don't Know flow
+      if (tierArea) {
+        tierArea.style.display = '';
+        tierArea.style.opacity = '';
+        tierArea.style.pointerEvents = '';
+      }
       if (session) session.aiRating = null;
       if (session) session._isRelearning = false;
       tutorAcknowledgeDone = false;
@@ -7838,13 +7842,22 @@ input[type="range"]::-moz-range-thumb{
           (visibleAfterW ? '<div class="answer" style="border-left:3px solid #10b981;margin-top:8px;"><div class="md-content">' + renderMd(visibleAfterW) + '</div></div>' : '');
         wireGenerative('worked');
       } else if (tier === 'distinguish') {
+        /* Skip scenario block if it's essentially the same as the prompt (already shown above). */
+        var distScen = it.scenario || it.prompt || '';
+        var normDistPrompt = (it.prompt || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        var normDistScen = distScen.toLowerCase().replace(/[^a-z0-9]/g, '');
+        var maxLenD = Math.max(normDistPrompt.length, normDistScen.length, 1);
+        var distScenIsDuplicate = !distScen || !normDistScen || normDistPrompt === normDistScen ||
+          (normDistScen.length > 0 && normDistPrompt.length > 0 &&
+            (normDistPrompt.indexOf(normDistScen) >= 0 || normDistScen.indexOf(normDistPrompt) >= 0 ||
+              (Math.abs(normDistPrompt.length - normDistScen.length) / maxLenD) < 0.15));
         tierArea.innerHTML = '' +
           '<div class="concepts">' +
             '<div class="concept"><div class="c-h">Concept A</div><div class="c-v md-content">' + renderMd(it.conceptA || '—') + '</div></div>' +
             '<div class="concept"><div class="c-h">Concept B</div><div class="c-v md-content">' + renderMd(it.conceptB || '—') + '</div></div>' +
           '</div>' +
           '<div class="prompt" style="font-weight:700; margin-bottom:8px">Given the following scenario, which applies? Justify your choice.</div>' +
-          '<div class="scenario md-content">' + renderMd(it.scenario || it.prompt || '') + '</div>' +
+          (!distScenIsDuplicate ? '<div class="scenario md-content">' + renderMd(distScen) + '</div>' : '') +
           '<div class="divider"></div>' +
           '<div class="panel">' +
             '<div class="p-h">Your response</div>' +
@@ -9878,8 +9891,22 @@ input[type="range"]::-moz-range-thumb{
       if (essayNext) essayNext.style.display = 'none';
       var confPrompt = el('confidencePrompt');
       if (confPrompt) confPrompt.style.display = 'none';
-      // Hide the entire tier area (concepts, scenario, prompt details)
-      if (tierArea) tierArea.style.display = 'none';
+      // Hide tierArea for tiers where it only contains interactive elements (textarea, buttons).
+      // Keep it visible for tiers with reference content (scenario, concepts, scaffold).
+      var currentTier = revealTier || it._presentTier || it.tier || 'quickfire';
+      var tierHasContext =
+        currentTier === 'apply' || currentTier === 'distinguish' || currentTier === 'worked';
+      if (tierArea) {
+        if (tierHasContext) {
+          tierArea.style.opacity = '0.6';
+          tierArea.style.pointerEvents = 'none';
+          tierArea.querySelectorAll('.panel, textarea, button').forEach(function(el) {
+            el.style.display = 'none';
+          });
+        } else {
+          tierArea.style.display = 'none';
+        }
+      }
 
       var oldWrap = document.getElementById('revealColumnsWrap');
       if (oldWrap) oldWrap.remove();
