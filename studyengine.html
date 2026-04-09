@@ -7365,11 +7365,15 @@ input[type="range"]::-moz-range-thumb{
           var name = this.getAttribute('data-course-name');
           if (name) {
             selectedCourse = name;
-            sidebarSelection = { level: 'course', course: name, module: null, topic: null };
-            sidebarExpanded[name] = true;
-            renderSidebar();
-            updateBreadcrumb();
-            applySidebarFilter();
+            if (isEmbedded) {
+              openCourseDetail(name);
+            } else {
+              sidebarSelection = { level: 'course', course: name, module: null, topic: null };
+              sidebarExpanded[name] = true;
+              renderSidebar();
+              updateBreadcrumb();
+              applySidebarFilter();
+            }
           }
           try { playClick(); } catch(e) {}
         });
