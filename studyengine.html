@@ -3332,50 +3332,111 @@ body.standalone .answer.restudy-active{
       cursor: crosshair;
     }
 
-    .activity-heatmap {
-      display: grid;
-      grid-template-columns: 16px repeat(7, 14px);
-      grid-template-rows: repeat(5, 14px);
-      gap: 3px;
-      justify-content: center;
+    .cal-heatmap-wrap {
+      padding: 4px 0;
     }
-    .heatmap-cell {
-      width: 14px;
-      height: 14px;
-      border-radius: 4px;
-      border: 1px solid rgba(var(--accent-rgb), 0.08);
-      transition: transform 150ms ease, box-shadow 150ms ease;
-      cursor: default;
-      position: relative;
-    }
-    .heatmap-cell:hover {
-      transform: scale(1.3);
-      box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.3);
-      z-index: 2;
-    }
-    .heatmap-day-label {
-      font-size: 7px;
-      color: var(--text-tertiary);
+    .cal-heatmap-nav {
       display: flex;
       align-items: center;
-      justify-content: flex-end;
-      padding-right: 2px;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .cal-heatmap-nav-btn {
+      appearance: none;
+      border: 1px solid rgba(var(--accent-rgb), 0.15);
+      background: rgba(var(--accent-rgb), 0.06);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 11px;
+      line-height: 1;
+      transition: transform 150ms ease, background 150ms ease, border-color 150ms ease;
+    }
+    .cal-heatmap-nav-btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(var(--accent-rgb), 0.28);
+      background: rgba(var(--accent-rgb), 0.10);
+    }
+    .cal-heatmap-nav-btn:active {
+      transform: translateY(0) scale(0.98);
+    }
+    .cal-heatmap-title {
+      font-size: 11px;
+      font-weight: 700;
       letter-spacing: 0.5px;
+      color: var(--text);
+      min-width: 120px;
+      text-align: center;
+    }
+    .cal-heatmap-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 3px;
+    }
+    .cal-heatmap-dow {
+      font-size: 7px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      text-align: center;
+      padding: 2px 0 4px;
       user-select: none;
     }
-    .heatmap-stats {
+    .cal-heatmap-cell {
+      aspect-ratio: 1;
+      border-radius: 5px;
+      border: 1px solid rgba(var(--accent-rgb), 0.06);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: default;
+      transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+      position: relative;
+      min-height: 24px;
+    }
+    .cal-heatmap-cell:hover {
+      transform: scale(1.12);
+      box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.25);
+      z-index: 2;
+      border-color: rgba(var(--accent-rgb), 0.3);
+    }
+    .cal-heatmap-cell.empty {
+      background: transparent;
+      border-color: transparent;
+      cursor: default;
+    }
+    .cal-heatmap-cell.empty:hover {
+      transform: none;
+      box-shadow: none;
+    }
+    .cal-heatmap-cell.today {
+      border: 2px solid var(--accent);
+      font-weight: 800;
+      color: var(--text);
+    }
+    .cal-heatmap-cell.future {
+      opacity: 0.35;
+    }
+    .cal-heatmap-stats {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-top: 8px;
       font-size: 9px;
       color: var(--text-secondary);
+      padding: 0 2px;
     }
-    .heatmap-streak {
+    .cal-heatmap-streak {
       font-weight: 700;
       color: var(--accent);
     }
-    .heatmap-tooltip {
+    .cal-heatmap-tooltip {
       position: fixed;
       padding: 6px 10px;
       border-radius: 10px;
@@ -3392,7 +3453,7 @@ body.standalone .answer.restudy-active{
       transition: opacity 150ms ease;
       white-space: nowrap;
     }
-    .heatmap-tooltip.show { opacity: 1; }
+    .cal-heatmap-tooltip.show { opacity: 1; }
 
     /* ── CSS SECTION: Canvas Hover Tooltip ── */
     /* ── Canvas Hover Tooltip ── */
@@ -7567,6 +7628,8 @@ input[type="range"]::-moz-range-thumb{
     function showView(nextId) {
       var views = [viewDash, viewSession, viewDone];
       var next = el(nextId);
+      // Clean up any stale calendar heatmap tooltips
+      document.querySelectorAll('.cal-heatmap-tooltip').forEach(function(t) { t.remove(); });
       views.forEach(function(v){ v.classList.remove('active'); });
       next.classList.add('active');
 
@@ -7892,6 +7955,8 @@ input[type="range"]::-moz-range-thumb{
       }
       /* Render analytics graphs */
       setTimeout(function() {
+        drawActivityHeatmap._viewYear = new Date().getFullYear();
+        drawActivityHeatmap._viewMonth = new Date().getMonth();
         renderAnalytics('All');
       }, 50);
 
@@ -18093,123 +18158,194 @@ input[type="range"]::-moz-range-thumb{
     /* ── Activity heatmap (dashboard; sparkline + tier ring replaced in UI) ── */
     /* ═══ SECTION: Draw Activity Heatmap | Functions: drawActivityHeatmap ═══ */
     function drawActivityHeatmap(containerId) {
-      var host = el(containerId);
+      var host = document.getElementById(containerId);
       if (!host) return;
 
-      var analytics = (typeof SyncEngine !== 'undefined' && SyncEngine.get)
-        ? SyncEngine.get('studyengine', 'tutorAnalytics')
-        : null;
-      var history = (analytics && analytics.sessionHistory && analytics.sessionHistory.length) ? analytics.sessionHistory : [];
+      // State for current viewed month
+      if (!drawActivityHeatmap._viewYear) {
+        drawActivityHeatmap._viewYear = new Date().getFullYear();
+        drawActivityHeatmap._viewMonth = new Date().getMonth(); // 0-indexed
+      }
+      var viewYear = drawActivityHeatmap._viewYear;
+      var viewMonth = drawActivityHeatmap._viewMonth;
 
-      var dailyCards = {};
-      history.forEach(function(row) {
-        if (!row || !row.date) return;
-        var key = String(row.date).slice(0, 10);
-        dailyCards[key] = (dailyCards[key] || 0) + (Number(row.cards) || 0);
-      });
+      // Gather session data
+      var dayMap = {};
+      try {
+        var analytics = SyncEngine.get('studyengine', 'tutorAnalytics');
+        if (analytics && analytics.sessionHistory) {
+          analytics.sessionHistory.forEach(function(row) {
+            if (!row || !row.date) return;
+            var key = row.date; // "YYYY-MM-DD"
+            dayMap[key] = (dayMap[key] || 0) + (row.cards || 0);
+          });
+        }
+      } catch (e) {}
 
-      var days = [];
+      // Also check state.stats for today if a session just completed
+      // (sessionHistory might not have it yet)
+
       var now = new Date();
-      for (var i = 34; i >= 0; i--) {
-        var dt = new Date(now);
-        dt.setHours(12, 0, 0, 0);
-        dt.setDate(dt.getDate() - i);
-        var k = dt.toISOString().slice(0, 10);
-        days.push({ key: k, date: dt, cards: dailyCards[k] || 0 });
+      var todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+
+      // Month info
+      var monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      var daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+      var firstDow = new Date(viewYear, viewMonth, 1).getDay(); // 0=Sun
+      // Convert to Monday-start: Mon=0, Tue=1, ... Sun=6
+      var startOffset = (firstDow + 6) % 7;
+
+      // Determine if we can navigate forward (don't go past current month)
+      var isCurrentMonth = (viewYear === now.getFullYear() && viewMonth === now.getMonth());
+
+      // Intensity function
+      function getIntensity(cards) {
+        if (!cards || cards <= 0) return 'rgba(var(--accent-rgb), 0.04)';
+        if (cards <= 5) return 'rgba(var(--accent-rgb), 0.15)';
+        if (cards <= 15) return 'rgba(var(--accent-rgb), 0.35)';
+        if (cards <= 30) return 'rgba(var(--accent-rgb), 0.55)';
+        return 'rgba(var(--accent-rgb), 0.80)';
       }
 
-      var tooltip = el('activityHeatmapTooltip');
-      if (!tooltip) {
-        tooltip = document.createElement('div');
-        tooltip.id = 'activityHeatmapTooltip';
-        tooltip.className = 'heatmap-tooltip';
-        document.body.appendChild(tooltip);
+      // Compute streak from dayMap
+      var streakCount = 0;
+      var checkDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      // Check if today has activity; if not, start from yesterday
+      var todayCards = dayMap[todayStr] || 0;
+      if (todayCards <= 0) {
+        checkDate.setDate(checkDate.getDate() - 1);
       }
-
-      var totalReviews = 0;
-      days.forEach(function(d) { totalReviews += d.cards; });
-
-      var todayKey = days[days.length - 1].key;
-      var streak = 0;
-      while (streak < days.length) {
-        var idx = days.length - 1 - streak;
-        if (!days[idx] || days[idx].cards <= 0) break;
-        streak++;
-      }
-      if ((dailyCards[todayKey] || 0) <= 0) streak = 0;
-
-      var html = '<div class="activity-heatmap" role="img" aria-label="Last 35 days of study activity">';
-      for (var row = 0; row < 5; row++) {
-        var rowStart = row * 7;
-        var rowDay = days[rowStart] ? days[rowStart].date.getDay() : -1;
-        var label = rowDay === 1 ? 'M' : (rowDay === 3 ? 'W' : (rowDay === 5 ? 'F' : '&nbsp;'));
-        html += '<div class="heatmap-day-label">' + label + '</div>';
-
-        for (var col = 0; col < 7; col++) {
-          var dIdx = rowStart + col;
-          var entry = days[dIdx];
-          if (!entry) continue;
-          var bg = 'rgba(var(--accent-rgb), 0.04)';
-          if (entry.cards >= 1 && entry.cards <= 5) bg = 'rgba(var(--accent-rgb), 0.15)';
-          else if (entry.cards >= 6 && entry.cards <= 15) bg = 'rgba(var(--accent-rgb), 0.35)';
-          else if (entry.cards >= 16 && entry.cards <= 30) bg = 'rgba(var(--accent-rgb), 0.55)';
-          else if (entry.cards >= 31) bg = 'rgba(var(--accent-rgb), 0.80)';
-
-          html += '<div class="heatmap-cell" data-date="' + entry.key + '" data-cards="' + entry.cards + '" style="background:' + bg + '"></div>';
+      for (var s = 0; s < 365; s++) {
+        var ck = checkDate.getFullYear() + '-' + String(checkDate.getMonth() + 1).padStart(2, '0') + '-' + String(checkDate.getDate()).padStart(2, '0');
+        if ((dayMap[ck] || 0) > 0) {
+          streakCount++;
+          checkDate.setDate(checkDate.getDate() - 1);
+        } else {
+          break;
         }
       }
-      html += '</div>';
-      html += '<div class="heatmap-stats"><span class="heatmap-streak">' + (streak > 0 ? ('🔥 ' + streak + ' day streak') : 'No streak') + '</span><span>' + totalReviews + ' reviews</span></div>';
-      html += '<div class="heatmap-active-days" style="margin-top:6px;font-size:9px;color:var(--text-secondary);"></div>';
-      host.innerHTML = html;
 
-      host.querySelectorAll('.heatmap-cell').forEach(function(cell) {
-        cell.addEventListener('mouseenter', function(e) {
-          var date = this.getAttribute('data-date');
-          var cards = Number(this.getAttribute('data-cards')) || 0;
-          var dt = new Date(date + 'T12:00:00');
-          tooltip.textContent = dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ': ' + cards + ' card' + (cards === 1 ? '' : 's');
+      // Compute month total
+      var monthTotal = 0;
+      for (var d = 1; d <= daysInMonth; d++) {
+        var dk = viewYear + '-' + String(viewMonth + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+        monthTotal += (dayMap[dk] || 0);
+      }
+
+      // Build HTML
+      var h = '<div class="cal-heatmap-wrap">';
+
+      // Nav
+      h += '<div class="cal-heatmap-nav">';
+      h += '<button class="cal-heatmap-nav-btn" id="calHeatPrev">◀</button>';
+      h += '<span class="cal-heatmap-title">' + monthNames[viewMonth] + ' ' + viewYear + '</span>';
+      h += '<button class="cal-heatmap-nav-btn" id="calHeatNext"' + (isCurrentMonth ? ' disabled style="opacity:0.3;cursor:default"' : '') + '>▶</button>';
+      h += '</div>';
+
+      // Grid
+      h += '<div class="cal-heatmap-grid">';
+
+      // Day-of-week headers (Mon-start)
+      var dowLabels = ['Mo','Tu','We','Th','Fr','Sa','Su'];
+      dowLabels.forEach(function(dl) {
+        h += '<div class="cal-heatmap-dow">' + dl + '</div>';
+      });
+
+      // Empty cells before first day
+      for (var e = 0; e < startOffset; e++) {
+        h += '<div class="cal-heatmap-cell empty"></div>';
+      }
+
+      // Day cells
+      for (var day = 1; day <= daysInMonth; day++) {
+        var dateStr = viewYear + '-' + String(viewMonth + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+        var cards = dayMap[dateStr] || 0;
+        var bg = getIntensity(cards);
+        var isToday = (dateStr === todayStr);
+        var isFuture = new Date(viewYear, viewMonth, day) > now;
+        var cls = 'cal-heatmap-cell';
+        if (isToday) cls += ' today';
+        if (isFuture) cls += ' future';
+        h += '<div class="' + cls + '" data-date="' + dateStr + '" data-cards="' + cards + '" style="background:' + bg + '">' + day + '</div>';
+      }
+
+      h += '</div>'; // grid
+
+      // Stats row
+      h += '<div class="cal-heatmap-stats">';
+      h += '<span class="cal-heatmap-streak">' + (streakCount > 0 ? '🔥 ' + streakCount + ' day streak' : 'No streak') + '</span>';
+      h += '<span>' + monthTotal + ' reviews</span>';
+      h += '</div>';
+
+      h += '</div>'; // wrap
+
+      host.innerHTML = h;
+
+      // Tooltip
+      var tooltip = document.createElement('div');
+      tooltip.className = 'cal-heatmap-tooltip';
+      document.body.appendChild(tooltip);
+      // Remove old tooltips
+      document.querySelectorAll('.cal-heatmap-tooltip').forEach(function(t, i) {
+        if (i > 0) t.remove(); // keep only the latest
+      });
+
+      host.querySelectorAll('.cal-heatmap-cell:not(.empty)').forEach(function(cell) {
+        cell.addEventListener('mouseenter', function() {
+          var date = cell.getAttribute('data-date');
+          var c = parseInt(cell.getAttribute('data-cards'), 10) || 0;
+          var parts = date.split('-');
+          var mo = monthNames[parseInt(parts[1], 10) - 1] || '';
+          tooltip.textContent = mo + ' ' + parseInt(parts[2], 10) + ': ' + c + ' card' + (c !== 1 ? 's' : '');
           tooltip.classList.add('show');
-        });
-        cell.addEventListener('mousemove', function(e) {
-          tooltip.style.left = (e.clientX + 12) + 'px';
-          tooltip.style.top = (e.clientY + 12) + 'px';
+          var rect = cell.getBoundingClientRect();
+          tooltip.style.left = (rect.left + rect.width / 2 - tooltip.offsetWidth / 2) + 'px';
+          tooltip.style.top = (rect.top - tooltip.offsetHeight - 6) + 'px';
         });
         cell.addEventListener('mouseleave', function() {
           tooltip.classList.remove('show');
         });
       });
+
+      // Nav handlers
+      var prevBtn = document.getElementById('calHeatPrev');
+      var nextBtn = document.getElementById('calHeatNext');
+      if (prevBtn) {
+        prevBtn.addEventListener('click', function() {
+          drawActivityHeatmap._viewMonth--;
+          if (drawActivityHeatmap._viewMonth < 0) {
+            drawActivityHeatmap._viewMonth = 11;
+            drawActivityHeatmap._viewYear--;
+          }
+          drawActivityHeatmap(containerId);
+          try { if (typeof playClick === 'function') playClick(); } catch(e) {}
+        });
+      }
+      if (nextBtn && !isCurrentMonth) {
+        nextBtn.addEventListener('click', function() {
+          drawActivityHeatmap._viewMonth++;
+          if (drawActivityHeatmap._viewMonth > 11) {
+            drawActivityHeatmap._viewMonth = 0;
+            drawActivityHeatmap._viewYear++;
+          }
+          drawActivityHeatmap(containerId);
+          try { if (typeof playClick === 'function') playClick(); } catch(e) {}
+        });
+      }
+
+      // GSAP animation
+      if (window.gsap) {
+        gsap.fromTo(host.querySelectorAll('.cal-heatmap-cell:not(.empty)'),
+          { opacity: 0, scale: 0.7 },
+          { opacity: 1, scale: 1, duration: 0.3, stagger: 0.01, ease: 'back.out(1.4)' }
+        );
+      }
     }
 
     /* ═══ SECTION: Render Activity Stats | Functions: renderActivityStats ═══ */
     function renderActivityStats(containerId) {
-      var host = el(containerId);
-      if (!host) return;
-      var activeEl = host.querySelector('.heatmap-active-days');
-      if (!activeEl) return;
-
-      var analytics = (typeof SyncEngine !== 'undefined' && SyncEngine.get)
-        ? SyncEngine.get('studyengine', 'tutorAnalytics')
-        : null;
-      var history = (analytics && analytics.sessionHistory && analytics.sessionHistory.length) ? analytics.sessionHistory : [];
-      var dailyCards = {};
-      history.forEach(function(row) {
-        if (!row || !row.date) return;
-        var key = String(row.date).slice(0, 10);
-        dailyCards[key] = (dailyCards[key] || 0) + (Number(row.cards) || 0);
-      });
-
-      var activeDays = 0;
-      var now = new Date();
-      for (var i = 29; i >= 0; i--) {
-        var dt = new Date(now);
-        dt.setHours(12, 0, 0, 0);
-        dt.setDate(dt.getDate() - i);
-        var key = dt.toISOString().slice(0, 10);
-        if ((dailyCards[key] || 0) > 0) activeDays++;
-      }
-
-      activeEl.textContent = activeDays + '/30 active days';
+      // Stats are now rendered inside drawActivityHeatmap, so this is a no-op.
+      // Kept for API compatibility.
     }
 
     /* ── Draw all analytics ── */
