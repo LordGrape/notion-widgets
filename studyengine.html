@@ -7526,7 +7526,8 @@ input[type="range"]::-moz-range-thumb{
         tutorStats: defaultTutorStats(),
         tutorModeCounts: defaultTutorModeCounts(),
         sessionRatingsLog: [],
-        lastTutorContext: null  /* { mode, turns, hadDialogue, wasDontKnow } — set by tutor flows */
+        lastTutorContext: null,  /* { mode, turns, hadDialogue, wasDontKnow } — set by tutor flows */
+        tutorAnalyticsHistoryKey: 's' + Date.now()
       };
       sessionSummary = null;
       breakState.sessionStartTime = Date.now();
@@ -8071,16 +8072,50 @@ input[type="range"]::-moz-range-thumb{
       else if (mode === 'acknowledge') ts.acknowledges++;
       if (!session.tutorModeCounts) session.tutorModeCounts = defaultTutorModeCounts();
       if (session.tutorModeCounts[mode] != null) session.tutorModeCounts[mode]++;
+      persistTutorAnalyticsDeltas();
     }
 
     function noteReconstructionPromptShown() {
       if (!session || !session.tutorStats) return;
       session.tutorStats.reconstructions++;
       session._reconstructionPending = true;
+      persistTutorAnalyticsDeltas();
     }
 
-    function updateTutorAnalytics() {
+    function upsertTutorSessionHistoryRow(analytics, ts, historyKey) {
+      var hist = analytics.sessionHistory || (analytics.sessionHistory = []);
+      var today = new Date().toISOString().split('T')[0];
+      var row = {
+        date: today,
+        sessionKey: historyKey,
+        cards: (session && session.ratingN) || 0,
+        avgTurns: ts.avgTurnsPerCard || 0,
+        flashCalls: ts.flashCalls || 0,
+        proCalls: ts.proCalls || 0,
+        skips: ts.skipsToRating || 0
+      };
+      var idx = -1;
+      for (var i = hist.length - 1; i >= 0; i--) {
+        if (hist[i].sessionKey === historyKey) {
+          idx = i;
+          break;
+        }
+      }
+      if (idx >= 0) hist[idx] = row;
+      else hist.push(row);
+      if (hist.length > 30) {
+        analytics.sessionHistory = hist.slice(-30);
+      }
+    }
+
+    /* Merge only deltas since last persist so we can flush after each tutor API call without double-counting. */
+    function persistTutorAnalyticsDeltas() {
       if (typeof SyncEngine === 'undefined' || !SyncEngine.get || !SyncEngine.set) return;
+      if (!session || !session.tutorStats) return;
+      var historyKey = session.tutorAnalyticsHistoryKey;
+      if (!historyKey) return;
+
+      var ts = session.tutorStats;
       var analytics = SyncEngine.get(NS, 'tutorAnalytics') || {
         totalSessions: 0,
         totalTutorCalls: 0,
@@ -8092,27 +8127,80 @@ input[type="range"]::-moz-range-thumb{
         totalDontKnows: 0,
         sessionHistory: []
       };
-      var ts = session && session.tutorStats ? session.tutorStats : {};
-      analytics.totalSessions++;
-      analytics.totalTutorCalls += ts.totalCalls || 0;
-      analytics.totalFlashCalls += ts.flashCalls || 0;
-      analytics.totalProCalls += ts.proCalls || 0;
-      analytics.totalSkips += ts.skipsToRating || 0;
-      analytics.totalReconstructions += ts.reconstructions || 0;
-      analytics.totalReconstructionSuccesses += ts.reconstructionSuccesses || 0;
-      analytics.totalDontKnows += ts.dontKnows || 0;
-      analytics.sessionHistory.push({
-        date: new Date().toISOString().split('T')[0],
-        cards: (session && session.ratingN) || 0,
-        avgTurns: ts.avgTurnsPerCard || 0,
-        flashCalls: ts.flashCalls || 0,
-        proCalls: ts.proCalls || 0,
-        skips: ts.skipsToRating || 0
-      });
-      if (analytics.sessionHistory.length > 30) {
-        analytics.sessionHistory = analytics.sessionHistory.slice(-30);
+
+      var base = session._tutorAnalyticsBaseline;
+      if (!base) {
+        base = {
+          totalCalls: 0,
+          flashCalls: 0,
+          proCalls: 0,
+          skipsToRating: 0,
+          reconstructions: 0,
+          reconstructionSuccesses: 0,
+          dontKnows: 0
+        };
+        session._tutorAnalyticsBaseline = base;
       }
+
+      var dc = (ts.totalCalls || 0) - base.totalCalls;
+      var df = (ts.flashCalls || 0) - base.flashCalls;
+      var dp = (ts.proCalls || 0) - base.proCalls;
+      var ds = (ts.skipsToRating || 0) - base.skipsToRating;
+      var dr = (ts.reconstructions || 0) - base.reconstructions;
+      var drs = (ts.reconstructionSuccesses || 0) - base.reconstructionSuccesses;
+      var dk = (ts.dontKnows || 0) - base.dontKnows;
+
+      if (dc || df || dp || ds || dr || drs || dk) {
+        analytics.totalTutorCalls += dc;
+        analytics.totalFlashCalls += df;
+        analytics.totalProCalls += dp;
+        analytics.totalSkips += ds;
+        analytics.totalReconstructions += dr;
+        analytics.totalReconstructionSuccesses += drs;
+        analytics.totalDontKnows += dk;
+        base.totalCalls = ts.totalCalls || 0;
+        base.flashCalls = ts.flashCalls || 0;
+        base.proCalls = ts.proCalls || 0;
+        base.skipsToRating = ts.skipsToRating || 0;
+        base.reconstructions = ts.reconstructions || 0;
+        base.reconstructionSuccesses = ts.reconstructionSuccesses || 0;
+        base.dontKnows = ts.dontKnows || 0;
+      }
+
+      upsertTutorSessionHistoryRow(analytics, ts, historyKey);
       SyncEngine.set(NS, 'tutorAnalytics', analytics);
+      try {
+        renderTutorAnalyticsDashboard();
+        refreshCostEstimateInSettings();
+      } catch (e) {}
+    }
+
+    /* Call once when a study session ends (complete or early leave). */
+    function finalizeTutorAnalyticsSession() {
+      if (!session || session._tutorAnalyticsSessionFinalized) return;
+      if (typeof SyncEngine === 'undefined' || !SyncEngine.get || !SyncEngine.set) return;
+      if (session.tutorStats) {
+        session.tutorStats.avgTurnsPerCard = session.tutorStats.socraticTurns / Math.max(1, session.ratingN || 0);
+      }
+      persistTutorAnalyticsDeltas();
+      var analytics = SyncEngine.get(NS, 'tutorAnalytics') || {
+        totalSessions: 0,
+        totalTutorCalls: 0,
+        totalFlashCalls: 0,
+        totalProCalls: 0,
+        totalSkips: 0,
+        totalReconstructions: 0,
+        totalReconstructionSuccesses: 0,
+        totalDontKnows: 0,
+        sessionHistory: []
+      };
+      analytics.totalSessions++;
+      session._tutorAnalyticsSessionFinalized = true;
+      SyncEngine.set(NS, 'tutorAnalytics', analytics);
+      try {
+        renderTutorAnalyticsDashboard();
+        refreshCostEstimateInSettings();
+      } catch (e) {}
     }
 
     function renderTutorAnalyticsDashboard() {
@@ -9440,6 +9528,7 @@ input[type="range"]::-moz-range-thumb{
         return;
       }
       if (session && session.tutorStats) session.tutorStats.skipsToRating++;
+      persistTutorAnalyticsDeltas();
       disableTutorInput();
       addTutorMessage('tutor', '<em>Skipped to rating. Review the model answer below.</em>');
       var mac = document.querySelector('.model-answer-collapsible');
@@ -9734,6 +9823,7 @@ input[type="range"]::-moz-range-thumb{
     function handleDontKnowReveal(it, revealTier) {
       session._dontKnow = true;
       if (session.tutorStats) session.tutorStats.dontKnows++;
+      persistTutorAnalyticsDeltas();
       session.currentShown = true;
       clearTimers();
       try {
@@ -9813,6 +9903,7 @@ input[type="range"]::-moz-range-thumb{
         newSkip.textContent = 'Show Answer →';
         newSkip.addEventListener('click', function() {
           if (session && session.tutorStats) session.tutorStats.skipsToRating++;
+          persistTutorAnalyticsDeltas();
           disableTutorInput();
           addTutorMessage('tutor', '<em>Skipped to model answer. Review it carefully below.</em>');
           revealDkModelAnswer(it, revealTier);
@@ -10622,6 +10713,7 @@ input[type="range"]::-moz-range-thumb{
       });
       if (session._reconstructionPending) {
         if (mappedRating >= 3 && session.tutorStats) session.tutorStats.reconstructionSuccesses++;
+        persistTutorAnalyticsDeltas();
         session._reconstructionPending = false;
       }
       /* Rating-differentiated audio feedback
@@ -11139,10 +11231,7 @@ input[type="range"]::-moz-range-thumb{
         state.stats.lastSessionDate = today;
       }
 
-      if (session.tutorStats) {
-        session.tutorStats.avgTurnsPerCard = session.tutorStats.socraticTurns / Math.max(1, session.ratingN || 0);
-      }
-      updateTutorAnalytics();
+      finalizeTutorAnalyticsSession();
 
       /* Push XP to dragon */
       try {
@@ -11373,6 +11462,9 @@ input[type="range"]::-moz-range-thumb{
     el('confirmLeave').addEventListener('click', function() {
       el('confirmExitOv').classList.remove('show');
       try { playClose(); } catch(e) {}
+      if (session) {
+        finalizeTutorAnalyticsSession();
+      }
       /* Save progress for items already reviewed */
       saveState();
       /* Reset session and return to dashboard */
