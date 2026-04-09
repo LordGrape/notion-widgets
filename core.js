@@ -36,6 +36,8 @@ let Core = {
 let _coreEvents = {};
 let _corePlugins = {};
 let _perfFrameTimes = [];
+let _perfFrameSum = 0;
+let _perfMaxSamples = 120;
 let _perfAvgFrameMs = 16.67;
 let _perfDropHandlers = [];
 let _perfWasLow = false;
@@ -68,11 +70,12 @@ Core.getPlugin = function(name) {
 
 function _coreRecordFrame(dtMs) {
   if (!dtMs || !isFinite(dtMs) || dtMs <= 0) return;
+  if (_perfFrameTimes.length >= _perfMaxSamples) {
+    _perfFrameSum -= _perfFrameTimes.shift();
+  }
   _perfFrameTimes.push(dtMs);
-  if (_perfFrameTimes.length > 120) _perfFrameTimes.shift();
-  let sum = 0;
-  for (let i = 0; i < _perfFrameTimes.length; i++) sum += _perfFrameTimes[i];
-  _perfAvgFrameMs = sum / _perfFrameTimes.length;
+  _perfFrameSum += dtMs;
+  _perfAvgFrameMs = _perfFrameSum / _perfFrameTimes.length;
   let lowFPS = (1000 / _perfAvgFrameMs) < 30;
   if (lowFPS && !_perfWasLow) {
     _perfDropHandlers.forEach(function(cb) { try { cb(Core.perf.getFPS()); } catch (e) {} });
