@@ -6163,7 +6163,10 @@ input[type="range"]::-moz-range-thumb{
             '<div class="panel">' +
               '<div class="p-h">Your response</div>' +
               '<textarea id="userText" rows="3" placeholder="Write your explanation. Focus on key mechanisms, not wording."></textarea>' +
-              '<button class="qa-btn" id="checkBtn">Check (Space)</button>' +
+              '<div style="display:flex;gap:10px;margin-top:6px;align-items:stretch">' +
+              '<button class="qa-btn" id="checkBtn" style="flex:1;min-width:0">Check (Space)</button>' +
+              '<button type="button" class="ghost-btn" id="dontKnowBtn" style="flex:0 0 auto;padding:10px 12px;font-size:10px;white-space:nowrap">🤷 Don\u2019t know</button>' +
+              '</div>' +
             '</div>' +
           '</div>';
         wireGenerative('explain');
@@ -6178,7 +6181,10 @@ input[type="range"]::-moz-range-thumb{
           '<div class="panel">' +
             '<div class="p-h">Your response</div>' +
             '<textarea id="userText" rows="4" placeholder="Apply the concept. Use structured reasoning and conclude clearly."></textarea>' +
-            '<button class="qa-btn" id="checkBtn">Check (Space)</button>' +
+            '<div style="display:flex;gap:10px;margin-top:6px;align-items:stretch">' +
+            '<button class="qa-btn" id="checkBtn" style="flex:1;min-width:0">Check (Space)</button>' +
+            '<button type="button" class="ghost-btn" id="dontKnowBtn" style="flex:0 0 auto;padding:10px 12px;font-size:10px;white-space:nowrap">🤷 Don\u2019t know</button>' +
+            '</div>' +
           '</div>';
         if (settings.showApplyTimer) startApplyTimer();
         wireGenerative('apply');
@@ -6194,7 +6200,10 @@ input[type="range"]::-moz-range-thumb{
           '<div class="panel">' +
             '<div class="p-h">Your response</div>' +
             '<textarea id="userText" rows="4" placeholder="State which applies, then justify with discriminating features."></textarea>' +
-            '<button class="qa-btn" id="checkBtn">Check (Space)</button>' +
+            '<div style="display:flex;gap:10px;margin-top:6px;align-items:stretch">' +
+            '<button class="qa-btn" id="checkBtn" style="flex:1;min-width:0">Check (Space)</button>' +
+            '<button type="button" class="ghost-btn" id="dontKnowBtn" style="flex:0 0 auto;padding:10px 12px;font-size:10px;white-space:nowrap">🤷 Don\u2019t know</button>' +
+            '</div>' +
           '</div>';
         wireGenerative('distinguish');
       } else if (tier === 'mock') {
@@ -6251,7 +6260,10 @@ input[type="range"]::-moz-range-thumb{
             '<div class="panel">' +
               '<div class="p-h">Response (timed)</div>' +
               '<textarea id="userText" rows="10" placeholder="Write your full answer. Aim for structure and clear conclusions."></textarea>' +
-              '<button class="qa-btn" id="submitBtn">Submit (Space)</button>' +
+              '<div style="display:flex;gap:10px;margin-top:6px;align-items:stretch">' +
+              '<button class="qa-btn" id="submitBtn" style="flex:1;min-width:0">Submit (Space)</button>' +
+              '<button type="button" class="ghost-btn" id="dontKnowBtn" style="flex:0 0 auto;padding:10px 12px;font-size:10px;white-space:nowrap">🤷 Don\u2019t know</button>' +
+              '</div>' +
               '<div class="help">Timer starts immediately. Submit early if you finish.</div>' +
             '</div>' +
             rubricTemplate('mock');
@@ -6337,7 +6349,10 @@ input[type="range"]::-moz-range-thumb{
             '<span class="ewc-current" id="essayWordCount">0 words</span>' +
             '<span class="ewc-target">Target: ' + esc(wordTarget.label) + ' (' + wordTarget.min + '-' + wordTarget.max + ' words)</span>' +
           '</div>' +
-          '<button class="qa-btn" id="submitBtn">Submit (Space)</button>' +
+          '<div style="display:flex;gap:10px;margin-top:6px;align-items:stretch">' +
+          '<button class="qa-btn" id="submitBtn" style="flex:1;min-width:0">Submit (Space)</button>' +
+          '<button type="button" class="ghost-btn" id="dontKnowBtn" style="flex:0 0 auto;padding:10px 12px;font-size:10px;white-space:nowrap">🤷 Don\u2019t know</button>' +
+          '</div>' +
           '<div class="help">Use your outline as a guide. ' + writingMins + ' min remaining.</div>' +
         '</div>' +
         rubricTemplate('mock');
@@ -6379,11 +6394,226 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    /* ── "Don't know" — skip grading, teaching explanation + Again default ── */
+    var DONT_KNOW_PATTERNS = [
+      /^\s*i\s*(don'?t|do not|dont)\s*know/i,
+      /^\s*not\s*sure/i,
+      /^\s*i'?m\s*not\s*sure/i,
+      /^\s*no\s*idea/i,
+      /^\s*(i\s*)?(have\s*)?no\s*(idea|clue)/i,
+      /^\s*unsure/i,
+      /^\s*i\s*am\s*not\s*sure/i,
+      /^\s*idk\b/i,
+      /^\s*dunno\b/i,
+      /^\s*i\s*forget/i,
+      /^\s*i\s*forgot/i,
+      /^\s*can'?t\s*remember/i,
+      /^\s*don'?t\s*remember/i,
+      /^\s*(can'?t|cannot)\s*recall/i,
+      /^\s*no\s*answer/i,
+      /^\s*pass\s*$/i,
+      /^\s*\?\s*$/i
+    ];
+
+    function isDontKnowResponse(text) {
+      if (!text || !text.trim()) return false;
+      var t = text.trim();
+      if (t.length > 80) return false;
+      return DONT_KNOW_PATTERNS.some(function(p) { return p.test(t); });
+    }
+
+    function showDontKnowExplanation(fbArea, data) {
+      var h = '<div class="ai-feedback">' +
+        '<div class="af-header">' +
+        '<div class="af-icon">💡</div>' +
+        '<div class="af-title">Why This Is The Answer</div>' +
+        '</div>';
+      if (data.explanation) {
+        h += '<div class="af-dim-feedback" style="font-size:11px;line-height:1.65;margin-bottom:12px;">' + esc(data.explanation) + '</div>';
+      } else if (data.summary) {
+        h += '<div class="af-dim-feedback" style="font-size:11px;line-height:1.65;margin-bottom:12px;">' + esc(data.summary) + '</div>';
+      }
+      if (data.keyPoints && Array.isArray(data.keyPoints)) {
+        h += '<div class="af-improvement" style="border-left-color:var(--tier-ex);">' +
+          '<div class="af-improve-label" style="color:var(--tier-ex);">Key Points to Remember</div>';
+        data.keyPoints.forEach(function(pt) {
+          h += '<div class="af-improve-text" style="margin-bottom:6px;">• ' + esc(String(pt)) + '</div>';
+        });
+        h += '</div>';
+      } else if (data.improvement) {
+        h += '<div class="af-improvement">' +
+          '<div class="af-improve-label">Focus Area</div>' +
+          '<div class="af-improve-text">' + esc(data.improvement) + '</div>' +
+          '</div>';
+      }
+      if (data.memoryHook) {
+        h += '<div class="af-summary" style="margin-top:10px;">🪝 <strong>Memory hook:</strong> ' + esc(data.memoryHook) + '</div>';
+      }
+      h += '</div>';
+      fbArea.innerHTML = h;
+      if (window.gsap && fbArea.querySelector('.ai-feedback')) {
+        gsap.fromTo(fbArea.querySelector('.ai-feedback'), { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' });
+      }
+    }
+
+    function showDontKnowFallback(fbArea) {
+      fbArea.innerHTML = '<div class="af-error">' +
+        '<div class="af-error-title">Could not load explanation</div>' +
+        '<div>Study the model answer above carefully. Try to identify the key reasoning chain before moving on.</div>' +
+        '</div>';
+      ratingsEl.style.display = 'grid';
+    }
+
+    function handleDontKnowReveal(it, revealTier) {
+      session.currentShown = true;
+      clearTimers();
+      try {
+        el('timerBar').classList.remove('show');
+        el('metaTimer').style.display = 'none';
+      } catch (e2) {}
+      var oldWrap = document.getElementById('revealColumnsWrap');
+      if (oldWrap) oldWrap.remove();
+
+      if (el('userText')) el('userText').style.display = 'none';
+      var checkBtn = el('checkBtn');
+      var submitBtn = el('submitBtn');
+      if (checkBtn) checkBtn.style.display = 'none';
+      if (submitBtn) submitBtn.style.display = 'none';
+      var dkBtn = el('dontKnowBtn');
+      if (dkBtn) dkBtn.style.display = 'none';
+      var essayNext = el('essayNextPhase');
+      if (essayNext) essayNext.style.display = 'none';
+
+      var answerVisual = it.visual ? renderMermaidBlock(it.visual, 'answer', it.id) : '';
+      var revealHTML = '<div class="reveal-columns">' +
+        '<div class="reveal-col">' +
+        '<div class="col-label"><span class="col-icon">🤷</span> Your Response</div>' +
+        '<div class="user-response-locked" id="userResponseLocked" style="opacity:0.85;font-style:italic;">I didn\u2019t know this one</div>' +
+        '</div>' +
+        '<div class="reveal-col">' +
+        '<div class="col-label"><span class="col-icon">📋</span> Model Answer</div>' +
+        '<div class="answer" id="modelAnswerRight"><span class="answer-header">Model Answer</span>' + renderMd(it.modelAnswer || '') + '<div class="visual-slot"></div>' + answerVisual + '</div>' +
+        '<div id="aiFeedbackRight"></div>' +
+        '</div>' +
+        '</div>';
+
+      var revealContainer = document.createElement('div');
+      revealContainer.id = 'revealColumnsWrap';
+      revealContainer.innerHTML = revealHTML;
+      tierArea.insertAdjacentElement('afterend', revealContainer);
+
+      modelAnswerEl.style.display = 'none';
+      if (answerVisual) setTimeout(initMermaidBlocks, 50);
+      else ensureAnswerVisual(it, revealTier);
+
+      try { playClick(); } catch (e) {}
+
+      var rm = settings.revealMode || 'auto';
+      if (rm === 'audio' || rm === 'both') {
+        playTTS(it.modelAnswer || '');
+      } else if (rm === 'auto' && revealTier !== 'quickfire') {
+        var answerContainer = document.getElementById('modelAnswerRight') || document.getElementById('revealColumnsWrap');
+        if (answerContainer) {
+          var listenBtn = document.createElement('button');
+          listenBtn.type = 'button';
+          listenBtn.className = 'ghost-btn listen-tts-btn';
+          listenBtn.innerHTML = '🔊 Listen to Answer';
+          listenBtn.setAttribute('aria-label', 'Listen to model answer');
+          listenBtn.style.cssText = 'margin-top:10px;display:inline-flex;align-items:center;gap:6px;padding:8px 14px;font-size:10px;min-width:auto;flex:none;';
+          listenBtn.addEventListener('click', function() {
+            var text = it.modelAnswer || '';
+            listenBtn.innerHTML = '🔊 Playing...';
+            listenBtn.disabled = true;
+            listenBtn.style.opacity = '0.6';
+            playTTS(text).then(function() {
+              listenBtn.innerHTML = '🔊 Listen Again';
+              listenBtn.disabled = false;
+              listenBtn.style.opacity = '1';
+            });
+          });
+          if (ratingsEl && ratingsEl.parentNode) {
+            ratingsEl.parentNode.insertBefore(listenBtn, ratingsEl);
+          } else {
+            answerContainer.appendChild(listenBtn);
+          }
+          if (window.gsap) {
+            gsap.fromTo(listenBtn, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
+          }
+        }
+      }
+
+      var fbArea = document.getElementById('aiFeedbackRight');
+      if (!fbArea) return;
+      fbArea.innerHTML = '<div class="af-loading"><div class="af-spinner"></div><span class="af-loading-text">AI is preparing an explanation...</span></div>';
+      if (window.gsap) gsap.fromTo(fbArea, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
+
+      var explainPayload = {
+        prompt: it.prompt || '',
+        modelAnswer: it.modelAnswer || '',
+        tier: revealTier,
+        course: it.course || '',
+        topic: it.topic || '',
+        mode: 'explain'
+      };
+      if (revealTier === 'distinguish') {
+        explainPayload.conceptA = it.conceptA || '';
+        explainPayload.conceptB = it.conceptB || '';
+      }
+
+      fetch('https://widget-sync.lordgrape-widgets.workers.dev/studyengine/grade', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Widget-Key': getWidgetKey()
+        },
+        body: JSON.stringify(explainPayload)
+      })
+      .then(function(res) { return res.json().then(function(data) { return { ok: res.ok, data: data }; }); })
+      .then(function(result) {
+        if (!result.ok || (result.data && result.data.error)) {
+          showDontKnowFallback(fbArea);
+        } else {
+          showDontKnowExplanation(fbArea, result.data);
+        }
+      })
+      .catch(function() {
+        showDontKnowFallback(fbArea);
+      });
+
+      session.aiRating = 1;
+      ratingsEl.style.display = 'grid';
+      ratingsEl.querySelectorAll('button').forEach(function(b) {
+        var r = parseInt(b.getAttribute('data-rate'), 10);
+        if (r === 1) {
+          b.style.outline = '2px solid var(--rate-again)';
+          b.style.outlineOffset = '2px';
+        } else {
+          b.style.outline = 'none';
+          b.style.outlineOffset = '0';
+        }
+      });
+      var oldHint = document.querySelector('.override-hint');
+      if (oldHint) oldHint.remove();
+      var hint = document.createElement('div');
+      hint.className = 'override-hint';
+      hint.textContent = 'Auto-rated Again — override if you partially knew this';
+      ratingsEl.parentNode.insertBefore(hint, ratingsEl.nextSibling);
+    }
+
     function wireGenerative(tier) {
       var ta = el('userText');
       ta.addEventListener('input', function(){ autoGrowTextarea(ta); });
       autoGrowTextarea(ta);
       el('checkBtn').addEventListener('click', function(){ revealAnswer(true); });
+      var dkBtn = el('dontKnowBtn');
+      if (dkBtn) {
+        dkBtn.addEventListener('click', function() {
+          var cur = session.queue[session.idx];
+          if (!cur) return;
+          var rt = cur._presentTier || cur.tier || 'quickfire';
+          handleDontKnowReveal(cur, rt);
+        });
+      }
     }
 
     function wireMock() {
@@ -6391,6 +6621,15 @@ input[type="range"]::-moz-range-thumb{
       ta.addEventListener('input', function(){ autoGrowTextarea(ta); });
       autoGrowTextarea(ta);
       el('submitBtn').addEventListener('click', function(){ revealAnswer(true); });
+      var dkBtn = el('dontKnowBtn');
+      if (dkBtn) {
+        dkBtn.addEventListener('click', function() {
+          var cur = session.queue[session.idx];
+          if (!cur) return;
+          var rt = cur._presentTier || cur.tier || 'quickfire';
+          handleDontKnowReveal(cur, rt);
+        });
+      }
     }
 
     function revealAnswer(fromCheck) {
@@ -6424,12 +6663,21 @@ input[type="range"]::-moz-range-thumb{
       /* For generative tiers: call AI grading */
       var userText = el('userText') ? el('userText').value.trim() : '';
 
+      if (isDontKnowResponse(userText)) {
+        handleDontKnowReveal(it, revealTier);
+        return;
+      }
+
       /* Hide the original textarea and check/submit button */
       if (el('userText')) el('userText').style.display = 'none';
       var checkBtn = el('checkBtn');
       var submitBtn = el('submitBtn');
       if (checkBtn) checkBtn.style.display = 'none';
       if (submitBtn) submitBtn.style.display = 'none';
+      var dontKnowBtn = el('dontKnowBtn');
+      if (dontKnowBtn) dontKnowBtn.style.display = 'none';
+      var essayNextPhase = el('essayNextPhase');
+      if (essayNextPhase) essayNextPhase.style.display = 'none';
 
       /* Build side-by-side reveal layout */
       var answerVisual = it.visual ? renderMermaidBlock(it.visual, 'answer', it.id) : '';
