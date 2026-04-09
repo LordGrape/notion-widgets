@@ -5412,16 +5412,16 @@ input[type="range"]::-moz-range-thumb{
 
     /* ── Responsive ── */
     @media (max-width: 1024px) {
-      .sidebar { width: 48px; }
-      .sidebar:hover { width: 260px; position: absolute; height: 100vh; box-shadow: var(--shadow); z-index: 100; }
-      .sidebar .sb-brand, .sidebar .sb-search,
-      .sidebar .sb-tree .tree-label, .sidebar .sb-tree .tree-count,
-      .sidebar .sb-tree .tree-badge, .sidebar .sb-footer-btn span,
-      .sidebar .sb-footer .sb-sync-status { display: none; }
-      .sidebar:hover .sb-brand, .sidebar:hover .sb-search,
-      .sidebar:hover .sb-tree .tree-label, .sidebar:hover .sb-tree .tree-count,
-      .sidebar:hover .sb-tree .tree-badge, .sidebar:hover .sb-footer-btn span,
-      .sidebar:hover .sb-footer .sb-sync-status { display: initial; }
+      body:not(.standalone) .sidebar { width: 48px; }
+      body:not(.standalone) .sidebar:hover { width: 260px; position: absolute; height: 100vh; box-shadow: var(--shadow); z-index: 100; }
+      body:not(.standalone) .sidebar .sb-brand, body:not(.standalone) .sidebar .sb-search,
+      body:not(.standalone) .sidebar .sb-tree .tree-label, body:not(.standalone) .sidebar .sb-tree .tree-count,
+      body:not(.standalone) .sidebar .sb-tree .tree-badge, body:not(.standalone) .sidebar .sb-footer-btn span,
+      body:not(.standalone) .sidebar .sb-footer .sb-sync-status { display: none; }
+      body:not(.standalone) .sidebar:hover .sb-brand, body:not(.standalone) .sidebar:hover .sb-search,
+      body:not(.standalone) .sidebar:hover .sb-tree .tree-label, body:not(.standalone) .sidebar:hover .sb-tree .tree-count,
+      body:not(.standalone) .sidebar:hover .sb-tree .tree-badge, body:not(.standalone) .sidebar:hover .sb-footer-btn span,
+      body:not(.standalone) .sidebar:hover .sb-footer .sb-sync-status { display: initial; }
     }
 
     @media (max-width: 640px) {
