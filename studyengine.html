@@ -28,6 +28,7 @@
       --tier-ap: #f59e0b;
       --tier-di: #ec4899;
       --tier-mk: #ef4444;
+      --tier-we: #10b981;
 
       --rate-again: #ef4444;
       --rate-hard: #f59e0b;
@@ -2516,6 +2517,7 @@ body.standalone .answer.restudy-active{
     .item-card.tier-apply{ border-color: rgba(245,158,11,0.25); }
     .item-card.tier-distinguish{ border-color: rgba(236,72,153,0.25); }
     .item-card.tier-mock{ border-color: rgba(239,68,68,0.25); }
+    .item-card.tier-worked{ border-color: rgba(16,185,129,0.25); }
     .answer-header{ font-size: 8px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 8px; font-weight: 800; }
     textarea::placeholder{ color: var(--text-tertiary); }
     .rub-pill{ padding: 8px 12px; font-size: 10px; letter-spacing: 0.5px; }
@@ -2543,6 +2545,7 @@ body.standalone .answer.restudy-active{
     .pbar.tier-apply > div{ background: linear-gradient(90deg, var(--tier-ap), rgba(245,158,11,0.5)); }
     .pbar.tier-distinguish > div{ background: linear-gradient(90deg, var(--tier-di), rgba(236,72,153,0.5)); }
     .pbar.tier-mock > div{ background: linear-gradient(90deg, var(--tier-mk), rgba(239,68,68,0.5)); }
+    .pbar.tier-worked > div{ background: linear-gradient(90deg, var(--tier-we), rgba(16,185,129,0.5)); }
 
     /* Mobile adjustments */
     @media (max-width: 420px){
@@ -4956,6 +4959,7 @@ input[type="range"]::-moz-range-thumb{
               </div>
             </div>
 
+            <div class="break-banner" id="sleepAdviceBanner" style="margin-bottom:12px;"></div>
             <button class="big-btn" id="startBtn" disabled>Start Session</button>
 
             <div class="mini-actions" style="margin-top: 12px;">
@@ -5012,11 +5016,13 @@ input[type="range"]::-moz-range-thumb{
               </div>
             </div>
             <div class="cd-tier-stats" id="cdTierStats"></div>
+            <div id="cdTierPromoHost"></div>
             <div id="cdTutorNotesHost"></div>
             <!-- Retention forecast moved into analytics grid -->
             <div class="section-header" style="margin-top:14px;">Cards</div>
             <div id="cdCardList" style="max-height:260px;overflow-y:auto;margin-bottom:14px;scrollbar-width:thin;"></div>
             <button class="big-btn" id="cdStartSession">Study this course</button>
+            <button type="button" class="ghost-btn" id="cdPrimeModeBtn" style="margin-top:8px;">🧠 Prime Mode — Pre-study Questions</button>
             <div class="mini-actions">
               <button class="ghost-btn" id="cdAddCardBtn">＋ Add Card</button>
               <button class="ghost-btn" id="cdImportBtn"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><line x1="8" y1="2" x2="8" y2="10.5"/><polyline points="4.5,7 8,10.5 11.5,7"/><path d="M2.5 12.5h11"/></svg>Import JSON</button>
@@ -5343,7 +5349,7 @@ input[type="range"]::-moz-range-thumb{
         totalReviews: 0,
         streakDays: 0,
         lastSessionDate: '',
-        reviewsByTier: { quickfire: 0, explain: 0, apply: 0, distinguish: 0, mock: 0 }
+        reviewsByTier: { quickfire: 0, explain: 0, apply: 0, distinguish: 0, mock: 0, worked: 0 }
       }
     };
     var DEFAULT_SETTINGS = {
@@ -5364,10 +5370,10 @@ input[type="range"]::-moz-range-thumb{
 
     /* ── Tier Distribution Profiles (by exam type) ── */
     var TIER_PROFILES = {
-      mc:           { quickfire: 0.50, explain: 0.20, apply: 0.10, distinguish: 0.15, mock: 0.05 },
-      short_answer: { quickfire: 0.30, explain: 0.35, apply: 0.15, distinguish: 0.15, mock: 0.05 },
-      essay:        { quickfire: 0.15, explain: 0.25, apply: 0.25, distinguish: 0.15, mock: 0.20 },
-      mixed:        { quickfire: 0.25, explain: 0.25, apply: 0.20, distinguish: 0.15, mock: 0.15 }
+      mc:           { quickfire: 0.48, explain: 0.18, apply: 0.10, distinguish: 0.15, mock: 0.05, worked: 0.04 },
+      short_answer: { quickfire: 0.28, explain: 0.33, apply: 0.13, distinguish: 0.13, mock: 0.05, worked: 0.08 },
+      essay:        { quickfire: 0.13, explain: 0.22, apply: 0.22, distinguish: 0.13, mock: 0.18, worked: 0.12 },
+      mixed:        { quickfire: 0.23, explain: 0.23, apply: 0.18, distinguish: 0.13, mock: 0.13, worked: 0.10 }
     };
 
     /* ── Cram Tier Modifier (shifts tier distribution under time pressure) ── */
@@ -5375,10 +5381,10 @@ input[type="range"]::-moz-range-thumb{
        when high-frequency and low-stakes. Under severe time constraints, maximise
        retrieval attempts per unit time by favouring fast-cycle tiers. */
     var CRAM_TIER_MOD = {
-      critical: { quickfire: 1.6, explain: 1.3, apply: 0.7, distinguish: 0.8, mock: 0.2 },
-      high:     { quickfire: 1.3, explain: 1.2, apply: 0.9, distinguish: 0.9, mock: 0.5 },
-      moderate: { quickfire: 1.1, explain: 1.1, apply: 1.0, distinguish: 1.0, mock: 0.8 },
-      low:      { quickfire: 1.0, explain: 1.0, apply: 1.0, distinguish: 1.0, mock: 1.0 }
+      critical: { quickfire: 1.6, explain: 1.3, apply: 0.7, distinguish: 0.8, mock: 0.2, worked: 0.4 },
+      high:     { quickfire: 1.3, explain: 1.2, apply: 0.9, distinguish: 0.9, mock: 0.5, worked: 0.7 },
+      moderate: { quickfire: 1.1, explain: 1.1, apply: 1.0, distinguish: 1.0, mock: 0.8, worked: 0.9 },
+      low:      { quickfire: 1.0, explain: 1.0, apply: 1.0, distinguish: 1.0, mock: 1.0, worked: 1.0 }
     };
 
     /* ── Bloom Stability Bonus (higher tier = stronger memory trace on success) ── */
@@ -5410,7 +5416,8 @@ input[type="range"]::-moz-range-thumb{
       explain: 1.05,
       apply: 1.10,
       distinguish: 1.10,
-      mock: 1.15
+      mock: 1.15,
+      worked: 1.12
     };
 
     var EXAM_TYPE_LABELS = {
@@ -5548,6 +5555,9 @@ input[type="range"]::-moz-range-thumb{
         });
         wNew = TS.clipParameters(Array.from(TS.checkParameters(wNew)), 2, true);
         w = wNew;
+        if (w.length < 21) {
+          while (w.length < 21) w.push(FSRS6_DEFAULT_DECAY);
+        }
         if (TS.FSRS && TS.generatorParameters) {
           fsrsInstance = new TS.FSRS(TS.generatorParameters({
             w: w,
@@ -5567,6 +5577,9 @@ input[type="range"]::-moz-range-thumb{
       var saved = SyncEngine.get(NS, 'optimizedWeights');
       var TS = typeof FSRS !== 'undefined' ? FSRS : null;
       if (!saved || !Array.isArray(saved) || saved.length < 19 || !TS || !TS.migrateParameters) return;
+      if (saved.length === 19) {
+        saved = saved.concat([0.0658, FSRS6_DEFAULT_DECAY]);
+      }
       try {
         w = TS.migrateParameters(saved.slice());
         if (TS.FSRS && TS.generatorParameters) {
@@ -5648,7 +5661,46 @@ input[type="range"]::-moz-range-thumb{
       if (item.conceptA && item.conceptB) tiers.push('distinguish');
       /* Mock: any item can be presented under time pressure */
       tiers.push('mock');
+      if ((item.modelAnswer || '').split('\n\n').filter(function(s) { return String(s).trim(); }).length >= 2) tiers.push('worked');
       return tiers;
+    }
+
+    function getPromotionCandidates(courseName) {
+      var candidates = [];
+      var TIER_ORDER = ['quickfire', 'explain', 'apply', 'distinguish', 'mock'];
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (!it || it.archived || !it.fsrs) continue;
+        if (courseName && courseName !== 'All' && it.course !== courseName) continue;
+        var tier = it.tier || 'quickfire';
+        var tierIdx = TIER_ORDER.indexOf(tier);
+        if (tierIdx >= 3) continue;
+        if ((it.fsrs.stability || 0) > 30 && (it.fsrs.lapses || 0) === 0 && (it.fsrs.reps || 0) >= 4) {
+          var supported = detectSupportedTiers(it);
+          var nextTier = null;
+          for (var i = tierIdx + 1; i < TIER_ORDER.length; i++) {
+            if (supported.indexOf(TIER_ORDER[i]) >= 0) { nextTier = TIER_ORDER[i]; break; }
+          }
+          if (nextTier) {
+            candidates.push({ id: id, item: it, currentTier: tier, suggestedTier: nextTier });
+          }
+        }
+      }
+      return candidates;
+    }
+
+    function promoteItemTier(itemId, newTier) {
+      var it = state.items[itemId];
+      if (!it) return;
+      it.lastTier = it.tier;
+      it.tier = newTier;
+      if (it.fsrs && it.fsrs.stability) {
+        it.fsrs.stability = Math.max(1, it.fsrs.stability * 0.6);
+        it.fsrs.due = isoNow();
+      }
+      saveState();
+      toast('Promoted to ' + tierLabel(newTier).toUpperCase());
     }
 
     function tierSupportBadgeHTML(tiers) {
@@ -5745,8 +5797,9 @@ input[type="range"]::-moz-range-thumb{
       return out;
     }
 
-    /* ── FSRS-5 weights + ts-fsrs instance (scheduling uses w[] + formulas below) ── */
-    var DEFAULT_WEIGHTS = [0.4072, 1.1829, 3.1262, 15.4722, 7.2102, 0.5316, 1.0651, 0.0589, 1.5747, 0.2753, 1.0120, 1.6395, 0.1367, 0.2691, 2.2307, 0.2272, 2.8755, 0.4520, 0.8095];
+    /* ── FSRS-6: 21 parameters. w[19] = short-term stability weight, w[20] = decay (was hardcoded 0.5 in FSRS-5) ── */
+    var FSRS6_DEFAULT_DECAY = 0.1542;
+    var DEFAULT_WEIGHTS = [0.2172, 1.2931, 2.3065, 8.2956, 6.4133, 0.8334, 3.0194, 0.001, 1.8722, 0.1666, 0.796, 1.4835, 0.0614, 0.2629, 1.6483, 0.6014, 1.8729, 0.5425, 0.0912, 0.0658, FSRS6_DEFAULT_DECAY];
     var w = DEFAULT_WEIGHTS.slice();
     var fsrsInstance = null;
     try {
@@ -5766,6 +5819,13 @@ input[type="range"]::-moz-range-thumb{
     function isoNow(){ return new Date().toISOString(); }
     function isoDate(){ return new Date().toISOString().slice(0,10); }
 
+    function getFsrsDecay() {
+      return (w.length >= 21 && w[20] > 0) ? w[20] : FSRS6_DEFAULT_DECAY;
+    }
+    function getFsrsFactor() {
+      var decay = getFsrsDecay();
+      return Math.pow(0.9, 1.0 / -decay) - 1.0;
+    }
     function retrievability(fsrs, nowTs) {
       if (!fsrs) return 1;
       var S = fsrs.stability || 0;
@@ -5773,7 +5833,9 @@ input[type="range"]::-moz-range-thumb{
       if (!last) return 1;
       if (!S || S <= 0) S = 0.1;
       var t = Math.max(0, daysBetween(last, nowTs));
-      var R = Math.pow(1 + (t / (9 * S)), -1);
+      var decay = getFsrsDecay();
+      var factor = getFsrsFactor();
+      var R = Math.pow(t / S * factor + 1.0, -decay);
       return clamp(R, 0, 1);
     }
 
@@ -5806,13 +5868,15 @@ input[type="range"]::-moz-range-thumb{
     function nextIntervalDays(S, desiredRetention) {
       var r = desiredRetention || 0.9;
       r = clamp(r, 0.80, 0.95);
-      /* Generalized from R=(1+t/(9S))^-1 → t = 9S*(1/R - 1) */
-      return Math.max(0.1, 9 * S * (1 / r - 1));
+      var decay = getFsrsDecay();
+      var factor = getFsrsFactor();
+      /* FSRS-6: t = S / factor * (R^(-1/decay) - 1) */
+      return Math.max(0.1, S / factor * (Math.pow(r, -1.0 / decay) - 1.0));
     }
 
     function scheduleFsrs(item, rating, nowTs, allowWrite) {
       if (!item.fsrs) {
-        item.fsrs = { stability: 0, difficulty: 0, due: isoNow(), lastReview: null, reps: 0, lapses: 0, state: 'new' };
+        item.fsrs = { stability: 0, difficulty: 0, due: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), lastReview: null, reps: 0, lapses: 0, state: 'new' };
       }
       var f = item.fsrs;
 
@@ -5821,7 +5885,9 @@ input[type="range"]::-moz-range-thumb{
       var tDays = Math.max(0, daysBetween(lastTs, nowTs));
       var S = (f.stability && f.stability > 0) ? f.stability : (first ? 1 : 0.1);
       var D = (f.difficulty && f.difficulty > 0) ? f.difficulty : (first ? initialDifficulty(rating) : 5);
-      var R = clamp(Math.pow(1 + (tDays / (9 * (S || 0.1))), -1), 0, 1);
+      var _decay = getFsrsDecay();
+      var _factor = getFsrsFactor();
+      var R = clamp(Math.pow(tDays / (S || 0.1) * _factor + 1.0, -_decay), 0, 1);
 
       var newD = first ? initialDifficulty(rating) : updateDifficulty(D, rating);
       var newS = (rating === 1) ? stabilityAfterForget(S, newD, R) : stabilityAfterSuccess(S, newD, R);
@@ -5836,6 +5902,9 @@ input[type="range"]::-moz-range-thumb{
       else f.state = 'review';
 
       var interval = nextIntervalDays(newS, settings.desiredRetention);
+      if (first && interval < 1) {
+        interval = 1;
+      }
       var dueTs = nowTs + interval * 24 * 60 * 60 * 1000;
       f.due = new Date(dueTs).toISOString();
 
@@ -5908,7 +5977,8 @@ input[type="range"]::-moz-range-thumb{
         explain: 'EI',
         apply: 'AI',
         distinguish: 'DI',
-        mock: 'ME'
+        mock: 'ME',
+        worked: 'WE'
       })[tier] || '—';
     }
 
@@ -5918,7 +5988,8 @@ input[type="range"]::-moz-range-thumb{
         explain: getComputedStyle(document.documentElement).getPropertyValue('--tier-ex').trim(),
         apply: getComputedStyle(document.documentElement).getPropertyValue('--tier-ap').trim(),
         distinguish: getComputedStyle(document.documentElement).getPropertyValue('--tier-di').trim(),
-        mock: getComputedStyle(document.documentElement).getPropertyValue('--tier-mk').trim()
+        mock: getComputedStyle(document.documentElement).getPropertyValue('--tier-mk').trim(),
+        worked: getComputedStyle(document.documentElement).getPropertyValue('--tier-we').trim()
       })[tier] || getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
     }
 
@@ -5960,7 +6031,7 @@ input[type="range"]::-moz-range-thumb{
 
     function countDue(itemsById, course, topic) {
       var now = Date.now();
-      var out = { total: 0, byTier: { quickfire:0, explain:0, apply:0, distinguish:0, mock:0 } };
+      var out = { total: 0, byTier: { quickfire:0, explain:0, apply:0, distinguish:0, mock:0, worked:0 } };
       for (var id in itemsById) {
         if (!itemsById.hasOwnProperty(id)) continue;
         var it = itemsById[id];
@@ -5975,6 +6046,7 @@ input[type="range"]::-moz-range-thumb{
           var hasMockField = it.timeLimitMins && it.timeLimitMins > 0;
           var hasDistinguish = it.conceptA && it.conceptB;
           var hasApply = it.task || it.scenario;
+          var paraCount = (it.modelAnswer || '').split('\n\n').filter(function(s) { return String(s).trim(); }).length;
           var dt = 'quickfire';
           if (hasMockField) {
             dt = 'mock';
@@ -5982,6 +6054,8 @@ input[type="range"]::-moz-range-thumb{
             dt = 'distinguish';
           } else if (hasApply) {
             dt = 'apply';
+          } else if (paraCount >= 2) {
+            dt = 'worked';
           }
           if (out.byTier[dt] != null) out.byTier[dt]++;
         }
@@ -6006,7 +6080,7 @@ input[type="range"]::-moz-range-thumb{
     /* Recompute stats from actual item data — call after any delete/archive */
     function reconcileStats() {
       var totalReviews = 0;
-      var byTier = { quickfire: 0, explain: 0, apply: 0, distinguish: 0, mock: 0 };
+      var byTier = { quickfire: 0, explain: 0, apply: 0, distinguish: 0, mock: 0, worked: 0 };
       for (var id in state.items) {
         if (!state.items.hasOwnProperty(id)) continue;
         var it = state.items[id];
@@ -6018,12 +6092,15 @@ input[type="range"]::-moz-range-thumb{
           var hasMockField = it.timeLimitMins && it.timeLimitMins > 0;
           var hasDistinguish = it.conceptA && it.conceptB;
           var hasApply = it.task || it.scenario;
+          var paraCount2 = (it.modelAnswer || '').split('\n\n').filter(function(s) { return String(s).trim(); }).length;
           if (hasMockField) {
             t = 'mock';
           } else if (hasDistinguish) {
             t = 'distinguish';
           } else if (hasApply) {
             t = 'apply';
+          } else if (paraCount2 >= 2) {
+            t = 'worked';
           } else {
             t = 'quickfire';
           }
@@ -6038,6 +6115,55 @@ input[type="range"]::-moz-range-thumb{
       if (!cal || !cal.totalSelfRatings) return null;
       var p = (cal.totalActualCorrect || 0) / Math.max(1, cal.totalSelfRatings);
       return clamp(p, 0, 1);
+    }
+
+    function getOverconfidentTopics(courseName) {
+      var topicStats = {};
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (!it || it.archived || !it.fsrs || !it.fsrs.lastReview) continue;
+        if (courseName && courseName !== 'All' && it.course !== courseName) continue;
+        var topic = it.topic || 'General';
+        if (!topicStats[topic]) topicStats[topic] = { selfGood: 0, actualLow: 0, total: 0 };
+        topicStats[topic].total++;
+        var R = retrievability(it.fsrs, Date.now());
+        if (it.fsrs.lapses >= 2 || R < 0.7) topicStats[topic].actualLow++;
+        if (it.fsrs.stability && it.fsrs.stability < 10 && it.fsrs.reps >= 2) topicStats[topic].selfGood++;
+      }
+      var overconfident = [];
+      for (var t in topicStats) {
+        if (!topicStats.hasOwnProperty(t)) continue;
+        var s = topicStats[t];
+        if (s.total >= 3 && s.actualLow / s.total > 0.4) {
+          overconfident.push({ topic: t, pctWeak: Math.round(s.actualLow / s.total * 100) });
+        }
+      }
+      overconfident.sort(function(a, b) { return b.pctWeak - a.pctWeak; });
+      return overconfident;
+    }
+
+    function getSleepAwareAdvice() {
+      var hour = new Date().getHours();
+      if (hour >= 19 || hour < 5) {
+        return {
+          show: true,
+          icon: '🌙',
+          title: 'Evening Study — Optimal for New Material',
+          message: 'New and difficult cards benefit from evening study. The first sleep cycle is richest in non-REM sleep, which consolidates fresh memories.',
+          bias: 'new'
+        };
+      }
+      if (hour >= 5 && hour < 11) {
+        return {
+          show: true,
+          icon: '☀️',
+          title: 'Morning Review — Optimal for Reinforcement',
+          message: 'Morning sessions are ideal for reviewing familiar cards. Your brain consolidated overnight memories — now strengthen those traces with retrieval.',
+          bias: 'review'
+        };
+      }
+      return { show: false, bias: 'neutral' };
     }
 
     function setCalArc(p) {
@@ -6065,6 +6191,11 @@ input[type="range"]::-moz-range-thumb{
         heroEl.style.display = 'none';
         el('startBtn').disabled = true;
         el('tierBreakdown').innerHTML = '';
+        var sleepBannerEmpty = el('sleepAdviceBanner');
+        if (sleepBannerEmpty) {
+          sleepBannerEmpty.className = 'break-banner';
+          sleepBannerEmpty.innerHTML = '';
+        }
         el('statStreak').textContent = '—';
         el('statRet').textContent = '—';
         el('calVal').textContent = '—';
@@ -6125,14 +6256,15 @@ input[type="range"]::-moz-range-thumb{
       setCalArc(calP == null ? 0 : calP);
 
       /* Tier breakdown with tier colours */
-      var tiers = ['quickfire','explain','apply','distinguish','mock'];
-      var tierNames = { quickfire:'Quick Fire', explain:'Explain', apply:'Apply', distinguish:'Distinguish', mock:'Mock' };
+      var tiers = ['quickfire','explain','apply','distinguish','mock','worked'];
+      var tierNames = { quickfire:'Quick Fire', explain:'Explain', apply:'Apply', distinguish:'Distinguish', mock:'Mock', worked:'Worked Example' };
       var tierDescs = {
         quickfire: 'Cued recall — see a prompt, retrieve the answer from memory. Tests raw factual knowledge (Remember level). Best for definitions, key terms, and MC prep.',
         explain: 'Write an explanation, then compare to a model answer. Tests conceptual understanding (Understand/Analyse). Builds the ability to articulate why, not just what.',
         apply: 'Read a scenario and apply a concept to it. Tests transfer to new contexts (Apply/Analyse). Builds essay and short-answer exam skills.',
         distinguish: 'Two similar concepts side by side — decide which applies to a given scenario. Tests discrimination (Analyse/Evaluate). Prevents confusing related ideas under pressure.',
-        mock: 'Full synthesis under a countdown timer. Tests everything at once (Evaluate/Create). Builds exam stamina and time management.'
+        mock: 'Full synthesis under a countdown timer. Tests everything at once (Evaluate/Create). Builds exam stamina and time management.',
+        worked: 'Partial model analysis with one section blank — you complete the missing reasoning (e.g. IRAC steps). Bridges worked examples and active retrieval.'
       };
       var bd = '';
       tiers.forEach(function(t) {
@@ -6143,6 +6275,21 @@ input[type="range"]::-moz-range-thumb{
       el('tierBreakdown').innerHTML = bd;
 
       el('startBtn').disabled = (due.total === 0);
+
+      var sleepAdvice = getSleepAwareAdvice();
+      var sleepBannerEl = el('sleepAdviceBanner');
+      if (sleepBannerEl) {
+        if (sleepAdvice.show && due.total > 0) {
+          sleepBannerEl.innerHTML = '<div class="bb-icon">' + sleepAdvice.icon + '</div>' +
+            '<div class="bb-text"><strong>' + esc(sleepAdvice.title) + '</strong>' +
+            '<span class="bb-sub">' + esc(sleepAdvice.message) + '</span></div>';
+          sleepBannerEl.className = 'break-banner show';
+          sleepBannerEl.style.cursor = 'default';
+        } else {
+          sleepBannerEl.className = 'break-banner';
+          sleepBannerEl.innerHTML = '';
+        }
+      }
 
       renderTutorAnalyticsDashboard();
 
@@ -7050,6 +7197,21 @@ input[type="range"]::-moz-range-thumb{
       }
       if (!dueItems.length) return [];
 
+      var sleepBias = getSleepAwareAdvice().bias;
+      if (sleepBias === 'new' && dueItems.length > 3) {
+        dueItems.sort(function(a, b) {
+          var aNew = (!a.fsrs || !a.fsrs.lastReview || (a.fsrs.stability || 0) < 5) ? 0 : 1;
+          var bNew = (!b.fsrs || !b.fsrs.lastReview || (b.fsrs.stability || 0) < 5) ? 0 : 1;
+          return aNew - bNew;
+        });
+      } else if (sleepBias === 'review' && dueItems.length > 3) {
+        dueItems.sort(function(a, b) {
+          var aRev = (a.fsrs && a.fsrs.lastReview && (a.fsrs.stability || 0) >= 5) ? 0 : 1;
+          var bRev = (b.fsrs && b.fsrs.lastReview && (b.fsrs.stability || 0) >= 5) ? 0 : 1;
+          return aRev - bRev;
+        });
+      }
+
       /* 2. Determine target profile */
       var profile = getEffectiveProfile(courseFilter !== 'All' ? courseFilter : null);
 
@@ -7057,7 +7219,7 @@ input[type="range"]::-moz-range-thumb{
       var isManual = false;
 
       /* 4. Bucket items by supported tiers */
-      var tierBuckets = { quickfire: [], explain: [], apply: [], distinguish: [], mock: [] };
+      var tierBuckets = { quickfire: [], explain: [], apply: [], distinguish: [], mock: [], worked: [] };
       dueItems.forEach(function(it) {
         /* In manual mode, use the item's stored tier if present */
         if (isManual && it.tier && tierBuckets[it.tier]) {
@@ -7071,7 +7233,7 @@ input[type="range"]::-moz-range-thumb{
       });
 
       /* Shuffle each bucket */
-      var tierOrder = ['quickfire', 'explain', 'apply', 'distinguish', 'mock'];
+      var tierOrder = ['quickfire', 'explain', 'apply', 'distinguish', 'mock', 'worked'];
       tierOrder.forEach(function(t) { shuffle(tierBuckets[t]); });
 
       /* 5. Calculate target counts with proportional reweighting */
@@ -7167,6 +7329,20 @@ input[type="range"]::-moz-range-thumb{
       /* 8. Interleave: alternate tiers + courses for spacing */
       queue = interleaveQueue(queue);
 
+      var overconfTopics = getOverconfidentTopics(selectedCourse);
+      if (overconfTopics.length > 0) {
+        var overconfSet = {};
+        overconfTopics.forEach(function(ot) { overconfSet[ot.topic] = true; });
+        var frontLoad = [];
+        var rest = [];
+        queue.forEach(function(item) {
+          if (overconfSet[item.topic || 'General']) frontLoad.push(item);
+          else rest.push(item);
+        });
+        var maxFront = Math.ceil(queue.length * 0.4);
+        queue = frontLoad.slice(0, maxFront).concat(rest).concat(frontLoad.slice(maxFront));
+      }
+
       return queue;
     }
 
@@ -7179,7 +7355,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     function reweightProfile(profile, tierBuckets, targetTotal) {
-      var tierOrder = ['quickfire', 'explain', 'apply', 'distinguish', 'mock'];
+      var tierOrder = ['quickfire', 'explain', 'apply', 'distinguish', 'mock', 'worked'];
       var counts = {};
       var remaining = targetTotal;
 
@@ -7259,6 +7435,83 @@ input[type="range"]::-moz-range-thumb{
       return out;
     }
 
+    var PRIME_WORKER_URL = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/prime';
+
+    function startPrimeMode(courseName) {
+      var course = getCourse(courseName);
+      if (!course) { toast('Course not found'); return; }
+
+      var existingCards = [];
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (it && it.course === courseName && !it.archived) {
+          existingCards.push({ prompt: it.prompt });
+        }
+      }
+
+      toast('Generating prequestions...');
+
+      fetch(PRIME_WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          courseName: courseName,
+          topicName: '',
+          syllabusContext: course.syllabusContext || '',
+          existingCards: existingCards.slice(0, 20)
+        })
+      })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (!data.prequestions || !data.prequestions.length) {
+            toast('No prequestions generated');
+            return;
+          }
+          showPrimeOverlay(data.prequestions, courseName);
+        })
+        .catch(function(err) {
+          toast('Prime mode failed: ' + (err && err.message ? err.message : String(err)));
+        });
+    }
+
+    function showPrimeOverlay(questions, courseName) {
+      var overlay = document.createElement('div');
+      overlay.className = 'overlay show';
+      overlay.style.zIndex = '60';
+
+      var h = '<div class="modal" style="max-width:560px;">';
+      h += '<div class="modal-head"><span style="font-size:10px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;">🧠 Prime Mode — ' + esc(courseName) + '</span>';
+      h += '<button type="button" class="icon-btn" data-prime-close>✕</button></div>';
+      h += '<div class="modal-body">';
+      h += '<div style="font-size:10px;color:var(--text-secondary);line-height:1.6;margin-bottom:14px;">Try to answer these questions <strong>before</strong> studying the material. Struggling to answer primes your brain to encode the answers more deeply when you read them. (Carpenter & Toftness, 2017)</div>';
+
+      questions.forEach(function(q, i) {
+        var typeCol = q.type === 'factual' ? 'var(--tier-qf)' : q.type === 'conceptual' ? 'var(--tier-ex)' : 'var(--tier-ap)';
+        h += '<div style="padding:14px;border-radius:16px;border:1px solid rgba(var(--accent-rgb),0.14);background:rgba(var(--accent-rgb),0.03);margin-bottom:10px;">';
+        h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">';
+        h += '<span style="font-size:8px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;padding:3px 8px;border-radius:999px;background:rgba(var(--accent-rgb),0.10);color:' + typeCol + ';">' + esc(q.type || 'question') + '</span>';
+        h += '<span style="font-size:8px;color:var(--text-tertiary);">#' + (i + 1) + '</span>';
+        h += '</div>';
+        h += '<div style="font-size:13px;font-weight:600;color:var(--text);line-height:1.5;">' + esc(q.question) + '</div>';
+        h += '<textarea style="margin-top:8px;width:100%;min-height:60px;" placeholder="Your attempt (optional)..."></textarea>';
+        h += '</div>';
+      });
+
+      h += '<div style="text-align:center;margin-top:12px;font-size:9px;color:var(--text-tertiary);letter-spacing:0.5px;">Now go read the material. When you come back to create cards, your encoding will be stronger.</div>';
+      h += '</div>';
+      h += '<div class="modal-actions"><button type="button" class="big-btn" data-prime-done>Done — Ready to Study</button></div>';
+      h += '</div>';
+
+      overlay.innerHTML = h;
+      overlay.querySelector('[data-prime-close]').addEventListener('click', function() { overlay.remove(); });
+      overlay.querySelector('[data-prime-done]').addEventListener('click', function() { overlay.remove(); });
+      overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) overlay.remove();
+      });
+      document.body.appendChild(overlay);
+    }
+
     function startSession() {
       var q = buildSessionQueue();
       session = {
@@ -7268,7 +7521,7 @@ input[type="range"]::-moz-range-thumb{
         currentShown: false,
         startedAt: Date.now(),
         xp: 0,
-        reviewsByTier: { quickfire:0, explain:0, apply:0, distinguish:0, mock:0 },
+        reviewsByTier: { quickfire:0, explain:0, apply:0, distinguish:0, mock:0, worked:0 },
         ratingSum: 0,
         ratingN: 0,
         calBefore: calibrationPct(state.calibration),
@@ -7532,6 +7785,26 @@ input[type="range"]::-moz-range-thumb{
           '</div>';
         if (settings.showApplyTimer) startApplyTimer();
         wireGenerative('apply');
+      } else if (tier === 'worked') {
+        var scaffoldW = it.workedScaffold || it.modelAnswer || '';
+        var sectionsW = scaffoldW.split('\n\n');
+        var blankIdxW = Math.min(1, Math.max(0, sectionsW.length - 1));
+        var visibleBeforeW = sectionsW.slice(0, blankIdxW).join('\n\n');
+        var visibleAfterW = sectionsW.slice(blankIdxW + 1).join('\n\n');
+        tierArea.innerHTML = '' +
+          '<div style="font-size:9px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:#10b981;margin-bottom:8px;">Worked Example — Complete the Missing Section</div>' +
+          (visibleBeforeW ? '<div class="answer" style="border-left:3px solid #10b981;margin-bottom:8px;"><div class="md-content">' + renderMd(visibleBeforeW) + '</div></div>' : '') +
+          '<div style="padding:10px 14px;border-radius:14px;border:2px dashed rgba(16,185,129,0.3);background:rgba(16,185,129,0.04);margin-bottom:8px;text-align:center;">' +
+          '<div style="font-size:9px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#10b981;">Your Turn — Fill In This Section</div></div>' +
+          '<div class="panel">' +
+            '<div class="p-h">Your response</div>' +
+            '<textarea id="userText" rows="4" placeholder="Complete the missing analysis (e.g. the blank IRAC step)..."></textarea>' +
+            '<div style="display:flex;gap:10px;margin-top:6px">' +
+            '<button class="qa-btn" id="checkBtn" style="flex:1;min-width:0">Check (Space)</button>' +
+            '<button type="button" class="ghost-btn" id="dontKnowBtn" style="flex:0 0 auto;padding:10px 12px;font-size:10px;white-space:nowrap">🤷 Don\u2019t know</button>' +
+            '</div></div>' +
+          (visibleAfterW ? '<div class="answer" style="border-left:3px solid #10b981;margin-top:8px;"><div class="md-content">' + renderMd(visibleAfterW) + '</div></div>' : '');
+        wireGenerative('worked');
       } else if (tier === 'distinguish') {
         tierArea.innerHTML = '' +
           '<div class="concepts">' +
@@ -8355,7 +8628,8 @@ input[type="range"]::-moz-range-thumb{
           cardHistory: cardHistory,
           calibrationAccuracy: calAcc,
           overallStreak: streak,
-          relevantMemories: relevantMemories
+          relevantMemories: relevantMemories,
+          calibrationNudgeTopics: getOverconfidentTopics(item.course).slice(0, 3).map(function(ot) { return ot.topic + ' (' + ot.pctWeak + '% weak)'; })
         };
       }
       var courseItems = [];
@@ -8402,7 +8676,8 @@ input[type="range"]::-moz-range-thumb{
         cardHistory: cardHistory,
         calibrationAccuracy: calAcc,
         overallStreak: streak,
-        relevantMemories: relevantMemories
+        relevantMemories: relevantMemories,
+        calibrationNudgeTopics: getOverconfidentTopics(item.course).slice(0, 3).map(function(ot) { return ot.topic + ' (' + ot.pctWeak + '% weak)'; })
       };
     }
 
@@ -8441,7 +8716,7 @@ input[type="range"]::-moz-range-thumb{
       else if (item.priority === 'high') proScore += 1;
       var tier = item._presentTier || item.tier || 'quickfire';
       if (tier === 'mock' || tier === 'distinguish') proScore += 2;
-      else if (tier === 'apply') proScore += 1;
+      else if (tier === 'apply' || tier === 'worked') proScore += 1;
       else if (tier === 'quickfire') proScore -= 1;
       if (sess && sess._dontKnow) proScore += 3;
       var cram = (typeof getCramState === 'function') ? getCramState(item.course) : { active: false };
@@ -8477,7 +8752,7 @@ input[type="range"]::-moz-range-thumb{
       if (item.priority === 'critical' || item.priority === 'high') return 'socratic';
       var lapses = (item.fsrs && item.fsrs.lapses) || 0;
       if (lapses >= 2) return 'socratic';
-      if (tier === 'distinguish' || tier === 'mock' || tier === 'apply' || tier === 'explain') return 'socratic';
+      if (tier === 'distinguish' || tier === 'mock' || tier === 'apply' || tier === 'explain' || tier === 'worked') return 'socratic';
       return 'quick';
     }
 
@@ -10467,7 +10742,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     function ensureFsrs(it) {
-      if (!it.fsrs) it.fsrs = { stability: 0, difficulty: 0, due: isoNow(), lastReview: null, reps: 0, lapses: 0, state: 'new' };
+      if (!it.fsrs) it.fsrs = { stability: 0, difficulty: 0, due: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), lastReview: null, reps: 0, lapses: 0, state: 'new' };
     }
 
     /* ── Per-Card XP Flash ── */
@@ -10495,7 +10770,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     function computeXP(it, rating, intervalDays) {
-      var bloomMultiplier = { quickfire: 1, explain: 2, apply: 3, distinguish: 3, mock: 4 };
+      var bloomMultiplier = { quickfire: 1, explain: 2, apply: 3, distinguish: 3, mock: 4, worked: 2.5 };
       var tier = it.lastTier || it._presentTier || it.tier || 'quickfire';
       var mul = bloomMultiplier[tier] || 1;
       ensureFsrs(it);
@@ -10900,8 +11175,8 @@ input[type="range"]::-moz-range-thumb{
         el('doneTrend').textContent = (d > 0.02) ? 'Trending up' : (d < -0.02) ? 'Trending down' : 'Stable';
       }
 
-      var tiers = ['quickfire','explain','apply','distinguish','mock'];
-      var names = { quickfire:'Quick Fire', explain:'Explain', apply:'Apply', distinguish:'Distinguish', mock:'Mock' };
+      var tiers = ['quickfire','explain','apply','distinguish','mock','worked'];
+      var names = { quickfire:'Quick Fire', explain:'Explain', apply:'Apply', distinguish:'Distinguish', mock:'Mock', worked:'Worked Example' };
       var bd = '';
       tiers.forEach(function(t){
         var c = session.reviewsByTier[t] || 0;
@@ -11389,7 +11664,7 @@ input[type="range"]::-moz-range-thumb{
         course: course,
         topic: topic,
         created: isoNow(),
-        fsrs: { stability: 0, difficulty: 0, due: isoNow(), lastReview: null, reps: 0, lapses: 0, state: 'new' },
+        fsrs: { stability: 0, difficulty: 0, due: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), lastReview: null, reps: 0, lapses: 0, state: 'new' },
         variants: {}
       };
 
@@ -11587,7 +11862,8 @@ input[type="range"]::-moz-range-thumb{
         explain: tierColour('explain'),
         apply: tierColour('apply'),
         distinguish: tierColour('distinguish'),
-        mock: tierColour('mock')
+        mock: tierColour('mock'),
+        worked: tierColour('worked')
       };
 
       /* Build preview table */
@@ -11718,7 +11994,7 @@ input[type="range"]::-moz-range-thumb{
         var obj = entry.obj;
         if (!obj.id) obj.id = uid();
         if (!obj.created) obj.created = isoNow();
-        if (!obj.fsrs) obj.fsrs = { stability: 0, difficulty: 0, due: isoNow(), lastReview: null, reps: 0, lapses: 0, state: 'new' };
+        if (!obj.fsrs) obj.fsrs = { stability: 0, difficulty: 0, due: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), lastReview: null, reps: 0, lapses: 0, state: 'new' };
         if (!obj.variants) obj.variants = {};
 
         /* Normalize modelAnswer aliases */
@@ -14146,7 +14422,7 @@ input[type="range"]::-moz-range-thumb{
       /* Count recent reviews by tier (last 50) */
       var history = (state.calibration && state.calibration.history) || [];
       var recent = history.slice(-50);
-      var tierCounts = { quickfire: 0, explain: 0, apply: 0, distinguish: 0, mock: 0 };
+      var tierCounts = { quickfire: 0, explain: 0, apply: 0, distinguish: 0, mock: 0, worked: 0 };
       var total = 0;
       recent.forEach(function(h) {
         if (h.tier && tierCounts[h.tier] != null) {
@@ -14170,13 +14446,14 @@ input[type="range"]::-moz-range-thumb{
         return;
       }
 
-      var tierOrder = ['quickfire', 'explain', 'apply', 'distinguish', 'mock'];
+      var tierOrder = ['quickfire', 'explain', 'apply', 'distinguish', 'mock', 'worked'];
       var tierColors = {
         quickfire: '#3b82f6',
         explain: '#8b5cf6',
         apply: '#f59e0b',
         distinguish: '#ec4899',
-        mock: '#ef4444'
+        mock: '#ef4444',
+        worked: '#10b981'
       };
 
       var angle = -Math.PI / 2;
@@ -14709,7 +14986,8 @@ input[type="range"]::-moz-range-thumb{
         explain: { sum: 0, count: 0 },
         apply: { sum: 0, count: 0 },
         distinguish: { sum: 0, count: 0 },
-        mock: { sum: 0, count: 0 }
+        mock: { sum: 0, count: 0 },
+        worked: { sum: 0, count: 0 }
       };
 
       filteredHistory.forEach(function(entry) {
@@ -14720,14 +14998,15 @@ input[type="range"]::-moz-range-thumb{
         }
       });
 
-      var tierOrder = ['quickfire', 'explain', 'apply', 'distinguish', 'mock'];
-      var tierLabels = { quickfire: 'QF', explain: 'EI', apply: 'AI', distinguish: 'DI', mock: 'ME' };
+      var tierOrder = ['quickfire', 'explain', 'apply', 'distinguish', 'mock', 'worked'];
+      var tierLabels = { quickfire: 'QF', explain: 'EI', apply: 'AI', distinguish: 'DI', mock: 'ME', worked: 'WE' };
       var tierColors = {
         quickfire: '#3b82f6',
         explain: '#8b5cf6',
         apply: '#f59e0b',
         distinguish: '#ec4899',
-        mock: '#ef4444'
+        mock: '#ef4444',
+        worked: '#10b981'
       };
 
       var hasData = false;
@@ -14746,7 +15025,8 @@ input[type="range"]::-moz-range-thumb{
       var gw = w - pad.left - pad.right;
       var gh = h - pad.top - pad.bottom;
       var gap = 6;
-      var barW = Math.max(16, Math.floor((gw - gap * 4) / 5));
+      var nBars = tierOrder.length;
+      var barW = Math.max(16, Math.floor((gw - gap * (nBars - 1)) / nBars));
 
       var maxTierCount = Math.max.apply(null, tierOrder.map(function(tt) { return tierData[tt].count; }));
 
@@ -14896,8 +15176,8 @@ input[type="range"]::-moz-range-thumb{
       el('cdRetTrend').textContent = retN ? 'Across ' + retN + ' reviewed items' : 'No reviews yet';
 
       /* Per-tier stats */
-      var tierOrder = ['quickfire', 'explain', 'apply', 'distinguish', 'mock'];
-      var tierNames = { quickfire: 'Quick Fire', explain: 'Explain', apply: 'Apply', distinguish: 'Distinguish', mock: 'Mock' };
+      var tierOrder = ['quickfire', 'explain', 'apply', 'distinguish', 'mock', 'worked'];
+      var tierNames = { quickfire: 'Quick Fire', explain: 'Explain', apply: 'Apply', distinguish: 'Distinguish', mock: 'Mock', worked: 'Worked Ex.' };
       var tierStats = '';
       tierOrder.forEach(function(t) {
         var count = 0;
@@ -14909,6 +15189,43 @@ input[type="range"]::-moz-range-thumb{
         tierStats += '<div class="cd-tier-stat"><div class="cts-count" style="color:' + col + ';">' + count + '</div><div class="cts-label">' + tierNames[t] + '</div></div>';
       });
       el('cdTierStats').innerHTML = tierStats;
+
+      var promoHost = el('cdTierPromoHost');
+      if (promoHost) {
+        var promos = getPromotionCandidates(courseName);
+        if (promos.length > 0) {
+          var ph = '<div style="margin-bottom:14px;padding:12px 14px;border-radius:14px;border:1px solid rgba(34,197,94,0.2);background:rgba(34,197,94,0.04);">';
+          ph += '<div style="font-size:9px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:#22c55e;margin-bottom:8px;">🎯 Tier Promotion Ready</div>';
+          ph += '<div style="font-size:10px;color:var(--text-secondary);line-height:1.5;margin-bottom:10px;">' + promos.length + ' card' + (promos.length > 1 ? 's have' : ' has') + ' mastered ' + (promos.length > 1 ? 'their' : 'its') + ' current tier. Promoting increases retrieval difficulty for deeper encoding.</div>';
+          promos.slice(0, 5).forEach(function(p) {
+            ph += '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:10px;border:1px solid rgba(var(--accent-rgb),0.10);background:rgba(var(--accent-rgb),0.02);margin-bottom:6px;">';
+            ph += '<div style="flex:1;min-width:0;font-size:10px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(String(p.item.prompt).substring(0, 60)) + '</div>';
+            ph += '<div style="flex-shrink:0;font-size:8px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--text-secondary);">' + tierLabel(p.currentTier) + ' → ' + tierLabel(p.suggestedTier) + '</div>';
+            ph += '<button type="button" class="cd-promote-tier" data-promote-id="' + esc(p.id) + '" data-promote-tier="' + esc(p.suggestedTier) + '" style="flex-shrink:0;padding:5px 10px;border-radius:8px;border:1px solid rgba(34,197,94,0.2);background:rgba(34,197,94,0.08);color:#22c55e;font-size:9px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;cursor:pointer;">Promote</button>';
+            ph += '</div>';
+          });
+          if (promos.length > 5) {
+            ph += '<div style="font-size:9px;color:var(--text-tertiary);text-align:center;margin-top:4px;">+ ' + (promos.length - 5) + ' more</div>';
+          }
+          ph += '</div>';
+          promoHost.innerHTML = ph;
+          promoHost.querySelectorAll('.cd-promote-tier').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+              var pid = this.getAttribute('data-promote-id');
+              var pt = this.getAttribute('data-promote-tier');
+              if (pid && pt) promoteItemTier(pid, pt);
+              openCourseDetail(courseName);
+            });
+          });
+        } else {
+          promoHost.innerHTML = '';
+        }
+      }
+
+      var primeBtn = el('cdPrimeModeBtn');
+      if (primeBtn) {
+        primeBtn.onclick = function() { startPrimeMode(courseName); };
+      }
 
       var tnHost = el('cdTutorNotesHost');
       if (tnHost) {
