@@ -5096,11 +5096,11 @@ input[type="range"]::-moz-range-thumb{
 
     .tree-node.depth-0 { padding-left: 12px; }
     .tree-node.depth-0 .tree-label { font-weight: 700; text-transform: uppercase; font-size: 10px; letter-spacing: 1px; }
-    .tree-node.depth-1 { padding-left: 16px; }
+    .tree-node.depth-1 { padding-left: 28px; }
     .tree-node.depth-1 .tree-label { font-weight: 600; }
-    .tree-node.depth-2 { padding-left: 32px; }
+    .tree-node.depth-2 { padding-left: 44px; }
     .tree-node.depth-2 .tree-label { font-weight: 500; font-size: 10px; color: var(--text-secondary); }
-    .tree-node.depth-3 { padding-left: 48px; }
+    .tree-node.depth-3 { padding-left: 60px; }
     .tree-node.depth-3 .tree-label { font-weight: 400; font-size: 10px; color: var(--text-secondary); }
 
     /* ── Hover Action Buttons ── */
@@ -5204,7 +5204,7 @@ input[type="range"]::-moz-range-thumb{
 
     /* ── Inline Sidebar Input ── */
     .sb-inline-input-wrap {
-      padding: 4px 12px 4px 32px;
+      padding: 4px 12px 4px 28px;
       display: flex;
       align-items: center;
       gap: 4px;
@@ -5669,7 +5669,6 @@ input[type="range"]::-moz-range-thumb{
         </div>
         <div class="main-tabs" id="mainTabs" role="tablist" aria-label="Main navigation">
           <button class="nav-tab active" data-nav="home" type="button">Home</button>
-          <button class="nav-tab" data-nav="courses" type="button">Courses</button>
         </div>
         <div class="main-topbar-actions">
           <button class="icon-btn" id="mainAddCard" type="button" title="Add card" aria-label="Add card">＋</button>
@@ -7349,13 +7348,17 @@ input[type="range"]::-moz-range-thumb{
 
       container.innerHTML = h;
 
-      /* Wire click → course detail */
+      /* Wire click → sidebar-driven course dashboard */
       container.querySelectorAll('.course-card').forEach(function(card) {
         card.addEventListener('click', function() {
           var name = this.getAttribute('data-course-name');
           if (name) {
             selectedCourse = name;
-            openCourseDetail(name);
+            sidebarSelection = { level: 'course', course: name, module: null, topic: null };
+            sidebarExpanded[name] = true;
+            renderSidebar();
+            updateBreadcrumb();
+            applySidebarFilter();
           }
           try { playClick(); } catch(e) {}
         });
