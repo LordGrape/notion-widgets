@@ -300,8 +300,57 @@ export default {
             "Provide annotations only if the student's question reveals a misconception worth flagging."
         };
 
+        const tier = item.tier || "explain";
+
+        const tierRatingAnchors = {
+          quickfire:
+            "\n\nRATING CALIBRATION FOR QUICK FIRE (cued recall):\n" +
+            "- 1 (Again): Key facts wrong or missing entirely. Cannot retrieve the core answer.\n" +
+            "- 2 (Hard): Partially correct — some key facts present but important ones missing or confused.\n" +
+            "- 3 (Good): All key facts correct. Brief answers are fine — conciseness is expected for this tier.\n" +
+            "- 4 (Easy): All key facts correct, recalled fluently, possibly with additional context unprompted.\n",
+          explain:
+            "\n\nRATING CALIBRATION FOR EXPLAIN (conceptual understanding):\n" +
+            "- 1 (Again): Explanation is wrong, incoherent, or too superficial to demonstrate understanding. A single vague sentence with no reasoning = Again.\n" +
+            "- 2 (Hard): Core concept identified but explanation is incomplete — missing key mechanisms, causal links, or important qualifications.\n" +
+            "- 3 (Good): Clear, structured explanation covering the main mechanisms and reasoning. Demonstrates genuine understanding, not just naming the concept.\n" +
+            "- 4 (Easy): All of Good plus nuanced analysis — addresses limitations, connects to broader themes, or anticipates counter-arguments.\n" +
+            "A response must EXPLAIN (show reasoning and mechanism), not just NAME the concept. Naming without explaining = Hard at best.\n",
+          apply:
+            "\n\nRATING CALIBRATION FOR APPLY (application to scenario):\n" +
+            "- 1 (Again): Wrong principle applied, OR correct principle named but no mapping to the scenario facts. A single sentence that just names the concept without applying it to the specific scenario = Again.\n" +
+            "- 2 (Hard): Correct principle identified and some mapping attempted, but the analysis is thin — missing key scenario facts, incomplete reasoning chain, or superficial application.\n" +
+            "- 3 (Good): Correct principle clearly mapped to specific scenario facts with a complete reasoning chain. The response demonstrates transfer, not just recognition.\n" +
+            "- 4 (Easy): All of Good plus sophisticated analysis — considers edge cases, alternative frameworks, or implications beyond what was asked.\n" +
+            "CRITICAL: Apply cards require ANALYTICAL DEPTH. The student must show they can USE the concept, not just IDENTIFY it. " +
+            "One sentence naming the right concept without working through the scenario = Again (1) or Hard (2) at absolute best. " +
+            "Be strict — this tier exists to test transfer, and lenient ratings here create dangerous overconfidence on exams.\n",
+          distinguish:
+            "\n\nRATING CALIBRATION FOR DISTINGUISH (discrimination between concepts):\n" +
+            "- 1 (Again): Wrong concept chosen, OR cannot articulate any meaningful distinction between the two concepts.\n" +
+            "- 2 (Hard): Correct concept identified but the distinction is vague or the reasoning for why one applies over the other is weak.\n" +
+            "- 3 (Good): Correct concept identified with clear articulation of WHY it applies and why the other does not, grounded in the scenario specifics.\n" +
+            "- 4 (Easy): All of Good plus demonstrates deep understanding of the boundary conditions between the concepts.\n" +
+            "The student must articulate the DISTINCTION, not just pick the right label.\n",
+          mock:
+            "\n\nRATING CALIBRATION FOR MOCK (full synthesis under pressure):\n" +
+            "- 1 (Again): Response is fundamentally incomplete or misses the core of the question.\n" +
+            "- 2 (Hard): Addresses the question but with significant gaps in argument structure, evidence, or analysis.\n" +
+            "- 3 (Good): Well-structured response covering the main arguments with supporting evidence. Exam-ready.\n" +
+            "- 4 (Easy): All of Good plus exceptional depth, counter-arguments addressed, and synthesis that goes beyond the model answer.\n",
+          worked:
+            "\n\nRATING CALIBRATION FOR WORKED EXAMPLE (guided reasoning completion):\n" +
+            "- 1 (Again): The completed section is wrong or incoherent.\n" +
+            "- 2 (Hard): Partially correct completion but missing key reasoning steps or evidence.\n" +
+            "- 3 (Good): Correct completion that follows the analytical pattern of the worked sections. Reasoning is sound.\n" +
+            "- 4 (Easy): All of Good plus demonstrates independent analytical thinking beyond pattern-matching.\n"
+        };
+
+        const tierAnchor = tierRatingAnchors[tier] || tierRatingAnchors.explain;
         let modeInstructionsForMode =
-          (isRelearningPass ? relearningModePrefix : "") + modeInstructionsBase[mode];
+          (isRelearningPass ? relearningModePrefix : "") +
+          modeInstructionsBase[mode] +
+          (mode === "socratic" || mode === "teach" || mode === "quick" ? tierAnchor : "");
 
         if (mode === "quick" && context.quickFireReRetrieval) {
           modeInstructionsForMode +=
@@ -371,7 +420,6 @@ export default {
 }`
         };
 
-        const tier = item.tier || "explain";
         let itemBlock =
           `QUESTION: ${item.prompt}\n` +
           `MODEL ANSWER: ${item.modelAnswer}\n` +
