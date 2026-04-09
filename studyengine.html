@@ -3296,17 +3296,6 @@ body.standalone .answer.restudy-active{
       opacity: 0.5;
       margin-bottom: 6px;
     }
-    [data-streak-active="true"] {
-      box-shadow: 0 0 18px rgba(var(--accent-rgb), 0.25), 0 0 6px rgba(var(--accent-rgb), 0.15);
-      border-color: rgba(var(--accent-rgb), 0.3) !important;
-    }
-    [data-streak-active="true"] .k::before {
-      content: "🔥 ";
-    }
-    [data-streak-active="false"] .k::before {
-      content: "—  ";
-      opacity: 0.4;
-    }
     .analytics-card .ac-title{
       display: flex;
       align-items: center;
@@ -3342,6 +3331,68 @@ body.standalone .answer.restudy-active{
       width: 100%;
       cursor: crosshair;
     }
+
+    .activity-heatmap {
+      display: grid;
+      grid-template-columns: 16px repeat(7, 14px);
+      grid-template-rows: repeat(5, 14px);
+      gap: 3px;
+      justify-content: center;
+    }
+    .heatmap-cell {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      border: 1px solid rgba(var(--accent-rgb), 0.08);
+      transition: transform 150ms ease, box-shadow 150ms ease;
+      cursor: default;
+      position: relative;
+    }
+    .heatmap-cell:hover {
+      transform: scale(1.3);
+      box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.3);
+      z-index: 2;
+    }
+    .heatmap-day-label {
+      font-size: 7px;
+      color: var(--text-tertiary);
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 2px;
+      letter-spacing: 0.5px;
+      user-select: none;
+    }
+    .heatmap-stats {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 8px;
+      font-size: 9px;
+      color: var(--text-secondary);
+    }
+    .heatmap-streak {
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .heatmap-tooltip {
+      position: fixed;
+      padding: 6px 10px;
+      border-radius: 10px;
+      background: var(--card-bg);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      border: 1px solid rgba(var(--accent-rgb), 0.2);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      font-size: 9px;
+      color: var(--text);
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0;
+      transition: opacity 150ms ease;
+      white-space: nowrap;
+    }
+    .heatmap-tooltip.show { opacity: 1; }
 
     /* ── CSS SECTION: Canvas Hover Tooltip ── */
     /* ── Canvas Hover Tooltip ── */
@@ -5843,9 +5894,9 @@ input[type="range"]::-moz-range-thumb{
 
               <div class="stats-row">
                 <div class="stat">
-                  <div class="k">Streak</div>
+                  <div class="k">Mastered</div>
                   <div class="v" id="statStreak">—</div>
-                  <div class="s">Days</div>
+                  <div class="s">stability > 30d</div>
                 </div>
                 <div class="stat">
                   <div class="k">Avg Retention <span class="info-icon" tabindex="0" aria-label="Info">ⓘ<span class="info-tooltip">Average probability you can recall all your reviewed cards right now. Calculated by FSRS from each card's stability and time since last review. The retention forecast graph shows how this decays over 30 days without review.<span class="tip-arrow"></span></span></span></div>
@@ -5913,11 +5964,7 @@ input[type="range"]::-moz-range-thumb{
               <div class="analytics-card" id="activityCard">
                 <div class="ac-title"><span class="ac-icon">📊</span> Last 30 days</div>
                 <div class="ac-subtitle">Session activity</div>
-                <canvas id="sparklineCanvas" height="80" style="display:block;width:100%;cursor:default;"></canvas>
-                <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;">
-                  <canvas id="heatmapCanvas" style="display:block;cursor:crosshair;"></canvas>
-                  <div id="activityStats" style="display:flex;flex-direction:column;gap:6px;min-width:80px;"></div>
-                </div>
+                <div id="activityHeatmapHost"></div>
               </div>
             </div>
 
@@ -7732,9 +7779,6 @@ input[type="range"]::-moz-range-thumb{
           sleepBannerEmpty.innerHTML = '';
         }
         el('statStreak').textContent = '—';
-        var streakElEmpty = el('statStreak');
-        var streakParentEmpty = streakElEmpty ? streakElEmpty.closest('.stat') : null;
-        if (streakParentEmpty) streakParentEmpty.setAttribute('data-streak-active', 'false');
         el('statRet').textContent = '—';
         el('calVal').textContent = '—';
         el('calSub').textContent = 'Add items to begin';
@@ -7751,13 +7795,14 @@ input[type="range"]::-moz-range-thumb{
       el('heroCourseHint').textContent = 'Across all tiers';
 
       /* Secondary stats — animated counters */
-      animateCounter(el('statStreak'), state.stats.streakDays || 0);
-      var streakEl = el('statStreak');
-      var streakDays = state.stats.streakDays || 0;
-      var streakParent = streakEl ? streakEl.closest('.stat') : null;
-      if (streakParent) {
-        streakParent.setAttribute('data-streak-active', streakDays > 0 ? 'true' : 'false');
+      var masteredCount = 0;
+      for (var sid in state.items) {
+        if (!state.items.hasOwnProperty(sid)) continue;
+        var sit = state.items[sid];
+        if (!sit || sit.archived || !sit.fsrs) continue;
+        if ((sit.fsrs.stability || 0) > 30 && (sit.fsrs.lapses || 0) === 0) masteredCount++;
       }
+      animateCounter(el('statStreak'), masteredCount);
       var ar = avgRetention(state.items);
       if (ar == null) {
         el('statRet').textContent = '—';
@@ -10821,7 +10866,9 @@ input[type="range"]::-moz-range-thumb{
       var avgTurns = a.totalTutorCalls / Math.max(1, a.totalSessions);
       avgEl.textContent = String(Math.round(avgTurns * 10) / 10);
       var reconPct = Math.round((a.totalReconstructionSuccesses / Math.max(1, a.totalReconstructions)) * 100);
-      reconEl.textContent = a.totalReconstructions > 0 ? reconPct + '%' : '—';
+      reconEl.textContent = a.totalReconstructions > 0 ? reconPct + '%' : 'N/A';
+      var reconSubEl = reconEl.closest('.stat') ? reconEl.closest('.stat').querySelector('.s') : null;
+      if (reconSubEl) reconSubEl.textContent = a.totalReconstructions > 0 ? 'success after re-study' : 'needs generative reviews';
       var f = a.totalFlashCalls || 0;
       var p = a.totalProCalls || 0;
       var tot = f + p;
@@ -10830,6 +10877,11 @@ input[type="range"]::-moz-range-thumb{
         var fp = Math.round((f / tot) * 100);
         var pp = 100 - fp;
         modelEl.innerHTML = 'Flash ' + fp + '% / Pro ' + pp + '%';
+      }
+      var modelSubEl = modelEl.closest('.stat') ? modelEl.closest('.stat').querySelector('.s') : null;
+      if (modelSubEl) {
+        if (f > 0 && p === 0) modelSubEl.textContent = 'Pro activates on harder cards';
+        else modelSubEl.textContent = 'Flash / Pro calls';
       }
     }
 
@@ -18040,151 +18092,124 @@ input[type="range"]::-moz-range-thumb{
 
     /* ── Activity heatmap (dashboard; sparkline + tier ring replaced in UI) ── */
     /* ═══ SECTION: Draw Activity Heatmap | Functions: drawActivityHeatmap ═══ */
-    function drawActivityHeatmap(canvasId) {
-      var canvas = el(canvasId);
-      if (!canvas) return;
-      var pw = canvas.parentElement ? canvas.parentElement.clientWidth - 120 : 220;
-      pw = Math.max(180, Math.min(pw, 380));
-      var cellSize = Math.max(8, Math.floor((pw - 6 * 5) / 30));
-      if (cellSize > 14) cellSize = 14;
-      var gap = 2;
-      var w = 30 * (cellSize + gap) + gap;
-      var rows = 1;
-      var h = rows * (cellSize + gap) + gap + 22;
+    function drawActivityHeatmap(containerId) {
+      var host = el(containerId);
+      if (!host) return;
 
-      var r = getCanvasCtx(canvasId, w, h);
-      if (!r) return;
-      var ctx = r.ctx;
-      var rgb = getAccentRGB();
-      var textSec = getTextSecondary();
+      var analytics = (typeof SyncEngine !== 'undefined' && SyncEngine.get)
+        ? SyncEngine.get('studyengine', 'tutorAnalytics')
+        : null;
+      var history = (analytics && analytics.sessionHistory && analytics.sessionHistory.length) ? analytics.sessionHistory : [];
 
-      var history = (state.calibration && state.calibration.history) || [];
-      var days = {};
-      var now = new Date();
-      for (var d = 29; d >= 0; d--) {
-        var dt = new Date(now);
-        dt.setDate(dt.getDate() - d);
-        var key = dt.toISOString().slice(0, 10);
-        days[key] = { count: 0, ratingSum: 0, ratingN: 0 };
-      }
-      history.forEach(function(entry) {
-        if (!entry.ts) return;
-        var dk = entry.ts.slice(0, 10);
-        if (days[dk]) {
-          days[dk].count++;
-          days[dk].ratingSum += (entry.rating || 0);
-          days[dk].ratingN++;
-        }
+      var dailyCards = {};
+      history.forEach(function(row) {
+        if (!row || !row.date) return;
+        var key = String(row.date).slice(0, 10);
+        dailyCards[key] = (dailyCards[key] || 0) + (Number(row.cards) || 0);
       });
 
-      var dayKeys = Object.keys(days).sort();
-      var maxCount = 1;
-      dayKeys.forEach(function(k) { if (days[k].count > maxCount) maxCount = days[k].count; });
+      var days = [];
+      var now = new Date();
+      for (var i = 34; i >= 0; i--) {
+        var dt = new Date(now);
+        dt.setHours(12, 0, 0, 0);
+        dt.setDate(dt.getDate() - i);
+        var k = dt.toISOString().slice(0, 10);
+        days.push({ key: k, date: dt, cards: dailyCards[k] || 0 });
+      }
+
+      var tooltip = el('activityHeatmapTooltip');
+      if (!tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.id = 'activityHeatmapTooltip';
+        tooltip.className = 'heatmap-tooltip';
+        document.body.appendChild(tooltip);
+      }
 
       var totalReviews = 0;
-      dayKeys.forEach(function(k) { totalReviews += days[k].count; });
+      days.forEach(function(d) { totalReviews += d.cards; });
 
-      if (totalReviews === 0) {
-        ctx.fillStyle = textSec;
-        ctx.font = '600 9px Inter, system-ui, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('Complete a session to see activity', w / 2, h / 2);
-        return;
+      var todayKey = days[days.length - 1].key;
+      var streak = 0;
+      while (streak < days.length) {
+        var idx = days.length - 1 - streak;
+        if (!days[idx] || days[idx].cards <= 0) break;
+        streak++;
       }
+      if ((dailyCards[todayKey] || 0) <= 0) streak = 0;
 
-      dayKeys.forEach(function(k, i) {
-        var d = days[k];
-        var x = gap + i * (cellSize + gap);
-        var y = gap;
+      var html = '<div class="activity-heatmap" role="img" aria-label="Last 35 days of study activity">';
+      for (var row = 0; row < 5; row++) {
+        var rowStart = row * 7;
+        var rowDay = days[rowStart] ? days[rowStart].date.getDay() : -1;
+        var label = rowDay === 1 ? 'M' : (rowDay === 3 ? 'W' : (rowDay === 5 ? 'F' : '&nbsp;'));
+        html += '<div class="heatmap-day-label">' + label + '</div>';
 
-        if (d.count === 0) {
-          ctx.fillStyle = 'rgba(' + rgb + ',0.06)';
-        } else {
-          var intensity = d.count / maxCount;
-          var avg = d.ratingSum / d.ratingN;
-          if (avg >= 3) {
-            var alpha = 0.2 + intensity * 0.6;
-            ctx.fillStyle = 'rgba(34,197,94,' + alpha.toFixed(2) + ')';
-          } else if (avg >= 2) {
-            var alpha2 = 0.2 + intensity * 0.6;
-            ctx.fillStyle = 'rgba(245,158,11,' + alpha2.toFixed(2) + ')';
-          } else {
-            var alpha3 = 0.2 + intensity * 0.6;
-            ctx.fillStyle = 'rgba(239,68,68,' + alpha3.toFixed(2) + ')';
-          }
+        for (var col = 0; col < 7; col++) {
+          var dIdx = rowStart + col;
+          var entry = days[dIdx];
+          if (!entry) continue;
+          var bg = 'rgba(var(--accent-rgb), 0.04)';
+          if (entry.cards >= 1 && entry.cards <= 5) bg = 'rgba(var(--accent-rgb), 0.15)';
+          else if (entry.cards >= 6 && entry.cards <= 15) bg = 'rgba(var(--accent-rgb), 0.35)';
+          else if (entry.cards >= 16 && entry.cards <= 30) bg = 'rgba(var(--accent-rgb), 0.55)';
+          else if (entry.cards >= 31) bg = 'rgba(var(--accent-rgb), 0.80)';
+
+          html += '<div class="heatmap-cell" data-date="' + entry.key + '" data-cards="' + entry.cards + '" style="background:' + bg + '"></div>';
         }
+      }
+      html += '</div>';
+      html += '<div class="heatmap-stats"><span class="heatmap-streak">' + (streak > 0 ? ('🔥 ' + streak + ' day streak') : 'No streak') + '</span><span>' + totalReviews + ' reviews</span></div>';
+      html += '<div class="heatmap-active-days" style="margin-top:6px;font-size:9px;color:var(--text-secondary);"></div>';
+      host.innerHTML = html;
 
-        var radius = Math.min(3, cellSize / 3);
-        if (typeof ctx.roundRect === 'function') {
-          ctx.beginPath();
-          ctx.roundRect(x, y, cellSize, cellSize, radius);
-          ctx.fill();
-        } else {
-          ctx.fillRect(x, y, cellSize, cellSize);
-        }
-
-        if (i === dayKeys.length - 1 && d.count > 0) {
-          ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-          ctx.lineWidth = 1;
-          if (typeof ctx.roundRect === 'function') {
-            ctx.beginPath();
-            ctx.roundRect(x, y, cellSize, cellSize, radius);
-            ctx.stroke();
-          }
-        }
-      });
-
-      ctx.fillStyle = textSec;
-      ctx.font = '600 7px Inter, system-ui, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
-      var labelY = gap + cellSize + gap + 4;
-      [0, 7, 14, 21, 29].forEach(function(i) {
-        if (!dayKeys[i]) return;
-        var lx = gap + i * (cellSize + gap) + cellSize / 2;
-        var label;
-        if (i === 29) {
-          label = 'Today';
-        } else {
-          var parts = dayKeys[i].split('-');
-          label = parts[1] + '-' + parts[2];
-        }
-        ctx.fillText(label, lx, labelY);
+      host.querySelectorAll('.heatmap-cell').forEach(function(cell) {
+        cell.addEventListener('mouseenter', function(e) {
+          var date = this.getAttribute('data-date');
+          var cards = Number(this.getAttribute('data-cards')) || 0;
+          var dt = new Date(date + 'T12:00:00');
+          tooltip.textContent = dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ': ' + cards + ' card' + (cards === 1 ? '' : 's');
+          tooltip.classList.add('show');
+        });
+        cell.addEventListener('mousemove', function(e) {
+          tooltip.style.left = (e.clientX + 12) + 'px';
+          tooltip.style.top = (e.clientY + 12) + 'px';
+        });
+        cell.addEventListener('mouseleave', function() {
+          tooltip.classList.remove('show');
+        });
       });
     }
 
     /* ═══ SECTION: Render Activity Stats | Functions: renderActivityStats ═══ */
-    function renderActivityStats() {
-      var container = el('activityStats');
-      if (!container) return;
+    function renderActivityStats(containerId) {
+      var host = el(containerId);
+      if (!host) return;
+      var activeEl = host.querySelector('.heatmap-active-days');
+      if (!activeEl) return;
 
-      var history = (state.calibration && state.calibration.history) || [];
+      var analytics = (typeof SyncEngine !== 'undefined' && SyncEngine.get)
+        ? SyncEngine.get('studyengine', 'tutorAnalytics')
+        : null;
+      var history = (analytics && analytics.sessionHistory && analytics.sessionHistory.length) ? analytics.sessionHistory : [];
+      var dailyCards = {};
+      history.forEach(function(row) {
+        if (!row || !row.date) return;
+        var key = String(row.date).slice(0, 10);
+        dailyCards[key] = (dailyCards[key] || 0) + (Number(row.cards) || 0);
+      });
+
+      var activeDays = 0;
       var now = new Date();
-      var thirtyDaysAgo = new Date(now);
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      var recent = history.filter(function(h) {
-        return h.ts && new Date(h.ts) >= thirtyDaysAgo;
-      });
+      for (var i = 29; i >= 0; i--) {
+        var dt = new Date(now);
+        dt.setHours(12, 0, 0, 0);
+        dt.setDate(dt.getDate() - i);
+        var key = dt.toISOString().slice(0, 10);
+        if ((dailyCards[key] || 0) > 0) activeDays++;
+      }
 
-      var totalReviews = recent.length;
-      var activeDays = {};
-      recent.forEach(function(h) {
-        if (h.ts) activeDays[h.ts.slice(0, 10)] = true;
-      });
-      var activeDayCount = Object.keys(activeDays).length;
-
-      var h = '';
-      h += '<div style="text-align:center;">';
-      h += '<div style="font-size:22px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-0.5px;line-height:1;">' + totalReviews + '</div>';
-      h += '<div style="font-size:7px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--text-secondary);margin-top:3px;">reviews</div>';
-      h += '</div>';
-      h += '<div style="text-align:center;">';
-      h += '<div style="font-size:14px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;line-height:1;">' + activeDayCount + '<span style="font-size:9px;font-weight:600;color:var(--text-secondary);">/30</span></div>';
-      h += '<div style="font-size:7px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--text-secondary);margin-top:3px;">active days</div>';
-      h += '</div>';
-
-      container.innerHTML = h;
+      activeEl.textContent = activeDays + '/30 active days';
     }
 
     /* ── Draw all analytics ── */
@@ -18263,9 +18288,8 @@ input[type="range"]::-moz-range-thumb{
 
       renderRetentionFilterChips();
       renderRetentionGraph();
-      drawActivityHeatmap('heatmapCanvas');
-      renderActivityStats();
-      drawSparkline('sparklineCanvas');
+      drawActivityHeatmap('activityHeatmapHost');
+      renderActivityStats('activityHeatmapHost');
 
       /* Cram banner */
       var cramEl = el('cramBanner');
