@@ -167,6 +167,31 @@ body {
   opacity: 0; animation: fadeIn 0.6s ease-out 0.3s forwards;
 }
 .dragon-view canvas { display: block; cursor: pointer; }
+#dragon-stage {
+  position: relative;
+  width: 180px;
+  height: 180px;
+}
+#dragon-sprite {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none; z-index: 2;
+  transition: filter 0.6s ease, opacity 0.6s ease;
+}
+#dragon-sprite svg {
+  width: 160px; height: 160px;
+  filter: drop-shadow(0 4px 12px rgba(138, 92, 246, 0.2));
+}
+#dragon-sprite svg.dark .dragon-body { fill: #a78bfa; }
+#dragon-sprite svg.dark .dragon-belly { fill: #ddd6fe; }
+#dragon-sprite svg.dark .dragon-wing { fill: #8b5cf6; }
+#dragon-sprite svg.dark .dragon-eye { fill: #c4b5fd; }
+#dragon-sprite svg.dark .dragon-horn { fill: #c4b5fd; }
+#dragon-sprite svg .dragon-body { fill: #8b5cf6; }
+#dragon-sprite svg .dragon-belly { fill: #c4b5fd; }
+#dragon-sprite svg .dragon-wing { fill: #7c3aed; }
+#dragon-sprite svg .dragon-eye { fill: #7c3aed; }
+#dragon-sprite svg .dragon-horn { fill: #a78bfa; }
 .d-bars { width: 100%; max-width: 300px; display: flex; flex-direction: column; gap: 5px; }
 .d-bar-row { display: flex; align-items: center; gap: 8px; }
 .d-bar-icon { font-size: 9px; width: 14px; text-align: center; }
@@ -760,7 +785,10 @@ button:focus-visible, .tab-btn:focus-visible, .rad-btn:focus-visible, .st-btn:fo
 
   <!-- Dragon View (default) -->
   <div class="view dragon-view active" id="vDragon" role="tabpanel" aria-label="Dragon panel">
-    <canvas id="dc"></canvas>
+    <div id="dragon-stage">
+      <canvas id="dc"></canvas>
+      <div id="dragon-sprite"></div>
+    </div>
     <div class="d-bars" id="dBars">
       <div class="d-bar-row"><span class="d-bar-icon">&#x1F356;</span><span class="d-bar-label">Hunger</span><div class="d-bar-track" aria-label="Hunger: 100%"><div class="d-bar-fill" id="barRations" style="width:100%"></div></div><span class="d-bar-val" id="valRations">100</span></div>
       <div class="d-bar-row"><span class="d-bar-icon">&#x2728;</span><span class="d-bar-label">Spirit</span><div class="d-bar-track" aria-label="Spirit: 100%"><div class="d-bar-fill" id="barMorale" style="width:100%"></div></div><span class="d-bar-val" id="valMorale">100</span></div>
@@ -881,6 +909,142 @@ var STAGES = [
   { name: 'Adult',     rank: 'Sovereign', xp: 60000 },
   { name: 'Elder',     rank: 'Mythic',    xp: 120000 }
 ];
+
+var DRAGON_SVGS = {
+  1: `
+    <svg viewBox="0 0 180 180" aria-hidden="true">
+      <g transform="translate(90 95)">
+        <path id="d-wing-l" class="dragon-wing" d="M-18 -18 C-34 -34 -49 -41 -58 -31 C-56 -16 -44 -1 -26 8 C-20 0 -18 -8 -18 -18 Z" opacity="0.92"></path>
+        <path id="d-wing-r" class="dragon-wing" d="M18 -18 C34 -34 49 -41 58 -31 C56 -16 44 -1 26 8 C20 0 18 -8 18 -18 Z" opacity="0.92"></path>
+        <path id="d-tail" class="dragon-body" d="M18 14 C36 18 48 29 45 43 C37 47 26 43 18 34 C15 30 13 22 18 14 Z"></path>
+        <path id="d-body" class="dragon-body" d="M-25 4 C-24 -18 -11 -35 10 -34 C25 -33 33 -20 33 -2 C33 16 24 29 6 33 C-13 37 -26 25 -25 4 Z"></path>
+        <path id="d-belly" class="dragon-belly" d="M-8 -2 C3 -9 15 -7 19 6 C20 18 12 26 0 27 C-10 27 -15 17 -14 8 C-14 3 -12 0 -8 -2 Z"></path>
+        <path id="d-head" class="dragon-body" d="M-25 -43 C-19 -57 -5 -65 12 -61 C27 -57 36 -43 32 -27 C29 -11 15 -3 -3 -5 C-18 -8 -29 -23 -25 -43 Z"></path>
+        <path id="d-horn-l" class="dragon-horn" d="M-10 -56 C-13 -66 -19 -73 -28 -78 C-28 -67 -24 -58 -17 -50 Z"></path>
+        <path id="d-horn-r" class="dragon-horn" d="M11 -58 C16 -69 24 -74 34 -77 C33 -66 27 -57 18 -49 Z"></path>
+        <path id="d-eye-l" class="dragon-eye" d="M-10 -35 C-14 -32 -14 -27 -10 -24 C-6 -22 -1 -24 1 -29 C-1 -34 -5 -36 -10 -35 Z"></path>
+        <path id="d-eye-r" class="dragon-eye" d="M10 -35 C6 -32 6 -27 10 -24 C14 -22 19 -24 21 -29 C19 -34 15 -36 10 -35 Z"></path>
+        <path id="d-pupil-l" d="M-8 -32 C-10 -30 -10 -27 -8 -25 C-6 -24 -4 -25 -3 -28 C-4 -31 -5 -32 -8 -32 Z" fill="#1f1635"></path>
+        <path id="d-pupil-r" d="M12 -32 C10 -30 10 -27 12 -25 C14 -24 16 -25 17 -28 C16 -31 15 -32 12 -32 Z" fill="#1f1635"></path>
+        <path id="d-eggshell" d="M-20 -55 L-27 -65 L-19 -72 L-9 -68 L-6 -57 L-14 -51 Z" fill="#f5f3ff" stroke="#c4b5fd" stroke-width="2"></path>
+      </g>
+    </svg>
+  `,
+  2: `
+    <svg viewBox="0 0 180 180" aria-hidden="true">
+      <defs>
+        <linearGradient id="flame-grad-2" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0%" stop-color="#ef4444"></stop>
+          <stop offset="100%" stop-color="#f59e0b"></stop>
+        </linearGradient>
+      </defs>
+      <g transform="translate(90 96)">
+        <path id="d-wing-l" class="dragon-wing" d="M-18 -22 C-42 -44 -61 -52 -70 -34 C-63 -12 -48 7 -24 20 C-19 10 -17 -3 -18 -22 Z"></path>
+        <path id="d-wing-r" class="dragon-wing" d="M18 -22 C42 -44 61 -52 70 -34 C63 -12 48 7 24 20 C19 10 17 -3 18 -22 Z"></path>
+        <path id="d-tail" class="dragon-body" d="M24 18 C48 23 62 37 58 54 C48 58 35 54 24 44 C18 36 17 26 24 18 Z"></path>
+        <path id="d-body" class="dragon-body" d="M-27 8 C-27 -18 -10 -42 15 -41 C34 -39 43 -20 42 4 C41 25 29 41 5 45 C-18 48 -28 32 -27 8 Z"></path>
+        <path id="d-belly" class="dragon-belly" d="M-8 0 C6 -8 21 -5 24 10 C24 26 14 34 -1 36 C-13 35 -19 25 -18 12 C-18 6 -15 2 -8 0 Z"></path>
+        <path id="d-head" class="dragon-body" d="M-24 -47 C-15 -63 2 -71 23 -67 C40 -62 49 -47 44 -28 C39 -10 22 -1 0 -3 C-18 -5 -29 -24 -24 -47 Z"></path>
+        <path id="d-horn-l" class="dragon-horn" d="M-6 -60 C-9 -71 -15 -78 -24 -83 C-24 -73 -20 -63 -13 -54 Z"></path>
+        <path id="d-horn-r" class="dragon-horn" d="M17 -62 C22 -73 31 -79 41 -82 C39 -72 33 -62 24 -53 Z"></path>
+        <path id="d-eye-l" class="dragon-eye" d="M-9 -36 C-14 -33 -14 -27 -9 -23 C-4 -21 0 -23 3 -28 C0 -34 -3 -37 -9 -36 Z"></path>
+        <path id="d-eye-r" class="dragon-eye" d="M16 -38 C11 -35 10 -29 15 -25 C20 -23 24 -25 27 -30 C24 -36 21 -39 16 -38 Z"></path>
+        <path id="d-pupil-l" d="M-8 -33 C-10 -30 -10 -27 -8 -25 C-6 -24 -4 -25 -3 -28 C-4 -31 -5 -32 -8 -33 Z" fill="#24153d"></path>
+        <path id="d-pupil-r" d="M16 -34 C14 -31 14 -28 16 -26 C18 -25 20 -26 21 -29 C20 -32 19 -33 16 -34 Z" fill="#24153d"></path>
+        <path id="d-flame" class="dragon-flame" d="M31 -20 C38 -17 41 -8 35 1 C31 7 22 12 16 10 C21 4 23 -2 20 -10 C24 -9 28 -12 31 -20 Z" fill="url(#flame-grad-2)"></path>
+        <path d="M-5 11 C-2 7 4 6 9 9 M-6 17 C-1 13 6 13 12 17 M-3 24 C3 21 8 21 13 24" stroke="#ede9fe" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.75"></path>
+      </g>
+    </svg>
+  `,
+  3: `
+    <svg viewBox="0 0 180 180" aria-hidden="true">
+      <defs>
+        <linearGradient id="flame-grad-3" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0%" stop-color="#ef4444"></stop>
+          <stop offset="100%" stop-color="#f59e0b"></stop>
+        </linearGradient>
+      </defs>
+      <g transform="translate(90 94)">
+        <path id="d-wing-l" class="dragon-wing" d="M-15 -18 C-44 -52 -68 -62 -83 -34 C-75 -9 -56 13 -25 28 C-17 13 -14 0 -15 -18 Z"></path>
+        <path id="d-wing-r" class="dragon-wing" d="M15 -18 C44 -52 68 -62 83 -34 C75 -9 56 13 25 28 C17 13 14 0 15 -18 Z"></path>
+        <path d="M-16 -16 L-44 -39 M-8 -6 L-55 -9 M12 -16 L44 -39 M8 -7 L54 -8" stroke="#c4b5fd" stroke-width="2.2" stroke-linecap="round" opacity="0.28"></path>
+        <path id="d-tail" class="dragon-body" d="M25 17 C51 21 71 35 68 54 C57 59 41 54 28 44 C20 38 19 26 25 17 Z"></path>
+        <path id="d-body" class="dragon-body" d="M-29 5 C-27 -20 -8 -48 18 -47 C38 -46 48 -23 47 2 C45 27 32 44 5 49 C-18 52 -31 33 -29 5 Z"></path>
+        <path id="d-belly" class="dragon-belly" d="M-6 -1 C9 -10 24 -7 27 9 C27 25 16 36 0 39 C-13 38 -21 27 -20 13 C-19 5 -15 1 -6 -1 Z"></path>
+        <path d="M-3 6 C2 3 9 3 14 6 M-4 15 C2 12 10 12 16 15 M-2 24 C4 21 11 21 17 24" stroke="#ede9fe" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.78"></path>
+        <path id="d-head" class="dragon-body" d="M-23 -49 C-13 -67 7 -77 31 -72 C49 -66 58 -47 51 -26 C45 -6 25 3 1 1 C-17 -1 -29 -25 -23 -49 Z"></path>
+        <path id="d-horn-l" class="dragon-horn" d="M0 -63 C-4 -76 -12 -85 -24 -92 C-24 -80 -19 -68 -10 -57 Z"></path>
+        <path id="d-horn-r" class="dragon-horn" d="M23 -67 C29 -80 40 -87 53 -90 C50 -78 42 -67 31 -57 Z"></path>
+        <path id="d-eye-l" class="dragon-eye" d="M-5 -35 C-10 -32 -10 -26 -5 -22 C0 -20 5 -22 8 -28 C5 -34 0 -37 -5 -35 Z"></path>
+        <path id="d-eye-r" class="dragon-eye" d="M21 -39 C16 -36 16 -29 21 -25 C26 -23 31 -25 34 -31 C31 -37 27 -40 21 -39 Z"></path>
+        <path id="d-pupil-l" d="M-4 -32 C-6 -29 -6 -26 -4 -24 C-2 -23 0 -24 1 -27 C0 -30 -1 -31 -4 -32 Z" fill="#231330"></path>
+        <path id="d-pupil-r" d="M22 -35 C20 -32 20 -29 22 -27 C24 -26 26 -27 27 -30 C26 -33 25 -34 22 -35 Z" fill="#231330"></path>
+        <path id="d-flame" class="dragon-flame" d="M40 -16 C48 -13 52 -2 47 8 C41 17 29 22 19 20 C28 13 31 6 27 -5 C33 -4 37 -8 40 -16 Z" fill="url(#flame-grad-3)"></path>
+      </g>
+    </svg>
+  `,
+  4: `
+    <svg viewBox="0 0 180 180" aria-hidden="true">
+      <defs>
+        <linearGradient id="flame-grad-4" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0%" stop-color="#ef4444"></stop>
+          <stop offset="100%" stop-color="#f59e0b"></stop>
+        </linearGradient>
+      </defs>
+      <g transform="translate(90 92)">
+        <path id="d-wing-l" class="dragon-wing" d="M-10 -10 C-42 -53 -70 -66 -88 -40 C-84 -9 -63 18 -26 36 C-16 18 -10 5 -10 -10 Z"></path>
+        <path id="d-wing-r" class="dragon-wing" d="M10 -10 C42 -53 70 -66 88 -40 C84 -9 63 18 26 36 C16 18 10 5 10 -10 Z"></path>
+        <path d="M-8 -8 L-45 -39 M0 2 L-56 -1 M9 -8 L45 -39 M2 1 L57 0" stroke="#ddd6fe" stroke-width="2.4" stroke-linecap="round" opacity="0.24"></path>
+        <path id="d-tail" class="dragon-body" d="M27 20 C56 22 78 36 79 56 C66 62 48 58 33 46 C23 39 20 28 27 20 Z"></path>
+        <path id="d-body" class="dragon-body" d="M-31 4 C-28 -24 -7 -53 23 -53 C46 -52 58 -28 56 3 C53 31 37 51 7 56 C-19 58 -33 35 -31 4 Z"></path>
+        <path id="d-belly" class="dragon-belly" d="M-3 -4 C14 -13 30 -8 33 9 C33 27 20 40 2 44 C-13 44 -23 31 -22 14 C-21 5 -15 -1 -3 -4 Z"></path>
+        <path d="M-4 -1 C6 -6 18 -6 27 -1 M-5 11 C6 6 18 6 28 11 M-3 23 C7 18 18 18 27 23 M0 35 C9 31 17 31 24 35" stroke="#ede9fe" stroke-width="2.6" stroke-linecap="round" fill="none" opacity="0.82"></path>
+        <path id="d-head" class="dragon-body" d="M-19 -52 C-8 -72 16 -83 43 -77 C61 -69 69 -46 61 -22 C54 0 31 10 4 8 C-15 5 -27 -25 -19 -52 Z"></path>
+        <path id="d-horn-l" class="dragon-horn" d="M6 -66 C1 -80 -9 -91 -24 -98 C-24 -86 -17 -73 -5 -60 Z"></path>
+        <path id="d-horn-r" class="dragon-horn" d="M31 -69 C39 -83 51 -91 66 -95 C61 -82 52 -69 39 -58 Z"></path>
+        <path id="d-eye-l" class="dragon-eye" d="M-1 -35 C-7 -31 -7 -24 -1 -21 C5 -19 10 -22 13 -29 C9 -35 5 -37 -1 -35 Z"></path>
+        <path id="d-eye-r" class="dragon-eye" d="M26 -40 C20 -36 20 -28 26 -24 C32 -22 37 -25 40 -32 C36 -38 32 -41 26 -40 Z"></path>
+        <path id="d-pupil-l" d="M0 -32 C-2 -29 -2 -25 0 -23 C2 -22 4 -23 5 -27 C4 -30 3 -31 0 -32 Z" fill="#fff7ed"></path>
+        <path id="d-pupil-r" d="M27 -36 C25 -33 25 -29 27 -27 C29 -26 31 -27 32 -31 C31 -34 30 -35 27 -36 Z" fill="#fff7ed"></path>
+        <path id="d-flame" class="dragon-flame" d="M45 -11 C57 -7 61 7 53 19 C46 27 30 31 18 29 C29 21 35 12 31 0 C38 2 43 -2 45 -11 Z" fill="url(#flame-grad-4)"></path>
+      </g>
+    </svg>
+  `,
+  5: `
+    <svg viewBox="0 0 180 180" aria-hidden="true">
+      <defs>
+        <linearGradient id="flame-grad-5" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0%" stop-color="#ef4444"></stop>
+          <stop offset="100%" stop-color="#f59e0b"></stop>
+        </linearGradient>
+      </defs>
+      <g transform="translate(90 92)">
+        <path id="d-wing-l" class="dragon-wing" d="M-4 -2 C-35 -47 -65 -64 -88 -39 C-87 -9 -66 19 -29 42 C-14 21 -5 8 -4 -2 Z"></path>
+        <path id="d-wing-r" class="dragon-wing" d="M4 -2 C35 -47 65 -64 88 -39 C87 -9 66 19 29 42 C14 21 5 8 4 -2 Z"></path>
+        <g id="d-runes" stroke="#f8d27f" stroke-width="2.4" stroke-linecap="round" fill="none" opacity="0.65">
+          <path d="M-55 -25 L-47 -31 L-39 -25 L-47 -19 Z"></path>
+          <path d="M-63 -6 L-53 -12 L-45 -4"></path>
+          <path d="M55 -25 L47 -31 L39 -25 L47 -19 Z"></path>
+          <path d="M63 -6 L53 -12 L45 -4"></path>
+        </g>
+        <path id="d-tail" class="dragon-body" d="M28 20 C58 22 82 38 84 60 C70 66 50 61 34 48 C24 40 22 28 28 20 Z"></path>
+        <path id="d-body" class="dragon-body" d="M-32 6 C-28 -23 -6 -55 25 -56 C50 -56 63 -31 61 2 C58 31 41 54 10 59 C-17 61 -35 38 -32 6 Z"></path>
+        <path id="d-belly" class="dragon-belly" d="M-1 -4 C17 -13 34 -8 37 11 C36 30 22 43 4 47 C-12 47 -24 34 -23 15 C-22 6 -15 0 -1 -4 Z"></path>
+        <path d="M-1 -2 C10 -8 22 -8 33 -2 M-2 11 C9 5 23 5 34 11 M0 24 C11 19 22 19 32 24 M4 38 C12 34 20 34 27 38" stroke="#ede9fe" stroke-width="2.8" stroke-linecap="round" fill="none" opacity="0.84"></path>
+        <path id="d-head" class="dragon-body" d="M-16 -54 C-4 -75 22 -86 50 -79 C68 -69 75 -44 65 -18 C57 7 33 17 4 14 C-16 11 -28 -25 -16 -54 Z"></path>
+        <path id="d-horn-l" class="dragon-horn" d="M10 -69 C4 -84 -7 -96 -23 -103 C-24 -90 -17 -77 -4 -63 Z"></path>
+        <path id="d-horn-r" class="dragon-horn" d="M37 -72 C47 -88 61 -96 79 -99 C72 -84 62 -70 48 -58 Z"></path>
+        <path d="M44 -87 L55 -96" stroke="#2e1065" stroke-width="3.2" stroke-linecap="round"></path>
+        <path id="d-eye-l" class="dragon-eye" d="M4 -35 C-2 -31 -2 -23 4 -19 C10 -17 16 -21 19 -28 C15 -34 10 -37 4 -35 Z"></path>
+        <path id="d-eye-r" class="dragon-eye" d="M31 -40 C25 -36 25 -28 31 -24 C37 -22 43 -26 45 -33 C41 -39 37 -42 31 -40 Z"></path>
+        <path id="d-pupil-l" d="M6 -31 C3 -27 3 -23 6 -21 C9 -20 11 -22 12 -26 C11 -29 9 -31 6 -31 Z" fill="#fff7ed"></path>
+        <path id="d-pupil-r" d="M32 -36 C29 -32 29 -28 32 -26 C35 -25 37 -27 38 -31 C37 -34 35 -36 32 -36 Z" fill="#fff7ed"></path>
+        <path id="d-flame" class="dragon-flame" d="M48 -10 C61 -5 66 9 58 23 C50 33 33 38 20 36 C33 27 39 15 35 2 C42 3 47 -1 48 -10 Z" fill="url(#flame-grad-5)"></path>
+        <path d="M-18 5 L-8 15 M11 17 L21 28" stroke="rgba(255,255,255,0.22)" stroke-width="2.2" stroke-linecap="round"></path>
+      </g>
+    </svg>
+  `
+};
 
 var STREAK_BASE = 20, STREAK_CAP = 150;
 var DAILY_VIS_CAP = 200;
@@ -1151,6 +1315,7 @@ SyncEngine.init({
     if (remoteLV && new Date(remoteLV) > new Date(localLV)) {
       DS = initDS();
       prevStage = getStage(DS.xp);
+      setSpriteStage(prevStage);
     } else {
       /* Local is fresher or same â push local state to remote, skip re-decay */
       saveDS(DS);
@@ -1198,6 +1363,7 @@ function addXP(amt) {
     evolFlash = 1.0;
     showEvolution(ns);
   }
+  setSpriteStage(ns);
   showXPFloat('+' + gained + ' XP');
   checkAch();
   return gained;
@@ -1209,11 +1375,164 @@ function addXP(amt) {
 
 var dcv = document.getElementById('dc');
 var dctx = dcv.getContext('2d');
+var dragonSprite = document.getElementById('dragon-sprite');
 var DSZ = 180;
 dcv.width = DSZ * DPR; dcv.height = DSZ * DPR;
 dcv.style.width = DSZ + 'px'; dcv.style.height = DSZ + 'px';
 dctx.scale(DPR, DPR);
 var DC = DSZ / 2;
+var dragonTimeline = null;
+var dragonBlinkCall = null;
+
+function getSpriteMoodVisuals() {
+  var avg = (DS.rations + DS.morale + DS.readiness) / 3;
+  var drop = 'drop-shadow(0 4px 12px rgba(138, 92, 246, 0.2))';
+  if (avg < 30) return { filter: drop + ' saturate(0.4) brightness(0.85)', opacity: '0.8' };
+  if (avg < 70) return { filter: drop + ' saturate(0.7)', opacity: '1' };
+  return { filter: drop, opacity: '1' };
+}
+
+function applySpriteMood() {
+  var svg = dragonSprite ? dragonSprite.querySelector('svg') : null;
+  if (!svg) return;
+  var moodStyles = getSpriteMoodVisuals();
+  svg.style.filter = moodStyles.filter;
+  svg.style.opacity = moodStyles.opacity;
+}
+
+function clearSpriteAnimations() {
+  if (dragonTimeline) {
+    dragonTimeline.kill();
+    dragonTimeline = null;
+  }
+  if (dragonBlinkCall) {
+    dragonBlinkCall.kill();
+    dragonBlinkCall = null;
+  }
+  if (typeof gsap === 'undefined') return;
+  gsap.killTweensOf('#dragon-sprite svg');
+  gsap.killTweensOf('#d-body, #d-belly');
+  gsap.killTweensOf('#d-eye-l, #d-eye-r, #d-pupil-l, #d-pupil-r');
+  gsap.killTweensOf('#d-wing-l');
+  gsap.killTweensOf('#d-wing-r');
+  gsap.killTweensOf('#d-tail');
+  gsap.killTweensOf('#d-flame');
+  gsap.killTweensOf('#d-runes');
+}
+
+function queueDragonBlink(delay) {
+  if (dragonBlinkCall) dragonBlinkCall.kill();
+  dragonBlinkCall = gsap.delayedCall(delay, function() {
+    if (!dragonSprite || !dragonSprite.querySelector('svg')) return;
+    gsap.to('#d-eye-l, #d-eye-r, #d-pupil-l, #d-pupil-r', {
+      scaleY: 0.1,
+      duration: 0.08,
+      yoyo: true,
+      repeat: 1,
+      transformOrigin: 'center center',
+      onComplete: function() {
+        queueDragonBlink(2.5 + Math.random() * 5);
+      }
+    });
+  });
+}
+
+function startSpriteAnimations(stage) {
+  if (typeof gsap === 'undefined' || !dragonSprite || !dragonSprite.querySelector('svg')) return;
+  clearSpriteAnimations();
+  dragonTimeline = gsap.timeline({ repeat: -1 });
+  dragonTimeline.to('#d-body, #d-belly', {
+    scaleY: 1.03,
+    duration: 3,
+    yoyo: true,
+    repeat: -1,
+    ease: 'sine.inOut',
+    transformOrigin: 'center bottom'
+  }, 0);
+  gsap.to('#dragon-sprite svg', {
+    y: 4,
+    duration: 3,
+    yoyo: true,
+    repeat: -1,
+    ease: 'sine.inOut'
+  });
+  queueDragonBlink(1);
+  if (stage >= 2) {
+    gsap.to('#d-wing-l', {
+      rotation: -3,
+      duration: 2.5,
+      yoyo: true,
+      repeat: -1,
+      ease: 'sine.inOut',
+      transformOrigin: 'right bottom'
+    });
+    gsap.to('#d-wing-r', {
+      rotation: 3,
+      duration: 2.5,
+      yoyo: true,
+      repeat: -1,
+      ease: 'sine.inOut',
+      transformOrigin: 'left bottom'
+    });
+  }
+  gsap.to('#d-tail', {
+    rotation: 5,
+    duration: 2,
+    yoyo: true,
+    repeat: -1,
+    ease: 'sine.inOut',
+    transformOrigin: 'left center'
+  });
+  if (stage >= 2) {
+    gsap.to('#d-flame', {
+      opacity: 0.5,
+      scaleY: 0.8,
+      duration: 0.35,
+      yoyo: true,
+      repeat: -1,
+      ease: 'sine.inOut',
+      transformOrigin: 'center bottom'
+    });
+  }
+  if (stage === 5) {
+    gsap.to('#d-runes', {
+      opacity: 0.3,
+      duration: 2,
+      yoyo: true,
+      repeat: -1,
+      ease: 'sine.inOut'
+    });
+  }
+}
+
+function setSpriteStage(stageIndex) {
+  if (!dragonSprite) return;
+  clearSpriteAnimations();
+  if (stageIndex === 0 || summonActive) {
+    dragonSprite.style.display = 'none';
+    dragonSprite.innerHTML = '';
+    return;
+  }
+  dragonSprite.style.display = 'flex';
+  dragonSprite.innerHTML = DRAGON_SVGS[stageIndex] || DRAGON_SVGS[1];
+  var svg = dragonSprite.querySelector('svg');
+  if (svg) {
+    if (dark) svg.classList.add('dark');
+    applySpriteMood();
+  }
+  startSpriteAnimations(stageIndex);
+}
+
+setInterval(applySpriteMood, 500);
+Core.on('theme-change', function(data) {
+  dark = data.isDark;
+  var svgEl = document.querySelector('#dragon-sprite svg');
+  if (svgEl) {
+    if (data.isDark) svgEl.classList.add('dark');
+    else svgEl.classList.remove('dark');
+    applySpriteMood();
+  }
+});
 
 /* ââââââââââââââââââââââââââââââââââââââ
    THREE.JS EGG SCENE
@@ -1340,6 +1659,7 @@ var EggScene = (function() {
 
       Core.on('theme-change', function(data) {
         var dk = data.isDark;
+        dark = dk;
         eggMat.color.set(dk ? 0xa78bfa : 0x8b5cf6);
         eggMat.emissive.set(dk ? 0x7c3aed : 0x6d28d9);
         glowMat.color.set(dk ? 0xa78bfa : 0x8b5cf6);
@@ -1348,6 +1668,12 @@ var EggScene = (function() {
         pointLight.color.set(dk ? 0xa78bfa : 0x8b5cf6);
         shadowMat.opacity = dk ? 0.15 : 0.06;
         pMat.color.set(dk ? 0xc4b5fd : 0xa78bfa);
+        var svgEl = document.querySelector('#dragon-sprite svg');
+        if (svgEl) {
+          if (data.isDark) svgEl.classList.add('dark');
+          else svgEl.classList.remove('dark');
+          applySpriteMood();
+        }
       });
 
       ready = true;
@@ -2079,6 +2405,194 @@ function drawHatchling(ctx, t) {
 }
 
 /* ââ Stage particle pool (stages 2-5) ââ */
+function drawDragonAmbient(ctx, t, stage, cx, cy, bob) {
+  var avg = (DS.rations + DS.morale + DS.readiness) / 3;
+  var mood = Math.max(0.2, avg / 100);
+  var acc = dark ? '167,139,250' : '139,92,246';
+  var gld = dark ? '251,191,36' : '217,119,6';
+  var wht = dark ? '255,255,255' : '220,200,255';
+
+  if (stage === 1) {
+    ctx.save();
+    ctx.translate(cx, cy + bob);
+    ctx.beginPath();
+    ctx.ellipse(0, 26, 22, 5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = dark ? 'rgba(0,0,0,0.15)' : 'rgba(0,0,0,0.05)';
+    ctx.fill();
+    ctx.restore();
+    return;
+  }
+
+  if (stage === 2) {
+    ctx.save();
+    ctx.translate(cx, cy + bob);
+    ctx.beginPath();
+    ctx.ellipse(0, 32, 26, 6, 0, 0, Math.PI * 2);
+    ctx.fillStyle = dark ? 'rgba(0,0,0,0.18)' : 'rgba(0,0,0,0.06)';
+    ctx.fill();
+    ctx.restore();
+    for (var pi2 = 0; pi2 < 3; pi2++) {
+      var sp2 = stageParts[pi2];
+      sp2.a += sp2.sp;
+      var px2 = cx + Math.cos(sp2.a) * sp2.d * 0.5;
+      var py2 = cy + bob + Math.sin(sp2.a) * sp2.d * 0.35 + Math.sin(t * 0.001 + sp2.ph) * 8;
+      var pa2 = (0.1 + 0.15 * Math.sin(t * 0.003 + sp2.ph)) * mood;
+      ctx.beginPath();
+      ctx.arc(px2, py2, sp2.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(' + acc + ',' + pa2 + ')';
+      ctx.fill();
+    }
+    return;
+  }
+
+  if (stage === 3) {
+    var gp3 = 0.08 + 0.04 * Math.sin(t * 0.002);
+    ctx.save();
+    ctx.translate(cx, cy + bob);
+    ctx.beginPath();
+    ctx.ellipse(0, 36, 32, 7, 0, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(' + acc + ',' + gp3 + ')';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(0, 36, 28, 5.5, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(' + acc + ',' + (gp3 * 1.5) + ')';
+    ctx.lineWidth = 0.6;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(0, 36, 28, 6, 0, 0, Math.PI * 2);
+    ctx.fillStyle = dark ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.07)';
+    ctx.fill();
+    ctx.restore();
+    for (var pi3 = 0; pi3 < 6; pi3++) {
+      var sp3 = stageParts[pi3];
+      sp3.a += sp3.sp;
+      var px3 = cx + Math.cos(sp3.a) * sp3.d * 0.55;
+      var py3 = cy + bob + Math.sin(sp3.a) * sp3.d * 0.4 + Math.sin(t * 0.001 + sp3.ph) * 10;
+      var pa3 = (0.12 + 0.18 * Math.sin(t * 0.003 + sp3.ph)) * mood;
+      var pg3 = ctx.createRadialGradient(px3, py3, 0, px3, py3, sp3.r * 2.5);
+      pg3.addColorStop(0, 'rgba(' + acc + ',' + pa3 + ')');
+      pg3.addColorStop(1, 'rgba(' + acc + ',0)');
+      ctx.beginPath();
+      ctx.arc(px3, py3, sp3.r * 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = pg3;
+      ctx.fill();
+    }
+    return;
+  }
+
+  if (stage === 4) {
+    var ap4 = 0.06 + 0.03 * Math.sin(t * 0.0015);
+    var ag4 = ctx.createRadialGradient(cx, cy + bob, 30, cx, cy + bob, 65);
+    ag4.addColorStop(0, 'rgba(' + acc + ',' + ap4 + ')');
+    ag4.addColorStop(1, 'rgba(' + acc + ',0)');
+    ctx.beginPath();
+    ctx.arc(cx, cy + bob, 65, 0, Math.PI * 2);
+    ctx.fillStyle = ag4;
+    ctx.fill();
+    var gp4 = 0.1 + 0.06 * Math.sin(t * 0.002);
+    ctx.save();
+    ctx.translate(cx, cy + bob);
+    ctx.beginPath();
+    ctx.ellipse(0, 40, 38, 8, 0, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(' + acc + ',' + (gp4 * 0.5) + ')';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(0, 40, 34, 6, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(' + gld + ',' + (gp4 * 0.6) + ')';
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(0, 40, 30, 6.5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = dark ? 'rgba(0,0,0,0.22)' : 'rgba(0,0,0,0.08)';
+    ctx.fill();
+    ctx.restore();
+    for (var pi4 = 0; pi4 < 10; pi4++) {
+      var sp4 = stageParts[pi4];
+      sp4.a += sp4.sp;
+      var px4 = cx + Math.cos(sp4.a) * sp4.d * 0.65;
+      var py4 = cy + bob + Math.sin(sp4.a) * sp4.d * 0.45 + Math.sin(t * 0.001 + sp4.ph) * 12;
+      var pa4 = (0.1 + 0.2 * Math.sin(t * 0.003 + sp4.ph)) * mood;
+      var pCol4 = pi4 % 3 === 0 ? gld : acc;
+      var pg4 = ctx.createRadialGradient(px4, py4, 0, px4, py4, sp4.r * 3);
+      pg4.addColorStop(0, 'rgba(' + pCol4 + ',' + pa4 + ')');
+      pg4.addColorStop(1, 'rgba(' + pCol4 + ',0)');
+      ctx.beginPath();
+      ctx.arc(px4, py4, sp4.r * 3, 0, Math.PI * 2);
+      ctx.fillStyle = pg4;
+      ctx.fill();
+    }
+    return;
+  }
+
+  var fRot = t * 0.0003;
+  ctx.save();
+  ctx.translate(cx, cy + bob);
+  ctx.rotate(fRot);
+  for (var fi = 0; fi < 3; fi++) {
+    var fA = fi * (Math.PI * 2 / 3);
+    var fP = 0.04 + 0.02 * Math.sin(t * 0.002 + fi);
+    ctx.beginPath();
+    ctx.arc(0, 0, 72, fA - 0.3, fA + 0.3);
+    ctx.strokeStyle = 'rgba(' + acc + ',' + fP + ')';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+  ctx.restore();
+  var ap5 = 0.08 + 0.04 * Math.sin(t * 0.0012);
+  var ag5 = ctx.createRadialGradient(cx, cy + bob, 18, cx, cy + bob, 78);
+  ag5.addColorStop(0, 'rgba(' + acc + ',' + (ap5 * 1.5) + ')');
+  ag5.addColorStop(0.5, 'rgba(' + gld + ',' + (ap5 * 0.5) + ')');
+  ag5.addColorStop(1, 'rgba(' + acc + ',0)');
+  ctx.beginPath();
+  ctx.arc(cx, cy + bob, 78, 0, Math.PI * 2);
+  ctx.fillStyle = ag5;
+  ctx.fill();
+  var gp5 = 0.12 + 0.06 * Math.sin(t * 0.002);
+  ctx.save();
+  ctx.translate(cx, cy + bob);
+  ctx.beginPath();
+  ctx.ellipse(0, 44, 42, 9, 0, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(' + acc + ',' + (gp5 * 0.4) + ')';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(0, 44, 36, 7, 0, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(' + gld + ',' + (gp5 * 0.8) + ')';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  for (var ri = 0; ri < 6; ri++) {
+    var rA = ri * (Math.PI / 3) + t * 0.0002;
+    ctx.beginPath();
+    ctx.arc(Math.cos(rA) * 30, 44 + Math.sin(rA) * 5.5, 1.5, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(' + gld + ',' + (gp5 * 0.7) + ')';
+    ctx.fill();
+  }
+  ctx.beginPath();
+  ctx.ellipse(0, 44, 34, 7, 0, 0, Math.PI * 2);
+  ctx.fillStyle = dark ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.1)';
+  ctx.fill();
+  ctx.restore();
+  for (var pi5 = 0; pi5 < 18; pi5++) {
+    var sp5 = stageParts[pi5];
+    sp5.a += sp5.sp * (1 + 0.3 * Math.sin(t * 0.0005));
+    var pD5 = sp5.d * 0.75 + Math.sin(t * 0.0008 + sp5.ph) * 8;
+    var px5 = cx + Math.cos(sp5.a) * pD5;
+    var py5 = cy + bob + Math.sin(sp5.a) * pD5 * 0.55 + Math.sin(t * 0.001 + sp5.ph) * 14;
+    var pa5 = (0.12 + 0.22 * Math.sin(t * 0.003 + sp5.ph)) * mood;
+    var pCol5 = pi5 % 7 === 0 ? wht : pi5 % 4 === 0 ? gld : acc;
+    var pg5 = ctx.createRadialGradient(px5, py5, 0, px5, py5, sp5.r * 3.5);
+    pg5.addColorStop(0, 'rgba(' + pCol5 + ',' + pa5 + ')');
+    pg5.addColorStop(1, 'rgba(' + pCol5 + ',0)');
+    ctx.beginPath();
+    ctx.arc(px5, py5, sp5.r * 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = pg5;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(px5, py5, sp5.r * 0.8, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(' + pCol5 + ',' + Math.min(1, pa5 * 1.5) + ')';
+    ctx.fill();
+  }
+}
+
 var stageParts = [];
 for (var _stp = 0; _stp < 24; _stp++) {
   stageParts.push({ a: Math.random() * Math.PI * 2, d: 20 + Math.random() * 50, sp: 0.0002 + Math.random() * 0.0008, r: 0.3 + Math.random() * 1.5, ph: Math.random() * Math.PI * 2 });
@@ -2643,6 +3157,8 @@ setTimeout(function() {
 
 function drawDragon(t) {
   var s = getStage(DS.xp);
+  var avg = (DS.rations + DS.morale + DS.readiness) / 3;
+  var baseMood = avg / 100;
   if (!(s === 0 && useThreeEgg)) {
     dctx.clearRect(0, 0, DSZ, DSZ);
   }
@@ -2655,11 +3171,16 @@ function drawDragon(t) {
   if (s === 0) {
     if (useThreeEgg) EggScene.render(t, DS);
     else drawEgg(dctx, t);
-  } else if (s === 1) drawHatchling(dctx, t);
-  else if (s === 2) drawFledgling(dctx, t);
-  else if (s === 3) drawJuvenile(dctx, t);
-  else if (s === 4) drawAdult(dctx, t);
-  else drawElder(dctx, t);
+  } else {
+    var cy = s === 1 ? DC + 10 : s === 2 ? DC + 8 : s === 3 ? DC + 6 : s === 4 ? DC + 4 : DC + 2;
+    var bob = 0;
+    if (s === 1) bob = Math.sin(t * 0.0012) * 2.5 * Math.max(0.2, baseMood);
+    else if (s === 2) bob = Math.sin(t * 0.001) * 1.8 * Math.max(0.25, baseMood);
+    else if (s === 3) bob = Math.sin(t * 0.0009) * 1.2 * Math.max(0.3, baseMood);
+    else if (s === 4) bob = Math.sin(t * 0.0008) * 0.8 * Math.max(0.35, baseMood);
+    else bob = Math.sin(t * 0.0007) * 0.5;
+    drawDragonAmbient(dctx, t, s, DC, cy, bob);
+  }
   /* Activity overlays */
   drawActivityOverlays(dctx, t);
   /* Evolution flash overlay */
@@ -3260,11 +3781,19 @@ function closeRadial() { radialOv.classList.remove('show'); }
 var tapPulse = 0;
 dcv.addEventListener('click', function() {
   tapPulse = 1.0; /* triggers a glow flare in the render loop */
+  if (typeof gsap !== 'undefined') {
+    gsap.fromTo('#dragon-sprite svg', { scale: 1 },
+      { scale: 1.06, duration: 0.15, yoyo: true, repeat: 1, ease: 'power2.out' });
+  }
   openRadial();
 });
 dcv.addEventListener('touchend', function(e) {
   e.preventDefault();
   tapPulse = 1.0;
+  if (typeof gsap !== 'undefined') {
+    gsap.fromTo('#dragon-sprite svg', { scale: 1 },
+      { scale: 1.06, duration: 0.15, yoyo: true, repeat: 1, ease: 'power2.out' });
+  }
   openRadial();
 });
 
@@ -4347,7 +4876,10 @@ function drawSummonAnim(t) {
     }
   }
 
-  if (p >= 1) summonActive = false;
+  if (p >= 1) {
+    summonActive = false;
+    setSpriteStage(getStage(DS.xp));
+  }
 }
 
 /* Summoning sound: ethereal ascending tone */
@@ -4387,6 +4919,7 @@ function loop(t) {
   if (!running) return;
   if (prefersRM) {
     drawDragon(0);
+    setSpriteStage(getStage(DS.xp));
     drawRadar(0);
     return;
   }
@@ -4399,6 +4932,7 @@ function loop(t) {
 
   requestAnimationFrame(loop);
 }
+setSpriteStage(getStage(DS.xp));
 requestAnimationFrame(loop);
 
 document.addEventListener('visibilitychange', function() {
@@ -4417,6 +4951,7 @@ document.addEventListener('visibilitychange', function() {
         if (remoteLV && new Date(remoteLV) > new Date(localLV)) {
           DS = initDS();
           prevStage = getStage(DS.xp);
+          setSpriteStage(prevStage);
         } else {
           DS.lastVisit = new Date().toISOString();
           saveDS(DS);
