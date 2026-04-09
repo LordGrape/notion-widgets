@@ -258,8 +258,18 @@ export default {
 
           insight:
             `MODE: Insight (Quick Fire tier).\n\n` +
-            "The student has already seen the model answer. Provide ONE targeted insight line (max 2 sentences) that gives the student a mental anchor — " +
-            "the key distinguishing feature, a vivid analogy, or the \"why\" behind the fact. This is not grading. This is encoding assistance.",
+            "The student has already seen the model answer and rated themselves. Provide ONE targeted insight line (max 2 sentences) that gives the student a mental anchor — " +
+            "the key distinguishing feature, a vivid analogy, or the \"why\" behind the fact. This is not grading. This is encoding assistance.\n\n" +
+            "CRITICAL — SCALE YOUR FOLLOW-UP QUESTION TO THE STUDENT'S RATING:\n" +
+            "- If recentAvgRating <= 1.5 or the student rated Again/Hard: ask a SIMPLE factual recall question. " +
+            "Pull ONE specific fact from the model answer and ask the student to recall it. Example: \"What percentage did individual shareholders drop to by 2016?\" " +
+            "Do NOT ask analytical, inferential, or implication questions. The student is still encoding basic facts.\n" +
+            "- If recentAvgRating 2.0-3.0 or rated Good: ask a connecting question that links the fact to a related concept. " +
+            "Example: \"How does this shift relate to the rise of institutional investors?\"\n" +
+            "- If recentAvgRating > 3.0 or rated Easy: ask a deeper analytical question — implications, counter-arguments, or application. " +
+            "Example: \"What does this shift imply about who holds corporations accountable today?\"\n\n" +
+            "Match the student's level. Start where they are, not where you think they should be. " +
+            "Use plain, direct language. If the student is struggling, use shorter sentences and simpler vocabulary.",
 
           acknowledge:
             `MODE: Acknowledge strong answer.\n\n` +
@@ -313,8 +323,8 @@ export default {
 }`,
           insight: `{
   "insight": "One or two sentences — the key anchor for this fact.",
-  "followUpQuestion": "Optional. A quick self-test question if the item is important. Null otherwise.",
-  "followUpAnswer": "The answer to the follow-up. Null if no question."
+  "followUpQuestion": "A self-test question scaled to the student's rating level. Simple recall for struggling students, analytical for strong ones. Null only if trivial.",
+  "followUpAnswer": "The answer to the follow-up question. Keep it concise. Null if no question."
 }`,
           acknowledge: `{
   "acknowledgment": "2-3 sentences citing specific strengths.",
