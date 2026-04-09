@@ -100,6 +100,15 @@ export default {
           "You keep turns concise: 3-5 sentences max. Never lecture. The student should be writing more than you.\n\n" +
           "Tone: like a sharp TA who genuinely wants the student to succeed. Respect their intelligence. Challenge them.";
 
+        const isRelearningPass = !!context.isRelearning;
+
+        const socraticRelearningAddendum =
+          `\n\n---\n\nRELEARNING PASS\n\n` +
+          "This is a RELEARNING pass. The student already attempted this card, saw the model answer, and rated Again. " +
+          "They are re-encountering it within the same session. Your job is different from a first pass: do NOT ask broad diagnostic questions. " +
+          "Instead, target the specific point they missed. Ask them to reconstruct the key claim. Keep it to 1-2 turns. " +
+          "They've already seen the answer — the goal is active re-encoding, not discovery.";
+
         const modeInstructions = {
           socratic:
             `MODE: Socratic dialogue.\n\n` +
@@ -113,7 +122,8 @@ export default {
             "If the student used a different but valid analytical framework than the model answer, acknowledge it: " +
             "\"Your response uses a different analytical lens than the model answer, but the reasoning is internally coherent. Here's what the model answer emphasises...\"\n\n" +
             "Provide 2-5 inline annotations on the student's original response (from their first submission, not follow-up turns). " +
-            'Tags: "accurate", "partial", "inaccurate", "missing", "insight".',
+            'Tags: "accurate", "partial", "inaccurate", "missing", "insight".' +
+            (isRelearningPass ? socraticRelearningAddendum : ""),
 
           quick:
             `MODE: Quick feedback (single turn).\n\n` +
@@ -213,7 +223,9 @@ export default {
 
         userBlock +=
           `Context: This card has been forgotten ${lapses} times. Session retry: ${sessionRetryCount}. ` +
-          `Student's recent avg rating: ${recentAvgRating}.\n\n` +
+          `Student's recent avg rating: ${recentAvgRating}.` +
+          (isRelearningPass ? " Relearning pass: yes (same session, after Again — prioritize targeted re-encoding)." : "") +
+          `\n\n` +
           "Respond in EXACT JSON format and nothing else:\n" +
           responseSchemas[mode];
 
