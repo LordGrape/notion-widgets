@@ -1654,10 +1654,10 @@
 
     /* ── Ask the Tutor ── */
     .ask-tutor-wrap{
-      margin-top: 12px;
-      border-radius: 16px;
-      border: 1px solid rgba(var(--accent-rgb),0.12);
-      background: rgba(var(--accent-rgb),0.02);
+      margin-top: 14px;
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(var(--accent-rgb), 0.16);
+      background: rgba(var(--accent-rgb), 0.03);
       overflow: hidden;
       transition: border-color var(--transition);
     }
@@ -1669,7 +1669,7 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 10px 14px;
+      padding: 12px 16px;
       border: none;
       background: transparent;
       color: var(--text-secondary);
@@ -1694,69 +1694,118 @@
     .ask-tutor-wrap.open .ask-tutor-toggle .at-arrow{ transform: rotate(90deg); }
     .ask-tutor-body{
       display: none;
-      padding: 0 14px 14px;
+      padding: 0 0 14px;
     }
     .ask-tutor-wrap.open .ask-tutor-body{ display: block; }
+    .ask-tutor-panel{
+      margin: 0 14px 0;
+      padding: 16px 18px;
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(var(--accent-rgb), 0.14);
+      background: rgba(var(--accent-rgb), 0.03);
+    }
+    .ask-tutor-label{
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      color: var(--text);
+      margin-bottom: 10px;
+      line-height: 1.45;
+    }
+    .ask-tutor-question{
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+    body.standalone .ask-tutor-question{
+      font-size: 14px;
+    }
     .ask-tutor-input-row{
       display: flex;
       gap: 8px;
       align-items: flex-end;
     }
-    .ask-tutor-input-row input{
+    .ask-tutor-ta{
       flex: 1;
-      padding: 10px 14px;
+      padding: 12px 14px;
       border-radius: 14px;
-      border: 1px solid rgba(var(--accent-rgb),0.16);
-      background: rgba(var(--accent-rgb),0.03);
+      border: 1px solid rgba(var(--accent-rgb), 0.2);
+      background: rgba(var(--accent-rgb), 0.04);
       color: var(--text);
       font-family: inherit;
-      font-size: 11px;
+      font-size: 12px;
+      line-height: 1.5;
+      resize: none;
       outline: none;
+      min-height: 44px;
       transition: border-color var(--transition), box-shadow var(--transition);
     }
-    .ask-tutor-input-row input:focus{
-      border-color: rgba(var(--accent-rgb),0.35);
-      box-shadow: 0 0 0 3px rgba(var(--accent-rgb),0.08);
+    .ask-tutor-ta:focus{
+      border-color: rgba(var(--accent-rgb), 0.4);
+      box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.08);
     }
-    .ask-tutor-input-row input::placeholder{
+    .ask-tutor-ta::placeholder{
       color: var(--text-tertiary);
     }
     .ask-tutor-send{
-      width: 38px;
-      height: 38px;
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
       border-radius: 12px;
-      border: none;
-      background: linear-gradient(135deg, rgba(var(--accent-rgb),1), rgba(var(--accent-rgb),0.7));
-      color: #fff;
-      font-size: 14px;
+      border: 1px solid rgba(var(--accent-rgb), 0.2);
+      background: rgba(var(--accent-rgb), 0.08);
+      color: var(--text);
+      font-size: 16px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      flex-shrink: 0;
-      transition: transform var(--transition), box-shadow var(--transition);
+      transition: background var(--transition), transform var(--transition);
     }
     .ask-tutor-send:hover{
+      background: rgba(var(--accent-rgb), 0.15);
       transform: translateY(-1px);
-      box-shadow: 0 4px 16px rgba(var(--accent-rgb),0.25);
     }
     .ask-tutor-send:active{ transform: translateY(0) scale(0.97); }
-    .ask-tutor-send:disabled{ opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+    .ask-tutor-send:disabled{ opacity: 0.4; cursor: not-allowed; transform: none; }
+    .ask-tutor-dk{
+      display: block;
+      width: 100%;
+      margin-top: 8px;
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(var(--accent-rgb), 0.1);
+      background: transparent;
+      color: var(--text-tertiary);
+      font-family: inherit;
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: color var(--transition), border-color var(--transition), background var(--transition);
+    }
+    .ask-tutor-dk:hover{
+      color: var(--text-secondary);
+      border-color: rgba(var(--accent-rgb), 0.2);
+      background: rgba(var(--accent-rgb), 0.03);
+    }
     .ask-tutor-messages{
-      margin-top: 10px;
+      margin-top: 14px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
     }
     .ask-tutor-msg{
-      padding: 10px 14px;
+      padding: 12px 14px;
       border-radius: 14px;
-      font-size: 11px;
-      line-height: 1.6;
+      font-size: 12px;
+      line-height: 1.65;
       max-width: 95%;
       word-break: break-word;
     }
-    body.standalone .ask-tutor-msg{ font-size: 12px; }
+    body.standalone .ask-tutor-msg{ font-size: 13px; }
     .ask-tutor-msg.from-student{
       align-self: flex-end;
       background: linear-gradient(135deg, rgba(var(--accent-rgb),0.16), rgba(var(--accent-rgb),0.08));
@@ -1782,18 +1831,24 @@
     }
     .ask-tutor-msg.from-tutor .atm-label{ color: var(--accent); }
     .ask-tutor-msg .atm-question{
-      margin-top: 6px;
-      padding-top: 6px;
+      margin-top: 8px;
+      padding-top: 8px;
       border-top: 1px solid rgba(var(--accent-rgb),0.08);
       font-weight: 600;
       font-style: italic;
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text);
+    }
+    body.standalone .ask-tutor-msg .atm-question{
+      font-size: 14px;
     }
     .ask-tutor-footer{
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-top: 8px;
-      gap: 8px;
+      flex-direction: column;
+      align-items: stretch;
+      margin-top: 12px;
+      gap: 10px;
     }
     .ask-tutor-footer .at-exchanges{
       font-size: 8px;
@@ -1803,14 +1858,16 @@
       color: var(--text-tertiary);
     }
     .ask-tutor-continue{
-      padding: 8px 16px;
+      width: 100%;
+      margin-top: 0;
+      padding: 10px 16px;
       border-radius: 12px;
       border: 1px solid rgba(var(--accent-rgb),0.16);
       background: rgba(var(--accent-rgb),0.06);
       color: var(--text);
-      font-size: 9px;
+      font-size: 10px;
       font-weight: 700;
-      letter-spacing: 1px;
+      letter-spacing: 0.8px;
       text-transform: uppercase;
       cursor: pointer;
       font-family: inherit;
@@ -4696,6 +4753,22 @@ input[type="range"]::-moz-range-thumb{
       font-size: 11px;
       line-height: 1.6;
       color: var(--text);
+    }
+    .quick-feedback .qf-section-label{
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+    .quick-feedback .qf-section-body{
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--text);
+    }
+    body.standalone .quick-feedback .qf-section-body{
+      font-size: 13px;
     }
     .quick-feedback .qf-check{
       margin-top: 12px;
@@ -10496,20 +10569,24 @@ input[type="range"]::-moz-range-thumb{
       wrap.id = 'askTutorWrap';
       wrap.className = 'ask-tutor-wrap' + (autoExpand ? ' open' : '');
       wrap.innerHTML =
-        '<button class="ask-tutor-toggle" id="askTutorToggle">' +
+        '<button class="ask-tutor-toggle" id="askTutorToggle" type="button">' +
           '<span class="at-icon">💬</span>' +
-          '<span>' + esc(label) + '</span>' +
+          '<span>Ask the Tutor</span>' +
           '<span class="at-arrow">▶</span>' +
         '</button>' +
         '<div class="ask-tutor-body" id="askTutorBody">' +
-          '<div class="ask-tutor-input-row">' +
-            '<input type="text" id="askTutorInput" placeholder="Type your question..." autocomplete="off" />' +
-            '<button class="ask-tutor-send" id="askTutorSend" aria-label="Send">→</button>' +
-          '</div>' +
-          '<div class="ask-tutor-messages" id="askTutorMessages"></div>' +
-          '<div class="ask-tutor-footer" id="askTutorFooter" style="display:none;">' +
-            '<span class="at-exchanges" id="askTutorCount">0 of ' + askTutorMaxExchanges + ' exchanges</span>' +
-            '<button class="ask-tutor-continue" id="askTutorContinue">Next card →</button>' +
+          '<div class="ask-tutor-panel">' +
+            '<div class="ask-tutor-label">' + esc(label) + '</div>' +
+            '<div class="ask-tutor-input-row">' +
+              '<textarea class="ask-tutor-ta" id="askTutorInput" placeholder="Ask anything about this card…" rows="2" autocomplete="off"></textarea>' +
+              '<button type="button" class="ask-tutor-send" id="askTutorSend" aria-label="Send">→</button>' +
+            '</div>' +
+            '<button type="button" class="ask-tutor-dk" id="askTutorDk">🤷 Skip — move on</button>' +
+            '<div class="ask-tutor-messages" id="askTutorMessages"></div>' +
+            '<div class="ask-tutor-footer" id="askTutorFooter" style="display:none;">' +
+              '<span class="at-exchanges" id="askTutorCount">0 of ' + askTutorMaxExchanges + ' exchanges</span>' +
+              '<button type="button" class="ghost-btn ask-tutor-continue" id="askTutorContinue">Continue (Space)</button>' +
+            '</div>' +
           '</div>' +
         '</div>';
 
@@ -10538,11 +10615,27 @@ input[type="range"]::-moz-range-thumb{
       var inputEl = document.getElementById('askTutorInput');
       if (sendBtn) sendBtn.addEventListener('click', submitAskTutor);
       if (inputEl) {
+        inputEl.addEventListener('input', function() {
+          this.style.height = 'auto';
+          this.style.height = Math.min(160, Math.max(44, this.scrollHeight)) + 'px';
+        });
         inputEl.addEventListener('keydown', function(e) {
-          if (e.key === 'Enter') {
+          e.stopPropagation();
+          if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             submitAskTutor();
           }
+        });
+      }
+
+      var askDk = document.getElementById('askTutorDk');
+      if (askDk) {
+        askDk.addEventListener('click', function() {
+          var cb = askTutorContinueHandler;
+          cleanupAskTutor();
+          if (typeof cb === 'function') cb();
+          else advanceItem();
+          try { playClick(); } catch (eAd) {}
         });
       }
 
