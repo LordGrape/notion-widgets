@@ -143,6 +143,12 @@
         margin-bottom: 14px;
       }
       .dash-grid > .stat, .dash-grid > div { align-self: stretch; }
+      .dash-grid #retentionWrap,
+      .dash-grid #activityHeatmapHost,
+      .dash-grid .retention-wrap,
+      .dash-grid [data-dash-full] {
+        grid-column: 1 / -1;
+      }
       body.standalone .dash-grid .hero-stat{
         grid-column: 1 / -1;
       }
@@ -3233,7 +3239,7 @@ body.standalone .answer.restudy-active{
       margin-bottom: 14px;
     }
     @media (min-width: 480px){
-      .analytics-strip{ grid-template-columns: 1fr auto; }
+      .analytics-strip{ grid-template-columns: 1fr; }
     }
 
     .analytics-card{
@@ -3251,7 +3257,7 @@ body.standalone .answer.restudy-active{
       box-shadow: 0 4px 20px -4px rgba(var(--accent-rgb),0.08);
     }
     .retention-panel{
-      max-height: 140px;
+      max-height: none;
     }
     .stat,
     .retention-panel,
@@ -3331,6 +3337,13 @@ body.standalone .answer.restudy-active{
       display: block;
       width: 100%;
       cursor: crosshair;
+    }
+    .retention-wrap canvas,
+    #retentionWrap canvas {
+      width: 100% !important;
+      height: auto;
+      min-height: 160px;
+      max-height: 220px;
     }
 
     .cal-heatmap-wrap {
@@ -3455,6 +3468,26 @@ body.standalone .answer.restudy-active{
       white-space: nowrap;
     }
     .cal-heatmap-tooltip.show { opacity: 1; }
+
+    @media (max-width: 360px) {
+      .cal-heatmap-grid {
+        gap: 2px;
+      }
+      .cal-heatmap-cell {
+        font-size: 7px;
+        min-height: 20px;
+      }
+      .cal-heatmap-dow {
+        font-size: 6px;
+      }
+      .cal-heatmap-nav-btn {
+        padding: 4px 8px;
+        font-size: 10px;
+      }
+      .cal-heatmap-title {
+        font-size: 10px;
+      }
+    }
 
     /* ── CSS SECTION: Canvas Hover Tooltip ── */
     /* ── Canvas Hover Tooltip ── */
@@ -6018,12 +6051,12 @@ input[type="range"]::-moz-range-thumb{
             </div>
 
             <div class="analytics-strip">
-              <div class="analytics-card retention-panel">
+              <div class="analytics-card retention-panel retention-wrap" id="retentionWrap" data-dash-full>
                 <div class="ac-title">Predicted retention</div>
                 <div class="ret-filter-chips" id="retFilterChips"></div>
-                <canvas id="retentionCanvas" height="70"></canvas>
+                <canvas id="retentionCanvas" height="200"></canvas>
               </div>
-              <div class="analytics-card" id="activityCard">
+              <div class="analytics-card" id="activityCard" data-dash-full>
                 <div class="ac-title"><span class="ac-icon">📊</span> Last 30 days</div>
                 <div class="ac-subtitle">Session activity</div>
                 <div id="activityHeatmapHost"></div>
@@ -17609,8 +17642,8 @@ input[type="range"]::-moz-range-thumb{
       if (!parent) return;
       var rect = parent.parentElement;
       var pw = rect ? rect.clientWidth - 24 : 280;
-      pw = Math.max(200, Math.min(pw, 600));
-      var ph = parseInt(parent.getAttribute('height'), 10) || 70;
+      pw = Math.max(200, pw);
+      var ph = window.matchMedia('(max-width: 639px)').matches ? 160 : 200;
 
       var r = getCanvasCtx(canvasId, pw, ph);
       if (!r) return;
