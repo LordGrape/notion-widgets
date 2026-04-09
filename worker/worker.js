@@ -300,8 +300,15 @@ export default {
             "Provide annotations only if the student's question reveals a misconception worth flagging."
         };
 
-        const modeInstructionsForMode =
+        let modeInstructionsForMode =
           (isRelearningPass ? relearningModePrefix : "") + modeInstructionsBase[mode];
+
+        if (mode === "quick" && context.quickFireReRetrieval) {
+          modeInstructionsForMode +=
+            "\n\nQUICK FIRE RE-RETRIEVAL: The student cannot see the model answer yet. They just typed a short answer to a retrieval question after rating Again. " +
+            "Compare their attempt to the model answer. Keep each JSON field (correct, missing, bridge) to 1–2 sentences max. " +
+            "Do not paste the full model answer in your response — they will see it in a consolidation step next.\n";
+        }
 
         const responseSchemas = {
           socratic: `{
@@ -376,6 +383,15 @@ export default {
         const lapses = context.lapses != null ? context.lapses : 0;
         const sessionRetryCount = context.sessionRetryCount != null ? context.sessionRetryCount : 0;
         const recentAvgRating = context.recentAvgRating != null ? context.recentAvgRating : 2.5;
+
+        if (mode === "insight" && context.quickFireFollowUp && context.userRating != null) {
+          userBlock += `Quick Fire follow-up path — student's self-rating on this card: ${context.userRating} (1=Again, 2=Hard, 3=Good, 4=Easy). Scale followUpQuestion difficulty accordingly.\n`;
+        }
+
+        if (mode === "quick" && context.quickFireReRetrieval && context.quickFireFollowUpQuestion) {
+          userBlock +=
+            `RETRIEVAL QUESTION THEY ANSWERED: ${String(context.quickFireFollowUpQuestion).slice(0, 800)}\n`;
+        }
 
         userBlock +=
           `Context: This card has been forgotten ${lapses} times. Session retry: ${sessionRetryCount}. ` +

@@ -7670,6 +7670,8 @@ input[type="range"]::-moz-range-thumb{
       tutorMaxTurns = 3;
       var qfRoot = document.getElementById('qfFollowupRoot');
       if (qfRoot) qfRoot.remove();
+      var qfReRoot = document.getElementById('qfReRetrievalRoot');
+      if (qfReRoot) qfReRoot.remove();
       /* Remove override hint if present */
       var oldHint = document.querySelector('.override-hint');
       if (oldHint) oldHint.remove();
@@ -10625,10 +10627,186 @@ input[type="range"]::-moz-range-thumb{
       input.focus();
     }
 
-    function runQuickFireFollowupMicro(it, done) {
+    function mountQuickFireReRetrieval(it, data, done) {
+      var oldQ = document.getElementById('qfFollowupRoot');
+      if (oldQ) oldQ.remove();
+      var oldRe = document.getElementById('qfReRetrievalRoot');
+      if (oldRe) oldRe.remove();
+      if (!ratingsEl || !ratingsEl.parentNode) {
+        done();
+        return;
+      }
+
+      if (modelAnswerEl) modelAnswerEl.style.display = 'none';
+      var oldHintR = document.querySelector('.override-hint');
+      if (oldHintR) oldHintR.remove();
+      ratingsEl.style.display = 'none';
+
+      var root = document.createElement('div');
+      root.id = 'qfReRetrievalRoot';
+      root.className = 'qf-re-retrieval';
+      root.innerHTML =
+        '<div style="margin-top:14px;padding:18px 20px;border-radius:var(--radius-lg);border:1px solid rgba(var(--accent-rgb),0.18);background:rgba(var(--accent-rgb),0.04);">' +
+          '<div style="font-size:9px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--accent);margin-bottom:10px;display:flex;align-items:center;gap:6px;">🔁 Re-test — try again from memory</div>' +
+          '<div style="font-size:13px;line-height:1.65;color:var(--text);margin-bottom:14px;">' + esc(data.followUpQuestion) + '</div>' +
+          '<div style="display:flex;gap:8px;align-items:flex-end;">' +
+            '<input id="qfReRetInput" type="text" placeholder="Type your answer..." style="flex:1;padding:12px 14px;border-radius:14px;border:1px solid rgba(var(--accent-rgb),0.18);background:rgba(var(--accent-rgb),0.04);color:var(--text);font-family:inherit;font-size:12px;outline:none;">' +
+            '<button id="qfReRetSend" type="button" style="width:40px;height:40px;border-radius:12px;border:none;background:linear-gradient(135deg,rgba(var(--accent-rgb),1),rgba(var(--accent-rgb),0.7));color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">→</button>' +
+          '</div>' +
+          '<div id="qfReRetSkip" style="text-align:center;margin-top:10px;font-size:9px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text-tertiary);cursor:pointer;padding:6px;">Skip — show answer</div>' +
+        '</div>' +
+        '<div id="qfReRetReaction" style="display:none;margin-top:12px;"></div>' +
+        '<div id="qfReRetConsolidation" style="display:none;margin-top:14px;padding:18px 20px;border-radius:var(--radius-lg);border:1px solid rgba(34,197,94,0.18);border-left:3px solid var(--rate-good);background:rgba(34,197,94,0.03);">' +
+          '<div style="font-size:9px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--rate-good);margin-bottom:10px;display:flex;align-items:center;gap:6px;">✅ Consolidate — here\'s the full answer</div>' +
+          '<div id="qfReRetModelBody" style="font-size:12px;line-height:1.65;color:var(--text);"></div>' +
+        '</div>';
+
+      ratingsEl.parentNode.insertBefore(root, ratingsEl.nextSibling);
+
+      if (window.gsap) {
+        gsap.fromTo(root, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' });
+      }
+
+      var input = document.getElementById('qfReRetInput');
+      var sendBtn = document.getElementById('qfReRetSend');
+      var skipBtn = document.getElementById('qfReRetSkip');
+      var reactionArea = document.getElementById('qfReRetReaction');
+      var consolidation = document.getElementById('qfReRetConsolidation');
+      var modelBody = document.getElementById('qfReRetModelBody');
+      var finished = false;
+      var spaceHandlerRef = null;
+
+      function finishFlow() {
+        if (finished) return;
+        finished = true;
+        if (spaceHandlerRef) {
+          document.removeEventListener('keydown', spaceHandlerRef);
+          spaceHandlerRef = null;
+        }
+        root.remove();
+        if (modelAnswerEl) modelAnswerEl.style.display = '';
+        done();
+      }
+
+      function showConsolidation() {
+        if (modelBody) modelBody.innerHTML = renderMd(it.modelAnswer || '');
+        if (consolidation) {
+          consolidation.style.display = 'block';
+          if (window.gsap) {
+            gsap.fromTo(consolidation, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' });
+          }
+          consolidation.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        var contBtn = document.createElement('button');
+        contBtn.type = 'button';
+        contBtn.className = 'big-btn';
+        contBtn.style.marginTop = '14px';
+        contBtn.textContent = 'CONTINUE (SPACE)';
+        contBtn.addEventListener('click', finishFlow);
+        root.appendChild(contBtn);
+        if (window.gsap) gsap.fromTo(contBtn, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.3, delay: 0.2, ease: 'power2.out' });
+
+        if (spaceHandlerRef) {
+          document.removeEventListener('keydown', spaceHandlerRef);
+          spaceHandlerRef = null;
+        }
+        function spaceHandler(e) {
+          if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) return;
+          if (e.code === 'Space' || e.key === ' ') {
+            e.preventDefault();
+            finishFlow();
+          }
+        }
+        spaceHandlerRef = spaceHandler;
+        document.addEventListener('keydown', spaceHandler);
+      }
+
+      function submitResponse() {
+        if (!input || finished) return;
+        var text = input.value.trim();
+        if (!text) return;
+
+        input.disabled = true;
+        if (sendBtn) sendBtn.disabled = true;
+        if (skipBtn) skipBtn.style.display = 'none';
+        try { playClick(); } catch (eSr) {}
+
+        if (reactionArea) {
+          reactionArea.style.display = 'block';
+          reactionArea.innerHTML = '<div style="padding:12px 14px;border-radius:14px;border:1px solid rgba(var(--accent-rgb),0.14);background:rgba(var(--accent-rgb),0.03);font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-secondary);">Checking your response...</div>';
+        }
+
+        var ctxReact = tutorContextForItem(it);
+        ctxReact.quickFireReRetrieval = true;
+        if (data.followUpQuestion) ctxReact.quickFireFollowUpQuestion = data.followUpQuestion;
+        var modelReact = selectModel(it, session);
+        callTutor('quick', modelReact, it, text, [], ctxReact)
+          .then(function(reactData) {
+            if (!reactData || reactData.error) {
+              if (reactionArea) {
+                reactionArea.innerHTML =
+                  '<div style="padding:14px 16px;border-radius:14px;border:1px solid rgba(var(--accent-rgb),0.14);background:rgba(var(--accent-rgb),0.04);font-size:11px;line-height:1.6;color:var(--text);">' +
+                    (data.followUpAnswer ? esc(data.followUpAnswer) : 'Review the model answer below.') +
+                  '</div>';
+              }
+              showConsolidation();
+              return;
+            }
+            var h = '<div style="padding:14px 16px;border-radius:14px;border:1px solid rgba(var(--accent-rgb),0.18);background:linear-gradient(135deg,rgba(var(--accent-rgb),0.04),rgba(var(--accent-rgb),0.01));font-size:11px;line-height:1.65;color:var(--text);">';
+            if (reactData.correct) h += '<div style="margin-bottom:6px;"><strong style="color:var(--rate-good);">✓</strong> ' + esc(reactData.correct) + '</div>';
+            if (reactData.missing) h += '<div style="margin-bottom:6px;"><strong style="color:var(--rate-hard);">△</strong> ' + esc(reactData.missing) + '</div>';
+            if (reactData.bridge) h += '<div><strong style="color:var(--accent);">↔</strong> ' + esc(reactData.bridge) + '</div>';
+            if (!reactData.correct && !reactData.missing && !reactData.bridge && reactData.tutorMessage) {
+              h += esc(reactData.tutorMessage);
+            }
+            h += '</div>';
+            if (reactionArea) {
+              reactionArea.innerHTML = h;
+              if (window.gsap) gsap.fromTo(reactionArea, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' });
+            }
+            showConsolidation();
+          })
+          .catch(function() {
+            if (reactionArea) {
+              reactionArea.innerHTML =
+                '<div style="padding:14px 16px;border-radius:14px;border:1px solid rgba(var(--accent-rgb),0.14);background:rgba(var(--accent-rgb),0.04);font-size:11px;line-height:1.6;color:var(--text);">' +
+                  (data.followUpAnswer ? esc(data.followUpAnswer) : 'Review the model answer below.') +
+                '</div>';
+            }
+            showConsolidation();
+          });
+      }
+
+      function skipToAnswer() {
+        if (finished) return;
+        if (input) input.disabled = true;
+        if (sendBtn) sendBtn.disabled = true;
+        if (skipBtn) skipBtn.style.display = 'none';
+        try { playClick(); } catch (eSk) {}
+        showConsolidation();
+      }
+
+      if (sendBtn) sendBtn.addEventListener('click', submitResponse);
+      if (skipBtn) skipBtn.addEventListener('click', skipToAnswer);
+      if (input) {
+        input.addEventListener('keydown', function(e) {
+          e.stopPropagation();
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            submitResponse();
+          }
+        });
+        input.focus();
+      }
+    }
+
+    function runQuickFireFollowupMicro(it, done, opts) {
+      opts = opts || {};
+      var useReRetrieval = !!opts.reRetrieval;
       disableRatings(true);
       var ctxQ = tutorContextForItem(it);
       ctxQ.quickFireFollowUp = true;
+      if (useReRetrieval) ctxQ.userRating = 1;
       var modelQ = selectModel(it, session);
       callTutor('insight', modelQ, it, '', [], ctxQ)
         .then(function(dq) {
@@ -10637,10 +10815,17 @@ input[type="range"]::-moz-range-thumb{
             done();
             return;
           }
-          mountQuickFireFollowup(it, dq, function() {
-            disableRatings(false);
-            done();
-          });
+          if (useReRetrieval) {
+            mountQuickFireReRetrieval(it, dq, function() {
+              disableRatings(false);
+              done();
+            });
+          } else {
+            mountQuickFireFollowup(it, dq, function() {
+              disableRatings(false);
+              done();
+            });
+          }
         })
         .catch(function() {
           disableRatings(false);
@@ -10766,10 +10951,34 @@ input[type="range"]::-moz-range-thumb{
             startRelearningDialogue(it, nowTs);
             return;
           }
+          /* QF Again: re-retrieval flow already showed consolidation — skip passive restudy, re-queue. */
+          if (tier === 'quickfire' && settings.feedbackMode !== 'self_rate') {
+            session.loops[it.id] = session.loops[it.id] || 0;
+            if (session.loops[it.id] >= 3) {
+              toast('Review tomorrow');
+              ensureFsrs(it);
+              it.fsrs.due = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+              it.fsrs.state = 'relearning';
+              it.fsrs.lapses = (it.fsrs.lapses || 0) + 1;
+              it.fsrs.reps = (it.fsrs.reps || 0) + 1;
+              it.fsrs.lastReview = new Date(nowTs).toISOString();
+              advanceItem();
+              return;
+            }
+            var remainingQF = session.queue.length - (session.idx + 1);
+            var minOffsetQF = Math.max(5, Math.floor(remainingQF * 0.4));
+            var insertPosQF = Math.min(session.idx + 1 + minOffsetQF, session.queue.length);
+            session.queue.splice(insertPosQF, 0, it);
+            advanceItem();
+            return;
+          }
           beginPassiveRestudyFlow(it, nowTs);
         };
 
-        /* Restudy first, then micro follow-up (Arnold & McDermott, 2013) — see beginPassiveRestudyFlow */
+        if (tier === 'quickfire' && settings.feedbackMode !== 'self_rate') {
+          runQuickFireFollowupMicro(it, proceedAfterAgain, { reRetrieval: true });
+          return;
+        }
         proceedAfterAgain();
         return;
       }
