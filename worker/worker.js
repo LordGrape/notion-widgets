@@ -151,7 +151,7 @@ export default {
             ? "First time"
             : `${card.reps ?? 0} reviews, ${card.lapses ?? 0} lapses, stability ${Math.round(Number(card.stability) || 0)} days`;
           const lines = [
-            "\n\n---\n\nLEARNER PROFILE FOR THIS SESSION:\n",
+            "\n\n---\n\nLEARNER PROFILE (BACKGROUND CONTEXT FROM PRIOR SESSIONS — these are AI-observed patterns, NOT things the student said in this conversation. Never attribute these as direct quotes or statements by the student. Do not say 'you mentioned' or 'you said' — say 'I've noticed' or 'from prior sessions' instead):\n",
             `- Course: ${itemRef.course || ""} (${Number(cs.totalCards) || 0} cards, ${Number(cs.reviewedCards) || 0} reviewed)`,
             `- Strong topics: ${strong.length ? strong.join(", ") : "None identified yet"}`,
             `- Weak topics: ${weak.length ? weak.join(", ") : "None identified yet"}`,
@@ -167,7 +167,7 @@ export default {
             );
           }
           if (mems.length > 0) {
-            lines.push("- Known patterns about this student:");
+            lines.push("- AI-observed patterns from prior sessions (do NOT present these as things the student said):");
             for (const mline of mems) lines.push(`  * ${String(mline)}`);
           }
           lines.push(
