@@ -13650,12 +13650,10 @@ input[type="range"]::-moz-range-thumb{
         persistTutorAnalyticsDeltas();
         session._reconstructionPending = false;
       }
-      /* Rating-differentiated audio feedback
-         Research basis: Auditory valence mapping (Bowling et al., 2010) —
-         rising pitch = positive outcome, flat = neutral, falling = negative.
-         Again is handled by the restudy flow's playError(). */
+      /* Rating-differentiated sensory feedback */
+      flashRatingFeedback(mappedRating);
       try {
-        if (mappedRating === 1) { /* Again — playError() fires in restudy flow below */ }
+        if (mappedRating === 1) { playError(); }
         else if (mappedRating === 2) { playLap(); }
         else if (mappedRating === 3) { playGoodRate(); }
         else if (mappedRating === 4) { playEasyRate(); }
@@ -13791,6 +13789,38 @@ input[type="range"]::-moz-range-thumb{
     /* ═══ SECTION: Ensure Fsrs | Functions: ensureFsrs ═══ */
     function ensureFsrs(it) {
       if (!it.fsrs) it.fsrs = { stability: 0, difficulty: 0, due: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), lastReview: null, reps: 0, lapses: 0, state: 'new' };
+    }
+
+    /* ── Per-Rating Card Glow ── */
+    /* ═══ SECTION: Flash Rating Feedback | Functions: flashRatingFeedback ═══ */
+    function flashRatingFeedback(rating) {
+      var itemCard = document.querySelector('.item-card');
+      if (!itemCard || !window.gsap) return;
+      var colours = {
+        1: { glow: 'rgba(239,68,68,0.35)', soft: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.60)' },
+        2: { glow: 'rgba(245,158,11,0.30)', soft: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.55)' },
+        3: { glow: 'rgba(34,197,94,0.28)', soft: 'rgba(34,197,94,0.09)', border: 'rgba(34,197,94,0.50)' },
+        4: { glow: 'rgba(59,130,246,0.28)', soft: 'rgba(59,130,246,0.09)', border: 'rgba(59,130,246,0.50)' }
+      };
+      var c = colours[rating];
+      if (!c) return;
+      var intensity = rating === 1 ? 1.0 : rating === 2 ? 0.75 : rating === 3 ? 0.6 : 0.55;
+      gsap.killTweensOf(itemCard);
+      gsap.timeline()
+        .to(itemCard, {
+          boxShadow: '0 0 ' + Math.round(40 * intensity) + 'px ' + c.glow + ', 0 0 ' + Math.round(100 * intensity) + 'px ' + c.soft,
+          borderColor: c.border,
+          duration: 0.22,
+          ease: 'power2.out'
+        })
+        .to(itemCard, {
+          boxShadow: '0 0 0px rgba(0,0,0,0)',
+          borderColor: 'rgba(139,92,246,0.12)',
+          duration: 0.55,
+          delay: 0.08,
+          ease: 'power2.in',
+          clearProps: 'boxShadow,borderColor'
+        });
     }
 
     /* ── Per-Card XP Flash ── */
