@@ -1264,7 +1264,7 @@ Respond in this EXACT JSON format and nothing else:
           }
         }
 
-        const visualPrompt = `You are generating a Mermaid.js diagram for a spaced repetition study card. The diagram must be EDUCATIONALLY MEANINGFUL — it should help the student recall the concept's internal structure, not just decorate the card.
+        const visualPrompt = `You are generating a Mermaid.js diagram for a spaced repetition study card. The diagram is a SPATIAL MEMORY CUE — it helps the student recall the concept's structure at a glance. Simpler is better. A clean 5-node diagram beats a cluttered 10-node one.
 
 COURSE: ${course || "Unknown"}
 TOPIC: ${topic || "General"}
@@ -1276,32 +1276,39 @@ ${conceptA ? `Concept A: ${conceptA}` : ""}
 ${conceptB ? `Concept B: ${conceptB}` : ""}
 
 DIAGRAM STRATEGY BY TIER:
-- quickfire: Show the key fact's context — where it fits in a classification, timeline, or hierarchy.
-- explain: Show the causal chain or mechanism — WHY something works, with cause → effect arrows.
-- apply: Show rule → fact mapping — how the principle connects to the scenario's specific elements.
-- distinguish: Show a COMPARISON — two parallel branches with the distinguishing criteria highlighted.
-- mock: Show the argument structure — thesis, supporting points, counter-arguments.
+- quickfire: Show WHERE the fact sits — one parent node branching to 2-4 children. Classification or hierarchy.
+- explain: Show the causal chain — 3-5 nodes in a linear or branching cause → effect sequence.
+- apply: Show rule → facts mapping — the principle on top, 2-3 scenario elements below, connected by application arrows.
+- distinguish: Show TWO parallel columns — Concept A vs Concept B, with 2-3 features each and one node highlighting the key difference.
+- mock: Show the argument skeleton — thesis at top, 2-3 supporting points, one counter-argument.
 
 STRICT RULES:
-1. Output ONLY valid Mermaid markup. No code fences, no prose, no explanation before or after.
-2. Use graph TD or graph LR. Do NOT use mindmap (rendering issues), sequenceDiagram, pie, or other diagram types.
-3. Node labels must use FULL WORDS drawn from the question or answer. NEVER abbreviate concepts into opaque acronyms (no "DSU", "Comp", "Dev" alone). Use recognizable names from the material (e.g. "Development as Freedom", "Capabilities Approach").
-4. Edge labels should describe the RELATIONSHIP (e.g. "expands", "requires", "distinguishes", "causes"). Use -->|"label"| syntax.
-5. Use 5-12 nodes. Fewer than 5 is too vague; more than 12 is cluttered for a small display.
-6. Every node must map to a real idea from the question or answer. Do not invent unrelated concepts.
-7. The diagram must be self-contained — a student should grasp the structure from the diagram alone.
-8. The diagram is shown at thumbnail size; keep labels concise in length but never at the cost of meaning — prefer short phrases of real terms, not acronyms.
+1. Output ONLY valid Mermaid markup. No code fences, no prose, no explanation.
+2. Use graph TD or graph LR only. No mindmap, sequenceDiagram, pie, or other types.
+3. TARGET 5-7 NODES. Absolute maximum 8. If you need more than 8, you are overcomplicating it — find the higher-level grouping.
+4. Node labels: 2-5 words of REAL TERMS from the material. No single-letter abbreviations, no opaque acronyms. But keep labels SHORT — "Political Freedoms" not "The Five Instrumental Political Freedoms as Described by Sen".
+5. Edge labels: 1-2 word relationship verbs (e.g. "causes", "requires", "contrasts"). Use -->|"label"| syntax. Not every edge needs a label — use them only where the relationship is non-obvious.
+6. Every node must map to a real concept from the question or answer. No filler nodes.
+7. Prefer DEPTH over BREADTH. A 4-node causal chain (A causes B causes C causes D) teaches more than a flat list of 8 siblings.
+8. The diagram renders at thumbnail size first (180px tall). Design for that. If you squint and cannot read it, you have too many nodes.
 
 EXAMPLE (for "What are the five instrumental freedoms in Sen's framework?"):
 
 graph TD
-    A["Development as Freedom"] -->|"requires"| B["Instrumental Freedoms"]
-    B --> C["Political Freedoms"]
-    B --> D["Economic Facilities"]
-    B --> E["Social Opportunities"]
-    B --> F["Transparency Guarantees"]
+    A["Development as Freedom"] --> B["Instrumental Freedoms"]
+    B --> C["Political"]
+    B --> D["Economic"]
+    B --> E["Social"]
+    B --> F["Transparency"]
     B --> G["Protective Security"]
-    C & D & E & F & G -->|"expand"| H["Individual Agency"]`;
+
+EXAMPLE (for "How does trade diversion reduce welfare?"):
+
+graph LR
+    A["Regional Trade Agreement"] -->|"diverts"| B["Trade from Efficient Producer"]
+    B -->|"to"| C["Less Efficient Member"]
+    C -->|"raises"| D["Consumer Prices"]
+    D -->|"reduces"| E["Aggregate Welfare"]`;
 
         const geminiRes = await fetch(
           "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + env.GEMINI_API_KEY,
@@ -1310,7 +1317,7 @@ graph TD
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               systemInstruction: {
-                parts: [{ text: "You are generating Mermaid.js diagrams for spaced repetition study cards. Output ONLY valid Mermaid markup. Use graph TD or graph LR only. 5-12 nodes with full-word labels from the source material. No code fences, no prose." }]
+                parts: [{ text: "You generate minimal Mermaid.js diagrams for study cards. Output ONLY valid Mermaid markup. graph TD or graph LR only. Target 5-7 nodes max 8. Short real-term labels. No code fences, no prose, no explanation." }]
               },
               contents: [{ parts: [{ text: visualPrompt }] }],
               generationConfig: { temperature: 0.3, maxOutputTokens: 1024 }
