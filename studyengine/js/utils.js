@@ -341,11 +341,17 @@
     function setTierBadge(tier) {
       var b = el('tierBadge');
       var t = el('tierBadgeText');
-      var dot = b.querySelector('.tiny');
       var c = tierColour(tier);
-      b.style.background = c;
-      dot.style.opacity = '0.92';
-      t.textContent = tierLabel(tier);
+      if (b && t) {
+        var dot = b.querySelector('.tiny');
+        b.style.background = c;
+        if (dot) dot.style.opacity = '0.92';
+        t.textContent = tierLabel(tier);
+      }
+      var sessionTierText = el('sessionTierText');
+      if (sessionTierText) sessionTierText.textContent = tierLabel(tier);
+      var sessionTierDot = document.querySelector('.session-tier-pill .tiny');
+      if (sessionTierDot) sessionTierDot.style.color = c;
     }
 
     function showView(nextId) {

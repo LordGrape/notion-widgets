@@ -3413,11 +3413,13 @@ var tutorConversation = [];
     el('navHome').addEventListener('click', function() { switchNav('home'); });
     el('navCourses').addEventListener('click', function() { switchNav('courses'); });
     /* ── Session Exit with Confirmation ── */
-    el('exitSessionBtn').addEventListener('click', function() {
+    function handleSessionExitClick() {
       if (!session) return;
       el('confirmExitOv').classList.add('show');
       try { playPause(); } catch(e) {}
-    });
+    }
+    el('exitSessionBtn').addEventListener('click', handleSessionExitClick);
+    if (el('exitSessionHeaderBtn')) el('exitSessionHeaderBtn').addEventListener('click', handleSessionExitClick);
 
     el('confirmStay').addEventListener('click', function() {
       el('confirmExitOv').classList.remove('show');
