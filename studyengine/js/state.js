@@ -3182,14 +3182,103 @@ var tutorConversation = [];
       if (ncBtn) ncBtn.remove();
     }
 
+    function ensureShortcutHelpButton() {
+      var topbarRight = document.querySelector('.topbar-right');
+      if (!topbarRight || document.getElementById('shortcutHelpBtn')) return;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'icon-btn';
+      btn.id = 'shortcutHelpBtn';
+      btn.title = 'Keyboard shortcuts';
+      btn.setAttribute('aria-label', 'Keyboard shortcuts');
+      btn.textContent = '?';
+      btn.addEventListener('click', function() {
+        toggleShortcutHelpOverlay();
+        try { playClick(); } catch (e) {}
+      });
+      topbarRight.insertBefore(btn, topbarRight.firstChild || null);
+    }
+
+    function ensureShortcutHelpOverlay() {
+      var existing = document.getElementById('shortcutHelpOv');
+      if (existing) return existing;
+      var overlay = document.createElement('div');
+      overlay.id = 'shortcutHelpOv';
+      overlay.className = 'overlay';
+      overlay.setAttribute('aria-hidden', 'true');
+      overlay.innerHTML =
+        '<div class="modal" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts" style="max-width:420px;width:min(92vw,420px);">' +
+          '<div class="modal-head">' +
+            '<div style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--text);">Keyboard shortcuts</div>' +
+            '<button type="button" class="icon-btn" id="shortcutHelpClose" aria-label="Close"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg></button>' +
+          '</div>' +
+          '<div class="modal-body" style="max-height:min(70vh,520px);overflow:auto;">' +
+            '<div id="shortcutHelpGrid" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;">' +
+              '<div style="padding:10px 12px;border-radius:14px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.04);"><div style="font-weight:800;font-size:10px;margin-bottom:4px;">Space</div><div style="font-size:11px;color:var(--text-secondary);line-height:1.5;">Reveal answer / Next card / Skip Ask Tutor</div></div>' +
+              '<div style="padding:10px 12px;border-radius:14px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.04);"><div style="font-weight:800;font-size:10px;margin-bottom:4px;">1</div><div style="font-size:11px;color:var(--text-secondary);line-height:1.5;">Rate: Again</div></div>' +
+              '<div style="padding:10px 12px;border-radius:14px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.04);"><div style="font-weight:800;font-size:10px;margin-bottom:4px;">2</div><div style="font-size:11px;color:var(--text-secondary);line-height:1.5;">Rate: Hard</div></div>' +
+              '<div style="padding:10px 12px;border-radius:14px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.04);"><div style="font-weight:800;font-size:10px;margin-bottom:4px;">3</div><div style="font-size:11px;color:var(--text-secondary);line-height:1.5;">Rate: Good</div></div>' +
+              '<div style="padding:10px 12px;border-radius:14px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.04);"><div style="font-weight:800;font-size:10px;margin-bottom:4px;">4</div><div style="font-size:11px;color:var(--text-secondary);line-height:1.5;">Rate: Easy</div></div>' +
+              '<div style="padding:10px 12px;border-radius:14px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.04);"><div style="font-weight:800;font-size:10px;margin-bottom:4px;">D</div><div style="font-size:11px;color:var(--text-secondary);line-height:1.5;">Don&#39;t Know (generative tiers)</div></div>' +
+              '<div style="padding:10px 12px;border-radius:14px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.04);"><div style="font-weight:800;font-size:10px;margin-bottom:4px;">Esc</div><div style="font-size:11px;color:var(--text-secondary);line-height:1.5;">Exit session / Close modal</div></div>' +
+              '<div style="padding:10px 12px;border-radius:14px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.04);"><div style="font-weight:800;font-size:10px;margin-bottom:4px;">?</div><div style="font-size:11px;color:var(--text-secondary);line-height:1.5;">Show this help</div></div>' +
+              '<div style="padding:10px 12px;border-radius:14px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.04);"><div style="font-weight:800;font-size:10px;margin-bottom:4px;">Enter</div><div style="font-size:11px;color:var(--text-secondary);line-height:1.5;">Submit tutor response</div></div>' +
+              '<div style="padding:10px 12px;border-radius:14px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.04);"><div style="font-weight:800;font-size:10px;margin-bottom:4px;">Shift+Enter</div><div style="font-size:11px;color:var(--text-secondary);line-height:1.5;">New line in tutor input</div></div>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      document.body.appendChild(overlay);
+      overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) closeShortcutHelpOverlay();
+      });
+      var closeBtn = document.getElementById('shortcutHelpClose');
+      if (closeBtn) closeBtn.addEventListener('click', closeShortcutHelpOverlay);
+      return overlay;
+    }
+
+    function openShortcutHelpOverlay() {
+      var overlay = ensureShortcutHelpOverlay();
+      if (!overlay) return;
+      overlay.classList.add('show');
+      overlay.setAttribute('aria-hidden', 'false');
+      var grid = document.getElementById('shortcutHelpGrid');
+      if (window.gsap) {
+        gsap.fromTo(overlay.querySelector('.modal'), { opacity: 0, scale: 0.95, y: 8 }, { opacity: 1, scale: 1, y: 0, duration: 0.22, ease: 'power2.out' });
+        if (grid) {
+          var cards = Array.prototype.slice.call(grid.children || []);
+          if (window.innerWidth < 360) grid.style.gridTemplateColumns = '1fr';
+          gsap.fromTo(cards, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.18, stagger: 0.02, ease: 'power2.out', delay: 0.04 });
+        }
+      }
+    }
+
+    function closeShortcutHelpOverlay() {
+      var overlay = document.getElementById('shortcutHelpOv');
+      if (!overlay) return;
+      overlay.classList.remove('show');
+      overlay.setAttribute('aria-hidden', 'true');
+    }
+
+    function toggleShortcutHelpOverlay() {
+      var overlay = ensureShortcutHelpOverlay();
+      if (!overlay) return;
+      if (overlay.classList.contains('show')) closeShortcutHelpOverlay();
+      else openShortcutHelpOverlay();
+    }
+
+    function modalIsOpenForHotkeys() {
+      return modalOv.classList.contains('show') || settingsOv.classList.contains('show') || courseOv.classList.contains('show') || el('confirmExitOv').classList.contains('show') || el('confirmDeleteCourseOv').classList.contains('show') || !!(document.getElementById('shortcutHelpOv') && document.getElementById('shortcutHelpOv').classList.contains('show'));
+    }
+
 /* ── Keyboard shortcuts ── */
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') {
         /* Close modals first */
-        var hadModal = modalOv.classList.contains('show') || settingsOv.classList.contains('show') || courseOv.classList.contains('show') || el('confirmExitOv').classList.contains('show') || el('confirmDeleteCourseOv').classList.contains('show');
+        var hadModal = modalIsOpenForHotkeys();
         closeModals();
         el('confirmExitOv').classList.remove('show');
         el('confirmDeleteCourseOv').classList.remove('show');
+        closeShortcutHelpOverlay();
         if (hadModal) return;
 
         /* If in session, show confirmation instead of exiting immediately */
@@ -3202,6 +3291,11 @@ var tutorConversation = [];
       }
 
       var inText = (e.target && (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT'));
+      if (e.key === '?' && !inText && !modalOv.classList.contains('show') && !settingsOv.classList.contains('show') && !courseOv.classList.contains('show')) {
+        e.preventDefault();
+        toggleShortcutHelpOverlay();
+        return;
+      }
       if (!viewSession.classList.contains('active')) return;
       if (!session) return;
 
@@ -3334,6 +3428,7 @@ var tutorConversation = [];
       if (session) {
         finalizeTutorAnalyticsSession();
       }
+      if (typeof clearActiveSessionSnapshot === 'function') clearActiveSessionSnapshot();
       /* Save progress for items already reviewed */
       saveState();
       /* Reset session and return to dashboard */
@@ -3368,6 +3463,9 @@ var tutorConversation = [];
     var advancedOpen = false;
     var modalCourse = null; /* course name the modal is scoped to */
     var modalShowingPicker = false; /* true = showing course picker step */
+    var editingItemId = null;
+    var modalEditAfterSave = null;
+    var importFormat = 'json';
 
     function closeModals() {
       closeModal();
@@ -3394,6 +3492,11 @@ var tutorConversation = [];
     }
 
     function renderModal() {
+      var isEditing = !!editingItemId && !!state.items[editingItemId];
+      if (editingItemId && !isEditing) editingItemId = null;
+      var editingItem = isEditing ? state.items[editingItemId] : null;
+      var tabsRoot = el('modalTabs');
+      if (tabsRoot) tabsRoot.style.display = isEditing ? 'none' : '';
       /* tabs */
       el('modalTabs') && el('modalTabs').querySelectorAll('.tab').forEach(function(t) {
         var on = t.getAttribute('data-tab') === activeTab;
@@ -3409,7 +3512,9 @@ var tutorConversation = [];
       }
 
       var showAdd = (activeTab === 'add');
-      el('addNextBtn').style.display = showAdd ? 'inline-flex' : 'none';
+      el('addNextBtn').style.display = isEditing ? 'inline-flex' : (showAdd ? 'inline-flex' : 'none');
+      el('addNextBtn').textContent = isEditing ? 'Cancel' : 'Add & Next';
+      el('doneBtn').textContent = isEditing ? 'Save Changes' : 'Done';
 
       /* ── Course picker step ── */
       if (modalShowingPicker) {
@@ -3457,13 +3562,13 @@ var tutorConversation = [];
         var courseBadge = '<div class="modal-course-badge">' +
             '<div class="mcb-dot" style="background:' + esc(courseCol) + '"></div>' +
             '<span class="mcb-name">' + esc(modalCourse || 'Unknown') + '</span>' +
-            '<span class="mcb-change" onclick="modalShowingPicker=true;renderModal();">Change</span>' +
+            (isEditing ? '<span class="mcb-change" style="cursor:default;opacity:0.72;">Locked</span>' : '<span class="mcb-change" onclick="modalShowingPicker=true;renderModal();">Change</span>') +
             '</div>';
 
         modalForm.innerHTML = courseBadge +
           '<div class="field">' +
           '<label>Topic <span style="font-weight:500;letter-spacing:0.5px;text-transform:lowercase;opacity:0.7">(optional)</span></label>' +
-          '<input class="input" id="m_topic" placeholder="e.g., WTO Dispute Settlement">' +
+          '<input class="input" id="m_topic" placeholder="e.g., WTO Dispute Settlement" value="' + esc(editingItem ? (editingItem.topic || '') : '') + '">' +
           '<div class="chips topic-suggestions" id="topicSuggestions"></div>' +
           '</div>' +
           '<div class="field">' +
@@ -3475,24 +3580,25 @@ var tutorConversation = [];
           '    <option value="low">⚪ Low — peripheral context</option>' +
           '  </select>' +
           '</div>' +
-          areaField('Prompt', 'm_prompt', 'Question, cue, or concept to recall') +
-          areaField('Model Answer', 'm_answer', 'Ideal response to compare against') +
+          '<div class="field"><label>Prompt</label><textarea id="m_prompt" rows="4" placeholder="Question, cue, or concept to recall">' + esc(editingItem ? (editingItem.prompt || '') : '') + '</textarea></div>' +
+          '<div class="field"><label>Model Answer</label><textarea id="m_answer" rows="4" placeholder="Ideal response to compare against">' + esc(editingItem ? (editingItem.modelAnswer || '') : '') + '</textarea></div>' +
           '<div class="adv-toggle" id="advToggle">' +
           '<span class="adv-arrow">▶</span>' +
           '<span class="adv-text">Advanced fields (scenario, concepts, timer)</span>' +
           '</div>' +
           '<div class="adv-fields" id="advFields">' +
-          areaField('Scenario', 'm_scenario', 'Fact pattern or context for application (enables Apply It tier)') +
-          textField('Task', 'm_task', 'Instruction for the scenario (optional)') +
+          '<div class="field"><label>Scenario</label><textarea id="m_scenario" rows="4" placeholder="Fact pattern or context for application (enables Apply It tier)">' + esc(editingItem ? (editingItem.scenario || '') : '') + '</textarea></div>' +
+          '<div class="field"><label>Task</label><input class="input" id="m_task" placeholder="Instruction for the scenario (optional)" value="' + esc(editingItem ? (editingItem.task || '') : '') + '" /></div>' +
           '<div class="course-form-row">' +
-          textField('Concept A', 'm_conceptA', 'e.g., Trade creation') +
-          textField('Concept B', 'm_conceptB', 'e.g., Trade diversion') +
+          '<div class="field"><label>Concept A</label><input class="input" id="m_conceptA" placeholder="e.g., Trade creation" value="' + esc(editingItem ? (editingItem.conceptA || '') : '') + '" /></div>' +
+          '<div class="field"><label>Concept B</label><input class="input" id="m_conceptB" placeholder="e.g., Trade diversion" value="' + esc(editingItem ? (editingItem.conceptB || '') : '') + '" /></div>' +
           '</div>' +
           '<p class="help">Filling Concept A + B enables the Distinguish tier.</p>' +
-          selectField('Mock time limit', 'm_time', [{v:'5',t:'5 min'},{v:'10',t:'10 min'},{v:'15',t:'15 min'},{v:'30',t:'30 min'}], String(settings.mockDefaultMins || 10)) +
+          selectField('Mock time limit', 'm_time', [{v:'5',t:'5 min'},{v:'10',t:'10 min'},{v:'15',t:'15 min'},{v:'30',t:'30 min'}], String(editingItem && editingItem.timeLimitMins ? editingItem.timeLimitMins : (settings.mockDefaultMins || 10))) +
           '<p class="help">Setting a time limit enables the Mock Exam tier.</p>' +
           '</div>' +
-          '<div id="tierBadgeArea"></div>';
+          '<div id="tierBadgeArea"></div>' +
+          (isEditing ? '<button type="button" id="modalDeleteBtn" class="ghost-btn" style="width:100%;margin-top:14px;border-color:rgba(239,68,68,0.28);color:#ef4444;background:rgba(239,68,68,0.06);">Delete Card</button>' : '');
 
         /* Wire advanced toggle */
         setTimeout(function() {
@@ -3502,7 +3608,18 @@ var tutorConversation = [];
             tog.classList.toggle('open', advancedOpen);
             el('advFields').classList.toggle('show', advancedOpen);
           });
-          if (advancedOpen) {
+          if (isEditing) {
+            if (el('m_priority')) el('m_priority').value = editingItem && editingItem.priority ? editingItem.priority : 'medium';
+            if (el('m_time')) el('m_time').value = String(editingItem && editingItem.timeLimitMins ? editingItem.timeLimitMins : (settings.mockDefaultMins || 10));
+            var deleteBtn = el('modalDeleteBtn');
+            if (deleteBtn) {
+              deleteBtn.addEventListener('click', function() {
+                if (typeof deleteEditedItem === 'function') deleteEditedItem(editingItemId);
+              });
+            }
+          }
+          if (advancedOpen || isEditing) {
+            advancedOpen = true;
             tog && tog.classList.add('open');
             el('advFields') && el('advFields').classList.add('show');
           }
@@ -3523,10 +3640,40 @@ var tutorConversation = [];
 
         modalForm.innerHTML = courseBadge2 +
           '<div class="field">' +
-          '<label>Paste JSON array</label>' +
-          '<textarea class="input" id="m_import" rows="6" placeholder=\'[{"prompt":"...","modelAnswer":"..."}]\'></textarea>' +
-          '<p class="help">Each object needs at minimum: <b>prompt</b>, <b>modelAnswer</b>. Optional: topic, task, scenario, conceptA, conceptB, timeLimitMins. The course is set automatically to <b>' + esc(modalCourse) + '</b>.</p>' +
+          '<label>Import format</label>' +
+          '<div id="importFormatToggle" style="display:flex;gap:6px;flex-wrap:wrap;">' +
+          '<button type="button" class="chip' + (importFormat === 'json' ? ' active' : '') + '" data-import-format="json" style="border:none;cursor:pointer;">JSON</button>' +
+          '<button type="button" class="chip' + (importFormat === 'qa' ? ' active' : '') + '" data-import-format="qa" style="border:none;cursor:pointer;">Q/A Text</button>' +
+          '</div>' +
+          '</div>' +
+          '<div class="field">' +
+          '<label id="m_import_label">Paste JSON array</label>' +
+          '<textarea class="input" id="m_import" rows="8" style="min-height:200px;" placeholder=\'[{"prompt":"...","modelAnswer":"..."}]\'></textarea>' +
+          '<p class="help" id="m_import_help">Each object needs at minimum: <b>prompt</b>, <b>modelAnswer</b>. Optional: topic, task, scenario, conceptA, conceptB, timeLimitMins. The course is set automatically to <b>' + esc(modalCourse) + '</b>.</p>' +
           '</div>';
+        setTimeout(function() {
+          var toggle = document.getElementById('importFormatToggle');
+          if (toggle) {
+            toggle.querySelectorAll('[data-import-format]').forEach(function(btn) {
+              btn.addEventListener('click', function() {
+                importFormat = this.getAttribute('data-import-format') || 'json';
+                if (typeof updateImportModeUI === 'function') updateImportModeUI(true);
+                try { playClick(); } catch (eFmt) {}
+              });
+            });
+          }
+          var importInput = el('m_import');
+          if (importInput) {
+            importInput.addEventListener('input', function() {
+              var detected = (typeof detectImportMode === 'function') ? detectImportMode(this.value) : importFormat;
+              if (detected !== importFormat) {
+                importFormat = detected;
+                if (typeof updateImportModeUI === 'function') updateImportModeUI(true);
+              }
+            });
+          }
+          if (typeof updateImportModeUI === 'function') updateImportModeUI(false);
+        }, 0);
       }
 
       /* Focus first control */
@@ -3560,7 +3707,10 @@ var tutorConversation = [];
       return h;
     }
 
-    el('addNextBtn').addEventListener('click', function(){ addFromModal(true); });
+    el('addNextBtn').addEventListener('click', function(){
+      if (editingItemId) { closeModal(); return; }
+      addFromModal(true);
+    });
     el('doneBtn').addEventListener('click', function(){ addFromModal(false); });
 
     /* ── Import: Parse → Preview → Commit (3-phase) ── */
@@ -5937,6 +6087,9 @@ el('gearBtn').addEventListener('click', openSettings);
     };
 
     window.editCard = function(id) {
+      if (typeof editItem === 'function') {
+        return editItem(id);
+      }
       var it = state.items[id];
       if (!it) { toast('Card not found'); return; }
 
@@ -7217,9 +7370,11 @@ el('gearBtn').addEventListener('click', openSettings);
       bootDidInit = true;
       loadOptimizedWeights();
       initMascot();
+      ensureShortcutHelpButton();
       wireGlobalTutorNotesUI();
       renderDashboard();
       showView('viewDash');
+      if (typeof checkForResumableSession === 'function') checkForResumableSession();
 
       // ── Sidebar Init (standalone only) ──
       if (!isEmbedded) {
@@ -7418,12 +7573,45 @@ el('gearBtn').addEventListener('click', openSettings);
       if (totalItems === 0) return;
       var ar = avgRetention(state.items);
       var retTarget = ar == null ? null : Math.round(ar * 100);
+      var cramBannerEl = el('cramBanner');
+      if (cramBannerEl) {
+        var activeCrams = listCourses().map(function(course) {
+          return { name: course.name, cram: getCramState(course.name) };
+        }).filter(function(entry) {
+          return entry.cram && entry.cram.active;
+        }).sort(function(a, b) {
+          return (a.cram.daysUntil || 9999) - (b.cram.daysUntil || 9999);
+        });
+        if (activeCrams.length) {
+          var cramHtml = '';
+          activeCrams.forEach(function(entry) {
+            cramHtml += '<div class="cram-banner show" style="background:linear-gradient(135deg,rgba(239,68,68,0.12),rgba(245,158,11,0.08));border:1px solid rgba(239,68,68,0.3);border-radius:var(--radius-lg);padding:16px;margin:12px 0;">' +
+              '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+              '<span class="cram-dashboard-fire" style="display:inline-flex;align-items:center;justify-content:center;">🔥</span>' +
+              '<div style="min-width:0;">' +
+              '<div style="font-weight:600;font-size:13px;">CRAM MODE — ' + esc(entry.name) + ' (' + esc(String(entry.cram.daysUntil)) + ' days)</div>' +
+              '<div style="font-size:11px;opacity:0.7;">' + esc(entry.cram.intensity) + ' intensity · ' + esc(String(entry.cram.sessionMod)) + '× session size · ' + esc(String(entry.cram.intervalMod)) + '× intervals</div>' +
+              '</div>' +
+              '</div>' +
+              '</div>';
+          });
+          cramBannerEl.classList.add('show');
+          cramBannerEl.innerHTML = cramHtml;
+        } else {
+          cramBannerEl.classList.remove('show');
+          cramBannerEl.innerHTML = '';
+        }
+      }
       applyHomeStatVisuals(masteredCount, totalItems, retTarget);
       if (window.gsap) {
         gsap.fromTo(document.querySelectorAll('#tabHome .stats-row .stat, #tabHome .tutor-cal-row > *'),
           { opacity: 0, y: 10 },
           { opacity: 1, y: 0, duration: 0.35, stagger: 0.08, ease: 'power2.out' }
         );
+        if (cramBannerEl && cramBannerEl.querySelectorAll('.cram-banner').length) {
+          gsap.fromTo(cramBannerEl.querySelectorAll('.cram-banner'), { opacity: 0, x: -18 }, { opacity: 1, x: 0, duration: 0.28, stagger: 0.06, ease: 'power2.out' });
+          gsap.fromTo(cramBannerEl.querySelectorAll('.cram-dashboard-fire'), { scale: 0.96 }, { scale: 1.08, repeat: 1, yoyo: true, duration: 0.45, ease: 'sine.inOut', stagger: 0.08 });
+        }
       }
     };
 
