@@ -17,6 +17,14 @@
       mouseTracking: true
     });
 
+    var STUDYENGINE_WORKER_BASE = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine';
+    var TUTOR_ENDPOINT = STUDYENGINE_WORKER_BASE + '/tutor';
+    var MEMORY_ENDPOINT = STUDYENGINE_WORKER_BASE + '/memory';
+    var PREPARE_ENDPOINT = STUDYENGINE_WORKER_BASE + '/prepare';
+    var SYLLABUS_ENDPOINT = STUDYENGINE_WORKER_BASE + '/syllabus';
+    var LECTURE_CTX_ENDPOINT = STUDYENGINE_WORKER_BASE + '/lecture-context';
+    var GRADE_ENDPOINT = STUDYENGINE_WORKER_BASE + '/grade';
+
     /* ── State ── */
     var NS = 'studyengine';
 var DEFAULT_STATE = {
@@ -300,12 +308,39 @@ var el = function(id){ return document.getElementById(id); };
     var modelAnswerEl = el('modelAnswer');
     var ratingsEl = el('ratings');
     var studyIndicator = el('studyIndicator');
+    var modalOv = el('modalOv');
+    var settingsOv = el('settingsOv');
+    var courseModalOv = el('courseModalOv');
 
     var selectedCourse = 'All';
     var selectedTopic = 'All';
     var retentionFilter = 'All'; /* controls which course the retention graph shows */
 
     var session = null;
+    var activeRubric = null;
+    var essayPhase = null;
+    var essayOutlineText = '';
+    var essayOutlineTimer = null;
+    var essayOutlineEndsAt = 0;
+    var restudyIntervalTimer = null;
+    var restudyTimeoutTimer = null;
+    var breakState = {
+      sessionStartTime: 0,
+      lastBreakTime: 0,
+      breaksTaken: 0,
+      bannerDismissed: false,
+      breakTimerInterval: null,
+      breakDurationMs: 5 * 60 * 1000
+    };
+    var BREAK_TIPS = [
+      'Stand up, stretch, look at something 20 feet away for 20 seconds.',
+      'Take 5 deep breaths. Inhale for 4 seconds, hold for 4, exhale for 6.',
+      'Walk to another room and back. Physical movement improves hippocampal encoding.',
+      'Drink water. Even mild dehydration reduces working memory capacity by ~15%.',
+      'Close your eyes and mentally review the last 3 items you studied.',
+      'Do 10 squats or push-ups. Exercise-induced BDNF enhances memory consolidation.',
+      'Look out a window. Natural light exposure resets attentional circuitry.'
+    ];
     var awakeningState = {
       activeStep: null,
       name: '',
@@ -3328,7 +3363,6 @@ var tutorConversation = [];
     });
 
     /* ── Modal: Add items / Import JSON ── */
-    var modalOv = el('modalOv');
     var modalForm = el('modalForm');
     var activeTab = 'add';
     var advancedOpen = false;
@@ -3785,7 +3819,6 @@ var tutorConversation = [];
     }
 
     /* ── Settings ── */
-    var settingsOv = el('settingsOv');
     var settingsTabListenersBound = false;
 
     function resetSettingsModalTabs() {
