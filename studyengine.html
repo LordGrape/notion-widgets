@@ -4255,6 +4255,182 @@ body.standalone .answer.restudy-active{
       align-items: center;
     }
 
+    /* ── CSS SECTION: Session XP Bar ── */
+    .session-xp-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      margin-bottom: 10px;
+      border-radius: 12px;
+      background: rgba(var(--accent-rgb), 0.04);
+      border: 1px solid rgba(var(--accent-rgb), 0.10);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+    .session-xp-bar .sxp-label { flex-shrink: 0; }
+    .session-xp-bar .sxp-fill-wrap {
+      flex: 1;
+      height: 4px;
+      border-radius: 99px;
+      background: rgba(var(--accent-rgb), 0.08);
+      overflow: hidden;
+    }
+    .session-xp-bar .sxp-fill {
+      height: 100%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, var(--accent), rgba(var(--accent-rgb), 0.6));
+      transition: width 400ms ease;
+      width: 0%;
+    }
+    .session-xp-bar .sxp-value {
+      font-variant-numeric: tabular-nums;
+      color: var(--accent);
+      min-width: 48px;
+      text-align: right;
+    }
+    .session-xp-bar .sxp-streak {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      color: var(--rate-hard);
+    }
+
+    /* ── CSS SECTION: Done View Dragon ── */
+    .done-dragon-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      margin: 20px 0 8px;
+      position: relative;
+    }
+    .done-dragon-wrap {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    body.standalone .done-dragon-wrap {
+      width: 160px;
+      height: 160px;
+    }
+    .done-dragon-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      mix-blend-mode: screen;
+      filter: drop-shadow(0 0 16px rgba(var(--accent-rgb), 0.4));
+      position: relative;
+      z-index: 2;
+    }
+    .done-dragon-orb {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: radial-gradient(circle at 40% 35%,
+        rgba(var(--accent-rgb), 0.55),
+        rgba(var(--accent-rgb), 0.20) 60%,
+        transparent 80%);
+      border: 1px solid rgba(var(--accent-rgb), 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      position: relative;
+      z-index: 2;
+      box-shadow: 0 0 40px rgba(var(--accent-rgb), 0.15),
+                  inset 0 0 30px rgba(var(--accent-rgb), 0.08);
+    }
+    body.standalone .done-dragon-orb { font-size: 64px; }
+    .dragon-ember {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--accent);
+      opacity: 0;
+      z-index: 1;
+      pointer-events: none;
+      box-shadow: 0 0 6px rgba(var(--accent-rgb), 0.6);
+    }
+    .done-dragon-rank {
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--accent);
+      text-align: center;
+    }
+    .done-dragon-flavour {
+      font-size: 10px;
+      color: var(--text-secondary);
+      font-style: italic;
+      letter-spacing: 0.3px;
+      text-align: center;
+      min-height: 16px;
+    }
+
+    /* ── CSS SECTION: Milestone Overlay ── */
+    .milestone-overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.6);
+      z-index: 9999;
+      text-align: center;
+      padding: 20px;
+    }
+    .milestone-overlay.show { display: flex; }
+    .milestone-card {
+      padding: 32px 28px;
+      border-radius: 22px;
+      background: var(--card-bg);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      border: 1px solid rgba(var(--accent-rgb), 0.25);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 0 80px rgba(var(--accent-rgb), 0.15);
+      max-width: 340px;
+      width: 100%;
+    }
+    .milestone-card .ms-emoji { font-size: 56px; margin-bottom: 12px; }
+    .milestone-card .ms-title {
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+    .milestone-card .ms-rank {
+      font-size: 20px;
+      font-weight: 900;
+      color: var(--text);
+      letter-spacing: -0.3px;
+      margin-bottom: 16px;
+    }
+    .milestone-card .ms-dismiss {
+      padding: 10px 20px;
+      border-radius: 14px;
+      border: none;
+      background: linear-gradient(135deg, rgba(var(--accent-rgb),0.9), rgba(var(--accent-rgb),0.6));
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 200ms ease;
+    }
+    .milestone-card .ms-dismiss:hover { transform: translateY(-1px); }
+
     /* ── CSS SECTION: Per-Card XP Flash ── */
     /* ── Per-Card XP Flash ── */
     .xp-flash{
@@ -7328,6 +7504,26 @@ input[type="range"]::-moz-range-thumb{
           <!-- Tier Breakdown -->
           <div class="breakdown" id="doneBreakdown"></div>
 
+          <div class="done-dragon-section" id="doneDragonSection">
+            <div class="done-dragon-wrap" id="doneDragonWrap">
+              <div class="dragon-ember"></div>
+              <div class="dragon-ember"></div>
+              <div class="dragon-ember"></div>
+              <div class="dragon-ember"></div>
+              <div class="dragon-ember"></div>
+              <div class="dragon-ember"></div>
+              <div class="dragon-ember"></div>
+              <div class="dragon-ember"></div>
+              <div class="dragon-ember"></div>
+              <div class="dragon-ember"></div>
+              <div class="dragon-ember"></div>
+              <div class="dragon-ember"></div>
+              <div class="done-dragon-orb" id="doneDragonOrb">🥚</div>
+            </div>
+            <div class="done-dragon-rank" id="doneDragonRank">RECRUIT</div>
+            <div class="done-dragon-flavour" id="doneDragonFlavour"></div>
+          </div>
+
           <details class="session-summary" id="sessionAiSummaryWrap" style="display:none;">
             <summary class="ss-header">
               <span class="ss-icon">✨</span>
@@ -7481,6 +7677,14 @@ input[type="range"]::-moz-range-thumb{
         <button class="cb-stay" id="confirmStay">Keep studying</button>
         <button class="cb-leave" id="confirmLeave">End session</button>
       </div>
+    </div>
+  </div>
+  <div class="milestone-overlay" id="milestoneOv">
+    <div class="milestone-card">
+      <div class="ms-emoji" id="msEmoji">🐉</div>
+      <div class="ms-title">EVOLUTION</div>
+      <div class="ms-rank" id="msRank">—</div>
+      <button class="ms-dismiss" id="msDismiss">Continue</button>
     </div>
   </div>
   <div class="confirm-overlay" id="confirmDeleteCourseOv">
@@ -12131,6 +12335,13 @@ input[type="range"]::-moz-range-thumb{
         lastTutorContext: null,  /* { mode, turns, hadDialogue, wasDontKnow } — set by tutor flows */
         tutorAnalyticsHistoryKey: 's' + Date.now()
       };
+      /* Reset dragon done view for next session */
+      var oldDragonImg = document.querySelector('.done-dragon-img');
+      if (oldDragonImg) oldDragonImg.remove();
+      var oldOrb = document.getElementById('doneDragonOrb');
+      if (oldOrb) { oldOrb.style.display = ''; oldOrb.textContent = '🥚'; }
+      var oldXPBar = document.getElementById('sessionXPBar');
+      if (oldXPBar) oldXPBar.remove();
       sessionSummary = null;
       breakState.sessionStartTime = Date.now();
       breakState.lastBreakTime = 0;
@@ -12140,6 +12351,21 @@ input[type="range"]::-moz-range-thumb{
       var prevSum = el('sessionAiSummaryWrap');
       if (prevSum) prevSum.style.display = 'none';
       showView('viewSession');
+      try { document.body.classList.add('in-session'); } catch(e) {}
+      /* Insert session XP bar if not already present */
+      var sessionTop = document.querySelector('#viewSession .session-top');
+      if (sessionTop && !document.getElementById('sessionXPBar')) {
+        var xpBar = document.createElement('div');
+        xpBar.className = 'session-xp-bar';
+        xpBar.id = 'sessionXPBar';
+        xpBar.innerHTML =
+          '<span class="sxp-label">XP</span>' +
+          '<div class="sxp-fill-wrap"><div class="sxp-fill"></div></div>' +
+          '<span class="sxp-value">0 XP</span>' +
+          '<span class="sxp-streak"></span>';
+        sessionTop.insertAdjacentElement('afterend', xpBar);
+      }
+      updateSessionXPBar();
       try { playStart(); } catch(e) {}
       renderCurrentItem();
     }
@@ -15474,6 +15700,7 @@ input[type="range"]::-moz-range-thumb{
       session._xpFlashGuard = flashKey;
       session.xp += xp;
       flashXP(xp);
+      updateSessionXPBar();
       saveState();
       /* Build tutor context for Ask the Tutor */
       if (session) {
@@ -16501,6 +16728,161 @@ input[type="range"]::-moz-range-thumb{
       renderCurrentItem();
     }
 
+    /* ═══ SECTION: Get Dragon Stage | Functions: getDragonStage ═══ */
+    function getDragonStage(xp) {
+      if (xp >= 120000) return { stage: 5, rank: 'Major', abbr: 'Maj', emoji: '🐉', next: Infinity };
+      if (xp >= 60000)  return { stage: 4, rank: 'Captain', abbr: 'Capt', emoji: '🐉', next: 120000 };
+      if (xp >= 20000)  return { stage: 3, rank: 'Lieutenant', abbr: 'Lt', emoji: '🐉', next: 60000 };
+      if (xp >= 5000)   return { stage: 2, rank: 'Second Lieutenant', abbr: '2Lt', emoji: '🐲', next: 20000 };
+      if (xp >= 1000)   return { stage: 1, rank: 'Officer Cadet', abbr: 'OCdt', emoji: '🐣', next: 5000 };
+      return { stage: 0, rank: 'Recruit', abbr: 'Egg', emoji: '🥚', next: 1000 };
+    }
+
+    /* ═══ SECTION: Dragon Stage Images | Functions: getDragonImageUrl ═══ */
+    function getDragonImageUrl(stage) {
+      return null;
+    }
+
+    /* ═══ SECTION: Get Dragon Flavour | Functions: getDragonFlavour ═══ */
+    function getDragonFlavour(stage, avgRating) {
+      var lines = {
+        0: { good: 'The egg pulses warmly', bad: 'The egg rests quietly' },
+        1: { good: 'Thymos chirps approvingly', bad: 'Thymos blinks at you patiently' },
+        2: { good: 'Thymos flutters with excitement', bad: 'Thymos watches curiously' },
+        3: { good: 'Thymos nods with respect', bad: 'Thymos stands at attention' },
+        4: { good: 'Thymos roars in approval', bad: 'Thymos breathes steadily' },
+        5: { good: 'Thymos glances knowingly', bad: 'Thymos meditates quietly' }
+      };
+      var s = lines[stage] || lines[0];
+      return (avgRating >= 2.5) ? s.good : s.bad;
+    }
+
+    /* ═══ SECTION: Animate Done Dragon | Functions: animateDoneDragon ═══ */
+    function animateDoneDragon(sessionXP, avgRating) {
+      var totalXP = 0;
+      try { totalXP = parseInt(SyncEngine.get('dragon', 'xp') || '0', 10); } catch(e) {}
+      var info = getDragonStage(totalXP);
+      var imgUrl = getDragonImageUrl(info.stage);
+      var orbEl = document.getElementById('doneDragonOrb');
+      var wrapEl = document.getElementById('doneDragonWrap');
+      if (window.gsap && wrapEl) {
+        gsap.killTweensOf(wrapEl.querySelectorAll('.dragon-ember, .done-dragon-orb, .done-dragon-img, #doneDragonRank, #doneDragonFlavour'));
+      }
+      if (orbEl && wrapEl) {
+        var staleImg = wrapEl.querySelector('.done-dragon-img');
+        if (staleImg) staleImg.remove();
+        if (imgUrl) {
+          var img = document.createElement('img');
+          img.className = 'done-dragon-img';
+          img.src = imgUrl;
+          img.alt = 'Thymos - ' + info.rank;
+          orbEl.style.display = 'none';
+          wrapEl.insertBefore(img, wrapEl.firstChild);
+        } else {
+          orbEl.textContent = info.emoji;
+          orbEl.style.display = '';
+        }
+      }
+      var rankEl = document.getElementById('doneDragonRank');
+      var flavEl = document.getElementById('doneDragonFlavour');
+      if (rankEl) {
+        var pct = info.next === Infinity ? 100 : Math.round(((totalXP) / info.next) * 100);
+        rankEl.textContent = info.rank.toUpperCase() + ' · ' + totalXP.toLocaleString() + ' XP' +
+          (info.next !== Infinity ? ' · ' + Math.min(pct, 99) + '% to ' + getDragonStage(info.next).abbr : '');
+      }
+      if (flavEl) flavEl.textContent = getDragonFlavour(info.stage, avgRating);
+      if (!window.gsap) return;
+      var target = imgUrl ? wrapEl.querySelector('.done-dragon-img') : orbEl;
+      if (!target) return;
+      gsap.fromTo(target,
+        { scale: 0.3, opacity: 0 },
+        { scale: 1, opacity: 1, duration: 0.7, delay: 0.4, ease: 'back.out(1.7)' }
+      );
+      gsap.to(target, {
+        scaleY: 1.03, duration: 2.5, ease: 'sine.inOut',
+        yoyo: true, repeat: -1, delay: 1.2
+      });
+      gsap.to(target, {
+        y: -8, duration: 3.5, ease: 'sine.inOut',
+        yoyo: true, repeat: -1, delay: 1.2
+      });
+      gsap.to(target, {
+        filter: 'drop-shadow(0 0 24px rgba(var(--accent-rgb), 0.7))',
+        duration: 2, ease: 'sine.inOut',
+        yoyo: true, repeat: -1, delay: 1.2
+      });
+      var embers = wrapEl.querySelectorAll('.dragon-ember');
+      embers.forEach(function(ember, i) {
+        var startX = (Math.random() - 0.5) * 80;
+        var startY = 20 + Math.random() * 30;
+        gsap.set(ember, { x: startX, y: startY, opacity: 0 });
+        gsap.to(ember, {
+          y: startY - 50 - Math.random() * 40,
+          x: startX + (Math.random() - 0.5) * 30,
+          opacity: 0.7,
+          duration: 1.5 + Math.random() * 1.5,
+          delay: 0.8 + i * 0.18,
+          ease: 'power1.out',
+          repeat: -1,
+          repeatDelay: Math.random() * 0.5,
+          yoyo: false,
+          onRepeat: function() {
+            gsap.set(ember, {
+              x: (Math.random() - 0.5) * 80,
+              y: 20 + Math.random() * 30,
+              opacity: 0
+            });
+          }
+        });
+      });
+      if (rankEl) gsap.fromTo(rankEl, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.4, delay: 0.9, ease: 'power2.out' });
+      if (flavEl) gsap.fromTo(flavEl, { opacity: 0 }, { opacity: 1, duration: 0.5, delay: 1.2, ease: 'power2.out' });
+    }
+
+    /* ═══ SECTION: Check Evolution | Functions: checkDragonEvolution ═══ */
+    function checkDragonEvolution(xpBefore, xpAfter) {
+      var stageBefore = getDragonStage(xpBefore).stage;
+      var stageAfter = getDragonStage(xpAfter).stage;
+      if (stageAfter > stageBefore) {
+        var info = getDragonStage(xpAfter);
+        var ov = document.getElementById('milestoneOv');
+        var emojiEl = document.getElementById('msEmoji');
+        var rankEl = document.getElementById('msRank');
+        var dismissBtn = document.getElementById('msDismiss');
+        if (ov && emojiEl && rankEl) {
+          emojiEl.textContent = info.emoji;
+          rankEl.textContent = info.rank;
+          ov.classList.add('show');
+          try { playChime(); } catch(e) {}
+          try { launchConfetti(); } catch(e) {}
+          if (window.gsap) {
+            gsap.fromTo(ov.querySelector('.milestone-card'),
+              { scale: 0.7, opacity: 0 },
+              { scale: 1, opacity: 1, duration: 0.5, ease: 'back.out(1.8)' }
+            );
+          }
+          if (dismissBtn) {
+            dismissBtn.onclick = function() { ov.classList.remove('show'); };
+          }
+        }
+      }
+    }
+
+    /* ═══ SECTION: Update Session XP Bar | Functions: updateSessionXPBar ═══ */
+    function updateSessionXPBar() {
+      var bar = document.getElementById('sessionXPBar');
+      if (!bar || !session) return;
+      var valEl = bar.querySelector('.sxp-value');
+      var fillEl = bar.querySelector('.sxp-fill');
+      var streakEl = bar.querySelector('.sxp-streak');
+      if (valEl) valEl.textContent = session.xp + ' XP';
+      if (fillEl) fillEl.style.width = Math.min(100, Math.round((session.xp / 200) * 100)) + '%';
+      if (streakEl) {
+        var streak = (state.stats && state.stats.streakDays) || 0;
+        streakEl.innerHTML = streak > 0 ? ('🔥 ' + streak + 'd') : '';
+      }
+    }
+
     /* ═══ SECTION: Complete Session | Functions: completeSession ═══ */
     function completeSession() {
       stopTTS();
@@ -16541,6 +16923,11 @@ input[type="range"]::-moz-range-thumb{
         tutorModeCounts: session.tutorModeCounts ? JSON.parse(JSON.stringify(session.tutorModeCounts)) : defaultTutorModeCounts(),
         sessionRatingsLog: session.sessionRatingsLog ? session.sessionRatingsLog.slice() : []
       };
+      /* Dragon evolution check */
+      var dragonXPBefore = 0;
+      try { dragonXPBefore = parseInt(SyncEngine.get('dragon', 'xp') || '0', 10) - (sessionSnap.xp || 0); } catch(e) {}
+      var dragonXPAfter = dragonXPBefore + (sessionSnap.xp || 0);
+      var avgRatingForDragon = sessionSnap.ratingN ? (sessionSnap.ratingSum / sessionSnap.ratingN) : 0;
 
       /* Auto-optimize FSRS parameters every 50 reviews */
       if (state.stats.totalReviews > 0 && state.stats.totalReviews % 50 === 0) {
@@ -16576,7 +16963,10 @@ input[type="range"]::-moz-range-thumb{
       el('doneBreakdown').innerHTML = bd;
 
       session = null;
+      try { document.body.classList.remove('in-session'); } catch(e) {}
       showView('viewDone');
+      animateDoneDragon(sessionSnap.xp, avgRatingForDragon);
+      setTimeout(function() { checkDragonEvolution(dragonXPBefore, dragonXPAfter); }, 1500);
       scheduleUiTimer(function() {
         checkForCheckIn();
       }, 250);
