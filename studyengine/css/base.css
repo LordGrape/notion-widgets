@@ -285,7 +285,6 @@
       flex-shrink: 0;
     }
 
-    /* ── CSS SECTION: Top Navigation ── */
     /* ── Top Navigation ── */
     .nav-tabs{
       display: flex;
@@ -392,7 +391,6 @@
     }
     .view.active{ display: block; }
 
-    /* ── CSS SECTION: Tab Panels ── */
     /* ── Tab Panels ── */
     .tab-panel{
       display: none;
@@ -525,13 +523,6 @@
       width: 12px;
       height: 12px;
       border-width: 2px;
-    }
-    .pdf-import-btn{
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      cursor: pointer;
-      margin-top: 0;
     }
     .or-divider{
       text-align: center;
@@ -845,7 +836,6 @@
       opacity: 0.9;
     }
 
-    /* ── CSS SECTION: Side-by-Side Reveal Layout ── */
     /* ── Side-by-Side Reveal Layout ── */
     .reveal-columns{
       display: grid;
@@ -966,7 +956,6 @@
       margin-top: 12px;
     }
 
-    /* ── CSS SECTION: Inline Annotations ── */
     /* ── Inline Annotations ── */
     .anno-highlight{
       position: relative;
@@ -996,25 +985,6 @@
       background: rgba(59,130,246,0.15);
       border-bottom: 2px solid rgba(59,130,246,0.5);
     }
-
-    /* Annotation tooltip */
-    .anno-tip{
-      position: fixed;
-      display: none;
-      max-width: 300px;
-      padding: 10px 14px;
-      border-radius: 14px;
-      background: var(--card-bg);
-      backdrop-filter: var(--blur);
-      -webkit-backdrop-filter: var(--blur);
-      border: 1px solid rgba(var(--accent-rgb),0.22);
-      box-shadow: 0 12px 40px rgba(0,0,0,0.22);
-      z-index: 9999;
-      pointer-events: none;
-      opacity: 0;
-      transform: translateY(4px);
-      transition: opacity 150ms ease, transform 150ms ease;
-    }
     .anno-tip.show{
       display: block;
       opacity: 1;
@@ -1039,12 +1009,6 @@
       letter-spacing: 0.1px;
     }
 
-    /* Rating bar pinned full-width below columns */
-    .reveal-rating-bar{
-      margin-top: 14px;
-    }
-
-    /* ── CSS SECTION: AI Feedback Panel ── */
     /* ── AI Feedback Panel ── */
     .ai-feedback{
       margin-top: 14px;
@@ -1163,7 +1127,6 @@
       line-height: 1.55;
       letter-spacing: 0.1px;
     }
-    /* ── CSS SECTION: Re-encode: red outline to draw attention to model answer ── */
     /* ── Re-encode: red outline to draw attention to model answer ── */
     .restudy-active{
       border: 2px solid var(--rate-again) !important;
@@ -1378,7 +1341,6 @@
     }
     .skip:hover{ opacity: 1; background: rgba(var(--accent-rgb),0.05); border-color: rgba(var(--accent-rgb),0.10); }
 
-    /* ── CSS SECTION: Session Exit ── */
     /* ── Session Exit ── */
     .session-exit{
       appearance: none;
@@ -1405,7 +1367,6 @@
       transform: translateY(0) scale(0.98);
     }
 
-    /* ── CSS SECTION: Confirm Dialog ── */
     /* ── Confirm Dialog ── */
     .confirm-overlay{
       position: fixed;
@@ -1530,26 +1491,6 @@
     }
 
     .divider{ height: 10px; }
-
-    /* ── CSS SECTION: Confidence prompt (Quick Fire) ── */
-    /* ── Confidence prompt (Quick Fire) ── */
-    .confidence-prompt{
-      margin-top: 12px;
-      text-align: center;
-    }
-    .confidence-label{
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 1.8px;
-      text-transform: uppercase;
-      color: var(--text);
-      margin-bottom: 10px;
-    }
-    .confidence-pills{
-      display: flex;
-      gap: 8px;
-      justify-content: center;
-    }
     .conf-pill{
       flex: 1;
       max-width: 140px;
@@ -1589,39 +1530,10 @@
       background: var(--rate-good);
       box-shadow: 0 4px 16px rgba(34,197,94,0.25);
     }
-    .conf-then-reveal{
-      margin-top: 10px;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 200ms ease;
-    }
     .conf-then-reveal.ready{
       opacity: 1;
       pointer-events: auto;
     }
-
-    .qa-btn{
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      margin-top: 12px;
-      width: 100%;
-      padding: 11px 12px;
-      border-radius: 16px;
-      border: 1px solid rgba(var(--accent-rgb),0.18);
-      background: rgba(var(--accent-rgb),0.12);
-      color: var(--text);
-      cursor: pointer;
-      transition: transform var(--transition), background var(--transition), border-color var(--transition);
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      user-select: none;
-    }
-    .qa-btn:hover{ transform: translateY(-1px); background: rgba(var(--accent-rgb),0.16); border-color: rgba(var(--accent-rgb),0.30); }
-    .qa-btn:active{ transform: translateY(0) scale(0.99); }
 
     .answer{
       margin-top: 12px;
@@ -1642,7 +1554,6 @@
     .answer::-webkit-scrollbar-thumb{ background: rgba(var(--accent-rgb),0.18); border-radius: 99px; }
     .scenario.md-content{ white-space: normal; }
 
-    /* ── CSS SECTION: Dual Coding Visual ── */
     /* ── Dual Coding Visual ── */
     .visual-container{
       margin-top: 12px;
@@ -1739,79 +1650,8 @@
     .visual-container:hover::after{
       opacity: 0.6;
     }
-
-    /* ── CSS SECTION: Visual Lightbox ── */
-    /* ── Visual Lightbox ── */
-    .visual-lightbox-overlay{
-      position: fixed;
-      inset: 0;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: rgba(0,0,0,0.70);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      z-index: 200;
-      padding: 20px;
-    }
     .visual-lightbox-overlay.show{
       display: flex;
-    }
-    .visual-lightbox-header{
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      width: 100%;
-      max-width: 900px;
-      margin-bottom: 12px;
-    }
-    .visual-lightbox-title{
-      font-size: 8px;
-      font-weight: 800;
-      letter-spacing: 1.6px;
-      text-transform: uppercase;
-      color: var(--accent);
-    }
-    .visual-lightbox-close{
-      appearance: none;
-      border: 1px solid rgba(var(--accent-rgb),0.25);
-      background: rgba(var(--accent-rgb),0.08);
-      color: var(--text);
-      border-radius: 10px;
-      padding: 8px 14px;
-      font-size: 9px;
-      font-weight: 700;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      cursor: pointer;
-      font-family: inherit;
-      transition: background 200ms ease, transform 200ms ease;
-    }
-    .visual-lightbox-close:hover{
-      background: rgba(var(--accent-rgb),0.14);
-      transform: translateY(-1px);
-    }
-    .visual-lightbox-body{
-      width: 100%;
-      max-width: 900px;
-      max-height: calc(100vh - 140px);
-      overflow: auto;
-      border-radius: 18px;
-      background: var(--card-bg);
-      backdrop-filter: var(--blur);
-      -webkit-backdrop-filter: var(--blur);
-      border: 1px solid var(--card-border);
-      box-shadow: var(--shadow);
-      padding: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      touch-action: none;
-      cursor: grab;
-    }
-    .visual-lightbox-body:active{
-      cursor: grabbing;
     }
     .visual-lightbox-body svg{
       max-width: 100%;
@@ -1820,16 +1660,7 @@
       border-radius: 10px;
       transition: transform 120ms ease;
     }
-    .visual-lightbox-hint{
-      margin-top: 10px;
-      font-size: 8px;
-      font-weight: 600;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.4);
-    }
 
-    /* ── CSS SECTION: Ask the Tutor ── */
     /* ── Ask the Tutor ── */
     .ask-tutor-wrap{
       margin-top: 14px;
@@ -1889,12 +1720,6 @@
       color: var(--text);
       margin-bottom: 10px;
       line-height: 1.45;
-    }
-    .ask-tutor-question{
-      font-size: 13px;
-      line-height: 1.6;
-      color: var(--text);
-      margin-bottom: 12px;
     }
     body.standalone .ask-tutor-question{
       font-size: 14px;
@@ -2053,7 +1878,6 @@
     }
     .ask-tutor-continue:hover{ background: rgba(var(--accent-rgb),0.12); transform: translateY(-1px); }
 
-    /* ── CSS SECTION: TTS Listen Button ── */
     /* ── TTS Listen Button ── */
     .listen-tts-btn{
       display: inline-flex;
@@ -2093,7 +1917,6 @@
       50%{ box-shadow: 0 0 0 4px rgba(239,68,68,0.12); }
     }
 
-    /* ── CSS SECTION: Markdown content inside cards ── */
     /* ── Markdown content inside cards ── */
     .md-content p{ margin: 0 0 8px; }
     .md-content p:last-child{ margin-bottom: 0; }
@@ -2194,7 +2017,6 @@
       animation: pulseDot 1.0s ease-in-out infinite;
     }
 
-    /* ── CSS SECTION: Structured Restudy Screen ── */
     /* ── Structured Restudy Screen ── */
     .restudy-screen{
       display: none;
@@ -2207,7 +2029,6 @@
     }
     .restudy-screen.show{ display: block; }
 
-/* ── CSS SECTION: Restudy Mode: animate existing answer block ── */
 /* ── Restudy Mode: animate existing answer block ── */
 .answer.restudy-active{
   font-size: 16px;
@@ -2375,13 +2196,6 @@ body.standalone .answer.restudy-active{
       background: rgba(var(--accent-rgb),0.04);
     }
     textarea::placeholder{ color: var(--text-secondary); opacity: 0.85; }
-
-    .two-col{
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 10px;
-      margin-top: 12px;
-    }
     @media (min-width: 620px){
       .two-col{ grid-template-columns: 1fr 1fr; }
     }
@@ -2450,12 +2264,6 @@ body.standalone .answer.restudy-active{
       display: grid;
       gap: 10px;
     }
-    .rub-row{
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
     .rub-row .lbl{
       font-size: 8px;
       font-weight: 800;
@@ -2465,34 +2273,11 @@ body.standalone .answer.restudy-active{
       width: 82px;
       flex: 0 0 auto;
     }
-    .rub-pills{
-      display: flex;
-      gap: 6px;
-      flex: 1;
-      min-width: 0;
-      flex-wrap: wrap;
-    }
-    .rub-pill{
-      padding: 6px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(var(--accent-rgb),0.16);
-      background: var(--card-bg);
-      color: var(--text-secondary);
-      font-size: 9px;
-      letter-spacing: 0.6px;
-      font-weight: 700;
-      cursor: pointer;
-      user-select: none;
-      transition: transform var(--transition), background var(--transition), border-color var(--transition), color var(--transition);
-      white-space: nowrap;
-    }
     .rub-pill.active{
       color: #fff;
       border-color: rgba(255,255,255,0.18);
       background: var(--accent);
     }
-    .rub-pill:hover{ transform: translateY(-1px); }
-    .rub-pill:active{ transform: translateY(0) scale(0.98); }
 
     .ratings{
       margin-top: 14px;
@@ -2752,7 +2537,6 @@ body.standalone .answer.restudy-active{
     .item-card.tier-worked{ border-color: rgba(16,185,129,0.25); }
     .answer-header{ font-size: 8px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 8px; font-weight: 800; }
     textarea::placeholder{ color: var(--text-tertiary); }
-    .rub-pill{ padding: 8px 12px; font-size: 10px; letter-spacing: 0.5px; }
     .done-celebration{ text-align: center; padding: 20px 16px 8px; }
     .done-celebration .done-emoji{ font-size: 40px; margin-bottom: 8px; }
     .done-celebration .done-headline{ font-size: 16px; font-weight: 800; letter-spacing: -0.3px; }
@@ -2792,7 +2576,6 @@ body.standalone .answer.restudy-active{
       .session-top{ flex-wrap: wrap; }
     }
 
-    /* ── CSS SECTION: Course Cards ── */
     /* ── Course Cards ── */
     .course-cards{
       display: grid;
@@ -2866,7 +2649,6 @@ body.standalone .answer.restudy-active{
       flex-shrink: 0;
     }
 
-    /* ── CSS SECTION: Supported Tiers Badge ── */
     /* ── Supported Tiers Badge ── */
     .tier-support-badge{
       display: flex;
@@ -2898,7 +2680,6 @@ body.standalone .answer.restudy-active{
       white-space: nowrap;
     }
 
-    /* ── CSS SECTION: Advanced Toggle ── */
     /* ── Advanced Toggle ── */
     .adv-toggle{
       display: flex;
@@ -2933,7 +2714,6 @@ body.standalone .answer.restudy-active{
     }
     .adv-fields.show{ display: block; }
 
-    /* ── CSS SECTION: Course Modal ── */
     /* ── Course Modal ── */
     .course-form-row{
       display: grid;
@@ -2941,7 +2721,6 @@ body.standalone .answer.restudy-active{
       gap: 10px;
     }
 
-    /* ── CSS SECTION: Add Course Toggle ── */
     /* ── Add Course Toggle ── */
     .add-course-toggle{
       width: 100%;
@@ -2991,7 +2770,6 @@ body.standalone .answer.restudy-active{
       margin-top: 10px;
     }
 
-    /* ── CSS SECTION: Course Colour Picker ── */
     /* ── Course Colour Picker ── */
     .color-picker{
       display: flex;
@@ -3026,7 +2804,6 @@ body.standalone .answer.restudy-active{
     }
     .color-swatch.active::after{ display: flex; }
 
-    /* ── CSS SECTION: Topic Suggestions ── */
     /* ── Topic Suggestions ── */
     .topic-suggestions{
       display: none;
@@ -3039,13 +2816,11 @@ body.standalone .answer.restudy-active{
       padding: 5px 10px;
     }
 
-    /* ── CSS SECTION: Course-coloured left border on course cards ── */
     /* ── Course-coloured left border on course cards ── */
     .course-card{
       border-left: 5px solid var(--accent);
     }
 
-    /* ── CSS SECTION: Modal course header badge ── */
     /* ── Modal course header badge ── */
     .modal-course-badge{
       display: flex;
@@ -3088,7 +2863,6 @@ body.standalone .answer.restudy-active{
       color: var(--text);
     }
 
-    /* ── CSS SECTION: Course picker step in modal ── */
     /* ── Course picker step in modal ── */
     .course-picker-list{
       display: grid;
@@ -3228,7 +3002,6 @@ body.standalone .answer.restudy-active{
       transform: translateY(-1px);
     }
 
-    /* ── CSS SECTION: Course Detail Settings Button ── */
     /* ── Course Detail Settings Button ── */
     .cd-settings-btn{
       appearance: none;
@@ -3329,12 +3102,6 @@ body.standalone .answer.restudy-active{
     .archived-overlay{
       padding: 20px;
     }
-    .archived-header{
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 16px;
-    }
     .archived-title{
       font-size: 10px;
       font-weight: 800;
@@ -3419,7 +3186,6 @@ body.standalone .answer.restudy-active{
       flex-shrink: 0;
     }
 
-    /* ── CSS SECTION: Card Edit Form (inline expand) ── */
     /* ── Card Edit Form (inline expand) ── */
     .cd-edit-wrap{
       display: none;
@@ -3465,60 +3231,10 @@ body.standalone .answer.restudy-active{
       background: rgba(var(--accent-rgb),0.04);
     }
     .cd-edit-wrap textarea{ min-height: 70px; }
-    .cd-edit-row{
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
     @media (max-width: 480px){
       .cd-edit-row{ grid-template-columns: 1fr; }
     }
-    .cd-edit-actions{
-      display: flex;
-      gap: 8px;
-      margin-top: 12px;
-    }
-    .cd-edit-save{
-      flex: 1;
-      padding: 10px 14px;
-      border-radius: 14px;
-      border: none;
-      cursor: pointer;
-      background: linear-gradient(135deg, rgba(var(--accent-rgb),1), rgba(var(--accent-rgb),0.7));
-      color: #fff;
-      font-weight: 700;
-      font-size: 10px;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      transition: transform var(--transition), box-shadow var(--transition);
-      box-shadow: 0 6px 20px rgba(var(--accent-rgb),0.20);
-    }
-    .cd-edit-save:hover{ transform: translateY(-1px); box-shadow: 0 10px 28px rgba(var(--accent-rgb),0.26); }
-    .cd-edit-save:active{ transform: translateY(0) scale(0.99); }
-    .cd-edit-cancel{
-      padding: 10px 14px;
-      border-radius: 14px;
-      border: 1px solid rgba(var(--accent-rgb),0.16);
-      background: rgba(var(--accent-rgb),0.05);
-      color: var(--text-secondary);
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.8px;
-      text-transform: uppercase;
-      cursor: pointer;
-      transition: background var(--transition), transform var(--transition);
-    }
-    .cd-edit-cancel:hover{ background: rgba(var(--accent-rgb),0.10); transform: translateY(-1px); }
-    .cd-edit-changed{
-      font-size: 8px;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      color: var(--rate-hard);
-      font-weight: 700;
-      margin-top: 4px;
-    }
 
-    /* ── CSS SECTION: Analytics Strip ── */
     /* ── Analytics Strip ── */
     .analytics-strip{
       display: grid;
@@ -3812,26 +3528,6 @@ body.standalone .answer.restudy-active{
         font-size: 10px;
       }
     }
-
-    /* ── CSS SECTION: Canvas Hover Tooltip ── */
-    /* ── Canvas Hover Tooltip ── */
-    .canvas-tooltip{
-      position: fixed;
-      display: none;
-      padding: 8px 12px;
-      border-radius: 12px;
-      background: var(--card-bg);
-      backdrop-filter: var(--blur);
-      -webkit-backdrop-filter: var(--blur);
-      border: 1px solid rgba(var(--accent-rgb),0.22);
-      box-shadow: 0 8px 28px rgba(0,0,0,0.18);
-      pointer-events: none;
-      z-index: 9998;
-      white-space: nowrap;
-      transition: opacity 120ms ease, transform 120ms ease;
-      opacity: 0;
-      transform: translateY(4px);
-    }
     .canvas-tooltip.show{
       display: block;
       opacity: 1;
@@ -3860,7 +3556,6 @@ body.standalone .answer.restudy-active{
       margin-top: 2px;
     }
 
-    /* ── CSS SECTION: Retention Course Filter Chips ── */
     /* ── Retention Course Filter Chips ── */
     .ret-filter-chips{
       display: flex;
@@ -3897,13 +3592,6 @@ body.standalone .answer.restudy-active{
     .ret-chip[data-color]{
       border-color: currentColor;
     }
-
-    /* Sparkline + Ring side-by-side */
-    .analytics-row{
-      display: flex;
-      gap: 10px;
-      align-items: stretch;
-    }
     .analytics-row .spark-wrap{
       flex: 1;
       min-width: 0;
@@ -3915,7 +3603,6 @@ body.standalone .answer.restudy-active{
       justify-content: center;
     }
 
-    /* ── CSS SECTION: Course Detail Analytics Grid ── */
     /* ── Course Detail Analytics Grid ── */
     .cda-grid{
       display: grid;
@@ -3973,7 +3660,6 @@ body.standalone .answer.restudy-active{
       box-shadow: 0 0 6px rgba(0,0,0,0.15);
     }
 
-    /* ── CSS SECTION: Break System ── */
     /* ── Break System ── */
     .break-banner{
       display: none;
@@ -4110,7 +3796,6 @@ body.standalone .answer.restudy-active{
     }
     .break-card .bc-skip:hover{ background: rgba(var(--accent-rgb),0.12); transform: translateY(-1px); }
 
-    /* ── CSS SECTION: Card Edit Overlay ── */
     /* ── Card Edit Overlay ── */
     .edit-card-form {
       position: fixed;
@@ -4241,14 +3926,12 @@ body.standalone .answer.restudy-active{
     }
     .sync-saving{ animation: syncPulse 1s ease-in-out infinite; }
 
-    /* ── CSS SECTION: Priority Badge (inline in meta row) ── */
     /* ── Priority Badge (inline in meta row) ── */
     #metaPriority{
       display: inline-flex;
       align-items: center;
     }
 
-    /* ── CSS SECTION: Session XP Bar ── */
     .session-xp-bar {
       display: flex;
       align-items: center;
@@ -4292,7 +3975,6 @@ body.standalone .answer.restudy-active{
       color: var(--rate-hard);
     }
 
-    /* ── CSS SECTION: Done View Dragon ── */
     .done-dragon-section {
       display: flex;
       flex-direction: column;
@@ -4369,7 +4051,6 @@ body.standalone .answer.restudy-active{
       min-height: 16px;
     }
 
-    /* ── CSS SECTION: Milestone Overlay ── */
     .milestone-overlay {
       position: fixed;
       inset: 0;
@@ -4424,7 +4105,6 @@ body.standalone .answer.restudy-active{
     }
     .milestone-card .ms-dismiss:hover { transform: translateY(-1px); }
 
-    /* ── CSS SECTION: Per-Card XP Flash ── */
     /* ── Per-Card XP Flash ── */
     .xp-flash{
       position: fixed;
@@ -4532,10 +4212,6 @@ body.standalone .answer.restudy-active{
       margin-top: 2px;
     }
 
-    .cd-retention-graph{
-      margin-bottom: 14px;
-    }
-
     .cd-tier-stats{
       display: grid;
       grid-template-columns: repeat(5, 1fr);
@@ -4589,7 +4265,6 @@ body.standalone .answer.restudy-active{
     .cram-banner .cram-icon{ font-size: 14px; }
     .cram-banner .cram-text{ flex: 1; }
 
-    /* ── CSS SECTION: Ambient Micro-Animations ── */
     /* ── Ambient Micro-Animations ── */
     @keyframes ambientFloat {
       0%, 100% { transform: translateY(0px); }
@@ -4684,19 +4359,6 @@ body.standalone .answer.restudy-active{
         transition-duration: 0.01ms !important;
       }
     }
-
-    /* ── CSS SECTION: Essay Mode (Mock tier expansion) ── */
-    /* ── Essay Mode (Mock tier expansion) ── */
-    .essay-outline-phase{
-      margin-bottom: 12px;
-    }
-    .essay-phase-label{
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
     .essay-phase-label .epl-title{
       font-size: 9px;
       font-weight: 800;
@@ -4714,30 +4376,9 @@ body.standalone .answer.restudy-active{
       background: rgba(var(--accent-rgb),0.10);
       border: 1px solid rgba(var(--accent-rgb),0.18);
     }
-    .essay-structure-hint{
-      font-size: 9px;
-      letter-spacing: 0.8px;
-      color: var(--text-tertiary);
-      margin-bottom: 8px;
-      padding: 8px 12px;
-      border-radius: 12px;
-      border-left: 3px solid var(--accent);
-      background: rgba(var(--accent-rgb),0.04);
-      line-height: 1.6;
-    }
     .essay-structure-hint strong{
       color: var(--text-secondary);
       font-weight: 700;
-    }
-    .essay-outline-ref{
-      margin-bottom: 10px;
-      padding: 10px 12px;
-      border-radius: 14px;
-      border: 1px solid rgba(var(--accent-rgb),0.14);
-      background: rgba(var(--accent-rgb),0.04);
-      max-height: 120px;
-      overflow-y: auto;
-      scrollbar-width: thin;
     }
     .essay-outline-ref .eor-label{
       font-size: 7px;
@@ -4752,14 +4393,6 @@ body.standalone .answer.restudy-active{
       color: var(--text-secondary);
       white-space: pre-wrap;
       line-height: 1.5;
-    }
-    .essay-word-count{
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      margin-top: 6px;
-      padding: 4px 0;
     }
     .essay-word-count .ewc-current{
       font-size: 10px;
@@ -4785,7 +4418,6 @@ body.standalone .answer.restudy-active{
       outline-offset: 2px;
     }
 
-/* ── CSS SECTION: Info Tooltip ── */
 /* ── Info Tooltip ── */
 .setting-row{
   display: flex;
@@ -4918,7 +4550,6 @@ body.standalone .answer.restudy-active{
   background: rgba(255,255,255,0.08);
   border-color: rgba(var(--accent-rgb),0.22);
 }
-/* ── CSS SECTION: Tooltip v2: measure-then-place, auto-flip, arrow-tracks-source ── */
 /* ── Tooltip v2: measure-then-place, auto-flip, arrow-tracks-source ── */
 .info-tooltip{
   display: none;
@@ -5006,7 +4637,6 @@ body.standalone .answer.restudy-active{
   border-right: none;
 }
 
-/* ── CSS SECTION: Slider Track Styling ── */
 /* ── Slider Track Styling ── */
 input[type="range"]{
   -webkit-appearance: none;
@@ -5047,7 +4677,6 @@ input[type="range"]::-moz-range-thumb{
   cursor: grab;
 }
 
-/* ── CSS SECTION: Import Preview ── */
 /* ── Import Preview ── */
 .import-preview{
   margin-top: 12px;
@@ -5191,7 +4820,6 @@ input[type="range"]::-moz-range-thumb{
 }
 .import-actions .import-skip-dups-btn:hover{ background: rgba(245,158,11,0.14); transform: translateY(-1px); }
 
-    /* ── CSS SECTION: Socratic Tutor conversation ── */
     /* ── Socratic Tutor conversation ── */
     .tutor-relearn-banner{
       display: flex;
@@ -5342,7 +4970,6 @@ input[type="range"]::-moz-range-thumb{
       font-size: 8px;
       color: var(--text-tertiary);
     }
-    /* ── CSS SECTION: Quick Fire insight mini-input ── */
     /* ── Quick Fire insight mini-input ── */
     .qf-insight-ta{
       width: 100%;
@@ -5417,9 +5044,6 @@ input[type="range"]::-moz-range-thumb{
       border-radius: 14px;
       border: 1px solid rgba(34,197,94,0.2);
       background: rgba(34,197,94,0.04);
-    }
-    .qf-post-insight-cont{
-      margin-top: 4px;
     }
     .tutor-typing{
       align-self: flex-start;
@@ -5643,7 +5267,6 @@ input[type="range"]::-moz-range-thumb{
     }
     .model-answer-collapsible.open .mac-content{ display: block; }
 
-    /* ── CSS SECTION: App Layout (Standalone Only) ── */
     /* ── App Layout (Standalone Only) ── */
     body.standalone .app-layout {
       display: flex;
@@ -5663,7 +5286,6 @@ input[type="range"]::-moz-range-thumb{
     /* Hide old topbar in standalone mode (replaced by main-topbar + sidebar) */
     body.standalone .topbar { display: none !important; }
 
-    /* ── CSS SECTION: Sidebar ── */
     /* ── Sidebar ── */
     .sidebar {
       width: 260px;
@@ -5768,7 +5390,6 @@ input[type="range"]::-moz-range-thumb{
       border-color: rgba(var(--accent-rgb), 0.35);
     }
 
-    /* ── CSS SECTION: Course Tree ── */
     /* ── Course Tree ── */
     .sb-tree {
       flex: 1;
@@ -5874,7 +5495,6 @@ input[type="range"]::-moz-range-thumb{
     .tree-node.depth-3 { padding-left: 60px; }
     .tree-node.depth-3 .tree-label { font-weight: 400; font-size: 10px; color: var(--text-secondary); }
 
-    /* ── CSS SECTION: Hover Action Buttons ── */
     /* ── Hover Action Buttons ── */
     .tree-hover-actions {
       display: none;
@@ -5933,7 +5553,6 @@ input[type="range"]::-moz-range-thumb{
       color: var(--text);
     }
 
-    /* ── CSS SECTION: Context Menu ── */
     /* ── Context Menu ── */
     .tree-ctx-menu {
       position: fixed;
@@ -5983,7 +5602,6 @@ input[type="range"]::-moz-range-thumb{
       margin: 4px 8px;
     }
 
-    /* ── CSS SECTION: Tighter Tree Spacing ── */
     /* ── Tighter Tree Spacing ── */
     .tree-node {
       padding: 5px 12px;
@@ -6000,7 +5618,6 @@ input[type="range"]::-moz-range-thumb{
       font-size: 9px;
     }
 
-    /* ── CSS SECTION: Inline Sidebar Input ── */
     /* ── Inline Sidebar Input ── */
     .sb-inline-input-wrap {
       padding: 4px 12px 4px 28px;
@@ -6068,7 +5685,6 @@ input[type="range"]::-moz-range-thumb{
       margin: 8px 12px;
     }
 
-    /* ── CSS SECTION: Sidebar Footer ── */
     /* ── Sidebar Footer ── */
     .sb-footer {
       flex-shrink: 0;
@@ -6109,7 +5725,6 @@ input[type="range"]::-moz-range-thumb{
       letter-spacing: 0.5px;
     }
 
-    /* ── CSS SECTION: Main Area ── */
     /* ── Main Area ── */
     .main-area {
       flex: 1;
@@ -6278,7 +5893,6 @@ input[type="range"]::-moz-range-thumb{
       max-width: 1100px;
     }
 
-    /* ── CSS SECTION: Session mode: collapse sidebar ── */
     /* ── Session mode: collapse sidebar ── */
     body.standalone.in-session .sidebar {
       width: 0;
@@ -6318,7 +5932,6 @@ input[type="range"]::-moz-range-thumb{
       pointer-events: auto;
     }
 
-    /* ── CSS SECTION: Responsive ── */
     /* ── Responsive ── */
     @media (max-width: 1024px) {
       body:not(.standalone) .sidebar { width: 48px; }
@@ -6345,7 +5958,6 @@ input[type="range"]::-moz-range-thumb{
       .ctx-hero-due { font-size: 36px; }
     }
 
-    /* ── CSS SECTION: Context Views (Course/Module/Topic dashboards) ── */
     /* ── Context Views (Course/Module/Topic dashboards) ── */
     .ctx-header {
       display: flex;
@@ -6820,12 +6432,6 @@ input[type="range"]::-moz-range-thumb{
       font-weight: 300;
       letter-spacing: 0.05em;
       line-height: 1.5;
-    }
-    .awakening-prompt-subtle{
-      color: var(--text-secondary);
-      font-size: 0.95rem;
-      line-height: 1.7;
-      margin-bottom: 18px;
     }
     .awakening-field-label,
     .checkin-label{

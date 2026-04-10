@@ -19,7 +19,6 @@
 
     /* ── State ── */
     var NS = 'studyengine';
-    /* ═══ SECTION: Course Key | Functions: courseKey ═══ */
 var DEFAULT_STATE = {
       items: {},
       courses: {},
@@ -73,19 +72,16 @@ var DEFAULT_STATE = {
     var PRIORITY_COLORS = { critical: '#ef4444', high: '#f59e0b', medium: '#8b5cf6', low: '#6b7280' };
     var PRIORITY_WEIGHT = { critical: 3.0, high: 2.0, medium: 1.0, low: 0.5 };
     var CRAM_PRIORITY_BOOST = { critical: 1.5, high: 1.2, medium: 1.0, low: 0.7 };
-    /* ═══ SECTION: Get Priority | Functions: getPriority ═══ */
     function getPriority(item) {
       if (!item || !item.priority) return 'medium';
       return PRIORITY_LEVELS.indexOf(item.priority) >= 0 ? item.priority : 'medium';
     }
-    /* ═══ SECTION: Priority Weight | Functions: priorityWeight ═══ */
     function priorityWeight(item, cramActive) {
       var p = getPriority(item);
       var base = PRIORITY_WEIGHT[p] || 1.0;
       if (cramActive) base *= (CRAM_PRIORITY_BOOST[p] || 1.0);
       return base;
     }
-    /* ═══ SECTION: Priority Badge Html | Functions: priorityBadgeHTML ═══ */
     function priorityBadgeHTML(priority) {
       var p = priority || 'medium';
       var col = PRIORITY_COLORS[p] || PRIORITY_COLORS.medium;
@@ -122,27 +118,18 @@ var DEFAULT_STATE = {
       { name: 'Teal', value: '#14b8a6' }
     ];
 
-    /* ═══ SECTION: Get Course Color | Functions: getCourseColor ═══ */
 /* ── Exam-Aware Scheduling (replaces old objective modes) ── */
     /* No separate "modes" — FSRS runs identically for all items.
        The only modifier is whether a course has an exam date.
        When an exam date is set and within 14 days, cram mode activates. */
 
-    /* ═══ SECTION: Get Effective Retention | Functions: getEffectiveRetention ═══ */
-/* ═══ SECTION: Get Effective Profile | Functions: getEffectiveProfile ═══ */
-/* ═══ SECTION: Get Effective Bloom Bonus | Functions: getEffectiveBloomBonus ═══ */
 /* ── Cram Mode Detection ── */
-    /* ═══ SECTION: Get Cram State | Functions: getCramState ═══ */
 var state = null;
     var settings = null;
 
-    /* ═══ SECTION: Deep Clone | Functions: deepClone ═══ */
     function deepClone(obj){ return JSON.parse(JSON.stringify(obj || {})); }
 
     /* ── FSRS Parameter Optimization (ts-fsrs: clip/check — full training not in browser bundle) ── */
-    /* ═══ SECTION: Optimize Fsrs Params | Functions: optimizeFsrsParams ═══ */
-/* ═══ SECTION: Load Optimized Weights | Functions: loadOptimizedWeights ═══ */
-/* ═══ SECTION: Load State | Functions: loadState ═══ */
     function loadState() {
       var items = SyncEngine.get(NS, 'items') || null;
       var courses = SyncEngine.get(NS, 'courses') || null;
@@ -162,7 +149,6 @@ var state = null;
       }
     }
 
-    /* ═══ SECTION: Save State | Functions: saveState ═══ */
     function saveState() {
       SyncEngine.set(NS, 'items', state.items || {});
       SyncEngine.set(NS, 'courses', state.courses || {});
@@ -172,7 +158,6 @@ var state = null;
     }
 
     /* ── Item Migration (v1 → v2: tier field becomes optional) ── */
-    /* ═══ SECTION: Migrate Items | Functions: migrateItems ═══ */
     function migrateItems() {
       var changed = false;
       for (var id in state.items) {
@@ -207,8 +192,6 @@ var state = null;
     }
 
     /* ── Supported Tiers Detection ── */
-    /* ═══ SECTION: Detect Supported Tiers | Functions: detectSupportedTiers ═══ */
-/* ═══ SECTION: Get Promotion Candidates | Functions: getPromotionCandidates ═══ */
     function getPromotionCandidates(courseName) {
       var candidates = [];
       var TIER_ORDER = ['quickfire', 'explain', 'apply', 'distinguish', 'mock'];
@@ -234,7 +217,6 @@ var state = null;
       return candidates;
     }
 
-    /* ═══ SECTION: Promote Item Tier | Functions: promoteItemTier ═══ */
     function promoteItemTier(itemId, newTier) {
       var it = state.items[itemId];
       if (!it) return;
@@ -248,7 +230,6 @@ var state = null;
       toast('Promoted to ' + tierLabel(newTier).toUpperCase());
     }
 
-    /* ═══ SECTION: Tier Support Badge Html | Functions: tierSupportBadgeHTML ═══ */
     function tierSupportBadgeHTML(tiers) {
       if (!tiers || !tiers.length) return '';
       var h = '<div class="tier-support-badge"><span class="tsb-label">Supports</span>';
@@ -260,30 +241,8 @@ var state = null;
       return h;
     }
 
-    /* ═══ SECTION: Normalize Course Phase6 | Functions: normalizeCoursePhase6 ═══ */
 /* ── Module Helpers ── */
-    /* ═══ SECTION: Ensure Course Modules | Functions: ensureCourseModules ═══ */
-/* ═══ SECTION: Generate Module Id | Functions: generateModuleId ═══ */
-/* ═══ SECTION: Add Module To Course | Functions: addModuleToCourse ═══ */
-/* ═══ SECTION: Remove Module From Course | Functions: removeModuleFromCourse ═══ */
-/* ═══ SECTION: Rename Module | Functions: renameModule ═══ */
-/* ═══ SECTION: Get Module For Topic | Functions: getModuleForTopic ═══ */
-/* ═══ SECTION: Get Module By Id | Functions: getModuleById ═══ */
-/* ═══ SECTION: Get Cards For Module | Functions: getCardsForModule ═══ */
-/* ═══ SECTION: Get Cards For Topic | Functions: getCardsForTopic ═══ */
-/* ═══ SECTION: Get Cards For Course | Functions: getCardsForCourse ═══ */
-/* ═══ SECTION: Is Due Now | Functions: isDueNow ═══ */
-/* ═══ SECTION: Get Course Stats | Functions: getCourseStats ═══ */
-/* ═══ SECTION: Get Module Stats | Functions: getModuleStats ═══ */
-/* ═══ SECTION: Clamp Course String Fields | Functions: clampCourseStringFields ═══ */
-/* ═══ SECTION: Migrate Courses Phase6 | Functions: migrateCoursesPhase6 ═══ */
 /* ── Course Helpers ── */
-    /* ═══ SECTION: Get Course | Functions: getCourse ═══ */
-/* ═══ SECTION: Get Course Exam Type | Functions: getCourseExamType ═══ */
-/* ═══ SECTION: Is Course Manual | Functions: isCourseManual ═══ */
-/* ═══ SECTION: Save Course | Functions: saveCourse ═══ */
-/* ═══ SECTION: Delete Course | Functions: deleteCourse ═══ */
-/* ═══ SECTION: List Courses | Functions: listCourses ═══ */
 /* ── FSRS-6: 21 parameters. w[19] = short-term stability weight, w[20] = decay (was hardcoded 0.5 in FSRS-5) ── */
     var FSRS6_DEFAULT_DECAY = 0.1542;
     var DEFAULT_WEIGHTS = [0.2172, 1.2931, 2.3065, 8.2956, 6.4133, 0.8334, 3.0194, 0.001, 1.8722, 0.1666, 0.796, 1.4835, 0.0614, 0.2629, 1.6483, 0.6014, 1.8729, 0.5425, 0.0912, 0.0658, FSRS6_DEFAULT_DECAY];
@@ -301,19 +260,6 @@ var state = null;
       console.warn('ts-fsrs not loaded; inline FSRS only');
     }
 
-    /* ═══ SECTION: Clamp | Functions: clamp ═══ */
-/* ═══ SECTION: Days Between | Functions: daysBetween ═══ */
-/* ═══ SECTION: Iso Now | Functions: isoNow ═══ */
-/* ═══ SECTION: Iso Date | Functions: isoDate ═══ */
-/* ═══ SECTION: Get Fsrs Decay | Functions: getFsrsDecay ═══ */
-/* ═══ SECTION: Get Fsrs Factor | Functions: getFsrsFactor ═══ */
-/* ═══ SECTION: Retrievability | Functions: retrievability ═══ */
-/* ═══ SECTION: Initial Difficulty | Functions: initialDifficulty ═══ */
-/* ═══ SECTION: Update Difficulty | Functions: updateDifficulty ═══ */
-/* ═══ SECTION: Stability After Success | Functions: stabilityAfterSuccess ═══ */
-/* ═══ SECTION: Stability After Forget | Functions: stabilityAfterForget ═══ */
-/* ═══ SECTION: Next Interval Days | Functions: nextIntervalDays ═══ */
-/* ═══ SECTION: Schedule Fsrs | Functions: scheduleFsrs ═══ */
 /* ── UI + Session Engine ── */
     /* ═══════════════════════════════════════════
        SVG ICON SYSTEM (Lucide-style, 16×16, 1.5px stroke)
@@ -345,7 +291,6 @@ var state = null;
       model: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="10" rx="1.5"/><polyline points="2,5 8,9 14,5"/></svg>'
     };
 
-    /* ═══ SECTION: Icon | Functions: icon ═══ */
 var el = function(id){ return document.getElementById(id); };
     var viewDash = el('viewDash');
     var viewSession = el('viewSession');
@@ -357,7 +302,6 @@ var el = function(id){ return document.getElementById(id); };
     var retentionFilter = 'All'; /* controls which course the retention graph shows */
 
     var session = null;
-    var sessionSummary = null;
     var awakeningState = {
       activeStep: null,
       name: '',
@@ -374,21 +318,18 @@ var el = function(id){ return document.getElementById(id); };
       trigger: null
     };
 
-    /* ═══ SECTION: Schedule Ui Timer | Functions: scheduleUiTimer ═══ */
     function scheduleUiTimer(fn, delay) {
       var id = setTimeout(fn, delay);
       awakeningState.timers.push(id);
       return id;
     }
 
-    /* ═══ SECTION: Clear Awakening Timers | Functions: clearAwakeningTimers ═══ */
     function clearAwakeningTimers() {
       while (awakeningState.timers.length) {
         clearTimeout(awakeningState.timers.pop());
       }
     }
 
-    /* ═══ SECTION: Run With Gsap | Functions: runWithGsap ═══ */
     function runWithGsap(task, fallback) {
       if (window.gsap) {
         task(window.gsap);
@@ -404,7 +345,6 @@ var el = function(id){ return document.getElementById(id); };
       if (fallback) fallback();
     }
 
-    /* ═══ SECTION: Play Overlay Click | Functions: playOverlayClick ═══ */
     function playOverlayClick() {
       try {
         if (Core && Core.audio && Core.audio.click) Core.audio.click();
@@ -412,7 +352,6 @@ var el = function(id){ return document.getElementById(id); };
       } catch (e) {}
     }
 
-    /* ═══ SECTION: Play Overlay Chime | Functions: playOverlayChime ═══ */
     function playOverlayChime() {
       try {
         if (Core && Core.audio && Core.audio.chime) Core.audio.chime();
@@ -420,7 +359,6 @@ var el = function(id){ return document.getElementById(id); };
       } catch (e) {}
     }
 
-    /* ═══ SECTION: Get Dragon Growth Stage From Xp | Functions: getDragonGrowthStageFromXp ═══ */
     function getDragonGrowthStageFromXp(xp) {
       var thresholds = [0, 1000, 5000, 20000, 60000, 120000];
       var stage = 0;
@@ -430,14 +368,12 @@ var el = function(id){ return document.getElementById(id); };
       return stage;
     }
 
-    /* ═══ SECTION: Get Current Dragon Growth Stage | Functions: getCurrentDragonGrowthStage ═══ */
     function getCurrentDragonGrowthStage() {
       var xp = 0;
       try { xp = SyncEngine.get('dragon', 'xp') || 0; } catch (e) {}
       return getDragonGrowthStageFromXp(xp);
     }
 
-    /* ═══ SECTION: Get User Profile | Functions: getUserProfile ═══ */
     function getUserProfile() {
       var profile = null;
       try { profile = SyncEngine.get('user', 'profile') || null; } catch (e) {}
@@ -448,7 +384,6 @@ var el = function(id){ return document.getElementById(id); };
       return profile;
     }
 
-    /* ═══ SECTION: Save User Profile | Functions: saveUserProfile ═══ */
     function saveUserProfile(profile) {
       if (!profile) return;
       if (!profile.checkInSignals || typeof profile.checkInSignals !== 'object') profile.checkInSignals = {};
@@ -457,7 +392,6 @@ var el = function(id){ return document.getElementById(id); };
       if (profile.name) SyncEngine.set('user', 'name', profile.name);
     }
 
-    /* ═══ SECTION: Describe Check In Trigger | Functions: describeCheckInTrigger ═══ */
     function describeCheckInTrigger(trigger, name) {
       if (trigger && trigger.kind === 'absence') {
         return {
@@ -489,7 +423,6 @@ var el = function(id){ return document.getElementById(id); };
       };
     }
 
-    /* ═══ SECTION: Resolve Check In Trigger | Functions: resolveCheckInTrigger ═══ */
     function resolveCheckInTrigger(profile) {
       if (!profile) return null;
       var lastCheck = new Date(profile.lastCheckIn || profile.awakenedAt || isoNow());
@@ -542,7 +475,6 @@ var el = function(id){ return document.getElementById(id); };
       return null;
     }
 
-    /* ═══ SECTION: Stamp Check In Trigger | Functions: stampCheckInTrigger ═══ */
     function stampCheckInTrigger(profile, trigger, timestamp) {
       if (!profile) return profile;
       if (!profile.checkInSignals || typeof profile.checkInSignals !== 'object') profile.checkInSignals = {};
@@ -557,7 +489,6 @@ var el = function(id){ return document.getElementById(id); };
       return profile;
     }
 
-    /* ═══ SECTION: Close Check In | Functions: closeCheckIn ═══ */
     function closeCheckIn() {
       var overlay = el('checkin-overlay');
       if (!overlay) return;
@@ -579,7 +510,6 @@ var el = function(id){ return document.getElementById(id); };
       });
     }
 
-    /* ═══ SECTION: Persist Check In | Functions: persistCheckIn ═══ */
     function persistCheckIn(updated) {
       var profile = getUserProfile();
       if (!profile) return;
@@ -593,7 +523,6 @@ var el = function(id){ return document.getElementById(id); };
       closeCheckIn();
     }
 
-    /* ═══ SECTION: Show Check In | Functions: showCheckIn ═══ */
     function showCheckIn(profile, trigger) {
       if (!profile || checkInState.active) return;
       var overlay = el('checkin-overlay');
@@ -621,7 +550,6 @@ var el = function(id){ return document.getElementById(id); };
       });
     }
 
-    /* ═══ SECTION: Check For Check In | Functions: checkForCheckIn ═══ */
     function checkForCheckIn() {
       var profile = getUserProfile();
       if (!profile || !profile.awakened || checkInState.active) return;
@@ -629,7 +557,6 @@ var el = function(id){ return document.getElementById(id); };
       if (trigger) showCheckIn(profile, trigger);
     }
 
-    /* ═══ SECTION: Focus Awakening Field | Functions: focusAwakeningField ═══ */
     function focusAwakeningField(id) {
       scheduleUiTimer(function() {
         var field = el(id);
@@ -637,7 +564,6 @@ var el = function(id){ return document.getElementById(id); };
       }, 60);
     }
 
-    /* ═══ SECTION: Render Typewriter Lines | Functions: renderTypewriterLines ═══ */
     function renderTypewriterLines(containerId, lines, delayMs) {
       var container = el(containerId);
       if (!container) return 0;
@@ -669,7 +595,6 @@ var el = function(id){ return document.getElementById(id); };
       return totalDelay;
     }
 
-    /* ═══ SECTION: Set Awakening Button Enabled | Functions: setAwakeningButtonEnabled ═══ */
     function setAwakeningButtonEnabled(id, enabled) {
       var button = el(id);
       if (!button) return;
@@ -684,7 +609,6 @@ var el = function(id){ return document.getElementById(id); };
       });
     }
 
-    /* ═══ SECTION: Reset Awakening Button Reveal | Functions: resetAwakeningButtonReveal ═══ */
     function resetAwakeningButtonReveal(id) {
       var button = el(id);
       if (!button) return;
@@ -693,7 +617,6 @@ var el = function(id){ return document.getElementById(id); };
       button.style.transform = 'translateY(10px)';
     }
 
-    /* ═══ SECTION: Switch Awakening Step | Functions: switchAwakeningStep ═══ */
     function switchAwakeningStep(nextId, onShown) {
       clearAwakeningTimers();
       var next = el(nextId);
@@ -729,7 +652,6 @@ var el = function(id){ return document.getElementById(id); };
       activate();
     }
 
-    /* ═══ SECTION: Burst Awakening Particles | Functions: burstAwakeningParticles ═══ */
     function burstAwakeningParticles() {
       var host = el('awakening-hatch-particles');
       if (!host) return;
@@ -755,7 +677,6 @@ var el = function(id){ return document.getElementById(id); };
       }
     }
 
-    /* ═══ SECTION: Start Hatch Sequence | Functions: startHatchSequence ═══ */
     function startHatchSequence() {
       var dormant = el('awakening-egg-dormant');
       var cracking = el('awakening-egg-cracking');
@@ -868,7 +789,6 @@ var el = function(id){ return document.getElementById(id); };
       });
     }
 
-    /* ═══ SECTION: Render Awakening Step | Functions: renderAwakeningStep ═══ */
     function renderAwakeningStep(stepKey) {
       if (stepKey === 'intro') {
         resetAwakeningButtonReveal('awakening-begin-btn');
@@ -918,7 +838,6 @@ var el = function(id){ return document.getElementById(id); };
       }
     }
 
-    /* ═══ SECTION: Complete Awakening | Functions: completeAwakening ═══ */
     function completeAwakening() {
       var overlay = el('awakening-overlay');
       if (!overlay) return;
@@ -960,7 +879,6 @@ var el = function(id){ return document.getElementById(id); };
       });
     }
 
-    /* ═══ SECTION: Show Awakening | Functions: showAwakening ═══ */
     function showAwakening(onComplete) {
       ['egg-dormant','egg-cracking','egg-hatching','dragon-hatchling'].forEach(function(name) {
         var img = new Image();
@@ -1081,17 +999,7 @@ var el = function(id){ return document.getElementById(id); };
       });
     }
 
-    /* ═══ SECTION: Uid | Functions: uid ═══ */
-/* ═══ SECTION: Tier Label | Functions: tierLabel ═══ */
-/* ═══ SECTION: Tier Colour | Functions: tierColour ═══ */
-/* ═══ SECTION: Set Tier Badge | Functions: setTierBadge ═══ */
-/* ═══ SECTION: Show View | Functions: showView ═══ */
-/* ═══ SECTION: Count Due | Functions: countDue ═══ */
-/* ═══ SECTION: Avg Retention | Functions: avgRetention ═══ */
 /* Recompute stats from actual item data — call after any delete/archive */
-    /* ═══ SECTION: Reconcile Stats | Functions: reconcileStats ═══ */
-/* ═══ SECTION: Calibration Pct | Functions: calibrationPct ═══ */
-/* ═══ SECTION: Get Overconfident Topics | Functions: getOverconfidentTopics ═══ */
     function getOverconfidentTopics(courseName) {
       var topicStats = {};
       for (var id in state.items) {
@@ -1118,7 +1026,6 @@ var el = function(id){ return document.getElementById(id); };
       return overconfident;
     }
 
-    /* ═══ SECTION: Get Sleep Aware Advice | Functions: getSleepAwareAdvice ═══ */
     function getSleepAwareAdvice() {
       var hour = new Date().getHours();
       if (hour >= 19 || hour < 5) {
@@ -1142,7 +1049,6 @@ var el = function(id){ return document.getElementById(id); };
       return { show: false, bias: 'neutral' };
     }
 
-    /* ═══ SECTION: Set Cal Arc | Functions: setCalArc ═══ */
     function setCalArc(p) {
       var arc = el('calArc');
       var dash = 120;
@@ -1208,12 +1114,6 @@ var el = function(id){ return document.getElementById(id); };
       if (analyticsStrip.parentNode !== detailsBody) detailsBody.appendChild(analyticsStrip);
     }
 
-    /* ═══ SECTION: Render Dashboard | Functions: renderDashboard ═══ */
-/* ═══ SECTION: Render Course Cards | Functions: renderCourseCards ═══ */
-/* ═══ SECTION: Render Course Chips | Functions: renderCourseChips ═══ */
-/* ═══ SECTION: Render Topic Chips | Functions: renderTopicChips ═══ */
-/* ═══ SECTION: Animate Counter | Functions: animateCounter ═══ */
-/* ═══ SECTION: Esc | Functions: esc ═══ */
  {
       var box = el('s_costEstimate');
       if (!box || typeof SyncEngine === 'undefined' || !SyncEngine.get) return;
@@ -1240,8 +1140,6 @@ var el = function(id){ return document.getElementById(id); };
       box.textContent = 'This month: ' + flashM + ' Flash / ' + proM + ' Pro calls · Estimated cost: ~' + costStr;
     }
 
-    /* ═══ SECTION: Request Session Ai Summary | Functions: requestSessionAiSummary ═══ */
-/* ═══ SECTION: Auto Prepare After Import | Functions: autoPrepareAfterImport ═══ */
     function autoPrepareAfterImport(courseName, importedItems) {
       if (!courseName || !importedItems || importedItems.length < 3) return;
       if (settings.feedbackMode === 'self_rate') return;
@@ -1302,7 +1200,6 @@ var el = function(id){ return document.getElementById(id); };
         .catch(function() {});
     }
 
-    /* ═══ SECTION: Maybe Auto Prepare | Functions: maybeAutoPrepare ═══ */
     function maybeAutoPrepare(courseName) {
       var courseData = state.courses && state.courses[courseName];
       if (!courseData || courseData.prepared) return;
@@ -1321,7 +1218,6 @@ var el = function(id){ return document.getElementById(id); };
       autoPrepareAfterImport(courseName, allItems);
     }
 
-    /* ═══ SECTION: Extract Pdf Text | Functions: extractPdfText ═══ */
     function extractPdfText(file) {
       return new Promise(function(resolve, reject) {
         if (typeof pdfjsLib === 'undefined') {
@@ -1334,7 +1230,6 @@ var el = function(id){ return document.getElementById(id); };
           pdfjsLib.getDocument({ data: typedArray }).promise.then(function(pdf) {
             var pages = [];
             var total = pdf.numPages;
-            /* ═══ SECTION: Extract Page | Functions: extractPage ═══ */
             function extractPage(i) {
               if (i > total) {
                 resolve(pages.join('\n\n'));
@@ -1356,7 +1251,6 @@ var el = function(id){ return document.getElementById(id); };
       });
     }
 
-    /* ═══ SECTION: Post Syllabus Distill | Functions: postSyllabusDistill ═══ */
     function postSyllabusDistill(rawText, courseName, existingExamType) {
       var t = rawText != null ? String(rawText) : '';
       var truncated = t.length > 15000 ? t.slice(0, 15000) : t;
@@ -1374,13 +1268,11 @@ var el = function(id){ return document.getElementById(id); };
       }).then(function(res) { return res.json(); });
     }
 
-    /* ═══ SECTION: Get All Tutor Memories | Functions: getAllTutorMemories ═══ */
     function getAllTutorMemories() {
       if (typeof SyncEngine === 'undefined' || !SyncEngine.get) return [];
       return SyncEngine.get(NS, 'tutorMemories') || [];
     }
 
-    /* ═══ SECTION: Get Course Scoped Memories For Display | Functions: getCourseScopedMemoriesForDisplay ═══ */
     function getCourseScopedMemoriesForDisplay(courseName) {
       return getAllTutorMemories()
         .filter(function(m) {
@@ -1389,26 +1281,22 @@ var el = function(id){ return document.getElementById(id); };
         .sort(function(a, b) { return (b.confidence || 0) - (a.confidence || 0); });
     }
 
-    /* ═══ SECTION: Get Global Memories For Display | Functions: getGlobalMemoriesForDisplay ═══ */
     function getGlobalMemoriesForDisplay() {
       return getAllTutorMemories()
         .filter(function(m) { return m && m.scope === 'global'; })
         .sort(function(a, b) { return (b.confidence || 0) - (a.confidence || 0); });
     }
 
-    /* ═══ SECTION: Memory Type Label | Functions: memoryTypeLabel ═══ */
     function memoryTypeLabel(t) {
       var map = { pattern: 'Pattern', misconception: 'Misconception', strength: 'Strength', connection: 'Connection' };
       return map[t] || (t ? String(t) : 'Note');
     }
 
-    /* ═══ SECTION: Tutor Notes Info Icon Html | Functions: tutorNotesInfoIconHTML ═══ */
     function tutorNotesInfoIconHTML() {
       return '<span class="info-icon" tabindex="0" role="button" aria-label="What are tutor notes?">ⓘ' +
         '<span class="info-tooltip">Tutor notes are observations the AI tutor builds about your learning over time. It tracks recurring mistakes (patterns), specific misunderstandings (misconceptions), reliable knowledge areas (strengths), and links between topics (connections). These memories persist across sessions, so the tutor can reference past struggles, connect new material to things you already know, and avoid repeating feedback you have already absorbed. Course-specific notes apply only within one course; global notes inform the tutor across all your courses.<span class="tip-arrow"></span></span></span>';
     }
 
-    /* ═══ SECTION: Render Single Tutor Note Html | Functions: renderSingleTutorNoteHTML ═══ */
     function renderSingleTutorNoteHTML(m) {
       var confPct = Math.min(100, Math.max(0, Math.round((Number(m.confidence) || 0.5) * 100)));
       var scopeLabel = m && m.scope === 'global' ? 'GLOBAL' : 'COURSE';
@@ -1420,7 +1308,6 @@ var el = function(id){ return document.getElementById(id); };
         '</div>';
     }
 
-    /* ═══ SECTION: Render Tutor Notes Clear Controls | Functions: renderTutorNotesClearControls ═══ */
     function renderTutorNotesClearControls(scope, courseName) {
       var attrs = ' data-clear-scope="' + esc(scope || '') + '"';
       if (scope === 'course' && courseName) attrs += ' data-course-enc="' + esc(encodeURIComponent(courseName)) + '"';
@@ -1437,7 +1324,6 @@ var el = function(id){ return document.getElementById(id); };
         '</div></div></div>';
     }
 
-    /* ═══ SECTION: Render Course Tutor Notes Panel Html | Functions: renderCourseTutorNotesPanelHTML ═══ */
     function renderCourseTutorNotesPanelHTML(courseName) {
       var courseNotes = getCourseScopedMemoriesForDisplay(courseName);
       var globalNotes = getGlobalMemoriesForDisplay();
@@ -1467,7 +1353,6 @@ var el = function(id){ return document.getElementById(id); };
         '</div></div>';
     }
 
-    /* ═══ SECTION: Render Global Tutor Notes Overlay Html | Functions: renderGlobalTutorNotesOverlayHTML ═══ */
     function renderGlobalTutorNotesOverlayHTML() {
       var mems = getAllTutorMemories().slice().sort(function(a, b) { return (b.confidence || 0) - (a.confidence || 0); });
       var courseNotes = mems.filter(function(m) { return m && m.scope !== 'global'; });
@@ -1491,7 +1376,6 @@ var el = function(id){ return document.getElementById(id); };
       return h;
     }
 
-    /* ═══ SECTION: Wire Tutor Notes Clear Confirmation | Functions: wireTutorNotesClearConfirmation ═══ */
     function wireTutorNotesClearConfirmation(container) {
       if (!container) return;
       var clearTrigger = container.querySelector('.tn-clear-trigger');
@@ -1530,7 +1414,6 @@ var el = function(id){ return document.getElementById(id); };
       }
     }
 
-    /* ═══ SECTION: Wire Tutor Notes Panel Toggle | Functions: wireTutorNotesPanelToggle ═══ */
     function wireTutorNotesPanelToggle(host) {
       if (!host) return;
       var btn = host.querySelector('.tutor-notes-toggle');
@@ -1544,7 +1427,6 @@ var el = function(id){ return document.getElementById(id); };
       wireTutorNotesClearConfirmation(host);
     }
 
-    /* ═══ SECTION: Clear Course Tutor Memories For Course | Functions: clearCourseTutorMemoriesForCourse ═══ */
     function clearCourseTutorMemoriesForCourse(courseName) {
       if (!courseName || typeof SyncEngine === 'undefined' || !SyncEngine.get || !SyncEngine.set) return;
       var all = SyncEngine.get(NS, 'tutorMemories') || [];
@@ -1563,7 +1445,6 @@ var el = function(id){ return document.getElementById(id); };
       }
     }
 
-    /* ═══ SECTION: Clear Global Tutor Memories | Functions: clearGlobalTutorMemories ═══ */
     function clearGlobalTutorMemories() {
       if (typeof SyncEngine === 'undefined' || !SyncEngine.get || !SyncEngine.set) return;
       var all = SyncEngine.get(NS, 'tutorMemories') || [];
@@ -1577,7 +1458,6 @@ var el = function(id){ return document.getElementById(id); };
       }
     }
 
-    /* ═══ SECTION: Open Global Tutor Notes Overlay | Functions: openGlobalTutorNotesOverlay ═══ */
     function openGlobalTutorNotesOverlay() {
       var ov = el('globalTutorNotesOv');
       var body = el('globalTutorNotesBody');
@@ -1589,7 +1469,6 @@ var el = function(id){ return document.getElementById(id); };
       try { playOpen(); } catch (e0) {}
     }
 
-    /* ═══ SECTION: Close Global Tutor Notes Overlay | Functions: closeGlobalTutorNotesOverlay ═══ */
     function closeGlobalTutorNotesOverlay() {
       var ov = el('globalTutorNotesOv');
       if (!ov) return;
@@ -1599,7 +1478,6 @@ var el = function(id){ return document.getElementById(id); };
     }
 
     var globalTutorNotesWired = false;
-    /* ═══ SECTION: Wire Global Tutor Notes Ui | Functions: wireGlobalTutorNotesUI ═══ */
     function wireGlobalTutorNotesUI() {
       if (globalTutorNotesWired) return;
       globalTutorNotesWired = true;
@@ -1619,13 +1497,10 @@ var el = function(id){ return document.getElementById(id); };
       }
     }
 
-    /* ═══ SECTION: Build Learner Context | Functions: buildLearnerContext ═══ */
-/* ═══ SECTION: Get Feedback Area | Functions: getFeedbackArea ═══ */
     function getFeedbackArea() {
       return document.getElementById('aiFeedbackRight') || el('aiFeedbackArea');
     }
 
-    /* ═══ SECTION: Get Tutor User Name | Functions: getTutorUserName ═══ */
     function getTutorUserName() {
       if (settings.userName && String(settings.userName).trim()) return String(settings.userName).trim();
       try {
@@ -1637,7 +1512,6 @@ var el = function(id){ return document.getElementById(id); };
       return 'there';
     }
 
-    /* ═══ SECTION: Select Model | Functions: selectModel ═══ */
     function selectModel(item, sess) {
       var mo = settings.modelOverride || 'adaptive';
       if (mo === 'pro') return 'pro';
@@ -1666,7 +1540,6 @@ var el = function(id){ return document.getElementById(id); };
       return proScore >= 3 ? 'pro' : 'flash';
     }
 
-    /* ═══ SECTION: Select Feedback Mode | Functions: selectFeedbackMode ═══ */
     function selectFeedbackMode(item, sess) {
       var fm = settings.feedbackMode || 'adaptive';
       if (fm === 'always_socratic') {
@@ -1699,7 +1572,6 @@ var el = function(id){ return document.getElementById(id); };
       return 'quick';
     }
 
-    /* ═══ SECTION: Call Tutor | Functions: callTutor ═══ */
 var tutorConversation = [];
     var tutorTurnCount = 0;
     var tutorMaxTurns = 3;
@@ -1711,8 +1583,6 @@ var tutorConversation = [];
     var tutorAcknowledgeOriginalRating = null;
     var tutorInRelearning = false;
 
-    /* ═══ SECTION: Build Tutor Ui | Functions: buildTutorUI ═══ */
-/* ═══ SECTION: Add Tutor Message | Functions: addTutorMessage ═══ */
     function addTutorMessage(role, html) {
       var msgs = document.getElementById('tutorMessages');
       if (!msgs) return;
@@ -1733,7 +1603,6 @@ var tutorConversation = [];
       msgs.scrollTop = msgs.scrollHeight;
     }
 
-    /* ═══ SECTION: Show Typing Indicator | Functions: showTypingIndicator ═══ */
     function showTypingIndicator() {
       var msgs = document.getElementById('tutorMessages');
       if (!msgs) return;
@@ -1750,13 +1619,11 @@ var tutorConversation = [];
       }
     }
 
-    /* ═══ SECTION: Hide Typing Indicator | Functions: hideTypingIndicator ═══ */
     function hideTypingIndicator() {
       var tel = document.getElementById('tutorTyping');
       if (tel) tel.remove();
     }
 
-    /* ═══ SECTION: Update Turn Counter | Functions: updateTurnCounter ═══ */
     function updateTurnCounter() {
       var counter = document.getElementById('tutorTurnCounter');
       if (counter) {
@@ -1764,7 +1631,6 @@ var tutorConversation = [];
       }
     }
 
-    /* ═══ SECTION: Disable Tutor Input | Functions: disableTutorInput ═══ */
     function disableTutorInput() {
       var ta = document.getElementById('tutorInput');
       var btn = document.getElementById('tutorSend');
@@ -1774,14 +1640,12 @@ var tutorConversation = [];
       if (row) row.style.display = 'none';
     }
 
-    /* ═══ SECTION: Get Recent Avg | Functions: getRecentAvg ═══ */
     function getRecentAvg() {
       if (!session || !session.recentRatings || session.recentRatings.length === 0) return 2.5;
       var r = session.recentRatings.slice(-6);
       return r.reduce(function(a, b) { return a + b; }, 0) / r.length;
     }
 
-    /* ═══ SECTION: Tutor Context For Item | Functions: tutorContextForItem ═══ */
     function tutorContextForItem(tItem) {
       var ctx = {
         lapses: (tItem.fsrs && tItem.fsrs.lapses) || 0,
@@ -1809,7 +1673,6 @@ var tutorConversation = [];
       return ctx;
     }
 
-    /* ═══ SECTION: Update Tutor Memories | Functions: updateTutorMemories ═══ */
     function updateTutorMemories(item, conversation, suggestedRating) {
       if (!conversation || conversation.length < 2) return;
       if (settings.feedbackMode === 'self_rate') return;
@@ -1876,7 +1739,6 @@ var tutorConversation = [];
         .catch(function() { /* silent — memories are supplementary */ });
     }
 
-    /* ═══ SECTION: Queue Tutor Memory Update If Eligible | Functions: queueTutorMemoryUpdateIfEligible ═══ */
     function queueTutorMemoryUpdateIfEligible(item, convSnapshot, suggestedRating) {
       if (!item || tutorInRelearning) return;
       if (!convSnapshot || convSnapshot.length < 2) return;
@@ -1891,7 +1753,6 @@ var tutorConversation = [];
       }
     }
 
-    /* ═══ SECTION: Get Last User Text For Tutor | Functions: getLastUserTextForTutor ═══ */
     function getLastUserTextForTutor() {
       for (var i = tutorConversation.length - 1; i >= 0; i--) {
         if (tutorConversation[i].role === 'user') return tutorConversation[i].text || '';
@@ -1899,7 +1760,6 @@ var tutorConversation = [];
       return tutorOpeningUserText || '';
     }
 
-    /* ═══ SECTION: Handle Acknowledge Followup Response | Functions: handleAcknowledgeFollowupResponse ═══ */
     function handleAcknowledgeFollowupResponse(ackData) {
       if (!ackData) {
         showRatingButtons(tutorAcknowledgeOriginalRating);
@@ -1940,7 +1800,6 @@ var tutorConversation = [];
       try { playClick(); } catch (eb) {}
     }
 
-    /* ═══ SECTION: Finish Relearning Requeue | Functions: finishRelearningRequeue ═══ */
     function finishRelearningRequeue(it, nowTs) {
       nowTs = nowTs || Date.now();
       hideTypingIndicator();
@@ -1973,7 +1832,6 @@ var tutorConversation = [];
       advanceItem();
     }
 
-    /* ═══ SECTION: Begin Passive Restudy Flow | Functions: beginPassiveRestudyFlow ═══ */
     function beginPassiveRestudyFlow(it, nowTs) {
       var restudyDuration = calcRestudyDuration(it.modelAnswer);
       var restudyBarId = 'restudyBarInline';
@@ -2056,7 +1914,6 @@ var tutorConversation = [];
           return;
         }
 
-        /* ═══ SECTION: Requeue After Restudy | Functions: requeueAfterRestudy ═══ */
         function requeueAfterRestudy() {
           var remainingItemsB = session.queue.length - (session.idx + 1);
           var minOffsetB = Math.max(5, Math.floor(remainingItemsB * 0.4));
@@ -2074,7 +1931,6 @@ var tutorConversation = [];
       }, restudyDuration);
     }
 
-    /* ═══ SECTION: Start Relearning Dialogue | Functions: startRelearningDialogue ═══ */
     function startRelearningDialogue(it, nowTs) {
       var fbR = getFeedbackArea();
       if (!fbR) {
@@ -2118,14 +1974,6 @@ var tutorConversation = [];
         });
     }
 
-    /* ═══ SECTION: Submit Tutor Response | Functions: submitTutorResponse ═══ */
-/* ═══ SECTION: Handle Tutor Response | Functions: handleTutorResponse ═══ */
-/* ═══ SECTION: Show Rating Buttons | Functions: showRatingButtons ═══ */
-/* ═══ SECTION: Skip To Rating | Functions: skipToRating ═══ */
-/* ═══ SECTION: Build Quick Feedback Ui | Functions: buildQuickFeedbackUI ═══ */
-/* ═══ SECTION: Build Insight Ui | Functions: buildInsightUI ═══ */
-/* ═══ SECTION: Fallback To Grade | Functions: fallbackToGrade ═══ */
-/* ═══ SECTION: Append Model Answer Collapsible | Functions: appendModelAnswerCollapsible ═══ */
     function appendModelAnswerCollapsible(fbArea, it) {
       var macDiv = document.createElement('div');
       macDiv.className = 'model-answer-collapsible';
@@ -2142,7 +1990,6 @@ var tutorConversation = [];
       }
     }
 
-    /* ═══ SECTION: Start Generative Tutor Flow | Functions: startGenerativeTutorFlow ═══ */
 /* ── "Don't know" — skip grading, teaching explanation + Again default ── */
     var DONT_KNOW_PATTERNS = [
       /^\s*i\s*(don'?t|do not|dont)\s*know/i,
@@ -2164,7 +2011,6 @@ var tutorConversation = [];
       /^\s*\?\s*$/i
     ];
 
-    /* ═══ SECTION: Is Dont Know Response | Functions: isDontKnowResponse ═══ */
     function isDontKnowResponse(text) {
       if (!text || !text.trim()) return false;
       var t = text.trim();
@@ -2172,7 +2018,6 @@ var tutorConversation = [];
       return DONT_KNOW_PATTERNS.some(function(p) { return p.test(t); });
     }
 
-    /* ═══ SECTION: Show Dont Know Explanation | Functions: showDontKnowExplanation ═══ */
     function showDontKnowExplanation(fbArea, data) {
       var h = '<div class="ai-feedback">' +
         '<div class="af-header">' +
@@ -2207,7 +2052,6 @@ var tutorConversation = [];
       }
     }
 
-    /* ═══ SECTION: Show Dont Know Fallback | Functions: showDontKnowFallback ═══ */
     function showDontKnowFallback(fbArea) {
       fbArea.innerHTML = '<div class="af-error">' +
         '<div class="af-error-title">Could not load explanation</div>' +
@@ -2216,7 +2060,6 @@ var tutorConversation = [];
       ratingsEl.style.display = 'grid';
     }
 
-    /* ═══ SECTION: Handle Dont Know Reveal | Functions: handleDontKnowReveal ═══ */
     function handleDontKnowReveal(it, revealTier) {
       session._dontKnow = true;
       if (session.tutorStats) session.tutorStats.dontKnows++;
@@ -2343,7 +2186,6 @@ var tutorConversation = [];
       ratingsEl.style.display = 'none';
     }
 
-    /* ═══ SECTION: Handle Dk Tutor Response | Functions: handleDkTutorResponse ═══ */
     function handleDkTutorResponse(data, it, revealTier) {
       var tutorText = data.tutorMessage || data.correct || '';
       var question = data.followUpQuestion || '';
@@ -2380,12 +2222,10 @@ var tutorConversation = [];
       }
     }
 
-    /* ═══ SECTION: Override Dk Tutor Submit | Functions: overrideDkTutorSubmit ═══ */
     function overrideDkTutorSubmit(it, revealTier) {
       var ta = document.getElementById('tutorInput');
       var sendBtn = document.getElementById('tutorSend');
 
-      /* ═══ SECTION: Dk Submit | Functions: dkSubmit ═══ */
       function dkSubmit() {
         var taNow = document.getElementById('tutorInput');
         var sendNow = document.getElementById('tutorSend');
@@ -2444,7 +2284,6 @@ var tutorConversation = [];
       }
     }
 
-    /* ═══ SECTION: Reveal Dk Model Answer | Functions: revealDkModelAnswer ═══ */
     function revealDkModelAnswer(it, revealTier) {
       var consolWrap = document.getElementById('dkConsolidation');
       var consolBody = document.getElementById('dkConsolBody');
@@ -2530,7 +2369,6 @@ var tutorConversation = [];
       });
     }
 
-    /* ═══ SECTION: Wire Generative | Functions: wireGenerative ═══ */
     function wireGenerative(tier) {
       var ta = el('userText');
       ta.addEventListener('input', function(){ autoGrowTextarea(ta); });
@@ -2547,7 +2385,6 @@ var tutorConversation = [];
       }
     }
 
-    /* ═══ SECTION: Wire Mock | Functions: wireMock ═══ */
     function wireMock() {
       var ta = el('userText');
       ta.addEventListener('input', function(){ autoGrowTextarea(ta); });
@@ -2564,10 +2401,7 @@ var tutorConversation = [];
       }
     }
 
-    /* ═══ SECTION: Reveal Answer | Functions: revealAnswer ═══ */
-/* ═══ SECTION: Show Aifeedback | Functions: showAIFeedback ═══ */
 /* ── Inline Annotation Engine ── */
-    /* ═══ SECTION: Apply Inline Annotations | Functions: applyInlineAnnotations ═══ */
     function applyInlineAnnotations(annotations) {
       var lockedEl = document.getElementById('userResponseLocked');
       if (!lockedEl) return;
@@ -2667,7 +2501,6 @@ var tutorConversation = [];
       }
     }
 
-    /* ═══ SECTION: Show Aierror | Functions: showAIError ═══ */
     function showAIError(title, detail) {
       var fbArea = getFeedbackArea();
       fbArea.innerHTML = '<div class="af-error">' +
@@ -2678,7 +2511,6 @@ var tutorConversation = [];
       ratingsEl.style.display = 'grid';
     }
 
-    /* ═══ SECTION: Show Self Rate Fallback | Functions: showSelfRateFallback ═══ */
     function showSelfRateFallback(message) {
       var fbArea = getFeedbackArea();
       fbArea.innerHTML = '<div class="af-error">' +
@@ -2687,8 +2519,6 @@ var tutorConversation = [];
       ratingsEl.style.display = 'grid';
     }
 
-    /* ═══ SECTION: Schedule Rating And Advance | Functions: scheduleRatingAndAdvance ═══ */
-/* ═══ SECTION: Mount Quick Fire Followup | Functions: mountQuickFireFollowup ═══ */
     function mountQuickFireFollowup(it, data, done) {
       var oldQ = document.getElementById('qfFollowupRoot');
       if (oldQ) oldQ.remove();
@@ -2713,7 +2543,6 @@ var tutorConversation = [];
       var sendB = root.querySelector('.qf-followup-send');
       var advanceTimer = null;
       var qfFinished = false;
-      /* ═══ SECTION: Finish Qf | Functions: finishQf ═══ */
       function finishQf() {
         if (qfFinished) return;
         qfFinished = true;
@@ -2721,7 +2550,6 @@ var tutorConversation = [];
         root.remove();
         done();
       }
-      /* ═══ SECTION: Reveal Followup Answer | Functions: revealFollowupAnswer ═══ */
       function revealFollowupAnswer() {
         var ans = (data.followUpAnswer != null && data.followUpAnswer !== '') ? String(data.followUpAnswer) : 'Nice — keep that link in mind.';
         var ansDiv = document.createElement('div');
@@ -2739,7 +2567,6 @@ var tutorConversation = [];
         advanceTimer = setTimeout(finishQf, 2000);
         root.addEventListener('click', function() { finishQf(); }, { once: true });
       }
-      /* ═══ SECTION: Submit Qf | Functions: submitQf ═══ */
       function submitQf() {
         var t = input.value.trim();
         if (!t) return;
@@ -2758,7 +2585,6 @@ var tutorConversation = [];
       input.focus();
     }
 
-    /* ═══ SECTION: Mount Quick Fire Re Retrieval | Functions: mountQuickFireReRetrieval ═══ */
     function mountQuickFireReRetrieval(it, data, done) {
       var oldQ = document.getElementById('qfFollowupRoot');
       if (oldQ) oldQ.remove();
@@ -2818,7 +2644,6 @@ var tutorConversation = [];
       var finished = false;
       var spaceHandlerRef = null;
 
-      /* ═══ SECTION: Finish Flow | Functions: finishFlow ═══ */
       function finishFlow() {
         if (finished) return;
         finished = true;
@@ -2835,7 +2660,6 @@ var tutorConversation = [];
         done();
       }
 
-      /* ═══ SECTION: Show Consolidation | Functions: showConsolidation ═══ */
       function showConsolidation() {
         if (modelBody) modelBody.innerHTML = renderMd(it.modelAnswer || '');
         if (consolidation) {
@@ -2858,7 +2682,6 @@ var tutorConversation = [];
           document.removeEventListener('keydown', spaceHandlerRef);
           spaceHandlerRef = null;
         }
-        /* ═══ SECTION: Space Handler | Functions: spaceHandler ═══ */
         function spaceHandler(e) {
           if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) return;
           if (e.code === 'Space' || e.key === ' ') {
@@ -2870,7 +2693,6 @@ var tutorConversation = [];
         document.addEventListener('keydown', spaceHandler);
       }
 
-      /* ═══ SECTION: Submit Response | Functions: submitResponse ═══ */
       function submitResponse() {
         if (!input || finished) return;
         var text = input.value.trim();
@@ -2927,7 +2749,6 @@ var tutorConversation = [];
           });
       }
 
-      /* ═══ SECTION: Skip To Answer | Functions: skipToAnswer ═══ */
       function skipToAnswer() {
         if (finished) return;
         if (input) input.disabled = true;
@@ -2951,7 +2772,6 @@ var tutorConversation = [];
       }
     }
 
-    /* ═══ SECTION: Run Quick Fire Followup Micro | Functions: runQuickFireFollowupMicro ═══ */
     function runQuickFireFollowupMicro(it, done, opts) {
       opts = opts || {};
       var useReRetrieval = !!opts.reRetrieval;
@@ -2985,7 +2805,6 @@ var tutorConversation = [];
         });
     }
 
-    /* ═══ SECTION: Cleanup Previous Dialogue Ui | Functions: cleanupPreviousDialogueUI ═══ */
     function cleanupPreviousDialogueUI() {
       document.querySelectorAll('.dk-reveal-wrap, .dk-tutor-slot, .dk-consolidation, .dk-label').forEach(function(el) {
         el.style.display = 'none';
@@ -3009,18 +2828,12 @@ var tutorConversation = [];
     }
 
     /* ── Rating + successive relearning loop ── */
-    /* ═══ SECTION: Rate Current | Functions: rateCurrent ═══ */
-/* ═══ SECTION: Ensure Fsrs | Functions: ensureFsrs ═══ */
     function ensureFsrs(it) {
       if (!it.fsrs) it.fsrs = { stability: 0, difficulty: 0, due: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), lastReview: null, reps: 0, lapses: 0, state: 'new' };
     }
 
     /* ── Per-Rating Card Glow ── */
-    /* ═══ SECTION: Flash Rating Feedback | Functions: flashRatingFeedback ═══ */
 /* ── Per-Card XP Flash ── */
-    /* ═══ SECTION: Flash Xp | Functions: flashXP ═══ */
-/* ═══ SECTION: Compute Xp | Functions: computeXP ═══ */
-/* ═══ SECTION: Disable Ratings | Functions: disableRatings ═══ */
 /* ══════════════════════════════════════
        Ask the Tutor — student-initiated Q&A
        ══════════════════════════════════════ */
@@ -3031,7 +2844,6 @@ var tutorConversation = [];
     var askTutorActive = false;
     var askTutorContinueHandler = null;
 
-    /* ═══ SECTION: Mount Ask Tutor | Functions: mountAskTutor ═══ */
     function mountAskTutor(afterRating) {
       /* Don't show if feedback mode is self_rate */
       if (settings.feedbackMode === 'self_rate') return;
@@ -3193,7 +3005,6 @@ var tutorConversation = [];
       }
     }
 
-    /* ═══ SECTION: Submit Ask Tutor | Functions: submitAskTutor ═══ */
     function submitAskTutor() {
       var inputEl = document.getElementById('askTutorInput');
       var sendBtn = document.getElementById('askTutorSend');
@@ -3281,13 +3092,11 @@ var tutorConversation = [];
         .catch(function(err) {
           var typing = document.getElementById('askTutorTyping');
           if (typing) typing.remove();
-          console.warn('[StudyEngine] Ask tutor failed:', err);
           addAskTutorMessage('tutor', esc('Network error — try again or move on.'));
           enableAskTutorInput();
         });
     }
 
-    /* ═══ SECTION: Add Ask Tutor Message | Functions: addAskTutorMessage ═══ */
     function addAskTutorMessage(role, html) {
       var msgsEl = document.getElementById('askTutorMessages');
       if (!msgsEl) return;
@@ -3308,7 +3117,6 @@ var tutorConversation = [];
       msgsEl.scrollTop = msgsEl.scrollHeight;
     }
 
-    /* ═══ SECTION: Enable Ask Tutor Input | Functions: enableAskTutorInput ═══ */
     function enableAskTutorInput() {
       var inputEl = document.getElementById('askTutorInput');
       var sendBtn = document.getElementById('askTutorSend');
@@ -3316,7 +3124,6 @@ var tutorConversation = [];
       if (sendBtn) sendBtn.disabled = false;
     }
 
-    /* ═══ SECTION: Disable Ask Tutor Input | Functions: disableAskTutorInput ═══ */
     function disableAskTutorInput() {
       var inputEl = document.getElementById('askTutorInput');
       var sendBtn = document.getElementById('askTutorSend');
@@ -3324,7 +3131,6 @@ var tutorConversation = [];
       if (sendBtn) sendBtn.disabled = true;
     }
 
-    /* ═══ SECTION: Cleanup Ask Tutor | Functions: cleanupAskTutor ═══ */
     function cleanupAskTutor() {
       askTutorActive = false;
       askTutorContinueHandler = null;
@@ -3337,15 +3143,6 @@ var tutorConversation = [];
       if (ncBtn) ncBtn.remove();
     }
 
-    /* ═══ SECTION: Advance Item | Functions: advanceItem ═══ */
-/* ═══ SECTION: Skip Item | Functions: skipItem ═══ */
-/* ═══ SECTION: Get Dragon Stage | Functions: getDragonStage ═══ */
-/* ═══ SECTION: Dragon Stage Images | Functions: getDragonImageUrl ═══ */
-/* ═══ SECTION: Get Dragon Flavour | Functions: getDragonFlavour ═══ */
-/* ═══ SECTION: Animate Done Dragon | Functions: animateDoneDragon ═══ */
-/* ═══ SECTION: Check Evolution | Functions: checkDragonEvolution ═══ */
-/* ═══ SECTION: Update Session XP Bar | Functions: updateSessionXPBar ═══ */
-/* ═══ SECTION: Complete Session | Functions: completeSession ═══ */
 /* ── Keyboard shortcuts ── */
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') {
@@ -3440,7 +3237,6 @@ var tutorConversation = [];
     /* ── Navigation Tabs ── */
     var activeNav = 'home';
 
-    /* ═══ SECTION: Switch Nav | Functions: switchNav ═══ */
     function switchNav(tab) {
       activeNav = tab;
       document.querySelectorAll('.nav-tab').forEach(function(t) {
@@ -3535,9 +3331,6 @@ var tutorConversation = [];
     var modalCourse = null; /* course name the modal is scoped to */
     var modalShowingPicker = false; /* true = showing course picker step */
 
-    /* ═══ SECTION: Open Modal | Functions: openModal ═══ */
-/* ═══ SECTION: Close Modal | Functions: closeModal ═══ */
-/* ═══ SECTION: Close Modals | Functions: closeModals ═══ */
     function closeModals() {
       closeModal();
       closeSettings();
@@ -3562,7 +3355,6 @@ var tutorConversation = [];
       });
     }
 
-    /* ═══ SECTION: Render Modal | Functions: renderModal ═══ */
     function renderModal() {
       /* tabs */
       el('modalTabs') && el('modalTabs').querySelectorAll('.tab').forEach(function(t) {
@@ -3706,9 +3498,7 @@ var tutorConversation = [];
       }, 0);
     }
 
-    /* ═══ SECTION: Tail Fields | Functions: tailFields ═══ */
     function tailFields() { return ''; }
-    /* ═══ SECTION: Text Field | Functions: textField ═══ */
     function textField(label, id, ph) {
       return '' +
         '<div class="field">' +
@@ -3716,7 +3506,6 @@ var tutorConversation = [];
           '<input class="input" id="' + esc(id) + '" placeholder="' + esc(ph) + '" />' +
         '</div>';
     }
-    /* ═══ SECTION: Area Field | Functions: areaField ═══ */
     function areaField(label, id, ph) {
       return '' +
         '<div class="field">' +
@@ -3724,7 +3513,6 @@ var tutorConversation = [];
           '<textarea id="' + esc(id) + '" rows="4" placeholder="' + esc(ph) + '"></textarea>' +
         '</div>';
     }
-    /* ═══ SECTION: Select Field | Functions: selectField ═══ */
     function selectField(label, id, opts, defV) {
       var h = '<div class="field"><label>' + esc(label) + '</label><select id="' + esc(id) + '">';
       opts.forEach(function(o){
@@ -3740,10 +3528,7 @@ var tutorConversation = [];
     /* ── Import: Parse → Preview → Commit (3-phase) ── */
     var pendingImport = null; /* { valid: [], skipped: [], duplicates: [], skipDuplicates: false } */
 
-    /* ═══ SECTION: Add From Modal | Functions: addFromModal ═══ */
 /* ── Import: Parse → Preview → Commit (3-phase) ── */
-    /* ═══ SECTION: Do Import | Functions: doImport ═══ */
-/* ═══ SECTION: Render Import Preview | Functions: renderImportPreview ═══ */
     function renderImportPreview() {
       if (!pendingImport) return;
       var valid = pendingImport.valid;
@@ -3880,7 +3665,6 @@ var tutorConversation = [];
       }
     }
 
-    /* ═══ SECTION: Commit Import | Functions: commitImport ═══ */
     function commitImport() {
       if (!pendingImport) return;
       var valid = pendingImport.valid;
@@ -3961,7 +3745,6 @@ var tutorConversation = [];
       var visualQueue = importedIds.slice();
       var visualBatchSize = 3;
 
-      /* ═══ SECTION: Process Visual Batch | Functions: processVisualBatch ═══ */
       function processVisualBatch() {
         if (!visualQueue.length) {
           saveState();
@@ -4001,7 +3784,6 @@ var tutorConversation = [];
     var settingsOv = el('settingsOv');
     var settingsTabListenersBound = false;
 
-    /* ═══ SECTION: Reset Settings Modal Tabs | Functions: resetSettingsModalTabs ═══ */
     function resetSettingsModalTabs() {
       var generalPanel = el('settingsTabGeneral');
       var dataPanel = el('settingsTabData');
@@ -4017,7 +3799,6 @@ var tutorConversation = [];
       });
     }
 
-    /* ═══ SECTION: Bind Settings Tab Listeners | Functions: bindSettingsTabListeners ═══ */
     function bindSettingsTabListeners() {
       if (settingsTabListenersBound || !settingsOv) return;
       settingsOv.querySelectorAll('.settings-tab').forEach(function(tab) {
@@ -4048,8 +3829,6 @@ var tutorConversation = [];
       settingsTabListenersBound = true;
     }
 
-    /* ═══ SECTION: Open Settings | Functions: openSettings ═══ */
-/* ═══ SECTION: Close Settings | Functions: closeSettings ═══ */
 el('gearBtn').addEventListener('click', openSettings);
     el('settingsClose').addEventListener('click', closeSettings);
     settingsOv.addEventListener('click', function(e){ if (e.target === settingsOv) closeSettings(); });
@@ -4063,7 +3842,6 @@ el('gearBtn').addEventListener('click', openSettings);
     var tooltipHideTimer = null;
     var TOOLTIP_DELAY = 180;
 
-    /* ═══ SECTION: Position Tooltip | Functions: positionTooltip ═══ */
     function positionTooltip(icon) {
       var src = icon.querySelector('.info-tooltip');
       if (!src) return;
@@ -4163,7 +3941,6 @@ el('gearBtn').addEventListener('click', openSettings);
       });
     }
 
-    /* ═══ SECTION: Remove Portaled Tooltip | Functions: removePortaledTooltip ═══ */
     function removePortaledTooltip() {
       if (activeTooltipEl && activeTooltipEl.parentNode) {
         activeTooltipEl.parentNode.removeChild(activeTooltipEl);
@@ -4171,7 +3948,6 @@ el('gearBtn').addEventListener('click', openSettings);
       activeTooltipEl = null;
     }
 
-    /* ═══ SECTION: Hide Tooltip | Functions: hideTooltip ═══ */
     function hideTooltip() {
       if (!activeTooltipEl) return;
       var tip = activeTooltipEl;
@@ -4184,7 +3960,6 @@ el('gearBtn').addEventListener('click', openSettings);
       }, 170);
     }
 
-    /* ═══ SECTION: Clear Tooltip Timer | Functions: clearTooltipTimer ═══ */
     function clearTooltipTimer() {
       if (tooltipShowTimer) { clearTimeout(tooltipShowTimer); tooltipShowTimer = null; }
     }
@@ -4263,17 +4038,14 @@ el('gearBtn').addEventListener('click', openSettings);
       if (activeTooltipIcon) positionTooltip(activeTooltipIcon);
     }, true);
 
-    /* ═══ SECTION: Render Settings | Functions: renderSettings ═══ */
     function renderSettings() {
       var body = el('settingsTabGeneral');
       var retPct = Math.round(settings.desiredRetention * 100);
 
-      /* ═══ SECTION: Info Icon | Functions: infoIcon ═══ */
       function infoIcon(text) {
         return '<span class="info-icon" tabindex="0" role="button" aria-label="Info">ⓘ<span class="info-tooltip">' + text + '<span class="tip-arrow"></span></span></span>';
       }
 
-      /* ═══ SECTION: Pill Group | Functions: pillGroup ═══ */
       function pillGroup(name, options, currentValue) {
         var h = '<div class="mode-toggle" data-setting="' + name + '">';
         options.forEach(function(o) {
@@ -4512,7 +4284,6 @@ el('gearBtn').addEventListener('click', openSettings);
 
       var regenBtn = el('regenVisuals');
       var overrideBtn = el('regenOverrideAll');
-      /* ═══ SECTION: Set Visual Jobs Busy | Functions: setVisualJobsBusy ═══ */
       function setVisualJobsBusy(busy) {
         if (regenBtn) regenBtn.disabled = busy;
         if (overrideBtn) overrideBtn.disabled = busy;
@@ -4540,7 +4311,6 @@ el('gearBtn').addEventListener('click', openSettings);
           var queue = itemsNeedingVisuals.slice();
           var concurrency = 3;
 
-          /* ═══ SECTION: Run Batch | Functions: runBatch ═══ */
           function runBatch() {
             if (!queue.length) {
               saveState();
@@ -4597,7 +4367,6 @@ el('gearBtn').addEventListener('click', openSettings);
           var queue = allItems.slice();
           var concurrency = 3;
 
-          /* ═══ SECTION: Run Override Batch | Functions: runOverrideBatch ═══ */
           function runOverrideBatch() {
             if (!queue.length) {
               saveState();
@@ -4681,7 +4450,6 @@ el('gearBtn').addEventListener('click', openSettings);
     var courseModalBody = el('courseModalBody');
     var courseModalState = { mode: 'list', course: null, tab: 'details' };
 
-    /* ═══ SECTION: Open Course Modal | Functions: openCourseModal ═══ */
     function openCourseModal(courseName, tab) {
       if (courseName && getCourse(courseName)) {
         courseModalState.mode = 'editor';
@@ -4714,7 +4482,6 @@ el('gearBtn').addEventListener('click', openSettings);
         if (nameInput) nameInput.focus();
       }, 80);
     }
-    /* ═══ SECTION: Close Course Modal | Functions: closeCourseModal ═══ */
     function closeCourseModal() {
       courseOv.classList.remove('show');
       courseOv.setAttribute('aria-hidden', 'true');
@@ -4725,7 +4492,6 @@ el('gearBtn').addEventListener('click', openSettings);
     courseOv.addEventListener('click', function(e) { if (e.target === courseOv) closeCourseModal(); });
     el('manageCourses').addEventListener('click', openCourseModal);
 
-    /* ═══ SECTION: Render Course Modal | Functions: renderCourseModal ═══ */
     function renderCourseModal() {
       if (courseModalState.mode === 'editor' && courseModalState.course) {
         renderCourseModalEditor(courseModalState.course, courseModalState.tab || 'details');
@@ -4817,7 +4583,6 @@ el('gearBtn').addEventListener('click', openSettings);
       /* Wire add-course toggle */
       var addToggle = el('addCourseToggle');
       var addFormWrap = el('addCourseFormWrap');
-      /* ═══ SECTION: Collapse Add Form | Functions: collapseAddForm ═══ */
       function collapseAddForm() {
         if (!addToggle || !addFormWrap) return;
         addToggle.classList.remove('open');
@@ -4842,7 +4607,6 @@ el('gearBtn').addEventListener('click', openSettings);
           addFormWrap.style.maxHeight = '';
         }
       }
-      /* ═══ SECTION: Expand Add Form | Functions: expandAddForm ═══ */
       function expandAddForm() {
         if (!addToggle || !addFormWrap) return;
         addToggle.classList.add('open');
@@ -4880,12 +4644,10 @@ el('gearBtn').addEventListener('click', openSettings);
         mixed: 'Balanced across all five tiers. A good default when your exam combines several question formats.'
       };
 
-      /* ═══ SECTION: Wire Description Updater | Functions: wireDescriptionUpdater ═══ */
       function wireDescriptionUpdater(selectId, descId, descMap) {
         var sel = el(selectId);
         var desc = el(descId);
         if (!sel || !desc) return;
-        /* ═══ SECTION: Update | Functions: update ═══ */
         function update() { desc.textContent = descMap[sel.value] || ''; }
         sel.addEventListener('change', update);
         update();
@@ -4940,7 +4702,6 @@ el('gearBtn').addEventListener('click', openSettings);
     }
 
     /* ── Focus mode: isolate one course in manage modal ── */
-    /* ═══ SECTION: Focus Course Modal Item | Functions: focusCourseModalItem ═══ */
     function focusCourseModalItem(row) {
       var wrapper = row.closest('.course-modal-item');
       if (!wrapper) return;
@@ -4951,7 +4712,6 @@ el('gearBtn').addEventListener('click', openSettings);
         }
       });
     }
-    /* ═══ SECTION: Unfocus Course Modal Items | Functions: unfocusCourseModalItems ═══ */
     function unfocusCourseModalItems() {
       Array.from(courseModalBody.children).forEach(function(child) {
         if (child.dataset.hiddenByFocus) {
@@ -4961,7 +4721,6 @@ el('gearBtn').addEventListener('click', openSettings);
       });
     }
 
-    /* ═══ SECTION: Course Modal Refresh Shell | Functions: courseModalRefreshShell ═══ */
     function courseModalRefreshShell() {
       var courseModalEl = courseOv ? courseOv.querySelector('.modal') : null;
       if (courseModalEl) {
@@ -4969,7 +4728,6 @@ el('gearBtn').addEventListener('click', openSettings);
       }
     }
 
-    /* ═══ SECTION: Get Unique Course Topics | Functions: getUniqueCourseTopics ═══ */
     function getUniqueCourseTopics(courseName) {
       var topics = {};
       for (var id in state.items) {
@@ -4982,7 +4740,6 @@ el('gearBtn').addEventListener('click', openSettings);
       return Object.keys(topics).sort(function(a, b) { return a.localeCompare(b); });
     }
 
-    /* ═══ SECTION: Remove Topic From All Modules | Functions: removeTopicFromAllModules ═══ */
     function removeTopicFromAllModules(courseObj, topic) {
       if (!courseObj || !Array.isArray(courseObj.modules)) return;
       courseObj.modules.forEach(function(m) {
@@ -4991,7 +4748,6 @@ el('gearBtn').addEventListener('click', openSettings);
       });
     }
 
-    /* ═══ SECTION: Assign Topic To Module | Functions: assignTopicToModule ═══ */
     function assignTopicToModule(courseName, topic, moduleId) {
       var c = getCourse(courseName);
       if (!c) return;
@@ -5005,7 +4761,6 @@ el('gearBtn').addEventListener('click', openSettings);
       if (!isEmbedded) renderSidebar();
     }
 
-    /* ═══ SECTION: Unassign Topic From Modules | Functions: unassignTopicFromModules ═══ */
     function unassignTopicFromModules(courseName, topic) {
       var c = getCourse(courseName);
       if (!c) return;
@@ -5015,7 +4770,6 @@ el('gearBtn').addEventListener('click', openSettings);
       if (!isEmbedded) renderSidebar();
     }
 
-    /* ═══ SECTION: Render Course Modal Editor | Functions: renderCourseModalEditor ═══ */
     function renderCourseModalEditor(courseName, tab) {
       var c = getCourse(courseName);
       if (!c) {
@@ -5052,7 +4806,6 @@ el('gearBtn').addEventListener('click', openSettings);
       h += '<div id="cmTabContent"></div>';
       courseModalBody.innerHTML = h;
 
-      /* ═══ SECTION: Render Tab Content | Functions: renderTabContent ═══ */
       function renderTabContent() {
         var activeTab = courseModalState.tab || 'details';
         var inner = '';
@@ -5148,7 +4901,6 @@ el('gearBtn').addEventListener('click', openSettings);
         wireEditorTabInteractions(activeTab);
       }
 
-      /* ═══ SECTION: Wire Editor Tab Interactions | Functions: wireEditorTabInteractions ═══ */
       function wireEditorTabInteractions(activeTab) {
         var back = el('cmBackToList');
         if (back) back.onclick = function() {
@@ -5198,14 +4950,12 @@ el('gearBtn').addEventListener('click', openSettings);
             renderCourseModalEditor(courseName, 'details');
           };
         } else if (activeTab === 'syllabus') {
-          /* ═══ SECTION: Set Ctx Status | Functions: setCtxStatus ═══ */
           function setCtxStatus(msg, cls) {
             var st = el('cm_contextStatus');
             if (!st) return;
             st.className = 'syllabus-status' + (cls ? ' ' + cls : '');
             st.innerHTML = msg || '';
           }
-          /* ═══ SECTION: Render Suggested Topics | Functions: renderSuggestedTopics ═══ */
           function renderSuggestedTopics(topics) {
             var box = el('cm_suggestedTopics');
             if (!box) return;
@@ -5218,7 +4968,6 @@ el('gearBtn').addEventListener('click', openSettings);
             });
           }
           renderSuggestedTopics(c.syllabusKeyTopics || []);
-          /* ═══ SECTION: Run Syllabus Process | Functions: runSyllabusProcess ═══ */
           function runSyllabusProcess(rawText) {
             var trimmed = (rawText || '').trim();
             if (!trimmed) { toast('Paste text or import a PDF first'); return; }
@@ -5262,21 +5011,18 @@ el('gearBtn').addEventListener('click', openSettings);
           var reprocBtn = el('cm_reprocessSyllabus');
           if (reprocBtn) reprocBtn.onclick = function() { runSyllabusProcess(c.rawSyllabusText || (el('cm_courseContextText') ? el('cm_courseContextText').value : '')); };
 
-          /* ═══ SECTION: Set Lecture Status | Functions: setLectureStatus ═══ */
           function setLectureStatus(msg, cls) {
             var st = el('cm_lectureImportStatus');
             if (!st) return;
             st.className = 'syllabus-status' + (cls ? ' ' + cls : '');
             st.innerHTML = msg || '';
           }
-          /* ═══ SECTION: Update Lecture Manifest Display | Functions: updateLectureManifestDisplay ═══ */
           function updateLectureManifestDisplay() {
             var box = el('cm_lectureManifestDisplay');
             if (!box) return;
             var count = Number(c._lectureCount || 0) || 0;
             box.innerHTML = count > 0 ? '<div style="font-size:9px;color:var(--text-secondary);padding:6px 8px;border-radius:10px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.03);">📚 ' + count + ' lecture' + (count !== 1 ? 's' : '') + ' imported</div>' : '';
           }
-          /* ═══ SECTION: Import Lecture From Text | Functions: importLectureFromText ═══ */
           function importLectureFromText(lectureTitle, rawText) {
             var trimmed = (rawText || '').trim();
             if (!trimmed) { toast('Paste text or import a PDF first'); return Promise.resolve(null); }
@@ -6066,7 +5812,6 @@ el('gearBtn').addEventListener('click', openSettings);
     }
 
     /* Global helpers for inline course actions */
-    /* ═══ SECTION: Open Edit Course | Functions: openEditCourse ═══ */
     window.openEditCourse = function(name) {
       courseModalState.mode = 'editor';
       courseModalState.course = name;
@@ -6074,7 +5819,6 @@ el('gearBtn').addEventListener('click', openSettings);
       renderCourseModalEditor(name, 'details');
     };
 
-    /* ═══ SECTION: Start Delete Course | Functions: startDeleteCourse ═══ */
     window.startDeleteCourse = function(name) {
       var row = el('deleteRow_' + courseKey(name));
       if (!row) return;
@@ -6146,7 +5890,6 @@ el('gearBtn').addEventListener('click', openSettings);
       if (window.gsap) gsap.fromTo(row, { opacity: 0, y: -4 }, { opacity: 1, y: 0, duration: 0.2, ease: 'power2.out' });
     };
 
-    /* ═══ SECTION: Confirm Delete Course Now | Functions: confirmDeleteCourseNow ═══ */
     window.confirmDeleteCourseNow = function(name) {
       deleteCourse(name);
       reconcileStats();
@@ -6156,12 +5899,10 @@ el('gearBtn').addEventListener('click', openSettings);
       toast('Course deleted');
     };
 
-    /* ═══ SECTION: Edit Card | Functions: editCard ═══ */
 ow.editCard = function(id) {
       var it = state.items[id];
       if (!it) { toast('Card not found'); return; }
 
-      /* ═══ SECTION: Close Sheet | Functions: closeSheet ═══ */
       function closeSheet(animated) {
         var fe = document.querySelector('.edit-card-form');
         var bd = document.querySelector('.edit-card-backdrop');
@@ -6311,7 +6052,6 @@ ow.editCard = function(id) {
       });
     };
 
-    /* ═══ SECTION: View Course Deck | Functions: viewCourseDeck ═══ */
     window.viewCourseDeck = function(name) {
       var row = el('deckRow_' + courseKey(name));
       if (!row) return;
@@ -6379,7 +6119,6 @@ ow.editCard = function(id) {
       if (window.gsap) gsap.fromTo(row, { opacity: 0, y: -4 }, { opacity: 1, y: 0, duration: 0.25, ease: 'power2.out' });
     };
 
-    /* ═══ SECTION: Delete Card | Functions: deleteCard ═══ */
     window.deleteCard = function(itemId, courseName) {
       if (state.items[itemId]) {
         delete state.items[itemId];
@@ -6392,9 +6131,6 @@ ow.editCard = function(id) {
     };
 
     /* ── Toast (lightweight) ── */
-    var toastEl = null;
-    var toastTimer = null;
-    /* ═══ SECTION: Toast | Functions: toast ═══ */
 /* ── Restudy Duration Calculator ──
        Scales with model answer word count (reading time).
 
@@ -6404,7 +6140,6 @@ ow.editCard = function(id) {
 
        Reading rate ~25 words per 5 seconds (deliberately slow to account for re-encoding effort).
        Minimum 6s, maximum 20s (diminishing returns beyond that). */
-    /* ═══ SECTION: Calc Restudy Duration | Functions: calcRestudyDuration ═══ */
     function calcRestudyDuration(modelAnswer) {
       if (!modelAnswer) return 8000; /* 8s default */
       var txt = String(modelAnswer).trim();
@@ -6416,7 +6151,6 @@ ow.editCard = function(id) {
       return seconds * 1000; /* milliseconds */
     }
 
-    /* ═══ SECTION: Fmt Mmss | Functions: fmtMMSS ═══ */
 /* ── Boot ── */
     /* ── Dragon Mascot (topbar icon) ── */
     var mascotCtx = null;
@@ -6424,7 +6158,6 @@ ow.editCard = function(id) {
     var mascotFlapPhase = 0;
     var mascotAnimFrame = null;
 
-    /* ═══ SECTION: Init Mascot | Functions: initMascot ═══ */
     function initMascot() {
       var c = el('mascotCanvas');
       if (!c) return;
@@ -6442,16 +6175,13 @@ ow.editCard = function(id) {
       startMascotLoop();
     }
 
-    /* ═══ SECTION: Update Mascot Stage | Functions: updateMascotStage ═══ */
     function updateMascotStage() {
       var xp = 0;
       try { xp = SyncEngine.get('dragon', 'xp') || 0; } catch(e) {}
       mascotStage = getDragonGrowthStageFromXp(xp);
     }
 
-    /* ═══ SECTION: Start Mascot Loop | Functions: startMascotLoop ═══ */
     function startMascotLoop() {
-      /* ═══ SECTION: Tick | Functions: tick ═══ */
       function tick() {
         mascotFlapPhase += 0.04;
         drawMascot();
@@ -6460,7 +6190,6 @@ ow.editCard = function(id) {
       tick();
     }
 
-    /* ═══ SECTION: Draw Mascot | Functions: drawMascot ═══ */
     function drawMascot() {
       var ctx = mascotCtx;
       if (!ctx) return;
@@ -6477,7 +6206,6 @@ ow.editCard = function(id) {
       }
     }
 
-    /* ═══ SECTION: Draw Egg Mascot | Functions: drawEggMascot ═══ */
     function drawEggMascot(ctx, cx, cy, accent, rgb) {
       /* Subtle idle wobble */
       var wobble = Math.sin(mascotFlapPhase * 1.5) * 1.5;
@@ -6518,7 +6246,6 @@ ow.editCard = function(id) {
       ctx.restore();
     }
 
-    /* ═══ SECTION: Draw Dragon Mascot | Functions: drawDragonMascot ═══ */
     function drawDragonMascot(ctx, cx, cy, accent, rgb, stage) {
       var flap = Math.sin(mascotFlapPhase * 2.5);
       var breathe = Math.sin(mascotFlapPhase * 1.2) * 0.5;
@@ -6634,7 +6361,6 @@ ow.editCard = function(id) {
        CANVAS ANALYTICS ENGINE
        ═══════════════════════════════════════════ */
 
-    /* ═══ SECTION: Get Canvas Ctx | Functions: getCanvasCtx ═══ */
     function getCanvasCtx(canvasId, w, h) {
       var c = el(canvasId);
       if (!c) return null;
@@ -6648,16 +6374,13 @@ ow.editCard = function(id) {
       return { ctx: ctx, w: w, h: h };
     }
 
-    /* ═══ SECTION: Get Accent Rgb | Functions: getAccentRGB ═══ */
     function getAccentRGB() {
       var s = getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim();
       return s || '139,92,246';
     }
-    /* ═══ SECTION: Get Text Secondary | Functions: getTextSecondary ═══ */
     function getTextSecondary() {
       return getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim() || '#6b7280';
     }
-    /* ═══ SECTION: Get Text Color | Functions: getTextColor ═══ */
     function getTextColor() {
       return getComputedStyle(document.documentElement).getPropertyValue('--text').trim() || '#1a1a2e';
     }
@@ -6666,15 +6389,12 @@ ow.editCard = function(id) {
     /* Stores computed point data per canvas for hover lookups */
     var retentionGraphData = {};
 
-    /* ═══ SECTION: Draw Retention Curve | Functions: drawRetentionCurve ═══ */
 /* ── Retention Graph Hover Interactivity ── */
-    /* ═══ SECTION: Hide Canvas Tooltip | Functions: hideCanvasTooltip ═══ */
     function hideCanvasTooltip() {
       var tooltip = el('canvasTooltip');
       if (tooltip) tooltip.classList.remove('show');
     }
 
-    /* ═══ SECTION: Show Canvas Tooltip | Functions: showCanvasTooltip ═══ */
     function showCanvasTooltip(canvasId, pt, label, itemCount, clientX, clientY) {
       var tooltip = el('canvasTooltip');
       if (!tooltip) return;
@@ -6697,7 +6417,6 @@ ow.editCard = function(id) {
       tooltip.classList.add('show');
     }
 
-    /* ═══ SECTION: Draw Retention Highlight | Functions: drawRetentionHighlight ═══ */
     function drawRetentionHighlight(canvasId, idx) {
       if (idx == null || idx < 0) return;
       var data = retentionGraphData[canvasId];
@@ -6740,17 +6459,14 @@ ow.editCard = function(id) {
       ctx.restore();
     }
 
-    /* ═══ SECTION: Redraw Retention Base | Functions: redrawRetentionBase ═══ */
     function redrawRetentionBase(canvasId) {
       var data = retentionGraphData[canvasId];
       if (!data) return;
       drawRetentionCurve(canvasId, data.lastItemsByFilter || {}, data.lastLabelPrefix || '');
     }
 
-    /* ═══ SECTION: Handle Retention Hover | Functions: handleRetentionHover ═══ */
 /* Wire canvas mouse/touch events for retention graphs */
     var wiredRetentionCanvases = {};
-    /* ═══ SECTION: Wire Retention Interactivity | Functions: wireRetentionInteractivity ═══ */
     function wireRetentionInteractivity(canvasId) {
       if (wiredRetentionCanvases[canvasId]) return;
       var canvas = el(canvasId);
@@ -6788,11 +6504,8 @@ ow.editCard = function(id) {
     }
 
     /* ── Graph 2: Session History Sparkline (30 days) ── */
-    /* ═══ SECTION: Draw Sparkline | Functions: drawSparkline ═══ */
 /* ── Graph 3: Tier Distribution Ring ── */
-    /* ═══ SECTION: Draw Tier Ring | Functions: drawTierRing ═══ */
 /* ── Activity heatmap (dashboard; sparkline + tier ring replaced in UI) ── */
-    /* ═══ SECTION: Draw Activity Heatmap | Functions: drawActivityHeatmap ═══ */
     function drawActivityHeatmap(containerId) {
       var host = document.getElementById(containerId);
       if (!host) return;
@@ -7007,16 +6720,12 @@ ow.editCard = function(id) {
       }
     }
 
-    /* ═══ SECTION: Render Activity Stats | Functions: renderActivityStats ═══ */
     function renderActivityStats(containerId) {
       // Stats are now rendered inside drawActivityHeatmap, so this is a no-op.
       // Kept for API compatibility.
     }
 
     /* ── Draw all analytics ── */
-    /* ═══ SECTION: Render Retention Filter Chips | Functions: renderRetentionFilterChips ═══ */
-/* ═══ SECTION: Render Retention Graph | Functions: renderRetentionGraph ═══ */
-/* ═══ SECTION: Render Analytics | Functions: renderAnalytics ═══ */
     function renderAnalytics(courseFilter) {
       var items = {};
       for (var id in state.items) {
@@ -7053,7 +6762,6 @@ ow.editCard = function(id) {
        PER-COURSE ADVANCED ANALYTICS
        ═══════════════════════════════════════════ */
 
-    /* ═══ SECTION: Color To Rgba Bottom | Functions: colorToRgbaBottom ═══ */
     function colorToRgbaBottom(colorStr, alpha) {
       if (!colorStr) return 'rgba(128,128,128,' + alpha + ')';
       colorStr = String(colorStr).trim();
@@ -7071,7 +6779,6 @@ ow.editCard = function(id) {
     }
 
     /* ── Rating History (last 30 reviews for this course) ── */
-    /* ═══ SECTION: Draw Course Rating History | Functions: drawCourseRatingHistory ═══ */
     function drawCourseRatingHistory(canvasId, courseName) {
       var canvas = el(canvasId);
       if (!canvas) return;
@@ -7176,7 +6883,6 @@ ow.editCard = function(id) {
     }
 
     /* ── Stability Distribution ── */
-    /* ═══ SECTION: Draw Stability Distribution | Functions: drawStabilityDistribution ═══ */
     function drawStabilityDistribution(canvasId, courseItems) {
       var canvas = el(canvasId);
       if (!canvas) return;
@@ -7296,7 +7002,6 @@ ow.editCard = function(id) {
     }
 
     /* ── Tier Accuracy (avg FSRS rating per tier) ── */
-    /* ═══ SECTION: Draw Tier Accuracy | Functions: drawTierAccuracy ═══ */
     function drawTierAccuracy(canvasId, courseName) {
       var canvas = el(canvasId);
       if (!canvas) return;
@@ -7437,8 +7142,6 @@ ow.editCard = function(id) {
     }
 
     /* ── Course Detail View ── */
-    /* ═══ SECTION: Open Course Detail | Functions: openCourseDetail ═══ */
-/* ═══ SECTION: Close Course Detail | Functions: closeCourseDetail ═══ */
     function closeCourseDetail() {
       el('courseDetail').classList.remove('active');
       el('courseDetail').style.display = 'none';
@@ -7472,7 +7175,6 @@ ow.editCard = function(id) {
     var focusResyncBound = false;
     var bootBindingsBound = false;
     var bootDidInit = false;
-    /* ═══ SECTION: Finish Boot | Functions: finishBoot ═══ */
     function finishBoot() {
       if (bootDidInit) return;
       bootDidInit = true;
@@ -7577,7 +7279,6 @@ ow.editCard = function(id) {
 
       /* Show sync status badge */
       var syncBadge = el('syncBadge');
-      /* ═══ SECTION: Set Sync Badge | Functions: setSyncBadge ═══ */
       function setSyncBadge(status) {
         if (!syncBadge) return;
         syncBadge.style.display = 'inline-block';
@@ -7617,7 +7318,6 @@ ow.editCard = function(id) {
       checkForCheckIn();
     }
 
-    /* ═══ SECTION: Boot | Functions: boot ═══ */
     function boot() {
       loadState();
       var profile = getUserProfile();

@@ -377,7 +377,6 @@
       var dkInsBtn = document.getElementById('qfInsightDk');
       var answerDiv = document.getElementById('qfInsightAnswer');
 
-      /* ═══ SECTION: Reveal Insight Answer | Functions: revealInsightAnswer ═══ */
       function revealInsightAnswer() {
         if (!ta || !answerDiv) return;
         if (inputRow) inputRow.style.display = 'none';

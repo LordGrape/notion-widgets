@@ -1,3 +1,7 @@
+/* Relocated module-local vars from state.js */
+    var toastEl = null;
+    var toastTimer = null;
+
 /* Phase 2 extraction: copied from monolith; source-of-truth remains state.js for parity. */
 
     function uid() {
@@ -15,7 +19,6 @@
     var sidebarSelection = { level: 'all', course: null, module: null, topic: null };
     var sidebarExpanded = {}; // keys: course names or module ids, values: booleans
 
-    /* ═══ SECTION: Build Course Tree | Functions: buildCourseTree ═══ */
     function buildCourseTree() {
       var tree = {};
       for (var id in state.items) {
@@ -44,7 +47,6 @@
       return tree;
     }
 
-    /* ═══ SECTION: Render Sidebar | Functions: renderSidebar ═══ */
     function renderSidebar() {
       if (isEmbedded) return;
       var container = document.getElementById('sidebarTree');
@@ -272,7 +274,6 @@
       };
     }
 
-    /* ═══ SECTION: Update Breadcrumb | Functions: updateBreadcrumb ═══ */
     function updateBreadcrumb() {
       if (isEmbedded) return;
       var bc = document.getElementById('mainBreadcrumb');
@@ -309,7 +310,6 @@
       };
     }
 
-    /* ═══ SECTION: Apply Sidebar Filter | Functions: applySidebarFilter ═══ */
     function applySidebarFilter() {
       // 1) Bridge to existing course filter
       applySidebarFilterChipsOnly();
@@ -339,7 +339,6 @@
       try { renderDashboard(); } catch (e2) {}
     }
 
-    /* ═══ SECTION: Hide Context Views | Functions: hideContextViews ═══ */
     function hideContextViews() {
       var cv = document.getElementById('courseDashView');
       var mv = document.getElementById('moduleDetailView');
@@ -351,7 +350,6 @@
       if (normalDash) normalDash.style.display = '';
     }
 
-    /* ═══ SECTION: Apply Sidebar Filter Chips Only | Functions: applySidebarFilterChipsOnly ═══ */
     function applySidebarFilterChipsOnly() {
       try {
         if (sidebarSelection.level === 'all' || !sidebarSelection.course) {
@@ -362,7 +360,6 @@
       } catch (e) {}
     }
 
-    /* ═══ SECTION: Render Card List | Functions: renderCardList ═══ */
     function renderCardList(cards) {
       cards = (cards || []).slice();
       cards.sort(function(a, b) {
@@ -395,13 +392,11 @@
     }
 
     /* ── Inline Sidebar Input ── */
-    /* ═══ SECTION: Dismiss Inline Sidebar Input | Functions: dismissInlineSidebarInput ═══ */
     function dismissInlineSidebarInput() {
       var existing = document.querySelector('.sb-inline-input-wrap');
       if (existing) existing.remove();
     }
 
-    /* ═══ SECTION: Show Inline Sidebar Input | Functions: showInlineSidebarInput ═══ */
     function showInlineSidebarInput(parentNode, placeholder, callback) {
       dismissInlineSidebarInput();
 
@@ -426,14 +421,12 @@
       var confirmBtn = wrapper.querySelector('.sb-inline-confirm');
       var cancelBtn = wrapper.querySelector('.sb-inline-cancel');
 
-      /* ═══ SECTION: Submit | Functions: submit ═══ */
       function submit() {
         var val = (input && input.value) ? input.value.trim() : '';
         dismissInlineSidebarInput();
         if (val && callback) callback(val);
       }
 
-      /* ═══ SECTION: Cancel | Functions: cancel ═══ */
       function cancel() {
         dismissInlineSidebarInput();
       }
@@ -454,7 +447,6 @@
     /* ── Sidebar Context Menus ── */
     var _activeCtxMenu = null;
 
-    /* ═══ SECTION: Dismiss Ctx Menu | Functions: dismissCtxMenu ═══ */
     function dismissCtxMenu() {
       if (_activeCtxMenu) {
         _activeCtxMenu.remove();
@@ -463,7 +455,6 @@
       document.removeEventListener('click', dismissCtxMenu);
     }
 
-    /* ═══ SECTION: Show Ctx Menu At | Functions: showCtxMenuAt ═══ */
     function showCtxMenuAt(anchorEl, items) {
       dismissCtxMenu();
       var menu = document.createElement('div');
@@ -502,7 +493,6 @@
       }, 10);
     }
 
-    /* ═══ SECTION: Show Course Context Menu | Functions: showCourseContextMenu ═══ */
     function showCourseContextMenu(courseName, anchor) {
       showCtxMenuAt(anchor, [
         {
@@ -572,7 +562,6 @@
       ]);
     }
 
-    /* ═══ SECTION: Show Module Context Menu | Functions: showModuleContextMenu ═══ */
     function showModuleContextMenu(courseName, moduleId, anchor) {
       var mod = getModuleById(courseName, moduleId);
       if (!mod) return;
@@ -629,7 +618,6 @@
       ]);
     }
 
-    /* ═══ SECTION: Show Course Dashboard | Functions: showCourseDashboard ═══ */
     function showCourseDashboard(courseName) {
       hideContextViews();
       var view = document.getElementById('courseDashView');
@@ -757,7 +745,6 @@
       }
     }
 
-    /* ═══ SECTION: Show Module View | Functions: showModuleView ═══ */
     function showModuleView(courseName, moduleId) {
       hideContextViews();
       var view = document.getElementById('moduleDetailView');
@@ -844,7 +831,6 @@
       if (window.gsap) gsap.fromTo(content, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
     }
 
-    /* ═══ SECTION: Show Topic View | Functions: showTopicView ═══ */
     function showTopicView(courseName, topic) {
       hideContextViews();
       var view = document.getElementById('topicDetailView');
@@ -896,7 +882,6 @@
     var ttsAudioCtx = null;
     var ttsCurrentSource = null;
 
-    /* ═══ SECTION: Get Widget Key | Functions: getWidgetKey ═══ */
     function getWidgetKey() {
       try {
         if (typeof SyncEngine !== 'undefined') {
@@ -910,7 +895,6 @@
       return '';
     }
 
-    /* ═══ SECTION: Play Tts | Functions: playTTS ═══ */
     function playTTS(text) {
       return new Promise(function(resolve) {
         if (!text || text.length < 3) { resolve(); return; }
@@ -963,7 +947,6 @@
       });
     }
 
-    /* ═══ SECTION: Stop Tts | Functions: stopTTS ═══ */
     function stopTTS() {
       if (ttsCurrentSource) {
         try { ttsCurrentSource.stop(); } catch (e) {}
@@ -975,7 +958,6 @@
       });
     }
 
-    /* ═══ SECTION: Insert Listen Button | Functions: insertListenButton ═══ */
     function insertListenButton(targetEl, text) {
       if (!targetEl || !text || text.length < 10) return;
       if (!targetEl.parentElement) return;
@@ -1050,7 +1032,6 @@
     var lightboxLastX = 0;
     var lightboxLastY = 0;
 
-    /* ═══ SECTION: Apply Lightbox Transform | Functions: applyLightboxTransform ═══ */
     function applyLightboxTransform(body) {
       var svg = body && body.querySelector('svg');
       if (!svg) return;
@@ -1058,7 +1039,6 @@
       svg.style.transformOrigin = 'center center';
     }
 
-    /* ═══ SECTION: Open Visual Lightbox | Functions: openVisualLightbox ═══ */
     function openVisualLightbox(svgHTML) {
       var ov = el('visualLightbox');
       var body = el('visualLightboxBody');
@@ -1073,7 +1053,6 @@
       try { playOpen(); } catch (e) {}
     }
 
-    /* ═══ SECTION: Close Visual Lightbox | Functions: closeVisualLightbox ═══ */
     function closeVisualLightbox() {
       var ov = el('visualLightbox');
       if (!ov) return;
@@ -1151,7 +1130,6 @@
       }, true);
     })();
 
-    /* ═══ SECTION: Render Mermaid Block | Functions: renderMermaidBlock ═══ */
     function renderMermaidBlock(mermaidCode, placement, itemId) {
       if (!mermaidCode) return '';
       var id = 'mermaid-' + (++mermaidIdCounter);
@@ -1165,7 +1143,6 @@
     }
 
     /** Same heuristics as worker: truncated mid-edge → Mermaid parse fails → raw fallback */
-    /* ═══ SECTION: Looks Incomplete Mermaid | Functions: looksIncompleteMermaid ═══ */
     function looksIncompleteMermaid(s) {
       if (!s || typeof s !== 'string') return true;
       var t = s.trim().replace(/^```mermaid\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
