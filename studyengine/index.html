@@ -342,6 +342,14 @@ __STYLES__
 
         <!-- Session -->
         <div class="view" id="viewSession">
+          <div class="session-header" id="sessionHeader">
+            <div class="session-tier-pill"><span class="tiny">●</span> <span id="sessionTierText">—</span></div>
+            <div class="session-progress-stack">
+              <span id="sessionProgText">—</span>
+              <div class="pbar"><div id="sessionProgBar"></div></div>
+            </div>
+            <button class="session-exit icon-only" id="exitSessionHeaderBtn" aria-label="Exit session">✕</button>
+          </div>
           <div class="session-top">
             <div class="progress">
               <div class="p-text">
@@ -390,10 +398,10 @@ __STYLES__
             <div class="break-banner" id="breakBanner"></div>
             <div class="break-hint" id="breakHint"></div>
             <div class="ratings" id="ratings" style="display:none">
-              <button class="rate again" data-rate="1">Again (1)</button>
-              <button class="rate hard" data-rate="2">Hard (2)</button>
-              <button class="rate good" data-rate="3">Good (3)</button>
-              <button class="rate easy" data-rate="4">Easy (4)</button>
+              <button class="rate again" data-rate="1">Again (1)<span class="rate-days">&lt; 10m</span></button>
+              <button class="rate hard" data-rate="2">Hard (2)<span class="rate-days">~ 1d</span></button>
+              <button class="rate good" data-rate="3">Good (3)<span class="rate-days">~ 3d</span></button>
+              <button class="rate easy" data-rate="4">Easy (4)<span class="rate-days">~ 7d</span></button>
             </div>
           </div>
         </div>
