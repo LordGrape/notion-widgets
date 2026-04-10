@@ -6642,18 +6642,15 @@ input[type="range"]::-moz-range-thumb{
       min-height: 98px;
     }
     .awakening-typewriter-line{
-      display: inline-block;
-      overflow: hidden;
+      display: block;
+      overflow: visible;
       white-space: normal;
-      width: auto;
-      max-width: 0;
       border-right: 2px solid var(--accent-primary);
       color: var(--text-primary);
       font-size: 1.4rem;
       font-weight: 300;
       letter-spacing: 0.05em;
       line-height: 1.5;
-      animation-fill-mode: forwards;
     }
     .awakening-prompt-subtle{
       color: var(--text-secondary);
@@ -6857,10 +6854,6 @@ input[type="range"]::-moz-range-thumb{
       color: var(--text-tertiary);
       font-size: 0.84rem;
       line-height: 1.5;
-    }
-    @keyframes awakening-typewriter{
-      from{ max-width: 0; }
-      to{ max-width: var(--awakening-typewriter-width, 30ch); }
     }
     @keyframes awakening-cursor{
       0%, 50%{ border-color: var(--accent-primary); }
@@ -9059,13 +9052,24 @@ input[type="range"]::-moz-range-thumb{
         var line = document.createElement('span');
         var text = String(lineText || '');
         var chars = Math.max(text.length, 1);
-        var duration = Math.max(0.6, chars * 0.04);
+        var charDelay = 40;
         line.className = 'awakening-typewriter-line';
-        line.textContent = text;
-        line.style.setProperty('--awakening-typewriter-width', Math.max(chars + 2, 14) + 'ch');
-        line.style.animation = 'awakening-typewriter ' + duration + 's steps(' + chars + ', end) ' + (totalDelay / 1000) + 's 1 both, awakening-cursor 0.85s step-end ' + (totalDelay / 1000) + 's infinite';
+        line.textContent = '';
+        line.style.animation = 'awakening-cursor 0.85s step-end infinite';
         container.appendChild(line);
-        totalDelay += (duration * 1000) + 180;
+        (function(target, targetText, startDelay) {
+          scheduleUiTimer(function() {
+            var index = 0;
+            function typeNextChar() {
+              target.textContent = targetText.slice(0, index);
+              if (index >= targetText.length) return;
+              index++;
+              scheduleUiTimer(typeNextChar, charDelay);
+            }
+            typeNextChar();
+          }, startDelay);
+        })(line, text, totalDelay);
+        totalDelay += (chars * charDelay) + 180;
       });
       return totalDelay;
     }
