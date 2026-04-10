@@ -6549,9 +6549,473 @@ input[type="range"]::-moz-range-thumb{
       color: var(--text-tertiary);
       font-size: 12px;
     }
+
+    #awakening-overlay,
+    #checkin-overlay{
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    #awakening-overlay{
+      background:
+        radial-gradient(circle at top, rgba(var(--accent-rgb),0.16), transparent 34%),
+        var(--surface-0);
+      overflow: hidden;
+    }
+    #checkin-overlay{
+      background: rgba(10, 10, 18, 0.62);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+    .awakening-stars{
+      position: absolute;
+      inset: -20%;
+      overflow: hidden;
+      pointer-events: none;
+      opacity: 0.78;
+    }
+    .awakening-stars::before,
+    .awakening-stars::after{
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(circle, rgba(255,255,255,0.95) 0 1px, transparent 1.8px),
+        radial-gradient(circle, rgba(var(--accent-rgb),0.58) 0 1.2px, transparent 2px),
+        radial-gradient(circle, rgba(255,255,255,0.7) 0 0.9px, transparent 1.7px);
+      background-size: 180px 180px, 240px 240px, 320px 320px;
+      background-position: 0 0, 60px 80px, 140px 30px;
+      animation: awakening-star-drift 24s linear infinite;
+    }
+    .awakening-stars::after{
+      opacity: 0.45;
+      transform: scale(1.12);
+      animation-duration: 36s;
+      animation-direction: reverse;
+    }
+    #awakening-content{
+      position: relative;
+      width: min(100%, 520px);
+      max-width: 520px;
+      padding: 40px 24px;
+      z-index: 1;
+    }
+    .awakening-step{
+      display: none;
+      opacity: 0;
+      position: relative;
+    }
+    .awakening-step.awakening-step-active{
+      display: block;
+    }
+    .awakening-panel,
+    .checkin-card{
+      position: relative;
+      background: linear-gradient(180deg, rgba(var(--accent-rgb),0.08), rgba(var(--accent-rgb),0.03));
+      border: 1px solid rgba(var(--accent-rgb),0.18);
+      border-radius: 24px;
+      backdrop-filter: blur(20px) saturate(1.4);
+      -webkit-backdrop-filter: blur(20px) saturate(1.4);
+      box-shadow: 0 24px 90px rgba(0,0,0,0.34), 0 0 50px rgba(var(--accent-rgb),0.16);
+    }
+    .awakening-panel{
+      padding: 32px 28px;
+    }
+    .awakening-kicker,
+    .checkin-kicker{
+      margin-bottom: 16px;
+      color: var(--text-tertiary);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+    }
+    .awakening-prompt{
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 24px;
+      min-height: 98px;
+    }
+    .awakening-typewriter-line{
+      display: inline-block;
+      overflow: hidden;
+      white-space: nowrap;
+      width: 100%;
+      max-width: 0;
+      border-right: 2px solid var(--accent-primary);
+      color: var(--text-primary);
+      font-size: 1.4rem;
+      font-weight: 300;
+      letter-spacing: 0.05em;
+      line-height: 1.5;
+      animation-fill-mode: forwards;
+    }
+    .awakening-prompt-subtle{
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      line-height: 1.7;
+      margin-bottom: 18px;
+    }
+    .awakening-field-label,
+    .checkin-label{
+      display: block;
+      margin-bottom: 10px;
+      color: var(--text-secondary);
+      font-size: 0.84rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .awakening-input,
+    .awakening-textarea,
+    .checkin-textarea{
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid rgba(var(--accent-rgb),0.2);
+      background: rgba(var(--accent-rgb),0.05);
+      color: var(--text-primary);
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      font-size: 1rem;
+      line-height: 1.55;
+      padding: 16px;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+    }
+    .awakening-input::placeholder,
+    .awakening-textarea::placeholder,
+    .checkin-textarea::placeholder{
+      color: var(--text-tertiary);
+    }
+    .awakening-input:focus,
+    .awakening-textarea:focus,
+    .checkin-textarea:focus{
+      outline: none;
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+      background: rgba(var(--accent-rgb),0.08);
+    }
+    .awakening-textarea,
+    .checkin-textarea{
+      resize: vertical;
+      min-height: 132px;
+    }
+    .awakening-step[data-step="notes"] .awakening-textarea{
+      min-height: 108px;
+    }
+    .awakening-actions,
+    .checkin-actions{
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 20px;
+    }
+    .awakening-button,
+    .checkin-button{
+      appearance: none;
+      border-radius: 999px;
+      border: 1px solid rgba(var(--accent-rgb),0.24);
+      padding: 14px 22px;
+      min-width: 148px;
+      background: rgba(var(--accent-rgb),0.1);
+      color: var(--text-primary);
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease, opacity 0.3s ease;
+    }
+    .awakening-button:hover,
+    .checkin-button:hover{
+      transform: translateY(-1px) scale(1.03);
+      border-color: var(--accent-primary);
+    }
+    .awakening-button:disabled,
+    .checkin-button:disabled{
+      opacity: 0.38;
+      cursor: default;
+      transform: none;
+      box-shadow: none;
+    }
+    .awakening-button-primary,
+    .checkin-button-primary{
+      background: rgba(var(--accent-rgb),0.15);
+      border-color: rgba(var(--accent-rgb),0.4);
+      box-shadow: 0 0 20px rgba(var(--accent-rgb),0.24);
+    }
+    .awakening-button-primary:hover,
+    .checkin-button-primary:hover{
+      box-shadow: 0 0 24px rgba(var(--accent-rgb),0.32);
+    }
+    .awakening-button-secondary,
+    .checkin-button-secondary{
+      background: rgba(var(--accent-rgb),0.06);
+      border-color: rgba(var(--accent-rgb),0.18);
+    }
+    .awakening-hatch-step{
+      min-height: 560px;
+    }
+    .awakening-hatch-stage{
+      position: relative;
+      min-height: 560px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .awakening-hatch-visual{
+      position: relative;
+      width: 240px;
+      height: 240px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 26px;
+    }
+    .awakening-hatch-image{
+      position: absolute;
+      width: 200px;
+      max-width: 100%;
+      display: block;
+      filter: drop-shadow(0 0 18px rgba(var(--accent-rgb),0.38));
+      transform-origin: center bottom;
+      will-change: transform, filter, opacity;
+    }
+    .awakening-hatch-particles{
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .awakening-particle{
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 10px;
+      height: 10px;
+      margin: -5px 0 0 -5px;
+      border-radius: 999px;
+      background: rgba(var(--accent-rgb),0.82);
+      box-shadow: 0 0 12px rgba(var(--accent-rgb),0.65);
+      opacity: 0;
+    }
+    .awakening-flash{
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      pointer-events: none;
+      background: radial-gradient(circle, rgba(255,255,255,0.96) 0%, rgba(var(--accent-rgb),0.35) 28%, transparent 70%);
+    }
+    .awakening-hatch-text{
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      min-height: 118px;
+      margin-bottom: 24px;
+    }
+    .awakening-hatch-text .awakening-typewriter-line{
+      font-size: 1.2rem;
+      text-align: center;
+    }
+    .awakening-enter-button{
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    .checkin-card{
+      width: min(100%, 500px);
+      padding: 30px 26px 26px;
+    }
+    .checkin-title{
+      color: var(--text-primary);
+      font-size: 1.65rem;
+      font-weight: 400;
+      letter-spacing: 0.01em;
+      margin-bottom: 10px;
+    }
+    .checkin-copy{
+      color: var(--text-secondary);
+      font-size: 0.98rem;
+      line-height: 1.7;
+      margin-bottom: 18px;
+    }
+    .checkin-fields{
+      display: grid;
+      gap: 14px;
+    }
+    .checkin-textarea{
+      min-height: 110px;
+    }
+    .checkin-meta{
+      margin-top: 12px;
+      color: var(--text-tertiary);
+      font-size: 0.84rem;
+      line-height: 1.5;
+    }
+    @keyframes awakening-typewriter{
+      from{ max-width: 0; }
+      to{ max-width: var(--awakening-typewriter-width, 30ch); }
+    }
+    @keyframes awakening-cursor{
+      0%, 50%{ border-color: var(--accent-primary); }
+      50.01%, 100%{ border-color: transparent; }
+    }
+    @keyframes awakening-star-drift{
+      from{ transform: translate3d(0, 0, 0); }
+      to{ transform: translate3d(0, -120px, 0); }
+    }
+    @media (max-width: 600px) {
+      #awakening-overlay,
+      #checkin-overlay{
+        padding: 16px;
+      }
+      #awakening-content{
+        padding: 24px 16px;
+      }
+      .awakening-panel,
+      .checkin-card{
+        padding: 24px 18px;
+        border-radius: 20px;
+      }
+      .awakening-prompt{
+        min-height: 86px;
+        gap: 8px;
+      }
+      .awakening-typewriter-line{
+        font-size: 1.2rem;
+      }
+      .awakening-textarea,
+      .checkin-textarea{
+        min-height: 108px;
+      }
+      .awakening-actions,
+      .checkin-actions{
+        flex-direction: column;
+      }
+      .awakening-button,
+      .checkin-button{
+        width: 100%;
+      }
+      .awakening-hatch-step,
+      .awakening-hatch-stage{
+        min-height: 480px;
+      }
+      .awakening-hatch-visual{
+        width: 190px;
+        height: 190px;
+      }
+      .awakening-hatch-image{
+        width: 150px;
+      }
+    }
   </style>
 </head>
 <body>
+  <div id="awakening-overlay" aria-hidden="true">
+    <div class="awakening-stars" aria-hidden="true"></div>
+    <div id="awakening-content">
+      <div class="awakening-step" id="awakening-step-intro" data-step="intro">
+        <div class="awakening-panel">
+          <div class="awakening-kicker">Awakening</div>
+          <div class="awakening-prompt" id="awakening-intro-prompt"></div>
+          <div class="awakening-actions">
+            <button class="awakening-button awakening-button-primary" id="awakening-begin-btn" type="button">Begin</button>
+          </div>
+        </div>
+      </div>
+      <div class="awakening-step" id="awakening-step-name" data-step="name">
+        <div class="awakening-panel">
+          <div class="awakening-kicker">Identity</div>
+          <div class="awakening-prompt" id="awakening-name-prompt"></div>
+          <label class="awakening-field-label" for="awakening-name-input">Name</label>
+          <input class="awakening-input" id="awakening-name-input" type="text" placeholder="Your name" maxlength="80" autocomplete="name" />
+          <div class="awakening-actions">
+            <button class="awakening-button awakening-button-primary" id="awakening-name-continue" type="button" disabled>Continue</button>
+          </div>
+        </div>
+      </div>
+      <div class="awakening-step" id="awakening-step-about" data-step="about">
+        <div class="awakening-panel">
+          <div class="awakening-kicker">Context</div>
+          <div class="awakening-prompt" id="awakening-about-prompt"></div>
+          <label class="awakening-field-label" for="awakening-about-input">Where you are in life</label>
+          <textarea class="awakening-textarea" id="awakening-about-input" rows="4" placeholder="There are no wrong answers — just tell me who you are."></textarea>
+          <div class="awakening-actions">
+            <button class="awakening-button awakening-button-primary" id="awakening-about-continue" type="button" disabled>Continue</button>
+          </div>
+        </div>
+      </div>
+      <div class="awakening-step" id="awakening-step-motivation" data-step="motivation">
+        <div class="awakening-panel">
+          <div class="awakening-kicker">Direction</div>
+          <div class="awakening-prompt" id="awakening-motivation-prompt"></div>
+          <label class="awakening-field-label" for="awakening-motivation-input">What you want from this</label>
+          <textarea class="awakening-textarea" id="awakening-motivation-input" rows="4" placeholder="Your goals, your reasons — in your own words."></textarea>
+          <div class="awakening-actions">
+            <button class="awakening-button awakening-button-primary" id="awakening-motivation-continue" type="button" disabled>Continue</button>
+          </div>
+        </div>
+      </div>
+      <div class="awakening-step" id="awakening-step-notes" data-step="notes">
+        <div class="awakening-panel">
+          <div class="awakening-kicker">Learning Notes</div>
+          <div class="awakening-prompt" id="awakening-notes-prompt"></div>
+          <label class="awakening-field-label" for="awakening-notes-input">Anything else</label>
+          <textarea class="awakening-textarea" id="awakening-notes-input" rows="3" placeholder="Optional — skip if nothing comes to mind."></textarea>
+          <div class="awakening-actions">
+            <button class="awakening-button awakening-button-secondary" id="awakening-notes-skip" type="button">Skip</button>
+            <button class="awakening-button awakening-button-primary" id="awakening-notes-continue" type="button">Continue</button>
+          </div>
+        </div>
+      </div>
+      <div class="awakening-step awakening-hatch-step" id="awakening-step-hatch" data-step="hatch">
+        <div class="awakening-hatch-stage">
+          <div class="awakening-flash" id="awakening-flash"></div>
+          <div class="awakening-hatch-visual">
+            <div class="awakening-hatch-particles" id="awakening-hatch-particles"></div>
+            <img class="awakening-hatch-image" id="awakening-egg-dormant" src="assets/dragon/egg-dormant.png" alt="Dormant egg" />
+            <img class="awakening-hatch-image" id="awakening-egg-cracking" src="assets/dragon/egg-cracking.png" alt="Cracking egg" style="opacity:0" />
+            <img class="awakening-hatch-image" id="awakening-egg-hatching" src="assets/dragon/egg-hatching.png" alt="Hatching egg" style="opacity:0" />
+            <img class="awakening-hatch-image" id="awakening-dragon-hatchling" src="assets/dragon/dragon-hatchling.png" alt="Dragon hatchling" style="opacity:0" />
+          </div>
+          <div class="awakening-hatch-text" id="awakening-hatch-text"></div>
+          <button class="awakening-button awakening-button-primary awakening-enter-button" id="awakening-enter-btn" type="button">Enter the Study Engine</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="checkin-overlay" aria-hidden="true">
+    <div class="checkin-card">
+      <div class="checkin-kicker">Profile Check-In</div>
+      <h2 class="checkin-title" id="checkin-title">Welcome back.</h2>
+      <div class="checkin-copy" id="checkin-copy"></div>
+      <div class="checkin-fields">
+        <div>
+          <label class="checkin-label" for="checkin-about">About you</label>
+          <textarea class="checkin-textarea" id="checkin-about" rows="4"></textarea>
+        </div>
+        <div>
+          <label class="checkin-label" for="checkin-motivation">Why you're here</label>
+          <textarea class="checkin-textarea" id="checkin-motivation" rows="4"></textarea>
+        </div>
+        <div>
+          <label class="checkin-label" for="checkin-notes">Anything else to remember</label>
+          <textarea class="checkin-textarea" id="checkin-notes" rows="3"></textarea>
+        </div>
+      </div>
+      <div class="checkin-meta" id="checkin-meta"></div>
+      <div class="checkin-actions">
+        <button class="checkin-button checkin-button-secondary" id="checkin-stillme" type="button">Still me</button>
+        <button class="checkin-button checkin-button-primary" id="checkin-updated" type="button">Updated</button>
+      </div>
+    </div>
+  </div>
   <canvas id="bgCanvas"></canvas>
 
   <!-- New: App layout wrapper (standalone only; sidebar hidden when embedded) -->
@@ -8306,6 +8770,717 @@ input[type="range"]::-moz-range-thumb{
 
     var session = null;
     var sessionSummary = null;
+    var awakeningState = {
+      activeStep: null,
+      name: '',
+      about: '',
+      motivation: '',
+      notes: '',
+      onComplete: null,
+      timers: [],
+      hatchTimeline: null,
+      hatchLoops: []
+    };
+    var checkInState = {
+      active: false,
+      trigger: null
+    };
+
+    /* ═══ SECTION: Schedule Ui Timer | Functions: scheduleUiTimer ═══ */
+    function scheduleUiTimer(fn, delay) {
+      var id = setTimeout(fn, delay);
+      awakeningState.timers.push(id);
+      return id;
+    }
+
+    /* ═══ SECTION: Clear Awakening Timers | Functions: clearAwakeningTimers ═══ */
+    function clearAwakeningTimers() {
+      while (awakeningState.timers.length) {
+        clearTimeout(awakeningState.timers.pop());
+      }
+    }
+
+    /* ═══ SECTION: Run With Gsap | Functions: runWithGsap ═══ */
+    function runWithGsap(task, fallback) {
+      if (window.gsap) {
+        task(window.gsap);
+        return;
+      }
+      if (Core && Core.gsapReady) {
+        Core.gsapReady.then(function(gsap) {
+          if (gsap) task(gsap);
+          else if (fallback) fallback();
+        });
+        return;
+      }
+      if (fallback) fallback();
+    }
+
+    /* ═══ SECTION: Play Overlay Click | Functions: playOverlayClick ═══ */
+    function playOverlayClick() {
+      try {
+        if (Core && Core.audio && Core.audio.click) Core.audio.click();
+        else if (typeof playClick === 'function') playClick();
+      } catch (e) {}
+    }
+
+    /* ═══ SECTION: Play Overlay Chime | Functions: playOverlayChime ═══ */
+    function playOverlayChime() {
+      try {
+        if (Core && Core.audio && Core.audio.chime) Core.audio.chime();
+        else if (typeof playChime === 'function') playChime();
+      } catch (e) {}
+    }
+
+    /* ═══ SECTION: Get Dragon Growth Stage From Xp | Functions: getDragonGrowthStageFromXp ═══ */
+    function getDragonGrowthStageFromXp(xp) {
+      var thresholds = [0, 1000, 5000, 20000, 60000, 120000];
+      var stage = 0;
+      for (var i = thresholds.length - 1; i >= 0; i--) {
+        if ((xp || 0) >= thresholds[i]) { stage = i; break; }
+      }
+      return stage;
+    }
+
+    /* ═══ SECTION: Get Current Dragon Growth Stage | Functions: getCurrentDragonGrowthStage ═══ */
+    function getCurrentDragonGrowthStage() {
+      var xp = 0;
+      try { xp = SyncEngine.get('dragon', 'xp') || 0; } catch (e) {}
+      return getDragonGrowthStageFromXp(xp);
+    }
+
+    /* ═══ SECTION: Get User Profile | Functions: getUserProfile ═══ */
+    function getUserProfile() {
+      var profile = null;
+      try { profile = SyncEngine.get('user', 'profile') || null; } catch (e) {}
+      if (!profile) return null;
+      if (!profile.checkInSignals || typeof profile.checkInSignals !== 'object') profile.checkInSignals = {};
+      if (profile.lastKnownDragonStage == null) profile.lastKnownDragonStage = getCurrentDragonGrowthStage();
+      if (!profile.lastCheckIn && profile.awakenedAt) profile.lastCheckIn = profile.awakenedAt;
+      return profile;
+    }
+
+    /* ═══ SECTION: Save User Profile | Functions: saveUserProfile ═══ */
+    function saveUserProfile(profile) {
+      if (!profile) return;
+      if (!profile.checkInSignals || typeof profile.checkInSignals !== 'object') profile.checkInSignals = {};
+      if (profile.lastKnownDragonStage == null) profile.lastKnownDragonStage = getCurrentDragonGrowthStage();
+      SyncEngine.set('user', 'profile', profile);
+      if (profile.name) SyncEngine.set('user', 'name', profile.name);
+    }
+
+    /* ═══ SECTION: Describe Check In Trigger | Functions: describeCheckInTrigger ═══ */
+    function describeCheckInTrigger(trigger, name) {
+      if (trigger && trigger.kind === 'absence') {
+        return {
+          title: 'Welcome back' + (name ? ', ' + name : '') + '.',
+          copy: 'A lot can change after time away. Is this still you, or should the engine learn a little more about where you are now?'
+        };
+      }
+      if (trigger && trigger.kind === 'new-semester') {
+        return {
+          title: 'A new chapter is starting' + (name ? ', ' + name : '') + '.',
+          copy: 'You have added a burst of new courses. Before the engine adapts around them, make sure your profile still reflects your current goals and situation.'
+        };
+      }
+      if (trigger && trigger.kind === 'calibration') {
+        return {
+          title: 'That was a meaningful round.',
+          copy: 'Now that new results are in, this is a good reflection moment. Update anything the engine should keep in mind going forward.'
+        };
+      }
+      if (trigger && trigger.kind === 'milestone') {
+        return {
+          title: 'You have grown' + (name ? ', ' + name : '') + '.',
+          copy: 'Your dragon reached a new growth stage. If your path or priorities have shifted too, this is a good moment to tell the engine.'
+        };
+      }
+      return {
+        title: 'Still on the same path?',
+        copy: 'Take a quick glance at your profile and make sure the engine still understands who you are and what you are aiming for.'
+      };
+    }
+
+    /* ═══ SECTION: Resolve Check In Trigger | Functions: resolveCheckInTrigger ═══ */
+    function resolveCheckInTrigger(profile) {
+      if (!profile) return null;
+      var lastCheck = new Date(profile.lastCheckIn || profile.awakenedAt || isoNow());
+      var signals = profile.checkInSignals || {};
+      var stats = (state && state.stats) ? state.stats : (SyncEngine.get(NS, 'stats') || {});
+      var lastSessionDate = stats && stats.lastSessionDate ? String(stats.lastSessionDate) : '';
+      if (lastSessionDate) {
+        var lastSessionStamp = new Date(lastSessionDate + 'T00:00:00');
+        var daysAway = daysBetween(lastSessionStamp.getTime(), Date.now());
+        var absenceAlreadyHandled = signals.lastAbsencePromptedAt && new Date(signals.lastAbsencePromptedAt).getTime() >= lastSessionStamp.getTime();
+        if (daysAway >= 30 && !absenceAlreadyHandled) {
+          return { kind: 'absence', sessionDate: lastSessionDate };
+        }
+      }
+
+      var createdDates = listCourses(true).map(function(course) {
+        return course && course.created ? new Date(course.created) : null;
+      }).filter(function(dt) {
+        return dt && !isNaN(dt.getTime()) && dt.getTime() >= lastCheck.getTime();
+      }).sort(function(a, b) {
+        return a.getTime() - b.getTime();
+      });
+      for (var i = 0; i <= createdDates.length - 3; i++) {
+        var spanMs = createdDates[i + 2].getTime() - createdDates[i].getTime();
+        var clusterEnd = createdDates[i + 2].toISOString();
+        var semesterAlreadyHandled = signals.lastSemesterPromptedAt && new Date(signals.lastSemesterPromptedAt).getTime() >= createdDates[i + 2].getTime();
+        if (spanMs <= (7 * 24 * 60 * 60 * 1000) && !semesterAlreadyHandled) {
+          return { kind: 'new-semester', clusterEnd: clusterEnd };
+        }
+      }
+
+      var calHistory = (state && state.calibration && state.calibration.history) ? state.calibration.history : [];
+      var newCalEntries = calHistory.filter(function(entry) {
+        return entry && entry.ts && new Date(entry.ts).getTime() > lastCheck.getTime();
+      });
+      if (newCalEntries.length >= 5) {
+        var latestCalTs = newCalEntries[newCalEntries.length - 1].ts;
+        var calibrationAlreadyHandled = signals.lastCalibrationPromptedAt && new Date(signals.lastCalibrationPromptedAt).getTime() >= new Date(latestCalTs).getTime();
+        if (!calibrationAlreadyHandled) {
+          return { kind: 'calibration', latestCalibrationAt: latestCalTs };
+        }
+      }
+
+      var currentStage = getCurrentDragonGrowthStage();
+      var lastKnownStage = profile.lastKnownDragonStage != null ? profile.lastKnownDragonStage : 0;
+      var milestoneHandled = signals.lastMilestonePromptedStage != null ? signals.lastMilestonePromptedStage : lastKnownStage;
+      if (currentStage > lastKnownStage && currentStage > milestoneHandled) {
+        return { kind: 'milestone', stage: currentStage };
+      }
+      return null;
+    }
+
+    /* ═══ SECTION: Stamp Check In Trigger | Functions: stampCheckInTrigger ═══ */
+    function stampCheckInTrigger(profile, trigger, timestamp) {
+      if (!profile) return profile;
+      if (!profile.checkInSignals || typeof profile.checkInSignals !== 'object') profile.checkInSignals = {};
+      var stamp = timestamp || isoNow();
+      profile.lastCheckIn = stamp;
+      profile.lastKnownDragonStage = getCurrentDragonGrowthStage();
+      if (!trigger) return profile;
+      if (trigger.kind === 'absence') profile.checkInSignals.lastAbsencePromptedAt = stamp;
+      if (trigger.kind === 'new-semester') profile.checkInSignals.lastSemesterPromptedAt = trigger.clusterEnd || stamp;
+      if (trigger.kind === 'calibration') profile.checkInSignals.lastCalibrationPromptedAt = trigger.latestCalibrationAt || stamp;
+      if (trigger.kind === 'milestone') profile.checkInSignals.lastMilestonePromptedStage = profile.lastKnownDragonStage;
+      return profile;
+    }
+
+    /* ═══ SECTION: Close Check In | Functions: closeCheckIn ═══ */
+    function closeCheckIn() {
+      var overlay = el('checkin-overlay');
+      if (!overlay) return;
+      checkInState.active = false;
+      checkInState.trigger = null;
+      runWithGsap(function(gsap) {
+        gsap.to(overlay, {
+          opacity: 0,
+          duration: 0.3,
+          ease: 'power2.inOut',
+          onComplete: function() {
+            overlay.style.display = 'none';
+            overlay.setAttribute('aria-hidden', 'true');
+          }
+        });
+      }, function() {
+        overlay.style.display = 'none';
+        overlay.setAttribute('aria-hidden', 'true');
+      });
+    }
+
+    /* ═══ SECTION: Persist Check In | Functions: persistCheckIn ═══ */
+    function persistCheckIn(updated) {
+      var profile = getUserProfile();
+      if (!profile) return;
+      if (updated) {
+        profile.about = (el('checkin-about').value || '').trim();
+        profile.motivation = (el('checkin-motivation').value || '').trim();
+        profile.notes = (el('checkin-notes').value || '').trim();
+      }
+      stampCheckInTrigger(profile, checkInState.trigger, isoNow());
+      saveUserProfile(profile);
+      closeCheckIn();
+    }
+
+    /* ═══ SECTION: Show Check In | Functions: showCheckIn ═══ */
+    function showCheckIn(profile, trigger) {
+      if (!profile || checkInState.active) return;
+      var overlay = el('checkin-overlay');
+      if (!overlay) return;
+      var messaging = describeCheckInTrigger(trigger, profile.name || '');
+      el('checkin-title').textContent = messaging.title;
+      el('checkin-copy').textContent = messaging.copy;
+      el('checkin-about').value = profile.about || '';
+      el('checkin-motivation').value = profile.motivation || '';
+      el('checkin-notes').value = profile.notes || '';
+      el('checkin-meta').textContent = 'Is this still you? Edit anything that changed, or tap Still me and continue.';
+      checkInState.active = true;
+      checkInState.trigger = trigger || null;
+      overlay.style.display = 'flex';
+      overlay.style.opacity = '0';
+      overlay.setAttribute('aria-hidden', 'false');
+      runWithGsap(function(gsap) {
+        gsap.fromTo(overlay, { opacity: 0 }, { opacity: 1, duration: 0.35, ease: 'power2.out' });
+        gsap.fromTo(overlay.querySelector('.checkin-card'),
+          { opacity: 0, y: 16, scale: 0.98 },
+          { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: 'power2.out' }
+        );
+      }, function() {
+        overlay.style.opacity = '1';
+      });
+    }
+
+    /* ═══ SECTION: Check For Check In | Functions: checkForCheckIn ═══ */
+    function checkForCheckIn() {
+      var profile = getUserProfile();
+      if (!profile || !profile.awakened || checkInState.active) return;
+      var trigger = resolveCheckInTrigger(profile);
+      if (trigger) showCheckIn(profile, trigger);
+    }
+
+    /* ═══ SECTION: Focus Awakening Field | Functions: focusAwakeningField ═══ */
+    function focusAwakeningField(id) {
+      scheduleUiTimer(function() {
+        var field = el(id);
+        if (field) field.focus();
+      }, 60);
+    }
+
+    /* ═══ SECTION: Render Typewriter Lines | Functions: renderTypewriterLines ═══ */
+    function renderTypewriterLines(containerId, lines, delayMs) {
+      var container = el(containerId);
+      if (!container) return 0;
+      container.innerHTML = '';
+      var totalDelay = delayMs || 0;
+      lines.forEach(function(lineText) {
+        var line = document.createElement('span');
+        var text = String(lineText || '');
+        var chars = Math.max(text.length, 1);
+        var duration = Math.max(0.6, chars * 0.04);
+        line.className = 'awakening-typewriter-line';
+        line.textContent = text;
+        line.style.setProperty('--awakening-typewriter-width', Math.max(chars + 2, 14) + 'ch');
+        line.style.animation = 'awakening-typewriter ' + duration + 's steps(' + chars + ', end) ' + (totalDelay / 1000) + 's 1 both, awakening-cursor 0.85s step-end ' + (totalDelay / 1000) + 's infinite';
+        container.appendChild(line);
+        totalDelay += (duration * 1000) + 180;
+      });
+      return totalDelay;
+    }
+
+    /* ═══ SECTION: Set Awakening Button Enabled | Functions: setAwakeningButtonEnabled ═══ */
+    function setAwakeningButtonEnabled(id, enabled) {
+      var button = el(id);
+      if (!button) return;
+      button.disabled = !enabled;
+      if (!enabled || button.dataset.shown === 'true') return;
+      button.dataset.shown = 'true';
+      runWithGsap(function(gsap) {
+        gsap.fromTo(button, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' });
+      }, function() {
+        button.style.opacity = '1';
+        button.style.transform = 'translateY(0)';
+      });
+    }
+
+    /* ═══ SECTION: Reset Awakening Button Reveal | Functions: resetAwakeningButtonReveal ═══ */
+    function resetAwakeningButtonReveal(id) {
+      var button = el(id);
+      if (!button) return;
+      button.dataset.shown = 'false';
+      button.style.opacity = '0';
+      button.style.transform = 'translateY(10px)';
+    }
+
+    /* ═══ SECTION: Switch Awakening Step | Functions: switchAwakeningStep ═══ */
+    function switchAwakeningStep(nextId, onShown) {
+      clearAwakeningTimers();
+      var next = el(nextId);
+      var current = awakeningState.activeStep ? el(awakeningState.activeStep) : null;
+      if (!next) return;
+      function activate() {
+        document.querySelectorAll('.awakening-step').forEach(function(step) {
+          step.classList.remove('awakening-step-active');
+          step.style.display = 'none';
+          step.style.opacity = '0';
+        });
+        next.classList.add('awakening-step-active');
+        next.style.display = 'block';
+        awakeningState.activeStep = nextId;
+        if (onShown) onShown();
+        runWithGsap(function(gsap) {
+          gsap.fromTo(next, { opacity: 0 }, { opacity: 1, duration: 0.5, ease: 'power2.out' });
+        }, function() {
+          next.style.opacity = '1';
+        });
+      }
+      if (current && current !== next) {
+        runWithGsap(function(gsap) {
+          gsap.to(current, {
+            opacity: 0,
+            duration: 0.4,
+            ease: 'power2.inOut',
+            onComplete: activate
+          });
+        }, activate);
+        return;
+      }
+      activate();
+    }
+
+    /* ═══ SECTION: Burst Awakening Particles | Functions: burstAwakeningParticles ═══ */
+    function burstAwakeningParticles() {
+      var host = el('awakening-hatch-particles');
+      if (!host) return;
+      host.innerHTML = '';
+      for (var i = 0; i < 12; i++) {
+        var particle = document.createElement('span');
+        particle.className = 'awakening-particle';
+        host.appendChild(particle);
+        (function(node, idx) {
+          var angle = (Math.PI * 2 / 12) * idx;
+          var distance = 42 + Math.random() * 38;
+          var dx = Math.cos(angle) * distance;
+          var dy = Math.sin(angle) * distance;
+          runWithGsap(function(gsap) {
+            gsap.fromTo(node,
+              { opacity: 0.95, x: 0, y: 0, scale: 0.4 },
+              { opacity: 0, x: dx, y: dy, scale: 1.2, duration: 0.65, ease: 'power2.out', onComplete: function() { node.remove(); } }
+            );
+          }, function() {
+            node.remove();
+          });
+        })(particle, i);
+      }
+    }
+
+    /* ═══ SECTION: Start Hatch Sequence | Functions: startHatchSequence ═══ */
+    function startHatchSequence() {
+      var dormant = el('awakening-egg-dormant');
+      var cracking = el('awakening-egg-cracking');
+      var hatching = el('awakening-egg-hatching');
+      var dragon = el('awakening-dragon-hatchling');
+      var flash = el('awakening-flash');
+      var hatchText = el('awakening-hatch-text');
+      var enterBtn = el('awakening-enter-btn');
+      if (!dormant || !cracking || !hatching || !dragon || !flash || !hatchText || !enterBtn) return;
+      hatchText.innerHTML = '';
+      enterBtn.style.opacity = '0';
+      enterBtn.style.transform = 'translateY(10px)';
+      cracking.style.opacity = '0';
+      hatching.style.opacity = '0';
+      dragon.style.opacity = '0';
+      dormant.style.opacity = '1';
+      dormant.style.filter = 'drop-shadow(0 0 18px rgba(var(--accent-rgb),0.38))';
+      if (awakeningState.hatchTimeline && awakeningState.hatchTimeline.kill) awakeningState.hatchTimeline.kill();
+      awakeningState.hatchLoops.forEach(function(tween) { if (tween && tween.kill) tween.kill(); });
+      awakeningState.hatchLoops = [];
+      runWithGsap(function(gsap) {
+        var tl = gsap.timeline();
+        awakeningState.hatchTimeline = tl;
+        tl.to(dormant, {
+          filter: 'drop-shadow(0 0 26px rgba(139,92,246,0.72))',
+          duration: 1.0,
+          repeat: 1,
+          yoyo: true,
+          ease: 'sine.inOut'
+        });
+        tl.to(dormant, {
+          rotation: 2,
+          duration: 0.1,
+          repeat: 8,
+          yoyo: true,
+          transformOrigin: 'center center',
+          ease: 'sine.inOut'
+        }, 2.0);
+        tl.to(dormant, {
+          rotation: 4,
+          duration: 0.08,
+          repeat: 12,
+          yoyo: true,
+          transformOrigin: 'center center',
+          ease: 'sine.inOut'
+        }, 3.0);
+        tl.to(dormant, { opacity: 0, duration: 0.5, ease: 'power2.out' }, 4.0);
+        tl.to(cracking, { opacity: 1, duration: 0.5, ease: 'power2.out' }, 4.0);
+        tl.call(function() {
+          burstAwakeningParticles();
+          playOverlayClick();
+        }, null, 4.2);
+        tl.to(cracking, { opacity: 0, duration: 0.5, ease: 'power2.out' }, 5.5);
+        tl.to(hatching, { opacity: 1, duration: 0.5, ease: 'power2.out', filter: 'drop-shadow(0 0 40px rgba(139,92,246,0.8))' }, 5.5);
+        tl.fromTo(flash, { opacity: 0 }, { opacity: 0.9, duration: 0.3, ease: 'power2.out', yoyo: true, repeat: 1 }, 6.5);
+        tl.to(hatching, { opacity: 0, duration: 0.35, ease: 'power2.out' }, 7.0);
+        tl.fromTo(dragon,
+          { opacity: 0, scale: 0.4, y: 12 },
+          { opacity: 1, scale: 1, y: 0, duration: 1.0, ease: 'elastic.out(1, 0.5)' },
+          7.0
+        );
+        tl.call(function() {
+          playOverlayChime();
+          awakeningState.hatchLoops.push(gsap.to(dragon, {
+            scaleY: 1.03,
+            scaleX: 0.98,
+            duration: 2.5,
+            yoyo: true,
+            repeat: -1,
+            ease: 'sine.inOut',
+            transformOrigin: 'center bottom'
+          }));
+          awakeningState.hatchLoops.push(gsap.to(dragon, {
+            y: -6,
+            duration: 3,
+            yoyo: true,
+            repeat: -1,
+            ease: 'sine.inOut'
+          }));
+          awakeningState.hatchLoops.push(gsap.to(dragon, {
+            filter: 'drop-shadow(0 0 25px rgba(139,92,246,0.85))',
+            duration: 2.2,
+            yoyo: true,
+            repeat: -1,
+            ease: 'sine.inOut'
+          }));
+        }, null, 7.0);
+        tl.call(function() {
+          renderTypewriterLines('awakening-hatch-text', ['Your companion has awakened.'], 0);
+        }, null, 8.5);
+        tl.call(function() {
+          renderTypewriterLines('awakening-hatch-text', ['Your companion has awakened.', awakeningState.name + ', your journey begins now.'], 0);
+        }, null, 10.0);
+        tl.call(function() {
+          gsap.fromTo(enterBtn,
+            { opacity: 0, y: 10 },
+            { opacity: 1, y: 0, duration: 0.45, ease: 'power2.out' }
+          );
+          gsap.to(enterBtn, {
+            boxShadow: '0 0 26px rgba(139,92,246,0.38)',
+            duration: 1.2,
+            repeat: -1,
+            yoyo: true,
+            ease: 'sine.inOut'
+          });
+        }, null, 11.5);
+      }, function() {
+        dragon.style.opacity = '1';
+        enterBtn.style.opacity = '1';
+      });
+    }
+
+    /* ═══ SECTION: Render Awakening Step | Functions: renderAwakeningStep ═══ */
+    function renderAwakeningStep(stepKey) {
+      if (stepKey === 'intro') {
+        resetAwakeningButtonReveal('awakening-begin-btn');
+        switchAwakeningStep('awakening-step-intro', function() {
+          var total = renderTypewriterLines('awakening-intro-prompt', ['The System has detected a new Hunter.'], 1000);
+          scheduleUiTimer(function() {
+            setAwakeningButtonEnabled('awakening-begin-btn', true);
+          }, total + 1500);
+        });
+        return;
+      }
+      if (stepKey === 'name') {
+        resetAwakeningButtonReveal('awakening-name-continue');
+        switchAwakeningStep('awakening-step-name', function() {
+          renderTypewriterLines('awakening-name-prompt', ['What should I call you?'], 0);
+          focusAwakeningField('awakening-name-input');
+        });
+        return;
+      }
+      if (stepKey === 'about') {
+        resetAwakeningButtonReveal('awakening-about-continue');
+        switchAwakeningStep('awakening-step-about', function() {
+          renderTypewriterLines('awakening-about-prompt', ['Tell me about yourself, ' + awakeningState.name + '.', 'Where are you in life?', 'What are you studying?'], 0);
+          focusAwakeningField('awakening-about-input');
+        });
+        return;
+      }
+      if (stepKey === 'motivation') {
+        resetAwakeningButtonReveal('awakening-motivation-continue');
+        switchAwakeningStep('awakening-step-motivation', function() {
+          renderTypewriterLines('awakening-motivation-prompt', ['What made you come here?', 'What do you want to get out of this?'], 0);
+          focusAwakeningField('awakening-motivation-input');
+        });
+        return;
+      }
+      if (stepKey === 'notes') {
+        switchAwakeningStep('awakening-step-notes', function() {
+          renderTypewriterLines('awakening-notes-prompt', ['Anything else I should know?', 'How you learn. What frustrates you.', 'What has or has not worked before.'], 0);
+          focusAwakeningField('awakening-notes-input');
+        });
+        return;
+      }
+      if (stepKey === 'hatch') {
+        switchAwakeningStep('awakening-step-hatch', function() {
+          startHatchSequence();
+        });
+      }
+    }
+
+    /* ═══ SECTION: Complete Awakening | Functions: completeAwakening ═══ */
+    function completeAwakening() {
+      var overlay = el('awakening-overlay');
+      if (!overlay) return;
+      var profile = {
+        name: awakeningState.name,
+        about: awakeningState.about,
+        motivation: awakeningState.motivation,
+        notes: awakeningState.notes || '',
+        awakened: true,
+        awakenedAt: isoNow(),
+        lastCheckIn: isoNow(),
+        lastKnownDragonStage: getCurrentDragonGrowthStage(),
+        checkInSignals: {}
+      };
+      saveUserProfile(profile);
+      runWithGsap(function(gsap) {
+        gsap.to(overlay, {
+          opacity: 0,
+          duration: 0.8,
+          ease: 'power2.inOut',
+          onComplete: function() {
+            overlay.style.display = 'none';
+            overlay.setAttribute('aria-hidden', 'true');
+            if (typeof awakeningState.onComplete === 'function') {
+              var done = awakeningState.onComplete;
+              awakeningState.onComplete = null;
+              done();
+            }
+          }
+        });
+      }, function() {
+        overlay.style.display = 'none';
+        overlay.setAttribute('aria-hidden', 'true');
+        if (typeof awakeningState.onComplete === 'function') {
+          var doneFallback = awakeningState.onComplete;
+          awakeningState.onComplete = null;
+          doneFallback();
+        }
+      });
+    }
+
+    /* ═══ SECTION: Show Awakening | Functions: showAwakening ═══ */
+    function showAwakening(onComplete) {
+      ['egg-dormant','egg-cracking','egg-hatching','dragon-hatchling'].forEach(function(name) {
+        var img = new Image();
+        img.src = 'assets/dragon/' + name + '.png';
+      });
+      awakeningState.name = '';
+      awakeningState.about = '';
+      awakeningState.motivation = '';
+      awakeningState.notes = '';
+      awakeningState.onComplete = onComplete || null;
+      clearAwakeningTimers();
+      var overlay = el('awakening-overlay');
+      if (!overlay) return;
+      overlay.style.display = 'flex';
+      overlay.style.opacity = '1';
+      overlay.setAttribute('aria-hidden', 'false');
+      renderAwakeningStep('intro');
+    }
+
+    var awakeningNameInput = el('awakening-name-input');
+    var awakeningAboutInput = el('awakening-about-input');
+    var awakeningMotivationInput = el('awakening-motivation-input');
+    var awakeningNotesInput = el('awakening-notes-input');
+    var awakeningBeginBtn = el('awakening-begin-btn');
+    var awakeningNameContinue = el('awakening-name-continue');
+    var awakeningAboutContinue = el('awakening-about-continue');
+    var awakeningMotivationContinue = el('awakening-motivation-continue');
+    var awakeningNotesSkip = el('awakening-notes-skip');
+    var awakeningNotesContinue = el('awakening-notes-continue');
+    var awakeningEnterBtn = el('awakening-enter-btn');
+    var checkinStillMeBtn = el('checkin-stillme');
+    var checkinUpdatedBtn = el('checkin-updated');
+
+    if (awakeningBeginBtn) {
+      awakeningBeginBtn.addEventListener('click', function() {
+        playOverlayClick();
+        renderAwakeningStep('name');
+      });
+    }
+    if (awakeningNameInput) {
+      awakeningNameInput.addEventListener('input', function() {
+        setAwakeningButtonEnabled('awakening-name-continue', (this.value || '').trim().length >= 1);
+      });
+      awakeningNameInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !awakeningNameContinue.disabled) {
+          e.preventDefault();
+          awakeningNameContinue.click();
+        }
+      });
+    }
+    if (awakeningNameContinue) {
+      awakeningNameContinue.addEventListener('click', function() {
+        var value = (awakeningNameInput && awakeningNameInput.value ? awakeningNameInput.value : '').trim();
+        if (!value) return;
+        awakeningState.name = value;
+        playOverlayClick();
+        renderAwakeningStep('about');
+      });
+    }
+    if (awakeningAboutInput) {
+      awakeningAboutInput.addEventListener('input', function() {
+        setAwakeningButtonEnabled('awakening-about-continue', (this.value || '').trim().length >= 10);
+      });
+    }
+    if (awakeningAboutContinue) {
+      awakeningAboutContinue.addEventListener('click', function() {
+        var value = (awakeningAboutInput && awakeningAboutInput.value ? awakeningAboutInput.value : '').trim();
+        if (value.length < 10) return;
+        awakeningState.about = value;
+        playOverlayClick();
+        renderAwakeningStep('motivation');
+      });
+    }
+    if (awakeningMotivationInput) {
+      awakeningMotivationInput.addEventListener('input', function() {
+        setAwakeningButtonEnabled('awakening-motivation-continue', (this.value || '').trim().length >= 10);
+      });
+    }
+    if (awakeningMotivationContinue) {
+      awakeningMotivationContinue.addEventListener('click', function() {
+        var value = (awakeningMotivationInput && awakeningMotivationInput.value ? awakeningMotivationInput.value : '').trim();
+        if (value.length < 10) return;
+        awakeningState.motivation = value;
+        playOverlayClick();
+        renderAwakeningStep('notes');
+      });
+    }
+    if (awakeningNotesSkip) {
+      awakeningNotesSkip.addEventListener('click', function() {
+        awakeningState.notes = '';
+        playOverlayClick();
+        renderAwakeningStep('hatch');
+      });
+    }
+    if (awakeningNotesContinue) {
+      awakeningNotesContinue.addEventListener('click', function() {
+        awakeningState.notes = (awakeningNotesInput && awakeningNotesInput.value ? awakeningNotesInput.value : '').trim();
+        playOverlayClick();
+        renderAwakeningStep('hatch');
+      });
+    }
+    if (awakeningEnterBtn) {
+      awakeningEnterBtn.addEventListener('click', function() {
+        playOverlayClick();
+        completeAwakening();
+      });
+    }
+    if (checkinStillMeBtn) {
+      checkinStillMeBtn.addEventListener('click', function() {
+        playOverlayClick();
+        persistCheckIn(false);
+      });
+    }
+    if (checkinUpdatedBtn) {
+      checkinUpdatedBtn.addEventListener('click', function() {
+        playOverlayClick();
+        persistCheckIn(true);
+      });
+    }
 
     /* ═══ SECTION: Uid | Functions: uid ═══ */
     function uid() {
@@ -15398,6 +16573,9 @@ input[type="range"]::-moz-range-thumb{
 
       session = null;
       showView('viewDone');
+      scheduleUiTimer(function() {
+        checkForCheckIn();
+      }, 250);
 
       requestSessionAiSummary(sessionSnap, reviewed);
 
@@ -17379,6 +18557,9 @@ input[type="range"]::-moz-range-thumb{
           toast('Course added');
           renderCourseModal();
           renderDashboard();
+          scheduleUiTimer(function() {
+            checkForCheckIn();
+          }, 120);
         });
       }
     }
@@ -19096,11 +20277,7 @@ input[type="range"]::-moz-range-thumb{
     function updateMascotStage() {
       var xp = 0;
       try { xp = SyncEngine.get('dragon', 'xp') || 0; } catch(e) {}
-      var thresholds = [0, 1000, 5000, 20000, 60000, 120000];
-      mascotStage = 0;
-      for (var i = thresholds.length - 1; i >= 0; i--) {
-        if (xp >= thresholds[i]) { mascotStage = i; break; }
-      }
+      mascotStage = getDragonGrowthStageFromXp(xp);
     }
 
     /* ═══ SECTION: Start Mascot Loop | Functions: startMascotLoop ═══ */
@@ -21047,40 +22224,12 @@ input[type="range"]::-moz-range-thumb{
     });
 
     var focusResyncBound = false;
-    /* ═══ SECTION: Boot | Functions: boot ═══ */
-    function boot() {
-      loadState();
-      /* Re-sync from SyncEngine when a remote device writes new state.
-         Core.js polls KV every 60s; this listener reloads local state
-         and refreshes the dashboard when remote changes arrive. */
-      Core.on('sync-remote-update', function(data) {
-        if (data && data.namespace === 'studyengine') {
-          loadState();
-          if (viewDash.classList.contains('active')) {
-            renderDashboard();
-          }
-        }
-      });
-      /* Re-pull from KV when tab/window regains focus (bridges embed↔standalone) */
-      if (!focusResyncBound) {
-        focusResyncBound = true;
-        document.addEventListener('visibilitychange', function() {
-          if (document.visibilityState === 'visible' && SyncEngine.isOnline()) {
-            SyncEngine.pull('studyengine').then(function() {
-              var freshItems = SyncEngine.get(NS, 'items');
-              if (freshItems && typeof freshItems === 'object') {
-                var freshCount = Object.keys(freshItems).length;
-                var localCount = state.items ? Object.keys(state.items).length : 0;
-                if (freshCount !== localCount) {
-                  loadState();
-                  renderDashboard();
-                  toast('Synced ' + freshCount + ' items from cloud');
-                }
-              }
-            }).catch(function() {});
-          }
-        });
-      }
+    var bootBindingsBound = false;
+    var bootDidInit = false;
+    /* ═══ SECTION: Finish Boot | Functions: finishBoot ═══ */
+    function finishBoot() {
+      if (bootDidInit) return;
+      bootDidInit = true;
       loadOptimizedWeights();
       initMascot();
       wireGlobalTutorNotesUI();
@@ -21177,6 +22326,7 @@ input[type="range"]::-moz-range-thumb{
       /* Refresh mascot stage every 30s (picks up XP changes from other widgets) */
       setInterval(function() {
         updateMascotStage();
+        checkForCheckIn();
       }, 30000);
 
       /* Show sync status badge */
@@ -21217,6 +22367,56 @@ input[type="range"]::-moz-range-thumb{
       SyncEngine.onSyncStatus(function(status) {
         setSyncBadge(status);
       });
+
+      checkForCheckIn();
+    }
+
+    /* ═══ SECTION: Boot | Functions: boot ═══ */
+    function boot() {
+      loadState();
+      var profile = getUserProfile();
+      if (!profile || !profile.awakened) {
+        showAwakening(function() {
+          loadState();
+          finishBoot();
+        });
+        return;
+      }
+      if (!bootBindingsBound) {
+        bootBindingsBound = true;
+        /* Re-sync from SyncEngine when a remote device writes new state.
+           Core.js polls KV every 60s; this listener reloads local state
+           and refreshes the dashboard when remote changes arrive. */
+        Core.on('sync-remote-update', function(data) {
+          if (data && data.namespace === 'studyengine') {
+            loadState();
+            if (viewDash.classList.contains('active')) {
+              renderDashboard();
+            }
+          }
+        });
+        /* Re-pull from KV when tab/window regains focus (bridges embed↔standalone) */
+        if (!focusResyncBound) {
+          focusResyncBound = true;
+          document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'visible' && SyncEngine.isOnline()) {
+              SyncEngine.pull('studyengine').then(function() {
+                var freshItems = SyncEngine.get(NS, 'items');
+                if (freshItems && typeof freshItems === 'object') {
+                  var freshCount = Object.keys(freshItems).length;
+                  var localCount = state.items ? Object.keys(state.items).length : 0;
+                  if (freshCount !== localCount) {
+                    loadState();
+                    renderDashboard();
+                    toast('Synced ' + freshCount + ' items from cloud');
+                  }
+                }
+              }).catch(function() {});
+            }
+          });
+        }
+      }
+      finishBoot();
     }
 
     var __baseRenderDashboard = renderDashboard;
