@@ -34,6 +34,10 @@ Live URL: https://notion-widgets-93r.pages.dev/
 - Worker deploy: `npx wrangler deploy --config worker/wrangler.toml`
 - Git: `git add . && git commit -m "description" && git push`
 
+## Git Workflow
+- Default to pushing directly to `origin/main` after committing.
+- Only use a feature branch or PR flow when the user explicitly asks for one.
+
 ## Done When
 - Works in both light and dark mode.
 - No console errors in browser DevTools.
