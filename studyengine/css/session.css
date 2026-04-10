@@ -1,153 +1,180 @@
-/* Extraction-first scaffold: styles remain in base.css for exact parity. */
+/* Session-specific responsive system */
 
-/* ── Mobile Session View Fixes ── */
 @media (max-width: 768px) {
-  #viewSession {
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    -webkit-overflow-scrolling: touch;
-    max-height: 100vh;
-    max-height: 100dvh;
-    padding-bottom: 120px;
+  body.in-session .topbar {
+    display: none !important;
   }
 
-  .item-card {
-    width: 100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box !important;
-    overflow-wrap: break-word;
-    word-break: break-word;
+  body.in-session #viewSession {
+    overflow: visible !important;
+    max-height: none;
+    padding-bottom: 100px;
   }
 
-  #tierArea {
-    width: 100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box;
-    overflow-x: hidden;
+  body.in-session .session-top {
+    display: none;
   }
 
-  #tierArea textarea,
-  #tierArea input,
-  #userText {
-    width: 100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box !important;
-    font-size: 16px !important;
-    -webkit-appearance: none;
-    border-radius: 12px;
+  body.in-session .session-header {
+    display: flex;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    margin: 0 0 10px;
+    border-radius: 0 0 14px 14px;
+    padding-top: max(12px, env(safe-area-inset-top));
+    background: rgba(var(--accent-rgb), 0.03);
+    border-bottom: 1px solid rgba(var(--accent-rgb), 0.08);
   }
 
-  #ratings {
+  body.in-session .item-card {
+    min-height: 55vh;
+    min-height: 55dvh;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 20px 18px;
+    border-radius: 20px;
+    border: 1px solid rgba(var(--accent-rgb), 0.14);
+    border-left-width: 3px;
+    background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.06), rgba(var(--accent-rgb), 0.02) 40%, transparent 70%);
+    backdrop-filter: blur(12px) saturate(1.2);
+    -webkit-backdrop-filter: blur(12px) saturate(1.2);
+  }
+
+  body.in-session .meta {
+    margin-top: 0;
+    margin-bottom: 6px;
+    flex-wrap: nowrap;
+    gap: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  body.in-session .meta .timer-badge {
+    margin-left: auto;
+    font-size: 9px;
+  }
+
+  body.in-session .prompt {
+    align-items: flex-start;
+  }
+
+  body.in-session .ratings,
+  body.in-session #ratings {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
     display: grid !important;
-    grid-template-columns: repeat(4, 1fr) !important;
-    gap: 8px !important;
-    width: 100% !important;
-    padding: 8px 0 !important;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin: 0;
+    padding: 12px 16px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    background: rgba(var(--accent-rgb), 0.04);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border-top: 1px solid rgba(var(--accent-rgb), 0.10);
   }
 
-  #ratings button {
-    min-height: 48px !important;
-    font-size: 13px !important;
-    padding: 10px 4px !important;
+  body.in-session .rate {
+    border-radius: 14px;
+    min-height: 52px;
+    padding: 14px 8px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
   }
 
-  .session-top {
-    flex-wrap: wrap;
-    gap: 6px;
+  body.in-session #revealBtn,
+  body.in-session #checkBtn,
+  body.in-session #submitBtn,
+  body.in-session .confidence-row {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    margin: 0;
+    padding: 14px 16px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    background: rgba(var(--accent-rgb), 0.04);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border-top: 1px solid rgba(var(--accent-rgb), 0.10);
   }
 
-  .meta {
-    flex-wrap: wrap;
-    gap: 4px;
-    font-size: 12px;
-  }
-
-  #modelAnswer {
-    width: 100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box !important;
-    overflow-wrap: break-word;
-    word-break: break-word;
-  }
-
-  #revealColumnsWrap {
-    flex-direction: column !important;
-    gap: 12px;
-  }
-
-  .confidence-row {
-    flex-wrap: wrap;
+  body.in-session .confidence-row {
+    display: flex;
     gap: 8px;
   }
 
-  .confidence-row button {
-    min-height: 44px;
-    touch-action: manipulation;
+  body.in-session .conf-pill {
+    flex: 1;
+    max-width: none;
+    min-height: 48px;
+    padding: 14px 10px;
+    border-radius: 14px;
+    font-size: 13px;
   }
 
-  #revealBtn,
-  #checkBtn,
-  .reveal-btn,
-  .check-btn {
-    min-height: 48px !important;
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
+  body.in-session .pbar {
+    height: 4px;
+    border: none;
+    background: rgba(var(--accent-rgb), 0.08);
   }
 
-  #startBtn {
-    min-height: 52px !important;
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
+  body.in-session .pbar > div {
+    transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
-  #aiFeedbackArea,
-  #aiFeedbackRight {
-    width: 100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box;
-    overflow-wrap: break-word;
+  body.in-session .progress .p-text,
+  body.in-session #sessionProgText {
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
   }
 
-  #tutorMessages {
-    max-height: 50vh !important;
+  body.in-session .reveal-columns {
+    display: block;
   }
 
-  #tutorInput {
-    font-size: 16px !important;
+  body.in-session .reveal-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
   }
 
-  .pbar {
-    width: 100% !important;
+  body.in-session .reveal-tab-btn {
+    flex: 1;
   }
 
-  #breakHint {
-    left: 8px !important;
-    right: 8px !important;
-    bottom: 8px !important;
-    width: auto !important;
+  body.in-session .reveal-col {
+    display: none;
+    max-height: 50vh;
+    overflow-y: auto;
   }
 
-  .session-xp-bar {
-    width: 100% !important;
-    box-sizing: border-box;
-  }
-
-  #restudyScreen {
-    padding: 16px !important;
-  }
-
-  #timerBar {
-    width: 100% !important;
+  body.in-session .reveal-col.active {
+    display: block;
   }
 }
 
-@media (max-width: 380px) {
-  #ratings {
-    grid-template-columns: repeat(2, 1fr) !important;
+@media (min-width: 769px) {
+  body.in-session .session-header {
+    display: flex;
   }
 
-  .meta {
-    font-size: 11px;
+  body.in-session .reveal-tabs {
+    display: none;
+  }
+
+  .reveal-col {
+    display: block !important;
   }
 }

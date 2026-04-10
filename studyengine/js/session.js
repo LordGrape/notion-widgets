@@ -425,10 +425,11 @@
           xpBar.className = 'session-xp-bar';
           xpBar.id = 'sessionXPBar';
           xpBar.innerHTML =
-            '<span class="sxp-label">XP</span>' +
-            '<div class="sxp-fill-wrap"><div class="sxp-fill"></div></div>' +
-            '<span class="sxp-value">0 XP</span>' +
-            '<span class="sxp-streak"></span>';
+            '<div class="sxp-track">' +
+              '<div class="sxp-fill"></div>' +
+              '<div class="sxp-glow"></div>' +
+            '</div>' +
+            '<span class="sxp-label"><span class="sxp-value">0</span><span class="sxp-unit">XP</span></span>';
           sessionTop.insertAdjacentElement('afterend', xpBar);
         }
         updateSessionXPBar();
@@ -555,8 +556,18 @@
         el('courseHint').textContent = (selectedCourse === 'All') ? (it.course || '—') : selectedCourse;
 
         var n = session.queue.length;
-        el('progText').textContent = (session.idx + 1) + ' of ' + n;
-        el('progBar').style.width = Math.round(((session.idx) / Math.max(1, n)) * 100) + '%';
+        var progressText = (session.idx + 1) + ' of ' + n;
+        var progressPct = Math.round(((session.idx) / Math.max(1, n)) * 100);
+        el('progText').textContent = progressText;
+        el('progBar').style.width = progressPct + '%';
+        if (el('sessionProgText')) el('sessionProgText').textContent = progressText;
+        if (el('sessionProgBar')) el('sessionProgBar').style.width = progressPct + '%';
+        if (window.gsap) {
+          var progBarFill = el('progBar');
+          if (progBarFill) {
+            gsap.fromTo(progBarFill, { boxShadow: '0 0 8px rgba(var(--accent-rgb), 0.5)' }, { boxShadow: '0 0 0 rgba(var(--accent-rgb), 0)', duration: 0.6, ease: 'power2.out' });
+          }
+        }
 
         tierArea.innerHTML = '';
         if (tier === 'quickfire') renderQuickfireTier(it, session);
@@ -569,10 +580,15 @@
         if (window.gsap) {
           var cardEnter = document.querySelector('.item-card');
           if (cardEnter) {
+            gsap.killTweensOf(cardEnter);
             gsap.fromTo(cardEnter,
-              { opacity: 0, y: 16, scale: 0.98 },
-              { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: 'power2.out' }
+              { opacity: 0, y: 60, scale: 0.95, rotationX: 4 },
+              { opacity: 1, y: 0, scale: 1, rotationX: 0, duration: 0.55, ease: 'back.out(1.4)', clearProps: 'rotationX' }
             );
+            var staggerEls = cardEnter.querySelectorAll('.meta, .prompt, #tierArea, .divider');
+            if (staggerEls.length) {
+              gsap.fromTo(staggerEls, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out', stagger: 0.06, delay: 0.15 });
+            }
           }
         }
       } catch (mobileErr) {
@@ -621,6 +637,10 @@
         if (qfAnswerVisual) setTimeout(initMermaidBlocks, 50);
         else ensureAnswerVisual(it, revealTier);
         ratingsEl.style.display = 'grid';
+        if (window.gsap) {
+          gsap.fromTo(modelAnswerEl, { opacity: 0, y: 30, clipPath: 'inset(100% 0% 0% 0%)' }, { opacity: 1, y: 0, clipPath: 'inset(0% 0% 0% 0%)', duration: 0.45, ease: 'power2.out' });
+          gsap.fromTo(ratingsEl, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.3, delay: 0.2, ease: 'power2.out' });
+        }
         try { playClick(); } catch(e) {}
         ratingsEl.querySelectorAll('button').forEach(function(b) {
           b.onclick = function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); };
@@ -655,12 +675,16 @@
       var answerVisual = it.visual ? renderMermaidBlock(it.visual, 'answer', it.id) : '';
 
       /* Remove old tierArea content that's no longer needed (scenario stays via item-card) */
-      var revealHTML = '<div class="reveal-columns">' +
+      var revealHTML = '<div class="reveal-tabs">' +
+        '<button type="button" class="nav-tab reveal-tab-btn" data-reveal-tab="user">Your Response</button>' +
+        '<button type="button" class="nav-tab reveal-tab-btn active" data-reveal-tab="model">Model Answer</button>' +
+      '</div>' +
+      '<div class="reveal-columns">' +
         '<div class="reveal-col">' +
           '<div class="col-label"><span class="col-icon">✍️</span> Your Response</div>' +
           '<div class="user-response-locked" id="userResponseLocked">' + esc(userText || '(No response)') + '</div>' +
         '</div>' +
-        '<div class="reveal-col">' +
+        '<div class="reveal-col active">' +
           '<div class="col-label"><span class="col-icon">📋</span> Model Answer</div>' +
           '<div class="answer" id="modelAnswerRight"><span class="answer-header">Model Answer</span>' + renderMd(it.modelAnswer || '') + '<div class="visual-slot"></div>' + answerVisual + '</div>' +
           '<div id="aiFeedbackRight"></div>' +
@@ -672,6 +696,7 @@
       revealContainer.id = 'revealColumnsWrap';
       revealContainer.innerHTML = revealHTML;
       tierArea.insertAdjacentElement('afterend', revealContainer);
+      setupRevealTabs(revealContainer);
 
       /* Hide original modelAnswer element — we use the right-column copy */
       modelAnswerEl.style.display = 'none';
@@ -738,6 +763,22 @@
       if (!it) return;
       if (!session.currentShown) return;
 
+      var tappedBtn = ratingsEl.querySelector('[data-rate="' + rating + '"]');
+      if (tappedBtn && window.gsap) {
+        gsap.fromTo(tappedBtn, { scale: 1 }, {
+          scale: 0.88,
+          duration: 0.08,
+          ease: 'power2.in',
+          yoyo: true,
+          repeat: 1,
+          onComplete: function() {
+            gsap.to(tappedBtn, { scale: 1.15, opacity: 0, duration: 0.2, ease: 'power2.out' });
+            ratingsEl.querySelectorAll('button').forEach(function(b) {
+              if (b !== tappedBtn) gsap.to(b, { opacity: 0.3, scale: 0.95, duration: 0.15 });
+            });
+          }
+        });
+      }
       /* Immediately hide rating UI — rating captured */
       ratingsEl.style.display = 'none';
       var hintElRate = document.querySelector('.override-hint');
@@ -1034,9 +1075,11 @@
         gsap.killTweensOf(cardEl);
         gsap.to(cardEl, {
           opacity: 0,
-          y: -12,
-          duration: 0.18,
-          ease: 'power2.in',
+          y: -40,
+          scale: 0.96,
+          rotationX: -3,
+          duration: 0.25,
+          ease: 'power3.in',
           onComplete: step
         });
       } else {
@@ -1215,6 +1258,17 @@
       flash.textContent = xp === 0 ? '0 XP' : '+' + xp + ' XP';
       document.body.appendChild(flash);
       if (window.gsap) {
+        var xpBar = document.getElementById('sessionXPBar');
+        if (xpBar) {
+          xpBar.classList.add('active');
+          gsap.fromTo(xpBar.querySelector('.sxp-value'), { textContent: Math.max(0, session.xp - xp) }, {
+            textContent: session.xp,
+            duration: 0.45,
+            roundProps: 'textContent',
+            ease: 'power2.out'
+          });
+          gsap.delayedCall(0.38, function() { xpBar.classList.remove('active'); });
+        }
         gsap.fromTo(flash,
           { opacity: 0, y: 0, scale: 0.7 },
           { opacity: 1, y: -30, scale: 1, duration: 0.35, ease: 'back.out(1.8)',
@@ -1230,6 +1284,24 @@
         flash.style.opacity = '1';
         setTimeout(function() { flash.remove(); }, 1200);
       }
+    }
+
+    function setupRevealTabs(revealContainer) {
+      if (!revealContainer) return;
+      var tabs = revealContainer.querySelectorAll('.reveal-tab-btn');
+      var cols = revealContainer.querySelectorAll('.reveal-col');
+      if (tabs.length !== 2 || cols.length !== 2) return;
+      tabs.forEach(function(tab, idx) {
+        tab.addEventListener('click', function() {
+          tabs.forEach(function(t) { t.classList.remove('active'); });
+          tab.classList.add('active');
+          cols.forEach(function(col) { col.classList.remove('active'); });
+          cols[idx].classList.add('active');
+          if (window.gsap) {
+            gsap.fromTo(cols[idx], { opacity: 0, x: idx === 0 ? -18 : 18 }, { opacity: 1, x: 0, duration: 0.24, ease: 'power2.out' });
+          }
+        });
+      });
     }
 
     function disableRatings(disabled) {
