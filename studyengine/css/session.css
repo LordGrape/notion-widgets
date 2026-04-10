@@ -1,1 +1,153 @@
 /* Extraction-first scaffold: styles remain in base.css for exact parity. */
+
+/* ── Mobile Session View Fixes ── */
+@media (max-width: 768px) {
+  #viewSession {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    max-height: 100vh;
+    max-height: 100dvh;
+    padding-bottom: 120px;
+  }
+
+  .item-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  #tierArea {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+  #tierArea textarea,
+  #tierArea input,
+  #userText {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    font-size: 16px !important;
+    -webkit-appearance: none;
+    border-radius: 12px;
+  }
+
+  #ratings {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 8px !important;
+    width: 100% !important;
+    padding: 8px 0 !important;
+  }
+
+  #ratings button {
+    min-height: 48px !important;
+    font-size: 13px !important;
+    padding: 10px 4px !important;
+    touch-action: manipulation;
+  }
+
+  .session-top {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .meta {
+    flex-wrap: wrap;
+    gap: 4px;
+    font-size: 12px;
+  }
+
+  #modelAnswer {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  #revealColumnsWrap {
+    flex-direction: column !important;
+    gap: 12px;
+  }
+
+  .confidence-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .confidence-row button {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+
+  #revealBtn,
+  #checkBtn,
+  .reveal-btn,
+  .check-btn {
+    min-height: 48px !important;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #startBtn {
+    min-height: 52px !important;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #aiFeedbackArea,
+  #aiFeedbackRight {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+    overflow-wrap: break-word;
+  }
+
+  #tutorMessages {
+    max-height: 50vh !important;
+  }
+
+  #tutorInput {
+    font-size: 16px !important;
+  }
+
+  .pbar {
+    width: 100% !important;
+  }
+
+  #breakHint {
+    left: 8px !important;
+    right: 8px !important;
+    bottom: 8px !important;
+    width: auto !important;
+  }
+
+  .session-xp-bar {
+    width: 100% !important;
+    box-sizing: border-box;
+  }
+
+  #restudyScreen {
+    padding: 16px !important;
+  }
+
+  #timerBar {
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 380px) {
+  #ratings {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .meta {
+    font-size: 11px;
+  }
+}

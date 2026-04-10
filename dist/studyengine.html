@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -6689,8 +6689,182 @@ input[type="range"]::-moz-range-thumb{
         width: 150px;
       }
     }
+
+/* ── Mobile Responsive Fixes ── */
+@media (max-width: 768px) {
+  body {
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #rootCard {
+    width: 100% !important;
+    max-width: 100vw !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    min-height: 100vh;
+    min-height: 100dvh;
+    box-sizing: border-box;
+  }
+
+  .standalone #rootCard {
+    padding: 12px !important;
+  }
+}
 /* Extraction-first scaffold: styles remain in base.css for exact parity. */
 /* Extraction-first scaffold: styles remain in base.css for exact parity. */
+
+/* ── Mobile Session View Fixes ── */
+@media (max-width: 768px) {
+  #viewSession {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    max-height: 100vh;
+    max-height: 100dvh;
+    padding-bottom: 120px;
+  }
+
+  .item-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  #tierArea {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+  #tierArea textarea,
+  #tierArea input,
+  #userText {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    font-size: 16px !important;
+    -webkit-appearance: none;
+    border-radius: 12px;
+  }
+
+  #ratings {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 8px !important;
+    width: 100% !important;
+    padding: 8px 0 !important;
+  }
+
+  #ratings button {
+    min-height: 48px !important;
+    font-size: 13px !important;
+    padding: 10px 4px !important;
+    touch-action: manipulation;
+  }
+
+  .session-top {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .meta {
+    flex-wrap: wrap;
+    gap: 4px;
+    font-size: 12px;
+  }
+
+  #modelAnswer {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  #revealColumnsWrap {
+    flex-direction: column !important;
+    gap: 12px;
+  }
+
+  .confidence-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .confidence-row button {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+
+  #revealBtn,
+  #checkBtn,
+  .reveal-btn,
+  .check-btn {
+    min-height: 48px !important;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #startBtn {
+    min-height: 52px !important;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #aiFeedbackArea,
+  #aiFeedbackRight {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+    overflow-wrap: break-word;
+  }
+
+  #tutorMessages {
+    max-height: 50vh !important;
+  }
+
+  #tutorInput {
+    font-size: 16px !important;
+  }
+
+  .pbar {
+    width: 100% !important;
+  }
+
+  #breakHint {
+    left: 8px !important;
+    right: 8px !important;
+    bottom: 8px !important;
+    width: auto !important;
+  }
+
+  .session-xp-bar {
+    width: 100% !important;
+    box-sizing: border-box;
+  }
+
+  #restudyScreen {
+    padding: 16px !important;
+  }
+
+  #timerBar {
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 380px) {
+  #ratings {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .meta {
+    font-size: 11px;
+  }
+}
 /* Extraction-first scaffold: styles remain in base.css for exact parity. */
 /* Extraction-first scaffold: styles remain in base.css for exact parity. */
 </style>
@@ -12746,121 +12920,134 @@ function showCourseDashboard(courseName) {
       updateSessionXPBar();
       try { playStart(); } catch(e) {}
       renderCurrentItem();
+      try {
+        var sessionView = document.getElementById('viewSession');
+        if (sessionView) sessionView.scrollTop = 0;
+        window.scrollTo(0, 0);
+      } catch(e) {}
     }
 
     function renderCurrentItem() {
-      document.querySelectorAll('.listen-tts-btn').forEach(function(btn) { btn.remove(); });
-      clearTimers();
-      cleanupAskTutor();
-      if (session) session.lastTutorContext = null;
-      activeRubric = null;
-      session.currentShown = false;
-      if (session) session.confidence = null;
-      if (session) session._dontKnow = false;
-      if (session) session._reconstructionPending = false;
-      modelAnswerEl.style.display = 'none';
-      ratingsEl.style.display = 'none';
-      studyIndicator.classList.remove('show');
-      var breakHint = el('breakHint');
-      if (breakHint) breakHint.classList.remove('show');
-      var restudyScreen = el('restudyScreen');
-      if (restudyScreen) restudyScreen.classList.remove('show');
-      modelAnswerEl.classList.remove('restudy-active');
-      var oldBarAtRender = document.getElementById('restudyBarInline');
-      if (oldBarAtRender) {
-        var oldElabAtRender = oldBarAtRender.nextElementSibling;
-        if (oldElabAtRender && oldElabAtRender.classList.contains('restudy-elaboration')) oldElabAtRender.remove();
-        oldBarAtRender.remove();
-      }
-      el('timerBar').classList.remove('show');
-      el('metaTimer').style.display = 'none';
-      el('timerFill').style.width = '0%';
-      el('aiFeedbackArea').innerHTML = '';
-      /* Remove side-by-side reveal columns from previous item */
-      var oldReveal = document.getElementById('revealColumnsWrap');
-      if (oldReveal) oldReveal.remove();
-      var oldDkWrap = document.getElementById('dkRevealWrap');
-      if (oldDkWrap) oldDkWrap.remove();
-      // Re-show tier area in case it was hidden/dimmed by Don't Know flow
-      if (tierArea) {
-        tierArea.style.display = '';
-        tierArea.style.opacity = '';
-        tierArea.style.pointerEvents = '';
-      }
-      if (session) session.aiRating = null;
-      if (session) session._isRelearning = false;
-      tutorAcknowledgeDone = false;
-      tutorAcknowledgeOriginalRating = null;
-      tutorOpeningUserText = '';
-      tutorInRelearning = false;
-      tutorMaxTurns = 3;
-      var qfRoot = document.getElementById('qfFollowupRoot');
-      if (qfRoot) qfRoot.remove();
-      var qfReRoot = document.getElementById('qfReRetrievalRoot');
-      if (qfReRoot) qfReRoot.remove();
-      /* Remove override hint if present */
-      var oldHint = document.querySelector('.override-hint');
-      if (oldHint) oldHint.remove();
-      /* Reset rating button outlines */
-      ratingsEl.querySelectorAll('button').forEach(function(b) {
-        b.style.outline = 'none';
-        b.style.outlineOffset = '0';
-      });
+      try {
+        document.querySelectorAll('.listen-tts-btn').forEach(function(btn) { btn.remove(); });
+        clearTimers();
+        cleanupAskTutor();
+        if (session) session.lastTutorContext = null;
+        activeRubric = null;
+        session.currentShown = false;
+        if (session) session.confidence = null;
+        if (session) session._dontKnow = false;
+        if (session) session._reconstructionPending = false;
+        modelAnswerEl.style.display = 'none';
+        ratingsEl.style.display = 'none';
+        studyIndicator.classList.remove('show');
+        var breakHint = el('breakHint');
+        if (breakHint) breakHint.classList.remove('show');
+        var restudyScreen = el('restudyScreen');
+        if (restudyScreen) restudyScreen.classList.remove('show');
+        modelAnswerEl.classList.remove('restudy-active');
+        var oldBarAtRender = document.getElementById('restudyBarInline');
+        if (oldBarAtRender) {
+          var oldElabAtRender = oldBarAtRender.nextElementSibling;
+          if (oldElabAtRender && oldElabAtRender.classList.contains('restudy-elaboration')) oldElabAtRender.remove();
+          oldBarAtRender.remove();
+        }
+        el('timerBar').classList.remove('show');
+        el('metaTimer').style.display = 'none';
+        el('timerFill').style.width = '0%';
+        el('aiFeedbackArea').innerHTML = '';
+        /* Remove side-by-side reveal columns from previous item */
+        var oldReveal = document.getElementById('revealColumnsWrap');
+        if (oldReveal) oldReveal.remove();
+        var oldDkWrap = document.getElementById('dkRevealWrap');
+        if (oldDkWrap) oldDkWrap.remove();
+        if (tierArea) {
+          tierArea.style.display = '';
+          tierArea.style.opacity = '';
+          tierArea.style.pointerEvents = '';
+        }
+        if (session) session.aiRating = null;
+        if (session) session._isRelearning = false;
+        tutorAcknowledgeDone = false;
+        tutorAcknowledgeOriginalRating = null;
+        tutorOpeningUserText = '';
+        tutorInRelearning = false;
+        tutorMaxTurns = 3;
+        var qfRoot = document.getElementById('qfFollowupRoot');
+        if (qfRoot) qfRoot.remove();
+        var qfReRoot = document.getElementById('qfReRetrievalRoot');
+        if (qfReRoot) qfReRoot.remove();
+        var oldHint = document.querySelector('.override-hint');
+        if (oldHint) oldHint.remove();
+        ratingsEl.querySelectorAll('button').forEach(function(b) {
+          b.style.outline = 'none';
+          b.style.outlineOffset = '0';
+        });
 
-      var it = session.queue[session.idx];
-      if (!it) { completeSession(); return; }
-      /* Resolve presentation tier (smart mode) or stored tier (manual/legacy) */
-      var tier = it._presentTier || it.tier || 'quickfire';
+        var it = session.queue[session.idx];
+        if (!it) { completeSession(); return; }
+        var tier = it._presentTier || it.tier || 'quickfire';
 
-      setTierBadge(tier);
-      /* Tier-themed item card border */
-      var ic = document.querySelector('.item-card');
-      if (ic) {
-        ic.className = 'item-card tier-' + tier;
-      }
+        setTierBadge(tier);
+        var ic = document.querySelector('.item-card');
+        if (ic) ic.className = 'item-card tier-' + tier;
 
-      /* Tier-coloured progress bar */
-      var pb = document.querySelector('.pbar');
-      if (pb) {
-        pb.className = 'pbar tier-' + tier;
-      }
+        var pb = document.querySelector('.pbar');
+        if (pb) pb.className = 'pbar tier-' + tier;
 
-      /* For Apply It we render the scenario in a distinct block; avoid duplicating it in the top prompt. */
-      if (tier === 'apply') el('promptText').textContent = 'Scenario';
-      else el('promptText').innerHTML = '<div class="md-content">' + renderMd(it.prompt) + '</div>';
-      el('metaCourse').textContent = it.course || '—';
-      var metaEl = document.querySelector('.meta');
-      var existingPriBadge = document.getElementById('metaPriority');
-      if (existingPriBadge) existingPriBadge.remove();
-      if (metaEl && it.priority && it.priority !== 'medium') {
-        var badge = document.createElement('span');
-        badge.id = 'metaPriority';
-        badge.innerHTML = priorityBadgeHTML(it.priority);
-        metaEl.appendChild(badge);
-      }
-      el('metaTopic').textContent = it.topic || '—';
-      refreshSessionEditButton();
-      el('courseHint').textContent = (selectedCourse === 'All') ? (it.course || '—') : selectedCourse;
+        if (tier === 'apply') el('promptText').textContent = 'Scenario';
+        else el('promptText').innerHTML = '<div class="md-content">' + renderMd(it.prompt) + '</div>';
+        el('metaCourse').textContent = it.course || '—';
+        var metaEl = document.querySelector('.meta');
+        var existingPriBadge = document.getElementById('metaPriority');
+        if (existingPriBadge) existingPriBadge.remove();
+        if (metaEl && it.priority && it.priority !== 'medium') {
+          var badge = document.createElement('span');
+          badge.id = 'metaPriority';
+          badge.innerHTML = priorityBadgeHTML(it.priority);
+          metaEl.appendChild(badge);
+        }
+        el('metaTopic').textContent = it.topic || '—';
+        refreshSessionEditButton();
+        el('courseHint').textContent = (selectedCourse === 'All') ? (it.course || '—') : selectedCourse;
 
-      var n = session.queue.length;
-      el('progText').textContent = (session.idx + 1) + ' of ' + n;
-      el('progBar').style.width = Math.round(((session.idx) / Math.max(1, n)) * 100) + '%';
+        var n = session.queue.length;
+        el('progText').textContent = (session.idx + 1) + ' of ' + n;
+        el('progBar').style.width = Math.round(((session.idx) / Math.max(1, n)) * 100) + '%';
 
-      tierArea.innerHTML = '';
-      if (tier === 'quickfire') renderQuickfireTier(it, session);
-      else if (tier === 'explain') renderExplainTier(it, session);
-      else if (tier === 'apply') renderApplyTier(it, session);
-      else if (tier === 'worked') renderWorkedTier(it, session);
-      else if (tier === 'distinguish') renderDistinguishTier(it, session);
-      else if (tier === 'mock') renderMockTier(it, session);
+        tierArea.innerHTML = '';
+        if (tier === 'quickfire') renderQuickfireTier(it, session);
+        else if (tier === 'explain') renderExplainTier(it, session);
+        else if (tier === 'apply') renderApplyTier(it, session);
+        else if (tier === 'worked') renderWorkedTier(it, session);
+        else if (tier === 'distinguish') renderDistinguishTier(it, session);
+        else if (tier === 'mock') renderMockTier(it, session);
 
-      if (window.gsap) {
-        var cardEnter = document.querySelector('.item-card');
-        if (cardEnter) {
-          gsap.fromTo(cardEnter,
-            { opacity: 0, y: 16, scale: 0.98 },
-            { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: 'power2.out' }
-          );
+        if (window.gsap) {
+          var cardEnter = document.querySelector('.item-card');
+          if (cardEnter) {
+            gsap.fromTo(cardEnter,
+              { opacity: 0, y: 16, scale: 0.98 },
+              { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: 'power2.out' }
+            );
+          }
+        }
+      } catch (mobileErr) {
+        console.error('[StudyEngine] renderCurrentItem failed:', mobileErr);
+        var fallbackItem = session && session.queue && session.queue[session.idx];
+        if (fallbackItem && tierArea) {
+          tierArea.innerHTML =
+            '<div style="padding:16px;color:var(--text-primary);font-size:15px;">' +
+            '<p><strong>Prompt:</strong></p>' +
+            '<p>' + (fallbackItem.prompt || 'No prompt') + '</p>' +
+            '<hr style="border-color:var(--border-subtle);margin:12px 0;">' +
+            '<p><strong>Answer:</strong></p>' +
+            '<p>' + (fallbackItem.modelAnswer || 'No answer') + '</p>' +
+            '</div>';
+          ratingsEl.style.display = 'grid';
+          ratingsEl.querySelectorAll('button').forEach(function(b) {
+            b.onclick = function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); };
+          });
         }
       }
     }
@@ -21139,6 +21326,25 @@ el('gearBtn').addEventListener('click', openSettings);
       loadState();
       var profile = getUserProfile();
       if (!profile || !profile.awakened) {
+        if (SyncEngine.isOnline()) {
+          SyncEngine.pull('user').then(function() {
+            var retryProfile = getUserProfile();
+            if (retryProfile && retryProfile.awakened) {
+              finishBoot();
+            } else {
+              showAwakening(function() {
+                loadState();
+                finishBoot();
+              });
+            }
+          }).catch(function() {
+            showAwakening(function() {
+              loadState();
+              finishBoot();
+            });
+          });
+          return;
+        }
         showAwakening(function() {
           loadState();
           finishBoot();
@@ -21244,10 +21450,23 @@ el('gearBtn').addEventListener('click', openSettings);
       boot();
     });
 
-    /* Safety: render even if onReady is slow/offline */
+    /* Safety: render even if onReady is slow/offline.
+       Wait for SyncEngine init to at least attempt a remote pull before
+       falling back. Use a longer timeout (6s) to give KV time on slow
+       mobile connections. */
     setTimeout(function() {
-      if (!state) boot();
-    }, 3000);
+      if (!state) {
+        if (SyncEngine.isOnline()) {
+          SyncEngine.pull('user').then(function() {
+            if (!state) boot();
+          }).catch(function() {
+            if (!state) boot();
+          });
+        } else {
+          boot();
+        }
+      }
+    }, 6000);
 </script>
   <div class="anno-tip" id="annoTip"><div class="at-tag"></div><div class="at-note"></div></div>
   <div class="canvas-tooltip" id="canvasTooltip">
