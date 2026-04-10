@@ -1114,7 +1114,7 @@ var el = function(id){ return document.getElementById(id); };
       if (analyticsStrip.parentNode !== detailsBody) detailsBody.appendChild(analyticsStrip);
     }
 
- {
+function refreshCostEstimateInSettings() {
       var box = el('s_costEstimate');
       if (!box || typeof SyncEngine === 'undefined' || !SyncEngine.get) return;
       var analytics = SyncEngine.get(NS, 'tutorAnalytics');
