@@ -1,0 +1,1666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #ffffff;
+  --card-bg: rgba(255, 255, 255, 0.96);
+  --card-border: rgba(138, 92, 246, 0.12);
+  --card-shadow: 0 4px 24px rgba(0,0,0,0.06);
+  --card-glow: 0 0 20px 2px rgba(138, 92, 246, 0.06);
+  --greeting-color: rgba(124, 58, 237, 0.5);
+  --time-grad: linear-gradient(135deg, #1a1a2e 0%, #7c3aed 40%, #8b5cf6 60%, #1a1a2e 100%);
+  --date-color: rgba(100, 100, 120, 0.5);
+  --meta-color: rgba(100, 100, 120, 0.35);
+  --dot-bg: rgba(138, 92, 246, 0.1);
+  --dot-active: #8b5cf6;
+  --dot-active-glow: 0 0 6px rgba(138, 92, 246, 0.4);
+  --bar-bg: rgba(138, 92, 246, 0.08);
+  --bar-fill: linear-gradient(90deg, #8b5cf6, #a78bfa, #c4b5fd);
+  --bar-glow: 0 0 6px rgba(124, 58, 237, 0.2);
+  --arc-track: rgba(138, 92, 246, 0.06);
+  --mesh-1: hsla(260, 70%, 55%, 0.15);
+  --mesh-2: hsla(210, 75%, 50%, 0.12);
+  --mesh-3: hsla(320, 65%, 50%, 0.08);
+  --accent: #8b5cf6;
+  --accent-rgb: 138, 92, 246;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #191919;
+    --card-bg: rgba(25, 25, 35, 0.94);
+    --card-border: rgba(138, 92, 246, 0.15);
+    --card-shadow: 0 8px 40px rgba(0,0,0,0.4);
+    --card-glow: 0 0 24px 4px rgba(138, 92, 246, 0.12);
+    --greeting-color: rgba(167, 139, 250, 0.65);
+    --time-grad: linear-gradient(135deg, #fff 0%, #c4b5fd 25%, #8b5cf6 50%, #a78bfa 75%, #fff 100%);
+    --date-color: rgba(160, 160, 180, 0.5);
+    --meta-color: rgba(160, 160, 180, 0.35);
+    --dot-bg: rgba(138, 92, 246, 0.15);
+    --dot-active: #a78bfa;
+    --dot-active-glow: 0 0 8px rgba(167, 139, 250, 0.5);
+    --bar-bg: rgba(138, 92, 246, 0.1);
+    --bar-fill: linear-gradient(90deg, #7c3aed, #a78bfa, #c4b5fd);
+    --bar-glow: 0 0 8px rgba(124, 58, 237, 0.4);
+    --arc-track: rgba(138, 92, 246, 0.08);
+    --mesh-1: hsla(260, 70%, 45%, 0.2);
+    --mesh-2: hsla(210, 75%, 45%, 0.15);
+    --mesh-3: hsla(320, 65%, 45%, 0.1);
+    --accent: #a78bfa;
+    --accent-rgb: 167, 139, 250;
+  }
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  height: 100vh; overflow: hidden;
+  transition: background 0.3s;
+  user-select: none; -webkit-user-select: none;
+}
+
+#bgCanvas {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  z-index: 0; pointer-events: none;
+}
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.003); } }
+@keyframes gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+@keyframes digitUp { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+@keyframes ringPulse { 0%, 100% { opacity: 1; filter: drop-shadow(0 0 4px rgba(var(--accent-rgb), 0.4)); } 50% { opacity: 0.4; filter: none; } }
+
+.container {
+  position: relative; z-index: 1; text-align: center;
+  padding: 44px 48px 28px; border-radius: 22px;
+  background: var(--card-bg);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid var(--card-border);
+  opacity: 0;
+  animation: fadeIn 0.8s ease-out forwards, breathe 8s cubic-bezier(0.4,0,0.2,1) 0.8s infinite;
+  transition: transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1);
+  transform-style: preserve-3d; will-change: transform, opacity;
+  contain: content; width: 94%; max-width: 420px; min-width: 280px;
+}
+
+/* ── Mode Toggle (hover-reveal) ── */
+.mode-toggle {
+  position: absolute; top: 10px; right: 14px;
+  display: flex; gap: 2px;
+  background: var(--dot-bg); border-radius: 10px; padding: 3px; z-index: 10;
+  opacity: 0; transform: translateY(6px) scale(0.95);
+  transition: opacity 0.4s cubic-bezier(0.4,0,0.2,1), transform 0.4s cubic-bezier(0.4,0,0.2,1);
+  pointer-events: none;
+}
+.container:hover .mode-toggle {
+  opacity: 1; transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+.mode-btn {
+  font-family: 'Inter', sans-serif; font-size: 8px; font-weight: 600;
+  letter-spacing: 0.8px; text-transform: uppercase;
+  padding: 5px 10px; border-radius: 7px; border: none;
+  background: transparent; color: var(--date-color);
+  cursor: pointer; transition: all 0.25s ease;
+}
+.mode-btn:hover { color: var(--accent); background: rgba(var(--accent-rgb), 0.1); }
+.mode-btn.active { background: var(--dot-active); color: #fff; box-shadow: var(--dot-active-glow); }
+
+/* ── Clock Mode ── */
+.greeting { font-size: 12px; font-weight: 300; letter-spacing: 3px; text-transform: uppercase; color: var(--greeting-color); margin-bottom: 20px; opacity: 0; animation: fadeIn 1s ease-out 0.3s forwards; }
+.arc-wrap { position: relative; display: inline-block; margin-bottom: 2px; }
+.arc-svg { position: absolute; top: -14px; left: -18px; width: calc(100% + 36px); height: calc(100% + 28px); pointer-events: none; opacity: 0; animation: fadeIn 1.2s ease-out 0.5s forwards; }
+.arc-track { fill: none; stroke: var(--arc-track); stroke-width: 2; }
+.time-display { font-size: 64px; font-weight: 600; letter-spacing: -2px; line-height: 1.1; font-variant-numeric: tabular-nums; background: var(--time-grad); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: gradientShift 6s ease infinite; }
+.colon { animation: blink 2s step-end infinite; -webkit-text-fill-color: var(--dot-active); background: none; }
+.digit-change { display: inline-block; animation: digitUp 0.35s ease-out; }
+.weekday-row { display: flex; justify-content: center; gap: 20px; margin: 14px 0 14px; opacity: 0; animation: fadeIn 1s ease-out 0.55s forwards; }
+.weekday-row .day { font-size: 9px; font-weight: 400; letter-spacing: 1.5px; text-transform: uppercase; color: var(--meta-color); transition: all 0.4s cubic-bezier(0.4,0,0.2,1); position: relative; padding-bottom: 8px; cursor: default; }
+.weekday-row .day.active { color: var(--accent); font-weight: 600; }
+.weekday-row .day.active::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 16px; height: 2px; border-radius: 1px; background: var(--accent); box-shadow: var(--dot-active-glow); animation: fadeIn 0.4s ease-out; }
+.day-bar { width: 70%; height: 2px; margin: 12px auto 0; background: var(--bar-bg); border-radius: 2px; overflow: visible; opacity: 0; animation: fadeIn 1s ease-out 0.6s forwards; }
+.day-fill { height: 100%; background: var(--bar-fill); border-radius: 2px; transition: width 60s linear; box-shadow: var(--bar-glow); position: relative; }
+.day-fill::after { content: ''; position: absolute; right: -2px; top: 50%; transform: translateY(-50%); width: 4px; height: 4px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.6); }
+.date { font-size: 11.5px; font-weight: 300; color: var(--date-color); margin-top: 10px; letter-spacing: 1.5px; opacity: 0; animation: fadeIn 1s ease-out 0.65s forwards; }
+.clock-countdown { font-size: 10px; font-weight: 300; color: var(--meta-color); margin-top: 6px; letter-spacing: 1px; opacity: 0; animation: fadeIn 1s ease-out 0.7s forwards; }
+.weather { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 8px; opacity: 0; animation: fadeIn 1s ease-out 0.75s forwards; padding: 5px 14px; border-radius: 12px; transition: background 0.25s ease, transform 0.25s ease; }
+.weather:hover { background: var(--dot-bg); transform: translateY(-1px); }
+.weather:active { transform: scale(0.98); }
+.weather-icon { font-size: 16px; filter: drop-shadow(0 0 6px rgba(138, 92, 246, 0.35)); }
+.weather-temp { font-size: 11px; font-weight: 400; color: var(--date-color); letter-spacing: 0.5px; font-variant-numeric: tabular-nums; }
+.weather-cond { font-size: 9px; font-weight: 300; color: var(--meta-color); letter-spacing: 1px; text-transform: uppercase; }
+
+/* ── Presence Stats ── */
+.presence-stats { display: flex; justify-content: center; gap: 16px; margin-top: 6px; opacity: 0; animation: fadeIn 1s ease-out 0.8s forwards; }
+.presence-stat { font-size: 10px; font-weight: 300; color: var(--meta-color); letter-spacing: 1px; text-transform: uppercase; }
+.presence-val { color: var(--date-color); font-weight: 400; font-variant-numeric: tabular-nums; }
+
+/* ── Mode Panel Stack (grid overlap, no display:none) ── */
+.modes-wrap {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+.modes-wrap > .mode {
+  grid-row: 1;
+  grid-column: 1;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateX(0);
+  transition: opacity 200ms cubic-bezier(0.4, 0, 1, 1),
+              transform 200ms cubic-bezier(0.4, 0, 1, 1),
+              visibility 0ms linear 200ms;
+  will-change: opacity, transform;
+}
+.modes-wrap > .mode.active-mode {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity 250ms cubic-bezier(0.0, 0, 0.2, 1),
+              transform 250ms cubic-bezier(0.0, 0, 0.2, 1),
+              visibility 0ms linear 0ms;
+}
+.modes-wrap > .mode.exit-forward  { transform: translateX(-12px); }
+.modes-wrap > .mode.exit-backward { transform: translateX(12px); }
+.modes-wrap > .mode.pre-enter-forward  { transform: translateX(12px); opacity: 0; }
+.modes-wrap > .mode.pre-enter-backward { transform: translateX(-12px); opacity: 0; }
+
+/* ── Stopwatch / Timer Shared ── */
+.ring-wrap { position: relative; width: 180px; height: 180px; margin: 10px auto 16px; }
+.ring-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring-track { fill: none; stroke: var(--arc-track); stroke-width: 3; }
+.ring-progress { fill: none; stroke: url(#ringGrad); stroke-width: 3; stroke-linecap: round; transition: stroke-dashoffset 0.15s linear; }
+.ring-progress.complete { animation: ringPulse 0.6s ease 4; }
+.ring-center { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.session-time { font-size: 42px; font-weight: 600; letter-spacing: -2px; font-variant-numeric: tabular-nums; background: var(--time-grad); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: gradientShift 6s ease infinite; line-height: 1.1; }
+.session-ms { font-size: 16px; font-weight: 300; -webkit-text-fill-color: var(--date-color); background: none; }
+.session-label { font-size: 9px; font-weight: 300; color: var(--meta-color); letter-spacing: 2px; text-transform: uppercase; margin-top: 4px; transition: color 0.3s; }
+.session-label.running { color: var(--accent); animation: pulse 2s ease infinite; }
+.session-label.done { color: #10b981; }
+
+/* Controls */
+.controls { display: flex; justify-content: center; gap: 10px; margin-top: 12px; }
+.ctrl-btn { font-family: 'Inter', sans-serif; font-size: 9px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; padding: 8px 20px; border-radius: 20px; border: none; cursor: pointer; transition: all 0.25s ease; }
+.ctrl-primary { background: var(--accent); color: #fff; box-shadow: 0 2px 12px rgba(var(--accent-rgb), 0.3); }
+.ctrl-primary:hover { transform: scale(1.05); box-shadow: 0 4px 18px rgba(var(--accent-rgb), 0.4); }
+.ctrl-secondary { background: var(--dot-bg); color: var(--date-color); }
+.ctrl-secondary:hover { background: rgba(var(--accent-rgb), 0.15); }
+
+/* Timer Presets */
+.presets { display: flex; justify-content: center; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+
+/* Preset Hint (typewriter reveal, fixed space) */
+.preset-hint {
+  height: 26px;
+  overflow: hidden;
+  text-align: center;
+  pointer-events: none;
+}
+.preset-hint-inner {
+  padding: 4px 0 2px;
+  opacity: 0;
+  transform: translateY(3px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.preset-hint.show .preset-hint-inner {
+  opacity: 1;
+  transform: translateY(0);
+}
+.preset-hint-title {
+  font-size: 7.5px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 2px;
+  opacity: 0;
+  transform: translateY(3px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.preset-hint.show .preset-hint-title {
+  opacity: 1;
+  transform: translateY(0);
+}
+.preset-hint-text {
+  font-size: 8px;
+  font-weight: 400;
+  color: var(--greeting-color);
+  letter-spacing: 0.2px;
+  line-height: 1.4;
+  min-height: 10px;
+}
+.preset-hint-cursor {
+  display: inline-block;
+  width: 1px;
+  height: 8px;
+  background: var(--accent);
+  margin-left: 1px;
+  vertical-align: middle;
+  animation: phBlink 0.6s step-end infinite;
+}
+@keyframes phBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+@media (hover: none) {
+  .preset-hint { display: none !important; }
+}
+
+.preset-chip { font-family: 'Inter', sans-serif; font-size: 8px; font-weight: 500; letter-spacing: 0.5px; padding: 5px 12px; border-radius: 12px; border: 1px solid var(--arc-track); background: transparent; color: var(--date-color); cursor: pointer; transition: all 0.25s ease; }
+.preset-chip:hover { border-color: var(--accent); color: var(--accent); }
+.preset-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: var(--dot-active-glow); }
+
+/* Laps */
+.laps { max-height: 80px; overflow-y: auto; margin-top: 10px; }
+.laps::-webkit-scrollbar { width: 0; }
+.lap-item { display: flex; justify-content: space-between; padding: 3px 12px; font-size: 9px; font-weight: 300; color: var(--date-color); font-variant-numeric: tabular-nums; }
+.lap-item:first-child { color: var(--accent); font-weight: 500; }
+.lap-num { color: var(--meta-color); letter-spacing: 1px; }
+
+/* Focus Stats */
+.focus-stats { font-size: 8px; font-weight: 300; color: var(--meta-color); letter-spacing: 1px; text-transform: uppercase; margin-top: 10px; }
+.focus-val { color: var(--accent); font-weight: 600; }
+
+/* Micro-break Overlay */
+.break-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: var(--card-bg); border-radius: 22px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; z-index: 20; opacity: 0; pointer-events: none; transition: opacity 0.5s ease; }
+.break-overlay.show { opacity: 1; pointer-events: auto; }
+.break-title { font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); }
+.break-msg { font-size: 9px; font-weight: 300; color: var(--date-color); letter-spacing: 0.3px; max-width: 220px; text-align: center; line-height: 1.5; }
+.break-timer-display { font-size: 36px; font-weight: 600; font-variant-numeric: tabular-nums; background: var(--time-grad); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: gradientShift 6s ease infinite; }
+.break-breathe { width: 50px; height: 50px; border-radius: 50%; background: rgba(var(--accent-rgb), 0.06); border: 1.5px solid rgba(var(--accent-rgb), 0.15); animation: breatheCircle 4s ease-in-out infinite; }
+@keyframes breatheCircle { 0%, 100% { transform: scale(0.8); opacity: 0.3; } 50% { transform: scale(1.2); opacity: 0.8; } }
+.break-skip { font-family: 'Inter', sans-serif; font-size: 8px; font-weight: 300; letter-spacing: 1.5px; text-transform: uppercase; color: var(--meta-color); background: none; border: none; cursor: pointer; transition: color 0.2s; }
+.break-skip:hover { color: var(--date-color); }
+
+/* Focus Cap */
+.focus-stats.capped .focus-val { color: #f59e0b; }
+.focus-cap-msg { font-size: 7px; color: #f59e0b; letter-spacing: 0.5px; opacity: 0.7; }
+
+/* ── Settings Panel ── */
+.settings-btn { position:absolute; top:10px; left:14px; font-size:14px; background:none; border:none; cursor:pointer; opacity:0; transform:translateY(6px) scale(0.95); transition:opacity 0.4s cubic-bezier(0.4,0,0.2,1),transform 0.4s cubic-bezier(0.4,0,0.2,1); pointer-events:none; z-index:10; color:var(--date-color); }
+.container:hover .settings-btn { opacity:0.5; transform:translateY(0) scale(1); pointer-events:auto; }
+.settings-btn:hover { opacity:1 !important; }
+.settings-ov { position:absolute; top:0; left:0; right:0; bottom:0; background:var(--card-bg); border-radius:22px; display:flex; flex-direction:column; padding:20px 24px; z-index:25; opacity:0; pointer-events:none; transition:opacity 0.3s; overflow-y:auto; }
+.settings-ov.show { opacity:1; pointer-events:auto; }
+.s-title { font-size:11px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:var(--accent); margin-bottom:16px; text-align:center; }
+.s-item { display:flex; align-items:center; gap:8px; padding:10px 12px; border-radius:10px; margin-bottom:8px; background:var(--dot-bg); border:1px solid var(--arc-track); }
+.s-item-info { flex:1; min-width:0; }
+.s-item-label { font-size:8px; font-weight:300; color:var(--meta-color); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:2px; }
+.s-item-val { font-size:11px; font-weight:500; color:var(--date-color); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.s-item-val.empty { font-style:italic; opacity:0.4; font-weight:300; }
+.s-actions { display:flex; gap:4px; flex-shrink:0; }
+.s-btn { font-family:'Inter',sans-serif; font-size:8px; font-weight:600; letter-spacing:0.5px; text-transform:uppercase; padding:5px 10px; border-radius:8px; border:none; cursor:pointer; transition:all 0.2s; }
+.s-btn.add { background:var(--accent); color:#fff; }
+.s-btn.add:hover { transform:scale(1.05); }
+.s-btn.del { background:rgba(239,68,68,0.1); color:#ef4444; }
+.s-btn.del:hover { background:rgba(239,68,68,0.2); }
+.s-btn.edt { background:rgba(var(--accent-rgb),0.1); color:var(--accent); }
+.s-btn.edt:hover { background:rgba(var(--accent-rgb),0.2); }
+.s-close { margin-top:auto; padding-top:12px; text-align:center; font-size:8px; font-weight:300; color:var(--meta-color); letter-spacing:1.5px; text-transform:uppercase; cursor:pointer; }
+.s-close:hover { color:var(--date-color); }
+.s-input-row { display:flex; gap:6px; margin:8px 0; }
+.s-input { flex:1; padding:8px 12px; border-radius:8px; border:1px solid var(--arc-track); background:var(--dot-bg); color:var(--date-color); font-family:'Inter',sans-serif; font-size:11px; outline:none; box-sizing:border-box; }
+.s-input:focus { border-color:var(--accent); }
+.s-input::placeholder { color:var(--meta-color); }
+.s-confirm { display:flex; gap:6px; align-items:center; padding:6px 0; }
+.s-confirm-msg { font-size:9px; color:#ef4444; flex:1; }
+.s-confirm-btn { font-family:'Inter',sans-serif; font-size:8px; font-weight:600; letter-spacing:0.5px; text-transform:uppercase; padding:5px 10px; border-radius:8px; border:none; cursor:pointer; }
+.s-confirm-yes { background:#ef4444; color:#fff; }
+.s-confirm-yes:hover { background:#dc2626; }
+.s-confirm-no { background:var(--dot-bg); color:var(--date-color); }
+.s-confirm-no:hover { background:rgba(var(--accent-rgb),0.1); }
+.s-geo { display:flex; flex-direction:column; gap:4px; margin-top:4px; }
+.s-geo-btn { font-family:'Inter',sans-serif; font-size:10px; color:var(--date-color); padding:6px 10px; border-radius:8px; background:var(--dot-bg); border:1px solid var(--arc-track); cursor:pointer; text-align:left; width:100%; transition:all 0.2s; }
+.s-geo-btn:hover { background:rgba(var(--accent-rgb),0.15); color:var(--accent); }
+
+/* Confetti */
+#confetti { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; pointer-events: none; }
+
+/* ── Weather Forecast Overlay ── */
+.forecast-ov {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--card-bg);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  border-radius: 22px;
+  display: flex; flex-direction: column;
+  padding: 16px 20px 12px;
+  z-index: 22;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+.forecast-ov.show { opacity: 1; pointer-events: auto; }
+
+.forecast-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 10px;
+}
+.forecast-title {
+  font-size: 10px; font-weight: 600; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--accent);
+}
+.forecast-loc {
+  font-size: 8px; font-weight: 300; color: var(--meta-color);
+  letter-spacing: 0.5px; margin-top: 2px;
+}
+.forecast-close {
+  font-family: 'Inter', sans-serif;
+  font-size: 8px; font-weight: 300; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--meta-color);
+  background: none; border: none; cursor: pointer;
+  padding: 4px 8px; border-radius: 6px;
+  transition: color 0.2s, background 0.2s;
+}
+.forecast-close:hover { color: var(--date-color); background: var(--dot-bg); }
+
+.forecast-now {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px; margin-bottom: 10px;
+  background: var(--dot-bg); border-radius: 12px;
+}
+.forecast-now-icon { font-size: 28px; filter: drop-shadow(0 0 8px rgba(var(--accent-rgb), 0.3)); }
+.forecast-now-temp {
+  font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums;
+  background: var(--time-grad); background-size: 300% 300%;
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text; animation: gradientShift 6s ease infinite;
+}
+.forecast-now-details { flex: 1; text-align: right; }
+.forecast-now-cond {
+  font-size: 9px; font-weight: 400; color: var(--date-color);
+  letter-spacing: 0.5px; text-transform: uppercase;
+}
+.forecast-now-hl {
+  font-size: 8px; font-weight: 300; color: var(--meta-color);
+  letter-spacing: 0.5px; margin-top: 2px;
+}
+
+.forecast-hours {
+  flex: 1; overflow-x: auto; overflow-y: hidden;
+  display: flex; gap: 2px; padding: 4px 0;
+  scrollbar-width: none;
+}
+.forecast-hours::-webkit-scrollbar { display: none; }
+
+.forecast-hour {
+  flex: 0 0 auto;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 6px 8px; border-radius: 10px;
+  transition: background 0.2s;
+  min-width: 44px;
+}
+.forecast-hour:hover { background: var(--dot-bg); }
+.forecast-hour.now-hour { background: var(--dot-bg); }
+.forecast-hour-time {
+  font-size: 7px; font-weight: 500; color: var(--meta-color);
+  letter-spacing: 0.8px; text-transform: uppercase;
+}
+.forecast-hour.now-hour .forecast-hour-time { color: var(--accent); font-weight: 600; }
+.forecast-hour-icon { font-size: 14px; }
+.forecast-hour-temp {
+  font-size: 10px; font-weight: 500; color: var(--date-color);
+  font-variant-numeric: tabular-nums;
+}
+
+.forecast-loading {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 300; color: var(--meta-color);
+  letter-spacing: 1.5px; text-transform: uppercase;
+}
+
+</style>
+</head>
+<body>
+<canvas id="bgCanvas"></canvas>
+
+<svg style="position:absolute;width:0;height:0">
+  <defs>
+    <linearGradient id="arcGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="var(--accent-primary)" stop-opacity="0"/>
+      <stop offset="70%" stop-color="var(--accent-primary)" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="var(--accent-primary)" stop-opacity="1"/>
+    </linearGradient>
+    <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="var(--accent-secondary)"/>
+      <stop offset="50%" stop-color="var(--accent-primary)"/>
+      <stop offset="100%" stop-color="var(--accent-secondary)"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<canvas id="confetti"></canvas>
+
+<div class="container">
+  <div class="loading-skeleton" id="clockSkeleton">
+    <div class="skeleton sk-time"></div>
+    <div class="skeleton sk-date"></div>
+    <div class="skeleton sk-weather"></div>
+  </div>
+  <div class="content-shell loading" id="clockContent">
+  <button class="settings-btn" id="sBtn" title="Settings">&#x2699;&#xFE0F;</button>
+  <div class="mode-toggle" role="tablist" aria-label="Clock modes">
+    <button class="mode-btn active" data-mode="clock">Clock</button>
+    <button class="mode-btn" data-mode="stopwatch">Stopwatch</button>
+    <button class="mode-btn" data-mode="timer">Timer</button>
+    <span class="mode-indicator" aria-hidden="true"></span>
+  </div>
+
+  <div class="modes-wrap">
+  <!-- CLOCK MODE -->
+  <div class="mode active-mode" id="clockMode" role="tabpanel" aria-label="Clock panel">
+    <div class="greeting" id="greeting"></div>
+    <div class="arc-wrap">
+      <svg class="arc-svg" viewBox="0 0 200 90" preserveAspectRatio="none">
+        <rect class="arc-track" x="1" y="1" width="198" height="88" rx="16" ry="16"/>
+        <rect id="arcHand" x="1" y="1" width="198" height="88" rx="16" ry="16" fill="none" stroke="url(#arcGrad)" stroke-width="2" stroke-linecap="round" stroke-dasharray="560" stroke-dashoffset="560"/>
+      </svg>
+      <div class="time-display" id="time" aria-label="Current time"></div>
+    </div>
+    <div class="weekday-row" id="weekdays"></div>
+    <div class="day-bar" aria-label="Day progress"><div class="day-fill" id="dayBar"></div></div>
+    <div class="date" id="date"></div>
+    <div class="clock-countdown" id="clockCountdown"></div>
+    <div class="weather" id="weather" tabindex="0" aria-label="Weather"></div>
+    <div class="presence-stats" id="presence">
+      <div class="presence-stat">Session · <span class="presence-val" id="presSession"></span></div>
+      <div class="presence-stat">Today · <span class="presence-val" id="presDaily"></span></div>
+    </div>
+  </div>
+
+  <!-- STOPWATCH MODE -->
+  <div class="mode" id="stopwatchMode" role="tabpanel" aria-label="Stopwatch panel">
+    <div class="ring-wrap">
+      <svg class="ring-svg" viewBox="0 0 180 180">
+        <circle class="ring-track" cx="90" cy="90" r="82"/>
+        <circle class="ring-progress" id="swRing" cx="90" cy="90" r="82" stroke-dasharray="515.22" stroke-dashoffset="515.22"/>
+      </svg>
+      <div class="ring-center">
+        <div class="session-time" id="swTime">00:00<span class="session-ms">.00</span></div>
+        <div class="session-label" id="swLabel">Ready</div>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="ctrl-btn ctrl-secondary" id="swLap" aria-label="Record lap">Lap</button>
+      <button class="ctrl-btn ctrl-primary" id="swToggle" aria-label="Start stopwatch">Start</button>
+      <button class="ctrl-btn ctrl-secondary" id="swReset" aria-label="Reset stopwatch">Reset</button>
+    </div>
+    <div class="laps" id="swLaps"></div>
+    <div class="focus-stats" id="swStats"></div>
+  </div>
+
+  <!-- TIMER MODE -->
+  <div class="mode" id="timerMode" role="tabpanel" aria-label="Timer panel">
+    <div class="presets" id="presets"></div>
+    <div class="preset-hint" id="presetHint">
+      <div class="preset-hint-inner">
+        <div class="preset-hint-title" id="phTitle"></div>
+        <div class="preset-hint-text" id="phText"></div>
+      </div>
+    </div>
+    <div class="ring-wrap">
+      <svg class="ring-svg" viewBox="0 0 180 180">
+        <circle class="ring-track" cx="90" cy="90" r="82"/>
+        <circle class="ring-progress" id="tmRing" cx="90" cy="90" r="82" stroke-dasharray="515.22" stroke-dashoffset="0"/>
+      </svg>
+      <div class="ring-center">
+        <div class="session-time" id="tmTime">25:00</div>
+        <div class="session-label" id="tmLabel">Set duration</div>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="ctrl-btn ctrl-primary" id="tmToggle" aria-label="Start timer">Start</button>
+      <button class="ctrl-btn ctrl-secondary" id="tmReset">Reset</button>
+    </div>
+    <div class="focus-stats" id="tmStats"></div>
+  </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="settings-ov" id="settingsOv">
+    <div class="s-title">&#x2699;&#xFE0F; Settings</div>
+    <div id="sContent"></div>
+    <div class="s-close" id="sClose">Close</div>
+  </div>
+
+  <!-- MICRO-BREAK OVERLAY -->
+  <div class="break-overlay" id="breakOverlay">
+    <div class="break-breathe"></div>
+    <div class="break-title">Micro-Break</div>
+    <div class="break-timer-display" id="breakTimerDisplay">5:00</div>
+    <div class="break-msg">Let your brain consolidate. Rest triggers rapid memory replay that strengthens what you just learned.</div>
+    <button class="break-skip" id="breakSkip">Skip</button>
+  </div>
+
+<!-- WEATHER FORECAST OVERLAY -->
+<div class="forecast-ov" id="forecastOv">
+  <div class="forecast-header">
+    <div>
+      <div class="forecast-title">☁️ 24-Hour Forecast</div>
+      <div class="forecast-loc" id="forecastLoc"></div>
+    </div>
+    <button class="forecast-close" id="forecastClose">Close</button>
+  </div>
+  <div class="forecast-now" id="forecastNow"></div>
+  <div class="forecast-hours" id="forecastHours">
+    <div class="forecast-loading">Loading...</div>
+  </div>
+</div>
+</div>
+</div>
+
+<script src="core.js"></script>
+<script>
+/* ══════════════════════════════════════
+   MODE SWITCHING
+   ══════════════════════════════════════ */
+var modes = ['clock', 'stopwatch', 'timer'];
+var modeEls = { clock: document.getElementById('clockMode'), stopwatch: document.getElementById('stopwatchMode'), timer: document.getElementById('timerMode') };
+var modeBtns = document.querySelectorAll('.mode-btn');
+var currentMode = 'clock';
+var modeIndex = { clock: 0, stopwatch: 1, timer: 2 };
+
+function switchModeAnimated(mode) {
+  if (mode === currentMode) return;
+  var from = modeIndex[currentMode], to = modeIndex[mode];
+  var dir = to > from ? 'forward' : 'backward';
+  var oldEl = modeEls[currentMode], newEl = modeEls[mode];
+
+  /* 1. Update tab buttons */
+  modeBtns.forEach(function(b) {
+    var is = b.dataset.mode === mode;
+    b.classList.toggle('active', is);
+    b.setAttribute('aria-selected', is ? 'true' : 'false');
+    b.setAttribute('tabindex', is ? '0' : '-1');
+  });
+
+  /* 2. Exit old panel — slide + fade out */
+  oldEl.classList.remove('active-mode');
+  oldEl.classList.add('exit-' + dir);
+
+  /* 3. Prep new panel at offset (no transition yet) */
+  newEl.classList.add('pre-enter-' + dir);
+
+  /* 4. Double-rAF: browser paints the pre-enter state,
+        THEN we add active-mode to trigger the transition */
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() {
+      newEl.classList.remove('pre-enter-forward', 'pre-enter-backward');
+      newEl.classList.add('active-mode');
+    });
+  });
+
+  /* 5. Clean up exit classes when old panel finishes */
+  function cleanup(e) {
+    if (e.propertyName !== 'opacity') return;
+    oldEl.removeEventListener('transitionend', cleanup);
+    oldEl.classList.remove('exit-forward', 'exit-backward');
+  }
+  oldEl.addEventListener('transitionend', cleanup);
+
+  currentMode = mode;
+}
+
+modeBtns.forEach(function(btn) {
+  btn.setAttribute('role', 'tab');
+  btn.setAttribute('aria-selected', btn.classList.contains('active') ? 'true' : 'false');
+  btn.setAttribute('tabindex', btn.classList.contains('active') ? '0' : '-1');
+  btn.addEventListener('click', function() {
+    var mode = this.dataset.mode;
+    if (mode === currentMode) return;
+    playModeSwitch();
+    switchModeAnimated(mode);
+  });
+  btn.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.click(); }
+  });
+});
+Core.a11y.roving(document.querySelector('.mode-toggle'), '.mode-btn');
+
+/* ── SyncEngine Init ── */
+SyncEngine.init({ worker: 'https://widget-sync.lordgrape-widgets.workers.dev' });
+
+/* Migrate old clock_user_* keys → SyncEngine user namespace */
+(function() {
+  var m = { name: 'clock_user_name', lat: 'clock_user_lat', lon: 'clock_user_lon', location: 'clock_user_location', tz: 'clock_user_tz' };
+  for (var k in m) {
+    var v = localStorage.getItem(m[k]);
+    if (v !== null) {
+      if (!SyncEngine.get('user', k)) SyncEngine.set('user', k, (k === 'lat' || k === 'lon') ? parseFloat(v) : v);
+      localStorage.removeItem(m[k]);
+    }
+  }
+})();
+
+/* ══════════════════════════════════════
+   CLOCK MODE
+   ══════════════════════════════════════ */
+var NAME = SyncEngine.get('user', 'name') || '';
+var prevDigits = '';
+
+var DAYLABELS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+var weekdayEl = document.getElementById('weekdays');
+DAYLABELS.forEach(function(d) {
+  var el = document.createElement('div');
+  el.className = 'day';
+  el.textContent = d;
+  weekdayEl.appendChild(el);
+});
+
+function updateClock() {
+  var now = new Date();
+  var h = now.getHours(), m = now.getMinutes(), s = now.getSeconds();
+  var greet = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  document.getElementById('greeting').textContent = NAME ? greet + ', ' + NAME : greet;
+
+  var hStr = String(h).padStart(2, '0'), mStr = String(m).padStart(2, '0');
+  var digits = hStr + mStr;
+  var html = '';
+  for (var i = 0; i < 4; i++) {
+    var cls = (prevDigits && digits[i] !== prevDigits[i]) ? ' digit-change' : '';
+    html += '<span class="d' + i + cls + '">' + digits[i] + '</span>';
+    if (i === 1) html += '<span class="colon">:</span>';
+  }
+  document.getElementById('time').innerHTML = html;
+  document.getElementById('time').setAttribute('aria-label', 'Current time: ' + hStr + ':' + mStr);
+  prevDigits = digits;
+
+  document.getElementById('arcHand').style.strokeDashoffset = 560 - (s / 59) * 560;
+
+  var day = now.getDay();
+  weekdayEl.querySelectorAll('.day').forEach(function(el, idx) { el.classList.toggle('active', idx === day); });
+
+  var dayPct = ((h * 3600 + m * 60 + s) / 86400 * 100);
+  document.getElementById('dayBar').style.width = dayPct + '%';
+  document.querySelector('.day-bar').setAttribute('aria-label', 'Day progress: ' + Math.round(dayPct) + '%');
+  document.getElementById('date').textContent = now.toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+  var minsLeft = 60 - m;
+  var nextH = (h + 1) % 24;
+  document.getElementById('clockCountdown').textContent = minsLeft + 'm : until ' + String(nextH).padStart(2, '0') + ':00';
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+/* Weather — shared `_weather_cache` + SyncEngine `user.weather` with Horizon */
+var WEATHER_CACHE_KEY = '_weather_cache';
+var WEATHER_CACHE_MS = 30 * 60 * 1000;
+var WLAT = SyncEngine.get('user', 'lat') || null;
+var WLON = SyncEngine.get('user', 'lon') || null;
+var WLOC = SyncEngine.get('user', 'location') || '';
+var WTZ = SyncEngine.get('user', 'tz') || Intl.DateTimeFormat().resolvedOptions().timeZone;
+var weatherEl = document.getElementById('weather');
+var WMO_CODES = {
+  0: 'Clear', 1: 'Mostly Clear', 2: 'Partly Cloudy', 3: 'Overcast',
+  45: 'Foggy', 48: 'Rime Fog', 51: 'Light Drizzle', 53: 'Drizzle', 55: 'Heavy Drizzle',
+  56: 'Freezing Drizzle', 57: 'Heavy Freezing Drizzle',
+  61: 'Light Rain', 63: 'Rain', 65: 'Heavy Rain',
+  66: 'Freezing Rain', 67: 'Heavy Freezing Rain',
+  71: 'Light Snow', 73: 'Snow', 75: 'Heavy Snow', 77: 'Snow Grains',
+  80: 'Light Showers', 81: 'Showers', 82: 'Heavy Showers',
+  85: 'Light Snow Showers', 86: 'Heavy Snow Showers',
+  95: 'Thunderstorm', 96: 'Thunderstorm + Hail', 99: 'Heavy Thunderstorm + Hail'
+};
+var WMO_ICONS = {
+  0: '\u2600\uFE0F', 1: '\uD83C\uDF24\uFE0F', 2: '\u26C5', 3: '\u2601\uFE0F',
+  45: '\uD83C\uDF2B\uFE0F', 48: '\uD83C\uDF2B\uFE0F', 51: '\uD83C\uDF26\uFE0F', 53: '\uD83C\uDF27\uFE0F', 55: '\uD83C\uDF27\uFE0F',
+  56: '\uD83C\uDF27\uFE0F', 57: '\uD83C\uDF27\uFE0F', 61: '\uD83C\uDF26\uFE0F', 63: '\uD83C\uDF27\uFE0F', 65: '\uD83C\uDF27\uFE0F',
+  66: '\uD83C\uDF27\uFE0F', 67: '\uD83C\uDF27\uFE0F', 71: '\uD83C\uDF28\uFE0F', 73: '\u2744\uFE0F', 75: '\u2744\uFE0F', 77: '\u2744\uFE0F',
+  80: '\uD83C\uDF26\uFE0F', 81: '\uD83C\uDF27\uFE0F', 82: '\uD83C\uDF27\uFE0F', 85: '\uD83C\uDF28\uFE0F', 86: '\u2744\uFE0F',
+  95: '\u26C8\uFE0F', 96: '\u26C8\uFE0F', 99: '\u26C8\uFE0F'
+};
+function getWeatherType(code) {
+  if (code === 0 || code === 1) return 'clear';
+  if (code === 2 || code === 3) return 'cloudy';
+  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return 'rain';
+  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return 'snow';
+  if (code === 45 || code === 48) return 'fog';
+  if (code >= 95) return 'storm';
+  return 'clear';
+}
+function wmoEmoji(code, hour) {
+  /* Same WMO_ICONS / WMO_CODES as main display; night overrides for clear / mostly clear only. */
+  var h = typeof hour === 'number' ? hour : new Date().getHours();
+  var night = (h < 6 || h >= 20);
+  var icon = WMO_ICONS[code] || '\uD83C\uDF21\uFE0F';
+  var cond = WMO_CODES[code] || 'Unknown';
+  if (night && (code === 0 || code === 1)) {
+    icon = '\uD83C\uDF19';
+    if (code === 0) cond = 'Clear Night';
+    else cond = 'Mostly Clear Night';
+  }
+  return [icon, cond];
+}
+function renderClockWeatherFromPayload(wd) {
+  if (!wd || wd.temp === undefined) { weatherEl.innerHTML = ''; return; }
+  var wFb = wmoEmoji(typeof wd.code === 'number' ? wd.code : 0);
+  var icon = wd.icon != null && wd.icon !== '' ? wd.icon : wFb[0];
+  var cond = wd.condition || wFb[1];
+  var t = Math.round(wd.temp);
+  weatherEl.innerHTML = '<span class="weather-icon">' + icon + '</span><span class="weather-temp">' + t + '\u00B0C</span><span class="weather-cond">\u00B7 ' + cond + '</span>';
+  weatherEl.setAttribute('aria-label', 'Weather: ' + t + ' degrees, ' + String(cond).toLowerCase());
+}
+function readSharedWeatherCache() {
+  try {
+    var synced = SyncEngine.get('user', 'weather');
+    if (synced) {
+      var sw = typeof synced === 'string' ? JSON.parse(synced) : synced;
+      if (sw && sw.ts && Date.now() - sw.ts < WEATHER_CACHE_MS && sw.data) {
+        try { localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify(sw)); } catch (e) {}
+        return sw;
+      }
+    }
+  } catch (e) {}
+  try {
+    var cached = JSON.parse(localStorage.getItem(WEATHER_CACHE_KEY));
+    if (cached && Date.now() - cached.ts < WEATHER_CACHE_MS && cached.data) return cached;
+  } catch (e2) {}
+  return null;
+}
+function persistWeatherEnvelope(env) {
+  localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify(env));
+  try {
+    if (SyncEngine.isOnline()) SyncEngine.set('user', 'weather', JSON.stringify(env));
+  } catch (e) {}
+}
+function buildWeatherDataFromAPI(d) {
+  if (!d || !d.current) return null;
+  var wc = d.current.weather_code;
+  var w = wmoEmoji(wc, new Date().getHours());
+  return {
+    temp: Math.round(d.current.temperature_2m),
+    code: wc,
+    condition: w[1],
+    icon: w[0],
+    type: getWeatherType(wc),
+    humidity: d.current.relative_humidity_2m,
+    wind: d.current.wind_speed_10m
+  };
+}
+function fetchWeather() {
+  var hit = readSharedWeatherCache();
+  if (hit) {
+    renderClockWeatherFromPayload(hit.data);
+    return;
+  }
+  var lat = (WLAT != null && WLON != null) ? WLAT : 43.65;
+  var lon = (WLAT != null && WLON != null) ? WLON : -79.38;
+  fetch('https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon +
+    '&current=temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m' +
+    '&temperature_unit=celsius&timezone=auto')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      var weatherData = buildWeatherDataFromAPI(d);
+      if (!weatherData) { weatherEl.innerHTML = ''; return; }
+      persistWeatherEnvelope({ ts: Date.now(), data: weatherData });
+      renderClockWeatherFromPayload(weatherData);
+    })
+    .catch(function() { weatherEl.innerHTML = ''; });
+}
+fetchWeather();
+setInterval(fetchWeather, WEATHER_CACHE_MS);
+
+/* Weather click → inline forecast overlay */
+weatherEl.style.cursor = 'pointer';
+weatherEl.addEventListener('click', function() {
+  if (!WLAT || !WLON) return;
+  playClick();
+  openForecast();
+});
+
+document.getElementById('forecastClose').addEventListener('click', closeForecast);
+
+function openForecast() {
+  var ov = document.getElementById('forecastOv');
+  ov.classList.add('show');
+  document.getElementById('forecastLoc').textContent = WLOC || (WLAT.toFixed(2) + ', ' + WLON.toFixed(2));
+  document.getElementById('forecastHours').innerHTML = '<div class="forecast-loading">Loading...</div>';
+  document.getElementById('forecastNow').innerHTML = '';
+
+  fetch('https://api.open-meteo.com/v1/forecast?latitude=' + WLAT + '&longitude=' + WLON +
+    '&hourly=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min' +
+    '&current=temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m&timezone=' + encodeURIComponent(WTZ) +
+    '&forecast_days=2')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      renderForecast(d);
+      var freshData = buildWeatherDataFromAPI(d);
+      if (freshData) {
+        persistWeatherEnvelope({ ts: Date.now(), data: freshData });
+        renderClockWeatherFromPayload(freshData);
+      }
+    })
+    .catch(function() {
+      document.getElementById('forecastHours').innerHTML =
+        '<div class="forecast-loading">Forecast unavailable</div>';
+    });
+}
+
+function closeForecast() {
+  document.getElementById('forecastOv').classList.remove('show');
+}
+
+function renderForecast(d) {
+  var now = new Date();
+  var currentHour = now.getHours();
+
+  /* Current conditions */
+  var cw = wmoEmoji(d.current.weather_code, now.getHours());
+  var hi = d.daily ? Math.round(d.daily.temperature_2m_max[0]) : '--';
+  var lo = d.daily ? Math.round(d.daily.temperature_2m_min[0]) : '--';
+  document.getElementById('forecastNow').innerHTML =
+    '<span class="forecast-now-icon">' + cw[0] + '</span>' +
+    '<span class="forecast-now-temp">' + Math.round(d.current.temperature_2m) + '°</span>' +
+    '<div class="forecast-now-details">' +
+      '<div class="forecast-now-cond">' + cw[1] + '</div>' +
+      '<div class="forecast-now-hl">H: ' + hi + '°  L: ' + lo + '°</div>' +
+    '</div>';
+
+  /* Hourly — next 24 hours */
+  var times = d.hourly.time;
+  var temps = d.hourly.temperature_2m;
+  var codes = d.hourly.weather_code;
+
+  /* Find the index of the current hour */
+  var startIdx = 0;
+  var nowISO = now.getFullYear() + '-' +
+    String(now.getMonth() + 1).padStart(2, '0') + '-' +
+    String(now.getDate()).padStart(2, '0') + 'T' +
+    String(currentHour).padStart(2, '0') + ':00';
+  for (var i = 0; i < times.length; i++) {
+    if (times[i] === nowISO) { startIdx = i; break; }
+  }
+
+  var html = '';
+  for (var j = startIdx; j < Math.min(startIdx + 24, times.length); j++) {
+    var t = new Date(times[j] + ':00');
+    var hr = t.getHours();
+    var isNow = j === startIdx;
+    var label = isNow ? 'Now' : (hr === 0 ? '12a' : hr < 12 ? hr + 'a' : hr === 12 ? '12p' : (hr - 12) + 'p');
+
+    var w, temp;
+    if (isNow) {
+      w = wmoEmoji(d.current.weather_code, now.getHours());
+      temp = Math.round(d.current.temperature_2m);
+    } else {
+      w = wmoEmoji(codes[j], hr);
+      temp = Math.round(temps[j]);
+    }
+
+    html += '<div class="forecast-hour' + (isNow ? ' now-hour' : '') + '">' +
+      '<span class="forecast-hour-time">' + label + '</span>' +
+      '<span class="forecast-hour-icon">' + w[0] + '</span>' +
+      '<span class="forecast-hour-temp">' + temp + '°</span>' +
+    '</div>';
+  }
+  document.getElementById('forecastHours').innerHTML = html;
+}
+
+/* ══════════════════════════════════════
+   PRESENCE TRACKING (self-contained)
+   Session: survives soft reloads via sessionStorage.
+   Today: accumulates across all sessions via SyncEngine.
+   Hidden gaps under 10 min still count as active; longer gaps pause (visibilitychange).
+   ══════════════════════════════════════ */
+var _presNow = Date.now();
+var _preDateStr = new Date().toISOString().slice(0, 10);
+var _presTodayKey = 'presence_' + _preDateStr;
+
+/* Session continuity: sessionStorage survives soft reloads within the same
+   browser tab but clears when the tab is closed — exactly the right scope. */
+var _presSessData = (function() {
+  try {
+    var raw = sessionStorage.getItem('clock_session');
+    if (raw) {
+      var d = JSON.parse(raw);
+      /* Only reuse if same calendar day */
+      if (d && d.date === _preDateStr && typeof d.accumulated === 'number') {
+        return { start: _presNow, accumulated: d.accumulated };
+      }
+    }
+  } catch(e) {}
+  return { start: _presNow, accumulated: 0 };
+})();
+var _presSessStart = _presSessData.start;
+var _presSessAccum = _presSessData.accumulated;
+var _presHidden = false;
+var _presHiddenAt = 0;
+var _presPausedTotal = 0;
+var _presLastSave = 0;
+
+/* Read prior daily total from SyncEngine */
+var _presPriorToday = parseFloat(SyncEngine.get('clock', _presTodayKey)) || 0;
+
+var _PRES_AWAY_THRESHOLD = 10 * 60 * 1000; /* 10 minutes — short gaps count as active */
+
+/* Pause/resume on tab visibility change */
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden) {
+    _presHidden = true;
+    _presHiddenAt = Date.now();
+    /* Save immediately when user leaves tab */
+    _savePresence();
+  } else {
+    if (_presHidden && _presHiddenAt) {
+      var gap = Date.now() - _presHiddenAt;
+      if (gap > _PRES_AWAY_THRESHOLD) {
+        _presPausedTotal += gap;
+      }
+    }
+    _presHidden = false;
+    /* Refresh daily total in case another widget instance wrote to it */
+    _presPriorToday = parseFloat(SyncEngine.get('clock', _presTodayKey)) || 0;
+    /* Check for date rollover (user left tab open overnight) */
+    var today = new Date().toISOString().slice(0, 10);
+    if (today !== _preDateStr) {
+      _preDateStr = today;
+      _presTodayKey = 'presence_' + today;
+      _presPriorToday = 0;
+      _presSessAccum = 0;
+      _presSessStart = Date.now();
+      _presPausedTotal = 0;
+    }
+  }
+});
+
+function _getSessionSecs() {
+  var elapsed = _presHidden
+    ? (_presHiddenAt - _presSessStart - _presPausedTotal)
+    : (Date.now() - _presSessStart - _presPausedTotal);
+  return _presSessAccum + Math.max(0, elapsed / 1000);
+}
+
+function _getTodaySecs() {
+  return _presPriorToday + (_getSessionSecs() - _presSessAccum) ;
+}
+
+function _fmtPresence(secs) {
+  secs = Math.max(0, Math.floor(secs));
+  var h = Math.floor(secs / 3600), m = Math.floor((secs % 3600) / 60), s = secs % 60;
+  if (h > 0) return h + 'h ' + m + 'm';
+  if (m > 0) return m + 'm ' + s + 's';
+  return s + 's';
+}
+
+function _savePresence() {
+  var sessSecs = _getSessionSecs();
+  var todaySecs = _presPriorToday + (sessSecs - _presSessAccum);
+  SyncEngine.set('clock', _presTodayKey, todaySecs);
+  try {
+    sessionStorage.setItem('clock_session', JSON.stringify({
+      date: _preDateStr,
+      accumulated: sessSecs
+    }));
+  } catch(e) {}
+  _presLastSave = Date.now();
+}
+
+function updatePresence() {
+  document.getElementById('presSession').textContent = _fmtPresence(_getSessionSecs());
+  document.getElementById('presDaily').textContent = _fmtPresence(_getTodaySecs());
+  /* Auto-save every 30s */
+  if (Date.now() - _presLastSave > 30000) _savePresence();
+}
+updatePresence();
+setInterval(updatePresence, 1000);
+
+/* Save on page unload (best-effort) */
+window.addEventListener('beforeunload', _savePresence);
+
+/* Focus stats display — utilities from core.js */
+function updateFocusStats() {
+  var total = getTodayFocus();
+  var capped = total >= 14400;
+  var text = '';
+  if (total >= 60) {
+    text = 'Today: <span class="focus-val">' + formatFocusTime(total) + '</span> focused';
+    if (capped) text += ' <span class="focus-cap-msg">· diminishing returns</span>';
+  }
+  ['swStats', 'tmStats'].forEach(function(id) {
+    var el = document.getElementById(id);
+    el.innerHTML = text;
+    el.classList.toggle('capped', capped);
+  });
+}
+updateFocusStats();
+
+/* ══════════════════════════════════════
+   STOPWATCH
+   ══════════════════════════════════════ */
+var CIRC = 2 * Math.PI * 82;
+var swRunning = false, swStartTime = 0, swAccum = 0, swElapsed = 0;
+var swLapsArr = [], swInterval = null;
+
+function formatSW(ms) {
+  var tot = Math.floor(ms / 1000);
+  var h = Math.floor(tot / 3600), m = Math.floor((tot % 3600) / 60), s = tot % 60;
+  var cs = Math.floor((ms % 1000) / 10);
+  var str = '';
+  if (h > 0) str += String(h).padStart(2,'0') + ':';
+  str += String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  str += '<span class="session-ms">.' + String(cs).padStart(2,'0') + '</span>';
+  return str;
+}
+
+function formatSWPlain(ms) {
+  var tot = Math.floor(ms / 1000), m = Math.floor(tot / 60), s = tot % 60;
+  var cs = Math.floor((ms % 1000) / 10);
+  return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0') + '.' + String(cs).padStart(2,'0');
+}
+
+function updateSW() {
+  var elapsed = swAccum + (swRunning ? Date.now() - swStartTime : 0);
+  swElapsed = elapsed;
+  document.getElementById('swTime').innerHTML = formatSW(elapsed);
+  var sec = (elapsed / 1000) % 60;
+  document.getElementById('swRing').style.strokeDashoffset = CIRC * (1 - sec / 60);
+}
+
+document.getElementById('swToggle').addEventListener('click', function() {
+  if (swRunning) { playPause(); } else if (swAccum > 0) { playResume(); } else { playStart(); }
+  if (swRunning) {
+    swAccum += Date.now() - swStartTime;
+    swRunning = false; clearInterval(swInterval);
+    this.textContent = 'Resume';
+    document.getElementById('swLabel').textContent = 'Paused';
+    document.getElementById('swLabel').className = 'session-label';
+    this.setAttribute('aria-label', 'Resume stopwatch');
+  } else {
+    swStartTime = Date.now(); swRunning = true;
+    swInterval = setInterval(updateSW, 30);
+    this.textContent = 'Pause';
+    document.getElementById('swLabel').textContent = 'Running';
+    document.getElementById('swLabel').className = 'session-label running';
+    this.setAttribute('aria-label', 'Pause stopwatch');
+  }
+  document.getElementById('swRing').classList.add('pulse');
+  setTimeout(function() { document.getElementById('swRing').classList.remove('pulse'); }, 180);
+});
+
+document.getElementById('swLap').addEventListener('click', function() {
+  if (!swRunning) return; playLap();
+  var elapsed = swAccum + (Date.now() - swStartTime);
+  var prevTotal = swLapsArr.length > 0 ? swLapsArr[0].total : 0;
+  swLapsArr.unshift({ num: swLapsArr.length + 1, time: elapsed - prevTotal, total: elapsed });
+  var html = '';
+  swLapsArr.forEach(function(lap) {
+    html += '<div class="lap-item"><span class="lap-num">LAP ' + lap.num + '</span><span>' + formatSWPlain(lap.time) + '</span></div>';
+  });
+  document.getElementById('swLaps').innerHTML = html;
+  var firstLap = document.querySelector('#swLaps .lap-item');
+  if (firstLap) {
+    firstLap.classList.add('flash');
+    setTimeout(function() { firstLap.classList.remove('flash'); }, 240);
+  }
+});
+
+document.getElementById('swReset').addEventListener('click', function() {
+  playReset();
+  if (swRunning) swAccum += Date.now() - swStartTime;
+  var swSecs = swAccum / 1000;
+  if (swAccum >= 1000) { addFocusSeconds(swSecs); updateFocusStats(); }
+  var triggerBreak = swSecs >= 2700;
+  swRunning = false; clearInterval(swInterval); swAccum = 0; swElapsed = 0; swLapsArr = [];
+  document.getElementById('swTime').innerHTML = formatSW(0);
+  document.getElementById('swRing').style.strokeDashoffset = CIRC;
+  document.getElementById('swToggle').textContent = 'Start';
+  document.getElementById('swLabel').textContent = 'Ready';
+  document.getElementById('swLabel').className = 'session-label';
+  document.getElementById('swLaps').innerHTML = '';
+  if (triggerBreak) showMicroBreak();
+});
+
+/* ══════════════════════════════════════
+   TIMER
+   ══════════════════════════════════════ */
+var PRESETS = [
+  { label: '25m', secs: 1500, ttTitle: 'Pomodoro', ttText: 'Short bursts. Best for memorisation, admin tasks, or beating procrastination.' },
+  { label: '50m', secs: 3000, ttTitle: 'Extended Focus', ttText: 'Ideal for analytical writing, problem-solving, or coding. Matches peak attention span.' },
+  { label: '90m', secs: 5400, ttTitle: 'Ultradian Cycle', ttText: 'Full biological focus cycle. Deep work, strategic thinking, or dense study material.' }
+];
+var CUSTOM_TOOLTIP = { ttTitle: 'Custom', ttText: 'Set your own duration to match your task.' };
+var tmDuration = 1500, tmRemaining = 1500;
+var tmRunning = false, tmInterval = null, tmStartTime = 0, tmStartRemaining = 0;
+var selectedPreset = 0;
+var tmCustomSecs = 0;
+
+/* ── Timer State Persistence (SyncEngine) ── */
+function saveTimerState() {
+  if (tmRunning) {
+    SyncEngine.set('clock', 'timer_state', JSON.stringify({
+      running: true,
+      startTime: tmStartTime,
+      startRemaining: tmStartRemaining,
+      duration: tmDuration,
+      preset: selectedPreset,
+      customSecs: tmCustomSecs
+    }));
+  } else if (tmRemaining < tmDuration && tmRemaining > 0) {
+    SyncEngine.set('clock', 'timer_state', JSON.stringify({
+      running: false,
+      remaining: tmRemaining,
+      duration: tmDuration,
+      preset: selectedPreset,
+      customSecs: tmCustomSecs
+    }));
+  } else {
+    SyncEngine.remove('clock', 'timer_state');
+  }
+}
+
+function restoreTimerState() {
+  try {
+    var raw = SyncEngine.get('clock', 'timer_state');
+    if (!raw) return false;
+    var st = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    if (!st || !st.duration) return false;
+    tmDuration = st.duration;
+    tmCustomSecs = st.customSecs || 0;
+    selectedPreset = st.preset != null ? st.preset : 0;
+    if (st.running) {
+      var elapsed = (Date.now() - st.startTime) / 1000;
+      tmRemaining = Math.max(0, st.startRemaining - elapsed);
+      if (tmRemaining <= 0) {
+        /* Timer completed while we were away */
+        SyncEngine.remove('clock', 'timer_state');
+        addFocusSeconds(st.duration); updateFocusStats();
+        tmRemaining = tmDuration;
+        updateTMDisplay();
+        /* Play completion feedback */
+        playChime(); launchConfetti('confetti');
+        document.getElementById('tmLabel').textContent = 'Complete!';
+        document.getElementById('tmLabel').className = 'session-label done';
+        document.getElementById('tmRing').classList.add('complete');
+        setTimeout(function() {
+          document.getElementById('tmLabel').textContent = 'Set duration';
+          document.getElementById('tmLabel').className = 'session-label';
+          document.getElementById('tmRing').classList.remove('complete');
+          tmRemaining = tmDuration; updateTMDisplay();
+          if (tmDuration >= 2700) showMicroBreak();
+        }, 3000);
+        return true;
+      }
+      /* Resume the running timer */
+      tmStartTime = st.startTime;
+      tmStartRemaining = st.startRemaining;
+      tmRunning = true;
+      tmInterval = setInterval(tickTimer, 100);
+      document.getElementById('tmToggle').textContent = 'Pause';
+      document.getElementById('tmLabel').textContent = 'Focusing';
+      document.getElementById('tmLabel').className = 'session-label running';
+      updateTMDisplay();
+      return true;
+    } else {
+      /* Paused state */
+      tmRemaining = st.remaining;
+      updateTMDisplay();
+      document.getElementById('tmToggle').textContent = 'Resume';
+      document.getElementById('tmLabel').textContent = 'Paused';
+      document.getElementById('tmLabel').className = 'session-label';
+      return true;
+    }
+  } catch (e) { return false; }
+}
+
+/* Save timer state on visibility change and before unload */
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden && tmRunning) saveTimerState();
+});
+window.addEventListener('beforeunload', function() {
+  if (tmRunning || (tmRemaining < tmDuration && tmRemaining > 0)) saveTimerState();
+});
+
+var presetsEl = document.getElementById('presets');
+
+function clearActivePresets() {
+  presetsEl.querySelectorAll('.preset-chip').forEach(function(c) { c.classList.remove('active'); });
+}
+
+PRESETS.forEach(function(p, i) {
+  var chip = document.createElement('button');
+  chip.className = 'preset-chip' + (i === selectedPreset ? ' active' : '');
+  chip.textContent = p.label; chip.dataset.idx = i;
+  chip.addEventListener('click', function() {
+    if (tmRunning) return; playPresetSelect();
+    selectedPreset = parseInt(this.dataset.idx);
+    tmDuration = PRESETS[selectedPreset].secs; tmRemaining = tmDuration;
+    tmCustomSecs = 0;
+    updateTMDisplay();
+    clearActivePresets();
+    this.classList.add('active');
+    /* Reset custom input if open */
+    var cw = document.getElementById('customInputWrap');
+    if (cw) cw.remove();
+    document.getElementById('customChip').classList.remove('active');
+    document.getElementById('tmLabel').textContent = 'Set duration';
+    document.getElementById('tmLabel').className = 'session-label';
+    document.getElementById('tmRing').classList.remove('complete');
+    saveTimerState();
+  });
+  chip.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.click(); }
+  });
+  chip.addEventListener('mouseenter', function() {
+    var self = this;
+    var idx = parseInt(self.dataset.idx, 10);
+    var p = PRESETS[idx];
+    if (!p) return;
+    self._phIntent = setTimeout(function() {
+      showPresetHint(p.ttTitle, p.ttText);
+    }, 300);
+  });
+  chip.addEventListener('mouseleave', function() {
+    clearTimeout(this._phIntent);
+    hidePresetHint();
+  });
+  presetsEl.appendChild(chip);
+});
+
+/* Custom duration chip */
+var customChip = document.createElement('button');
+customChip.className = 'preset-chip';
+customChip.id = 'customChip';
+customChip.textContent = 'Custom';
+customChip.addEventListener('click', function() {
+  if (tmRunning) return;
+  playPresetSelect();
+  var existing = document.getElementById('customInputWrap');
+  if (existing) { existing.remove(); customChip.classList.remove('active'); return; }
+  clearActivePresets();
+  customChip.classList.add('active');
+  var wrap = document.createElement('div');
+  wrap.id = 'customInputWrap';
+  wrap.style.cssText = 'display:flex;align-items:center;gap:6px;justify-content:center;margin-top:6px;';
+  var inp = document.createElement('input');
+  inp.id = 'customInput';
+  inp.type = 'number';
+  inp.min = '1'; inp.max = '240'; inp.placeholder = 'min';
+  inp.style.cssText = 'width:56px;padding:5px 8px;border-radius:10px;border:1px solid var(--arc-track);background:var(--dot-bg);color:var(--date-color);font-family:Inter,sans-serif;font-size:10px;font-weight:500;text-align:center;outline:none;font-variant-numeric:tabular-nums;transition:border-color 0.2s;';
+  inp.addEventListener('focus', function() { this.style.borderColor = 'var(--accent)'; });
+  inp.addEventListener('blur', function() { this.style.borderColor = 'var(--arc-track)'; });
+  var setBtn = document.createElement('button');
+  setBtn.className = 'preset-chip active';
+  setBtn.textContent = 'Set';
+  setBtn.style.cssText = 'padding:5px 14px;font-size:8px;';
+  function applyCustom() {
+    var val = parseInt(inp.value);
+    if (!val || val < 1) { playError(); return; }
+    if (val > 240) val = 240;
+    playClick();
+    tmCustomSecs = val * 60;
+    tmDuration = tmCustomSecs;
+    tmRemaining = tmDuration;
+    selectedPreset = -1;
+    updateTMDisplay();
+    document.getElementById('tmLabel').textContent = 'Set duration';
+    document.getElementById('tmLabel').className = 'session-label';
+    document.getElementById('tmRing').classList.remove('complete');
+    saveTimerState();
+  }
+  setBtn.addEventListener('click', applyCustom);
+  inp.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); applyCustom(); }
+  });
+  wrap.appendChild(inp);
+  wrap.appendChild(setBtn);
+  presetsEl.parentNode.insertBefore(wrap, presetsEl.nextSibling);
+  inp.focus();
+});
+customChip.addEventListener('mouseenter', function() {
+  var self = this;
+  self._phIntent = setTimeout(function() {
+    showPresetHint(CUSTOM_TOOLTIP.ttTitle, CUSTOM_TOOLTIP.ttText);
+  }, 300);
+});
+customChip.addEventListener('mouseleave', function() {
+  clearTimeout(this._phIntent);
+  hidePresetHint();
+});
+presetsEl.appendChild(customChip);
+Core.a11y.roving(presetsEl, '.preset-chip');
+
+/* ── Preset Hint Helpers (typewriter on first view, instant after) ── */
+var _phEl = document.getElementById('presetHint');
+var _phTitle = document.getElementById('phTitle');
+var _phText = document.getElementById('phText');
+var _phHideTimer = null;
+var _phVisible = false;
+var _phTypeTimer = null;
+var _phCurrentText = '';
+var _phTyped = {};
+
+function showPresetHint(title, text) {
+  clearTimeout(_phHideTimer);
+
+  if (_phVisible && _phCurrentText === text) return;
+
+  clearInterval(_phTypeTimer);
+
+  _phTitle.textContent = title;
+  _phCurrentText = text;
+
+  var alreadySeen = _phTyped[text];
+
+  if (!_phVisible) {
+    _phEl.classList.add('show');
+    _phVisible = true;
+  }
+
+  if (alreadySeen) {
+    _phText.textContent = text;
+    return;
+  }
+
+  _phText.innerHTML = '<span class="preset-hint-cursor"></span>';
+
+  var idx = 0;
+  var speed = 18;
+  _phTypeTimer = setInterval(function() {
+    if (idx < text.length) {
+      _phText.innerHTML = text.slice(0, idx + 1) + '<span class="preset-hint-cursor"></span>';
+      idx++;
+    } else {
+      clearInterval(_phTypeTimer);
+      _phTyped[text] = true;
+      setTimeout(function() {
+        if (_phCurrentText === text && _phVisible) {
+          _phText.textContent = text;
+        }
+      }, 1500);
+    }
+  }, speed);
+}
+
+function hidePresetHint() {
+  _phHideTimer = setTimeout(function() {
+    clearInterval(_phTypeTimer);
+    _phEl.classList.remove('show');
+    _phVisible = false;
+    _phCurrentText = '';
+    _phText.innerHTML = '';
+  }, 120);
+}
+
+/* ── Restore timer on load ── */
+var _timerRestored = restoreTimerState();
+if (_timerRestored) {
+  /* Sync preset chip highlight */
+  clearActivePresets();
+  if (selectedPreset >= 0 && selectedPreset < PRESETS.length) {
+    var chips = presetsEl.querySelectorAll('.preset-chip');
+    if (chips[selectedPreset]) chips[selectedPreset].classList.add('active');
+  } else if (tmCustomSecs > 0) {
+    customChip.classList.add('active');
+  }
+}
+
+function formatTM(secs) {
+  var h = Math.floor(secs / 3600), m = Math.floor((secs % 3600) / 60), s = secs % 60;
+  if (h > 0) return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+
+function updateTMDisplay() {
+  document.getElementById('tmTime').textContent = formatTM(Math.ceil(tmRemaining));
+  var progress = (tmDuration - tmRemaining) / tmDuration;
+  document.getElementById('tmRing').style.strokeDashoffset = CIRC * progress;
+}
+
+function tickTimer() {
+  var elapsed = (Date.now() - tmStartTime) / 1000;
+  tmRemaining = Math.max(0, tmStartRemaining - elapsed);
+  updateTMDisplay();
+  if (tmRemaining <= 0) {
+    tmRunning = false; clearInterval(tmInterval);
+    SyncEngine.remove('clock', 'timer_state');
+    document.getElementById('tmToggle').textContent = 'Start';
+    document.getElementById('tmLabel').textContent = 'Complete!';
+    document.getElementById('tmLabel').className = 'session-label done';
+    document.getElementById('tmRing').classList.add('complete');
+    addFocusSeconds(tmDuration); updateFocusStats();
+    playChime(); launchConfetti('confetti');
+    var needsBreak = tmDuration >= 2700;
+    setTimeout(function() {
+      tmRemaining = tmDuration; updateTMDisplay();
+      document.getElementById('tmLabel').textContent = 'Set duration';
+      document.getElementById('tmLabel').className = 'session-label';
+      document.getElementById('tmRing').classList.remove('complete');
+      if (needsBreak) showMicroBreak();
+    }, needsBreak ? 3000 : 5000);
+  }
+}
+updateTMDisplay();
+
+document.getElementById('tmToggle').addEventListener('click', function() {
+  if (tmRunning) { playPause(); } else if (tmRemaining < tmDuration) { playResume(); } else { playStart(); }
+  if (tmRunning) {
+    tmRemaining = Math.max(0, tmStartRemaining - (Date.now() - tmStartTime) / 1000);
+    tmRunning = false; clearInterval(tmInterval);
+    this.textContent = 'Resume';
+    document.getElementById('tmLabel').textContent = 'Paused';
+    document.getElementById('tmLabel').className = 'session-label';
+    this.setAttribute('aria-label', 'Resume timer');
+    saveTimerState();
+  } else {
+    if (tmRemaining <= 0) { tmRemaining = tmDuration; document.getElementById('tmRing').classList.remove('complete'); }
+    tmStartTime = Date.now(); tmStartRemaining = tmRemaining;
+    tmRunning = true; tmInterval = setInterval(tickTimer, 100);
+    this.textContent = 'Pause';
+    document.getElementById('tmLabel').textContent = 'Focusing';
+    document.getElementById('tmLabel').className = 'session-label running';
+    this.setAttribute('aria-label', 'Pause timer');
+    saveTimerState();
+  }
+  document.getElementById('tmRing').classList.add('pulse');
+  setTimeout(function() { document.getElementById('tmRing').classList.remove('pulse'); }, 180);
+});
+
+document.getElementById('tmReset').addEventListener('click', function() {
+  playReset();
+  if (tmRunning) {
+    var focused = tmDuration - Math.max(0, tmStartRemaining - (Date.now() - tmStartTime) / 1000);
+    if (focused >= 1) { addFocusSeconds(focused); updateFocusStats(); }
+  }
+  tmRunning = false; clearInterval(tmInterval);
+  tmRemaining = tmDuration; updateTMDisplay();
+  document.getElementById('tmToggle').textContent = 'Start';
+  document.getElementById('tmLabel').textContent = 'Set duration';
+  document.getElementById('tmLabel').className = 'session-label';
+  document.getElementById('tmRing').classList.remove('complete');
+  SyncEngine.remove('clock', 'timer_state');
+});
+
+/* ══════════════════════════════════════
+   MICRO-BREAK (after 45+ min sessions)
+   ══════════════════════════════════════ */
+var breakInterval = null, breakRemaining = 0;
+function showMicroBreak() {
+  playBreakAppear();
+  breakRemaining = 300;
+  document.getElementById('breakOverlay').classList.add('show');
+  updateBreakTimer();
+  breakInterval = setInterval(function() {
+    breakRemaining--;
+    if (breakRemaining <= 0) { dismissBreak(); return; }
+    updateBreakTimer();
+  }, 1000);
+}
+function updateBreakTimer() {
+  var m = Math.floor(breakRemaining / 60), s = breakRemaining % 60;
+  document.getElementById('breakTimerDisplay').textContent = m + ':' + String(s).padStart(2, '0');
+}
+function dismissBreak() {
+  clearInterval(breakInterval);
+  document.getElementById('breakOverlay').classList.remove('show');
+}
+document.getElementById('breakSkip').addEventListener('click', function() { playBreakDismiss(); dismissBreak(); });
+
+/* ══════════════════════════════════════
+   SETTINGS PANEL
+   ══════════════════════════════════════ */
+var _geo = [];
+
+document.getElementById('sBtn').addEventListener('click', function() {
+  playOpen(); renderS(); document.getElementById('settingsOv').classList.add('show');
+});
+document.getElementById('sClose').addEventListener('click', function() {
+  playClose(); document.getElementById('settingsOv').classList.remove('show');
+});
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && document.getElementById('settingsOv').classList.contains('show')) {
+    playClose(); document.getElementById('settingsOv').classList.remove('show');
+  }
+  if (e.key === ' ' && (currentMode === 'stopwatch' || currentMode === 'timer') && e.target.tagName !== 'INPUT') {
+    e.preventDefault();
+    document.getElementById(currentMode === 'stopwatch' ? 'swToggle' : 'tmToggle').click();
+  }
+});
+
+function renderS() {
+  var n = SyncEngine.get('user', 'name') || '';
+  var l = SyncEngine.get('user', 'location') || '';
+  var h = '<div class="s-item"><div class="s-item-info"><div class="s-item-label">Name</div>';
+  h += '<div class="s-item-val' + (n ? '' : ' empty') + '">' + (n || 'Not set') + '</div></div>';
+  h += '<div class="s-actions">';
+  if (n) { h += '<button class="s-btn edt" data-a="en">Edit</button><button class="s-btn del" data-a="dn">Delete</button>'; }
+  else { h += '<button class="s-btn add" data-a="en">Add</button>'; }
+  h += '</div></div><div id="na"></div>';
+  h += '<div class="s-item"><div class="s-item-info"><div class="s-item-label">Location</div>';
+  h += '<div class="s-item-val' + (l ? '' : ' empty') + '">' + (l || 'Not set') + '</div></div>';
+  h += '<div class="s-actions">';
+  if (l) { h += '<button class="s-btn edt" data-a="el">Edit</button><button class="s-btn del" data-a="dl">Delete</button>'; }
+  else { h += '<button class="s-btn add" data-a="el">Add</button>'; }
+  h += '</div></div><div id="la"></div>';
+  document.getElementById('sContent').innerHTML = h;
+  document.querySelectorAll('[data-a]').forEach(function(b) {
+    b.addEventListener('click', function() {
+      ({ en: showNI, dn: confirmDN, el: showLI, dl: confirmDL })[this.dataset.a]();
+    });
+  });
+}
+
+function showNI() {
+  var c = SyncEngine.get('user', 'name') || '';
+  var a = document.getElementById('na');
+  a.innerHTML = '<div class="s-input-row"><input class="s-input" id="ni" placeholder="Your name" value="' + c.replace(/"/g, '&#34;') + '"><button class="s-btn add" id="nis">Save</button></div>';
+  document.getElementById('nis').addEventListener('click', saveN);
+  var inp = document.getElementById('ni');
+  inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') saveN(); });
+  inp.focus();
+}
+
+function saveN() {
+  var v = document.getElementById('ni').value.trim();
+  if (v) { SyncEngine.set('user', 'name', v); NAME = v; playClick(); }
+  else { SyncEngine.remove('user', 'name'); NAME = ''; }
+  renderS(); updateClock();
+}
+
+function confirmDN() {
+  var a = document.getElementById('na');
+  a.innerHTML = '<div class="s-confirm"><span class="s-confirm-msg">Delete name?</span><button class="s-confirm-btn s-confirm-no" id="dnc">Cancel</button><button class="s-confirm-btn s-confirm-yes" id="dny">Delete</button></div>';
+  document.getElementById('dnc').addEventListener('click', renderS);
+  document.getElementById('dny').addEventListener('click', function() {
+    SyncEngine.remove('user', 'name'); NAME = ''; playReset(); renderS(); updateClock();
+  });
+}
+
+function showLI() {
+  var a = document.getElementById('la');
+  a.innerHTML = '<div class="s-input-row"><input class="s-input" id="li" placeholder="Search city..."><button class="s-btn add" id="lis">Search</button></div><div id="gr"></div>';
+  document.getElementById('lis').addEventListener('click', searchL);
+  var inp = document.getElementById('li');
+  inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') searchL(); });
+  inp.focus();
+}
+
+function searchL() {
+  var q = document.getElementById('li').value.trim();
+  if (!q) return;
+  var el = document.getElementById('gr');
+  el.innerHTML = '<div class="s-item-label" style="padding:4px 0">Searching...</div>';
+  fetch('https://geocoding-api.open-meteo.com/v1/search?name=' + encodeURIComponent(q) + '&count=5&language=en&format=json')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (!d.results || !d.results.length) {
+        el.innerHTML = '<div class="s-item-label" style="padding:4px 0">No results</div>';
+        return;
+      }
+      _geo = d.results;
+      var h = '<div class="s-geo">';
+      d.results.forEach(function(r, i) {
+        h += '<button class="s-geo-btn" data-i="' + i + '">' + r.name + (r.admin1 ? ', ' + r.admin1 : '') + (r.country ? ', ' + r.country : '') + '</button>';
+      });
+      el.innerHTML = h + '</div>';
+      el.querySelectorAll('.s-geo-btn').forEach(function(b) {
+        b.addEventListener('click', function() { pickL(parseInt(this.dataset.i)); });
+      });
+    })
+    .catch(function() {
+      el.innerHTML = '<div class="s-item-label" style="padding:4px 0">Search failed</div>';
+    });
+}
+
+function pickL(i) {
+  var r = _geo[i];
+  if (!r) return;
+  var lb = r.name + (r.admin1 ? ', ' + r.admin1 : '') + (r.country ? ', ' + r.country : '');
+  var tz = r.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  SyncEngine.set('user', 'lat', r.latitude);
+  SyncEngine.set('user', 'lon', r.longitude);
+  SyncEngine.set('user', 'location', lb);
+  SyncEngine.set('user', 'tz', tz);
+  WLAT = r.latitude; WLON = r.longitude; WLOC = lb; WTZ = tz;
+  playClick(); renderS(); fetchWeather();
+}
+
+function confirmDL() {
+  var a = document.getElementById('la');
+  a.innerHTML = '<div class="s-confirm"><span class="s-confirm-msg">Delete location?</span><button class="s-confirm-btn s-confirm-no" id="dlc">Cancel</button><button class="s-confirm-btn s-confirm-yes" id="dly">Delete</button></div>';
+  document.getElementById('dlc').addEventListener('click', renderS);
+  document.getElementById('dly').addEventListener('click', function() {
+    ['lat', 'lon', 'location', 'tz'].forEach(function(k) { SyncEngine.remove('user', k); });
+    WLAT = null; WLON = null; WLOC = ''; WTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    playReset(); renderS(); weatherEl.innerHTML = '';
+  });
+}
+
+/* ── Init core systems ── */
+var card = document.querySelector('.container');
+setTimeout(function() { card.style.opacity = '1'; card.style.animation = 'breathe 8s cubic-bezier(0.4,0,0.2,1) infinite'; }, 900);
+initBackground('bgCanvas', { orbCount: 3, particleCount: Core.isLowEnd ? (Core.isDark ? 8 : 5) : (Core.isDark ? 18 : 12), orbRadius: [80, 140], hueRange: [250, 40], mouseTracking: true });
+initTilt('.container', { maxDeg: 2 });
+playSummon('upper');
+Core.tooltip.init();
+Core.tooltip.attach(document.getElementById('sBtn'), 'Settings');
+Core.tooltip.attach(document.getElementById('weather'), 'View forecast');
+
+function revealClockContent() {
+  var sk = document.getElementById('clockSkeleton');
+  var content = document.getElementById('clockContent');
+  if (!sk || !content) return;
+  content.classList.remove('loading');
+  sk.style.opacity = '0';
+  sk.style.transition = 'opacity 220ms ease';
+  setTimeout(function() { if (sk.parentNode) sk.remove(); }, 260);
+}
+if (SyncEngine && typeof SyncEngine.onReady === 'function') {
+  SyncEngine.onReady(function() {
+    revealClockContent();
+    try { fetchWeather(); } catch (e) {}
+  });
+}
+setTimeout(revealClockContent, 650);
+</script>
+</body>
+</html>

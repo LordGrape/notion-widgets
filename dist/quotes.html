@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Quote</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #ffffff;
+  --card-bg: rgba(255, 255, 255, 0.96);
+  --card-border: rgba(138, 92, 246, 0.12);
+  --card-shadow: 0 4px 24px rgba(0,0,0,0.06);
+  --card-glow: 0 0 20px 2px rgba(138, 92, 246, 0.06);
+  --label-color: rgba(124, 58, 237, 0.5);
+  --quote-grad: linear-gradient(135deg, #1a1a2e 0%, #7c3aed 40%, #8b5cf6 60%, #1a1a2e 100%);
+  --author-color: rgba(100, 100, 120, 0.5);
+  --book-color: rgba(100, 100, 120, 0.35);
+  --accent: #8b5cf6;
+  --accent-rgb: 138, 92, 246;
+  --dot-bg: rgba(138, 92, 246, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #191919;
+    --card-bg: rgba(25, 25, 35, 0.94);
+    --card-border: rgba(138, 92, 246, 0.15);
+    --card-shadow: 0 8px 40px rgba(0,0,0,0.4);
+    --card-glow: 0 0 24px 4px rgba(138, 92, 246, 0.12);
+    --label-color: rgba(167, 139, 250, 0.65);
+    --quote-grad: linear-gradient(135deg, #fff 0%, #c4b5fd 25%, #8b5cf6 50%, #a78bfa 75%, #fff 100%);
+    --author-color: rgba(160, 160, 180, 0.5);
+    --book-color: rgba(160, 160, 180, 0.35);
+    --accent: #a78bfa;
+    --accent-rgb: 167, 139, 250;
+    --dot-bg: rgba(138, 92, 246, 0.15);
+  }
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  height: 100vh; overflow: hidden;
+  user-select: none; -webkit-user-select: none;
+  transition: background 0.3s;
+}
+
+#bg {
+  position: fixed; top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 0; pointer-events: none;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes breathe {
+  0%, 100% { box-shadow: var(--card-shadow), 0 0 0 0 transparent; }
+  30%      { box-shadow: var(--card-shadow), var(--card-glow); }
+}
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes wordReveal {
+  from { opacity: 0; transform: translateY(8px); filter: blur(2px); }
+  to   { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+/* Card */
+.container {
+  position: relative; z-index: 1;
+  text-align: center;
+  padding: 14px 36px 12px;
+  border-radius: 14px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  max-width: 100%; width: 98%;
+  will-change: transform; overflow: hidden; transform-style: preserve-3d; cursor: grab;
+  animation: fadeIn 0.8s ease-out, breathe 8s cubic-bezier(0.4,0,0.2,1) infinite;
+}
+
+.label {
+  font-size: 9px; font-weight: 300;
+  letter-spacing: 3px; text-transform: uppercase;
+  color: var(--label-color);
+  margin-bottom: 6px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0; animation: fadeIn 1s ease-out 0.3s forwards;
+}
+
+/* Quote — gradient on parent, word spans animate opacity */
+.quote {
+  font-size: clamp(13px, 1.8vw, 18px);
+  font-weight: 500; font-style: italic;
+  line-height: 1.4; letter-spacing: -0.2px;
+  padding: 0 8px;
+  max-width: 900px; margin: 0 auto;
+  transition: opacity 0.6s cubic-bezier(0.4,0,0.2,1);
+}
+.quote.fading { opacity: 0; }
+.quote .word {
+  display: inline-block;
+  opacity: 0;
+  padding: 0 0.08em;
+  margin: 0 -0.04em;
+  background: var(--quote-grad);
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: wordReveal 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards,
+             gradientShift 6s ease infinite;
+}
+
+/* Attribution */
+.attribution {
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; margin-top: 6px;
+  opacity: 0;
+  transition: opacity 0.6s cubic-bezier(0.4,0,0.2,1);
+}
+.attribution.visible { opacity: 1; }
+.attribution.fading { opacity: 0; }
+
+.author {
+  font-size: clamp(9px, 1.2vw, 11px); font-weight: 400;
+  color: var(--author-color); letter-spacing: 0.5px;
+}
+.separator { font-size: 9px; color: var(--book-color); }
+.book {
+  font-size: clamp(8px, 1vw, 10px); font-weight: 300;
+  color: var(--book-color); letter-spacing: 1.5px; text-transform: uppercase;
+}
+
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div class="container">
+  <div class="loading-skeleton" id="qtSkeleton">
+    <div class="skeleton sk-line w1"></div>
+    <div class="skeleton sk-line w2"></div>
+    <div class="skeleton sk-line w3"></div>
+    <div class="skeleton sk-line w4"></div>
+  </div>
+  <div class="content-shell loading" id="qtContent">
+    <div class="label" id="label">Daily Wisdom</div>
+    <div class="quote" id="quote" aria-live="polite"></div>
+    <div class="attribution" id="attribution">
+      <div class="author" id="author"></div>
+      <div class="separator">&middot;</div>
+      <div class="book" id="book"></div>
+    </div>
+  </div>
+</div>
+<script src="core.js"></script>
+<script>
+/* ══════════════════════════════════════
+   QUOTES — inline fallback pool
+   Upgrade 4: fetch('quotes.json') on load;
+   falls back to this array if unavailable.
+   ══════════════════════════════════════ */
+var FALLBACK_QUOTES = [
+  { text: "You have power over your mind, not outside events. Realize this, and you will find strength.", author: "Marcus Aurelius", book: "Meditations" },
+  { text: "The impediment to action advances action. What stands in the way becomes the way.", author: "Marcus Aurelius", book: "Meditations" },
+  { text: "Waste no more time arguing about what a good man should be. Be one.", author: "Marcus Aurelius", book: "Meditations" },
+  { text: "It is not what happens to you, but how you react to it that matters.", author: "Epictetus", book: "Enchiridion" },
+  { text: "No man is free who is not master of himself.", author: "Epictetus", book: "Fragments" },
+  { text: "First say to yourself what you would be; and then do what you have to do.", author: "Epictetus", book: "Discourses" },
+  { text: "We suffer more often in imagination than in reality.", author: "Seneca", book: "Letters from a Stoic" },
+  { text: "True happiness is to enjoy the present, without anxious dependence upon the future.", author: "Seneca", book: "Letters from a Stoic" },
+  { text: "It is not that we have a short time to live, but that we waste a great deal of it.", author: "Seneca", book: "On the Shortness of Life" },
+  { text: "The whole future lies in uncertainty: live immediately.", author: "Seneca", book: "On the Shortness of Life" },
+  { text: "He who fears death will never do anything worthy of a living man.", author: "Seneca", book: "Letters from a Stoic" },
+  { text: "Man is not worried by real problems so much as by his imagined anxieties about real problems.", author: "Epictetus", book: "Enchiridion" },
+  { text: "If it is not right, do not do it; if it is not true, do not say it.", author: "Marcus Aurelius", book: "Meditations" },
+  { text: "The best revenge is not to be like your enemy.", author: "Marcus Aurelius", book: "Meditations" },
+  { text: "Luck is what happens when preparation meets opportunity.", author: "Seneca", book: "Letters from a Stoic" },
+  { text: "To be everywhere is to be nowhere.", author: "Seneca", book: "Letters from a Stoic" },
+  { text: "Difficulties strengthen the mind, as labor does the body.", author: "Seneca", book: "Letters from a Stoic" },
+  { text: "The soul becomes dyed with the colour of its thoughts.", author: "Marcus Aurelius", book: "Meditations" },
+  { text: "How long are you going to wait before you demand the best for yourself?", author: "Epictetus", book: "Discourses" },
+  { text: "You could leave life right now. Let that determine what you do and say and think.", author: "Marcus Aurelius", book: "Meditations" },
+  { text: "What we do now echoes in eternity.", author: "Marcus Aurelius", book: "Meditations" },
+  { text: "He suffers more than necessary, who suffers before it is necessary.", author: "Seneca", book: "Letters from a Stoic" },
+  { text: "Freedom is the only worthy goal in life. It is won by disregarding things that lie beyond our control.", author: "Epictetus", book: "Discourses" },
+  { text: "Wealth consists not in having great possessions, but in having few wants.", author: "Epictetus", book: "Fragments" },
+  { text: "Sometimes even to live is an act of courage.", author: "Seneca", book: "Letters from a Stoic" },
+  { text: "Begin at once to live, and count each separate day as a separate life.", author: "Seneca", book: "Letters from a Stoic" },
+  { text: "The happiness of your life depends upon the quality of your thoughts.", author: "Marcus Aurelius", book: "Meditations" },
+  { text: "It is not because things are difficult that we do not dare; it is because we do not dare that things are difficult.", author: "Seneca", book: "Letters from a Stoic" },
+  { text: "Attach yourself to what is spiritually superior, regardless of what other people think or do.", author: "Epictetus", book: "Enchiridion" },
+  { text: "The mind that is anxious about future events is miserable.", author: "Seneca", book: "Letters from a Stoic" }
+];
+
+var quotes = FALLBACK_QUOTES;
+var currentDateStr = '';
+var WORD_DELAY_S = 0.04;
+
+/* ── Upgrade 4: External JSON pool ──
+   Place a quotes.json alongside the widget:
+   [{ "text": "...", "author": "...", "book": "..." }, ...]
+   Falls back silently to the inline array. */
+function loadQuotes() {
+  return fetch('quotes.json')
+    .then(function(r) { if (!r.ok) throw new Error(); return r.json(); })
+    .then(function(data) { if (Array.isArray(data) && data.length) quotes = data; })
+    .catch(function() { /* use FALLBACK_QUOTES */ })
+    .then(function() { showQuote(); startMidnightWatch(); });
+}
+
+/* Day-seeded index (deterministic per calendar day) */
+function dayStr() {
+  var d = new Date();
+  return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+}
+function dayIndex() {
+  var d = new Date();
+  var doy = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
+  if (!Array.isArray(quotes) || quotes.length === 0) return 0;
+  return (d.getFullYear() * 1000 + doy) % quotes.length;
+}
+function currentQuote() {
+  if (Array.isArray(quotes) && quotes.length) return quotes[dayIndex()];
+  return FALLBACK_QUOTES[0];
+}
+
+/* ── Upgrade 1: Typewriter word reveal ── */
+function renderWords(text) {
+  var el = document.getElementById('quote');
+  el.innerHTML = '';
+  el.classList.remove('fading');
+  var words = text.split(' ');
+  words.forEach(function(w, i) {
+    var span = document.createElement('span');
+    span.className = 'word recent';
+    span.textContent = w;
+    span.style.animationDelay = (0.35 + i * WORD_DELAY_S) + 's';
+    el.appendChild(span);
+    if (i < words.length - 1) el.appendChild(document.createTextNode(' '));
+  });
+  /* Reveal attribution after last word lands */
+  var totalMs = (0.35 + words.length * WORD_DELAY_S + 0.45) * 1000;
+  var attr = document.getElementById('attribution');
+  attr.classList.remove('visible', 'fading');
+  setTimeout(function() { attr.classList.add('visible'); }, totalMs);
+}
+
+function showQuote() {
+  var q = currentQuote();
+  currentDateStr = dayStr();
+  renderWords(q.text);
+  document.getElementById('author').textContent = q.author;
+  document.getElementById('book').textContent = q.book || '';
+  document.getElementById('book').style.display = q.book ? 'block' : 'none';
+}
+
+/* ── Upgrade 3: Crossfade at midnight ── */
+function startMidnightWatch() {
+  setInterval(function() {
+    if (dayStr() !== currentDateStr) crossfade();
+  }, 30000);
+}
+
+function crossfade() {
+  var quoteEl = document.getElementById('quote');
+  var attr = document.getElementById('attribution');
+  quoteEl.classList.add('fading');
+  attr.classList.add('fading');
+  attr.classList.remove('visible');
+  setTimeout(function() {
+    var q = currentQuote();
+    currentDateStr = dayStr();
+    document.getElementById('author').textContent = q.author;
+    document.getElementById('book').textContent = q.book || '';
+    document.getElementById('book').style.display = q.book ? 'block' : 'none';
+    quoteEl.classList.remove('fading');
+    renderWords(q.text);
+  }, 650);
+}
+
+/* ── Init ── */
+loadQuotes();
+Core.tooltip.init();
+function revealQuotes() {
+  var sk = document.getElementById('qtSkeleton');
+  var c = document.getElementById('qtContent');
+  if (!sk || !c) return;
+  c.classList.remove('loading');
+  sk.style.opacity = '0';
+  sk.style.transition = 'opacity 220ms ease';
+  setTimeout(function() { if (sk.parentNode) sk.remove(); }, 260);
+}
+if (window.SyncEngine && typeof window.SyncEngine.onReady === 'function') window.SyncEngine.onReady(revealQuotes);
+setTimeout(revealQuotes, 450);
+try {
+  initBackground('bg', {
+    orbCount: 2, orbRadius: [60, 100], orbSpeed: 0.15,
+    hueRange: [250, 40], mouseTracking: true
+  });
+} catch(e) {}
+
+/* ── 3D Drag Spin + harmonic chord pad ── */
+(function() {
+  var card = document.querySelector('.container');
+  var dragging = false, lastX, lastY, velX = 0, velY = 0;
+  var rotX = 0, rotY = 0, spinId = null;
+  var SENS = 0.4, FRICTION = 0.94, RETURN = 0.97;
+
+  /* ── Spin Sound Engine v3 (harmonic chord pad) ── */
+  var spinCtx = null, spinActive = false;
+  var spinVoices = [];
+  var SPIN_SPEED_CAP = 35;
+  /* C major 7 spread voicing — warm, dreamy, unresolved */
+  var SPIN_CHORD = [
+    { freq: 130.81, type: 'triangle', maxGain: 0.06,  threshold: 0.0  },
+    { freq: 329.63, type: 'sine',     maxGain: 0.04,  threshold: 0.15 },
+    { freq: 392.00, type: 'sine',     maxGain: 0.035, threshold: 0.2  },
+    { freq: 493.88, type: 'sine',     maxGain: 0.025, threshold: 0.4  }
+  ];
+
+  function initSpin() {
+    if (spinActive) return;
+    try {
+      spinCtx = typeof getAudioCtx === 'function' ? getAudioCtx() : new (window.AudioContext || window.webkitAudioContext)();
+      if (spinCtx.state === 'suspended') spinCtx.resume();
+
+      spinVoices = SPIN_CHORD.map(function(v) {
+        var osc = spinCtx.createOscillator();
+        osc.type = v.type;
+        osc.frequency.value = v.freq;
+
+        var lfo = spinCtx.createOscillator();
+        lfo.type = 'sine';
+        lfo.frequency.value = 3.5 + Math.random() * 1.5;
+        var lfoGain = spinCtx.createGain();
+        lfoGain.gain.value = v.freq * 0.003;
+        lfo.connect(lfoGain);
+        lfoGain.connect(osc.frequency);
+        lfo.start();
+
+        var gain = spinCtx.createGain();
+        gain.gain.value = 0;
+        osc.connect(gain);
+        gain.connect(spinCtx.destination);
+        osc.start();
+
+        return { osc: osc, gain: gain, lfo: lfo, maxGain: v.maxGain, threshold: v.threshold };
+      });
+
+      spinActive = true;
+    } catch (e) { spinActive = false; }
+  }
+
+  function updateSpin(speed) {
+    if (!spinActive) return;
+    var t = spinCtx.currentTime + 0.08;
+    var norm = Math.min(speed / SPIN_SPEED_CAP, 1);
+
+    spinVoices.forEach(function(v) {
+      var voiceNorm = norm <= v.threshold ? 0 : (norm - v.threshold) / (1 - v.threshold);
+      var g = voiceNorm * voiceNorm * v.maxGain;
+      v.gain.gain.linearRampToValueAtTime(g, t);
+    });
+  }
+
+  function silenceSpin() {
+    if (!spinActive) return;
+    var t = spinCtx.currentTime + 0.2;
+    spinVoices.forEach(function(v) {
+      v.gain.gain.linearRampToValueAtTime(0, t);
+    });
+  }
+
+  function start(e) {
+    dragging = true;
+    var p = e.touches ? e.touches[0] : e;
+    lastX = p.clientX; lastY = p.clientY;
+    velX = velY = 0;
+    if (spinId) cancelAnimationFrame(spinId);
+    card.style.cursor = 'grabbing';
+    initSpin();
+  }
+  function move(e) {
+    if (!dragging) return;
+    var p = e.touches ? e.touches[0] : e;
+    var dx = p.clientX - lastX, dy = p.clientY - lastY;
+    velX = dx; velY = dy;
+    rotY += dx * SENS; rotX -= dy * SENS;
+    card.style.transform = 'perspective(800px) rotateX(' + rotX + 'deg) rotateY(' + rotY + 'deg)';
+    lastX = p.clientX; lastY = p.clientY;
+    updateSpin(Math.sqrt(velX * velX + velY * velY));
+  }
+  function end() {
+    if (!dragging) return;
+    dragging = false;
+    card.style.cursor = 'grab';
+    coast();
+  }
+  function coast() {
+    velX *= FRICTION; velY *= FRICTION;
+    rotY += velX * SENS; rotX -= velY * SENS;
+    rotX *= RETURN; rotY *= RETURN;
+    card.style.transform = 'perspective(800px) rotateX(' + rotX + 'deg) rotateY(' + rotY + 'deg)';
+    updateSpin(Math.sqrt(velX * velX + velY * velY));
+    if (Math.abs(velX) > 0.05 || Math.abs(velY) > 0.05 || Math.abs(rotX) > 0.3 || Math.abs(rotY) > 0.3) {
+      spinId = requestAnimationFrame(coast);
+    } else {
+      rotX = rotY = 0;
+      card.style.transform = '';
+      silenceSpin();
+    }
+  }
+
+  card.addEventListener('mousedown', start);
+  document.addEventListener('mousemove', move);
+  document.addEventListener('mouseup', end);
+  card.addEventListener('touchstart', start, { passive: true });
+  document.addEventListener('touchmove', move, { passive: true });
+  document.addEventListener('touchend', end);
+})();
+
+</script>
+</body>
+</html>

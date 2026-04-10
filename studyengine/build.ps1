@@ -1,7 +1,15 @@
 $ErrorActionPreference = 'Stop'
+
 $Root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+Set-Location $Root
+
 $Src = Join-Path $Root 'studyengine'
 $Dist = Join-Path $Root 'dist'
+
+if (-not (Test-Path (Join-Path $Src 'index.html'))) {
+  throw "Run from repo root context: missing studyengine/index.html."
+}
+
 New-Item -ItemType Directory -Force -Path $Dist | Out-Null
 
 $cssOrder = @(
@@ -11,6 +19,8 @@ $cssOrder = @(
   (Join-Path $Src 'css/sidebar.css'),
   (Join-Path $Src 'css/modals.css')
 )
+
+# Keep JS order exactly as current build pipeline
 $jsOrder = @(
   (Join-Path $Src 'js/utils.js'),
   (Join-Path $Src 'js/fsrs.js'),
@@ -33,4 +43,25 @@ $index = Get-Content -Raw -Path $indexPath
 $index = $index.Replace('__STYLES__', $styles)
 $index = $index.Replace('__SCRIPTS__', $scripts)
 Set-Content -Path $outPath -Value $index -Encoding UTF8
-Write-Host "Built $outPath"
+
+# Required explicit copies
+Copy-Item -Path (Join-Path $Root 'core.js') -Destination (Join-Path $Dist 'core.js') -Force
+Copy-Item -Path (Join-Path $Root 'clock.html') -Destination (Join-Path $Dist 'clock.html') -Force
+Copy-Item -Path (Join-Path $Root 'timetable.html') -Destination (Join-Path $Dist 'timetable.html') -Force
+Copy-Item -Path (Join-Path $Root 'quotes.html') -Destination (Join-Path $Dist 'quotes.html') -Force
+Copy-Item -Path (Join-Path $Root 'horizon.html') -Destination (Join-Path $Dist 'horizon.html') -Force
+
+# Copy any other root-level .html/.js/.css/.png files
+$patterns = @('*.html', '*.js', '*.css', '*.png')
+foreach ($pattern in $patterns) {
+  Get-ChildItem -Path $Root -File -Filter $pattern | ForEach-Object {
+    if ($_.Name -eq 'studyengine.html') { return }
+    Copy-Item -Path $_.FullName -Destination (Join-Path $Dist $_.Name) -Force
+  }
+}
+
+$files = Get-ChildItem -Path $Dist -File
+$fileCount = $files.Count
+$totalBytes = ($files | Measure-Object -Property Length -Sum).Sum
+$totalMB = [Math]::Round(($totalBytes / 1MB), 2)
+Write-Host "Build complete: $Dist ($fileCount files, $totalMB MB)"
