@@ -485,6 +485,9 @@
       margin-top: 12px;
       flex-wrap: wrap;
     }
+    body.standalone .view .mini-actions{
+      display: none;
+    }
     .ghost-btn{
       flex: 1;
       min-width: 160px;
@@ -774,6 +777,43 @@
     }
     .breakdown .tier-pill:hover{
       background: rgba(var(--accent-rgb), 0.06);
+    }
+    .dash-details{
+      margin-top: 14px;
+    }
+    .dash-details-toggle{
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(var(--accent-rgb), 0.12);
+      background: rgba(var(--accent-rgb), 0.03);
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      list-style: none;
+      transition: background var(--transition), border-color var(--transition);
+      user-select: none;
+    }
+    .dash-details-toggle::-webkit-details-marker{ display: none; }
+    .dash-details-toggle:hover{
+      background: rgba(var(--accent-rgb), 0.06);
+      border-color: rgba(var(--accent-rgb), 0.20);
+    }
+    .dash-details-toggle .dash-details-arrow{
+      margin-left: auto;
+      font-size: 9px;
+      transition: transform 200ms ease;
+    }
+    .dash-details[open] .dash-details-arrow{
+      transform: rotate(90deg);
+    }
+    .dash-details-body{
+      margin-top: 12px;
     }
     .tier-dot{
       width: 8px; height: 8px; border-radius: 99px;
@@ -2646,6 +2686,18 @@ body.standalone .answer.restudy-active{
     .hero-stat .hero-value{ font-size: 42px; font-weight: 800; letter-spacing: -2px; line-height: 1; position: relative; }
     .hero-stat .hero-label{ margin-top: 6px; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600; color: var(--text-secondary); position: relative; }
     .hero-stat .hero-sub{ margin-top: 4px; font-size: 9px; color: var(--text-tertiary); position: relative; }
+    body.standalone .hero-stat .big-btn{
+      display: block;
+      width: 100%;
+      max-width: 480px;
+      margin-top: 16px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    body.standalone .hero-stat .mini-actions{
+      width: 100%;
+      justify-content: center;
+    }
     .stat{ background: rgba(var(--accent-rgb),0.03); border: 1px solid rgba(var(--accent-rgb),0.10); }
     .stat .k, .stat .s, .gauge .g-title, .gauge .g-sub, .meta .tag, .field label, .help { color: var(--text-tertiary); opacity: 1; }
     .tier-pill[data-count="0"]{ opacity: 0.45; }
@@ -5810,6 +5862,12 @@ input[type="range"]::-moz-range-thumb{
       gap: 6px;
       flex-shrink: 0;
     }
+    body.standalone .main-topbar-actions [data-standalone-hide="true"]{
+      display: none;
+    }
+    body.standalone .main-topbar-actions{
+      display: none;
+    }
 
     @media (max-width: 1100px) {
       .main-wordmark-title {
@@ -5905,6 +5963,7 @@ input[type="range"]::-moz-range-thumb{
       .sidebar { display: none; }
       body.standalone .main-topbar { display: none; }
       body.standalone .topbar { display: flex; } /* Show old topbar on mobile */
+      body.standalone .view .mini-actions { display: flex; }
     }
 
     /* ── CSS SECTION: Context Views (Course/Module/Topic dashboards) ── */
@@ -6152,8 +6211,8 @@ input[type="range"]::-moz-range-thumb{
           <button class="nav-tab active" data-nav="home" type="button">Home</button>
         </div>
         <div class="main-topbar-actions">
-          <button class="icon-btn" id="mainAddCard" type="button" title="Add card" aria-label="Add card">＋</button>
-          <button class="icon-btn" id="mainSettingsBtn" type="button" title="Settings" aria-label="Settings">⚙</button>
+          <button class="icon-btn" id="mainAddCard" data-standalone-hide="true" type="button" title="Add card" aria-label="Add card">＋</button>
+          <button class="icon-btn" id="mainSettingsBtn" data-action="settings" data-standalone-hide="true" type="button" title="Settings" aria-label="Settings">⚙</button>
         </div>
       </div>
 
@@ -6248,7 +6307,7 @@ input[type="range"]::-moz-range-thumb{
               </div>
             </div>
 
-            <div class="section-header">Due by tier</div>
+            <div class="section-header" id="tierBreakdownHeader">Due by tier</div>
             <div class="breakdown" id="tierBreakdown"></div>
 
             <div class="cram-banner" id="cramBanner">
@@ -6256,7 +6315,7 @@ input[type="range"]::-moz-range-thumb{
               <span class="cram-text" id="cramText">Cram mode active — exam in 2 days</span>
             </div>
 
-            <div class="analytics-strip">
+            <div class="analytics-strip" id="homeAnalyticsStrip">
               <div class="analytics-card retention-panel retention-wrap" id="retentionWrap" data-dash-full>
                 <div class="ac-title">Predicted retention</div>
                 <div class="ret-filter-chips" id="retFilterChips"></div>
@@ -6272,7 +6331,7 @@ input[type="range"]::-moz-range-thumb{
             <div class="break-banner" id="sleepAdviceBanner" style="margin-bottom:12px;"></div>
             <button class="big-btn" id="startBtn" disabled>Start Session</button>
 
-            <div class="mini-actions" style="margin-top: 12px;">
+            <div class="mini-actions" id="homeMiniActions" style="margin-top: 12px;">
               <button class="ghost-btn" id="addBtn">Add Items</button>
               <button class="ghost-btn" id="importBtn">Import JSON</button>
               <button class="ghost-btn" id="dashGlobalTutorNotesBtn" type="button" title="Cross-course tutor observations">🧠 Tutor Notes <span class="info-icon" tabindex="0" role="button" aria-label="What are tutor notes?">ⓘ<span class="info-tooltip">Tutor notes are observations the AI tutor builds about your learning over time. It tracks recurring mistakes (patterns), specific misunderstandings (misconceptions), reliable knowledge areas (strengths), and links between topics (connections). These memories persist across sessions, so the tutor can reference past struggles, connect new material to things you already know, and avoid repeating feedback you have already absorbed. Course-specific notes apply only within one course; global notes inform the tutor across all your courses.<span class="tip-arrow"></span></span></span></button>
@@ -8060,8 +8119,64 @@ input[type="range"]::-moz-range-thumb{
       arc.style.stroke = col;
     }
 
+    function ensureStandaloneDashboardLayout() {
+      if (!document.body.classList.contains('standalone')) return;
+
+      var homePanel = el('tabHome');
+      var hero = el('heroStat');
+      var heroSub = el('heroCourseHint');
+      var startBtn = el('startBtn');
+      var miniActions = el('homeMiniActions');
+      var tierHeader = el('tierBreakdownHeader');
+      var tierBreakdown = el('tierBreakdown');
+      var analyticsStrip = el('homeAnalyticsStrip');
+      var cramBanner = el('cramBanner');
+      var sleepBanner = el('sleepAdviceBanner');
+      if (!homePanel || !hero) return;
+
+      if (startBtn && startBtn.parentNode !== hero) {
+        if (heroSub && heroSub.parentNode === hero && heroSub.nextSibling) hero.insertBefore(startBtn, heroSub.nextSibling);
+        else hero.appendChild(startBtn);
+      }
+      if (miniActions && miniActions.parentNode !== hero) {
+        hero.appendChild(miniActions);
+      }
+
+      if (tierHeader) tierHeader.style.display = 'none';
+      if (!tierBreakdown || !analyticsStrip) return;
+
+      var details = el('dashDetails');
+      var detailsBody = el('dashDetailsBody');
+      if (!details) {
+        details = document.createElement('details');
+        details.className = 'dash-details';
+        details.id = 'dashDetails';
+        details.open = true;
+        details.innerHTML =
+          '<summary class="dash-details-toggle">' +
+            '<span class="se-icon">📊</span> Analytics &amp; Breakdown' +
+            '<span class="dash-details-arrow">▸</span>' +
+          '</summary>' +
+          '<div class="dash-details-body" id="dashDetailsBody"></div>';
+        var insertBeforeNode = sleepBanner || null;
+        if (cramBanner && cramBanner.parentNode === homePanel) {
+          cramBanner.insertAdjacentElement('afterend', details);
+        } else if (insertBeforeNode && insertBeforeNode.parentNode === homePanel) {
+          homePanel.insertBefore(details, insertBeforeNode);
+        } else {
+          homePanel.appendChild(details);
+        }
+        detailsBody = el('dashDetailsBody');
+      }
+
+      if (!detailsBody) return;
+      if (tierBreakdown.parentNode !== detailsBody) detailsBody.appendChild(tierBreakdown);
+      if (analyticsStrip.parentNode !== detailsBody) detailsBody.appendChild(analyticsStrip);
+    }
+
     /* ═══ SECTION: Render Dashboard | Functions: renderDashboard ═══ */
     function renderDashboard() {
+      ensureStandaloneDashboardLayout();
       var due = countDue(state.items, 'All', 'All');
       var totalItems = 0;
       for (var _id in state.items) {
@@ -8076,6 +8191,10 @@ input[type="range"]::-moz-range-thumb{
         heroEl.style.display = 'none';
         el('startBtn').disabled = true;
         el('tierBreakdown').innerHTML = '';
+        if (document.body.classList.contains('standalone')) {
+          var emptyMiniActions = el('homeMiniActions');
+          if (emptyMiniActions) emptyEl.insertAdjacentElement('afterend', emptyMiniActions);
+        }
         var sleepBannerEmpty = el('sleepAdviceBanner');
         if (sleepBannerEmpty) {
           sleepBannerEmpty.className = 'break-banner';
@@ -8187,7 +8306,7 @@ input[type="range"]::-moz-range-thumb{
 
       /* Staggered entry animation */
       if (window.gsap) {
-        var targets = viewDash.querySelectorAll('.hero-stat, .stats-row, .tutor-stats-row, .gauge, .breakdown, .big-btn, .chips, .mini-actions');
+        var targets = viewDash.querySelectorAll('.hero-stat, .stats-row, .tutor-stats-row, .gauge, .dash-details, .breakdown, .big-btn, .chips, .mini-actions');
         gsap.fromTo(targets,
           { opacity: 0, y: 8 },
           { opacity: 1, y: 0, duration: 0.3, stagger: 0.04, ease: 'power2.out' }
