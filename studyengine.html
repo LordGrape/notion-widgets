@@ -2709,6 +2709,45 @@ body.standalone .answer.restudy-active{
     .empty-state .empty-icon{ font-size: 36px; margin-bottom: 10px; opacity: 0.7; }
     .empty-state .empty-title{ font-size: 13px; font-weight: 700; margin-bottom: 6px; }
     .empty-state .empty-desc{ font-size: 10px; color: var(--text-secondary); line-height: 1.5; max-width: 280px; margin: 0 auto; }
+    .empty-state .empty-cta{
+      margin: 16px auto 0;
+      min-width: 180px;
+      max-width: 240px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 11px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(var(--accent-rgb),0.22);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02)),
+        linear-gradient(135deg, rgba(var(--accent-rgb),0.20), rgba(var(--accent-rgb),0.08));
+      color: var(--text);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 1.1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.12),
+        0 12px 26px rgba(var(--accent-rgb),0.12);
+      transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition), background var(--transition);
+      font-family: inherit;
+    }
+    .empty-state .empty-cta:hover{
+      transform: translateY(-1px);
+      border-color: rgba(var(--accent-rgb),0.34);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.16),
+        0 16px 34px rgba(var(--accent-rgb),0.18);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.03)),
+        linear-gradient(135deg, rgba(var(--accent-rgb),0.26), rgba(var(--accent-rgb),0.10));
+    }
+    .empty-state .empty-cta:active{
+      transform: translateY(0) scale(0.99);
+    }
     .skip{ color: var(--text-tertiary); opacity: 1; transition: background var(--transition), border-color var(--transition), opacity var(--transition), color var(--transition); }
     .skip:hover{ color: var(--text-secondary); }
     .item-card{ transition: border-color var(--transition); }
@@ -5680,6 +5719,27 @@ input[type="range"]::-moz-range-thumb{
       display: flex;
     }
 
+    .tree-node-root-actions .tree-hover-actions{
+      margin-left: auto;
+    }
+
+    .tree-node-root-actions .tree-action-btn{
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      background: rgba(var(--accent-rgb), 0.10);
+      border: 1px solid rgba(var(--accent-rgb), 0.14);
+      color: var(--text);
+      font-size: 13px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+    }
+
+    .tree-node-root-actions .tree-action-btn:hover{
+      background: rgba(var(--accent-rgb), 0.18);
+      border-color: rgba(var(--accent-rgb), 0.24);
+      transform: translateY(-1px);
+    }
+
     .tree-node-hoverable:hover .tree-count,
     .tree-node-hoverable:hover .tree-badge {
       display: none;
@@ -6665,6 +6725,7 @@ input[type="range"]::-moz-range-thumb{
               <div class="empty-icon"><svg width="36" height="36" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7"><path d="M8 14V8"/><path d="M5.5 8C3.5 8 2 6.5 2 4.8 2 3.2 3.3 2 5 2c.7 0 1.4.3 1.9.7C7.3 2.3 7.6 2 8 2s.7.3 1.1.7C9.6 2.3 10.3 2 11 2c1.7 0 3 1.2 3 2.8C14 6.5 12.5 8 10.5 8"/><path d="M4 8.5c-1.1.4-2 1.5-2 2.7C2 12.7 3.3 14 5 14h6c1.7 0 3-1.3 3-2.8 0-1.2-.9-2.3-2-2.7"/></svg></div>
               <div class="empty-title">No items yet</div>
               <div class="empty-desc">Add study items manually or import a JSON batch to start your first retrieval session.</div>
+              <button class="empty-cta" id="emptyAddDeckBtn" type="button" style="display:none;"><span aria-hidden="true">＋</span><span>Add Deck</span></button>
             </div>
           </div>
 
@@ -8556,6 +8617,9 @@ input[type="range"]::-moz-range-thumb{
       /* Empty state */
       var emptyEl = el('emptyState');
       var heroEl = el('heroStat');
+      var emptyTitleEl = emptyEl ? emptyEl.querySelector('.empty-title') : null;
+      var emptyDescEl = emptyEl ? emptyEl.querySelector('.empty-desc') : null;
+      var emptyAddDeckBtn = el('emptyAddDeckBtn');
       if (totalItems === 0) {
         emptyEl.style.display = 'block';
         heroEl.style.display = 'none';
@@ -8575,12 +8639,26 @@ input[type="range"]::-moz-range-thumb{
         el('calVal').textContent = '—';
         el('calSub').textContent = 'Add items to begin';
         setCalArc(0);
+        var hasCourses = listCourses().length > 0;
+        if (emptyTitleEl) emptyTitleEl.textContent = hasCourses ? 'No items yet' : 'No decks yet';
+        if (emptyDescEl) emptyDescEl.textContent = hasCourses
+          ? 'Add study items manually or import a JSON batch to start your first retrieval session.'
+          : 'Create your first deck to organize topics, track retention, and make the dashboard come alive.';
+        if (emptyAddDeckBtn) emptyAddDeckBtn.style.display = hasCourses ? 'none' : 'inline-flex';
         renderAnalytics('All');
         renderTutorAnalyticsDashboard();
         renderCourseCards();
+        if (emptyAddDeckBtn && !emptyAddDeckBtn.dataset.wired) {
+          emptyAddDeckBtn.dataset.wired = 'true';
+          emptyAddDeckBtn.addEventListener('click', function() {
+            openCreateCourseFlow();
+            try { playClick(); } catch (e) {}
+          });
+        }
         return;
       }
       emptyEl.style.display = 'none';
+      if (emptyAddDeckBtn) emptyAddDeckBtn.style.display = 'none';
       heroEl.style.display = 'block';
 
       /* Hero due count with counter animation */
@@ -8925,10 +9003,13 @@ input[type="range"]::-moz-range-thumb{
 
       // "All Courses" row
       var allActive = sidebarSelection.level === 'all' ? ' active' : '';
-      html += '<div class="tree-node depth-0' + allActive + '" data-level="all">';
+      html += '<div class="tree-node depth-0 tree-node-hoverable tree-node-root-actions' + allActive + '" data-level="all">';
       html += '<span class="tree-icon">📚</span>';
       html += '<span class="tree-label">All Courses</span>';
       if (totalDue > 0) html += '<span class="tree-badge">' + totalDue + '</span>';
+      html += '<span class="tree-hover-actions">';
+      html += '<button class="tree-action-btn" data-action="create-course" title="Add deck" aria-label="Add deck">＋</button>';
+      html += '</span>';
       html += '</div>';
       html += '<div class="tree-section-divider"></div>';
 
@@ -9087,6 +9168,11 @@ input[type="range"]::-moz-range-thumb{
               renderSidebar();
               toast('Created subdeck: ' + name);
             });
+            return;
+          }
+
+          if (action === 'create-course') {
+            openCreateCourseFlow();
             return;
           }
 
@@ -17053,6 +17139,16 @@ input[type="range"]::-moz-range-thumb{
       if (window.gsap && courseModalEl) {
         gsap.fromTo(courseModalEl, { opacity: 0, scale: 0.97, y: 8 }, { opacity: 1, scale: 1, y: 0, duration: 0.3, ease: 'power2.out' });
       }
+    }
+
+    function openCreateCourseFlow() {
+      openCourseModal();
+      setTimeout(function() {
+        var addToggle = el('addCourseToggle');
+        if (addToggle && !addToggle.classList.contains('open')) addToggle.click();
+        var nameInput = el('nc_name');
+        if (nameInput) nameInput.focus();
+      }, 80);
     }
     /* ═══ SECTION: Close Course Modal | Functions: closeCourseModal ═══ */
     function closeCourseModal() {
