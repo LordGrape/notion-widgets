@@ -296,6 +296,10 @@ var el = function(id){ return document.getElementById(id); };
     var viewSession = el('viewSession');
     var viewDone = el('viewDone');
     var rootCard = el('rootCard');
+    var tierArea = el('tierArea');
+    var modelAnswerEl = el('modelAnswer');
+    var ratingsEl = el('ratings');
+    var studyIndicator = el('studyIndicator');
 
     var selectedCourse = 'All';
     var selectedTopic = 'All';
