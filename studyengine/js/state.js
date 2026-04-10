@@ -7514,10 +7514,42 @@ el('gearBtn').addEventListener('click', openSettings);
       loadState();
       var profile = getUserProfile();
       if (!profile || !profile.awakened) {
-        if (SyncEngine.isOnline()) {
+        /* Guard: if SyncEngine is online, pull user namespace first.
+           Prevents false awakenings when remote data hasn't loaded yet. */
+        if (typeof SyncEngine !== 'undefined' && SyncEngine.isOnline && SyncEngine.isOnline() && SyncEngine.pull) {
           SyncEngine.pull('user').then(function() {
             var retryProfile = getUserProfile();
             if (retryProfile && retryProfile.awakened) {
+              if (!bootBindingsBound) {
+                bootBindingsBound = true;
+                Core.on('sync-remote-update', function(data) {
+                  if (data && data.namespace === 'studyengine') {
+                    loadState();
+                    if (viewDash.classList.contains('active')) {
+                      renderDashboard();
+                    }
+                  }
+                });
+                if (!focusResyncBound) {
+                  focusResyncBound = true;
+                  document.addEventListener('visibilitychange', function() {
+                    if (document.visibilityState === 'visible' && SyncEngine.isOnline()) {
+                      SyncEngine.pull('studyengine').then(function() {
+                        var freshItems = SyncEngine.get(NS, 'items');
+                        if (freshItems && typeof freshItems === 'object') {
+                          var freshCount = Object.keys(freshItems).length;
+                          var localCount = state.items ? Object.keys(state.items).length : 0;
+                          if (freshCount !== localCount) {
+                            loadState();
+                            renderDashboard();
+                            toast('Synced ' + freshCount + ' items from cloud');
+                          }
+                        }
+                      }).catch(function() {});
+                    }
+                  });
+                }
+              }
               finishBoot();
             } else {
               showAwakening(function() {
@@ -7644,14 +7676,7 @@ el('gearBtn').addEventListener('click', openSettings);
        mobile connections. */
     setTimeout(function() {
       if (!state) {
-        if (SyncEngine.isOnline()) {
-          SyncEngine.pull('user').then(function() {
-            if (!state) boot();
-          }).catch(function() {
-            if (!state) boot();
-          });
-        } else {
-          boot();
-        }
+        console.log('[StudyEngine] Safety timeout: SyncEngine slow, booting now');
+        boot();
       }
     }, 6000);
