@@ -1,6 +1,22 @@
 /* Relocated module-local vars from state.js */
     var sessionSummary = null;
 
+    function defaultTutorStats() {
+      return {
+        dontKnows: 0,
+        skipsToRating: 0,
+        reconstructionSuccesses: 0
+      };
+    }
+
+    function defaultTutorModeCounts() {
+      return {
+        socratic: 0,
+        teach: 0,
+        acknowledge: 0
+      };
+    }
+
 /* Phase 2 extraction: copied from monolith; source-of-truth remains state.js for parity. */
 
     function buildSessionQueue() {
