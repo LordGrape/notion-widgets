@@ -4652,22 +4652,36 @@ body.standalone .answer.restudy-active{
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px; height: 16px;
+  width: 18px; height: 18px;
   border-radius: 99px;
-  background: rgba(var(--accent-rgb),0.08);
-  border: 1px solid rgba(var(--accent-rgb),0.16);
-  color: var(--text-secondary);
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255,255,255,0.28), transparent 45%),
+    linear-gradient(145deg, rgba(var(--accent-rgb),0.18), rgba(var(--accent-rgb),0.08));
+  border: 1px solid rgba(var(--accent-rgb),0.22);
+  color: rgba(255,255,255,0.92);
   font-size: 9px;
   font-weight: 800;
   cursor: help;
   position: relative;
   flex-shrink: 0;
   user-select: none;
-  transition: background var(--transition), border-color var(--transition);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.18),
+    0 4px 16px rgba(var(--accent-rgb),0.12);
+  transition: background var(--transition), border-color var(--transition), transform var(--transition), box-shadow var(--transition);
 }
 .info-icon:hover{
-  background: rgba(var(--accent-rgb),0.14);
-  border-color: rgba(var(--accent-rgb),0.30);
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255,255,255,0.32), transparent 45%),
+    linear-gradient(145deg, rgba(var(--accent-rgb),0.24), rgba(var(--accent-rgb),0.12));
+  border-color: rgba(var(--accent-rgb),0.34);
+  transform: translateY(-1px) scale(1.03);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.22),
+    0 8px 22px rgba(var(--accent-rgb),0.18);
+}
+.info-icon:focus-visible{
+  outline-offset: 3px;
 }
 .tier-pill .info-tooltip{
   text-transform: none;
@@ -4701,29 +4715,38 @@ body.standalone .answer.restudy-active{
 .info-tooltip{
   display: none;
   position: fixed;
-  width: 260px;
+  width: 280px;
   max-width: calc(100vw - 24px);
-  padding: 12px 14px;
-  border-radius: 14px;
+  padding: 14px 16px;
+  border-radius: 18px;
   background: var(--card-bg);
   backdrop-filter: var(--blur);
   -webkit-backdrop-filter: var(--blur);
-  border: 1px solid rgba(var(--accent-rgb),0.22);
-  box-shadow: 0 12px 40px rgba(0,0,0,0.22), 0 0 0 1px rgba(var(--accent-rgb),0.06);
+  border: 1px solid rgba(var(--accent-rgb),0.24);
+  box-shadow: 0 18px 50px rgba(0,0,0,0.24), 0 0 0 1px rgba(var(--accent-rgb),0.08);
   color: var(--text);
   font-size: 11px;
   font-weight: 500;
-  letter-spacing: 0.1px;
+  letter-spacing: 0.12px;
   text-transform: none;
-  line-height: 1.55;
+  line-height: 1.6;
   z-index: 9999;
-  pointer-events: none;
+  pointer-events: auto;
   word-wrap: break-word;
   overflow-wrap: break-word;
   white-space: normal;
   opacity: 0;
   transform: translateY(4px);
   transition: opacity 150ms ease, transform 150ms ease;
+}
+.info-tooltip::before{
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  border-radius: 18px 18px 0 0;
+  background: linear-gradient(90deg, rgba(var(--accent-rgb),0.9), rgba(var(--accent-rgb),0.2) 65%, transparent);
+  pointer-events: none;
 }
 .info-tooltip.visible{
   display: block;
@@ -6553,14 +6576,14 @@ input[type="range"]::-moz-range-thumb{
                 <div class="hero-sub" id="heroCourseHint">Across all tiers</div>
               </div>
 
-              <div class="stats-row">
-                <div class="stat">
-                  <div class="k">Mastered</div>
+                <div class="stats-row">
+                  <div class="stat">
+                  <div class="k">Mastered <span class="info-icon" tabindex="0" role="button" aria-label="More info about Mastered">ⓘ<span class="info-tooltip" role="tooltip">Cards count as mastered when their stability is above 30 days and they have no lapses. It is a strong-memory signal, not a permanent badge.<span class="tip-arrow"></span></span></span></div>
                   <div class="v" id="statStreak">—</div>
                   <div class="s">stability > 30d</div>
                 </div>
                 <div class="stat">
-                  <div class="k">Avg Retention <span class="info-icon" tabindex="0" aria-label="Info">ⓘ<span class="info-tooltip">Average probability you can recall all your reviewed cards right now. Calculated by FSRS from each card's stability and time since last review. The retention forecast graph shows how this decays over 30 days without review.<span class="tip-arrow"></span></span></span></div>
+                  <div class="k">Avg Retention <span class="info-icon" tabindex="0" role="button" aria-label="More info about Avg Retention">ⓘ<span class="info-tooltip" role="tooltip">Average probability you can recall your reviewed cards right now. FSRS estimates this from each card's stability and time since review, and the forecast shows how it decays over the next 30 days without practice.<span class="tip-arrow"></span></span></span></div>
                   <div class="v" id="statRet">—</div>
                   <div class="s">FSRS retrievability</div>
                 </div>
@@ -6570,21 +6593,21 @@ input[type="range"]::-moz-range-thumb{
                 <div class="tutor-cal-left">
                   <div style="font-size:8px;letter-spacing:1.6px;text-transform:uppercase;color:var(--text-secondary);font-weight:700;margin-top:8px;margin-bottom:6px;padding:0 2px;display:flex;align-items:center;gap:8px;">
                     <span style="flex:0 0 3px;height:14px;border-radius:99px;background:var(--accent);"></span>
-                    Tutor stats
+                    Tutor stats <span class="info-icon" tabindex="0" role="button" aria-label="More info about Tutor stats">ⓘ<span class="info-tooltip" role="tooltip">Tutor stats summarize how the AI tutor is being used across your sessions, including coaching depth, reconstruction help, and model mix.<span class="tip-arrow"></span></span></span>
                   </div>
                   <div class="tutor-stats-row" id="tutorStatsRow">
                     <div class="stat">
-                      <div class="k">Avg dialogue turns</div>
+                      <div class="k">Avg dialogue turns <span class="info-icon" tabindex="0" role="button" aria-label="More info about Avg dialogue turns">ⓘ<span class="info-tooltip" role="tooltip">Average number of back-and-forth tutor exchanges per session. Higher numbers usually mean more coaching, probing, or clarification was needed.<span class="tip-arrow"></span></span></span></div>
                       <div class="v" id="tutorStatAvgTurns">—</div>
                       <div class="s">per session</div>
                     </div>
                     <div class="stat">
-                      <div class="k">Reconstruction rate</div>
+                      <div class="k">Reconstruction rate <span class="info-icon" tabindex="0" role="button" aria-label="More info about Reconstruction rate">ⓘ<span class="info-tooltip" role="tooltip">Share of reconstruction attempts that succeeded after guided re-study. This updates only when those recovery flows are actually used.<span class="tip-arrow"></span></span></span></div>
                       <div class="v" id="tutorStatRecon">—</div>
                       <div class="s">success after re-study</div>
                     </div>
                     <div class="stat">
-                      <div class="k">Model split</div>
+                      <div class="k">Model split <span class="info-icon" tabindex="0" role="button" aria-label="More info about Model split">ⓘ<span class="info-tooltip" role="tooltip">Breakdown of tutor requests handled by Flash versus Pro. It helps you see when faster responses are enough and when heavier reasoning is being used.<span class="tip-arrow"></span></span></span></div>
                       <div class="v" id="tutorStatModel" style="font-size:11px;line-height:1.35;">—</div>
                       <div class="s">Flash / Pro calls</div>
                     </div>
@@ -6599,7 +6622,7 @@ input[type="range"]::-moz-range-thumb{
                         transform="rotate(-90 24 24)" style="transition: stroke-dashoffset 0.6s ease, stroke 0.3s ease"/>
                     </svg>
                     <div>
-                      <div class="g-title">Calibration <span class="info-icon" tabindex="0" aria-label="Info">ⓘ<span class="info-tooltip">Measures how accurately you judge your own knowledge. Compares your self-ratings against AI grading on generative tiers (Explain, Apply, Distinguish, Mock). 75%+ means well-calibrated. Below 55% means you may be overconfident. Only updates after generative-tier reviews.<span class="tip-arrow"></span></span></span></div>
+                      <div class="g-title">Calibration <span class="info-icon" tabindex="0" role="button" aria-label="More info about Calibration">ⓘ<span class="info-tooltip" role="tooltip">Measures how accurately you judge your own knowledge. It compares your self-ratings with AI grading on generative tiers. Higher scores mean your confidence matches your actual performance more closely.<span class="tip-arrow"></span></span></span></div>
                       <div class="g-val" id="calVal">—</div>
                       <div class="g-sub" id="calSub">Metacognitive feedback</div>
                     </div>
@@ -6618,12 +6641,12 @@ input[type="range"]::-moz-range-thumb{
 
             <div class="analytics-strip" id="homeAnalyticsStrip">
               <div class="analytics-card retention-panel retention-wrap" id="retentionWrap" data-dash-full>
-                <div class="ac-title">Predicted retention</div>
+                <div class="ac-title">Predicted retention <span class="info-icon" tabindex="0" role="button" aria-label="More info about Predicted retention">ⓘ<span class="info-tooltip" role="tooltip">Forecast of how retrievability will decay over the next 30 days if you do not review. Each study session pushes the curve back upward.<span class="tip-arrow"></span></span></span></div>
                 <div class="ret-filter-chips" id="retFilterChips"></div>
                 <canvas id="retentionCanvas" height="200"></canvas>
               </div>
               <div class="analytics-card" id="activityCard" data-dash-full>
-                <div class="ac-title"><span class="ac-icon">📊</span> Last 30 days</div>
+                <div class="ac-title"><span class="ac-icon">📊</span> Last 30 days <span class="info-icon" tabindex="0" role="button" aria-label="More info about Last 30 days">ⓘ<span class="info-tooltip" role="tooltip">Calendar view of your recent study activity. Darker cells mean more reviewed cards, and consecutive active days build your streak.<span class="tip-arrow"></span></span></span></div>
                 <div class="ac-subtitle">Session activity</div>
                 <div id="activityHeatmapHost"></div>
               </div>
@@ -16387,6 +16410,7 @@ input[type="range"]::-moz-range-thumb{
     var activeTooltipIcon = null;
     var activeTooltipEl = null;   /* the portaled tooltip clone in <body> */
     var tooltipShowTimer = null;
+    var tooltipHideTimer = null;
     var TOOLTIP_DELAY = 180;
 
     /* ═══ SECTION: Position Tooltip | Functions: positionTooltip ═══ */
@@ -16407,15 +16431,15 @@ input[type="range"]::-moz-range-thumb{
         'z-index:99999;' +
         'top:-9999px;' +
         'left:-9999px;' +
-        'pointer-events:none;' +
-        'max-width:260px;' +
-        'width:260px;' +
-        'padding:12px 14px;' +
-        'border-radius:14px;' +
+        'pointer-events:auto;' +
+        'max-width:280px;' +
+        'width:280px;' +
+        'padding:14px 16px;' +
+        'border-radius:18px;' +
         'font-size:11px;' +
         'font-weight:500;' +
-        'line-height:1.55;' +
-        'letter-spacing:0.1px;' +
+        'line-height:1.6;' +
+        'letter-spacing:0.12px;' +
         'text-transform:none;' +
         'white-space:normal;' +
         'word-wrap:break-word;' +
@@ -16430,9 +16454,10 @@ input[type="range"]::-moz-range-thumb{
       tip.style.background = cardBg;
       tip.style.color = textCol;
       tip.style.border = '1px solid rgba(' + accentRgb + ',0.22)';
-      tip.style.boxShadow = '0 12px 40px rgba(0,0,0,0.25), 0 0 0 1px rgba(' + accentRgb + ',0.06)';
+      tip.style.boxShadow = '0 18px 50px rgba(0,0,0,0.24), 0 0 0 1px rgba(' + accentRgb + ',0.08)';
       tip.style.backdropFilter = 'blur(20px) saturate(1.4)';
       tip.style.webkitBackdropFilter = 'blur(20px) saturate(1.4)';
+      tip.style.background = 'linear-gradient(180deg, rgba(' + accentRgb + ',0.08), rgba(' + accentRgb + ',0.02) 18%, ' + cardBg + ' 18%)';
 
       var tipW = tip.offsetWidth;
       var tipH = tip.offsetHeight;
@@ -16474,6 +16499,11 @@ input[type="range"]::-moz-range-thumb{
 
       tip.style.top = top + 'px';
       tip.style.left = left + 'px';
+      tip.addEventListener('mouseenter', cancelTooltipHide);
+      tip.addEventListener('mouseleave', function(e) {
+        if (activeTooltipIcon && activeTooltipIcon.contains(e.relatedTarget)) return;
+        scheduleTooltipHide();
+      });
 
       requestAnimationFrame(function() {
         if (activeTooltipEl === tip) {
@@ -16509,10 +16539,23 @@ input[type="range"]::-moz-range-thumb{
       if (tooltipShowTimer) { clearTimeout(tooltipShowTimer); tooltipShowTimer = null; }
     }
 
+    function cancelTooltipHide() {
+      if (tooltipHideTimer) { clearTimeout(tooltipHideTimer); tooltipHideTimer = null; }
+    }
+
+    function scheduleTooltipHide() {
+      cancelTooltipHide();
+      tooltipHideTimer = setTimeout(function() {
+        hideTooltip();
+        activeTooltipIcon = null;
+      }, 120);
+    }
+
     /* Event delegation */
     document.addEventListener('mouseover', function(e) {
       var icon = e.target.closest('.info-icon');
       if (!icon) return;
+      cancelTooltipHide();
       if (activeTooltipIcon && activeTooltipIcon !== icon) {
         clearTooltipTimer();
         hideTooltip();
@@ -16527,10 +16570,10 @@ input[type="range"]::-moz-range-thumb{
     document.addEventListener('mouseout', function(e) {
       var icon = e.target.closest('.info-icon');
       if (!icon) return;
+      if (activeTooltipEl && activeTooltipEl.contains(e.relatedTarget)) return;
       if (!icon.contains(e.relatedTarget)) {
         clearTooltipTimer();
-        hideTooltip();
-        if (activeTooltipIcon === icon) activeTooltipIcon = null;
+        scheduleTooltipHide();
       }
     });
 
@@ -17888,6 +17931,10 @@ input[type="range"]::-moz-range-thumb{
       return { color: 'var(--accent)', label: 'Mastered' };
     }
 
+    function tooltipIconMarkup(text, label) {
+      return '<span class="info-icon" tabindex="0" role="button" aria-label="' + esc(label || 'More info') + '">ⓘ<span class="info-tooltip" role="tooltip">' + text + '<span class="tip-arrow"></span></span></span>';
+    }
+
     function animateProgressRings(scope) {
       if (!window.gsap) return;
       var root = scope || document;
@@ -17906,7 +17953,7 @@ input[type="range"]::-moz-range-thumb{
       if (masteredStat) {
         var masteredPct = totalItems ? Math.round((masteredCount / totalItems) * 100) : 0;
         masteredStat.innerHTML =
-          '<div class="k">Mastered</div>' +
+          '<div class="k">Mastered ' + tooltipIconMarkup('Cards count as mastered when their stability is above 30 days and they have no lapses. It is a strong-memory signal, not a permanent badge.', 'More info about Mastered') + '</div>' +
           '<div class="v" id="statStreak">' + masteredCount + '</div>' +
           '<div class="stat-bar"><div class="stat-bar-fill" style="width:' + masteredPct + '%;background:' + getDueBarColor(100 - masteredPct) + '"></div></div>' +
           '<div class="s">stability > 30d</div>';
@@ -17915,7 +17962,7 @@ input[type="range"]::-moz-range-thumb{
         var safePct = retentionPct == null ? 0 : retentionPct;
         retentionStat.classList.add('stat-ring');
         retentionStat.innerHTML =
-          '<div class="k">Avg Retention</div>' +
+          '<div class="k">Avg Retention ' + tooltipIconMarkup('Average probability you can recall your reviewed cards right now. FSRS estimates this from each card\'s stability and time since review, and the forecast shows how it decays over the next 30 days without practice.', 'More info about Avg Retention') + '</div>' +
           '<div class="stat-ring-wrap small">' + svgRing(safePct, 52, 5, getRetentionRingColor(safePct)) + '<div class="stat-ring-value" id="statRet">' + (retentionPct == null ? '—' : (safePct + '%')) + '</div></div>' +
           '<div class="s">FSRS retrievability</div>';
       }
