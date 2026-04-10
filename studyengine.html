@@ -6644,8 +6644,8 @@ input[type="range"]::-moz-range-thumb{
     .awakening-typewriter-line{
       display: inline-block;
       overflow: hidden;
-      white-space: nowrap;
-      width: 100%;
+      white-space: normal;
+      width: auto;
       max-width: 0;
       border-right: 2px solid var(--accent-primary);
       color: var(--text-primary);
@@ -9274,7 +9274,7 @@ input[type="range"]::-moz-range-thumb{
       if (stepKey === 'intro') {
         resetAwakeningButtonReveal('awakening-begin-btn');
         switchAwakeningStep('awakening-step-intro', function() {
-          var total = renderTypewriterLines('awakening-intro-prompt', ['The System has detected a new Hunter.'], 1000);
+          var total = renderTypewriterLines('awakening-intro-prompt', ['A new mind has entered the System.'], 1000);
           scheduleUiTimer(function() {
             setAwakeningButtonEnabled('awakening-begin-btn', true);
           }, total + 1500);
