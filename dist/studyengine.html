@@ -19169,7 +19169,7 @@ el('gearBtn').addEventListener('click', openSettings);
       toast('Course deleted');
     };
 
-ow.editCard = function(id) {
+    window.editCard = function(id) {
       var it = state.items[id];
       if (!it) { toast('Card not found'); return; }
 
