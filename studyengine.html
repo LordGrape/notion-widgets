@@ -8620,10 +8620,12 @@ input[type="range"]::-moz-range-thumb{
       var emptyTitleEl = emptyEl ? emptyEl.querySelector('.empty-title') : null;
       var emptyDescEl = emptyEl ? emptyEl.querySelector('.empty-desc') : null;
       var emptyAddDeckBtn = el('emptyAddDeckBtn');
+      var startBtnEl = el('startBtn');
+      var miniActionsEl = el('homeMiniActions');
       if (totalItems === 0) {
         emptyEl.style.display = 'block';
         heroEl.style.display = 'none';
-        el('startBtn').disabled = true;
+        if (startBtnEl) startBtnEl.disabled = true;
         el('tierBreakdown').innerHTML = '';
         if (document.body.classList.contains('standalone')) {
           var emptyMiniActions = el('homeMiniActions');
@@ -8645,6 +8647,13 @@ input[type="range"]::-moz-range-thumb{
           ? 'Add study items manually or import a JSON batch to start your first retrieval session.'
           : 'Create your first deck to organize topics, track retention, and make the dashboard come alive.';
         if (emptyAddDeckBtn) emptyAddDeckBtn.style.display = hasCourses ? 'none' : 'inline-flex';
+        if (isEmbedded && !hasCourses) {
+          if (startBtnEl) startBtnEl.style.display = 'none';
+          if (miniActionsEl) miniActionsEl.style.display = 'none';
+        } else {
+          if (startBtnEl) startBtnEl.style.display = '';
+          if (miniActionsEl) miniActionsEl.style.display = '';
+        }
         renderAnalytics('All');
         renderTutorAnalyticsDashboard();
         renderCourseCards();
@@ -8659,6 +8668,8 @@ input[type="range"]::-moz-range-thumb{
       }
       emptyEl.style.display = 'none';
       if (emptyAddDeckBtn) emptyAddDeckBtn.style.display = 'none';
+      if (startBtnEl) startBtnEl.style.display = '';
+      if (miniActionsEl) miniActionsEl.style.display = '';
       heroEl.style.display = 'block';
 
       /* Hero due count with counter animation */
