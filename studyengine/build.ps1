@@ -11,6 +11,7 @@ if (-not (Test-Path (Join-Path $Src 'index.html'))) {
 }
 
 New-Item -ItemType Directory -Force -Path $Dist | Out-Null
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 
 $cssOrder = @(
   (Join-Path $Src 'css/base.css'),
@@ -34,15 +35,15 @@ $jsOrder = @(
   (Join-Path $Src 'js/state.js')
 )
 
-$styles = ($cssOrder | ForEach-Object { Get-Content -Raw -Path $_ }) -join "`n"
-$scripts = ($jsOrder | ForEach-Object { Get-Content -Raw -Path $_ }) -join "`n"
+$styles = ($cssOrder | ForEach-Object { [System.IO.File]::ReadAllText($_, [System.Text.Encoding]::UTF8) }) -join "`n"
+$scripts = ($jsOrder | ForEach-Object { [System.IO.File]::ReadAllText($_, [System.Text.Encoding]::UTF8) }) -join "`n"
 
 $indexPath = Join-Path $Src 'index.html'
 $outPath = Join-Path $Dist 'studyengine.html'
-$index = Get-Content -Raw -Path $indexPath
+$index = [System.IO.File]::ReadAllText($indexPath, [System.Text.Encoding]::UTF8)
 $index = $index.Replace('__STYLES__', $styles)
 $index = $index.Replace('__SCRIPTS__', $scripts)
-Set-Content -Path $outPath -Value $index -Encoding UTF8
+[System.IO.File]::WriteAllText($outPath, $index, $utf8NoBom)
 
 # Required explicit copies
 Copy-Item -Path (Join-Path $Root 'core.js') -Destination (Join-Path $Dist 'core.js') -Force

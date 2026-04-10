@@ -320,134 +320,161 @@
       try { renderDashboard(); } catch (e2) {}
     }
 
-    function showCourseDashboard(courseName) {
-      hideContextViews();
-      var view = document.getElementById('courseDashView');
-      var content = document.getElementById('courseDashContent');
-      if (!view || !content) return;
-
+    function hideContextViews() {
+      var cv = document.getElementById('courseDashView');
+      var mv = document.getElementById('moduleDetailView');
+      var tv = document.getElementById('topicDetailView');
+      if (cv) cv.style.display = 'none';
+      if (mv) mv.style.display = 'none';
+      if (tv) tv.style.display = 'none';
       var normalDash = document.getElementById('viewDash');
-      if (normalDash) normalDash.style.display = 'none';
-      view.style.display = 'block';
-
-      var courseData = state.courses && state.courses[courseName] ? state.courses[courseName] : {};
-      ensureCourseModules(courseName);
-      var stats = getCourseStats(courseName);
-      var color = courseData.color || '#8b5cf6';
-      var cram = (typeof getCramState === 'function') ? getCramState(courseName) : { active: false };
-      var modules = courseData.modules || [];
-
-      var h = '';
-      h += '<div class="ctx-header">';
-      h += '<div class="ctx-color-dot" style="background:' + color + ';"></div>';
-      h += '<div>';
-      h += '<div class="ctx-title">' + esc(courseName) + '</div>';
-      var subtitleParts = [];
-      subtitleParts.push(stats.total + ' cards');
-      if (stats.due > 0) subtitleParts.push(stats.due + ' due');
-      if (courseData.examDate) {
-        var daysLeft = (typeof getCramState === 'function') ? getCramState(courseName).daysUntil : null;
-        subtitleParts.push('Exam: ' + courseData.examDate + (daysLeft != null ? ' (' + daysLeft + 'd)' : ''));
-      }
-      h += '<div class="ctx-subtitle">' + esc(subtitleParts.join(' · ')) + '</div>';
-      h += '</div>';
-      if (cram && cram.active) h += '<span class="tree-cram-badge">🔥 CRAM</span>';
-      h += '</div>';
-
-      h += '<div class="ctx-actions">';
-      h += '<button class="ctx-study-btn" id="ctxStudyCourse">▶ Study This Course' + (stats.due > 0 ? ' (' + stats.due + ' due)' : '') + '</button>';
-      h += '<button class="ghost-btn" id="ctxManageCourse">⚙ Manage</button>';
-      h += '<button class="ghost-btn" id="ctxImportLecture">📖 Import Lecture</button>';
-      h += '</div>';
-
-      h += '<div class="stats-row">';
-      h += '<div class="stat"><div class="k">TOTAL</div><div class="v">' + stats.total + '</div></div>';
-      h += '<div class="stat"><div class="k">DUE</div><div class="v">' + stats.due + '</div></div>';
-      h += '<div class="stat"><div class="k">AVG STABILITY</div><div class="v">' + stats.avgStability + 'd</div></div>';
-      h += '</div>';
-
-      if (stats.total > 0) {
-        h += '<div class="ctx-section-title">Tier Distribution</div>';
-        h += '<div class="breakdown">';
-        var tiers = ['quickfire', 'explain', 'apply', 'distinguish', 'mock', 'worked'];
-        tiers.forEach(function(t) {
-          var count = stats.tierDist[t] || 0;
-          if (count > 0) {
-            h += '<div class="tier-pill"><span class="tier-dot" style="background:' + tierColour(t) + ';"></span>' + esc(tierLabel(t)) + ' ' + count + '</div>';
-          }
-        });
-        h += '</div>';
-      }
-
-      if (modules.length > 0) {
-        h += '<div class="ctx-section-title">Modules</div>';
-        h += '<div class="ctx-modules-grid">';
-        modules.forEach(function(mod) {
-          if (!mod || !mod.id) return;
-          var ms = getModuleStats(courseName, mod.id);
-          var pct = ms.total > 0 ? Math.round((ms.reviewed / ms.total) * 100) : 0;
-          h += '<div class="ctx-module-card" data-module="' + esc(mod.id) + '">';
-          h += '<div class="mc-name">' + (mod.lectureImported ? '📖 ' : '📁 ') + esc(mod.name || 'Module') + '</div>';
-          h += '<div class="mc-stats"><span>' + ms.total + ' cards</span>';
-          if (ms.due > 0) h += '<span style="color:var(--accent);">' + ms.due + ' due</span>';
-          h += '<span>' + pct + '% reviewed</span></div>';
-          h += '<div class="mc-progress"><div class="mc-progress-fill" style="width:' + pct + '%;"></div></div>';
-          h += '</div>';
-        });
-        h += '</div>';
-      }
-
-      h += '<div class="ctx-section-title">Lecture Materials</div>';
-      var importedCount = modules.filter(function(m) { return m && m.lectureImported; }).length;
-      if (importedCount > 0) {
-        h += '<div class="ctx-lecture-badge">📚 ' + importedCount + ' lecture' + (importedCount !== 1 ? 's' : '') + ' imported · Context active for AI grading</div>';
-      } else {
-        h += '<div style="font-size:11px;color:var(--text-tertiary);margin:4px 0;">No lectures imported yet. Import lectures to improve AI grading accuracy.</div>';
-      }
-
-      content.innerHTML = h;
-
-      var studyBtn = document.getElementById('ctxStudyCourse');
-      if (studyBtn) studyBtn.addEventListener('click', function() {
-        sidebarSelection = { level: 'course', course: courseName, module: null, topic: null };
-        applySidebarFilterChipsOnly();
-        startSession();
-      });
-
-      var manageBtn = document.getElementById('ctxManageCourse');
-      if (manageBtn) manageBtn.addEventListener('click', function() {
-        openCourseModal();
-        try { window.openEditCourse && window.openEditCourse(courseName); } catch(e) {}
-      });
-
-      var importBtn = document.getElementById('ctxImportLecture');
-      if (importBtn) importBtn.addEventListener('click', function() {
-        openCourseModal();
-        try { window.openEditCourse && window.openEditCourse(courseName); } catch(e) {}
-      });
-
-      content.querySelectorAll('.ctx-module-card').forEach(function(card) {
-        card.addEventListener('click', function() {
-          var modId = this.dataset.module;
-          sidebarSelection = { level: 'module', course: courseName, module: modId, topic: null };
-          renderSidebar();
-          updateBreadcrumb();
-          showModuleView(courseName, modId);
-          try { playClick(); } catch(e) {}
-        });
-      });
-
-      animateProgressRings(content);
-      if (window.gsap) {
-        gsap.fromTo(content, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
-        gsap.fromTo(content.querySelectorAll('.ctx-stats-grid .stat'),
-          { opacity: 0, y: 10 },
-          { opacity: 1, y: 0, duration: 0.35, stagger: 0.08, ease: 'power2.out' }
-        );
-      }
+      if (normalDash) normalDash.style.display = '';
     }
 
-    function showCourseDashboard(courseName) {
+    function applySidebarFilterChipsOnly() {
+      try {
+        if (sidebarSelection.level === 'all' || !sidebarSelection.course) {
+          if (typeof selectedCourse !== 'undefined') selectedCourse = 'All';
+        } else if (sidebarSelection.course) {
+          if (typeof selectedCourse !== 'undefined') selectedCourse = sidebarSelection.course;
+        }
+      } catch (e) {}
+    }
+
+    function renderCardList(cards) {
+      cards = (cards || []).slice();
+      cards.sort(function(a, b) {
+        var aDue = isDueNow(a) ? 0 : 1;
+        var bDue = isDueNow(b) ? 0 : 1;
+        if (aDue !== bDue) return aDue - bDue;
+        var aStab = (a.fsrs && a.fsrs.stability) || 0;
+        var bStab = (b.fsrs && b.fsrs.stability) || 0;
+        return aStab - bStab;
+      });
+
+      var h = '<div class="ctx-card-list">';
+      cards.forEach(function(card) {
+        var tier = card.tier || 'quickfire';
+        var tColor = tierColour(tier);
+        var prompt = (card.prompt || '').substring(0, 120);
+        var due = isDueNow(card);
+        var stability = (card.fsrs && card.fsrs.stability) ? (Math.round(card.fsrs.stability) + 'd') : 'new';
+        var reps = (card.fsrs && card.fsrs.reps) || 0;
+
+        h += '<div class="ctx-card-row">';
+        h += '<span class="cr-tier" style="background:' + tColor + '22;color:' + tColor + ';">' + esc(String(tierLabel(tier) || '').substring(0, 2).toUpperCase()) + '</span>';
+        h += '<span class="cr-prompt">' + esc(prompt) + '</span>';
+        h += '<span class="cr-meta">' + esc(stability) + ' · ' + reps + ' reps</span>';
+        if (due) h += '<span class="cr-due-badge">DUE</span>';
+        h += '</div>';
+      });
+      h += '</div>';
+      return h;
+    }
+
+    /* ── Inline Sidebar Input ── */
+    function dismissInlineSidebarInput() {
+      var existing = document.querySelector('.sb-inline-input-wrap');
+      if (existing) existing.remove();
+    }
+
+    function showInlineSidebarInput(parentNode, placeholder, callback) {
+      dismissInlineSidebarInput();
+
+      var wrapper = document.createElement('div');
+      wrapper.className = 'sb-inline-input-wrap';
+      wrapper.innerHTML =
+        '<input type="text" class="se-input sb-inline-input" placeholder="' + esc(placeholder || '') + '">' +
+        '<div class="sb-inline-input-actions">' +
+          '<button type="button" class="sb-inline-confirm">✓</button>' +
+          '<button type="button" class="sb-inline-cancel">✕</button>' +
+        '</div>';
+
+      if (parentNode && parentNode.parentNode) {
+        if (parentNode.nextSibling) parentNode.parentNode.insertBefore(wrapper, parentNode.nextSibling);
+        else parentNode.parentNode.appendChild(wrapper);
+      } else {
+        var tree = document.getElementById('sidebarTree');
+        if (tree) tree.appendChild(wrapper);
+      }
+
+      var input = wrapper.querySelector('input');
+      var confirmBtn = wrapper.querySelector('.sb-inline-confirm');
+      var cancelBtn = wrapper.querySelector('.sb-inline-cancel');
+
+      function submit() {
+        var val = (input && input.value) ? input.value.trim() : '';
+        dismissInlineSidebarInput();
+        if (val && callback) callback(val);
+      }
+
+      function cancel() {
+        dismissInlineSidebarInput();
+      }
+
+      if (input) {
+        input.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') { e.preventDefault(); submit(); }
+          if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+          e.stopPropagation();
+        });
+        requestAnimationFrame(function() { try { input.focus(); } catch (eF) {} });
+      }
+
+      if (confirmBtn) confirmBtn.addEventListener('click', function(e) { e.stopPropagation(); submit(); });
+      if (cancelBtn) cancelBtn.addEventListener('click', function(e) { e.stopPropagation(); cancel(); });
+    }
+
+    /* ── Sidebar Context Menus ── */
+    var _activeCtxMenu = null;
+
+    function dismissCtxMenu() {
+      if (_activeCtxMenu) {
+        _activeCtxMenu.remove();
+        _activeCtxMenu = null;
+      }
+      document.removeEventListener('click', dismissCtxMenu);
+    }
+
+    function showCtxMenuAt(anchorEl, items) {
+      dismissCtxMenu();
+      var menu = document.createElement('div');
+      menu.className = 'tree-ctx-menu';
+
+      items.forEach(function(item) {
+        if (item.divider) {
+          var div = document.createElement('div');
+          div.className = 'tree-ctx-menu-divider';
+          menu.appendChild(div);
+          return;
+        }
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'tree-ctx-menu-item' + (item.danger ? ' danger' : '');
+        btn.innerHTML = (item.icon ? '<span>' + item.icon + '</span>' : '') + '<span>' + esc(item.label) + '</span>';
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          dismissCtxMenu();
+          if (item.action) item.action();
+        });
+        menu.appendChild(btn);
+      });
+
+      document.body.appendChild(menu);
+      _activeCtxMenu = menu;
+
+      var rect = anchorEl.getBoundingClientRect();
+      var left = Math.min(rect.right, window.innerWidth - menu.offsetWidth - 8);
+      var top = Math.min(rect.bottom + 4, window.innerHeight - menu.offsetHeight - 8);
+      menu.style.left = left + 'px';
+      menu.style.top = top + 'px';
+
+      setTimeout(function() {
+        document.addEventListener('click', dismissCtxMenu);
+      }, 10);
+    }
+
+function showCourseDashboard(courseName) {
       hideContextViews();
       var view = document.getElementById('courseDashView');
       var content = document.getElementById('courseDashContent');
@@ -692,75 +719,6 @@
       });
 
       if (window.gsap) gsap.fromTo(content, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
-    }
-
-    function showCourseContextMenu(courseName, anchor) {
-      showCtxMenuAt(anchor, [
-        {
-          icon: '📖',
-          label: 'Import Lecture',
-          action: function() {
-            try { openCourseModal && openCourseModal(); } catch (e1) {}
-            setTimeout(function() {
-              try { window.openEditCourse && window.openEditCourse(courseName); } catch (e2) {}
-            }, 120);
-          }
-        },
-        {
-          icon: '📁',
-          label: 'Add Subdeck',
-          action: function() {
-            sidebarExpanded[courseName] = true;
-            renderSidebar();
-            var freshNode = document.getElementById('sidebarTree')
-              ? document.getElementById('sidebarTree').querySelector('.tree-node[data-level="course"][data-course="' + esc(courseName) + '"]')
-              : null;
-            showInlineSidebarInput(freshNode, 'Subdeck name...', function(name) {
-              addModuleToCourse(courseName, { name: name, topics: [], lectureImported: false });
-              renderSidebar();
-              toast('Created subdeck: ' + name);
-            });
-          }
-        },
-        {
-          icon: '⚙',
-          label: 'Manage Course',
-          action: function() {
-            try { openEditCourse && openEditCourse(courseName); } catch (e) {}
-          }
-        },
-        { divider: true },
-        {
-          icon: '📥',
-          label: 'Archive Course',
-          danger: false,
-          action: function() {
-            showCtxMenuAt(anchor, [
-              {
-                icon: '⚠',
-                label: 'Confirm: Archive all cards in ' + courseName + '?',
-                danger: true,
-                action: function() {
-                  var count = 0;
-                  for (var id in state.items) {
-                    if (!state.items.hasOwnProperty(id)) continue;
-                    var it = state.items[id];
-                    if (it && it.course === courseName && !it.archived) {
-                      it.archived = true;
-                      count++;
-                    }
-                  }
-                  saveState();
-                  renderSidebar();
-                  renderDashboard();
-                  toast('Archived ' + count + ' cards');
-                }
-              },
-              { icon: '✕', label: 'Cancel', action: function() {} }
-            ]);
-          }
-        }
-      ]);
     }
 
     function showCourseContextMenu(courseName, anchor) {
