@@ -3238,6 +3238,95 @@ body.standalone .answer.restudy-active{
       border-color: rgba(34,197,94,0.4) !important;
       transform: translateY(-1px);
     }
+    .stat-bar{
+      height: 4px;
+      border-radius: 99px;
+      background: rgba(var(--accent-rgb), 0.10);
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    .stat-bar-fill{
+      height: 100%;
+      border-radius: 99px;
+      transition: width 0.6s ease;
+    }
+    .stat-ring{
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 14px 12px;
+    }
+    .stat-ring-wrap{
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 8px;
+    }
+    .stat-ring-wrap.small svg{
+      width: 44px;
+      height: 44px;
+    }
+    .stat-ring-value{
+      position: absolute;
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.5px;
+    }
+    .stability-badge{
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+    @media (max-width: 420px){
+      .stat-ring-wrap svg{
+        width: 50px;
+        height: 50px;
+      }
+      .stat-ring-wrap.small svg{
+        width: 40px;
+        height: 40px;
+      }
+      .stat-ring-value{
+        font-size: 14px;
+      }
+    }
+    .archived-overlay{
+      padding: 20px;
+    }
+    .archived-header{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .archived-title{
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+    .archive-course-row{
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(var(--accent-rgb), 0.10);
+      background: rgba(var(--accent-rgb), 0.02);
+      margin-bottom: 8px;
+    }
+    .archive-course-name{
+      flex: 1;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      min-width: 0;
+    }
 
     /* Archive section toggle */
     .archive-toggle{
@@ -6373,6 +6462,7 @@ input[type="range"]::-moz-range-thumb{
         <button class="sb-footer-btn" id="sbAddCard" type="button"><span aria-hidden="true">＋</span><span>Add Card</span></button>
         <button class="sb-footer-btn" id="sbImport" type="button"><span aria-hidden="true">📥</span><span>Import</span></button>
         <button class="sb-footer-btn" id="sbSettings" type="button"><span aria-hidden="true">⚙</span><span>Settings</span></button>
+        <button class="sb-footer-btn" id="sbArchivedBtn" type="button" style="display:none"><span aria-hidden="true">📦</span><span>Archived (<span id="sbArchivedCount">0</span>)</span></button>
         <div class="sb-sync-status" id="sbSyncStatus">● Synced</div>
       </div>
     </aside>
@@ -6799,6 +6889,15 @@ input[type="range"]::-moz-range-thumb{
         <button type="button" class="icon-btn" id="globalTutorNotesClose" aria-label="Close"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg></button>
       </div>
       <div class="modal-body" id="globalTutorNotesBody"></div>
+    </div>
+  </div>
+  <div class="overlay" id="archivedCoursesOv" aria-hidden="true">
+    <div class="modal" style="max-width:520px;">
+      <div class="modal-head">
+        <span class="archived-title">Archived Courses</span>
+        <button type="button" class="icon-btn" id="archivedCoursesClose" aria-label="Close"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg></button>
+      </div>
+      <div class="modal-body archived-overlay" id="archivedCoursesBody"></div>
     </div>
   </div>
 
@@ -7896,10 +7995,14 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* ═══ SECTION: List Courses | Functions: listCourses ═══ */
-    function listCourses() {
+    function listCourses(includeArchived) {
       var out = [];
       for (var k in state.courses) {
-        if (state.courses.hasOwnProperty(k)) out.push(state.courses[k]);
+        if (!state.courses.hasOwnProperty(k)) continue;
+        var course = state.courses[k];
+        if (!course) continue;
+        if (!includeArchived && course.archived) continue;
+        out.push(course);
       }
       out.sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
       return out;
@@ -8183,6 +8286,7 @@ input[type="range"]::-moz-range-thumb{
         if (!itemsById.hasOwnProperty(id)) continue;
         var it = itemsById[id];
         if (!it || it.archived) continue;
+        if (it.course && state.courses[it.course] && state.courses[it.course].archived) continue;
         if (course && course !== 'All' && it.course !== course) continue;
         if (topic && topic !== 'All' && (it.topic || '') !== topic) continue;
         var f = it.fsrs || null;
@@ -8218,6 +8322,7 @@ input[type="range"]::-moz-range-thumb{
         if (!itemsById.hasOwnProperty(id)) continue;
         var it = itemsById[id];
         if (!it || !it.fsrs || it.archived) continue;
+        if (it.course && state.courses[it.course] && state.courses[it.course].archived) continue;
         sum += retrievability(it.fsrs, now);
         n++;
       }
@@ -8390,7 +8495,9 @@ input[type="range"]::-moz-range-thumb{
       var due = countDue(state.items, 'All', 'All');
       var totalItems = 0;
       for (var _id in state.items) {
-        if (state.items.hasOwnProperty(_id) && state.items[_id] && !state.items[_id].archived) totalItems++;
+        if (!state.items.hasOwnProperty(_id) || !state.items[_id] || state.items[_id].archived) continue;
+        if (state.items[_id].course && state.courses[state.items[_id].course] && state.courses[state.items[_id].course].archived) continue;
+        totalItems++;
       }
 
       /* Empty state */
@@ -8432,6 +8539,7 @@ input[type="range"]::-moz-range-thumb{
         if (!state.items.hasOwnProperty(sid)) continue;
         var sit = state.items[sid];
         if (!sit || sit.archived || !sit.fsrs) continue;
+        if (sit.course && state.courses[sit.course] && state.courses[sit.course].archived) continue;
         if ((sit.fsrs.stability || 0) > 30 && (sit.fsrs.lapses || 0) === 0) masteredCount++;
       }
       animateCounter(el('statStreak'), masteredCount);
@@ -8721,6 +8829,7 @@ input[type="range"]::-moz-range-thumb{
         if (!state.items.hasOwnProperty(id)) continue;
         var it = state.items[id];
         if (!it || it.archived) continue;
+        if (it.course && state.courses[it.course] && state.courses[it.course].archived) continue;
         var course = it.course || 'Uncategorized';
         var topic = it.topic || 'General';
         if (!tree[course]) tree[course] = { topics: {}, totalCards: 0, dueCards: 0 };
@@ -8747,6 +8856,11 @@ input[type="range"]::-moz-range-thumb{
       if (isEmbedded) return;
       var container = document.getElementById('sidebarTree');
       if (!container) return;
+      var archivedCourses = listCourses(true).filter(function(c) { return c && c.archived; });
+      var archivedBtn = document.getElementById('sbArchivedBtn');
+      var archivedCount = document.getElementById('sbArchivedCount');
+      if (archivedBtn) archivedBtn.style.display = archivedCourses.length > 0 ? 'flex' : 'none';
+      if (archivedCount) archivedCount.textContent = String(archivedCourses.length);
 
       var tree = buildCourseTree();
       var html = '';
@@ -8819,7 +8933,7 @@ input[type="range"]::-moz-range-thumb{
               html += '<span class="tree-chevron" style="visibility:hidden;"></span>';
             }
             html += '<span class="tree-icon">' + (mod.lectureImported ? '📖' : '📁') + '</span>';
-            html += '<span class="tree-label">' + esc(mod.name || 'Module') + '</span>';
+            html += '<span class="tree-label">' + esc(mod.name || 'Subdeck') + '</span>';
             if (modCards > 0) html += '<span class="tree-count">' + modCards + '</span>';
             if (modDue > 0) html += '<span class="tree-badge">' + modDue + '</span>';
             html += '<span class="tree-hover-actions">';
@@ -8971,7 +9085,7 @@ input[type="range"]::-moz-range-thumb{
         var mod = getModuleById(sidebarSelection.course, sidebarSelection.module);
         if (mod) {
           html += '<span class="bc-separator">›</span>';
-          html += '<span class="bc-segment" data-level="module" data-course="' + esc(sidebarSelection.course) + '" data-module="' + esc(mod.id) + '">' + esc(mod.name || 'Module') + '</span>';
+          html += '<span class="bc-segment" data-level="module" data-course="' + esc(sidebarSelection.course) + '" data-module="' + esc(mod.id) + '">' + esc(mod.name || 'Subdeck') + '</span>';
         }
       }
       if (sidebarSelection.topic) {
@@ -9432,7 +9546,14 @@ input[type="range"]::-moz-range-thumb{
         });
       });
 
-      if (window.gsap) gsap.fromTo(content, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
+      animateProgressRings(content);
+      if (window.gsap) {
+        gsap.fromTo(content, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
+        gsap.fromTo(content.querySelectorAll('.ctx-stats-grid .stat'),
+          { opacity: 0, y: 10 },
+          { opacity: 1, y: 0, duration: 0.35, stagger: 0.08, ease: 'power2.out' }
+        );
+      }
     }
 
     /* ═══ SECTION: Show Module View | Functions: showModuleView ═══ */
@@ -9447,7 +9568,7 @@ input[type="range"]::-moz-range-thumb{
       view.style.display = 'block';
 
       var mod = getModuleById(courseName, moduleId);
-      if (!mod) { content.innerHTML = '<div class="ctx-empty">Module not found.</div>'; return; }
+      if (!mod) { content.innerHTML = '<div class="ctx-empty">Subdeck not found.</div>'; return; }
 
       var cards = getCardsForModule(courseName, moduleId);
       var due = cards.filter(isDueNow);
@@ -9458,14 +9579,14 @@ input[type="range"]::-moz-range-thumb{
       h += '<div class="ctx-header">';
       h += '<div class="ctx-color-dot" style="background:' + color + ';"></div>';
       h += '<div>';
-      h += '<div class="ctx-title">' + (mod.lectureImported ? '📖 ' : '📁 ') + esc(mod.name || 'Module') + '</div>';
+      h += '<div class="ctx-title">' + (mod.lectureImported ? '📖 ' : '📁 ') + esc(mod.name || 'Subdeck') + '</div>';
       h += '<div class="ctx-subtitle">' + cards.length + ' cards · ' + due.length + ' due · ' + ((mod.topics || []).length) + ' topics</div>';
       h += '</div>';
       if (mod.lectureImported) h += '<span class="ctx-lecture-badge">📖 Lecture context active</span>';
       h += '</div>';
 
       h += '<div class="ctx-actions">';
-      h += '<button class="ctx-study-btn" id="ctxStudyModule">▶ Study This Module' + (due.length > 0 ? ' (' + due.length + ' due)' : '') + '</button>';
+      h += '<button class="ctx-study-btn" id="ctxStudyModule">▶ Study This Subdeck' + (due.length > 0 ? ' (' + due.length + ' due)' : '') + '</button>';
       h += '<button class="ghost-btn" id="ctxRenameModule">✏ Rename</button>';
       h += '</div>';
 
@@ -9484,7 +9605,7 @@ input[type="range"]::-moz-range-thumb{
       }
 
       h += '<div class="ctx-section-title">Cards (' + cards.length + ')</div>';
-      if (cards.length === 0) h += '<div class="ctx-empty">No cards in this module yet.</div>';
+      if (cards.length === 0) h += '<div class="ctx-empty">No cards in this subdeck yet.</div>';
       else h += renderCardList(cards);
 
       content.innerHTML = h;
@@ -9544,7 +9665,7 @@ input[type="range"]::-moz-range-thumb{
       h += '<div class="ctx-color-dot" style="background:' + color + ';"></div>';
       h += '<div>';
       h += '<div class="ctx-title">' + esc(topic) + '</div>';
-      h += '<div class="ctx-subtitle">' + cards.length + ' cards · ' + due.length + ' due' + (mod ? (' · in ' + esc(mod.name || 'Module')) : '') + '</div>';
+      h += '<div class="ctx-subtitle">' + cards.length + ' cards · ' + due.length + ' due' + (mod ? (' · in ' + esc(mod.name || 'Subdeck')) : '') + '</div>';
       h += '</div>';
       h += '</div>';
 
@@ -15327,6 +15448,10 @@ input[type="range"]::-moz-range-thumb{
     if (el('confirmDeleteCourseOv')) el('confirmDeleteCourseOv').addEventListener('click', function(e) {
       if (e.target === el('confirmDeleteCourseOv')) closeDeleteCoursePrompt();
     });
+    if (el('archivedCoursesClose')) el('archivedCoursesClose').addEventListener('click', closeArchivedCoursesOverlay);
+    if (el('archivedCoursesOv')) el('archivedCoursesOv').addEventListener('click', function(e) {
+      if (e.target === el('archivedCoursesOv')) closeArchivedCoursesOverlay();
+    });
 
     ratingsEl.querySelectorAll('button').forEach(function(b){
       b.addEventListener('click', function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); });
@@ -15386,6 +15511,7 @@ input[type="range"]::-moz-range-thumb{
       closeSettings();
       closeCourseModal();
       closeDeleteCoursePrompt();
+      closeArchivedCoursesOverlay();
     }
 
     el('addBtn').addEventListener('click', function(){ openModal('add'); });
@@ -17542,10 +17668,13 @@ input[type="range"]::-moz-range-thumb{
     }
 
     window.openEditCourseTab = function(name, tab) {
-      courseModalState.mode = 'editor';
-      courseModalState.course = name;
-      courseModalState.tab = (tab === 'subdecks') ? 'structure' : (tab || 'details');
-      renderCourseModalEditor(name, courseModalState.tab);
+      openCourseModal();
+      setTimeout(function() {
+        courseModalState.mode = 'editor';
+        courseModalState.course = name;
+        courseModalState.tab = (tab === 'subdecks') ? 'structure' : (tab || 'details');
+        renderCourseModalEditor(name, courseModalState.tab);
+      }, 80);
     };
 
     function moveModuleInCourse(courseName, moduleId, direction) {
@@ -17567,7 +17696,7 @@ input[type="range"]::-moz-range-thumb{
       saveCourse(c);
     }
 
-    function openDeleteCoursePrompt(name) {
+    function openDeleteCoursePrompt(name, forceDeleteCards) {
       var ov = el('confirmDeleteCourseOv');
       if (!ov) return;
       var itemCount = 0;
@@ -17584,7 +17713,7 @@ input[type="range"]::-moz-range-thumb{
       var toggle = el('confirmDeleteCourseCards');
       if (title) title.textContent = 'Delete "' + name + '"?';
       if (desc) desc.textContent = totalCards + ' card' + (totalCards === 1 ? '' : 's') + ' in this course (' + itemCount + ' active, ' + archivedCount + ' archived).';
-      if (toggle) toggle.checked = false;
+      if (toggle) toggle.checked = forceDeleteCards !== false;
       ov.dataset.courseName = name;
       ov.classList.add('show');
     }
@@ -17625,6 +17754,143 @@ input[type="range"]::-moz-range-thumb{
       try { switchNav('home'); } catch (eNav) {}
       renderDashboard();
       toast(shouldDeleteCards ? 'Course and all cards deleted' : 'Course removed');
+    }
+
+    function archiveCourse(courseName) {
+      var course = getCourse(courseName);
+      if (!course) return;
+      course.archived = true;
+      saveCourse(course);
+      saveState();
+      sidebarSelection = { level: 'all', course: null, module: null, topic: null };
+      hideContextViews();
+      renderSidebar();
+      updateBreadcrumb();
+      renderDashboard();
+      toast('Course archived');
+    }
+
+    function restoreCourse(courseName) {
+      var course = getCourse(courseName);
+      if (!course) return;
+      course.archived = false;
+      saveCourse(course);
+      saveState();
+      renderSidebar();
+      renderDashboard();
+      renderArchivedCoursesOverlay();
+      toast('Course restored');
+    }
+
+    function renderArchivedCoursesOverlay() {
+      var body = el('archivedCoursesBody');
+      if (!body) return;
+      var archivedCourses = listCourses(true).filter(function(c) { return c && c.archived; });
+      var html = '';
+      if (!archivedCourses.length) {
+        html = '<div class="empty-state" style="padding:12px 8px;"><div class="empty-title">No archived courses</div><div class="empty-desc">Archived courses will appear here for restore or permanent deletion.</div></div>';
+      } else {
+        archivedCourses.forEach(function(c) {
+          var col = c.color || '#8b5cf6';
+          html += '<div class="archive-course-row">';
+          html += '<span class="cc-color-dot" style="background:' + esc(col) + '"></span>';
+          html += '<span class="archive-course-name">' + esc(c.name) + '</span>';
+          html += '<button class="cd-restore-card" type="button" data-restore-course="' + esc(c.name) + '">Restore</button>';
+          html += '<button class="cd-delete-card" type="button" data-delete-course="' + esc(c.name) + '" title="Delete course permanently"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg></button>';
+          html += '</div>';
+        });
+      }
+      body.innerHTML = html;
+      body.querySelectorAll('[data-restore-course]').forEach(function(btn) {
+        btn.onclick = function() {
+          restoreCourse(btn.getAttribute('data-restore-course'));
+        };
+      });
+      body.querySelectorAll('[data-delete-course]').forEach(function(btn) {
+        btn.onclick = function() {
+          openDeleteCoursePrompt(btn.getAttribute('data-delete-course'), true);
+        };
+      });
+    }
+
+    function openArchivedCoursesOverlay() {
+      var ov = el('archivedCoursesOv');
+      if (!ov) return;
+      renderArchivedCoursesOverlay();
+      ov.classList.add('show');
+    }
+
+    function closeArchivedCoursesOverlay() {
+      var ov = el('archivedCoursesOv');
+      if (!ov) return;
+      ov.classList.remove('show');
+    }
+
+    function svgRing(percent, size, strokeWidth, color) {
+      var pct = clamp(percent || 0, 0, 100);
+      var r = (size - strokeWidth) / 2;
+      var circumference = 2 * Math.PI * r;
+      var offset = circumference - (pct / 100) * circumference;
+      var center = size / 2;
+      return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '" style="transform:rotate(-90deg)">' +
+        '<circle cx="' + center + '" cy="' + center + '" r="' + r + '" fill="none" stroke="rgba(var(--accent-rgb),0.12)" stroke-width="' + strokeWidth + '"/>' +
+        '<circle class="progress-ring-arc" cx="' + center + '" cy="' + center + '" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="' + strokeWidth + '" stroke-linecap="round" stroke-dasharray="' + circumference + '" stroke-dashoffset="' + offset + '"/>' +
+        '</svg>';
+    }
+
+    function getRetentionRingColor(percent) {
+      if (percent >= 85) return 'var(--rate-good)';
+      if (percent >= 60) return 'var(--rate-hard)';
+      return 'var(--rate-again)';
+    }
+
+    function getDueBarColor(percent) {
+      if (percent < 30) return 'var(--rate-good)';
+      if (percent <= 70) return 'var(--rate-hard)';
+      return 'var(--rate-again)';
+    }
+
+    function getStabilityMeta(days) {
+      if (days < 3) return { color: 'var(--rate-again)', label: 'Needs reinforcement' };
+      if (days <= 14) return { color: 'var(--rate-hard)', label: 'Building' };
+      if (days <= 30) return { color: 'var(--rate-good)', label: 'Strong' };
+      return { color: 'var(--accent)', label: 'Mastered' };
+    }
+
+    function animateProgressRings(scope) {
+      if (!window.gsap) return;
+      var root = scope || document;
+      root.querySelectorAll('.progress-ring-arc').forEach(function(ringCircle) {
+        var target = parseFloat(ringCircle.getAttribute('stroke-dashoffset'));
+        var circ = parseFloat(ringCircle.getAttribute('stroke-dasharray'));
+        if (!isFinite(target) || !isFinite(circ)) return;
+        ringCircle.setAttribute('stroke-dashoffset', String(circ));
+        gsap.to(ringCircle, { attr: { 'stroke-dashoffset': target }, duration: 1, delay: 0.2, ease: 'power2.out' });
+      });
+    }
+
+    function applyHomeStatVisuals(masteredCount, totalItems, retentionPct) {
+      var masteredStat = document.querySelector('#tabHome .stats-row .stat:nth-child(1)');
+      var retentionStat = document.querySelector('#tabHome .stats-row .stat:nth-child(2)');
+      if (masteredStat) {
+        var masteredPct = totalItems ? Math.round((masteredCount / totalItems) * 100) : 0;
+        masteredStat.innerHTML =
+          '<div class="k">Mastered</div>' +
+          '<div class="v" id="statStreak">' + masteredCount + '</div>' +
+          '<div class="stat-bar"><div class="stat-bar-fill" style="width:' + masteredPct + '%;background:' + getDueBarColor(100 - masteredPct) + '"></div></div>' +
+          '<div class="s">stability > 30d</div>';
+      }
+      if (retentionStat) {
+        var safePct = retentionPct == null ? 0 : retentionPct;
+        retentionStat.classList.add('stat-ring');
+        retentionStat.innerHTML =
+          '<div class="k">Avg Retention</div>' +
+          '<div class="stat-ring-wrap small">' + svgRing(safePct, 52, 5, getRetentionRingColor(safePct)) + '<div class="stat-ring-value" id="statRet">' + (retentionPct == null ? '—' : (safePct + '%')) + '</div></div>' +
+          '<div class="s">FSRS retrievability</div>';
+      }
+      var calGauge = document.querySelector('#tabHome .gauge');
+      if (calGauge) calGauge.classList.add('stat-ring');
+      animateProgressRings(el('tabHome'));
     }
 
     function renderCourseModalEditor(courseName, tab) {
@@ -17722,17 +17988,17 @@ input[type="range"]::-moz-range-thumb{
             return a.localeCompare(b);
           });
           inner += '<div class="structure-section">';
-          inner += '<div class="structure-section-header"><span class="structure-icon">📂</span><div><div class="structure-title">Modules</div><div class="structure-desc">Organise cards by lecture, chapter, or unit.</div></div></div>';
+          inner += '<div class="structure-section-header"><span class="structure-icon">📂</span><div><div class="structure-title">Subdecks</div><div class="structure-desc">Organise cards by lecture, chapter, or unit.</div></div></div>';
           inner += '<div style="display:flex;gap:8px;margin-bottom:10px;">';
-          inner += '<input type="text" class="input" id="cm_newModuleName" placeholder="New module name" />';
-          inner += '<button type="button" class="ghost-btn" id="cm_addModule">＋ Add Module</button>';
+          inner += '<input type="text" class="input" id="cm_newModuleName" placeholder="New subdeck name" />';
+          inner += '<button type="button" class="ghost-btn" id="cm_addModule">＋ Add Subdeck</button>';
           inner += '</div>';
-          if (!modules.length) inner += '<p class="help" style="margin-bottom:10px;">No modules yet. Create one to group topics by lecture, chapter, or unit.</p>';
+          if (!modules.length) inner += '<p class="help" style="margin-bottom:10px;">No subdecks yet. Create one to group topics by lecture, chapter, or unit.</p>';
           modules.forEach(function(mod, idx) {
             var mTopics = Array.isArray(mod.topics) ? mod.topics : [];
             inner += '<div class="structure-module-card">';
             inner += '<div class="structure-module-head">';
-            inner += '<input class="input" data-mod-rename="' + esc(mod.id) + '" value="' + esc(mod.name || 'Module') + '" style="flex:1;">';
+            inner += '<input class="input" data-mod-rename="' + esc(mod.id) + '" value="' + esc(mod.name || 'Subdeck') + '" style="flex:1;">';
             inner += '<div class="structure-module-actions">';
             inner += '<button class="ghost-btn" type="button" data-mod-up="' + esc(mod.id) + '"' + (idx === 0 ? ' disabled' : '') + ' style="min-width:0;padding:6px 10px;">↑</button>';
             inner += '<button class="ghost-btn" type="button" data-mod-down="' + esc(mod.id) + '"' + (idx === modules.length - 1 ? ' disabled' : '') + ' style="min-width:0;padding:6px 10px;">↓</button>';
@@ -17757,7 +18023,7 @@ input[type="range"]::-moz-range-thumb{
               inner += '<span class="chip" style="transform-origin:center;">' + esc(t) + '</span>';
               inner += '<select class="input" data-topic-target="' + esc(t) + '" style="max-width:220px;">';
               inner += '<option value="">Assign to module...</option>';
-              modules.forEach(function(m) { inner += '<option value="' + esc(m.id) + '">' + esc(m.name || 'Module') + '</option>'; });
+              modules.forEach(function(m) { inner += '<option value="' + esc(m.id) + '">' + esc(m.name || 'Subdeck') + '</option>'; });
               inner += '</select></div>';
             });
           }
@@ -17978,11 +18244,11 @@ input[type="range"]::-moz-range-thumb{
           if (addModBtn) addModBtn.onclick = function() {
             var input = el('cm_newModuleName');
             var name = input ? String(input.value || '').trim() : '';
-            if (!name) { toast('Enter a module name'); return; }
+            if (!name) { toast('Enter a subdeck name'); return; }
             addModuleToCourse(courseName, { name: name, topics: [], lectureImported: false });
             if (!isEmbedded) renderSidebar();
             renderCourseModalEditor(courseName, 'structure');
-            toast('Created module: ' + name);
+            toast('Created subdeck: ' + name);
           };
           courseModalBody.querySelectorAll('[data-mod-save]').forEach(function(btn) {
             btn.onclick = function() {
@@ -17992,7 +18258,7 @@ input[type="range"]::-moz-range-thumb{
               if (!newName) { toast('Name cannot be empty'); return; }
               renameModule(courseName, id, newName);
               if (!isEmbedded) renderSidebar();
-              toast('Module renamed');
+              toast('Subdeck renamed');
               renderCourseModalEditor(courseName, 'structure');
             };
           });
@@ -18001,7 +18267,7 @@ input[type="range"]::-moz-range-thumb{
               var id = btn.getAttribute('data-mod-del');
               removeModuleFromCourse(courseName, id);
               if (!isEmbedded) renderSidebar();
-              toast('Module deleted');
+              toast('Subdeck deleted');
               renderCourseModalEditor(courseName, 'structure');
             };
           });
@@ -18175,17 +18441,17 @@ input[type="range"]::-moz-range-thumb{
         },
         {
           icon: '📁',
-          label: 'Add Module',
+          label: 'Add Subdeck',
           action: function() {
             sidebarExpanded[courseName] = true;
             renderSidebar();
             var freshNode = document.getElementById('sidebarTree')
               ? document.getElementById('sidebarTree').querySelector('.tree-node[data-level="course"][data-course="' + esc(courseName) + '"]')
               : null;
-            showInlineSidebarInput(freshNode, 'Module name...', function(name) {
+            showInlineSidebarInput(freshNode, 'Subdeck name...', function(name) {
               addModuleToCourse(courseName, { name: name, topics: [], lectureImported: false });
               renderSidebar();
-              toast('Created module: ' + name);
+              toast('Created subdeck: ' + name);
             });
           }
         },
@@ -18194,29 +18460,7 @@ input[type="range"]::-moz-range-thumb{
           icon: '📦',
           label: 'Archive Course',
           action: function() {
-            showCtxMenuAt(anchor, [
-              {
-                icon: '⚠',
-                label: 'Confirm: Archive all cards in ' + courseName + '?',
-                danger: true,
-                action: function() {
-                  var count = 0;
-                  for (var id in state.items) {
-                    if (!state.items.hasOwnProperty(id)) continue;
-                    var it = state.items[id];
-                    if (it && it.course === courseName && !it.archived) {
-                      it.archived = true;
-                      count++;
-                    }
-                  }
-                  saveState();
-                  renderSidebar();
-                  renderDashboard();
-                  toast('Archived ' + count + ' cards');
-                }
-              },
-              { icon: '✕', label: 'Cancel', action: function() {} }
-            ]);
+            archiveCourse(courseName);
           }
         },
         {
@@ -18271,25 +18515,28 @@ input[type="range"]::-moz-range-thumb{
       h += '</div>';
       h += '</div>';
 
+      var duePct = stats.total > 0 ? Math.round((stats.due / stats.total) * 100) : 0;
+      var retentionPct = stats.avgRetention == null ? 0 : clamp(stats.avgRetention, 0, 100);
+      var stabilityMeta = getStabilityMeta(stats.avgStability || 0);
       h += '<div class="ctx-stats-grid">';
-      h += '<div class="stat"><div class="k">TOTAL</div><div class="v">' + stats.total + '</div></div>';
-      h += '<div class="stat"><div class="k">DUE</div><div class="v">' + stats.due + '</div></div>';
-      h += '<div class="stat"><div class="k">AVG STABILITY</div><div class="v">' + stats.avgStability + 'd</div></div>';
-      h += '<div class="stat"><div class="k">AVG RETENTION</div><div class="v">' + (stats.avgRetention == null ? '—' : (stats.avgRetention + '%')) + '</div></div>';
+      h += '<div class="stat"><div class="k">TOTAL</div><div class="v">' + stats.total + '</div><div class="s">' + (stats.reviewed || 0) + ' reviewed</div></div>';
+      h += '<div class="stat"><div class="k">DUE</div><div class="v">' + stats.due + '</div><div class="stat-bar"><div class="stat-bar-fill" style="width:' + duePct + '%;background:' + getDueBarColor(duePct) + '"></div></div><div class="s">of ' + stats.total + ' total</div></div>';
+      h += '<div class="stat"><div class="k">AVG STABILITY</div><div class="v stability-badge" style="color:' + stabilityMeta.color + ';">' + stats.avgStability + 'd</div><div class="s">' + stabilityMeta.label + '</div></div>';
+      h += '<div class="stat stat-ring"><div class="k">AVG RETENTION</div><div class="stat-ring-wrap">' + svgRing(retentionPct, 58, 6, getRetentionRingColor(retentionPct)) + '<div class="stat-ring-value">' + (stats.avgRetention == null ? '—' : (retentionPct + '%')) + '</div></div><div class="s">FSRS retrievability</div></div>';
       h += '</div>';
 
       h += '<details class="dash-details" open>';
       h += '<summary class="dash-details-toggle"><span class="se-icon">📊</span> Tier Breakdown &amp; Materials <span class="dash-details-arrow">▸</span></summary>';
       h += '<div class="dash-details-body ctx-detail-stack">';
       if (modules.length > 0) {
-        h += '<div><div class="ctx-section-title">Modules</div>';
+        h += '<div><div class="ctx-section-title">Subdecks</div>';
         h += '<div class="ctx-modules-grid">';
         modules.forEach(function(mod) {
           if (!mod || !mod.id) return;
           var ms = getModuleStats(courseName, mod.id);
           var pct = ms.total > 0 ? Math.round((ms.reviewed / ms.total) * 100) : 0;
           h += '<div class="ctx-module-card" data-module="' + esc(mod.id) + '">';
-          h += '<div class="mc-name">' + (mod.lectureImported ? '📖 ' : '📁 ') + esc(mod.name || 'Module') + '</div>';
+          h += '<div class="mc-name">' + (mod.lectureImported ? '📖 ' : '📁 ') + esc(mod.name || 'Subdeck') + '</div>';
           h += '<div class="mc-stats"><span>' + ms.total + ' cards</span>';
           if (ms.due > 0) h += '<span style="color:var(--accent);">' + ms.due + ' due</span>';
           h += '<span>' + pct + '% reviewed</span></div>';
@@ -20622,6 +20869,10 @@ input[type="range"]::-moz-range-thumb{
           var b = el('gearBtn');
           if (b) b.click();
         });
+        var sbArchived = document.getElementById('sbArchivedBtn');
+        if (sbArchived) sbArchived.addEventListener('click', function() {
+          openArchivedCoursesOverlay();
+        });
         var mainAdd = document.getElementById('mainAddCard');
         if (mainAdd) mainAdd.addEventListener('click', function() {
           var b = el('addBtn');
@@ -20720,6 +20971,31 @@ input[type="range"]::-moz-range-thumb{
         setSyncBadge(status);
       });
     }
+
+    var __baseRenderDashboard = renderDashboard;
+    renderDashboard = function() {
+      __baseRenderDashboard();
+      var totalItems = 0;
+      var masteredCount = 0;
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (!it || it.archived) continue;
+        if (it.course && state.courses[it.course] && state.courses[it.course].archived) continue;
+        totalItems++;
+        if (it.fsrs && (it.fsrs.stability || 0) > 30 && (it.fsrs.lapses || 0) === 0) masteredCount++;
+      }
+      if (totalItems === 0) return;
+      var ar = avgRetention(state.items);
+      var retTarget = ar == null ? null : Math.round(ar * 100);
+      applyHomeStatVisuals(masteredCount, totalItems, retTarget);
+      if (window.gsap) {
+        gsap.fromTo(document.querySelectorAll('#tabHome .stats-row .stat, #tabHome .tutor-cal-row > *'),
+          { opacity: 0, y: 10 },
+          { opacity: 1, y: 0, duration: 0.35, stagger: 0.08, ease: 'power2.out' }
+        );
+      }
+    };
 
     SyncEngine.onReady(function() {
       boot();
