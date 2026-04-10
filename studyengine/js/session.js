@@ -1,6 +1,22 @@
 /* Relocated module-local vars from state.js */
     var sessionSummary = null;
 
+    function onTap(element, handler) {
+      if (!element || typeof handler !== 'function') return;
+      if (element.__tapBound) return;
+      element.__tapBound = true;
+      var touchFired = false;
+      element.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        touchFired = true;
+        handler.call(element, e);
+      }, { passive: false });
+      element.addEventListener('click', function(e) {
+        if (touchFired) { touchFired = false; return; }
+        handler.call(element, e);
+      });
+    }
+
     function defaultTutorStats() {
       return {
         dontKnows: 0,
@@ -609,7 +625,7 @@
           if (ratingsEl) {
             ratingsEl.style.display = 'grid';
             ratingsEl.querySelectorAll('button').forEach(function(b) {
-              b.onclick = function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); };
+              onTap(b, function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); });
             });
           }
         }
@@ -643,7 +659,7 @@
         }
         try { playClick(); } catch(e) {}
         ratingsEl.querySelectorAll('button').forEach(function(b) {
-          b.onclick = function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); };
+          onTap(b, function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); });
         });
         if (it.modelAnswer) insertListenButton(modelAnswerEl, it.modelAnswer);
         return;
@@ -1412,7 +1428,7 @@
         tipEl.textContent = getBreakTip();
         if (window.gsap) gsap.fromTo(tipEl, { opacity: 0 }, { opacity: 1, duration: 0.4 });
       }, 45000);
-      skipBtn.onclick = function() { endBreak(); try { playBreakDismiss(); } catch (e) {} };
+      onTap(skipBtn, function() { endBreak(); try { playBreakDismiss(); } catch (e) {} });
       if (window.gsap) {
         gsap.fromTo(overlay.querySelector('.break-card'),
           { scale: 0.9, opacity: 0 },
