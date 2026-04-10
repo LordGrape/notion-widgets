@@ -1,3 +1,6 @@
+/* Relocated module-local vars from state.js */
+    var sessionSummary = null;
+
 /* Phase 2 extraction: copied from monolith; source-of-truth remains state.js for parity. */
 
     function buildSessionQueue() {
