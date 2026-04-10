@@ -109,6 +109,15 @@
     border-top: 1px solid rgba(var(--accent-rgb), 0.10);
   }
 
+  body.in-session #revealBtn,
+  body.in-session #checkBtn,
+  body.in-session #submitBtn,
+  body.in-session #dontKnowBtn,
+  body.in-session .conf-pill {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
   body.in-session .confidence-row {
     display: flex;
     gap: 8px;

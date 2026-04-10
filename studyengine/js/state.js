@@ -25,6 +25,24 @@
     var LECTURE_CTX_ENDPOINT = STUDYENGINE_WORKER_BASE + '/lecture-context';
     var GRADE_ENDPOINT = STUDYENGINE_WORKER_BASE + '/grade';
 
+    if (typeof onTap !== 'function') {
+      function onTap(element, handler) {
+        if (!element || typeof handler !== 'function') return;
+        if (element.__tapBound) return;
+        element.__tapBound = true;
+        var touchFired = false;
+        element.addEventListener('touchend', function(e) {
+          e.preventDefault();
+          touchFired = true;
+          handler.call(element, e);
+        }, { passive: false });
+        element.addEventListener('click', function(e) {
+          if (touchFired) { touchFired = false; return; }
+          handler.call(element, e);
+        });
+      }
+    }
+
     /* ── State ── */
     var NS = 'studyengine';
 var DEFAULT_STATE = {
@@ -2402,9 +2420,9 @@ var tutorConversation = [];
       ratingsEl.parentNode.insertBefore(hint, ratingsEl.nextSibling);
       // Re-bind rating buttons to ensure clean handler
       ratingsEl.querySelectorAll('button').forEach(function(b) {
-        b.onclick = function() {
+        onTap(b, function() {
           rateCurrent(parseInt(this.getAttribute('data-rate'), 10));
-        };
+        });
       });
     }
 
@@ -2412,10 +2430,10 @@ var tutorConversation = [];
       var ta = el('userText');
       ta.addEventListener('input', function(){ autoGrowTextarea(ta); });
       autoGrowTextarea(ta);
-      el('checkBtn').addEventListener('click', function(){ revealAnswer(true); });
+      onTap(el('checkBtn'), function(){ revealAnswer(true); });
       var dkBtn = el('dontKnowBtn');
       if (dkBtn) {
-        dkBtn.addEventListener('click', function() {
+        onTap(dkBtn, function() {
           var cur = session.queue[session.idx];
           if (!cur) return;
           var rt = cur._presentTier || cur.tier || 'quickfire';
@@ -2428,10 +2446,10 @@ var tutorConversation = [];
       var ta = el('userText');
       ta.addEventListener('input', function(){ autoGrowTextarea(ta); });
       autoGrowTextarea(ta);
-      el('submitBtn').addEventListener('click', function(){ revealAnswer(true); });
+      onTap(el('submitBtn'), function(){ revealAnswer(true); });
       var dkBtn = el('dontKnowBtn');
       if (dkBtn) {
-        dkBtn.addEventListener('click', function() {
+        onTap(dkBtn, function() {
           var cur = session.queue[session.idx];
           if (!cur) return;
           var rt = cur._presentTier || cur.tier || 'quickfire';
@@ -3418,15 +3436,15 @@ var tutorConversation = [];
       el('confirmExitOv').classList.add('show');
       try { playPause(); } catch(e) {}
     }
-    el('exitSessionBtn').addEventListener('click', handleSessionExitClick);
-    if (el('exitSessionHeaderBtn')) el('exitSessionHeaderBtn').addEventListener('click', handleSessionExitClick);
+    onTap(el('exitSessionBtn'), handleSessionExitClick);
+    if (el('exitSessionHeaderBtn')) onTap(el('exitSessionHeaderBtn'), handleSessionExitClick);
 
-    el('confirmStay').addEventListener('click', function() {
+    onTap(el('confirmStay'), function() {
       el('confirmExitOv').classList.remove('show');
       try { playResume(); } catch(e) {}
     });
 
-    el('confirmLeave').addEventListener('click', function() {
+    onTap(el('confirmLeave'), function() {
       el('confirmExitOv').classList.remove('show');
       try { playClose(); } catch(e) {}
       if (session) {
@@ -3458,7 +3476,7 @@ var tutorConversation = [];
     });
 
     ratingsEl.querySelectorAll('button').forEach(function(b){
-      b.addEventListener('click', function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); });
+      onTap(b, function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); });
     });
 
     /* ── Modal: Add items / Import JSON ── */
