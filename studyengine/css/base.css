@@ -6682,3 +6682,25 @@ input[type="range"]::-moz-range-thumb{
         width: 150px;
       }
     }
+
+/* ── Mobile Responsive Fixes ── */
+@media (max-width: 768px) {
+  body {
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #rootCard {
+    width: 100% !important;
+    max-width: 100vw !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    min-height: 100vh;
+    min-height: 100dvh;
+    box-sizing: border-box;
+  }
+
+  .standalone #rootCard {
+    padding: 12px !important;
+  }
+}
