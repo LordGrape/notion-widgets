@@ -1898,6 +1898,7 @@ let SyncEngine = (function() {
       if (d.type === 'passphrase' && !passphrase && d.value) {
         passphrase = d.value;
         localStorage.setItem(PASS_KEY, passphrase);
+        idbSetPassphrase(passphrase);
         /* Dismiss prompt if it is currently showing */
         let ov = document.querySelector('[data-sync-prompt]');
         if (ov) ov.remove();
@@ -1942,6 +1943,51 @@ let SyncEngine = (function() {
 
   function lsWrite(ns) {
     try { localStorage.setItem(lsKey(ns), JSON.stringify(cache[ns] || {})); } catch(e) {}
+  }
+
+  function idbGetPassphrase() {
+    return new Promise(function(resolve) {
+      try {
+        var req = indexedDB.open('widget_sync', 1);
+        req.onupgradeneeded = function(e) {
+          var db = e.target.result;
+          if (!db.objectStoreNames.contains('meta')) {
+            db.createObjectStore('meta');
+          }
+        };
+        req.onsuccess = function(e) {
+          var db = e.target.result;
+          try {
+            var tx = db.transaction('meta', 'readonly');
+            var store = tx.objectStore('meta');
+            var get = store.get('passphrase');
+            get.onsuccess = function() { resolve(get.result || ''); };
+            get.onerror = function() { resolve(''); };
+          } catch(ex) { resolve(''); }
+        };
+        req.onerror = function() { resolve(''); };
+      } catch(ex) { resolve(''); }
+    });
+  }
+
+  function idbSetPassphrase(value) {
+    try {
+      var req = indexedDB.open('widget_sync', 1);
+      req.onupgradeneeded = function(e) {
+        var db = e.target.result;
+        if (!db.objectStoreNames.contains('meta')) {
+          db.createObjectStore('meta');
+        }
+      };
+      req.onsuccess = function(e) {
+        var db = e.target.result;
+        try {
+          var tx = db.transaction('meta', 'readwrite');
+          var store = tx.objectStore('meta');
+          store.put(value, 'passphrase');
+        } catch(ex) {}
+      };
+    } catch(ex) {}
   }
 
   /* ── Remote helpers ── */
@@ -2285,6 +2331,7 @@ let SyncEngine = (function() {
         let val = input.value.trim();
         if (val) {
           localStorage.setItem(PASS_KEY, val);
+          idbSetPassphrase(val);
           passphrase = val;
           _broadcast({ type: 'passphrase', value: val });
         }
@@ -2321,7 +2368,8 @@ let SyncEngine = (function() {
     init: function(opts) {
       WORKER_URL = (opts.worker || '').replace(/\/+$/, '');
       namespaces = opts.namespaces || ['dragon', 'clock', 'user'];
-      passphrase = localStorage.getItem(PASS_KEY) || '';
+      passphrase = '';
+      try { passphrase = localStorage.getItem(PASS_KEY) || ''; } catch(e) {}
 
       /* iOS Safari blocks localStorage in cross-origin iframes (Notion embeds).
          Fall back to reading the passphrase from the URL hash fragment.
@@ -2334,6 +2382,7 @@ let SyncEngine = (function() {
           if (hashKey) {
             passphrase = hashKey;
             try { localStorage.setItem(PASS_KEY, hashKey); } catch(e) {}
+            idbSetPassphrase(hashKey);
           }
         } catch(e) {}
       }
@@ -2346,7 +2395,14 @@ let SyncEngine = (function() {
 
       let chain;
       if (!passphrase) {
-        chain = showPrompt();
+        chain = idbGetPassphrase().then(function(idbPass) {
+          if (idbPass) {
+            passphrase = idbPass;
+            try { localStorage.setItem(PASS_KEY, idbPass); } catch(e) {}
+            return passphrase;
+          }
+          return showPrompt();
+        });
       } else {
         chain = Promise.resolve(passphrase);
       }

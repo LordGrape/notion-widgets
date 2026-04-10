@@ -7514,6 +7514,25 @@ el('gearBtn').addEventListener('click', openSettings);
       loadState();
       var profile = getUserProfile();
       if (!profile || !profile.awakened) {
+        if (SyncEngine.isOnline()) {
+          SyncEngine.pull('user').then(function() {
+            var retryProfile = getUserProfile();
+            if (retryProfile && retryProfile.awakened) {
+              finishBoot();
+            } else {
+              showAwakening(function() {
+                loadState();
+                finishBoot();
+              });
+            }
+          }).catch(function() {
+            showAwakening(function() {
+              loadState();
+              finishBoot();
+            });
+          });
+          return;
+        }
         showAwakening(function() {
           loadState();
           finishBoot();
@@ -7619,7 +7638,20 @@ el('gearBtn').addEventListener('click', openSettings);
       boot();
     });
 
-    /* Safety: render even if onReady is slow/offline */
+    /* Safety: render even if onReady is slow/offline.
+       Wait for SyncEngine init to at least attempt a remote pull before
+       falling back. Use a longer timeout (6s) to give KV time on slow
+       mobile connections. */
     setTimeout(function() {
-      if (!state) boot();
-    }, 3000);
+      if (!state) {
+        if (SyncEngine.isOnline()) {
+          SyncEngine.pull('user').then(function() {
+            if (!state) boot();
+          }).catch(function() {
+            if (!state) boot();
+          });
+        } else {
+          boot();
+        }
+      }
+    }, 6000);

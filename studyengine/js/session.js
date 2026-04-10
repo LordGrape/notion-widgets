@@ -416,121 +416,134 @@
       updateSessionXPBar();
       try { playStart(); } catch(e) {}
       renderCurrentItem();
+      try {
+        var sessionView = document.getElementById('viewSession');
+        if (sessionView) sessionView.scrollTop = 0;
+        window.scrollTo(0, 0);
+      } catch(e) {}
     }
 
     function renderCurrentItem() {
-      document.querySelectorAll('.listen-tts-btn').forEach(function(btn) { btn.remove(); });
-      clearTimers();
-      cleanupAskTutor();
-      if (session) session.lastTutorContext = null;
-      activeRubric = null;
-      session.currentShown = false;
-      if (session) session.confidence = null;
-      if (session) session._dontKnow = false;
-      if (session) session._reconstructionPending = false;
-      modelAnswerEl.style.display = 'none';
-      ratingsEl.style.display = 'none';
-      studyIndicator.classList.remove('show');
-      var breakHint = el('breakHint');
-      if (breakHint) breakHint.classList.remove('show');
-      var restudyScreen = el('restudyScreen');
-      if (restudyScreen) restudyScreen.classList.remove('show');
-      modelAnswerEl.classList.remove('restudy-active');
-      var oldBarAtRender = document.getElementById('restudyBarInline');
-      if (oldBarAtRender) {
-        var oldElabAtRender = oldBarAtRender.nextElementSibling;
-        if (oldElabAtRender && oldElabAtRender.classList.contains('restudy-elaboration')) oldElabAtRender.remove();
-        oldBarAtRender.remove();
-      }
-      el('timerBar').classList.remove('show');
-      el('metaTimer').style.display = 'none';
-      el('timerFill').style.width = '0%';
-      el('aiFeedbackArea').innerHTML = '';
-      /* Remove side-by-side reveal columns from previous item */
-      var oldReveal = document.getElementById('revealColumnsWrap');
-      if (oldReveal) oldReveal.remove();
-      var oldDkWrap = document.getElementById('dkRevealWrap');
-      if (oldDkWrap) oldDkWrap.remove();
-      // Re-show tier area in case it was hidden/dimmed by Don't Know flow
-      if (tierArea) {
-        tierArea.style.display = '';
-        tierArea.style.opacity = '';
-        tierArea.style.pointerEvents = '';
-      }
-      if (session) session.aiRating = null;
-      if (session) session._isRelearning = false;
-      tutorAcknowledgeDone = false;
-      tutorAcknowledgeOriginalRating = null;
-      tutorOpeningUserText = '';
-      tutorInRelearning = false;
-      tutorMaxTurns = 3;
-      var qfRoot = document.getElementById('qfFollowupRoot');
-      if (qfRoot) qfRoot.remove();
-      var qfReRoot = document.getElementById('qfReRetrievalRoot');
-      if (qfReRoot) qfReRoot.remove();
-      /* Remove override hint if present */
-      var oldHint = document.querySelector('.override-hint');
-      if (oldHint) oldHint.remove();
-      /* Reset rating button outlines */
-      ratingsEl.querySelectorAll('button').forEach(function(b) {
-        b.style.outline = 'none';
-        b.style.outlineOffset = '0';
-      });
+      try {
+        document.querySelectorAll('.listen-tts-btn').forEach(function(btn) { btn.remove(); });
+        clearTimers();
+        cleanupAskTutor();
+        if (session) session.lastTutorContext = null;
+        activeRubric = null;
+        session.currentShown = false;
+        if (session) session.confidence = null;
+        if (session) session._dontKnow = false;
+        if (session) session._reconstructionPending = false;
+        modelAnswerEl.style.display = 'none';
+        ratingsEl.style.display = 'none';
+        studyIndicator.classList.remove('show');
+        var breakHint = el('breakHint');
+        if (breakHint) breakHint.classList.remove('show');
+        var restudyScreen = el('restudyScreen');
+        if (restudyScreen) restudyScreen.classList.remove('show');
+        modelAnswerEl.classList.remove('restudy-active');
+        var oldBarAtRender = document.getElementById('restudyBarInline');
+        if (oldBarAtRender) {
+          var oldElabAtRender = oldBarAtRender.nextElementSibling;
+          if (oldElabAtRender && oldElabAtRender.classList.contains('restudy-elaboration')) oldElabAtRender.remove();
+          oldBarAtRender.remove();
+        }
+        el('timerBar').classList.remove('show');
+        el('metaTimer').style.display = 'none';
+        el('timerFill').style.width = '0%';
+        el('aiFeedbackArea').innerHTML = '';
+        /* Remove side-by-side reveal columns from previous item */
+        var oldReveal = document.getElementById('revealColumnsWrap');
+        if (oldReveal) oldReveal.remove();
+        var oldDkWrap = document.getElementById('dkRevealWrap');
+        if (oldDkWrap) oldDkWrap.remove();
+        if (tierArea) {
+          tierArea.style.display = '';
+          tierArea.style.opacity = '';
+          tierArea.style.pointerEvents = '';
+        }
+        if (session) session.aiRating = null;
+        if (session) session._isRelearning = false;
+        tutorAcknowledgeDone = false;
+        tutorAcknowledgeOriginalRating = null;
+        tutorOpeningUserText = '';
+        tutorInRelearning = false;
+        tutorMaxTurns = 3;
+        var qfRoot = document.getElementById('qfFollowupRoot');
+        if (qfRoot) qfRoot.remove();
+        var qfReRoot = document.getElementById('qfReRetrievalRoot');
+        if (qfReRoot) qfReRoot.remove();
+        var oldHint = document.querySelector('.override-hint');
+        if (oldHint) oldHint.remove();
+        ratingsEl.querySelectorAll('button').forEach(function(b) {
+          b.style.outline = 'none';
+          b.style.outlineOffset = '0';
+        });
 
-      var it = session.queue[session.idx];
-      if (!it) { completeSession(); return; }
-      /* Resolve presentation tier (smart mode) or stored tier (manual/legacy) */
-      var tier = it._presentTier || it.tier || 'quickfire';
+        var it = session.queue[session.idx];
+        if (!it) { completeSession(); return; }
+        var tier = it._presentTier || it.tier || 'quickfire';
 
-      setTierBadge(tier);
-      /* Tier-themed item card border */
-      var ic = document.querySelector('.item-card');
-      if (ic) {
-        ic.className = 'item-card tier-' + tier;
-      }
+        setTierBadge(tier);
+        var ic = document.querySelector('.item-card');
+        if (ic) ic.className = 'item-card tier-' + tier;
 
-      /* Tier-coloured progress bar */
-      var pb = document.querySelector('.pbar');
-      if (pb) {
-        pb.className = 'pbar tier-' + tier;
-      }
+        var pb = document.querySelector('.pbar');
+        if (pb) pb.className = 'pbar tier-' + tier;
 
-      /* For Apply It we render the scenario in a distinct block; avoid duplicating it in the top prompt. */
-      if (tier === 'apply') el('promptText').textContent = 'Scenario';
-      else el('promptText').innerHTML = '<div class="md-content">' + renderMd(it.prompt) + '</div>';
-      el('metaCourse').textContent = it.course || '—';
-      var metaEl = document.querySelector('.meta');
-      var existingPriBadge = document.getElementById('metaPriority');
-      if (existingPriBadge) existingPriBadge.remove();
-      if (metaEl && it.priority && it.priority !== 'medium') {
-        var badge = document.createElement('span');
-        badge.id = 'metaPriority';
-        badge.innerHTML = priorityBadgeHTML(it.priority);
-        metaEl.appendChild(badge);
-      }
-      el('metaTopic').textContent = it.topic || '—';
-      refreshSessionEditButton();
-      el('courseHint').textContent = (selectedCourse === 'All') ? (it.course || '—') : selectedCourse;
+        if (tier === 'apply') el('promptText').textContent = 'Scenario';
+        else el('promptText').innerHTML = '<div class="md-content">' + renderMd(it.prompt) + '</div>';
+        el('metaCourse').textContent = it.course || '—';
+        var metaEl = document.querySelector('.meta');
+        var existingPriBadge = document.getElementById('metaPriority');
+        if (existingPriBadge) existingPriBadge.remove();
+        if (metaEl && it.priority && it.priority !== 'medium') {
+          var badge = document.createElement('span');
+          badge.id = 'metaPriority';
+          badge.innerHTML = priorityBadgeHTML(it.priority);
+          metaEl.appendChild(badge);
+        }
+        el('metaTopic').textContent = it.topic || '—';
+        refreshSessionEditButton();
+        el('courseHint').textContent = (selectedCourse === 'All') ? (it.course || '—') : selectedCourse;
 
-      var n = session.queue.length;
-      el('progText').textContent = (session.idx + 1) + ' of ' + n;
-      el('progBar').style.width = Math.round(((session.idx) / Math.max(1, n)) * 100) + '%';
+        var n = session.queue.length;
+        el('progText').textContent = (session.idx + 1) + ' of ' + n;
+        el('progBar').style.width = Math.round(((session.idx) / Math.max(1, n)) * 100) + '%';
 
-      tierArea.innerHTML = '';
-      if (tier === 'quickfire') renderQuickfireTier(it, session);
-      else if (tier === 'explain') renderExplainTier(it, session);
-      else if (tier === 'apply') renderApplyTier(it, session);
-      else if (tier === 'worked') renderWorkedTier(it, session);
-      else if (tier === 'distinguish') renderDistinguishTier(it, session);
-      else if (tier === 'mock') renderMockTier(it, session);
+        tierArea.innerHTML = '';
+        if (tier === 'quickfire') renderQuickfireTier(it, session);
+        else if (tier === 'explain') renderExplainTier(it, session);
+        else if (tier === 'apply') renderApplyTier(it, session);
+        else if (tier === 'worked') renderWorkedTier(it, session);
+        else if (tier === 'distinguish') renderDistinguishTier(it, session);
+        else if (tier === 'mock') renderMockTier(it, session);
 
-      if (window.gsap) {
-        var cardEnter = document.querySelector('.item-card');
-        if (cardEnter) {
-          gsap.fromTo(cardEnter,
-            { opacity: 0, y: 16, scale: 0.98 },
-            { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: 'power2.out' }
-          );
+        if (window.gsap) {
+          var cardEnter = document.querySelector('.item-card');
+          if (cardEnter) {
+            gsap.fromTo(cardEnter,
+              { opacity: 0, y: 16, scale: 0.98 },
+              { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: 'power2.out' }
+            );
+          }
+        }
+      } catch (mobileErr) {
+        console.error('[StudyEngine] renderCurrentItem failed:', mobileErr);
+        var fallbackItem = session && session.queue && session.queue[session.idx];
+        if (fallbackItem && tierArea) {
+          tierArea.innerHTML =
+            '<div style="padding:16px;color:var(--text-primary);font-size:15px;">' +
+            '<p><strong>Prompt:</strong></p>' +
+            '<p>' + (fallbackItem.prompt || 'No prompt') + '</p>' +
+            '<hr style="border-color:var(--border-subtle);margin:12px 0;">' +
+            '<p><strong>Answer:</strong></p>' +
+            '<p>' + (fallbackItem.modelAnswer || 'No answer') + '</p>' +
+            '</div>';
+          ratingsEl.style.display = 'grid';
+          ratingsEl.querySelectorAll('button').forEach(function(b) {
+            b.onclick = function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); };
+          });
         }
       }
     }
