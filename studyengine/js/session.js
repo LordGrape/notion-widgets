@@ -360,71 +360,102 @@
     }
 
     function startSession() {
-      var q = buildSessionQueue();
-      session = {
-        queue: q,
-        idx: 0,
-        loops: {}, /* itemId -> again count in-session */
-        currentShown: false,
-        startedAt: Date.now(),
-        xp: 0,
-        reviewsByTier: { quickfire:0, explain:0, apply:0, distinguish:0, mock:0, worked:0 },
-        ratingSum: 0,
-        ratingN: 0,
-        calBefore: calibrationPct(state.calibration),
-        confidence: null,  /* 'low' | 'medium' | 'high' — set before reveal on quickfire */
-        recentRatings: [], /* rolling window for fatigue detection */
-        fatigueWarningShown: false, /* only show once per session */
-        tutorStats: defaultTutorStats(),
-        tutorModeCounts: defaultTutorModeCounts(),
-        sessionRatingsLog: [],
-        lastTutorContext: null,  /* { mode, turns, hadDialogue, wasDontKnow } — set by tutor flows */
-        tutorAnalyticsHistoryKey: 's' + Date.now()
-      };
-      session = createSessionState(q, session.startedAt);
-      /* Reset dragon done view for next session */
-      var oldDragonImg = document.querySelector('.done-dragon-img');
-      if (oldDragonImg) oldDragonImg.remove();
-      var oldOrb = document.getElementById('doneDragonOrb');
-      if (oldOrb) { oldOrb.style.display = ''; oldOrb.textContent = '🥚'; }
-      var oldXPBar = document.getElementById('sessionXPBar');
-      if (oldXPBar) oldXPBar.remove();
-      sessionSummary = null;
-      breakState.sessionStartTime = Date.now();
-      breakState.lastBreakTime = 0;
-      breakState.breaksTaken = 0;
-      breakState.bannerDismissed = false;
-      if (!q.length) return;
-      persistActiveSessionSnapshot();
-      var prevSum = el('sessionAiSummaryWrap');
-      if (prevSum) prevSum.style.display = 'none';
-      showView('viewSession');
-      try { document.body.classList.add('in-session'); } catch(e) {}
-      /* Insert session XP bar if not already present */
-      var sessionTop = document.querySelector('#viewSession .session-top');
-      if (sessionTop && !document.getElementById('sessionXPBar')) {
-        var xpBar = document.createElement('div');
-        xpBar.className = 'session-xp-bar';
-        xpBar.id = 'sessionXPBar';
-        xpBar.innerHTML =
-          '<span class="sxp-label">XP</span>' +
-          '<div class="sxp-fill-wrap"><div class="sxp-fill"></div></div>' +
-          '<span class="sxp-value">0 XP</span>' +
-          '<span class="sxp-streak"></span>';
-        sessionTop.insertAdjacentElement('afterend', xpBar);
-      }
-      updateSessionXPBar();
-      try { playStart(); } catch(e) {}
-      renderCurrentItem();
       try {
-        var sessionView = document.getElementById('viewSession');
-        if (sessionView) sessionView.scrollTop = 0;
-        window.scrollTo(0, 0);
-      } catch(e) {}
+        console.log('[StudyEngine] startSession called, items:', Object.keys(state.items || {}).length);
+        var q = buildSessionQueue();
+        session = {
+          queue: q,
+          idx: 0,
+          loops: {}, /* itemId -> again count in-session */
+          currentShown: false,
+          startedAt: Date.now(),
+          xp: 0,
+          reviewsByTier: { quickfire:0, explain:0, apply:0, distinguish:0, mock:0, worked:0 },
+          ratingSum: 0,
+          ratingN: 0,
+          calBefore: calibrationPct(state.calibration),
+          confidence: null,  /* 'low' | 'medium' | 'high' — set before reveal on quickfire */
+          recentRatings: [], /* rolling window for fatigue detection */
+          fatigueWarningShown: false, /* only show once per session */
+          tutorStats: defaultTutorStats(),
+          tutorModeCounts: defaultTutorModeCounts(),
+          sessionRatingsLog: [],
+          lastTutorContext: null,  /* { mode, turns, hadDialogue, wasDontKnow } — set by tutor flows */
+          tutorAnalyticsHistoryKey: 's' + Date.now()
+        };
+        session = createSessionState(q, session.startedAt);
+        /* Reset dragon done view for next session */
+        var oldDragonImg = document.querySelector('.done-dragon-img');
+        if (oldDragonImg) oldDragonImg.remove();
+        var oldOrb = document.getElementById('doneDragonOrb');
+        if (oldOrb) { oldOrb.style.display = ''; oldOrb.textContent = '🥚'; }
+        var oldXPBar = document.getElementById('sessionXPBar');
+        if (oldXPBar) oldXPBar.remove();
+        sessionSummary = null;
+        breakState.sessionStartTime = Date.now();
+        breakState.lastBreakTime = 0;
+        breakState.breaksTaken = 0;
+        breakState.bannerDismissed = false;
+        if (!q.length) return;
+        persistActiveSessionSnapshot();
+        var prevSum = el('sessionAiSummaryWrap');
+        if (prevSum) prevSum.style.display = 'none';
+        showView('viewSession');
+        try { document.body.classList.add('in-session'); } catch(e) {}
+        /* Insert session XP bar if not already present */
+        var sessionTop = document.querySelector('#viewSession .session-top');
+        if (sessionTop && !document.getElementById('sessionXPBar')) {
+          var xpBar = document.createElement('div');
+          xpBar.className = 'session-xp-bar';
+          xpBar.id = 'sessionXPBar';
+          xpBar.innerHTML =
+            '<span class="sxp-label">XP</span>' +
+            '<div class="sxp-fill-wrap"><div class="sxp-fill"></div></div>' +
+            '<span class="sxp-value">0 XP</span>' +
+            '<span class="sxp-streak"></span>';
+          sessionTop.insertAdjacentElement('afterend', xpBar);
+        }
+        updateSessionXPBar();
+        try { playStart(); } catch(e) {}
+        renderCurrentItem();
+        /* Mobile safety: ensure session view is scrolled to top and visible */
+        try {
+          var sessionView = document.getElementById('viewSession');
+          if (sessionView) {
+            sessionView.scrollTop = 0;
+            sessionView.style.display = 'block';
+          }
+          window.scrollTo(0, 0);
+          document.querySelector('.wrap').scrollTop = 0;
+        } catch(scrollErr) {}
+      } catch (err) {
+        console.error('[StudyEngine] startSession failed:', err);
+        try { toast('Session error: ' + (err.message || err)); } catch(e2) {}
+        try {
+          var fallbackQ = [];
+          for (var fid in state.items) {
+            if (!state.items.hasOwnProperty(fid)) continue;
+            var fit = state.items[fid];
+            if (fit && !fit.archived) {
+              fit._presentTier = fit.tier || 'quickfire';
+              fallbackQ.push(fit);
+              if (fallbackQ.length >= 12) break;
+            }
+          }
+          if (fallbackQ.length) {
+            session = createSessionState(fallbackQ, Date.now());
+            showView('viewSession');
+            renderCurrentItem();
+          }
+        } catch (fallbackErr) {
+          console.error('[StudyEngine] Fallback also failed:', fallbackErr);
+        }
+      }
     }
 
     function renderCurrentItem() {
       try {
+        console.log('[StudyEngine] renderCurrentItem called, idx:', session ? session.idx : 'no session');
         document.querySelectorAll('.listen-tts-btn').forEach(function(btn) { btn.remove(); });
         clearTimers();
         cleanupAskTutor();
@@ -530,20 +561,25 @@
         }
       } catch (mobileErr) {
         console.error('[StudyEngine] renderCurrentItem failed:', mobileErr);
+        /* Fallback: show a minimal but functional card */
         var fallbackItem = session && session.queue && session.queue[session.idx];
         if (fallbackItem && tierArea) {
+          var safePrompt = String(fallbackItem.prompt || 'No prompt').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          var safeAnswer = String(fallbackItem.modelAnswer || 'No answer').replace(/</g, '&lt;').replace(/>/g, '&gt;');
           tierArea.innerHTML =
-            '<div style="padding:16px;color:var(--text-primary);font-size:15px;">' +
-            '<p><strong>Prompt:</strong></p>' +
-            '<p>' + (fallbackItem.prompt || 'No prompt') + '</p>' +
-            '<hr style="border-color:var(--border-subtle);margin:12px 0;">' +
-            '<p><strong>Answer:</strong></p>' +
-            '<p>' + (fallbackItem.modelAnswer || 'No answer') + '</p>' +
+            '<div style="padding:16px;color:var(--text);font-size:14px;line-height:1.6;">' +
+            '<p style="font-weight:700;margin-bottom:8px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--text-secondary);">PROMPT</p>' +
+            '<p style="margin-bottom:16px;">' + safePrompt + '</p>' +
+            '<hr style="border:none;border-top:1px solid rgba(var(--accent-rgb),0.12);margin:12px 0;">' +
+            '<p style="font-weight:700;margin-bottom:8px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--text-secondary);">ANSWER</p>' +
+            '<p>' + safeAnswer + '</p>' +
             '</div>';
-          ratingsEl.style.display = 'grid';
-          ratingsEl.querySelectorAll('button').forEach(function(b) {
-            b.onclick = function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); };
-          });
+          if (ratingsEl) {
+            ratingsEl.style.display = 'grid';
+            ratingsEl.querySelectorAll('button').forEach(function(b) {
+              b.onclick = function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); };
+            });
+          }
         }
       }
     }
