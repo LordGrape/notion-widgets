@@ -1411,6 +1411,8 @@
       cursor: pointer;
       transition: transform var(--transition), background var(--transition), border-color var(--transition), color var(--transition);
       flex-shrink: 0;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
     }
     .session-exit:hover{
       transform: translateY(-1px);
@@ -1432,8 +1434,14 @@
       padding: 18px;
       background: rgba(0,0,0,0.50);
       z-index: 100;
+      pointer-events: none;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
-    .confirm-overlay.show{ display: flex; }
+    .confirm-overlay.show{
+      display: flex;
+      pointer-events: auto;
+    }
     .confirm-box{
       width: 100%;
       max-width: 340px;
@@ -1479,6 +1487,8 @@
       text-transform: uppercase;
       cursor: pointer;
       transition: background var(--transition), transform var(--transition);
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
     }
     .confirm-box .cb-stay:hover{ background: rgba(var(--accent-rgb),0.14); transform: translateY(-1px); }
     .confirm-box .cb-leave{
@@ -1494,8 +1504,20 @@
       text-transform: uppercase;
       cursor: pointer;
       transition: background var(--transition), transform var(--transition);
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
     }
     .confirm-box .cb-leave:hover{ background: rgba(239,68,68,0.14); transform: translateY(-1px); }
+
+    @supports (-webkit-touch-callout: none) {
+      body.in-session .confirm-overlay{
+        position: absolute;
+      }
+      body.in-session .confirm-box{
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+      }
+    }
 
     .item-card{
       padding: 14px;
