@@ -3351,7 +3351,9 @@ var tutorConversation = [];
     });
 
     /* ── Buttons wiring ── */
-    el('startBtn').addEventListener('click', function(){
+    el('startBtn').addEventListener('click', function() {
+      if (el('startBtn').disabled) return;
+      try { playClick(); } catch(e) {}
       selectedCourse = 'All';
       selectedTopic = 'All';
       startSession();
