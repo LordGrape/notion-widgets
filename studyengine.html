@@ -3607,6 +3607,36 @@ body.standalone .answer.restudy-active{
       max-height: 220px;
       flex: 1 1 auto;
     }
+    .chart-empty{
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 40px 20px;
+      min-height: 160px;
+      width: 100%;
+      flex: 1 1 auto;
+    }
+    .chart-empty-icon{
+      font-size: 28px;
+      margin-bottom: 10px;
+      opacity: 0.5;
+    }
+    .chart-empty-title{
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 0.3px;
+      margin-bottom: 6px;
+    }
+    .chart-empty-desc{
+      font-size: 10px;
+      color: var(--text-tertiary);
+      line-height: 1.5;
+      max-width: 260px;
+      letter-spacing: 0.2px;
+    }
 
     .cal-heatmap-wrap {
       padding: 4px 0;
@@ -19715,6 +19745,34 @@ input[type="range"]::-moz-range-thumb{
         }
       } catch (e) {}
 
+      var hasSessionData = !!(state.stats && state.stats.lastSessionDate);
+      if (!hasSessionData) {
+        for (var dayKey in dayMap) {
+          if (dayMap.hasOwnProperty(dayKey) && dayMap[dayKey] > 0) {
+            hasSessionData = true;
+            break;
+          }
+        }
+      }
+      if (!hasSessionData) {
+        host.innerHTML =
+          '<div class="chart-empty">' +
+          '  <div class="chart-empty-icon">📅</div>' +
+          '  <div class="chart-empty-title">No sessions yet</div>' +
+          '  <div class="chart-empty-desc">Start a session to track your daily study activity.</div>' +
+          '</div>';
+        if (window.gsap) {
+          var activityEmpty = host.querySelector('.chart-empty');
+          if (activityEmpty) {
+            gsap.fromTo(activityEmpty,
+              { opacity: 0, y: 8 },
+              { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }
+            );
+          }
+        }
+        return;
+      }
+
       // Also check state.stats for today if a session just completed
       // (sessionHistory might not have it yet)
 
@@ -19935,12 +19993,46 @@ input[type="range"]::-moz-range-thumb{
       var items = {};
       var filterCourse = retentionFilter || 'All';
       var label = filterCourse === 'All' ? 'All courses' : filterCourse;
+      var hasData = false;
       for (var id in state.items) {
         if (!state.items.hasOwnProperty(id)) continue;
         var it = state.items[id];
         if (!it || it.archived) continue;
+        if (it.course && state.courses[it.course] && state.courses[it.course].archived) continue;
         if (filterCourse !== 'All' && it.course !== filterCourse) continue;
+        if (it.fsrs && it.fsrs.reps > 0) hasData = true;
         items[id] = it;
+      }
+      if (!hasData) {
+        var container = document.getElementById('retentionWrap') || document.querySelector('.retention-wrap');
+        if (container) {
+          var titleEl = container.querySelector('.ac-title');
+          var chipsEl = container.querySelector('.ret-filter-chips');
+          container.innerHTML = '';
+          if (titleEl) container.appendChild(titleEl);
+          if (chipsEl) container.appendChild(chipsEl);
+          var empty = document.createElement('div');
+          empty.className = 'chart-empty';
+          empty.innerHTML =
+            '<div class="chart-empty-icon">📈</div>' +
+            '<div class="chart-empty-title">No retention data yet</div>' +
+            '<div class="chart-empty-desc">Complete your first study session to see your predicted retention curve.</div>';
+          container.appendChild(empty);
+          if (window.gsap) {
+            gsap.fromTo(empty,
+              { opacity: 0, y: 8 },
+              { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }
+            );
+          }
+        }
+        return;
+      }
+      var retentionWrap = document.getElementById('retentionWrap') || document.querySelector('.retention-wrap');
+      if (retentionWrap && !document.getElementById('retentionCanvas')) {
+        var canvas = document.createElement('canvas');
+        canvas.id = 'retentionCanvas';
+        canvas.height = 200;
+        retentionWrap.appendChild(canvas);
       }
       drawRetentionCurve('retentionCanvas', items, label);
     }
