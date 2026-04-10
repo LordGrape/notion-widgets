@@ -216,6 +216,149 @@
       return out;
     }
 
+    function createSessionState(queue, startedAt) {
+      var ts = startedAt || Date.now();
+      return {
+        queue: queue,
+        idx: 0,
+        loops: {},
+        currentShown: false,
+        startedAt: ts,
+        xp: 0,
+        reviewsByTier: { quickfire:0, explain:0, apply:0, distinguish:0, mock:0, worked:0 },
+        ratingSum: 0,
+        ratingN: 0,
+        calBefore: calibrationPct(state.calibration),
+        confidence: null,
+        recentRatings: [],
+        fatigueWarningShown: false,
+        tutorStats: defaultTutorStats(),
+        tutorModeCounts: defaultTutorModeCounts(),
+        sessionRatingsLog: [],
+        lastTutorContext: null,
+        tutorAnalyticsHistoryKey: 's' + ts
+      };
+    }
+
+    function persistActiveSessionSnapshot() {
+      if (!session || !session.queue || !session.queue.length) return;
+      try {
+        SyncEngine.set('studyengine', 'activeSession', {
+          queue: session.queue.map(function(it) { return it && it.id ? it.id : null; }).filter(Boolean),
+          idx: session.idx || 0,
+          startedAt: session.startedAt || Date.now(),
+          selectedCourse: selectedCourse,
+          selectedTopic: selectedTopic
+        });
+      } catch (e) {}
+    }
+
+    function clearActiveSessionSnapshot() {
+      try { SyncEngine.set('studyengine', 'activeSession', null); } catch (e) {}
+    }
+
+    function dismissResumePrompt() {
+      var prompt = document.getElementById('resumeSessionPrompt');
+      if (prompt && prompt.parentNode) prompt.remove();
+    }
+
+    function resumeSavedSession(snapshot) {
+      if (!snapshot || !snapshot.queue || !snapshot.queue.length) return false;
+      var rebuiltQueue = snapshot.queue.map(function(id) {
+        return state.items[id] || null;
+      }).filter(function(it) {
+        return !!it && !it.archived;
+      });
+      if (!rebuiltQueue.length) {
+        clearActiveSessionSnapshot();
+        return false;
+      }
+      var idx = Math.max(0, Math.min(parseInt(snapshot.idx || 0, 10), rebuiltQueue.length - 1));
+      session = createSessionState(rebuiltQueue, snapshot.startedAt || Date.now());
+      session.idx = idx;
+      selectedCourse = snapshot.selectedCourse || selectedCourse || 'All';
+      selectedTopic = snapshot.selectedTopic || selectedTopic || 'All';
+      persistActiveSessionSnapshot();
+      dismissResumePrompt();
+      showView('viewSession');
+      renderCurrentItem();
+      toast('Resumed your interrupted session');
+      return true;
+    }
+
+    function checkForResumableSession() {
+      dismissResumePrompt();
+      var snapshot = null;
+      try { snapshot = SyncEngine.get('studyengine', 'activeSession'); } catch (e) {}
+      if (!snapshot || !snapshot.queue || !snapshot.queue.length) return;
+      if (!snapshot.startedAt || (Date.now() - snapshot.startedAt) > (4 * 60 * 60 * 1000)) {
+        clearActiveSessionSnapshot();
+        return;
+      }
+      var remaining = Math.max(0, snapshot.queue.length - (snapshot.idx || 0));
+      if (!remaining) {
+        clearActiveSessionSnapshot();
+        return;
+      }
+      var prompt = document.createElement('div');
+      prompt.id = 'resumeSessionPrompt';
+      prompt.style.cssText = 'position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:1200;width:min(340px,calc(100vw - 24px));padding:14px 16px;border-radius:18px;border:1px solid rgba(var(--accent-rgb),0.18);background:rgba(10,14,26,0.88);backdrop-filter:blur(18px);box-shadow:0 18px 42px rgba(0,0,0,0.28);';
+      prompt.innerHTML =
+        '<div style="font-size:12px;font-weight:700;margin-bottom:4px;">Resume interrupted session?</div>' +
+        '<div style="font-size:11px;color:var(--text-secondary);line-height:1.55;">' + remaining + ' card' + (remaining === 1 ? '' : 's') + ' remaining.</div>' +
+        '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap;">' +
+          '<button type="button" id="resumeDiscardBtn" class="ghost-btn">Discard</button>' +
+          '<button type="button" id="resumeNowBtn" class="big-btn">Resume</button>' +
+        '</div>';
+      document.body.appendChild(prompt);
+      if (window.gsap) gsap.fromTo(prompt, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.22, ease: 'power2.out' });
+      var resumeBtn = document.getElementById('resumeNowBtn');
+      if (resumeBtn) resumeBtn.addEventListener('click', function() { resumeSavedSession(snapshot); });
+      var discardBtn = document.getElementById('resumeDiscardBtn');
+      if (discardBtn) discardBtn.addEventListener('click', function() {
+        clearActiveSessionSnapshot();
+        dismissResumePrompt();
+      });
+    }
+
+    function refreshSessionEditButton() {
+      var metaEl = document.querySelector('.meta');
+      if (!metaEl) return;
+      var btn = document.getElementById('sessionEditBtn');
+      if (!btn) {
+        btn = document.createElement('button');
+        btn.type = 'button';
+        btn.id = 'sessionEditBtn';
+        btn.className = 'ghost-btn';
+        btn.style.padding = '4px 8px';
+        btn.style.marginLeft = 'auto';
+        btn.style.display = 'none';
+        btn.textContent = '✏ Edit';
+        btn.addEventListener('click', function() {
+          if (!session || !session.queue || !session.queue[session.idx] || typeof editItem !== 'function') return;
+          editItem(session.queue[session.idx].id, {
+            onSave: function(updatedItem) {
+              if (!updatedItem || !session || !session.queue || !session.queue[session.idx]) return;
+              session.queue[session.idx] = updatedItem;
+              el('metaCourse').textContent = updatedItem.course || '—';
+              el('metaTopic').textContent = updatedItem.topic || '—';
+              if ((session.queue[session.idx]._presentTier || session.queue[session.idx].tier || 'quickfire') !== 'apply') {
+                el('promptText').innerHTML = '<div class="md-content">' + renderMd(updatedItem.prompt || '') + '</div>';
+              }
+              if (modelAnswerEl && modelAnswerEl.style.display !== 'none') {
+                modelAnswerEl.innerHTML = '<div class="answer-header"><span class="se-icon" style="margin-right:4px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="10" rx="1.5"/><polyline points="2,5 8,9 14,5"/></svg></span>Model Answer</div><div class="md-content">' + renderMd(updatedItem.modelAnswer || '') + '</div>';
+              }
+              var modelAnswerRight = document.getElementById('modelAnswerRight');
+              if (modelAnswerRight) modelAnswerRight.innerHTML = '<span class="answer-header">Model Answer</span>' + renderMd(updatedItem.modelAnswer || '') + '<div class="visual-slot"></div>';
+              refreshSessionEditButton();
+            }
+          });
+        });
+        metaEl.appendChild(btn);
+      }
+      btn.style.display = (session && session.currentShown) ? 'inline-flex' : 'none';
+    }
+
     function startSession() {
       var q = buildSessionQueue();
       session = {
@@ -238,6 +381,7 @@
         lastTutorContext: null,  /* { mode, turns, hadDialogue, wasDontKnow } — set by tutor flows */
         tutorAnalyticsHistoryKey: 's' + Date.now()
       };
+      session = createSessionState(q, session.startedAt);
       /* Reset dragon done view for next session */
       var oldDragonImg = document.querySelector('.done-dragon-img');
       if (oldDragonImg) oldDragonImg.remove();
@@ -251,6 +395,7 @@
       breakState.breaksTaken = 0;
       breakState.bannerDismissed = false;
       if (!q.length) return;
+      persistActiveSessionSnapshot();
       var prevSum = el('sessionAiSummaryWrap');
       if (prevSum) prevSum.style.display = 'none';
       showView('viewSession');
@@ -364,6 +509,7 @@
         metaEl.appendChild(badge);
       }
       el('metaTopic').textContent = it.topic || '—';
+      refreshSessionEditButton();
       el('courseHint').textContent = (selectedCourse === 'All') ? (it.course || '—') : selectedCourse;
 
       var n = session.queue.length;
@@ -392,6 +538,7 @@
     function revealAnswer(fromCheck) {
       if (session.currentShown) return;
       session.currentShown = true;
+      refreshSessionEditButton();
       var it = session.queue[session.idx];
       if (!it) return;
 
@@ -814,6 +961,7 @@
           completeSession();
           return;
         }
+        persistActiveSessionSnapshot();
         checkBreakTriggers();
         renderCurrentItem();
       };
@@ -846,6 +994,7 @@
         completeSession();
         return;
       }
+      persistActiveSessionSnapshot();
       renderCurrentItem();
     }
 
@@ -876,6 +1025,7 @@
       try {
         SyncEngine.set('dragon', 'lastStudyXP', { xp: session.xp, timestamp: new Date().toISOString() });
       } catch (e) {}
+      clearActiveSessionSnapshot();
 
       saveState();
 

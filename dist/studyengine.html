@@ -6689,15 +6689,10 @@ input[type="range"]::-moz-range-thumb{
         width: 150px;
       }
     }
-
 /* Extraction-first scaffold: styles remain in base.css for exact parity. */
-
 /* Extraction-first scaffold: styles remain in base.css for exact parity. */
-
 /* Extraction-first scaffold: styles remain in base.css for exact parity. */
-
 /* Extraction-first scaffold: styles remain in base.css for exact parity. */
-
 </style>
 </head>
 <body>
@@ -7908,7 +7903,6 @@ input[type="range"]::-moz-range-thumb{
         return '<span style="white-space:pre-wrap;">' + esc(text) + '</span>';
       }
     }
-
 /* Phase 2 extraction: copied from monolith; source-of-truth remains state.js for parity. */
 
     function optimizeFsrsParams() {
@@ -8118,7 +8112,6 @@ input[type="range"]::-moz-range-thumb{
 
       return counts;
     }
-
 /* Phase 2 extraction: copied from monolith; source-of-truth remains state.js for parity. */
 
     function courseKey(name){
@@ -8511,10 +8504,12 @@ input[type="range"]::-moz-range-thumb{
         gsap.fromTo(container.querySelectorAll('.chip'), { opacity: 0, y: 3 }, { opacity: 1, y: 0, duration: 0.2, stagger: 0.03, ease: 'power2.out' });
       }
     }
-
 /* Phase 2 extraction: copied from monolith; source-of-truth remains state.js for parity. */
 
     function openModal(tab, courseName) {
+      editingItemId = null;
+      modalEditAfterSave = null;
+      importFormat = 'json';
       activeTab = tab || activeTab || 'add';
 
       /* Determine course context */
@@ -8548,15 +8543,226 @@ input[type="range"]::-moz-range-thumb{
       modalOv.classList.remove('show');
       modalOv.setAttribute('aria-hidden','true');
       pendingImport = null;
+      editingItemId = null;
+      modalEditAfterSave = null;
       var previewArea = document.getElementById('importPreviewArea');
       if (previewArea) previewArea.innerHTML = '';
   try { playClose(); } catch(e) {}
     }
 
+    function detectImportMode(raw) {
+      var text = String(raw || '').trim();
+      if (!text) return importFormat || 'json';
+      if (/^[\[{]/.test(text)) return 'json';
+      if (/^Q:\s*/m.test(text) || /\nQ:\s*/.test(text)) return 'qa';
+      return importFormat || 'json';
+    }
+
+    function updateImportModeUI(animate) {
+      var toggle = document.getElementById('importFormatToggle');
+      var textarea = el('m_import');
+      var label = document.getElementById('m_import_label');
+      var help = document.getElementById('m_import_help');
+      if (toggle) {
+        toggle.querySelectorAll('[data-import-format]').forEach(function(btn) {
+          btn.classList.toggle('active', btn.getAttribute('data-import-format') === importFormat);
+        });
+      }
+      if (!textarea) return;
+      var config = importFormat === 'qa'
+        ? {
+            label: 'Paste Q/A text',
+            placeholder: "Q: What is the near abroad doctrine?\nA: Russia's concept of near abroad refers to...\nT: Russian Foreign Policy",
+            help: 'Use Q: for prompts, A: for answers, and optional T: lines for topics. Blank lines separate cards.'
+          }
+        : {
+            label: 'Paste JSON array',
+            placeholder: '[{"prompt":"...","modelAnswer":"..."}]',
+            help: 'Each object needs at minimum: prompt and modelAnswer. Optional: topic, task, scenario, conceptA, conceptB, timeLimitMins.'
+          };
+      if (label) label.textContent = config.label;
+      if (help) help.innerHTML = config.help + ' The course is set automatically to <b>' + esc(modalCourse || 'Unknown') + '</b>.';
+      if (animate && window.gsap) {
+        gsap.fromTo(textarea, { opacity: 0.75, y: 4 }, { opacity: 1, y: 0, duration: 0.22, ease: 'power2.out' });
+      }
+      textarea.placeholder = config.placeholder;
+    }
+
+    function parseQaImport(raw) {
+      var lines = String(raw || '').replace(/\r\n?/g, '\n').split('\n');
+      var cards = [];
+      var card = null;
+      var currentField = '';
+      var sawPrompt = false;
+      var sawAnswer = false;
+
+      function ensureCard() {
+        if (!card) card = { prompt: '', modelAnswer: '', topic: '' };
+      }
+
+      function commitCard() {
+        if (!card) return;
+        var prompt = String(card.prompt || '').trim();
+        var answer = String(card.modelAnswer || '').trim();
+        var topic = String(card.topic || '').trim();
+        if (prompt || answer || topic) {
+          if (!prompt || !answer) {
+            throw new Error('Each card needs both Q: and A: lines');
+          }
+          cards.push({
+            prompt: prompt,
+            modelAnswer: answer,
+            topic: topic || 'General'
+          });
+        }
+        card = null;
+        currentField = '';
+      }
+
+      lines.forEach(function(line) {
+        var trimmed = line.trim();
+        if (!trimmed) {
+          commitCard();
+          return;
+        }
+        if (/^Q:\s*/i.test(trimmed)) {
+          if (card && String(card.prompt || '').trim() && String(card.modelAnswer || '').trim()) commitCard();
+          ensureCard();
+          card.prompt = trimmed.replace(/^Q:\s*/i, '').trim();
+          currentField = 'prompt';
+          sawPrompt = true;
+          return;
+        }
+        if (/^A:\s*/i.test(trimmed)) {
+          ensureCard();
+          card.modelAnswer = trimmed.replace(/^A:\s*/i, '').trim();
+          currentField = 'modelAnswer';
+          sawAnswer = true;
+          return;
+        }
+        if (/^T:\s*/i.test(trimmed)) {
+          ensureCard();
+          card.topic = trimmed.replace(/^T:\s*/i, '').trim();
+          currentField = 'topic';
+          return;
+        }
+        if (!currentField) return;
+        ensureCard();
+        var spacer = card[currentField] ? '\n' : '';
+        card[currentField] = String(card[currentField] || '') + spacer + trimmed;
+      });
+
+      commitCard();
+
+      if (!sawPrompt || !sawAnswer) {
+        toast('Use Q: and A: prefixes to mark questions and answers');
+        return null;
+      }
+      return cards;
+    }
+
+    function getTierUnlockMessage(beforeTiers, afterTiers) {
+      var unlocked = [];
+      (afterTiers || []).forEach(function(tier) {
+        if ((beforeTiers || []).indexOf(tier) < 0) unlocked.push(tierLabel(tier));
+      });
+      if (!unlocked.length) return '';
+      if (unlocked.length === 1) return 'Now supports ' + unlocked[0] + ' tiers';
+      return 'Now supports ' + unlocked.join(' + ') + ' tiers';
+    }
+
+    function saveEditedItem(itemId) {
+      var it = state.items[itemId];
+      if (!it) { toast('Card not found'); closeModal(); return; }
+
+      var prompt = (el('m_prompt').value || '').trim();
+      var answer = (el('m_answer').value || '').trim();
+      if (!prompt || !answer) {
+        try { playError(); } catch(e) {}
+        toast('Prompt and model answer are required');
+        return;
+      }
+
+      var beforeTiers = detectSupportedTiers(it);
+      var beforePrompt = it.prompt || '';
+      var beforeAnswer = it.modelAnswer || '';
+
+      it.prompt = prompt;
+      it.modelAnswer = answer;
+      it.topic = (el('m_topic').value || '').trim();
+      it.priority = (el('m_priority') && el('m_priority').value) || 'medium';
+
+      var scenario = (el('m_scenario') && el('m_scenario').value || '').trim();
+      var task = (el('m_task') && el('m_task').value || '').trim();
+      var conceptA = (el('m_conceptA') && el('m_conceptA').value || '').trim();
+      var conceptB = (el('m_conceptB') && el('m_conceptB').value || '').trim();
+      var timeVal = el('m_time') ? parseInt(el('m_time').value, 10) : 0;
+
+      if (scenario) it.scenario = scenario; else delete it.scenario;
+      if (task) it.task = task; else delete it.task;
+      if (conceptA) it.conceptA = conceptA; else delete it.conceptA;
+      if (conceptB) it.conceptB = conceptB; else delete it.conceptB;
+      if (timeVal && [5,10,15,30].indexOf(timeVal) >= 0) it.timeLimitMins = timeVal;
+      else delete it.timeLimitMins;
+
+      if (beforePrompt !== prompt || beforeAnswer !== answer) it.visual = null;
+
+      state.items[itemId] = it;
+      saveState();
+      renderDashboard();
+
+      var afterTiers = detectSupportedTiers(it);
+      var unlockMsg = getTierUnlockMessage(beforeTiers, afterTiers);
+      toast(unlockMsg || 'Card updated');
+      try { playPresetSelect(); } catch(e2) {}
+
+      var afterSave = modalEditAfterSave;
+      closeModal();
+      if (typeof afterSave === 'function') afterSave(it);
+      else if (it.course) {
+        try { openCourseDetail(it.course); } catch(e3) {}
+      }
+    }
+
+    function deleteEditedItem(itemId) {
+      if (!state.items[itemId]) return;
+      if (!window.confirm('Delete this card permanently?')) return;
+      delete state.items[itemId];
+      reconcileStats();
+      saveState();
+      renderDashboard();
+      var afterSave = modalEditAfterSave;
+      closeModal();
+      toast('Card deleted');
+      if (typeof afterSave === 'function') afterSave(null);
+    }
+
+    function editItem(itemId, opts) {
+      var it = state.items[itemId];
+      if (!it) { toast('Card not found'); return; }
+      opts = opts || {};
+      activeTab = 'add';
+      editingItemId = itemId;
+      modalEditAfterSave = typeof opts.onSave === 'function' ? opts.onSave : null;
+      modalCourse = it.course || null;
+      modalShowingPicker = false;
+      modalOv.classList.add('show');
+      modalOv.setAttribute('aria-hidden','false');
+      renderModal();
+      if (Core && Core.a11y && Core.a11y.trap) Core.a11y.trap(modalOv);
+      try { playOpen(); } catch(e) {}
+    }
+
+    window.editCard = editItem;
+
     function addFromModal(stayOpen) {
       if (activeTab === 'import') {
         doImport();
         /* Preview is now shown inline — don't close modal yet */
+        return;
+      }
+      if (editingItemId) {
+        saveEditedItem(editingItemId);
         return;
       }
 
@@ -8656,10 +8862,13 @@ input[type="range"]::-moz-range-thumb{
 
     function doImport() {
       var raw = (el('m_import').value || '').trim();
-      if (!raw) { try { playError(); } catch(e) {} toast('Paste JSON first'); return; }
+      if (!raw) { try { playError(); } catch(e) {} toast(importFormat === 'qa' ? 'Paste Q/A text first' : 'Paste JSON first'); return; }
+
+      importFormat = detectImportMode(raw);
+      updateImportModeUI(false);
 
       /* Full-state restore from backup file */
-      try {
+      if (importFormat === 'json') try {
         var parsed = JSON.parse(raw);
         if (parsed && parsed._export === 'studyengine-full-backup' && parsed.items) {
           var count = Object.keys(parsed.items).length;
@@ -8685,7 +8894,12 @@ input[type="range"]::-moz-range-thumb{
       } catch(e) { /* not a backup file, fall through to normal import */ }
 
       var arr = null;
-      try { arr = JSON.parse(raw); } catch (e) { toast('Invalid JSON'); return; }
+      if (importFormat === 'qa') {
+        try { arr = parseQaImport(raw); } catch (e2) { toast(e2.message || 'Could not parse Q/A text'); return; }
+        if (!arr) return;
+      } else {
+        try { arr = JSON.parse(raw); } catch (e) { toast('Invalid JSON'); return; }
+      }
       if (!Array.isArray(arr)) { try { playError(); } catch(e) {} toast('Expected an array'); return; }
 
       /* Phase 1: Parse and classify each item */
@@ -9316,7 +9530,6 @@ input[type="range"]::-moz-range-thumb{
         };
       }
     }
-
 /* Phase 2 extraction: copied from monolith; source-of-truth remains state.js for parity. */
 
     function getDragonStage(xp) {
@@ -9467,7 +9680,6 @@ input[type="range"]::-moz-range-thumb{
         streakEl.innerHTML = streak > 0 ? ('🔥 ' + streak + 'd') : '';
       }
     }
-
 /* Phase 2 extraction: copied from monolith; source-of-truth remains state.js for parity. */
 
     function buildCourseTree() {
@@ -10304,7 +10516,6 @@ function showCourseDashboard(courseName) {
         }
       ]);
     }
-
 /* Phase 2 extraction: copied from monolith; source-of-truth remains state.js for parity. */
 
     function renderDashboard() {
@@ -10378,6 +10589,40 @@ function showCourseDashboard(courseName) {
       /* Hero due count with counter animation */
       animateCounter(el('statDue'), due.total);
       el('heroCourseHint').textContent = 'Across all tiers';
+
+      var cramBannerEl = el('cramBanner');
+      if (cramBannerEl) {
+        var activeCrams = listCourses().map(function(course) {
+          return { name: course.name, cram: getCramState(course.name) };
+        }).filter(function(entry) {
+          return entry.cram && entry.cram.active;
+        }).sort(function(a, b) {
+          return (a.cram.daysUntil || 9999) - (b.cram.daysUntil || 9999);
+        });
+        if (activeCrams.length) {
+          var cramHtml = '';
+          activeCrams.forEach(function(entry) {
+            cramHtml += '<div class="cram-banner show" style="background:linear-gradient(135deg,rgba(239,68,68,0.12),rgba(245,158,11,0.08));border:1px solid rgba(239,68,68,0.3);border-radius:var(--radius-lg);padding:16px;margin:12px 0;">' +
+              '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+              '<span class="cram-dashboard-fire" style="display:inline-flex;align-items:center;justify-content:center;">🔥</span>' +
+              '<div style="min-width:0;">' +
+              '<div style="font-weight:600;font-size:13px;">CRAM MODE — ' + esc(entry.name) + ' (' + esc(String(entry.cram.daysUntil)) + ' days)</div>' +
+              '<div style="font-size:11px;opacity:0.7;">' + esc(entry.cram.intensity) + ' intensity · ' + esc(String(entry.cram.sessionMod)) + '× session size · ' + esc(String(entry.cram.intervalMod)) + '× intervals</div>' +
+              '</div>' +
+              '</div>' +
+              '</div>';
+          });
+          cramBannerEl.classList.add('show');
+          cramBannerEl.innerHTML = cramHtml;
+          if (window.gsap) {
+            gsap.fromTo(cramBannerEl.querySelectorAll('.cram-banner'), { opacity: 0, x: -18 }, { opacity: 1, x: 0, duration: 0.28, stagger: 0.06, ease: 'power2.out' });
+            gsap.fromTo(cramBannerEl.querySelectorAll('.cram-dashboard-fire'), { scale: 0.96 }, { scale: 1.08, repeat: 1, yoyo: true, duration: 0.45, ease: 'sine.inOut', stagger: 0.08 });
+          }
+        } else {
+          cramBannerEl.classList.remove('show');
+          cramBannerEl.innerHTML = '';
+        }
+      }
 
       /* Secondary stats — animated counters */
       var masteredCount = 0;
@@ -11286,7 +11531,6 @@ function showCourseDashboard(courseName) {
           wrap.style.display = 'none';
         });
     }
-
 /* Phase 2 extraction: copied from monolith; source-of-truth remains state.js for parity. */
 
     function callTutor(mode, model, item, userResponse, conversation, context) {
@@ -12084,7 +12328,6 @@ function showCourseDashboard(courseName) {
         calibrationNudgeTopics: getOverconfidentTopics(item.course).slice(0, 3).map(function(ot) { return ot.topic + ' (' + ot.pctWeak + '% weak)'; })
       };
     }
-
 /* Relocated module-local vars from state.js */
     var sessionSummary = null;
 
@@ -12303,6 +12546,149 @@ function showCourseDashboard(courseName) {
       return out;
     }
 
+    function createSessionState(queue, startedAt) {
+      var ts = startedAt || Date.now();
+      return {
+        queue: queue,
+        idx: 0,
+        loops: {},
+        currentShown: false,
+        startedAt: ts,
+        xp: 0,
+        reviewsByTier: { quickfire:0, explain:0, apply:0, distinguish:0, mock:0, worked:0 },
+        ratingSum: 0,
+        ratingN: 0,
+        calBefore: calibrationPct(state.calibration),
+        confidence: null,
+        recentRatings: [],
+        fatigueWarningShown: false,
+        tutorStats: defaultTutorStats(),
+        tutorModeCounts: defaultTutorModeCounts(),
+        sessionRatingsLog: [],
+        lastTutorContext: null,
+        tutorAnalyticsHistoryKey: 's' + ts
+      };
+    }
+
+    function persistActiveSessionSnapshot() {
+      if (!session || !session.queue || !session.queue.length) return;
+      try {
+        SyncEngine.set('studyengine', 'activeSession', {
+          queue: session.queue.map(function(it) { return it && it.id ? it.id : null; }).filter(Boolean),
+          idx: session.idx || 0,
+          startedAt: session.startedAt || Date.now(),
+          selectedCourse: selectedCourse,
+          selectedTopic: selectedTopic
+        });
+      } catch (e) {}
+    }
+
+    function clearActiveSessionSnapshot() {
+      try { SyncEngine.set('studyengine', 'activeSession', null); } catch (e) {}
+    }
+
+    function dismissResumePrompt() {
+      var prompt = document.getElementById('resumeSessionPrompt');
+      if (prompt && prompt.parentNode) prompt.remove();
+    }
+
+    function resumeSavedSession(snapshot) {
+      if (!snapshot || !snapshot.queue || !snapshot.queue.length) return false;
+      var rebuiltQueue = snapshot.queue.map(function(id) {
+        return state.items[id] || null;
+      }).filter(function(it) {
+        return !!it && !it.archived;
+      });
+      if (!rebuiltQueue.length) {
+        clearActiveSessionSnapshot();
+        return false;
+      }
+      var idx = Math.max(0, Math.min(parseInt(snapshot.idx || 0, 10), rebuiltQueue.length - 1));
+      session = createSessionState(rebuiltQueue, snapshot.startedAt || Date.now());
+      session.idx = idx;
+      selectedCourse = snapshot.selectedCourse || selectedCourse || 'All';
+      selectedTopic = snapshot.selectedTopic || selectedTopic || 'All';
+      persistActiveSessionSnapshot();
+      dismissResumePrompt();
+      showView('viewSession');
+      renderCurrentItem();
+      toast('Resumed your interrupted session');
+      return true;
+    }
+
+    function checkForResumableSession() {
+      dismissResumePrompt();
+      var snapshot = null;
+      try { snapshot = SyncEngine.get('studyengine', 'activeSession'); } catch (e) {}
+      if (!snapshot || !snapshot.queue || !snapshot.queue.length) return;
+      if (!snapshot.startedAt || (Date.now() - snapshot.startedAt) > (4 * 60 * 60 * 1000)) {
+        clearActiveSessionSnapshot();
+        return;
+      }
+      var remaining = Math.max(0, snapshot.queue.length - (snapshot.idx || 0));
+      if (!remaining) {
+        clearActiveSessionSnapshot();
+        return;
+      }
+      var prompt = document.createElement('div');
+      prompt.id = 'resumeSessionPrompt';
+      prompt.style.cssText = 'position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:1200;width:min(340px,calc(100vw - 24px));padding:14px 16px;border-radius:18px;border:1px solid rgba(var(--accent-rgb),0.18);background:rgba(10,14,26,0.88);backdrop-filter:blur(18px);box-shadow:0 18px 42px rgba(0,0,0,0.28);';
+      prompt.innerHTML =
+        '<div style="font-size:12px;font-weight:700;margin-bottom:4px;">Resume interrupted session?</div>' +
+        '<div style="font-size:11px;color:var(--text-secondary);line-height:1.55;">' + remaining + ' card' + (remaining === 1 ? '' : 's') + ' remaining.</div>' +
+        '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap;">' +
+          '<button type="button" id="resumeDiscardBtn" class="ghost-btn">Discard</button>' +
+          '<button type="button" id="resumeNowBtn" class="big-btn">Resume</button>' +
+        '</div>';
+      document.body.appendChild(prompt);
+      if (window.gsap) gsap.fromTo(prompt, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.22, ease: 'power2.out' });
+      var resumeBtn = document.getElementById('resumeNowBtn');
+      if (resumeBtn) resumeBtn.addEventListener('click', function() { resumeSavedSession(snapshot); });
+      var discardBtn = document.getElementById('resumeDiscardBtn');
+      if (discardBtn) discardBtn.addEventListener('click', function() {
+        clearActiveSessionSnapshot();
+        dismissResumePrompt();
+      });
+    }
+
+    function refreshSessionEditButton() {
+      var metaEl = document.querySelector('.meta');
+      if (!metaEl) return;
+      var btn = document.getElementById('sessionEditBtn');
+      if (!btn) {
+        btn = document.createElement('button');
+        btn.type = 'button';
+        btn.id = 'sessionEditBtn';
+        btn.className = 'ghost-btn';
+        btn.style.padding = '4px 8px';
+        btn.style.marginLeft = 'auto';
+        btn.style.display = 'none';
+        btn.textContent = '✏ Edit';
+        btn.addEventListener('click', function() {
+          if (!session || !session.queue || !session.queue[session.idx] || typeof editItem !== 'function') return;
+          editItem(session.queue[session.idx].id, {
+            onSave: function(updatedItem) {
+              if (!updatedItem || !session || !session.queue || !session.queue[session.idx]) return;
+              session.queue[session.idx] = updatedItem;
+              el('metaCourse').textContent = updatedItem.course || '—';
+              el('metaTopic').textContent = updatedItem.topic || '—';
+              if ((session.queue[session.idx]._presentTier || session.queue[session.idx].tier || 'quickfire') !== 'apply') {
+                el('promptText').innerHTML = '<div class="md-content">' + renderMd(updatedItem.prompt || '') + '</div>';
+              }
+              if (modelAnswerEl && modelAnswerEl.style.display !== 'none') {
+                modelAnswerEl.innerHTML = '<div class="answer-header"><span class="se-icon" style="margin-right:4px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="10" rx="1.5"/><polyline points="2,5 8,9 14,5"/></svg></span>Model Answer</div><div class="md-content">' + renderMd(updatedItem.modelAnswer || '') + '</div>';
+              }
+              var modelAnswerRight = document.getElementById('modelAnswerRight');
+              if (modelAnswerRight) modelAnswerRight.innerHTML = '<span class="answer-header">Model Answer</span>' + renderMd(updatedItem.modelAnswer || '') + '<div class="visual-slot"></div>';
+              refreshSessionEditButton();
+            }
+          });
+        });
+        metaEl.appendChild(btn);
+      }
+      btn.style.display = (session && session.currentShown) ? 'inline-flex' : 'none';
+    }
+
     function startSession() {
       var q = buildSessionQueue();
       session = {
@@ -12325,6 +12711,7 @@ function showCourseDashboard(courseName) {
         lastTutorContext: null,  /* { mode, turns, hadDialogue, wasDontKnow } — set by tutor flows */
         tutorAnalyticsHistoryKey: 's' + Date.now()
       };
+      session = createSessionState(q, session.startedAt);
       /* Reset dragon done view for next session */
       var oldDragonImg = document.querySelector('.done-dragon-img');
       if (oldDragonImg) oldDragonImg.remove();
@@ -12338,6 +12725,7 @@ function showCourseDashboard(courseName) {
       breakState.breaksTaken = 0;
       breakState.bannerDismissed = false;
       if (!q.length) return;
+      persistActiveSessionSnapshot();
       var prevSum = el('sessionAiSummaryWrap');
       if (prevSum) prevSum.style.display = 'none';
       showView('viewSession');
@@ -12451,6 +12839,7 @@ function showCourseDashboard(courseName) {
         metaEl.appendChild(badge);
       }
       el('metaTopic').textContent = it.topic || '—';
+      refreshSessionEditButton();
       el('courseHint').textContent = (selectedCourse === 'All') ? (it.course || '—') : selectedCourse;
 
       var n = session.queue.length;
@@ -12479,6 +12868,7 @@ function showCourseDashboard(courseName) {
     function revealAnswer(fromCheck) {
       if (session.currentShown) return;
       session.currentShown = true;
+      refreshSessionEditButton();
       var it = session.queue[session.idx];
       if (!it) return;
 
@@ -12901,6 +13291,7 @@ function showCourseDashboard(courseName) {
           completeSession();
           return;
         }
+        persistActiveSessionSnapshot();
         checkBreakTriggers();
         renderCurrentItem();
       };
@@ -12933,6 +13324,7 @@ function showCourseDashboard(courseName) {
         completeSession();
         return;
       }
+      persistActiveSessionSnapshot();
       renderCurrentItem();
     }
 
@@ -12963,6 +13355,7 @@ function showCourseDashboard(courseName) {
       try {
         SyncEngine.set('dragon', 'lastStudyXP', { xp: session.xp, timestamp: new Date().toISOString() });
       } catch (e) {}
+      clearActiveSessionSnapshot();
 
       saveState();
 
@@ -13230,7 +13623,6 @@ function showCourseDashboard(courseName) {
       try { playResume(); } catch (e) {}
       toast('Break complete — back to it');
     }
-
 /* Study Engine — multi-modal retrieval practice engine (FSRS) */
     var isEmbedded = (window.self !== window.top);
     if (!isEmbedded) document.body.classList.add('standalone');
@@ -16415,14 +16807,103 @@ var tutorConversation = [];
       if (ncBtn) ncBtn.remove();
     }
 
+    function ensureShortcutHelpButton() {
+      var topbarRight = document.querySelector('.topbar-right');
+      if (!topbarRight || document.getElementById('shortcutHelpBtn')) return;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'icon-btn';
+      btn.id = 'shortcutHelpBtn';
+      btn.title = 'Keyboard shortcuts';
+      btn.setAttribute('aria-label', 'Keyboard shortcuts');
+      btn.textContent = '?';
+      btn.addEventListener('click', function() {
+        toggleShortcutHelpOverlay();
+        try { playClick(); } catch (e) {}
+      });
+      topbarRight.insertBefore(btn, topbarRight.firstChild || null);
+    }
+
+    function ensureShortcutHelpOverlay() {
+      var existing = document.getElementById('shortcutHelpOv');
+      if (existing) return existing;
+      var overlay = document.createElement('div');
+      overlay.id = 'shortcutHelpOv';
+      overlay.className = 'overlay';
+      overlay.setAttribute('aria-hidden', 'true');
+      overlay.innerHTML =
+        '<div class="modal" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts" style="max-width:420px;width:min(92vw,420px);">' +
+          '<div class="modal-head">' +
+            '<div style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--text);">Keyboard shortcuts</div>' +
+            '<button type="button" class="icon-btn" id="shortcutHelpClose" aria-label="Close"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg></button>' +
+          '</div>' +
+          '<div class="modal-body" style="max-height:min(70vh,520px);overflow:auto;">' +
+            '<div id="shortcutHelpGrid" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;">' +
+              '<div style="padding:10px 12px;border-radius:14px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.04);"><div style="font-weight:800;font-size:10px;margin-bottom:4px;">Space</div><div style="font-size:11px;color:var(--text-secondary);line-height:1.5;">Reveal answer / Next card / Skip Ask Tutor</div></div>' +
+              '<div style="padding:10px 12px;border-radius:14px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.04);"><div style="font-weight:800;font-size:10px;margin-bottom:4px;">1</div><div style="font-size:11px;color:var(--text-secondary);line-height:1.5;">Rate: Again</div></div>' +
+              '<div style="padding:10px 12px;border-radius:14px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.04);"><div style="font-weight:800;font-size:10px;margin-bottom:4px;">2</div><div style="font-size:11px;color:var(--text-secondary);line-height:1.5;">Rate: Hard</div></div>' +
+              '<div style="padding:10px 12px;border-radius:14px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.04);"><div style="font-weight:800;font-size:10px;margin-bottom:4px;">3</div><div style="font-size:11px;color:var(--text-secondary);line-height:1.5;">Rate: Good</div></div>' +
+              '<div style="padding:10px 12px;border-radius:14px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.04);"><div style="font-weight:800;font-size:10px;margin-bottom:4px;">4</div><div style="font-size:11px;color:var(--text-secondary);line-height:1.5;">Rate: Easy</div></div>' +
+              '<div style="padding:10px 12px;border-radius:14px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.04);"><div style="font-weight:800;font-size:10px;margin-bottom:4px;">D</div><div style="font-size:11px;color:var(--text-secondary);line-height:1.5;">Don&#39;t Know (generative tiers)</div></div>' +
+              '<div style="padding:10px 12px;border-radius:14px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.04);"><div style="font-weight:800;font-size:10px;margin-bottom:4px;">Esc</div><div style="font-size:11px;color:var(--text-secondary);line-height:1.5;">Exit session / Close modal</div></div>' +
+              '<div style="padding:10px 12px;border-radius:14px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.04);"><div style="font-weight:800;font-size:10px;margin-bottom:4px;">?</div><div style="font-size:11px;color:var(--text-secondary);line-height:1.5;">Show this help</div></div>' +
+              '<div style="padding:10px 12px;border-radius:14px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.04);"><div style="font-weight:800;font-size:10px;margin-bottom:4px;">Enter</div><div style="font-size:11px;color:var(--text-secondary);line-height:1.5;">Submit tutor response</div></div>' +
+              '<div style="padding:10px 12px;border-radius:14px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.04);"><div style="font-weight:800;font-size:10px;margin-bottom:4px;">Shift+Enter</div><div style="font-size:11px;color:var(--text-secondary);line-height:1.5;">New line in tutor input</div></div>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      document.body.appendChild(overlay);
+      overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) closeShortcutHelpOverlay();
+      });
+      var closeBtn = document.getElementById('shortcutHelpClose');
+      if (closeBtn) closeBtn.addEventListener('click', closeShortcutHelpOverlay);
+      return overlay;
+    }
+
+    function openShortcutHelpOverlay() {
+      var overlay = ensureShortcutHelpOverlay();
+      if (!overlay) return;
+      overlay.classList.add('show');
+      overlay.setAttribute('aria-hidden', 'false');
+      var grid = document.getElementById('shortcutHelpGrid');
+      if (window.gsap) {
+        gsap.fromTo(overlay.querySelector('.modal'), { opacity: 0, scale: 0.95, y: 8 }, { opacity: 1, scale: 1, y: 0, duration: 0.22, ease: 'power2.out' });
+        if (grid) {
+          var cards = Array.prototype.slice.call(grid.children || []);
+          if (window.innerWidth < 360) grid.style.gridTemplateColumns = '1fr';
+          gsap.fromTo(cards, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.18, stagger: 0.02, ease: 'power2.out', delay: 0.04 });
+        }
+      }
+    }
+
+    function closeShortcutHelpOverlay() {
+      var overlay = document.getElementById('shortcutHelpOv');
+      if (!overlay) return;
+      overlay.classList.remove('show');
+      overlay.setAttribute('aria-hidden', 'true');
+    }
+
+    function toggleShortcutHelpOverlay() {
+      var overlay = ensureShortcutHelpOverlay();
+      if (!overlay) return;
+      if (overlay.classList.contains('show')) closeShortcutHelpOverlay();
+      else openShortcutHelpOverlay();
+    }
+
+    function modalIsOpenForHotkeys() {
+      return modalOv.classList.contains('show') || settingsOv.classList.contains('show') || courseOv.classList.contains('show') || el('confirmExitOv').classList.contains('show') || el('confirmDeleteCourseOv').classList.contains('show') || !!(document.getElementById('shortcutHelpOv') && document.getElementById('shortcutHelpOv').classList.contains('show'));
+    }
+
 /* ── Keyboard shortcuts ── */
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') {
         /* Close modals first */
-        var hadModal = modalOv.classList.contains('show') || settingsOv.classList.contains('show') || courseOv.classList.contains('show') || el('confirmExitOv').classList.contains('show') || el('confirmDeleteCourseOv').classList.contains('show');
+        var hadModal = modalIsOpenForHotkeys();
         closeModals();
         el('confirmExitOv').classList.remove('show');
         el('confirmDeleteCourseOv').classList.remove('show');
+        closeShortcutHelpOverlay();
         if (hadModal) return;
 
         /* If in session, show confirmation instead of exiting immediately */
@@ -16435,6 +16916,11 @@ var tutorConversation = [];
       }
 
       var inText = (e.target && (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT'));
+      if (e.key === '?' && !inText && !modalOv.classList.contains('show') && !settingsOv.classList.contains('show') && !courseOv.classList.contains('show')) {
+        e.preventDefault();
+        toggleShortcutHelpOverlay();
+        return;
+      }
       if (!viewSession.classList.contains('active')) return;
       if (!session) return;
 
@@ -16567,6 +17053,7 @@ var tutorConversation = [];
       if (session) {
         finalizeTutorAnalyticsSession();
       }
+      if (typeof clearActiveSessionSnapshot === 'function') clearActiveSessionSnapshot();
       /* Save progress for items already reviewed */
       saveState();
       /* Reset session and return to dashboard */
@@ -16601,6 +17088,9 @@ var tutorConversation = [];
     var advancedOpen = false;
     var modalCourse = null; /* course name the modal is scoped to */
     var modalShowingPicker = false; /* true = showing course picker step */
+    var editingItemId = null;
+    var modalEditAfterSave = null;
+    var importFormat = 'json';
 
     function closeModals() {
       closeModal();
@@ -16627,6 +17117,11 @@ var tutorConversation = [];
     }
 
     function renderModal() {
+      var isEditing = !!editingItemId && !!state.items[editingItemId];
+      if (editingItemId && !isEditing) editingItemId = null;
+      var editingItem = isEditing ? state.items[editingItemId] : null;
+      var tabsRoot = el('modalTabs');
+      if (tabsRoot) tabsRoot.style.display = isEditing ? 'none' : '';
       /* tabs */
       el('modalTabs') && el('modalTabs').querySelectorAll('.tab').forEach(function(t) {
         var on = t.getAttribute('data-tab') === activeTab;
@@ -16642,7 +17137,9 @@ var tutorConversation = [];
       }
 
       var showAdd = (activeTab === 'add');
-      el('addNextBtn').style.display = showAdd ? 'inline-flex' : 'none';
+      el('addNextBtn').style.display = isEditing ? 'inline-flex' : (showAdd ? 'inline-flex' : 'none');
+      el('addNextBtn').textContent = isEditing ? 'Cancel' : 'Add & Next';
+      el('doneBtn').textContent = isEditing ? 'Save Changes' : 'Done';
 
       /* ── Course picker step ── */
       if (modalShowingPicker) {
@@ -16690,13 +17187,13 @@ var tutorConversation = [];
         var courseBadge = '<div class="modal-course-badge">' +
             '<div class="mcb-dot" style="background:' + esc(courseCol) + '"></div>' +
             '<span class="mcb-name">' + esc(modalCourse || 'Unknown') + '</span>' +
-            '<span class="mcb-change" onclick="modalShowingPicker=true;renderModal();">Change</span>' +
+            (isEditing ? '<span class="mcb-change" style="cursor:default;opacity:0.72;">Locked</span>' : '<span class="mcb-change" onclick="modalShowingPicker=true;renderModal();">Change</span>') +
             '</div>';
 
         modalForm.innerHTML = courseBadge +
           '<div class="field">' +
           '<label>Topic <span style="font-weight:500;letter-spacing:0.5px;text-transform:lowercase;opacity:0.7">(optional)</span></label>' +
-          '<input class="input" id="m_topic" placeholder="e.g., WTO Dispute Settlement">' +
+          '<input class="input" id="m_topic" placeholder="e.g., WTO Dispute Settlement" value="' + esc(editingItem ? (editingItem.topic || '') : '') + '">' +
           '<div class="chips topic-suggestions" id="topicSuggestions"></div>' +
           '</div>' +
           '<div class="field">' +
@@ -16708,24 +17205,25 @@ var tutorConversation = [];
           '    <option value="low">⚪ Low — peripheral context</option>' +
           '  </select>' +
           '</div>' +
-          areaField('Prompt', 'm_prompt', 'Question, cue, or concept to recall') +
-          areaField('Model Answer', 'm_answer', 'Ideal response to compare against') +
+          '<div class="field"><label>Prompt</label><textarea id="m_prompt" rows="4" placeholder="Question, cue, or concept to recall">' + esc(editingItem ? (editingItem.prompt || '') : '') + '</textarea></div>' +
+          '<div class="field"><label>Model Answer</label><textarea id="m_answer" rows="4" placeholder="Ideal response to compare against">' + esc(editingItem ? (editingItem.modelAnswer || '') : '') + '</textarea></div>' +
           '<div class="adv-toggle" id="advToggle">' +
           '<span class="adv-arrow">▶</span>' +
           '<span class="adv-text">Advanced fields (scenario, concepts, timer)</span>' +
           '</div>' +
           '<div class="adv-fields" id="advFields">' +
-          areaField('Scenario', 'm_scenario', 'Fact pattern or context for application (enables Apply It tier)') +
-          textField('Task', 'm_task', 'Instruction for the scenario (optional)') +
+          '<div class="field"><label>Scenario</label><textarea id="m_scenario" rows="4" placeholder="Fact pattern or context for application (enables Apply It tier)">' + esc(editingItem ? (editingItem.scenario || '') : '') + '</textarea></div>' +
+          '<div class="field"><label>Task</label><input class="input" id="m_task" placeholder="Instruction for the scenario (optional)" value="' + esc(editingItem ? (editingItem.task || '') : '') + '" /></div>' +
           '<div class="course-form-row">' +
-          textField('Concept A', 'm_conceptA', 'e.g., Trade creation') +
-          textField('Concept B', 'm_conceptB', 'e.g., Trade diversion') +
+          '<div class="field"><label>Concept A</label><input class="input" id="m_conceptA" placeholder="e.g., Trade creation" value="' + esc(editingItem ? (editingItem.conceptA || '') : '') + '" /></div>' +
+          '<div class="field"><label>Concept B</label><input class="input" id="m_conceptB" placeholder="e.g., Trade diversion" value="' + esc(editingItem ? (editingItem.conceptB || '') : '') + '" /></div>' +
           '</div>' +
           '<p class="help">Filling Concept A + B enables the Distinguish tier.</p>' +
-          selectField('Mock time limit', 'm_time', [{v:'5',t:'5 min'},{v:'10',t:'10 min'},{v:'15',t:'15 min'},{v:'30',t:'30 min'}], String(settings.mockDefaultMins || 10)) +
+          selectField('Mock time limit', 'm_time', [{v:'5',t:'5 min'},{v:'10',t:'10 min'},{v:'15',t:'15 min'},{v:'30',t:'30 min'}], String(editingItem && editingItem.timeLimitMins ? editingItem.timeLimitMins : (settings.mockDefaultMins || 10))) +
           '<p class="help">Setting a time limit enables the Mock Exam tier.</p>' +
           '</div>' +
-          '<div id="tierBadgeArea"></div>';
+          '<div id="tierBadgeArea"></div>' +
+          (isEditing ? '<button type="button" id="modalDeleteBtn" class="ghost-btn" style="width:100%;margin-top:14px;border-color:rgba(239,68,68,0.28);color:#ef4444;background:rgba(239,68,68,0.06);">Delete Card</button>' : '');
 
         /* Wire advanced toggle */
         setTimeout(function() {
@@ -16735,7 +17233,18 @@ var tutorConversation = [];
             tog.classList.toggle('open', advancedOpen);
             el('advFields').classList.toggle('show', advancedOpen);
           });
-          if (advancedOpen) {
+          if (isEditing) {
+            if (el('m_priority')) el('m_priority').value = editingItem && editingItem.priority ? editingItem.priority : 'medium';
+            if (el('m_time')) el('m_time').value = String(editingItem && editingItem.timeLimitMins ? editingItem.timeLimitMins : (settings.mockDefaultMins || 10));
+            var deleteBtn = el('modalDeleteBtn');
+            if (deleteBtn) {
+              deleteBtn.addEventListener('click', function() {
+                if (typeof deleteEditedItem === 'function') deleteEditedItem(editingItemId);
+              });
+            }
+          }
+          if (advancedOpen || isEditing) {
+            advancedOpen = true;
             tog && tog.classList.add('open');
             el('advFields') && el('advFields').classList.add('show');
           }
@@ -16756,10 +17265,40 @@ var tutorConversation = [];
 
         modalForm.innerHTML = courseBadge2 +
           '<div class="field">' +
-          '<label>Paste JSON array</label>' +
-          '<textarea class="input" id="m_import" rows="6" placeholder=\'[{"prompt":"...","modelAnswer":"..."}]\'></textarea>' +
-          '<p class="help">Each object needs at minimum: <b>prompt</b>, <b>modelAnswer</b>. Optional: topic, task, scenario, conceptA, conceptB, timeLimitMins. The course is set automatically to <b>' + esc(modalCourse) + '</b>.</p>' +
+          '<label>Import format</label>' +
+          '<div id="importFormatToggle" style="display:flex;gap:6px;flex-wrap:wrap;">' +
+          '<button type="button" class="chip' + (importFormat === 'json' ? ' active' : '') + '" data-import-format="json" style="border:none;cursor:pointer;">JSON</button>' +
+          '<button type="button" class="chip' + (importFormat === 'qa' ? ' active' : '') + '" data-import-format="qa" style="border:none;cursor:pointer;">Q/A Text</button>' +
+          '</div>' +
+          '</div>' +
+          '<div class="field">' +
+          '<label id="m_import_label">Paste JSON array</label>' +
+          '<textarea class="input" id="m_import" rows="8" style="min-height:200px;" placeholder=\'[{"prompt":"...","modelAnswer":"..."}]\'></textarea>' +
+          '<p class="help" id="m_import_help">Each object needs at minimum: <b>prompt</b>, <b>modelAnswer</b>. Optional: topic, task, scenario, conceptA, conceptB, timeLimitMins. The course is set automatically to <b>' + esc(modalCourse) + '</b>.</p>' +
           '</div>';
+        setTimeout(function() {
+          var toggle = document.getElementById('importFormatToggle');
+          if (toggle) {
+            toggle.querySelectorAll('[data-import-format]').forEach(function(btn) {
+              btn.addEventListener('click', function() {
+                importFormat = this.getAttribute('data-import-format') || 'json';
+                if (typeof updateImportModeUI === 'function') updateImportModeUI(true);
+                try { playClick(); } catch (eFmt) {}
+              });
+            });
+          }
+          var importInput = el('m_import');
+          if (importInput) {
+            importInput.addEventListener('input', function() {
+              var detected = (typeof detectImportMode === 'function') ? detectImportMode(this.value) : importFormat;
+              if (detected !== importFormat) {
+                importFormat = detected;
+                if (typeof updateImportModeUI === 'function') updateImportModeUI(true);
+              }
+            });
+          }
+          if (typeof updateImportModeUI === 'function') updateImportModeUI(false);
+        }, 0);
       }
 
       /* Focus first control */
@@ -16793,7 +17332,10 @@ var tutorConversation = [];
       return h;
     }
 
-    el('addNextBtn').addEventListener('click', function(){ addFromModal(true); });
+    el('addNextBtn').addEventListener('click', function(){
+      if (editingItemId) { closeModal(); return; }
+      addFromModal(true);
+    });
     el('doneBtn').addEventListener('click', function(){ addFromModal(false); });
 
     /* ── Import: Parse → Preview → Commit (3-phase) ── */
@@ -19170,6 +19712,9 @@ el('gearBtn').addEventListener('click', openSettings);
     };
 
     window.editCard = function(id) {
+      if (typeof editItem === 'function') {
+        return editItem(id);
+      }
       var it = state.items[id];
       if (!it) { toast('Card not found'); return; }
 
@@ -20450,9 +20995,11 @@ el('gearBtn').addEventListener('click', openSettings);
       bootDidInit = true;
       loadOptimizedWeights();
       initMascot();
+      ensureShortcutHelpButton();
       wireGlobalTutorNotesUI();
       renderDashboard();
       showView('viewDash');
+      if (typeof checkForResumableSession === 'function') checkForResumableSession();
 
       // ── Sidebar Init (standalone only) ──
       if (!isEmbedded) {
@@ -20651,12 +21198,45 @@ el('gearBtn').addEventListener('click', openSettings);
       if (totalItems === 0) return;
       var ar = avgRetention(state.items);
       var retTarget = ar == null ? null : Math.round(ar * 100);
+      var cramBannerEl = el('cramBanner');
+      if (cramBannerEl) {
+        var activeCrams = listCourses().map(function(course) {
+          return { name: course.name, cram: getCramState(course.name) };
+        }).filter(function(entry) {
+          return entry.cram && entry.cram.active;
+        }).sort(function(a, b) {
+          return (a.cram.daysUntil || 9999) - (b.cram.daysUntil || 9999);
+        });
+        if (activeCrams.length) {
+          var cramHtml = '';
+          activeCrams.forEach(function(entry) {
+            cramHtml += '<div class="cram-banner show" style="background:linear-gradient(135deg,rgba(239,68,68,0.12),rgba(245,158,11,0.08));border:1px solid rgba(239,68,68,0.3);border-radius:var(--radius-lg);padding:16px;margin:12px 0;">' +
+              '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+              '<span class="cram-dashboard-fire" style="display:inline-flex;align-items:center;justify-content:center;">🔥</span>' +
+              '<div style="min-width:0;">' +
+              '<div style="font-weight:600;font-size:13px;">CRAM MODE — ' + esc(entry.name) + ' (' + esc(String(entry.cram.daysUntil)) + ' days)</div>' +
+              '<div style="font-size:11px;opacity:0.7;">' + esc(entry.cram.intensity) + ' intensity · ' + esc(String(entry.cram.sessionMod)) + '× session size · ' + esc(String(entry.cram.intervalMod)) + '× intervals</div>' +
+              '</div>' +
+              '</div>' +
+              '</div>';
+          });
+          cramBannerEl.classList.add('show');
+          cramBannerEl.innerHTML = cramHtml;
+        } else {
+          cramBannerEl.classList.remove('show');
+          cramBannerEl.innerHTML = '';
+        }
+      }
       applyHomeStatVisuals(masteredCount, totalItems, retTarget);
       if (window.gsap) {
         gsap.fromTo(document.querySelectorAll('#tabHome .stats-row .stat, #tabHome .tutor-cal-row > *'),
           { opacity: 0, y: 10 },
           { opacity: 1, y: 0, duration: 0.35, stagger: 0.08, ease: 'power2.out' }
         );
+        if (cramBannerEl && cramBannerEl.querySelectorAll('.cram-banner').length) {
+          gsap.fromTo(cramBannerEl.querySelectorAll('.cram-banner'), { opacity: 0, x: -18 }, { opacity: 1, x: 0, duration: 0.28, stagger: 0.06, ease: 'power2.out' });
+          gsap.fromTo(cramBannerEl.querySelectorAll('.cram-dashboard-fire'), { scale: 0.96 }, { scale: 1.08, repeat: 1, yoyo: true, duration: 0.45, ease: 'sine.inOut', stagger: 0.08 });
+        }
       }
     };
 
@@ -20668,7 +21248,6 @@ el('gearBtn').addEventListener('click', openSettings);
     setTimeout(function() {
       if (!state) boot();
     }, 3000);
-
 </script>
   <div class="anno-tip" id="annoTip"><div class="at-tag"></div><div class="at-note"></div></div>
   <div class="canvas-tooltip" id="canvasTooltip">
