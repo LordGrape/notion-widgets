@@ -1437,6 +1437,7 @@
       pointer-events: none;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
+      touch-action: manipulation;
     }
     .confirm-overlay.show{
       display: flex;
@@ -1453,6 +1454,8 @@
       box-shadow: var(--shadow);
       padding: 20px;
       text-align: center;
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
     }
     .confirm-box .cb-icon{
       font-size: 28px;
@@ -1489,6 +1492,8 @@
       transition: background var(--transition), transform var(--transition);
       touch-action: manipulation;
       -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
     }
     .confirm-box .cb-stay:hover{ background: rgba(var(--accent-rgb),0.14); transform: translateY(-1px); }
     .confirm-box .cb-leave{
@@ -1506,18 +1511,10 @@
       transition: background var(--transition), transform var(--transition);
       touch-action: manipulation;
       -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
     }
     .confirm-box .cb-leave:hover{ background: rgba(239,68,68,0.14); transform: translateY(-1px); }
-
-    @supports (-webkit-touch-callout: none) {
-      body.in-session .confirm-overlay{
-        position: absolute;
-      }
-      body.in-session .confirm-box{
-        backdrop-filter: none;
-        -webkit-backdrop-filter: none;
-      }
-    }
 
     .item-card{
       padding: 14px;
