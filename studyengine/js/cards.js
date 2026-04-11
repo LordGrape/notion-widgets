@@ -220,15 +220,56 @@
 
     function deleteEditedItem(itemId) {
       if (!state.items[itemId]) return;
-      if (!window.confirm('Delete this card permanently?')) return;
-      delete state.items[itemId];
-      reconcileStats();
-      saveState();
-      renderDashboard();
-      var afterSave = modalEditAfterSave;
-      closeModal();
-      toast('Card deleted');
-      if (typeof afterSave === 'function') afterSave(null);
+      confirmCardDeletion(function(confirmed){
+        if (!confirmed) return;
+        delete state.items[itemId];
+        reconcileStats();
+        saveState();
+        renderDashboard();
+        var afterSave = modalEditAfterSave;
+        closeModal();
+        toast('Card deleted');
+        if (typeof afterSave === 'function') afterSave(null);
+      });
+    }
+
+    function confirmCardDeletion(onResolve) {
+      var existing = document.getElementById('confirmDeleteCardOv');
+      if (existing) existing.remove();
+      var overlay = document.createElement('div');
+      overlay.id = 'confirmDeleteCardOv';
+      overlay.className = 'overlay show';
+      overlay.setAttribute('aria-hidden', 'false');
+      overlay.innerHTML =
+        '<div class="modal" role="dialog" aria-modal="true" aria-label="Confirm card deletion" style="max-width:380px;">' +
+          '<div class="modal-head">' +
+            '<div style="font-size:10px;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:var(--text);">Delete card</div>' +
+            '<button type="button" id="confirmDeleteCardClose" class="icon-btn" aria-label="Close">✕</button>' +
+          '</div>' +
+          '<div class="modal-body">' +
+            '<div style="font-size:11px;line-height:1.6;color:var(--text-secondary);">Delete this card permanently?</div>' +
+          '</div>' +
+          '<div class="modal-actions">' +
+            '<button type="button" id="confirmDeleteCardCancel" class="ghost-btn">Cancel</button>' +
+            '<button type="button" id="confirmDeleteCardOk" class="big-btn danger">Delete</button>' +
+          '</div>' +
+        '</div>';
+      document.body.appendChild(overlay);
+      var settled = false;
+      function done(ok) {
+        if (settled) return;
+        settled = true;
+        overlay.remove();
+        if (typeof onResolve === 'function') onResolve(!!ok);
+      }
+      overlay.addEventListener('click', function(e) { if (e.target === overlay) done(false); });
+      var closeBtn = document.getElementById('confirmDeleteCardClose');
+      var cancelBtn = document.getElementById('confirmDeleteCardCancel');
+      var okBtn = document.getElementById('confirmDeleteCardOk');
+      if (closeBtn) closeBtn.addEventListener('click', function(){ done(false); });
+      if (cancelBtn) cancelBtn.addEventListener('click', function(){ done(false); });
+      if (okBtn) okBtn.addEventListener('click', function(){ done(true); });
+      if (Core && Core.a11y && Core.a11y.trap) Core.a11y.trap(overlay);
     }
 
     function editItem(itemId, opts) {
