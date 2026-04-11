@@ -722,5 +722,27 @@ __SCRIPTS__
     <div class="visual-lightbox-body" id="visualLightboxBody"></div>
     <div class="visual-lightbox-hint">Pinch to zoom · Drag to pan · Scroll to zoom</div>
   </div>
+  <div id="iosLandscapePrompt" class="ios-landscape-prompt" aria-hidden="true" style="display:none;">
+    <div class="ios-lp-backdrop"></div>
+    <div class="ios-lp-card">
+      <div class="ios-lp-phone-wrap">
+        <svg class="ios-lp-phone" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g class="ios-lp-phone-body">
+            <rect x="38" y="16" width="44" height="88" rx="8" stroke="currentColor" stroke-width="2.5" fill="none"/>
+            <rect x="42" y="24" width="36" height="68" rx="2" fill="currentColor" opacity="0.08"/>
+            <rect x="50" y="97" width="20" height="3" rx="1.5" fill="currentColor" opacity="0.3"/>
+            <rect x="52" y="18" width="16" height="3" rx="1.5" fill="currentColor" opacity="0.2"/>
+          </g>
+          <path class="ios-lp-arrow" d="M95 50 C100 35, 95 20, 78 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.5"/>
+          <path class="ios-lp-arrow-head" d="M78 18 L82 24 L74 22 Z" fill="currentColor" opacity="0.5"/>
+        </svg>
+      </div>
+      <div class="ios-lp-text">
+        <div class="ios-lp-title">Rotate for the best experience</div>
+        <div class="ios-lp-desc">Flashcard sessions work best in landscape on mobile.</div>
+      </div>
+      <button class="ios-lp-dismiss" type="button">Continue in portrait</button>
+    </div>
+  </div>
 </body>
 </html>

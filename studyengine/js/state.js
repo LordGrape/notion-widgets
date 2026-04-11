@@ -2420,6 +2420,7 @@ var tutorConversation = [];
       ratingsEl.parentNode.insertBefore(hint, ratingsEl.nextSibling);
       // Re-bind rating buttons to ensure clean handler
       ratingsEl.querySelectorAll('button').forEach(function(b) {
+        b.__tapBound = false;
         onTap(b, function() {
           rateCurrent(parseInt(this.getAttribute('data-rate'), 10));
         });
@@ -2430,9 +2431,14 @@ var tutorConversation = [];
       var ta = el('userText');
       ta.addEventListener('input', function(){ autoGrowTextarea(ta); });
       autoGrowTextarea(ta);
-      onTap(el('checkBtn'), function(){ revealAnswer(true); });
+      var checkBtn = el('checkBtn');
+      if (checkBtn) {
+        checkBtn.__tapBound = false;
+        onTap(checkBtn, function(){ revealAnswer(true); });
+      }
       var dkBtn = el('dontKnowBtn');
       if (dkBtn) {
+        dkBtn.__tapBound = false;
         onTap(dkBtn, function() {
           var cur = session.queue[session.idx];
           if (!cur) return;
@@ -2446,9 +2452,14 @@ var tutorConversation = [];
       var ta = el('userText');
       ta.addEventListener('input', function(){ autoGrowTextarea(ta); });
       autoGrowTextarea(ta);
-      onTap(el('submitBtn'), function(){ revealAnswer(true); });
+      var submitBtn = el('submitBtn');
+      if (submitBtn) {
+        submitBtn.__tapBound = false;
+        onTap(submitBtn, function(){ revealAnswer(true); });
+      }
       var dkBtn = el('dontKnowBtn');
       if (dkBtn) {
+        dkBtn.__tapBound = false;
         onTap(dkBtn, function() {
           var cur = session.queue[session.idx];
           if (!cur) return;
@@ -3369,13 +3380,17 @@ var tutorConversation = [];
     });
 
     /* ── Buttons wiring ── */
-    el('startBtn').addEventListener('click', function() {
-      if (el('startBtn').disabled) return;
-      try { playClick(); } catch(e) {}
-      selectedCourse = 'All';
-      selectedTopic = 'All';
-      startSession();
-    });
+    var startBtnEl = el('startBtn');
+    if (startBtnEl) {
+      startBtnEl.__tapBound = false;
+      onTap(startBtnEl, function() {
+        if (startBtnEl.disabled) return;
+        try { playClick(); } catch(e) {}
+        selectedCourse = 'All';
+        selectedTopic = 'All';
+        startSession();
+      });
+    }
     el('backBtn').addEventListener('click', function(){
       if (viewSession.classList.contains('active') && session) {
         el('confirmExitOv').classList.add('show');
@@ -3385,7 +3400,11 @@ var tutorConversation = [];
         renderDashboard();
       }
     });
-    el('skipBtn').addEventListener('click', function(){ skipItem(); });
+    var skipBtnEl = el('skipBtn');
+    if (skipBtnEl) {
+      skipBtnEl.__tapBound = false;
+      onTap(skipBtnEl, function(){ skipItem(); });
+    }
     el('skipBtn').addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); skipItem(); } });
     /* ── Navigation Tabs ── */
     var activeNav = 'home';
@@ -3476,6 +3495,7 @@ var tutorConversation = [];
     });
 
     ratingsEl.querySelectorAll('button').forEach(function(b){
+      b.__tapBound = false;
       onTap(b, function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); });
     });
 
