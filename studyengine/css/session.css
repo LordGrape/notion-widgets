@@ -79,6 +79,10 @@
     -webkit-backdrop-filter: blur(20px) saturate(1.4);
     border-top: 1px solid rgba(var(--accent-rgb), 0.10);
   }
+  body.in-session:not(.standalone) .ratings,
+  body.in-session:not(.standalone) #ratings {
+    position: sticky;
+  }
 
   body.in-session .rate {
     border-radius: 14px;
@@ -107,6 +111,12 @@
     backdrop-filter: blur(20px) saturate(1.4);
     -webkit-backdrop-filter: blur(20px) saturate(1.4);
     border-top: 1px solid rgba(var(--accent-rgb), 0.10);
+  }
+  body.in-session:not(.standalone) #revealBtn,
+  body.in-session:not(.standalone) #checkBtn,
+  body.in-session:not(.standalone) #submitBtn,
+  body.in-session:not(.standalone) .confidence-row {
+    position: sticky;
   }
 
   body.in-session #revealBtn,
