@@ -17,6 +17,95 @@
       });
     }
 
+    var iosLandscapeDismissed = false;
+
+    function isIOSDevice() {
+      return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    }
+
+    function isPortrait() {
+      if (window.screen && window.screen.orientation && window.screen.orientation.type) {
+        return window.screen.orientation.type.indexOf('portrait') >= 0;
+      }
+      return window.innerHeight > window.innerWidth;
+    }
+
+    function dismissIOSLandscapePrompt() {
+      iosLandscapeDismissed = true;
+      var prompt = document.getElementById('iosLandscapePrompt');
+      if (!prompt) return;
+      var card = prompt.querySelector('.ios-lp-card');
+      var backdrop = prompt.querySelector('.ios-lp-backdrop');
+
+      if (window.gsap && card && backdrop) {
+        gsap.to(card, {
+          opacity: 0, scale: 0.95, y: 10,
+          duration: 0.25, ease: 'power2.in'
+        });
+        gsap.to(backdrop, {
+          opacity: 0, duration: 0.3, ease: 'power2.in',
+          onComplete: function() {
+            prompt.classList.remove('show');
+            prompt.style.display = 'none';
+            prompt.setAttribute('aria-hidden', 'true');
+          }
+        });
+      } else {
+        prompt.classList.remove('show');
+        prompt.style.display = 'none';
+        prompt.setAttribute('aria-hidden', 'true');
+      }
+      try { playClick(); } catch (e) {}
+    }
+
+    function showIOSLandscapePrompt() {
+      if (iosLandscapeDismissed) return;
+      if (!isIOSDevice()) return;
+      if (!isPortrait()) return;
+      if (!session) return;
+
+      var prompt = document.getElementById('iosLandscapePrompt');
+      if (!prompt) return;
+      var card = prompt.querySelector('.ios-lp-card');
+      var backdrop = prompt.querySelector('.ios-lp-backdrop');
+
+      prompt.style.display = 'flex';
+      prompt.classList.add('show');
+      prompt.setAttribute('aria-hidden', 'false');
+
+      if (window.gsap && card && backdrop) {
+        gsap.fromTo(card, { opacity: 0, scale: 0.92, y: 20 }, { opacity: 1, scale: 1, y: 0, duration: 0.45, ease: 'back.out(1.4)' });
+        gsap.fromTo(backdrop, { opacity: 0 }, { opacity: 1, duration: 0.35, ease: 'power2.out' });
+      }
+
+      var dismissBtn = prompt.querySelector('.ios-lp-dismiss');
+      if (dismissBtn) {
+        dismissBtn.__tapBound = false;
+        onTap(dismissBtn, function() {
+          dismissIOSLandscapePrompt();
+        });
+      }
+
+      if (backdrop) {
+        backdrop.__tapBound = false;
+        onTap(backdrop, function() {
+          dismissIOSLandscapePrompt();
+        });
+      }
+    }
+
+    window.addEventListener('orientationchange', function() {
+      setTimeout(function() {
+        if (!isPortrait()) dismissIOSLandscapePrompt();
+      }, 300);
+    });
+    if (window.screen && window.screen.orientation && typeof window.screen.orientation.addEventListener === 'function') {
+      window.screen.orientation.addEventListener('change', function() {
+        if (!isPortrait()) dismissIOSLandscapePrompt();
+      });
+    }
+
     function defaultTutorStats() {
       return {
         dontKnows: 0,
@@ -461,6 +550,7 @@
           window.scrollTo(0, 0);
           document.querySelector('.wrap').scrollTop = 0;
         } catch(scrollErr) {}
+        showIOSLandscapePrompt();
       } catch (err) {
         console.error('[StudyEngine] startSession failed:', err);
         try { toast('Session error: ' + (err.message || err)); } catch(e2) {}
@@ -625,6 +715,7 @@
           if (ratingsEl) {
             ratingsEl.style.display = 'grid';
             ratingsEl.querySelectorAll('button').forEach(function(b) {
+              b.__tapBound = false;
               onTap(b, function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); });
             });
           }
@@ -659,6 +750,7 @@
         }
         try { playClick(); } catch(e) {}
         ratingsEl.querySelectorAll('button').forEach(function(b) {
+          b.__tapBound = false;
           onTap(b, function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); });
         });
         if (it.modelAnswer) insertListenButton(modelAnswerEl, it.modelAnswer);
@@ -1128,6 +1220,7 @@
       document.querySelectorAll('.listen-tts-btn').forEach(function(btn) { btn.remove(); });
       clearTimers();
       if (!session) return;
+      iosLandscapeDismissed = false;
 
       /* Streak update */
       var today = isoDate();
