@@ -1278,6 +1278,61 @@
       margin-bottom: 12px;
       overflow: visible;
     }
+    .session-header{
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px 16px;
+      margin-bottom: 10px;
+      border-radius: 14px;
+      border: 1px solid rgba(var(--accent-rgb), 0.1);
+      background: rgba(var(--accent-rgb), 0.03);
+      backdrop-filter: blur(16px) saturate(1.3);
+      -webkit-backdrop-filter: blur(16px) saturate(1.3);
+    }
+    .session-tier-pill{
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .session-tier-pill .tiny{
+      color: var(--accent);
+      font-size: 11px;
+    }
+    .session-progress-stack{
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      text-align: center;
+    }
+    #sessionProgText{
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+    }
+    .session-exit.icon-only{
+      width: 32px;
+      height: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      border-radius: 10px;
+      font-size: 16px;
+      letter-spacing: 0;
+      text-transform: none;
+    }
     .progress{
       flex: 1;
       min-width: 0;
@@ -1363,6 +1418,8 @@
       cursor: pointer;
       transition: transform var(--transition), background var(--transition), border-color var(--transition), color var(--transition);
       flex-shrink: 0;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
     }
     .session-exit:hover{
       transform: translateY(-1px);
@@ -1384,8 +1441,15 @@
       padding: 18px;
       background: rgba(0,0,0,0.50);
       z-index: 100;
+      pointer-events: none;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      touch-action: manipulation;
     }
-    .confirm-overlay.show{ display: flex; }
+    .confirm-overlay.show{
+      display: flex;
+      pointer-events: auto;
+    }
     .confirm-box{
       width: 100%;
       max-width: 340px;
@@ -1397,6 +1461,8 @@
       box-shadow: var(--shadow);
       padding: 20px;
       text-align: center;
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
     }
     .confirm-box .cb-icon{
       font-size: 28px;
@@ -1431,6 +1497,10 @@
       text-transform: uppercase;
       cursor: pointer;
       transition: background var(--transition), transform var(--transition);
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
     }
     .confirm-box .cb-stay:hover{ background: rgba(var(--accent-rgb),0.14); transform: translateY(-1px); }
     .confirm-box .cb-leave{
@@ -1446,6 +1516,10 @@
       text-transform: uppercase;
       cursor: pointer;
       transition: background var(--transition), transform var(--transition);
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
     }
     .confirm-box .cb-leave:hover{ background: rgba(239,68,68,0.14); transform: translateY(-1px); }
 
@@ -1454,34 +1528,44 @@
       border-radius: var(--radius-lg);
       border: 1px solid rgba(var(--accent-rgb),0.12);
       background: rgba(var(--accent-rgb),0.03);
+      position: relative;
     }
 
     .prompt{
-      font-size: 20px;
-      font-weight: 700;
+      font-size: clamp(18px, 5vw, 24px);
+      font-weight: 600;
       letter-spacing: -0.2px;
-      line-height: 1.45;
+      line-height: 1.5;
       color: var(--text);
       white-space: pre-wrap;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
 
     .meta{
       display: flex;
       gap: 10px;
-      margin-top: 10px;
+      margin-bottom: 10px;
       align-items: center;
       flex-wrap: wrap;
+      order: -1;
     }
     .meta .tag{
-      font-size: 8px;
-      letter-spacing: 1.5px;
+      font-size: 11px;
+      letter-spacing: 0.8px;
       text-transform: uppercase;
-      color: var(--text-secondary);
-      padding: 5px 9px;
-      border-radius: 999px;
-      border: 1px solid rgba(var(--accent-rgb),0.14);
-      background: rgba(var(--accent-rgb),0.04);
+      color: var(--text-tertiary);
+      padding: 0;
+      border: none;
+      background: transparent;
       white-space: nowrap;
+    }
+    .meta .tag + .tag::before{
+      content: "·";
+      margin-right: 8px;
+      color: var(--text-tertiary);
     }
     .meta .timer-badge{
       margin-left: auto;
@@ -2305,6 +2389,17 @@ body.standalone .answer.restudy-active{
       box-shadow: 0 10px 26px rgba(0,0,0,0.10);
       transition: transform var(--transition), filter var(--transition);
       user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .rate .rate-days{
+      font-size: 8px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      opacity: 0.85;
     }
     .rate:hover{ transform: translateY(-1px); filter: brightness(1.03); }
     .rate:active{ transform: translateY(0) scale(0.99); }
@@ -3942,44 +4037,57 @@ body.standalone .answer.restudy-active{
     .session-xp-bar {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 6px 12px;
-      margin-bottom: 10px;
-      border-radius: 12px;
-      background: rgba(var(--accent-rgb), 0.04);
-      border: 1px solid rgba(var(--accent-rgb), 0.10);
-      font-size: 9px;
-      font-weight: 700;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      color: var(--text-secondary);
+      gap: 10px;
+      padding: 8px 16px;
+      margin: 0 0 8px;
     }
-    .session-xp-bar .sxp-label { flex-shrink: 0; }
-    .session-xp-bar .sxp-fill-wrap {
+    .session-xp-bar .sxp-track {
       flex: 1;
-      height: 4px;
+      height: 6px;
       border-radius: 99px;
-      background: rgba(var(--accent-rgb), 0.08);
+      background: rgba(var(--accent-rgb), 0.10);
       overflow: hidden;
+      position: relative;
     }
     .session-xp-bar .sxp-fill {
       height: 100%;
+      width: 0%;
       border-radius: 99px;
       background: linear-gradient(90deg, var(--accent), rgba(var(--accent-rgb), 0.6));
-      transition: width 400ms ease;
-      width: 0%;
+      transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-    .session-xp-bar .sxp-value {
-      font-variant-numeric: tabular-nums;
-      color: var(--accent);
-      min-width: 48px;
-      text-align: right;
+    .session-xp-bar .sxp-glow {
+      position: absolute;
+      top: -2px;
+      right: 0;
+      width: 12px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+      filter: blur(4px);
+      opacity: 0;
+      transition: opacity 0.3s;
     }
-    .session-xp-bar .sxp-streak {
+    .session-xp-bar.active .sxp-glow { opacity: 0.6; }
+    .session-xp-bar .sxp-label {
       display: inline-flex;
       align-items: center;
       gap: 3px;
-      color: var(--rate-hard);
+      flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+    }
+    .session-xp-bar .sxp-value {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--accent);
+      letter-spacing: -0.5px;
+    }
+    .session-xp-bar .sxp-unit {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
     }
 
     .done-dragon-section {
@@ -6712,157 +6820,338 @@ input[type="range"]::-moz-range-thumb{
   }
 }
 /* Extraction-first scaffold: styles remain in base.css for exact parity. */
-/* Extraction-first scaffold: styles remain in base.css for exact parity. */
+/* Session-specific responsive system */
 
-/* ── Mobile Session View Fixes ── */
 @media (max-width: 768px) {
-  #viewSession {
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    -webkit-overflow-scrolling: touch;
-    max-height: 100vh;
-    max-height: 100dvh;
-    padding-bottom: 120px;
+  body.in-session .topbar {
+    display: none !important;
   }
 
-  .item-card {
-    width: 100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box !important;
-    overflow-wrap: break-word;
-    word-break: break-word;
+  body.in-session #viewSession {
+    overflow: visible !important;
+    max-height: none;
+    padding-bottom: 100px;
   }
 
-  #tierArea {
-    width: 100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box;
-    overflow-x: hidden;
+  body.in-session .session-top {
+    display: none;
   }
 
-  #tierArea textarea,
-  #tierArea input,
-  #userText {
-    width: 100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box !important;
-    font-size: 16px !important;
-    -webkit-appearance: none;
-    border-radius: 12px;
+  body.in-session .session-header {
+    display: flex;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    margin: 0 0 10px;
+    border-radius: 0 0 14px 14px;
+    padding-top: max(12px, env(safe-area-inset-top));
+    background: rgba(var(--accent-rgb), 0.03);
+    border-bottom: 1px solid rgba(var(--accent-rgb), 0.08);
   }
 
-  #ratings {
+  body.in-session .item-card {
+    min-height: 55vh;
+    min-height: 55dvh;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 20px 18px;
+    border-radius: 20px;
+    border: 1px solid rgba(var(--accent-rgb), 0.14);
+    border-left-width: 3px;
+    background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.06), rgba(var(--accent-rgb), 0.02) 40%, transparent 70%);
+    backdrop-filter: blur(12px) saturate(1.2);
+    -webkit-backdrop-filter: blur(12px) saturate(1.2);
+  }
+
+  body.in-session .meta {
+    margin-top: 0;
+    margin-bottom: 6px;
+    flex-wrap: nowrap;
+    gap: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  body.in-session .meta .timer-badge {
+    margin-left: auto;
+    font-size: 9px;
+  }
+
+  body.in-session .prompt {
+    align-items: flex-start;
+  }
+
+  body.in-session .ratings,
+  body.in-session #ratings {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
     display: grid !important;
-    grid-template-columns: repeat(4, 1fr) !important;
-    gap: 8px !important;
-    width: 100% !important;
-    padding: 8px 0 !important;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin: 0;
+    padding: 12px 16px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    background: rgba(var(--accent-rgb), 0.04);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border-top: 1px solid rgba(var(--accent-rgb), 0.10);
   }
 
-  #ratings button {
-    min-height: 48px !important;
-    font-size: 13px !important;
-    padding: 10px 4px !important;
+  body.in-session .rate {
+    border-radius: 14px;
+    min-height: 52px;
+    padding: 14px 8px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
   }
 
-  .session-top {
-    flex-wrap: wrap;
-    gap: 6px;
+  body.in-session #revealBtn,
+  body.in-session #checkBtn,
+  body.in-session #submitBtn,
+  body.in-session .confidence-row {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    margin: 0;
+    padding: 14px 16px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    background: rgba(var(--accent-rgb), 0.04);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border-top: 1px solid rgba(var(--accent-rgb), 0.10);
   }
 
-  .meta {
-    flex-wrap: wrap;
-    gap: 4px;
-    font-size: 12px;
+  body.in-session #revealBtn,
+  body.in-session #checkBtn,
+  body.in-session #submitBtn,
+  body.in-session #dontKnowBtn,
+  body.in-session .conf-pill {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 
-  #modelAnswer {
-    width: 100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box !important;
-    overflow-wrap: break-word;
-    word-break: break-word;
-  }
-
-  #revealColumnsWrap {
-    flex-direction: column !important;
-    gap: 12px;
-  }
-
-  .confidence-row {
-    flex-wrap: wrap;
+  body.in-session .confidence-row {
+    display: flex;
     gap: 8px;
   }
 
-  .confidence-row button {
-    min-height: 44px;
-    touch-action: manipulation;
+  body.in-session .conf-pill {
+    flex: 1;
+    max-width: none;
+    min-height: 48px;
+    padding: 14px 10px;
+    border-radius: 14px;
+    font-size: 13px;
   }
 
-  #revealBtn,
-  #checkBtn,
-  .reveal-btn,
-  .check-btn {
-    min-height: 48px !important;
+  body.in-session .pbar {
+    height: 4px;
+    border: none;
+    background: rgba(var(--accent-rgb), 0.08);
+  }
+
+  body.in-session .pbar > div {
+    transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  body.in-session .progress .p-text,
+  body.in-session #sessionProgText {
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+  }
+
+  body.in-session .reveal-columns {
+    display: block;
+  }
+
+  body.in-session .reveal-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  body.in-session .reveal-tab-btn {
+    flex: 1;
+  }
+
+  body.in-session .reveal-col {
+    display: none;
+    max-height: 50vh;
+    overflow-y: auto;
+  }
+
+  body.in-session .reveal-col.active {
+    display: block;
+  }
+
+  body.in-session button,
+  body.in-session .rate,
+  body.in-session .conf-pill,
+  body.in-session .ghost-btn,
+  body.in-session .big-btn,
+  body.in-session .session-exit,
+  body.in-session .cb-stay,
+  body.in-session .cb-leave,
+  body.in-session .skip {
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
-  }
-
-  #startBtn {
-    min-height: 52px !important;
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  #aiFeedbackArea,
-  #aiFeedbackRight {
-    width: 100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box;
-    overflow-wrap: break-word;
-  }
-
-  #tutorMessages {
-    max-height: 50vh !important;
-  }
-
-  #tutorInput {
-    font-size: 16px !important;
-  }
-
-  .pbar {
-    width: 100% !important;
-  }
-
-  #breakHint {
-    left: 8px !important;
-    right: 8px !important;
-    bottom: 8px !important;
-    width: auto !important;
-  }
-
-  .session-xp-bar {
-    width: 100% !important;
-    box-sizing: border-box;
-  }
-
-  #restudyScreen {
-    padding: 16px !important;
-  }
-
-  #timerBar {
-    width: 100% !important;
+    -webkit-user-select: none;
+    user-select: none;
+    cursor: pointer;
   }
 }
 
-@media (max-width: 380px) {
-  #ratings {
-    grid-template-columns: repeat(2, 1fr) !important;
+@media (min-width: 769px) {
+  body.in-session .session-header {
+    display: flex;
   }
 
-  .meta {
-    font-size: 11px;
+  body.in-session .reveal-tabs {
+    display: none;
+  }
+
+  .reveal-col {
+    display: block !important;
+  }
+}
+
+.ios-landscape-prompt {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  touch-action: manipulation;
+}
+
+.ios-landscape-prompt.show {
+  display: flex;
+}
+
+.ios-lp-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.60);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.ios-lp-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 300px;
+  padding: 32px 24px 24px;
+  border-radius: 24px;
+  background: var(--card-bg);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid rgba(var(--accent-rgb), 0.18);
+  box-shadow: 0 24px 80px rgba(0,0,0,0.35);
+  text-align: center;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
+.ios-lp-phone-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.ios-lp-phone {
+  width: 80px;
+  height: 80px;
+  color: var(--accent);
+  filter: drop-shadow(0 0 16px rgba(var(--accent-rgb), 0.3));
+}
+
+.ios-lp-phone-body {
+  transform-origin: 60px 60px;
+  animation: iosPhoneRotate 2.5s ease-in-out infinite;
+}
+
+@keyframes iosPhoneRotate {
+  0%, 15% { transform: rotate(0deg); }
+  40%, 60% { transform: rotate(-90deg); }
+  85%, 100% { transform: rotate(0deg); }
+}
+
+.ios-lp-arrow,
+.ios-lp-arrow-head {
+  animation: iosArrowPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes iosArrowPulse {
+  0%, 15% { opacity: 0.5; }
+  25% { opacity: 0.9; }
+  50%, 100% { opacity: 0.3; }
+}
+
+.ios-lp-title {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.ios-lp-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.ios-lp-dismiss {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(var(--accent-rgb), 0.18);
+  background: rgba(var(--accent-rgb), 0.08);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: background 200ms ease, color 200ms ease, transform 200ms ease;
+}
+
+.ios-lp-dismiss:hover,
+.ios-lp-dismiss:active {
+  background: rgba(var(--accent-rgb), 0.14);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+@media (orientation: landscape) {
+  .ios-landscape-prompt.show {
+    display: none;
+  }
+}
+
+@media (min-width: 769px) {
+  .ios-landscape-prompt {
+    display: none !important;
   }
 }
 /* Extraction-first scaffold: styles remain in base.css for exact parity. */
@@ -7203,6 +7492,14 @@ input[type="range"]::-moz-range-thumb{
 
         <!-- Session -->
         <div class="view" id="viewSession">
+          <div class="session-header" id="sessionHeader">
+            <div class="session-tier-pill"><span class="tiny">●</span> <span id="sessionTierText">—</span></div>
+            <div class="session-progress-stack">
+              <span id="sessionProgText">—</span>
+              <div class="pbar"><div id="sessionProgBar"></div></div>
+            </div>
+            <button class="session-exit icon-only" id="exitSessionHeaderBtn" aria-label="Exit session">✕</button>
+          </div>
           <div class="session-top">
             <div class="progress">
               <div class="p-text">
@@ -7251,10 +7548,10 @@ input[type="range"]::-moz-range-thumb{
             <div class="break-banner" id="breakBanner"></div>
             <div class="break-hint" id="breakHint"></div>
             <div class="ratings" id="ratings" style="display:none">
-              <button class="rate again" data-rate="1">Again (1)</button>
-              <button class="rate hard" data-rate="2">Hard (2)</button>
-              <button class="rate good" data-rate="3">Good (3)</button>
-              <button class="rate easy" data-rate="4">Easy (4)</button>
+              <button class="rate again" data-rate="1">Again (1)<span class="rate-days">&lt; 10m</span></button>
+              <button class="rate hard" data-rate="2">Hard (2)<span class="rate-days">~ 1d</span></button>
+              <button class="rate good" data-rate="3">Good (3)<span class="rate-days">~ 3d</span></button>
+              <button class="rate easy" data-rate="4">Easy (4)<span class="rate-days">~ 7d</span></button>
             </div>
           </div>
         </div>
@@ -7902,11 +8199,17 @@ input[type="range"]::-moz-range-thumb{
     function setTierBadge(tier) {
       var b = el('tierBadge');
       var t = el('tierBadgeText');
-      var dot = b.querySelector('.tiny');
       var c = tierColour(tier);
-      b.style.background = c;
-      dot.style.opacity = '0.92';
-      t.textContent = tierLabel(tier);
+      if (b && t) {
+        var dot = b.querySelector('.tiny');
+        b.style.background = c;
+        if (dot) dot.style.opacity = '0.92';
+        t.textContent = tierLabel(tier);
+      }
+      var sessionTierText = el('sessionTierText');
+      if (sessionTierText) sessionTierText.textContent = tierLabel(tier);
+      var sessionTierDot = document.querySelector('.session-tier-pill .tiny');
+      if (sessionTierDot) sessionTierDot.style.color = c;
     }
 
     function showView(nextId) {
@@ -9846,13 +10149,8 @@ input[type="range"]::-moz-range-thumb{
       if (!bar || !session) return;
       var valEl = bar.querySelector('.sxp-value');
       var fillEl = bar.querySelector('.sxp-fill');
-      var streakEl = bar.querySelector('.sxp-streak');
-      if (valEl) valEl.textContent = session.xp + ' XP';
+      if (valEl) valEl.textContent = String(session.xp);
       if (fillEl) fillEl.style.width = Math.min(100, Math.round((session.xp / 200) * 100)) + '%';
-      if (streakEl) {
-        var streak = (state.stats && state.stats.streakDays) || 0;
-        streakEl.innerHTML = streak > 0 ? ('🔥 ' + streak + 'd') : '';
-      }
     }
 /* Phase 2 extraction: copied from monolith; source-of-truth remains state.js for parity. */
 
@@ -12505,6 +12803,111 @@ function showCourseDashboard(courseName) {
 /* Relocated module-local vars from state.js */
     var sessionSummary = null;
 
+    function onTap(element, handler) {
+      if (!element || typeof handler !== 'function') return;
+      if (element.__tapBound) return;
+      element.__tapBound = true;
+      var touchFired = false;
+      element.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        touchFired = true;
+        handler.call(element, e);
+      }, { passive: false });
+      element.addEventListener('click', function(e) {
+        if (touchFired) { touchFired = false; return; }
+        handler.call(element, e);
+      });
+    }
+
+    var iosLandscapeDismissed = false;
+
+    function isIOSDevice() {
+      return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    }
+
+    function isPortrait() {
+      if (window.screen && window.screen.orientation && window.screen.orientation.type) {
+        return window.screen.orientation.type.indexOf('portrait') >= 0;
+      }
+      return window.innerHeight > window.innerWidth;
+    }
+
+    function dismissIOSLandscapePrompt() {
+      iosLandscapeDismissed = true;
+      var prompt = document.getElementById('iosLandscapePrompt');
+      if (!prompt) return;
+      var card = prompt.querySelector('.ios-lp-card');
+      var backdrop = prompt.querySelector('.ios-lp-backdrop');
+
+      if (window.gsap && card && backdrop) {
+        gsap.to(card, {
+          opacity: 0, scale: 0.95, y: 10,
+          duration: 0.25, ease: 'power2.in'
+        });
+        gsap.to(backdrop, {
+          opacity: 0, duration: 0.3, ease: 'power2.in',
+          onComplete: function() {
+            prompt.classList.remove('show');
+            prompt.style.display = 'none';
+            prompt.setAttribute('aria-hidden', 'true');
+          }
+        });
+      } else {
+        prompt.classList.remove('show');
+        prompt.style.display = 'none';
+        prompt.setAttribute('aria-hidden', 'true');
+      }
+      try { playClick(); } catch (e) {}
+    }
+
+    function showIOSLandscapePrompt() {
+      if (iosLandscapeDismissed) return;
+      if (!isIOSDevice()) return;
+      if (!isPortrait()) return;
+      if (!session) return;
+
+      var prompt = document.getElementById('iosLandscapePrompt');
+      if (!prompt) return;
+      var card = prompt.querySelector('.ios-lp-card');
+      var backdrop = prompt.querySelector('.ios-lp-backdrop');
+
+      prompt.style.display = 'flex';
+      prompt.classList.add('show');
+      prompt.setAttribute('aria-hidden', 'false');
+
+      if (window.gsap && card && backdrop) {
+        gsap.fromTo(card, { opacity: 0, scale: 0.92, y: 20 }, { opacity: 1, scale: 1, y: 0, duration: 0.45, ease: 'back.out(1.4)' });
+        gsap.fromTo(backdrop, { opacity: 0 }, { opacity: 1, duration: 0.35, ease: 'power2.out' });
+      }
+
+      var dismissBtn = prompt.querySelector('.ios-lp-dismiss');
+      if (dismissBtn) {
+        dismissBtn.__tapBound = false;
+        onTap(dismissBtn, function() {
+          dismissIOSLandscapePrompt();
+        });
+      }
+
+      if (backdrop) {
+        backdrop.__tapBound = false;
+        onTap(backdrop, function() {
+          dismissIOSLandscapePrompt();
+        });
+      }
+    }
+
+    window.addEventListener('orientationchange', function() {
+      setTimeout(function() {
+        if (!isPortrait()) dismissIOSLandscapePrompt();
+      }, 300);
+    });
+    if (window.screen && window.screen.orientation && typeof window.screen.orientation.addEventListener === 'function') {
+      window.screen.orientation.addEventListener('change', function() {
+        if (!isPortrait()) dismissIOSLandscapePrompt();
+      });
+    }
+
     function defaultTutorStats() {
       return {
         dontKnows: 0,
@@ -12929,10 +13332,11 @@ function showCourseDashboard(courseName) {
           xpBar.className = 'session-xp-bar';
           xpBar.id = 'sessionXPBar';
           xpBar.innerHTML =
-            '<span class="sxp-label">XP</span>' +
-            '<div class="sxp-fill-wrap"><div class="sxp-fill"></div></div>' +
-            '<span class="sxp-value">0 XP</span>' +
-            '<span class="sxp-streak"></span>';
+            '<div class="sxp-track">' +
+              '<div class="sxp-fill"></div>' +
+              '<div class="sxp-glow"></div>' +
+            '</div>' +
+            '<span class="sxp-label"><span class="sxp-value">0</span><span class="sxp-unit">XP</span></span>';
           sessionTop.insertAdjacentElement('afterend', xpBar);
         }
         updateSessionXPBar();
@@ -12948,6 +13352,7 @@ function showCourseDashboard(courseName) {
           window.scrollTo(0, 0);
           document.querySelector('.wrap').scrollTop = 0;
         } catch(scrollErr) {}
+        showIOSLandscapePrompt();
       } catch (err) {
         console.error('[StudyEngine] startSession failed:', err);
         try { toast('Session error: ' + (err.message || err)); } catch(e2) {}
@@ -13059,8 +13464,18 @@ function showCourseDashboard(courseName) {
         el('courseHint').textContent = (selectedCourse === 'All') ? (it.course || '—') : selectedCourse;
 
         var n = session.queue.length;
-        el('progText').textContent = (session.idx + 1) + ' of ' + n;
-        el('progBar').style.width = Math.round(((session.idx) / Math.max(1, n)) * 100) + '%';
+        var progressText = (session.idx + 1) + ' of ' + n;
+        var progressPct = Math.round(((session.idx) / Math.max(1, n)) * 100);
+        el('progText').textContent = progressText;
+        el('progBar').style.width = progressPct + '%';
+        if (el('sessionProgText')) el('sessionProgText').textContent = progressText;
+        if (el('sessionProgBar')) el('sessionProgBar').style.width = progressPct + '%';
+        if (window.gsap) {
+          var progBarFill = el('progBar');
+          if (progBarFill) {
+            gsap.fromTo(progBarFill, { boxShadow: '0 0 8px rgba(var(--accent-rgb), 0.5)' }, { boxShadow: '0 0 0 rgba(var(--accent-rgb), 0)', duration: 0.6, ease: 'power2.out' });
+          }
+        }
 
         tierArea.innerHTML = '';
         if (tier === 'quickfire') renderQuickfireTier(it, session);
@@ -13073,10 +13488,15 @@ function showCourseDashboard(courseName) {
         if (window.gsap) {
           var cardEnter = document.querySelector('.item-card');
           if (cardEnter) {
+            gsap.killTweensOf(cardEnter);
             gsap.fromTo(cardEnter,
-              { opacity: 0, y: 16, scale: 0.98 },
-              { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: 'power2.out' }
+              { opacity: 0, y: 60, scale: 0.95, rotationX: 4 },
+              { opacity: 1, y: 0, scale: 1, rotationX: 0, duration: 0.55, ease: 'back.out(1.4)', clearProps: 'rotationX' }
             );
+            var staggerEls = cardEnter.querySelectorAll('.meta, .prompt, #tierArea, .divider');
+            if (staggerEls.length) {
+              gsap.fromTo(staggerEls, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out', stagger: 0.06, delay: 0.15 });
+            }
           }
         }
       } catch (mobileErr) {
@@ -13097,7 +13517,8 @@ function showCourseDashboard(courseName) {
           if (ratingsEl) {
             ratingsEl.style.display = 'grid';
             ratingsEl.querySelectorAll('button').forEach(function(b) {
-              b.onclick = function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); };
+              b.__tapBound = false;
+              onTap(b, function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); });
             });
           }
         }
@@ -13125,9 +13546,14 @@ function showCourseDashboard(courseName) {
         if (qfAnswerVisual) setTimeout(initMermaidBlocks, 50);
         else ensureAnswerVisual(it, revealTier);
         ratingsEl.style.display = 'grid';
+        if (window.gsap) {
+          gsap.fromTo(modelAnswerEl, { opacity: 0, y: 30, clipPath: 'inset(100% 0% 0% 0%)' }, { opacity: 1, y: 0, clipPath: 'inset(0% 0% 0% 0%)', duration: 0.45, ease: 'power2.out' });
+          gsap.fromTo(ratingsEl, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.3, delay: 0.2, ease: 'power2.out' });
+        }
         try { playClick(); } catch(e) {}
         ratingsEl.querySelectorAll('button').forEach(function(b) {
-          b.onclick = function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); };
+          b.__tapBound = false;
+          onTap(b, function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); });
         });
         if (it.modelAnswer) insertListenButton(modelAnswerEl, it.modelAnswer);
         return;
@@ -13159,12 +13585,16 @@ function showCourseDashboard(courseName) {
       var answerVisual = it.visual ? renderMermaidBlock(it.visual, 'answer', it.id) : '';
 
       /* Remove old tierArea content that's no longer needed (scenario stays via item-card) */
-      var revealHTML = '<div class="reveal-columns">' +
+      var revealHTML = '<div class="reveal-tabs">' +
+        '<button type="button" class="nav-tab reveal-tab-btn" data-reveal-tab="user">Your Response</button>' +
+        '<button type="button" class="nav-tab reveal-tab-btn active" data-reveal-tab="model">Model Answer</button>' +
+      '</div>' +
+      '<div class="reveal-columns">' +
         '<div class="reveal-col">' +
           '<div class="col-label"><span class="col-icon">✍️</span> Your Response</div>' +
           '<div class="user-response-locked" id="userResponseLocked">' + esc(userText || '(No response)') + '</div>' +
         '</div>' +
-        '<div class="reveal-col">' +
+        '<div class="reveal-col active">' +
           '<div class="col-label"><span class="col-icon">📋</span> Model Answer</div>' +
           '<div class="answer" id="modelAnswerRight"><span class="answer-header">Model Answer</span>' + renderMd(it.modelAnswer || '') + '<div class="visual-slot"></div>' + answerVisual + '</div>' +
           '<div id="aiFeedbackRight"></div>' +
@@ -13176,6 +13606,7 @@ function showCourseDashboard(courseName) {
       revealContainer.id = 'revealColumnsWrap';
       revealContainer.innerHTML = revealHTML;
       tierArea.insertAdjacentElement('afterend', revealContainer);
+      setupRevealTabs(revealContainer);
 
       /* Hide original modelAnswer element — we use the right-column copy */
       modelAnswerEl.style.display = 'none';
@@ -13242,6 +13673,22 @@ function showCourseDashboard(courseName) {
       if (!it) return;
       if (!session.currentShown) return;
 
+      var tappedBtn = ratingsEl.querySelector('[data-rate="' + rating + '"]');
+      if (tappedBtn && window.gsap) {
+        gsap.fromTo(tappedBtn, { scale: 1 }, {
+          scale: 0.88,
+          duration: 0.08,
+          ease: 'power2.in',
+          yoyo: true,
+          repeat: 1,
+          onComplete: function() {
+            gsap.to(tappedBtn, { scale: 1.15, opacity: 0, duration: 0.2, ease: 'power2.out' });
+            ratingsEl.querySelectorAll('button').forEach(function(b) {
+              if (b !== tappedBtn) gsap.to(b, { opacity: 0.3, scale: 0.95, duration: 0.15 });
+            });
+          }
+        });
+      }
       /* Immediately hide rating UI — rating captured */
       ratingsEl.style.display = 'none';
       var hintElRate = document.querySelector('.override-hint');
@@ -13538,9 +13985,11 @@ function showCourseDashboard(courseName) {
         gsap.killTweensOf(cardEl);
         gsap.to(cardEl, {
           opacity: 0,
-          y: -12,
-          duration: 0.18,
-          ease: 'power2.in',
+          y: -40,
+          scale: 0.96,
+          rotationX: -3,
+          duration: 0.25,
+          ease: 'power3.in',
           onComplete: step
         });
       } else {
@@ -13573,6 +14022,7 @@ function showCourseDashboard(courseName) {
       document.querySelectorAll('.listen-tts-btn').forEach(function(btn) { btn.remove(); });
       clearTimers();
       if (!session) return;
+      iosLandscapeDismissed = false;
 
       /* Streak update */
       var today = isoDate();
@@ -13719,6 +14169,17 @@ function showCourseDashboard(courseName) {
       flash.textContent = xp === 0 ? '0 XP' : '+' + xp + ' XP';
       document.body.appendChild(flash);
       if (window.gsap) {
+        var xpBar = document.getElementById('sessionXPBar');
+        if (xpBar) {
+          xpBar.classList.add('active');
+          gsap.fromTo(xpBar.querySelector('.sxp-value'), { textContent: Math.max(0, session.xp - xp) }, {
+            textContent: session.xp,
+            duration: 0.45,
+            roundProps: 'textContent',
+            ease: 'power2.out'
+          });
+          gsap.delayedCall(0.38, function() { xpBar.classList.remove('active'); });
+        }
         gsap.fromTo(flash,
           { opacity: 0, y: 0, scale: 0.7 },
           { opacity: 1, y: -30, scale: 1, duration: 0.35, ease: 'back.out(1.8)',
@@ -13734,6 +14195,24 @@ function showCourseDashboard(courseName) {
         flash.style.opacity = '1';
         setTimeout(function() { flash.remove(); }, 1200);
       }
+    }
+
+    function setupRevealTabs(revealContainer) {
+      if (!revealContainer) return;
+      var tabs = revealContainer.querySelectorAll('.reveal-tab-btn');
+      var cols = revealContainer.querySelectorAll('.reveal-col');
+      if (tabs.length !== 2 || cols.length !== 2) return;
+      tabs.forEach(function(tab, idx) {
+        tab.addEventListener('click', function() {
+          tabs.forEach(function(t) { t.classList.remove('active'); });
+          tab.classList.add('active');
+          cols.forEach(function(col) { col.classList.remove('active'); });
+          cols[idx].classList.add('active');
+          if (window.gsap) {
+            gsap.fromTo(cols[idx], { opacity: 0, x: idx === 0 ? -18 : 18 }, { opacity: 1, x: 0, duration: 0.24, ease: 'power2.out' });
+          }
+        });
+      });
     }
 
     function disableRatings(disabled) {
@@ -13844,7 +14323,7 @@ function showCourseDashboard(courseName) {
         tipEl.textContent = getBreakTip();
         if (window.gsap) gsap.fromTo(tipEl, { opacity: 0 }, { opacity: 1, duration: 0.4 });
       }, 45000);
-      skipBtn.onclick = function() { endBreak(); try { playBreakDismiss(); } catch (e) {} };
+      onTap(skipBtn, function() { endBreak(); try { playBreakDismiss(); } catch (e) {} });
       if (window.gsap) {
         gsap.fromTo(overlay.querySelector('.break-card'),
           { scale: 0.9, opacity: 0 },
@@ -13888,6 +14367,24 @@ function showCourseDashboard(courseName) {
     var SYLLABUS_ENDPOINT = STUDYENGINE_WORKER_BASE + '/syllabus';
     var LECTURE_CTX_ENDPOINT = STUDYENGINE_WORKER_BASE + '/lecture-context';
     var GRADE_ENDPOINT = STUDYENGINE_WORKER_BASE + '/grade';
+
+    if (typeof onTap !== 'function') {
+      function onTap(element, handler) {
+        if (!element || typeof handler !== 'function') return;
+        if (element.__tapBound) return;
+        element.__tapBound = true;
+        var touchFired = false;
+        element.addEventListener('touchend', function(e) {
+          e.preventDefault();
+          touchFired = true;
+          handler.call(element, e);
+        }, { passive: false });
+        element.addEventListener('click', function(e) {
+          if (touchFired) { touchFired = false; return; }
+          handler.call(element, e);
+        });
+      }
+    }
 
     /* ── State ── */
     var NS = 'studyengine';
@@ -16266,9 +16763,10 @@ var tutorConversation = [];
       ratingsEl.parentNode.insertBefore(hint, ratingsEl.nextSibling);
       // Re-bind rating buttons to ensure clean handler
       ratingsEl.querySelectorAll('button').forEach(function(b) {
-        b.onclick = function() {
+        b.__tapBound = false;
+        onTap(b, function() {
           rateCurrent(parseInt(this.getAttribute('data-rate'), 10));
-        };
+        });
       });
     }
 
@@ -16276,10 +16774,15 @@ var tutorConversation = [];
       var ta = el('userText');
       ta.addEventListener('input', function(){ autoGrowTextarea(ta); });
       autoGrowTextarea(ta);
-      el('checkBtn').addEventListener('click', function(){ revealAnswer(true); });
+      var checkBtn = el('checkBtn');
+      if (checkBtn) {
+        checkBtn.__tapBound = false;
+        onTap(checkBtn, function(){ revealAnswer(true); });
+      }
       var dkBtn = el('dontKnowBtn');
       if (dkBtn) {
-        dkBtn.addEventListener('click', function() {
+        dkBtn.__tapBound = false;
+        onTap(dkBtn, function() {
           var cur = session.queue[session.idx];
           if (!cur) return;
           var rt = cur._presentTier || cur.tier || 'quickfire';
@@ -16292,10 +16795,15 @@ var tutorConversation = [];
       var ta = el('userText');
       ta.addEventListener('input', function(){ autoGrowTextarea(ta); });
       autoGrowTextarea(ta);
-      el('submitBtn').addEventListener('click', function(){ revealAnswer(true); });
+      var submitBtn = el('submitBtn');
+      if (submitBtn) {
+        submitBtn.__tapBound = false;
+        onTap(submitBtn, function(){ revealAnswer(true); });
+      }
       var dkBtn = el('dontKnowBtn');
       if (dkBtn) {
-        dkBtn.addEventListener('click', function() {
+        dkBtn.__tapBound = false;
+        onTap(dkBtn, function() {
           var cur = session.queue[session.idx];
           if (!cur) return;
           var rt = cur._presentTier || cur.tier || 'quickfire';
@@ -17215,13 +17723,17 @@ var tutorConversation = [];
     });
 
     /* ── Buttons wiring ── */
-    el('startBtn').addEventListener('click', function() {
-      if (el('startBtn').disabled) return;
-      try { playClick(); } catch(e) {}
-      selectedCourse = 'All';
-      selectedTopic = 'All';
-      startSession();
-    });
+    var startBtnEl = el('startBtn');
+    if (startBtnEl) {
+      startBtnEl.__tapBound = false;
+      onTap(startBtnEl, function() {
+        if (startBtnEl.disabled) return;
+        try { playClick(); } catch(e) {}
+        selectedCourse = 'All';
+        selectedTopic = 'All';
+        startSession();
+      });
+    }
     el('backBtn').addEventListener('click', function(){
       if (viewSession.classList.contains('active') && session) {
         el('confirmExitOv').classList.add('show');
@@ -17231,7 +17743,11 @@ var tutorConversation = [];
         renderDashboard();
       }
     });
-    el('skipBtn').addEventListener('click', function(){ skipItem(); });
+    var skipBtnEl = el('skipBtn');
+    if (skipBtnEl) {
+      skipBtnEl.__tapBound = false;
+      onTap(skipBtnEl, function(){ skipItem(); });
+    }
     el('skipBtn').addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); skipItem(); } });
     /* ── Navigation Tabs ── */
     var activeNav = 'home';
@@ -17277,18 +17793,20 @@ var tutorConversation = [];
     el('navHome').addEventListener('click', function() { switchNav('home'); });
     el('navCourses').addEventListener('click', function() { switchNav('courses'); });
     /* ── Session Exit with Confirmation ── */
-    el('exitSessionBtn').addEventListener('click', function() {
+    function handleSessionExitClick() {
       if (!session) return;
       el('confirmExitOv').classList.add('show');
       try { playPause(); } catch(e) {}
-    });
+    }
+    onTap(el('exitSessionBtn'), handleSessionExitClick);
+    if (el('exitSessionHeaderBtn')) onTap(el('exitSessionHeaderBtn'), handleSessionExitClick);
 
-    el('confirmStay').addEventListener('click', function() {
+    onTap(el('confirmStay'), function() {
       el('confirmExitOv').classList.remove('show');
       try { playResume(); } catch(e) {}
     });
 
-    el('confirmLeave').addEventListener('click', function() {
+    onTap(el('confirmLeave'), function() {
       el('confirmExitOv').classList.remove('show');
       try { playClose(); } catch(e) {}
       if (session) {
@@ -17320,7 +17838,8 @@ var tutorConversation = [];
     });
 
     ratingsEl.querySelectorAll('button').forEach(function(b){
-      b.addEventListener('click', function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); });
+      b.__tapBound = false;
+      onTap(b, function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); });
     });
 
     /* ── Modal: Add items / Import JSON ── */
@@ -21560,6 +22079,28 @@ el('gearBtn').addEventListener('click', openSettings);
     </div>
     <div class="visual-lightbox-body" id="visualLightboxBody"></div>
     <div class="visual-lightbox-hint">Pinch to zoom · Drag to pan · Scroll to zoom</div>
+  </div>
+  <div id="iosLandscapePrompt" class="ios-landscape-prompt" aria-hidden="true" style="display:none;">
+    <div class="ios-lp-backdrop"></div>
+    <div class="ios-lp-card">
+      <div class="ios-lp-phone-wrap">
+        <svg class="ios-lp-phone" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g class="ios-lp-phone-body">
+            <rect x="38" y="16" width="44" height="88" rx="8" stroke="currentColor" stroke-width="2.5" fill="none"/>
+            <rect x="42" y="24" width="36" height="68" rx="2" fill="currentColor" opacity="0.08"/>
+            <rect x="50" y="97" width="20" height="3" rx="1.5" fill="currentColor" opacity="0.3"/>
+            <rect x="52" y="18" width="16" height="3" rx="1.5" fill="currentColor" opacity="0.2"/>
+          </g>
+          <path class="ios-lp-arrow" d="M95 50 C100 35, 95 20, 78 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.5"/>
+          <path class="ios-lp-arrow-head" d="M78 18 L82 24 L74 22 Z" fill="currentColor" opacity="0.5"/>
+        </svg>
+      </div>
+      <div class="ios-lp-text">
+        <div class="ios-lp-title">Rotate for the best experience</div>
+        <div class="ios-lp-desc">Flashcard sessions work best in landscape on mobile.</div>
+      </div>
+      <button class="ios-lp-dismiss" type="button">Continue in portrait</button>
+    </div>
   </div>
 </body>
 </html>
