@@ -2282,6 +2282,21 @@ body.standalone .answer.restudy-active{
       outline: none;
       transition: border-color var(--transition), background var(--transition);
     }
+    /* Prevent iOS Safari/Edge auto-zoom on form focus */
+    @supports (-webkit-touch-callout: none) {
+      textarea,
+      .input,
+      select,
+      input[type="text"],
+      input[type="search"],
+      input[type="email"],
+      input[type="number"],
+      input[type="password"],
+      input[type="url"],
+      input[type="tel"]{
+        font-size: 16px !important;
+      }
+    }
     textarea:focus{
       border-color: rgba(var(--accent-rgb),0.42);
       background: rgba(var(--accent-rgb),0.04);
@@ -2449,6 +2464,7 @@ body.standalone .answer.restudy-active{
       box-shadow: var(--shadow);
       overflow: hidden;
       max-height: 88vh;
+      max-height: calc(100dvh - 24px);
       display: flex;
       flex-direction: column;
     }
@@ -6901,6 +6917,10 @@ input[type="range"]::-moz-range-thumb{
     -webkit-backdrop-filter: blur(20px) saturate(1.4);
     border-top: 1px solid rgba(var(--accent-rgb), 0.10);
   }
+  body.in-session:not(.standalone) .ratings,
+  body.in-session:not(.standalone) #ratings {
+    position: sticky;
+  }
 
   body.in-session .rate {
     border-radius: 14px;
@@ -6929,6 +6949,12 @@ input[type="range"]::-moz-range-thumb{
     backdrop-filter: blur(20px) saturate(1.4);
     -webkit-backdrop-filter: blur(20px) saturate(1.4);
     border-top: 1px solid rgba(var(--accent-rgb), 0.10);
+  }
+  body.in-session:not(.standalone) #revealBtn,
+  body.in-session:not(.standalone) #checkBtn,
+  body.in-session:not(.standalone) #submitBtn,
+  body.in-session:not(.standalone) .confidence-row {
+    position: sticky;
   }
 
   body.in-session #revealBtn,
@@ -7155,13 +7181,155 @@ input[type="range"]::-moz-range-thumb{
   }
 }
 
+/* ═══ iOS WebKit backdrop-filter touch fix ═══
+   backdrop-filter creates compositor layers that swallow touch events
+   for all child elements on iOS WebKit. This is a documented bug.
+   Fix: disable backdrop-filter on interactive session containers on iOS
+   and use opaque/semi-opaque backgrounds instead. */
+
 @supports (-webkit-touch-callout: none) {
-    body.in-session .item-card { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; background: var(--card-bg) !important; }
-    body.in-session .ratings, body.in-session #ratings { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; background: var(--bg) !important; }
-    body.in-session #revealBtn, body.in-session #checkBtn, body.in-session #submitBtn, body.in-session #dontKnowBtn, body.in-session .confidence-row { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; background: var(--bg) !important; }
-    body.in-session .session-header { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; background: var(--bg) !important; }
-    .confirm-overlay .confirm-box { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; background: var(--bg) !important; }
-    body.in-session .ai-feedback, body.in-session .ask-tutor-wrap, body.in-session .session-xp-bar, .break-card { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+
+  /* Item card — contains all tier controls, textareas, prompt */
+  body.in-session .item-card {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--card-bg) !important;
+  }
+
+  /* Rating buttons bar */
+  body.in-session .ratings,
+  body.in-session #ratings {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--bg) !important;
+  }
+
+  /* Reveal / Check / Submit / Don't Know buttons */
+  body.in-session #revealBtn,
+  body.in-session #checkBtn,
+  body.in-session #submitBtn,
+  body.in-session #dontKnowBtn,
+  body.in-session .confidence-row {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--bg) !important;
+  }
+
+  /* Session header (exit + skip buttons) */
+  body.in-session .session-header {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--bg) !important;
+  }
+
+  /* Confirm dialog (End session early?) */
+  .confirm-overlay .confirm-box {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--bg) !important;
+    border: 1px solid var(--card-border);
+  }
+
+  /* Session XP bar */
+  body.in-session .session-xp-bar {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* Break overlay card */
+  .break-card {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--bg) !important;
+  }
+
+  /* AI feedback panel */
+  body.in-session .ai-feedback {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* Tutor dialogue panel */
+  body.in-session .ask-tutor-wrap {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
+
+/* ═══ iOS WebKit backdrop-filter touch fix ═══
+   backdrop-filter creates compositor layers that swallow touch events
+   for all child elements on iOS WebKit. This is a documented bug.
+   Fix: disable backdrop-filter on interactive session containers on iOS
+   and use opaque/semi-opaque backgrounds instead. */
+
+@supports (-webkit-touch-callout: none) {
+
+  /* Item card — contains all tier controls, textareas, prompt */
+  body.in-session .item-card {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--card-bg) !important;
+  }
+
+  /* Rating buttons bar */
+  body.in-session .ratings,
+  body.in-session #ratings {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--bg) !important;
+  }
+
+  /* Reveal / Check / Submit / Don't Know buttons */
+  body.in-session #revealBtn,
+  body.in-session #checkBtn,
+  body.in-session #submitBtn,
+  body.in-session #dontKnowBtn,
+  body.in-session .confidence-row {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--bg) !important;
+  }
+
+  /* Session header (exit + skip buttons) */
+  body.in-session .session-header {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--bg) !important;
+  }
+
+  /* Confirm dialog (End session early?) */
+  .confirm-overlay .confirm-box {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--bg) !important;
+    border: 1px solid var(--card-border);
+  }
+
+  /* Session XP bar */
+  body.in-session .session-xp-bar {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* Break overlay card */
+  .break-card {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--bg) !important;
+  }
+
+  /* AI feedback panel */
+  body.in-session .ai-feedback {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* Tutor dialogue panel */
+  body.in-session .ask-tutor-wrap {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
 }
 /* Extraction-first scaffold: styles remain in base.css for exact parity. */
 /* Extraction-first scaffold: styles remain in base.css for exact parity. */
@@ -9212,15 +9380,56 @@ input[type="range"]::-moz-range-thumb{
 
     function deleteEditedItem(itemId) {
       if (!state.items[itemId]) return;
-      if (!window.confirm('Delete this card permanently?')) return;
-      delete state.items[itemId];
-      reconcileStats();
-      saveState();
-      renderDashboard();
-      var afterSave = modalEditAfterSave;
-      closeModal();
-      toast('Card deleted');
-      if (typeof afterSave === 'function') afterSave(null);
+      confirmCardDeletion(function(confirmed){
+        if (!confirmed) return;
+        delete state.items[itemId];
+        reconcileStats();
+        saveState();
+        renderDashboard();
+        var afterSave = modalEditAfterSave;
+        closeModal();
+        toast('Card deleted');
+        if (typeof afterSave === 'function') afterSave(null);
+      });
+    }
+
+    function confirmCardDeletion(onResolve) {
+      var existing = document.getElementById('confirmDeleteCardOv');
+      if (existing) existing.remove();
+      var overlay = document.createElement('div');
+      overlay.id = 'confirmDeleteCardOv';
+      overlay.className = 'overlay show';
+      overlay.setAttribute('aria-hidden', 'false');
+      overlay.innerHTML =
+        '<div class="modal" role="dialog" aria-modal="true" aria-label="Confirm card deletion" style="max-width:380px;">' +
+          '<div class="modal-head">' +
+            '<div style="font-size:10px;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:var(--text);">Delete card</div>' +
+            '<button type="button" id="confirmDeleteCardClose" class="icon-btn" aria-label="Close">✕</button>' +
+          '</div>' +
+          '<div class="modal-body">' +
+            '<div style="font-size:11px;line-height:1.6;color:var(--text-secondary);">Delete this card permanently?</div>' +
+          '</div>' +
+          '<div class="modal-actions">' +
+            '<button type="button" id="confirmDeleteCardCancel" class="ghost-btn">Cancel</button>' +
+            '<button type="button" id="confirmDeleteCardOk" class="big-btn danger">Delete</button>' +
+          '</div>' +
+        '</div>';
+      document.body.appendChild(overlay);
+      var settled = false;
+      function done(ok) {
+        if (settled) return;
+        settled = true;
+        overlay.remove();
+        if (typeof onResolve === 'function') onResolve(!!ok);
+      }
+      overlay.addEventListener('click', function(e) { if (e.target === overlay) done(false); });
+      var closeBtn = document.getElementById('confirmDeleteCardClose');
+      var cancelBtn = document.getElementById('confirmDeleteCardCancel');
+      var okBtn = document.getElementById('confirmDeleteCardOk');
+      if (closeBtn) closeBtn.addEventListener('click', function(){ done(false); });
+      if (cancelBtn) cancelBtn.addEventListener('click', function(){ done(false); });
+      if (okBtn) okBtn.addEventListener('click', function(){ done(true); });
+      if (Core && Core.a11y && Core.a11y.trap) Core.a11y.trap(overlay);
     }
 
     function editItem(itemId, opts) {

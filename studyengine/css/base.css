@@ -2275,6 +2275,21 @@ body.standalone .answer.restudy-active{
       outline: none;
       transition: border-color var(--transition), background var(--transition);
     }
+    /* Prevent iOS Safari/Edge auto-zoom on form focus */
+    @supports (-webkit-touch-callout: none) {
+      textarea,
+      .input,
+      select,
+      input[type="text"],
+      input[type="search"],
+      input[type="email"],
+      input[type="number"],
+      input[type="password"],
+      input[type="url"],
+      input[type="tel"]{
+        font-size: 16px !important;
+      }
+    }
     textarea:focus{
       border-color: rgba(var(--accent-rgb),0.42);
       background: rgba(var(--accent-rgb),0.04);
@@ -2442,6 +2457,7 @@ body.standalone .answer.restudy-active{
       box-shadow: var(--shadow);
       overflow: hidden;
       max-height: 88vh;
+      max-height: calc(100dvh - 24px);
       display: flex;
       flex-direction: column;
     }
