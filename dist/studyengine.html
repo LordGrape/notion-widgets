@@ -7154,6 +7154,82 @@ input[type="range"]::-moz-range-thumb{
     display: none !important;
   }
 }
+
+/* ═══ iOS WebKit backdrop-filter touch fix ═══
+   backdrop-filter creates compositor layers that swallow touch events
+   for all child elements on iOS WebKit. This is a documented bug.
+   Fix: disable backdrop-filter on interactive session containers on iOS
+   and use opaque/semi-opaque backgrounds instead. */
+
+@supports (-webkit-touch-callout: none) {
+
+  /* Item card — contains all tier controls, textareas, prompt */
+  body.in-session .item-card {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--card-bg) !important;
+  }
+
+  /* Rating buttons bar */
+  body.in-session .ratings,
+  body.in-session #ratings {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--bg) !important;
+  }
+
+  /* Reveal / Check / Submit / Don't Know buttons */
+  body.in-session #revealBtn,
+  body.in-session #checkBtn,
+  body.in-session #submitBtn,
+  body.in-session #dontKnowBtn,
+  body.in-session .confidence-row {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--bg) !important;
+  }
+
+  /* Session header (exit + skip buttons) */
+  body.in-session .session-header {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--bg) !important;
+  }
+
+  /* Confirm dialog (End session early?) */
+  .confirm-overlay .confirm-box {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--bg) !important;
+    border: 1px solid var(--card-border);
+  }
+
+  /* Session XP bar */
+  body.in-session .session-xp-bar {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* Break overlay card */
+  .break-card {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--bg) !important;
+  }
+
+  /* AI feedback panel */
+  body.in-session .ai-feedback {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* Tutor dialogue panel */
+  body.in-session .ask-tutor-wrap {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
 /* Extraction-first scaffold: styles remain in base.css for exact parity. */
 /* Extraction-first scaffold: styles remain in base.css for exact parity. */
 </style>
