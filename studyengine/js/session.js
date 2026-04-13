@@ -1,127 +1,6 @@
 /* Relocated module-local vars from state.js */
     var sessionSummary = null;
 
-    function onTap(element, handler) {
-      if (!element || typeof handler !== 'function') return;
-      if (element.__tapBound) return;
-      element.__tapBound = true;
-      var touchFired = false;
-      element.addEventListener('touchend', function(e) {
-        e.preventDefault();
-        touchFired = true;
-        handler.call(element, e);
-      }, { passive: false });
-      element.addEventListener('click', function(e) {
-        if (touchFired) { touchFired = false; return; }
-        handler.call(element, e);
-      });
-    }
-
-    var iosLandscapeDismissed = false;
-
-    function isIOSDevice() {
-      return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    }
-
-    function isPortrait() {
-      if (window.screen && window.screen.orientation && window.screen.orientation.type) {
-        return window.screen.orientation.type.indexOf('portrait') >= 0;
-      }
-      return window.innerHeight > window.innerWidth;
-    }
-
-    function dismissIOSLandscapePrompt() {
-      iosLandscapeDismissed = true;
-      var prompt = document.getElementById('iosLandscapePrompt');
-      if (!prompt) return;
-      var card = prompt.querySelector('.ios-lp-card');
-      var backdrop = prompt.querySelector('.ios-lp-backdrop');
-
-      if (window.gsap && card && backdrop) {
-        gsap.to(card, {
-          opacity: 0, scale: 0.95, y: 10,
-          duration: 0.25, ease: 'power2.in'
-        });
-        gsap.to(backdrop, {
-          opacity: 0, duration: 0.3, ease: 'power2.in',
-          onComplete: function() {
-            prompt.classList.remove('show');
-            prompt.style.display = 'none';
-            prompt.setAttribute('aria-hidden', 'true');
-          }
-        });
-      } else {
-        prompt.classList.remove('show');
-        prompt.style.display = 'none';
-        prompt.setAttribute('aria-hidden', 'true');
-      }
-      try { playClick(); } catch (e) {}
-    }
-
-    function showIOSLandscapePrompt() {
-      if (iosLandscapeDismissed) return;
-      if (!isIOSDevice()) return;
-      if (!isPortrait()) return;
-      if (!session) return;
-
-      var prompt = document.getElementById('iosLandscapePrompt');
-      if (!prompt) return;
-      var card = prompt.querySelector('.ios-lp-card');
-      var backdrop = prompt.querySelector('.ios-lp-backdrop');
-
-      prompt.style.display = 'flex';
-      prompt.classList.add('show');
-      prompt.setAttribute('aria-hidden', 'false');
-
-      if (window.gsap && card && backdrop) {
-        gsap.fromTo(card, { opacity: 0, scale: 0.92, y: 20 }, { opacity: 1, scale: 1, y: 0, duration: 0.45, ease: 'back.out(1.4)' });
-        gsap.fromTo(backdrop, { opacity: 0 }, { opacity: 1, duration: 0.35, ease: 'power2.out' });
-      }
-
-      var dismissBtn = prompt.querySelector('.ios-lp-dismiss');
-      if (dismissBtn) {
-        dismissBtn.__tapBound = false;
-        onTap(dismissBtn, function() {
-          dismissIOSLandscapePrompt();
-        });
-      }
-
-      if (backdrop) {
-        backdrop.__tapBound = false;
-        onTap(backdrop, function() {
-          dismissIOSLandscapePrompt();
-        });
-      }
-    }
-
-    window.addEventListener('orientationchange', function() {
-      setTimeout(function() {
-        if (!isPortrait()) dismissIOSLandscapePrompt();
-      }, 300);
-    });
-    if (window.screen && window.screen.orientation && typeof window.screen.orientation.addEventListener === 'function') {
-      window.screen.orientation.addEventListener('change', function() {
-        if (!isPortrait()) dismissIOSLandscapePrompt();
-      });
-    }
-
-    function defaultTutorStats() {
-      return {
-        dontKnows: 0,
-        skipsToRating: 0,
-        reconstructionSuccesses: 0
-      };
-    }
-
-    function defaultTutorModeCounts() {
-      return {
-        socratic: 0,
-        teach: 0,
-        acknowledge: 0
-      };
-    }
-
 /* Phase 2 extraction: copied from monolith; source-of-truth remains state.js for parity. */
 
     function buildSessionQueue() {
@@ -481,244 +360,177 @@
     }
 
     function startSession() {
-      try {
-        console.log('[StudyEngine] startSession called, items:', Object.keys(state.items || {}).length);
-        var q = buildSessionQueue();
-        session = {
-          queue: q,
-          idx: 0,
-          loops: {}, /* itemId -> again count in-session */
-          currentShown: false,
-          startedAt: Date.now(),
-          xp: 0,
-          reviewsByTier: { quickfire:0, explain:0, apply:0, distinguish:0, mock:0, worked:0 },
-          ratingSum: 0,
-          ratingN: 0,
-          calBefore: calibrationPct(state.calibration),
-          confidence: null,  /* 'low' | 'medium' | 'high' — set before reveal on quickfire */
-          recentRatings: [], /* rolling window for fatigue detection */
-          fatigueWarningShown: false, /* only show once per session */
-          tutorStats: defaultTutorStats(),
-          tutorModeCounts: defaultTutorModeCounts(),
-          sessionRatingsLog: [],
-          lastTutorContext: null,  /* { mode, turns, hadDialogue, wasDontKnow } — set by tutor flows */
-          tutorAnalyticsHistoryKey: 's' + Date.now()
-        };
-        session = createSessionState(q, session.startedAt);
-        /* Reset dragon done view for next session */
-        var oldDragonImg = document.querySelector('.done-dragon-img');
-        if (oldDragonImg) oldDragonImg.remove();
-        var oldOrb = document.getElementById('doneDragonOrb');
-        if (oldOrb) { oldOrb.style.display = ''; oldOrb.textContent = '🥚'; }
-        var oldXPBar = document.getElementById('sessionXPBar');
-        if (oldXPBar) oldXPBar.remove();
-        sessionSummary = null;
-        breakState.sessionStartTime = Date.now();
-        breakState.lastBreakTime = 0;
-        breakState.breaksTaken = 0;
-        breakState.bannerDismissed = false;
-        if (!q.length) return;
-        persistActiveSessionSnapshot();
-        var prevSum = el('sessionAiSummaryWrap');
-        if (prevSum) prevSum.style.display = 'none';
-        showView('viewSession');
-        try { document.body.classList.add('in-session'); } catch(e) {}
-        /* Insert session XP bar if not already present */
-        var sessionTop = document.querySelector('#viewSession .session-top');
-        if (sessionTop && !document.getElementById('sessionXPBar')) {
-          var xpBar = document.createElement('div');
-          xpBar.className = 'session-xp-bar';
-          xpBar.id = 'sessionXPBar';
-          xpBar.innerHTML =
-            '<div class="sxp-track">' +
-              '<div class="sxp-fill"></div>' +
-              '<div class="sxp-glow"></div>' +
-            '</div>' +
-            '<span class="sxp-label"><span class="sxp-value">0</span><span class="sxp-unit">XP</span></span>';
-          sessionTop.insertAdjacentElement('afterend', xpBar);
-        }
-        updateSessionXPBar();
-        try { playStart(); } catch(e) {}
-        renderCurrentItem();
-        /* Mobile safety: ensure session view is scrolled to top and visible */
-        try {
-          var sessionView = document.getElementById('viewSession');
-          if (sessionView) {
-            sessionView.scrollTop = 0;
-            sessionView.style.display = 'block';
-          }
-          window.scrollTo(0, 0);
-          document.querySelector('.wrap').scrollTop = 0;
-        } catch(scrollErr) {}
-        showIOSLandscapePrompt();
-      } catch (err) {
-        console.error('[StudyEngine] startSession failed:', err);
-        try { toast('Session error: ' + (err.message || err)); } catch(e2) {}
-        try {
-          var fallbackQ = [];
-          for (var fid in state.items) {
-            if (!state.items.hasOwnProperty(fid)) continue;
-            var fit = state.items[fid];
-            if (fit && !fit.archived) {
-              fit._presentTier = fit.tier || 'quickfire';
-              fallbackQ.push(fit);
-              if (fallbackQ.length >= 12) break;
-            }
-          }
-          if (fallbackQ.length) {
-            session = createSessionState(fallbackQ, Date.now());
-            showView('viewSession');
-            renderCurrentItem();
-          }
-        } catch (fallbackErr) {
-          console.error('[StudyEngine] Fallback also failed:', fallbackErr);
-        }
+      var q = buildSessionQueue();
+      session = {
+        queue: q,
+        idx: 0,
+        loops: {}, /* itemId -> again count in-session */
+        currentShown: false,
+        startedAt: Date.now(),
+        xp: 0,
+        reviewsByTier: { quickfire:0, explain:0, apply:0, distinguish:0, mock:0, worked:0 },
+        ratingSum: 0,
+        ratingN: 0,
+        calBefore: calibrationPct(state.calibration),
+        confidence: null,  /* 'low' | 'medium' | 'high' — set before reveal on quickfire */
+        recentRatings: [], /* rolling window for fatigue detection */
+        fatigueWarningShown: false, /* only show once per session */
+        tutorStats: defaultTutorStats(),
+        tutorModeCounts: defaultTutorModeCounts(),
+        sessionRatingsLog: [],
+        lastTutorContext: null,  /* { mode, turns, hadDialogue, wasDontKnow } — set by tutor flows */
+        tutorAnalyticsHistoryKey: 's' + Date.now()
+      };
+      session = createSessionState(q, session.startedAt);
+      /* Reset dragon done view for next session */
+      var oldDragonImg = document.querySelector('.done-dragon-img');
+      if (oldDragonImg) oldDragonImg.remove();
+      var oldOrb = document.getElementById('doneDragonOrb');
+      if (oldOrb) { oldOrb.style.display = ''; oldOrb.textContent = '🥚'; }
+      var oldXPBar = document.getElementById('sessionXPBar');
+      if (oldXPBar) oldXPBar.remove();
+      sessionSummary = null;
+      breakState.sessionStartTime = Date.now();
+      breakState.lastBreakTime = 0;
+      breakState.breaksTaken = 0;
+      breakState.bannerDismissed = false;
+      if (!q.length) return;
+      persistActiveSessionSnapshot();
+      var prevSum = el('sessionAiSummaryWrap');
+      if (prevSum) prevSum.style.display = 'none';
+      showView('viewSession');
+      try { document.body.classList.add('in-session'); } catch(e) {}
+      /* Insert session XP bar if not already present */
+      var sessionTop = document.querySelector('#viewSession .session-top');
+      if (sessionTop && !document.getElementById('sessionXPBar')) {
+        var xpBar = document.createElement('div');
+        xpBar.className = 'session-xp-bar';
+        xpBar.id = 'sessionXPBar';
+        xpBar.innerHTML =
+          '<span class="sxp-label">XP</span>' +
+          '<div class="sxp-fill-wrap"><div class="sxp-fill"></div></div>' +
+          '<span class="sxp-value">0 XP</span>' +
+          '<span class="sxp-streak"></span>';
+        sessionTop.insertAdjacentElement('afterend', xpBar);
       }
+      updateSessionXPBar();
+      try { playStart(); } catch(e) {}
+      renderCurrentItem();
     }
 
     function renderCurrentItem() {
-      try {
-        console.log('[StudyEngine] renderCurrentItem called, idx:', session ? session.idx : 'no session');
-        document.querySelectorAll('.listen-tts-btn').forEach(function(btn) { btn.remove(); });
-        clearTimers();
-        cleanupAskTutor();
-        if (session) session.lastTutorContext = null;
-        activeRubric = null;
-        session.currentShown = false;
-        if (session) session.confidence = null;
-        if (session) session._dontKnow = false;
-        if (session) session._reconstructionPending = false;
-        modelAnswerEl.style.display = 'none';
-        ratingsEl.style.display = 'none';
-        studyIndicator.classList.remove('show');
-        var breakHint = el('breakHint');
-        if (breakHint) breakHint.classList.remove('show');
-        var restudyScreen = el('restudyScreen');
-        if (restudyScreen) restudyScreen.classList.remove('show');
-        modelAnswerEl.classList.remove('restudy-active');
-        var oldBarAtRender = document.getElementById('restudyBarInline');
-        if (oldBarAtRender) {
-          var oldElabAtRender = oldBarAtRender.nextElementSibling;
-          if (oldElabAtRender && oldElabAtRender.classList.contains('restudy-elaboration')) oldElabAtRender.remove();
-          oldBarAtRender.remove();
-        }
-        el('timerBar').classList.remove('show');
-        el('metaTimer').style.display = 'none';
-        el('timerFill').style.width = '0%';
-        el('aiFeedbackArea').innerHTML = '';
-        /* Remove side-by-side reveal columns from previous item */
-        var oldReveal = document.getElementById('revealColumnsWrap');
-        if (oldReveal) oldReveal.remove();
-        var oldDkWrap = document.getElementById('dkRevealWrap');
-        if (oldDkWrap) oldDkWrap.remove();
-        if (tierArea) {
-          tierArea.style.display = '';
-          tierArea.style.opacity = '';
-          tierArea.style.pointerEvents = '';
-        }
-        if (session) session.aiRating = null;
-        if (session) session._isRelearning = false;
-        tutorAcknowledgeDone = false;
-        tutorAcknowledgeOriginalRating = null;
-        tutorOpeningUserText = '';
-        tutorInRelearning = false;
-        tutorMaxTurns = 3;
-        var qfRoot = document.getElementById('qfFollowupRoot');
-        if (qfRoot) qfRoot.remove();
-        var qfReRoot = document.getElementById('qfReRetrievalRoot');
-        if (qfReRoot) qfReRoot.remove();
-        var oldHint = document.querySelector('.override-hint');
-        if (oldHint) oldHint.remove();
-        ratingsEl.querySelectorAll('button').forEach(function(b) {
-          b.style.outline = 'none';
-          b.style.outlineOffset = '0';
-        });
+      document.querySelectorAll('.listen-tts-btn').forEach(function(btn) { btn.remove(); });
+      clearTimers();
+      cleanupAskTutor();
+      if (session) session.lastTutorContext = null;
+      activeRubric = null;
+      session.currentShown = false;
+      if (session) session.confidence = null;
+      if (session) session._dontKnow = false;
+      if (session) session._reconstructionPending = false;
+      modelAnswerEl.style.display = 'none';
+      ratingsEl.style.display = 'none';
+      studyIndicator.classList.remove('show');
+      var breakHint = el('breakHint');
+      if (breakHint) breakHint.classList.remove('show');
+      var restudyScreen = el('restudyScreen');
+      if (restudyScreen) restudyScreen.classList.remove('show');
+      modelAnswerEl.classList.remove('restudy-active');
+      var oldBarAtRender = document.getElementById('restudyBarInline');
+      if (oldBarAtRender) {
+        var oldElabAtRender = oldBarAtRender.nextElementSibling;
+        if (oldElabAtRender && oldElabAtRender.classList.contains('restudy-elaboration')) oldElabAtRender.remove();
+        oldBarAtRender.remove();
+      }
+      el('timerBar').classList.remove('show');
+      el('metaTimer').style.display = 'none';
+      el('timerFill').style.width = '0%';
+      el('aiFeedbackArea').innerHTML = '';
+      /* Remove side-by-side reveal columns from previous item */
+      var oldReveal = document.getElementById('revealColumnsWrap');
+      if (oldReveal) oldReveal.remove();
+      var oldDkWrap = document.getElementById('dkRevealWrap');
+      if (oldDkWrap) oldDkWrap.remove();
+      // Re-show tier area in case it was hidden/dimmed by Don't Know flow
+      if (tierArea) {
+        tierArea.style.display = '';
+        tierArea.style.opacity = '';
+        tierArea.style.pointerEvents = '';
+      }
+      if (session) session.aiRating = null;
+      if (session) session._isRelearning = false;
+      tutorAcknowledgeDone = false;
+      tutorAcknowledgeOriginalRating = null;
+      tutorOpeningUserText = '';
+      tutorInRelearning = false;
+      tutorMaxTurns = 3;
+      var qfRoot = document.getElementById('qfFollowupRoot');
+      if (qfRoot) qfRoot.remove();
+      var qfReRoot = document.getElementById('qfReRetrievalRoot');
+      if (qfReRoot) qfReRoot.remove();
+      /* Remove override hint if present */
+      var oldHint = document.querySelector('.override-hint');
+      if (oldHint) oldHint.remove();
+      /* Reset rating button outlines */
+      ratingsEl.querySelectorAll('button').forEach(function(b) {
+        b.style.outline = 'none';
+        b.style.outlineOffset = '0';
+      });
 
-        var it = session.queue[session.idx];
-        if (!it) { completeSession(); return; }
-        var tier = it._presentTier || it.tier || 'quickfire';
+      var it = session.queue[session.idx];
+      if (!it) { completeSession(); return; }
+      /* Resolve presentation tier (smart mode) or stored tier (manual/legacy) */
+      var tier = it._presentTier || it.tier || 'quickfire';
 
-        setTierBadge(tier);
-        var ic = document.querySelector('.item-card');
-        if (ic) ic.className = 'item-card tier-' + tier;
+      setTierBadge(tier);
+      /* Tier-themed item card border */
+      var ic = document.querySelector('.item-card');
+      if (ic) {
+        ic.className = 'item-card tier-' + tier;
+      }
 
-        var pb = document.querySelector('.pbar');
-        if (pb) pb.className = 'pbar tier-' + tier;
+      /* Tier-coloured progress bar */
+      var pb = document.querySelector('.pbar');
+      if (pb) {
+        pb.className = 'pbar tier-' + tier;
+      }
 
-        if (tier === 'apply') el('promptText').textContent = 'Scenario';
-        else el('promptText').innerHTML = '<div class="md-content">' + renderMd(it.prompt) + '</div>';
-        el('metaCourse').textContent = it.course || '—';
-        var metaEl = document.querySelector('.meta');
-        var existingPriBadge = document.getElementById('metaPriority');
-        if (existingPriBadge) existingPriBadge.remove();
-        if (metaEl && it.priority && it.priority !== 'medium') {
-          var badge = document.createElement('span');
-          badge.id = 'metaPriority';
-          badge.innerHTML = priorityBadgeHTML(it.priority);
-          metaEl.appendChild(badge);
-        }
-        el('metaTopic').textContent = it.topic || '—';
-        refreshSessionEditButton();
-        el('courseHint').textContent = (selectedCourse === 'All') ? (it.course || '—') : selectedCourse;
+      /* For Apply It we render the scenario in a distinct block; avoid duplicating it in the top prompt. */
+      if (tier === 'apply') el('promptText').textContent = 'Scenario';
+      else el('promptText').innerHTML = '<div class="md-content">' + renderMd(it.prompt) + '</div>';
+      el('metaCourse').textContent = it.course || '—';
+      var metaEl = document.querySelector('.meta');
+      var existingPriBadge = document.getElementById('metaPriority');
+      if (existingPriBadge) existingPriBadge.remove();
+      if (metaEl && it.priority && it.priority !== 'medium') {
+        var badge = document.createElement('span');
+        badge.id = 'metaPriority';
+        badge.innerHTML = priorityBadgeHTML(it.priority);
+        metaEl.appendChild(badge);
+      }
+      el('metaTopic').textContent = it.topic || '—';
+      refreshSessionEditButton();
+      el('courseHint').textContent = (selectedCourse === 'All') ? (it.course || '—') : selectedCourse;
 
-        var n = session.queue.length;
-        var progressText = (session.idx + 1) + ' of ' + n;
-        var progressPct = Math.round(((session.idx) / Math.max(1, n)) * 100);
-        el('progText').textContent = progressText;
-        el('progBar').style.width = progressPct + '%';
-        if (el('sessionProgText')) el('sessionProgText').textContent = progressText;
-        if (el('sessionProgBar')) el('sessionProgBar').style.width = progressPct + '%';
-        if (window.gsap) {
-          var progBarFill = el('progBar');
-          if (progBarFill) {
-            gsap.fromTo(progBarFill, { boxShadow: '0 0 8px rgba(var(--accent-rgb), 0.5)' }, { boxShadow: '0 0 0 rgba(var(--accent-rgb), 0)', duration: 0.6, ease: 'power2.out' });
-          }
-        }
+      var n = session.queue.length;
+      el('progText').textContent = (session.idx + 1) + ' of ' + n;
+      el('progBar').style.width = Math.round(((session.idx) / Math.max(1, n)) * 100) + '%';
 
-        tierArea.innerHTML = '';
-        if (tier === 'quickfire') renderQuickfireTier(it, session);
-        else if (tier === 'explain') renderExplainTier(it, session);
-        else if (tier === 'apply') renderApplyTier(it, session);
-        else if (tier === 'worked') renderWorkedTier(it, session);
-        else if (tier === 'distinguish') renderDistinguishTier(it, session);
-        else if (tier === 'mock') renderMockTier(it, session);
+      tierArea.innerHTML = '';
+      if (tier === 'quickfire') renderQuickfireTier(it, session);
+      else if (tier === 'explain') renderExplainTier(it, session);
+      else if (tier === 'apply') renderApplyTier(it, session);
+      else if (tier === 'worked') renderWorkedTier(it, session);
+      else if (tier === 'distinguish') renderDistinguishTier(it, session);
+      else if (tier === 'mock') renderMockTier(it, session);
 
-        if (window.gsap) {
-          var cardEnter = document.querySelector('.item-card');
-          if (cardEnter) {
-            gsap.killTweensOf(cardEnter);
-            gsap.fromTo(cardEnter,
-              { opacity: 0, y: 60, scale: 0.95, rotationX: 4 },
-              { opacity: 1, y: 0, scale: 1, rotationX: 0, duration: 0.55, ease: 'back.out(1.4)', clearProps: 'rotationX' }
-            );
-            var staggerEls = cardEnter.querySelectorAll('.meta, .prompt, #tierArea, .divider');
-            if (staggerEls.length) {
-              gsap.fromTo(staggerEls, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out', stagger: 0.06, delay: 0.15 });
-            }
-          }
-        }
-      } catch (mobileErr) {
-        console.error('[StudyEngine] renderCurrentItem failed:', mobileErr);
-        /* Fallback: show a minimal but functional card */
-        var fallbackItem = session && session.queue && session.queue[session.idx];
-        if (fallbackItem && tierArea) {
-          var safePrompt = String(fallbackItem.prompt || 'No prompt').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-          var safeAnswer = String(fallbackItem.modelAnswer || 'No answer').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-          tierArea.innerHTML =
-            '<div style="padding:16px;color:var(--text);font-size:14px;line-height:1.6;">' +
-            '<p style="font-weight:700;margin-bottom:8px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--text-secondary);">PROMPT</p>' +
-            '<p style="margin-bottom:16px;">' + safePrompt + '</p>' +
-            '<hr style="border:none;border-top:1px solid rgba(var(--accent-rgb),0.12);margin:12px 0;">' +
-            '<p style="font-weight:700;margin-bottom:8px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--text-secondary);">ANSWER</p>' +
-            '<p>' + safeAnswer + '</p>' +
-            '</div>';
-          if (ratingsEl) {
-            ratingsEl.style.display = 'grid';
-            ratingsEl.querySelectorAll('button').forEach(function(b) {
-              b.__tapBound = false;
-              onTap(b, function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); });
-            });
-          }
+      if (window.gsap) {
+        var cardEnter = document.querySelector('.item-card');
+        if (cardEnter) {
+          gsap.fromTo(cardEnter,
+            { opacity: 0, y: 16, scale: 0.98 },
+            { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: 'power2.out' }
+          );
         }
       }
     }
@@ -744,14 +556,9 @@
         if (qfAnswerVisual) setTimeout(initMermaidBlocks, 50);
         else ensureAnswerVisual(it, revealTier);
         ratingsEl.style.display = 'grid';
-        if (window.gsap) {
-          gsap.fromTo(modelAnswerEl, { opacity: 0, y: 30, clipPath: 'inset(100% 0% 0% 0%)' }, { opacity: 1, y: 0, clipPath: 'inset(0% 0% 0% 0%)', duration: 0.45, ease: 'power2.out' });
-          gsap.fromTo(ratingsEl, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.3, delay: 0.2, ease: 'power2.out' });
-        }
         try { playClick(); } catch(e) {}
         ratingsEl.querySelectorAll('button').forEach(function(b) {
-          b.__tapBound = false;
-          onTap(b, function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); });
+          b.onclick = function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); };
         });
         if (it.modelAnswer) insertListenButton(modelAnswerEl, it.modelAnswer);
         return;
@@ -783,16 +590,12 @@
       var answerVisual = it.visual ? renderMermaidBlock(it.visual, 'answer', it.id) : '';
 
       /* Remove old tierArea content that's no longer needed (scenario stays via item-card) */
-      var revealHTML = '<div class="reveal-tabs">' +
-        '<button type="button" class="nav-tab reveal-tab-btn" data-reveal-tab="user">Your Response</button>' +
-        '<button type="button" class="nav-tab reveal-tab-btn active" data-reveal-tab="model">Model Answer</button>' +
-      '</div>' +
-      '<div class="reveal-columns">' +
+      var revealHTML = '<div class="reveal-columns">' +
         '<div class="reveal-col">' +
           '<div class="col-label"><span class="col-icon">✍️</span> Your Response</div>' +
           '<div class="user-response-locked" id="userResponseLocked">' + esc(userText || '(No response)') + '</div>' +
         '</div>' +
-        '<div class="reveal-col active">' +
+        '<div class="reveal-col">' +
           '<div class="col-label"><span class="col-icon">📋</span> Model Answer</div>' +
           '<div class="answer" id="modelAnswerRight"><span class="answer-header">Model Answer</span>' + renderMd(it.modelAnswer || '') + '<div class="visual-slot"></div>' + answerVisual + '</div>' +
           '<div id="aiFeedbackRight"></div>' +
@@ -804,7 +607,6 @@
       revealContainer.id = 'revealColumnsWrap';
       revealContainer.innerHTML = revealHTML;
       tierArea.insertAdjacentElement('afterend', revealContainer);
-      setupRevealTabs(revealContainer);
 
       /* Hide original modelAnswer element — we use the right-column copy */
       modelAnswerEl.style.display = 'none';
@@ -871,22 +673,6 @@
       if (!it) return;
       if (!session.currentShown) return;
 
-      var tappedBtn = ratingsEl.querySelector('[data-rate="' + rating + '"]');
-      if (tappedBtn && window.gsap) {
-        gsap.fromTo(tappedBtn, { scale: 1 }, {
-          scale: 0.88,
-          duration: 0.08,
-          ease: 'power2.in',
-          yoyo: true,
-          repeat: 1,
-          onComplete: function() {
-            gsap.to(tappedBtn, { scale: 1.15, opacity: 0, duration: 0.2, ease: 'power2.out' });
-            ratingsEl.querySelectorAll('button').forEach(function(b) {
-              if (b !== tappedBtn) gsap.to(b, { opacity: 0.3, scale: 0.95, duration: 0.15 });
-            });
-          }
-        });
-      }
       /* Immediately hide rating UI — rating captured */
       ratingsEl.style.display = 'none';
       var hintElRate = document.querySelector('.override-hint');
@@ -1183,11 +969,9 @@
         gsap.killTweensOf(cardEl);
         gsap.to(cardEl, {
           opacity: 0,
-          y: -40,
-          scale: 0.96,
-          rotationX: -3,
-          duration: 0.25,
-          ease: 'power3.in',
+          y: -12,
+          duration: 0.18,
+          ease: 'power2.in',
           onComplete: step
         });
       } else {
@@ -1220,7 +1004,6 @@
       document.querySelectorAll('.listen-tts-btn').forEach(function(btn) { btn.remove(); });
       clearTimers();
       if (!session) return;
-      iosLandscapeDismissed = false;
 
       /* Streak update */
       var today = isoDate();
@@ -1367,17 +1150,6 @@
       flash.textContent = xp === 0 ? '0 XP' : '+' + xp + ' XP';
       document.body.appendChild(flash);
       if (window.gsap) {
-        var xpBar = document.getElementById('sessionXPBar');
-        if (xpBar) {
-          xpBar.classList.add('active');
-          gsap.fromTo(xpBar.querySelector('.sxp-value'), { textContent: Math.max(0, session.xp - xp) }, {
-            textContent: session.xp,
-            duration: 0.45,
-            roundProps: 'textContent',
-            ease: 'power2.out'
-          });
-          gsap.delayedCall(0.38, function() { xpBar.classList.remove('active'); });
-        }
         gsap.fromTo(flash,
           { opacity: 0, y: 0, scale: 0.7 },
           { opacity: 1, y: -30, scale: 1, duration: 0.35, ease: 'back.out(1.8)',
@@ -1393,24 +1165,6 @@
         flash.style.opacity = '1';
         setTimeout(function() { flash.remove(); }, 1200);
       }
-    }
-
-    function setupRevealTabs(revealContainer) {
-      if (!revealContainer) return;
-      var tabs = revealContainer.querySelectorAll('.reveal-tab-btn');
-      var cols = revealContainer.querySelectorAll('.reveal-col');
-      if (tabs.length !== 2 || cols.length !== 2) return;
-      tabs.forEach(function(tab, idx) {
-        tab.addEventListener('click', function() {
-          tabs.forEach(function(t) { t.classList.remove('active'); });
-          tab.classList.add('active');
-          cols.forEach(function(col) { col.classList.remove('active'); });
-          cols[idx].classList.add('active');
-          if (window.gsap) {
-            gsap.fromTo(cols[idx], { opacity: 0, x: idx === 0 ? -18 : 18 }, { opacity: 1, x: 0, duration: 0.24, ease: 'power2.out' });
-          }
-        });
-      });
     }
 
     function disableRatings(disabled) {
@@ -1521,7 +1275,7 @@
         tipEl.textContent = getBreakTip();
         if (window.gsap) gsap.fromTo(tipEl, { opacity: 0 }, { opacity: 1, duration: 0.4 });
       }, 45000);
-      onTap(skipBtn, function() { endBreak(); try { playBreakDismiss(); } catch (e) {} });
+      skipBtn.onclick = function() { endBreak(); try { playBreakDismiss(); } catch (e) {} };
       if (window.gsap) {
         gsap.fromTo(overlay.querySelector('.break-card'),
           { scale: 0.9, opacity: 0 },

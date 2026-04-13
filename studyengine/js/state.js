@@ -25,24 +25,6 @@
     var LECTURE_CTX_ENDPOINT = STUDYENGINE_WORKER_BASE + '/lecture-context';
     var GRADE_ENDPOINT = STUDYENGINE_WORKER_BASE + '/grade';
 
-    if (typeof onTap !== 'function') {
-      function onTap(element, handler) {
-        if (!element || typeof handler !== 'function') return;
-        if (element.__tapBound) return;
-        element.__tapBound = true;
-        var touchFired = false;
-        element.addEventListener('touchend', function(e) {
-          e.preventDefault();
-          touchFired = true;
-          handler.call(element, e);
-        }, { passive: false });
-        element.addEventListener('click', function(e) {
-          if (touchFired) { touchFired = false; return; }
-          handler.call(element, e);
-        });
-      }
-    }
-
     /* ── State ── */
     var NS = 'studyengine';
 var DEFAULT_STATE = {
@@ -152,6 +134,7 @@ var DEFAULT_STATE = {
 /* ── Cram Mode Detection ── */
 var state = null;
     var settings = null;
+    var _bootStarted = false;
 
     function deepClone(obj){ return JSON.parse(JSON.stringify(obj || {})); }
 
@@ -2420,10 +2403,9 @@ var tutorConversation = [];
       ratingsEl.parentNode.insertBefore(hint, ratingsEl.nextSibling);
       // Re-bind rating buttons to ensure clean handler
       ratingsEl.querySelectorAll('button').forEach(function(b) {
-        b.__tapBound = false;
-        onTap(b, function() {
+        b.onclick = function() {
           rateCurrent(parseInt(this.getAttribute('data-rate'), 10));
-        });
+        };
       });
     }
 
@@ -2431,15 +2413,10 @@ var tutorConversation = [];
       var ta = el('userText');
       ta.addEventListener('input', function(){ autoGrowTextarea(ta); });
       autoGrowTextarea(ta);
-      var checkBtn = el('checkBtn');
-      if (checkBtn) {
-        checkBtn.__tapBound = false;
-        onTap(checkBtn, function(){ revealAnswer(true); });
-      }
+      el('checkBtn').addEventListener('click', function(){ revealAnswer(true); });
       var dkBtn = el('dontKnowBtn');
       if (dkBtn) {
-        dkBtn.__tapBound = false;
-        onTap(dkBtn, function() {
+        dkBtn.addEventListener('click', function() {
           var cur = session.queue[session.idx];
           if (!cur) return;
           var rt = cur._presentTier || cur.tier || 'quickfire';
@@ -2452,15 +2429,10 @@ var tutorConversation = [];
       var ta = el('userText');
       ta.addEventListener('input', function(){ autoGrowTextarea(ta); });
       autoGrowTextarea(ta);
-      var submitBtn = el('submitBtn');
-      if (submitBtn) {
-        submitBtn.__tapBound = false;
-        onTap(submitBtn, function(){ revealAnswer(true); });
-      }
+      el('submitBtn').addEventListener('click', function(){ revealAnswer(true); });
       var dkBtn = el('dontKnowBtn');
       if (dkBtn) {
-        dkBtn.__tapBound = false;
-        onTap(dkBtn, function() {
+        dkBtn.addEventListener('click', function() {
           var cur = session.queue[session.idx];
           if (!cur) return;
           var rt = cur._presentTier || cur.tier || 'quickfire';
@@ -3380,17 +3352,11 @@ var tutorConversation = [];
     });
 
     /* ── Buttons wiring ── */
-    var startBtnEl = el('startBtn');
-    if (startBtnEl) {
-      startBtnEl.__tapBound = false;
-      onTap(startBtnEl, function() {
-        if (startBtnEl.disabled) return;
-        try { playClick(); } catch(e) {}
-        selectedCourse = 'All';
-        selectedTopic = 'All';
-        startSession();
-      });
-    }
+    el('startBtn').addEventListener('click', function(){
+      selectedCourse = 'All';
+      selectedTopic = 'All';
+      startSession();
+    });
     el('backBtn').addEventListener('click', function(){
       if (viewSession.classList.contains('active') && session) {
         el('confirmExitOv').classList.add('show');
@@ -3400,11 +3366,7 @@ var tutorConversation = [];
         renderDashboard();
       }
     });
-    var skipBtnEl = el('skipBtn');
-    if (skipBtnEl) {
-      skipBtnEl.__tapBound = false;
-      onTap(skipBtnEl, function(){ skipItem(); });
-    }
+    el('skipBtn').addEventListener('click', function(){ skipItem(); });
     el('skipBtn').addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); skipItem(); } });
     /* ── Navigation Tabs ── */
     var activeNav = 'home';
@@ -3450,20 +3412,18 @@ var tutorConversation = [];
     el('navHome').addEventListener('click', function() { switchNav('home'); });
     el('navCourses').addEventListener('click', function() { switchNav('courses'); });
     /* ── Session Exit with Confirmation ── */
-    function handleSessionExitClick() {
+    el('exitSessionBtn').addEventListener('click', function() {
       if (!session) return;
       el('confirmExitOv').classList.add('show');
       try { playPause(); } catch(e) {}
-    }
-    onTap(el('exitSessionBtn'), handleSessionExitClick);
-    if (el('exitSessionHeaderBtn')) onTap(el('exitSessionHeaderBtn'), handleSessionExitClick);
+    });
 
-    onTap(el('confirmStay'), function() {
+    el('confirmStay').addEventListener('click', function() {
       el('confirmExitOv').classList.remove('show');
       try { playResume(); } catch(e) {}
     });
 
-    onTap(el('confirmLeave'), function() {
+    el('confirmLeave').addEventListener('click', function() {
       el('confirmExitOv').classList.remove('show');
       try { playClose(); } catch(e) {}
       if (session) {
@@ -3495,8 +3455,7 @@ var tutorConversation = [];
     });
 
     ratingsEl.querySelectorAll('button').forEach(function(b){
-      b.__tapBound = false;
-      onTap(b, function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); });
+      b.addEventListener('click', function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); });
     });
 
     /* ── Modal: Add items / Import JSON ── */
@@ -4747,7 +4706,7 @@ el('gearBtn').addEventListener('click', openSettings);
         }
 
         h += '<div class="course-modal-item" id="cmi_' + ck + '">' +
-          '<div class="course-list-item" id="cli_' + ck + '" style="border-left:5px solid ' + (c.color || '#8b5cf6') + ';">' +
+          '<div class="course-list-item" id="cli_' + ck + '" style="border-left:3px solid ' + (c.color || '#8b5cf6') + ';">' +
           '<div style="flex:1;min-width:0;">' +
             '<div class="cli-name">' + esc(c.name) + '</div>' +
             '<div style="display:flex;gap:6px;margin-top:4px;align-items:center;flex-wrap:wrap;">' +
@@ -4775,36 +4734,38 @@ el('gearBtn').addEventListener('click', openSettings);
         '</button>';
 
       h += '<div class="add-course-form-wrap" id="addCourseFormWrap">' +
-        '<div class="section-header" style="margin-top:4px;">New Course</div>' +
+        '<div class="add-course-form">' +
+        '<div class="cm-section-title" style="margin-bottom:14px;">New Course</div>' +
         '<div class="field">' +
-          '<label>Course name</label>' +
+          '<div class="cm-field-label">Course Name</div>' +
           '<input type="text" id="nc_name" class="input" placeholder="e.g., Constitutional Law">' +
         '</div>' +
         '<div class="field">' +
-          '<label>Colour</label>' +
+          '<div class="cm-field-label">Colour</div>' +
           '<div class="color-picker" id="nc_colorPicker">';
       COURSE_COLORS.forEach(function(c, i) {
         h += '<div class="color-swatch' + (i === 0 ? ' active' : '') + '" data-color="' + c.value + '" style="background:' + c.value + '" title="' + c.name + '"></div>';
       });
       h += '</div></div>' +
-        '<div class="course-form-row">' +
+        '<div class="add-course-row">' +
           '<div class="field">' +
-            '<label>Exam format</label>' +
+            '<div class="cm-field-label">Exam Format</div>' +
             '<select id="nc_examType" class="input">' +
               '<option value="mc">Multiple Choice</option>' +
               '<option value="short_answer">Short Answer</option>' +
               '<option value="essay">Essay</option>' +
               '<option value="mixed" selected>Mixed</option>' +
             '</select>' +
-            '<div id="nc_examTypeDesc" class="help" style="margin-top:6px;line-height:1.5;"></div>' +
+            '<div id="nc_examTypeDesc" class="cm-field-hint"></div>' +
           '</div>' +
           '<div class="field">' +
-            '<label>Exam date (optional)</label>' +
+            '<div class="cm-field-label">Exam Date (Optional)</div>' +
             '<input type="date" id="nc_examDate" class="input">' +
-            '<div id="nc_examDateDesc" class="help" style="line-height:1.5;"><span class="info-icon" tabindex="0">ⓘ</span> When set, the engine activates cram mode as the date approaches — reviews intensify, session sizes increase, and your weakest cards are prioritised automatically. When left empty, FSRS schedules reviews for long-term retention at your configured desired retention rate.</div>' +
+            '<div id="nc_examDateDesc" class="cm-field-hint">Set an exam date to let cram mode intensify reviews as the deadline gets closer.</div>' +
           '</div>' +
         '</div>' +
         '<button class="big-btn" id="courseAddBtn" type="button" style="margin-top:12px;width:100%;">Add Course</button>' +
+        '</div>' +
       '</div>';
 
       courseModalBody.innerHTML = h;
@@ -5039,22 +5000,30 @@ el('gearBtn').addEventListener('click', openSettings);
         var activeTab = courseModalState.tab || 'details';
         var inner = '';
         if (activeTab === 'details') {
-          inner += '<div class="field"><label>Course name</label><input id="cm_name" class="input" value="' + esc(c.name) + '" /></div>';
-          inner += '<div class="field"><label>Colour</label><div class="color-picker" id="cm_colorPicker">';
+          inner += '<div class="cm-section">';
+          inner += '<div class="cm-section-title">Identity</div>';
+          inner += '<div class="field"><div class="cm-field-label">Course Name</div><input id="cm_name" class="input" value="' + esc(c.name) + '" /></div>';
+          inner += '<div class="field" style="margin-bottom:0;"><div class="cm-field-label">Colour</div><div class="color-picker" id="cm_colorPicker">';
           COURSE_COLORS.forEach(function(cc) {
             var isAct = (c.color || '#8b5cf6') === cc.value;
             inner += '<div class="color-swatch' + (isAct ? ' active' : '') + '" data-color="' + cc.value + '" style="background:' + cc.value + '" title="' + esc(cc.name) + '"></div>';
           });
           inner += '</div></div>';
-          inner += '<div class="course-form-row"><div class="field"><label>Exam type</label><select id="cm_examType" class="input">';
+          inner += '</div>';
+          inner += '<div class="cm-section">';
+          inner += '<div class="cm-section-title">Exam Configuration</div>';
+          inner += '<div class="cm-details-grid">';
+          inner += '<div class="field"><div class="cm-field-label">Exam Format</div><select id="cm_examType" class="input">';
           inner += '<option value="mc"' + (c.examType === 'mc' ? ' selected' : '') + '>Multiple Choice</option>';
           inner += '<option value="short_answer"' + (c.examType === 'short_answer' ? ' selected' : '') + '>Short Answer</option>';
           inner += '<option value="essay"' + (c.examType === 'essay' ? ' selected' : '') + '>Essay</option>';
           inner += '<option value="mixed"' + (c.examType === 'mixed' ? ' selected' : '') + '>Mixed</option>';
-          inner += '</select></div>';
-          inner += '<div class="field"><label>Exam date</label><input id="cm_examDate" type="date" class="input" value="' + esc(c.examDate || '') + '" /></div></div>';
-          inner += '<div class="field"><label>Exam Weight (%)</label><input id="cm_examWeight" type="number" min="0" max="100" step="1" class="input" value="' + esc(c.examWeight != null ? String(c.examWeight) : '') + '" /></div>';
+          inner += '</select><div id="cm_examTypeDesc" class="cm-field-hint"></div></div>';
+          inner += '<div class="field"><div class="cm-field-label">Exam Date</div><input id="cm_examDate" type="date" class="input" value="' + esc(c.examDate || '') + '" /><div class="cm-field-hint">Add a date to unlock cram prioritisation as the exam gets closer.</div></div>';
+          inner += '<div class="field"><div class="cm-field-label">Exam Weight (%)</div><input id="cm_examWeight" type="number" min="0" max="100" step="1" class="input" value="' + esc(c.examWeight != null ? String(c.examWeight) : '') + '" /><div class="cm-field-hint">Optional weighting for planning and context.</div></div>';
+          inner += '</div>';
           inner += '<div style="display:flex;justify-content:flex-end;margin-top:12px;"><button class="big-btn" id="cmSaveDetails" type="button">Save Details</button></div>';
+          inner += '</div>';
         } else if (activeTab === 'syllabus') {
           inner += '<div class="field"><label>Syllabus / Exam Info</label><textarea class="input" id="cm_courseContextText" rows="7" placeholder="Paste syllabus text, exam instructions, or course outline...">' + esc(c.rawSyllabusText || '') + '</textarea></div>';
           inner += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
@@ -5142,6 +5111,7 @@ el('gearBtn').addEventListener('click', openSettings);
           btn.onclick = function() {
             courseModalState.tab = btn.getAttribute('data-course-tab') || 'details';
             renderTabContent();
+            if (window.gsap) gsap.fromTo(btn, { scale: 0.96 }, { scale: 1, duration: 0.2, ease: 'back.out(2)' });
             try { playClick(); } catch (e) {}
           };
         });
@@ -5154,6 +5124,16 @@ el('gearBtn').addEventListener('click', openSettings);
               sw.classList.add('active');
             };
           });
+          var examSelect = el('cm_examType');
+          var examDesc = el('cm_examTypeDesc');
+          function syncExamDesc() {
+            if (!examSelect || !examDesc) return;
+            examDesc.textContent = examTypeDescriptions[examSelect.value || 'mixed'] || examTypeDescriptions.mixed;
+          }
+          if (examSelect) {
+            examSelect.onchange = syncExamDesc;
+            syncExamDesc();
+          }
           var saveDetails = el('cmSaveDetails');
           if (saveDetails) saveDetails.onclick = function() {
             var oldName = c.name;
@@ -5179,6 +5159,12 @@ el('gearBtn').addEventListener('click', openSettings);
             renderCourseModalEditor(courseName, 'details');
           };
         } else if (activeTab === 'syllabus') {
+          var pasteBtn = el('cm_togglePasteBtn');
+          var pasteArea = el('cm_pasteArea');
+          if (pasteBtn) pasteBtn.onclick = function() {
+            var isOpen = !!(pasteArea && pasteArea.style.display !== 'none');
+            animateSlideToggle(pasteArea, !isOpen);
+          };
           function setCtxStatus(msg, cls) {
             var st = el('cm_contextStatus');
             if (!st) return;
@@ -5212,13 +5198,18 @@ el('gearBtn').addEventListener('click', openSettings);
               saveCourse(c);
               var prev = el('cm_syllabusPreview');
               if (prev) prev.textContent = c.syllabusContext || '';
+              var meta = el('cm_syllabusMeta');
+              if (meta) meta.innerHTML = '<span class="cm-status-badge">Processed</span>';
+              var zone = el('cm_syllabusZone');
+              if (zone) zone.classList.add('has-content');
               var wrap = el('cm_previewWrap');
               if (wrap && c.syllabusContext) wrap.style.display = '';
               var profEl = el('cm_professorValues'); if (profEl) profEl.value = c.professorValues || '';
               var alEl = el('cm_allowedMaterials'); if (alEl) alEl.value = c.allowedMaterials || '';
               renderSuggestedTopics(c.syllabusKeyTopics);
-              setCtxStatus('✓ Syllabus processed', 'ok');
-            }).catch(function() { setCtxStatus('Network error — try again', ''); });
+              if (pasteArea && pasteArea.style.display === 'none') animateSlideToggle(pasteArea, true);
+              setCtxStatus('Syllabus processed', 'ok');
+            }).catch(function() { setCtxStatus('Network error - try again', ''); });
           }
           var pdfBtn = el('cm_pdfBtn');
           var pdfFile = el('cm_pdfFile');
@@ -5240,6 +5231,13 @@ el('gearBtn').addEventListener('click', openSettings);
           var reprocBtn = el('cm_reprocessSyllabus');
           if (reprocBtn) reprocBtn.onclick = function() { runSyllabusProcess(c.rawSyllabusText || (el('cm_courseContextText') ? el('cm_courseContextText').value : '')); };
 
+          var lectureUrlToggle = el('cm_toggleLectureUrl');
+          var lectureUrlWrap = el('cm_lectureUrlWrap');
+          if (lectureUrlToggle) lectureUrlToggle.onclick = function() {
+            var isOpen = !!(lectureUrlWrap && lectureUrlWrap.style.display !== 'none');
+            animateSlideToggle(lectureUrlWrap, !isOpen);
+          };
+
           function setLectureStatus(msg, cls) {
             var st = el('cm_lectureImportStatus');
             if (!st) return;
@@ -5250,7 +5248,9 @@ el('gearBtn').addEventListener('click', openSettings);
             var box = el('cm_lectureManifestDisplay');
             if (!box) return;
             var count = Number(c._lectureCount || 0) || 0;
-            box.innerHTML = count > 0 ? '<div style="font-size:9px;color:var(--text-secondary);padding:6px 8px;border-radius:10px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.03);">📚 ' + count + ' lecture' + (count !== 1 ? 's' : '') + ' imported</div>' : '';
+            box.innerHTML = count > 0 ? '<span class="cm-status-badge">' + count + ' lecture' + (count !== 1 ? 's' : '') + ' imported</span>' : '';
+            var zone = el('cm_lectureZone');
+            if (zone) zone.classList.toggle('has-content', count > 0);
           }
           function importLectureFromText(lectureTitle, rawText) {
             var trimmed = (rawText || '').trim();
@@ -5271,9 +5271,9 @@ el('gearBtn').addEventListener('click', openSettings);
               saveCourse(c);
               if (!isEmbedded) renderSidebar();
               updateLectureManifestDisplay();
-              setLectureStatus('✓ Imported lecture context', 'ok');
+              setLectureStatus('Imported lecture context', 'ok');
               return data;
-            }).catch(function() { setLectureStatus('Network error — try again', ''); return null; });
+            }).catch(function() { setLectureStatus('Network error - try again', ''); return null; });
           }
           updateLectureManifestDisplay();
           var importUrlBtn = el('cm_importLectureUrl');
@@ -5368,6 +5368,8 @@ el('gearBtn').addEventListener('click', openSettings);
             };
           });
         } else if (activeTab === 'notes') {
+          var notesHost = el('cmCourseNotesHost');
+          if (notesHost) wireTutorNotesPanelToggle(notesHost);
           var clearBtn = el('cmClearCourseNotes');
           if (clearBtn) clearBtn.onclick = function() {
             clearCourseTutorMemoriesForCourse(courseName);
@@ -5624,17 +5626,23 @@ el('gearBtn').addEventListener('click', openSettings);
       courseModalRefreshShell();
 
       var tabs = [
-        { id: 'details', label: 'Details' },
-        { id: 'syllabus', label: 'Syllabus & AI' },
-        { id: 'structure', label: 'Structure' },
-        { id: 'notes', label: 'Tutor Notes' }
+        { id: 'details', label: '⚙ Details' },
+        { id: 'syllabus', label: '🧠 Syllabus & AI' },
+        { id: 'structure', label: '📁 Structure' },
+        { id: 'notes', label: '📝 Tutor Notes' }
       ];
+      var examTypeDescriptions = {
+        mc: 'Emphasises Quick Fire and Distinguish practice for recognition-heavy exams.',
+        short_answer: 'Balances recall speed with Explain It style written retrieval.',
+        essay: 'Emphasises Apply It and Mock Exam tiers for longer written responses.',
+        mixed: 'Balanced across all five tiers. A good default when your exam combines several question formats.'
+      };
       var cards = getCardsForCourse(courseName);
       var cram = getCramState(courseName);
       var subtitle = (EXAM_TYPE_LABELS[c.examType] || c.examType) + (cram.active ? ' 🔥 Cram' : '') + ' · ' + cards.length + ' cards' + (c.examDate ? ' · Exam: ' + c.examDate : '');
       var tabNav = tabs.map(function(t) {
         var active = courseModalState.tab === t.id ? ' active' : '';
-        return '<button class="nav-tab' + active + '" type="button" data-course-tab="' + t.id + '" style="font-size:' + (isEmbedded ? '8px' : '9px') + ';">' + t.label + '</button>';
+        return '<button class="cm-tab' + active + '" type="button" data-course-tab="' + t.id + '">' + t.label + '</button>';
       }).join('');
 
       var h = '';
@@ -5643,52 +5651,106 @@ el('gearBtn').addEventListener('click', openSettings);
       h += '<div style="font-size:11px;font-weight:800;letter-spacing:0.5px;">' + esc(courseName) + '</div>';
       h += '</div>';
       h += '<div style="font-size:10px;color:var(--text-secondary);margin-bottom:10px;">' + esc(subtitle) + '</div>';
-      h += '<div class="nav-tabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">' + tabNav + '</div>';
+      h += '<div class="cm-tab-bar">' + tabNav + '</div>';
       h += '<div id="cmTabContent"></div>';
       courseModalBody.innerHTML = h;
+
+      function animateSlideToggle(node, shouldOpen) {
+        if (!node) return;
+        if (shouldOpen) {
+          node.style.display = 'block';
+          var openHeight = node.scrollHeight || 0;
+          if (window.gsap) {
+            gsap.fromTo(node, { opacity: 0, y: -6, height: 0 }, { opacity: 1, y: 0, height: openHeight, duration: 0.22, ease: 'power2.out', onComplete: function() { node.style.height = ''; } });
+          } else {
+            node.style.height = '';
+          }
+        } else if (window.gsap) {
+          gsap.to(node, { opacity: 0, y: -6, height: 0, duration: 0.18, ease: 'power2.inOut', onComplete: function() { node.style.display = 'none'; node.style.height = ''; } });
+        } else {
+          node.style.display = 'none';
+          node.style.height = '';
+        }
+      }
 
       function renderTabContent() {
         var activeTab = courseModalState.tab || 'details';
         var inner = '';
         if (activeTab === 'details') {
-          inner += '<div class="field"><label>Course name</label><input id="cm_name" class="input" value="' + esc(c.name) + '" /></div>';
-          inner += '<div class="field"><label>Colour</label><div class="color-picker" id="cm_colorPicker">';
+          inner += '<div class="cm-section">';
+          inner += '<div class="cm-section-title">Identity</div>';
+          inner += '<div class="field"><div class="cm-field-label">Course Name</div><input id="cm_name" class="input" value="' + esc(c.name) + '" /></div>';
+          inner += '<div class="field" style="margin-bottom:0;"><div class="cm-field-label">Colour</div><div class="color-picker" id="cm_colorPicker">';
           COURSE_COLORS.forEach(function(cc) {
             var isAct = (c.color || '#8b5cf6') === cc.value;
             inner += '<div class="color-swatch' + (isAct ? ' active' : '') + '" data-color="' + cc.value + '" style="background:' + cc.value + '" title="' + esc(cc.name) + '"></div>';
           });
-          inner += '</div></div>';
-          inner += '<div class="course-form-row"><div class="field"><label>Exam type</label><select id="cm_examType" class="input">';
+          inner += '</div></div></div>';
+          inner += '<div class="cm-section">';
+          inner += '<div class="cm-section-title">Exam Configuration</div>';
+          inner += '<div class="cm-details-grid">';
+          inner += '<div class="field"><div class="cm-field-label">Exam Format</div><select id="cm_examType" class="input">';
           inner += '<option value="mc"' + (c.examType === 'mc' ? ' selected' : '') + '>Multiple Choice</option>';
           inner += '<option value="short_answer"' + (c.examType === 'short_answer' ? ' selected' : '') + '>Short Answer</option>';
           inner += '<option value="essay"' + (c.examType === 'essay' ? ' selected' : '') + '>Essay</option>';
           inner += '<option value="mixed"' + (c.examType === 'mixed' ? ' selected' : '') + '>Mixed</option>';
-          inner += '</select></div>';
-          inner += '<div class="field"><label>Exam date</label><input id="cm_examDate" type="date" class="input" value="' + esc(c.examDate || '') + '" /></div></div>';
-          inner += '<div class="field"><label>Exam Weight (%)</label><input id="cm_examWeight" type="number" min="0" max="100" step="1" class="input" value="' + esc(c.examWeight != null ? String(c.examWeight) : '') + '" /></div>';
+          inner += '</select><div id="cm_examTypeDesc" class="cm-field-hint">' + esc(examTypeDescriptions[c.examType || 'mixed'] || examTypeDescriptions.mixed) + '</div></div>';
+          inner += '<div class="field"><div class="cm-field-label">Exam Date</div><input id="cm_examDate" type="date" class="input" value="' + esc(c.examDate || '') + '" /><div class="cm-field-hint">Add a date to unlock cram prioritisation as the exam gets closer.</div></div>';
+          inner += '<div class="field"><div class="cm-field-label">Exam Weight (%)</div><input id="cm_examWeight" type="number" min="0" max="100" step="1" class="input" value="' + esc(c.examWeight != null ? String(c.examWeight) : '') + '" /><div class="cm-field-hint">Optional weighting for planning and context.</div></div>';
+          inner += '</div>';
           inner += '<div style="display:flex;justify-content:flex-end;margin-top:12px;"><button class="big-btn" id="cmSaveDetails" type="button">Save Details</button></div>';
+          inner += '</div>';
         } else if (activeTab === 'syllabus') {
-          inner += '<div class="field"><label>Syllabus / Exam Info</label><textarea class="input" id="cm_courseContextText" rows="7" placeholder="Paste syllabus text, exam instructions, or course outline...">' + esc(c.rawSyllabusText || '') + '</textarea></div>';
-          inner += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+          var hasSyllabus = !!String(c.syllabusContext || c.rawSyllabusText || '').trim();
+          var lectureCount = Number(c._lectureCount || 0) || 0;
+          inner += '<div class="cm-section">';
           inner += '<input type="file" accept="application/pdf,.pdf" id="cm_pdfFile" style="display:none">';
-          inner += '<button type="button" class="ghost-btn" id="cm_pdfBtn">📄 Import PDF</button>';
-          inner += '<button type="button" class="ghost-btn" id="cm_processSyllabus">Process syllabus with AI</button>';
-          inner += '<button type="button" class="ghost-btn" id="cm_reprocessSyllabus">Re-process</button>';
+          inner += '<div class="cm-upload-zone' + (hasSyllabus ? ' has-content' : '') + '" id="cm_syllabusZone">';
+          inner += '<div class="cm-upload-icon">📄</div>';
+          inner += '<div class="cm-upload-title">' + (hasSyllabus ? 'Syllabus ready' : 'Upload Syllabus') + '</div>';
+          inner += '<div class="cm-upload-hint">' + (hasSyllabus ? 'Processed and ready. Re-process or replace it any time.' : 'Drop a PDF or paste text to give the tutor your course context.') + '</div>';
+          inner += '<div class="cm-upload-actions">';
+          inner += '<button type="button" class="cm-upload-btn" id="cm_pdfBtn">📎 Import PDF</button>';
+          inner += '<button type="button" class="cm-upload-btn" id="cm_togglePasteBtn">📝 Paste Text</button>';
+          if (hasSyllabus) inner += '<button type="button" class="cm-upload-btn" id="cm_reprocessSyllabus">Re-process</button>';
+          inner += '</div>';
+          inner += '<div class="cm-upload-meta" id="cm_syllabusMeta">' + (hasSyllabus ? '<span class="cm-status-badge">✓ Processed</span>' : '') + '</div>';
           inner += '</div>';
           inner += '<div class="syllabus-status" id="cm_contextStatus"></div>';
-          inner += '<div class="chips" id="cm_suggestedTopics" style="margin-top:6px;"></div>';
-          inner += '<div id="cm_previewWrap" style="' + (c.syllabusContext ? '' : 'display:none;') + 'margin-top:8px;"><div style="font-size:9px;font-weight:700;margin-bottom:4px;color:var(--text-secondary);">Processed summary</div><div class="syllabus-preview" id="cm_syllabusPreview">' + esc(c.syllabusContext || '') + '</div></div>';
-          inner += '<div class="field"><label>Professor values</label><textarea class="input" id="cm_professorValues" rows="3">' + esc(c.professorValues || '') + '</textarea></div>';
-          inner += '<div class="field"><label>Allowed materials</label><input type="text" class="input" id="cm_allowedMaterials" value="' + esc(c.allowedMaterials || '') + '"></div>';
-          inner += '<div class="or-divider">LECTURE MATERIALS</div>';
-          inner += '<div class="field"><input type="text" class="input" id="cm_lectureUrlInput" placeholder="Paste any URL (published Notion page, article, etc.)"></div>';
-          inner += '<div style="display:flex;gap:8px;">';
-          inner += '<button type="button" class="ghost-btn" id="cm_importLectureUrl" style="flex:1;">🌐 Import from URL</button>';
+          inner += '<div class="cm-paste-area" id="cm_pasteArea" style="' + (c.rawSyllabusText ? '' : 'display:none;') + '">';
+          inner += '<div class="field" style="margin-top:12px;"><div class="cm-field-label">Syllabus / Exam Info</div><textarea class="input" id="cm_courseContextText" rows="7" placeholder="Paste syllabus text, exam instructions, or course outline...">' + esc(c.rawSyllabusText || '') + '</textarea></div>';
+          inner += '<div class="cm-inline-actions"><button type="button" class="ghost-btn" id="cm_processSyllabus">Process syllabus with AI</button></div>';
+          inner += '</div>';
+          inner += '<div class="chips" id="cm_suggestedTopics" style="margin-top:10px;"></div>';
+          inner += '<details class="cm-section cm-summary-section" id="cm_previewWrap" ' + (c.syllabusContext ? 'open' : '') + ' style="' + (c.syllabusContext ? '' : 'display:none;') + '">';
+          inner += '<summary class="cm-section-title">View processed summary</summary>';
+          inner += '<div class="syllabus-preview" id="cm_syllabusPreview">' + esc(c.syllabusContext || '') + '</div>';
+          inner += '</details>';
+          inner += '<details class="cm-section">';
+          inner += '<summary class="cm-section-title cm-summary-toggle">🎓 Professor Preferences & Exam Rules</summary>';
+          inner += '<div class="cm-details-stack">';
+          inner += '<div class="field"><div class="cm-field-label">Professor Values</div><textarea class="input" id="cm_professorValues" rows="3">' + esc(c.professorValues || '') + '</textarea></div>';
+          inner += '<div class="field" style="margin-bottom:0;"><div class="cm-field-label">Allowed Materials</div><input type="text" class="input" id="cm_allowedMaterials" value="' + esc(c.allowedMaterials || '') + '"></div>';
+          inner += '</div>';
+          inner += '</details>';
+          inner += '<div class="cm-section">';
           inner += '<input type="file" accept="application/pdf,.pdf" id="cm_importLecturePdf" style="display:none">';
-          inner += '<button type="button" class="ghost-btn" id="cm_importLecturePdfBtn" style="flex:1;">📄 Import PDF</button>';
+          inner += '<div class="cm-upload-zone' + (lectureCount ? ' has-content' : '') + '" id="cm_lectureZone">';
+          inner += '<div class="cm-upload-icon">📚</div>';
+          inner += '<div class="cm-upload-title">Import Lecture Materials</div>';
+          inner += '<div class="cm-upload-hint">Add lectures to improve AI grading and course context.</div>';
+          inner += '<div class="cm-upload-actions">';
+          inner += '<button type="button" class="cm-upload-btn" id="cm_toggleLectureUrl">🌐 From URL</button>';
+          inner += '<button type="button" class="cm-upload-btn" id="cm_importLecturePdfBtn">📄 Import PDF</button>';
+          inner += '</div>';
+          inner += '<div class="cm-upload-meta" id="cm_lectureManifestDisplay">' + (lectureCount ? '<span class="cm-status-badge">📚 ' + lectureCount + ' lecture' + (lectureCount !== 1 ? 's' : '') + ' imported</span>' : '') + '</div>';
+          inner += '</div>';
+          inner += '<div class="cm-paste-area" id="cm_lectureUrlWrap" style="display:none;">';
+          inner += '<div class="field" style="margin-top:12px;"><div class="cm-field-label">Lecture URL</div><input type="text" class="input" id="cm_lectureUrlInput" placeholder="Paste any URL (published Notion page, article, etc.)"></div>';
+          inner += '<div class="cm-inline-actions"><button type="button" class="ghost-btn" id="cm_importLectureUrl">Import from URL</button></div>';
+          inner += '</div>';
           inner += '</div>';
           inner += '<div class="syllabus-status" id="cm_lectureImportStatus" style="min-height:0;"></div>';
-          inner += '<div id="cm_lectureManifestDisplay" style="margin-top:8px;"></div>';
           inner += '<div style="display:flex;justify-content:flex-end;margin-top:12px;"><button class="big-btn" id="cmSaveSyllabus" type="button">Save Syllabus & AI</button></div>';
         } else if (activeTab === 'structure') {
           ensureCourseModules(courseName);
@@ -5703,7 +5765,7 @@ el('gearBtn').addEventListener('click', openSettings);
             if (topicCounts[b] !== topicCounts[a]) return topicCounts[b] - topicCounts[a];
             return a.localeCompare(b);
           });
-          inner += '<div class="structure-section">';
+          inner += '<div class="cm-section">';
           inner += '<div class="structure-section-header"><span class="structure-icon">📂</span><div><div class="structure-title">Subdecks</div><div class="structure-desc">Organise cards by lecture, chapter, or unit.</div></div></div>';
           inner += '<div style="display:flex;gap:8px;margin-bottom:10px;">';
           inner += '<input type="text" class="input" id="cm_newModuleName" placeholder="New subdeck name" />';
@@ -5712,7 +5774,7 @@ el('gearBtn').addEventListener('click', openSettings);
           if (!modules.length) inner += '<p class="help" style="margin-bottom:10px;">No subdecks yet. Create one to group topics by lecture, chapter, or unit.</p>';
           modules.forEach(function(mod, idx) {
             var mTopics = Array.isArray(mod.topics) ? mod.topics : [];
-            inner += '<div class="structure-module-card">';
+            inner += '<div class="cm-module-card" style="--course-color:' + esc(c.color || '#8b5cf6') + ';">';
             inner += '<div class="structure-module-head">';
             inner += '<input class="input" data-mod-rename="' + esc(mod.id) + '" value="' + esc(mod.name || 'Subdeck') + '" style="flex:1;">';
             inner += '<div class="structure-module-actions">';
@@ -5721,7 +5783,7 @@ el('gearBtn').addEventListener('click', openSettings);
             inner += '<button class="ghost-btn" type="button" data-mod-save="' + esc(mod.id) + '" style="min-width:0;padding:6px 10px;">Save</button>';
             inner += '<button class="ghost-btn" type="button" data-mod-del="' + esc(mod.id) + '" style="min-width:0;padding:6px 10px;color:#ef4444;border-color:rgba(239,68,68,0.25);">Delete</button>';
             inner += '</div></div>';
-            inner += '<div class="chips">';
+            inner += '<div class="chips cm-module-topics">';
             if (!mTopics.length) inner += '<span class="help">No topics assigned</span>';
             mTopics.forEach(function(t) {
               inner += '<span class="chip" style="display:inline-flex;align-items:center;gap:6px;">' + esc(t) + '<button type="button" data-unassign-topic="' + esc(t) + '" style="border:none;background:transparent;color:var(--text-secondary);cursor:pointer;">✕</button></span>';
@@ -5732,10 +5794,10 @@ el('gearBtn').addEventListener('click', openSettings);
           modules.forEach(function(m) { (m.topics || []).forEach(function(t) { assigned[t] = true; }); });
           var unassigned = allTopics.filter(function(t) { return !assigned[t]; });
           if (allTopics.length > 0) {
-            inner += '<div class="section-header" style="margin-top:6px;">Unassigned Topics</div>';
+            inner += '<div class="cm-section-title" style="margin-top:6px;">Unassigned Topics</div>';
             if (!unassigned.length) inner += '<p class="help">All topics are assigned to a module.</p>';
             unassigned.forEach(function(t) {
-              inner += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">';
+              inner += '<div class="cm-topic-assignment-row">';
               inner += '<span class="chip" style="transform-origin:center;">' + esc(t) + '</span>';
               inner += '<select class="input" data-topic-target="' + esc(t) + '" style="max-width:220px;">';
               inner += '<option value="">Assign to module...</option>';
@@ -5745,7 +5807,7 @@ el('gearBtn').addEventListener('click', openSettings);
           }
           inner += '</div>';
           inner += '<div class="structure-divider"></div>';
-          inner += '<div class="structure-section">';
+          inner += '<div class="cm-section">';
           inner += '<div class="structure-section-header"><span class="structure-icon">🏷️</span><div><div class="structure-title">Topics</div><div class="structure-desc">Concepts and themes across your cards. Used for filtering, not grouping.</div></div></div>';
           if (!allTopics.length) inner += '<p class="help">No topics yet. Topics are created when you add cards.</p>';
           else {
@@ -5757,15 +5819,28 @@ el('gearBtn').addEventListener('click', openSettings);
           }
           inner += '</div>';
         } else {
-          inner += '<div id="cmCourseNotesHost">' + renderCourseTutorNotesPanelHTML(courseName) + '</div>';
-          inner += '<div style="display:flex;justify-content:flex-end;margin-top:10px;">';
-          inner += '<button class="ghost-btn" id="cmClearCourseNotes" type="button" style="border-color:rgba(239,68,68,0.3);color:#ef4444;">Clear memories</button>';
-          inner += '</div>';
+          var courseNotes = getCourseScopedMemoriesForDisplay(courseName);
+          var globalNotes = getGlobalMemoriesForDisplay();
+          if (!(courseNotes.length + globalNotes.length)) {
+            inner += '<div class="cm-section cm-empty-state"><div class="cm-upload-icon">📝</div><div class="empty-state-title">No tutor memories yet</div><div class="empty-state-desc">The AI builds a memory of your strengths and gaps as you study.</div></div>';
+          } else {
+            inner += '<div id="cmCourseNotesHost">' + renderCourseTutorNotesPanelHTML(courseName) + '</div>';
+            inner += '<div style="display:flex;justify-content:flex-end;margin-top:10px;">';
+            inner += '<button class="ghost-btn" id="cmClearCourseNotes" type="button" style="border-color:rgba(239,68,68,0.3);color:#ef4444;">Clear memories</button>';
+            inner += '</div>';
+          }
         }
         var tabHost = el('cmTabContent');
         if (tabHost) {
           tabHost.innerHTML = inner;
-          if (window.gsap) gsap.fromTo(tabHost, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.25, ease: 'power2.out' });
+          if (window.gsap) {
+            gsap.fromTo(tabHost, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.25, ease: 'power2.out' });
+            gsap.fromTo(
+              tabHost.querySelectorAll('.cm-section, .cm-upload-zone'),
+              { opacity: 0, y: 8 },
+              { opacity: 1, y: 0, duration: 0.25, stagger: 0.06, ease: 'power2.out' }
+            );
+          }
         }
         wireEditorTabInteractions(activeTab);
       }
@@ -5852,13 +5927,18 @@ el('gearBtn').addEventListener('click', openSettings);
               saveCourse(c);
               var prev = el('cm_syllabusPreview');
               if (prev) prev.textContent = c.syllabusContext || '';
+              var meta = el('cm_syllabusMeta');
+              if (meta) meta.innerHTML = '<span class="cm-status-badge">Processed</span>';
+              var zone = el('cm_syllabusZone');
+              if (zone) zone.classList.add('has-content');
               var wrap = el('cm_previewWrap');
               if (wrap && c.syllabusContext) wrap.style.display = '';
               var profEl = el('cm_professorValues'); if (profEl) profEl.value = c.professorValues || '';
               var alEl = el('cm_allowedMaterials'); if (alEl) alEl.value = c.allowedMaterials || '';
               renderSuggestedTopics(c.syllabusKeyTopics);
-              setCtxStatus('✓ Syllabus processed', 'ok');
-            }).catch(function() { setCtxStatus('Network error — try again', ''); });
+              if (pasteArea && pasteArea.style.display === 'none') animateSlideToggle(pasteArea, true);
+              setCtxStatus('Syllabus processed', 'ok');
+            }).catch(function() { setCtxStatus('Network error - try again', ''); });
           }
           var pdfBtn = el('cm_pdfBtn');
           var pdfFile = el('cm_pdfFile');
@@ -5880,6 +5960,13 @@ el('gearBtn').addEventListener('click', openSettings);
           var reprocBtn = el('cm_reprocessSyllabus');
           if (reprocBtn) reprocBtn.onclick = function() { runSyllabusProcess(c.rawSyllabusText || (el('cm_courseContextText') ? el('cm_courseContextText').value : '')); };
 
+          var lectureUrlToggle = el('cm_toggleLectureUrl');
+          var lectureUrlWrap = el('cm_lectureUrlWrap');
+          if (lectureUrlToggle) lectureUrlToggle.onclick = function() {
+            var isOpen = !!(lectureUrlWrap && lectureUrlWrap.style.display !== 'none');
+            animateSlideToggle(lectureUrlWrap, !isOpen);
+          };
+
           function setLectureStatus(msg, cls) {
             var st = el('cm_lectureImportStatus');
             if (!st) return;
@@ -5890,7 +5977,9 @@ el('gearBtn').addEventListener('click', openSettings);
             var box = el('cm_lectureManifestDisplay');
             if (!box) return;
             var count = Number(c._lectureCount || 0) || 0;
-            box.innerHTML = count > 0 ? '<div style="font-size:9px;color:var(--text-secondary);padding:6px 8px;border-radius:10px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.03);">📚 ' + count + ' lecture' + (count !== 1 ? 's' : '') + ' imported</div>' : '';
+            box.innerHTML = count > 0 ? '<span class="cm-status-badge">' + count + ' lecture' + (count !== 1 ? 's' : '') + ' imported</span>' : '';
+            var zone = el('cm_lectureZone');
+            if (zone) zone.classList.toggle('has-content', count > 0);
           }
           function importLectureFromText(lectureTitle, rawText) {
             var trimmed = (rawText || '').trim();
@@ -5911,9 +6000,9 @@ el('gearBtn').addEventListener('click', openSettings);
               saveCourse(c);
               if (!isEmbedded) renderSidebar();
               updateLectureManifestDisplay();
-              setLectureStatus('✓ Imported lecture context', 'ok');
+              setLectureStatus('Imported lecture context', 'ok');
               return data;
-            }).catch(function() { setLectureStatus('Network error — try again', ''); return null; });
+            }).catch(function() { setLectureStatus('Network error - try again', ''); return null; });
           }
           updateLectureManifestDisplay();
           var importUrlBtn = el('cm_importLectureUrl');
@@ -6029,6 +6118,8 @@ el('gearBtn').addEventListener('click', openSettings);
             };
           });
         } else if (activeTab === 'notes') {
+          var notesHost = el('cmCourseNotesHost');
+          if (notesHost) wireTutorNotesPanelToggle(notesHost);
           var clearBtn = el('cmClearCourseNotes');
           if (clearBtn) clearBtn.onclick = function() {
             clearCourseTutorMemoriesForCourse(courseName);
@@ -7552,64 +7643,38 @@ el('gearBtn').addEventListener('click', openSettings);
       checkForCheckIn();
     }
 
+    function finishBootAfterProfileCheck() {
+      var retryProfile = getUserProfile();
+      if (retryProfile && retryProfile.awakened) {
+        finishBoot();
+      } else {
+        showAwakening(function() {
+          loadState();
+          finishBoot();
+        });
+      }
+    }
+
     function boot() {
+      if (_bootStarted) return;
+      _bootStarted = true;
       loadState();
       var profile = getUserProfile();
       if (!profile || !profile.awakened) {
-        /* Guard: if SyncEngine is online, pull user namespace first.
-           Prevents false awakenings when remote data hasn't loaded yet. */
-        if (typeof SyncEngine !== 'undefined' && SyncEngine.isOnline && SyncEngine.isOnline() && SyncEngine.pull) {
-          SyncEngine.pull('user').then(function() {
-            var retryProfile = getUserProfile();
-            if (retryProfile && retryProfile.awakened) {
-              if (!bootBindingsBound) {
-                bootBindingsBound = true;
-                Core.on('sync-remote-update', function(data) {
-                  if (data && data.namespace === 'studyengine') {
-                    loadState();
-                    if (viewDash.classList.contains('active')) {
-                      renderDashboard();
-                    }
-                  }
-                });
-                if (!focusResyncBound) {
-                  focusResyncBound = true;
-                  document.addEventListener('visibilitychange', function() {
-                    if (document.visibilityState === 'visible' && SyncEngine.isOnline()) {
-                      SyncEngine.pull('studyengine').then(function() {
-                        var freshItems = SyncEngine.get(NS, 'items');
-                        if (freshItems && typeof freshItems === 'object') {
-                          var freshCount = Object.keys(freshItems).length;
-                          var localCount = state.items ? Object.keys(state.items).length : 0;
-                          if (freshCount !== localCount) {
-                            loadState();
-                            renderDashboard();
-                            toast('Synced ' + freshCount + ' items from cloud');
-                          }
-                        }
-                      }).catch(function() {});
-                    }
-                  });
-                }
-              }
-              finishBoot();
-            } else {
+        SyncEngine.pull('user').then(function() {
+          finishBootAfterProfileCheck();
+        }).catch(function() {
+          /* Give mobile/cloud sync one more chance before surrendering to onboarding. */
+          setTimeout(function() {
+            SyncEngine.pull('user').then(function() {
+              finishBootAfterProfileCheck();
+            }).catch(function() {
               showAwakening(function() {
                 loadState();
                 finishBoot();
               });
-            }
-          }).catch(function() {
-            showAwakening(function() {
-              loadState();
-              finishBoot();
             });
-          });
-          return;
-        }
-        showAwakening(function() {
-          loadState();
-          finishBoot();
+          }, 2000);
         });
         return;
       }
@@ -7712,13 +7777,10 @@ el('gearBtn').addEventListener('click', openSettings);
       boot();
     });
 
-    /* Safety: render even if onReady is slow/offline.
-       Wait for SyncEngine init to at least attempt a remote pull before
-       falling back. Use a longer timeout (6s) to give KV time on slow
-       mobile connections. */
+    /* Safety: render even if onReady is slow/offline */
     setTimeout(function() {
-      if (!state) {
-        console.log('[StudyEngine] Safety timeout: SyncEngine slow, booting now');
+      if (!state && !_bootStarted) {
         boot();
       }
-    }, 6000);
+    }, 12000);
+
