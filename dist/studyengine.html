@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1278,61 +1278,6 @@
       margin-bottom: 12px;
       overflow: visible;
     }
-    .session-header{
-      display: none;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      padding: 12px 16px;
-      margin-bottom: 10px;
-      border-radius: 14px;
-      border: 1px solid rgba(var(--accent-rgb), 0.1);
-      background: rgba(var(--accent-rgb), 0.03);
-      backdrop-filter: blur(16px) saturate(1.3);
-      -webkit-backdrop-filter: blur(16px) saturate(1.3);
-    }
-    .session-tier-pill{
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.8px;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-      white-space: nowrap;
-    }
-    .session-tier-pill .tiny{
-      color: var(--accent);
-      font-size: 11px;
-    }
-    .session-progress-stack{
-      flex: 1;
-      min-width: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      text-align: center;
-    }
-    #sessionProgText{
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.8px;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-    }
-    .session-exit.icon-only{
-      width: 32px;
-      height: 32px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0;
-      border-radius: 10px;
-      font-size: 16px;
-      letter-spacing: 0;
-      text-transform: none;
-    }
     .progress{
       flex: 1;
       min-width: 0;
@@ -1418,8 +1363,6 @@
       cursor: pointer;
       transition: transform var(--transition), background var(--transition), border-color var(--transition), color var(--transition);
       flex-shrink: 0;
-      touch-action: manipulation;
-      -webkit-tap-highlight-color: transparent;
     }
     .session-exit:hover{
       transform: translateY(-1px);
@@ -1441,15 +1384,8 @@
       padding: 18px;
       background: rgba(0,0,0,0.50);
       z-index: 100;
-      pointer-events: none;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      touch-action: manipulation;
     }
-    .confirm-overlay.show{
-      display: flex;
-      pointer-events: auto;
-    }
+    .confirm-overlay.show{ display: flex; }
     .confirm-box{
       width: 100%;
       max-width: 340px;
@@ -1461,8 +1397,6 @@
       box-shadow: var(--shadow);
       padding: 20px;
       text-align: center;
-      -webkit-transform: translateZ(0);
-      transform: translateZ(0);
     }
     .confirm-box .cb-icon{
       font-size: 28px;
@@ -1497,10 +1431,6 @@
       text-transform: uppercase;
       cursor: pointer;
       transition: background var(--transition), transform var(--transition);
-      touch-action: manipulation;
-      -webkit-tap-highlight-color: transparent;
-      user-select: none;
-      -webkit-user-select: none;
     }
     .confirm-box .cb-stay:hover{ background: rgba(var(--accent-rgb),0.14); transform: translateY(-1px); }
     .confirm-box .cb-leave{
@@ -1516,10 +1446,6 @@
       text-transform: uppercase;
       cursor: pointer;
       transition: background var(--transition), transform var(--transition);
-      touch-action: manipulation;
-      -webkit-tap-highlight-color: transparent;
-      user-select: none;
-      -webkit-user-select: none;
     }
     .confirm-box .cb-leave:hover{ background: rgba(239,68,68,0.14); transform: translateY(-1px); }
 
@@ -1528,44 +1454,34 @@
       border-radius: var(--radius-lg);
       border: 1px solid rgba(var(--accent-rgb),0.12);
       background: rgba(var(--accent-rgb),0.03);
-      position: relative;
     }
 
     .prompt{
-      font-size: clamp(18px, 5vw, 24px);
-      font-weight: 600;
+      font-size: 20px;
+      font-weight: 700;
       letter-spacing: -0.2px;
-      line-height: 1.5;
+      line-height: 1.45;
       color: var(--text);
       white-space: pre-wrap;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
     }
 
     .meta{
       display: flex;
       gap: 10px;
-      margin-bottom: 10px;
+      margin-top: 10px;
       align-items: center;
       flex-wrap: wrap;
-      order: -1;
     }
     .meta .tag{
-      font-size: 11px;
-      letter-spacing: 0.8px;
+      font-size: 8px;
+      letter-spacing: 1.5px;
       text-transform: uppercase;
-      color: var(--text-tertiary);
-      padding: 0;
-      border: none;
-      background: transparent;
+      color: var(--text-secondary);
+      padding: 5px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(var(--accent-rgb),0.14);
+      background: rgba(var(--accent-rgb),0.04);
       white-space: nowrap;
-    }
-    .meta .tag + .tag::before{
-      content: "·";
-      margin-right: 8px;
-      color: var(--text-tertiary);
     }
     .meta .timer-badge{
       margin-left: auto;
@@ -2282,21 +2198,6 @@ body.standalone .answer.restudy-active{
       outline: none;
       transition: border-color var(--transition), background var(--transition);
     }
-    /* Prevent iOS Safari/Edge auto-zoom on form focus */
-    @supports (-webkit-touch-callout: none) {
-      textarea,
-      .input,
-      select,
-      input[type="text"],
-      input[type="search"],
-      input[type="email"],
-      input[type="number"],
-      input[type="password"],
-      input[type="url"],
-      input[type="tel"]{
-        font-size: 16px !important;
-      }
-    }
     textarea:focus{
       border-color: rgba(var(--accent-rgb),0.42);
       background: rgba(var(--accent-rgb),0.04);
@@ -2404,17 +2305,6 @@ body.standalone .answer.restudy-active{
       box-shadow: 0 10px 26px rgba(0,0,0,0.10);
       transition: transform var(--transition), filter var(--transition);
       user-select: none;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      gap: 3px;
-    }
-    .rate .rate-days{
-      font-size: 8px;
-      font-weight: 600;
-      letter-spacing: 0.5px;
-      opacity: 0.85;
     }
     .rate:hover{ transform: translateY(-1px); filter: brightness(1.03); }
     .rate:active{ transform: translateY(0) scale(0.99); }
@@ -2464,7 +2354,6 @@ body.standalone .answer.restudy-active{
       box-shadow: var(--shadow);
       overflow: hidden;
       max-height: 88vh;
-      max-height: calc(100dvh - 24px);
       display: flex;
       flex-direction: column;
     }
@@ -2887,6 +2776,248 @@ body.standalone .answer.restudy-active{
       opacity: 1;
       margin-top: 10px;
     }
+    .add-course-form{
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(var(--accent-rgb),0.14);
+      background: rgba(var(--accent-rgb),0.03);
+      padding: 20px;
+      backdrop-filter: blur(var(--blur)) saturate(1.2);
+    }
+    .add-course-row{
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .cm-field-label{
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+    .cm-field-hint{
+      font-size: 9px;
+      color: var(--text-tertiary);
+      line-height: 1.45;
+      margin-top: 6px;
+    }
+    .cm-tab-bar{
+      display: flex;
+      gap: 4px;
+      padding: 3px;
+      border-radius: 999px;
+      border: 1px solid rgba(var(--accent-rgb),0.12);
+      background: rgba(var(--accent-rgb),0.03);
+      margin-bottom: 16px;
+      overflow-x: auto;
+    }
+    .cm-tab{
+      flex: 1;
+      border: none;
+      cursor: pointer;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      transition: background var(--transition), color var(--transition);
+      white-space: nowrap;
+      text-align: center;
+      font-family: inherit;
+    }
+    .cm-tab.active{
+      background: rgba(var(--accent-rgb),0.18);
+      color: var(--text);
+    }
+    .cm-tab:hover:not(.active){
+      background: rgba(var(--accent-rgb),0.06);
+    }
+    .cm-section{
+      padding: 16px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(var(--accent-rgb),0.10);
+      background: rgba(var(--accent-rgb),0.02);
+      margin-bottom: 12px;
+    }
+    .cm-section-title{
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .cm-summary-toggle{
+      cursor: pointer;
+      margin-bottom: 0;
+      list-style: none;
+    }
+    .cm-summary-toggle::-webkit-details-marker,
+    .cm-section summary::-webkit-details-marker{
+      display: none;
+    }
+    .cm-summary-toggle::after{
+      content: '▸';
+      margin-left: auto;
+      transition: transform var(--transition);
+    }
+    details[open] > .cm-summary-toggle::after{
+      transform: rotate(90deg);
+    }
+    .cm-summary-section summary{
+      cursor: pointer;
+      margin-bottom: 0;
+      list-style: none;
+    }
+    .cm-summary-section summary::after{
+      content: '▸';
+      margin-left: auto;
+      transition: transform var(--transition);
+    }
+    .cm-summary-section[open] summary::after{
+      transform: rotate(90deg);
+    }
+    .cm-summary-section .syllabus-preview{
+      margin-top: 12px;
+    }
+    .cm-details-grid{
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 12px;
+    }
+    .cm-details-stack{
+      margin-top: 12px;
+    }
+    .cm-upload-zone{
+      padding: 24px 20px;
+      border-radius: var(--radius-lg);
+      border: 2px dashed rgba(var(--accent-rgb),0.20);
+      background: rgba(var(--accent-rgb),0.02);
+      text-align: center;
+      cursor: pointer;
+      transition: border-color var(--transition), background var(--transition);
+    }
+    .cm-upload-zone:hover{
+      border-color: rgba(var(--accent-rgb),0.35);
+      background: rgba(var(--accent-rgb),0.04);
+    }
+    .cm-upload-zone.has-content{
+      border-style: solid;
+      border-color: rgba(var(--accent-rgb),0.28);
+      background: rgba(var(--accent-rgb),0.05);
+    }
+    .cm-upload-icon{
+      font-size: 28px;
+      margin-bottom: 8px;
+      opacity: 0.7;
+    }
+    .cm-upload-title{
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 0.3px;
+    }
+    .cm-upload-hint{
+      font-size: 9px;
+      color: var(--text-tertiary);
+      margin-top: 4px;
+    }
+    .cm-upload-actions{
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+    .cm-upload-btn{
+      padding: 8px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(var(--accent-rgb),0.18);
+      background: rgba(var(--accent-rgb),0.06);
+      color: var(--text);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background var(--transition), transform var(--transition);
+      font-family: inherit;
+    }
+    .cm-upload-btn:hover{
+      background: rgba(var(--accent-rgb),0.12);
+      transform: translateY(-1px);
+    }
+    .cm-upload-meta{
+      margin-top: 12px;
+      min-height: 18px;
+    }
+    .cm-status-badge{
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(var(--accent-rgb),0.16);
+      background: rgba(var(--accent-rgb),0.06);
+      color: var(--text-secondary);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+    }
+    .cm-paste-area{
+      margin-top: 12px;
+      overflow: hidden;
+    }
+    .cm-inline-actions{
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+    .cm-module-card{
+      padding: 14px 16px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(var(--accent-rgb),0.10);
+      border-left: 3px solid var(--course-color, var(--accent));
+      background: rgba(var(--accent-rgb),0.02);
+      margin-bottom: 10px;
+    }
+    .cm-module-topics{
+      margin-top: 10px;
+    }
+    .cm-topic-assignment-row{
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      flex-wrap: wrap;
+    }
+    .cm-empty-state{
+      text-align: center;
+      padding: 26px 18px;
+    }
+    .cm-empty-state .empty-state-title{
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .cm-empty-state .empty-state-desc{
+      font-size: 10px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      max-width: 280px;
+      margin: 0 auto;
+    }
 
     /* ── Course Colour Picker ── */
     .color-picker{
@@ -3021,6 +3152,9 @@ body.standalone .answer.restudy-active{
     }
     @media (max-width: 480px){
       .course-form-row{ grid-template-columns: 1fr; }
+      .add-course-row{ grid-template-columns: 1fr; }
+      .cm-details-grid{ grid-template-columns: 1fr; }
+      .cm-tab{ flex: 0 0 auto; }
     }
     .course-list-item{
       display: flex;
@@ -4053,57 +4187,44 @@ body.standalone .answer.restudy-active{
     .session-xp-bar {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 8px 16px;
-      margin: 0 0 8px;
+      gap: 8px;
+      padding: 6px 12px;
+      margin-bottom: 10px;
+      border-radius: 12px;
+      background: rgba(var(--accent-rgb), 0.04);
+      border: 1px solid rgba(var(--accent-rgb), 0.10);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
     }
-    .session-xp-bar .sxp-track {
+    .session-xp-bar .sxp-label { flex-shrink: 0; }
+    .session-xp-bar .sxp-fill-wrap {
       flex: 1;
-      height: 6px;
+      height: 4px;
       border-radius: 99px;
-      background: rgba(var(--accent-rgb), 0.10);
+      background: rgba(var(--accent-rgb), 0.08);
       overflow: hidden;
-      position: relative;
     }
     .session-xp-bar .sxp-fill {
       height: 100%;
-      width: 0%;
       border-radius: 99px;
       background: linear-gradient(90deg, var(--accent), rgba(var(--accent-rgb), 0.6));
-      transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: width 400ms ease;
+      width: 0%;
     }
-    .session-xp-bar .sxp-glow {
-      position: absolute;
-      top: -2px;
-      right: 0;
-      width: 12px;
-      height: 10px;
-      border-radius: 50%;
-      background: var(--accent);
-      filter: blur(4px);
-      opacity: 0;
-      transition: opacity 0.3s;
+    .session-xp-bar .sxp-value {
+      font-variant-numeric: tabular-nums;
+      color: var(--accent);
+      min-width: 48px;
+      text-align: right;
     }
-    .session-xp-bar.active .sxp-glow { opacity: 0.6; }
-    .session-xp-bar .sxp-label {
+    .session-xp-bar .sxp-streak {
       display: inline-flex;
       align-items: center;
       gap: 3px;
-      flex-shrink: 0;
-      font-variant-numeric: tabular-nums;
-    }
-    .session-xp-bar .sxp-value {
-      font-size: 14px;
-      font-weight: 800;
-      color: var(--accent);
-      letter-spacing: -0.5px;
-    }
-    .session-xp-bar .sxp-unit {
-      font-size: 8px;
-      font-weight: 700;
-      letter-spacing: 1.2px;
-      text-transform: uppercase;
-      color: var(--text-tertiary);
+      color: var(--rate-hard);
     }
 
     .done-dragon-section {
@@ -6814,525 +6935,14 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
-/* ── Mobile Responsive Fixes ── */
-@media (max-width: 768px) {
-  body {
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  #rootCard {
-    width: 100% !important;
-    max-width: 100vw !important;
-    margin: 0 !important;
-    border-radius: 0 !important;
-    min-height: 100vh;
-    min-height: 100dvh;
-    box-sizing: border-box;
-  }
-
-  .standalone #rootCard {
-    padding: 12px !important;
-  }
-}
 /* Extraction-first scaffold: styles remain in base.css for exact parity. */
-/* Session-specific responsive system */
 
-@media (max-width: 768px) {
-  body.in-session .topbar {
-    display: none !important;
-  }
-
-  body.in-session #viewSession {
-    overflow: visible !important;
-    max-height: none;
-    padding-bottom: 100px;
-  }
-
-  body.in-session .session-top {
-    display: none;
-  }
-
-  body.in-session .session-header {
-    display: flex;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    margin: 0 0 10px;
-    border-radius: 0 0 14px 14px;
-    padding-top: max(12px, env(safe-area-inset-top));
-    background: rgba(var(--accent-rgb), 0.03);
-    border-bottom: 1px solid rgba(var(--accent-rgb), 0.08);
-  }
-
-  body.in-session .item-card {
-    min-height: 55vh;
-    min-height: 55dvh;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 20px 18px;
-    border-radius: 20px;
-    border: 1px solid rgba(var(--accent-rgb), 0.14);
-    border-left-width: 3px;
-    background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.06), rgba(var(--accent-rgb), 0.02) 40%, transparent 70%);
-    backdrop-filter: blur(12px) saturate(1.2);
-    -webkit-backdrop-filter: blur(12px) saturate(1.2);
-  }
-
-  body.in-session .meta {
-    margin-top: 0;
-    margin-bottom: 6px;
-    flex-wrap: nowrap;
-    gap: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  body.in-session .meta .timer-badge {
-    margin-left: auto;
-    font-size: 9px;
-  }
-
-  body.in-session .prompt {
-    align-items: flex-start;
-  }
-
-  body.in-session .ratings,
-  body.in-session #ratings {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 20;
-    display: grid !important;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-    margin: 0;
-    padding: 12px 16px;
-    padding-bottom: max(16px, env(safe-area-inset-bottom));
-    background: rgba(var(--accent-rgb), 0.04);
-    backdrop-filter: blur(20px) saturate(1.4);
-    -webkit-backdrop-filter: blur(20px) saturate(1.4);
-    border-top: 1px solid rgba(var(--accent-rgb), 0.10);
-  }
-  body.in-session:not(.standalone) .ratings,
-  body.in-session:not(.standalone) #ratings {
-    position: sticky;
-  }
-
-  body.in-session .rate {
-    border-radius: 14px;
-    min-height: 52px;
-    padding: 14px 8px;
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 0.6px;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-  }
-
-  body.in-session #revealBtn,
-  body.in-session #checkBtn,
-  body.in-session #submitBtn,
-  body.in-session .confidence-row {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 20;
-    margin: 0;
-    padding: 14px 16px;
-    padding-bottom: max(16px, env(safe-area-inset-bottom));
-    background: rgba(var(--accent-rgb), 0.04);
-    backdrop-filter: blur(20px) saturate(1.4);
-    -webkit-backdrop-filter: blur(20px) saturate(1.4);
-    border-top: 1px solid rgba(var(--accent-rgb), 0.10);
-  }
-  body.in-session:not(.standalone) #revealBtn,
-  body.in-session:not(.standalone) #checkBtn,
-  body.in-session:not(.standalone) #submitBtn,
-  body.in-session:not(.standalone) .confidence-row {
-    position: sticky;
-  }
-
-  body.in-session #revealBtn,
-  body.in-session #checkBtn,
-  body.in-session #submitBtn,
-  body.in-session #dontKnowBtn,
-  body.in-session .conf-pill {
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  body.in-session .confidence-row {
-    display: flex;
-    gap: 8px;
-  }
-
-  body.in-session .conf-pill {
-    flex: 1;
-    max-width: none;
-    min-height: 48px;
-    padding: 14px 10px;
-    border-radius: 14px;
-    font-size: 13px;
-  }
-
-  body.in-session .pbar {
-    height: 4px;
-    border: none;
-    background: rgba(var(--accent-rgb), 0.08);
-  }
-
-  body.in-session .pbar > div {
-    transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-  }
-
-  body.in-session .progress .p-text,
-  body.in-session #sessionProgText {
-    font-size: 11px;
-    letter-spacing: 0.5px;
-    color: var(--text-secondary);
-  }
-
-  body.in-session .reveal-columns {
-    display: block;
-  }
-
-  body.in-session .reveal-tabs {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 10px;
-  }
-
-  body.in-session .reveal-tab-btn {
-    flex: 1;
-  }
-
-  body.in-session .reveal-col {
-    display: none;
-    max-height: 50vh;
-    overflow-y: auto;
-  }
-
-  body.in-session .reveal-col.active {
-    display: block;
-  }
-
-  body.in-session button,
-  body.in-session .rate,
-  body.in-session .conf-pill,
-  body.in-session .ghost-btn,
-  body.in-session .big-btn,
-  body.in-session .session-exit,
-  body.in-session .cb-stay,
-  body.in-session .cb-leave,
-  body.in-session .skip {
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-    -webkit-user-select: none;
-    user-select: none;
-    cursor: pointer;
-  }
-}
-
-@media (min-width: 769px) {
-  body.in-session .session-header {
-    display: flex;
-  }
-
-  body.in-session .reveal-tabs {
-    display: none;
-  }
-
-  .reveal-col {
-    display: block !important;
-  }
-}
-
-.ios-landscape-prompt {
-  position: fixed;
-  inset: 0;
-  z-index: 200;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  touch-action: manipulation;
-}
-
-.ios-landscape-prompt.show {
-  display: flex;
-}
-
-.ios-lp-backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(0,0,0,0.60);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
-.ios-lp-card {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  max-width: 300px;
-  padding: 32px 24px 24px;
-  border-radius: 24px;
-  background: var(--card-bg);
-  backdrop-filter: var(--blur);
-  -webkit-backdrop-filter: var(--blur);
-  border: 1px solid rgba(var(--accent-rgb), 0.18);
-  box-shadow: 0 24px 80px rgba(0,0,0,0.35);
-  text-align: center;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-}
-
-.ios-lp-phone-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 20px;
-}
-
-.ios-lp-phone {
-  width: 80px;
-  height: 80px;
-  color: var(--accent);
-  filter: drop-shadow(0 0 16px rgba(var(--accent-rgb), 0.3));
-}
-
-.ios-lp-phone-body {
-  transform-origin: 60px 60px;
-  animation: iosPhoneRotate 2.5s ease-in-out infinite;
-}
-
-@keyframes iosPhoneRotate {
-  0%, 15% { transform: rotate(0deg); }
-  40%, 60% { transform: rotate(-90deg); }
-  85%, 100% { transform: rotate(0deg); }
-}
-
-.ios-lp-arrow,
-.ios-lp-arrow-head {
-  animation: iosArrowPulse 2.5s ease-in-out infinite;
-}
-
-@keyframes iosArrowPulse {
-  0%, 15% { opacity: 0.5; }
-  25% { opacity: 0.9; }
-  50%, 100% { opacity: 0.3; }
-}
-
-.ios-lp-title {
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: -0.2px;
-  color: var(--text);
-  margin-bottom: 6px;
-}
-
-.ios-lp-desc {
-  font-size: 11px;
-  color: var(--text-secondary);
-  line-height: 1.5;
-  margin-bottom: 20px;
-}
-
-.ios-lp-dismiss {
-  width: 100%;
-  padding: 12px 16px;
-  border-radius: 14px;
-  border: 1px solid rgba(var(--accent-rgb), 0.18);
-  background: rgba(var(--accent-rgb), 0.08);
-  color: var(--text-secondary);
-  font-family: inherit;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  cursor: pointer;
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-  -webkit-user-select: none;
-  user-select: none;
-  transition: background 200ms ease, color 200ms ease, transform 200ms ease;
-}
-
-.ios-lp-dismiss:hover,
-.ios-lp-dismiss:active {
-  background: rgba(var(--accent-rgb), 0.14);
-  color: var(--text);
-  transform: translateY(-1px);
-}
-
-@media (orientation: landscape) {
-  .ios-landscape-prompt.show {
-    display: none;
-  }
-}
-
-@media (min-width: 769px) {
-  .ios-landscape-prompt {
-    display: none !important;
-  }
-}
-
-/* ═══ iOS WebKit backdrop-filter touch fix ═══
-   backdrop-filter creates compositor layers that swallow touch events
-   for all child elements on iOS WebKit. This is a documented bug.
-   Fix: disable backdrop-filter on interactive session containers on iOS
-   and use opaque/semi-opaque backgrounds instead. */
-
-@supports (-webkit-touch-callout: none) {
-
-  /* Item card — contains all tier controls, textareas, prompt */
-  body.in-session .item-card {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    background: var(--card-bg) !important;
-  }
-
-  /* Rating buttons bar */
-  body.in-session .ratings,
-  body.in-session #ratings {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    background: var(--bg) !important;
-  }
-
-  /* Reveal / Check / Submit / Don't Know buttons */
-  body.in-session #revealBtn,
-  body.in-session #checkBtn,
-  body.in-session #submitBtn,
-  body.in-session #dontKnowBtn,
-  body.in-session .confidence-row {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    background: var(--bg) !important;
-  }
-
-  /* Session header (exit + skip buttons) */
-  body.in-session .session-header {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    background: var(--bg) !important;
-  }
-
-  /* Confirm dialog (End session early?) */
-  .confirm-overlay .confirm-box {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    background: var(--bg) !important;
-    border: 1px solid var(--card-border);
-  }
-
-  /* Session XP bar */
-  body.in-session .session-xp-bar {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
-
-  /* Break overlay card */
-  .break-card {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    background: var(--bg) !important;
-  }
-
-  /* AI feedback panel */
-  body.in-session .ai-feedback {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
-
-  /* Tutor dialogue panel */
-  body.in-session .ask-tutor-wrap {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
-}
-
-
-/* ═══ iOS WebKit backdrop-filter touch fix ═══
-   backdrop-filter creates compositor layers that swallow touch events
-   for all child elements on iOS WebKit. This is a documented bug.
-   Fix: disable backdrop-filter on interactive session containers on iOS
-   and use opaque/semi-opaque backgrounds instead. */
-
-@supports (-webkit-touch-callout: none) {
-
-  /* Item card — contains all tier controls, textareas, prompt */
-  body.in-session .item-card {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    background: var(--card-bg) !important;
-  }
-
-  /* Rating buttons bar */
-  body.in-session .ratings,
-  body.in-session #ratings {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    background: var(--bg) !important;
-  }
-
-  /* Reveal / Check / Submit / Don't Know buttons */
-  body.in-session #revealBtn,
-  body.in-session #checkBtn,
-  body.in-session #submitBtn,
-  body.in-session #dontKnowBtn,
-  body.in-session .confidence-row {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    background: var(--bg) !important;
-  }
-
-  /* Session header (exit + skip buttons) */
-  body.in-session .session-header {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    background: var(--bg) !important;
-  }
-
-  /* Confirm dialog (End session early?) */
-  .confirm-overlay .confirm-box {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    background: var(--bg) !important;
-    border: 1px solid var(--card-border);
-  }
-
-  /* Session XP bar */
-  body.in-session .session-xp-bar {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
-
-  /* Break overlay card */
-  .break-card {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    background: var(--bg) !important;
-  }
-
-  /* AI feedback panel */
-  body.in-session .ai-feedback {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
-
-  /* Tutor dialogue panel */
-  body.in-session .ask-tutor-wrap {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
-}
 /* Extraction-first scaffold: styles remain in base.css for exact parity. */
+
 /* Extraction-first scaffold: styles remain in base.css for exact parity. */
+
+/* Extraction-first scaffold: styles remain in base.css for exact parity. */
+
 </style>
 </head>
 <body>
@@ -7669,14 +7279,6 @@ input[type="range"]::-moz-range-thumb{
 
         <!-- Session -->
         <div class="view" id="viewSession">
-          <div class="session-header" id="sessionHeader">
-            <div class="session-tier-pill"><span class="tiny">●</span> <span id="sessionTierText">—</span></div>
-            <div class="session-progress-stack">
-              <span id="sessionProgText">—</span>
-              <div class="pbar"><div id="sessionProgBar"></div></div>
-            </div>
-            <button class="session-exit icon-only" id="exitSessionHeaderBtn" aria-label="Exit session">✕</button>
-          </div>
           <div class="session-top">
             <div class="progress">
               <div class="p-text">
@@ -7725,10 +7327,10 @@ input[type="range"]::-moz-range-thumb{
             <div class="break-banner" id="breakBanner"></div>
             <div class="break-hint" id="breakHint"></div>
             <div class="ratings" id="ratings" style="display:none">
-              <button class="rate again" data-rate="1">Again (1)<span class="rate-days">&lt; 10m</span></button>
-              <button class="rate hard" data-rate="2">Hard (2)<span class="rate-days">~ 1d</span></button>
-              <button class="rate good" data-rate="3">Good (3)<span class="rate-days">~ 3d</span></button>
-              <button class="rate easy" data-rate="4">Easy (4)<span class="rate-days">~ 7d</span></button>
+              <button class="rate again" data-rate="1">Again (1)</button>
+              <button class="rate hard" data-rate="2">Hard (2)</button>
+              <button class="rate good" data-rate="3">Good (3)</button>
+              <button class="rate easy" data-rate="4">Easy (4)</button>
             </div>
           </div>
         </div>
@@ -8376,17 +7978,11 @@ input[type="range"]::-moz-range-thumb{
     function setTierBadge(tier) {
       var b = el('tierBadge');
       var t = el('tierBadgeText');
+      var dot = b.querySelector('.tiny');
       var c = tierColour(tier);
-      if (b && t) {
-        var dot = b.querySelector('.tiny');
-        b.style.background = c;
-        if (dot) dot.style.opacity = '0.92';
-        t.textContent = tierLabel(tier);
-      }
-      var sessionTierText = el('sessionTierText');
-      if (sessionTierText) sessionTierText.textContent = tierLabel(tier);
-      var sessionTierDot = document.querySelector('.session-tier-pill .tiny');
-      if (sessionTierDot) sessionTierDot.style.color = c;
+      b.style.background = c;
+      dot.style.opacity = '0.92';
+      t.textContent = tierLabel(tier);
     }
 
     function showView(nextId) {
@@ -8557,6 +8153,7 @@ input[type="range"]::-moz-range-thumb{
         return '<span style="white-space:pre-wrap;">' + esc(text) + '</span>';
       }
     }
+
 /* Phase 2 extraction: copied from monolith; source-of-truth remains state.js for parity. */
 
     function optimizeFsrsParams() {
@@ -8766,6 +8363,7 @@ input[type="range"]::-moz-range-thumb{
 
       return counts;
     }
+
 /* Phase 2 extraction: copied from monolith; source-of-truth remains state.js for parity. */
 
     function courseKey(name){
@@ -9158,6 +8756,7 @@ input[type="range"]::-moz-range-thumb{
         gsap.fromTo(container.querySelectorAll('.chip'), { opacity: 0, y: 3 }, { opacity: 1, y: 0, duration: 0.2, stagger: 0.03, ease: 'power2.out' });
       }
     }
+
 /* Phase 2 extraction: copied from monolith; source-of-truth remains state.js for parity. */
 
     function openModal(tab, courseName) {
@@ -9380,56 +8979,15 @@ input[type="range"]::-moz-range-thumb{
 
     function deleteEditedItem(itemId) {
       if (!state.items[itemId]) return;
-      confirmCardDeletion(function(confirmed){
-        if (!confirmed) return;
-        delete state.items[itemId];
-        reconcileStats();
-        saveState();
-        renderDashboard();
-        var afterSave = modalEditAfterSave;
-        closeModal();
-        toast('Card deleted');
-        if (typeof afterSave === 'function') afterSave(null);
-      });
-    }
-
-    function confirmCardDeletion(onResolve) {
-      var existing = document.getElementById('confirmDeleteCardOv');
-      if (existing) existing.remove();
-      var overlay = document.createElement('div');
-      overlay.id = 'confirmDeleteCardOv';
-      overlay.className = 'overlay show';
-      overlay.setAttribute('aria-hidden', 'false');
-      overlay.innerHTML =
-        '<div class="modal" role="dialog" aria-modal="true" aria-label="Confirm card deletion" style="max-width:380px;">' +
-          '<div class="modal-head">' +
-            '<div style="font-size:10px;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:var(--text);">Delete card</div>' +
-            '<button type="button" id="confirmDeleteCardClose" class="icon-btn" aria-label="Close">✕</button>' +
-          '</div>' +
-          '<div class="modal-body">' +
-            '<div style="font-size:11px;line-height:1.6;color:var(--text-secondary);">Delete this card permanently?</div>' +
-          '</div>' +
-          '<div class="modal-actions">' +
-            '<button type="button" id="confirmDeleteCardCancel" class="ghost-btn">Cancel</button>' +
-            '<button type="button" id="confirmDeleteCardOk" class="big-btn danger">Delete</button>' +
-          '</div>' +
-        '</div>';
-      document.body.appendChild(overlay);
-      var settled = false;
-      function done(ok) {
-        if (settled) return;
-        settled = true;
-        overlay.remove();
-        if (typeof onResolve === 'function') onResolve(!!ok);
-      }
-      overlay.addEventListener('click', function(e) { if (e.target === overlay) done(false); });
-      var closeBtn = document.getElementById('confirmDeleteCardClose');
-      var cancelBtn = document.getElementById('confirmDeleteCardCancel');
-      var okBtn = document.getElementById('confirmDeleteCardOk');
-      if (closeBtn) closeBtn.addEventListener('click', function(){ done(false); });
-      if (cancelBtn) cancelBtn.addEventListener('click', function(){ done(false); });
-      if (okBtn) okBtn.addEventListener('click', function(){ done(true); });
-      if (Core && Core.a11y && Core.a11y.trap) Core.a11y.trap(overlay);
+      if (!window.confirm('Delete this card permanently?')) return;
+      delete state.items[itemId];
+      reconcileStats();
+      saveState();
+      renderDashboard();
+      var afterSave = modalEditAfterSave;
+      closeModal();
+      toast('Card deleted');
+      if (typeof afterSave === 'function') afterSave(null);
     }
 
     function editItem(itemId, opts) {
@@ -10225,6 +9783,7 @@ input[type="range"]::-moz-range-thumb{
         };
       }
     }
+
 /* Phase 2 extraction: copied from monolith; source-of-truth remains state.js for parity. */
 
     function getDragonStage(xp) {
@@ -10367,9 +9926,15 @@ input[type="range"]::-moz-range-thumb{
       if (!bar || !session) return;
       var valEl = bar.querySelector('.sxp-value');
       var fillEl = bar.querySelector('.sxp-fill');
-      if (valEl) valEl.textContent = String(session.xp);
+      var streakEl = bar.querySelector('.sxp-streak');
+      if (valEl) valEl.textContent = session.xp + ' XP';
       if (fillEl) fillEl.style.width = Math.min(100, Math.round((session.xp / 200) * 100)) + '%';
+      if (streakEl) {
+        var streak = (state.stats && state.stats.streakDays) || 0;
+        streakEl.innerHTML = streak > 0 ? ('🔥 ' + streak + 'd') : '';
+      }
     }
+
 /* Phase 2 extraction: copied from monolith; source-of-truth remains state.js for parity. */
 
     function buildCourseTree() {
@@ -11206,6 +10771,7 @@ function showCourseDashboard(courseName) {
         }
       ]);
     }
+
 /* Phase 2 extraction: copied from monolith; source-of-truth remains state.js for parity. */
 
     function renderDashboard() {
@@ -12221,6 +11787,7 @@ function showCourseDashboard(courseName) {
           wrap.style.display = 'none';
         });
     }
+
 /* Phase 2 extraction: copied from monolith; source-of-truth remains state.js for parity. */
 
     function callTutor(mode, model, item, userResponse, conversation, context) {
@@ -13018,129 +12585,9 @@ function showCourseDashboard(courseName) {
         calibrationNudgeTopics: getOverconfidentTopics(item.course).slice(0, 3).map(function(ot) { return ot.topic + ' (' + ot.pctWeak + '% weak)'; })
       };
     }
+
 /* Relocated module-local vars from state.js */
     var sessionSummary = null;
-
-    function onTap(element, handler) {
-      if (!element || typeof handler !== 'function') return;
-      if (element.__tapBound) return;
-      element.__tapBound = true;
-      var touchFired = false;
-      element.addEventListener('touchend', function(e) {
-        e.preventDefault();
-        touchFired = true;
-        handler.call(element, e);
-      }, { passive: false });
-      element.addEventListener('click', function(e) {
-        if (touchFired) { touchFired = false; return; }
-        handler.call(element, e);
-      });
-    }
-
-    var iosLandscapeDismissed = false;
-
-    function isIOSDevice() {
-      return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    }
-
-    function isPortrait() {
-      if (window.screen && window.screen.orientation && window.screen.orientation.type) {
-        return window.screen.orientation.type.indexOf('portrait') >= 0;
-      }
-      return window.innerHeight > window.innerWidth;
-    }
-
-    function dismissIOSLandscapePrompt() {
-      iosLandscapeDismissed = true;
-      var prompt = document.getElementById('iosLandscapePrompt');
-      if (!prompt) return;
-      var card = prompt.querySelector('.ios-lp-card');
-      var backdrop = prompt.querySelector('.ios-lp-backdrop');
-
-      if (window.gsap && card && backdrop) {
-        gsap.to(card, {
-          opacity: 0, scale: 0.95, y: 10,
-          duration: 0.25, ease: 'power2.in'
-        });
-        gsap.to(backdrop, {
-          opacity: 0, duration: 0.3, ease: 'power2.in',
-          onComplete: function() {
-            prompt.classList.remove('show');
-            prompt.style.display = 'none';
-            prompt.setAttribute('aria-hidden', 'true');
-          }
-        });
-      } else {
-        prompt.classList.remove('show');
-        prompt.style.display = 'none';
-        prompt.setAttribute('aria-hidden', 'true');
-      }
-      try { playClick(); } catch (e) {}
-    }
-
-    function showIOSLandscapePrompt() {
-      if (iosLandscapeDismissed) return;
-      if (!isIOSDevice()) return;
-      if (!isPortrait()) return;
-      if (!session) return;
-
-      var prompt = document.getElementById('iosLandscapePrompt');
-      if (!prompt) return;
-      var card = prompt.querySelector('.ios-lp-card');
-      var backdrop = prompt.querySelector('.ios-lp-backdrop');
-
-      prompt.style.display = 'flex';
-      prompt.classList.add('show');
-      prompt.setAttribute('aria-hidden', 'false');
-
-      if (window.gsap && card && backdrop) {
-        gsap.fromTo(card, { opacity: 0, scale: 0.92, y: 20 }, { opacity: 1, scale: 1, y: 0, duration: 0.45, ease: 'back.out(1.4)' });
-        gsap.fromTo(backdrop, { opacity: 0 }, { opacity: 1, duration: 0.35, ease: 'power2.out' });
-      }
-
-      var dismissBtn = prompt.querySelector('.ios-lp-dismiss');
-      if (dismissBtn) {
-        dismissBtn.__tapBound = false;
-        onTap(dismissBtn, function() {
-          dismissIOSLandscapePrompt();
-        });
-      }
-
-      if (backdrop) {
-        backdrop.__tapBound = false;
-        onTap(backdrop, function() {
-          dismissIOSLandscapePrompt();
-        });
-      }
-    }
-
-    window.addEventListener('orientationchange', function() {
-      setTimeout(function() {
-        if (!isPortrait()) dismissIOSLandscapePrompt();
-      }, 300);
-    });
-    if (window.screen && window.screen.orientation && typeof window.screen.orientation.addEventListener === 'function') {
-      window.screen.orientation.addEventListener('change', function() {
-        if (!isPortrait()) dismissIOSLandscapePrompt();
-      });
-    }
-
-    function defaultTutorStats() {
-      return {
-        dontKnows: 0,
-        skipsToRating: 0,
-        reconstructionSuccesses: 0
-      };
-    }
-
-    function defaultTutorModeCounts() {
-      return {
-        socratic: 0,
-        teach: 0,
-        acknowledge: 0
-      };
-    }
 
 /* Phase 2 extraction: copied from monolith; source-of-truth remains state.js for parity. */
 
@@ -13501,244 +12948,177 @@ function showCourseDashboard(courseName) {
     }
 
     function startSession() {
-      try {
-        console.log('[StudyEngine] startSession called, items:', Object.keys(state.items || {}).length);
-        var q = buildSessionQueue();
-        session = {
-          queue: q,
-          idx: 0,
-          loops: {}, /* itemId -> again count in-session */
-          currentShown: false,
-          startedAt: Date.now(),
-          xp: 0,
-          reviewsByTier: { quickfire:0, explain:0, apply:0, distinguish:0, mock:0, worked:0 },
-          ratingSum: 0,
-          ratingN: 0,
-          calBefore: calibrationPct(state.calibration),
-          confidence: null,  /* 'low' | 'medium' | 'high' — set before reveal on quickfire */
-          recentRatings: [], /* rolling window for fatigue detection */
-          fatigueWarningShown: false, /* only show once per session */
-          tutorStats: defaultTutorStats(),
-          tutorModeCounts: defaultTutorModeCounts(),
-          sessionRatingsLog: [],
-          lastTutorContext: null,  /* { mode, turns, hadDialogue, wasDontKnow } — set by tutor flows */
-          tutorAnalyticsHistoryKey: 's' + Date.now()
-        };
-        session = createSessionState(q, session.startedAt);
-        /* Reset dragon done view for next session */
-        var oldDragonImg = document.querySelector('.done-dragon-img');
-        if (oldDragonImg) oldDragonImg.remove();
-        var oldOrb = document.getElementById('doneDragonOrb');
-        if (oldOrb) { oldOrb.style.display = ''; oldOrb.textContent = '🥚'; }
-        var oldXPBar = document.getElementById('sessionXPBar');
-        if (oldXPBar) oldXPBar.remove();
-        sessionSummary = null;
-        breakState.sessionStartTime = Date.now();
-        breakState.lastBreakTime = 0;
-        breakState.breaksTaken = 0;
-        breakState.bannerDismissed = false;
-        if (!q.length) return;
-        persistActiveSessionSnapshot();
-        var prevSum = el('sessionAiSummaryWrap');
-        if (prevSum) prevSum.style.display = 'none';
-        showView('viewSession');
-        try { document.body.classList.add('in-session'); } catch(e) {}
-        /* Insert session XP bar if not already present */
-        var sessionTop = document.querySelector('#viewSession .session-top');
-        if (sessionTop && !document.getElementById('sessionXPBar')) {
-          var xpBar = document.createElement('div');
-          xpBar.className = 'session-xp-bar';
-          xpBar.id = 'sessionXPBar';
-          xpBar.innerHTML =
-            '<div class="sxp-track">' +
-              '<div class="sxp-fill"></div>' +
-              '<div class="sxp-glow"></div>' +
-            '</div>' +
-            '<span class="sxp-label"><span class="sxp-value">0</span><span class="sxp-unit">XP</span></span>';
-          sessionTop.insertAdjacentElement('afterend', xpBar);
-        }
-        updateSessionXPBar();
-        try { playStart(); } catch(e) {}
-        renderCurrentItem();
-        /* Mobile safety: ensure session view is scrolled to top and visible */
-        try {
-          var sessionView = document.getElementById('viewSession');
-          if (sessionView) {
-            sessionView.scrollTop = 0;
-            sessionView.style.display = 'block';
-          }
-          window.scrollTo(0, 0);
-          document.querySelector('.wrap').scrollTop = 0;
-        } catch(scrollErr) {}
-        showIOSLandscapePrompt();
-      } catch (err) {
-        console.error('[StudyEngine] startSession failed:', err);
-        try { toast('Session error: ' + (err.message || err)); } catch(e2) {}
-        try {
-          var fallbackQ = [];
-          for (var fid in state.items) {
-            if (!state.items.hasOwnProperty(fid)) continue;
-            var fit = state.items[fid];
-            if (fit && !fit.archived) {
-              fit._presentTier = fit.tier || 'quickfire';
-              fallbackQ.push(fit);
-              if (fallbackQ.length >= 12) break;
-            }
-          }
-          if (fallbackQ.length) {
-            session = createSessionState(fallbackQ, Date.now());
-            showView('viewSession');
-            renderCurrentItem();
-          }
-        } catch (fallbackErr) {
-          console.error('[StudyEngine] Fallback also failed:', fallbackErr);
-        }
+      var q = buildSessionQueue();
+      session = {
+        queue: q,
+        idx: 0,
+        loops: {}, /* itemId -> again count in-session */
+        currentShown: false,
+        startedAt: Date.now(),
+        xp: 0,
+        reviewsByTier: { quickfire:0, explain:0, apply:0, distinguish:0, mock:0, worked:0 },
+        ratingSum: 0,
+        ratingN: 0,
+        calBefore: calibrationPct(state.calibration),
+        confidence: null,  /* 'low' | 'medium' | 'high' — set before reveal on quickfire */
+        recentRatings: [], /* rolling window for fatigue detection */
+        fatigueWarningShown: false, /* only show once per session */
+        tutorStats: defaultTutorStats(),
+        tutorModeCounts: defaultTutorModeCounts(),
+        sessionRatingsLog: [],
+        lastTutorContext: null,  /* { mode, turns, hadDialogue, wasDontKnow } — set by tutor flows */
+        tutorAnalyticsHistoryKey: 's' + Date.now()
+      };
+      session = createSessionState(q, session.startedAt);
+      /* Reset dragon done view for next session */
+      var oldDragonImg = document.querySelector('.done-dragon-img');
+      if (oldDragonImg) oldDragonImg.remove();
+      var oldOrb = document.getElementById('doneDragonOrb');
+      if (oldOrb) { oldOrb.style.display = ''; oldOrb.textContent = '🥚'; }
+      var oldXPBar = document.getElementById('sessionXPBar');
+      if (oldXPBar) oldXPBar.remove();
+      sessionSummary = null;
+      breakState.sessionStartTime = Date.now();
+      breakState.lastBreakTime = 0;
+      breakState.breaksTaken = 0;
+      breakState.bannerDismissed = false;
+      if (!q.length) return;
+      persistActiveSessionSnapshot();
+      var prevSum = el('sessionAiSummaryWrap');
+      if (prevSum) prevSum.style.display = 'none';
+      showView('viewSession');
+      try { document.body.classList.add('in-session'); } catch(e) {}
+      /* Insert session XP bar if not already present */
+      var sessionTop = document.querySelector('#viewSession .session-top');
+      if (sessionTop && !document.getElementById('sessionXPBar')) {
+        var xpBar = document.createElement('div');
+        xpBar.className = 'session-xp-bar';
+        xpBar.id = 'sessionXPBar';
+        xpBar.innerHTML =
+          '<span class="sxp-label">XP</span>' +
+          '<div class="sxp-fill-wrap"><div class="sxp-fill"></div></div>' +
+          '<span class="sxp-value">0 XP</span>' +
+          '<span class="sxp-streak"></span>';
+        sessionTop.insertAdjacentElement('afterend', xpBar);
       }
+      updateSessionXPBar();
+      try { playStart(); } catch(e) {}
+      renderCurrentItem();
     }
 
     function renderCurrentItem() {
-      try {
-        console.log('[StudyEngine] renderCurrentItem called, idx:', session ? session.idx : 'no session');
-        document.querySelectorAll('.listen-tts-btn').forEach(function(btn) { btn.remove(); });
-        clearTimers();
-        cleanupAskTutor();
-        if (session) session.lastTutorContext = null;
-        activeRubric = null;
-        session.currentShown = false;
-        if (session) session.confidence = null;
-        if (session) session._dontKnow = false;
-        if (session) session._reconstructionPending = false;
-        modelAnswerEl.style.display = 'none';
-        ratingsEl.style.display = 'none';
-        studyIndicator.classList.remove('show');
-        var breakHint = el('breakHint');
-        if (breakHint) breakHint.classList.remove('show');
-        var restudyScreen = el('restudyScreen');
-        if (restudyScreen) restudyScreen.classList.remove('show');
-        modelAnswerEl.classList.remove('restudy-active');
-        var oldBarAtRender = document.getElementById('restudyBarInline');
-        if (oldBarAtRender) {
-          var oldElabAtRender = oldBarAtRender.nextElementSibling;
-          if (oldElabAtRender && oldElabAtRender.classList.contains('restudy-elaboration')) oldElabAtRender.remove();
-          oldBarAtRender.remove();
-        }
-        el('timerBar').classList.remove('show');
-        el('metaTimer').style.display = 'none';
-        el('timerFill').style.width = '0%';
-        el('aiFeedbackArea').innerHTML = '';
-        /* Remove side-by-side reveal columns from previous item */
-        var oldReveal = document.getElementById('revealColumnsWrap');
-        if (oldReveal) oldReveal.remove();
-        var oldDkWrap = document.getElementById('dkRevealWrap');
-        if (oldDkWrap) oldDkWrap.remove();
-        if (tierArea) {
-          tierArea.style.display = '';
-          tierArea.style.opacity = '';
-          tierArea.style.pointerEvents = '';
-        }
-        if (session) session.aiRating = null;
-        if (session) session._isRelearning = false;
-        tutorAcknowledgeDone = false;
-        tutorAcknowledgeOriginalRating = null;
-        tutorOpeningUserText = '';
-        tutorInRelearning = false;
-        tutorMaxTurns = 3;
-        var qfRoot = document.getElementById('qfFollowupRoot');
-        if (qfRoot) qfRoot.remove();
-        var qfReRoot = document.getElementById('qfReRetrievalRoot');
-        if (qfReRoot) qfReRoot.remove();
-        var oldHint = document.querySelector('.override-hint');
-        if (oldHint) oldHint.remove();
-        ratingsEl.querySelectorAll('button').forEach(function(b) {
-          b.style.outline = 'none';
-          b.style.outlineOffset = '0';
-        });
+      document.querySelectorAll('.listen-tts-btn').forEach(function(btn) { btn.remove(); });
+      clearTimers();
+      cleanupAskTutor();
+      if (session) session.lastTutorContext = null;
+      activeRubric = null;
+      session.currentShown = false;
+      if (session) session.confidence = null;
+      if (session) session._dontKnow = false;
+      if (session) session._reconstructionPending = false;
+      modelAnswerEl.style.display = 'none';
+      ratingsEl.style.display = 'none';
+      studyIndicator.classList.remove('show');
+      var breakHint = el('breakHint');
+      if (breakHint) breakHint.classList.remove('show');
+      var restudyScreen = el('restudyScreen');
+      if (restudyScreen) restudyScreen.classList.remove('show');
+      modelAnswerEl.classList.remove('restudy-active');
+      var oldBarAtRender = document.getElementById('restudyBarInline');
+      if (oldBarAtRender) {
+        var oldElabAtRender = oldBarAtRender.nextElementSibling;
+        if (oldElabAtRender && oldElabAtRender.classList.contains('restudy-elaboration')) oldElabAtRender.remove();
+        oldBarAtRender.remove();
+      }
+      el('timerBar').classList.remove('show');
+      el('metaTimer').style.display = 'none';
+      el('timerFill').style.width = '0%';
+      el('aiFeedbackArea').innerHTML = '';
+      /* Remove side-by-side reveal columns from previous item */
+      var oldReveal = document.getElementById('revealColumnsWrap');
+      if (oldReveal) oldReveal.remove();
+      var oldDkWrap = document.getElementById('dkRevealWrap');
+      if (oldDkWrap) oldDkWrap.remove();
+      // Re-show tier area in case it was hidden/dimmed by Don't Know flow
+      if (tierArea) {
+        tierArea.style.display = '';
+        tierArea.style.opacity = '';
+        tierArea.style.pointerEvents = '';
+      }
+      if (session) session.aiRating = null;
+      if (session) session._isRelearning = false;
+      tutorAcknowledgeDone = false;
+      tutorAcknowledgeOriginalRating = null;
+      tutorOpeningUserText = '';
+      tutorInRelearning = false;
+      tutorMaxTurns = 3;
+      var qfRoot = document.getElementById('qfFollowupRoot');
+      if (qfRoot) qfRoot.remove();
+      var qfReRoot = document.getElementById('qfReRetrievalRoot');
+      if (qfReRoot) qfReRoot.remove();
+      /* Remove override hint if present */
+      var oldHint = document.querySelector('.override-hint');
+      if (oldHint) oldHint.remove();
+      /* Reset rating button outlines */
+      ratingsEl.querySelectorAll('button').forEach(function(b) {
+        b.style.outline = 'none';
+        b.style.outlineOffset = '0';
+      });
 
-        var it = session.queue[session.idx];
-        if (!it) { completeSession(); return; }
-        var tier = it._presentTier || it.tier || 'quickfire';
+      var it = session.queue[session.idx];
+      if (!it) { completeSession(); return; }
+      /* Resolve presentation tier (smart mode) or stored tier (manual/legacy) */
+      var tier = it._presentTier || it.tier || 'quickfire';
 
-        setTierBadge(tier);
-        var ic = document.querySelector('.item-card');
-        if (ic) ic.className = 'item-card tier-' + tier;
+      setTierBadge(tier);
+      /* Tier-themed item card border */
+      var ic = document.querySelector('.item-card');
+      if (ic) {
+        ic.className = 'item-card tier-' + tier;
+      }
 
-        var pb = document.querySelector('.pbar');
-        if (pb) pb.className = 'pbar tier-' + tier;
+      /* Tier-coloured progress bar */
+      var pb = document.querySelector('.pbar');
+      if (pb) {
+        pb.className = 'pbar tier-' + tier;
+      }
 
-        if (tier === 'apply') el('promptText').textContent = 'Scenario';
-        else el('promptText').innerHTML = '<div class="md-content">' + renderMd(it.prompt) + '</div>';
-        el('metaCourse').textContent = it.course || '—';
-        var metaEl = document.querySelector('.meta');
-        var existingPriBadge = document.getElementById('metaPriority');
-        if (existingPriBadge) existingPriBadge.remove();
-        if (metaEl && it.priority && it.priority !== 'medium') {
-          var badge = document.createElement('span');
-          badge.id = 'metaPriority';
-          badge.innerHTML = priorityBadgeHTML(it.priority);
-          metaEl.appendChild(badge);
-        }
-        el('metaTopic').textContent = it.topic || '—';
-        refreshSessionEditButton();
-        el('courseHint').textContent = (selectedCourse === 'All') ? (it.course || '—') : selectedCourse;
+      /* For Apply It we render the scenario in a distinct block; avoid duplicating it in the top prompt. */
+      if (tier === 'apply') el('promptText').textContent = 'Scenario';
+      else el('promptText').innerHTML = '<div class="md-content">' + renderMd(it.prompt) + '</div>';
+      el('metaCourse').textContent = it.course || '—';
+      var metaEl = document.querySelector('.meta');
+      var existingPriBadge = document.getElementById('metaPriority');
+      if (existingPriBadge) existingPriBadge.remove();
+      if (metaEl && it.priority && it.priority !== 'medium') {
+        var badge = document.createElement('span');
+        badge.id = 'metaPriority';
+        badge.innerHTML = priorityBadgeHTML(it.priority);
+        metaEl.appendChild(badge);
+      }
+      el('metaTopic').textContent = it.topic || '—';
+      refreshSessionEditButton();
+      el('courseHint').textContent = (selectedCourse === 'All') ? (it.course || '—') : selectedCourse;
 
-        var n = session.queue.length;
-        var progressText = (session.idx + 1) + ' of ' + n;
-        var progressPct = Math.round(((session.idx) / Math.max(1, n)) * 100);
-        el('progText').textContent = progressText;
-        el('progBar').style.width = progressPct + '%';
-        if (el('sessionProgText')) el('sessionProgText').textContent = progressText;
-        if (el('sessionProgBar')) el('sessionProgBar').style.width = progressPct + '%';
-        if (window.gsap) {
-          var progBarFill = el('progBar');
-          if (progBarFill) {
-            gsap.fromTo(progBarFill, { boxShadow: '0 0 8px rgba(var(--accent-rgb), 0.5)' }, { boxShadow: '0 0 0 rgba(var(--accent-rgb), 0)', duration: 0.6, ease: 'power2.out' });
-          }
-        }
+      var n = session.queue.length;
+      el('progText').textContent = (session.idx + 1) + ' of ' + n;
+      el('progBar').style.width = Math.round(((session.idx) / Math.max(1, n)) * 100) + '%';
 
-        tierArea.innerHTML = '';
-        if (tier === 'quickfire') renderQuickfireTier(it, session);
-        else if (tier === 'explain') renderExplainTier(it, session);
-        else if (tier === 'apply') renderApplyTier(it, session);
-        else if (tier === 'worked') renderWorkedTier(it, session);
-        else if (tier === 'distinguish') renderDistinguishTier(it, session);
-        else if (tier === 'mock') renderMockTier(it, session);
+      tierArea.innerHTML = '';
+      if (tier === 'quickfire') renderQuickfireTier(it, session);
+      else if (tier === 'explain') renderExplainTier(it, session);
+      else if (tier === 'apply') renderApplyTier(it, session);
+      else if (tier === 'worked') renderWorkedTier(it, session);
+      else if (tier === 'distinguish') renderDistinguishTier(it, session);
+      else if (tier === 'mock') renderMockTier(it, session);
 
-        if (window.gsap) {
-          var cardEnter = document.querySelector('.item-card');
-          if (cardEnter) {
-            gsap.killTweensOf(cardEnter);
-            gsap.fromTo(cardEnter,
-              { opacity: 0, y: 60, scale: 0.95, rotationX: 4 },
-              { opacity: 1, y: 0, scale: 1, rotationX: 0, duration: 0.55, ease: 'back.out(1.4)', clearProps: 'rotationX' }
-            );
-            var staggerEls = cardEnter.querySelectorAll('.meta, .prompt, #tierArea, .divider');
-            if (staggerEls.length) {
-              gsap.fromTo(staggerEls, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out', stagger: 0.06, delay: 0.15 });
-            }
-          }
-        }
-      } catch (mobileErr) {
-        console.error('[StudyEngine] renderCurrentItem failed:', mobileErr);
-        /* Fallback: show a minimal but functional card */
-        var fallbackItem = session && session.queue && session.queue[session.idx];
-        if (fallbackItem && tierArea) {
-          var safePrompt = String(fallbackItem.prompt || 'No prompt').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-          var safeAnswer = String(fallbackItem.modelAnswer || 'No answer').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-          tierArea.innerHTML =
-            '<div style="padding:16px;color:var(--text);font-size:14px;line-height:1.6;">' +
-            '<p style="font-weight:700;margin-bottom:8px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--text-secondary);">PROMPT</p>' +
-            '<p style="margin-bottom:16px;">' + safePrompt + '</p>' +
-            '<hr style="border:none;border-top:1px solid rgba(var(--accent-rgb),0.12);margin:12px 0;">' +
-            '<p style="font-weight:700;margin-bottom:8px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--text-secondary);">ANSWER</p>' +
-            '<p>' + safeAnswer + '</p>' +
-            '</div>';
-          if (ratingsEl) {
-            ratingsEl.style.display = 'grid';
-            ratingsEl.querySelectorAll('button').forEach(function(b) {
-              b.__tapBound = false;
-              onTap(b, function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); });
-            });
-          }
+      if (window.gsap) {
+        var cardEnter = document.querySelector('.item-card');
+        if (cardEnter) {
+          gsap.fromTo(cardEnter,
+            { opacity: 0, y: 16, scale: 0.98 },
+            { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: 'power2.out' }
+          );
         }
       }
     }
@@ -13764,14 +13144,9 @@ function showCourseDashboard(courseName) {
         if (qfAnswerVisual) setTimeout(initMermaidBlocks, 50);
         else ensureAnswerVisual(it, revealTier);
         ratingsEl.style.display = 'grid';
-        if (window.gsap) {
-          gsap.fromTo(modelAnswerEl, { opacity: 0, y: 30, clipPath: 'inset(100% 0% 0% 0%)' }, { opacity: 1, y: 0, clipPath: 'inset(0% 0% 0% 0%)', duration: 0.45, ease: 'power2.out' });
-          gsap.fromTo(ratingsEl, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.3, delay: 0.2, ease: 'power2.out' });
-        }
         try { playClick(); } catch(e) {}
         ratingsEl.querySelectorAll('button').forEach(function(b) {
-          b.__tapBound = false;
-          onTap(b, function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); });
+          b.onclick = function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); };
         });
         if (it.modelAnswer) insertListenButton(modelAnswerEl, it.modelAnswer);
         return;
@@ -13803,16 +13178,12 @@ function showCourseDashboard(courseName) {
       var answerVisual = it.visual ? renderMermaidBlock(it.visual, 'answer', it.id) : '';
 
       /* Remove old tierArea content that's no longer needed (scenario stays via item-card) */
-      var revealHTML = '<div class="reveal-tabs">' +
-        '<button type="button" class="nav-tab reveal-tab-btn" data-reveal-tab="user">Your Response</button>' +
-        '<button type="button" class="nav-tab reveal-tab-btn active" data-reveal-tab="model">Model Answer</button>' +
-      '</div>' +
-      '<div class="reveal-columns">' +
+      var revealHTML = '<div class="reveal-columns">' +
         '<div class="reveal-col">' +
           '<div class="col-label"><span class="col-icon">✍️</span> Your Response</div>' +
           '<div class="user-response-locked" id="userResponseLocked">' + esc(userText || '(No response)') + '</div>' +
         '</div>' +
-        '<div class="reveal-col active">' +
+        '<div class="reveal-col">' +
           '<div class="col-label"><span class="col-icon">📋</span> Model Answer</div>' +
           '<div class="answer" id="modelAnswerRight"><span class="answer-header">Model Answer</span>' + renderMd(it.modelAnswer || '') + '<div class="visual-slot"></div>' + answerVisual + '</div>' +
           '<div id="aiFeedbackRight"></div>' +
@@ -13824,7 +13195,6 @@ function showCourseDashboard(courseName) {
       revealContainer.id = 'revealColumnsWrap';
       revealContainer.innerHTML = revealHTML;
       tierArea.insertAdjacentElement('afterend', revealContainer);
-      setupRevealTabs(revealContainer);
 
       /* Hide original modelAnswer element — we use the right-column copy */
       modelAnswerEl.style.display = 'none';
@@ -13891,22 +13261,6 @@ function showCourseDashboard(courseName) {
       if (!it) return;
       if (!session.currentShown) return;
 
-      var tappedBtn = ratingsEl.querySelector('[data-rate="' + rating + '"]');
-      if (tappedBtn && window.gsap) {
-        gsap.fromTo(tappedBtn, { scale: 1 }, {
-          scale: 0.88,
-          duration: 0.08,
-          ease: 'power2.in',
-          yoyo: true,
-          repeat: 1,
-          onComplete: function() {
-            gsap.to(tappedBtn, { scale: 1.15, opacity: 0, duration: 0.2, ease: 'power2.out' });
-            ratingsEl.querySelectorAll('button').forEach(function(b) {
-              if (b !== tappedBtn) gsap.to(b, { opacity: 0.3, scale: 0.95, duration: 0.15 });
-            });
-          }
-        });
-      }
       /* Immediately hide rating UI — rating captured */
       ratingsEl.style.display = 'none';
       var hintElRate = document.querySelector('.override-hint');
@@ -14203,11 +13557,9 @@ function showCourseDashboard(courseName) {
         gsap.killTweensOf(cardEl);
         gsap.to(cardEl, {
           opacity: 0,
-          y: -40,
-          scale: 0.96,
-          rotationX: -3,
-          duration: 0.25,
-          ease: 'power3.in',
+          y: -12,
+          duration: 0.18,
+          ease: 'power2.in',
           onComplete: step
         });
       } else {
@@ -14240,7 +13592,6 @@ function showCourseDashboard(courseName) {
       document.querySelectorAll('.listen-tts-btn').forEach(function(btn) { btn.remove(); });
       clearTimers();
       if (!session) return;
-      iosLandscapeDismissed = false;
 
       /* Streak update */
       var today = isoDate();
@@ -14387,17 +13738,6 @@ function showCourseDashboard(courseName) {
       flash.textContent = xp === 0 ? '0 XP' : '+' + xp + ' XP';
       document.body.appendChild(flash);
       if (window.gsap) {
-        var xpBar = document.getElementById('sessionXPBar');
-        if (xpBar) {
-          xpBar.classList.add('active');
-          gsap.fromTo(xpBar.querySelector('.sxp-value'), { textContent: Math.max(0, session.xp - xp) }, {
-            textContent: session.xp,
-            duration: 0.45,
-            roundProps: 'textContent',
-            ease: 'power2.out'
-          });
-          gsap.delayedCall(0.38, function() { xpBar.classList.remove('active'); });
-        }
         gsap.fromTo(flash,
           { opacity: 0, y: 0, scale: 0.7 },
           { opacity: 1, y: -30, scale: 1, duration: 0.35, ease: 'back.out(1.8)',
@@ -14413,24 +13753,6 @@ function showCourseDashboard(courseName) {
         flash.style.opacity = '1';
         setTimeout(function() { flash.remove(); }, 1200);
       }
-    }
-
-    function setupRevealTabs(revealContainer) {
-      if (!revealContainer) return;
-      var tabs = revealContainer.querySelectorAll('.reveal-tab-btn');
-      var cols = revealContainer.querySelectorAll('.reveal-col');
-      if (tabs.length !== 2 || cols.length !== 2) return;
-      tabs.forEach(function(tab, idx) {
-        tab.addEventListener('click', function() {
-          tabs.forEach(function(t) { t.classList.remove('active'); });
-          tab.classList.add('active');
-          cols.forEach(function(col) { col.classList.remove('active'); });
-          cols[idx].classList.add('active');
-          if (window.gsap) {
-            gsap.fromTo(cols[idx], { opacity: 0, x: idx === 0 ? -18 : 18 }, { opacity: 1, x: 0, duration: 0.24, ease: 'power2.out' });
-          }
-        });
-      });
     }
 
     function disableRatings(disabled) {
@@ -14541,7 +13863,7 @@ function showCourseDashboard(courseName) {
         tipEl.textContent = getBreakTip();
         if (window.gsap) gsap.fromTo(tipEl, { opacity: 0 }, { opacity: 1, duration: 0.4 });
       }, 45000);
-      onTap(skipBtn, function() { endBreak(); try { playBreakDismiss(); } catch (e) {} });
+      skipBtn.onclick = function() { endBreak(); try { playBreakDismiss(); } catch (e) {} };
       if (window.gsap) {
         gsap.fromTo(overlay.querySelector('.break-card'),
           { scale: 0.9, opacity: 0 },
@@ -14559,6 +13881,7 @@ function showCourseDashboard(courseName) {
       try { playResume(); } catch (e) {}
       toast('Break complete — back to it');
     }
+
 /* Study Engine — multi-modal retrieval practice engine (FSRS) */
     var isEmbedded = (window.self !== window.top);
     if (!isEmbedded) document.body.classList.add('standalone');
@@ -14585,24 +13908,6 @@ function showCourseDashboard(courseName) {
     var SYLLABUS_ENDPOINT = STUDYENGINE_WORKER_BASE + '/syllabus';
     var LECTURE_CTX_ENDPOINT = STUDYENGINE_WORKER_BASE + '/lecture-context';
     var GRADE_ENDPOINT = STUDYENGINE_WORKER_BASE + '/grade';
-
-    if (typeof onTap !== 'function') {
-      function onTap(element, handler) {
-        if (!element || typeof handler !== 'function') return;
-        if (element.__tapBound) return;
-        element.__tapBound = true;
-        var touchFired = false;
-        element.addEventListener('touchend', function(e) {
-          e.preventDefault();
-          touchFired = true;
-          handler.call(element, e);
-        }, { passive: false });
-        element.addEventListener('click', function(e) {
-          if (touchFired) { touchFired = false; return; }
-          handler.call(element, e);
-        });
-      }
-    }
 
     /* ── State ── */
     var NS = 'studyengine';
@@ -16981,10 +16286,9 @@ var tutorConversation = [];
       ratingsEl.parentNode.insertBefore(hint, ratingsEl.nextSibling);
       // Re-bind rating buttons to ensure clean handler
       ratingsEl.querySelectorAll('button').forEach(function(b) {
-        b.__tapBound = false;
-        onTap(b, function() {
+        b.onclick = function() {
           rateCurrent(parseInt(this.getAttribute('data-rate'), 10));
-        });
+        };
       });
     }
 
@@ -16992,15 +16296,10 @@ var tutorConversation = [];
       var ta = el('userText');
       ta.addEventListener('input', function(){ autoGrowTextarea(ta); });
       autoGrowTextarea(ta);
-      var checkBtn = el('checkBtn');
-      if (checkBtn) {
-        checkBtn.__tapBound = false;
-        onTap(checkBtn, function(){ revealAnswer(true); });
-      }
+      el('checkBtn').addEventListener('click', function(){ revealAnswer(true); });
       var dkBtn = el('dontKnowBtn');
       if (dkBtn) {
-        dkBtn.__tapBound = false;
-        onTap(dkBtn, function() {
+        dkBtn.addEventListener('click', function() {
           var cur = session.queue[session.idx];
           if (!cur) return;
           var rt = cur._presentTier || cur.tier || 'quickfire';
@@ -17013,15 +16312,10 @@ var tutorConversation = [];
       var ta = el('userText');
       ta.addEventListener('input', function(){ autoGrowTextarea(ta); });
       autoGrowTextarea(ta);
-      var submitBtn = el('submitBtn');
-      if (submitBtn) {
-        submitBtn.__tapBound = false;
-        onTap(submitBtn, function(){ revealAnswer(true); });
-      }
+      el('submitBtn').addEventListener('click', function(){ revealAnswer(true); });
       var dkBtn = el('dontKnowBtn');
       if (dkBtn) {
-        dkBtn.__tapBound = false;
-        onTap(dkBtn, function() {
+        dkBtn.addEventListener('click', function() {
           var cur = session.queue[session.idx];
           if (!cur) return;
           var rt = cur._presentTier || cur.tier || 'quickfire';
@@ -17941,17 +17235,11 @@ var tutorConversation = [];
     });
 
     /* ── Buttons wiring ── */
-    var startBtnEl = el('startBtn');
-    if (startBtnEl) {
-      startBtnEl.__tapBound = false;
-      onTap(startBtnEl, function() {
-        if (startBtnEl.disabled) return;
-        try { playClick(); } catch(e) {}
-        selectedCourse = 'All';
-        selectedTopic = 'All';
-        startSession();
-      });
-    }
+    el('startBtn').addEventListener('click', function(){
+      selectedCourse = 'All';
+      selectedTopic = 'All';
+      startSession();
+    });
     el('backBtn').addEventListener('click', function(){
       if (viewSession.classList.contains('active') && session) {
         el('confirmExitOv').classList.add('show');
@@ -17961,11 +17249,7 @@ var tutorConversation = [];
         renderDashboard();
       }
     });
-    var skipBtnEl = el('skipBtn');
-    if (skipBtnEl) {
-      skipBtnEl.__tapBound = false;
-      onTap(skipBtnEl, function(){ skipItem(); });
-    }
+    el('skipBtn').addEventListener('click', function(){ skipItem(); });
     el('skipBtn').addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); skipItem(); } });
     /* ── Navigation Tabs ── */
     var activeNav = 'home';
@@ -18011,20 +17295,18 @@ var tutorConversation = [];
     el('navHome').addEventListener('click', function() { switchNav('home'); });
     el('navCourses').addEventListener('click', function() { switchNav('courses'); });
     /* ── Session Exit with Confirmation ── */
-    function handleSessionExitClick() {
+    el('exitSessionBtn').addEventListener('click', function() {
       if (!session) return;
       el('confirmExitOv').classList.add('show');
       try { playPause(); } catch(e) {}
-    }
-    onTap(el('exitSessionBtn'), handleSessionExitClick);
-    if (el('exitSessionHeaderBtn')) onTap(el('exitSessionHeaderBtn'), handleSessionExitClick);
+    });
 
-    onTap(el('confirmStay'), function() {
+    el('confirmStay').addEventListener('click', function() {
       el('confirmExitOv').classList.remove('show');
       try { playResume(); } catch(e) {}
     });
 
-    onTap(el('confirmLeave'), function() {
+    el('confirmLeave').addEventListener('click', function() {
       el('confirmExitOv').classList.remove('show');
       try { playClose(); } catch(e) {}
       if (session) {
@@ -18056,8 +17338,7 @@ var tutorConversation = [];
     });
 
     ratingsEl.querySelectorAll('button').forEach(function(b){
-      b.__tapBound = false;
-      onTap(b, function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); });
+      b.addEventListener('click', function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); });
     });
 
     /* ── Modal: Add items / Import JSON ── */
@@ -19308,7 +18589,7 @@ el('gearBtn').addEventListener('click', openSettings);
         }
 
         h += '<div class="course-modal-item" id="cmi_' + ck + '">' +
-          '<div class="course-list-item" id="cli_' + ck + '" style="border-left:5px solid ' + (c.color || '#8b5cf6') + ';">' +
+          '<div class="course-list-item" id="cli_' + ck + '" style="border-left:3px solid ' + (c.color || '#8b5cf6') + ';">' +
           '<div style="flex:1;min-width:0;">' +
             '<div class="cli-name">' + esc(c.name) + '</div>' +
             '<div style="display:flex;gap:6px;margin-top:4px;align-items:center;flex-wrap:wrap;">' +
@@ -19336,36 +18617,38 @@ el('gearBtn').addEventListener('click', openSettings);
         '</button>';
 
       h += '<div class="add-course-form-wrap" id="addCourseFormWrap">' +
-        '<div class="section-header" style="margin-top:4px;">New Course</div>' +
+        '<div class="add-course-form">' +
+        '<div class="cm-section-title" style="margin-bottom:14px;">New Course</div>' +
         '<div class="field">' +
-          '<label>Course name</label>' +
+          '<div class="cm-field-label">Course Name</div>' +
           '<input type="text" id="nc_name" class="input" placeholder="e.g., Constitutional Law">' +
         '</div>' +
         '<div class="field">' +
-          '<label>Colour</label>' +
+          '<div class="cm-field-label">Colour</div>' +
           '<div class="color-picker" id="nc_colorPicker">';
       COURSE_COLORS.forEach(function(c, i) {
         h += '<div class="color-swatch' + (i === 0 ? ' active' : '') + '" data-color="' + c.value + '" style="background:' + c.value + '" title="' + c.name + '"></div>';
       });
       h += '</div></div>' +
-        '<div class="course-form-row">' +
+        '<div class="add-course-row">' +
           '<div class="field">' +
-            '<label>Exam format</label>' +
+            '<div class="cm-field-label">Exam Format</div>' +
             '<select id="nc_examType" class="input">' +
               '<option value="mc">Multiple Choice</option>' +
               '<option value="short_answer">Short Answer</option>' +
               '<option value="essay">Essay</option>' +
               '<option value="mixed" selected>Mixed</option>' +
             '</select>' +
-            '<div id="nc_examTypeDesc" class="help" style="margin-top:6px;line-height:1.5;"></div>' +
+            '<div id="nc_examTypeDesc" class="cm-field-hint"></div>' +
           '</div>' +
           '<div class="field">' +
-            '<label>Exam date (optional)</label>' +
+            '<div class="cm-field-label">Exam Date (Optional)</div>' +
             '<input type="date" id="nc_examDate" class="input">' +
-            '<div id="nc_examDateDesc" class="help" style="line-height:1.5;"><span class="info-icon" tabindex="0">ⓘ</span> When set, the engine activates cram mode as the date approaches — reviews intensify, session sizes increase, and your weakest cards are prioritised automatically. When left empty, FSRS schedules reviews for long-term retention at your configured desired retention rate.</div>' +
+            '<div id="nc_examDateDesc" class="cm-field-hint">Set an exam date to let cram mode intensify reviews as the deadline gets closer.</div>' +
           '</div>' +
         '</div>' +
         '<button class="big-btn" id="courseAddBtn" type="button" style="margin-top:12px;width:100%;">Add Course</button>' +
+        '</div>' +
       '</div>';
 
       courseModalBody.innerHTML = h;
@@ -19600,22 +18883,30 @@ el('gearBtn').addEventListener('click', openSettings);
         var activeTab = courseModalState.tab || 'details';
         var inner = '';
         if (activeTab === 'details') {
-          inner += '<div class="field"><label>Course name</label><input id="cm_name" class="input" value="' + esc(c.name) + '" /></div>';
-          inner += '<div class="field"><label>Colour</label><div class="color-picker" id="cm_colorPicker">';
+          inner += '<div class="cm-section">';
+          inner += '<div class="cm-section-title">Identity</div>';
+          inner += '<div class="field"><div class="cm-field-label">Course Name</div><input id="cm_name" class="input" value="' + esc(c.name) + '" /></div>';
+          inner += '<div class="field" style="margin-bottom:0;"><div class="cm-field-label">Colour</div><div class="color-picker" id="cm_colorPicker">';
           COURSE_COLORS.forEach(function(cc) {
             var isAct = (c.color || '#8b5cf6') === cc.value;
             inner += '<div class="color-swatch' + (isAct ? ' active' : '') + '" data-color="' + cc.value + '" style="background:' + cc.value + '" title="' + esc(cc.name) + '"></div>';
           });
           inner += '</div></div>';
-          inner += '<div class="course-form-row"><div class="field"><label>Exam type</label><select id="cm_examType" class="input">';
+          inner += '</div>';
+          inner += '<div class="cm-section">';
+          inner += '<div class="cm-section-title">Exam Configuration</div>';
+          inner += '<div class="cm-details-grid">';
+          inner += '<div class="field"><div class="cm-field-label">Exam Format</div><select id="cm_examType" class="input">';
           inner += '<option value="mc"' + (c.examType === 'mc' ? ' selected' : '') + '>Multiple Choice</option>';
           inner += '<option value="short_answer"' + (c.examType === 'short_answer' ? ' selected' : '') + '>Short Answer</option>';
           inner += '<option value="essay"' + (c.examType === 'essay' ? ' selected' : '') + '>Essay</option>';
           inner += '<option value="mixed"' + (c.examType === 'mixed' ? ' selected' : '') + '>Mixed</option>';
-          inner += '</select></div>';
-          inner += '<div class="field"><label>Exam date</label><input id="cm_examDate" type="date" class="input" value="' + esc(c.examDate || '') + '" /></div></div>';
-          inner += '<div class="field"><label>Exam Weight (%)</label><input id="cm_examWeight" type="number" min="0" max="100" step="1" class="input" value="' + esc(c.examWeight != null ? String(c.examWeight) : '') + '" /></div>';
+          inner += '</select><div id="cm_examTypeDesc" class="cm-field-hint"></div></div>';
+          inner += '<div class="field"><div class="cm-field-label">Exam Date</div><input id="cm_examDate" type="date" class="input" value="' + esc(c.examDate || '') + '" /><div class="cm-field-hint">Add a date to unlock cram prioritisation as the exam gets closer.</div></div>';
+          inner += '<div class="field"><div class="cm-field-label">Exam Weight (%)</div><input id="cm_examWeight" type="number" min="0" max="100" step="1" class="input" value="' + esc(c.examWeight != null ? String(c.examWeight) : '') + '" /><div class="cm-field-hint">Optional weighting for planning and context.</div></div>';
+          inner += '</div>';
           inner += '<div style="display:flex;justify-content:flex-end;margin-top:12px;"><button class="big-btn" id="cmSaveDetails" type="button">Save Details</button></div>';
+          inner += '</div>';
         } else if (activeTab === 'syllabus') {
           inner += '<div class="field"><label>Syllabus / Exam Info</label><textarea class="input" id="cm_courseContextText" rows="7" placeholder="Paste syllabus text, exam instructions, or course outline...">' + esc(c.rawSyllabusText || '') + '</textarea></div>';
           inner += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
@@ -19703,6 +18994,7 @@ el('gearBtn').addEventListener('click', openSettings);
           btn.onclick = function() {
             courseModalState.tab = btn.getAttribute('data-course-tab') || 'details';
             renderTabContent();
+            if (window.gsap) gsap.fromTo(btn, { scale: 0.96 }, { scale: 1, duration: 0.2, ease: 'back.out(2)' });
             try { playClick(); } catch (e) {}
           };
         });
@@ -19715,6 +19007,16 @@ el('gearBtn').addEventListener('click', openSettings);
               sw.classList.add('active');
             };
           });
+          var examSelect = el('cm_examType');
+          var examDesc = el('cm_examTypeDesc');
+          function syncExamDesc() {
+            if (!examSelect || !examDesc) return;
+            examDesc.textContent = examTypeDescriptions[examSelect.value || 'mixed'] || examTypeDescriptions.mixed;
+          }
+          if (examSelect) {
+            examSelect.onchange = syncExamDesc;
+            syncExamDesc();
+          }
           var saveDetails = el('cmSaveDetails');
           if (saveDetails) saveDetails.onclick = function() {
             var oldName = c.name;
@@ -19740,6 +19042,12 @@ el('gearBtn').addEventListener('click', openSettings);
             renderCourseModalEditor(courseName, 'details');
           };
         } else if (activeTab === 'syllabus') {
+          var pasteBtn = el('cm_togglePasteBtn');
+          var pasteArea = el('cm_pasteArea');
+          if (pasteBtn) pasteBtn.onclick = function() {
+            var isOpen = !!(pasteArea && pasteArea.style.display !== 'none');
+            animateSlideToggle(pasteArea, !isOpen);
+          };
           function setCtxStatus(msg, cls) {
             var st = el('cm_contextStatus');
             if (!st) return;
@@ -19773,13 +19081,18 @@ el('gearBtn').addEventListener('click', openSettings);
               saveCourse(c);
               var prev = el('cm_syllabusPreview');
               if (prev) prev.textContent = c.syllabusContext || '';
+              var meta = el('cm_syllabusMeta');
+              if (meta) meta.innerHTML = '<span class="cm-status-badge">Processed</span>';
+              var zone = el('cm_syllabusZone');
+              if (zone) zone.classList.add('has-content');
               var wrap = el('cm_previewWrap');
               if (wrap && c.syllabusContext) wrap.style.display = '';
               var profEl = el('cm_professorValues'); if (profEl) profEl.value = c.professorValues || '';
               var alEl = el('cm_allowedMaterials'); if (alEl) alEl.value = c.allowedMaterials || '';
               renderSuggestedTopics(c.syllabusKeyTopics);
-              setCtxStatus('✓ Syllabus processed', 'ok');
-            }).catch(function() { setCtxStatus('Network error — try again', ''); });
+              if (pasteArea && pasteArea.style.display === 'none') animateSlideToggle(pasteArea, true);
+              setCtxStatus('Syllabus processed', 'ok');
+            }).catch(function() { setCtxStatus('Network error - try again', ''); });
           }
           var pdfBtn = el('cm_pdfBtn');
           var pdfFile = el('cm_pdfFile');
@@ -19801,6 +19114,13 @@ el('gearBtn').addEventListener('click', openSettings);
           var reprocBtn = el('cm_reprocessSyllabus');
           if (reprocBtn) reprocBtn.onclick = function() { runSyllabusProcess(c.rawSyllabusText || (el('cm_courseContextText') ? el('cm_courseContextText').value : '')); };
 
+          var lectureUrlToggle = el('cm_toggleLectureUrl');
+          var lectureUrlWrap = el('cm_lectureUrlWrap');
+          if (lectureUrlToggle) lectureUrlToggle.onclick = function() {
+            var isOpen = !!(lectureUrlWrap && lectureUrlWrap.style.display !== 'none');
+            animateSlideToggle(lectureUrlWrap, !isOpen);
+          };
+
           function setLectureStatus(msg, cls) {
             var st = el('cm_lectureImportStatus');
             if (!st) return;
@@ -19811,7 +19131,9 @@ el('gearBtn').addEventListener('click', openSettings);
             var box = el('cm_lectureManifestDisplay');
             if (!box) return;
             var count = Number(c._lectureCount || 0) || 0;
-            box.innerHTML = count > 0 ? '<div style="font-size:9px;color:var(--text-secondary);padding:6px 8px;border-radius:10px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.03);">📚 ' + count + ' lecture' + (count !== 1 ? 's' : '') + ' imported</div>' : '';
+            box.innerHTML = count > 0 ? '<span class="cm-status-badge">' + count + ' lecture' + (count !== 1 ? 's' : '') + ' imported</span>' : '';
+            var zone = el('cm_lectureZone');
+            if (zone) zone.classList.toggle('has-content', count > 0);
           }
           function importLectureFromText(lectureTitle, rawText) {
             var trimmed = (rawText || '').trim();
@@ -19832,9 +19154,9 @@ el('gearBtn').addEventListener('click', openSettings);
               saveCourse(c);
               if (!isEmbedded) renderSidebar();
               updateLectureManifestDisplay();
-              setLectureStatus('✓ Imported lecture context', 'ok');
+              setLectureStatus('Imported lecture context', 'ok');
               return data;
-            }).catch(function() { setLectureStatus('Network error — try again', ''); return null; });
+            }).catch(function() { setLectureStatus('Network error - try again', ''); return null; });
           }
           updateLectureManifestDisplay();
           var importUrlBtn = el('cm_importLectureUrl');
@@ -19929,6 +19251,8 @@ el('gearBtn').addEventListener('click', openSettings);
             };
           });
         } else if (activeTab === 'notes') {
+          var notesHost = el('cmCourseNotesHost');
+          if (notesHost) wireTutorNotesPanelToggle(notesHost);
           var clearBtn = el('cmClearCourseNotes');
           if (clearBtn) clearBtn.onclick = function() {
             clearCourseTutorMemoriesForCourse(courseName);
@@ -20185,17 +19509,23 @@ el('gearBtn').addEventListener('click', openSettings);
       courseModalRefreshShell();
 
       var tabs = [
-        { id: 'details', label: 'Details' },
-        { id: 'syllabus', label: 'Syllabus & AI' },
-        { id: 'structure', label: 'Structure' },
-        { id: 'notes', label: 'Tutor Notes' }
+        { id: 'details', label: '⚙ Details' },
+        { id: 'syllabus', label: '🧠 Syllabus & AI' },
+        { id: 'structure', label: '📁 Structure' },
+        { id: 'notes', label: '📝 Tutor Notes' }
       ];
+      var examTypeDescriptions = {
+        mc: 'Emphasises Quick Fire and Distinguish practice for recognition-heavy exams.',
+        short_answer: 'Balances recall speed with Explain It style written retrieval.',
+        essay: 'Emphasises Apply It and Mock Exam tiers for longer written responses.',
+        mixed: 'Balanced across all five tiers. A good default when your exam combines several question formats.'
+      };
       var cards = getCardsForCourse(courseName);
       var cram = getCramState(courseName);
       var subtitle = (EXAM_TYPE_LABELS[c.examType] || c.examType) + (cram.active ? ' 🔥 Cram' : '') + ' · ' + cards.length + ' cards' + (c.examDate ? ' · Exam: ' + c.examDate : '');
       var tabNav = tabs.map(function(t) {
         var active = courseModalState.tab === t.id ? ' active' : '';
-        return '<button class="nav-tab' + active + '" type="button" data-course-tab="' + t.id + '" style="font-size:' + (isEmbedded ? '8px' : '9px') + ';">' + t.label + '</button>';
+        return '<button class="cm-tab' + active + '" type="button" data-course-tab="' + t.id + '">' + t.label + '</button>';
       }).join('');
 
       var h = '';
@@ -20204,52 +19534,106 @@ el('gearBtn').addEventListener('click', openSettings);
       h += '<div style="font-size:11px;font-weight:800;letter-spacing:0.5px;">' + esc(courseName) + '</div>';
       h += '</div>';
       h += '<div style="font-size:10px;color:var(--text-secondary);margin-bottom:10px;">' + esc(subtitle) + '</div>';
-      h += '<div class="nav-tabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">' + tabNav + '</div>';
+      h += '<div class="cm-tab-bar">' + tabNav + '</div>';
       h += '<div id="cmTabContent"></div>';
       courseModalBody.innerHTML = h;
+
+      function animateSlideToggle(node, shouldOpen) {
+        if (!node) return;
+        if (shouldOpen) {
+          node.style.display = 'block';
+          var openHeight = node.scrollHeight || 0;
+          if (window.gsap) {
+            gsap.fromTo(node, { opacity: 0, y: -6, height: 0 }, { opacity: 1, y: 0, height: openHeight, duration: 0.22, ease: 'power2.out', onComplete: function() { node.style.height = ''; } });
+          } else {
+            node.style.height = '';
+          }
+        } else if (window.gsap) {
+          gsap.to(node, { opacity: 0, y: -6, height: 0, duration: 0.18, ease: 'power2.inOut', onComplete: function() { node.style.display = 'none'; node.style.height = ''; } });
+        } else {
+          node.style.display = 'none';
+          node.style.height = '';
+        }
+      }
 
       function renderTabContent() {
         var activeTab = courseModalState.tab || 'details';
         var inner = '';
         if (activeTab === 'details') {
-          inner += '<div class="field"><label>Course name</label><input id="cm_name" class="input" value="' + esc(c.name) + '" /></div>';
-          inner += '<div class="field"><label>Colour</label><div class="color-picker" id="cm_colorPicker">';
+          inner += '<div class="cm-section">';
+          inner += '<div class="cm-section-title">Identity</div>';
+          inner += '<div class="field"><div class="cm-field-label">Course Name</div><input id="cm_name" class="input" value="' + esc(c.name) + '" /></div>';
+          inner += '<div class="field" style="margin-bottom:0;"><div class="cm-field-label">Colour</div><div class="color-picker" id="cm_colorPicker">';
           COURSE_COLORS.forEach(function(cc) {
             var isAct = (c.color || '#8b5cf6') === cc.value;
             inner += '<div class="color-swatch' + (isAct ? ' active' : '') + '" data-color="' + cc.value + '" style="background:' + cc.value + '" title="' + esc(cc.name) + '"></div>';
           });
-          inner += '</div></div>';
-          inner += '<div class="course-form-row"><div class="field"><label>Exam type</label><select id="cm_examType" class="input">';
+          inner += '</div></div></div>';
+          inner += '<div class="cm-section">';
+          inner += '<div class="cm-section-title">Exam Configuration</div>';
+          inner += '<div class="cm-details-grid">';
+          inner += '<div class="field"><div class="cm-field-label">Exam Format</div><select id="cm_examType" class="input">';
           inner += '<option value="mc"' + (c.examType === 'mc' ? ' selected' : '') + '>Multiple Choice</option>';
           inner += '<option value="short_answer"' + (c.examType === 'short_answer' ? ' selected' : '') + '>Short Answer</option>';
           inner += '<option value="essay"' + (c.examType === 'essay' ? ' selected' : '') + '>Essay</option>';
           inner += '<option value="mixed"' + (c.examType === 'mixed' ? ' selected' : '') + '>Mixed</option>';
-          inner += '</select></div>';
-          inner += '<div class="field"><label>Exam date</label><input id="cm_examDate" type="date" class="input" value="' + esc(c.examDate || '') + '" /></div></div>';
-          inner += '<div class="field"><label>Exam Weight (%)</label><input id="cm_examWeight" type="number" min="0" max="100" step="1" class="input" value="' + esc(c.examWeight != null ? String(c.examWeight) : '') + '" /></div>';
+          inner += '</select><div id="cm_examTypeDesc" class="cm-field-hint">' + esc(examTypeDescriptions[c.examType || 'mixed'] || examTypeDescriptions.mixed) + '</div></div>';
+          inner += '<div class="field"><div class="cm-field-label">Exam Date</div><input id="cm_examDate" type="date" class="input" value="' + esc(c.examDate || '') + '" /><div class="cm-field-hint">Add a date to unlock cram prioritisation as the exam gets closer.</div></div>';
+          inner += '<div class="field"><div class="cm-field-label">Exam Weight (%)</div><input id="cm_examWeight" type="number" min="0" max="100" step="1" class="input" value="' + esc(c.examWeight != null ? String(c.examWeight) : '') + '" /><div class="cm-field-hint">Optional weighting for planning and context.</div></div>';
+          inner += '</div>';
           inner += '<div style="display:flex;justify-content:flex-end;margin-top:12px;"><button class="big-btn" id="cmSaveDetails" type="button">Save Details</button></div>';
+          inner += '</div>';
         } else if (activeTab === 'syllabus') {
-          inner += '<div class="field"><label>Syllabus / Exam Info</label><textarea class="input" id="cm_courseContextText" rows="7" placeholder="Paste syllabus text, exam instructions, or course outline...">' + esc(c.rawSyllabusText || '') + '</textarea></div>';
-          inner += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+          var hasSyllabus = !!String(c.syllabusContext || c.rawSyllabusText || '').trim();
+          var lectureCount = Number(c._lectureCount || 0) || 0;
+          inner += '<div class="cm-section">';
           inner += '<input type="file" accept="application/pdf,.pdf" id="cm_pdfFile" style="display:none">';
-          inner += '<button type="button" class="ghost-btn" id="cm_pdfBtn">📄 Import PDF</button>';
-          inner += '<button type="button" class="ghost-btn" id="cm_processSyllabus">Process syllabus with AI</button>';
-          inner += '<button type="button" class="ghost-btn" id="cm_reprocessSyllabus">Re-process</button>';
+          inner += '<div class="cm-upload-zone' + (hasSyllabus ? ' has-content' : '') + '" id="cm_syllabusZone">';
+          inner += '<div class="cm-upload-icon">📄</div>';
+          inner += '<div class="cm-upload-title">' + (hasSyllabus ? 'Syllabus ready' : 'Upload Syllabus') + '</div>';
+          inner += '<div class="cm-upload-hint">' + (hasSyllabus ? 'Processed and ready. Re-process or replace it any time.' : 'Drop a PDF or paste text to give the tutor your course context.') + '</div>';
+          inner += '<div class="cm-upload-actions">';
+          inner += '<button type="button" class="cm-upload-btn" id="cm_pdfBtn">📎 Import PDF</button>';
+          inner += '<button type="button" class="cm-upload-btn" id="cm_togglePasteBtn">📝 Paste Text</button>';
+          if (hasSyllabus) inner += '<button type="button" class="cm-upload-btn" id="cm_reprocessSyllabus">Re-process</button>';
+          inner += '</div>';
+          inner += '<div class="cm-upload-meta" id="cm_syllabusMeta">' + (hasSyllabus ? '<span class="cm-status-badge">✓ Processed</span>' : '') + '</div>';
           inner += '</div>';
           inner += '<div class="syllabus-status" id="cm_contextStatus"></div>';
-          inner += '<div class="chips" id="cm_suggestedTopics" style="margin-top:6px;"></div>';
-          inner += '<div id="cm_previewWrap" style="' + (c.syllabusContext ? '' : 'display:none;') + 'margin-top:8px;"><div style="font-size:9px;font-weight:700;margin-bottom:4px;color:var(--text-secondary);">Processed summary</div><div class="syllabus-preview" id="cm_syllabusPreview">' + esc(c.syllabusContext || '') + '</div></div>';
-          inner += '<div class="field"><label>Professor values</label><textarea class="input" id="cm_professorValues" rows="3">' + esc(c.professorValues || '') + '</textarea></div>';
-          inner += '<div class="field"><label>Allowed materials</label><input type="text" class="input" id="cm_allowedMaterials" value="' + esc(c.allowedMaterials || '') + '"></div>';
-          inner += '<div class="or-divider">LECTURE MATERIALS</div>';
-          inner += '<div class="field"><input type="text" class="input" id="cm_lectureUrlInput" placeholder="Paste any URL (published Notion page, article, etc.)"></div>';
-          inner += '<div style="display:flex;gap:8px;">';
-          inner += '<button type="button" class="ghost-btn" id="cm_importLectureUrl" style="flex:1;">🌐 Import from URL</button>';
+          inner += '<div class="cm-paste-area" id="cm_pasteArea" style="' + (c.rawSyllabusText ? '' : 'display:none;') + '">';
+          inner += '<div class="field" style="margin-top:12px;"><div class="cm-field-label">Syllabus / Exam Info</div><textarea class="input" id="cm_courseContextText" rows="7" placeholder="Paste syllabus text, exam instructions, or course outline...">' + esc(c.rawSyllabusText || '') + '</textarea></div>';
+          inner += '<div class="cm-inline-actions"><button type="button" class="ghost-btn" id="cm_processSyllabus">Process syllabus with AI</button></div>';
+          inner += '</div>';
+          inner += '<div class="chips" id="cm_suggestedTopics" style="margin-top:10px;"></div>';
+          inner += '<details class="cm-section cm-summary-section" id="cm_previewWrap" ' + (c.syllabusContext ? 'open' : '') + ' style="' + (c.syllabusContext ? '' : 'display:none;') + '">';
+          inner += '<summary class="cm-section-title">View processed summary</summary>';
+          inner += '<div class="syllabus-preview" id="cm_syllabusPreview">' + esc(c.syllabusContext || '') + '</div>';
+          inner += '</details>';
+          inner += '<details class="cm-section">';
+          inner += '<summary class="cm-section-title cm-summary-toggle">🎓 Professor Preferences & Exam Rules</summary>';
+          inner += '<div class="cm-details-stack">';
+          inner += '<div class="field"><div class="cm-field-label">Professor Values</div><textarea class="input" id="cm_professorValues" rows="3">' + esc(c.professorValues || '') + '</textarea></div>';
+          inner += '<div class="field" style="margin-bottom:0;"><div class="cm-field-label">Allowed Materials</div><input type="text" class="input" id="cm_allowedMaterials" value="' + esc(c.allowedMaterials || '') + '"></div>';
+          inner += '</div>';
+          inner += '</details>';
+          inner += '<div class="cm-section">';
           inner += '<input type="file" accept="application/pdf,.pdf" id="cm_importLecturePdf" style="display:none">';
-          inner += '<button type="button" class="ghost-btn" id="cm_importLecturePdfBtn" style="flex:1;">📄 Import PDF</button>';
+          inner += '<div class="cm-upload-zone' + (lectureCount ? ' has-content' : '') + '" id="cm_lectureZone">';
+          inner += '<div class="cm-upload-icon">📚</div>';
+          inner += '<div class="cm-upload-title">Import Lecture Materials</div>';
+          inner += '<div class="cm-upload-hint">Add lectures to improve AI grading and course context.</div>';
+          inner += '<div class="cm-upload-actions">';
+          inner += '<button type="button" class="cm-upload-btn" id="cm_toggleLectureUrl">🌐 From URL</button>';
+          inner += '<button type="button" class="cm-upload-btn" id="cm_importLecturePdfBtn">📄 Import PDF</button>';
+          inner += '</div>';
+          inner += '<div class="cm-upload-meta" id="cm_lectureManifestDisplay">' + (lectureCount ? '<span class="cm-status-badge">📚 ' + lectureCount + ' lecture' + (lectureCount !== 1 ? 's' : '') + ' imported</span>' : '') + '</div>';
+          inner += '</div>';
+          inner += '<div class="cm-paste-area" id="cm_lectureUrlWrap" style="display:none;">';
+          inner += '<div class="field" style="margin-top:12px;"><div class="cm-field-label">Lecture URL</div><input type="text" class="input" id="cm_lectureUrlInput" placeholder="Paste any URL (published Notion page, article, etc.)"></div>';
+          inner += '<div class="cm-inline-actions"><button type="button" class="ghost-btn" id="cm_importLectureUrl">Import from URL</button></div>';
+          inner += '</div>';
           inner += '</div>';
           inner += '<div class="syllabus-status" id="cm_lectureImportStatus" style="min-height:0;"></div>';
-          inner += '<div id="cm_lectureManifestDisplay" style="margin-top:8px;"></div>';
           inner += '<div style="display:flex;justify-content:flex-end;margin-top:12px;"><button class="big-btn" id="cmSaveSyllabus" type="button">Save Syllabus & AI</button></div>';
         } else if (activeTab === 'structure') {
           ensureCourseModules(courseName);
@@ -20264,7 +19648,7 @@ el('gearBtn').addEventListener('click', openSettings);
             if (topicCounts[b] !== topicCounts[a]) return topicCounts[b] - topicCounts[a];
             return a.localeCompare(b);
           });
-          inner += '<div class="structure-section">';
+          inner += '<div class="cm-section">';
           inner += '<div class="structure-section-header"><span class="structure-icon">📂</span><div><div class="structure-title">Subdecks</div><div class="structure-desc">Organise cards by lecture, chapter, or unit.</div></div></div>';
           inner += '<div style="display:flex;gap:8px;margin-bottom:10px;">';
           inner += '<input type="text" class="input" id="cm_newModuleName" placeholder="New subdeck name" />';
@@ -20273,7 +19657,7 @@ el('gearBtn').addEventListener('click', openSettings);
           if (!modules.length) inner += '<p class="help" style="margin-bottom:10px;">No subdecks yet. Create one to group topics by lecture, chapter, or unit.</p>';
           modules.forEach(function(mod, idx) {
             var mTopics = Array.isArray(mod.topics) ? mod.topics : [];
-            inner += '<div class="structure-module-card">';
+            inner += '<div class="cm-module-card" style="--course-color:' + esc(c.color || '#8b5cf6') + ';">';
             inner += '<div class="structure-module-head">';
             inner += '<input class="input" data-mod-rename="' + esc(mod.id) + '" value="' + esc(mod.name || 'Subdeck') + '" style="flex:1;">';
             inner += '<div class="structure-module-actions">';
@@ -20282,7 +19666,7 @@ el('gearBtn').addEventListener('click', openSettings);
             inner += '<button class="ghost-btn" type="button" data-mod-save="' + esc(mod.id) + '" style="min-width:0;padding:6px 10px;">Save</button>';
             inner += '<button class="ghost-btn" type="button" data-mod-del="' + esc(mod.id) + '" style="min-width:0;padding:6px 10px;color:#ef4444;border-color:rgba(239,68,68,0.25);">Delete</button>';
             inner += '</div></div>';
-            inner += '<div class="chips">';
+            inner += '<div class="chips cm-module-topics">';
             if (!mTopics.length) inner += '<span class="help">No topics assigned</span>';
             mTopics.forEach(function(t) {
               inner += '<span class="chip" style="display:inline-flex;align-items:center;gap:6px;">' + esc(t) + '<button type="button" data-unassign-topic="' + esc(t) + '" style="border:none;background:transparent;color:var(--text-secondary);cursor:pointer;">✕</button></span>';
@@ -20293,10 +19677,10 @@ el('gearBtn').addEventListener('click', openSettings);
           modules.forEach(function(m) { (m.topics || []).forEach(function(t) { assigned[t] = true; }); });
           var unassigned = allTopics.filter(function(t) { return !assigned[t]; });
           if (allTopics.length > 0) {
-            inner += '<div class="section-header" style="margin-top:6px;">Unassigned Topics</div>';
+            inner += '<div class="cm-section-title" style="margin-top:6px;">Unassigned Topics</div>';
             if (!unassigned.length) inner += '<p class="help">All topics are assigned to a module.</p>';
             unassigned.forEach(function(t) {
-              inner += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">';
+              inner += '<div class="cm-topic-assignment-row">';
               inner += '<span class="chip" style="transform-origin:center;">' + esc(t) + '</span>';
               inner += '<select class="input" data-topic-target="' + esc(t) + '" style="max-width:220px;">';
               inner += '<option value="">Assign to module...</option>';
@@ -20306,7 +19690,7 @@ el('gearBtn').addEventListener('click', openSettings);
           }
           inner += '</div>';
           inner += '<div class="structure-divider"></div>';
-          inner += '<div class="structure-section">';
+          inner += '<div class="cm-section">';
           inner += '<div class="structure-section-header"><span class="structure-icon">🏷️</span><div><div class="structure-title">Topics</div><div class="structure-desc">Concepts and themes across your cards. Used for filtering, not grouping.</div></div></div>';
           if (!allTopics.length) inner += '<p class="help">No topics yet. Topics are created when you add cards.</p>';
           else {
@@ -20318,15 +19702,28 @@ el('gearBtn').addEventListener('click', openSettings);
           }
           inner += '</div>';
         } else {
-          inner += '<div id="cmCourseNotesHost">' + renderCourseTutorNotesPanelHTML(courseName) + '</div>';
-          inner += '<div style="display:flex;justify-content:flex-end;margin-top:10px;">';
-          inner += '<button class="ghost-btn" id="cmClearCourseNotes" type="button" style="border-color:rgba(239,68,68,0.3);color:#ef4444;">Clear memories</button>';
-          inner += '</div>';
+          var courseNotes = getCourseScopedMemoriesForDisplay(courseName);
+          var globalNotes = getGlobalMemoriesForDisplay();
+          if (!(courseNotes.length + globalNotes.length)) {
+            inner += '<div class="cm-section cm-empty-state"><div class="cm-upload-icon">📝</div><div class="empty-state-title">No tutor memories yet</div><div class="empty-state-desc">The AI builds a memory of your strengths and gaps as you study.</div></div>';
+          } else {
+            inner += '<div id="cmCourseNotesHost">' + renderCourseTutorNotesPanelHTML(courseName) + '</div>';
+            inner += '<div style="display:flex;justify-content:flex-end;margin-top:10px;">';
+            inner += '<button class="ghost-btn" id="cmClearCourseNotes" type="button" style="border-color:rgba(239,68,68,0.3);color:#ef4444;">Clear memories</button>';
+            inner += '</div>';
+          }
         }
         var tabHost = el('cmTabContent');
         if (tabHost) {
           tabHost.innerHTML = inner;
-          if (window.gsap) gsap.fromTo(tabHost, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.25, ease: 'power2.out' });
+          if (window.gsap) {
+            gsap.fromTo(tabHost, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.25, ease: 'power2.out' });
+            gsap.fromTo(
+              tabHost.querySelectorAll('.cm-section, .cm-upload-zone'),
+              { opacity: 0, y: 8 },
+              { opacity: 1, y: 0, duration: 0.25, stagger: 0.06, ease: 'power2.out' }
+            );
+          }
         }
         wireEditorTabInteractions(activeTab);
       }
@@ -20413,13 +19810,18 @@ el('gearBtn').addEventListener('click', openSettings);
               saveCourse(c);
               var prev = el('cm_syllabusPreview');
               if (prev) prev.textContent = c.syllabusContext || '';
+              var meta = el('cm_syllabusMeta');
+              if (meta) meta.innerHTML = '<span class="cm-status-badge">Processed</span>';
+              var zone = el('cm_syllabusZone');
+              if (zone) zone.classList.add('has-content');
               var wrap = el('cm_previewWrap');
               if (wrap && c.syllabusContext) wrap.style.display = '';
               var profEl = el('cm_professorValues'); if (profEl) profEl.value = c.professorValues || '';
               var alEl = el('cm_allowedMaterials'); if (alEl) alEl.value = c.allowedMaterials || '';
               renderSuggestedTopics(c.syllabusKeyTopics);
-              setCtxStatus('✓ Syllabus processed', 'ok');
-            }).catch(function() { setCtxStatus('Network error — try again', ''); });
+              if (pasteArea && pasteArea.style.display === 'none') animateSlideToggle(pasteArea, true);
+              setCtxStatus('Syllabus processed', 'ok');
+            }).catch(function() { setCtxStatus('Network error - try again', ''); });
           }
           var pdfBtn = el('cm_pdfBtn');
           var pdfFile = el('cm_pdfFile');
@@ -20441,6 +19843,13 @@ el('gearBtn').addEventListener('click', openSettings);
           var reprocBtn = el('cm_reprocessSyllabus');
           if (reprocBtn) reprocBtn.onclick = function() { runSyllabusProcess(c.rawSyllabusText || (el('cm_courseContextText') ? el('cm_courseContextText').value : '')); };
 
+          var lectureUrlToggle = el('cm_toggleLectureUrl');
+          var lectureUrlWrap = el('cm_lectureUrlWrap');
+          if (lectureUrlToggle) lectureUrlToggle.onclick = function() {
+            var isOpen = !!(lectureUrlWrap && lectureUrlWrap.style.display !== 'none');
+            animateSlideToggle(lectureUrlWrap, !isOpen);
+          };
+
           function setLectureStatus(msg, cls) {
             var st = el('cm_lectureImportStatus');
             if (!st) return;
@@ -20451,7 +19860,9 @@ el('gearBtn').addEventListener('click', openSettings);
             var box = el('cm_lectureManifestDisplay');
             if (!box) return;
             var count = Number(c._lectureCount || 0) || 0;
-            box.innerHTML = count > 0 ? '<div style="font-size:9px;color:var(--text-secondary);padding:6px 8px;border-radius:10px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.03);">📚 ' + count + ' lecture' + (count !== 1 ? 's' : '') + ' imported</div>' : '';
+            box.innerHTML = count > 0 ? '<span class="cm-status-badge">' + count + ' lecture' + (count !== 1 ? 's' : '') + ' imported</span>' : '';
+            var zone = el('cm_lectureZone');
+            if (zone) zone.classList.toggle('has-content', count > 0);
           }
           function importLectureFromText(lectureTitle, rawText) {
             var trimmed = (rawText || '').trim();
@@ -20472,9 +19883,9 @@ el('gearBtn').addEventListener('click', openSettings);
               saveCourse(c);
               if (!isEmbedded) renderSidebar();
               updateLectureManifestDisplay();
-              setLectureStatus('✓ Imported lecture context', 'ok');
+              setLectureStatus('Imported lecture context', 'ok');
               return data;
-            }).catch(function() { setLectureStatus('Network error — try again', ''); return null; });
+            }).catch(function() { setLectureStatus('Network error - try again', ''); return null; });
           }
           updateLectureManifestDisplay();
           var importUrlBtn = el('cm_importLectureUrl');
@@ -20590,6 +20001,8 @@ el('gearBtn').addEventListener('click', openSettings);
             };
           });
         } else if (activeTab === 'notes') {
+          var notesHost = el('cmCourseNotesHost');
+          if (notesHost) wireTutorNotesPanelToggle(notesHost);
           var clearBtn = el('cmClearCourseNotes');
           if (clearBtn) clearBtn.onclick = function() {
             clearCourseTutorMemoriesForCourse(courseName);
@@ -22117,57 +21530,6 @@ el('gearBtn').addEventListener('click', openSettings);
       loadState();
       var profile = getUserProfile();
       if (!profile || !profile.awakened) {
-        /* Guard: if SyncEngine is online, pull user namespace first.
-           Prevents false awakenings when remote data hasn't loaded yet. */
-        if (typeof SyncEngine !== 'undefined' && SyncEngine.isOnline && SyncEngine.isOnline() && SyncEngine.pull) {
-          SyncEngine.pull('user').then(function() {
-            var retryProfile = getUserProfile();
-            if (retryProfile && retryProfile.awakened) {
-              if (!bootBindingsBound) {
-                bootBindingsBound = true;
-                Core.on('sync-remote-update', function(data) {
-                  if (data && data.namespace === 'studyengine') {
-                    loadState();
-                    if (viewDash.classList.contains('active')) {
-                      renderDashboard();
-                    }
-                  }
-                });
-                if (!focusResyncBound) {
-                  focusResyncBound = true;
-                  document.addEventListener('visibilitychange', function() {
-                    if (document.visibilityState === 'visible' && SyncEngine.isOnline()) {
-                      SyncEngine.pull('studyengine').then(function() {
-                        var freshItems = SyncEngine.get(NS, 'items');
-                        if (freshItems && typeof freshItems === 'object') {
-                          var freshCount = Object.keys(freshItems).length;
-                          var localCount = state.items ? Object.keys(state.items).length : 0;
-                          if (freshCount !== localCount) {
-                            loadState();
-                            renderDashboard();
-                            toast('Synced ' + freshCount + ' items from cloud');
-                          }
-                        }
-                      }).catch(function() {});
-                    }
-                  });
-                }
-              }
-              finishBoot();
-            } else {
-              showAwakening(function() {
-                loadState();
-                finishBoot();
-              });
-            }
-          }).catch(function() {
-            showAwakening(function() {
-              loadState();
-              finishBoot();
-            });
-          });
-          return;
-        }
         showAwakening(function() {
           loadState();
           finishBoot();
@@ -22273,16 +21635,12 @@ el('gearBtn').addEventListener('click', openSettings);
       boot();
     });
 
-    /* Safety: render even if onReady is slow/offline.
-       Wait for SyncEngine init to at least attempt a remote pull before
-       falling back. Use a longer timeout (6s) to give KV time on slow
-       mobile connections. */
+    /* Safety: render even if onReady is slow/offline */
     setTimeout(function() {
-      if (!state) {
-        console.log('[StudyEngine] Safety timeout: SyncEngine slow, booting now');
-        boot();
-      }
-    }, 6000);
+      if (!state) boot();
+    }, 3000);
+
+
 </script>
   <div class="anno-tip" id="annoTip"><div class="at-tag"></div><div class="at-note"></div></div>
   <div class="canvas-tooltip" id="canvasTooltip">
@@ -22297,28 +21655,6 @@ el('gearBtn').addEventListener('click', openSettings);
     </div>
     <div class="visual-lightbox-body" id="visualLightboxBody"></div>
     <div class="visual-lightbox-hint">Pinch to zoom · Drag to pan · Scroll to zoom</div>
-  </div>
-  <div id="iosLandscapePrompt" class="ios-landscape-prompt" aria-hidden="true" style="display:none;">
-    <div class="ios-lp-backdrop"></div>
-    <div class="ios-lp-card">
-      <div class="ios-lp-phone-wrap">
-        <svg class="ios-lp-phone" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <g class="ios-lp-phone-body">
-            <rect x="38" y="16" width="44" height="88" rx="8" stroke="currentColor" stroke-width="2.5" fill="none"/>
-            <rect x="42" y="24" width="36" height="68" rx="2" fill="currentColor" opacity="0.08"/>
-            <rect x="50" y="97" width="20" height="3" rx="1.5" fill="currentColor" opacity="0.3"/>
-            <rect x="52" y="18" width="16" height="3" rx="1.5" fill="currentColor" opacity="0.2"/>
-          </g>
-          <path class="ios-lp-arrow" d="M95 50 C100 35, 95 20, 78 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.5"/>
-          <path class="ios-lp-arrow-head" d="M78 18 L82 24 L74 22 Z" fill="currentColor" opacity="0.5"/>
-        </svg>
-      </div>
-      <div class="ios-lp-text">
-        <div class="ios-lp-title">Rotate for the best experience</div>
-        <div class="ios-lp-desc">Flashcard sessions work best in landscape on mobile.</div>
-      </div>
-      <button class="ios-lp-dismiss" type="button">Continue in portrait</button>
-    </div>
   </div>
 </body>
 </html>
