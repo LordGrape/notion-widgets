@@ -601,3 +601,166 @@ body.standalone .learn-shell {
     flex-wrap: wrap;
   }
 }
+
+
+/* ── Topic Coverage Heatmap ── */
+.learn-heatmap-section {
+  margin-top: 16px;
+  margin-bottom: 12px;
+}
+.learn-heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 6px;
+}
+.learn-heatmap-cell {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--card-border);
+  transition: all var(--transition);
+  cursor: default;
+}
+.learn-heatmap-cell.not-started {
+  background: rgba(var(--accent-rgb), 0.02);
+  border-left: 3px solid var(--learn-not-started);
+}
+.learn-heatmap-cell.in-progress {
+  background: rgba(245, 158, 11, 0.04);
+  border-left: 3px solid var(--learn-in-progress);
+}
+.learn-heatmap-cell.learned {
+  background: rgba(34, 197, 94, 0.04);
+  border-left: 3px solid var(--learn-complete);
+}
+.learn-heatmap-name {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.learn-heatmap-meta {
+  font-size: 0.65rem;
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+.learn-heatmap-legend {
+  display: flex;
+  gap: 14px;
+  margin-top: 8px;
+  justify-content: center;
+}
+.learn-heatmap-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.62rem;
+  color: var(--text-tertiary);
+  font-weight: 600;
+}
+
+/* ── Mobile Refinements ── */
+@media (max-width: 480px) {
+  .learn-shell {
+    width: 100%;
+    padding: 10px 8px;
+  }
+  .learn-segment-card {
+    padding: 16px 14px;
+    border-radius: var(--radius);
+  }
+  .learn-check-card {
+    padding: 14px 14px;
+    border-radius: var(--radius);
+  }
+  .learn-segment-explanation {
+    font-size: 0.86rem;
+  }
+  .learn-segment-elaboration {
+    font-size: 0.8rem;
+    padding: 10px 12px;
+  }
+  .learn-check-question {
+    font-size: 0.84rem;
+  }
+  .learn-check-input {
+    font-size: 0.84rem;
+    min-height: 70px;
+  }
+  .learn-topic-grid {
+    grid-template-columns: 1fr;
+  }
+  .learn-heatmap-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .learn-summary-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .mode-toggle {
+    width: 100%;
+    justify-content: center;
+  }
+  .mode-toggle-btn {
+    flex: 1;
+    text-align: center;
+  }
+  .learn-topbar {
+    padding: 6px 4px 10px;
+  }
+}
+
+/* ── iframe/embed refinements ── */
+body:not(.standalone) .learn-shell {
+  max-width: 680px;
+  padding: 8px 4px;
+}
+body:not(.standalone) .learn-segment-card {
+  padding: 16px;
+}
+body:not(.standalone) .learn-check-card {
+  padding: 14px 16px;
+}
+body:not(.standalone) .learn-topic-grid {
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+}
+body:not(.standalone) .learn-heatmap-grid {
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+}
+
+/* ── Dark mode fine-tuning ── */
+@media (prefers-color-scheme: dark) {
+  .learn-segment-elaboration {
+    background: rgba(var(--learn-accent-rgb), 0.06);
+    border-left-color: rgba(var(--learn-accent-rgb), 0.5);
+  }
+  .learn-check-card {
+    border-color: rgba(var(--learn-accent-rgb), 0.15);
+  }
+  .learn-check-input {
+    background: rgba(var(--learn-accent-rgb), 0.05);
+    border-color: rgba(var(--learn-accent-rgb), 0.12);
+  }
+  .learn-heatmap-cell.not-started {
+    background: rgba(var(--accent-rgb), 0.03);
+  }
+  .learn-heatmap-cell.in-progress {
+    background: rgba(245, 158, 11, 0.06);
+  }
+  .learn-heatmap-cell.learned {
+    background: rgba(34, 197, 94, 0.06);
+  }
+  .learn-topic-card:hover {
+    border-color: rgba(var(--learn-accent-rgb), 0.5);
+    box-shadow: 0 4px 16px rgba(var(--learn-accent-rgb), 0.1);
+  }
+  .learn-summary-card-row {
+    background: rgba(var(--accent-rgb), 0.04);
+    border-color: rgba(var(--accent-rgb), 0.08);
+  }
+  .learn-dashboard-stats {
+    background: var(--card-bg);
+    border-color: rgba(var(--accent-rgb), 0.1);
+  }
+}
