@@ -583,6 +583,30 @@ function showCourseDashboard(courseName) {
       h += '</div>';
       h += '</div>';
 
+      /* ── Assessment Timeline ── */
+      var courseForAssess = getCourse(courseName);
+      if (courseForAssess && courseForAssess.assessments && courseForAssess.assessments.length > 0) {
+        var upcoming = getUpcomingAssessments(courseName);
+        if (upcoming.length > 0) {
+          h += '<div style="margin:12px 0">';
+          h += '<div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px">📅 UPCOMING ASSESSMENTS</div>';
+          upcoming.forEach(function(a) {
+            var aMid = new Date(a.date + 'T00:00:00');
+            var tMid = new Date(); tMid.setHours(0,0,0,0);
+            var daysLeft = Math.round((aMid.getTime() - tMid.getTime()) / (1000 * 60 * 60 * 24));
+            var urgency = daysLeft <= 2 ? 'var(--rate-again)' : daysLeft <= 7 ? 'var(--rate-hard)' : 'var(--text-secondary)';
+            var pCount = (a.prioritySet || []).length;
+            h += '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:8px;background:rgba(var(--accent-rgb),0.03);border:1px solid rgba(var(--accent-rgb),0.08);margin-bottom:4px">';
+            h += '<span style="font-size:0.78rem;font-weight:700;color:' + urgency + '">' + daysLeft + 'd</span>';
+            h += '<span style="font-size:0.78rem;font-weight:600;color:var(--text);flex:1">' + esc(a.name || 'Assessment') + '</span>';
+            if (a.weight) h += '<span style="font-size:0.65rem;color:var(--text-tertiary)">' + a.weight + '%</span>';
+            if (pCount > 0) h += '<span style="font-size:0.62rem;padding:1px 5px;border-radius:3px;background:rgba(34,197,94,0.12);color:var(--rate-good);font-weight:600">' + pCount + ' priority</span>';
+            h += '</div>';
+          });
+          h += '</div>';
+        }
+      }
+
       var duePct = stats.total > 0 ? Math.round((stats.due / stats.total) * 100) : 0;
       var retentionPct = stats.avgRetention == null ? 0 : clamp(stats.avgRetention, 0, 100);
       var stabilityMeta = getStabilityMeta(stats.avgStability || 0);

@@ -150,6 +150,31 @@ function renderLearnTab(courseName, container) {
   var topics = getLearnableTopics(courseName, learnSubDeckFilter);
   var topicNames = Object.keys(topics).sort();
 
+  /* Sort topics: priority (from active assessment) first, then alphabetical */
+  try {
+    var activeAssess = getActiveAssessment(courseName);
+    if (activeAssess && activeAssess.prioritySet && activeAssess.prioritySet.length > 0) {
+      var priorityTopics = {};
+      var sacrificeTopics = {};
+      (activeAssess.prioritySet || []).forEach(function(qId) {
+        var q = (activeAssess.questions || []).find(function(x) { return x.id === qId; });
+        if (q && q.mappedTopics) q.mappedTopics.forEach(function(t) { priorityTopics[t] = true; });
+      });
+      (activeAssess.sacrificeSet || []).forEach(function(qId) {
+        var q = (activeAssess.questions || []).find(function(x) { return x.id === qId; });
+        if (q && q.mappedTopics) q.mappedTopics.forEach(function(t) {
+          if (!priorityTopics[t]) sacrificeTopics[t] = true;
+        });
+      });
+      topicNames.sort(function(a, b) {
+        var aPrio = priorityTopics[a] ? 0 : sacrificeTopics[a] ? 2 : 1;
+        var bPrio = priorityTopics[b] ? 0 : sacrificeTopics[b] ? 2 : 1;
+        if (aPrio !== bPrio) return aPrio - bPrio;
+        return a.localeCompare(b);
+      });
+    }
+  } catch(e) {}
+
   /* Sub-deck filter chips */
   var filterHtml = '<div class="learn-filter-row">';
   filterHtml += '<button class="learn-filter-chip' + (learnSubDeckFilter === 'All' ? ' active' : '') + '" data-sd="All">All</button>';
@@ -180,6 +205,26 @@ function renderLearnTab(courseName, container) {
 
       gridHtml += '<div class="learn-topic-card' + (isSelected ? ' selected' : '') + '" data-topic="' + esc(tName) + '">';
       if (primarySd) gridHtml += '<span class="learn-subdeck-badge">' + esc(primarySd) + '</span>';
+      try {
+        var activeAssess2 = getActiveAssessment(courseName);
+        if (activeAssess2) {
+          var isPriorityTopic = false;
+          var isSacrificeTopic = false;
+          (activeAssess2.prioritySet || []).forEach(function(qId) {
+            var q = (activeAssess2.questions || []).find(function(x) { return x.id === qId; });
+            if (q && q.mappedTopics && q.mappedTopics.indexOf(tName) >= 0) isPriorityTopic = true;
+          });
+          (activeAssess2.sacrificeSet || []).forEach(function(qId) {
+            var q = (activeAssess2.questions || []).find(function(x) { return x.id === qId; });
+            if (q && q.mappedTopics && q.mappedTopics.indexOf(tName) >= 0) isSacrificeTopic = true;
+          });
+          if (isPriorityTopic) {
+            gridHtml += '<span style="position:absolute;top:8px;left:8px;font-size:0.6rem;padding:1px 5px;border-radius:3px;background:rgba(34,197,94,0.15);color:var(--rate-good);font-weight:700">★ PRIORITY</span>';
+          } else if (isSacrificeTopic) {
+            gridHtml += '<span style="position:absolute;top:8px;left:8px;font-size:0.6rem;padding:1px 5px;border-radius:3px;background:rgba(239,68,68,0.1);color:var(--rate-again);font-weight:700;opacity:0.6">SKIP</span>';
+          }
+        }
+      } catch(e) {}
       gridHtml += '<div class="learn-topic-name">' + esc(tName) + '</div>';
       gridHtml += '<div class="learn-topic-meta">';
       gridHtml += '<span class="learn-status-dot ' + status.replace('_', '-') + '"></span>';

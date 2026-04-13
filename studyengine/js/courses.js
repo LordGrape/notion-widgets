@@ -49,12 +49,30 @@
 
     function getCramState(courseName) {
       var c = getCourse(courseName);
-      if (!c || !c.examDate) return { active: false };
-      /* Compare calendar dates at local midnight for accurate day count */
-      var examMidnight = new Date(c.examDate + 'T00:00:00');
-      var todayMidnight = new Date(); todayMidnight.setHours(0,0,0,0);
+      if (!c) return { active: false };
+
+      /* Find the nearest upcoming assessment date */
+      var examDate = null;
+      var assessName = null;
+      if (c.assessments && c.assessments.length > 0) {
+        var active = getActiveAssessment(courseName);
+        if (active && active.date) {
+          examDate = active.date;
+          assessName = active.name || 'Assessment';
+        }
+      }
+      /* Fallback to legacy examDate */
+      if (!examDate && c.examDate) {
+        examDate = c.examDate;
+        assessName = 'Exam';
+      }
+      if (!examDate) return { active: false };
+
+      var examMidnight = new Date(examDate + 'T00:00:00');
+      var todayMidnight = new Date();
+      todayMidnight.setHours(0, 0, 0, 0);
       var daysUntil = Math.max(0, Math.round((examMidnight.getTime() - todayMidnight.getTime()) / (1000 * 60 * 60 * 24)));
-      if (daysUntil > 14) return { active: false, daysUntil: daysUntil };
+      if (daysUntil > 14) return { active: false, daysUntil: daysUntil, assessName: assessName };
 
       var intensity = 'normal';
       var sessionMod = 1.0;
@@ -83,7 +101,8 @@
         daysUntil: daysUntil,
         intensity: intensity,
         sessionMod: sessionMod,
-        intervalMod: intervalMod
+        intervalMod: intervalMod,
+        assessName: assessName
       };
     }
 
@@ -110,7 +129,178 @@
       if (c.examFormat === undefined) c.examFormat = null;
       if (!Array.isArray(c.syllabusKeyTopics)) c.syllabusKeyTopics = [];
       if (c.prepared === undefined) c.prepared = false;
+      migrateAssessments(c);
       return c;
+    }
+
+
+    function migrateAssessments(c) {
+      if (!c) return c;
+      if (!Array.isArray(c.assessments)) {
+        c.assessments = [];
+        /* Migrate legacy single exam into assessments array */
+        if (c.examDate) {
+          c.assessments.push({
+            id: 'assess_' + generateModuleId().slice(4),
+            name: 'Final Exam',
+            type: c.examType || 'mixed',
+            date: c.examDate,
+            weight: c.examWeight || null,
+            format: c.examFormat || null,
+            allowedMaterials: c.allowedMaterials || null,
+            questions: [],
+            prioritySet: [],
+            sacrificeSet: [],
+            topicMapping: {},
+            chooseN: null,
+            outOfM: null,
+            active: true
+          });
+        }
+      }
+      /* Ensure every assessment has all fields */
+      c.assessments.forEach(function(a) {
+        if (!a.id) a.id = 'assess_' + generateModuleId().slice(4);
+        if (a.name === undefined) a.name = 'Assessment';
+        if (a.type === undefined) a.type = 'mixed';
+        if (a.date === undefined) a.date = null;
+        if (a.weight === undefined) a.weight = null;
+        if (a.format === undefined) a.format = null;
+        if (a.allowedMaterials === undefined) a.allowedMaterials = null;
+        if (!Array.isArray(a.questions)) a.questions = [];
+        if (!Array.isArray(a.prioritySet)) a.prioritySet = [];
+        if (!Array.isArray(a.sacrificeSet)) a.sacrificeSet = [];
+        if (!a.topicMapping || typeof a.topicMapping !== 'object') a.topicMapping = {};
+        if (a.chooseN === undefined) a.chooseN = null;
+        if (a.outOfM === undefined) a.outOfM = null;
+        if (a.active === undefined) a.active = true;
+      });
+      return c;
+    }
+
+    function getActiveAssessment(courseName) {
+      var c = getCourse(courseName);
+      if (!c || !c.assessments) return null;
+      var now = new Date();
+      now.setHours(0, 0, 0, 0);
+      /* Find nearest future active assessment */
+      var best = null;
+      var bestDays = Infinity;
+      c.assessments.forEach(function(a) {
+        if (!a.active || !a.date) return;
+        var aMidnight = new Date(a.date + 'T00:00:00');
+        var days = Math.round((aMidnight.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        if (days >= 0 && days < bestDays) {
+          bestDays = days;
+          best = a;
+        }
+      });
+      return best;
+    }
+
+    function getAssessmentById(courseName, assessId) {
+      var c = getCourse(courseName);
+      if (!c || !c.assessments) return null;
+      for (var i = 0; i < c.assessments.length; i++) {
+        if (c.assessments[i].id === assessId) return c.assessments[i];
+      }
+      return null;
+    }
+
+    function addAssessment(courseName, assessObj) {
+      var c = getCourse(courseName);
+      if (!c) return null;
+      if (!Array.isArray(c.assessments)) c.assessments = [];
+      if (!assessObj.id) assessObj.id = 'assess_' + generateModuleId().slice(4);
+      c.assessments.push(assessObj);
+      migrateAssessments(c);
+      saveCourse(c);
+      return assessObj;
+    }
+
+    function updateAssessment(courseName, assessId, updates) {
+      var c = getCourse(courseName);
+      if (!c || !c.assessments) return;
+      var a = c.assessments.find(function(x) { return x.id === assessId; });
+      if (!a) return;
+      for (var k in updates) {
+        if (updates.hasOwnProperty(k)) a[k] = updates[k];
+      }
+      saveCourse(c);
+    }
+
+    function deleteAssessment(courseName, assessId) {
+      var c = getCourse(courseName);
+      if (!c || !c.assessments) return;
+      c.assessments = c.assessments.filter(function(a) { return a.id !== assessId; });
+      saveCourse(c);
+    }
+
+    function getUpcomingAssessments(courseName) {
+      var c = getCourse(courseName);
+      if (!c || !c.assessments) return [];
+      var now = new Date();
+      now.setHours(0, 0, 0, 0);
+      return c.assessments.filter(function(a) {
+        if (!a.date) return false;
+        var d = new Date(a.date + 'T00:00:00');
+        return d.getTime() >= now.getTime();
+      }).sort(function(a, b) {
+        return new Date(a.date).getTime() - new Date(b.date).getTime();
+      });
+    }
+
+    function getPastAssessments(courseName) {
+      var c = getCourse(courseName);
+      if (!c || !c.assessments) return [];
+      var now = new Date();
+      now.setHours(0, 0, 0, 0);
+      return c.assessments.filter(function(a) {
+        if (!a.date) return false;
+        var d = new Date(a.date + 'T00:00:00');
+        return d.getTime() < now.getTime();
+      }).sort(function(a, b) {
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      });
+    }
+
+    function applyTriagePriorities(courseName, assessId) {
+      var assess = getAssessmentById(courseName, assessId);
+      if (!assess) return;
+      var priorityTopics = {};
+      var sacrificeTopics = {};
+
+      /* Build topic sets from priority/sacrifice questions */
+      (assess.prioritySet || []).forEach(function(qId) {
+        var q = assess.questions.find(function(x) { return x.id === qId; });
+        if (q && q.mappedTopics) {
+          q.mappedTopics.forEach(function(t) { priorityTopics[t] = true; });
+        }
+      });
+      (assess.sacrificeSet || []).forEach(function(qId) {
+        var q = assess.questions.find(function(x) { return x.id === qId; });
+        if (q && q.mappedTopics) {
+          q.mappedTopics.forEach(function(t) {
+            if (!priorityTopics[t]) sacrificeTopics[t] = true;
+          });
+        }
+      });
+
+      /* Bulk update card priorities */
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (!it || it.archived || it.course !== courseName) continue;
+        var topic = it.topic || 'General';
+        if (priorityTopics[topic]) {
+          it.priority = 'critical';
+        } else if (sacrificeTopics[topic]) {
+          it.priority = 'low';
+        } else {
+          it.priority = 'medium';
+        }
+      }
+      saveState();
     }
 
     function ensureCourseModules(courseName) {

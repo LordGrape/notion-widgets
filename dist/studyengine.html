@@ -9266,6 +9266,245 @@ body:not(.standalone) .learn-heatmap-grid {
     border-color: rgba(var(--accent-rgb), 0.1);
   }
 }
+
+/* ── Assessment Cards ── */
+.assess-group-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin: 12px 0 6px;
+}
+.assess-card {
+  background: rgba(var(--accent-rgb), 0.03);
+  border: 1px solid rgba(var(--accent-rgb), 0.1);
+  border-radius: 10px;
+  margin-bottom: 6px;
+  overflow: hidden;
+  transition: all var(--transition);
+}
+.assess-card.past {
+  opacity: 0.5;
+}
+.assess-card-header {
+  padding: 10px 14px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.assess-card-header:hover {
+  background: rgba(var(--accent-rgb), 0.05);
+}
+.assess-card-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.assess-card-meta {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.assess-badge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(var(--accent-rgb), 0.08);
+  color: var(--text-secondary);
+}
+.assess-card-edit {
+  padding: 0 14px 14px;
+  border-top: 1px solid rgba(var(--accent-rgb), 0.06);
+}
+.assess-field-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+.assess-field-row label {
+  flex: 1;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.assess-input {
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(var(--accent-rgb), 0.12);
+  background: rgba(var(--accent-rgb), 0.03);
+  color: var(--text);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 0.78rem;
+}
+.assess-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.assess-questions-input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(var(--accent-rgb), 0.12);
+  background: rgba(var(--accent-rgb), 0.03);
+  color: var(--text);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 0.78rem;
+  resize: vertical;
+  margin-top: 6px;
+}
+.assess-parse-btn,
+.assess-triage-btn {
+  margin-top: 8px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(var(--accent-rgb), 0.15);
+  background: transparent;
+  color: var(--accent);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.assess-parse-btn:hover,
+.assess-triage-btn:hover {
+  background: rgba(var(--accent-rgb), 0.08);
+}
+.assess-triage-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.assess-question-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 240px;
+  overflow-y: auto;
+  margin-top: 6px;
+}
+.assess-question-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: 5px;
+  background: rgba(var(--accent-rgb), 0.02);
+  border: 1px solid rgba(var(--accent-rgb), 0.05);
+  font-size: 0.72rem;
+}
+.assess-q-num {
+  font-weight: 800;
+  color: var(--accent);
+  width: 24px;
+  flex-shrink: 0;
+}
+.assess-q-text {
+  flex: 1;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.assess-q-score {
+  font-weight: 700;
+  color: var(--text-secondary);
+  font-size: 0.65rem;
+  width: 28px;
+  text-align: center;
+}
+.assess-q-prio-btn,
+.assess-q-sac-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  border: 1px solid rgba(var(--accent-rgb), 0.1);
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.65rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition);
+  flex-shrink: 0;
+}
+.assess-q-prio-btn:hover { background: rgba(34, 197, 94, 0.1); }
+.assess-q-sac-btn:hover { background: rgba(239, 68, 68, 0.1); }
+.assess-q-prio-btn.active {
+  background: rgba(34, 197, 94, 0.2);
+  border-color: var(--rate-good);
+  color: var(--rate-good);
+}
+.assess-q-sac-btn.active {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: var(--rate-again);
+  color: var(--rate-again);
+}
+.assess-edit-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 12px;
+}
+.assess-save-btn {
+  flex: 1;
+  padding: 7px;
+  border-radius: 6px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.assess-delete-btn {
+  padding: 7px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: transparent;
+  color: var(--rate-again);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.cd-add-assess-btn {
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px dashed rgba(var(--accent-rgb), 0.2);
+  background: transparent;
+  color: var(--accent);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.cd-add-assess-btn:hover {
+  background: rgba(var(--accent-rgb), 0.05);
+  border-color: var(--accent);
+}
+@media (max-width: 480px) {
+  .assess-field-row {
+    flex-direction: column;
+    gap: 6px;
+  }
+  .assess-triage-actions {
+    flex-direction: column;
+  }
+}
 </style>
 </head>
 <body>
@@ -11014,12 +11253,30 @@ body:not(.standalone) .learn-heatmap-grid {
 
     function getCramState(courseName) {
       var c = getCourse(courseName);
-      if (!c || !c.examDate) return { active: false };
-      /* Compare calendar dates at local midnight for accurate day count */
-      var examMidnight = new Date(c.examDate + 'T00:00:00');
-      var todayMidnight = new Date(); todayMidnight.setHours(0,0,0,0);
+      if (!c) return { active: false };
+
+      /* Find the nearest upcoming assessment date */
+      var examDate = null;
+      var assessName = null;
+      if (c.assessments && c.assessments.length > 0) {
+        var active = getActiveAssessment(courseName);
+        if (active && active.date) {
+          examDate = active.date;
+          assessName = active.name || 'Assessment';
+        }
+      }
+      /* Fallback to legacy examDate */
+      if (!examDate && c.examDate) {
+        examDate = c.examDate;
+        assessName = 'Exam';
+      }
+      if (!examDate) return { active: false };
+
+      var examMidnight = new Date(examDate + 'T00:00:00');
+      var todayMidnight = new Date();
+      todayMidnight.setHours(0, 0, 0, 0);
       var daysUntil = Math.max(0, Math.round((examMidnight.getTime() - todayMidnight.getTime()) / (1000 * 60 * 60 * 24)));
-      if (daysUntil > 14) return { active: false, daysUntil: daysUntil };
+      if (daysUntil > 14) return { active: false, daysUntil: daysUntil, assessName: assessName };
 
       var intensity = 'normal';
       var sessionMod = 1.0;
@@ -11048,7 +11305,8 @@ body:not(.standalone) .learn-heatmap-grid {
         daysUntil: daysUntil,
         intensity: intensity,
         sessionMod: sessionMod,
-        intervalMod: intervalMod
+        intervalMod: intervalMod,
+        assessName: assessName
       };
     }
 
@@ -11075,7 +11333,178 @@ body:not(.standalone) .learn-heatmap-grid {
       if (c.examFormat === undefined) c.examFormat = null;
       if (!Array.isArray(c.syllabusKeyTopics)) c.syllabusKeyTopics = [];
       if (c.prepared === undefined) c.prepared = false;
+      migrateAssessments(c);
       return c;
+    }
+
+
+    function migrateAssessments(c) {
+      if (!c) return c;
+      if (!Array.isArray(c.assessments)) {
+        c.assessments = [];
+        /* Migrate legacy single exam into assessments array */
+        if (c.examDate) {
+          c.assessments.push({
+            id: 'assess_' + generateModuleId().slice(4),
+            name: 'Final Exam',
+            type: c.examType || 'mixed',
+            date: c.examDate,
+            weight: c.examWeight || null,
+            format: c.examFormat || null,
+            allowedMaterials: c.allowedMaterials || null,
+            questions: [],
+            prioritySet: [],
+            sacrificeSet: [],
+            topicMapping: {},
+            chooseN: null,
+            outOfM: null,
+            active: true
+          });
+        }
+      }
+      /* Ensure every assessment has all fields */
+      c.assessments.forEach(function(a) {
+        if (!a.id) a.id = 'assess_' + generateModuleId().slice(4);
+        if (a.name === undefined) a.name = 'Assessment';
+        if (a.type === undefined) a.type = 'mixed';
+        if (a.date === undefined) a.date = null;
+        if (a.weight === undefined) a.weight = null;
+        if (a.format === undefined) a.format = null;
+        if (a.allowedMaterials === undefined) a.allowedMaterials = null;
+        if (!Array.isArray(a.questions)) a.questions = [];
+        if (!Array.isArray(a.prioritySet)) a.prioritySet = [];
+        if (!Array.isArray(a.sacrificeSet)) a.sacrificeSet = [];
+        if (!a.topicMapping || typeof a.topicMapping !== 'object') a.topicMapping = {};
+        if (a.chooseN === undefined) a.chooseN = null;
+        if (a.outOfM === undefined) a.outOfM = null;
+        if (a.active === undefined) a.active = true;
+      });
+      return c;
+    }
+
+    function getActiveAssessment(courseName) {
+      var c = getCourse(courseName);
+      if (!c || !c.assessments) return null;
+      var now = new Date();
+      now.setHours(0, 0, 0, 0);
+      /* Find nearest future active assessment */
+      var best = null;
+      var bestDays = Infinity;
+      c.assessments.forEach(function(a) {
+        if (!a.active || !a.date) return;
+        var aMidnight = new Date(a.date + 'T00:00:00');
+        var days = Math.round((aMidnight.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        if (days >= 0 && days < bestDays) {
+          bestDays = days;
+          best = a;
+        }
+      });
+      return best;
+    }
+
+    function getAssessmentById(courseName, assessId) {
+      var c = getCourse(courseName);
+      if (!c || !c.assessments) return null;
+      for (var i = 0; i < c.assessments.length; i++) {
+        if (c.assessments[i].id === assessId) return c.assessments[i];
+      }
+      return null;
+    }
+
+    function addAssessment(courseName, assessObj) {
+      var c = getCourse(courseName);
+      if (!c) return null;
+      if (!Array.isArray(c.assessments)) c.assessments = [];
+      if (!assessObj.id) assessObj.id = 'assess_' + generateModuleId().slice(4);
+      c.assessments.push(assessObj);
+      migrateAssessments(c);
+      saveCourse(c);
+      return assessObj;
+    }
+
+    function updateAssessment(courseName, assessId, updates) {
+      var c = getCourse(courseName);
+      if (!c || !c.assessments) return;
+      var a = c.assessments.find(function(x) { return x.id === assessId; });
+      if (!a) return;
+      for (var k in updates) {
+        if (updates.hasOwnProperty(k)) a[k] = updates[k];
+      }
+      saveCourse(c);
+    }
+
+    function deleteAssessment(courseName, assessId) {
+      var c = getCourse(courseName);
+      if (!c || !c.assessments) return;
+      c.assessments = c.assessments.filter(function(a) { return a.id !== assessId; });
+      saveCourse(c);
+    }
+
+    function getUpcomingAssessments(courseName) {
+      var c = getCourse(courseName);
+      if (!c || !c.assessments) return [];
+      var now = new Date();
+      now.setHours(0, 0, 0, 0);
+      return c.assessments.filter(function(a) {
+        if (!a.date) return false;
+        var d = new Date(a.date + 'T00:00:00');
+        return d.getTime() >= now.getTime();
+      }).sort(function(a, b) {
+        return new Date(a.date).getTime() - new Date(b.date).getTime();
+      });
+    }
+
+    function getPastAssessments(courseName) {
+      var c = getCourse(courseName);
+      if (!c || !c.assessments) return [];
+      var now = new Date();
+      now.setHours(0, 0, 0, 0);
+      return c.assessments.filter(function(a) {
+        if (!a.date) return false;
+        var d = new Date(a.date + 'T00:00:00');
+        return d.getTime() < now.getTime();
+      }).sort(function(a, b) {
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      });
+    }
+
+    function applyTriagePriorities(courseName, assessId) {
+      var assess = getAssessmentById(courseName, assessId);
+      if (!assess) return;
+      var priorityTopics = {};
+      var sacrificeTopics = {};
+
+      /* Build topic sets from priority/sacrifice questions */
+      (assess.prioritySet || []).forEach(function(qId) {
+        var q = assess.questions.find(function(x) { return x.id === qId; });
+        if (q && q.mappedTopics) {
+          q.mappedTopics.forEach(function(t) { priorityTopics[t] = true; });
+        }
+      });
+      (assess.sacrificeSet || []).forEach(function(qId) {
+        var q = assess.questions.find(function(x) { return x.id === qId; });
+        if (q && q.mappedTopics) {
+          q.mappedTopics.forEach(function(t) {
+            if (!priorityTopics[t]) sacrificeTopics[t] = true;
+          });
+        }
+      });
+
+      /* Bulk update card priorities */
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (!it || it.archived || it.course !== courseName) continue;
+        var topic = it.topic || 'General';
+        if (priorityTopics[topic]) {
+          it.priority = 'critical';
+        } else if (sacrificeTopics[topic]) {
+          it.priority = 'low';
+        } else {
+          it.priority = 'medium';
+        }
+      }
+      saveState();
     }
 
     function ensureCourseModules(courseName) {
@@ -12545,6 +12974,343 @@ body:not(.standalone) .learn-heatmap-grid {
         };
       }
     }
+
+function renderAssessmentsList(courseName) {
+  var c = getCourse(courseName);
+  if (!c || !c.assessments) return;
+  var container = el('assessmentsList');
+  if (!container) return;
+
+  var upcoming = getUpcomingAssessments(courseName);
+  var past = getPastAssessments(courseName);
+  var noDate = (c.assessments || []).filter(function(a) { return !a.date; });
+
+  var h = '';
+
+  function renderAssessCard(a, isPast) {
+    var daysText = '';
+    if (a.date) {
+      var aMidnight = new Date(a.date + 'T00:00:00');
+      var todayMidnight = new Date(); todayMidnight.setHours(0, 0, 0, 0);
+      var days = Math.round((aMidnight.getTime() - todayMidnight.getTime()) / (1000 * 60 * 60 * 24));
+      daysText = isPast ? (Math.abs(days) + 'd ago') : (days + 'd');
+    }
+    var weightText = a.weight ? a.weight + '%' : '';
+    var typeLabel = EXAM_TYPE_LABELS[a.type] || a.type || 'Mixed';
+    var questionCount = (a.questions || []).length;
+    var priorityCount = (a.prioritySet || []).length;
+    var chooseText = (a.chooseN && a.outOfM) ? 'Choose ' + a.chooseN + ' of ' + a.outOfM : '';
+
+    h += '<div class="assess-card' + (isPast ? ' past' : '') + '" data-assess-id="' + esc(a.id) + '">';
+    h += '<div class="assess-card-header">';
+    h += '<div class="assess-card-name">' + esc(a.name || 'Assessment') + '</div>';
+    h += '<div class="assess-card-meta">';
+    if (daysText) h += '<span class="assess-badge">' + esc(daysText) + '</span>';
+    if (weightText) h += '<span class="assess-badge">' + esc(weightText) + '</span>';
+    h += '<span class="assess-badge">' + esc(typeLabel) + '</span>';
+    if (chooseText) h += '<span class="assess-badge">' + esc(chooseText) + '</span>';
+    if (questionCount > 0) h += '<span class="assess-badge">' + questionCount + ' Q\'s</span>';
+    if (priorityCount > 0) h += '<span class="assess-badge" style="color:var(--rate-good)">' + priorityCount + ' priority</span>';
+    h += '</div>';
+    h += '</div>';
+
+    h += '<div class="assess-card-edit" id="assessEdit_' + esc(a.id) + '" style="display:none">';
+    h += '<div class="assess-field-row">';
+    h += '<label>Name<input type="text" class="assess-input" data-field="name" value="' + esc(a.name || '') + '"></label>';
+    h += '<label>Type<select class="assess-input" data-field="type">';
+    ['mc', 'short_answer', 'essay', 'mixed'].forEach(function(t) {
+      h += '<option value="' + t + '"' + (a.type === t ? ' selected' : '') + '>' + esc(EXAM_TYPE_LABELS[t] || t) + '</option>';
+    });
+    h += '</select></label>';
+    h += '</div>';
+    h += '<div class="assess-field-row">';
+    h += '<label>Date<input type="date" class="assess-input" data-field="date" value="' + esc(a.date || '') + '"></label>';
+    h += '<label>Weight %<input type="number" class="assess-input" data-field="weight" min="0" max="100" value="' + (a.weight || '') + '"></label>';
+    h += '</div>';
+    h += '<div class="assess-field-row">';
+    h += '<label>Choose N<input type="number" class="assess-input" data-field="chooseN" min="1" max="20" placeholder="e.g. 3" value="' + (a.chooseN || '') + '"></label>';
+    h += '<label>Out of M<input type="number" class="assess-input" data-field="outOfM" min="1" max="50" placeholder="e.g. 5" value="' + (a.outOfM || '') + '"></label>';
+    h += '</div>';
+    h += '<div class="assess-field-row">';
+    h += '<label>Allowed materials<input type="text" class="assess-input" data-field="allowedMaterials" placeholder="e.g. 1 aid sheet" value="' + esc(a.allowedMaterials || '') + '"></label>';
+    h += '</div>';
+
+    h += '<div class="assess-questions-section">';
+    h += '<div style="font-size:0.7rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--text-secondary);margin:12px 0 6px">EXAM QUESTIONS</div>';
+    if (questionCount > 0) {
+      h += '<div class="assess-question-list">';
+      a.questions.forEach(function(q, qi) {
+        var isPriority = a.prioritySet.indexOf(q.id) >= 0;
+        var isSacrifice = a.sacrificeSet.indexOf(q.id) >= 0;
+        h += '<div class="assess-question-row">';
+        h += '<span class="assess-q-num">Q' + (qi + 1) + '</span>';
+        h += '<span class="assess-q-text">' + esc((q.text || '').substring(0, 80)) + (q.text && q.text.length > 80 ? '…' : '') + '</span>';
+        if (q.score != null) h += '<span class="assess-q-score">' + Math.round(q.score * 100) + '</span>';
+        h += '<button class="assess-q-prio-btn' + (isPriority ? ' active' : '') + '" data-q-id="' + esc(q.id) + '" data-action="priority" title="Priority">★</button>';
+        h += '<button class="assess-q-sac-btn' + (isSacrifice ? ' active' : '') + '" data-q-id="' + esc(q.id) + '" data-action="sacrifice" title="Sacrifice">✕</button>';
+        h += '</div>';
+      });
+      h += '</div>';
+      h += '<div class="assess-triage-actions">';
+      h += '<button class="assess-triage-btn" data-assess-id="' + esc(a.id) + '" data-action="auto-triage">🧠 Auto-Triage (AI)</button>';
+      h += '<button class="assess-triage-btn" data-assess-id="' + esc(a.id) + '" data-action="apply-priorities">✅ Apply Priorities</button>';
+      h += '</div>';
+    } else {
+      h += '<textarea class="assess-questions-input" id="assessQInput_' + esc(a.id) + '" placeholder="Paste exam questions here (one per numbered line, or paste the full study guide)..." rows="4"></textarea>';
+      h += '<button class="assess-parse-btn" data-assess-id="' + esc(a.id) + '">📋 Parse Questions</button>';
+    }
+    h += '</div>';
+
+    h += '<div class="assess-edit-actions">';
+    h += '<button class="assess-save-btn" data-assess-id="' + esc(a.id) + '">Save</button>';
+    h += '<button class="assess-delete-btn" data-assess-id="' + esc(a.id) + '">Delete</button>';
+    h += '</div>';
+    h += '</div>';
+    h += '</div>';
+  }
+
+  if (upcoming.length > 0) {
+    h += '<div class="assess-group-label">UPCOMING</div>';
+    upcoming.forEach(function(a) { renderAssessCard(a, false); });
+  }
+  if (noDate.length > 0) {
+    h += '<div class="assess-group-label">NO DATE SET</div>';
+    noDate.forEach(function(a) { renderAssessCard(a, false); });
+  }
+  if (past.length > 0) {
+    h += '<div class="assess-group-label" style="opacity:0.5">PAST</div>';
+    past.forEach(function(a) { renderAssessCard(a, true); });
+  }
+
+  container.innerHTML = h;
+
+  container.querySelectorAll('.assess-card-header').forEach(function(header) {
+    header.addEventListener('click', function() {
+      var card = this.closest('.assess-card');
+      var editDiv = card.querySelector('.assess-card-edit');
+      if (editDiv) {
+        var isOpen = editDiv.style.display !== 'none';
+        container.querySelectorAll('.assess-card-edit').forEach(function(ed) { ed.style.display = 'none'; });
+        editDiv.style.display = isOpen ? 'none' : 'block';
+        if (!isOpen && window.gsap) gsap.fromTo(editDiv, { opacity: 0, y: -4 }, { opacity: 1, y: 0, duration: 0.2, ease: 'power2.out' });
+      }
+      try { playClick(); } catch(ex) {}
+    });
+  });
+
+  container.querySelectorAll('.assess-save-btn').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var assessId = this.dataset.assessId;
+      var editDiv = el('assessEdit_' + assessId);
+      if (!editDiv) return;
+      var updates = {};
+      editDiv.querySelectorAll('.assess-input').forEach(function(inp) {
+        var field = inp.dataset.field;
+        var val = inp.value;
+        if (field === 'weight' || field === 'chooseN' || field === 'outOfM') {
+          updates[field] = val ? parseInt(val, 10) : null;
+        } else {
+          updates[field] = val || null;
+        }
+      });
+      updateAssessment(courseName, assessId, updates);
+
+      var active = getActiveAssessment(courseName);
+      if (active) {
+        var cc = getCourse(courseName);
+        cc.examDate = active.date;
+        cc.examType = active.type;
+        cc.examWeight = active.weight;
+        cc.examFormat = active.format;
+        cc.allowedMaterials = active.allowedMaterials;
+        saveCourse(cc);
+      }
+
+      toast('Assessment saved');
+      renderAssessmentsList(courseName);
+    });
+  });
+
+  container.querySelectorAll('.assess-delete-btn').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (!confirm('Delete this assessment?')) return;
+      deleteAssessment(courseName, this.dataset.assessId);
+      toast('Assessment deleted');
+      renderAssessmentsList(courseName);
+    });
+  });
+
+  container.querySelectorAll('.assess-parse-btn').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var assessId = this.dataset.assessId;
+      var textarea = el('assessQInput_' + assessId);
+      if (!textarea || !textarea.value.trim()) { toast('Paste questions first'); return; }
+      parseAndTriageQuestions(courseName, assessId, textarea.value.trim());
+    });
+  });
+
+  container.querySelectorAll('.assess-q-prio-btn, .assess-q-sac-btn').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var assessId = this.closest('.assess-card').dataset.assessId;
+      var qId = this.dataset.qId;
+      var action = this.dataset.action;
+      var assess = getAssessmentById(courseName, assessId);
+      if (!assess) return;
+
+      if (action === 'priority') {
+        var idx = assess.prioritySet.indexOf(qId);
+        if (idx >= 0) {
+          assess.prioritySet.splice(idx, 1);
+        } else {
+          assess.prioritySet.push(qId);
+          var sIdx = assess.sacrificeSet.indexOf(qId);
+          if (sIdx >= 0) assess.sacrificeSet.splice(sIdx, 1);
+        }
+      } else if (action === 'sacrifice') {
+        var idx2 = assess.sacrificeSet.indexOf(qId);
+        if (idx2 >= 0) {
+          assess.sacrificeSet.splice(idx2, 1);
+        } else {
+          assess.sacrificeSet.push(qId);
+          var pIdx = assess.prioritySet.indexOf(qId);
+          if (pIdx >= 0) assess.prioritySet.splice(pIdx, 1);
+        }
+      }
+      saveCourse(getCourse(courseName));
+      renderAssessmentsList(courseName);
+      try { playClick(); } catch(ex) {}
+    });
+  });
+
+  container.querySelectorAll('[data-action="auto-triage"]').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      runAutoTriage(courseName, this.dataset.assessId);
+    });
+  });
+
+  container.querySelectorAll('[data-action="apply-priorities"]').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      applyTriagePriorities(courseName, this.dataset.assessId);
+      toast('Priorities applied to ' + getCardsForCourse(courseName).length + ' cards');
+      renderAssessmentsList(courseName);
+    });
+  });
+}
+
+function parseAndTriageQuestions(courseName, assessId, rawText) {
+  var assess = getAssessmentById(courseName, assessId);
+  if (!assess) return;
+
+  toast('Analysing questions...');
+
+  var topics = getTopicsForCourse(courseName);
+  var topicCards = {};
+  topics.forEach(function(t) {
+    topicCards[t] = getCardsForTopic(courseName, t).length;
+  });
+
+  var courseData = getCourse(courseName) || {};
+
+  fetch(TRIAGE_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Widget-Key': getWidgetKey() },
+    body: JSON.stringify({
+      rawQuestions: rawText,
+      topics: topics,
+      topicCardCounts: topicCards,
+      syllabusContext: courseData.syllabusContext || '',
+      chooseN: assess.chooseN || null,
+      outOfM: assess.outOfM || null
+    })
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(data) {
+    if (!data.questions || !data.questions.length) {
+      toast('Could not parse questions');
+      return;
+    }
+
+    assess.questions = data.questions;
+
+    if (data.recommendedPriority) assess.prioritySet = data.recommendedPriority;
+    if (data.recommendedSacrifice) assess.sacrificeSet = data.recommendedSacrifice;
+
+    saveCourse(getCourse(courseName));
+    renderAssessmentsList(courseName);
+    toast(data.questions.length + ' questions parsed');
+    try { playChime(); } catch(ex) {}
+  })
+  .catch(function(err) {
+    toast('Triage failed: ' + (err.message || String(err)));
+  });
+}
+
+function runAutoTriage(courseName, assessId) {
+  var assess = getAssessmentById(courseName, assessId);
+  if (!assess || !assess.questions.length) { toast('No questions to triage'); return; }
+
+  toast('Running triage algorithm...');
+
+  var topics = getTopicsForCourse(courseName);
+  var topicCards = {};
+  var topicRetention = {};
+  var topicLearnStatus = {};
+  var now = Date.now();
+
+  topics.forEach(function(t) {
+    var cards = getCardsForTopic(courseName, t);
+    topicCards[t] = cards.length;
+    var retSum = 0, retN = 0;
+    cards.forEach(function(c) {
+      if (c.fsrs && c.fsrs.lastReview) {
+        retSum += retrievability(c.fsrs, now);
+        retN++;
+      }
+    });
+    topicRetention[t] = retN > 0 ? Math.round((retSum / retN) * 100) : 0;
+    topicLearnStatus[t] = (state.learnProgress && state.learnProgress[courseName] && state.learnProgress[courseName][t] && state.learnProgress[courseName][t].status === 'learned') ? 'learned' : 'not_learned';
+  });
+
+  var courseData = getCourse(courseName) || {};
+
+  fetch(TRIAGE_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Widget-Key': getWidgetKey() },
+    body: JSON.stringify({
+      questions: assess.questions,
+      topics: topics,
+      topicCardCounts: topicCards,
+      topicRetention: topicRetention,
+      topicLearnStatus: topicLearnStatus,
+      syllabusContext: courseData.syllabusContext || '',
+      chooseN: assess.chooseN || null,
+      outOfM: assess.outOfM || null,
+      mode: 'triage'
+    })
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(data) {
+    if (data.questions) {
+      assess.questions = data.questions;
+    }
+    if (data.recommendedPriority) assess.prioritySet = data.recommendedPriority;
+    if (data.recommendedSacrifice) assess.sacrificeSet = data.recommendedSacrifice;
+
+    saveCourse(getCourse(courseName));
+    renderAssessmentsList(courseName);
+    toast('Triage complete — ' + (assess.prioritySet || []).length + ' priority, ' + (assess.sacrificeSet || []).length + ' sacrifice');
+    try { playChime(); } catch(ex) {}
+  })
+  .catch(function(err) {
+    toast('Triage failed: ' + (err.message || String(err)));
+  });
+}
 /* Phase 2 extraction: copied from monolith; source-of-truth remains state.js for parity. */
 
     function getDragonStage(xp) {
@@ -13296,6 +14062,30 @@ function showCourseDashboard(courseName) {
       h += '</div>';
       h += '</div>';
 
+      /* ── Assessment Timeline ── */
+      var courseForAssess = getCourse(courseName);
+      if (courseForAssess && courseForAssess.assessments && courseForAssess.assessments.length > 0) {
+        var upcoming = getUpcomingAssessments(courseName);
+        if (upcoming.length > 0) {
+          h += '<div style="margin:12px 0">';
+          h += '<div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px">📅 UPCOMING ASSESSMENTS</div>';
+          upcoming.forEach(function(a) {
+            var aMid = new Date(a.date + 'T00:00:00');
+            var tMid = new Date(); tMid.setHours(0,0,0,0);
+            var daysLeft = Math.round((aMid.getTime() - tMid.getTime()) / (1000 * 60 * 60 * 24));
+            var urgency = daysLeft <= 2 ? 'var(--rate-again)' : daysLeft <= 7 ? 'var(--rate-hard)' : 'var(--text-secondary)';
+            var pCount = (a.prioritySet || []).length;
+            h += '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:8px;background:rgba(var(--accent-rgb),0.03);border:1px solid rgba(var(--accent-rgb),0.08);margin-bottom:4px">';
+            h += '<span style="font-size:0.78rem;font-weight:700;color:' + urgency + '">' + daysLeft + 'd</span>';
+            h += '<span style="font-size:0.78rem;font-weight:600;color:var(--text);flex:1">' + esc(a.name || 'Assessment') + '</span>';
+            if (a.weight) h += '<span style="font-size:0.65rem;color:var(--text-tertiary)">' + a.weight + '%</span>';
+            if (pCount > 0) h += '<span style="font-size:0.62rem;padding:1px 5px;border-radius:3px;background:rgba(34,197,94,0.12);color:var(--rate-good);font-weight:600">' + pCount + ' priority</span>';
+            h += '</div>';
+          });
+          h += '</div>';
+        }
+      }
+
       var duePct = stats.total > 0 ? Math.round((stats.due / stats.total) * 100) : 0;
       var retentionPct = stats.avgRetention == null ? 0 : clamp(stats.avgRetention, 0, 100);
       var stabilityMeta = getStabilityMeta(stats.avgStability || 0);
@@ -13865,6 +14655,31 @@ function renderLearnTab(courseName, container) {
   var topics = getLearnableTopics(courseName, learnSubDeckFilter);
   var topicNames = Object.keys(topics).sort();
 
+  /* Sort topics: priority (from active assessment) first, then alphabetical */
+  try {
+    var activeAssess = getActiveAssessment(courseName);
+    if (activeAssess && activeAssess.prioritySet && activeAssess.prioritySet.length > 0) {
+      var priorityTopics = {};
+      var sacrificeTopics = {};
+      (activeAssess.prioritySet || []).forEach(function(qId) {
+        var q = (activeAssess.questions || []).find(function(x) { return x.id === qId; });
+        if (q && q.mappedTopics) q.mappedTopics.forEach(function(t) { priorityTopics[t] = true; });
+      });
+      (activeAssess.sacrificeSet || []).forEach(function(qId) {
+        var q = (activeAssess.questions || []).find(function(x) { return x.id === qId; });
+        if (q && q.mappedTopics) q.mappedTopics.forEach(function(t) {
+          if (!priorityTopics[t]) sacrificeTopics[t] = true;
+        });
+      });
+      topicNames.sort(function(a, b) {
+        var aPrio = priorityTopics[a] ? 0 : sacrificeTopics[a] ? 2 : 1;
+        var bPrio = priorityTopics[b] ? 0 : sacrificeTopics[b] ? 2 : 1;
+        if (aPrio !== bPrio) return aPrio - bPrio;
+        return a.localeCompare(b);
+      });
+    }
+  } catch(e) {}
+
   /* Sub-deck filter chips */
   var filterHtml = '<div class="learn-filter-row">';
   filterHtml += '<button class="learn-filter-chip' + (learnSubDeckFilter === 'All' ? ' active' : '') + '" data-sd="All">All</button>';
@@ -13895,6 +14710,26 @@ function renderLearnTab(courseName, container) {
 
       gridHtml += '<div class="learn-topic-card' + (isSelected ? ' selected' : '') + '" data-topic="' + esc(tName) + '">';
       if (primarySd) gridHtml += '<span class="learn-subdeck-badge">' + esc(primarySd) + '</span>';
+      try {
+        var activeAssess2 = getActiveAssessment(courseName);
+        if (activeAssess2) {
+          var isPriorityTopic = false;
+          var isSacrificeTopic = false;
+          (activeAssess2.prioritySet || []).forEach(function(qId) {
+            var q = (activeAssess2.questions || []).find(function(x) { return x.id === qId; });
+            if (q && q.mappedTopics && q.mappedTopics.indexOf(tName) >= 0) isPriorityTopic = true;
+          });
+          (activeAssess2.sacrificeSet || []).forEach(function(qId) {
+            var q = (activeAssess2.questions || []).find(function(x) { return x.id === qId; });
+            if (q && q.mappedTopics && q.mappedTopics.indexOf(tName) >= 0) isSacrificeTopic = true;
+          });
+          if (isPriorityTopic) {
+            gridHtml += '<span style="position:absolute;top:8px;left:8px;font-size:0.6rem;padding:1px 5px;border-radius:3px;background:rgba(34,197,94,0.15);color:var(--rate-good);font-weight:700">★ PRIORITY</span>';
+          } else if (isSacrificeTopic) {
+            gridHtml += '<span style="position:absolute;top:8px;left:8px;font-size:0.6rem;padding:1px 5px;border-radius:3px;background:rgba(239,68,68,0.1);color:var(--rate-again);font-weight:700;opacity:0.6">SKIP</span>';
+          }
+        }
+      } catch(e) {}
       gridHtml += '<div class="learn-topic-name">' + esc(tName) + '</div>';
       gridHtml += '<div class="learn-topic-meta">';
       gridHtml += '<span class="learn-status-dot ' + status.replace('_', '-') + '"></span>';
@@ -18010,6 +18845,30 @@ var mockCountdownTimer = null;
       /* 8. Interleave: alternate tiers + courses for spacing */
       queue = interleaveQueue(queue);
 
+      try {
+        if (courseFilter !== 'All') {
+          var activeAssess = getActiveAssessment(courseFilter);
+          if (activeAssess && ((activeAssess.prioritySet && activeAssess.prioritySet.length) || (activeAssess.sacrificeSet && activeAssess.sacrificeSet.length))) {
+            var prioTopics = {};
+            var skipTopics = {};
+            (activeAssess.prioritySet || []).forEach(function(qId) {
+              var q = (activeAssess.questions || []).find(function(x) { return x.id === qId; });
+              if (q && q.mappedTopics) q.mappedTopics.forEach(function(t) { prioTopics[t] = true; });
+            });
+            (activeAssess.sacrificeSet || []).forEach(function(qId) {
+              var q = (activeAssess.questions || []).find(function(x) { return x.id === qId; });
+              if (q && q.mappedTopics) q.mappedTopics.forEach(function(t) { if (!prioTopics[t]) skipTopics[t] = true; });
+            });
+            queue.sort(function(a, b) {
+              var aw = prioTopics[a.topic || 'General'] ? 2 : skipTopics[a.topic || 'General'] ? -1 : 0;
+              var bw = prioTopics[b.topic || 'General'] ? 2 : skipTopics[b.topic || 'General'] ? -1 : 0;
+              if (aw !== bw) return bw - aw;
+              return priorityWeight(b, cram && cram.active) - priorityWeight(a, cram && cram.active);
+            });
+          }
+        }
+      } catch (e) {}
+
       var overconfTopics = getOverconfidentTopics(selectedCourse);
       if (overconfTopics.length > 0) {
         var overconfSet = {};
@@ -19296,6 +20155,7 @@ var mockCountdownTimer = null;
     var GRADE_ENDPOINT = STUDYENGINE_WORKER_BASE + '/grade';
     var LEARN_PLAN_ENDPOINT = STUDYENGINE_WORKER_BASE + '/learn-plan';
     var LEARN_CHECK_ENDPOINT = STUDYENGINE_WORKER_BASE + '/learn-check';
+    var TRIAGE_ENDPOINT = STUDYENGINE_WORKER_BASE + '/exam-triage';
 
     /* ── State ── */
     var NS = 'studyengine';
