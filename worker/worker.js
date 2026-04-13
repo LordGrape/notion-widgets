@@ -2469,8 +2469,7 @@ Return JSON with this exact structure:
           contents: [{ parts: [{ text: systemPrompt }] }],
           generationConfig: {
             temperature: 0.7,
-            maxOutputTokens: 4096,
-            responseMimeType: "application/json"
+            maxOutputTokens: 8192
           }
         })
       });
@@ -2483,8 +2482,42 @@ Return JSON with this exact structure:
       }
 
       const geminiData = await geminiRes.json();
-      const rawText = extractGeminiText(geminiData);
-      const parsed = parseJsonResponse(rawText);
+
+      // Log the structure of what Gemini returned
+      const parts = geminiData?.candidates?.[0]?.content?.parts || [];
+      console.log("[learn-plan] Part count:", parts.length, "types:", JSON.stringify(parts.map(p => ({ thought: !!p.thought, len: (p.text || "").length }))));
+
+      let rawText = extractGeminiText(geminiData);
+      console.log("[learn-plan] extractGeminiText len:", rawText.length, "preview:", rawText.slice(0, 300));
+
+      let parsed = parseJsonResponse(rawText);
+
+      // If extractGeminiText failed, try brute-force: concatenate ALL non-thought text parts and parse
+      if (!parsed || !parsed.segments || !parsed.segments.length) {
+        console.log("[learn-plan] First parse failed, trying brute-force concatenation");
+        const allText = parts
+          .filter(p => !p.thought && typeof p.text === "string")
+          .map(p => p.text)
+          .join("");
+        console.log("[learn-plan] Brute-force text len:", allText.length, "preview:", allText.slice(0, 300));
+        parsed = parseJsonResponse(allText);
+      }
+
+      // If still failed, try extracting JSON from ANY part (including thought parts as last resort)
+      if (!parsed || !parsed.segments || !parsed.segments.length) {
+        console.log("[learn-plan] Brute-force failed, trying all parts including thought");
+        for (const part of parts) {
+          if (typeof part.text === "string" && part.text.includes('"segments"')) {
+            parsed = parseJsonResponse(part.text);
+            if (parsed && parsed.segments && parsed.segments.length) {
+              console.log("[learn-plan] Found segments in part with thought=" + !!part.thought);
+              break;
+            }
+          }
+        }
+      }
+
+      console.log("[learn-plan] Final result:", parsed ? "segments=" + (parsed.segments || []).length : "NULL");
 
       return new Response(JSON.stringify(parsed || { segments: [], consolidationQuestions: [] }), {
         status: 200,
@@ -2545,8 +2578,7 @@ Rules:
           contents: [{ parts: [{ text: systemPrompt }] }],
           generationConfig: {
             temperature: 0.4,
-            maxOutputTokens: 512,
-            responseMimeType: "application/json"
+            maxOutputTokens: 1024
           }
         })
       });
@@ -2559,8 +2591,42 @@ Rules:
       }
 
       const geminiData = await geminiRes.json();
-      const rawText = extractGeminiText(geminiData);
-      const parsed = parseJsonResponse(rawText);
+
+      // Log the structure of what Gemini returned
+      const parts = geminiData?.candidates?.[0]?.content?.parts || [];
+      console.log("[learn-check] Part count:", parts.length, "types:", JSON.stringify(parts.map(p => ({ thought: !!p.thought, len: (p.text || "").length }))));
+
+      let rawText = extractGeminiText(geminiData);
+      console.log("[learn-check] extractGeminiText len:", rawText.length, "preview:", rawText.slice(0, 300));
+
+      let parsed = parseJsonResponse(rawText);
+
+      // If extractGeminiText failed, try brute-force: concatenate ALL non-thought text parts and parse
+      if (!parsed || !parsed.verdict) {
+        console.log("[learn-check] First parse failed, trying brute-force concatenation");
+        const allText = parts
+          .filter(p => !p.thought && typeof p.text === "string")
+          .map(p => p.text)
+          .join("");
+        console.log("[learn-check] Brute-force text len:", allText.length, "preview:", allText.slice(0, 300));
+        parsed = parseJsonResponse(allText);
+      }
+
+      // If still failed, try extracting JSON from ANY part (including thought parts as last resort)
+      if (!parsed || !parsed.verdict) {
+        console.log("[learn-check] Brute-force failed, trying all parts including thought");
+        for (const part of parts) {
+          if (typeof part.text === "string" && part.text.includes('"verdict"')) {
+            parsed = parseJsonResponse(part.text);
+            if (parsed && parsed.verdict) {
+              console.log("[learn-check] Found verdict in part with thought=" + !!part.thought);
+              break;
+            }
+          }
+        }
+      }
+
+      console.log("[learn-check] Final result:", parsed ? "verdict=" + (parsed.verdict || "none") : "NULL");
 
       return new Response(JSON.stringify(parsed || { verdict: "partial", feedback: "Could not evaluate.", isComplete: true }), {
         status: 200,
@@ -2907,5 +2973,4 @@ function json(body, status) {
     headers: Object.assign({ "Content-Type": "application/json" }, corsHeaders())
   });
 }
-
 
