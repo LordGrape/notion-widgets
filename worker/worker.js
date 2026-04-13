@@ -2400,6 +2400,187 @@ graph LR
       }
     }
 
+    // ── Learn Plan Route ──
+    if (url.pathname === "/studyengine/learn-plan") {
+      const lpCorsHeaders = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, X-Widget-Key",
+        "Access-Control-Max-Age": "86400"
+      };
+      if (request.method !== "POST") {
+        return new Response(JSON.stringify({ error: "Method not allowed" }), {
+          status: 405, headers: { ...lpCorsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      const body = await request.json();
+      if (!body.course || !body.topics || !body.topics.length || !body.cards || !body.cards.length) {
+        return new Response(JSON.stringify({ error: "Missing required fields: course, topics, cards" }), {
+          status: 400, headers: { ...lpCorsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      const cardSummaries = body.cards.slice(0, 40).map(c => `PROMPT: ${c.prompt}\nANSWER: ${c.modelAnswer}`).join("\n---\n");
+      const syllabusCtx = body.courseContext && body.courseContext.syllabusContext ? body.courseContext.syllabusContext : "";
+      const profValues = body.courseContext && body.courseContext.professorValues ? body.courseContext.professorValues : "";
+
+      const systemPrompt = `You are designing a teaching sequence for a university student who has NOT yet learned this material. Build understanding from the ground up, one concept at a time.
+
+COURSE: ${body.course}
+TOPICS: ${body.topics.join(", ")}
+${syllabusCtx ? "SYLLABUS CONTEXT: " + syllabusCtx : ""}
+${profValues ? "PROFESSOR VALUES: " + profValues : ""}
+
+CARDS TO TEACH FROM:
+${cardSummaries}
+
+RULES:
+- Order concepts from foundational to complex (prerequisite logic)
+- Each segment teaches ONE concept — never more
+- Explanations: 2-4 sentences, precise academic language, no filler
+- Elaborations: concrete example, analogy, or connection to prior knowledge
+- Check questions must force the student to PRODUCE, never just recognise
+- Two check types: "elaborative" (explain in own words) or "predict" (predict what happens next)
+- Consolidation questions should span all segments and test recall + connections
+- Use the card model answers as content backbone — do not contradict them
+- If cards are insufficient, supplement from your knowledge grounded in the course context
+- Never reuse phrasing from card prompts in check questions (avoid pattern matching)
+- linkedCardIds should reference the "id" field of relevant input cards
+
+Return JSON with this exact structure:
+{
+  "segments": [
+    {
+      "id": "seg-1",
+      "concept": "Concept Title",
+      "explanation": "2-4 sentence explanation",
+      "elaboration": "Concrete example or analogy",
+      "checkType": "elaborative" or "predict",
+      "checkQuestion": "Question forcing student to produce",
+      "checkAnswer": "Expected answer",
+      "linkedCardIds": ["card-id-1"]
+    }
+  ],
+  "consolidationQuestions": [
+    {
+      "question": "Retrieval question spanning segments",
+      "answer": "Expected answer",
+      "linkedCardIds": ["card-id-1"]
+    }
+  ]
+}`;
+
+      const geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=" + env.GEMINI_API_KEY;
+
+      const geminiRes = await fetch(geminiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: systemPrompt }] }],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 4096,
+            responseMimeType: "application/json",
+            thinkingConfig: { thinkingBudget: 0 }
+          }
+        })
+      });
+
+      if (!geminiRes.ok) {
+        const errText = await geminiRes.text();
+        return new Response(JSON.stringify({ error: "Gemini API error", detail: errText }), {
+          status: 502, headers: { ...lpCorsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      const geminiData = await geminiRes.json();
+      const rawText = extractGeminiText(geminiData);
+      const parsed = parseJsonResponse(rawText);
+
+      return new Response(JSON.stringify(parsed || { segments: [], consolidationQuestions: [] }), {
+        status: 200,
+        headers: { ...lpCorsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+    // ── Learn Check Route ──
+    if (url.pathname === "/studyengine/learn-check") {
+      const lcCorsHeaders = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, X-Widget-Key",
+        "Access-Control-Max-Age": "86400"
+      };
+      if (request.method !== "POST") {
+        return new Response(JSON.stringify({ error: "Method not allowed" }), {
+          status: 405, headers: { ...lcCorsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      const body = await request.json();
+      if (!body.checkQuestion || !body.userResponse) {
+        return new Response(JSON.stringify({ error: "Missing checkQuestion or userResponse" }), {
+          status: 400, headers: { ...lcCorsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      const systemPrompt = `You are evaluating a student's response to a comprehension check during an initial learning session. The student is learning this material for the first time.
+
+CONCEPT: ${body.concept || ""}
+CHECK QUESTION: ${body.checkQuestion}
+EXPECTED ANSWER: ${body.checkAnswer || ""}
+STUDENT RESPONSE: ${body.userResponse}
+
+Evaluate the response and return JSON:
+{
+  "verdict": "strong" | "partial" | "weak",
+  "feedback": "1-2 sentences: what they got right, what's missing",
+  "followUp": "If partial/weak: one Socratic question to close the gap. If strong: null",
+  "isComplete": true if verdict is "strong" or no follow-up needed, false if follow-up provided
+}
+
+Rules:
+- "strong": student hit the key points, even if wording differs
+- "partial": core idea present but missing an important element
+- "weak": fundamental misunderstanding or mostly wrong
+- Feedback must cite specific claims from the student's response
+- Never reveal the full answer directly — guide via questioning
+- Be concise: max 3 sentences for feedback`;
+
+      const geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + env.GEMINI_API_KEY;
+
+      const geminiRes = await fetch(geminiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: systemPrompt }] }],
+          generationConfig: {
+            temperature: 0.4,
+            maxOutputTokens: 512,
+            responseMimeType: "application/json",
+            thinkingConfig: { thinkingBudget: 0 }
+          }
+        })
+      });
+
+      if (!geminiRes.ok) {
+        const errText = await geminiRes.text();
+        return new Response(JSON.stringify({ error: "Gemini API error", detail: errText }), {
+          status: 502, headers: { ...lcCorsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      const geminiData = await geminiRes.json();
+      const rawText = extractGeminiText(geminiData);
+      const parsed = parseJsonResponse(rawText);
+
+      return new Response(JSON.stringify(parsed || { verdict: "partial", feedback: "Could not evaluate.", isComplete: true }), {
+        status: 200,
+        headers: { ...lcCorsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
     // ── Existing routes below (state sync, notion bridge) ──
     const passphrase = request.headers.get("X-Widget-Key");
     if (!passphrase || passphrase !== env.WIDGET_SECRET) {
