@@ -638,6 +638,9 @@ function showCourseDashboard(courseName) {
       });
 
       if (window.gsap) gsap.fromTo(content, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
+
+      /* Learn Mode toggle */
+      try { injectModeToggle(courseName, content); } catch(e) {}
     }
 
     function showModuleView(courseName, moduleId) {

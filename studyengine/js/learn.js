@@ -1,0 +1,660 @@
+/* ══════════════════════════════════════════════════
+   LEARN MODE — Scaffolded AI Instruction Engine
+   Phase 2: Core client module
+   ══════════════════════════════════════════════════ */
+
+var learnSession = null;
+var learnSelectedTopics = [];
+var learnSubDeckFilter = 'All';
+
+/* ── Topic Helpers ── */
+
+function getLearnableTopics(courseName, subDeckFilter) {
+  var topics = {};
+  for (var id in state.items) {
+    if (!state.items.hasOwnProperty(id)) continue;
+    var it = state.items[id];
+    if (!it || it.archived || it.course !== courseName) continue;
+    if (isItemInArchivedSubDeck(it)) continue;
+    if (subDeckFilter && subDeckFilter !== 'All' && it.subDeck !== subDeckFilter) continue;
+    var t = (it.topic || 'General').trim();
+    if (!topics[t]) topics[t] = { name: t, cards: [], subDecks: {} };
+    topics[t].cards.push(it);
+    var sd = it.subDeck || '__none__';
+    topics[t].subDecks[sd] = true;
+  }
+  return topics;
+}
+
+function getTopicLearnStatus(courseName, topicName) {
+  if (!state.learnProgress[courseName]) return 'not_started';
+  var p = state.learnProgress[courseName][topicName];
+  if (!p) return 'not_started';
+  return p.status || 'not_started';
+}
+
+/* ── Review/Learn Toggle Injection ── */
+
+function injectModeToggle(courseName, container) {
+  var existing = container.querySelector('.mode-toggle');
+  if (existing) existing.remove();
+
+  var toggle = document.createElement('div');
+  toggle.className = 'mode-toggle';
+  toggle.innerHTML =
+    '<button class="mode-toggle-btn active-review" data-mode="review">Review</button>' +
+    '<button class="mode-toggle-btn" data-mode="learn">Learn</button>';
+
+  /* Insert after the course header */
+  var header = container.querySelector('.ctx-course-header') || container.firstChild;
+  if (header && header.nextSibling) {
+    container.insertBefore(toggle, header.nextSibling);
+  } else {
+    container.appendChild(toggle);
+  }
+
+  var reviewContent = null;
+  var learnContent = null;
+
+  toggle.addEventListener('click', function(e) {
+    var btn = e.target.closest('.mode-toggle-btn');
+    if (!btn) return;
+    var mode = btn.dataset.mode;
+    toggle.querySelectorAll('.mode-toggle-btn').forEach(function(b) {
+      b.className = 'mode-toggle-btn';
+    });
+    btn.className = 'mode-toggle-btn active-' + mode;
+    try { playClick(); } catch(ex) {}
+
+    if (mode === 'learn') {
+      /* Hide review content, show learn tab */
+      if (!reviewContent) {
+        reviewContent = [];
+        var children = Array.prototype.slice.call(container.children);
+        children.forEach(function(child) {
+          if (child === toggle) return;
+          if (child.classList && child.classList.contains('learn-tab-content')) return;
+          if (child.style.display !== 'none') {
+            reviewContent.push({ el: child, display: child.style.display });
+            child.style.display = 'none';
+          }
+        });
+      } else {
+        reviewContent.forEach(function(r) { r.el.style.display = 'none'; });
+      }
+      renderLearnTab(courseName, container);
+    } else {
+      /* Restore review content, remove learn tab */
+      var lt = container.querySelector('.learn-tab-content');
+      if (lt) lt.remove();
+      if (reviewContent) {
+        reviewContent.forEach(function(r) { r.el.style.display = r.display || ''; });
+        reviewContent = null;
+      }
+    }
+
+    if (window.gsap) {
+      gsap.fromTo(btn, { scale: 0.95 }, { scale: 1, duration: 0.2, ease: 'back.out(2)' });
+    }
+  });
+}
+
+/* ── Learn Tab Rendering ── */
+
+function renderLearnTab(courseName, container) {
+  var existing = container.querySelector('.learn-tab-content');
+  if (existing) existing.remove();
+
+  var div = document.createElement('div');
+  div.className = 'learn-tab-content';
+
+  var subDecks = listSubDecks(courseName);
+  var topics = getLearnableTopics(courseName, learnSubDeckFilter);
+  var topicNames = Object.keys(topics).sort();
+
+  /* Sub-deck filter chips */
+  var filterHtml = '<div class="learn-filter-row">';
+  filterHtml += '<button class="learn-filter-chip' + (learnSubDeckFilter === 'All' ? ' active' : '') + '" data-sd="All">All</button>';
+  subDecks.forEach(function(sd) {
+    if (sd.archived) return;
+    filterHtml += '<button class="learn-filter-chip' + (learnSubDeckFilter === sd.name ? ' active' : '') + '" data-sd="' + esc(sd.name) + '">' + esc(sd.name) + '</button>';
+  });
+  filterHtml += '</div>';
+
+  /* Topic grid */
+  var gridHtml = '<div class="learn-topic-grid">';
+  if (topicNames.length === 0) {
+    gridHtml += '<div style="grid-column:1/-1;text-align:center;color:var(--text-secondary);font-size:0.82rem;padding:20px;">No topics found' + (learnSubDeckFilter !== 'All' ? ' in ' + esc(learnSubDeckFilter) : '') + '</div>';
+  } else {
+    topicNames.forEach(function(tName) {
+      var t = topics[tName];
+      var status = getTopicLearnStatus(courseName, tName);
+      var isSelected = learnSelectedTopics.indexOf(tName) >= 0;
+      var primarySd = Object.keys(t.subDecks).filter(function(k) { return k !== '__none__'; })[0] || null;
+
+      gridHtml += '<div class="learn-topic-card' + (isSelected ? ' selected' : '') + '" data-topic="' + esc(tName) + '">';
+      if (primarySd) gridHtml += '<span class="learn-subdeck-badge">' + esc(primarySd) + '</span>';
+      gridHtml += '<div class="learn-topic-name">' + esc(tName) + '</div>';
+      gridHtml += '<div class="learn-topic-meta">';
+      gridHtml += '<span class="learn-status-dot ' + status.replace('_', '-') + '"></span>';
+      gridHtml += '<span>' + t.cards.length + ' cards</span>';
+      gridHtml += '<span>' + status.replace('_', ' ') + '</span>';
+      gridHtml += '</div>';
+      gridHtml += '</div>';
+    });
+  }
+  gridHtml += '</div>';
+
+  /* Start button */
+  var startHtml = '<button class="learn-start-btn" id="learnStartBtn" disabled>Select topics to learn</button>';
+
+  div.innerHTML = filterHtml + gridHtml + startHtml;
+  container.appendChild(div);
+
+  /* Wire filter chips */
+  div.querySelectorAll('.learn-filter-chip').forEach(function(chip) {
+    chip.addEventListener('click', function() {
+      learnSubDeckFilter = this.dataset.sd;
+      learnSelectedTopics = [];
+      renderLearnTab(courseName, container);
+      try { playClick(); } catch(ex) {}
+    });
+  });
+
+  /* Wire topic card selection */
+  div.querySelectorAll('.learn-topic-card').forEach(function(card) {
+    card.addEventListener('click', function() {
+      var topic = this.dataset.topic;
+      var idx = learnSelectedTopics.indexOf(topic);
+      if (idx >= 0) learnSelectedTopics.splice(idx, 1);
+      else learnSelectedTopics.push(topic);
+      this.classList.toggle('selected');
+      updateLearnStartBtn();
+      try { playClick(); } catch(ex) {}
+      if (window.gsap) gsap.fromTo(this, { scale: 0.97 }, { scale: 1, duration: 0.2, ease: 'back.out(2)' });
+    });
+  });
+
+  function updateLearnStartBtn() {
+    var btn = document.getElementById('learnStartBtn');
+    if (!btn) return;
+    if (learnSelectedTopics.length === 0) {
+      btn.disabled = true;
+      btn.textContent = 'Select topics to learn';
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'Start Learning (' + learnSelectedTopics.length + ' topic' + (learnSelectedTopics.length !== 1 ? 's' : '') + ')';
+    }
+  }
+
+  /* Wire start button */
+  var startBtn = document.getElementById('learnStartBtn');
+  if (startBtn) {
+    startBtn.addEventListener('click', function() {
+      if (learnSelectedTopics.length === 0) return;
+      startLearnSession(courseName, learnSelectedTopics.slice(), learnSubDeckFilter);
+    });
+  }
+
+  if (window.gsap) gsap.fromTo(div, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.25, ease: 'power2.out' });
+}
+
+/* ── Learn Session ── */
+
+function startLearnSession(courseName, topics, subDeckFilter) {
+  var cards = [];
+  topics.forEach(function(topicName) {
+    for (var id in state.items) {
+      if (!state.items.hasOwnProperty(id)) continue;
+      var it = state.items[id];
+      if (!it || it.archived || it.course !== courseName) continue;
+      if (isItemInArchivedSubDeck(it)) continue;
+      if ((it.topic || 'General') !== topicName) continue;
+      if (subDeckFilter && subDeckFilter !== 'All' && it.subDeck !== subDeckFilter) continue;
+      cards.push({ id: it.id, prompt: it.prompt, modelAnswer: it.modelAnswer, tier: it.tier || 'quickfire', topic: it.topic || 'General' });
+    }
+  });
+
+  if (cards.length === 0) { toast('No cards found for selected topics'); return; }
+
+  /* Build learner context */
+  var learnerCtx = { strongTopics: [], weakTopics: [], calibrationAccuracy: 0, relevantMemories: [] };
+  try {
+    if (typeof buildLearnerContext === 'function' && cards[0]) {
+      var sampleItem = state.items[cards[0].id];
+      if (sampleItem) learnerCtx = buildLearnerContext(sampleItem, state);
+    }
+  } catch(e) {}
+
+  var courseData = getCourse(courseName) || {};
+
+  /* Show loading state */
+  showView('viewLearn');
+  var content = el('learnContent');
+  content.innerHTML = '<div class="learn-loading"><div class="learn-loading-spinner"></div>Generating teaching plan...</div>';
+  el('learnTitle').textContent = 'LEARNING: ' + topics[0] + (topics.length > 1 ? ' +' + (topics.length - 1) : '');
+  el('learnProgressLabel').textContent = '0/0';
+  el('learnProgressFill').style.width = '0%';
+
+  /* Exit button */
+  var exitBtn = el('learnExitBtn');
+  if (exitBtn) {
+    exitBtn.onclick = function() {
+      if (learnSession && learnSession.segIdx < learnSession.segments.length) {
+        if (!confirm('Exit learning session? Progress on completed segments is saved.')) return;
+      }
+      learnSession = null;
+      showView('viewDash');
+      renderDashboard();
+    };
+  }
+
+  /* Call worker */
+  fetch(LEARN_PLAN_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Widget-Key': getWidgetKey() },
+    body: JSON.stringify({
+      course: courseName,
+      topics: topics,
+      cards: cards.slice(0, 40),
+      courseContext: {
+        syllabusContext: courseData.syllabusContext || '',
+        professorValues: courseData.professorValues || '',
+        examFormat: courseData.examFormat || courseData.examType || 'mixed'
+      },
+      learnerContext: learnerCtx,
+      model: 'pro'
+    })
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(data) {
+    if (!data.segments || !data.segments.length) {
+      toast('Could not generate teaching plan');
+      showView('viewDash');
+      return;
+    }
+    learnSession = {
+      courseName: courseName,
+      topics: topics,
+      subDeckFilter: subDeckFilter,
+      segments: data.segments,
+      consolidation: data.consolidationQuestions || [],
+      segIdx: 0,
+      startedAt: Date.now(),
+      checkResults: [],
+      skipped: []
+    };
+    el('learnProgressLabel').textContent = '1/' + data.segments.length;
+    renderLearnSegment();
+  })
+  .catch(function(err) {
+    toast('Learn plan failed: ' + (err.message || String(err)));
+    showView('viewDash');
+  });
+}
+
+/* ── Segment Rendering ── */
+
+function renderLearnSegment() {
+  if (!learnSession) return;
+  var seg = learnSession.segments[learnSession.segIdx];
+  if (!seg) { startConsolidationBattery(); return; }
+
+  var total = learnSession.segments.length;
+  var idx = learnSession.segIdx;
+  el('learnProgressLabel').textContent = (idx + 1) + '/' + total;
+  el('learnProgressFill').style.width = Math.round(((idx + 1) / total) * 100) + '%';
+
+  var content = el('learnContent');
+  var h = '';
+
+  /* Segment card: explanation + elaboration */
+  h += '<div class="learn-segment-card">';
+  h += '<div class="learn-segment-concept">' + esc(seg.concept || 'Concept ' + (idx + 1)) + '</div>';
+  h += '<div class="learn-segment-explanation">' + esc(seg.explanation || '') + '</div>';
+  if (seg.elaboration) {
+    h += '<div class="learn-segment-elaboration">' + esc(seg.elaboration) + '</div>';
+  }
+  h += '</div>';
+
+  /* Check question card */
+  h += '<div class="learn-check-card">';
+  h += '<div class="learn-check-label">' + (seg.checkType === 'predict' ? '🔮 PREDICT' : '✍ YOUR TURN') + '</div>';
+  h += '<div class="learn-check-question">' + esc(seg.checkQuestion || 'What do you think?') + '</div>';
+  h += '<textarea class="learn-check-input" id="learnCheckInput" placeholder="Type your response..."></textarea>';
+  h += '<div class="learn-check-actions">';
+  h += '<button class="learn-submit-btn" id="learnSubmitBtn">Submit</button>';
+  h += '<button class="learn-skip-btn" id="learnSkipBtn">Skip →</button>';
+  h += '</div>';
+  h += '<div id="learnFeedbackArea"></div>';
+  h += '</div>';
+
+  content.innerHTML = h;
+
+  /* Wire textarea auto-grow */
+  var ta = el('learnCheckInput');
+  if (ta) {
+    ta.addEventListener('input', function() { autoGrowTextarea(ta); });
+    ta.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        submitLearnCheck();
+      }
+    });
+    requestAnimationFrame(function() { try { ta.focus(); } catch(ex) {} });
+  }
+
+  /* Wire submit */
+  var submitBtn = el('learnSubmitBtn');
+  if (submitBtn) submitBtn.addEventListener('click', submitLearnCheck);
+
+  /* Wire skip */
+  var skipBtn = el('learnSkipBtn');
+  if (skipBtn) skipBtn.addEventListener('click', function() {
+    learnSession.skipped.push(learnSession.segIdx);
+    learnSession.segIdx++;
+    renderLearnSegment();
+    try { playClick(); } catch(ex) {}
+  });
+
+  if (window.gsap) gsap.fromTo(content, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
+}
+
+/* ── Check Submission ── */
+
+function submitLearnCheck() {
+  if (!learnSession) return;
+  var seg = learnSession.segments[learnSession.segIdx];
+  if (!seg) return;
+
+  var ta = el('learnCheckInput');
+  var response = ta ? ta.value.trim() : '';
+  if (!response) { toast('Type a response first'); return; }
+
+  var submitBtn = el('learnSubmitBtn');
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Checking...'; }
+
+  var courseData = getCourse(learnSession.courseName) || {};
+
+  fetch(LEARN_CHECK_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Widget-Key': getWidgetKey() },
+    body: JSON.stringify({
+      concept: seg.concept || '',
+      checkQuestion: seg.checkQuestion || '',
+      checkAnswer: seg.checkAnswer || '',
+      userResponse: response,
+      courseContext: {
+        syllabusContext: courseData.syllabusContext || '',
+        professorValues: courseData.professorValues || ''
+      },
+      learnerContext: {}
+    })
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(data) {
+    learnSession.checkResults.push({
+      segIdx: learnSession.segIdx,
+      verdict: data.verdict || 'partial',
+      response: response
+    });
+    showLearnFeedback(data);
+  })
+  .catch(function(err) {
+    /* On error, show generic feedback and allow advancing */
+    showLearnFeedback({ verdict: 'strong', feedback: 'Could not reach the tutor. Moving on.', isComplete: true });
+  });
+}
+
+function showLearnFeedback(data) {
+  var area = el('learnFeedbackArea');
+  if (!area) return;
+
+  var verdict = data.verdict || 'partial';
+  var h = '<div class="learn-feedback ' + verdict + '">';
+  h += esc(data.feedback || 'Good effort.');
+  if (data.followUp && !data.isComplete) {
+    h += '<div class="learn-feedback-followup">' + esc(data.followUp) + '</div>';
+  }
+  h += '</div>';
+
+  if (data.isComplete !== false) {
+    h += '<button class="learn-advance-btn" id="learnAdvanceBtn">Next →</button>';
+  } else {
+    /* Follow-up: show another input */
+    h += '<textarea class="learn-check-input" id="learnFollowUpInput" placeholder="Your response..." style="margin-top:10px"></textarea>';
+    h += '<div class="learn-check-actions" style="margin-top:8px">';
+    h += '<button class="learn-submit-btn" id="learnFollowUpSubmit">Submit</button>';
+    h += '<button class="learn-skip-btn" id="learnFollowUpSkip">Skip →</button>';
+    h += '</div>';
+  }
+
+  area.innerHTML = h;
+
+  /* Disable original input + buttons */
+  var origInput = el('learnCheckInput');
+  if (origInput) origInput.disabled = true;
+  var origSubmit = el('learnSubmitBtn');
+  if (origSubmit) origSubmit.style.display = 'none';
+  var origSkip = el('learnSkipBtn');
+  if (origSkip) origSkip.style.display = 'none';
+
+  /* Wire advance */
+  var advBtn = el('learnAdvanceBtn');
+  if (advBtn) {
+    advBtn.addEventListener('click', function() {
+      learnSession.segIdx++;
+      renderLearnSegment();
+      try { playClick(); } catch(ex) {}
+    });
+    /* Space key to advance */
+    var spaceHandler = function(e) {
+      if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        document.removeEventListener('keydown', spaceHandler);
+        learnSession.segIdx++;
+        renderLearnSegment();
+      }
+    };
+    document.addEventListener('keydown', spaceHandler);
+  }
+
+  /* Wire follow-up input */
+  var fuInput = el('learnFollowUpInput');
+  if (fuInput) {
+    fuInput.addEventListener('input', function() { autoGrowTextarea(fuInput); });
+    requestAnimationFrame(function() { try { fuInput.focus(); } catch(ex) {} });
+  }
+  var fuSubmit = el('learnFollowUpSubmit');
+  if (fuSubmit) {
+    fuSubmit.addEventListener('click', function() {
+      var resp = fuInput ? fuInput.value.trim() : '';
+      if (!resp) return;
+      /* For follow-ups, just advance — one Socratic turn max in Phase 2 */
+      learnSession.segIdx++;
+      renderLearnSegment();
+    });
+  }
+  var fuSkip = el('learnFollowUpSkip');
+  if (fuSkip) {
+    fuSkip.addEventListener('click', function() {
+      learnSession.segIdx++;
+      renderLearnSegment();
+    });
+  }
+
+  if (window.gsap) gsap.fromTo(area, { opacity: 0, y: 4 }, { opacity: 1, y: 0, duration: 0.25, ease: 'power2.out' });
+}
+
+/* ── Consolidation Battery ── */
+
+function startConsolidationBattery() {
+  if (!learnSession || !learnSession.consolidation || learnSession.consolidation.length === 0) {
+    completeLearnSession();
+    return;
+  }
+
+  learnSession.consolIdx = 0;
+  learnSession.consolRatings = [];
+  el('learnProgressLabel').textContent = 'Retrieval Check';
+  el('learnProgressFill').style.width = '100%';
+  renderConsolidationItem();
+}
+
+function renderConsolidationItem() {
+  if (!learnSession) return;
+  var items = learnSession.consolidation;
+  var idx = learnSession.consolIdx;
+  if (idx >= items.length) { completeLearnSession(); return; }
+
+  var q = items[idx];
+  var content = el('learnContent');
+
+  var h = '<div class="learn-consolidation-header">';
+  h += '<div class="learn-consolidation-title">Consolidation Check</div>';
+  h += '<div class="learn-consolidation-sub">' + (idx + 1) + ' of ' + items.length + ' — retrieve what you just learned</div>';
+  h += '</div>';
+
+  h += '<div class="learn-segment-card">';
+  h += '<div class="learn-check-question" style="font-size:1rem;font-weight:600">' + esc(q.question) + '</div>';
+  h += '<textarea class="learn-check-input" id="consolInput" placeholder="Type from memory..."></textarea>';
+  h += '<button class="learn-submit-btn" id="consolReveal" style="margin-top:12px">Reveal Answer</button>';
+  h += '<div id="consolAnswerArea" style="display:none"></div>';
+  h += '</div>';
+
+  content.innerHTML = h;
+
+  var ta = el('consolInput');
+  if (ta) {
+    ta.addEventListener('input', function() { autoGrowTextarea(ta); });
+    requestAnimationFrame(function() { try { ta.focus(); } catch(ex) {} });
+  }
+
+  var revealBtn = el('consolReveal');
+  if (revealBtn) {
+    revealBtn.addEventListener('click', function() {
+      var ansArea = el('consolAnswerArea');
+      if (!ansArea) return;
+      ansArea.style.display = 'block';
+      ansArea.innerHTML =
+        '<div style="margin-top:14px;padding:14px;border-radius:var(--radius);background:rgba(var(--learn-accent-rgb),0.06);border:1px solid rgba(var(--learn-accent-rgb),0.15)">' +
+        '<div style="font-size:0.7rem;font-weight:700;color:var(--learn-accent);text-transform:uppercase;margin-bottom:6px">Model Answer</div>' +
+        '<div style="font-size:0.88rem;line-height:1.55;color:var(--text)">' + esc(q.answer || '') + '</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:6px;margin-top:12px">' +
+        '<button class="learn-submit-btn" data-rate="1" style="background:var(--rate-again);flex:1">Again</button>' +
+        '<button class="learn-submit-btn" data-rate="2" style="background:var(--rate-hard);flex:1">Hard</button>' +
+        '<button class="learn-submit-btn" data-rate="3" style="background:var(--rate-good);flex:1">Good</button>' +
+        '<button class="learn-submit-btn" data-rate="4" style="background:var(--rate-easy);flex:1">Easy</button>' +
+        '</div>';
+
+      revealBtn.style.display = 'none';
+
+      ansArea.querySelectorAll('[data-rate]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var rating = parseInt(this.dataset.rate, 10);
+          learnSession.consolRatings.push(rating);
+          learnSession.consolIdx++;
+          renderConsolidationItem();
+          try { playClick(); } catch(ex) {}
+        });
+      });
+
+      if (window.gsap) gsap.fromTo(ansArea, { opacity: 0, y: 4 }, { opacity: 1, y: 0, duration: 0.25, ease: 'power2.out' });
+    });
+  }
+
+  if (window.gsap) gsap.fromTo(content, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
+}
+
+/* ── Session Completion ── */
+
+function completeLearnSession() {
+  if (!learnSession) return;
+
+  var courseName = learnSession.courseName;
+  var topics = learnSession.topics;
+  var ratings = learnSession.consolRatings || [];
+  var avgRating = ratings.length > 0 ? ratings.reduce(function(a, b) { return a + b; }, 0) / ratings.length : 0;
+
+  /* Update learnProgress */
+  if (!state.learnProgress[courseName]) state.learnProgress[courseName] = {};
+  topics.forEach(function(topicName) {
+    state.learnProgress[courseName][topicName] = {
+      status: 'learned',
+      segmentsTotal: learnSession.segments.length,
+      segmentsCompleted: learnSession.segments.length - learnSession.skipped.length,
+      consolidationAvgRating: Math.round(avgRating * 10) / 10,
+      lastLearnedAt: isoNow(),
+      linkedCardIds: []
+    };
+    /* Collect linked card IDs from segments */
+    learnSession.segments.forEach(function(seg) {
+      if (seg.linkedCardIds) {
+        seg.linkedCardIds.forEach(function(cid) {
+          var prog = state.learnProgress[courseName][topicName];
+          if (prog.linkedCardIds.indexOf(cid) < 0) prog.linkedCardIds.push(cid);
+        });
+      }
+    });
+  });
+
+  /* Update item learnStatus for linked cards */
+  learnSession.segments.forEach(function(seg) {
+    if (!seg.linkedCardIds) return;
+    seg.linkedCardIds.forEach(function(cid) {
+      var it = state.items[cid];
+      if (it) {
+        it.learnStatus = 'learned';
+        it.learnedAt = isoNow();
+      }
+    });
+  });
+
+  /* Record session */
+  state.learnSessions.unshift({
+    course: courseName,
+    topics: topics,
+    subDeck: learnSession.subDeckFilter !== 'All' ? learnSession.subDeckFilter : null,
+    segmentsCompleted: learnSession.segments.length - learnSession.skipped.length,
+    consolidationRatings: ratings,
+    cardsHandedOff: Object.keys(state.learnProgress[courseName] || {}).reduce(function(sum, t) {
+      var p = state.learnProgress[courseName][t];
+      return sum + (p && p.linkedCardIds ? p.linkedCardIds.length : 0);
+    }, 0),
+    duration: Math.round((Date.now() - learnSession.startedAt) / 1000),
+    timestamp: isoNow()
+  });
+  if (state.learnSessions.length > 30) state.learnSessions.length = 30;
+
+  saveState();
+
+  /* Show completion screen */
+  var content = el('learnContent');
+  var segs = learnSession.segments.length;
+  var skipped = learnSession.skipped.length;
+  var h = '<div style="text-align:center;padding:30px 16px">';
+  h += '<div style="font-size:1.8rem;margin-bottom:8px">✅</div>';
+  h += '<div style="font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:6px">Learning Complete</div>';
+  h += '<div style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:20px">';
+  h += (segs - skipped) + ' of ' + segs + ' segments completed';
+  if (ratings.length > 0) h += ' · Avg retrieval: ' + avgRating.toFixed(1) + '/4';
+  h += '</div>';
+  h += '<div style="font-size:0.78rem;color:var(--text-tertiary);margin-bottom:20px">Your cards are now in the review queue. FSRS will schedule them based on your consolidation performance.</div>';
+  h += '<button class="learn-start-btn" id="learnDoneBtn">Back to Dashboard</button>';
+  h += '</div>';
+  content.innerHTML = h;
+
+  var doneBtn = el('learnDoneBtn');
+  if (doneBtn) {
+    doneBtn.addEventListener('click', function() {
+      learnSession = null;
+      learnSelectedTopics = [];
+      showView('viewDash');
+      renderDashboard();
+    });
+  }
+
+  if (window.gsap) gsap.fromTo(content, { opacity: 0, scale: 0.97 }, { opacity: 1, scale: 1, duration: 0.35, ease: 'power2.out' });
+  try { playChime(); } catch(ex) {}
+}

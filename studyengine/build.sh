@@ -18,6 +18,7 @@ css_order=(
   "$SRC_DIR/css/session.css"
   "$SRC_DIR/css/sidebar.css"
   "$SRC_DIR/css/modals.css"
+  "$SRC_DIR/css/learn.css"
 )
 
 # Keep JS order exactly as current build pipeline
@@ -28,6 +29,7 @@ js_order=(
   "$SRC_DIR/js/cards.js"
   "$SRC_DIR/js/dragon.js"
   "$SRC_DIR/js/sidebar.js"
+  "$SRC_DIR/js/learn.js"
   "$SRC_DIR/js/dashboard.js"
   "$SRC_DIR/js/tutor.js"
   "$SRC_DIR/js/tiers.js"
