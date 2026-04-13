@@ -18,10 +18,11 @@ $cssOrder = @(
   (Join-Path $Src 'css/dashboard.css'),
   (Join-Path $Src 'css/session.css'),
   (Join-Path $Src 'css/sidebar.css'),
-  (Join-Path $Src 'css/modals.css')
+  (Join-Path $Src 'css/modals.css'),
+  (Join-Path $Src 'css/learn.css')
 )
 
-# Keep JS order exactly as current build pipeline
+# Keep JS order exactly as current build pipeline (match build.sh)
 $jsOrder = @(
   (Join-Path $Src 'js/utils.js'),
   (Join-Path $Src 'js/fsrs.js'),
@@ -29,6 +30,7 @@ $jsOrder = @(
   (Join-Path $Src 'js/cards.js'),
   (Join-Path $Src 'js/dragon.js'),
   (Join-Path $Src 'js/sidebar.js'),
+  (Join-Path $Src 'js/learn.js'),
   (Join-Path $Src 'js/dashboard.js'),
   (Join-Path $Src 'js/tutor.js'),
   (Join-Path $Src 'js/tiers.js'),

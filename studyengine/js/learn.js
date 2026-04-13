@@ -71,6 +71,70 @@ function getTopicLearnStatus(courseName, topicName) {
   return p.status || 'not_started';
 }
 
+function getRecommendedLearnTopics(courseName, maxTopics) {
+  maxTopics = maxTopics || 2;
+  var topics = getLearnableTopics(courseName, 'All');
+  var scored = [];
+
+  for (var tName in topics) {
+    if (!topics.hasOwnProperty(tName)) continue;
+    var t = topics[tName];
+    var status = getTopicLearnStatus(courseName, tName);
+    var score = 0;
+
+    if (status === 'not_started') score += 100;
+
+    try {
+      var assess = getActiveAssessment(courseName);
+      if (assess && assess.prioritySet) {
+        var isPriority = false;
+        (assess.prioritySet || []).forEach(function(qId) {
+          var q = (assess.questions || []).find(function(x) { return x.id === qId; });
+          if (q && q.mappedTopics && q.mappedTopics.indexOf(tName) >= 0) isPriority = true;
+        });
+        if (isPriority) score += 80;
+      }
+    } catch(e) {}
+
+    var weakCards = 0;
+    t.cards.forEach(function(c) {
+      var item = state.items[c.id || c];
+      if (!item) return;
+      if (!item.fsrs || item.fsrs.stability < 5) weakCards++;
+      if (item.fsrs && item.fsrs.lapses >= 3) weakCards++;
+    });
+    score += Math.min(weakCards * 5, 50);
+
+    score += Math.min(t.cards.length, 10);
+
+    if (status === 'learned' && state.learnProgress[courseName] && state.learnProgress[courseName][tName]) {
+      var lp = state.learnProgress[courseName][tName];
+      if (lp.lastLearnedAt) {
+        var hoursAgo = (Date.now() - new Date(lp.lastLearnedAt).getTime()) / (1000 * 60 * 60);
+        if (hoursAgo < 24) score -= 200;
+        else if (hoursAgo < 72) score -= 50;
+      }
+    }
+
+    try {
+      var assess2 = getActiveAssessment(courseName);
+      if (assess2 && assess2.sacrificeSet) {
+        var isSacrifice = false;
+        (assess2.sacrificeSet || []).forEach(function(qId) {
+          var q = (assess2.questions || []).find(function(x) { return x.id === qId; });
+          if (q && q.mappedTopics && q.mappedTopics.indexOf(tName) >= 0) isSacrifice = true;
+        });
+        if (isSacrifice) score -= 100;
+      }
+    } catch(e2) {}
+
+    scored.push({ name: tName, score: score });
+  }
+
+  scored.sort(function(a, b) { return b.score - a.score; });
+  return scored.slice(0, maxTopics).filter(function(s) { return s.score > 0; }).map(function(s) { return s.name; });
+}
+
 /* ── Review/Learn Toggle Injection ── */
 
 function injectModeToggle(courseName, container) {
@@ -345,14 +409,19 @@ function startLearnSession(courseName, topics, subDeckFilter) {
     };
   }
 
-  /* Call worker */
+  var controller = new AbortController();
+  var timeoutId = setTimeout(function() { controller.abort(); }, 60000);
+
+  console.log('[Learn] Fetching:', LEARN_PLAN_ENDPOINT);
+
   fetch(LEARN_PLAN_ENDPOINT, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Widget-Key': getWidgetKey() },
+    headers: { 'Content-Type': 'application/json' },
+    signal: controller.signal,
     body: JSON.stringify({
       course: courseName,
       topics: topics,
-      cards: cards.slice(0, 40),
+      cards: cards.slice(0, 20),
       courseContext: {
         syllabusContext: courseData.syllabusContext || '',
         professorValues: courseData.professorValues || '',
@@ -363,11 +432,20 @@ function startLearnSession(courseName, topics, subDeckFilter) {
     })
   })
   .then(function(res) {
-    if (!res.ok) throw new Error('Server returned ' + res.status);
+    clearTimeout(timeoutId);
+    console.log('[Learn] Response status:', res.status, res.statusText);
+    if (!res.ok) {
+      return res.text().then(function(t) {
+        console.error('[Learn] Error body:', t);
+        throw new Error('Server returned ' + res.status + ': ' + t);
+      });
+    }
     return res.json();
   })
   .then(function(data) {
+    console.log('[Learn] Parsed data:', JSON.stringify(data).slice(0, 500));
     if (!data.segments || !data.segments.length) {
+      console.error('[Learn] No segments in response. Full data:', data);
       toast('Could not generate teaching plan');
       showView('viewDash');
       return;
@@ -387,6 +465,8 @@ function startLearnSession(courseName, topics, subDeckFilter) {
     renderLearnSegment();
   })
   .catch(function(err) {
+    clearTimeout(timeoutId);
+    console.error('[Learn] Fetch failed:', err);
     toast('Learn plan failed: ' + (err.message || String(err)));
     showView('viewDash');
   });
@@ -475,9 +555,15 @@ function submitLearnCheck() {
 
   var courseData = getCourse(learnSession.courseName) || {};
 
+  var checkController = new AbortController();
+  var checkTimeoutId = setTimeout(function() { checkController.abort(); }, 60000);
+
+  console.log('[Learn] learn-check:', LEARN_CHECK_ENDPOINT);
+
   fetch(LEARN_CHECK_ENDPOINT, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Widget-Key': getWidgetKey() },
+    headers: { 'Content-Type': 'application/json' },
+    signal: checkController.signal,
     body: JSON.stringify({
       concept: seg.concept || '',
       checkQuestion: seg.checkQuestion || '',
@@ -491,10 +577,18 @@ function submitLearnCheck() {
     })
   })
   .then(function(res) {
-    if (!res.ok) throw new Error('Server returned ' + res.status);
+    clearTimeout(checkTimeoutId);
+    console.log('[Learn] learn-check status:', res.status, res.statusText);
+    if (!res.ok) {
+      return res.text().then(function(t) {
+        console.error('[Learn] learn-check error body:', t);
+        throw new Error('Server returned ' + res.status + ': ' + t);
+      });
+    }
     return res.json();
   })
   .then(function(data) {
+    console.log('[Learn] learn-check parsed:', JSON.stringify(data).slice(0, 400));
     learnSession.checkResults.push({
       segIdx: learnSession.segIdx,
       verdict: data.verdict || 'partial',
@@ -503,7 +597,8 @@ function submitLearnCheck() {
     showLearnFeedback(data);
   })
   .catch(function(err) {
-    /* On error, show generic feedback and allow advancing */
+    clearTimeout(checkTimeoutId);
+    console.error('[Learn] learn-check failed:', err);
     showLearnFeedback({ verdict: 'strong', feedback: 'Could not reach the tutor. Moving on.', isComplete: true });
   });
 }

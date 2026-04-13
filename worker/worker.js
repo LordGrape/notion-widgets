@@ -2410,7 +2410,7 @@ graph LR
         });
       }
 
-      const cardSummaries = body.cards.slice(0, 40).map(c => `PROMPT: ${c.prompt}\nANSWER: ${c.modelAnswer}`).join("\n---\n");
+      const cardSummaries = body.cards.slice(0, 20).map(c => `PROMPT: ${c.prompt}\nANSWER: ${c.modelAnswer}`).join("\n---\n");
       const syllabusCtx = body.courseContext && body.courseContext.syllabusContext ? body.courseContext.syllabusContext : "";
       const profValues = body.courseContext && body.courseContext.professorValues ? body.courseContext.professorValues : "";
 

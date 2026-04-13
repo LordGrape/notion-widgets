@@ -543,3 +543,48 @@
         grid-column: 1 / -1;
     }
 }
+
+/* Learn Next — course dashboard shortcut */
+.ctx-actions .learn-next-card {
+    flex: 1 1 100%;
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+    box-sizing: border-box;
+}
+
+.learn-next-card {
+    background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.15), rgba(var(--accent-rgb), 0.05));
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.learn-next-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(var(--accent-rgb), 0.2);
+}
+
+.learn-next-icon {
+    font-size: 1.5rem;
+}
+
+.learn-next-label {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.learn-next-topics {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-left: auto;
+    text-align: right;
+    min-width: 0;
+}

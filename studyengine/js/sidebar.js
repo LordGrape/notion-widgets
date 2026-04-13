@@ -699,6 +699,24 @@ function showCourseDashboard(courseName) {
         startSession();
       });
 
+      var actionArea = content.querySelector('.ctx-actions');
+      if (actionArea) {
+        var learnTopics = (typeof getRecommendedLearnTopics === 'function') ? getRecommendedLearnTopics(courseName) : [];
+        if (learnTopics.length > 0) {
+          var learnCard = document.createElement('div');
+          learnCard.className = 'learn-next-card';
+          learnCard.innerHTML =
+            '<div class="learn-next-icon">📖</div>' +
+            '<div class="learn-next-label">Learn Next</div>' +
+            '<div class="learn-next-topics">' + learnTopics.map(function(t) { return esc(t); }).join(', ') + '</div>';
+          learnCard.addEventListener('click', function() {
+            startLearnSession(courseName, learnTopics, 'All');
+            try { playClick(); } catch(ex) {}
+          });
+          actionArea.appendChild(learnCard);
+        }
+      }
+
       var actionsBtn = document.getElementById('ctxCourseActions');
       if (actionsBtn) actionsBtn.addEventListener('click', function(e) {
         e.stopPropagation();
