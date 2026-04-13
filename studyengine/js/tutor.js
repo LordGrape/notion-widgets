@@ -1,5 +1,30 @@
 /* Phase 2 extraction: copied from monolith; source-of-truth remains state.js for parity. */
 
+    function defaultTutorStats() {
+      return {
+        socraticTurns: 0,
+        acknowledgeTurns: 0,
+        dontKnowCount: 0,
+        dontKnows: 0,
+        skipsToRating: 0,
+        relearningCount: 0,
+        reconstructionSuccesses: 0,
+        apiSuccesses: 0,
+        apiFailures: 0
+      };
+    }
+
+    function defaultTutorModeCounts() {
+      return {
+        socratic: 0,
+        acknowledge: 0,
+        quickfeedback: 0,
+        insight: 0,
+        dontknow: 0,
+        relearning: 0
+      };
+    }
+
     function callTutor(mode, model, item, userResponse, conversation, context) {
       var modelEff = model || 'flash';
       var payload = {
