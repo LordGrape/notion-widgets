@@ -1691,7 +1691,8 @@ var tutorConversation = [];
         lapses: (tItem.fsrs && tItem.fsrs.lapses) || 0,
         sessionRetryCount: (session && session.loops && tItem && session.loops[tItem.id]) || 0,
         recentAvgRating: getRecentAvg(),
-        isRelearning: !!(session && session._isRelearning)
+        isRelearning: !!(session && session._isRelearning),
+        sessionSummary: (session && session.dialogueSummary) ? session.dialogueSummary.slice(-5) : []
       };
       if (typeof state !== 'undefined' && state) {
         ctx.learner = buildLearnerContext(tItem, state);
@@ -7783,4 +7784,3 @@ el('gearBtn').addEventListener('click', openSettings);
         boot();
       }
     }, 12000);
-

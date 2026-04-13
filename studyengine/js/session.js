@@ -854,6 +854,7 @@ var mockCountdownTimer = null;
         tutorStats: defaultTutorStats(),
         tutorModeCounts: defaultTutorModeCounts(),
         sessionRatingsLog: [],
+        dialogueSummary: [],
         lastTutorContext: null,  /* { mode, turns, hadDialogue, wasDontKnow } — set by tutor flows */
         tutorAnalyticsHistoryKey: 's' + Date.now()
       };
