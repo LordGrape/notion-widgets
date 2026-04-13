@@ -883,10 +883,9 @@ var mockCountdownTimer = null;
         xpBar.className = 'session-xp-bar';
         xpBar.id = 'sessionXPBar';
         xpBar.innerHTML =
-          '<span class="sxp-label">XP</span>' +
-          '<div class="sxp-fill-wrap"><div class="sxp-fill"></div></div>' +
-          '<span class="sxp-value">0 XP</span>' +
-          '<span class="sxp-streak"></span>';
+          '<span class="xp-label">SESSION XP</span>' +
+          '<div class="xp-track"><div class="xp-fill" id="sessionXPFill"></div></div>' +
+          '<span class="xp-value" id="sessionXPValue">0 XP</span>';
         sessionTop.insertAdjacentElement('afterend', xpBar);
       }
       updateSessionXPBar();

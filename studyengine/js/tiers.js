@@ -2,44 +2,49 @@
 
 function renderQuickfireTier(it, session) {
   tierArea.innerHTML =
-    '<div class="confidence-prompt" id="confidencePrompt">' +
-      '<div class="confidence-label">How confident are you?</div>' +
-      '<div class="confidence-pills confidence-row">' +
-        '<div class="conf-pill" data-conf="low">Low</div>' +
-        '<div class="conf-pill" data-conf="medium">Medium</div>' +
-        '<div class="conf-pill" data-conf="high">High</div>' +
-      '</div>' +
+    '<div id="confidencePrompt" class="confidence-prompt-label">How confident are you?</div>' +
+    '<div class="confidence-row">' +
+      '<button class="conf-pill" data-conf="low">LOW</button>' +
+      '<button class="conf-pill" data-conf="medium">MEDIUM</button>' +
+      '<button class="conf-pill" data-conf="high">HIGH</button>' +
     '</div>' +
-    '<button class="qa-btn conf-then-reveal" id="revealBtn">Reveal (Space)</button>';
+    '<button id="revealBtn" class="big-btn conf-then-reveal">Reveal</button>';
 
   tierArea.querySelectorAll('.conf-pill').forEach(function(pill) {
     pill.addEventListener('click', function() {
-      tierArea.querySelectorAll('.conf-pill').forEach(function(p) { p.classList.remove('selected'); });
+      tierArea.querySelectorAll('.conf-pill').forEach(function(p) {
+        p.classList.remove('selected');
+        p.style.opacity = '';
+        p.style.transform = '';
+      });
       this.classList.add('selected');
       session.confidence = this.getAttribute('data-conf');
-      /* Dim unselected siblings for visual focus */
+
       tierArea.querySelectorAll('.conf-pill:not(.selected)').forEach(function(p) {
-        p.style.opacity = '0.55';
-        if (window.gsap) gsap.to(p, { opacity: 0.55, scale: 0.97, duration: 0.2, ease: 'power2.out' });
+        if (window.gsap) gsap.to(p, { opacity: 0.5, scale: 0.97, duration: 0.2, ease: 'power2.out' });
+        else p.style.opacity = '0.5';
       });
-      /* Restore this pill to full */
-      if (window.gsap) gsap.to(this, { opacity: 1, scale: 1, duration: 0.2 });
+
       var revBtn = el('revealBtn');
       if (revBtn) revBtn.classList.add('ready');
+
       try { playClick(); } catch(e) {}
-      if (window.gsap) gsap.fromTo(this, { scale: 0.94 }, { scale: 1, duration: 0.3, ease: 'back.out(2.5)' });
+      if (window.gsap) gsap.fromTo(this, { scale: 0.92 }, { scale: 1, duration: 0.35, ease: 'back.out(2.5)' });
     });
   });
 
-  el('revealBtn').addEventListener('click', function(){
-    if (!session.confidence) {
-      toast('Pick a confidence level first');
-      return;
-    }
-    revealAnswer();
-  });
-  /* Visual deferred to revealAnswer() — answer-side only. Background-generate so reveal stays snappy. */
-  if (!it.visual && it.prompt && it.modelAnswer && !visualGenerationPending[it.id]) {
+  var revealBtn = el('revealBtn');
+  if (revealBtn) {
+    revealBtn.addEventListener('click', function() {
+      if (!session.confidence) {
+        toast('Pick a confidence level first');
+        return;
+      }
+      revealAnswer();
+    });
+  }
+
+  if (!it.visual && it.prompt && it.modelAnswer && typeof generateVisual === 'function' && typeof visualGenerationPending !== 'undefined' && !visualGenerationPending[it.id]) {
     visualGenerationPending[it.id] = true;
     generateVisual(it).then(function(v) {
       visualGenerationPending[it.id] = false;
