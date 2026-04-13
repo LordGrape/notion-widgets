@@ -246,6 +246,13 @@
           if (f && f.lastReview) { retSum += retrievability(f, now); retN++; }
         }
         var retPct = retN ? Math.round((retSum / retN) * 100) : null;
+        var courseReadiness = computeExamReadiness(c.name);
+        var readinessBadge = '';
+        if (courseReadiness && courseReadiness.totalCards >= 5) {
+          var rPct = courseReadiness.readinessPct;
+          var rCol = rPct >= 75 ? 'var(--rate-good)' : rPct >= 50 ? 'var(--rate-hard)' : 'var(--rate-again)';
+          readinessBadge = '<span class="cc-exam-type" style="border-color:' + rCol + ';color:' + rCol + ';background:rgba(139,92,246,0.08);">' + rPct + '% ready</span>';
+        }
         var cramState = getCramState(c.name);
         var courseCol = c.color || '#8b5cf6';
         h += '<div class="course-card" data-course-name="' + esc(c.name) + '" style="border-left-color:' + esc(courseCol) + '; background: linear-gradient(135deg, ' + esc(courseCol) + '12, ' + esc(courseCol) + '06);">' +
@@ -254,6 +261,7 @@
           '<div class="cc-meta">' +
           '<span class="cc-exam-type">' + esc(EXAM_TYPE_LABELS[c.examType] || c.examType) + '</span>' +
           (c.examDate ? '<span class="cc-exam-type" style="border-color:rgba(239,68,68,0.2);color:var(--rate-again);background:rgba(239,68,68,0.06);">' + (cramState.active ? '🔥 Cram' : '📅 Exam set') + '</span>' : '<span class="cc-exam-type" style="border-color:rgba(34,197,94,0.2);color:var(--rate-good);background:rgba(34,197,94,0.06);">🧠 Long-term</span>') +
+          readinessBadge +
           '</div>' +
           '</div>' +
           '<div style="text-align:right;">' +
@@ -1013,3 +1021,78 @@
           wrap.style.display = 'none';
         });
     }
+
+    function renderCourseDetailReadiness(courseName) {
+      if (!courseName) return;
+      var readinessHost = el('cdReadinessHost');
+      if (!readinessHost) {
+        readinessHost = document.createElement('div');
+        readinessHost.id = 'cdReadinessHost';
+        readinessHost.style.cssText = 'margin:16px 0;';
+        var cdCountdownEl = el('cdCountdown');
+        var insertAfter = cdCountdownEl || el('cdBadges');
+        if (insertAfter && insertAfter.parentNode) {
+          insertAfter.parentNode.insertBefore(readinessHost, insertAfter.nextSibling);
+        } else {
+          var view = el('viewCourseDetail');
+          if (view) view.appendChild(readinessHost);
+        }
+      }
+      var readinessData = computeExamReadiness(courseName);
+      if (readinessData && readinessData.totalCards >= 5) {
+        var pct = readinessData.readinessPct;
+        var gaugeColor = pct >= 75 ? 'var(--rate-good)' : pct >= 50 ? 'var(--rate-hard)' : 'var(--rate-again)';
+        var gaugeLabel = pct >= 75 ? 'Strong' : pct >= 50 ? 'Developing' : 'Needs Work';
+        var weakTopics = readinessData.topicBreakdown.slice(0, 3);
+        var weakHTML = weakTopics.map(function(t) {
+          return '<span style="display:inline-block;font-size:0.75em;padding:1px 6px;border-radius:6px;' +
+            'background:rgba(239,68,68,0.12);color:var(--rate-again);margin:2px 3px;">' +
+            esc(t.topic) + ' ' + t.readiness + '%</span>';
+        }).join('');
+        readinessHost.innerHTML =
+          '<div style="background:var(--card-bg);backdrop-filter:blur(20px) saturate(1.4);' +
+          'border:1px solid var(--card-border,rgba(139,92,246,0.12));border-radius:16px;padding:16px 20px;">' +
+          '<div style="display:flex;align-items:center;gap:16px;">' +
+          '<div style="position:relative;width:64px;height:64px;">' +
+          '<svg viewBox="0 0 36 36" style="width:64px;height:64px;transform:rotate(-90deg);">' +
+          '<circle cx="18" cy="18" r="15.9" fill="none" stroke="var(--card-border,rgba(139,92,246,0.12))" stroke-width="3"/>' +
+          '<circle cx="18" cy="18" r="15.9" fill="none" stroke="' + gaugeColor + '" ' +
+          'stroke-width="3" stroke-dasharray="' + pct + ' ' + (100 - pct) + '" ' +
+          'stroke-linecap="round" style="transition:stroke-dasharray 0.6s ease;"/>' +
+          '</svg>' +
+          '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;' +
+          'font-size:1.1em;font-weight:700;color:' + gaugeColor + ';">' + pct + '%</div>' +
+          '</div>' +
+          '<div style="flex:1;">' +
+          '<div style="font-size:0.85em;font-weight:600;color:var(--text-primary);">Exam Readiness</div>' +
+          '<div style="font-size:0.75em;color:var(--text-secondary);margin-top:2px;">' +
+          gaugeLabel + ' · ' + readinessData.totalCards + ' cards across ' +
+          readinessData.topicCount + ' topics</div>' +
+          (weakHTML ? '<div style="margin-top:6px;">Weakest: ' + weakHTML + '</div>' : '') +
+          '</div>' +
+          '</div>' +
+          '</div>';
+        if (window.gsap) {
+          gsap.fromTo(readinessHost.firstChild,
+            { opacity: 0, y: 6 },
+            { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }
+          );
+        }
+      } else {
+        readinessHost.innerHTML = '';
+      }
+    }
+
+    (function installCourseDetailReadinessHook() {
+      if (typeof openCourseDetail !== 'function') {
+        setTimeout(installCourseDetailReadinessHook, 100);
+        return;
+      }
+      if (openCourseDetail._readinessHooked) return;
+      var __baseOpenCourseDetail = openCourseDetail;
+      openCourseDetail = function(courseName) {
+        __baseOpenCourseDetail(courseName);
+        renderCourseDetailReadiness(courseName);
+      };
+      openCourseDetail._readinessHooked = true;
+    })();
