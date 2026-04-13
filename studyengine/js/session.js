@@ -877,7 +877,7 @@ var mockCountdownTimer = null;
         });
         metaEl.appendChild(btn);
       }
-      btn.style.display = (session && session.currentShown) ? 'inline-flex' : 'none';
+      btn.style.display = 'none';
     }
 
     function startSession() {
