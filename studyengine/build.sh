@@ -30,6 +30,7 @@ js_order=(
   "$SRC_DIR/js/sidebar.js"
   "$SRC_DIR/js/dashboard.js"
   "$SRC_DIR/js/tutor.js"
+  "$SRC_DIR/js/tiers.js"
   "$SRC_DIR/js/session.js"
   "$SRC_DIR/js/state.js"
 )

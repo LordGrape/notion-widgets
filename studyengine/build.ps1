@@ -31,6 +31,7 @@ $jsOrder = @(
   (Join-Path $Src 'js/sidebar.js'),
   (Join-Path $Src 'js/dashboard.js'),
   (Join-Path $Src 'js/tutor.js'),
+  (Join-Path $Src 'js/tiers.js'),
   (Join-Path $Src 'js/session.js'),
   (Join-Path $Src 'js/state.js')
 )
