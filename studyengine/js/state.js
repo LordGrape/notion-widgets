@@ -7602,7 +7602,6 @@ el('gearBtn').addEventListener('click', openSettings);
       wireGlobalTutorNotesUI();
       renderDashboard();
       showView('viewDash');
-      if (typeof checkForResumableSession === 'function') checkForResumableSession();
 
       // ── Sidebar Init (standalone only) ──
       if (!isEmbedded) {

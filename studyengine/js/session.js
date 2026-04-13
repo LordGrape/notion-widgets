@@ -811,35 +811,18 @@ var mockCountdownTimer = null;
       dismissResumePrompt();
       var snapshot = null;
       try { snapshot = SyncEngine.get('studyengine', 'activeSession'); } catch (e) {}
-      if (!snapshot || !snapshot.queue || !snapshot.queue.length) return;
+      if (!snapshot || !snapshot.queue || !snapshot.queue.length) return null;
       if (!snapshot.startedAt || (Date.now() - snapshot.startedAt) > (4 * 60 * 60 * 1000)) {
         clearActiveSessionSnapshot();
-        return;
+        return null;
       }
       var remaining = Math.max(0, snapshot.queue.length - (snapshot.idx || 0));
       if (!remaining) {
         clearActiveSessionSnapshot();
-        return;
+        return null;
       }
-      var prompt = document.createElement('div');
-      prompt.id = 'resumeSessionPrompt';
-      prompt.style.cssText = 'position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:1200;width:min(340px,calc(100vw - 24px));padding:14px 16px;border-radius:18px;border:1px solid rgba(var(--accent-rgb),0.18);background:rgba(10,14,26,0.88);backdrop-filter:blur(18px);box-shadow:0 18px 42px rgba(0,0,0,0.28);';
-      prompt.innerHTML =
-        '<div style="font-size:12px;font-weight:700;margin-bottom:4px;">Resume interrupted session?</div>' +
-        '<div style="font-size:11px;color:var(--text-secondary);line-height:1.55;">' + remaining + ' card' + (remaining === 1 ? '' : 's') + ' remaining.</div>' +
-        '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap;">' +
-          '<button type="button" id="resumeDiscardBtn" class="ghost-btn">Discard</button>' +
-          '<button type="button" id="resumeNowBtn" class="big-btn">Resume</button>' +
-        '</div>';
-      document.body.appendChild(prompt);
-      if (window.gsap) gsap.fromTo(prompt, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.22, ease: 'power2.out' });
-      var resumeBtn = document.getElementById('resumeNowBtn');
-      if (resumeBtn) resumeBtn.addEventListener('click', function() { resumeSavedSession(snapshot); });
-      var discardBtn = document.getElementById('resumeDiscardBtn');
-      if (discardBtn) discardBtn.addEventListener('click', function() {
-        clearActiveSessionSnapshot();
-        dismissResumePrompt();
-      });
+      snapshot._remaining = remaining;
+      return snapshot;
     }
 
     function refreshSessionEditButton() {
@@ -882,6 +865,8 @@ var mockCountdownTimer = null;
     }
 
     function startSession() {
+      dismissResumePrompt();
+      clearActiveSessionSnapshot();
       var q = buildSessionQueue();
       session = {
         queue: q,
