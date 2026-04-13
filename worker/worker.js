@@ -53,6 +53,7 @@ export default {
       });
     }
 
+    try {
     const url = new URL(request.url);
 
     // ── Socratic Tutor Route ──
@@ -2118,6 +2119,17 @@ graph LR
     }
 
     return json({ error: "Not found" }, 404);
+    } catch (fatalErr) {
+      return new Response(JSON.stringify({ error: "Internal server error", detail: fatalErr.message }), {
+        status: 500,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, PUT, POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, X-Widget-Key"
+        }
+      });
+    }
   }
 };
 

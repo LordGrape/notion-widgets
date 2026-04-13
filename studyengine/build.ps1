@@ -61,6 +61,14 @@ foreach ($pattern in $patterns) {
   }
 }
 
+# Copy static assets to dist/ (e.g. horizon dragon PNGs)
+$assetsSource = Join-Path $Root 'assets'
+$assetsDest = Join-Path (Join-Path $Root 'dist') 'assets'
+if (Test-Path $assetsSource) {
+    if (Test-Path $assetsDest) { Remove-Item -Recurse -Force $assetsDest }
+    Copy-Item -Recurse $assetsSource $assetsDest
+}
+
 $files = Get-ChildItem -Path $Dist -File
 $fileCount = $files.Count
 $totalBytes = ($files | Measure-Object -Property Length -Sum).Sum
