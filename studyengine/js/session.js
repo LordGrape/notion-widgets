@@ -1031,6 +1031,19 @@ var mockCountdownTimer = null;
           tierBadgeEl.parentNode.insertBefore(refBadge, tierBadgeEl.nextSibling);
         }
       }
+      // Show escalation badge if tier was promoted due to hot streak
+      var currentIt = session.queue[session.idx];
+      if (currentIt && currentIt._escalated) {
+        var escBadge = document.createElement('span');
+        escBadge.className = 'esc-badge';
+        escBadge.textContent = '🔥 Escalated';
+        escBadge.title = 'Tier promoted because you are on a hot streak (6+ Good/Easy in a row)';
+        escBadge.style.cssText = 'display:inline-block;font-size:0.7em;padding:2px 8px;border-radius:10px;background:rgba(239,68,68,0.15);color:var(--rate-again);margin-left:8px;vertical-align:middle;cursor:help;';
+        var tierBadgeEl2 = tierArea.querySelector('.tier-badge') || tierArea.querySelector('[class*="tier"]');
+        if (tierBadgeEl2 && tierBadgeEl2.parentNode) {
+          tierBadgeEl2.parentNode.insertBefore(escBadge, tierBadgeEl2.nextSibling);
+        }
+      }
       /* Tier-themed item card border */
       var ic = document.querySelector('.item-card');
       if (ic) {
@@ -1547,6 +1560,24 @@ var mockCountdownTimer = null;
           completeSession();
           return;
         }
+        // Within-session difficulty escalation on hot streaks
+        if (isHotStreak() && session.queue[session.idx]) {
+          var nextItem = session.queue[session.idx];
+          var currentTier = nextItem._presentTier || nextItem.tier || 'quickfire';
+          var escalationOrder = ['quickfire', 'explain', 'apply', 'distinguish', 'mock'];
+          var currentIdx = escalationOrder.indexOf(currentTier);
+          // Only escalate if there's a higher tier AND the item supports it
+          if (currentIdx >= 0 && currentIdx < escalationOrder.length - 1) {
+            var candidateTier = escalationOrder[currentIdx + 1];
+            var supported = detectSupportedTiers(nextItem);
+            if (supported.indexOf(candidateTier) >= 0) {
+              nextItem._presentTier = candidateTier;
+              nextItem._escalated = true;
+              if (!session._escalationCount) session._escalationCount = 0;
+              session._escalationCount++;
+            }
+          }
+        }
         persistActiveSessionSnapshot();
         checkBreakTriggers();
         renderCurrentItem();
@@ -1636,6 +1667,7 @@ var mockCountdownTimer = null;
         xp: session.xp,
         ratingN: session.ratingN,
         ratingSum: session.ratingSum,
+        escalationCount: session._escalationCount || 0,
         calBefore: session.calBefore,
         tutorStats: session.tutorStats ? JSON.parse(JSON.stringify(session.tutorStats)) : defaultTutorStats(),
         tutorModeCounts: session.tutorModeCounts ? JSON.parse(JSON.stringify(session.tutorModeCounts)) : defaultTutorModeCounts(),
@@ -1679,6 +1711,22 @@ var mockCountdownTimer = null;
         bd += '<span class="tier-pill"><span class="tier-dot" style="background:'+ col +'"></span>' + names[t] + ': ' + c + '</span>';
       });
       el('doneBreakdown').innerHTML = bd;
+      // Track escalation stats for done-view
+      var escalationCount = session._escalationCount || 0;
+      if (escalationCount > 0) {
+        var oldEscStatEl = document.getElementById('doneEscalationStat');
+        if (oldEscStatEl) oldEscStatEl.remove();
+        var escStatEl = document.createElement('div');
+        escStatEl.id = 'doneEscalationStat';
+        escStatEl.style.cssText = 'font-size:0.8em;color:var(--text-secondary);margin-top:6px;';
+        escStatEl.textContent = '🔥 ' + escalationCount + ' card' +
+          (escalationCount !== 1 ? 's' : '') + ' escalated (hot streak tier promotion)';
+        var viewDoneEl = el('viewDone');
+        var doneStatsContainer = (viewDoneEl && viewDoneEl.querySelector('.done-stats')) ||
+          (viewDoneEl && viewDoneEl.querySelector('[class*="stats"]')) ||
+          (viewDoneEl && viewDoneEl.querySelector('.card'));
+        if (doneStatsContainer) doneStatsContainer.appendChild(escStatEl);
+      }
 
       session = null;
       try { document.body.classList.remove('in-session'); } catch(e) {}

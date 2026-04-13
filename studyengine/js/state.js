@@ -1089,6 +1089,90 @@ var el = function(id){ return document.getElementById(id); };
       return { show: false, bias: 'neutral' };
     }
 
+    function computeExamReadiness(courseName) {
+      if (!courseName || !state.items) return null;
+      var TIER_DEPTH = {
+        quickfire: 0.40,
+        explain: 0.60,
+        apply: 0.75,
+        distinguish: 0.85,
+        mock: 0.95,
+        worked: 0.70
+      };
+      var now = Date.now();
+      var topicStats = {};
+      var totalCards = 0;
+
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (!it || it.archived || it.course !== courseName) continue;
+        var topic = it.topic || 'General';
+        if (!topicStats[topic]) {
+          topicStats[topic] = {
+            totalCards: 0,
+            retentionSum: 0,
+            highestTierFactor: 0
+          };
+        }
+        var ts = topicStats[topic];
+        ts.totalCards++;
+        totalCards++;
+
+        var R = 1.0;
+        if (it.fsrs && it.fsrs.lastReview && it.fsrs.stability) {
+          R = retrievability(it.fsrs, now);
+        } else if (it.fsrs && !it.fsrs.lastReview) {
+          R = 0.0;
+        }
+        ts.retentionSum += R;
+
+        var itemTier = it.lastTier || it.tier || 'quickfire';
+        var tierFactor = TIER_DEPTH[itemTier] || 0.40;
+        if (tierFactor > ts.highestTierFactor) {
+          ts.highestTierFactor = tierFactor;
+        }
+      }
+
+      if (totalCards < 5) return null;
+      var topicNames = Object.keys(topicStats);
+      if (!topicNames.length) return null;
+
+      var readinessNumerator = 0;
+      var readinessDenominator = 0;
+      for (var ti = 0; ti < topicNames.length; ti++) {
+        var tName = topicNames[ti];
+        var tStats = topicStats[tName];
+        var topicWeight = tStats.totalCards;
+        var topicRetention = tStats.retentionSum / tStats.totalCards;
+        var tierDepth = tStats.highestTierFactor;
+        var topicReadiness = topicRetention * tierDepth;
+        readinessNumerator += topicWeight * topicReadiness;
+        readinessDenominator += topicWeight;
+      }
+
+      if (readinessDenominator === 0) return null;
+      var overallReadiness = readinessNumerator / readinessDenominator;
+      var pct = Math.round(clamp(overallReadiness, 0, 1) * 100);
+
+      return {
+        readinessPct: pct,
+        totalCards: totalCards,
+        topicCount: topicNames.length,
+        topicBreakdown: topicNames.map(function(t) {
+          var s = topicStats[t];
+          var avgR = s.retentionSum / s.totalCards;
+          return {
+            topic: t,
+            cards: s.totalCards,
+            avgRetention: Math.round(avgR * 100),
+            tierFactor: s.highestTierFactor,
+            readiness: Math.round(avgR * s.highestTierFactor * 100)
+          };
+        }).sort(function(a, b) { return a.readiness - b.readiness; })
+      };
+    }
+
     function setCalArc(p) {
       var arc = el('calArc');
       var dash = 120;
