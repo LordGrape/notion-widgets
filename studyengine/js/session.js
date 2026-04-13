@@ -5,6 +5,480 @@ var mockCountdownTimer = null;
 
 /* Phase 2 extraction: copied from monolith; source-of-truth remains state.js for parity. */
 
+    function autoGrowTextarea(ta) {
+      if (!ta) return;
+      ta.style.height = 'auto';
+      var h = Math.min(420, Math.max(ta.scrollHeight, 90));
+      ta.style.height = h + 'px';
+    }
+
+    function rubricTemplate(tier) {
+      var col = tierColour(tier);
+      return '' +
+        '<div class="rubric" id="rubric">' +
+          rubRow('Accuracy', ['Missed key points', 'Partial', 'Complete'], 'acc', col) +
+          rubRow('Depth', ['Surface', 'Adequate', 'Thorough'], 'dep', col) +
+          rubRow('Clarity', ['Unclear', 'Decent', 'Clear'], 'cla', col) +
+        '</div>';
+    }
+
+    function rubRow(label, opts, key, col) {
+      var h = '<div class="rub-row" data-rub="'+ key +'">' +
+        '<div class="lbl">' + esc(label) + '</div>' +
+        '<div class="rub-pills">';
+      for (var i = 0; i < opts.length; i++) {
+        h += '<div class="rub-pill" data-idx="' + i + '" style="--accent:'+ col +'">' + esc(opts[i]) + '</div>';
+      }
+      h += '</div></div>';
+      return h;
+    }
+
+    function countWords(text) {
+      if (!text || !text.trim()) return 0;
+      return text.trim().split(/\s+/).length;
+    }
+
+    function isEssayMode(item) {
+      var course = item ? item.course : null;
+      var examType = (item && item.examType) ? String(item.examType).toLowerCase() : getCourseExamType(course);
+      var mins = parseInt(item.timeLimitMins || settings.mockDefaultMins || 10, 10);
+      return (examType === 'essay' || examType === 'short_answer' || mins >= 15);
+    }
+
+    function getEssayWordTarget(mins) {
+      if (mins >= 30) return { min: 625, max: 875, label: '2.5-3.5 pages' };
+      if (mins >= 15) return { min: 375, max: 625, label: '1.5-2.5 pages' };
+      return { min: 200, max: 400, label: '1-1.5 pages' };
+    }
+
+    function getEssayStructureHint(examType) {
+      if (examType === 'short_answer') {
+        return '<strong>Structure:</strong> Opening claim -> 2-3 evidence paragraphs with specific data -> Concluding synthesis';
+      }
+      return '<strong>Structure:</strong> Thesis statement -> 3-4 body paragraphs (topic sentence + evidence: dates, stats, theorists) -> Conclusion (synthesize, do not summarize)';
+    }
+
+    function startApplyTimer() {
+      var start = Date.now();
+      var badge = el('metaTimer');
+      badge.style.display = 'inline-flex';
+      tierTimer = setInterval(function() {
+        var s = Math.floor((Date.now() - start) / 1000);
+        badge.textContent = fmtMMSS(s);
+      }, 250);
+    }
+
+    function startMockTimer() {
+      var badge = el('metaTimer');
+      badge.style.display = 'inline-flex';
+      badge.textContent = fmtMMSS(Math.ceil(mockTotalMs / 1000));
+      mockCountdownTimer = setInterval(function() {
+        var now = Date.now();
+        var remain = Math.max(0, Math.ceil((mockEndsAt - now) / 1000));
+        badge.textContent = fmtMMSS(remain);
+        var elapsed = clamp((now - (mockEndsAt - mockTotalMs)) / mockTotalMs, 0, 1);
+        el('timerFill').style.width = Math.round(elapsed * 100) + '%';
+        if (remain <= 0) {
+          clearInterval(mockCountdownTimer);
+          mockCountdownTimer = null;
+          revealAnswer(true);
+        }
+      }, 250);
+    }
+
+    function startEssayOutlineTimer(outlineMins) {
+      essayOutlineEndsAt = Date.now() + (outlineMins * 60 * 1000);
+      var phaseTimerEl = el('essayPhaseTimer');
+      if (essayOutlineTimer) clearInterval(essayOutlineTimer);
+      essayOutlineTimer = setInterval(function() {
+        var remain = Math.max(0, Math.ceil((essayOutlineEndsAt - Date.now()) / 1000));
+        if (phaseTimerEl) phaseTimerEl.textContent = fmtMMSS(remain);
+        if (remain <= 0) {
+          clearInterval(essayOutlineTimer);
+          essayOutlineTimer = null;
+          var it = session ? session.queue[session.idx] : null;
+          if (it && essayPhase === 'outline') {
+            var mins = parseInt(it.timeLimitMins || settings.mockDefaultMins || 10, 10);
+            mins = [5,10,15,30].indexOf(mins) >= 0 ? mins : 10;
+            var outlinePhaseMins = Math.max(1, Math.round(mins * 0.2));
+            var writingMins = mins - outlinePhaseMins;
+            var wordTarget = getEssayWordTarget(mins);
+            var examType = (it.examType ? String(it.examType).toLowerCase() : getCourseExamType(it.course));
+            transitionToWritingPhase(it, writingMins, wordTarget, examType);
+          }
+        }
+      }, 250);
+    }
+
+    function transitionToWritingPhase(item, writingMins, wordTarget, examType) {
+      if (essayPhase !== 'outline') return;
+      essayPhase = 'writing';
+      if (essayOutlineTimer) { clearInterval(essayOutlineTimer); essayOutlineTimer = null; }
+
+      var outlineTA = el('userText');
+      essayOutlineText = outlineTA ? outlineTA.value.trim() : '';
+      try { if (typeof playClick === 'function') playClick(); } catch (e) {}
+
+      tierArea.innerHTML = '' +
+        '<div class="panel">' +
+          '<div class="p-h">Response (timed)</div>' +
+          (essayOutlineText ? '<div class="essay-outline-ref"><div class="eor-label">Your Outline</div><div class="eor-text">' + esc(essayOutlineText) + '</div></div>' : '') +
+          '<div class="essay-phase-label">' +
+            '<span class="epl-title">Phase 2: Write</span>' +
+            '<span class="epl-timer" id="essayPhaseTimer">' + fmtMMSS(writingMins * 60) + '</span>' +
+          '</div>' +
+          '<div class="essay-structure-hint">' + getEssayStructureHint(examType) + '</div>' +
+          '<textarea id="userText" rows="10" placeholder="Write your full response here..."></textarea>' +
+          '<div class="essay-word-count">' +
+            '<span class="ewc-current" id="essayWordCount">0 words</span>' +
+            '<span class="ewc-target">Target: ' + esc(wordTarget.label) + ' (' + wordTarget.min + '-' + wordTarget.max + ' words)</span>' +
+          '</div>' +
+          '<div style="display:flex;gap:10px;margin-top:6px;align-items:stretch">' +
+          '<button class="qa-btn" id="submitBtn" style="flex:1;min-width:0">Submit (Space)</button>' +
+          '<button type="button" class="ghost-btn" id="dontKnowBtn" style="flex:0 0 auto;padding:10px 12px;font-size:10px;white-space:nowrap">🤷 Don’t know</button>' +
+          '</div>' +
+          '<div class="help">Use your outline as a guide. ' + writingMins + ' min remaining.</div>' +
+        '</div>' +
+        rubricTemplate('mock');
+
+      var writeTA = el('userText');
+      writeTA.addEventListener('input', function() {
+        autoGrowTextarea(writeTA);
+        updateEssayWordCount(writeTA.value, wordTarget);
+      });
+      autoGrowTextarea(writeTA);
+      writeTA.focus();
+
+      var writeEndMs = Date.now() + (writingMins * 60 * 1000);
+      var phaseTimerEl = el('essayPhaseTimer');
+      essayOutlineTimer = setInterval(function() {
+        var remain = Math.max(0, Math.ceil((writeEndMs - Date.now()) / 1000));
+        if (phaseTimerEl) phaseTimerEl.textContent = fmtMMSS(remain);
+        if (remain <= 0) {
+          clearInterval(essayOutlineTimer);
+          essayOutlineTimer = null;
+        }
+      }, 250);
+
+      wireMock();
+      if (window.gsap) gsap.fromTo(tierArea, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' });
+      toast('Writing phase - go!');
+    }
+
+    function updateEssayWordCount(text, wordTarget) {
+      var wc = countWords(text);
+      var wcEl = el('essayWordCount');
+      if (!wcEl) return;
+      wcEl.textContent = wc + ' word' + (wc !== 1 ? 's' : '');
+      wcEl.classList.remove('in-range', 'under-range', 'over-range');
+      if (wordTarget) {
+        if (wc >= wordTarget.min && wc <= wordTarget.max) wcEl.classList.add('in-range');
+        else if (wc < wordTarget.min) wcEl.classList.add('under-range');
+        else wcEl.classList.add('over-range');
+      }
+    }
+
+    function wireGenerative(tier) {
+      var ta = el('userText');
+      ta.addEventListener('input', function(){ autoGrowTextarea(ta); });
+      autoGrowTextarea(ta);
+      el('checkBtn').addEventListener('click', function(){ revealAnswer(true); });
+      var dkBtn = el('dontKnowBtn');
+      if (dkBtn) {
+        dkBtn.addEventListener('click', function() {
+          var cur = session.queue[session.idx];
+          if (!cur) return;
+          var rt = cur._presentTier || cur.tier || 'quickfire';
+          handleDontKnowReveal(cur, rt);
+        });
+      }
+    }
+
+    function wireMock() {
+      var ta = el('userText');
+      ta.addEventListener('input', function(){ autoGrowTextarea(ta); });
+      autoGrowTextarea(ta);
+      el('submitBtn').addEventListener('click', function(){ revealAnswer(true); });
+      var dkBtn = el('dontKnowBtn');
+      if (dkBtn) {
+        dkBtn.addEventListener('click', function() {
+          var cur = session.queue[session.idx];
+          if (!cur) return;
+          var rt = cur._presentTier || cur.tier || 'quickfire';
+          handleDontKnowReveal(cur, rt);
+        });
+      }
+    }
+
+    function getSessionElapsedMins() {
+      if (!breakState.sessionStartTime) return 0;
+      return (Date.now() - breakState.sessionStartTime) / (1000 * 60);
+    }
+
+    function getTimeSinceBreakMins() {
+      var ref = breakState.lastBreakTime || breakState.sessionStartTime;
+      if (!ref) return 0;
+      return (Date.now() - ref) / (1000 * 60);
+    }
+
+    function isHotStreak() {
+      if (!session || !session.recentRatings || session.recentRatings.length < 6) return false;
+      var recent = session.recentRatings.slice(-6);
+      return recent.every(function(r) { return r >= 3; });
+    }
+
+    function getBreakTip() { return BREAK_TIPS[Math.floor(Math.random() * BREAK_TIPS.length)]; }
+
+    function showBreakBanner(type, title, sub, showTakeBtn) {
+      var banner = el('breakBanner');
+      if (!banner) return;
+      banner.className = 'break-banner show ' + (type === 'hard-stop' ? 'hard-stop' : type === 'fatigue' ? 'fatigue' : '');
+      var iconMap = { 'hard-stop': '🛑', 'fatigue': '😮‍💨', 'time': '☕' };
+      banner.innerHTML =
+        '<span class="bb-icon">' + (iconMap[type] || '☕') + '</span>' +
+        '<div class="bb-text">' + esc(title) + '<span class="bb-sub">' + esc(sub) + '</span></div>' +
+        (showTakeBtn ? '<button class="bb-take" id="bbTake">Take break</button>' : '') +
+        '<button class="bb-dismiss" id="bbDismiss">' + (showTakeBtn ? 'Later' : 'Dismiss') + '</button>';
+      var dismissBtn = banner.querySelector('#bbDismiss');
+      if (dismissBtn) dismissBtn.addEventListener('click', function() {
+        breakState.bannerDismissed = true;
+        banner.classList.remove('show');
+        var dismissIdx = session ? session.idx : 0;
+        var checkReenable = setInterval(function() {
+          if (!session || session.idx >= dismissIdx + 5) {
+            breakState.bannerDismissed = false;
+            clearInterval(checkReenable);
+          }
+        }, 2000);
+        try { playClick(); } catch (e) {}
+      });
+      var takeBtn = banner.querySelector('#bbTake');
+      if (takeBtn) takeBtn.addEventListener('click', function() {
+        startBreakTimer(type === 'hard-stop' ? 10 : 5);
+        try { playBreakAppear(); } catch (e) {}
+      });
+      if (window.gsap) gsap.fromTo(banner, { opacity: 0, y: -6 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
+    }
+
+    function startPrimeMode(courseName) {
+      var course = getCourse(courseName);
+      if (!course) { toast('Course not found'); return; }
+
+      var existingCards = [];
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (it && it.course === courseName && !it.archived) {
+          existingCards.push({ prompt: it.prompt });
+        }
+      }
+
+      toast('Generating prequestions...');
+
+      fetch(PRIME_WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          courseName: courseName,
+          topicName: '',
+          syllabusContext: course.syllabusContext || '',
+          existingCards: existingCards.slice(0, 20)
+        })
+      })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (!data.prequestions || !data.prequestions.length) {
+            toast('No prequestions generated');
+            return;
+          }
+          showPrimeOverlay(data.prequestions, courseName);
+        })
+        .catch(function(err) {
+          toast('Prime mode failed: ' + (err && err.message ? err.message : String(err)));
+        });
+    }
+
+    function showPrimeOverlay(questions, courseName) {
+      var overlay = document.createElement('div');
+      overlay.className = 'overlay show';
+      overlay.style.zIndex = '60';
+
+      var h = '<div class="modal" style="max-width:560px;">';
+      h += '<div class="modal-head"><span style="font-size:10px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;">🧠 Prime Mode — ' + esc(courseName) + '</span>';
+      h += '<button type="button" class="icon-btn" data-prime-close>✕</button></div>';
+      h += '<div class="modal-body">';
+      h += '<div style="font-size:10px;color:var(--text-secondary);line-height:1.6;margin-bottom:14px;">Try to answer these questions <strong>before</strong> studying the material. Struggling to answer primes your brain to encode the answers more deeply when you read them. (Carpenter & Toftness, 2017)</div>';
+
+      questions.forEach(function(q, i) {
+        var typeCol = q.type === 'factual' ? 'var(--tier-qf)' : q.type === 'conceptual' ? 'var(--tier-ex)' : 'var(--tier-ap)';
+        h += '<div style="padding:14px;border-radius:16px;border:1px solid rgba(var(--accent-rgb),0.14);background:rgba(var(--accent-rgb),0.03);margin-bottom:10px;">';
+        h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">';
+        h += '<span style="font-size:8px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;padding:3px 8px;border-radius:999px;background:rgba(var(--accent-rgb),0.10);color:' + typeCol + ';">' + esc(q.type || 'question') + '</span>';
+        h += '<span style="font-size:8px;color:var(--text-tertiary);">#' + (i + 1) + '</span>';
+        h += '</div>';
+        h += '<div style="font-size:13px;font-weight:600;color:var(--text);line-height:1.5;">' + esc(q.question) + '</div>';
+        h += '<textarea style="margin-top:8px;width:100%;min-height:60px;" placeholder="Your attempt (optional)..."></textarea>';
+        h += '</div>';
+      });
+
+      h += '<div style="text-align:center;margin-top:12px;font-size:9px;color:var(--text-tertiary);letter-spacing:0.5px;">Now go read the material. When you come back to create cards, your encoding will be stronger.</div>';
+      h += '</div>';
+      h += '<div class="modal-actions"><button type="button" class="big-btn" data-prime-done>Done — Ready to Study</button></div>';
+      h += '</div>';
+
+      overlay.innerHTML = h;
+      overlay.querySelector('[data-prime-close]').addEventListener('click', function() { overlay.remove(); });
+      overlay.querySelector('[data-prime-done]').addEventListener('click', function() { overlay.remove(); });
+      overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) overlay.remove();
+      });
+      document.body.appendChild(overlay);
+    }
+
+    function recordTutorApiSuccess(mode, model) {
+      if (!session || !session.tutorStats) return;
+      var ts = session.tutorStats;
+      ts.totalCalls++;
+      if (model === 'pro') ts.proCalls++;
+      else ts.flashCalls++;
+      if (mode === 'socratic') ts.socraticTurns++;
+      else if (mode === 'quick') ts.quickFeedbacks++;
+      else if (mode === 'insight') ts.insights++;
+      else if (mode === 'teach') ts.teaches++;
+      else if (mode === 'acknowledge') ts.acknowledges++;
+      if (!session.tutorModeCounts) session.tutorModeCounts = defaultTutorModeCounts();
+      if (session.tutorModeCounts[mode] != null) session.tutorModeCounts[mode]++;
+      persistTutorAnalyticsDeltas();
+    }
+
+    function noteReconstructionPromptShown() {
+      if (!session || !session.tutorStats) return;
+      session.tutorStats.reconstructions++;
+      session._reconstructionPending = true;
+      persistTutorAnalyticsDeltas();
+    }
+
+    function upsertTutorSessionHistoryRow(analytics, ts, historyKey) {
+      if (!analytics || !ts || !historyKey) return;
+      analytics.sessionHistory = Array.isArray(analytics.sessionHistory) ? analytics.sessionHistory : [];
+      var idx = -1;
+      for (var i = 0; i < analytics.sessionHistory.length; i++) {
+        if (analytics.sessionHistory[i] && analytics.sessionHistory[i].key === historyKey) {
+          idx = i;
+          break;
+        }
+      }
+      var row = {
+        key: historyKey,
+        ts: isoNow(),
+        modeCounts: session && session.tutorModeCounts ? Object.assign({}, session.tutorModeCounts) : defaultTutorModeCounts(),
+        avgTurnsPerCard: ts.avgTurnsPerCard || 0,
+        totalCalls: ts.totalCalls || 0,
+        flashCalls: ts.flashCalls || 0,
+        proCalls: ts.proCalls || 0,
+        skipsToRating: ts.skipsToRating || 0,
+        reconstructions: ts.reconstructions || 0,
+        reconstructionSuccesses: ts.reconstructionSuccesses || 0,
+        dontKnows: ts.dontKnows || 0
+      };
+      if (idx >= 0) analytics.sessionHistory[idx] = row;
+      else analytics.sessionHistory.unshift(row);
+      if (analytics.sessionHistory.length > 120) analytics.sessionHistory.length = 120;
+    }
+
+    function persistTutorAnalyticsDeltas() {
+      if (typeof SyncEngine === 'undefined' || !SyncEngine.get || !SyncEngine.set) return;
+      if (!session || !session.tutorStats) return;
+      var historyKey = session.tutorAnalyticsHistoryKey;
+      if (!historyKey) return;
+
+      var ts = session.tutorStats;
+      var analytics = SyncEngine.get(NS, 'tutorAnalytics') || {
+        totalSessions: 0,
+        totalTutorCalls: 0,
+        totalFlashCalls: 0,
+        totalProCalls: 0,
+        totalSkips: 0,
+        totalReconstructions: 0,
+        totalReconstructionSuccesses: 0,
+        totalDontKnows: 0,
+        sessionHistory: []
+      };
+
+      var base = session._tutorAnalyticsBaseline;
+      if (!base) {
+        base = {
+          totalCalls: 0,
+          flashCalls: 0,
+          proCalls: 0,
+          skipsToRating: 0,
+          reconstructions: 0,
+          reconstructionSuccesses: 0,
+          dontKnows: 0
+        };
+        session._tutorAnalyticsBaseline = base;
+      }
+
+      var dc = (ts.totalCalls || 0) - base.totalCalls;
+      var df = (ts.flashCalls || 0) - base.flashCalls;
+      var dp = (ts.proCalls || 0) - base.proCalls;
+      var ds = (ts.skipsToRating || 0) - base.skipsToRating;
+      var dr = (ts.reconstructions || 0) - base.reconstructions;
+      var drs = (ts.reconstructionSuccesses || 0) - base.reconstructionSuccesses;
+      var dk = (ts.dontKnows || 0) - base.dontKnows;
+
+      if (dc || df || dp || ds || dr || drs || dk) {
+        analytics.totalTutorCalls += dc;
+        analytics.totalFlashCalls += df;
+        analytics.totalProCalls += dp;
+        analytics.totalSkips += ds;
+        analytics.totalReconstructions += dr;
+        analytics.totalReconstructionSuccesses += drs;
+        analytics.totalDontKnows += dk;
+        base.totalCalls = ts.totalCalls || 0;
+        base.flashCalls = ts.flashCalls || 0;
+        base.proCalls = ts.proCalls || 0;
+        base.skipsToRating = ts.skipsToRating || 0;
+        base.reconstructions = ts.reconstructions || 0;
+        base.reconstructionSuccesses = ts.reconstructionSuccesses || 0;
+        base.dontKnows = ts.dontKnows || 0;
+      }
+
+      upsertTutorSessionHistoryRow(analytics, ts, historyKey);
+      SyncEngine.set(NS, 'tutorAnalytics', analytics);
+      try {
+        renderTutorAnalyticsDashboard();
+        refreshCostEstimateInSettings();
+      } catch (e) {}
+    }
+
+    function finalizeTutorAnalyticsSession() {
+      if (!session || session._tutorAnalyticsSessionFinalized) return;
+      if (typeof SyncEngine === 'undefined' || !SyncEngine.get || !SyncEngine.set) return;
+      if (session.tutorStats) {
+        session.tutorStats.avgTurnsPerCard = session.tutorStats.socraticTurns / Math.max(1, session.ratingN || 0);
+      }
+      persistTutorAnalyticsDeltas();
+      var analytics = SyncEngine.get(NS, 'tutorAnalytics') || {
+        totalSessions: 0,
+        totalTutorCalls: 0,
+        totalFlashCalls: 0,
+        totalProCalls: 0,
+        totalSkips: 0,
+        totalReconstructions: 0,
+        totalReconstructionSuccesses: 0,
+        totalDontKnows: 0,
+        sessionHistory: []
+      };
+      analytics.totalSessions++;
+      session._tutorAnalyticsSessionFinalized = true;
+      SyncEngine.set(NS, 'tutorAnalytics', analytics);
+      try {
+        renderTutorAnalyticsDashboard();
+        refreshCostEstimateInSettings();
+      } catch (e) {}
+    }
+
     function buildSessionQueue() {
       var now = Date.now();
       var courseFilter = selectedCourse;
