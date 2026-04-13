@@ -495,10 +495,11 @@ var el = function(id){ return document.getElementById(id); };
       }
 
       var calHistory = (state && state.calibration && state.calibration.history) ? state.calibration.history : [];
+      var daysSinceCheckIn = daysBetween(lastCheck.getTime(), Date.now());
       var newCalEntries = calHistory.filter(function(entry) {
         return entry && entry.ts && new Date(entry.ts).getTime() > lastCheck.getTime();
       });
-      if (newCalEntries.length >= 5) {
+      if (newCalEntries.length >= 5 && daysSinceCheckIn >= 14) {
         var latestCalTs = newCalEntries[newCalEntries.length - 1].ts;
         var calibrationAlreadyHandled = signals.lastCalibrationPromptedAt && new Date(signals.lastCalibrationPromptedAt).getTime() >= new Date(latestCalTs).getTime();
         if (!calibrationAlreadyHandled) {
