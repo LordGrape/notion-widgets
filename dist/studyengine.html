@@ -1892,6 +1892,7 @@
       align-items: center;
       gap: 6px;
       margin-top: 8px;
+      margin-bottom: 12px;
       padding: 7px 14px;
       border-radius: 999px;
       border: 1px solid rgba(var(--accent-rgb),0.16);
@@ -1923,6 +1924,10 @@
     @keyframes listenPulse{
       0%,100%{ box-shadow: 0 0 0 0 rgba(239,68,68,0); }
       50%{ box-shadow: 0 0 0 4px rgba(239,68,68,0.12); }
+    }
+
+    #qfReRetrievalRoot{
+      margin-top: 16px;
     }
 
     /* ── Markdown content inside cards ── */
@@ -8633,7 +8638,7 @@ body.standalone #userText {
         var body = el('visualLightboxBody');
         var ov = el('visualLightbox');
         if (!body || !ov || !ov.classList.contains('show')) return;
-        if (!body.contains(e.target)) return;
+        if (!body.contains(e.target) && e.target !== body) return;
         e.preventDefault();
         var delta = e.deltaY > 0 ? -0.1 : 0.1;
         lightboxZoom = Math.max(0.5, Math.min(4, lightboxZoom + delta));
@@ -8665,6 +8670,60 @@ body.standalone #userText {
 
       document.addEventListener('mouseup', function() {
         lightboxDragging = false;
+      });
+
+      /* ── Touch: pinch-zoom + drag ── */
+      var lightboxTouches = {};
+      var lightboxInitialPinchDist = 0;
+      var lightboxInitialZoom = 1;
+
+      function getTouchDist(t1, t2) {
+        var dx = t1.clientX - t2.clientX;
+        var dy = t1.clientY - t2.clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+      }
+
+      document.addEventListener('touchstart', function(e) {
+        var body = el('visualLightbox') && el('visualLightboxBody');
+        var ov = el('visualLightbox');
+        if (!body || !ov || !ov.classList.contains('show')) return;
+        if (!body.contains(e.target) && e.target !== body) return;
+        if (e.touches.length === 2) {
+          e.preventDefault();
+          lightboxInitialPinchDist = getTouchDist(e.touches[0], e.touches[1]);
+          lightboxInitialZoom = lightboxZoom;
+        } else if (e.touches.length === 1) {
+          lightboxDragging = true;
+          lightboxLastX = e.touches[0].clientX;
+          lightboxLastY = e.touches[0].clientY;
+        }
+      }, { passive: false });
+
+      document.addEventListener('touchmove', function(e) {
+        var body = el('visualLightboxBody');
+        var ov = el('visualLightbox');
+        if (!body || !ov || !ov.classList.contains('show')) return;
+        if (e.touches.length === 2 && lightboxInitialPinchDist > 0) {
+          e.preventDefault();
+          var dist = getTouchDist(e.touches[0], e.touches[1]);
+          var scale = dist / lightboxInitialPinchDist;
+          lightboxZoom = Math.max(0.5, Math.min(4, lightboxInitialZoom * scale));
+          applyLightboxTransform(body);
+        } else if (e.touches.length === 1 && lightboxDragging) {
+          e.preventDefault();
+          var dx = e.touches[0].clientX - lightboxLastX;
+          var dy = e.touches[0].clientY - lightboxLastY;
+          lightboxPanX += dx;
+          lightboxPanY += dy;
+          lightboxLastX = e.touches[0].clientX;
+          lightboxLastY = e.touches[0].clientY;
+          applyLightboxTransform(body);
+        }
+      }, { passive: false });
+
+      document.addEventListener('touchend', function(e) {
+        if (e.touches.length < 2) lightboxInitialPinchDist = 0;
+        if (e.touches.length === 0) lightboxDragging = false;
       });
 
       document.addEventListener('keydown', function(e) {
@@ -11952,6 +12011,13 @@ function showCourseDashboard(courseName) {
           if (f && f.lastReview) { retSum += retrievability(f, now); retN++; }
         }
         var retPct = retN ? Math.round((retSum / retN) * 100) : null;
+        var courseReadiness = computeExamReadiness(c.name);
+        var readinessBadge = '';
+        if (courseReadiness && courseReadiness.totalCards >= 5) {
+          var rPct = courseReadiness.readinessPct;
+          var rCol = rPct >= 75 ? 'var(--rate-good)' : rPct >= 50 ? 'var(--rate-hard)' : 'var(--rate-again)';
+          readinessBadge = '<span class="cc-exam-type" style="border-color:' + rCol + ';color:' + rCol + ';background:rgba(139,92,246,0.08);">' + rPct + '% ready</span>';
+        }
         var cramState = getCramState(c.name);
         var courseCol = c.color || '#8b5cf6';
         h += '<div class="course-card" data-course-name="' + esc(c.name) + '" style="border-left-color:' + esc(courseCol) + '; background: linear-gradient(135deg, ' + esc(courseCol) + '12, ' + esc(courseCol) + '06);">' +
@@ -11960,6 +12026,7 @@ function showCourseDashboard(courseName) {
           '<div class="cc-meta">' +
           '<span class="cc-exam-type">' + esc(EXAM_TYPE_LABELS[c.examType] || c.examType) + '</span>' +
           (c.examDate ? '<span class="cc-exam-type" style="border-color:rgba(239,68,68,0.2);color:var(--rate-again);background:rgba(239,68,68,0.06);">' + (cramState.active ? '🔥 Cram' : '📅 Exam set') + '</span>' : '<span class="cc-exam-type" style="border-color:rgba(34,197,94,0.2);color:var(--rate-good);background:rgba(34,197,94,0.06);">🧠 Long-term</span>') +
+          readinessBadge +
           '</div>' +
           '</div>' +
           '<div style="text-align:right;">' +
@@ -12719,6 +12786,81 @@ function showCourseDashboard(courseName) {
           wrap.style.display = 'none';
         });
     }
+
+    function renderCourseDetailReadiness(courseName) {
+      if (!courseName) return;
+      var readinessHost = el('cdReadinessHost');
+      if (!readinessHost) {
+        readinessHost = document.createElement('div');
+        readinessHost.id = 'cdReadinessHost';
+        readinessHost.style.cssText = 'margin:16px 0;';
+        var cdCountdownEl = el('cdCountdown');
+        var insertAfter = cdCountdownEl || el('cdBadges');
+        if (insertAfter && insertAfter.parentNode) {
+          insertAfter.parentNode.insertBefore(readinessHost, insertAfter.nextSibling);
+        } else {
+          var view = el('viewCourseDetail');
+          if (view) view.appendChild(readinessHost);
+        }
+      }
+      var readinessData = computeExamReadiness(courseName);
+      if (readinessData && readinessData.totalCards >= 5) {
+        var pct = readinessData.readinessPct;
+        var gaugeColor = pct >= 75 ? 'var(--rate-good)' : pct >= 50 ? 'var(--rate-hard)' : 'var(--rate-again)';
+        var gaugeLabel = pct >= 75 ? 'Strong' : pct >= 50 ? 'Developing' : 'Needs Work';
+        var weakTopics = readinessData.topicBreakdown.slice(0, 3);
+        var weakHTML = weakTopics.map(function(t) {
+          return '<span style="display:inline-block;font-size:0.75em;padding:1px 6px;border-radius:6px;' +
+            'background:rgba(239,68,68,0.12);color:var(--rate-again);margin:2px 3px;">' +
+            esc(t.topic) + ' ' + t.readiness + '%</span>';
+        }).join('');
+        readinessHost.innerHTML =
+          '<div style="background:var(--card-bg);backdrop-filter:blur(20px) saturate(1.4);' +
+          'border:1px solid var(--card-border,rgba(139,92,246,0.12));border-radius:16px;padding:16px 20px;">' +
+          '<div style="display:flex;align-items:center;gap:16px;">' +
+          '<div style="position:relative;width:64px;height:64px;">' +
+          '<svg viewBox="0 0 36 36" style="width:64px;height:64px;transform:rotate(-90deg);">' +
+          '<circle cx="18" cy="18" r="15.9" fill="none" stroke="var(--card-border,rgba(139,92,246,0.12))" stroke-width="3"/>' +
+          '<circle cx="18" cy="18" r="15.9" fill="none" stroke="' + gaugeColor + '" ' +
+          'stroke-width="3" stroke-dasharray="' + pct + ' ' + (100 - pct) + '" ' +
+          'stroke-linecap="round" style="transition:stroke-dasharray 0.6s ease;"/>' +
+          '</svg>' +
+          '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;' +
+          'font-size:1.1em;font-weight:700;color:' + gaugeColor + ';">' + pct + '%</div>' +
+          '</div>' +
+          '<div style="flex:1;">' +
+          '<div style="font-size:0.85em;font-weight:600;color:var(--text-primary);">Exam Readiness</div>' +
+          '<div style="font-size:0.75em;color:var(--text-secondary);margin-top:2px;">' +
+          gaugeLabel + ' · ' + readinessData.totalCards + ' cards across ' +
+          readinessData.topicCount + ' topics</div>' +
+          (weakHTML ? '<div style="margin-top:6px;">Weakest: ' + weakHTML + '</div>' : '') +
+          '</div>' +
+          '</div>' +
+          '</div>';
+        if (window.gsap) {
+          gsap.fromTo(readinessHost.firstChild,
+            { opacity: 0, y: 6 },
+            { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }
+          );
+        }
+      } else {
+        readinessHost.innerHTML = '';
+      }
+    }
+
+    (function installCourseDetailReadinessHook() {
+      if (typeof openCourseDetail !== 'function') {
+        setTimeout(installCourseDetailReadinessHook, 100);
+        return;
+      }
+      if (openCourseDetail._readinessHooked) return;
+      var __baseOpenCourseDetail = openCourseDetail;
+      openCourseDetail = function(courseName) {
+        __baseOpenCourseDetail(courseName);
+        renderCourseDetailReadiness(courseName);
+      };
+      openCourseDetail._readinessHooked = true;
+    })();
 /* Phase 2 extraction: copied from monolith; source-of-truth remains state.js for parity. */
 
     function defaultTutorStats() {
@@ -14275,6 +14417,51 @@ var mockCountdownTimer = null;
       persistTutorAnalyticsDeltas();
     }
 
+    function triggerReformulation(item) {
+      if (!item || !item.prompt || !item.modelAnswer) return;
+      var endpoint = STUDYENGINE_WORKER_BASE + '/reformulate';
+      var payload = {
+        originalPrompt: item.prompt,
+        modelAnswer: item.modelAnswer,
+        tier: item._presentTier || item.tier || 'explain',
+        course: item.course || '',
+        topic: item.topic || '',
+        lapses: (item.fsrs && item.fsrs.lapses) || 3,
+        diagnosisHistory: item.diagnosisHistory ? item.diagnosisHistory.slice(-5) : []
+      };
+
+      fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Widget-Key': getWidgetKey()
+        },
+        body: JSON.stringify(payload)
+      })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (data && data.reformulatedPrompt && !data.error) {
+            if (!item.variants) item.variants = {};
+            item.variants.reformulated = {
+              prompt: data.reformulatedPrompt,
+              tier: data.reformulatedTier || 'explain',
+              rationale: data.rationale || '',
+              created: new Date().toISOString(),
+              timesPresented: 0,
+              ratings: []
+            };
+
+            if (state.items[item.id]) {
+              state.items[item.id].variants = item.variants;
+              saveState();
+            }
+          }
+        })
+        .catch(function() {
+          // Silent failure — reformulation is best-effort
+        });
+    }
+
     function noteReconstructionPromptShown() {
       if (!session || !session.tutorStats) return;
       session.tutorStats.reconstructions++;
@@ -14756,7 +14943,7 @@ var mockCountdownTimer = null;
         });
         metaEl.appendChild(btn);
       }
-      btn.style.display = (session && session.currentShown) ? 'inline-flex' : 'none';
+      btn.style.display = 'none';
     }
 
     function startSession() {
@@ -14879,10 +15066,50 @@ var mockCountdownTimer = null;
 
       var it = session.queue[session.idx];
       if (!it) { completeSession(); return; }
+      // Use reformulated prompt for leech cards (3+ lapses with a reformulation available)
+      if (it && it.variants && it.variants.reformulated &&
+        it.fsrs && it.fsrs.lapses >= 3) {
+        // Swap the displayed prompt to the reformulated version
+        it._originalPrompt = it._originalPrompt || it.prompt; // preserve original
+        it._usingReformulated = true;
+        it.prompt = it.variants.reformulated.prompt;
+        // Track presentation
+        it.variants.reformulated.timesPresented =
+          (it.variants.reformulated.timesPresented || 0) + 1;
+      } else if (it && it._originalPrompt && !it._usingReformulated) {
+        // Restore original prompt if reformulation no longer applies
+        // (e.g., lapses dropped below 3 somehow — shouldn't happen but safety net)
+        it.prompt = it._originalPrompt;
+        delete it._originalPrompt;
+      }
       /* Resolve presentation tier (smart mode) or stored tier (manual/legacy) */
       var tier = it._presentTier || it.tier || 'quickfire';
 
       setTierBadge(tier);
+      if (it && it._usingReformulated) {
+        var refBadge = document.createElement('span');
+        refBadge.className = 'ref-badge';
+        refBadge.textContent = '🔄 Reformulated';
+        refBadge.title = it.variants.reformulated.rationale || 'Alternative prompt to break the retrieval loop';
+        refBadge.style.cssText = 'display:inline-block;font-size:0.7em;padding:2px 8px;border-radius:10px;background:rgba(139,92,246,0.15);color:var(--accent);margin-left:8px;vertical-align:middle;cursor:help;';
+        var tierBadgeEl = tierArea.querySelector('.tier-badge') || document.querySelector('.tier-badge') || tierArea.querySelector('[class*="tier"]');
+        if (tierBadgeEl && tierBadgeEl.parentNode) {
+          tierBadgeEl.parentNode.insertBefore(refBadge, tierBadgeEl.nextSibling);
+        }
+      }
+      // Show escalation badge if tier was promoted due to hot streak
+      var currentIt = session.queue[session.idx];
+      if (currentIt && currentIt._escalated) {
+        var escBadge = document.createElement('span');
+        escBadge.className = 'esc-badge';
+        escBadge.textContent = '🔥 Escalated';
+        escBadge.title = 'Tier promoted because you are on a hot streak (6+ Good/Easy in a row)';
+        escBadge.style.cssText = 'display:inline-block;font-size:0.7em;padding:2px 8px;border-radius:10px;background:rgba(239,68,68,0.15);color:var(--rate-again);margin-left:8px;vertical-align:middle;cursor:help;';
+        var tierBadgeEl2 = tierArea.querySelector('.tier-badge') || tierArea.querySelector('[class*="tier"]');
+        if (tierBadgeEl2 && tierBadgeEl2.parentNode) {
+          tierBadgeEl2.parentNode.insertBefore(escBadge, tierBadgeEl2.nextSibling);
+        }
+      }
       /* Tier-themed item card border */
       var ic = document.querySelector('.item-card');
       if (ic) {
@@ -15295,6 +15522,38 @@ var mockCountdownTimer = null;
       }
       if (againCount > 0 && mappedRating >= 3) session.loops[it.id] = 0;
       var res = scheduleFsrs(it, mappedRating, nowTs, true);
+      if (state.items[it.id]) state.items[it.id] = it;
+
+      // Track reformulated card performance
+      if (it._usingReformulated && it.variants && it.variants.reformulated) {
+        it.variants.reformulated.ratings.push({
+          rating: mappedRating,
+          timestamp: new Date().toISOString()
+        });
+        // Cap ratings history at 10
+        if (it.variants.reformulated.ratings.length > 10) {
+          it.variants.reformulated.ratings = it.variants.reformulated.ratings.slice(-10);
+        }
+        // If student gets Good or Easy on the reformulated version, clear the
+        // reformulation flag so the original prompt is used next time.
+        // This tests whether the original retrieval pathway has been repaired.
+        if (mappedRating >= 3) {
+          it._usingReformulated = false;
+          // Restore original prompt for next encounter
+          if (it._originalPrompt) {
+            it.prompt = it._originalPrompt;
+            delete it._originalPrompt;
+          }
+        }
+      }
+
+      // Trigger leech card reformulation after 3+ lapses (background, non-blocking)
+      if (it.fsrs && it.fsrs.lapses >= 3 &&
+        (!it.variants || !it.variants.reformulated) &&
+        settings.feedbackMode !== 'self_rate') {
+        triggerReformulation(it);
+      }
+
       var effectiveBonus = getEffectiveBloomBonus(it.course);
       if (mappedRating >= 3 && effectiveBonus[tier]) {
         var bonus = effectiveBonus[tier];
@@ -15367,6 +15626,24 @@ var mockCountdownTimer = null;
           completeSession();
           return;
         }
+        // Within-session difficulty escalation on hot streaks
+        if (isHotStreak() && session.queue[session.idx]) {
+          var nextItem = session.queue[session.idx];
+          var currentTier = nextItem._presentTier || nextItem.tier || 'quickfire';
+          var escalationOrder = ['quickfire', 'explain', 'apply', 'distinguish', 'mock'];
+          var currentIdx = escalationOrder.indexOf(currentTier);
+          // Only escalate if there's a higher tier AND the item supports it
+          if (currentIdx >= 0 && currentIdx < escalationOrder.length - 1) {
+            var candidateTier = escalationOrder[currentIdx + 1];
+            var supported = detectSupportedTiers(nextItem);
+            if (supported.indexOf(candidateTier) >= 0) {
+              nextItem._presentTier = candidateTier;
+              nextItem._escalated = true;
+              if (!session._escalationCount) session._escalationCount = 0;
+              session._escalationCount++;
+            }
+          }
+        }
         persistActiveSessionSnapshot();
         checkBreakTriggers();
         renderCurrentItem();
@@ -15412,6 +15689,22 @@ var mockCountdownTimer = null;
       clearTimers();
       if (!session) return;
 
+      // Restore original prompts on any items that were showing reformulated versions
+      if (session && session.queue) {
+        for (var ci = 0; ci < session.queue.length; ci++) {
+          var cItem = session.queue[ci];
+          if (cItem && cItem._originalPrompt) {
+            cItem.prompt = cItem._originalPrompt;
+            delete cItem._originalPrompt;
+            delete cItem._usingReformulated;
+            if (state.items[cItem.id]) {
+              state.items[cItem.id].prompt = cItem.prompt;
+            }
+          }
+        }
+        saveState();
+      }
+
       /* Streak update */
       var today = isoDate();
       var last = state.stats.lastSessionDate || '';
@@ -15440,6 +15733,7 @@ var mockCountdownTimer = null;
         xp: session.xp,
         ratingN: session.ratingN,
         ratingSum: session.ratingSum,
+        escalationCount: session._escalationCount || 0,
         calBefore: session.calBefore,
         tutorStats: session.tutorStats ? JSON.parse(JSON.stringify(session.tutorStats)) : defaultTutorStats(),
         tutorModeCounts: session.tutorModeCounts ? JSON.parse(JSON.stringify(session.tutorModeCounts)) : defaultTutorModeCounts(),
@@ -15483,6 +15777,22 @@ var mockCountdownTimer = null;
         bd += '<span class="tier-pill"><span class="tier-dot" style="background:'+ col +'"></span>' + names[t] + ': ' + c + '</span>';
       });
       el('doneBreakdown').innerHTML = bd;
+      // Track escalation stats for done-view
+      var escalationCount = session._escalationCount || 0;
+      if (escalationCount > 0) {
+        var oldEscStatEl = document.getElementById('doneEscalationStat');
+        if (oldEscStatEl) oldEscStatEl.remove();
+        var escStatEl = document.createElement('div');
+        escStatEl.id = 'doneEscalationStat';
+        escStatEl.style.cssText = 'font-size:0.8em;color:var(--text-secondary);margin-top:6px;';
+        escStatEl.textContent = '🔥 ' + escalationCount + ' card' +
+          (escalationCount !== 1 ? 's' : '') + ' escalated (hot streak tier promotion)';
+        var viewDoneEl = el('viewDone');
+        var doneStatsContainer = (viewDoneEl && viewDoneEl.querySelector('.done-stats')) ||
+          (viewDoneEl && viewDoneEl.querySelector('[class*="stats"]')) ||
+          (viewDoneEl && viewDoneEl.querySelector('.card'));
+        if (doneStatsContainer) doneStatsContainer.appendChild(escStatEl);
+      }
 
       session = null;
       try { document.body.classList.remove('in-session'); } catch(e) {}
@@ -16247,6 +16557,9 @@ var el = function(id){ return document.getElementById(id); };
     }
 
     function showCheckIn(profile, trigger) {
+      /* Never interrupt an active study session */
+      if (session && session.queue && session.queue.length > 0 &&
+          session.idx < session.queue.length) return;
       if (!profile || checkInState.active) return;
       var overlay = el('checkin-overlay');
       if (!overlay) return;
@@ -16274,6 +16587,7 @@ var el = function(id){ return document.getElementById(id); };
     }
 
     function checkForCheckIn() {
+      if (session && session.queue && session.idx < session.queue.length) return;
       var profile = getUserProfile();
       if (!profile || !profile.awakened || checkInState.active) return;
       var trigger = resolveCheckInTrigger(profile);
@@ -16770,6 +17084,90 @@ var el = function(id){ return document.getElementById(id); };
         };
       }
       return { show: false, bias: 'neutral' };
+    }
+
+    function computeExamReadiness(courseName) {
+      if (!courseName || !state.items) return null;
+      var TIER_DEPTH = {
+        quickfire: 0.40,
+        explain: 0.60,
+        apply: 0.75,
+        distinguish: 0.85,
+        mock: 0.95,
+        worked: 0.70
+      };
+      var now = Date.now();
+      var topicStats = {};
+      var totalCards = 0;
+
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (!it || it.archived || it.course !== courseName) continue;
+        var topic = it.topic || 'General';
+        if (!topicStats[topic]) {
+          topicStats[topic] = {
+            totalCards: 0,
+            retentionSum: 0,
+            highestTierFactor: 0
+          };
+        }
+        var ts = topicStats[topic];
+        ts.totalCards++;
+        totalCards++;
+
+        var R = 1.0;
+        if (it.fsrs && it.fsrs.lastReview && it.fsrs.stability) {
+          R = retrievability(it.fsrs, now);
+        } else if (it.fsrs && !it.fsrs.lastReview) {
+          R = 0.0;
+        }
+        ts.retentionSum += R;
+
+        var itemTier = it.lastTier || it.tier || 'quickfire';
+        var tierFactor = TIER_DEPTH[itemTier] || 0.40;
+        if (tierFactor > ts.highestTierFactor) {
+          ts.highestTierFactor = tierFactor;
+        }
+      }
+
+      if (totalCards < 5) return null;
+      var topicNames = Object.keys(topicStats);
+      if (!topicNames.length) return null;
+
+      var readinessNumerator = 0;
+      var readinessDenominator = 0;
+      for (var ti = 0; ti < topicNames.length; ti++) {
+        var tName = topicNames[ti];
+        var tStats = topicStats[tName];
+        var topicWeight = tStats.totalCards;
+        var topicRetention = tStats.retentionSum / tStats.totalCards;
+        var tierDepth = tStats.highestTierFactor;
+        var topicReadiness = topicRetention * tierDepth;
+        readinessNumerator += topicWeight * topicReadiness;
+        readinessDenominator += topicWeight;
+      }
+
+      if (readinessDenominator === 0) return null;
+      var overallReadiness = readinessNumerator / readinessDenominator;
+      var pct = Math.round(clamp(overallReadiness, 0, 1) * 100);
+
+      return {
+        readinessPct: pct,
+        totalCards: totalCards,
+        topicCount: topicNames.length,
+        topicBreakdown: topicNames.map(function(t) {
+          var s = topicStats[t];
+          var avgR = s.retentionSum / s.totalCards;
+          return {
+            topic: t,
+            cards: s.totalCards,
+            avgRetention: Math.round(avgR * 100),
+            tierFactor: s.highestTierFactor,
+            readiness: Math.round(avgR * s.highestTierFactor * 100)
+          };
+        }).sort(function(a, b) { return a.readiness - b.readiness; })
+      };
     }
 
     function setCalArc(p) {
