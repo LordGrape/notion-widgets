@@ -990,7 +990,13 @@ var mockCountdownTimer = null;
 
       var n = session.queue.length;
       el('progText').textContent = (session.idx + 1) + ' of ' + n;
-      el('progBar').style.width = Math.round(((session.idx) / Math.max(1, n)) * 100) + '%';
+      var progBar = el('progBar');
+      var targetWidth = Math.round(((session.idx) / Math.max(1, n)) * 100) + '%';
+      if (window.gsap && progBar) {
+        gsap.to(progBar, { width: targetWidth, duration: 0.4, ease: 'power2.out' });
+      } else if (progBar) {
+        progBar.style.width = targetWidth;
+      }
 
       tierArea.innerHTML = '';
       if (tier === 'quickfire') renderQuickfireTier(it, session);
@@ -1004,8 +1010,8 @@ var mockCountdownTimer = null;
         var cardEnter = document.querySelector('.item-card');
         if (cardEnter) {
           gsap.fromTo(cardEnter,
-            { opacity: 0, y: 16, scale: 0.98 },
-            { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: 'power2.out' }
+            { opacity: 0, x: 30, scale: 0.98 },
+            { opacity: 1, x: 0, scale: 1, duration: 0.3, ease: 'power2.out' }
           );
         }
       }
@@ -1445,7 +1451,8 @@ var mockCountdownTimer = null;
         gsap.killTweensOf(cardEl);
         gsap.to(cardEl, {
           opacity: 0,
-          y: -12,
+          x: -30,
+          scale: 0.97,
           duration: 0.18,
           ease: 'power2.in',
           onComplete: step
@@ -1653,31 +1660,12 @@ var mockCountdownTimer = null;
     function flashRatingFeedback(rating) {
       var itemCard = document.querySelector('.item-card');
       if (!itemCard || !window.gsap) return;
-      var colours = {
-        1: { glow: 'rgba(239,68,68,0.35)', soft: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.60)' },
-        2: { glow: 'rgba(245,158,11,0.30)', soft: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.55)' },
-        3: { glow: 'rgba(34,197,94,0.28)', soft: 'rgba(34,197,94,0.09)', border: 'rgba(34,197,94,0.50)' },
-        4: { glow: 'rgba(59,130,246,0.28)', soft: 'rgba(59,130,246,0.09)', border: 'rgba(59,130,246,0.50)' }
-      };
-      var c = colours[rating];
-      if (!c) return;
-      var intensity = rating === 1 ? 1.0 : rating === 2 ? 0.75 : rating === 3 ? 0.6 : 0.55;
+      var colourMap = { 1: 'rgba(239,68,68,0.5)', 2: 'rgba(245,158,11,0.5)', 3: 'rgba(34,197,94,0.5)', 4: 'rgba(59,130,246,0.5)' };
       gsap.killTweensOf(itemCard);
-      gsap.timeline()
-        .to(itemCard, {
-          boxShadow: '0 0 ' + Math.round(40 * intensity) + 'px ' + c.glow + ', 0 0 ' + Math.round(100 * intensity) + 'px ' + c.soft,
-          borderColor: c.border,
-          duration: 0.22,
-          ease: 'power2.out'
-        })
-        .to(itemCard, {
-          boxShadow: '0 0 0px rgba(0,0,0,0)',
-          borderColor: 'rgba(139,92,246,0.12)',
-          duration: 0.55,
-          delay: 0.08,
-          ease: 'power2.in',
-          clearProps: 'boxShadow,borderColor'
-        });
+      gsap.fromTo(itemCard,
+        { boxShadow: '0 0 0 3px ' + (colourMap[rating] || 'rgba(var(--accent-rgb),0.3)') },
+        { boxShadow: '0 0 0 0px transparent', duration: 0.6, ease: 'power2.out' }
+      );
     }
 
     function checkBreakTriggers() {
