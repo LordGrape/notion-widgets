@@ -148,11 +148,13 @@ function injectModeToggle(courseName, container) {
     '<button class="mode-toggle-btn" data-mode="learn">Learn</button>';
 
   /* Insert after the course header */
-  var header = container.querySelector('.ctx-course-header') || container.firstChild;
+  var header = container.querySelector('.ctx-course-header');
   if (header && header.nextSibling) {
     container.insertBefore(toggle, header.nextSibling);
-  } else {
+  } else if (header) {
     container.appendChild(toggle);
+  } else {
+    container.insertBefore(toggle, container.firstChild);
   }
 
   var reviewContent = null;
@@ -413,9 +415,9 @@ function startLearnSession(courseName, topics, subDeckFilter) {
   var timeoutId = null;
   if (controller) {
     timeoutId = setTimeout(function() {
-      console.error('[Learn] Fetch aborted after 90s timeout');
+      console.error('[Learn] Fetch aborted after 45s timeout');
       controller.abort();
-    }, 90000);
+    }, 45000);
   }
 
   var fetchOpts = {
@@ -574,9 +576,9 @@ function submitLearnCheck() {
   var checkTimeoutId = null;
   if (checkController) {
     checkTimeoutId = setTimeout(function() {
-      console.error('[Learn] learn-check aborted after 90s timeout');
+      console.error('[Learn] learn-check aborted after 30s timeout');
       checkController.abort();
-    }, 90000);
+    }, 30000);
   }
 
   console.log('[Learn] learn-check:', LEARN_CHECK_ENDPOINT);
@@ -1070,3 +1072,21 @@ function renderLearnSummary(sess, fsrsResults, xp, avgRating) {
   if (window.gsap) gsap.fromTo(content, { opacity: 0, scale: 0.97 }, { opacity: 1, scale: 1, duration: 0.35, ease: 'power2.out' });
   try { playChime(); } catch(ex) {}
 }
+
+
+(function installLearnToggleEmbedHook() {
+  if (typeof openCourseDetail !== 'function') {
+    setTimeout(installLearnToggleEmbedHook, 100); return;
+  }
+  if (openCourseDetail._learnToggleHooked) return;
+  var __baseLT = openCourseDetail;
+  openCourseDetail = function(courseName) {
+    __baseLT(courseName);
+    if (!isEmbedded) return;
+    var container = el('viewCourseDetail');
+    if (container && courseName) {
+      injectModeToggle(courseName, container);
+    }
+  };
+  openCourseDetail._learnToggleHooked = true;
+})();
