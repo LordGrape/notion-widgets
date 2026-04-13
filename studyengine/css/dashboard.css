@@ -510,38 +510,36 @@
     }
 }
 
-/* ── Tighter unified stats grid ── */
-.stats-row {
-    display: grid !important;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+/* ── Unified Stats Grid ── */
+.unified-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     gap: 8px;
+    margin-bottom: 14px;
     width: 100%;
 }
 
-.stats-row .stat {
-    min-width: 0;
+.unified-stats-grid .unified-gauge {
+    grid-column: 1 / -1;
+    margin: 0;
 }
 
-.tutor-stats-row {
-    display: grid !important;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-    gap: 8px;
-    width: 100%;
+@media (min-width: 640px) {
+    .unified-stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+
+    .unified-stats-grid .unified-gauge {
+        grid-column: auto;
+    }
 }
 
-.tutor-stats-row .stat {
-    min-width: 0;
-}
-
-.tutor-cal-row {
-    display: contents;
-}
-
-@media (max-width: 600px) {
-    .stats-row {
+@media (max-width: 520px) {
+    .unified-stats-grid {
         grid-template-columns: repeat(2, 1fr);
     }
-    .tutor-stats-row {
-        grid-template-columns: repeat(2, 1fr);
+
+    .unified-stats-grid .unified-gauge {
+        grid-column: 1 / -1;
     }
 }
