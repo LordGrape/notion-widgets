@@ -70,3 +70,17 @@
         width: 100%;
     }
 }
+
+/* Streak stat */
+.streak-stat .n {
+    background: linear-gradient(135deg, var(--accent-primary, #8b5cf6), #f59e0b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.streak-stat .stat-header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
