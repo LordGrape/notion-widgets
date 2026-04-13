@@ -35,6 +35,8 @@
         el('statStreak').textContent = '—';
         var streakWrapEmpty = el('streakStatWrap');
         if (streakWrapEmpty) streakWrapEmpty.style.display = (settings.gamificationMode === 'off') ? 'none' : '';
+        var progHubEmpty = el('progressionHub');
+        if (progHubEmpty) progHubEmpty.style.display = 'none';
         var streakValEmpty = el('statStudyStreak');
         if (streakValEmpty) streakValEmpty.textContent = '—';
         el('statRet').textContent = '—';
@@ -132,6 +134,133 @@
           var streakSubEl = el('streakSub');
           if (streakSubEl) {
             streakSubEl.textContent = streakDays === 1 ? 'day' : 'days';
+          }
+        }
+      }
+      /* ── Progression Hub (motivated mode) ── */
+      var progHub = el('progressionHub');
+      var streakWrapEl = el('streakStatWrap');
+      if (progHub) {
+        if (settings.gamificationMode === 'motivated' && due.total >= 0) {
+          progHub.style.display = '';
+          if (streakWrapEl) streakWrapEl.style.display = 'none';
+
+          var totalXP = 0;
+          try { totalXP = parseInt(SyncEngine.get('dragon', 'xp') || '0', 10); } catch (e) {}
+          var stageInfo = getDragonStage(totalXP);
+          var streakDays = (state.stats && state.stats.streakDays) || 0;
+
+          var progEmoji = el('progRankEmoji');
+          var progRankName = el('progRankName');
+          if (progEmoji) progEmoji.textContent = stageInfo.emoji;
+          if (progRankName) progRankName.textContent = stageInfo.rank.toUpperCase();
+
+          var progXP = el('progXPValue');
+          if (progXP) {
+            var prevXP = parseInt(progXP.textContent.replace(/,/g, ''), 10) || 0;
+            if (window.gsap && prevXP !== totalXP) {
+              var xpObj = { val: prevXP };
+              gsap.to(xpObj, {
+                val: totalXP,
+                duration: 0.8,
+                ease: 'power2.out',
+                onUpdate: function() {
+                  progXP.textContent = Math.round(xpObj.val).toLocaleString();
+                }
+              });
+            } else {
+              progXP.textContent = totalXP.toLocaleString();
+            }
+          }
+
+          var progStreakVal = el('progStreakVal');
+          var progStreakUnit = el('progStreakUnit');
+          var progStreakPill = el('progStreakPill');
+          if (progStreakVal) {
+            if (window.gsap) {
+              var sObj = { val: parseInt(progStreakVal.textContent, 10) || 0 };
+              gsap.to(sObj, {
+                val: streakDays,
+                duration: 0.6,
+                ease: 'power2.out',
+                onUpdate: function() { progStreakVal.textContent = String(Math.round(sObj.val)); }
+              });
+            } else {
+              progStreakVal.textContent = String(streakDays);
+            }
+          }
+          if (progStreakUnit) progStreakUnit.textContent = streakDays === 1 ? 'day' : 'days';
+          if (progStreakPill) {
+            var streakIcon = progStreakPill.querySelector('.prog-streak-icon');
+            if (streakIcon && window.gsap) {
+              var flameScale = streakDays >= 30 ? 1.3 : streakDays >= 7 ? 1.15 : 1.0;
+              gsap.to(streakIcon, { scale: flameScale, duration: 0.4, ease: 'back.out(1.7)' });
+            }
+          }
+
+          var progFill = el('progBarFill');
+          var progGlow = el('progBarGlow');
+          var progCurrent = el('progBarCurrent');
+          var progNext = el('progBarNext');
+          var pct = 0;
+          if (stageInfo.next === Infinity) {
+            pct = 100;
+          } else {
+            var currentThreshold = 0;
+            if (stageInfo.stage === 1) currentThreshold = 1000;
+            else if (stageInfo.stage === 2) currentThreshold = 5000;
+            else if (stageInfo.stage === 3) currentThreshold = 20000;
+            else if (stageInfo.stage === 4) currentThreshold = 60000;
+            else if (stageInfo.stage === 5) currentThreshold = 120000;
+            var range = stageInfo.next - currentThreshold;
+            var progress = totalXP - currentThreshold;
+            pct = range > 0 ? Math.min(99, Math.max(0, Math.round((progress / range) * 100))) : 0;
+          }
+          if (progFill) {
+            if (window.gsap) {
+              gsap.to(progFill, { width: pct + '%', duration: 1.0, ease: 'power2.out', delay: 0.2 });
+            } else {
+              progFill.style.width = pct + '%';
+            }
+          }
+          if (progGlow && window.gsap && pct > 0) {
+            gsap.to(progGlow, { opacity: 1, duration: 0.6, delay: 0.8 });
+          }
+          if (progCurrent) progCurrent.textContent = pct + '% to next rank';
+          if (progNext) {
+            if (stageInfo.next === Infinity) {
+              progNext.textContent = 'Max rank achieved';
+            } else {
+              var nextInfo = getDragonStage(stageInfo.next);
+              progNext.textContent = nextInfo.rank;
+            }
+          }
+
+          if (window.gsap) {
+            gsap.fromTo(progHub,
+              { opacity: 0, y: 10, scale: 0.98 },
+              { opacity: 1, y: 0, scale: 1, duration: 0.45, ease: 'power2.out' }
+            );
+            gsap.fromTo(progHub.querySelectorAll('.prog-rank-badge, .prog-rank-info, .prog-streak-pill, .prog-bar-section'),
+              { opacity: 0, y: 6 },
+              { opacity: 1, y: 0, duration: 0.3, stagger: 0.08, delay: 0.15, ease: 'power2.out' }
+            );
+            var badge = el('progRankBadge');
+            if (badge && !badge.dataset.progBreathing) {
+              badge.dataset.progBreathing = '1';
+              gsap.to(badge, {
+                boxShadow: '0 4px 28px rgba(var(--accent-rgb), 0.25)',
+                duration: 2.5,
+                yoyo: true,
+                repeat: -1,
+                ease: 'sine.inOut'
+              });
+            }
+          }
+        } else {
+          progHub.style.display = 'none';
+          if (streakWrapEl) {
+            streakWrapEl.style.display = (settings.gamificationMode === 'off') ? 'none' : '';
           }
         }
       }
