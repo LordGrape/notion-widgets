@@ -1,3 +1,5 @@
+var tierTimer = null;
+var mockCountdownTimer = null;
 /* Relocated module-local vars from state.js */
     var sessionSummary = null;
 
