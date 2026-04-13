@@ -72,6 +72,40 @@
       animateCounter(el('statDue'), due.total);
       el('heroCourseHint').textContent = 'Across all tiers';
 
+      var cramBannerEl = el('cramBanner');
+      if (cramBannerEl) {
+        var activeCrams = listCourses().map(function(course) {
+          return { name: course.name, cram: getCramState(course.name) };
+        }).filter(function(entry) {
+          return entry.cram && entry.cram.active;
+        }).sort(function(a, b) {
+          return (a.cram.daysUntil || 9999) - (b.cram.daysUntil || 9999);
+        });
+        if (activeCrams.length) {
+          var cramHtml = '';
+          activeCrams.forEach(function(entry) {
+            cramHtml += '<div class="cram-banner show" style="background:linear-gradient(135deg,rgba(239,68,68,0.12),rgba(245,158,11,0.08));border:1px solid rgba(239,68,68,0.3);border-radius:var(--radius-lg);padding:16px;margin:12px 0;">' +
+              '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+              '<span class="cram-dashboard-fire" style="display:inline-flex;align-items:center;justify-content:center;">🔥</span>' +
+              '<div style="min-width:0;">' +
+              '<div style="font-weight:600;font-size:13px;">CRAM MODE — ' + esc(entry.name) + ' (' + esc(String(entry.cram.daysUntil)) + ' days)</div>' +
+              '<div style="font-size:11px;opacity:0.7;">' + esc(entry.cram.intensity) + ' intensity · ' + esc(String(entry.cram.sessionMod)) + '× session size · ' + esc(String(entry.cram.intervalMod)) + '× intervals</div>' +
+              '</div>' +
+              '</div>' +
+              '</div>';
+          });
+          cramBannerEl.classList.add('show');
+          cramBannerEl.innerHTML = cramHtml;
+          if (window.gsap) {
+            gsap.fromTo(cramBannerEl.querySelectorAll('.cram-banner'), { opacity: 0, x: -18 }, { opacity: 1, x: 0, duration: 0.28, stagger: 0.06, ease: 'power2.out' });
+            gsap.fromTo(cramBannerEl.querySelectorAll('.cram-dashboard-fire'), { scale: 0.96 }, { scale: 1.08, repeat: 1, yoyo: true, duration: 0.45, ease: 'sine.inOut', stagger: 0.08 });
+          }
+        } else {
+          cramBannerEl.classList.remove('show');
+          cramBannerEl.innerHTML = '';
+        }
+      }
+
       /* Secondary stats — animated counters */
       var masteredCount = 0;
       for (var sid in state.items) {

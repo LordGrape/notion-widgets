@@ -1,6 +1,9 @@
 /* Phase 2 extraction: copied from monolith; source-of-truth remains state.js for parity. */
 
     function openModal(tab, courseName) {
+      editingItemId = null;
+      modalEditAfterSave = null;
+      importFormat = 'json';
       activeTab = tab || activeTab || 'add';
 
       /* Determine course context */
@@ -34,15 +37,226 @@
       modalOv.classList.remove('show');
       modalOv.setAttribute('aria-hidden','true');
       pendingImport = null;
+      editingItemId = null;
+      modalEditAfterSave = null;
       var previewArea = document.getElementById('importPreviewArea');
       if (previewArea) previewArea.innerHTML = '';
   try { playClose(); } catch(e) {}
     }
 
+    function detectImportMode(raw) {
+      var text = String(raw || '').trim();
+      if (!text) return importFormat || 'json';
+      if (/^[\[{]/.test(text)) return 'json';
+      if (/^Q:\s*/m.test(text) || /\nQ:\s*/.test(text)) return 'qa';
+      return importFormat || 'json';
+    }
+
+    function updateImportModeUI(animate) {
+      var toggle = document.getElementById('importFormatToggle');
+      var textarea = el('m_import');
+      var label = document.getElementById('m_import_label');
+      var help = document.getElementById('m_import_help');
+      if (toggle) {
+        toggle.querySelectorAll('[data-import-format]').forEach(function(btn) {
+          btn.classList.toggle('active', btn.getAttribute('data-import-format') === importFormat);
+        });
+      }
+      if (!textarea) return;
+      var config = importFormat === 'qa'
+        ? {
+            label: 'Paste Q/A text',
+            placeholder: "Q: What is the near abroad doctrine?\nA: Russia's concept of near abroad refers to...\nT: Russian Foreign Policy",
+            help: 'Use Q: for prompts, A: for answers, and optional T: lines for topics. Blank lines separate cards.'
+          }
+        : {
+            label: 'Paste JSON array',
+            placeholder: '[{"prompt":"...","modelAnswer":"..."}]',
+            help: 'Each object needs at minimum: prompt and modelAnswer. Optional: topic, task, scenario, conceptA, conceptB, timeLimitMins.'
+          };
+      if (label) label.textContent = config.label;
+      if (help) help.innerHTML = config.help + ' The course is set automatically to <b>' + esc(modalCourse || 'Unknown') + '</b>.';
+      if (animate && window.gsap) {
+        gsap.fromTo(textarea, { opacity: 0.75, y: 4 }, { opacity: 1, y: 0, duration: 0.22, ease: 'power2.out' });
+      }
+      textarea.placeholder = config.placeholder;
+    }
+
+    function parseQaImport(raw) {
+      var lines = String(raw || '').replace(/\r\n?/g, '\n').split('\n');
+      var cards = [];
+      var card = null;
+      var currentField = '';
+      var sawPrompt = false;
+      var sawAnswer = false;
+
+      function ensureCard() {
+        if (!card) card = { prompt: '', modelAnswer: '', topic: '' };
+      }
+
+      function commitCard() {
+        if (!card) return;
+        var prompt = String(card.prompt || '').trim();
+        var answer = String(card.modelAnswer || '').trim();
+        var topic = String(card.topic || '').trim();
+        if (prompt || answer || topic) {
+          if (!prompt || !answer) {
+            throw new Error('Each card needs both Q: and A: lines');
+          }
+          cards.push({
+            prompt: prompt,
+            modelAnswer: answer,
+            topic: topic || 'General'
+          });
+        }
+        card = null;
+        currentField = '';
+      }
+
+      lines.forEach(function(line) {
+        var trimmed = line.trim();
+        if (!trimmed) {
+          commitCard();
+          return;
+        }
+        if (/^Q:\s*/i.test(trimmed)) {
+          if (card && String(card.prompt || '').trim() && String(card.modelAnswer || '').trim()) commitCard();
+          ensureCard();
+          card.prompt = trimmed.replace(/^Q:\s*/i, '').trim();
+          currentField = 'prompt';
+          sawPrompt = true;
+          return;
+        }
+        if (/^A:\s*/i.test(trimmed)) {
+          ensureCard();
+          card.modelAnswer = trimmed.replace(/^A:\s*/i, '').trim();
+          currentField = 'modelAnswer';
+          sawAnswer = true;
+          return;
+        }
+        if (/^T:\s*/i.test(trimmed)) {
+          ensureCard();
+          card.topic = trimmed.replace(/^T:\s*/i, '').trim();
+          currentField = 'topic';
+          return;
+        }
+        if (!currentField) return;
+        ensureCard();
+        var spacer = card[currentField] ? '\n' : '';
+        card[currentField] = String(card[currentField] || '') + spacer + trimmed;
+      });
+
+      commitCard();
+
+      if (!sawPrompt || !sawAnswer) {
+        toast('Use Q: and A: prefixes to mark questions and answers');
+        return null;
+      }
+      return cards;
+    }
+
+    function getTierUnlockMessage(beforeTiers, afterTiers) {
+      var unlocked = [];
+      (afterTiers || []).forEach(function(tier) {
+        if ((beforeTiers || []).indexOf(tier) < 0) unlocked.push(tierLabel(tier));
+      });
+      if (!unlocked.length) return '';
+      if (unlocked.length === 1) return 'Now supports ' + unlocked[0] + ' tiers';
+      return 'Now supports ' + unlocked.join(' + ') + ' tiers';
+    }
+
+    function saveEditedItem(itemId) {
+      var it = state.items[itemId];
+      if (!it) { toast('Card not found'); closeModal(); return; }
+
+      var prompt = (el('m_prompt').value || '').trim();
+      var answer = (el('m_answer').value || '').trim();
+      if (!prompt || !answer) {
+        try { playError(); } catch(e) {}
+        toast('Prompt and model answer are required');
+        return;
+      }
+
+      var beforeTiers = detectSupportedTiers(it);
+      var beforePrompt = it.prompt || '';
+      var beforeAnswer = it.modelAnswer || '';
+
+      it.prompt = prompt;
+      it.modelAnswer = answer;
+      it.topic = (el('m_topic').value || '').trim();
+      it.priority = (el('m_priority') && el('m_priority').value) || 'medium';
+
+      var scenario = (el('m_scenario') && el('m_scenario').value || '').trim();
+      var task = (el('m_task') && el('m_task').value || '').trim();
+      var conceptA = (el('m_conceptA') && el('m_conceptA').value || '').trim();
+      var conceptB = (el('m_conceptB') && el('m_conceptB').value || '').trim();
+      var timeVal = el('m_time') ? parseInt(el('m_time').value, 10) : 0;
+
+      if (scenario) it.scenario = scenario; else delete it.scenario;
+      if (task) it.task = task; else delete it.task;
+      if (conceptA) it.conceptA = conceptA; else delete it.conceptA;
+      if (conceptB) it.conceptB = conceptB; else delete it.conceptB;
+      if (timeVal && [5,10,15,30].indexOf(timeVal) >= 0) it.timeLimitMins = timeVal;
+      else delete it.timeLimitMins;
+
+      if (beforePrompt !== prompt || beforeAnswer !== answer) it.visual = null;
+
+      state.items[itemId] = it;
+      saveState();
+      renderDashboard();
+
+      var afterTiers = detectSupportedTiers(it);
+      var unlockMsg = getTierUnlockMessage(beforeTiers, afterTiers);
+      toast(unlockMsg || 'Card updated');
+      try { playPresetSelect(); } catch(e2) {}
+
+      var afterSave = modalEditAfterSave;
+      closeModal();
+      if (typeof afterSave === 'function') afterSave(it);
+      else if (it.course) {
+        try { openCourseDetail(it.course); } catch(e3) {}
+      }
+    }
+
+    function deleteEditedItem(itemId) {
+      if (!state.items[itemId]) return;
+      if (!window.confirm('Delete this card permanently?')) return;
+      delete state.items[itemId];
+      reconcileStats();
+      saveState();
+      renderDashboard();
+      var afterSave = modalEditAfterSave;
+      closeModal();
+      toast('Card deleted');
+      if (typeof afterSave === 'function') afterSave(null);
+    }
+
+    function editItem(itemId, opts) {
+      var it = state.items[itemId];
+      if (!it) { toast('Card not found'); return; }
+      opts = opts || {};
+      activeTab = 'add';
+      editingItemId = itemId;
+      modalEditAfterSave = typeof opts.onSave === 'function' ? opts.onSave : null;
+      modalCourse = it.course || null;
+      modalShowingPicker = false;
+      modalOv.classList.add('show');
+      modalOv.setAttribute('aria-hidden','false');
+      renderModal();
+      if (Core && Core.a11y && Core.a11y.trap) Core.a11y.trap(modalOv);
+      try { playOpen(); } catch(e) {}
+    }
+
+    window.editCard = editItem;
+
     function addFromModal(stayOpen) {
       if (activeTab === 'import') {
         doImport();
         /* Preview is now shown inline — don't close modal yet */
+        return;
+      }
+      if (editingItemId) {
+        saveEditedItem(editingItemId);
         return;
       }
 
@@ -142,10 +356,13 @@
 
     function doImport() {
       var raw = (el('m_import').value || '').trim();
-      if (!raw) { try { playError(); } catch(e) {} toast('Paste JSON first'); return; }
+      if (!raw) { try { playError(); } catch(e) {} toast(importFormat === 'qa' ? 'Paste Q/A text first' : 'Paste JSON first'); return; }
+
+      importFormat = detectImportMode(raw);
+      updateImportModeUI(false);
 
       /* Full-state restore from backup file */
-      try {
+      if (importFormat === 'json') try {
         var parsed = JSON.parse(raw);
         if (parsed && parsed._export === 'studyengine-full-backup' && parsed.items) {
           var count = Object.keys(parsed.items).length;
@@ -171,7 +388,12 @@
       } catch(e) { /* not a backup file, fall through to normal import */ }
 
       var arr = null;
-      try { arr = JSON.parse(raw); } catch (e) { toast('Invalid JSON'); return; }
+      if (importFormat === 'qa') {
+        try { arr = parseQaImport(raw); } catch (e2) { toast(e2.message || 'Could not parse Q/A text'); return; }
+        if (!arr) return;
+      } else {
+        try { arr = JSON.parse(raw); } catch (e) { toast('Invalid JSON'); return; }
+      }
       if (!Array.isArray(arr)) { try { playError(); } catch(e) {} toast('Expected an array'); return; }
 
       /* Phase 1: Parse and classify each item */

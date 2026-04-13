@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -6937,7 +6937,501 @@ input[type="range"]::-moz-range-thumb{
 
 /* Extraction-first scaffold: styles remain in base.css for exact parity. */
 
-/* Extraction-first scaffold: styles remain in base.css for exact parity. */
+/* Session-specific responsive system */
+
+@media (max-width: 768px) {
+  body.in-session .topbar {
+    display: none !important;
+  }
+
+  body.in-session #viewSession {
+    overflow: visible !important;
+    max-height: none;
+    padding-bottom: 100px;
+  }
+
+  body.in-session .session-top {
+    display: none;
+  }
+
+  body.in-session .session-header {
+    display: flex;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    margin: 0 0 10px;
+    border-radius: 0 0 14px 14px;
+    padding-top: max(12px, env(safe-area-inset-top));
+    background: rgba(var(--accent-rgb), 0.03);
+    border-bottom: 1px solid rgba(var(--accent-rgb), 0.08);
+  }
+
+  body.in-session .item-card {
+    min-height: 55vh;
+    min-height: 55dvh;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 20px 18px;
+    border-radius: 20px;
+    border: 1px solid rgba(var(--accent-rgb), 0.14);
+    border-left-width: 3px;
+    background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.06), rgba(var(--accent-rgb), 0.02) 40%, transparent 70%);
+    backdrop-filter: blur(12px) saturate(1.2);
+    -webkit-backdrop-filter: blur(12px) saturate(1.2);
+  }
+
+  body.in-session .meta {
+    margin-top: 0;
+    margin-bottom: 6px;
+    flex-wrap: nowrap;
+    gap: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  body.in-session .meta .timer-badge {
+    margin-left: auto;
+    font-size: 9px;
+  }
+
+  body.in-session .prompt {
+    align-items: flex-start;
+  }
+
+  body.in-session .ratings,
+  body.in-session #ratings {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin: 0;
+    padding: 12px 16px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    background: rgba(var(--accent-rgb), 0.04);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border-top: 1px solid rgba(var(--accent-rgb), 0.10);
+  }
+  body.in-session:not(.standalone) .ratings,
+  body.in-session:not(.standalone) #ratings {
+    position: sticky;
+  }
+
+  body.in-session .rate {
+    border-radius: 14px;
+    min-height: 52px;
+    padding: 14px 8px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  body.in-session #revealBtn,
+  body.in-session #checkBtn,
+  body.in-session #submitBtn,
+  body.in-session .confidence-row {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    margin: 0;
+    padding: 14px 16px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    background: rgba(var(--accent-rgb), 0.04);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border-top: 1px solid rgba(var(--accent-rgb), 0.10);
+  }
+  body.in-session:not(.standalone) #revealBtn,
+  body.in-session:not(.standalone) #checkBtn,
+  body.in-session:not(.standalone) #submitBtn,
+  body.in-session:not(.standalone) .confidence-row {
+    position: sticky;
+  }
+
+  body.in-session #revealBtn,
+  body.in-session #checkBtn,
+  body.in-session #submitBtn,
+  body.in-session #dontKnowBtn,
+  body.in-session .conf-pill {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body.in-session .confidence-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  body.in-session .conf-pill {
+    flex: 1;
+    max-width: none;
+    min-height: 48px;
+    padding: 14px 10px;
+    border-radius: 14px;
+    font-size: 13px;
+  }
+
+  body.in-session .pbar {
+    height: 4px;
+    border: none;
+    background: rgba(var(--accent-rgb), 0.08);
+  }
+
+  body.in-session .pbar > div {
+    transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  body.in-session .progress .p-text,
+  body.in-session #sessionProgText {
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+  }
+
+  body.in-session .reveal-columns {
+    display: block;
+  }
+
+  body.in-session .reveal-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  body.in-session .reveal-tab-btn {
+    flex: 1;
+  }
+
+  body.in-session .reveal-col {
+    display: none;
+    max-height: 50vh;
+    overflow-y: auto;
+  }
+
+  body.in-session .reveal-col.active {
+    display: block;
+  }
+
+  body.in-session button,
+  body.in-session .rate,
+  body.in-session .conf-pill,
+  body.in-session .ghost-btn,
+  body.in-session .big-btn,
+  body.in-session .session-exit,
+  body.in-session .cb-stay,
+  body.in-session .cb-leave,
+  body.in-session .skip {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+    cursor: pointer;
+  }
+}
+
+@media (min-width: 769px) {
+  body.in-session .session-header {
+    display: flex;
+  }
+
+  body.in-session .reveal-tabs {
+    display: none;
+  }
+
+  .reveal-col {
+    display: block !important;
+  }
+}
+
+.ios-landscape-prompt {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  touch-action: manipulation;
+}
+
+.ios-landscape-prompt.show {
+  display: flex;
+}
+
+.ios-lp-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.60);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.ios-lp-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 300px;
+  padding: 32px 24px 24px;
+  border-radius: 24px;
+  background: var(--card-bg);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid rgba(var(--accent-rgb), 0.18);
+  box-shadow: 0 24px 80px rgba(0,0,0,0.35);
+  text-align: center;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
+.ios-lp-phone-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.ios-lp-phone {
+  width: 80px;
+  height: 80px;
+  color: var(--accent);
+  filter: drop-shadow(0 0 16px rgba(var(--accent-rgb), 0.3));
+}
+
+.ios-lp-phone-body {
+  transform-origin: 60px 60px;
+  animation: iosPhoneRotate 2.5s ease-in-out infinite;
+}
+
+@keyframes iosPhoneRotate {
+  0%, 15% { transform: rotate(0deg); }
+  40%, 60% { transform: rotate(-90deg); }
+  85%, 100% { transform: rotate(0deg); }
+}
+
+.ios-lp-arrow,
+.ios-lp-arrow-head {
+  animation: iosArrowPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes iosArrowPulse {
+  0%, 15% { opacity: 0.5; }
+  25% { opacity: 0.9; }
+  50%, 100% { opacity: 0.3; }
+}
+
+.ios-lp-title {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.ios-lp-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.ios-lp-dismiss {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(var(--accent-rgb), 0.18);
+  background: rgba(var(--accent-rgb), 0.08);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: background 200ms ease, color 200ms ease, transform 200ms ease;
+}
+
+.ios-lp-dismiss:hover,
+.ios-lp-dismiss:active {
+  background: rgba(var(--accent-rgb), 0.14);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+@media (orientation: landscape) {
+  .ios-landscape-prompt.show {
+    display: none;
+  }
+}
+
+@media (min-width: 769px) {
+  .ios-landscape-prompt {
+    display: none !important;
+  }
+}
+
+/* ═══ iOS WebKit backdrop-filter touch fix ═══
+   backdrop-filter creates compositor layers that swallow touch events
+   for all child elements on iOS WebKit. This is a documented bug.
+   Fix: disable backdrop-filter on interactive session containers on iOS
+   and use opaque/semi-opaque backgrounds instead. */
+
+@supports (-webkit-touch-callout: none) {
+
+  /* Item card — contains all tier controls, textareas, prompt */
+  body.in-session .item-card {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--card-bg) !important;
+  }
+
+  /* Rating buttons bar */
+  body.in-session .ratings,
+  body.in-session #ratings {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--bg) !important;
+  }
+
+  /* Reveal / Check / Submit / Don't Know buttons */
+  body.in-session #revealBtn,
+  body.in-session #checkBtn,
+  body.in-session #submitBtn,
+  body.in-session #dontKnowBtn,
+  body.in-session .confidence-row {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--bg) !important;
+  }
+
+  /* Session header (exit + skip buttons) */
+  body.in-session .session-header {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--bg) !important;
+  }
+
+  /* Confirm dialog (End session early?) */
+  .confirm-overlay .confirm-box {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--bg) !important;
+    border: 1px solid var(--card-border);
+  }
+
+  /* Session XP bar */
+  body.in-session .session-xp-bar {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* Break overlay card */
+  .break-card {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--bg) !important;
+  }
+
+  /* AI feedback panel */
+  body.in-session .ai-feedback {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* Tutor dialogue panel */
+  body.in-session .ask-tutor-wrap {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
+
+/* ═══ iOS WebKit backdrop-filter touch fix ═══
+   backdrop-filter creates compositor layers that swallow touch events
+   for all child elements on iOS WebKit. This is a documented bug.
+   Fix: disable backdrop-filter on interactive session containers on iOS
+   and use opaque/semi-opaque backgrounds instead. */
+
+@supports (-webkit-touch-callout: none) {
+
+  /* Item card — contains all tier controls, textareas, prompt */
+  body.in-session .item-card {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--card-bg) !important;
+  }
+
+  /* Rating buttons bar */
+  body.in-session .ratings,
+  body.in-session #ratings {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--bg) !important;
+  }
+
+  /* Reveal / Check / Submit / Don't Know buttons */
+  body.in-session #revealBtn,
+  body.in-session #checkBtn,
+  body.in-session #submitBtn,
+  body.in-session #dontKnowBtn,
+  body.in-session .confidence-row {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--bg) !important;
+  }
+
+  /* Session header (exit + skip buttons) */
+  body.in-session .session-header {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--bg) !important;
+  }
+
+  /* Confirm dialog (End session early?) */
+  .confirm-overlay .confirm-box {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--bg) !important;
+    border: 1px solid var(--card-border);
+  }
+
+  /* Session XP bar */
+  body.in-session .session-xp-bar {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* Break overlay card */
+  .break-card {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--bg) !important;
+  }
+
+  /* AI feedback panel */
+  body.in-session .ai-feedback {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* Tutor dialogue panel */
+  body.in-session .ask-tutor-wrap {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
 
 /* Extraction-first scaffold: styles remain in base.css for exact parity. */
 
@@ -7008,10 +7502,10 @@ input[type="range"]::-moz-range-thumb{
           <div class="awakening-flash" id="awakening-flash"></div>
           <div class="awakening-hatch-visual">
             <div class="awakening-hatch-particles" id="awakening-hatch-particles"></div>
-            <img class="awakening-hatch-image" id="awakening-egg-dormant" src="/studyengine/assets/dragon/egg-dormant.png" alt="Dormant egg" />
-            <img class="awakening-hatch-image" id="awakening-egg-cracking" src="/studyengine/assets/dragon/egg-cracking.png" alt="Cracking egg" style="opacity:0" />
-            <img class="awakening-hatch-image" id="awakening-egg-hatching" src="/studyengine/assets/dragon/egg-hatching.png" alt="Hatching egg" style="opacity:0" />
-            <img class="awakening-hatch-image" id="awakening-dragon-hatchling" src="/studyengine/assets/dragon/dragon-hatchling.png" alt="Dragon hatchling" style="opacity:0" />
+            <img class="awakening-hatch-image" id="awakening-egg-dormant" src="assets/dragon/egg-dormant.png" alt="Dormant egg" />
+            <img class="awakening-hatch-image" id="awakening-egg-cracking" src="assets/dragon/egg-cracking.png" alt="Cracking egg" style="opacity:0" />
+            <img class="awakening-hatch-image" id="awakening-egg-hatching" src="assets/dragon/egg-hatching.png" alt="Hatching egg" style="opacity:0" />
+            <img class="awakening-hatch-image" id="awakening-dragon-hatchling" src="assets/dragon/dragon-hatchling.png" alt="Dragon hatchling" style="opacity:0" />
           </div>
           <div class="awakening-hatch-text" id="awakening-hatch-text"></div>
           <button class="awakening-button awakening-button-primary awakening-enter-button" id="awakening-enter-btn" type="button">Enter the Study Engine</button>
@@ -7279,6 +7773,14 @@ input[type="range"]::-moz-range-thumb{
 
         <!-- Session -->
         <div class="view" id="viewSession">
+          <div class="session-header" id="sessionHeader">
+            <div class="session-tier-pill"><span class="tiny">●</span> <span id="sessionTierText">—</span></div>
+            <div class="session-progress-stack">
+              <span id="sessionProgText">—</span>
+              <div class="pbar"><div id="sessionProgBar"></div></div>
+            </div>
+            <button class="session-exit icon-only" id="exitSessionHeaderBtn" aria-label="Exit session">✕</button>
+          </div>
           <div class="session-top">
             <div class="progress">
               <div class="p-text">
@@ -7327,10 +7829,10 @@ input[type="range"]::-moz-range-thumb{
             <div class="break-banner" id="breakBanner"></div>
             <div class="break-hint" id="breakHint"></div>
             <div class="ratings" id="ratings" style="display:none">
-              <button class="rate again" data-rate="1">Again (1)</button>
-              <button class="rate hard" data-rate="2">Hard (2)</button>
-              <button class="rate good" data-rate="3">Good (3)</button>
-              <button class="rate easy" data-rate="4">Easy (4)</button>
+              <button class="rate again" data-rate="1">Again (1)<span class="rate-days">&lt; 10m</span></button>
+              <button class="rate hard" data-rate="2">Hard (2)<span class="rate-days">~ 1d</span></button>
+              <button class="rate good" data-rate="3">Good (3)<span class="rate-days">~ 3d</span></button>
+              <button class="rate easy" data-rate="4">Easy (4)<span class="rate-days">~ 7d</span></button>
             </div>
           </div>
         </div>
@@ -7978,11 +8480,17 @@ input[type="range"]::-moz-range-thumb{
     function setTierBadge(tier) {
       var b = el('tierBadge');
       var t = el('tierBadgeText');
-      var dot = b.querySelector('.tiny');
       var c = tierColour(tier);
-      b.style.background = c;
-      dot.style.opacity = '0.92';
-      t.textContent = tierLabel(tier);
+      if (b && t) {
+        var dot = b.querySelector('.tiny');
+        b.style.background = c;
+        if (dot) dot.style.opacity = '0.92';
+        t.textContent = tierLabel(tier);
+      }
+      var sessionTierText = el('sessionTierText');
+      if (sessionTierText) sessionTierText.textContent = tierLabel(tier);
+      var sessionTierDot = document.querySelector('.session-tier-pill .tiny');
+      if (sessionTierDot) sessionTierDot.style.color = c;
     }
 
     function showView(nextId) {
@@ -9926,13 +10434,8 @@ input[type="range"]::-moz-range-thumb{
       if (!bar || !session) return;
       var valEl = bar.querySelector('.sxp-value');
       var fillEl = bar.querySelector('.sxp-fill');
-      var streakEl = bar.querySelector('.sxp-streak');
-      if (valEl) valEl.textContent = session.xp + ' XP';
+      if (valEl) valEl.textContent = String(session.xp);
       if (fillEl) fillEl.style.width = Math.min(100, Math.round((session.xp / 200) * 100)) + '%';
-      if (streakEl) {
-        var streak = (state.stats && state.stats.streakDays) || 0;
-        streakEl.innerHTML = streak > 0 ? ('🔥 ' + streak + 'd') : '';
-      }
     }
 
 /* Phase 2 extraction: copied from monolith; source-of-truth remains state.js for parity. */
@@ -12982,11 +13485,7 @@ function showCourseDashboard(courseName) {
       breakState.lastBreakTime = 0;
       breakState.breaksTaken = 0;
       breakState.bannerDismissed = false;
-      if (!q.length) {
-        toast('No due items found — check your sync status');
-        console.warn('[StudyEngine] buildSessionQueue returned 0 items. state.items count:', Object.keys(state.items || {}).length);
-        return;
-      }
+      if (!q.length) return;
       persistActiveSessionSnapshot();
       var prevSum = el('sessionAiSummaryWrap');
       if (prevSum) prevSum.style.display = 'none';
@@ -14808,12 +15307,9 @@ var el = function(id){ return document.getElementById(id); };
     }
 
     function showAwakening(onComplete) {
-      var assetBase = (typeof STUDYENGINE_ASSET_BASE === 'string' && STUDYENGINE_ASSET_BASE)
-        ? STUDYENGINE_ASSET_BASE
-        : '/studyengine/assets/dragon/';
       ['egg-dormant','egg-cracking','egg-hatching','dragon-hatchling'].forEach(function(name) {
         var img = new Image();
-        img.src = assetBase + name + '.png';
+        img.src = 'assets/dragon/' + name + '.png';
       });
       awakeningState.name = '';
       awakeningState.about = '';
@@ -21690,6 +22186,28 @@ el('gearBtn').addEventListener('click', openSettings);
     </div>
     <div class="visual-lightbox-body" id="visualLightboxBody"></div>
     <div class="visual-lightbox-hint">Pinch to zoom · Drag to pan · Scroll to zoom</div>
+  </div>
+  <div id="iosLandscapePrompt" class="ios-landscape-prompt" aria-hidden="true" style="display:none;">
+    <div class="ios-lp-backdrop"></div>
+    <div class="ios-lp-card">
+      <div class="ios-lp-phone-wrap">
+        <svg class="ios-lp-phone" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g class="ios-lp-phone-body">
+            <rect x="38" y="16" width="44" height="88" rx="8" stroke="currentColor" stroke-width="2.5" fill="none"/>
+            <rect x="42" y="24" width="36" height="68" rx="2" fill="currentColor" opacity="0.08"/>
+            <rect x="50" y="97" width="20" height="3" rx="1.5" fill="currentColor" opacity="0.3"/>
+            <rect x="52" y="18" width="16" height="3" rx="1.5" fill="currentColor" opacity="0.2"/>
+          </g>
+          <path class="ios-lp-arrow" d="M95 50 C100 35, 95 20, 78 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.5"/>
+          <path class="ios-lp-arrow-head" d="M78 18 L82 24 L74 22 Z" fill="currentColor" opacity="0.5"/>
+        </svg>
+      </div>
+      <div class="ios-lp-text">
+        <div class="ios-lp-title">Rotate for the best experience</div>
+        <div class="ios-lp-desc">Flashcard sessions work best in landscape on mobile.</div>
+      </div>
+      <button class="ios-lp-dismiss" type="button">Continue in portrait</button>
+    </div>
   </div>
 </body>
 </html>
