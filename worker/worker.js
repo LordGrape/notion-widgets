@@ -25,6 +25,36 @@ function parseJsonResponse(rawText) {
   );
 }
 
+function buildFallbackLearnPlan(body) {
+  const cards = Array.isArray(body?.cards) ? body.cards.slice(0, 6) : [];
+  const topics = Array.isArray(body?.topics) ? body.topics : [];
+  const segments = cards.map((card, idx) => {
+    const prompt = String(card?.prompt || "").trim();
+    const answer = String(card?.modelAnswer || "").trim();
+    const concept = prompt.split("?")[0].trim() || ("Concept " + (idx + 1));
+    return {
+      id: "seg-fallback-" + (idx + 1),
+      concept: concept.slice(0, 100),
+      explanation: answer || "Use your course materials to define this concept clearly.",
+      elaboration: "Connect this idea to " + (topics[0] || "the current topic") + " and explain why it matters.",
+      checkType: idx % 2 === 0 ? "elaborative" : "predict",
+      checkQuestion: prompt || ("Explain " + concept + " in your own words."),
+      checkAnswer: answer || "A clear, accurate explanation that uses key terms from your class.",
+      linkedCardIds: card?.id ? [String(card.id)] : []
+    };
+  });
+
+  const consolidationQuestions = [
+    {
+      question: "What are the most important connections across the concepts you just studied?",
+      answer: "A good answer names each concept and explains how they build on each other.",
+      linkedCardIds: segments.flatMap((seg) => seg.linkedCardIds).slice(0, 5)
+    }
+  ];
+
+  return { segments, consolidationQuestions };
+}
+
 // Gemini 2.5 models may include "thought" parts before the actual response.
 // This helper extracts the last non-thought text part from the candidates.
 function extractGeminiText(geminiData) {
@@ -2517,9 +2547,12 @@ Return JSON with this exact structure:
         }
       }
 
-      console.log("[learn-plan] Final result:", parsed ? "segments=" + (parsed.segments || []).length : "NULL");
+      const fallbackPlan = buildFallbackLearnPlan(body);
+      const hasSegments = !!(parsed && Array.isArray(parsed.segments) && parsed.segments.length);
+      const resultPlan = hasSegments ? parsed : fallbackPlan;
+      console.log("[learn-plan] Final result:", hasSegments ? "segments=" + parsed.segments.length : "fallback segments=" + fallbackPlan.segments.length);
 
-      return new Response(JSON.stringify(parsed || { segments: [], consolidationQuestions: [] }), {
+      return new Response(JSON.stringify(resultPlan), {
         status: 200,
         headers: { ...lpCorsHeaders, "Content-Type": "application/json" }
       });
@@ -2973,4 +3006,3 @@ function json(body, status) {
     headers: Object.assign({ "Content-Type": "application/json" }, corsHeaders())
   });
 }
-
