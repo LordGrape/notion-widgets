@@ -463,19 +463,29 @@
     }
 
     function setTierBadge(tier) {
-      var b = el('tierBadge');
-      var t = el('tierBadgeText');
-      var c = tierColour(tier);
-      if (b && t) {
-        var dot = b.querySelector('.tiny');
-        b.style.background = c;
-        if (dot) dot.style.opacity = '0.92';
-        t.textContent = tierLabel(tier);
+      var badge = document.querySelector('.tier-badge');
+      if (!badge) return;
+      var config = {
+        quickfire: { icon: '⚡', label: 'QF', bg: 'var(--tier-qf)' },
+        explain: { icon: '💬', label: 'EI', bg: 'var(--tier-ex)' },
+        apply: { icon: '🔧', label: 'AI', bg: 'var(--tier-ap)' },
+        distinguish: { icon: '⚖', label: 'DI', bg: 'var(--tier-di)' },
+        mock: { icon: '📝', label: 'ME', bg: 'var(--tier-mk)' },
+        worked: { icon: '📐', label: 'WE', bg: 'var(--tier-we)' }
+      };
+      var c = config[tier] || config.quickfire;
+      badge.innerHTML = '<span class="tiny">' + c.icon + '</span> ' + c.label;
+      badge.style.background = c.bg;
+      badge.style.color = '#fff';
+      var glow = tierColour(tier);
+      badge.style.boxShadow = '0 0 18px ' + toRgba(glow || '#8b5cf6', 0.3);
+      if (window.gsap) {
+        gsap.fromTo(badge, { scale: 0.85, opacity: 0.6 }, { scale: 1, opacity: 1, duration: 0.3, ease: 'back.out(2)' });
       }
       var sessionTierText = el('sessionTierText');
       if (sessionTierText) sessionTierText.textContent = tierLabel(tier);
       var sessionTierDot = document.querySelector('.session-tier-pill .tiny');
-      if (sessionTierDot) sessionTierDot.style.color = c;
+      if (sessionTierDot) sessionTierDot.style.color = glow;
     }
 
     function showView(nextId) {
