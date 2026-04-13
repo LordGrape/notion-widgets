@@ -2006,6 +2006,280 @@
       margin: 10px 0;
     }
 
+    /* ── Session viewport-fill layout ── */
+    body.in-session .wrap{
+      padding: 0;
+      align-items: stretch;
+    }
+    body.in-session .shell{
+      max-width: 100%;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+    body.in-session #viewSession{
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+    }
+    body.in-session .session-top{ flex-shrink: 0; }
+    body.in-session .session-header{ flex-shrink: 0; }
+    body.in-session .item-card{
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      max-width: 860px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 32px 36px;
+      min-height: 0;
+    }
+    body.in-session .prompt{
+      font-size: clamp(20px, 2.4vw, 28px);
+      line-height: 1.5;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+      color: var(--text);
+      flex: 1;
+      display: flex;
+      align-items: flex-start;
+      padding: 16px 0;
+    }
+    body.standalone.in-session .prompt{
+      font-size: clamp(22px, 2.6vw, 30px);
+    }
+    body.in-session .meta{
+      font-size: 10px;
+      color: var(--text-tertiary);
+      letter-spacing: 0.8px;
+      padding: 8px 0 4px;
+      gap: 8px;
+      opacity: 0.75;
+      flex-shrink: 0;
+    }
+    body.in-session .meta .badge,
+    body.in-session .meta .tier-pill{
+      font-size: 9px;
+      padding: 3px 8px;
+    }
+    body.in-session #confidencePrompt{
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+      flex-shrink: 0;
+    }
+    body.in-session .confidence-row{
+      display: flex;
+      gap: 10px;
+      padding: 12px 0;
+      flex-shrink: 0;
+    }
+    body.in-session .conf-pill{
+      flex: 1;
+      min-height: 52px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      transition: transform var(--transition), background var(--transition), border-color var(--transition), box-shadow var(--transition);
+    }
+    body.in-session .conf-pill[data-conf="low"]{
+      border-color: rgba(239, 68, 68, 0.25);
+      background: rgba(239, 68, 68, 0.06);
+      color: #ef4444;
+    }
+    body.in-session .conf-pill[data-conf="low"]:hover,
+    body.in-session .conf-pill[data-conf="low"].active,
+    body.in-session .conf-pill[data-conf="low"].selected{
+      background: rgba(239, 68, 68, 0.14);
+      border-color: rgba(239, 68, 68, 0.4);
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.1);
+    }
+    body.in-session .conf-pill[data-conf="medium"]{
+      border-color: rgba(245, 158, 11, 0.25);
+      background: rgba(245, 158, 11, 0.06);
+      color: #f59e0b;
+    }
+    body.in-session .conf-pill[data-conf="medium"]:hover,
+    body.in-session .conf-pill[data-conf="medium"].active,
+    body.in-session .conf-pill[data-conf="medium"].selected{
+      background: rgba(245, 158, 11, 0.14);
+      border-color: rgba(245, 158, 11, 0.4);
+      box-shadow: 0 0 20px rgba(245, 158, 11, 0.1);
+    }
+    body.in-session .conf-pill[data-conf="high"]{
+      border-color: rgba(34, 197, 94, 0.25);
+      background: rgba(34, 197, 94, 0.06);
+      color: #22c55e;
+    }
+    body.in-session .conf-pill[data-conf="high"]:hover,
+    body.in-session .conf-pill[data-conf="high"].active,
+    body.in-session .conf-pill[data-conf="high"].selected{
+      background: rgba(34, 197, 94, 0.14);
+      border-color: rgba(34, 197, 94, 0.4);
+      box-shadow: 0 0 20px rgba(34, 197, 94, 0.1);
+    }
+    body.in-session #revealBtn,
+    body.in-session #checkBtn,
+    body.in-session #submitBtn{
+      min-height: 56px;
+      padding: 18px 24px;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 1.2px;
+      border-radius: 18px;
+      flex-shrink: 0;
+      margin-top: auto;
+      box-shadow: 0 12px 36px rgba(var(--accent-rgb), 0.25);
+    }
+    body.in-session #revealBtn:hover,
+    body.in-session #checkBtn:hover,
+    body.in-session #submitBtn:hover{
+      box-shadow: 0 16px 48px rgba(var(--accent-rgb), 0.32);
+      transform: translateY(-2px);
+    }
+    body.in-session .item-card.revealed .prompt{
+      flex: 0;
+      padding: 8px 0;
+    }
+    body.in-session #modelAnswer{
+      flex-shrink: 0;
+      margin-top: 12px;
+      padding: 20px 22px;
+      border-radius: 18px;
+      max-height: none;
+      overflow-y: auto;
+    }
+    body.in-session #modelAnswer .answer{
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    body.standalone.in-session #modelAnswer .answer{
+      font-size: 15px;
+    }
+    body.in-session .visual-block,
+    body.in-session .mermaid-block{
+      max-height: 280px;
+      overflow-y: auto;
+      border-radius: 14px;
+      margin-top: 12px;
+      flex-shrink: 0;
+    }
+    body.in-session .ratings,
+    body.in-session #ratings{
+      flex-shrink: 0;
+      margin-top: auto;
+      padding-top: 16px;
+    }
+    body.in-session .rate{
+      min-height: 52px;
+      padding: 14px 10px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.6px;
+      border-radius: 14px;
+    }
+    body.in-session .qf-reretrieval,
+    body.in-session [id*="qfFollowup"],
+    body.in-session [id*="qfReRetrieval"]{
+      flex-shrink: 0;
+      margin-top: 16px;
+      padding: 20px 22px;
+      border-radius: 18px;
+      border: 1px solid rgba(var(--accent-rgb), 0.18);
+      border-left: 3px solid var(--accent);
+      background: rgba(var(--accent-rgb), 0.04);
+    }
+    body.in-session .qf-reretrieval .re-test-question,
+    body.in-session [id*="qfFollowup"] p,
+    body.in-session [id*="qfReRetrieval"] p{
+      font-size: 15px;
+      line-height: 1.55;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+    body.in-session .qf-reretrieval input[type="text"],
+    body.in-session .qf-reretrieval textarea,
+    body.in-session [id*="qfFollowup"] input,
+    body.in-session [id*="qfReRetrieval"] input{
+      width: 100%;
+      min-height: 48px;
+      padding: 14px 48px 14px 16px;
+      border-radius: 14px;
+      font-size: 14px;
+      border: 1px solid rgba(var(--accent-rgb), 0.2);
+      background: rgba(var(--accent-rgb), 0.03);
+      color: var(--text);
+      font-family: inherit;
+    }
+    body.in-session .qf-reretrieval .submit-arrow,
+    body.in-session [id*="qfFollowup"] button[type="submit"],
+    body.in-session [id*="qfReRetrieval"] button{
+      min-width: 44px;
+      min-height: 44px;
+    }
+    body.in-session .qf-reretrieval .skip-link,
+    body.in-session [id*="qfFollowup"] .skip,
+    body.in-session [id*="qfReRetrieval"] .skip{
+      font-size: 11px;
+      letter-spacing: 0.8px;
+      color: var(--text-tertiary);
+      text-align: center;
+      padding: 10px 0;
+      margin-top: 8px;
+    }
+    body.in-session .dk-consolidation,
+    body.in-session .consolidation-block{
+      flex-shrink: 0;
+      margin-top: 16px;
+      padding: 22px 24px;
+      border-radius: 18px;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    body.in-session .dk-consolidation .dk-ma-body{
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    body.in-session .continue-btn,
+    body.in-session [id*="qfFollowup"] .big-btn,
+    body.in-session [id*="qfReRetrieval"] .big-btn{
+      min-height: 56px;
+      padding: 18px 24px;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 1.2px;
+      border-radius: 18px;
+      flex-shrink: 0;
+      margin-top: 16px;
+      box-shadow: 0 12px 36px rgba(var(--accent-rgb), 0.25);
+    }
+    body.in-session .session-xp-bar{
+      flex-shrink: 0;
+      font-size: 9px;
+      padding: 6px 16px;
+      opacity: 0.8;
+    }
+    body.in-session .pbar{
+      height: 3px;
+      border-radius: 99px;
+      flex-shrink: 0;
+    }
+    @media (prefers-color-scheme: dark){
+      body.in-session .conf-pill[data-conf="low"]{ color: #f87171; }
+      body.in-session .conf-pill[data-conf="medium"]{ color: #fbbf24; }
+      body.in-session .conf-pill[data-conf="high"]{ color: #4ade80; }
+    }
+
     .study-indicator{
       margin-top: 10px;
       display: none;
@@ -7210,6 +7484,77 @@ body.standalone #userText {
   margin-bottom: 8px;
 }
 /* Extraction-first scaffold: styles remain in base.css for exact parity. */
+
+/* ── Integrated resume session UI ── */
+.resume-session-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    margin-top: 2px;
+}
+
+.resume-session-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78em;
+    font-weight: 500;
+    color: var(--text-secondary, rgba(255,255,255,0.55));
+    letter-spacing: 0.01em;
+}
+
+.resume-session-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent-primary, #8b5cf6);
+    display: inline-block;
+    animation: resumeDotPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes resumeDotPulse {
+    0%, 100% { opacity: 0.5; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.3); }
+}
+
+.resume-session-actions {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    justify-content: center;
+}
+
+.resume-session-actions .big-btn {
+    flex: 1;
+    max-width: 220px;
+    min-width: 0;
+}
+
+.resume-session-actions .ghost-btn {
+    background: transparent;
+    border: 1.5px solid var(--border-default, rgba(255,255,255,0.12));
+    color: var(--text-secondary, rgba(255,255,255,0.55));
+}
+
+.resume-session-actions .ghost-btn:hover {
+    border-color: var(--accent-primary, #8b5cf6);
+    color: var(--text-primary, #fff);
+    background: rgba(139, 92, 246, 0.08);
+}
+
+/* Mobile: stack vertically */
+@media (max-width: 479px) {
+    .resume-session-actions {
+        flex-direction: column;
+        align-items: center;
+    }
+    .resume-session-actions .big-btn {
+        max-width: 100%;
+        width: 100%;
+    }
+}
 /* Session-specific responsive system */
 
 @media (max-width: 768px) {
@@ -7240,8 +7585,8 @@ body.standalone #userText {
   }
 
   body.in-session .item-card {
-    min-height: 55vh;
-    min-height: 55dvh;
+    flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -7348,7 +7693,7 @@ body.standalone #userText {
   body.in-session .conf-pill {
     flex: 1;
     max-width: none;
-    min-height: 48px;
+    min-height: 52px;
     padding: 14px 10px;
     border-radius: 14px;
     font-size: 13px;
@@ -11941,7 +12286,53 @@ function showCourseDashboard(courseName) {
       });
       el('tierBreakdown').innerHTML = bd;
 
-      el('startBtn').disabled = (due.total === 0);
+      /* ── Integrated resume-or-new session UI ── */
+      var startBtnEl = el('startBtn');
+      var resumeSnapshot = checkForResumableSession();
+
+      /* Clean up any previous resume wrapper */
+      var oldResumeWrap = document.getElementById('resumeSessionWrap');
+      if (oldResumeWrap) oldResumeWrap.remove();
+
+      if (resumeSnapshot && resumeSnapshot._remaining > 0 && due.total > 0) {
+        /* Hide the normal start button, show dual-action UI */
+        startBtnEl.style.display = 'none';
+
+        var wrap = document.createElement('div');
+        wrap.id = 'resumeSessionWrap';
+        wrap.className = 'resume-session-wrap';
+        wrap.innerHTML =
+          '<div class="resume-session-hint">' +
+            '<span class="resume-session-dot"></span>' +
+            resumeSnapshot._remaining + ' card' + (resumeSnapshot._remaining === 1 ? '' : 's') +
+            ' remaining from your last session' +
+          '</div>' +
+          '<div class="resume-session-actions">' +
+            '<button class="big-btn" id="resumeContinueBtn">Continue Session</button>' +
+            '<button class="big-btn ghost-btn" id="resumeNewBtn">New Session</button>' +
+          '</div>';
+
+        startBtnEl.insertAdjacentElement('afterend', wrap);
+
+        document.getElementById('resumeContinueBtn').addEventListener('click', function() {
+          resumeSavedSession(resumeSnapshot);
+        });
+        document.getElementById('resumeNewBtn').addEventListener('click', function() {
+          clearActiveSessionSnapshot();
+          var wrapEl = document.getElementById('resumeSessionWrap');
+          if (wrapEl) wrapEl.remove();
+          startBtnEl.style.display = '';
+          startSession();
+        });
+
+        if (window.gsap) {
+          gsap.fromTo(wrap, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.25, ease: 'power2.out' });
+        }
+      } else {
+        /* Normal state — no interrupted session */
+        startBtnEl.style.display = '';
+        startBtnEl.disabled = (due.total === 0);
+      }
 
       var sleepAdvice = getSleepAwareAdvice();
       var sleepBannerEl = el('sleepAdviceBanner');
@@ -14877,35 +15268,18 @@ var mockCountdownTimer = null;
       dismissResumePrompt();
       var snapshot = null;
       try { snapshot = SyncEngine.get('studyengine', 'activeSession'); } catch (e) {}
-      if (!snapshot || !snapshot.queue || !snapshot.queue.length) return;
+      if (!snapshot || !snapshot.queue || !snapshot.queue.length) return null;
       if (!snapshot.startedAt || (Date.now() - snapshot.startedAt) > (4 * 60 * 60 * 1000)) {
         clearActiveSessionSnapshot();
-        return;
+        return null;
       }
       var remaining = Math.max(0, snapshot.queue.length - (snapshot.idx || 0));
       if (!remaining) {
         clearActiveSessionSnapshot();
-        return;
+        return null;
       }
-      var prompt = document.createElement('div');
-      prompt.id = 'resumeSessionPrompt';
-      prompt.style.cssText = 'position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:1200;width:min(340px,calc(100vw - 24px));padding:14px 16px;border-radius:18px;border:1px solid rgba(var(--accent-rgb),0.18);background:rgba(10,14,26,0.88);backdrop-filter:blur(18px);box-shadow:0 18px 42px rgba(0,0,0,0.28);';
-      prompt.innerHTML =
-        '<div style="font-size:12px;font-weight:700;margin-bottom:4px;">Resume interrupted session?</div>' +
-        '<div style="font-size:11px;color:var(--text-secondary);line-height:1.55;">' + remaining + ' card' + (remaining === 1 ? '' : 's') + ' remaining.</div>' +
-        '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap;">' +
-          '<button type="button" id="resumeDiscardBtn" class="ghost-btn">Discard</button>' +
-          '<button type="button" id="resumeNowBtn" class="big-btn">Resume</button>' +
-        '</div>';
-      document.body.appendChild(prompt);
-      if (window.gsap) gsap.fromTo(prompt, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.22, ease: 'power2.out' });
-      var resumeBtn = document.getElementById('resumeNowBtn');
-      if (resumeBtn) resumeBtn.addEventListener('click', function() { resumeSavedSession(snapshot); });
-      var discardBtn = document.getElementById('resumeDiscardBtn');
-      if (discardBtn) discardBtn.addEventListener('click', function() {
-        clearActiveSessionSnapshot();
-        dismissResumePrompt();
-      });
+      snapshot._remaining = remaining;
+      return snapshot;
     }
 
     function refreshSessionEditButton() {
@@ -14920,7 +15294,8 @@ var mockCountdownTimer = null;
         btn.style.padding = '4px 8px';
         btn.style.marginLeft = 'auto';
         btn.style.display = 'none';
-        btn.textContent = '✏ Edit';
+        btn.textContent = '✏';
+        btn.title = 'Edit card';
         btn.addEventListener('click', function() {
           if (!session || !session.queue || !session.queue[session.idx] || typeof editItem !== 'function') return;
           editItem(session.queue[session.idx].id, {
@@ -14943,10 +15318,12 @@ var mockCountdownTimer = null;
         });
         metaEl.appendChild(btn);
       }
-      btn.style.display = 'none';
+      btn.style.display = (session && session.currentShown) ? 'inline-flex' : 'none';
     }
 
     function startSession() {
+      dismissResumePrompt();
+      clearActiveSessionSnapshot();
       var q = buildSessionQueue();
       session = {
         queue: q,
@@ -15113,6 +15490,7 @@ var mockCountdownTimer = null;
       /* Tier-themed item card border */
       var ic = document.querySelector('.item-card');
       if (ic) {
+        ic.classList.remove('revealed');
         ic.className = 'item-card tier-' + tier;
       }
 
@@ -15172,6 +15550,8 @@ var mockCountdownTimer = null;
       if (session.currentShown) return;
       session.currentShown = true;
       refreshSessionEditButton();
+      var ic = document.querySelector('.item-card');
+      if (ic) ic.classList.add('revealed');
       var it = session.queue[session.idx];
       if (!it) return;
 
@@ -15186,6 +15566,9 @@ var mockCountdownTimer = null;
         var qfAnswerVisual = it.visual ? renderMermaidBlock(it.visual, 'answer', it.id) : '';
         modelAnswerEl.innerHTML = '<div class="answer-header"><span class="se-icon" style="margin-right:4px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="10" rx="1.5"/><polyline points="2,5 8,9 14,5"/></svg></span>Model Answer</div><div class="md-content">' + renderMd(it.modelAnswer || '') + '</div>' + qfAnswerVisual;
         modelAnswerEl.style.display = 'block';
+        setTimeout(function() {
+          modelAnswerEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
         if (qfAnswerVisual) setTimeout(initMermaidBlocks, 50);
         else ensureAnswerVisual(it, revealTier);
         ratingsEl.style.display = 'grid';
@@ -15298,6 +15681,17 @@ var mockCountdownTimer = null;
       }
 
       startGenerativeTutorFlow(it, revealTier, userText);
+    }
+
+    function scheduleQfFollowupScrolls() {
+      setTimeout(function() {
+        var reTestEl = document.getElementById('qfReRetrievalRoot') || document.getElementById('qfFollowupRoot');
+        if (reTestEl) reTestEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+      setTimeout(function() {
+        var consolEl = document.querySelector('.dk-consolidation') || document.querySelector('.consolidation-block');
+        if (consolEl) consolEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 220);
     }
 
     function rateCurrent(rating) {
@@ -15453,6 +15847,7 @@ var mockCountdownTimer = null;
 
         if (tier === 'quickfire' && settings.feedbackMode !== 'self_rate') {
           runQuickFireFollowupMicro(it, proceedAfterAgain, { reRetrieval: true });
+          scheduleQfFollowupScrolls();
           return;
         }
         proceedAfterAgain();
@@ -15472,6 +15867,7 @@ var mockCountdownTimer = null;
           }
           scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount);
         });
+        scheduleQfFollowupScrolls();
         return;
       }
 
@@ -16488,10 +16884,11 @@ var el = function(id){ return document.getElementById(id); };
       }
 
       var calHistory = (state && state.calibration && state.calibration.history) ? state.calibration.history : [];
+      var daysSinceCheckIn = daysBetween(lastCheck.getTime(), Date.now());
       var newCalEntries = calHistory.filter(function(entry) {
         return entry && entry.ts && new Date(entry.ts).getTime() > lastCheck.getTime();
       });
-      if (newCalEntries.length >= 5) {
+      if (newCalEntries.length >= 5 && daysSinceCheckIn >= 14) {
         var latestCalTs = newCalEntries[newCalEntries.length - 1].ts;
         var calibrationAlreadyHandled = signals.lastCalibrationPromptedAt && new Date(signals.lastCalibrationPromptedAt).getTime() >= new Date(latestCalTs).getTime();
         if (!calibrationAlreadyHandled) {
@@ -23132,6 +23529,10 @@ el('gearBtn').addEventListener('click', openSettings);
 
     /* ── Draw all analytics ── */
     function renderAnalytics(courseFilter) {
+      // Guard: analytics DOM is only present while dashboard/context views are mounted.
+      var analyticsHost = el('activityHeatmapHost') || el('analyticsArea') || el('analyticsWrap') || el('heatmapCanvas');
+      if (!analyticsHost) return;
+
       var items = {};
       for (var id in state.items) {
         if (!state.items.hasOwnProperty(id)) continue;
@@ -23149,6 +23550,7 @@ el('gearBtn').addEventListener('click', openSettings);
       /* Cram banner */
       var cramEl = el('cramBanner');
       var cramTextEl = el('cramText');
+      if (!cramEl || !cramTextEl) return;
       if (courseFilter && courseFilter !== 'All') {
         var cramState = getCramState(courseFilter);
         if (cramState.active) {
@@ -23589,7 +23991,6 @@ el('gearBtn').addEventListener('click', openSettings);
       wireGlobalTutorNotesUI();
       renderDashboard();
       showView('viewDash');
-      if (typeof checkForResumableSession === 'function') checkForResumableSession();
 
       // ── Sidebar Init (standalone only) ──
       if (!isEmbedded) {
