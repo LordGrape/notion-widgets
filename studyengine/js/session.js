@@ -854,7 +854,8 @@ var mockCountdownTimer = null;
         btn.style.padding = '4px 8px';
         btn.style.marginLeft = 'auto';
         btn.style.display = 'none';
-        btn.textContent = '✏ Edit';
+        btn.textContent = '✏';
+        btn.title = 'Edit card';
         btn.addEventListener('click', function() {
           if (!session || !session.queue || !session.queue[session.idx] || typeof editItem !== 'function') return;
           editItem(session.queue[session.idx].id, {
@@ -877,7 +878,7 @@ var mockCountdownTimer = null;
         });
         metaEl.appendChild(btn);
       }
-      btn.style.display = 'none';
+      btn.style.display = (session && session.currentShown) ? 'inline-flex' : 'none';
     }
 
     function startSession() {
@@ -1047,6 +1048,7 @@ var mockCountdownTimer = null;
       /* Tier-themed item card border */
       var ic = document.querySelector('.item-card');
       if (ic) {
+        ic.classList.remove('revealed');
         ic.className = 'item-card tier-' + tier;
       }
 
@@ -1106,6 +1108,8 @@ var mockCountdownTimer = null;
       if (session.currentShown) return;
       session.currentShown = true;
       refreshSessionEditButton();
+      var ic = document.querySelector('.item-card');
+      if (ic) ic.classList.add('revealed');
       var it = session.queue[session.idx];
       if (!it) return;
 
@@ -1120,6 +1124,9 @@ var mockCountdownTimer = null;
         var qfAnswerVisual = it.visual ? renderMermaidBlock(it.visual, 'answer', it.id) : '';
         modelAnswerEl.innerHTML = '<div class="answer-header"><span class="se-icon" style="margin-right:4px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="10" rx="1.5"/><polyline points="2,5 8,9 14,5"/></svg></span>Model Answer</div><div class="md-content">' + renderMd(it.modelAnswer || '') + '</div>' + qfAnswerVisual;
         modelAnswerEl.style.display = 'block';
+        setTimeout(function() {
+          modelAnswerEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
         if (qfAnswerVisual) setTimeout(initMermaidBlocks, 50);
         else ensureAnswerVisual(it, revealTier);
         ratingsEl.style.display = 'grid';
@@ -1232,6 +1239,17 @@ var mockCountdownTimer = null;
       }
 
       startGenerativeTutorFlow(it, revealTier, userText);
+    }
+
+    function scheduleQfFollowupScrolls() {
+      setTimeout(function() {
+        var reTestEl = document.getElementById('qfReRetrievalRoot') || document.getElementById('qfFollowupRoot');
+        if (reTestEl) reTestEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+      setTimeout(function() {
+        var consolEl = document.querySelector('.dk-consolidation') || document.querySelector('.consolidation-block');
+        if (consolEl) consolEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 220);
     }
 
     function rateCurrent(rating) {
@@ -1387,6 +1405,7 @@ var mockCountdownTimer = null;
 
         if (tier === 'quickfire' && settings.feedbackMode !== 'self_rate') {
           runQuickFireFollowupMicro(it, proceedAfterAgain, { reRetrieval: true });
+          scheduleQfFollowupScrolls();
           return;
         }
         proceedAfterAgain();
@@ -1406,6 +1425,7 @@ var mockCountdownTimer = null;
           }
           scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount);
         });
+        scheduleQfFollowupScrolls();
         return;
       }
 
