@@ -8526,6 +8526,24 @@ body.standalone #userText {
   }
 }
 /* Extraction-first scaffold: styles remain in base.css for exact parity. */
+
+.tree-node[data-level="subdeck"] {
+  padding-left: 28px;
+}
+.tree-node[data-level="subdeck"] .tree-label {
+  font-size: 0.82rem;
+}
+.tree-node[data-level="subdeck"].archived {
+  opacity: 0.5;
+}
+.tree-node[data-level="subdeck"].archived .tree-label {
+  text-decoration: line-through;
+  font-style: italic;
+}
+.subdeck-icon {
+  font-size: 0.8rem;
+  margin-right: 4px;
+}
 /* Extraction-first scaffold: styles remain in base.css for exact parity. */
 </style>
 </head>
@@ -9890,6 +9908,7 @@ body.standalone #userText {
         if (!itemsById.hasOwnProperty(id)) continue;
         var it = itemsById[id];
         if (!it || it.archived) continue;
+        if (isItemInArchivedSubDeck(it)) continue;
         if (it.course && state.courses[it.course] && state.courses[it.course].archived) continue;
         if (course && course !== 'All' && it.course !== course) continue;
         if (topic && topic !== 'All' && (it.topic || '') !== topic) continue;
@@ -9925,6 +9944,7 @@ body.standalone #userText {
         if (!itemsById.hasOwnProperty(id)) continue;
         var it = itemsById[id];
         if (!it || !it.fsrs || it.archived) continue;
+        if (isItemInArchivedSubDeck(it)) continue;
         if (it.course && state.courses[it.course] && state.courses[it.course].archived) continue;
         sum += retrievability(it.fsrs, now);
         n++;
@@ -10416,12 +10436,13 @@ body.standalone #userText {
       return cards;
     }
 
-    function getCardsForCourse(courseName) {
+    function getCardsForCourse(courseName, excludeArchivedSubDecks) {
       var cards = [];
       for (var id in state.items) {
         if (!state.items.hasOwnProperty(id)) continue;
         var it = state.items[id];
         if (!it || it.archived || it.course !== courseName) continue;
+        if (excludeArchivedSubDecks && isItemInArchivedSubDeck(it)) continue;
         cards.push(it);
       }
       return cards;
@@ -10574,6 +10595,153 @@ body.standalone #userText {
         if (topics[b] !== topics[a]) return topics[b] - topics[a];
         return a.localeCompare(b);
       });
+    }
+
+    function getSubDeck(courseName, subDeckName) {
+      if (!state.subDecks[courseName]) return null;
+      return state.subDecks[courseName].subDecks[subDeckName] || null;
+    }
+
+    function listSubDecks(courseName) {
+      if (!state.subDecks[courseName]) return [];
+      var subs = state.subDecks[courseName].subDecks;
+      var out = [];
+      for (var k in subs) {
+        if (subs.hasOwnProperty(k)) out.push(subs[k]);
+      }
+      out.sort(function(a, b) { return (a.order || 0) - (b.order || 0); });
+      return out;
+    }
+
+    function createSubDeck(courseName, name) {
+      if (!state.subDecks[courseName]) {
+        state.subDecks[courseName] = { subDecks: {} };
+      }
+      var existing = Object.keys(state.subDecks[courseName].subDecks);
+      state.subDecks[courseName].subDecks[name] = {
+        name: name,
+        order: existing.length,
+        archived: false,
+        created: isoNow(),
+        cardCount: 0
+      };
+      saveState();
+      return state.subDecks[courseName].subDecks[name];
+    }
+
+    function renameSubDeck(courseName, oldName, newName) {
+      var sd = state.subDecks[courseName];
+      if (!sd || !sd.subDecks[oldName]) return;
+      var meta = sd.subDecks[oldName];
+      meta.name = newName;
+      delete sd.subDecks[oldName];
+      sd.subDecks[newName] = meta;
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (it && it.course === courseName && it.subDeck === oldName) {
+          it.subDeck = newName;
+        }
+      }
+      saveState();
+    }
+
+    function archiveSubDeck(courseName, subDeckName) {
+      var sd = getSubDeck(courseName, subDeckName);
+      if (sd) { sd.archived = true; saveState(); }
+    }
+
+    function unarchiveSubDeck(courseName, subDeckName) {
+      var sd = getSubDeck(courseName, subDeckName);
+      if (sd) { sd.archived = false; saveState(); }
+    }
+
+    function deleteSubDeck(courseName, subDeckName, deleteCards) {
+      var sd = state.subDecks[courseName];
+      if (!sd || !sd.subDecks[subDeckName]) return;
+      if (deleteCards) {
+        var toDelete = [];
+        for (var id in state.items) {
+          if (!state.items.hasOwnProperty(id)) continue;
+          var it = state.items[id];
+          if (it && it.course === courseName && it.subDeck === subDeckName) {
+            toDelete.push(id);
+          }
+        }
+        toDelete.forEach(function(did) { delete state.items[did]; });
+      } else {
+        for (var id2 in state.items) {
+          if (!state.items.hasOwnProperty(id2)) continue;
+          var it2 = state.items[id2];
+          if (it2 && it2.course === courseName && it2.subDeck === subDeckName) {
+            it2.subDeck = null;
+          }
+        }
+      }
+      delete sd.subDecks[subDeckName];
+      reconcileStats();
+      saveState();
+    }
+
+    function moveSubDeck(subDeckName, fromCourse, toCourse) {
+      var fromSd = state.subDecks[fromCourse];
+      if (!fromSd || !fromSd.subDecks[subDeckName]) return;
+      if (!state.subDecks[toCourse]) {
+        state.subDecks[toCourse] = { subDecks: {} };
+      }
+      state.subDecks[toCourse].subDecks[subDeckName] = fromSd.subDecks[subDeckName];
+      delete fromSd.subDecks[subDeckName];
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (it && it.course === fromCourse && it.subDeck === subDeckName) {
+          it.course = toCourse;
+        }
+      }
+      if (!state.courses[toCourse]) {
+        saveCourse({
+          name: toCourse,
+          examType: 'mixed',
+          examDate: null,
+          manualMode: false,
+          color: '#8b5cf6',
+          created: isoNow()
+        });
+      }
+      saveState();
+    }
+
+    function isSubDeckArchived(courseName, subDeckName) {
+      var sd = getSubDeck(courseName, subDeckName);
+      return sd ? sd.archived : false;
+    }
+
+    function isItemInArchivedSubDeck(item) {
+      if (!item || !item.subDeck || !item.course) return false;
+      return isSubDeckArchived(item.course, item.subDeck);
+    }
+
+    function recountSubDeck(courseName, subDeckName) {
+      if (!subDeckName) return;
+      var count = 0;
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (it && !it.archived && it.course === courseName && it.subDeck === subDeckName) count++;
+      }
+      var sd = getSubDeck(courseName, subDeckName);
+      if (sd) sd.cardCount = count;
+    }
+
+    function getCardsForSubDeck(courseName, subDeckName) {
+      var cards = [];
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (!it || it.archived || it.course !== courseName) continue;
+        if (it.subDeck === subDeckName) cards.push(it);
+      }
+      return cards;
     }
 
     function renderTopicSuggestions(inputId, courseName, containerId) {
@@ -10890,6 +11058,7 @@ body.standalone #userText {
       }
 
       var topic = (el('m_topic').value || '').trim();
+      var subDeck = (el('m_subDeck') ? el('m_subDeck').value : '').trim() || null;
       var prompt = (el('m_prompt').value || '').trim();
       var answer = (el('m_answer').value || '').trim();
 
@@ -10905,6 +11074,7 @@ body.standalone #userText {
         modelAnswer: answer,
         course: course,
         topic: topic,
+        subDeck: subDeck,
         created: isoNow(),
         fsrs: { stability: 0, difficulty: 0, due: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), lastReview: null, reps: 0, lapses: 0, state: 'new' },
         variants: {}
@@ -10930,6 +11100,10 @@ body.standalone #userText {
 
       state.items[it.id] = it;
       saveState();
+      if (subDeck && !getSubDeck(course, subDeck)) {
+        createSubDeck(course, subDeck);
+      }
+      if (subDeck) recountSubDeck(course, subDeck);
       renderDashboard();
 
       /* Generate visual (async, non-blocking) */
@@ -10982,6 +11156,7 @@ body.standalone #userText {
           if (count > 0) {
             state.items = parsed.items;
             if (parsed.courses) state.courses = parsed.courses;
+            if (parsed.subDecks) state.subDecks = parsed.subDecks;
             if (parsed.calibration) state.calibration = parsed.calibration;
             if (parsed.stats) state.stats = parsed.stats;
             if (parsed.settings) {
@@ -11119,6 +11294,7 @@ body.standalone #userText {
             _date: new Date().toISOString(),
             items: state.items || {},
             courses: state.courses || {},
+            subDecks: state.subDecks || {},
             calibration: state.calibration || {},
             stats: state.stats || {},
             settings: settings || {}
@@ -11168,6 +11344,13 @@ body.standalone #userText {
                 }
               }
             }
+            if (imported.subDecks) {
+              for (var sdCourse in imported.subDecks) {
+                if (imported.subDecks.hasOwnProperty(sdCourse)) {
+                  state.subDecks[sdCourse] = imported.subDecks[sdCourse];
+                }
+              }
+            }
             if (imported.calibration && imported.calibration.history &&
                 imported.calibration.history.length > ((state.calibration || {}).history || []).length) {
               state.calibration = imported.calibration;
@@ -11211,6 +11394,7 @@ body.standalone #userText {
         if (!state.items.hasOwnProperty(id)) continue;
         var it = state.items[id];
         if (!it || it.archived) continue;
+        if (isItemInArchivedSubDeck(it)) continue;
         var reps = (it.fsrs && it.fsrs.reps) ? it.fsrs.reps : 0;
         totalReviews += reps;
         var t = it.lastTier;
@@ -11811,22 +11995,28 @@ body.standalone #userText {
         if (!state.items.hasOwnProperty(id)) continue;
         var it = state.items[id];
         if (!it || it.archived) continue;
+        if (isItemInArchivedSubDeck(it)) continue;
         if (it.course && state.courses[it.course] && state.courses[it.course].archived) continue;
         var course = it.course || 'Uncategorized';
         var topic = it.topic || 'General';
-        if (!tree[course]) tree[course] = { topics: {}, totalCards: 0, dueCards: 0 };
+        if (!tree[course]) tree[course] = { topics: {}, totalCards: 0, dueCards: 0, subDecks: {} };
         if (!tree[course].topics[topic]) tree[course].topics[topic] = { cards: [], dueCards: 0 };
         tree[course].topics[topic].cards.push(id);
         tree[course].totalCards++;
+        var sd = it.subDeck || '__ungrouped__';
+        if (!tree[course].subDecks[sd]) tree[course].subDecks[sd] = { cards: 0, due: 0 };
+        tree[course].subDecks[sd].cards++;
         var f = it.fsrs && it.fsrs.due ? it.fsrs : null;
         if (!f || !f.lastReview) {
           tree[course].dueCards++;
           tree[course].topics[topic].dueCards++;
+          tree[course].subDecks[sd].due++;
         } else {
           var dueDate = new Date(f.due);
           if (dueDate <= new Date()) {
             tree[course].dueCards++;
             tree[course].topics[topic].dueCards++;
+            tree[course].subDecks[sd].due++;
           }
         }
       }
@@ -11898,6 +12088,39 @@ body.standalone #userText {
         // Expanded content: modules then ungrouped topics
         if (isExpanded) {
           var assignedTopics = {};
+          var subDeckRows = Object.keys(ct.subDecks || {});
+          var knownSubDeckMap = {};
+          listSubDecks(courseName).forEach(function(meta) {
+            if (!meta || !meta.name) return;
+            knownSubDeckMap[meta.name] = meta;
+            if (subDeckRows.indexOf(meta.name) < 0) subDeckRows.push(meta.name);
+          });
+          subDeckRows.sort(function(a, b) {
+            var ao = knownSubDeckMap[a] ? (knownSubDeckMap[a].order || 0) : Number.MAX_SAFE_INTEGER;
+            var bo = knownSubDeckMap[b] ? (knownSubDeckMap[b].order || 0) : Number.MAX_SAFE_INTEGER;
+            if (ao !== bo) return ao - bo;
+            return String(a).localeCompare(String(b));
+          });
+
+          subDeckRows.forEach(function(sdName) {
+            var stats = ct.subDecks[sdName] || { cards: 0, due: 0 };
+            var isUngrouped = sdName === '__ungrouped__';
+            var label = isUngrouped ? 'Ungrouped' : sdName;
+            var archivedSd = !isUngrouped && isSubDeckArchived(courseName, sdName);
+            var subdeckActive = (sidebarSelection.level === 'subdeck' && sidebarSelection.course === courseName && sidebarSelection.subDeck === sdName) ? ' active' : '';
+            html += '<div class="tree-node depth-1 tree-node-hoverable' + subdeckActive + (archivedSd ? ' archived' : '') + '" data-level="subdeck" data-course="' + esc(courseName) + '" data-subdeck="' + esc(sdName) + '">';
+            html += '<span class="tree-chevron" style="visibility:hidden;"></span>';
+            html += '<span class="subdeck-icon">' + (archivedSd ? '📦' : '📂') + '</span>';
+            html += '<span class="tree-label">' + esc(label) + '</span>';
+            if (stats.cards > 0) html += '<span class="tree-count">' + stats.cards + '</span>';
+            if (stats.due > 0) html += '<span class="tree-badge">' + stats.due + '</span>';
+            if (!isUngrouped) {
+              html += '<span class="tree-hover-actions">';
+              html += '<button class="tree-action-btn" data-action="subdeck-menu" data-course="' + esc(courseName) + '" data-subdeck="' + esc(sdName) + '" title="Options">⋯</button>';
+              html += '</span>';
+            }
+            html += '</div>';
+          });
 
           // Modules
           modules.forEach(function(mod) {
@@ -12005,6 +12228,7 @@ body.standalone #userText {
           var action = actionBtn.dataset.action;
           var actionCourse = actionBtn.dataset.course;
           var actionModule = actionBtn.dataset.module;
+          var actionSubdeck = actionBtn.dataset.subdeck;
 
           if (action === 'add-module') {
             sidebarExpanded[actionCourse] = true;
@@ -12034,6 +12258,10 @@ body.standalone #userText {
             showModuleContextMenu(actionCourse, actionModule, actionBtn);
             return;
           }
+          if (action === 'subdeck-menu') {
+            showSubDeckContextMenu(actionCourse, actionSubdeck, actionBtn);
+            return;
+          }
           return;
         }
 
@@ -12043,11 +12271,12 @@ body.standalone #userText {
         var level = node.dataset.level;
         var courseName = node.dataset.course || null;
         var moduleId = node.dataset.module || null;
+        var subDeck = node.dataset.subdeck || null;
         var topic = node.dataset.topic || null;
 
         if (level === 'ungrouped' || level === 'topics-toggle') return;
 
-        sidebarSelection = { level: level, course: courseName, module: moduleId, topic: topic };
+        sidebarSelection = { level: level, course: courseName, module: moduleId, subDeck: subDeck, topic: topic };
 
         if (level === 'course' && courseName && !sidebarExpanded[courseName]) {
           sidebarExpanded[courseName] = true;
@@ -12076,6 +12305,10 @@ body.standalone #userText {
           html += '<span class="bc-segment" data-level="module" data-course="' + esc(sidebarSelection.course) + '" data-module="' + esc(mod.id) + '">' + esc(mod.name || 'Subdeck') + '</span>';
         }
       }
+      if (sidebarSelection.subDeck && sidebarSelection.course) {
+        html += '<span class="bc-separator">›</span>';
+        html += '<span class="bc-segment" data-level="subdeck" data-course="' + esc(sidebarSelection.course) + '" data-subdeck="' + esc(sidebarSelection.subDeck) + '">' + esc(sidebarSelection.subDeck) + '</span>';
+      }
       if (sidebarSelection.topic) {
         html += '<span class="bc-separator">›</span>';
         html += '<span class="bc-segment" data-level="topic" data-course="' + esc(sidebarSelection.course || '') + '" data-module="' + esc(sidebarSelection.module || '') + '" data-topic="' + esc(sidebarSelection.topic) + '">' + esc(sidebarSelection.topic) + '</span>';
@@ -12086,10 +12319,11 @@ body.standalone #userText {
         var seg = e.target && e.target.closest ? e.target.closest('.bc-segment') : null;
         if (!seg) return;
         var level = seg.dataset.level;
-        if (level === 'all') sidebarSelection = { level: 'all', course: null, module: null, topic: null };
-        else if (level === 'course') sidebarSelection = { level: 'course', course: seg.dataset.course, module: null, topic: null };
-        else if (level === 'module') sidebarSelection = { level: 'module', course: seg.dataset.course || sidebarSelection.course, module: seg.dataset.module, topic: null };
-        else if (level === 'topic') sidebarSelection = { level: 'topic', course: seg.dataset.course || sidebarSelection.course, module: seg.dataset.module || null, topic: seg.dataset.topic || sidebarSelection.topic };
+        if (level === 'all') sidebarSelection = { level: 'all', course: null, module: null, subDeck: null, topic: null };
+        else if (level === 'course') sidebarSelection = { level: 'course', course: seg.dataset.course, module: null, subDeck: null, topic: null };
+        else if (level === 'module') sidebarSelection = { level: 'module', course: seg.dataset.course || sidebarSelection.course, module: seg.dataset.module, subDeck: null, topic: null };
+        else if (level === 'subdeck') sidebarSelection = { level: 'subdeck', course: seg.dataset.course || sidebarSelection.course, module: null, subDeck: seg.dataset.subdeck || null, topic: null };
+        else if (level === 'topic') sidebarSelection = { level: 'topic', course: seg.dataset.course || sidebarSelection.course, module: seg.dataset.module || null, subDeck: null, topic: seg.dataset.topic || sidebarSelection.topic };
         renderSidebar();
         updateBreadcrumb();
         applySidebarFilter();
@@ -12370,7 +12604,7 @@ function showCourseDashboard(courseName) {
 
       var studyBtn = document.getElementById('ctxStudyCourse');
       if (studyBtn) studyBtn.addEventListener('click', function() {
-        sidebarSelection = { level: 'course', course: courseName, module: null, topic: null };
+        sidebarSelection = { level: 'course', course: courseName, module: null, subDeck: null, topic: null };
         applySidebarFilterChipsOnly();
         startSession();
       });
@@ -12384,7 +12618,7 @@ function showCourseDashboard(courseName) {
       content.querySelectorAll('.ctx-module-card').forEach(function(card) {
         card.addEventListener('click', function() {
           var modId = this.dataset.module;
-          sidebarSelection = { level: 'module', course: courseName, module: modId, topic: null };
+          sidebarSelection = { level: 'module', course: courseName, module: modId, subDeck: null, topic: null };
           renderSidebar();
           updateBreadcrumb();
           showModuleView(courseName, modId);
@@ -12450,7 +12684,7 @@ function showCourseDashboard(courseName) {
 
       var studyBtn = document.getElementById('ctxStudyModule');
       if (studyBtn) studyBtn.addEventListener('click', function() {
-        sidebarSelection = { level: 'module', course: courseName, module: moduleId, topic: null };
+        sidebarSelection = { level: 'module', course: courseName, module: moduleId, subDeck: null, topic: null };
         applySidebarFilterChipsOnly();
         startSession();
       });
@@ -12470,7 +12704,7 @@ function showCourseDashboard(courseName) {
       content.querySelectorAll('[data-nav-topic]').forEach(function(pill) {
         pill.addEventListener('click', function() {
           var t = this.dataset.navTopic;
-          sidebarSelection = { level: 'topic', course: courseName, module: moduleId, topic: t };
+          sidebarSelection = { level: 'topic', course: courseName, module: moduleId, subDeck: null, topic: t };
           renderSidebar();
           updateBreadcrumb();
           showTopicView(courseName, t);
@@ -12518,12 +12752,70 @@ function showCourseDashboard(courseName) {
 
       var studyBtn = document.getElementById('ctxStudyTopic');
       if (studyBtn) studyBtn.addEventListener('click', function() {
-        sidebarSelection = { level: 'topic', course: courseName, module: null, topic: topic };
+        sidebarSelection = { level: 'topic', course: courseName, module: null, subDeck: null, topic: topic };
         applySidebarFilterChipsOnly();
         startSession();
       });
 
       if (window.gsap) gsap.fromTo(content, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
+    }
+
+    function showSubDeckContextMenu(courseName, subDeckName, anchorEl) {
+      var sd = getSubDeck(courseName, subDeckName);
+      if (!sd) return;
+      var items = [
+        { label: 'Rename', icon: '✏', action: function() {
+          var newName = prompt('Rename sub-deck:', subDeckName);
+          if (newName && newName.trim() && newName.trim() !== subDeckName) {
+            renameSubDeck(courseName, subDeckName, newName.trim());
+            renderSidebar();
+            toast('Renamed to ' + newName.trim());
+          }
+        }},
+        { label: sd.archived ? 'Unarchive' : 'Archive', icon: sd.archived ? '↩' : '📦', action: function() {
+          if (sd.archived) unarchiveSubDeck(courseName, subDeckName);
+          else archiveSubDeck(courseName, subDeckName);
+          renderSidebar();
+          renderDashboard();
+          toast(sd.archived ? 'Unarchived ' + subDeckName : 'Archived ' + subDeckName);
+        }},
+        { label: 'Move to...', icon: '→', action: function() {
+          var courses = listCourses().map(function(c) { return c.name; }).filter(function(n) { return n !== courseName; });
+          if (!courses.length) { toast('No other courses'); return; }
+          var target = prompt('Move to course:\n' + courses.join('\n'));
+          if (target && courses.indexOf(target) >= 0) {
+            moveSubDeck(subDeckName, courseName, target);
+            renderSidebar();
+            renderDashboard();
+            toast('Moved ' + subDeckName + ' to ' + target);
+          }
+        }},
+        { divider: true },
+        { label: 'Start Session', icon: '▶', action: function() {
+          sidebarSelection = { level: 'subdeck', course: courseName, subDeck: subDeckName, module: null, topic: null };
+          applySidebarFilterChipsOnly();
+          startSession();
+        }},
+        { divider: true },
+        { label: 'Delete (keep cards)', icon: '🗑', danger: true, action: function() {
+          if (confirm('Delete sub-deck "' + subDeckName + '"? Cards will become ungrouped.')) {
+            deleteSubDeck(courseName, subDeckName, false);
+            renderSidebar();
+            renderDashboard();
+            toast('Deleted ' + subDeckName);
+          }
+        }},
+        { label: 'Delete (and cards)', icon: '🗑', danger: true, action: function() {
+          var count = getCardsForSubDeck(courseName, subDeckName).length;
+          if (confirm('Delete sub-deck "' + subDeckName + '" AND its ' + count + ' cards? This cannot be undone.')) {
+            deleteSubDeck(courseName, subDeckName, true);
+            renderSidebar();
+            renderDashboard();
+            toast('Deleted ' + subDeckName + ' and ' + count + ' cards');
+          }
+        }}
+      ];
+      showCtxMenuAt(anchorEl, items);
     }
 
     function showCourseContextMenu(courseName, anchor) {
@@ -12626,7 +12918,7 @@ function showCourseDashboard(courseName) {
                 danger: true,
                 action: function() {
                   removeModuleFromCourse(courseName, moduleId);
-                  sidebarSelection = { level: 'course', course: courseName, module: null, topic: null };
+                  sidebarSelection = { level: 'course', course: courseName, module: null, subDeck: null, topic: null };
                   renderSidebar();
                   updateBreadcrumb();
                   applySidebarFilter();
@@ -12647,6 +12939,7 @@ function showCourseDashboard(courseName) {
       var totalItems = 0;
       for (var _id in state.items) {
         if (!state.items.hasOwnProperty(_id) || !state.items[_id] || state.items[_id].archived) continue;
+        if (isItemInArchivedSubDeck(state.items[_id])) continue;
         if (state.items[_id].course && state.courses[state.items[_id].course] && state.courses[state.items[_id].course].archived) continue;
         totalItems++;
       }
@@ -15764,6 +16057,7 @@ var mockCountdownTimer = null;
         if (!state.items.hasOwnProperty(id)) continue;
         var it = state.items[id];
         if (!it || it.archived) continue;
+        if (isItemInArchivedSubDeck(it)) continue;
         if (courseFilter !== 'All' && it.course !== courseFilter) continue;
         if (selectedTopic !== 'All' && (it.topic || '') !== selectedTopic) continue;
         // Sidebar topic/module scoping (standalone)
@@ -15776,6 +16070,9 @@ var mockCountdownTimer = null;
             if (studyMod && studyMod.topics && studyMod.topics.length) {
               if (studyMod.topics.indexOf(it.topic) < 0) continue;
             }
+          }
+          if (sidebarSelection.level === 'subdeck' && sidebarSelection.course && sidebarSelection.subDeck) {
+            if (it.course !== sidebarSelection.course || it.subDeck !== sidebarSelection.subDeck) continue;
           }
         }
         var f = it.fsrs || null;
@@ -17207,6 +17504,7 @@ var mockCountdownTimer = null;
 var DEFAULT_STATE = {
       items: {},
       courses: {},
+      subDecks: {},
       calibration: { totalSelfRatings: 0, totalActualCorrect: 0, history: [] },
       stats: {
         totalReviews: 0,
@@ -17320,15 +17618,18 @@ var state = null;
     function loadState() {
       var items = SyncEngine.get(NS, 'items') || null;
       var courses = SyncEngine.get(NS, 'courses') || null;
+      var subDecks = SyncEngine.get(NS, 'subDecks') || null;
       var calibration = SyncEngine.get(NS, 'calibration') || null;
       var stats = SyncEngine.get(NS, 'stats') || null;
       state = deepClone(DEFAULT_STATE);
       if (items && typeof items === 'object') state.items = items;
       if (courses && typeof courses === 'object') state.courses = courses;
+      if (subDecks && typeof subDecks === 'object') state.subDecks = subDecks;
       if (calibration && typeof calibration === 'object') state.calibration = calibration;
       if (stats && typeof stats === 'object') state.stats = stats;
       migrateItems();
       migrateCoursesPhase6();
+      migrateSubDecks();
       var s = SyncEngine.get(NS, 'settings') || null;
       settings = deepClone(DEFAULT_SETTINGS);
       if (s && typeof s === 'object') {
@@ -17342,6 +17643,7 @@ var state = null;
     function saveState() {
       SyncEngine.set(NS, 'items', state.items || {});
       SyncEngine.set(NS, 'courses', state.courses || {});
+      SyncEngine.set(NS, 'subDecks', state.subDecks || {});
       SyncEngine.set(NS, 'calibration', state.calibration || deepClone(DEFAULT_STATE.calibration));
       SyncEngine.set(NS, 'stats', state.stats || deepClone(DEFAULT_STATE.stats));
       SyncEngine.set(NS, 'settings', settings || deepClone(DEFAULT_SETTINGS));
@@ -17375,6 +17677,32 @@ var state = null;
             syllabusKeyTopics: [],
             prepared: false
           };
+          changed = true;
+        }
+        if (it.course && !state.subDecks[it.course]) {
+          state.subDecks[it.course] = { subDecks: {} };
+          changed = true;
+        }
+      }
+      if (changed) saveState();
+    }
+
+    function migrateSubDecks() {
+      state.subDecks = state.subDecks || {};
+      var changed = false;
+      for (var cName in state.courses) {
+        if (!state.courses.hasOwnProperty(cName)) continue;
+        if (!state.subDecks[cName]) {
+          state.subDecks[cName] = { subDecks: {} };
+          changed = true;
+        }
+      }
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (!it) continue;
+        if (it.subDeck === undefined) {
+          it.subDeck = null;
           changed = true;
         }
       }
@@ -20831,6 +21159,9 @@ var tutorConversation = [];
       /* ── Card creation form (scoped to modalCourse) ── */
       if (activeTab === 'add') {
         var courseCol = getCourseColor(modalCourse);
+        var subDeckList = listSubDecks(modalCourse || '').map(function(sd) {
+          return '<option value="' + esc(sd.name || '') + '"></option>';
+        }).join('');
         var courseBadge = '<div class="modal-course-badge">' +
             '<div class="mcb-dot" style="background:' + esc(courseCol) + '"></div>' +
             '<span class="mcb-name">' + esc(modalCourse || 'Unknown') + '</span>' +
@@ -20842,6 +21173,11 @@ var tutorConversation = [];
           '<label>Topic <span style="font-weight:500;letter-spacing:0.5px;text-transform:lowercase;opacity:0.7">(optional)</span></label>' +
           '<input class="input" id="m_topic" placeholder="e.g., WTO Dispute Settlement" value="' + esc(editingItem ? (editingItem.topic || '') : '') + '">' +
           '<div class="chips topic-suggestions" id="topicSuggestions"></div>' +
+          '</div>' +
+          '<div class="field">' +
+          '<label>Sub-deck <span style="font-weight:500;letter-spacing:0.5px;text-transform:lowercase;opacity:0.7">(optional)</span></label>' +
+          '<input class="input" id="m_subDeck" list="m_subDeck_list" placeholder="Sub-deck (optional, e.g. W1)" value="' + esc(editingItem ? (editingItem.subDeck || '') : '') + '">' +
+          '<datalist id="m_subDeck_list">' + subDeckList + '</datalist>' +
           '</div>' +
           '<div class="field">' +
           '  <label>Priority</label>' +
@@ -20904,6 +21240,9 @@ var tutorConversation = [];
 
       } else if (activeTab === 'import') {
         var courseCol2 = getCourseColor(modalCourse);
+        var subDeckList2 = listSubDecks(modalCourse || '').map(function(sd) {
+          return '<option value="' + esc(sd.name || '') + '"></option>';
+        }).join('');
         var courseBadge2 = '<div class="modal-course-badge">' +
             '<div class="mcb-dot" style="background:' + esc(courseCol2) + '"></div>' +
             '<span class="mcb-name">' + esc(modalCourse || 'Unknown') + '</span>' +
@@ -20911,6 +21250,11 @@ var tutorConversation = [];
             '</div>';
 
         modalForm.innerHTML = courseBadge2 +
+          '<div class="field">' +
+          '<label>Sub-deck <span style="font-weight:500;letter-spacing:0.5px;text-transform:lowercase;opacity:0.7">(optional)</span></label>' +
+          '<input class="input" id="m_subDeck" list="m_subDeck_list" placeholder="Sub-deck (optional, e.g. W1)">' +
+          '<datalist id="m_subDeck_list">' + subDeckList2 + '</datalist>' +
+          '</div>' +
           '<div class="field">' +
           '<label>Import format</label>' +
           '<div id="importFormatToggle" style="display:flex;gap:6px;flex-wrap:wrap;">' +
@@ -21129,10 +21473,12 @@ var tutorConversation = [];
       if (!pendingImport) return;
       var valid = pendingImport.valid;
       var skipDups = pendingImport.skipDuplicates;
+      var subDeck = (el('m_subDeck') ? el('m_subDeck').value : '').trim() || null;
 
       var toImport = skipDups ? valid.filter(function(v) { return !v.isDuplicate; }) : valid;
       var n = 0;
       var importedIds = [];
+      var touchedCourses = {};
 
       toImport.forEach(function(entry) {
         var obj = entry.obj;
@@ -21146,7 +21492,9 @@ var tutorConversation = [];
         if (!obj.modelAnswer && obj.answer) obj.modelAnswer = obj.answer;
 
         obj.course = entry.course;
+        obj.subDeck = subDeck;
         obj.priority = obj.priority || 'medium';
+        if (obj.course) touchedCourses[obj.course] = true;
 
         /* Auto-create course directly — avoid saveCourse() mid-loop which triggers
            premature saveState(), causing KV sync race conditions where courses
@@ -21177,6 +21525,13 @@ var tutorConversation = [];
       });
 
       saveState();
+      if (subDeck) {
+        for (var cName in touchedCourses) {
+          if (!touchedCourses.hasOwnProperty(cName)) continue;
+          if (!getSubDeck(cName, subDeck)) createSubDeck(cName, subDeck);
+          recountSubDeck(cName, subDeck);
+        }
+      }
       /* Safety net: force a delayed second save to ensure KV sync completes.
          The first save fires the async KV push; this catches cases where the
          push was throttled, batched, or the tab closes before it resolves. */

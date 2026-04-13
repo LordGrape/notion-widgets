@@ -277,6 +277,7 @@
       }
 
       var topic = (el('m_topic').value || '').trim();
+      var subDeck = (el('m_subDeck') ? el('m_subDeck').value : '').trim() || null;
       var prompt = (el('m_prompt').value || '').trim();
       var answer = (el('m_answer').value || '').trim();
 
@@ -292,6 +293,7 @@
         modelAnswer: answer,
         course: course,
         topic: topic,
+        subDeck: subDeck,
         created: isoNow(),
         fsrs: { stability: 0, difficulty: 0, due: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), lastReview: null, reps: 0, lapses: 0, state: 'new' },
         variants: {}
@@ -317,6 +319,10 @@
 
       state.items[it.id] = it;
       saveState();
+      if (subDeck && !getSubDeck(course, subDeck)) {
+        createSubDeck(course, subDeck);
+      }
+      if (subDeck) recountSubDeck(course, subDeck);
       renderDashboard();
 
       /* Generate visual (async, non-blocking) */
@@ -369,6 +375,7 @@
           if (count > 0) {
             state.items = parsed.items;
             if (parsed.courses) state.courses = parsed.courses;
+            if (parsed.subDecks) state.subDecks = parsed.subDecks;
             if (parsed.calibration) state.calibration = parsed.calibration;
             if (parsed.stats) state.stats = parsed.stats;
             if (parsed.settings) {
@@ -506,6 +513,7 @@
             _date: new Date().toISOString(),
             items: state.items || {},
             courses: state.courses || {},
+            subDecks: state.subDecks || {},
             calibration: state.calibration || {},
             stats: state.stats || {},
             settings: settings || {}
@@ -555,6 +563,13 @@
                 }
               }
             }
+            if (imported.subDecks) {
+              for (var sdCourse in imported.subDecks) {
+                if (imported.subDecks.hasOwnProperty(sdCourse)) {
+                  state.subDecks[sdCourse] = imported.subDecks[sdCourse];
+                }
+              }
+            }
             if (imported.calibration && imported.calibration.history &&
                 imported.calibration.history.length > ((state.calibration || {}).history || []).length) {
               state.calibration = imported.calibration;
@@ -598,6 +613,7 @@
         if (!state.items.hasOwnProperty(id)) continue;
         var it = state.items[id];
         if (!it || it.archived) continue;
+        if (isItemInArchivedSubDeck(it)) continue;
         var reps = (it.fsrs && it.fsrs.reps) ? it.fsrs.reps : 0;
         totalReviews += reps;
         var t = it.lastTier;
