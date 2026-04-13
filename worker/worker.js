@@ -2582,9 +2582,18 @@ Rules:
     }
 
     // ── Existing routes below (state sync, notion bridge) ──
-    const passphrase = request.headers.get("X-Widget-Key");
-    if (!passphrase || passphrase !== env.WIDGET_SECRET) {
-      return json({ error: "Unauthorized" }, 401);
+    // Keep this allowlist as an explicit guard so these routes remain public
+    // even if route blocks move during refactors.
+    const PUBLIC_STUDYENGINE_ROUTES = new Set([
+      "/studyengine/learn-plan",
+      "/studyengine/learn-check"
+    ]);
+    const requiresWidgetKey = !PUBLIC_STUDYENGINE_ROUTES.has(url.pathname);
+    if (requiresWidgetKey) {
+      const passphrase = request.headers.get("X-Widget-Key");
+      if (!passphrase || passphrase !== env.WIDGET_SECRET) {
+        return json({ error: "Unauthorized" }, 401);
+      }
     }
 
     const segments = url.pathname.replace(/^\/+/, "").split("/");
