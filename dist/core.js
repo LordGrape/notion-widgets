@@ -219,8 +219,19 @@ Core.applyThemeTokens();
    • All sounds are physically plausible — modelled on real acoustic phenomena
    ══════════════════════════════════════ */
 let _audioCtx = null;
+let _userHasInteracted = false;
+
+['click', 'touchstart', 'keydown'].forEach(function(evt) {
+  document.addEventListener(evt, function() {
+    _userHasInteracted = true;
+    if (_audioCtx && _audioCtx.state === 'suspended') {
+      _audioCtx.resume();
+    }
+  }, { once: false, passive: true });
+});
 
 function getAudioCtx() {
+  if (!_userHasInteracted) return null;
   if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   if (_audioCtx.state === 'suspended') _audioCtx.resume();
   return _audioCtx;
@@ -229,6 +240,7 @@ function getAudioCtx() {
 /* ── Helper: create a gain-connected oscillator with envelope ── */
 function _tone(freq, type, attack, hold, decay, volume, startTime) {
   let ctx = getAudioCtx();
+  if (!ctx) return { osc: null, gain: null, ctx: null, now: 0 };
   let now = startTime || ctx.currentTime;
   let osc = ctx.createOscillator();
   let gain = ctx.createGain();
@@ -247,7 +259,9 @@ function _tone(freq, type, attack, hold, decay, volume, startTime) {
 
 /* ── Helper: frequency sweep ── */
 function _sweep(startHz, endHz, duration, volume, type) {
-  let ctx = getAudioCtx(), now = ctx.currentTime;
+  let ctx = getAudioCtx();
+  if (!ctx) return;
+  let now = ctx.currentTime;
   let osc = ctx.createOscillator();
   let gain = ctx.createGain();
   osc.type = type || 'sine';
@@ -276,13 +290,17 @@ function playClose() {
 
 /* ── 4. START ── */
 function playStart() {
+  let ctx = getAudioCtx();
+  if (!ctx) return;
   _tone(523.25, 'sine', 0.005, 0.02, 0.06, 0.14);
-  _tone(659.25, 'sine', 0.005, 0.02, 0.08, 0.14, getAudioCtx().currentTime + 0.065);
+  _tone(659.25, 'sine', 0.005, 0.02, 0.08, 0.14, ctx.currentTime + 0.065);
 }
 
 /* ── 5. PAUSE ── */
 function playPause() {
-  let ctx = getAudioCtx(), now = ctx.currentTime;
+  let ctx = getAudioCtx();
+  if (!ctx) return;
+  let now = ctx.currentTime;
   let osc = ctx.createOscillator();
   let gain = ctx.createGain();
   osc.type = 'sine'; osc.frequency.setValueAtTime(500, now);
@@ -299,8 +317,10 @@ function playResume() {
 
 /* ── 7. RESET ── */
 function playReset() {
+  let ctx = getAudioCtx();
+  if (!ctx) return;
   _tone(659.25, 'sine', 0.005, 0.02, 0.05, 0.10);
-  _tone(523.25, 'sine', 0.005, 0.02, 0.07, 0.10, getAudioCtx().currentTime + 0.06);
+  _tone(523.25, 'sine', 0.005, 0.02, 0.07, 0.10, ctx.currentTime + 0.06);
 }
 
 /* ── 8. LAP ── */
@@ -310,7 +330,9 @@ function playLap() {
 
 /* ── 9. MODE SWITCH ── */
 function playModeSwitch() {
-  let ctx = getAudioCtx(), now = ctx.currentTime;
+  let ctx = getAudioCtx();
+  if (!ctx) return;
+  let now = ctx.currentTime;
   let bufferSize = ctx.sampleRate * 0.12;
   let buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
   let data = buffer.getChannelData(0);
@@ -331,7 +353,9 @@ function playModeSwitch() {
 
 /* ── 10. CHIME ── */
 function playChime() {
-  let ctx = getAudioCtx(), now = ctx.currentTime;
+  let ctx = getAudioCtx();
+  if (!ctx) return;
+  let now = ctx.currentTime;
   [523.25, 659.25, 783.99].forEach(function(freq, i) {
     let osc = ctx.createOscillator();
     let gain = ctx.createGain();
@@ -346,7 +370,9 @@ function playChime() {
 
 /* ── 11. BREAK APPEAR ── */
 function playBreakAppear() {
-  let ctx = getAudioCtx(), now = ctx.currentTime;
+  let ctx = getAudioCtx();
+  if (!ctx) return;
+  let now = ctx.currentTime;
   let osc = ctx.createOscillator();
   let gain = ctx.createGain();
   osc.type = 'sine';
@@ -377,8 +403,10 @@ function playBreakDismiss() {
 
 /* ── 13. ERROR ── */
 function playError() {
+  let ctx = getAudioCtx();
+  if (!ctx) return;
   _tone(300, 'sine', 0.003, 0.01, 0.03, 0.13);
-  _tone(280, 'sine', 0.003, 0.01, 0.04, 0.11, getAudioCtx().currentTime + 0.055);
+  _tone(280, 'sine', 0.003, 0.01, 0.04, 0.11, ctx.currentTime + 0.055);
 }
 
 /* ── 14a. GOOD RATE — warm rising double-tap (confirms solid retrieval) ── */
@@ -386,7 +414,9 @@ function playError() {
    Two quick tones = "completion" signal without the celebration weight of a full chime.
    Frequency pair chosen to form a major third (psychoacoustically "happy"). */
 function playGoodRate() {
-  let ctx = getAudioCtx(), now = ctx.currentTime;
+  let ctx = getAudioCtx();
+  if (!ctx) return;
+  let now = ctx.currentTime;
   // First note: E5 (659 Hz) — warm mid-high
   let osc1 = ctx.createOscillator();
   let g1 = ctx.createGain();
@@ -416,7 +446,9 @@ function playGoodRate() {
    interrupting session flow. Volume lower than playChime() so it doesn't feel
    equivalent to session completion. Uses C6-E6-G6 (major triad, one octave above chime). */
 function playEasyRate() {
-  let ctx = getAudioCtx(), now = ctx.currentTime;
+  let ctx = getAudioCtx();
+  if (!ctx) return;
+  let now = ctx.currentTime;
   let notes = [1047, 1319, 1568]; // C6, E6, G6
   let gap = 0.055; // 55ms between notes — quick but perceptible
   notes.forEach(function(freq, i) {
@@ -435,7 +467,9 @@ function playEasyRate() {
 
 /* ── 14. PRESET SELECT ── */
 function playPresetSelect() {
-  let ctx = getAudioCtx(), now = ctx.currentTime;
+  let ctx = getAudioCtx();
+  if (!ctx) return;
+  let now = ctx.currentTime;
   let bufSize = ctx.sampleRate * 0.015;
   let buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
   let d = buf.getChannelData(0);
@@ -1450,7 +1484,9 @@ function _summonTrail() {
 
 function _playSummonSound() {
   try {
-    let ctx = getAudioCtx(), now = ctx.currentTime;
+    let ctx = getAudioCtx();
+    if (!ctx) return;
+    let now = ctx.currentTime;
     let osc = ctx.createOscillator();
     let gain = ctx.createGain();
     osc.type = 'sine';

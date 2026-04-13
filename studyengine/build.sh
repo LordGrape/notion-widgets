@@ -63,6 +63,12 @@ for f in "$ROOT_DIR"/*.html "$ROOT_DIR"/*.js "$ROOT_DIR"/*.css "$ROOT_DIR"/*.png
 done
 shopt -u nullglob
 
+# Copy static assets to dist/ (e.g. horizon dragon PNGs)
+if [[ -d "$ROOT_DIR/assets" ]]; then
+  rm -rf "$DIST_DIR/assets"
+  cp -r "$ROOT_DIR/assets" "$DIST_DIR/assets"
+fi
+
 file_count="$(find "$DIST_DIR" -maxdepth 1 -type f | wc -l | tr -d ' ')"
 total_size="$(du -sh "$DIST_DIR" | awk '{print $1}')"
 echo "Build complete: $DIST_DIR ($file_count files, $total_size)"
