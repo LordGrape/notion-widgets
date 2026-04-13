@@ -268,6 +268,20 @@
       if (data.suggestedRating != null && data.suggestedRating !== '') {
         session.aiRating = data.suggestedRating;
       }
+      // Persist diagnosis type on the item for cognitive fingerprinting
+      if (data.diagnosisType && tutorCurrentItem) {
+        if (!tutorCurrentItem.diagnosisHistory) tutorCurrentItem.diagnosisHistory = [];
+        tutorCurrentItem.diagnosisHistory.push({
+          type: data.diagnosisType,
+          timestamp: new Date().toISOString(),
+          tier: tutorCurrentItem._presentTier || tutorCurrentItem.tier || 'explain',
+          mode: tutorCurrentMode || 'socratic'
+        });
+        // Cap at 20 entries per item to prevent unbounded growth
+        if (tutorCurrentItem.diagnosisHistory.length > 20) {
+          tutorCurrentItem.diagnosisHistory = tutorCurrentItem.diagnosisHistory.slice(-20);
+        }
+      }
       var terminal = data.isComplete || tutorTurnCount >= tutorMaxTurns;
       if (terminal) {
         disableTutorInput();
@@ -275,6 +289,25 @@
         if (tutorCurrentMode === 'acknowledge' && suggOut == null) suggOut = tutorAcknowledgeOriginalRating;
         showRatingButtons(suggOut);
         queueTutorMemoryUpdateIfEligible(tutorCurrentItem, tutorConversation, suggOut);
+        // Append one-line dialogue summary for cross-card context
+        if (session && tutorCurrentItem && tutorConversation.length >= 2) {
+          var lastTutorMsg = '';
+          for (var si = tutorConversation.length - 1; si >= 0; si--) {
+            if (tutorConversation[si].role === 'tutor') {
+              lastTutorMsg = String(tutorConversation[si].text || '').substring(0, 150);
+              break;
+            }
+          }
+          var summaryLine = (tutorCurrentItem.topic || 'General') + ': ' +
+            (session.aiRating != null ? (['Again', 'Hard', 'Good', 'Easy'][session.aiRating - 1] || '?') : '?') +
+            (lastTutorMsg ? ' — ' + lastTutorMsg.split('\n')[0] : '');
+          if (!session.dialogueSummary) session.dialogueSummary = [];
+          session.dialogueSummary.push(summaryLine);
+          // Keep only last 8 summaries
+          if (session.dialogueSummary.length > 8) {
+            session.dialogueSummary = session.dialogueSummary.slice(-8);
+          }
+        }
         try { playClick(); } catch (e3) {}
       } else {
         var ta2 = document.getElementById('tutorInput');
@@ -332,6 +365,25 @@
       var skipSugg = session.aiRating != null ? session.aiRating : null;
       if (tutorCurrentMode === 'acknowledge' && skipSugg == null) skipSugg = tutorAcknowledgeOriginalRating;
       showRatingButtons(skipSugg);
+      // Append one-line dialogue summary for cross-card context
+      if (session && tutorCurrentItem && tutorConversation.length >= 2) {
+        var lastTutorMsgSkip = '';
+        for (var siSkip = tutorConversation.length - 1; siSkip >= 0; siSkip--) {
+          if (tutorConversation[siSkip].role === 'tutor') {
+            lastTutorMsgSkip = String(tutorConversation[siSkip].text || '').substring(0, 150);
+            break;
+          }
+        }
+        var summaryLineSkip = (tutorCurrentItem.topic || 'General') + ': ' +
+          (session.aiRating != null ? (['Again', 'Hard', 'Good', 'Easy'][session.aiRating - 1] || '?') : '?') +
+          (lastTutorMsgSkip ? ' — ' + lastTutorMsgSkip.split('\n')[0] : '');
+        if (!session.dialogueSummary) session.dialogueSummary = [];
+        session.dialogueSummary.push(summaryLineSkip);
+        // Keep only last 8 summaries
+        if (session.dialogueSummary.length > 8) {
+          session.dialogueSummary = session.dialogueSummary.slice(-8);
+        }
+      }
     }
 
     function buildQuickFeedbackUI(container, data) {
@@ -371,6 +423,19 @@
         );
       }
       if (data.suggestedRating != null) session.aiRating = data.suggestedRating;
+      if (data.diagnosisType && session && session.queue && session.queue[session.idx]) {
+        var it = session.queue[session.idx];
+        if (!it.diagnosisHistory) it.diagnosisHistory = [];
+        it.diagnosisHistory.push({
+          type: data.diagnosisType,
+          timestamp: new Date().toISOString(),
+          tier: it._presentTier || it.tier || 'explain',
+          mode: 'quick'
+        });
+        if (it.diagnosisHistory.length > 20) {
+          it.diagnosisHistory = it.diagnosisHistory.slice(-20);
+        }
+      }
       showRatingButtons(data.suggestedRating != null ? data.suggestedRating : null);
     }
 
@@ -802,6 +867,41 @@
         if (tm.total >= 2 && tm.mastered / tm.total > 0.7) strongTopics.push(tk);
         if (tm.total >= 2 && tm.struggling / tm.total > 0.3) weakTopics.push(tk);
       }
+      // Aggregate diagnosis types across all items for this course
+      var diagnosisCounts = {};
+      var totalDiagnoses = 0;
+      var thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+      for (var did in stateObj.items) {
+        if (!stateObj.items.hasOwnProperty(did)) continue;
+        var dItem = stateObj.items[did];
+        if (!dItem || dItem.archived) continue;
+        if (item.course && dItem.course !== item.course) continue;
+        if (!dItem.diagnosisHistory || !dItem.diagnosisHistory.length) continue;
+        for (var di = 0; di < dItem.diagnosisHistory.length; di++) {
+          var dEntry = dItem.diagnosisHistory[di];
+          if (!dEntry || !dEntry.type) continue;
+          var dTs = dEntry.timestamp ? new Date(dEntry.timestamp).getTime() : 0;
+          if (dTs < thirtyDaysAgo) continue;
+          diagnosisCounts[dEntry.type] = (diagnosisCounts[dEntry.type] || 0) + 1;
+          totalDiagnoses++;
+        }
+      }
+      var primaryErrorPattern = null;
+      var primaryErrorPct = 0;
+      if (totalDiagnoses >= 5) {
+        var maxType = null;
+        var maxCount = 0;
+        for (var dtype in diagnosisCounts) {
+          if (diagnosisCounts[dtype] > maxCount) {
+            maxCount = diagnosisCounts[dtype];
+            maxType = dtype;
+          }
+        }
+        if (maxType && maxCount / totalDiagnoses >= 0.25) {
+          primaryErrorPattern = maxType;
+          primaryErrorPct = Math.round((maxCount / totalDiagnoses) * 100);
+        }
+      }
       return {
         courseStats: {
           totalCards: courseItems.length,
@@ -817,6 +917,8 @@
         calibrationAccuracy: calAcc,
         overallStreak: streak,
         relevantMemories: relevantMemories,
-        calibrationNudgeTopics: getOverconfidentTopics(item.course).slice(0, 3).map(function(ot) { return ot.topic + ' (' + ot.pctWeak + '% weak)'; })
+        calibrationNudgeTopics: getOverconfidentTopics(item.course).slice(0, 3).map(function(ot) { return ot.topic + ' (' + ot.pctWeak + '% weak)'; }),
+        primaryErrorPattern: primaryErrorPattern,
+        primaryErrorPct: primaryErrorPct
       };
     }
