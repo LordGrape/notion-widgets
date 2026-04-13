@@ -462,6 +462,30 @@
       })[tier] || getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
     }
 
+    function toRgba(hex, alpha) {
+      if (!hex) hex = '#8b5cf6';
+      hex = String(hex).trim();
+      if (hex.indexOf('var(') === 0) {
+        var temp = document.createElement('div');
+        temp.style.color = hex;
+        document.body.appendChild(temp);
+        hex = getComputedStyle(temp).color;
+        document.body.removeChild(temp);
+        var m = hex.match(/(\d+),\s*(\d+),\s*(\d+)/);
+        if (m) return 'rgba(' + m[1] + ',' + m[2] + ',' + m[3] + ',' + (alpha != null ? alpha : 1) + ')';
+        return 'rgba(139,92,246,' + (alpha != null ? alpha : 1) + ')';
+      }
+      hex = hex.replace('#', '');
+      if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+      var r = parseInt(hex.substring(0, 2), 16);
+      var g = parseInt(hex.substring(2, 4), 16);
+      var b = parseInt(hex.substring(4, 6), 16);
+      if (isNaN(r)) r = 139;
+      if (isNaN(g)) g = 92;
+      if (isNaN(b)) b = 246;
+      return 'rgba(' + r + ',' + g + ',' + b + ',' + (alpha != null ? alpha : 1) + ')';
+    }
+
     function setTierBadge(tier) {
       var badge = document.querySelector('.tier-badge');
       if (!badge) return;
