@@ -399,14 +399,6 @@
     .tab-panel.active{
       display: block;
     }
-
-    .stats-row{
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 8px;
-      margin-bottom: 14px;
-      padding: 10px 0;
-    }
     .stat{
       padding: 12px 12px;
       border-radius: var(--radius);
@@ -626,41 +618,6 @@
       letter-spacing: 0.1px;
     }
     body.standalone .session-summary .ss-body{ font-size: 12px; }
-
-    .tutor-stats-row{
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 10px;
-      margin-top: 2px;
-      margin-bottom: 0;
-      text-align: left;
-    }
-    .tutor-cal-row{
-      display: flex;
-      gap: 12px;
-      align-items: stretch;
-      margin-bottom: 14px;
-    }
-    .tutor-cal-left{
-      flex: 1;
-      min-width: 0;
-    }
-    .tutor-cal-right{
-      flex: 0 0 auto;
-      display: flex;
-      align-items: stretch;
-    }
-    .tutor-cal-right .gauge{
-      margin: 0;
-      height: 100%;
-      display: flex;
-      align-items: center;
-    }
-    @media (max-width: 520px){
-      .tutor-cal-row{
-        flex-direction: column;
-      }
-    }
 
     .cost-estimate{
       margin-top: 8px;
