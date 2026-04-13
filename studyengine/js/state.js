@@ -7140,6 +7140,10 @@ el('gearBtn').addEventListener('click', openSettings);
 
     /* ── Draw all analytics ── */
     function renderAnalytics(courseFilter) {
+      // Guard: analytics DOM is only present while dashboard/context views are mounted.
+      var analyticsHost = el('activityHeatmapHost') || el('analyticsArea') || el('analyticsWrap') || el('heatmapCanvas');
+      if (!analyticsHost) return;
+
       var items = {};
       for (var id in state.items) {
         if (!state.items.hasOwnProperty(id)) continue;
@@ -7157,6 +7161,7 @@ el('gearBtn').addEventListener('click', openSettings);
       /* Cram banner */
       var cramEl = el('cramBanner');
       var cramTextEl = el('cramText');
+      if (!cramEl || !cramTextEl) return;
       if (courseFilter && courseFilter !== 'All') {
         var cramState = getCramState(courseFilter);
         if (cramState.active) {
