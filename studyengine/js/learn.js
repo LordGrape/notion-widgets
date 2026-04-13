@@ -362,7 +362,10 @@ function startLearnSession(courseName, topics, subDeckFilter) {
       model: 'pro'
     })
   })
-  .then(function(res) { return res.json(); })
+  .then(function(res) {
+    if (!res.ok) throw new Error('Server returned ' + res.status);
+    return res.json();
+  })
   .then(function(data) {
     if (!data.segments || !data.segments.length) {
       toast('Could not generate teaching plan');
@@ -487,7 +490,10 @@ function submitLearnCheck() {
       learnerContext: {}
     })
   })
-  .then(function(res) { return res.json(); })
+  .then(function(res) {
+    if (!res.ok) throw new Error('Server returned ' + res.status);
+    return res.json();
+  })
   .then(function(data) {
     learnSession.checkResults.push({
       segIdx: learnSession.segIdx,
@@ -940,4 +946,3 @@ function renderLearnSummary(sess, fsrsResults, xp, avgRating) {
   if (window.gsap) gsap.fromTo(content, { opacity: 0, scale: 0.97 }, { opacity: 1, scale: 1, duration: 0.35, ease: 'power2.out' });
   try { playChime(); } catch(ex) {}
 }
-
