@@ -622,6 +622,43 @@ function showCourseDashboard(courseName) {
         });
         h += '</div></div>';
       }
+      /* ── Topic Coverage Heatmap ── */
+      var allTopicsForHeat = getTopicsForCourse(courseName);
+      if (allTopicsForHeat.length > 0) {
+        h += '<div class="learn-heatmap-section">';
+        h += '<div style="font-size:0.72rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:10px">📚 Learn Coverage</div>';
+        h += '<div class="learn-heatmap-grid">';
+        allTopicsForHeat.forEach(function(topicName) {
+          var topicStatus = 'not-started';
+          if (state.learnProgress && state.learnProgress[courseName] && state.learnProgress[courseName][topicName]) {
+            var lp = state.learnProgress[courseName][topicName];
+            topicStatus = (lp.status === 'learned') ? 'learned' : (lp.status === 'in_progress') ? 'in-progress' : 'not-started';
+          }
+          var topicCards = getCardsForTopic(courseName, topicName);
+          var topicDue = topicCards.filter(isDueNow).length;
+          var avgRatingText = '';
+          if (state.learnProgress && state.learnProgress[courseName] && state.learnProgress[courseName][topicName]) {
+            var r = state.learnProgress[courseName][topicName].consolidationAvgRating;
+            if (r) avgRatingText = ' · ' + r.toFixed(1) + '/4';
+          }
+          h += '<div class="learn-heatmap-cell ' + topicStatus + '" title="' + esc(topicName) + '">';
+          h += '<div class="learn-heatmap-name">' + esc(topicName) + '</div>';
+          h += '<div class="learn-heatmap-meta">' + topicCards.length + ' cards';
+          if (topicDue > 0) h += ' · ' + topicDue + ' due';
+          h += avgRatingText;
+          h += '</div>';
+          h += '</div>';
+        });
+        h += '</div>';
+
+        /* Legend */
+        h += '<div class="learn-heatmap-legend">';
+        h += '<span class="learn-heatmap-legend-item"><span class="learn-status-dot not-started"></span> Not started</span>';
+        h += '<span class="learn-heatmap-legend-item"><span class="learn-status-dot in-progress"></span> In progress</span>';
+        h += '<span class="learn-heatmap-legend-item"><span class="learn-status-dot learned"></span> Learned</span>';
+        h += '</div>';
+        h += '</div>';
+      }
       h += '<div><div class="ctx-section-title">Lecture Materials</div>';
       var importedCount = modules.filter(function(m) { return m && m.lectureImported; }).length;
       if (importedCount > 0) h += '<div class="ctx-lecture-badge">📚 ' + importedCount + ' lecture' + (importedCount !== 1 ? 's' : '') + ' imported · Context active for AI grading</div>';

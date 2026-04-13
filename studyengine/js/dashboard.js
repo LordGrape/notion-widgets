@@ -1437,6 +1437,50 @@
         }
       }
 
+      /* Retention comparison: learned vs unlearned items */
+      var learnedItems = [];
+      var unlearnedItems = [];
+      var now = Date.now();
+      for (var lid in state.items) {
+        if (!state.items.hasOwnProperty(lid)) continue;
+        var lit = state.items[lid];
+        if (!lit || lit.archived || !lit.fsrs || !lit.fsrs.lastReview) continue;
+        if (isItemInArchivedSubDeck(lit)) continue;
+        if (lit.learnStatus === 'learned') learnedItems.push(lit);
+        else unlearnedItems.push(lit);
+      }
+
+      var comparisonHtml = '';
+      if (learnedItems.length >= 3 && unlearnedItems.length >= 3) {
+        var learnedRetSum = 0;
+        learnedItems.forEach(function(it) { learnedRetSum += retrievability(it.fsrs, now); });
+        var learnedRetAvg = Math.round((learnedRetSum / learnedItems.length) * 100);
+
+        var unlearnedRetSum = 0;
+        unlearnedItems.forEach(function(it) { unlearnedRetSum += retrievability(it.fsrs, now); });
+        var unlearnedRetAvg = Math.round((unlearnedRetSum / unlearnedItems.length) * 100);
+
+        var delta = learnedRetAvg - unlearnedRetAvg;
+        var deltaColor = delta > 0 ? 'var(--rate-good)' : delta < 0 ? 'var(--rate-again)' : 'var(--text-secondary)';
+        var deltaSign = delta > 0 ? '+' : '';
+
+        comparisonHtml =
+          '<div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(var(--accent-rgb),0.08)">' +
+          '<div style="font-size:0.65rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--text-tertiary);margin-bottom:6px">Retention: Learned vs Direct Review</div>' +
+          '<div style="display:flex;gap:12px;align-items:center">' +
+          '<div style="flex:1;text-align:center">' +
+          '<div style="font-size:0.95rem;font-weight:800;color:var(--learn-accent, #3b82f6)">' + learnedRetAvg + '%</div>' +
+          '<div style="font-size:0.6rem;color:var(--text-tertiary);font-weight:600">LEARNED (' + learnedItems.length + ')</div>' +
+          '</div>' +
+          '<div style="font-size:0.72rem;font-weight:700;color:' + deltaColor + '">' + deltaSign + delta + '%</div>' +
+          '<div style="flex:1;text-align:center">' +
+          '<div style="font-size:0.95rem;font-weight:800;color:var(--accent)">' + unlearnedRetAvg + '%</div>' +
+          '<div style="font-size:0.6rem;color:var(--text-tertiary);font-weight:600">DIRECT (' + unlearnedItems.length + ')</div>' +
+          '</div>' +
+          '</div>' +
+          '</div>';
+      }
+
       container.style.display = '';
       container.innerHTML =
         '<div class="learn-dash-header">' +
@@ -1455,5 +1499,5 @@
         '<div class="learn-dash-val">' + totalLearned + '</div>' +
         '<div class="learn-dash-label">total topics learned</div>' +
         '</div>' +
-        '</div>';
+        '</div>' + comparisonHtml;
     }
