@@ -545,12 +545,30 @@ function showCourseDashboard(courseName) {
         ? ((daysLeft != null ? daysLeft + ' day' + (daysLeft === 1 ? '' : 's') + ' until exam' : 'Exam scheduled') + ' · ' + courseData.examDate)
         : 'No exam date set · Long-term retention mode';
 
+      /* Learn coverage badge */
+      var learnCovHtml = '';
+      try {
+        var allTopics = getTopicsForCourse(courseName);
+        var learnedCount = 0;
+        if (state.learnProgress && state.learnProgress[courseName]) {
+          allTopics.forEach(function(t) {
+            var p = state.learnProgress[courseName][t];
+            if (p && p.status === 'learned') learnedCount++;
+          });
+        }
+        if (allTopics.length > 0) {
+          var pct = Math.round((learnedCount / allTopics.length) * 100);
+          var color = pct === 100 ? 'var(--rate-good)' : pct > 0 ? 'var(--learn-accent, #3b82f6)' : 'var(--text-tertiary)';
+          learnCovHtml = '<span style="display:inline-block;margin-left:8px;font-size:0.68rem;font-weight:600;padding:2px 8px;border-radius:4px;background:rgba(' + (pct === 100 ? '34,197,94' : pct > 0 ? '59,130,246' : '107,114,128') + ',0.12);color:' + color + '">📚 ' + learnedCount + '/' + allTopics.length + ' learned</span>';
+        }
+      } catch(e) {}
+
       var h = '';
       h += '<div class="ctx-header">';
       h += '<div class="ctx-color-dot" style="background:' + color + ';"></div>';
       h += '<div>';
       h += '<div class="ctx-title">' + esc(courseName) + '</div>';
-      h += '<div class="ctx-subtitle">' + esc(stats.total + ' cards' + (stats.due > 0 ? ' · ' + stats.due + ' due' : '') + (courseData.examDate ? ' · Exam: ' + courseData.examDate : '')) + '</div>';
+      h += '<div class="ctx-subtitle">' + esc(stats.total + ' cards' + (stats.due > 0 ? ' · ' + stats.due + ' due' : '') + (courseData.examDate ? ' · Exam: ' + courseData.examDate : '')) + '</div>' + learnCovHtml;
       h += '</div>';
       if (cram && cram.active) h += '<span class="tree-cram-badge">🔥 CRAM</span>';
       h += '<div class="ctx-header-actions"><button class="icon-btn ctx-kebab" id="ctxCourseActions" type="button" title="Course actions" aria-label="Course actions">⋮</button></div>';

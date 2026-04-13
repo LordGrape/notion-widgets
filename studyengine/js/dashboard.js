@@ -61,6 +61,8 @@
         }
         renderAnalytics('All');
         renderTutorAnalyticsDashboard();
+        /* Learn Mode stats */
+        try { renderLearnDashboardStats(); } catch(e) {}
         renderCourseCards();
         if (emptyAddDeckBtn && !emptyAddDeckBtn.dataset.wired) {
           emptyAddDeckBtn.dataset.wired = 'true';
@@ -483,6 +485,8 @@
       }
 
       renderTutorAnalyticsDashboard();
+      /* Learn Mode stats */
+      try { renderLearnDashboardStats(); } catch(e) {}
 
       /* Staggered entry animation */
       if (window.gsap) {
@@ -1385,3 +1389,71 @@
       };
       openCourseDetail._readinessHooked = true;
     })();
+
+
+    function renderLearnDashboardStats() {
+      var container = el('learnStatsRow');
+      if (!container) {
+        /* Create container if it doesn't exist — insert after tutor stats */
+        var tutorSection = document.querySelector('.tutor-stats-section');
+        var anchor = tutorSection ? tutorSection.parentElement : el('viewDash');
+        if (!anchor) return;
+        var div = document.createElement('div');
+        div.id = 'learnStatsRow';
+        div.className = 'learn-dashboard-stats';
+        if (tutorSection && tutorSection.nextSibling) {
+          anchor.insertBefore(div, tutorSection.nextSibling);
+        } else {
+          anchor.appendChild(div);
+        }
+        container = div;
+      }
+
+      var sessions = state.learnSessions || [];
+      if (sessions.length === 0) {
+        container.style.display = 'none';
+        return;
+      }
+
+      /* This week's learn sessions */
+      var weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      var weekSessions = sessions.filter(function(s) {
+        return s && s.timestamp && new Date(s.timestamp).getTime() > weekAgo;
+      });
+      var weekTopics = {};
+      weekSessions.forEach(function(s) {
+        (s.topics || []).forEach(function(t) { weekTopics[t] = true; });
+      });
+      var weekTopicCount = Object.keys(weekTopics).length;
+
+      /* Total learned topics across all courses */
+      var totalLearned = 0;
+      for (var cName in state.learnProgress) {
+        if (!state.learnProgress.hasOwnProperty(cName)) continue;
+        var courseProgress = state.learnProgress[cName];
+        for (var tName in courseProgress) {
+          if (!courseProgress.hasOwnProperty(tName)) continue;
+          if (courseProgress[tName] && courseProgress[tName].status === 'learned') totalLearned++;
+        }
+      }
+
+      container.style.display = '';
+      container.innerHTML =
+        '<div class="learn-dash-header">' +
+        '<span style="font-size:0.72rem;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--learn-accent, #3b82f6)">📚 Learn Mode</span>' +
+        '</div>' +
+        '<div class="learn-dash-row">' +
+        '<div class="learn-dash-stat">' +
+        '<div class="learn-dash-val">' + weekSessions.length + '</div>' +
+        '<div class="learn-dash-label">sessions this week</div>' +
+        '</div>' +
+        '<div class="learn-dash-stat">' +
+        '<div class="learn-dash-val">' + weekTopicCount + '</div>' +
+        '<div class="learn-dash-label">topics learned this week</div>' +
+        '</div>' +
+        '<div class="learn-dash-stat">' +
+        '<div class="learn-dash-val">' + totalLearned + '</div>' +
+        '<div class="learn-dash-label">total topics learned</div>' +
+        '</div>' +
+        '</div>';
+    }

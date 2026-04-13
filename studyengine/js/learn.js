@@ -576,78 +576,264 @@ function completeLearnSession() {
   var topics = learnSession.topics;
   var ratings = learnSession.consolRatings || [];
   var avgRating = ratings.length > 0 ? ratings.reduce(function(a, b) { return a + b; }, 0) / ratings.length : 0;
+  var now = Date.now();
+  var nowIso = isoNow();
 
-  /* Update learnProgress */
+  /* ── 1. Build per-card rating map from consolidation battery ── */
+  /* Each consolidation question has linkedCardIds. Map each card to its rating. */
+  var cardRatingMap = {}; /* cardId → rating (1-4) */
+  var consolItems = learnSession.consolidation || [];
+  for (var ci = 0; ci < consolItems.length; ci++) {
+    var cq = consolItems[ci];
+    var rating = ratings[ci]; /* may be undefined if battery was cut short */
+    if (!cq.linkedCardIds || !rating) continue;
+    cq.linkedCardIds.forEach(function(cid) {
+      /* If a card is linked to multiple questions, use the lowest rating (conservative) */
+      if (!cardRatingMap[cid] || rating < cardRatingMap[cid]) {
+        cardRatingMap[cid] = rating;
+      }
+    });
+  }
+
+  /* Also mark skipped segment cards with rating 1 (Again) */
+  (learnSession.skipped || []).forEach(function(segIdx) {
+    var seg = learnSession.segments[segIdx];
+    if (!seg || !seg.linkedCardIds) return;
+    seg.linkedCardIds.forEach(function(cid) {
+      if (!cardRatingMap[cid]) cardRatingMap[cid] = 1;
+    });
+  });
+
+  /* ── 2. Initialise FSRS state for each linked card ── */
+  var fsrsResults = []; /* { id, rating, intervalDays } for summary */
+  var allLinkedCardIds = [];
+
+  learnSession.segments.forEach(function(seg) {
+    if (!seg.linkedCardIds) return;
+    seg.linkedCardIds.forEach(function(cid) {
+      if (allLinkedCardIds.indexOf(cid) >= 0) return;
+      allLinkedCardIds.push(cid);
+
+      var it = state.items[cid];
+      if (!it) return;
+
+      var rating = cardRatingMap[cid] || 2; /* default Hard if not in battery */
+
+      /* Only initialise if the card hasn't been reviewed yet (don't overwrite active FSRS) */
+      if (it.fsrs && it.fsrs.reps > 0 && it.fsrs.lastReview) {
+        /* Card already has review history — just mark learn status */
+        it.learnStatus = 'learned';
+        it.learnedAt = nowIso;
+        return;
+      }
+
+      /* Call FSRS initialDifficulty for the first rating */
+      var d0 = (typeof initialDifficulty === 'function') ? initialDifficulty(rating) : 5;
+
+      /* Set initial FSRS state based on consolidation rating */
+      var stabilityMap = { 1: 0.4, 2: 0.8, 3: 1.5, 4: 3.0 };
+      var initStability = stabilityMap[rating] || 1.0;
+
+      it.fsrs = {
+        stability: initStability,
+        difficulty: d0,
+        due: null, /* will be set by scheduleFsrs */
+        lastReview: new Date(now).toISOString(),
+        reps: 1,
+        lapses: (rating === 1) ? 1 : 0,
+        state: (rating === 1) ? 'relearning' : 'review'
+      };
+
+      /* Run scheduleFsrs to compute the proper due date and interval */
+      var schedResult = null;
+      try {
+        schedResult = scheduleFsrs(it, rating, now, true); /* allowWrite=true mutates it.fsrs */
+      } catch(e) {
+        /* Fallback: manual due date if scheduleFsrs fails */
+        var fallbackDays = { 1: 1, 2: 1, 3: 2, 4: 4 };
+        it.fsrs.due = new Date(now + (fallbackDays[rating] || 1) * 24 * 60 * 60 * 1000).toISOString();
+      }
+
+      it.learnStatus = 'learned';
+      it.learnedAt = nowIso;
+
+      fsrsResults.push({
+        id: cid,
+        prompt: (it.prompt || '').substring(0, 60),
+        rating: rating,
+        intervalDays: schedResult ? schedResult.intervalDays : (rating === 1 ? 1 : rating),
+        stability: Math.round((it.fsrs.stability || 0) * 10) / 10,
+        difficulty: Math.round((it.fsrs.difficulty || 0) * 10) / 10
+      });
+    });
+  });
+
+  /* Mark any unlinked items in these topics */
+  topics.forEach(function(topicName) {
+    for (var id in state.items) {
+      if (!state.items.hasOwnProperty(id)) continue;
+      var it = state.items[id];
+      if (!it || it.archived || it.course !== courseName) continue;
+      if ((it.topic || 'General') !== topicName) continue;
+      if (allLinkedCardIds.indexOf(id) >= 0) continue;
+      /* Unlinked card in a learned topic — mark as unlearned so the user knows */
+      if (!it.learnStatus) it.learnStatus = 'unlearned';
+    }
+  });
+
+  /* ── 3. Update learnProgress ── */
   if (!state.learnProgress[courseName]) state.learnProgress[courseName] = {};
   topics.forEach(function(topicName) {
     state.learnProgress[courseName][topicName] = {
       status: 'learned',
       segmentsTotal: learnSession.segments.length,
-      segmentsCompleted: learnSession.segments.length - learnSession.skipped.length,
+      segmentsCompleted: learnSession.segments.length - (learnSession.skipped || []).length,
       consolidationAvgRating: Math.round(avgRating * 10) / 10,
-      lastLearnedAt: isoNow(),
-      linkedCardIds: []
+      lastLearnedAt: nowIso,
+      linkedCardIds: allLinkedCardIds.slice()
     };
-    /* Collect linked card IDs from segments */
-    learnSession.segments.forEach(function(seg) {
-      if (seg.linkedCardIds) {
-        seg.linkedCardIds.forEach(function(cid) {
-          var prog = state.learnProgress[courseName][topicName];
-          if (prog.linkedCardIds.indexOf(cid) < 0) prog.linkedCardIds.push(cid);
-        });
-      }
-    });
   });
 
-  /* Update item learnStatus for linked cards */
-  learnSession.segments.forEach(function(seg) {
-    if (!seg.linkedCardIds) return;
-    seg.linkedCardIds.forEach(function(cid) {
-      var it = state.items[cid];
-      if (it) {
-        it.learnStatus = 'learned';
-        it.learnedAt = isoNow();
-      }
-    });
-  });
+  /* ── 4. XP calculation and dragon push ── */
+  var segsCompleted = learnSession.segments.length - (learnSession.skipped || []).length;
+  var learnXP = Math.round(segsCompleted * 15 + avgRating * 10);
+  try {
+    SyncEngine.set('dragon', 'lastStudyXP', { xp: learnXP, timestamp: now });
+  } catch(e) {}
 
-  /* Record session */
+  /* ── 5. Record session ── */
   state.learnSessions.unshift({
     course: courseName,
     topics: topics,
     subDeck: learnSession.subDeckFilter !== 'All' ? learnSession.subDeckFilter : null,
-    segmentsCompleted: learnSession.segments.length - learnSession.skipped.length,
+    segmentsCompleted: segsCompleted,
     consolidationRatings: ratings,
-    cardsHandedOff: Object.keys(state.learnProgress[courseName] || {}).reduce(function(sum, t) {
-      var p = state.learnProgress[courseName][t];
-      return sum + (p && p.linkedCardIds ? p.linkedCardIds.length : 0);
-    }, 0),
-    duration: Math.round((Date.now() - learnSession.startedAt) / 1000),
-    timestamp: isoNow()
+    cardsHandedOff: fsrsResults.length,
+    duration: Math.round((now - learnSession.startedAt) / 1000),
+    timestamp: nowIso,
+    xpEarned: learnXP
   });
   if (state.learnSessions.length > 30) state.learnSessions.length = 30;
 
   saveState();
 
-  /* Show completion screen */
+  /* ── 6. Render summary ── */
+  renderLearnSummary(learnSession, fsrsResults, learnXP, avgRating);
+}
+
+function renderLearnSummary(sess, fsrsResults, xp, avgRating) {
   var content = el('learnContent');
-  var segs = learnSession.segments.length;
-  var skipped = learnSession.skipped.length;
-  var h = '<div style="text-align:center;padding:30px 16px">';
-  h += '<div style="font-size:1.8rem;margin-bottom:8px">✅</div>';
-  h += '<div style="font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:6px">Learning Complete</div>';
-  h += '<div style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:20px">';
-  h += (segs - skipped) + ' of ' + segs + ' segments completed';
-  if (ratings.length > 0) h += ' · Avg retrieval: ' + avgRating.toFixed(1) + '/4';
+  if (!content) return;
+
+  var segs = sess.segments.length;
+  var skipped = (sess.skipped || []).length;
+  var completed = segs - skipped;
+  var ratings = sess.consolRatings || [];
+  var durationMins = Math.round((Date.now() - sess.startedAt) / 60000);
+
+  var h = '<div class="learn-summary">';
+
+  /* ── Header ── */
+  h += '<div class="learn-summary-header">';
+  h += '<div class="learn-summary-icon">✅</div>';
+  h += '<div class="learn-summary-title">Learning Complete</div>';
+  h += '<div class="learn-summary-sub">' + esc(sess.topics.join(', ')) + '</div>';
   h += '</div>';
-  h += '<div style="font-size:0.78rem;color:var(--text-tertiary);margin-bottom:20px">Your cards are now in the review queue. FSRS will schedule them based on your consolidation performance.</div>';
-  h += '<button class="learn-start-btn" id="learnDoneBtn">Back to Dashboard</button>';
+
+  /* ── Stats Row ── */
+  h += '<div class="learn-summary-stats">';
+  h += '<div class="learn-summary-stat">';
+  h += '<div class="learn-summary-stat-val">' + completed + '/' + segs + '</div>';
+  h += '<div class="learn-summary-stat-label">Segments</div>';
   h += '</div>';
+  h += '<div class="learn-summary-stat">';
+  h += '<div class="learn-summary-stat-val">' + durationMins + 'm</div>';
+  h += '<div class="learn-summary-stat-label">Duration</div>';
+  h += '</div>';
+  h += '<div class="learn-summary-stat">';
+  h += '<div class="learn-summary-stat-val">' + fsrsResults.length + '</div>';
+  h += '<div class="learn-summary-stat-label">Cards → FSRS</div>';
+  h += '</div>';
+  h += '<div class="learn-summary-stat">';
+  h += '<div class="learn-summary-stat-val">+' + xp + '</div>';
+  h += '<div class="learn-summary-stat-label">XP</div>';
+  h += '</div>';
+  h += '</div>';
+
+  /* ── Consolidation Rating Distribution ── */
+  if (ratings.length > 0) {
+    var dist = { 1: 0, 2: 0, 3: 0, 4: 0 };
+    ratings.forEach(function(r) { dist[r] = (dist[r] || 0) + 1; });
+    var rateLabels = { 1: 'Again', 2: 'Hard', 3: 'Good', 4: 'Easy' };
+    var rateColors = { 1: 'var(--rate-again)', 2: 'var(--rate-hard)', 3: 'var(--rate-good)', 4: 'var(--rate-easy)' };
+
+    h += '<div class="learn-summary-section">';
+    h += '<div class="learn-summary-section-title">Consolidation Ratings</div>';
+    h += '<div class="learn-summary-rating-bars">';
+    [1, 2, 3, 4].forEach(function(r) {
+      var pct = Math.round((dist[r] / ratings.length) * 100);
+      h += '<div class="learn-summary-rating-row">';
+      h += '<span class="learn-summary-rating-label" style="color:' + rateColors[r] + '">' + rateLabels[r] + '</span>';
+      h += '<div class="learn-summary-rating-bar-bg">';
+      h += '<div class="learn-summary-rating-bar-fill" style="width:' + pct + '%;background:' + rateColors[r] + '"></div>';
+      h += '</div>';
+      h += '<span class="learn-summary-rating-count">' + dist[r] + '</span>';
+      h += '</div>';
+    });
+    h += '</div>';
+    h += '</div>';
+  }
+
+  /* ── Cards Handed Off ── */
+  if (fsrsResults.length > 0) {
+    h += '<div class="learn-summary-section">';
+    h += '<div class="learn-summary-section-title">Cards Scheduled for Review</div>';
+    h += '<div class="learn-summary-card-list">';
+    fsrsResults.forEach(function(cr) {
+      var rateColor = { 1: 'var(--rate-again)', 2: 'var(--rate-hard)', 3: 'var(--rate-good)', 4: 'var(--rate-easy)' };
+      h += '<div class="learn-summary-card-row">';
+      h += '<span class="learn-summary-card-prompt">' + esc(cr.prompt) + (cr.prompt.length >= 60 ? '…' : '') + '</span>';
+      h += '<span class="learn-summary-card-interval" style="color:' + (rateColor[cr.rating] || 'var(--text-secondary)') + '">';
+      h += cr.intervalDays < 1 ? '<1d' : Math.round(cr.intervalDays) + 'd';
+      h += '</span>';
+      h += '</div>';
+    });
+    h += '</div>';
+    h += '</div>';
+  }
+
+  /* ── Actions ── */
+  h += '<div class="learn-summary-actions">';
+  h += '<button class="learn-start-btn" id="learnSummaryReviewBtn">Start Review Session</button>';
+  h += '<button class="learn-skip-btn" id="learnSummaryDashBtn" style="width:100%;margin-top:8px">Back to Dashboard</button>';
+  h += '</div>';
+
+  h += '</div>';
+
   content.innerHTML = h;
 
-  var doneBtn = el('learnDoneBtn');
-  if (doneBtn) {
-    doneBtn.addEventListener('click', function() {
+  /* Wire buttons */
+  var reviewBtn = el('learnSummaryReviewBtn');
+  if (reviewBtn) {
+    reviewBtn.addEventListener('click', function() {
+      learnSession = null;
+      learnSelectedTopics = [];
+      showView('viewDash');
+      /* Set course filter to the just-learned course and start session */
+      try {
+        selectedCourse = sess.courseName;
+        selectedTopic = 'All';
+        renderDashboard();
+        setTimeout(function() { startSession(); }, 200);
+      } catch(e) {
+        renderDashboard();
+      }
+    });
+  }
+
+  var dashBtn = el('learnSummaryDashBtn');
+  if (dashBtn) {
+    dashBtn.addEventListener('click', function() {
       learnSession = null;
       learnSelectedTopics = [];
       showView('viewDash');
@@ -658,3 +844,4 @@ function completeLearnSession() {
   if (window.gsap) gsap.fromTo(content, { opacity: 0, scale: 0.97 }, { opacity: 1, scale: 1, duration: 0.35, ease: 'power2.out' });
   try { playChime(); } catch(ex) {}
 }
+
