@@ -691,6 +691,30 @@ var mockCountdownTimer = null;
       /* 8. Interleave: alternate tiers + courses for spacing */
       queue = interleaveQueue(queue);
 
+      try {
+        if (courseFilter !== 'All') {
+          var activeAssess = getActiveAssessment(courseFilter);
+          if (activeAssess && ((activeAssess.prioritySet && activeAssess.prioritySet.length) || (activeAssess.sacrificeSet && activeAssess.sacrificeSet.length))) {
+            var prioTopics = {};
+            var skipTopics = {};
+            (activeAssess.prioritySet || []).forEach(function(qId) {
+              var q = (activeAssess.questions || []).find(function(x) { return x.id === qId; });
+              if (q && q.mappedTopics) q.mappedTopics.forEach(function(t) { prioTopics[t] = true; });
+            });
+            (activeAssess.sacrificeSet || []).forEach(function(qId) {
+              var q = (activeAssess.questions || []).find(function(x) { return x.id === qId; });
+              if (q && q.mappedTopics) q.mappedTopics.forEach(function(t) { if (!prioTopics[t]) skipTopics[t] = true; });
+            });
+            queue.sort(function(a, b) {
+              var aw = prioTopics[a.topic || 'General'] ? 2 : skipTopics[a.topic || 'General'] ? -1 : 0;
+              var bw = prioTopics[b.topic || 'General'] ? 2 : skipTopics[b.topic || 'General'] ? -1 : 0;
+              if (aw !== bw) return bw - aw;
+              return priorityWeight(b, cram && cram.active) - priorityWeight(a, cram && cram.active);
+            });
+          }
+        }
+      } catch (e) {}
+
       var overconfTopics = getOverconfidentTopics(selectedCourse);
       if (overconfTopics.length > 0) {
         var overconfSet = {};

@@ -26,6 +26,7 @@
     var GRADE_ENDPOINT = STUDYENGINE_WORKER_BASE + '/grade';
     var LEARN_PLAN_ENDPOINT = STUDYENGINE_WORKER_BASE + '/learn-plan';
     var LEARN_CHECK_ENDPOINT = STUDYENGINE_WORKER_BASE + '/learn-check';
+    var TRIAGE_ENDPOINT = STUDYENGINE_WORKER_BASE + '/exam-triage';
 
     /* ── State ── */
     var NS = 'studyengine';
