@@ -176,7 +176,53 @@
       });
       el('tierBreakdown').innerHTML = bd;
 
-      el('startBtn').disabled = (due.total === 0);
+      /* ── Integrated resume-or-new session UI ── */
+      var startBtnEl = el('startBtn');
+      var resumeSnapshot = checkForResumableSession();
+
+      /* Clean up any previous resume wrapper */
+      var oldResumeWrap = document.getElementById('resumeSessionWrap');
+      if (oldResumeWrap) oldResumeWrap.remove();
+
+      if (resumeSnapshot && resumeSnapshot._remaining > 0 && due.total > 0) {
+        /* Hide the normal start button, show dual-action UI */
+        startBtnEl.style.display = 'none';
+
+        var wrap = document.createElement('div');
+        wrap.id = 'resumeSessionWrap';
+        wrap.className = 'resume-session-wrap';
+        wrap.innerHTML =
+          '<div class="resume-session-hint">' +
+            '<span class="resume-session-dot"></span>' +
+            resumeSnapshot._remaining + ' card' + (resumeSnapshot._remaining === 1 ? '' : 's') +
+            ' remaining from your last session' +
+          '</div>' +
+          '<div class="resume-session-actions">' +
+            '<button class="big-btn" id="resumeContinueBtn">Continue Session</button>' +
+            '<button class="big-btn ghost-btn" id="resumeNewBtn">New Session</button>' +
+          '</div>';
+
+        startBtnEl.insertAdjacentElement('afterend', wrap);
+
+        document.getElementById('resumeContinueBtn').addEventListener('click', function() {
+          resumeSavedSession(resumeSnapshot);
+        });
+        document.getElementById('resumeNewBtn').addEventListener('click', function() {
+          clearActiveSessionSnapshot();
+          var wrapEl = document.getElementById('resumeSessionWrap');
+          if (wrapEl) wrapEl.remove();
+          startBtnEl.style.display = '';
+          startSession();
+        });
+
+        if (window.gsap) {
+          gsap.fromTo(wrap, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.25, ease: 'power2.out' });
+        }
+      } else {
+        /* Normal state — no interrupted session */
+        startBtnEl.style.display = '';
+        startBtnEl.disabled = (due.total === 0);
+      }
 
       var sleepAdvice = getSleepAwareAdvice();
       var sleepBannerEl = el('sleepAdviceBanner');
