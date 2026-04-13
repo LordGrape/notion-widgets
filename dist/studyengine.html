@@ -8866,6 +8866,30 @@ body.standalone #userText {
       })[tier] || getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
     }
 
+    function toRgba(hex, alpha) {
+      if (!hex) hex = '#8b5cf6';
+      hex = String(hex).trim();
+      if (hex.indexOf('var(') === 0) {
+        var temp = document.createElement('div');
+        temp.style.color = hex;
+        document.body.appendChild(temp);
+        hex = getComputedStyle(temp).color;
+        document.body.removeChild(temp);
+        var m = hex.match(/(\d+),\s*(\d+),\s*(\d+)/);
+        if (m) return 'rgba(' + m[1] + ',' + m[2] + ',' + m[3] + ',' + (alpha != null ? alpha : 1) + ')';
+        return 'rgba(139,92,246,' + (alpha != null ? alpha : 1) + ')';
+      }
+      hex = hex.replace('#', '');
+      if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+      var r = parseInt(hex.substring(0, 2), 16);
+      var g = parseInt(hex.substring(2, 4), 16);
+      var b = parseInt(hex.substring(4, 6), 16);
+      if (isNaN(r)) r = 139;
+      if (isNaN(g)) g = 92;
+      if (isNaN(b)) b = 246;
+      return 'rgba(' + r + ',' + g + ',' + b + ',' + (alpha != null ? alpha : 1) + ')';
+    }
+
     function setTierBadge(tier) {
       var badge = document.querySelector('.tier-badge');
       if (!badge) return;
@@ -12965,6 +12989,20 @@ function showCourseDashboard(courseName) {
       if (data.suggestedRating != null && data.suggestedRating !== '') {
         session.aiRating = data.suggestedRating;
       }
+      // Persist diagnosis type on the item for cognitive fingerprinting
+      if (data.diagnosisType && tutorCurrentItem) {
+        if (!tutorCurrentItem.diagnosisHistory) tutorCurrentItem.diagnosisHistory = [];
+        tutorCurrentItem.diagnosisHistory.push({
+          type: data.diagnosisType,
+          timestamp: new Date().toISOString(),
+          tier: tutorCurrentItem._presentTier || tutorCurrentItem.tier || 'explain',
+          mode: tutorCurrentMode || 'socratic'
+        });
+        // Cap at 20 entries per item to prevent unbounded growth
+        if (tutorCurrentItem.diagnosisHistory.length > 20) {
+          tutorCurrentItem.diagnosisHistory = tutorCurrentItem.diagnosisHistory.slice(-20);
+        }
+      }
       var terminal = data.isComplete || tutorTurnCount >= tutorMaxTurns;
       if (terminal) {
         disableTutorInput();
@@ -12972,6 +13010,25 @@ function showCourseDashboard(courseName) {
         if (tutorCurrentMode === 'acknowledge' && suggOut == null) suggOut = tutorAcknowledgeOriginalRating;
         showRatingButtons(suggOut);
         queueTutorMemoryUpdateIfEligible(tutorCurrentItem, tutorConversation, suggOut);
+        // Append one-line dialogue summary for cross-card context
+        if (session && tutorCurrentItem && tutorConversation.length >= 2) {
+          var lastTutorMsg = '';
+          for (var si = tutorConversation.length - 1; si >= 0; si--) {
+            if (tutorConversation[si].role === 'tutor') {
+              lastTutorMsg = String(tutorConversation[si].text || '').substring(0, 150);
+              break;
+            }
+          }
+          var summaryLine = (tutorCurrentItem.topic || 'General') + ': ' +
+            (session.aiRating != null ? (['Again', 'Hard', 'Good', 'Easy'][session.aiRating - 1] || '?') : '?') +
+            (lastTutorMsg ? ' — ' + lastTutorMsg.split('\n')[0] : '');
+          if (!session.dialogueSummary) session.dialogueSummary = [];
+          session.dialogueSummary.push(summaryLine);
+          // Keep only last 8 summaries
+          if (session.dialogueSummary.length > 8) {
+            session.dialogueSummary = session.dialogueSummary.slice(-8);
+          }
+        }
         try { playClick(); } catch (e3) {}
       } else {
         var ta2 = document.getElementById('tutorInput');
@@ -13029,6 +13086,25 @@ function showCourseDashboard(courseName) {
       var skipSugg = session.aiRating != null ? session.aiRating : null;
       if (tutorCurrentMode === 'acknowledge' && skipSugg == null) skipSugg = tutorAcknowledgeOriginalRating;
       showRatingButtons(skipSugg);
+      // Append one-line dialogue summary for cross-card context
+      if (session && tutorCurrentItem && tutorConversation.length >= 2) {
+        var lastTutorMsgSkip = '';
+        for (var siSkip = tutorConversation.length - 1; siSkip >= 0; siSkip--) {
+          if (tutorConversation[siSkip].role === 'tutor') {
+            lastTutorMsgSkip = String(tutorConversation[siSkip].text || '').substring(0, 150);
+            break;
+          }
+        }
+        var summaryLineSkip = (tutorCurrentItem.topic || 'General') + ': ' +
+          (session.aiRating != null ? (['Again', 'Hard', 'Good', 'Easy'][session.aiRating - 1] || '?') : '?') +
+          (lastTutorMsgSkip ? ' — ' + lastTutorMsgSkip.split('\n')[0] : '');
+        if (!session.dialogueSummary) session.dialogueSummary = [];
+        session.dialogueSummary.push(summaryLineSkip);
+        // Keep only last 8 summaries
+        if (session.dialogueSummary.length > 8) {
+          session.dialogueSummary = session.dialogueSummary.slice(-8);
+        }
+      }
     }
 
     function buildQuickFeedbackUI(container, data) {
@@ -13068,6 +13144,19 @@ function showCourseDashboard(courseName) {
         );
       }
       if (data.suggestedRating != null) session.aiRating = data.suggestedRating;
+      if (data.diagnosisType && session && session.queue && session.queue[session.idx]) {
+        var it = session.queue[session.idx];
+        if (!it.diagnosisHistory) it.diagnosisHistory = [];
+        it.diagnosisHistory.push({
+          type: data.diagnosisType,
+          timestamp: new Date().toISOString(),
+          tier: it._presentTier || it.tier || 'explain',
+          mode: 'quick'
+        });
+        if (it.diagnosisHistory.length > 20) {
+          it.diagnosisHistory = it.diagnosisHistory.slice(-20);
+        }
+      }
       showRatingButtons(data.suggestedRating != null ? data.suggestedRating : null);
     }
 
@@ -13499,6 +13588,41 @@ function showCourseDashboard(courseName) {
         if (tm.total >= 2 && tm.mastered / tm.total > 0.7) strongTopics.push(tk);
         if (tm.total >= 2 && tm.struggling / tm.total > 0.3) weakTopics.push(tk);
       }
+      // Aggregate diagnosis types across all items for this course
+      var diagnosisCounts = {};
+      var totalDiagnoses = 0;
+      var thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+      for (var did in stateObj.items) {
+        if (!stateObj.items.hasOwnProperty(did)) continue;
+        var dItem = stateObj.items[did];
+        if (!dItem || dItem.archived) continue;
+        if (item.course && dItem.course !== item.course) continue;
+        if (!dItem.diagnosisHistory || !dItem.diagnosisHistory.length) continue;
+        for (var di = 0; di < dItem.diagnosisHistory.length; di++) {
+          var dEntry = dItem.diagnosisHistory[di];
+          if (!dEntry || !dEntry.type) continue;
+          var dTs = dEntry.timestamp ? new Date(dEntry.timestamp).getTime() : 0;
+          if (dTs < thirtyDaysAgo) continue;
+          diagnosisCounts[dEntry.type] = (diagnosisCounts[dEntry.type] || 0) + 1;
+          totalDiagnoses++;
+        }
+      }
+      var primaryErrorPattern = null;
+      var primaryErrorPct = 0;
+      if (totalDiagnoses >= 5) {
+        var maxType = null;
+        var maxCount = 0;
+        for (var dtype in diagnosisCounts) {
+          if (diagnosisCounts[dtype] > maxCount) {
+            maxCount = diagnosisCounts[dtype];
+            maxType = dtype;
+          }
+        }
+        if (maxType && maxCount / totalDiagnoses >= 0.25) {
+          primaryErrorPattern = maxType;
+          primaryErrorPct = Math.round((maxCount / totalDiagnoses) * 100);
+        }
+      }
       return {
         courseStats: {
           totalCards: courseItems.length,
@@ -13514,7 +13638,9 @@ function showCourseDashboard(courseName) {
         calibrationAccuracy: calAcc,
         overallStreak: streak,
         relevantMemories: relevantMemories,
-        calibrationNudgeTopics: getOverconfidentTopics(item.course).slice(0, 3).map(function(ot) { return ot.topic + ' (' + ot.pctWeak + '% weak)'; })
+        calibrationNudgeTopics: getOverconfidentTopics(item.course).slice(0, 3).map(function(ot) { return ot.topic + ' (' + ot.pctWeak + '% weak)'; }),
+        primaryErrorPattern: primaryErrorPattern,
+        primaryErrorPct: primaryErrorPct
       };
     }
 /* Tier renderers restored from monolith split for session UI parity. */
@@ -14652,6 +14778,7 @@ var mockCountdownTimer = null;
         tutorStats: defaultTutorStats(),
         tutorModeCounts: defaultTutorModeCounts(),
         sessionRatingsLog: [],
+        dialogueSummary: [],
         lastTutorContext: null,  /* { mode, turns, hadDialogue, wasDontKnow } — set by tutor flows */
         tutorAnalyticsHistoryKey: 's' + Date.now()
       };
@@ -17247,7 +17374,8 @@ var tutorConversation = [];
         lapses: (tItem.fsrs && tItem.fsrs.lapses) || 0,
         sessionRetryCount: (session && session.loops && tItem && session.loops[tItem.id]) || 0,
         recentAvgRating: getRecentAvg(),
-        isRelearning: !!(session && session._isRelearning)
+        isRelearning: !!(session && session._isRelearning),
+        sessionSummary: (session && session.dialogueSummary) ? session.dialogueSummary.slice(-5) : []
       };
       if (typeof state !== 'undefined' && state) {
         ctx.learner = buildLearnerContext(tItem, state);
@@ -23339,7 +23467,6 @@ el('gearBtn').addEventListener('click', openSettings);
         boot();
       }
     }, 12000);
-
 </script>
   <div class="anno-tip" id="annoTip"><div class="at-tag"></div><div class="at-note"></div></div>
   <div class="canvas-tooltip" id="canvasTooltip">

@@ -1360,16 +1360,21 @@ Core.injectGlassStyles();
 let SUMMON_DELAY = 1000;
 let SUMMON_WINDOW = 4000;
 let _summonRoles = [];
+let _lsAvailable = false;
 
 function _checkSummon() {
+  if (!_lsAvailable) return null;
   let now = Date.now();
-  let start = parseInt(localStorage.getItem('summon_start') || '0', 10);
+  let start = 0;
+  try { start = parseInt(localStorage.getItem('summon_start') || '0', 10); } catch(e) {}
   if (now - start < SUMMON_WINDOW + SUMMON_DELAY + 2000) {
     return { start: start, elapsed: now - start };
   }
   let delayedStart = now + SUMMON_DELAY;
-  localStorage.setItem('summon_start', String(delayedStart));
-  localStorage.setItem('summon_last', String(now));
+  try {
+    localStorage.setItem('summon_start', String(delayedStart));
+    localStorage.setItem('summon_last', String(now));
+  } catch(e) {}
   return { start: delayedStart, elapsed: now - delayedStart };
 }
 
@@ -1864,6 +1869,14 @@ let SyncEngine = (function() {
   let _freshOriginGrace = false; /* true = suppress pushes until grace period ends */
   let _freshOriginTimer = null;
   let lastPushedPayload = {}; /* last successful PUT body per namespace (no-op skip) */
+  _lsAvailable = false;
+  try {
+    localStorage.setItem('__ls_test', '1');
+    localStorage.removeItem('__ls_test');
+    _lsAvailable = true;
+  } catch (e) {
+    console.warn('[SyncEngine] localStorage blocked — running in memory + Worker KV mode');
+  }
 
   /* ── BroadcastChannel: cross-widget real-time sync ──
      All widgets on the same origin (lordgrape.github.io)
@@ -1933,7 +1946,7 @@ let SyncEngine = (function() {
       /* Another widget entered the passphrase */
       if (d.type === 'passphrase' && !passphrase && d.value) {
         passphrase = d.value;
-        localStorage.setItem(PASS_KEY, passphrase);
+        if (_lsAvailable) { try { localStorage.setItem(PASS_KEY, passphrase); } catch(e) {} }
         idbSetPassphrase(passphrase);
         /* Dismiss prompt if it is currently showing */
         let ov = document.querySelector('[data-sync-prompt]');
@@ -1971,6 +1984,7 @@ let SyncEngine = (function() {
   function lsKey(ns) { return '_sync_' + ns; }
 
   function lsRead(ns) {
+    if (!_lsAvailable) return {};
     try {
       let raw = localStorage.getItem(lsKey(ns));
       return _normalizeNamespaceObject(raw ? JSON.parse(raw) : {});
@@ -1978,6 +1992,7 @@ let SyncEngine = (function() {
   }
 
   function lsWrite(ns) {
+    if (!_lsAvailable) return;
     try { localStorage.setItem(lsKey(ns), JSON.stringify(cache[ns] || {})); } catch(e) {}
   }
 
@@ -2270,6 +2285,7 @@ let SyncEngine = (function() {
 
   /* ── One-time migration from old localStorage keys ── */
   function migrateOnce() {
+    if (!_lsAvailable) return;
     if (localStorage.getItem('_sync_migrated')) return;
 
     /* Dragon state */
@@ -2366,7 +2382,7 @@ let SyncEngine = (function() {
       function submit() {
         let val = input.value.trim();
         if (val) {
-          localStorage.setItem(PASS_KEY, val);
+          if (_lsAvailable) { try { localStorage.setItem(PASS_KEY, val); } catch(e) {} }
           idbSetPassphrase(val);
           passphrase = val;
           _broadcast({ type: 'passphrase', value: val });
@@ -2405,7 +2421,9 @@ let SyncEngine = (function() {
       WORKER_URL = (opts.worker || '').replace(/\/+$/, '');
       namespaces = opts.namespaces || ['dragon', 'clock', 'user'];
       passphrase = '';
-      try { passphrase = localStorage.getItem(PASS_KEY) || ''; } catch(e) {}
+      if (_lsAvailable) {
+        try { passphrase = localStorage.getItem(PASS_KEY) || ''; } catch(e) {}
+      }
 
       /* iOS Safari blocks localStorage in cross-origin iframes (Notion embeds).
          Fall back to reading the passphrase from the URL hash fragment.
@@ -2417,7 +2435,7 @@ let SyncEngine = (function() {
           let hashKey = hashParams.get('key');
           if (hashKey) {
             passphrase = hashKey;
-            try { localStorage.setItem(PASS_KEY, hashKey); } catch(e) {}
+            if (_lsAvailable) { try { localStorage.setItem(PASS_KEY, hashKey); } catch(e) {} }
             idbSetPassphrase(hashKey);
           }
         } catch(e) {}
@@ -2434,7 +2452,7 @@ let SyncEngine = (function() {
         chain = idbGetPassphrase().then(function(idbPass) {
           if (idbPass) {
             passphrase = idbPass;
-            try { localStorage.setItem(PASS_KEY, idbPass); } catch(e) {}
+            if (_lsAvailable) { try { localStorage.setItem(PASS_KEY, idbPass); } catch(e) {} }
             return passphrase;
           }
           return showPrompt();
