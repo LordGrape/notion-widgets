@@ -614,6 +614,7 @@
         if (!itemsById.hasOwnProperty(id)) continue;
         var it = itemsById[id];
         if (!it || it.archived) continue;
+        if (isItemInArchivedSubDeck(it)) continue;
         if (it.course && state.courses[it.course] && state.courses[it.course].archived) continue;
         if (course && course !== 'All' && it.course !== course) continue;
         if (topic && topic !== 'All' && (it.topic || '') !== topic) continue;
@@ -649,6 +650,7 @@
         if (!itemsById.hasOwnProperty(id)) continue;
         var it = itemsById[id];
         if (!it || !it.fsrs || it.archived) continue;
+        if (isItemInArchivedSubDeck(it)) continue;
         if (it.course && state.courses[it.course] && state.courses[it.course].archived) continue;
         sum += retrievability(it.fsrs, now);
         n++;

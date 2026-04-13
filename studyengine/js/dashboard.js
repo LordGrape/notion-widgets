@@ -6,6 +6,7 @@
       var totalItems = 0;
       for (var _id in state.items) {
         if (!state.items.hasOwnProperty(_id) || !state.items[_id] || state.items[_id].archived) continue;
+        if (isItemInArchivedSubDeck(state.items[_id])) continue;
         if (state.items[_id].course && state.courses[state.items[_id].course] && state.courses[state.items[_id].course].archived) continue;
         totalItems++;
       }

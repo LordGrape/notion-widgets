@@ -6,22 +6,28 @@
         if (!state.items.hasOwnProperty(id)) continue;
         var it = state.items[id];
         if (!it || it.archived) continue;
+        if (isItemInArchivedSubDeck(it)) continue;
         if (it.course && state.courses[it.course] && state.courses[it.course].archived) continue;
         var course = it.course || 'Uncategorized';
         var topic = it.topic || 'General';
-        if (!tree[course]) tree[course] = { topics: {}, totalCards: 0, dueCards: 0 };
+        if (!tree[course]) tree[course] = { topics: {}, totalCards: 0, dueCards: 0, subDecks: {} };
         if (!tree[course].topics[topic]) tree[course].topics[topic] = { cards: [], dueCards: 0 };
         tree[course].topics[topic].cards.push(id);
         tree[course].totalCards++;
+        var sd = it.subDeck || '__ungrouped__';
+        if (!tree[course].subDecks[sd]) tree[course].subDecks[sd] = { cards: 0, due: 0 };
+        tree[course].subDecks[sd].cards++;
         var f = it.fsrs && it.fsrs.due ? it.fsrs : null;
         if (!f || !f.lastReview) {
           tree[course].dueCards++;
           tree[course].topics[topic].dueCards++;
+          tree[course].subDecks[sd].due++;
         } else {
           var dueDate = new Date(f.due);
           if (dueDate <= new Date()) {
             tree[course].dueCards++;
             tree[course].topics[topic].dueCards++;
+            tree[course].subDecks[sd].due++;
           }
         }
       }
@@ -93,6 +99,39 @@
         // Expanded content: modules then ungrouped topics
         if (isExpanded) {
           var assignedTopics = {};
+          var subDeckRows = Object.keys(ct.subDecks || {});
+          var knownSubDeckMap = {};
+          listSubDecks(courseName).forEach(function(meta) {
+            if (!meta || !meta.name) return;
+            knownSubDeckMap[meta.name] = meta;
+            if (subDeckRows.indexOf(meta.name) < 0) subDeckRows.push(meta.name);
+          });
+          subDeckRows.sort(function(a, b) {
+            var ao = knownSubDeckMap[a] ? (knownSubDeckMap[a].order || 0) : Number.MAX_SAFE_INTEGER;
+            var bo = knownSubDeckMap[b] ? (knownSubDeckMap[b].order || 0) : Number.MAX_SAFE_INTEGER;
+            if (ao !== bo) return ao - bo;
+            return String(a).localeCompare(String(b));
+          });
+
+          subDeckRows.forEach(function(sdName) {
+            var stats = ct.subDecks[sdName] || { cards: 0, due: 0 };
+            var isUngrouped = sdName === '__ungrouped__';
+            var label = isUngrouped ? 'Ungrouped' : sdName;
+            var archivedSd = !isUngrouped && isSubDeckArchived(courseName, sdName);
+            var subdeckActive = (sidebarSelection.level === 'subdeck' && sidebarSelection.course === courseName && sidebarSelection.subDeck === sdName) ? ' active' : '';
+            html += '<div class="tree-node depth-1 tree-node-hoverable' + subdeckActive + (archivedSd ? ' archived' : '') + '" data-level="subdeck" data-course="' + esc(courseName) + '" data-subdeck="' + esc(sdName) + '">';
+            html += '<span class="tree-chevron" style="visibility:hidden;"></span>';
+            html += '<span class="subdeck-icon">' + (archivedSd ? '📦' : '📂') + '</span>';
+            html += '<span class="tree-label">' + esc(label) + '</span>';
+            if (stats.cards > 0) html += '<span class="tree-count">' + stats.cards + '</span>';
+            if (stats.due > 0) html += '<span class="tree-badge">' + stats.due + '</span>';
+            if (!isUngrouped) {
+              html += '<span class="tree-hover-actions">';
+              html += '<button class="tree-action-btn" data-action="subdeck-menu" data-course="' + esc(courseName) + '" data-subdeck="' + esc(sdName) + '" title="Options">⋯</button>';
+              html += '</span>';
+            }
+            html += '</div>';
+          });
 
           // Modules
           modules.forEach(function(mod) {
@@ -200,6 +239,7 @@
           var action = actionBtn.dataset.action;
           var actionCourse = actionBtn.dataset.course;
           var actionModule = actionBtn.dataset.module;
+          var actionSubdeck = actionBtn.dataset.subdeck;
 
           if (action === 'add-module') {
             sidebarExpanded[actionCourse] = true;
@@ -229,6 +269,10 @@
             showModuleContextMenu(actionCourse, actionModule, actionBtn);
             return;
           }
+          if (action === 'subdeck-menu') {
+            showSubDeckContextMenu(actionCourse, actionSubdeck, actionBtn);
+            return;
+          }
           return;
         }
 
@@ -238,11 +282,12 @@
         var level = node.dataset.level;
         var courseName = node.dataset.course || null;
         var moduleId = node.dataset.module || null;
+        var subDeck = node.dataset.subdeck || null;
         var topic = node.dataset.topic || null;
 
         if (level === 'ungrouped' || level === 'topics-toggle') return;
 
-        sidebarSelection = { level: level, course: courseName, module: moduleId, topic: topic };
+        sidebarSelection = { level: level, course: courseName, module: moduleId, subDeck: subDeck, topic: topic };
 
         if (level === 'course' && courseName && !sidebarExpanded[courseName]) {
           sidebarExpanded[courseName] = true;
@@ -271,6 +316,10 @@
           html += '<span class="bc-segment" data-level="module" data-course="' + esc(sidebarSelection.course) + '" data-module="' + esc(mod.id) + '">' + esc(mod.name || 'Subdeck') + '</span>';
         }
       }
+      if (sidebarSelection.subDeck && sidebarSelection.course) {
+        html += '<span class="bc-separator">›</span>';
+        html += '<span class="bc-segment" data-level="subdeck" data-course="' + esc(sidebarSelection.course) + '" data-subdeck="' + esc(sidebarSelection.subDeck) + '">' + esc(sidebarSelection.subDeck) + '</span>';
+      }
       if (sidebarSelection.topic) {
         html += '<span class="bc-separator">›</span>';
         html += '<span class="bc-segment" data-level="topic" data-course="' + esc(sidebarSelection.course || '') + '" data-module="' + esc(sidebarSelection.module || '') + '" data-topic="' + esc(sidebarSelection.topic) + '">' + esc(sidebarSelection.topic) + '</span>';
@@ -281,10 +330,11 @@
         var seg = e.target && e.target.closest ? e.target.closest('.bc-segment') : null;
         if (!seg) return;
         var level = seg.dataset.level;
-        if (level === 'all') sidebarSelection = { level: 'all', course: null, module: null, topic: null };
-        else if (level === 'course') sidebarSelection = { level: 'course', course: seg.dataset.course, module: null, topic: null };
-        else if (level === 'module') sidebarSelection = { level: 'module', course: seg.dataset.course || sidebarSelection.course, module: seg.dataset.module, topic: null };
-        else if (level === 'topic') sidebarSelection = { level: 'topic', course: seg.dataset.course || sidebarSelection.course, module: seg.dataset.module || null, topic: seg.dataset.topic || sidebarSelection.topic };
+        if (level === 'all') sidebarSelection = { level: 'all', course: null, module: null, subDeck: null, topic: null };
+        else if (level === 'course') sidebarSelection = { level: 'course', course: seg.dataset.course, module: null, subDeck: null, topic: null };
+        else if (level === 'module') sidebarSelection = { level: 'module', course: seg.dataset.course || sidebarSelection.course, module: seg.dataset.module, subDeck: null, topic: null };
+        else if (level === 'subdeck') sidebarSelection = { level: 'subdeck', course: seg.dataset.course || sidebarSelection.course, module: null, subDeck: seg.dataset.subdeck || null, topic: null };
+        else if (level === 'topic') sidebarSelection = { level: 'topic', course: seg.dataset.course || sidebarSelection.course, module: seg.dataset.module || null, subDeck: null, topic: seg.dataset.topic || sidebarSelection.topic };
         renderSidebar();
         updateBreadcrumb();
         applySidebarFilter();
@@ -565,7 +615,7 @@ function showCourseDashboard(courseName) {
 
       var studyBtn = document.getElementById('ctxStudyCourse');
       if (studyBtn) studyBtn.addEventListener('click', function() {
-        sidebarSelection = { level: 'course', course: courseName, module: null, topic: null };
+        sidebarSelection = { level: 'course', course: courseName, module: null, subDeck: null, topic: null };
         applySidebarFilterChipsOnly();
         startSession();
       });
@@ -579,7 +629,7 @@ function showCourseDashboard(courseName) {
       content.querySelectorAll('.ctx-module-card').forEach(function(card) {
         card.addEventListener('click', function() {
           var modId = this.dataset.module;
-          sidebarSelection = { level: 'module', course: courseName, module: modId, topic: null };
+          sidebarSelection = { level: 'module', course: courseName, module: modId, subDeck: null, topic: null };
           renderSidebar();
           updateBreadcrumb();
           showModuleView(courseName, modId);
@@ -645,7 +695,7 @@ function showCourseDashboard(courseName) {
 
       var studyBtn = document.getElementById('ctxStudyModule');
       if (studyBtn) studyBtn.addEventListener('click', function() {
-        sidebarSelection = { level: 'module', course: courseName, module: moduleId, topic: null };
+        sidebarSelection = { level: 'module', course: courseName, module: moduleId, subDeck: null, topic: null };
         applySidebarFilterChipsOnly();
         startSession();
       });
@@ -665,7 +715,7 @@ function showCourseDashboard(courseName) {
       content.querySelectorAll('[data-nav-topic]').forEach(function(pill) {
         pill.addEventListener('click', function() {
           var t = this.dataset.navTopic;
-          sidebarSelection = { level: 'topic', course: courseName, module: moduleId, topic: t };
+          sidebarSelection = { level: 'topic', course: courseName, module: moduleId, subDeck: null, topic: t };
           renderSidebar();
           updateBreadcrumb();
           showTopicView(courseName, t);
@@ -713,12 +763,70 @@ function showCourseDashboard(courseName) {
 
       var studyBtn = document.getElementById('ctxStudyTopic');
       if (studyBtn) studyBtn.addEventListener('click', function() {
-        sidebarSelection = { level: 'topic', course: courseName, module: null, topic: topic };
+        sidebarSelection = { level: 'topic', course: courseName, module: null, subDeck: null, topic: topic };
         applySidebarFilterChipsOnly();
         startSession();
       });
 
       if (window.gsap) gsap.fromTo(content, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
+    }
+
+    function showSubDeckContextMenu(courseName, subDeckName, anchorEl) {
+      var sd = getSubDeck(courseName, subDeckName);
+      if (!sd) return;
+      var items = [
+        { label: 'Rename', icon: '✏', action: function() {
+          var newName = prompt('Rename sub-deck:', subDeckName);
+          if (newName && newName.trim() && newName.trim() !== subDeckName) {
+            renameSubDeck(courseName, subDeckName, newName.trim());
+            renderSidebar();
+            toast('Renamed to ' + newName.trim());
+          }
+        }},
+        { label: sd.archived ? 'Unarchive' : 'Archive', icon: sd.archived ? '↩' : '📦', action: function() {
+          if (sd.archived) unarchiveSubDeck(courseName, subDeckName);
+          else archiveSubDeck(courseName, subDeckName);
+          renderSidebar();
+          renderDashboard();
+          toast(sd.archived ? 'Unarchived ' + subDeckName : 'Archived ' + subDeckName);
+        }},
+        { label: 'Move to...', icon: '→', action: function() {
+          var courses = listCourses().map(function(c) { return c.name; }).filter(function(n) { return n !== courseName; });
+          if (!courses.length) { toast('No other courses'); return; }
+          var target = prompt('Move to course:\n' + courses.join('\n'));
+          if (target && courses.indexOf(target) >= 0) {
+            moveSubDeck(subDeckName, courseName, target);
+            renderSidebar();
+            renderDashboard();
+            toast('Moved ' + subDeckName + ' to ' + target);
+          }
+        }},
+        { divider: true },
+        { label: 'Start Session', icon: '▶', action: function() {
+          sidebarSelection = { level: 'subdeck', course: courseName, subDeck: subDeckName, module: null, topic: null };
+          applySidebarFilterChipsOnly();
+          startSession();
+        }},
+        { divider: true },
+        { label: 'Delete (keep cards)', icon: '🗑', danger: true, action: function() {
+          if (confirm('Delete sub-deck "' + subDeckName + '"? Cards will become ungrouped.')) {
+            deleteSubDeck(courseName, subDeckName, false);
+            renderSidebar();
+            renderDashboard();
+            toast('Deleted ' + subDeckName);
+          }
+        }},
+        { label: 'Delete (and cards)', icon: '🗑', danger: true, action: function() {
+          var count = getCardsForSubDeck(courseName, subDeckName).length;
+          if (confirm('Delete sub-deck "' + subDeckName + '" AND its ' + count + ' cards? This cannot be undone.')) {
+            deleteSubDeck(courseName, subDeckName, true);
+            renderSidebar();
+            renderDashboard();
+            toast('Deleted ' + subDeckName + ' and ' + count + ' cards');
+          }
+        }}
+      ];
+      showCtxMenuAt(anchorEl, items);
     }
 
     function showCourseContextMenu(courseName, anchor) {
@@ -821,7 +929,7 @@ function showCourseDashboard(courseName) {
                 danger: true,
                 action: function() {
                   removeModuleFromCourse(courseName, moduleId);
-                  sidebarSelection = { level: 'course', course: courseName, module: null, topic: null };
+                  sidebarSelection = { level: 'course', course: courseName, module: null, subDeck: null, topic: null };
                   renderSidebar();
                   updateBreadcrumb();
                   applySidebarFilter();

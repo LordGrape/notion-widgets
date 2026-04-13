@@ -534,6 +534,7 @@ var mockCountdownTimer = null;
         if (!state.items.hasOwnProperty(id)) continue;
         var it = state.items[id];
         if (!it || it.archived) continue;
+        if (isItemInArchivedSubDeck(it)) continue;
         if (courseFilter !== 'All' && it.course !== courseFilter) continue;
         if (selectedTopic !== 'All' && (it.topic || '') !== selectedTopic) continue;
         // Sidebar topic/module scoping (standalone)
@@ -546,6 +547,9 @@ var mockCountdownTimer = null;
             if (studyMod && studyMod.topics && studyMod.topics.length) {
               if (studyMod.topics.indexOf(it.topic) < 0) continue;
             }
+          }
+          if (sidebarSelection.level === 'subdeck' && sidebarSelection.course && sidebarSelection.subDeck) {
+            if (it.course !== sidebarSelection.course || it.subDeck !== sidebarSelection.subDeck) continue;
           }
         }
         var f = it.fsrs || null;
