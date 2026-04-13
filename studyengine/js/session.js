@@ -908,17 +908,19 @@ var mockCountdownTimer = null;
       if (prevSum) prevSum.style.display = 'none';
       showView('viewSession');
       try { document.body.classList.add('in-session'); } catch(e) {}
-      /* Insert session XP bar if not already present */
-      var sessionTop = document.querySelector('#viewSession .session-top');
-      if (sessionTop && !document.getElementById('sessionXPBar')) {
-        var xpBar = document.createElement('div');
-        xpBar.className = 'session-xp-bar';
-        xpBar.id = 'sessionXPBar';
-        xpBar.innerHTML =
-          '<span class="xp-label">SESSION XP</span>' +
-          '<div class="xp-track"><div class="xp-fill" id="sessionXPFill"></div></div>' +
-          '<span class="xp-value" id="sessionXPValue">0 XP</span>';
-        sessionTop.insertAdjacentElement('afterend', xpBar);
+      if (settings.gamificationMode === 'motivated') {
+        /* Insert session XP bar if not already present */
+        var sessionTop = document.querySelector('#viewSession .session-top');
+        if (sessionTop && !document.getElementById('sessionXPBar')) {
+          var xpBar = document.createElement('div');
+          xpBar.className = 'session-xp-bar';
+          xpBar.id = 'sessionXPBar';
+          xpBar.innerHTML =
+            '<span class="xp-label">SESSION XP</span>' +
+            '<div class="xp-track"><div class="xp-fill" id="sessionXPFill"></div></div>' +
+            '<span class="xp-value" id="sessionXPValue">0 XP</span>';
+          sessionTop.insertAdjacentElement('afterend', xpBar);
+        }
       }
       updateSessionXPBar();
       try { playStart(); } catch(e) {}
@@ -1661,9 +1663,11 @@ var mockCountdownTimer = null;
       finalizeTutorAnalyticsSession();
 
       /* Push XP to dragon */
-      try {
-        SyncEngine.set('dragon', 'lastStudyXP', { xp: session.xp, timestamp: new Date().toISOString() });
-      } catch (e) {}
+      if (settings.gamificationMode === 'motivated') {
+        try {
+          SyncEngine.set('dragon', 'lastStudyXP', { xp: session.xp, timestamp: new Date().toISOString() });
+        } catch (e) {}
+      }
       clearActiveSessionSnapshot();
 
       saveState();
@@ -1680,8 +1684,11 @@ var mockCountdownTimer = null;
       };
       /* Dragon evolution check */
       var dragonXPBefore = 0;
-      try { dragonXPBefore = parseInt(SyncEngine.get('dragon', 'xp') || '0', 10) - (sessionSnap.xp || 0); } catch(e) {}
-      var dragonXPAfter = dragonXPBefore + (sessionSnap.xp || 0);
+      var dragonXPAfter = 0;
+      if (settings.gamificationMode === 'motivated') {
+        try { dragonXPBefore = parseInt(SyncEngine.get('dragon', 'xp') || '0', 10) - (sessionSnap.xp || 0); } catch(e) {}
+        dragonXPAfter = dragonXPBefore + (sessionSnap.xp || 0);
+      }
       var avgRatingForDragon = sessionSnap.ratingN ? (sessionSnap.ratingSum / sessionSnap.ratingN) : 0;
 
       /* Auto-optimize FSRS parameters every 50 reviews */
@@ -1697,6 +1704,10 @@ var mockCountdownTimer = null;
       el('doneTitle').textContent = reviewed + ' items reviewed';
       el('doneSub').textContent = 'Avg self-rating: ' + (session.ratingN ? (Math.round((session.ratingSum / session.ratingN) * 10) / 10) : '—');
       el('doneXP').textContent = String(session.xp);
+      var doneXPSection = document.getElementById('doneXPSection');
+      if (doneXPSection) {
+        doneXPSection.style.display = (settings.gamificationMode === 'motivated') ? '' : 'none';
+      }
 
       var calAfter = calibrationPct(state.calibration);
       el('doneCal').textContent = (calAfter == null) ? '—' : Math.round(calAfter * 100) + '%';
@@ -1737,7 +1748,9 @@ var mockCountdownTimer = null;
       try { document.body.classList.remove('in-session'); } catch(e) {}
       showView('viewDone');
       animateDoneDragon(sessionSnap.xp, avgRatingForDragon);
-      setTimeout(function() { checkDragonEvolution(dragonXPBefore, dragonXPAfter); }, 1500);
+      if (settings.gamificationMode === 'motivated') {
+        setTimeout(function() { checkDragonEvolution(dragonXPBefore, dragonXPAfter); }, 1500);
+      }
       scheduleUiTimer(function() {
         checkForCheckIn();
       }, 250);
@@ -1746,8 +1759,10 @@ var mockCountdownTimer = null;
 
       /* Celebration animation */
       if (reviewed > 0) {
-        try { playChime(); } catch(e) {}
-        try { launchConfetti(); } catch(e) {}
+        if (settings.gamificationMode !== 'off') {
+          try { playChime(); } catch(e) {}
+          try { launchConfetti(); } catch(e) {}
+        }
       }
       if (window.gsap) {
         var cele = el('doneCelebration');

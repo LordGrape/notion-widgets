@@ -49,6 +49,7 @@ var DEFAULT_STATE = {
       breakIntervalMins: 25,
       performanceBreaks: true,
       feedbackMode: 'adaptive',
+      gamificationMode: 'clean',
       modelOverride: 'adaptive',
       userName: '',
       tutorVoice: 'rigorous'
@@ -155,6 +156,9 @@ var state = null;
       settings = deepClone(DEFAULT_SETTINGS);
       if (s && typeof s === 'object') {
         for (var k in s) if (s.hasOwnProperty(k)) settings[k] = s[k];
+      }
+      if (['clean', 'motivated', 'off'].indexOf(settings.gamificationMode) < 0) {
+        settings.gamificationMode = 'clean';
       }
     }
 
@@ -4429,6 +4433,19 @@ el('gearBtn').addEventListener('click', openSettings);
         '</div>' +
         '<div class="setting-row">' +
           '<div class="sr-left">' +
+            '<div class="sr-label">Gamification</div>' +
+            '<div class="sr-desc">Clean shows streaks and learning stats. Motivated adds XP, rank progression, and the dragon companion. Off removes all game elements.</div>' +
+          '</div>' +
+          '<div class="sr-control">' +
+            '<select id="s_gamification">' +
+              '<option value="clean"' + ((settings.gamificationMode || 'clean') === 'clean' ? ' selected' : '') + '>Clean — streaks + stats only</option>' +
+              '<option value="motivated"' + (settings.gamificationMode === 'motivated' ? ' selected' : '') + '>Motivated — XP, ranks, celebrations</option>' +
+              '<option value="off"' + (settings.gamificationMode === 'off' ? ' selected' : '') + '>Off — minimal, no game elements</option>' +
+            '</select>' +
+          '</div>' +
+        '</div>' +
+        '<div class="setting-row">' +
+          '<div class="sr-left">' +
             '<div class="sr-label">AI Tutor — feedback mode</div>' +
             '<div class="sr-desc">Depth of post-check dialogue: adaptive uses your performance and card type.</div>' +
           '</div>' +
@@ -4708,6 +4725,9 @@ el('gearBtn').addEventListener('click', openSettings);
       var fmEl = el('s_feedbackMode');
       var fm = fmEl ? fmEl.value : 'adaptive';
       settings.feedbackMode = (['adaptive', 'always_socratic', 'always_quick', 'self_rate'].indexOf(fm) >= 0) ? fm : 'adaptive';
+      var gamEl = el('s_gamification');
+      var gam = gamEl ? gamEl.value : 'clean';
+      settings.gamificationMode = (['clean', 'motivated', 'off'].indexOf(gam) >= 0) ? gam : 'clean';
       var moEl = el('s_modelOverride');
       var mo = moEl ? moEl.value : 'adaptive';
       settings.modelOverride = (['adaptive', 'pro', 'flash'].indexOf(mo) >= 0) ? mo : 'adaptive';
@@ -7681,7 +7701,35 @@ el('gearBtn').addEventListener('click', openSettings);
             try { renderSidebar(); } catch (eR) {}
             try { updateBreadcrumb(); } catch (eB) {}
           };
-        }
+      }
+
+      var visualCueCloseBtn = el('visualCueClose') || el('visualLightboxClose');
+      if (visualCueCloseBtn) {
+        visualCueCloseBtn.addEventListener('click', function() {
+          var ov = el('visualCueOverlay') || el('visualLightbox');
+          if (ov) {
+            if (window.gsap) {
+              gsap.to(ov, { opacity: 0, duration: 0.25, ease: 'power2.inOut', onComplete: function() {
+                ov.style.display = 'none';
+                ov.style.opacity = '';
+                ov.setAttribute('aria-hidden', 'true');
+              }});
+            } else {
+              ov.style.display = 'none';
+              ov.setAttribute('aria-hidden', 'true');
+            }
+          }
+          try { playClick(); } catch (e) {}
+        });
+      }
+      var visualCueOv = el('visualCueOverlay') || el('visualLightbox');
+      if (visualCueOv) {
+        visualCueOv.addEventListener('click', function(e) {
+          if (e.target === visualCueOv && visualCueCloseBtn) {
+            visualCueCloseBtn.click();
+          }
+        });
+      }
       }
 
       /* Wire retention graph interactivity (after first render) */

@@ -7555,6 +7555,20 @@ body.standalone #userText {
         width: 100%;
     }
 }
+
+/* Streak stat */
+.streak-stat .n {
+    background: linear-gradient(135deg, var(--accent-primary, #8b5cf6), #f59e0b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.streak-stat .stat-header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
 /* Session-specific responsive system */
 
 @media (max-width: 768px) {
@@ -8249,6 +8263,11 @@ body.standalone #userText {
                   <div class="v" id="statRet">—</div>
                   <div class="s">FSRS retrievability</div>
                 </div>
+                <div class="stat streak-stat" id="streakStatWrap">
+                  <div class="stat-header">Study Streak</div>
+                  <div class="n" id="statStudyStreak">—</div>
+                  <div class="s" id="streakSub">days</div>
+                </div>
               </div>
 
               <div class="tutor-cal-row">
@@ -8463,7 +8482,7 @@ body.standalone #userText {
 
           <!-- XP + Calibration -->
           <div class="done-stats">
-            <div class="stat" style="text-align:center;">
+            <div class="stat" style="text-align:center;" id="doneXPSection">
               <div class="k">XP Earned</div>
               <div class="xp-badge">
                 <span id="doneXP">—</span>
@@ -11144,12 +11163,19 @@ body.standalone #userText {
     }
 
     function animateDoneDragon(sessionXP, avgRating) {
+      if (!settings || settings.gamificationMode !== 'motivated') {
+        var wrapEl = document.getElementById('doneDragonWrap');
+        if (wrapEl) wrapEl.style.display = 'none';
+        return;
+      }
+      var wrapElShow = document.getElementById('doneDragonWrap');
+      if (wrapElShow) wrapElShow.style.display = '';
       var totalXP = 0;
       try { totalXP = parseInt(SyncEngine.get('dragon', 'xp') || '0', 10); } catch(e) {}
       var info = getDragonStage(totalXP);
       var imgUrl = getDragonImageUrl(info.stage);
       var orbEl = document.getElementById('doneDragonOrb');
-      var wrapEl = document.getElementById('doneDragonWrap');
+      var wrapEl = wrapElShow || document.getElementById('doneDragonWrap');
       if (window.gsap && wrapEl) {
         gsap.killTweensOf(wrapEl.querySelectorAll('.dragon-ember, .done-dragon-orb, .done-dragon-img, #doneDragonRank, #doneDragonFlavour'));
       }
@@ -11225,6 +11251,7 @@ body.standalone #userText {
     }
 
     function checkDragonEvolution(xpBefore, xpAfter) {
+      if (!settings || settings.gamificationMode !== 'motivated') return;
       var stageBefore = getDragonStage(xpBefore).stage;
       var stageAfter = getDragonStage(xpAfter).stage;
       if (stageAfter > stageBefore) {
@@ -11253,6 +11280,7 @@ body.standalone #userText {
     }
 
     function updateSessionXPBar() {
+      if (!settings || settings.gamificationMode !== 'motivated') return;
       if (!session) return;
       var fill = document.getElementById('sessionXPFill');
       var valueEl = document.getElementById('sessionXPValue');
@@ -12143,6 +12171,10 @@ function showCourseDashboard(courseName) {
           sleepBannerEmpty.innerHTML = '';
         }
         el('statStreak').textContent = '—';
+        var streakWrapEmpty = el('streakStatWrap');
+        if (streakWrapEmpty) streakWrapEmpty.style.display = (settings.gamificationMode === 'off') ? 'none' : '';
+        var streakValEmpty = el('statStudyStreak');
+        if (streakValEmpty) streakValEmpty.textContent = '—';
         el('statRet').textContent = '—';
         el('calVal').textContent = '—';
         el('calSub').textContent = 'Add items to begin';
@@ -12226,6 +12258,21 @@ function showCourseDashboard(courseName) {
         if ((sit.fsrs.stability || 0) > 30 && (sit.fsrs.lapses || 0) === 0) masteredCount++;
       }
       animateCounter(el('statStreak'), masteredCount);
+      /* Streak counter */
+      var streakWrap = el('streakStatWrap');
+      if (streakWrap) {
+        if (settings.gamificationMode === 'off') {
+          streakWrap.style.display = 'none';
+        } else {
+          streakWrap.style.display = '';
+          var streakDays = (state.stats && state.stats.streakDays) || 0;
+          animateCounter(el('statStudyStreak'), streakDays);
+          var streakSubEl = el('streakSub');
+          if (streakSubEl) {
+            streakSubEl.textContent = streakDays === 1 ? 'day' : 'days';
+          }
+        }
+      }
       var ar = avgRetention(state.items);
       if (ar == null) {
         el('statRet').textContent = '—';
@@ -15365,17 +15412,19 @@ var mockCountdownTimer = null;
       if (prevSum) prevSum.style.display = 'none';
       showView('viewSession');
       try { document.body.classList.add('in-session'); } catch(e) {}
-      /* Insert session XP bar if not already present */
-      var sessionTop = document.querySelector('#viewSession .session-top');
-      if (sessionTop && !document.getElementById('sessionXPBar')) {
-        var xpBar = document.createElement('div');
-        xpBar.className = 'session-xp-bar';
-        xpBar.id = 'sessionXPBar';
-        xpBar.innerHTML =
-          '<span class="xp-label">SESSION XP</span>' +
-          '<div class="xp-track"><div class="xp-fill" id="sessionXPFill"></div></div>' +
-          '<span class="xp-value" id="sessionXPValue">0 XP</span>';
-        sessionTop.insertAdjacentElement('afterend', xpBar);
+      if (settings.gamificationMode === 'motivated') {
+        /* Insert session XP bar if not already present */
+        var sessionTop = document.querySelector('#viewSession .session-top');
+        if (sessionTop && !document.getElementById('sessionXPBar')) {
+          var xpBar = document.createElement('div');
+          xpBar.className = 'session-xp-bar';
+          xpBar.id = 'sessionXPBar';
+          xpBar.innerHTML =
+            '<span class="xp-label">SESSION XP</span>' +
+            '<div class="xp-track"><div class="xp-fill" id="sessionXPFill"></div></div>' +
+            '<span class="xp-value" id="sessionXPValue">0 XP</span>';
+          sessionTop.insertAdjacentElement('afterend', xpBar);
+        }
       }
       updateSessionXPBar();
       try { playStart(); } catch(e) {}
@@ -16118,9 +16167,11 @@ var mockCountdownTimer = null;
       finalizeTutorAnalyticsSession();
 
       /* Push XP to dragon */
-      try {
-        SyncEngine.set('dragon', 'lastStudyXP', { xp: session.xp, timestamp: new Date().toISOString() });
-      } catch (e) {}
+      if (settings.gamificationMode === 'motivated') {
+        try {
+          SyncEngine.set('dragon', 'lastStudyXP', { xp: session.xp, timestamp: new Date().toISOString() });
+        } catch (e) {}
+      }
       clearActiveSessionSnapshot();
 
       saveState();
@@ -16137,8 +16188,11 @@ var mockCountdownTimer = null;
       };
       /* Dragon evolution check */
       var dragonXPBefore = 0;
-      try { dragonXPBefore = parseInt(SyncEngine.get('dragon', 'xp') || '0', 10) - (sessionSnap.xp || 0); } catch(e) {}
-      var dragonXPAfter = dragonXPBefore + (sessionSnap.xp || 0);
+      var dragonXPAfter = 0;
+      if (settings.gamificationMode === 'motivated') {
+        try { dragonXPBefore = parseInt(SyncEngine.get('dragon', 'xp') || '0', 10) - (sessionSnap.xp || 0); } catch(e) {}
+        dragonXPAfter = dragonXPBefore + (sessionSnap.xp || 0);
+      }
       var avgRatingForDragon = sessionSnap.ratingN ? (sessionSnap.ratingSum / sessionSnap.ratingN) : 0;
 
       /* Auto-optimize FSRS parameters every 50 reviews */
@@ -16154,6 +16208,10 @@ var mockCountdownTimer = null;
       el('doneTitle').textContent = reviewed + ' items reviewed';
       el('doneSub').textContent = 'Avg self-rating: ' + (session.ratingN ? (Math.round((session.ratingSum / session.ratingN) * 10) / 10) : '—');
       el('doneXP').textContent = String(session.xp);
+      var doneXPSection = document.getElementById('doneXPSection');
+      if (doneXPSection) {
+        doneXPSection.style.display = (settings.gamificationMode === 'motivated') ? '' : 'none';
+      }
 
       var calAfter = calibrationPct(state.calibration);
       el('doneCal').textContent = (calAfter == null) ? '—' : Math.round(calAfter * 100) + '%';
@@ -16194,7 +16252,9 @@ var mockCountdownTimer = null;
       try { document.body.classList.remove('in-session'); } catch(e) {}
       showView('viewDone');
       animateDoneDragon(sessionSnap.xp, avgRatingForDragon);
-      setTimeout(function() { checkDragonEvolution(dragonXPBefore, dragonXPAfter); }, 1500);
+      if (settings.gamificationMode === 'motivated') {
+        setTimeout(function() { checkDragonEvolution(dragonXPBefore, dragonXPAfter); }, 1500);
+      }
       scheduleUiTimer(function() {
         checkForCheckIn();
       }, 250);
@@ -16203,8 +16263,10 @@ var mockCountdownTimer = null;
 
       /* Celebration animation */
       if (reviewed > 0) {
-        try { playChime(); } catch(e) {}
-        try { launchConfetti(); } catch(e) {}
+        if (settings.gamificationMode !== 'off') {
+          try { playChime(); } catch(e) {}
+          try { launchConfetti(); } catch(e) {}
+        }
       }
       if (window.gsap) {
         var cele = el('doneCelebration');
@@ -16438,6 +16500,7 @@ var DEFAULT_STATE = {
       breakIntervalMins: 25,
       performanceBreaks: true,
       feedbackMode: 'adaptive',
+      gamificationMode: 'clean',
       modelOverride: 'adaptive',
       userName: '',
       tutorVoice: 'rigorous'
@@ -16544,6 +16607,9 @@ var state = null;
       settings = deepClone(DEFAULT_SETTINGS);
       if (s && typeof s === 'object') {
         for (var k in s) if (s.hasOwnProperty(k)) settings[k] = s[k];
+      }
+      if (['clean', 'motivated', 'off'].indexOf(settings.gamificationMode) < 0) {
+        settings.gamificationMode = 'clean';
       }
     }
 
@@ -20818,6 +20884,19 @@ el('gearBtn').addEventListener('click', openSettings);
         '</div>' +
         '<div class="setting-row">' +
           '<div class="sr-left">' +
+            '<div class="sr-label">Gamification</div>' +
+            '<div class="sr-desc">Clean shows streaks and learning stats. Motivated adds XP, rank progression, and the dragon companion. Off removes all game elements.</div>' +
+          '</div>' +
+          '<div class="sr-control">' +
+            '<select id="s_gamification">' +
+              '<option value="clean"' + ((settings.gamificationMode || 'clean') === 'clean' ? ' selected' : '') + '>Clean — streaks + stats only</option>' +
+              '<option value="motivated"' + (settings.gamificationMode === 'motivated' ? ' selected' : '') + '>Motivated — XP, ranks, celebrations</option>' +
+              '<option value="off"' + (settings.gamificationMode === 'off' ? ' selected' : '') + '>Off — minimal, no game elements</option>' +
+            '</select>' +
+          '</div>' +
+        '</div>' +
+        '<div class="setting-row">' +
+          '<div class="sr-left">' +
             '<div class="sr-label">AI Tutor — feedback mode</div>' +
             '<div class="sr-desc">Depth of post-check dialogue: adaptive uses your performance and card type.</div>' +
           '</div>' +
@@ -21097,6 +21176,9 @@ el('gearBtn').addEventListener('click', openSettings);
       var fmEl = el('s_feedbackMode');
       var fm = fmEl ? fmEl.value : 'adaptive';
       settings.feedbackMode = (['adaptive', 'always_socratic', 'always_quick', 'self_rate'].indexOf(fm) >= 0) ? fm : 'adaptive';
+      var gamEl = el('s_gamification');
+      var gam = gamEl ? gamEl.value : 'clean';
+      settings.gamificationMode = (['clean', 'motivated', 'off'].indexOf(gam) >= 0) ? gam : 'clean';
       var moEl = el('s_modelOverride');
       var mo = moEl ? moEl.value : 'adaptive';
       settings.modelOverride = (['adaptive', 'pro', 'flash'].indexOf(mo) >= 0) ? mo : 'adaptive';
@@ -24070,7 +24152,35 @@ el('gearBtn').addEventListener('click', openSettings);
             try { renderSidebar(); } catch (eR) {}
             try { updateBreadcrumb(); } catch (eB) {}
           };
-        }
+      }
+
+      var visualCueCloseBtn = el('visualCueClose') || el('visualLightboxClose');
+      if (visualCueCloseBtn) {
+        visualCueCloseBtn.addEventListener('click', function() {
+          var ov = el('visualCueOverlay') || el('visualLightbox');
+          if (ov) {
+            if (window.gsap) {
+              gsap.to(ov, { opacity: 0, duration: 0.25, ease: 'power2.inOut', onComplete: function() {
+                ov.style.display = 'none';
+                ov.style.opacity = '';
+                ov.setAttribute('aria-hidden', 'true');
+              }});
+            } else {
+              ov.style.display = 'none';
+              ov.setAttribute('aria-hidden', 'true');
+            }
+          }
+          try { playClick(); } catch (e) {}
+        });
+      }
+      var visualCueOv = el('visualCueOverlay') || el('visualLightbox');
+      if (visualCueOv) {
+        visualCueOv.addEventListener('click', function(e) {
+          if (e.target === visualCueOv && visualCueCloseBtn) {
+            visualCueCloseBtn.click();
+          }
+        });
+      }
       }
 
       /* Wire retention graph interactivity (after first render) */
