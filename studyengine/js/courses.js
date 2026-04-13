@@ -195,12 +195,13 @@
       return cards;
     }
 
-    function getCardsForCourse(courseName) {
+    function getCardsForCourse(courseName, excludeArchivedSubDecks) {
       var cards = [];
       for (var id in state.items) {
         if (!state.items.hasOwnProperty(id)) continue;
         var it = state.items[id];
         if (!it || it.archived || it.course !== courseName) continue;
+        if (excludeArchivedSubDecks && isItemInArchivedSubDeck(it)) continue;
         cards.push(it);
       }
       return cards;
@@ -353,6 +354,153 @@
         if (topics[b] !== topics[a]) return topics[b] - topics[a];
         return a.localeCompare(b);
       });
+    }
+
+    function getSubDeck(courseName, subDeckName) {
+      if (!state.subDecks[courseName]) return null;
+      return state.subDecks[courseName].subDecks[subDeckName] || null;
+    }
+
+    function listSubDecks(courseName) {
+      if (!state.subDecks[courseName]) return [];
+      var subs = state.subDecks[courseName].subDecks;
+      var out = [];
+      for (var k in subs) {
+        if (subs.hasOwnProperty(k)) out.push(subs[k]);
+      }
+      out.sort(function(a, b) { return (a.order || 0) - (b.order || 0); });
+      return out;
+    }
+
+    function createSubDeck(courseName, name) {
+      if (!state.subDecks[courseName]) {
+        state.subDecks[courseName] = { subDecks: {} };
+      }
+      var existing = Object.keys(state.subDecks[courseName].subDecks);
+      state.subDecks[courseName].subDecks[name] = {
+        name: name,
+        order: existing.length,
+        archived: false,
+        created: isoNow(),
+        cardCount: 0
+      };
+      saveState();
+      return state.subDecks[courseName].subDecks[name];
+    }
+
+    function renameSubDeck(courseName, oldName, newName) {
+      var sd = state.subDecks[courseName];
+      if (!sd || !sd.subDecks[oldName]) return;
+      var meta = sd.subDecks[oldName];
+      meta.name = newName;
+      delete sd.subDecks[oldName];
+      sd.subDecks[newName] = meta;
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (it && it.course === courseName && it.subDeck === oldName) {
+          it.subDeck = newName;
+        }
+      }
+      saveState();
+    }
+
+    function archiveSubDeck(courseName, subDeckName) {
+      var sd = getSubDeck(courseName, subDeckName);
+      if (sd) { sd.archived = true; saveState(); }
+    }
+
+    function unarchiveSubDeck(courseName, subDeckName) {
+      var sd = getSubDeck(courseName, subDeckName);
+      if (sd) { sd.archived = false; saveState(); }
+    }
+
+    function deleteSubDeck(courseName, subDeckName, deleteCards) {
+      var sd = state.subDecks[courseName];
+      if (!sd || !sd.subDecks[subDeckName]) return;
+      if (deleteCards) {
+        var toDelete = [];
+        for (var id in state.items) {
+          if (!state.items.hasOwnProperty(id)) continue;
+          var it = state.items[id];
+          if (it && it.course === courseName && it.subDeck === subDeckName) {
+            toDelete.push(id);
+          }
+        }
+        toDelete.forEach(function(did) { delete state.items[did]; });
+      } else {
+        for (var id2 in state.items) {
+          if (!state.items.hasOwnProperty(id2)) continue;
+          var it2 = state.items[id2];
+          if (it2 && it2.course === courseName && it2.subDeck === subDeckName) {
+            it2.subDeck = null;
+          }
+        }
+      }
+      delete sd.subDecks[subDeckName];
+      reconcileStats();
+      saveState();
+    }
+
+    function moveSubDeck(subDeckName, fromCourse, toCourse) {
+      var fromSd = state.subDecks[fromCourse];
+      if (!fromSd || !fromSd.subDecks[subDeckName]) return;
+      if (!state.subDecks[toCourse]) {
+        state.subDecks[toCourse] = { subDecks: {} };
+      }
+      state.subDecks[toCourse].subDecks[subDeckName] = fromSd.subDecks[subDeckName];
+      delete fromSd.subDecks[subDeckName];
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (it && it.course === fromCourse && it.subDeck === subDeckName) {
+          it.course = toCourse;
+        }
+      }
+      if (!state.courses[toCourse]) {
+        saveCourse({
+          name: toCourse,
+          examType: 'mixed',
+          examDate: null,
+          manualMode: false,
+          color: '#8b5cf6',
+          created: isoNow()
+        });
+      }
+      saveState();
+    }
+
+    function isSubDeckArchived(courseName, subDeckName) {
+      var sd = getSubDeck(courseName, subDeckName);
+      return sd ? sd.archived : false;
+    }
+
+    function isItemInArchivedSubDeck(item) {
+      if (!item || !item.subDeck || !item.course) return false;
+      return isSubDeckArchived(item.course, item.subDeck);
+    }
+
+    function recountSubDeck(courseName, subDeckName) {
+      if (!subDeckName) return;
+      var count = 0;
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (it && !it.archived && it.course === courseName && it.subDeck === subDeckName) count++;
+      }
+      var sd = getSubDeck(courseName, subDeckName);
+      if (sd) sd.cardCount = count;
+    }
+
+    function getCardsForSubDeck(courseName, subDeckName) {
+      var cards = [];
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (!it || it.archived || it.course !== courseName) continue;
+        if (it.subDeck === subDeckName) cards.push(it);
+      }
+      return cards;
     }
 
     function renderTopicSuggestions(inputId, courseName, containerId) {
