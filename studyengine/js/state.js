@@ -30,6 +30,7 @@
 var DEFAULT_STATE = {
       items: {},
       courses: {},
+      subDecks: {},
       calibration: { totalSelfRatings: 0, totalActualCorrect: 0, history: [] },
       stats: {
         totalReviews: 0,
@@ -143,15 +144,18 @@ var state = null;
     function loadState() {
       var items = SyncEngine.get(NS, 'items') || null;
       var courses = SyncEngine.get(NS, 'courses') || null;
+      var subDecks = SyncEngine.get(NS, 'subDecks') || null;
       var calibration = SyncEngine.get(NS, 'calibration') || null;
       var stats = SyncEngine.get(NS, 'stats') || null;
       state = deepClone(DEFAULT_STATE);
       if (items && typeof items === 'object') state.items = items;
       if (courses && typeof courses === 'object') state.courses = courses;
+      if (subDecks && typeof subDecks === 'object') state.subDecks = subDecks;
       if (calibration && typeof calibration === 'object') state.calibration = calibration;
       if (stats && typeof stats === 'object') state.stats = stats;
       migrateItems();
       migrateCoursesPhase6();
+      migrateSubDecks();
       var s = SyncEngine.get(NS, 'settings') || null;
       settings = deepClone(DEFAULT_SETTINGS);
       if (s && typeof s === 'object') {
@@ -165,6 +169,7 @@ var state = null;
     function saveState() {
       SyncEngine.set(NS, 'items', state.items || {});
       SyncEngine.set(NS, 'courses', state.courses || {});
+      SyncEngine.set(NS, 'subDecks', state.subDecks || {});
       SyncEngine.set(NS, 'calibration', state.calibration || deepClone(DEFAULT_STATE.calibration));
       SyncEngine.set(NS, 'stats', state.stats || deepClone(DEFAULT_STATE.stats));
       SyncEngine.set(NS, 'settings', settings || deepClone(DEFAULT_SETTINGS));
@@ -198,6 +203,32 @@ var state = null;
             syllabusKeyTopics: [],
             prepared: false
           };
+          changed = true;
+        }
+        if (it.course && !state.subDecks[it.course]) {
+          state.subDecks[it.course] = { subDecks: {} };
+          changed = true;
+        }
+      }
+      if (changed) saveState();
+    }
+
+    function migrateSubDecks() {
+      state.subDecks = state.subDecks || {};
+      var changed = false;
+      for (var cName in state.courses) {
+        if (!state.courses.hasOwnProperty(cName)) continue;
+        if (!state.subDecks[cName]) {
+          state.subDecks[cName] = { subDecks: {} };
+          changed = true;
+        }
+      }
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var it = state.items[id];
+        if (!it) continue;
+        if (it.subDeck === undefined) {
+          it.subDeck = null;
           changed = true;
         }
       }
@@ -3654,6 +3685,9 @@ var tutorConversation = [];
       /* ── Card creation form (scoped to modalCourse) ── */
       if (activeTab === 'add') {
         var courseCol = getCourseColor(modalCourse);
+        var subDeckList = listSubDecks(modalCourse || '').map(function(sd) {
+          return '<option value="' + esc(sd.name || '') + '"></option>';
+        }).join('');
         var courseBadge = '<div class="modal-course-badge">' +
             '<div class="mcb-dot" style="background:' + esc(courseCol) + '"></div>' +
             '<span class="mcb-name">' + esc(modalCourse || 'Unknown') + '</span>' +
@@ -3665,6 +3699,11 @@ var tutorConversation = [];
           '<label>Topic <span style="font-weight:500;letter-spacing:0.5px;text-transform:lowercase;opacity:0.7">(optional)</span></label>' +
           '<input class="input" id="m_topic" placeholder="e.g., WTO Dispute Settlement" value="' + esc(editingItem ? (editingItem.topic || '') : '') + '">' +
           '<div class="chips topic-suggestions" id="topicSuggestions"></div>' +
+          '</div>' +
+          '<div class="field">' +
+          '<label>Sub-deck <span style="font-weight:500;letter-spacing:0.5px;text-transform:lowercase;opacity:0.7">(optional)</span></label>' +
+          '<input class="input" id="m_subDeck" list="m_subDeck_list" placeholder="Sub-deck (optional, e.g. W1)" value="' + esc(editingItem ? (editingItem.subDeck || '') : '') + '">' +
+          '<datalist id="m_subDeck_list">' + subDeckList + '</datalist>' +
           '</div>' +
           '<div class="field">' +
           '  <label>Priority</label>' +
@@ -3727,6 +3766,9 @@ var tutorConversation = [];
 
       } else if (activeTab === 'import') {
         var courseCol2 = getCourseColor(modalCourse);
+        var subDeckList2 = listSubDecks(modalCourse || '').map(function(sd) {
+          return '<option value="' + esc(sd.name || '') + '"></option>';
+        }).join('');
         var courseBadge2 = '<div class="modal-course-badge">' +
             '<div class="mcb-dot" style="background:' + esc(courseCol2) + '"></div>' +
             '<span class="mcb-name">' + esc(modalCourse || 'Unknown') + '</span>' +
@@ -3734,6 +3776,11 @@ var tutorConversation = [];
             '</div>';
 
         modalForm.innerHTML = courseBadge2 +
+          '<div class="field">' +
+          '<label>Sub-deck <span style="font-weight:500;letter-spacing:0.5px;text-transform:lowercase;opacity:0.7">(optional)</span></label>' +
+          '<input class="input" id="m_subDeck" list="m_subDeck_list" placeholder="Sub-deck (optional, e.g. W1)">' +
+          '<datalist id="m_subDeck_list">' + subDeckList2 + '</datalist>' +
+          '</div>' +
           '<div class="field">' +
           '<label>Import format</label>' +
           '<div id="importFormatToggle" style="display:flex;gap:6px;flex-wrap:wrap;">' +
@@ -3952,10 +3999,12 @@ var tutorConversation = [];
       if (!pendingImport) return;
       var valid = pendingImport.valid;
       var skipDups = pendingImport.skipDuplicates;
+      var subDeck = (el('m_subDeck') ? el('m_subDeck').value : '').trim() || null;
 
       var toImport = skipDups ? valid.filter(function(v) { return !v.isDuplicate; }) : valid;
       var n = 0;
       var importedIds = [];
+      var touchedCourses = {};
 
       toImport.forEach(function(entry) {
         var obj = entry.obj;
@@ -3969,7 +4018,9 @@ var tutorConversation = [];
         if (!obj.modelAnswer && obj.answer) obj.modelAnswer = obj.answer;
 
         obj.course = entry.course;
+        obj.subDeck = subDeck;
         obj.priority = obj.priority || 'medium';
+        if (obj.course) touchedCourses[obj.course] = true;
 
         /* Auto-create course directly — avoid saveCourse() mid-loop which triggers
            premature saveState(), causing KV sync race conditions where courses
@@ -4000,6 +4051,13 @@ var tutorConversation = [];
       });
 
       saveState();
+      if (subDeck) {
+        for (var cName in touchedCourses) {
+          if (!touchedCourses.hasOwnProperty(cName)) continue;
+          if (!getSubDeck(cName, subDeck)) createSubDeck(cName, subDeck);
+          recountSubDeck(cName, subDeck);
+        }
+      }
       /* Safety net: force a delayed second save to ensure KV sync completes.
          The first save fires the async KV push; this catches cases where the
          push was throttled, batched, or the tab closes before it resolves. */
