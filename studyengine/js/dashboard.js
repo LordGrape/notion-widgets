@@ -33,6 +33,10 @@
           sleepBannerEmpty.innerHTML = '';
         }
         el('statStreak').textContent = '—';
+        var streakWrapEmpty = el('streakStatWrap');
+        if (streakWrapEmpty) streakWrapEmpty.style.display = (settings.gamificationMode === 'off') ? 'none' : '';
+        var streakValEmpty = el('statStudyStreak');
+        if (streakValEmpty) streakValEmpty.textContent = '—';
         el('statRet').textContent = '—';
         el('calVal').textContent = '—';
         el('calSub').textContent = 'Add items to begin';
@@ -116,6 +120,21 @@
         if ((sit.fsrs.stability || 0) > 30 && (sit.fsrs.lapses || 0) === 0) masteredCount++;
       }
       animateCounter(el('statStreak'), masteredCount);
+      /* Streak counter */
+      var streakWrap = el('streakStatWrap');
+      if (streakWrap) {
+        if (settings.gamificationMode === 'off') {
+          streakWrap.style.display = 'none';
+        } else {
+          streakWrap.style.display = '';
+          var streakDays = (state.stats && state.stats.streakDays) || 0;
+          animateCounter(el('statStudyStreak'), streakDays);
+          var streakSubEl = el('streakSub');
+          if (streakSubEl) {
+            streakSubEl.textContent = streakDays === 1 ? 'day' : 'days';
+          }
+        }
+      }
       var ar = avgRetention(state.items);
       if (ar == null) {
         el('statRet').textContent = '—';

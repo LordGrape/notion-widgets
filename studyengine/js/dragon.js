@@ -27,12 +27,19 @@
     }
 
     function animateDoneDragon(sessionXP, avgRating) {
+      if (!settings || settings.gamificationMode !== 'motivated') {
+        var wrapEl = document.getElementById('doneDragonWrap');
+        if (wrapEl) wrapEl.style.display = 'none';
+        return;
+      }
+      var wrapElShow = document.getElementById('doneDragonWrap');
+      if (wrapElShow) wrapElShow.style.display = '';
       var totalXP = 0;
       try { totalXP = parseInt(SyncEngine.get('dragon', 'xp') || '0', 10); } catch(e) {}
       var info = getDragonStage(totalXP);
       var imgUrl = getDragonImageUrl(info.stage);
       var orbEl = document.getElementById('doneDragonOrb');
-      var wrapEl = document.getElementById('doneDragonWrap');
+      var wrapEl = wrapElShow || document.getElementById('doneDragonWrap');
       if (window.gsap && wrapEl) {
         gsap.killTweensOf(wrapEl.querySelectorAll('.dragon-ember, .done-dragon-orb, .done-dragon-img, #doneDragonRank, #doneDragonFlavour'));
       }
@@ -108,6 +115,7 @@
     }
 
     function checkDragonEvolution(xpBefore, xpAfter) {
+      if (!settings || settings.gamificationMode !== 'motivated') return;
       var stageBefore = getDragonStage(xpBefore).stage;
       var stageAfter = getDragonStage(xpAfter).stage;
       if (stageAfter > stageBefore) {
@@ -136,6 +144,7 @@
     }
 
     function updateSessionXPBar() {
+      if (!settings || settings.gamificationMode !== 'motivated') return;
       if (!session) return;
       var fill = document.getElementById('sessionXPFill');
       var valueEl = document.getElementById('sessionXPValue');
