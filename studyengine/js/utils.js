@@ -284,6 +284,130 @@
         '</div>';
     }
 
+    function sanitizeMermaidCode(raw) {
+      if (!raw || typeof raw !== 'string') return '';
+      var t = raw.trim();
+      t = t.replace(/^```mermaid\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
+      if (!/^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|mindmap)\b/i.test(t)) {
+        var idx = t.search(/\b(graph|flowchart)\s+(TD|LR|TB|BT|RL)\b/i);
+        if (idx > 0) t = t.slice(idx);
+      }
+      var lines = t.split('\n');
+      var cleaned = [];
+      for (var i = 0; i < lines.length; i++) {
+        var line = lines[i].trimEnd();
+        if (/(?:-->|--o|-.->|==>)\|[^|]*$/i.test(line)) continue;
+        if (/(?:-->|--o|-.->|==>)\s*$/i.test(line) && i === lines.length - 1) continue;
+        cleaned.push(line);
+      }
+      return cleaned.join('\n').trim();
+    }
+
+    function attemptRecoverTruncatedMermaid(elm, code) {
+      var wrap = elm.closest('.visual-container');
+      var itemId = wrap && wrap.getAttribute('data-item-id');
+      var placement = (wrap && wrap.getAttribute('data-visual-placement')) || 'answer';
+      if (!itemId || elm.dataset.mermaidRetryDone || !looksIncompleteMermaid(code)) return false;
+      elm.dataset.mermaidRetryDone = '1';
+      var it = state.items[itemId];
+      if (!it) return false;
+      delete it.visual;
+      state.items[itemId] = it;
+      saveState();
+      generateVisual(it).then(function(visual) {
+        if (!visual || !wrap || !wrap.parentNode) {
+          elm.innerHTML = '<pre class="mermaid-fallback">' + esc(code) + '</pre>';
+          elm.removeAttribute('data-mermaid');
+          return;
+        }
+        it.visual = visual;
+        state.items[itemId] = it;
+        saveState();
+        wrap.outerHTML = renderMermaidBlock(visual, placement, itemId);
+        setTimeout(initMermaidBlocks, 50);
+      });
+      return true;
+    }
+
+    function initMermaidBlocks() {
+      if (typeof mermaid === 'undefined') {
+        console.warn('[StudyEngine] Mermaid.js not loaded — visual cues will show as code');
+        return;
+      }
+      var blocks = document.querySelectorAll('.mermaid-render[data-mermaid]');
+      if (!blocks.length) return;
+      blocks.forEach(function(elm) {
+        var rawCode = elm.getAttribute('data-mermaid');
+        if (!rawCode || elm.querySelector('svg')) return;
+        var code = sanitizeMermaidCode(rawCode);
+        if (!code) {
+          if (attemptRecoverTruncatedMermaid(elm, rawCode)) return;
+          elm.innerHTML = '<pre class="mermaid-fallback">' + esc(rawCode) + '</pre>';
+          elm.removeAttribute('data-mermaid');
+          return;
+        }
+        var id = elm.id || ('mermaid-auto-' + (++mermaidIdCounter));
+        elm.id = id;
+        try {
+          mermaid.render(id + '-svg', code).then(function(result) {
+            elm.innerHTML = result.svg;
+            elm.removeAttribute('data-mermaid');
+            if (window.gsap) {
+              gsap.fromTo(elm, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' });
+            }
+          }).catch(function(err) {
+            console.warn('[StudyEngine] Mermaid render failed:', err);
+            if (attemptRecoverTruncatedMermaid(elm, rawCode)) return;
+            elm.innerHTML = '<pre class="mermaid-fallback">' + esc(rawCode) + '</pre>';
+            elm.removeAttribute('data-mermaid');
+          });
+        } catch (e) {
+          console.warn('[StudyEngine] Mermaid render exception:', e);
+          if (attemptRecoverTruncatedMermaid(elm, rawCode)) return;
+          elm.innerHTML = '<pre class="mermaid-fallback">' + esc(rawCode) + '</pre>';
+          elm.removeAttribute('data-mermaid');
+        }
+      });
+    }
+
+    function ensureAnswerVisual(it, revealTier) {
+      if (!it || !it.id || it.visual || visualGenerationPending[it.id]) return;
+      visualGenerationPending[it.id] = true;
+      generateVisual(it).then(function(visual) {
+        visualGenerationPending[it.id] = false;
+        if (!visual) return;
+        it.visual = visual;
+        state.items[it.id] = it;
+        saveState();
+
+        if (!session) return;
+        var current = session.queue[session.idx];
+        if (!current || current.id !== it.id) return;
+        var currentTier = current._presentTier || current.tier || 'quickfire';
+        if (currentTier !== revealTier) return;
+
+        if (currentTier === 'quickfire') {
+          if (session.currentShown && modelAnswerEl && modelAnswerEl.style.display !== 'none' && !modelAnswerEl.querySelector('.visual-container')) {
+            modelAnswerEl.insertAdjacentHTML('beforeend', renderMermaidBlock(visual, 'answer', it.id));
+            setTimeout(initMermaidBlocks, 50);
+          }
+          return;
+        }
+
+        var rightAns = document.getElementById('modelAnswerRight');
+        if (!rightAns || rightAns.querySelector('.visual-container')) return;
+        var slot = rightAns.querySelector('.visual-slot');
+        if (slot) {
+          slot.insertAdjacentHTML('beforebegin', renderMermaidBlock(visual, 'answer', it.id));
+        } else {
+          rightAns.insertAdjacentHTML('beforeend', renderMermaidBlock(visual, 'answer', it.id));
+        }
+        setTimeout(initMermaidBlocks, 50);
+      }).catch(function() {
+        visualGenerationPending[it.id] = false;
+      });
+    }
+
     /** Same heuristics as worker: truncated mid-edge → Mermaid parse fails → raw fallback */
     function looksIncompleteMermaid(s) {
       if (!s || typeof s !== 'string') return true;
