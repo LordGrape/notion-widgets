@@ -1040,3 +1040,340 @@
         };
       }
     }
+
+function renderAssessmentsList(courseName) {
+  var c = getCourse(courseName);
+  if (!c || !c.assessments) return;
+  var container = el('assessmentsList');
+  if (!container) return;
+
+  var upcoming = getUpcomingAssessments(courseName);
+  var past = getPastAssessments(courseName);
+  var noDate = (c.assessments || []).filter(function(a) { return !a.date; });
+
+  var h = '';
+
+  function renderAssessCard(a, isPast) {
+    var daysText = '';
+    if (a.date) {
+      var aMidnight = new Date(a.date + 'T00:00:00');
+      var todayMidnight = new Date(); todayMidnight.setHours(0, 0, 0, 0);
+      var days = Math.round((aMidnight.getTime() - todayMidnight.getTime()) / (1000 * 60 * 60 * 24));
+      daysText = isPast ? (Math.abs(days) + 'd ago') : (days + 'd');
+    }
+    var weightText = a.weight ? a.weight + '%' : '';
+    var typeLabel = EXAM_TYPE_LABELS[a.type] || a.type || 'Mixed';
+    var questionCount = (a.questions || []).length;
+    var priorityCount = (a.prioritySet || []).length;
+    var chooseText = (a.chooseN && a.outOfM) ? 'Choose ' + a.chooseN + ' of ' + a.outOfM : '';
+
+    h += '<div class="assess-card' + (isPast ? ' past' : '') + '" data-assess-id="' + esc(a.id) + '">';
+    h += '<div class="assess-card-header">';
+    h += '<div class="assess-card-name">' + esc(a.name || 'Assessment') + '</div>';
+    h += '<div class="assess-card-meta">';
+    if (daysText) h += '<span class="assess-badge">' + esc(daysText) + '</span>';
+    if (weightText) h += '<span class="assess-badge">' + esc(weightText) + '</span>';
+    h += '<span class="assess-badge">' + esc(typeLabel) + '</span>';
+    if (chooseText) h += '<span class="assess-badge">' + esc(chooseText) + '</span>';
+    if (questionCount > 0) h += '<span class="assess-badge">' + questionCount + ' Q\'s</span>';
+    if (priorityCount > 0) h += '<span class="assess-badge" style="color:var(--rate-good)">' + priorityCount + ' priority</span>';
+    h += '</div>';
+    h += '</div>';
+
+    h += '<div class="assess-card-edit" id="assessEdit_' + esc(a.id) + '" style="display:none">';
+    h += '<div class="assess-field-row">';
+    h += '<label>Name<input type="text" class="assess-input" data-field="name" value="' + esc(a.name || '') + '"></label>';
+    h += '<label>Type<select class="assess-input" data-field="type">';
+    ['mc', 'short_answer', 'essay', 'mixed'].forEach(function(t) {
+      h += '<option value="' + t + '"' + (a.type === t ? ' selected' : '') + '>' + esc(EXAM_TYPE_LABELS[t] || t) + '</option>';
+    });
+    h += '</select></label>';
+    h += '</div>';
+    h += '<div class="assess-field-row">';
+    h += '<label>Date<input type="date" class="assess-input" data-field="date" value="' + esc(a.date || '') + '"></label>';
+    h += '<label>Weight %<input type="number" class="assess-input" data-field="weight" min="0" max="100" value="' + (a.weight || '') + '"></label>';
+    h += '</div>';
+    h += '<div class="assess-field-row">';
+    h += '<label>Choose N<input type="number" class="assess-input" data-field="chooseN" min="1" max="20" placeholder="e.g. 3" value="' + (a.chooseN || '') + '"></label>';
+    h += '<label>Out of M<input type="number" class="assess-input" data-field="outOfM" min="1" max="50" placeholder="e.g. 5" value="' + (a.outOfM || '') + '"></label>';
+    h += '</div>';
+    h += '<div class="assess-field-row">';
+    h += '<label>Allowed materials<input type="text" class="assess-input" data-field="allowedMaterials" placeholder="e.g. 1 aid sheet" value="' + esc(a.allowedMaterials || '') + '"></label>';
+    h += '</div>';
+
+    h += '<div class="assess-questions-section">';
+    h += '<div style="font-size:0.7rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--text-secondary);margin:12px 0 6px">EXAM QUESTIONS</div>';
+    if (questionCount > 0) {
+      h += '<div class="assess-question-list">';
+      a.questions.forEach(function(q, qi) {
+        var isPriority = a.prioritySet.indexOf(q.id) >= 0;
+        var isSacrifice = a.sacrificeSet.indexOf(q.id) >= 0;
+        h += '<div class="assess-question-row">';
+        h += '<span class="assess-q-num">Q' + (qi + 1) + '</span>';
+        h += '<span class="assess-q-text">' + esc((q.text || '').substring(0, 80)) + (q.text && q.text.length > 80 ? '…' : '') + '</span>';
+        if (q.score != null) h += '<span class="assess-q-score">' + Math.round(q.score * 100) + '</span>';
+        h += '<button class="assess-q-prio-btn' + (isPriority ? ' active' : '') + '" data-q-id="' + esc(q.id) + '" data-action="priority" title="Priority">★</button>';
+        h += '<button class="assess-q-sac-btn' + (isSacrifice ? ' active' : '') + '" data-q-id="' + esc(q.id) + '" data-action="sacrifice" title="Sacrifice">✕</button>';
+        h += '</div>';
+      });
+      h += '</div>';
+      h += '<div class="assess-triage-actions">';
+      h += '<button class="assess-triage-btn" data-assess-id="' + esc(a.id) + '" data-action="auto-triage">🧠 Auto-Triage (AI)</button>';
+      h += '<button class="assess-triage-btn" data-assess-id="' + esc(a.id) + '" data-action="apply-priorities">✅ Apply Priorities</button>';
+      h += '</div>';
+    } else {
+      h += '<textarea class="assess-questions-input" id="assessQInput_' + esc(a.id) + '" placeholder="Paste exam questions here (one per numbered line, or paste the full study guide)..." rows="4"></textarea>';
+      h += '<button class="assess-parse-btn" data-assess-id="' + esc(a.id) + '">📋 Parse Questions</button>';
+    }
+    h += '</div>';
+
+    h += '<div class="assess-edit-actions">';
+    h += '<button class="assess-save-btn" data-assess-id="' + esc(a.id) + '">Save</button>';
+    h += '<button class="assess-delete-btn" data-assess-id="' + esc(a.id) + '">Delete</button>';
+    h += '</div>';
+    h += '</div>';
+    h += '</div>';
+  }
+
+  if (upcoming.length > 0) {
+    h += '<div class="assess-group-label">UPCOMING</div>';
+    upcoming.forEach(function(a) { renderAssessCard(a, false); });
+  }
+  if (noDate.length > 0) {
+    h += '<div class="assess-group-label">NO DATE SET</div>';
+    noDate.forEach(function(a) { renderAssessCard(a, false); });
+  }
+  if (past.length > 0) {
+    h += '<div class="assess-group-label" style="opacity:0.5">PAST</div>';
+    past.forEach(function(a) { renderAssessCard(a, true); });
+  }
+
+  container.innerHTML = h;
+
+  container.querySelectorAll('.assess-card-header').forEach(function(header) {
+    header.addEventListener('click', function() {
+      var card = this.closest('.assess-card');
+      var editDiv = card.querySelector('.assess-card-edit');
+      if (editDiv) {
+        var isOpen = editDiv.style.display !== 'none';
+        container.querySelectorAll('.assess-card-edit').forEach(function(ed) { ed.style.display = 'none'; });
+        editDiv.style.display = isOpen ? 'none' : 'block';
+        if (!isOpen && window.gsap) gsap.fromTo(editDiv, { opacity: 0, y: -4 }, { opacity: 1, y: 0, duration: 0.2, ease: 'power2.out' });
+      }
+      try { playClick(); } catch(ex) {}
+    });
+  });
+
+  container.querySelectorAll('.assess-save-btn').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var assessId = this.dataset.assessId;
+      var editDiv = el('assessEdit_' + assessId);
+      if (!editDiv) return;
+      var updates = {};
+      editDiv.querySelectorAll('.assess-input').forEach(function(inp) {
+        var field = inp.dataset.field;
+        var val = inp.value;
+        if (field === 'weight' || field === 'chooseN' || field === 'outOfM') {
+          updates[field] = val ? parseInt(val, 10) : null;
+        } else {
+          updates[field] = val || null;
+        }
+      });
+      updateAssessment(courseName, assessId, updates);
+
+      var active = getActiveAssessment(courseName);
+      if (active) {
+        var cc = getCourse(courseName);
+        cc.examDate = active.date;
+        cc.examType = active.type;
+        cc.examWeight = active.weight;
+        cc.examFormat = active.format;
+        cc.allowedMaterials = active.allowedMaterials;
+        saveCourse(cc);
+      }
+
+      toast('Assessment saved');
+      renderAssessmentsList(courseName);
+    });
+  });
+
+  container.querySelectorAll('.assess-delete-btn').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (!confirm('Delete this assessment?')) return;
+      deleteAssessment(courseName, this.dataset.assessId);
+      toast('Assessment deleted');
+      renderAssessmentsList(courseName);
+    });
+  });
+
+  container.querySelectorAll('.assess-parse-btn').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var assessId = this.dataset.assessId;
+      var textarea = el('assessQInput_' + assessId);
+      if (!textarea || !textarea.value.trim()) { toast('Paste questions first'); return; }
+      parseAndTriageQuestions(courseName, assessId, textarea.value.trim());
+    });
+  });
+
+  container.querySelectorAll('.assess-q-prio-btn, .assess-q-sac-btn').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var assessId = this.closest('.assess-card').dataset.assessId;
+      var qId = this.dataset.qId;
+      var action = this.dataset.action;
+      var assess = getAssessmentById(courseName, assessId);
+      if (!assess) return;
+
+      if (action === 'priority') {
+        var idx = assess.prioritySet.indexOf(qId);
+        if (idx >= 0) {
+          assess.prioritySet.splice(idx, 1);
+        } else {
+          assess.prioritySet.push(qId);
+          var sIdx = assess.sacrificeSet.indexOf(qId);
+          if (sIdx >= 0) assess.sacrificeSet.splice(sIdx, 1);
+        }
+      } else if (action === 'sacrifice') {
+        var idx2 = assess.sacrificeSet.indexOf(qId);
+        if (idx2 >= 0) {
+          assess.sacrificeSet.splice(idx2, 1);
+        } else {
+          assess.sacrificeSet.push(qId);
+          var pIdx = assess.prioritySet.indexOf(qId);
+          if (pIdx >= 0) assess.prioritySet.splice(pIdx, 1);
+        }
+      }
+      saveCourse(getCourse(courseName));
+      renderAssessmentsList(courseName);
+      try { playClick(); } catch(ex) {}
+    });
+  });
+
+  container.querySelectorAll('[data-action="auto-triage"]').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      runAutoTriage(courseName, this.dataset.assessId);
+    });
+  });
+
+  container.querySelectorAll('[data-action="apply-priorities"]').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      applyTriagePriorities(courseName, this.dataset.assessId);
+      toast('Priorities applied to ' + getCardsForCourse(courseName).length + ' cards');
+      renderAssessmentsList(courseName);
+    });
+  });
+}
+
+function parseAndTriageQuestions(courseName, assessId, rawText) {
+  var assess = getAssessmentById(courseName, assessId);
+  if (!assess) return;
+
+  toast('Analysing questions...');
+
+  var topics = getTopicsForCourse(courseName);
+  var topicCards = {};
+  topics.forEach(function(t) {
+    topicCards[t] = getCardsForTopic(courseName, t).length;
+  });
+
+  var courseData = getCourse(courseName) || {};
+
+  fetch(TRIAGE_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Widget-Key': getWidgetKey() },
+    body: JSON.stringify({
+      rawQuestions: rawText,
+      topics: topics,
+      topicCardCounts: topicCards,
+      syllabusContext: courseData.syllabusContext || '',
+      chooseN: assess.chooseN || null,
+      outOfM: assess.outOfM || null
+    })
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(data) {
+    if (!data.questions || !data.questions.length) {
+      toast('Could not parse questions');
+      return;
+    }
+
+    assess.questions = data.questions;
+
+    if (data.recommendedPriority) assess.prioritySet = data.recommendedPriority;
+    if (data.recommendedSacrifice) assess.sacrificeSet = data.recommendedSacrifice;
+
+    saveCourse(getCourse(courseName));
+    renderAssessmentsList(courseName);
+    toast(data.questions.length + ' questions parsed');
+    try { playChime(); } catch(ex) {}
+  })
+  .catch(function(err) {
+    toast('Triage failed: ' + (err.message || String(err)));
+  });
+}
+
+function runAutoTriage(courseName, assessId) {
+  var assess = getAssessmentById(courseName, assessId);
+  if (!assess || !assess.questions.length) { toast('No questions to triage'); return; }
+
+  toast('Running triage algorithm...');
+
+  var topics = getTopicsForCourse(courseName);
+  var topicCards = {};
+  var topicRetention = {};
+  var topicLearnStatus = {};
+  var now = Date.now();
+
+  topics.forEach(function(t) {
+    var cards = getCardsForTopic(courseName, t);
+    topicCards[t] = cards.length;
+    var retSum = 0, retN = 0;
+    cards.forEach(function(c) {
+      if (c.fsrs && c.fsrs.lastReview) {
+        retSum += retrievability(c.fsrs, now);
+        retN++;
+      }
+    });
+    topicRetention[t] = retN > 0 ? Math.round((retSum / retN) * 100) : 0;
+    topicLearnStatus[t] = (state.learnProgress && state.learnProgress[courseName] && state.learnProgress[courseName][t] && state.learnProgress[courseName][t].status === 'learned') ? 'learned' : 'not_learned';
+  });
+
+  var courseData = getCourse(courseName) || {};
+
+  fetch(TRIAGE_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Widget-Key': getWidgetKey() },
+    body: JSON.stringify({
+      questions: assess.questions,
+      topics: topics,
+      topicCardCounts: topicCards,
+      topicRetention: topicRetention,
+      topicLearnStatus: topicLearnStatus,
+      syllabusContext: courseData.syllabusContext || '',
+      chooseN: assess.chooseN || null,
+      outOfM: assess.outOfM || null,
+      mode: 'triage'
+    })
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(data) {
+    if (data.questions) {
+      assess.questions = data.questions;
+    }
+    if (data.recommendedPriority) assess.prioritySet = data.recommendedPriority;
+    if (data.recommendedSacrifice) assess.sacrificeSet = data.recommendedSacrifice;
+
+    saveCourse(getCourse(courseName));
+    renderAssessmentsList(courseName);
+    toast('Triage complete — ' + (assess.prioritySet || []).length + ' priority, ' + (assess.sacrificeSet || []).length + ' sacrifice');
+    try { playChime(); } catch(ex) {}
+  })
+  .catch(function(err) {
+    toast('Triage failed: ' + (err.message || String(err)));
+  });
+}
