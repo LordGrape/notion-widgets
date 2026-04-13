@@ -636,7 +636,12 @@ function submitLearnCheck() {
 
 function showLearnFeedback(data) {
   var area = el('learnFeedbackArea');
-  if (!area) return;
+  if (!area) {
+    console.error('[Learn] learnFeedbackArea not found in DOM');
+    toast('Display error — advancing to next segment');
+    if (learnSession) { learnSession.segIdx++; renderLearnSegment(); }
+    return;
+  }
 
   var verdict = data.verdict || 'partial';
   var h = '<div class="learn-feedback ' + verdict + '">';
@@ -675,16 +680,7 @@ function showLearnFeedback(data) {
       renderLearnSegment();
       try { playClick(); } catch(ex) {}
     });
-    /* Space key to advance */
-    var spaceHandler = function(e) {
-      if (e.key === ' ' || e.key === 'Enter') {
-        e.preventDefault();
-        document.removeEventListener('keydown', spaceHandler);
-        learnSession.segIdx++;
-        renderLearnSegment();
-      }
-    };
-    document.addEventListener('keydown', spaceHandler);
+    /* Note: Space/Enter key advance is handled by the global keydown listener at the top of this file */
   }
 
   /* Wire follow-up input */
