@@ -7,6 +7,44 @@ var learnSession = null;
 var learnSelectedTopics = [];
 var learnSubDeckFilter = 'All';
 
+/* ── Learn Mode Keyboard Shortcuts ── */
+document.addEventListener('keydown', function(e) {
+  if (!learnSession) return;
+  /* Don't capture when typing in inputs */
+  var tag = e.target.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+  if (e.target.isContentEditable) return;
+
+  var viewLearn = el('viewLearn');
+  if (!viewLearn || viewLearn.style.display === 'none') return;
+
+  /* Escape — exit learn session (with confirm) */
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    var exitBtn = el('learnExitBtn');
+    if (exitBtn) exitBtn.click();
+    return;
+  }
+
+  /* Space or Enter — advance to next segment (when advance button is visible) */
+  if (e.key === ' ' || e.key === 'Enter') {
+    var advBtn = el('learnAdvanceBtn');
+    if (advBtn) { e.preventDefault(); advBtn.click(); return; }
+    /* Also handle consolidation reveal */
+    var revealBtn = el('consolReveal');
+    if (revealBtn && revealBtn.style.display !== 'none') { e.preventDefault(); revealBtn.click(); return; }
+    /* Handle done button */
+    var doneBtn = el('learnDoneBtn') || el('learnSummaryDashBtn');
+    if (doneBtn) { e.preventDefault(); doneBtn.click(); return; }
+  }
+
+  /* Number keys 1-4 for consolidation ratings */
+  if (e.key >= '1' && e.key <= '4') {
+    var rateBtn = document.querySelector('#consolAnswerArea [data-rate="' + e.key + '"]');
+    if (rateBtn) { e.preventDefault(); rateBtn.click(); return; }
+  }
+});
+
 /* ── Topic Helpers ── */
 
 function getLearnableTopics(courseName, subDeckFilter) {
@@ -129,6 +167,14 @@ function renderLearnTab(courseName, container) {
     topicNames.forEach(function(tName) {
       var t = topics[tName];
       var status = getTopicLearnStatus(courseName, tName);
+      var lastLearned = '';
+      if (status === 'learned' && state.learnProgress[courseName] && state.learnProgress[courseName][tName]) {
+        var lp = state.learnProgress[courseName][tName];
+        if (lp.lastLearnedAt) {
+          var daysAgo = Math.round((Date.now() - new Date(lp.lastLearnedAt).getTime()) / (1000 * 60 * 60 * 24));
+          lastLearned = daysAgo === 0 ? 'today' : daysAgo === 1 ? 'yesterday' : daysAgo + 'd ago';
+        }
+      }
       var isSelected = learnSelectedTopics.indexOf(tName) >= 0;
       var primarySd = Object.keys(t.subDecks).filter(function(k) { return k !== '__none__'; })[0] || null;
 
@@ -139,6 +185,9 @@ function renderLearnTab(courseName, container) {
       gridHtml += '<span class="learn-status-dot ' + status.replace('_', '-') + '"></span>';
       gridHtml += '<span>' + t.cards.length + ' cards</span>';
       gridHtml += '<span>' + status.replace('_', ' ') + '</span>';
+      if (lastLearned) {
+        gridHtml += '<span style="font-size:0.65rem;color:var(--text-tertiary)">· ' + esc(lastLearned) + '</span>';
+      }
       gridHtml += '</div>';
       gridHtml += '</div>';
     });
@@ -182,8 +231,10 @@ function renderLearnTab(courseName, container) {
       btn.disabled = true;
       btn.textContent = 'Select topics to learn';
     } else {
+      var allLearned = learnSelectedTopics.every(function(t) { return getTopicLearnStatus(courseName, t) === 'learned'; });
       btn.disabled = false;
-      btn.textContent = 'Start Learning (' + learnSelectedTopics.length + ' topic' + (learnSelectedTopics.length !== 1 ? 's' : '') + ')';
+      var verb = allLearned ? 'Re-learn' : 'Start Learning';
+      btn.textContent = verb + ' (' + learnSelectedTopics.length + ' topic' + (learnSelectedTopics.length !== 1 ? 's' : '') + ')';
     }
   }
 
