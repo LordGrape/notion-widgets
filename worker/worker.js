@@ -230,8 +230,44 @@ export default {
 
         const learnerProfileBlock = formatLearnerProfileBlock(context.learner, item);
         const examContextBlock = formatExamContextBlock(context.courseContext);
+        const fewShotExemplars = `
+---
+
+GRADING CALIBRATION EXEMPLARS (reference these for rating consistency — they are examples, NOT the current card):
+
+EXEMPLAR 1 (Explain tier, rating 2):
+
+Prompt: "Explain the infant industry argument for protection."
+
+Model answer: "Nascent domestic industries cannot compete with established foreign firms due to lack of economies of scale, learning-by-doing, and capital access. Temporary protection allows growth to competitive scale. Requires: (1) industry will eventually compete without protection, (2) long-term gains exceed short-term consumer welfare loss."
+
+Student response: "It's when a country protects new industries with tariffs so they can grow."
+
+Rating: 2 (Hard). Student identified the core concept but omitted all three mechanisms, both validity conditions, and the welfare trade-off. Naming without explaining = Hard.
+
+EXEMPLAR 2 (Apply tier, rating 1):
+
+Prompt: "Apply the collective action problem to explain why consumers rarely lobby against tariffs."
+
+Model answer: "Per Olson's logic, each consumer loses a small amount from a tariff, so the individual incentive to organize is low. Costs of lobbying exceed individual benefit. Meanwhile, a small number of producers each gain substantially, making collective action rational for them."
+
+Student response: "Because consumers don't care about tariffs as much as producers do."
+
+Rating: 1 (Again). Correct intuition but zero analytical structure — no mention of Olson, no mechanism (diffuse costs vs. concentrated benefits), no explanation of WHY consumers don't organize. Apply tier demands analytical depth.
+
+EXEMPLAR 3 (Explain tier, rating 3):
+
+Prompt: "Why does the WTO allow regional trade agreements despite the MFN principle?"
+
+Model answer: "MFN (Article I) requires equal treatment. Article XXIV creates an exception for RTAs that eliminate substantially all internal trade barriers. The logic: deeper regional integration can be net trade-creating if the RTA goes further than MFN requires."
+
+Student response: "The MFN principle under Article I says you can't discriminate, but Article XXIV lets countries form RTAs as long as they remove basically all tariffs between members. The WTO allows it because these agreements go beyond MFN by liberalizing more deeply within the bloc."
+
+Rating: 3 (Good). Correct identification of both articles, the tension between them, and the resolution mechanism. Reasoning is complete. Not Easy because no discussion of trade creation vs. diversion or limitations.
+
+`;
         const systemPromptAugmented =
-          systemPrompt + supportiveVoiceBlock + learnerProfileBlock + examContextBlock;
+          systemPrompt + fewShotExemplars + supportiveVoiceBlock + learnerProfileBlock + examContextBlock;
 
         const modeInstructionsBase = {
           socratic:
@@ -249,7 +285,15 @@ export default {
             "If the student used a different but valid analytical framework than the model answer, acknowledge it: " +
             "\"Your response uses a different analytical lens than the model answer, but the reasoning is internally coherent. Here's what the model answer emphasises...\"\n\n" +
             "Provide 2-5 inline annotations on the student's original response (from their first submission, not follow-up turns). " +
-            'Tags: "accurate", "partial", "inaccurate", "missing", "insight".',
+            'Tags: "accurate", "partial", "inaccurate", "missing", "insight".\n\n' +
+            'DIAGNOSIS: Also return a "diagnosisType" field classifying the student\'s primary error:\n\n' +
+            '- "factual_miss": Wrong or missing facts\n' +
+            '- "reasoning_gap": Right facts but flawed logic or incomplete causal chain\n' +
+            '- "under_elaboration": Correct direction but too brief — names concept without explaining\n' +
+            '- "misconception": Actively wrong mental model (not just missing info)\n' +
+            '- "prerequisite_gap": Error suggests they lack a foundational concept this card builds on\n' +
+            '- "framework_mismatch": Used a valid but different analytical framework than the model answer\n\n' +
+            "Set to null if the student's answer was strong (suggestedRating >= 3).",
 
           quick:
             `MODE: Quick feedback (single turn).\n\n` +
@@ -266,7 +310,15 @@ export default {
             "- 3 (Good): Response covers most key claims from the model answer with adequate reasoning. Minor gaps only.\n" +
             "- 4 (Easy): Response is comprehensive — hits all major points, well-structured, and demonstrates full understanding.\n" +
             "Be CALIBRATED, not generous. Most partial responses should be rated 2. A thesis-only answer that omits the supporting chain is a 2, not a 3.\n\n" +
-            "Also provide a suggested FSRS rating (1-4) and annotations.",
+            "Also provide a suggested FSRS rating (1-4) and annotations.\n\n" +
+            'DIAGNOSIS: Also return a "diagnosisType" field classifying the student\'s primary error:\n\n' +
+            '- "factual_miss": Wrong or missing facts\n' +
+            '- "reasoning_gap": Right facts but flawed logic or incomplete causal chain\n' +
+            '- "under_elaboration": Correct direction but too brief — names concept without explaining\n' +
+            '- "misconception": Actively wrong mental model (not just missing info)\n' +
+            '- "prerequisite_gap": Error suggests they lack a foundational concept this card builds on\n' +
+            '- "framework_mismatch": Used a valid but different analytical framework than the model answer\n\n' +
+            "Set to null if the student's answer was strong (suggestedRating >= 3).",
 
           teach:
             `MODE: Teach (Don't Know path).\n\n` +
@@ -274,7 +326,15 @@ export default {
             "Ask a simple entry question that finds their foothold. " +
             "If conversation history exists: they've responded to your previous question — anchor on what they offered and extend to the next piece. " +
             "On the final turn (3rd, or conversation has 4+ entries): ask them to reconstruct the full answer from memory (\"Now put it together for me — ...\"). " +
-            "Mark isComplete true. Provide suggestedRating based on reconstruction quality (1 if they still can't, 2 if partial, 3 if good).",
+            "Mark isComplete true. Provide suggestedRating based on reconstruction quality (1 if they still can't, 2 if partial, 3 if good).\n\n" +
+            'DIAGNOSIS: Also return a "diagnosisType" field classifying the student\'s primary error:\n\n' +
+            '- "factual_miss": Wrong or missing facts\n' +
+            '- "reasoning_gap": Right facts but flawed logic or incomplete causal chain\n' +
+            '- "under_elaboration": Correct direction but too brief — names concept without explaining\n' +
+            '- "misconception": Actively wrong mental model (not just missing info)\n' +
+            '- "prerequisite_gap": Error suggests they lack a foundational concept this card builds on\n' +
+            '- "framework_mismatch": Used a valid but different analytical framework than the model answer\n\n' +
+            "Set to null if the student's answer was strong (suggestedRating >= 3).",
 
           insight:
             `MODE: Insight (Quick Fire tier).\n\n` +
@@ -364,7 +424,7 @@ export default {
         let modeInstructionsForMode =
           (isRelearningPass ? relearningModePrefix : "") +
           modeInstructionsBase[mode] +
-          (mode === "socratic" || mode === "teach" || mode === "quick" ? tierAnchor : "");
+          tierAnchor;
 
         if (mode === "quick" && context.quickFireReRetrieval) {
           modeInstructionsForMode +=
@@ -436,6 +496,137 @@ export default {
   "annotations": []
 }`
         };
+        const responseSchemaObjects = {
+          socratic: {
+            type: "object",
+            properties: {
+              tutorMessage: { type: "string" },
+              followUpQuestion: { type: "string", nullable: true },
+              isComplete: { type: "boolean" },
+              suggestedRating: { type: "integer", nullable: true },
+              diagnosisType: {
+                type: "string",
+                enum: ["factual_miss", "reasoning_gap", "under_elaboration", "misconception", "prerequisite_gap", "framework_mismatch"],
+                nullable: true
+              },
+              annotations: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    text: { type: "string" },
+                    tag: { type: "string" },
+                    note: { type: "string" }
+                  }
+                }
+              },
+              reconstructionPrompt: { type: "string", nullable: true }
+            },
+            required: ["tutorMessage", "isComplete"]
+          },
+          quick: {
+            type: "object",
+            properties: {
+              correct: { type: "string" },
+              missing: { type: "string" },
+              bridge: { type: "string" },
+              quickCheck: {
+                type: "object",
+                nullable: true,
+                properties: {
+                  question: { type: "string" },
+                  answer: { type: "string" }
+                }
+              },
+              tutorMessage: { type: "string", nullable: true },
+              suggestedRating: { type: "integer", nullable: true },
+              diagnosisType: {
+                type: "string",
+                enum: ["factual_miss", "reasoning_gap", "under_elaboration", "misconception", "prerequisite_gap", "framework_mismatch"],
+                nullable: true
+              },
+              annotations: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    text: { type: "string" },
+                    tag: { type: "string" },
+                    note: { type: "string" }
+                  }
+                }
+              }
+            },
+            required: ["correct", "missing", "bridge"]
+          },
+          teach: {
+            type: "object",
+            properties: {
+              tutorMessage: { type: "string" },
+              followUpQuestion: { type: "string", nullable: true },
+              isComplete: { type: "boolean" },
+              suggestedRating: { type: "integer", nullable: true },
+              diagnosisType: {
+                type: "string",
+                enum: ["factual_miss", "reasoning_gap", "under_elaboration", "misconception", "prerequisite_gap", "framework_mismatch"],
+                nullable: true
+              },
+              annotations: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    text: { type: "string" },
+                    tag: { type: "string" },
+                    note: { type: "string" }
+                  }
+                }
+              },
+              reconstructionPrompt: { type: "string", nullable: true }
+            },
+            required: ["tutorMessage", "isComplete"]
+          },
+          insight: {
+            type: "object",
+            properties: {
+              insight: { type: "string" },
+              followUpQuestion: { type: "string", nullable: true },
+              followUpAnswer: { type: "string", nullable: true }
+            },
+            required: ["insight"]
+          },
+          acknowledge: {
+            type: "object",
+            properties: {
+              acknowledgment: { type: "string" },
+              extensionQuestion: { type: "string", nullable: true },
+              isComplete: { type: "boolean" },
+              suggestedRating: { type: "integer", nullable: true }
+            },
+            required: ["acknowledgment", "isComplete"]
+          },
+          freeform: {
+            type: "object",
+            properties: {
+              tutorMessage: { type: "string" },
+              followUpQuestion: { type: "string", nullable: true },
+              isComplete: { type: "boolean" },
+              suggestedRating: { type: "integer", nullable: true },
+              annotations: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    text: { type: "string" },
+                    tag: { type: "string" },
+                    note: { type: "string" }
+                  }
+                }
+              }
+            },
+            required: ["tutorMessage", "isComplete"]
+          }
+        };
 
         let itemBlock =
           `QUESTION: ${item.prompt}\n` +
@@ -506,6 +697,10 @@ export default {
           ? `\nLECTURE CONTEXT (source material the student studied):\n${body.lectureContext.courseDigest || ""}` +
             `${body.lectureContext.topicChunk ? "\n\nRELEVANT SECTION:\n" + body.lectureContext.topicChunk : ""}\n\n---\n\n`
           : "";
+        const isFollowUpTurn = conversation.length >= 2;
+        const systemPromptFinal = isFollowUpTurn
+          ? systemPrompt + supportiveVoiceBlock + "\n\n" + modeInstructionsBase[mode]
+          : systemPromptAugmented;
 
         const dynamicPrompt =
           modeInstructionsForMode +
@@ -514,20 +709,23 @@ export default {
           itemBlock +
           "\n" +
           userBlock;
+        const thinkingBudget =
+          (selectedModel === "gemini-2.5-pro" && (tier === "distinguish" || tier === "mock")) ? 1024 : 0;
 
         const geminiRes = await fetch(geminiUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             systemInstruction: {
-              parts: [{ text: systemPromptAugmented }]
+              parts: [{ text: systemPromptFinal }]
             },
             contents: [{ parts: [{ text: dynamicPrompt }] }],
             generationConfig: {
               temperature: 0.35,
               maxOutputTokens: maxOut,
               responseMimeType: "application/json",
-              thinkingConfig: { thinkingBudget: 0 }
+              responseSchema: responseSchemaObjects[mode] || responseSchemaObjects.socratic,
+              thinkingConfig: { thinkingBudget: thinkingBudget }
             }
           })
         });
