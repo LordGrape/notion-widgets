@@ -136,30 +136,22 @@
     }
 
     function updateSessionXPBar() {
-      var bar = document.getElementById('sessionXPBar');
-      if (!bar || !session) return;
-      var xpText = bar.querySelector('.sxp-value');
-      var fill = bar.querySelector('.sxp-fill');
-      var pct = Math.min(100, Math.round((session.xp / 200) * 100));
-      var prevXP = Number(bar.dataset.prevXp || 0);
-
-      if (window.gsap && fill) {
-        gsap.to(fill, { width: pct + '%', duration: 0.5, ease: 'back.out(1.4)' });
-      } else if (fill) {
-        fill.style.width = pct + '%';
+      if (!session) return;
+      var fill = document.getElementById('sessionXPFill');
+      var valueEl = document.getElementById('sessionXPValue');
+      var target = Math.max(1, parseInt(settings.sessionLimit || 12, 10)) * 15;
+      var pct = Math.min(100, Math.round((session.xp / target) * 100));
+      if (fill) {
+        if (window.gsap) gsap.to(fill, { width: pct + '%', duration: 0.5, ease: 'back.out(1.4)' });
+        else fill.style.width = pct + '%';
       }
-
-      if (window.gsap && xpText) {
-        var obj = { val: prevXP };
-        gsap.to(obj, {
-          val: session.xp,
-          duration: 0.4,
-          ease: 'power2.out',
-          onUpdate: function() { xpText.textContent = Math.round(obj.val) + ' XP'; }
-        });
-      } else if (xpText) {
-        xpText.textContent = session.xp + ' XP';
+      if (valueEl) {
+        var prev = parseInt(valueEl.textContent, 10) || 0;
+        if (window.gsap && prev !== session.xp) {
+          var obj = { val: prev };
+          gsap.to(obj, { val: session.xp, duration: 0.4, ease: 'power2.out', onUpdate: function() { valueEl.textContent = Math.round(obj.val) + ' XP'; } });
+        } else {
+          valueEl.textContent = session.xp + ' XP';
+        }
       }
-
-      bar.dataset.prevXp = String(session.xp);
     }

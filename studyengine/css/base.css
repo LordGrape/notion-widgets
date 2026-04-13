@@ -4180,44 +4180,44 @@ body.standalone .answer.restudy-active{
     .session-xp-bar {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 6px 12px;
+      gap: 10px;
+      padding: 8px 14px;
       margin-bottom: 10px;
       border-radius: 12px;
-      background: rgba(var(--accent-rgb), 0.04);
-      border: 1px solid rgba(var(--accent-rgb), 0.10);
-      font-size: 9px;
-      font-weight: 700;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      color: var(--text-secondary);
+      background: rgba(var(--accent-rgb), 0.03);
+      border: 1px solid rgba(var(--accent-rgb), 0.08);
     }
-    .session-xp-bar .sxp-label { flex-shrink: 0; }
-    .session-xp-bar .sxp-fill-wrap {
+    .session-xp-bar .xp-label {
+      font-size: 7px;
+      font-weight: 800;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      flex-shrink: 0;
+    }
+    .session-xp-bar .xp-track {
       flex: 1;
-      height: 4px;
+      height: 5px;
       border-radius: 99px;
       background: rgba(var(--accent-rgb), 0.08);
       overflow: hidden;
     }
-    .session-xp-bar .sxp-fill {
+    .session-xp-bar .xp-fill {
       height: 100%;
-      border-radius: 99px;
-      background: linear-gradient(90deg, var(--accent), rgba(var(--accent-rgb), 0.6));
-      transition: width 400ms ease;
       width: 0%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, var(--accent), rgba(var(--accent-rgb), 0.5));
+      transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-    .session-xp-bar .sxp-value {
+    .session-xp-bar .xp-value {
+      font-size: 9px;
+      font-weight: 800;
       font-variant-numeric: tabular-nums;
-      color: var(--accent);
-      min-width: 48px;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+      min-width: 44px;
       text-align: right;
-    }
-    .session-xp-bar .sxp-streak {
-      display: inline-flex;
-      align-items: center;
-      gap: 3px;
-      color: var(--rate-hard);
     }
 
     .done-dragon-section {
@@ -6945,40 +6945,40 @@ input[type="range"]::-moz-range-thumb{
 .pbar.tier-worked > div { background: linear-gradient(90deg, var(--tier-we), rgba(16,185,129,0.45)); }
 
 /* ── Quick Fire confidence flow ── */
-#confidencePrompt {
-  font-size: 10px;
+.confidence-prompt-label {
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 1.2px;
   text-transform: uppercase;
   color: var(--text-secondary);
-  margin-top: 16px;
-  margin-bottom: 8px;
+  margin: 18px 0 10px;
+  text-align: center;
 }
 
 .confidence-row {
   display: flex;
   gap: 10px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
 }
 
-#revealBtn {
-  margin-top: 10px;
-  opacity: 0.45;
+.conf-then-reveal {
+  opacity: 0.35;
   pointer-events: none;
-  transition: opacity var(--transition), box-shadow var(--transition);
+  transition: opacity 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
 }
 
-#revealBtn.ready {
+.conf-then-reveal.ready {
   opacity: 1;
   pointer-events: auto;
-  animation: readyPulse 2.5s ease-in-out infinite;
+  animation: revealPulse 2.5s ease-in-out infinite;
 }
 
-@keyframes readyPulse {
-  0%, 100% { box-shadow: 0 10px 30px rgba(var(--accent-rgb), 0.22); }
-  50% { box-shadow: 0 10px 40px rgba(var(--accent-rgb), 0.38), 0 0 0 4px rgba(var(--accent-rgb), 0.10); }
+@keyframes revealPulse {
+  0%, 100% { box-shadow: 0 10px 30px rgba(var(--accent-rgb), 0.22); transform: translateY(0); }
+  50% { box-shadow: 0 14px 44px rgba(var(--accent-rgb), 0.38), 0 0 0 4px rgba(var(--accent-rgb), 0.10); transform: translateY(-1px); }
 }
 
 /* ── Generative tier textarea ── */
@@ -7196,4 +7196,3 @@ body.standalone #userText {
   color: var(--tier-we);
   margin-bottom: 8px;
 }
-

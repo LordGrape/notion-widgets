@@ -4188,44 +4188,44 @@ body.standalone .answer.restudy-active{
     .session-xp-bar {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 6px 12px;
+      gap: 10px;
+      padding: 8px 14px;
       margin-bottom: 10px;
       border-radius: 12px;
-      background: rgba(var(--accent-rgb), 0.04);
-      border: 1px solid rgba(var(--accent-rgb), 0.10);
-      font-size: 9px;
-      font-weight: 700;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      color: var(--text-secondary);
+      background: rgba(var(--accent-rgb), 0.03);
+      border: 1px solid rgba(var(--accent-rgb), 0.08);
     }
-    .session-xp-bar .sxp-label { flex-shrink: 0; }
-    .session-xp-bar .sxp-fill-wrap {
+    .session-xp-bar .xp-label {
+      font-size: 7px;
+      font-weight: 800;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      flex-shrink: 0;
+    }
+    .session-xp-bar .xp-track {
       flex: 1;
-      height: 4px;
+      height: 5px;
       border-radius: 99px;
       background: rgba(var(--accent-rgb), 0.08);
       overflow: hidden;
     }
-    .session-xp-bar .sxp-fill {
+    .session-xp-bar .xp-fill {
       height: 100%;
-      border-radius: 99px;
-      background: linear-gradient(90deg, var(--accent), rgba(var(--accent-rgb), 0.6));
-      transition: width 400ms ease;
       width: 0%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, var(--accent), rgba(var(--accent-rgb), 0.5));
+      transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-    .session-xp-bar .sxp-value {
+    .session-xp-bar .xp-value {
+      font-size: 9px;
+      font-weight: 800;
       font-variant-numeric: tabular-nums;
-      color: var(--accent);
-      min-width: 48px;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+      min-width: 44px;
       text-align: right;
-    }
-    .session-xp-bar .sxp-streak {
-      display: inline-flex;
-      align-items: center;
-      gap: 3px;
-      color: var(--rate-hard);
     }
 
     .done-dragon-section {
@@ -6953,40 +6953,40 @@ input[type="range"]::-moz-range-thumb{
 .pbar.tier-worked > div { background: linear-gradient(90deg, var(--tier-we), rgba(16,185,129,0.45)); }
 
 /* ── Quick Fire confidence flow ── */
-#confidencePrompt {
-  font-size: 10px;
+.confidence-prompt-label {
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 1.2px;
   text-transform: uppercase;
   color: var(--text-secondary);
-  margin-top: 16px;
-  margin-bottom: 8px;
+  margin: 18px 0 10px;
+  text-align: center;
 }
 
 .confidence-row {
   display: flex;
   gap: 10px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
 }
 
-#revealBtn {
-  margin-top: 10px;
-  opacity: 0.45;
+.conf-then-reveal {
+  opacity: 0.35;
   pointer-events: none;
-  transition: opacity var(--transition), box-shadow var(--transition);
+  transition: opacity 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
 }
 
-#revealBtn.ready {
+.conf-then-reveal.ready {
   opacity: 1;
   pointer-events: auto;
-  animation: readyPulse 2.5s ease-in-out infinite;
+  animation: revealPulse 2.5s ease-in-out infinite;
 }
 
-@keyframes readyPulse {
-  0%, 100% { box-shadow: 0 10px 30px rgba(var(--accent-rgb), 0.22); }
-  50% { box-shadow: 0 10px 40px rgba(var(--accent-rgb), 0.38), 0 0 0 4px rgba(var(--accent-rgb), 0.10); }
+@keyframes revealPulse {
+  0%, 100% { box-shadow: 0 10px 30px rgba(var(--accent-rgb), 0.22); transform: translateY(0); }
+  50% { box-shadow: 0 14px 44px rgba(var(--accent-rgb), 0.38), 0 0 0 4px rgba(var(--accent-rgb), 0.10); transform: translateY(-1px); }
 }
 
 /* ── Generative tier textarea ── */
@@ -7204,7 +7204,6 @@ body.standalone #userText {
   color: var(--tier-we);
   margin-bottom: 8px;
 }
-
 /* Extraction-first scaffold: styles remain in base.css for exact parity. */
 /* Session-specific responsive system */
 
@@ -8868,19 +8867,29 @@ body.standalone #userText {
     }
 
     function setTierBadge(tier) {
-      var b = el('tierBadge');
-      var t = el('tierBadgeText');
-      var c = tierColour(tier);
-      if (b && t) {
-        var dot = b.querySelector('.tiny');
-        b.style.background = c;
-        if (dot) dot.style.opacity = '0.92';
-        t.textContent = tierLabel(tier);
+      var badge = document.querySelector('.tier-badge');
+      if (!badge) return;
+      var config = {
+        quickfire: { icon: '⚡', label: 'QF', bg: 'var(--tier-qf)' },
+        explain: { icon: '💬', label: 'EI', bg: 'var(--tier-ex)' },
+        apply: { icon: '🔧', label: 'AI', bg: 'var(--tier-ap)' },
+        distinguish: { icon: '⚖', label: 'DI', bg: 'var(--tier-di)' },
+        mock: { icon: '📝', label: 'ME', bg: 'var(--tier-mk)' },
+        worked: { icon: '📐', label: 'WE', bg: 'var(--tier-we)' }
+      };
+      var c = config[tier] || config.quickfire;
+      badge.innerHTML = '<span class="tiny">' + c.icon + '</span> ' + c.label;
+      badge.style.background = c.bg;
+      badge.style.color = '#fff';
+      var glow = tierColour(tier);
+      badge.style.boxShadow = '0 0 18px ' + toRgba(glow || '#8b5cf6', 0.3);
+      if (window.gsap) {
+        gsap.fromTo(badge, { scale: 0.85, opacity: 0.6 }, { scale: 1, opacity: 1, duration: 0.3, ease: 'back.out(2)' });
       }
       var sessionTierText = el('sessionTierText');
       if (sessionTierText) sessionTierText.textContent = tierLabel(tier);
       var sessionTierDot = document.querySelector('.session-tier-pill .tiny');
-      if (sessionTierDot) sessionTierDot.style.color = c;
+      if (sessionTierDot) sessionTierDot.style.color = glow;
     }
 
     function showView(nextId) {
@@ -10816,32 +10825,24 @@ body.standalone #userText {
     }
 
     function updateSessionXPBar() {
-      var bar = document.getElementById('sessionXPBar');
-      if (!bar || !session) return;
-      var xpText = bar.querySelector('.sxp-value');
-      var fill = bar.querySelector('.sxp-fill');
-      var pct = Math.min(100, Math.round((session.xp / 200) * 100));
-      var prevXP = Number(bar.dataset.prevXp || 0);
-
-      if (window.gsap && fill) {
-        gsap.to(fill, { width: pct + '%', duration: 0.5, ease: 'back.out(1.4)' });
-      } else if (fill) {
-        fill.style.width = pct + '%';
+      if (!session) return;
+      var fill = document.getElementById('sessionXPFill');
+      var valueEl = document.getElementById('sessionXPValue');
+      var target = Math.max(1, parseInt(settings.sessionLimit || 12, 10)) * 15;
+      var pct = Math.min(100, Math.round((session.xp / target) * 100));
+      if (fill) {
+        if (window.gsap) gsap.to(fill, { width: pct + '%', duration: 0.5, ease: 'back.out(1.4)' });
+        else fill.style.width = pct + '%';
       }
-
-      if (window.gsap && xpText) {
-        var obj = { val: prevXP };
-        gsap.to(obj, {
-          val: session.xp,
-          duration: 0.4,
-          ease: 'power2.out',
-          onUpdate: function() { xpText.textContent = Math.round(obj.val) + ' XP'; }
-        });
-      } else if (xpText) {
-        xpText.textContent = session.xp + ' XP';
+      if (valueEl) {
+        var prev = parseInt(valueEl.textContent, 10) || 0;
+        if (window.gsap && prev !== session.xp) {
+          var obj = { val: prev };
+          gsap.to(obj, { val: session.xp, duration: 0.4, ease: 'power2.out', onUpdate: function() { valueEl.textContent = Math.round(obj.val) + ' XP'; } });
+        } else {
+          valueEl.textContent = session.xp + ' XP';
+        }
       }
-
-      bar.dataset.prevXp = String(session.xp);
     }
 /* Phase 2 extraction: copied from monolith; source-of-truth remains state.js for parity. */
 
@@ -13520,44 +13521,49 @@ function showCourseDashboard(courseName) {
 
 function renderQuickfireTier(it, session) {
   tierArea.innerHTML =
-    '<div class="confidence-prompt" id="confidencePrompt">' +
-      '<div class="confidence-label">How confident are you?</div>' +
-      '<div class="confidence-pills confidence-row">' +
-        '<div class="conf-pill" data-conf="low">Low</div>' +
-        '<div class="conf-pill" data-conf="medium">Medium</div>' +
-        '<div class="conf-pill" data-conf="high">High</div>' +
-      '</div>' +
+    '<div id="confidencePrompt" class="confidence-prompt-label">How confident are you?</div>' +
+    '<div class="confidence-row">' +
+      '<button class="conf-pill" data-conf="low">LOW</button>' +
+      '<button class="conf-pill" data-conf="medium">MEDIUM</button>' +
+      '<button class="conf-pill" data-conf="high">HIGH</button>' +
     '</div>' +
-    '<button class="qa-btn conf-then-reveal" id="revealBtn">Reveal (Space)</button>';
+    '<button id="revealBtn" class="big-btn conf-then-reveal">Reveal</button>';
 
   tierArea.querySelectorAll('.conf-pill').forEach(function(pill) {
     pill.addEventListener('click', function() {
-      tierArea.querySelectorAll('.conf-pill').forEach(function(p) { p.classList.remove('selected'); });
+      tierArea.querySelectorAll('.conf-pill').forEach(function(p) {
+        p.classList.remove('selected');
+        p.style.opacity = '';
+        p.style.transform = '';
+      });
       this.classList.add('selected');
       session.confidence = this.getAttribute('data-conf');
-      /* Dim unselected siblings for visual focus */
+
       tierArea.querySelectorAll('.conf-pill:not(.selected)').forEach(function(p) {
-        p.style.opacity = '0.55';
-        if (window.gsap) gsap.to(p, { opacity: 0.55, scale: 0.97, duration: 0.2, ease: 'power2.out' });
+        if (window.gsap) gsap.to(p, { opacity: 0.5, scale: 0.97, duration: 0.2, ease: 'power2.out' });
+        else p.style.opacity = '0.5';
       });
-      /* Restore this pill to full */
-      if (window.gsap) gsap.to(this, { opacity: 1, scale: 1, duration: 0.2 });
+
       var revBtn = el('revealBtn');
       if (revBtn) revBtn.classList.add('ready');
+
       try { playClick(); } catch(e) {}
-      if (window.gsap) gsap.fromTo(this, { scale: 0.94 }, { scale: 1, duration: 0.3, ease: 'back.out(2.5)' });
+      if (window.gsap) gsap.fromTo(this, { scale: 0.92 }, { scale: 1, duration: 0.35, ease: 'back.out(2.5)' });
     });
   });
 
-  el('revealBtn').addEventListener('click', function(){
-    if (!session.confidence) {
-      toast('Pick a confidence level first');
-      return;
-    }
-    revealAnswer();
-  });
-  /* Visual deferred to revealAnswer() — answer-side only. Background-generate so reveal stays snappy. */
-  if (!it.visual && it.prompt && it.modelAnswer && !visualGenerationPending[it.id]) {
+  var revealBtn = el('revealBtn');
+  if (revealBtn) {
+    revealBtn.addEventListener('click', function() {
+      if (!session.confidence) {
+        toast('Pick a confidence level first');
+        return;
+      }
+      revealAnswer();
+    });
+  }
+
+  if (!it.visual && it.prompt && it.modelAnswer && typeof generateVisual === 'function' && typeof visualGenerationPending !== 'undefined' && !visualGenerationPending[it.id]) {
     visualGenerationPending[it.id] = true;
     generateVisual(it).then(function(v) {
       visualGenerationPending[it.id] = false;
@@ -14675,10 +14681,9 @@ var mockCountdownTimer = null;
         xpBar.className = 'session-xp-bar';
         xpBar.id = 'sessionXPBar';
         xpBar.innerHTML =
-          '<span class="sxp-label">XP</span>' +
-          '<div class="sxp-fill-wrap"><div class="sxp-fill"></div></div>' +
-          '<span class="sxp-value">0 XP</span>' +
-          '<span class="sxp-streak"></span>';
+          '<span class="xp-label">SESSION XP</span>' +
+          '<div class="xp-track"><div class="xp-fill" id="sessionXPFill"></div></div>' +
+          '<span class="xp-value" id="sessionXPValue">0 XP</span>';
         sessionTop.insertAdjacentElement('afterend', xpBar);
       }
       updateSessionXPBar();
