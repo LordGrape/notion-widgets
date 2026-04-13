@@ -351,6 +351,51 @@ var mockCountdownTimer = null;
       persistTutorAnalyticsDeltas();
     }
 
+    function triggerReformulation(item) {
+      if (!item || !item.prompt || !item.modelAnswer) return;
+      var endpoint = STUDYENGINE_WORKER_BASE + '/reformulate';
+      var payload = {
+        originalPrompt: item.prompt,
+        modelAnswer: item.modelAnswer,
+        tier: item._presentTier || item.tier || 'explain',
+        course: item.course || '',
+        topic: item.topic || '',
+        lapses: (item.fsrs && item.fsrs.lapses) || 3,
+        diagnosisHistory: item.diagnosisHistory ? item.diagnosisHistory.slice(-5) : []
+      };
+
+      fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Widget-Key': getWidgetKey()
+        },
+        body: JSON.stringify(payload)
+      })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (data && data.reformulatedPrompt && !data.error) {
+            if (!item.variants) item.variants = {};
+            item.variants.reformulated = {
+              prompt: data.reformulatedPrompt,
+              tier: data.reformulatedTier || 'explain',
+              rationale: data.rationale || '',
+              created: new Date().toISOString(),
+              timesPresented: 0,
+              ratings: []
+            };
+
+            if (state.items[item.id]) {
+              state.items[item.id].variants = item.variants;
+              saveState();
+            }
+          }
+        })
+        .catch(function() {
+          // Silent failure — reformulation is best-effort
+        });
+    }
+
     function noteReconstructionPromptShown() {
       if (!session || !session.tutorStats) return;
       session.tutorStats.reconstructions++;
@@ -955,10 +1000,37 @@ var mockCountdownTimer = null;
 
       var it = session.queue[session.idx];
       if (!it) { completeSession(); return; }
+      // Use reformulated prompt for leech cards (3+ lapses with a reformulation available)
+      if (it && it.variants && it.variants.reformulated &&
+        it.fsrs && it.fsrs.lapses >= 3) {
+        // Swap the displayed prompt to the reformulated version
+        it._originalPrompt = it._originalPrompt || it.prompt; // preserve original
+        it._usingReformulated = true;
+        it.prompt = it.variants.reformulated.prompt;
+        // Track presentation
+        it.variants.reformulated.timesPresented =
+          (it.variants.reformulated.timesPresented || 0) + 1;
+      } else if (it && it._originalPrompt && !it._usingReformulated) {
+        // Restore original prompt if reformulation no longer applies
+        // (e.g., lapses dropped below 3 somehow — shouldn't happen but safety net)
+        it.prompt = it._originalPrompt;
+        delete it._originalPrompt;
+      }
       /* Resolve presentation tier (smart mode) or stored tier (manual/legacy) */
       var tier = it._presentTier || it.tier || 'quickfire';
 
       setTierBadge(tier);
+      if (it && it._usingReformulated) {
+        var refBadge = document.createElement('span');
+        refBadge.className = 'ref-badge';
+        refBadge.textContent = '🔄 Reformulated';
+        refBadge.title = it.variants.reformulated.rationale || 'Alternative prompt to break the retrieval loop';
+        refBadge.style.cssText = 'display:inline-block;font-size:0.7em;padding:2px 8px;border-radius:10px;background:rgba(139,92,246,0.15);color:var(--accent);margin-left:8px;vertical-align:middle;cursor:help;';
+        var tierBadgeEl = tierArea.querySelector('.tier-badge') || document.querySelector('.tier-badge') || tierArea.querySelector('[class*="tier"]');
+        if (tierBadgeEl && tierBadgeEl.parentNode) {
+          tierBadgeEl.parentNode.insertBefore(refBadge, tierBadgeEl.nextSibling);
+        }
+      }
       /* Tier-themed item card border */
       var ic = document.querySelector('.item-card');
       if (ic) {
@@ -1371,6 +1443,38 @@ var mockCountdownTimer = null;
       }
       if (againCount > 0 && mappedRating >= 3) session.loops[it.id] = 0;
       var res = scheduleFsrs(it, mappedRating, nowTs, true);
+      if (state.items[it.id]) state.items[it.id] = it;
+
+      // Track reformulated card performance
+      if (it._usingReformulated && it.variants && it.variants.reformulated) {
+        it.variants.reformulated.ratings.push({
+          rating: mappedRating,
+          timestamp: new Date().toISOString()
+        });
+        // Cap ratings history at 10
+        if (it.variants.reformulated.ratings.length > 10) {
+          it.variants.reformulated.ratings = it.variants.reformulated.ratings.slice(-10);
+        }
+        // If student gets Good or Easy on the reformulated version, clear the
+        // reformulation flag so the original prompt is used next time.
+        // This tests whether the original retrieval pathway has been repaired.
+        if (mappedRating >= 3) {
+          it._usingReformulated = false;
+          // Restore original prompt for next encounter
+          if (it._originalPrompt) {
+            it.prompt = it._originalPrompt;
+            delete it._originalPrompt;
+          }
+        }
+      }
+
+      // Trigger leech card reformulation after 3+ lapses (background, non-blocking)
+      if (it.fsrs && it.fsrs.lapses >= 3 &&
+        (!it.variants || !it.variants.reformulated) &&
+        settings.feedbackMode !== 'self_rate') {
+        triggerReformulation(it);
+      }
+
       var effectiveBonus = getEffectiveBloomBonus(it.course);
       if (mappedRating >= 3 && effectiveBonus[tier]) {
         var bonus = effectiveBonus[tier];
@@ -1487,6 +1591,22 @@ var mockCountdownTimer = null;
       document.querySelectorAll('.listen-tts-btn').forEach(function(btn) { btn.remove(); });
       clearTimers();
       if (!session) return;
+
+      // Restore original prompts on any items that were showing reformulated versions
+      if (session && session.queue) {
+        for (var ci = 0; ci < session.queue.length; ci++) {
+          var cItem = session.queue[ci];
+          if (cItem && cItem._originalPrompt) {
+            cItem.prompt = cItem._originalPrompt;
+            delete cItem._originalPrompt;
+            delete cItem._usingReformulated;
+            if (state.items[cItem.id]) {
+              state.items[cItem.id].prompt = cItem.prompt;
+            }
+          }
+        }
+        saveState();
+      }
 
       /* Streak update */
       var today = isoDate();
