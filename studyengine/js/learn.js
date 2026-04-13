@@ -409,15 +409,18 @@ function startLearnSession(courseName, topics, subDeckFilter) {
     };
   }
 
-  var controller = new AbortController();
-  var timeoutId = setTimeout(function() { controller.abort(); }, 60000);
+  var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  var timeoutId = null;
+  if (controller) {
+    timeoutId = setTimeout(function() {
+      console.error('[Learn] Fetch aborted after 90s timeout');
+      controller.abort();
+    }, 90000);
+  }
 
-  console.log('[Learn] Fetching:', LEARN_PLAN_ENDPOINT);
-
-  fetch(LEARN_PLAN_ENDPOINT, {
+  var fetchOpts = {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    signal: controller.signal,
     body: JSON.stringify({
       course: courseName,
       topics: topics,
@@ -428,48 +431,60 @@ function startLearnSession(courseName, topics, subDeckFilter) {
         examFormat: courseData.examFormat || courseData.examType || 'mixed'
       },
       learnerContext: learnerCtx,
-      model: 'pro'
+      model: 'flash'
     })
-  })
-  .then(function(res) {
-    clearTimeout(timeoutId);
-    console.log('[Learn] Response status:', res.status, res.statusText);
-    if (!res.ok) {
-      return res.text().then(function(t) {
-        console.error('[Learn] Error body:', t);
-        throw new Error('Server returned ' + res.status + ': ' + t);
-      });
-    }
-    return res.json();
-  })
-  .then(function(data) {
-    console.log('[Learn] Parsed data:', JSON.stringify(data).slice(0, 500));
-    if (!data.segments || !data.segments.length) {
-      console.error('[Learn] No segments in response. Full data:', data);
-      toast('Could not generate teaching plan');
+  };
+  if (controller) fetchOpts.signal = controller.signal;
+
+  console.log('[Learn] Fetching:', LEARN_PLAN_ENDPOINT);
+
+  fetch(LEARN_PLAN_ENDPOINT, fetchOpts)
+    .then(function(res) {
+      if (timeoutId) clearTimeout(timeoutId);
+      console.log('[Learn] Status:', res.status);
+      if (!res.ok) {
+        return res.text().then(function(t) {
+          console.error('[Learn] Error body:', t);
+          throw new Error('Server ' + res.status);
+        });
+      }
+      return res.text();
+    })
+    .then(function(rawText) {
+      console.log('[Learn] Raw response length:', rawText.length);
+      var data;
+      try { data = JSON.parse(rawText); } catch(e) {
+        console.error('[Learn] JSON parse failed:', e.message, rawText.slice(0, 300));
+        throw new Error('Bad JSON');
+      }
+      console.log('[Learn] Segments:', data.segments ? data.segments.length : 0);
+      if (!data.segments || !data.segments.length) {
+        toast('Could not generate teaching plan');
+        showView('viewDash');
+        renderDashboard();
+        return;
+      }
+      learnSession = {
+        courseName: courseName,
+        topics: topics,
+        subDeckFilter: subDeckFilter,
+        segments: data.segments,
+        consolidation: data.consolidationQuestions || [],
+        segIdx: 0,
+        startedAt: Date.now(),
+        checkResults: [],
+        skipped: []
+      };
+      el('learnProgressLabel').textContent = '1/' + data.segments.length;
+      renderLearnSegment();
+    })
+    .catch(function(err) {
+      if (timeoutId) clearTimeout(timeoutId);
+      console.error('[Learn] Failed:', err);
+      toast('Learn plan failed: ' + (err.message || err));
       showView('viewDash');
-      return;
-    }
-    learnSession = {
-      courseName: courseName,
-      topics: topics,
-      subDeckFilter: subDeckFilter,
-      segments: data.segments,
-      consolidation: data.consolidationQuestions || [],
-      segIdx: 0,
-      startedAt: Date.now(),
-      checkResults: [],
-      skipped: []
-    };
-    el('learnProgressLabel').textContent = '1/' + data.segments.length;
-    renderLearnSegment();
-  })
-  .catch(function(err) {
-    clearTimeout(timeoutId);
-    console.error('[Learn] Fetch failed:', err);
-    toast('Learn plan failed: ' + (err.message || String(err)));
-    showView('viewDash');
-  });
+      renderDashboard();
+    });
 }
 
 /* ── Segment Rendering ── */
@@ -555,15 +570,20 @@ function submitLearnCheck() {
 
   var courseData = getCourse(learnSession.courseName) || {};
 
-  var checkController = new AbortController();
-  var checkTimeoutId = setTimeout(function() { checkController.abort(); }, 60000);
+  var checkController = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  var checkTimeoutId = null;
+  if (checkController) {
+    checkTimeoutId = setTimeout(function() {
+      console.error('[Learn] learn-check aborted after 90s timeout');
+      checkController.abort();
+    }, 90000);
+  }
 
   console.log('[Learn] learn-check:', LEARN_CHECK_ENDPOINT);
 
-  fetch(LEARN_CHECK_ENDPOINT, {
+  var checkFetchOpts = {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    signal: checkController.signal,
     body: JSON.stringify({
       concept: seg.concept || '',
       checkQuestion: seg.checkQuestion || '',
@@ -575,20 +595,29 @@ function submitLearnCheck() {
       },
       learnerContext: {}
     })
-  })
+  };
+  if (checkController) checkFetchOpts.signal = checkController.signal;
+
+  fetch(LEARN_CHECK_ENDPOINT, checkFetchOpts)
   .then(function(res) {
-    clearTimeout(checkTimeoutId);
-    console.log('[Learn] learn-check status:', res.status, res.statusText);
+    if (checkTimeoutId) clearTimeout(checkTimeoutId);
+    console.log('[Learn] learn-check status:', res.status);
     if (!res.ok) {
       return res.text().then(function(t) {
         console.error('[Learn] learn-check error body:', t);
-        throw new Error('Server returned ' + res.status + ': ' + t);
+        throw new Error('Server ' + res.status);
       });
     }
-    return res.json();
+    return res.text();
   })
-  .then(function(data) {
-    console.log('[Learn] learn-check parsed:', JSON.stringify(data).slice(0, 400));
+  .then(function(rawText) {
+    console.log('[Learn] learn-check raw response length:', rawText.length);
+    var data;
+    try { data = JSON.parse(rawText); } catch (e) {
+      console.error('[Learn] learn-check JSON parse failed:', e.message, rawText.slice(0, 300));
+      throw new Error('Bad JSON');
+    }
+    console.log('[Learn] learn-check verdict:', data.verdict || 'partial');
     learnSession.checkResults.push({
       segIdx: learnSession.segIdx,
       verdict: data.verdict || 'partial',
@@ -597,7 +626,7 @@ function submitLearnCheck() {
     showLearnFeedback(data);
   })
   .catch(function(err) {
-    clearTimeout(checkTimeoutId);
+    if (checkTimeoutId) clearTimeout(checkTimeoutId);
     console.error('[Learn] learn-check failed:', err);
     showLearnFeedback({ verdict: 'strong', feedback: 'Could not reach the tutor. Moving on.', isComplete: true });
   });
