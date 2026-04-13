@@ -2433,6 +2433,7 @@ graph LR
         });
       }
 
+      try {
       const body = await request.json();
       if (!body.course || !body.topics || !body.topics.length || !body.cards || !body.cards.length) {
         return new Response(JSON.stringify({ error: "Missing required fields: course, topics, cards" }), {
@@ -2499,7 +2500,8 @@ Return JSON with this exact structure:
           contents: [{ parts: [{ text: systemPrompt }] }],
           generationConfig: {
             temperature: 0.7,
-            maxOutputTokens: 2048
+            maxOutputTokens: 2048,
+            responseMimeType: "application/json"
           }
         })
       });
@@ -2562,6 +2564,15 @@ Return JSON with this exact structure:
         status: 200,
         headers: { ...lpCorsHeaders, "Content-Type": "application/json" }
       });
+      } catch (e) {
+        console.error("[learn-plan] Error:", e.message);
+        // Return fallback plan so client still gets usable segments
+        const fallback = buildFallbackLearnPlan(body);
+        return new Response(JSON.stringify(fallback), {
+          status: 200,
+          headers: { ...lpCorsHeaders, "Content-Type": "application/json" }
+        });
+      }
     }
 
     // ── Learn Check Route ──
@@ -2617,7 +2628,8 @@ Rules:
           contents: [{ parts: [{ text: systemPrompt }] }],
           generationConfig: {
             temperature: 0.4,
-            maxOutputTokens: 1024
+            maxOutputTokens: 1024,
+            responseMimeType: "application/json"
           }
         })
       });
