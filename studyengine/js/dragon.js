@@ -140,11 +140,6 @@
       if (!bar || !session) return;
       var valEl = bar.querySelector('.sxp-value');
       var fillEl = bar.querySelector('.sxp-fill');
-      var streakEl = bar.querySelector('.sxp-streak');
-      if (valEl) valEl.textContent = session.xp + ' XP';
+      if (valEl) valEl.textContent = String(session.xp);
       if (fillEl) fillEl.style.width = Math.min(100, Math.round((session.xp / 200) * 100)) + '%';
-      if (streakEl) {
-        var streak = (state.stats && state.stats.streakDays) || 0;
-        streakEl.innerHTML = streak > 0 ? ('🔥 ' + streak + 'd') : '';
-      }
     }
