@@ -2499,7 +2499,7 @@ Return JSON with this exact structure:
           contents: [{ parts: [{ text: systemPrompt }] }],
           generationConfig: {
             temperature: 0.7,
-            maxOutputTokens: 8192
+            maxOutputTokens: 2048
           }
         })
       });
@@ -2517,13 +2517,13 @@ Return JSON with this exact structure:
       const parts = geminiData?.candidates?.[0]?.content?.parts || [];
       console.log("[learn-plan] Part count:", parts.length, "types:", JSON.stringify(parts.map(p => ({ thought: !!p.thought, len: (p.text || "").length }))));
 
-      let rawText = extractGeminiText(geminiData);
+      const rawText = extractGeminiText(geminiData);
       console.log("[learn-plan] extractGeminiText len:", rawText.length, "preview:", rawText.slice(0, 300));
 
       let parsed = parseJsonResponse(rawText);
 
-      // If extractGeminiText failed, try brute-force: concatenate ALL non-thought text parts and parse
-      if (!parsed || !parsed.segments || !parsed.segments.length) {
+      // Fallback 1: brute-force concatenate all non-thought text parts
+      if (!parsed || !Array.isArray(parsed.segments) || parsed.segments.length === 0) {
         console.log("[learn-plan] First parse failed, trying brute-force concatenation");
         const allText = parts
           .filter(p => !p.thought && typeof p.text === "string")
@@ -2533,13 +2533,14 @@ Return JSON with this exact structure:
         parsed = parseJsonResponse(allText);
       }
 
-      // If still failed, try extracting JSON from ANY part (including thought parts as last resort)
-      if (!parsed || !parsed.segments || !parsed.segments.length) {
+      // Fallback 2: scan all parts including thought parts for JSON containing "segments"
+      if (!parsed || !Array.isArray(parsed.segments) || parsed.segments.length === 0) {
         console.log("[learn-plan] Brute-force failed, trying all parts including thought");
         for (const part of parts) {
           if (typeof part.text === "string" && part.text.includes('"segments"')) {
-            parsed = parseJsonResponse(part.text);
-            if (parsed && parsed.segments && parsed.segments.length) {
+            const attempt = parseJsonResponse(part.text);
+            if (attempt && Array.isArray(attempt.segments) && attempt.segments.length > 0) {
+              parsed = attempt;
               console.log("[learn-plan] Found segments in part with thought=" + !!part.thought);
               break;
             }
@@ -2547,12 +2548,17 @@ Return JSON with this exact structure:
         }
       }
 
-      const fallbackPlan = buildFallbackLearnPlan(body);
-      const hasSegments = !!(parsed && Array.isArray(parsed.segments) && parsed.segments.length);
-      const resultPlan = hasSegments ? parsed : fallbackPlan;
-      console.log("[learn-plan] Final result:", hasSegments ? "segments=" + parsed.segments.length : "fallback segments=" + fallbackPlan.segments.length);
+      // Fallback 3: use fallback plan if AI response is unusable
+      if (!parsed || !Array.isArray(parsed.segments) || parsed.segments.length === 0) {
+        parsed = buildFallbackLearnPlan(body);
+      }
 
-      return new Response(JSON.stringify(resultPlan), {
+      if (!parsed || !Array.isArray(parsed.segments) || parsed.segments.length === 0) {
+        parsed = buildFallbackLearnPlan(body);
+      }
+      console.log("[learn-plan] Final result: segments=", parsed.segments.length);
+
+      return new Response(JSON.stringify(parsed), {
         status: 200,
         headers: { ...lpCorsHeaders, "Content-Type": "application/json" }
       });
