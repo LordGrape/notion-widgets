@@ -564,6 +564,9 @@ var el = function(id){ return document.getElementById(id); };
     }
 
     function showCheckIn(profile, trigger) {
+      /* Never interrupt an active study session */
+      if (session && session.queue && session.queue.length > 0 &&
+          session.idx < session.queue.length) return;
       if (!profile || checkInState.active) return;
       var overlay = el('checkin-overlay');
       if (!overlay) return;
@@ -591,6 +594,7 @@ var el = function(id){ return document.getElementById(id); };
     }
 
     function checkForCheckIn() {
+      if (session && session.queue && session.idx < session.queue.length) return;
       var profile = getUserProfile();
       if (!profile || !profile.awakened || checkInState.active) return;
       var trigger = resolveCheckInTrigger(profile);
