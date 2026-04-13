@@ -37,6 +37,8 @@
         if (streakWrapEmpty) streakWrapEmpty.style.display = (settings.gamificationMode === 'off') ? 'none' : '';
         var progHubEmpty = el('progressionHub');
         if (progHubEmpty) progHubEmpty.style.display = 'none';
+        var trmEmpty = el('topicReadinessMap');
+        if (trmEmpty) trmEmpty.style.display = 'none';
         var streakValEmpty = el('statStudyStreak');
         if (streakValEmpty) streakValEmpty.textContent = '—';
         el('statRet').textContent = '—';
@@ -77,6 +79,98 @@
       /* Hero due count with counter animation */
       animateCounter(el('statDue'), due.total);
       el('heroCourseHint').textContent = 'Across all tiers';
+
+      /* ── Topic Readiness Map ── */
+      var trmWrap = el('topicReadinessMap');
+      if (trmWrap) {
+        var trmCourse = selectedCourse !== 'All' ? selectedCourse : null;
+        var trmData = null;
+
+        if (trmCourse) {
+          trmData = computeExamReadiness(trmCourse);
+        } else {
+          var allCourses = listCourses();
+          var mergedTopics = [];
+          var mergedTotal = 0;
+          var mergedCount = 0;
+          allCourses.forEach(function(c) {
+            if (c.archived) return;
+            var rd = computeExamReadiness(c.name);
+            if (rd && rd.topicBreakdown) {
+              rd.topicBreakdown.forEach(function(t) {
+                mergedTopics.push({
+                  topic: t.topic,
+                  cards: t.cards,
+                  avgRetention: t.avgRetention,
+                  tierFactor: t.tierFactor,
+                  readiness: t.readiness,
+                  course: c.name
+                });
+              });
+              mergedTotal += rd.totalCards;
+              mergedCount += rd.topicCount;
+            }
+          });
+          if (mergedTopics.length > 0) {
+            mergedTopics.sort(function(a, b) { return a.readiness - b.readiness; });
+            var avgReadiness = Math.round(mergedTopics.reduce(function(s, t) { return s + t.readiness; }, 0) / mergedTopics.length);
+            trmData = {
+              readinessPct: avgReadiness,
+              totalCards: mergedTotal,
+              topicCount: mergedCount,
+              topicBreakdown: mergedTopics
+            };
+          }
+        }
+
+        if (trmData && trmData.topicBreakdown && trmData.topicBreakdown.length > 0) {
+          trmWrap.style.display = '';
+          var trmSummary = el('trmSummary');
+          var strongCount = 0;
+          var devCount = 0;
+          var weakCount = 0;
+          trmData.topicBreakdown.forEach(function(t) {
+            if (t.readiness >= 65) strongCount++;
+            else if (t.readiness >= 35) devCount++;
+            else weakCount++;
+          });
+          if (trmSummary) {
+            trmSummary.textContent = strongCount + ' strong · ' + devCount + ' developing · ' + weakCount + ' weak';
+          }
+
+          var trmGrid = el('trmGrid');
+          if (trmGrid) {
+            var gridHTML = '';
+            trmData.topicBreakdown.forEach(function(t) {
+              var cls = t.readiness >= 65 ? 'trm-strong' : t.readiness >= 35 ? 'trm-developing' : 'trm-weak';
+              var widthPct = Math.max(5, Math.min(100, t.readiness));
+              gridHTML += '<div class="trm-cell ' + cls + '" style="--trm-fill:' + widthPct + '%;" title="' + esc(t.topic) + ': ' + t.readiness + '% ready, ' + t.cards + ' cards, ' + t.avgRetention + '% retention">' +
+                '<div class="trm-cell-name">' + esc(t.topic) + '</div>' +
+                '<div class="trm-cell-stats">' +
+                  '<span class="trm-cell-pct">' + t.readiness + '%</span>' +
+                  '<span class="trm-cell-cards">' + t.cards + ' cards</span>' +
+                '</div>' +
+              '</div>';
+            });
+
+            trmGrid.innerHTML = gridHTML;
+
+            trmGrid.querySelectorAll('.trm-cell').forEach(function(cell) {
+              var fill = cell.style.getPropertyValue('--trm-fill');
+              cell.style.setProperty('--trm-fill', fill);
+            });
+
+            if (window.gsap) {
+              gsap.fromTo(trmGrid.querySelectorAll('.trm-cell'),
+                { opacity: 0, y: 6, scale: 0.95 },
+                { opacity: 1, y: 0, scale: 1, duration: 0.25, stagger: 0.03, ease: 'power2.out' }
+              );
+            }
+          }
+        } else {
+          trmWrap.style.display = 'none';
+        }
+      }
 
       var cramBannerEl = el('cramBanner');
       if (cramBannerEl) {

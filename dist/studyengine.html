@@ -7830,6 +7830,206 @@ body.standalone #userText {
         font-size: 14px;
     }
 }
+
+/* ── Topic Readiness Map ── */
+.topic-readiness-map {
+    width: 100%;
+    padding: 16px 18px 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(var(--accent-rgb), 0.08);
+    background: rgba(var(--accent-rgb), 0.03);
+    margin-bottom: 12px;
+}
+
+.trm-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.trm-title {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--text-secondary, rgba(255,255,255,0.55));
+}
+
+.trm-summary {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-tertiary, rgba(255,255,255,0.35));
+}
+
+.trm-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.trm-cell {
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    position: relative;
+    overflow: hidden;
+    cursor: default;
+    transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.trm-cell:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+}
+
+.trm-cell-name {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    color: var(--text-primary, #fff);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 4px;
+}
+
+.trm-cell-stats {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.trm-cell-pct {
+    font-size: 16px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.trm-cell-cards {
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    opacity: 0.6;
+}
+
+.trm-cell.trm-strong {
+    background: rgba(34, 197, 94, 0.10);
+    border-color: rgba(34, 197, 94, 0.15);
+}
+.trm-cell.trm-strong .trm-cell-pct { color: #22c55e; }
+
+.trm-cell.trm-developing {
+    background: rgba(245, 158, 11, 0.10);
+    border-color: rgba(245, 158, 11, 0.15);
+}
+.trm-cell.trm-developing .trm-cell-pct { color: #f59e0b; }
+
+.trm-cell.trm-weak {
+    background: rgba(239, 68, 68, 0.10);
+    border-color: rgba(239, 68, 68, 0.15);
+}
+.trm-cell.trm-weak .trm-cell-pct { color: #ef4444; }
+
+.trm-cell.trm-unseen {
+    background: rgba(var(--accent-rgb), 0.04);
+    border-color: rgba(var(--accent-rgb), 0.08);
+}
+.trm-cell.trm-unseen .trm-cell-pct { color: var(--text-tertiary, rgba(255,255,255,0.3)); }
+
+.trm-cell::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: var(--trm-fill, 0%);
+    height: 2px;
+    border-radius: 0 0 10px 10px;
+    transition: width 0.6s ease;
+}
+.trm-cell.trm-strong::after { background: #22c55e; }
+.trm-cell.trm-developing::after { background: #f59e0b; }
+.trm-cell.trm-weak::after { background: #ef4444; }
+.trm-cell.trm-unseen::after { background: rgba(var(--accent-rgb), 0.15); }
+
+.trm-legend {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.trm-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--text-tertiary, rgba(255,255,255,0.35));
+    letter-spacing: 0.3px;
+}
+
+.trm-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.trm-dot.trm-strong { background: rgba(34, 197, 94, 0.6); }
+.trm-dot.trm-developing { background: rgba(245, 158, 11, 0.6); }
+.trm-dot.trm-weak { background: rgba(239, 68, 68, 0.6); }
+.trm-dot.trm-unseen { background: rgba(var(--accent-rgb), 0.15); }
+
+@media (max-width: 479px) {
+    .trm-grid {
+        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+        gap: 5px;
+    }
+    .trm-cell {
+        padding: 8px 10px;
+    }
+    .trm-cell-pct {
+        font-size: 14px;
+    }
+}
+
+/* ── Tighter unified stats grid ── */
+.stats-row {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 8px;
+    width: 100%;
+}
+
+.stats-row .stat {
+    min-width: 0;
+}
+
+.tutor-stats-row {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 8px;
+    width: 100%;
+}
+
+.tutor-stats-row .stat {
+    min-width: 0;
+}
+
+.tutor-cal-row {
+    display: contents;
+}
+
+@media (max-width: 600px) {
+    .stats-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .tutor-stats-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
 /* Session-specific responsive system */
 
 @media (max-width: 768px) {
@@ -8562,41 +8762,39 @@ body.standalone #userText {
               </div>
 
               <div class="tutor-cal-row">
-                <div class="tutor-cal-left">
-                  <div style="font-size:8px;letter-spacing:1.6px;text-transform:uppercase;color:var(--text-secondary);font-weight:700;margin-top:8px;margin-bottom:6px;padding:0 2px;display:flex;align-items:center;gap:8px;">
-                    <span style="flex:0 0 3px;height:14px;border-radius:99px;background:var(--accent);"></span>
-                    Tutor stats <span class="info-icon" tabindex="0" role="button" aria-label="More info about Tutor stats">ⓘ<span class="info-tooltip" role="tooltip">Tutor stats summarize how the AI tutor is being used across your sessions, including coaching depth, reconstruction help, and model mix.<span class="tip-arrow"></span></span></span>
-                  </div>
-                  <div class="tutor-stats-row" id="tutorStatsRow">
-                    <div class="stat">
-                      <div class="k">Avg dialogue turns <span class="info-icon" tabindex="0" role="button" aria-label="More info about Avg dialogue turns">ⓘ<span class="info-tooltip" role="tooltip">Average number of back-and-forth tutor exchanges per session. Higher numbers usually mean more coaching, probing, or clarification was needed.<span class="tip-arrow"></span></span></span></div>
-                      <div class="v" id="tutorStatAvgTurns">—</div>
-                      <div class="s">per session</div>
-                    </div>
-                    <div class="stat">
-                      <div class="k">Reconstruction rate <span class="info-icon" tabindex="0" role="button" aria-label="More info about Reconstruction rate">ⓘ<span class="info-tooltip" role="tooltip">Share of reconstruction attempts that succeeded after guided re-study. This updates only when those recovery flows are actually used.<span class="tip-arrow"></span></span></span></div>
-                      <div class="v" id="tutorStatRecon">—</div>
-                      <div class="s">success after re-study</div>
-                    </div>
-                    <div class="stat">
-                      <div class="k">Model split <span class="info-icon" tabindex="0" role="button" aria-label="More info about Model split">ⓘ<span class="info-tooltip" role="tooltip">Breakdown of tutor requests handled by Flash versus Pro. It helps you see when faster responses are enough and when heavier reasoning is being used.<span class="tip-arrow"></span></span></span></div>
-                      <div class="v" id="tutorStatModel" style="font-size:11px;line-height:1.35;">—</div>
-                      <div class="s">Flash / Pro calls</div>
-                    </div>
-                  </div>
+                <div style="font-size:8px;letter-spacing:1.6px;text-transform:uppercase;color:var(--text-secondary);font-weight:700;margin-top:8px;margin-bottom:6px;padding:0 2px;display:flex;align-items:center;gap:8px;">
+                  <span style="flex:0 0 3px;height:14px;border-radius:99px;background:var(--accent);"></span>
+                  Tutor stats <span class="info-icon" tabindex="0" role="button" aria-label="More info about Tutor stats">ⓘ<span class="info-tooltip" role="tooltip">Tutor stats summarize how the AI tutor is being used across your sessions, including coaching depth, reconstruction help, and model mix.<span class="tip-arrow"></span></span></span>
                 </div>
-                <div class="tutor-cal-right">
-                  <div class="gauge">
-                    <svg width="48" height="48" viewBox="0 0 48 48">
-                      <circle cx="24" cy="24" r="19" fill="none" stroke="rgba(var(--accent-rgb),0.08)" stroke-width="5"/>
-                      <circle id="calArc" cx="24" cy="24" r="19" fill="none" stroke="var(--accent)" stroke-width="5"
-                        stroke-dasharray="120" stroke-dashoffset="120" stroke-linecap="round"
-                        transform="rotate(-90 24 24)" style="transition: stroke-dashoffset 0.6s ease, stroke 0.3s ease"/>
-                    </svg>
-                    <div>
-                      <div class="g-title">Calibration <span class="info-icon" tabindex="0" role="button" aria-label="More info about Calibration">ⓘ<span class="info-tooltip" role="tooltip">Measures how accurately you judge your own knowledge. It compares your self-ratings with AI grading on generative tiers. Higher scores mean your confidence matches your actual performance more closely.<span class="tip-arrow"></span></span></span></div>
-                      <div class="g-val" id="calVal">—</div>
-                      <div class="g-sub" id="calSub">Metacognitive feedback</div>
+                <div class="tutor-stats-row" id="tutorStatsRow">
+                  <div class="stat">
+                    <div class="k">Avg dialogue turns <span class="info-icon" tabindex="0" role="button" aria-label="More info about Avg dialogue turns">ⓘ<span class="info-tooltip" role="tooltip">Average number of back-and-forth tutor exchanges per session. Higher numbers usually mean more coaching, probing, or clarification was needed.<span class="tip-arrow"></span></span></span></div>
+                    <div class="v" id="tutorStatAvgTurns">—</div>
+                    <div class="s">per session</div>
+                  </div>
+                  <div class="stat">
+                    <div class="k">Reconstruction rate <span class="info-icon" tabindex="0" role="button" aria-label="More info about Reconstruction rate">ⓘ<span class="info-tooltip" role="tooltip">Share of reconstruction attempts that succeeded after guided re-study. This updates only when those recovery flows are actually used.<span class="tip-arrow"></span></span></span></div>
+                    <div class="v" id="tutorStatRecon">—</div>
+                    <div class="s">success after re-study</div>
+                  </div>
+                  <div class="stat">
+                    <div class="k">Model split <span class="info-icon" tabindex="0" role="button" aria-label="More info about Model split">ⓘ<span class="info-tooltip" role="tooltip">Breakdown of tutor requests handled by Flash versus Pro. It helps you see when faster responses are enough and when heavier reasoning is being used.<span class="tip-arrow"></span></span></span></div>
+                    <div class="v" id="tutorStatModel" style="font-size:11px;line-height:1.35;">—</div>
+                    <div class="s">Flash / Pro calls</div>
+                  </div>
+                  <div class="stat tutor-cal-stat">
+                    <div class="gauge">
+                      <svg width="48" height="48" viewBox="0 0 48 48">
+                        <circle cx="24" cy="24" r="19" fill="none" stroke="rgba(var(--accent-rgb),0.08)" stroke-width="5"/>
+                        <circle id="calArc" cx="24" cy="24" r="19" fill="none" stroke="var(--accent)" stroke-width="5"
+                          stroke-dasharray="120" stroke-dashoffset="120" stroke-linecap="round"
+                          transform="rotate(-90 24 24)" style="transition: stroke-dashoffset 0.6s ease, stroke 0.3s ease"/>
+                      </svg>
+                      <div>
+                        <div class="g-title">Calibration <span class="info-icon" tabindex="0" role="button" aria-label="More info about Calibration">ⓘ<span class="info-tooltip" role="tooltip">Measures how accurately you judge your own knowledge. It compares your self-ratings with AI grading on generative tiers. Higher scores mean your confidence matches your actual performance more closely.<span class="tip-arrow"></span></span></span></div>
+                        <div class="g-val" id="calVal">—</div>
+                        <div class="g-sub" id="calSub">Metacognitive feedback</div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -8605,6 +8803,20 @@ body.standalone #userText {
 
             <div class="section-header" id="tierBreakdownHeader">Due by tier</div>
             <div class="breakdown" id="tierBreakdown"></div>
+
+            <div class="topic-readiness-map" id="topicReadinessMap" style="display:none;">
+              <div class="trm-header">
+                <span class="trm-title">Topic Readiness</span>
+                <span class="trm-summary" id="trmSummary"></span>
+              </div>
+              <div class="trm-grid" id="trmGrid"></div>
+              <div class="trm-legend">
+                <span class="trm-legend-item"><span class="trm-dot trm-strong"></span>Strong</span>
+                <span class="trm-legend-item"><span class="trm-dot trm-developing"></span>Developing</span>
+                <span class="trm-legend-item"><span class="trm-dot trm-weak"></span>Weak</span>
+                <span class="trm-legend-item"><span class="trm-dot trm-unseen"></span>No data</span>
+              </div>
+            </div>
 
             <div class="cram-banner" id="cramBanner">
               <span class="cram-icon" id="cramIcon"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="9,1.5 3.5,9 8,9 7,14.5 12.5,7 8,7"/></svg></span>
@@ -12466,6 +12678,8 @@ function showCourseDashboard(courseName) {
         if (streakWrapEmpty) streakWrapEmpty.style.display = (settings.gamificationMode === 'off') ? 'none' : '';
         var progHubEmpty = el('progressionHub');
         if (progHubEmpty) progHubEmpty.style.display = 'none';
+        var trmEmpty = el('topicReadinessMap');
+        if (trmEmpty) trmEmpty.style.display = 'none';
         var streakValEmpty = el('statStudyStreak');
         if (streakValEmpty) streakValEmpty.textContent = '—';
         el('statRet').textContent = '—';
@@ -12506,6 +12720,98 @@ function showCourseDashboard(courseName) {
       /* Hero due count with counter animation */
       animateCounter(el('statDue'), due.total);
       el('heroCourseHint').textContent = 'Across all tiers';
+
+      /* ── Topic Readiness Map ── */
+      var trmWrap = el('topicReadinessMap');
+      if (trmWrap) {
+        var trmCourse = selectedCourse !== 'All' ? selectedCourse : null;
+        var trmData = null;
+
+        if (trmCourse) {
+          trmData = computeExamReadiness(trmCourse);
+        } else {
+          var allCourses = listCourses();
+          var mergedTopics = [];
+          var mergedTotal = 0;
+          var mergedCount = 0;
+          allCourses.forEach(function(c) {
+            if (c.archived) return;
+            var rd = computeExamReadiness(c.name);
+            if (rd && rd.topicBreakdown) {
+              rd.topicBreakdown.forEach(function(t) {
+                mergedTopics.push({
+                  topic: t.topic,
+                  cards: t.cards,
+                  avgRetention: t.avgRetention,
+                  tierFactor: t.tierFactor,
+                  readiness: t.readiness,
+                  course: c.name
+                });
+              });
+              mergedTotal += rd.totalCards;
+              mergedCount += rd.topicCount;
+            }
+          });
+          if (mergedTopics.length > 0) {
+            mergedTopics.sort(function(a, b) { return a.readiness - b.readiness; });
+            var avgReadiness = Math.round(mergedTopics.reduce(function(s, t) { return s + t.readiness; }, 0) / mergedTopics.length);
+            trmData = {
+              readinessPct: avgReadiness,
+              totalCards: mergedTotal,
+              topicCount: mergedCount,
+              topicBreakdown: mergedTopics
+            };
+          }
+        }
+
+        if (trmData && trmData.topicBreakdown && trmData.topicBreakdown.length > 0) {
+          trmWrap.style.display = '';
+          var trmSummary = el('trmSummary');
+          var strongCount = 0;
+          var devCount = 0;
+          var weakCount = 0;
+          trmData.topicBreakdown.forEach(function(t) {
+            if (t.readiness >= 65) strongCount++;
+            else if (t.readiness >= 35) devCount++;
+            else weakCount++;
+          });
+          if (trmSummary) {
+            trmSummary.textContent = strongCount + ' strong · ' + devCount + ' developing · ' + weakCount + ' weak';
+          }
+
+          var trmGrid = el('trmGrid');
+          if (trmGrid) {
+            var gridHTML = '';
+            trmData.topicBreakdown.forEach(function(t) {
+              var cls = t.readiness >= 65 ? 'trm-strong' : t.readiness >= 35 ? 'trm-developing' : 'trm-weak';
+              var widthPct = Math.max(5, Math.min(100, t.readiness));
+              gridHTML += '<div class="trm-cell ' + cls + '" style="--trm-fill:' + widthPct + '%;" title="' + esc(t.topic) + ': ' + t.readiness + '% ready, ' + t.cards + ' cards, ' + t.avgRetention + '% retention">' +
+                '<div class="trm-cell-name">' + esc(t.topic) + '</div>' +
+                '<div class="trm-cell-stats">' +
+                  '<span class="trm-cell-pct">' + t.readiness + '%</span>' +
+                  '<span class="trm-cell-cards">' + t.cards + ' cards</span>' +
+                '</div>' +
+              '</div>';
+            });
+
+            trmGrid.innerHTML = gridHTML;
+
+            trmGrid.querySelectorAll('.trm-cell').forEach(function(cell) {
+              var fill = cell.style.getPropertyValue('--trm-fill');
+              cell.style.setProperty('--trm-fill', fill);
+            });
+
+            if (window.gsap) {
+              gsap.fromTo(trmGrid.querySelectorAll('.trm-cell'),
+                { opacity: 0, y: 6, scale: 0.95 },
+                { opacity: 1, y: 0, scale: 1, duration: 0.25, stagger: 0.03, ease: 'power2.out' }
+              );
+            }
+          }
+        } else {
+          trmWrap.style.display = 'none';
+        }
+      }
 
       var cramBannerEl = el('cramBanner');
       if (cramBannerEl) {
