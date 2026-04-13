@@ -1,0 +1,416 @@
+/* ── Learn Mode Design Tokens ── */
+:root {
+  --learn-accent: #3b82f6;
+  --learn-accent-rgb: 59, 130, 246;
+  --learn-accent-glow: rgba(59, 130, 246, 0.3);
+  --learn-not-started: var(--text-tertiary);
+  --learn-in-progress: #f59e0b;
+  --learn-complete: #22c55e;
+}
+
+/* ── Review/Learn Toggle ── */
+.mode-toggle {
+  display: inline-flex;
+  border-radius: 10px;
+  background: rgba(var(--accent-rgb), 0.08);
+  border: 1px solid rgba(var(--accent-rgb), 0.12);
+  padding: 3px;
+  gap: 2px;
+  margin: 12px 0 16px;
+}
+.mode-toggle-btn {
+  padding: 6px 18px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.mode-toggle-btn.active-review {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(var(--accent-rgb), 0.35);
+}
+.mode-toggle-btn.active-learn {
+  background: var(--learn-accent);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(var(--learn-accent-rgb), 0.35);
+}
+
+/* ── Learn Tab: Topic Map ── */
+.learn-tab-content {
+  padding: 0 2px;
+}
+.learn-topic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.learn-topic-card {
+  background: var(--card-bg);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 14px;
+  cursor: pointer;
+  transition: all var(--transition);
+  position: relative;
+}
+.learn-topic-card:hover {
+  border-color: var(--learn-accent);
+  box-shadow: 0 4px 16px rgba(var(--learn-accent-rgb), 0.15);
+  transform: translateY(-1px);
+}
+.learn-topic-card.selected {
+  border-color: var(--learn-accent);
+  box-shadow: 0 0 0 2px rgba(var(--learn-accent-rgb), 0.3);
+}
+.learn-topic-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+.learn-topic-meta {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.learn-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.learn-status-dot.not-started { background: var(--learn-not-started); }
+.learn-status-dot.in-progress { background: var(--learn-in-progress); }
+.learn-status-dot.learned { background: var(--learn-complete); }
+.learn-subdeck-badge {
+  font-size: 0.65rem;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(var(--accent-rgb), 0.1);
+  color: var(--accent);
+  font-weight: 600;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+.learn-filter-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.learn-filter-chip {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border: 1px solid rgba(var(--accent-rgb), 0.15);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.learn-filter-chip.active {
+  background: var(--learn-accent);
+  color: #fff;
+  border-color: var(--learn-accent);
+}
+.learn-start-btn {
+  display: block;
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: var(--radius);
+  border: none;
+  background: var(--learn-accent);
+  color: #fff;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition);
+  letter-spacing: 0.3px;
+}
+.learn-start-btn:hover {
+  box-shadow: 0 4px 18px rgba(var(--learn-accent-rgb), 0.4);
+  transform: translateY(-1px);
+}
+.learn-start-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ── Learn Session View ── */
+.learn-shell {
+  width: 96%;
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 16px 0;
+}
+body.standalone .learn-shell {
+  max-width: 800px;
+}
+.learn-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0 12px;
+}
+.learn-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--learn-accent);
+}
+.learn-progress-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+.learn-exit-btn {
+  background: none;
+  border: 1px solid rgba(var(--learn-accent-rgb), 0.2);
+  color: var(--text-secondary);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.learn-exit-btn:hover {
+  border-color: var(--rate-again);
+  color: var(--rate-again);
+}
+.learn-progress-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(var(--learn-accent-rgb), 0.12);
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+.learn-progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--learn-accent);
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.learn-content {
+  min-height: 200px;
+}
+
+/* ── Segment Card ── */
+.learn-segment-card {
+  background: var(--card-bg);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-soft);
+}
+.learn-segment-concept {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--learn-accent);
+  margin-bottom: 12px;
+}
+.learn-segment-explanation {
+  font-size: 0.92rem;
+  line-height: 1.65;
+  color: var(--text);
+  margin-bottom: 14px;
+}
+.learn-segment-elaboration {
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  padding: 12px 14px;
+  border-left: 3px solid var(--learn-accent);
+  background: rgba(var(--learn-accent-rgb), 0.04);
+  border-radius: 0 8px 8px 0;
+  margin-bottom: 0;
+}
+
+/* ── Check Question Area ── */
+.learn-check-card {
+  background: var(--card-bg);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid rgba(var(--learn-accent-rgb), 0.2);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  margin-bottom: 12px;
+}
+.learn-check-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--learn-accent);
+  margin-bottom: 10px;
+}
+.learn-check-question {
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--text);
+  margin-bottom: 14px;
+  font-weight: 500;
+}
+.learn-check-input {
+  width: 100%;
+  min-height: 80px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--card-border);
+  background: rgba(var(--learn-accent-rgb), 0.03);
+  color: var(--text);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  resize: vertical;
+  transition: border-color var(--transition);
+}
+.learn-check-input:focus {
+  outline: none;
+  border-color: var(--learn-accent);
+  box-shadow: 0 0 0 3px rgba(var(--learn-accent-rgb), 0.12);
+}
+.learn-check-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.learn-submit-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: var(--radius);
+  border: none;
+  background: var(--learn-accent);
+  color: #fff;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.learn-submit-btn:hover {
+  box-shadow: 0 3px 12px rgba(var(--learn-accent-rgb), 0.35);
+}
+.learn-skip-btn {
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(var(--learn-accent-rgb), 0.15);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.learn-skip-btn:hover {
+  border-color: var(--text-secondary);
+}
+
+/* ── Feedback Area ── */
+.learn-feedback {
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  margin-top: 12px;
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+.learn-feedback.strong {
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  color: var(--rate-good);
+}
+.learn-feedback.partial {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  color: var(--rate-hard);
+}
+.learn-feedback.weak {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: var(--rate-again);
+}
+.learn-feedback-followup {
+  margin-top: 10px;
+  font-weight: 600;
+  font-style: italic;
+}
+.learn-advance-btn {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  padding: 10px;
+  border-radius: var(--radius);
+  border: none;
+  background: var(--learn-accent);
+  color: #fff;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+/* ── Loading State ── */
+.learn-loading {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+.learn-loading-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(var(--learn-accent-rgb), 0.15);
+  border-top-color: var(--learn-accent);
+  border-radius: 50%;
+  animation: learn-spin 0.7s linear infinite;
+  margin: 0 auto 12px;
+}
+@keyframes learn-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Consolidation Battery ── */
+.learn-consolidation-header {
+  text-align: center;
+  margin-bottom: 16px;
+}
+.learn-consolidation-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--learn-accent);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+.learn-consolidation-sub {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
