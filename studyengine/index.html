@@ -242,41 +242,39 @@ __STYLES__
               </div>
 
               <div class="tutor-cal-row">
-                <div class="tutor-cal-left">
-                  <div style="font-size:8px;letter-spacing:1.6px;text-transform:uppercase;color:var(--text-secondary);font-weight:700;margin-top:8px;margin-bottom:6px;padding:0 2px;display:flex;align-items:center;gap:8px;">
-                    <span style="flex:0 0 3px;height:14px;border-radius:99px;background:var(--accent);"></span>
-                    Tutor stats <span class="info-icon" tabindex="0" role="button" aria-label="More info about Tutor stats">ⓘ<span class="info-tooltip" role="tooltip">Tutor stats summarize how the AI tutor is being used across your sessions, including coaching depth, reconstruction help, and model mix.<span class="tip-arrow"></span></span></span>
-                  </div>
-                  <div class="tutor-stats-row" id="tutorStatsRow">
-                    <div class="stat">
-                      <div class="k">Avg dialogue turns <span class="info-icon" tabindex="0" role="button" aria-label="More info about Avg dialogue turns">ⓘ<span class="info-tooltip" role="tooltip">Average number of back-and-forth tutor exchanges per session. Higher numbers usually mean more coaching, probing, or clarification was needed.<span class="tip-arrow"></span></span></span></div>
-                      <div class="v" id="tutorStatAvgTurns">—</div>
-                      <div class="s">per session</div>
-                    </div>
-                    <div class="stat">
-                      <div class="k">Reconstruction rate <span class="info-icon" tabindex="0" role="button" aria-label="More info about Reconstruction rate">ⓘ<span class="info-tooltip" role="tooltip">Share of reconstruction attempts that succeeded after guided re-study. This updates only when those recovery flows are actually used.<span class="tip-arrow"></span></span></span></div>
-                      <div class="v" id="tutorStatRecon">—</div>
-                      <div class="s">success after re-study</div>
-                    </div>
-                    <div class="stat">
-                      <div class="k">Model split <span class="info-icon" tabindex="0" role="button" aria-label="More info about Model split">ⓘ<span class="info-tooltip" role="tooltip">Breakdown of tutor requests handled by Flash versus Pro. It helps you see when faster responses are enough and when heavier reasoning is being used.<span class="tip-arrow"></span></span></span></div>
-                      <div class="v" id="tutorStatModel" style="font-size:11px;line-height:1.35;">—</div>
-                      <div class="s">Flash / Pro calls</div>
-                    </div>
-                  </div>
+                <div style="font-size:8px;letter-spacing:1.6px;text-transform:uppercase;color:var(--text-secondary);font-weight:700;margin-top:8px;margin-bottom:6px;padding:0 2px;display:flex;align-items:center;gap:8px;">
+                  <span style="flex:0 0 3px;height:14px;border-radius:99px;background:var(--accent);"></span>
+                  Tutor stats <span class="info-icon" tabindex="0" role="button" aria-label="More info about Tutor stats">ⓘ<span class="info-tooltip" role="tooltip">Tutor stats summarize how the AI tutor is being used across your sessions, including coaching depth, reconstruction help, and model mix.<span class="tip-arrow"></span></span></span>
                 </div>
-                <div class="tutor-cal-right">
-                  <div class="gauge">
-                    <svg width="48" height="48" viewBox="0 0 48 48">
-                      <circle cx="24" cy="24" r="19" fill="none" stroke="rgba(var(--accent-rgb),0.08)" stroke-width="5"/>
-                      <circle id="calArc" cx="24" cy="24" r="19" fill="none" stroke="var(--accent)" stroke-width="5"
-                        stroke-dasharray="120" stroke-dashoffset="120" stroke-linecap="round"
-                        transform="rotate(-90 24 24)" style="transition: stroke-dashoffset 0.6s ease, stroke 0.3s ease"/>
-                    </svg>
-                    <div>
-                      <div class="g-title">Calibration <span class="info-icon" tabindex="0" role="button" aria-label="More info about Calibration">ⓘ<span class="info-tooltip" role="tooltip">Measures how accurately you judge your own knowledge. It compares your self-ratings with AI grading on generative tiers. Higher scores mean your confidence matches your actual performance more closely.<span class="tip-arrow"></span></span></span></div>
-                      <div class="g-val" id="calVal">—</div>
-                      <div class="g-sub" id="calSub">Metacognitive feedback</div>
+                <div class="tutor-stats-row" id="tutorStatsRow">
+                  <div class="stat">
+                    <div class="k">Avg dialogue turns <span class="info-icon" tabindex="0" role="button" aria-label="More info about Avg dialogue turns">ⓘ<span class="info-tooltip" role="tooltip">Average number of back-and-forth tutor exchanges per session. Higher numbers usually mean more coaching, probing, or clarification was needed.<span class="tip-arrow"></span></span></span></div>
+                    <div class="v" id="tutorStatAvgTurns">—</div>
+                    <div class="s">per session</div>
+                  </div>
+                  <div class="stat">
+                    <div class="k">Reconstruction rate <span class="info-icon" tabindex="0" role="button" aria-label="More info about Reconstruction rate">ⓘ<span class="info-tooltip" role="tooltip">Share of reconstruction attempts that succeeded after guided re-study. This updates only when those recovery flows are actually used.<span class="tip-arrow"></span></span></span></div>
+                    <div class="v" id="tutorStatRecon">—</div>
+                    <div class="s">success after re-study</div>
+                  </div>
+                  <div class="stat">
+                    <div class="k">Model split <span class="info-icon" tabindex="0" role="button" aria-label="More info about Model split">ⓘ<span class="info-tooltip" role="tooltip">Breakdown of tutor requests handled by Flash versus Pro. It helps you see when faster responses are enough and when heavier reasoning is being used.<span class="tip-arrow"></span></span></span></div>
+                    <div class="v" id="tutorStatModel" style="font-size:11px;line-height:1.35;">—</div>
+                    <div class="s">Flash / Pro calls</div>
+                  </div>
+                  <div class="stat tutor-cal-stat">
+                    <div class="gauge">
+                      <svg width="48" height="48" viewBox="0 0 48 48">
+                        <circle cx="24" cy="24" r="19" fill="none" stroke="rgba(var(--accent-rgb),0.08)" stroke-width="5"/>
+                        <circle id="calArc" cx="24" cy="24" r="19" fill="none" stroke="var(--accent)" stroke-width="5"
+                          stroke-dasharray="120" stroke-dashoffset="120" stroke-linecap="round"
+                          transform="rotate(-90 24 24)" style="transition: stroke-dashoffset 0.6s ease, stroke 0.3s ease"/>
+                      </svg>
+                      <div>
+                        <div class="g-title">Calibration <span class="info-icon" tabindex="0" role="button" aria-label="More info about Calibration">ⓘ<span class="info-tooltip" role="tooltip">Measures how accurately you judge your own knowledge. It compares your self-ratings with AI grading on generative tiers. Higher scores mean your confidence matches your actual performance more closely.<span class="tip-arrow"></span></span></span></div>
+                        <div class="g-val" id="calVal">—</div>
+                        <div class="g-sub" id="calSub">Metacognitive feedback</div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -285,6 +283,20 @@ __STYLES__
 
             <div class="section-header" id="tierBreakdownHeader">Due by tier</div>
             <div class="breakdown" id="tierBreakdown"></div>
+
+            <div class="topic-readiness-map" id="topicReadinessMap" style="display:none;">
+              <div class="trm-header">
+                <span class="trm-title">Topic Readiness</span>
+                <span class="trm-summary" id="trmSummary"></span>
+              </div>
+              <div class="trm-grid" id="trmGrid"></div>
+              <div class="trm-legend">
+                <span class="trm-legend-item"><span class="trm-dot trm-strong"></span>Strong</span>
+                <span class="trm-legend-item"><span class="trm-dot trm-developing"></span>Developing</span>
+                <span class="trm-legend-item"><span class="trm-dot trm-weak"></span>Weak</span>
+                <span class="trm-legend-item"><span class="trm-dot trm-unseen"></span>No data</span>
+              </div>
+            </div>
 
             <div class="cram-banner" id="cramBanner">
               <span class="cram-icon" id="cramIcon"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="9,1.5 3.5,9 8,9 7,14.5 12.5,7 8,7"/></svg></span>
