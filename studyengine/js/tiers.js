@@ -4,7 +4,7 @@ function renderQuickfireTier(it, session) {
   tierArea.innerHTML =
     '<div class="confidence-prompt" id="confidencePrompt">' +
       '<div class="confidence-label">How confident are you?</div>' +
-      '<div class="confidence-pills">' +
+      '<div class="confidence-pills confidence-row">' +
         '<div class="conf-pill" data-conf="low">Low</div>' +
         '<div class="conf-pill" data-conf="medium">Medium</div>' +
         '<div class="conf-pill" data-conf="high">High</div>' +
@@ -17,6 +17,13 @@ function renderQuickfireTier(it, session) {
       tierArea.querySelectorAll('.conf-pill').forEach(function(p) { p.classList.remove('selected'); });
       this.classList.add('selected');
       session.confidence = this.getAttribute('data-conf');
+      /* Dim unselected siblings for visual focus */
+      tierArea.querySelectorAll('.conf-pill:not(.selected)').forEach(function(p) {
+        p.style.opacity = '0.55';
+        if (window.gsap) gsap.to(p, { opacity: 0.55, scale: 0.97, duration: 0.2, ease: 'power2.out' });
+      });
+      /* Restore this pill to full */
+      if (window.gsap) gsap.to(this, { opacity: 1, scale: 1, duration: 0.2 });
       var revBtn = el('revealBtn');
       if (revBtn) revBtn.classList.add('ready');
       try { playClick(); } catch(e) {}
@@ -105,8 +112,8 @@ function renderApplyTier(it, session) {
   /* Skip Task block if it's essentially the same as the scenario (normalise and compare). */
   var taskIsDuplicate = !task || isNearDuplicateInstruction(scen, task);
   tierArea.innerHTML = '' +
-    '<div class="scenario md-content" id="scenarioBlock">' + renderMd(scen) + '</div>' +
-    (task && !taskIsDuplicate ? '<div class="divider"></div><div class="prompt" style="font-weight:700">Task</div><div class="answer" style="margin-top:8px"><div class="md-content">' + renderMd(task) + '</div></div>' : '') +
+    '<div class="scenario scenario-block md-content" id="scenarioBlock">' + renderMd(scen) + '</div>' +
+    (task && !taskIsDuplicate ? '<div class="divider"></div><div class="task-block"><div class="task-label">Task</div><div class="md-content">' + renderMd(task) + '</div></div>' : '') +
     '<div class="divider"></div>' +
     '<div class="panel">' +
       '<div class="p-h">Your response</div>' +
@@ -160,11 +167,11 @@ function renderDistinguishTier(it, session) {
   var distScen = it.scenario || it.prompt || '';
   var distScenIsDuplicate = !distScen || isNearDuplicateInstruction(it.prompt || '', distScen);
   tierArea.innerHTML = '' +
-    '<div class="concepts">' +
-      '<div class="concept"><div class="c-h">Concept A</div><div class="c-v md-content">' + renderMd(it.conceptA || '—') + '</div></div>' +
-      '<div class="concept"><div class="c-h">Concept B</div><div class="c-v md-content">' + renderMd(it.conceptB || '—') + '</div></div>' +
+    '<div class="concepts concept-pair">' +
+      '<div class="concept concept-box"><div class="c-h concept-label">Concept A</div><div class="c-v md-content">' + renderMd(it.conceptA || '—') + '</div></div>' +
+      '<div class="concept concept-box"><div class="c-h concept-label">Concept B</div><div class="c-v md-content">' + renderMd(it.conceptB || '—') + '</div></div>' +
     '</div>' +
-    '<div class="prompt" style="font-weight:700; margin-bottom:8px">Given the following scenario, which applies? Justify your choice.</div>' +
+    '<div class="prompt distinguish-prompt" style="font-weight:700; margin-bottom:8px">Given the following scenario, which applies? Justify your choice.</div>' +
     (!distScenIsDuplicate ? '<div class="scenario md-content">' + renderMd(distScen) + '</div>' : '') +
     '<div class="divider"></div>' +
     '<div class="panel">' +
@@ -198,13 +205,13 @@ function renderMockTier(it, session) {
       '<div class="panel">' +
         '<div class="p-h">Response (timed)</div>' +
         '<div class="essay-outline-phase">' +
-          '<div class="essay-phase-label">' +
-            '<span class="epl-title">Phase 1: Outline</span>' +
-            '<span class="epl-timer" id="essayPhaseTimer">' + fmtMMSS(outlineMins * 60) + '</span>' +
+          '<div class="essay-phase-label essay-phase-header">' +
+            '<span class="epl-title phase-label">Phase 1: Outline</span>' +
+            '<span class="epl-timer phase-timer" id="essayPhaseTimer">' + fmtMMSS(outlineMins * 60) + '</span>' +
           '</div>' +
           '<div class="essay-structure-hint">' + getEssayStructureHint(examType) + '</div>' +
           '<textarea id="userText" rows="7" placeholder="Outline your argument:\n- Thesis: ...\n- Body 1: [topic] + [evidence]\n- Body 2: [topic] + [evidence]\n- Body 3: [topic] + [evidence]\n- Conclusion: ..."></textarea>' +
-          '<div class="essay-word-count">' +
+          '<div class="essay-word-count essay-word-meta">' +
             '<span class="ewc-current" id="essayWordCount">0 words</span>' +
             '<span class="ewc-target">Target: ' + esc(wordTarget.label) + ' (' + wordTarget.min + '-' + wordTarget.max + ' words)</span>' +
           '</div>' +
@@ -251,10 +258,10 @@ function renderWorkedTier(it, session) {
   var visibleBeforeW = sectionsW.slice(0, blankIdxW).join('\n\n');
   var visibleAfterW = sectionsW.slice(blankIdxW + 1).join('\n\n');
   tierArea.innerHTML = '' +
-    '<div style="font-size:9px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:#10b981;margin-bottom:8px;">Worked Example — Complete the Missing Section</div>' +
-    (visibleBeforeW ? '<div class="answer" style="border-left:3px solid #10b981;margin-bottom:8px;"><div class="md-content">' + renderMd(visibleBeforeW) + '</div></div>' : '') +
-    '<div style="padding:10px 14px;border-radius:14px;border:2px dashed rgba(16,185,129,0.3);background:rgba(16,185,129,0.04);margin-bottom:8px;text-align:center;">' +
-    '<div style="font-size:9px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#10b981;">Your Turn — Fill In This Section</div></div>' +
+    '<div class="worked-label">Worked Example — Complete the Missing Section</div>' +
+    (visibleBeforeW ? '<div class="answer worked-step"><div class="md-content">' + renderMd(visibleBeforeW) + '</div></div>' : '') +
+    '<div class="worked-blank">' +
+    '<div class="worked-label">Your Turn — Fill In This Section</div></div>' +
     '<div class="panel">' +
       '<div class="p-h">Your response</div>' +
       '<textarea id="userText" rows="4" placeholder="Complete the missing analysis (e.g. the blank IRAC step)..."></textarea>' +
@@ -262,6 +269,6 @@ function renderWorkedTier(it, session) {
       '<button class="qa-btn" id="checkBtn" style="flex:1;min-width:0">Check (Space)</button>' +
       '<button type="button" class="ghost-btn" id="dontKnowBtn" style="flex:0 0 auto;padding:10px 12px;font-size:10px;white-space:nowrap">🤷 Don\u2019t know</button>' +
       '</div></div>' +
-    (visibleAfterW ? '<div class="answer" style="border-left:3px solid #10b981;margin-top:8px;"><div class="md-content">' + renderMd(visibleAfterW) + '</div></div>' : '');
+    (visibleAfterW ? '<div class="answer worked-step" style="margin-top:8px;"><div class="md-content">' + renderMd(visibleAfterW) + '</div></div>' : '');
   wireGenerative('worked');
 }
