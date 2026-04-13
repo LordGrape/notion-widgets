@@ -734,7 +734,7 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
           "\n" +
           userBlock;
         const thinkingBudget =
-          (selectedModel === "gemini-2.5-pro" && (tier === "distinguish" || tier === "mock")) ? 1024 : 0;
+          (selectedModel === "gemini-2.5-pro" && (tier === "distinguish" || tier === "mock") ) ? 1024 : 1;
 
         const geminiRes = await fetch(geminiUrl, {
           method: "POST",
@@ -845,7 +845,7 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
               temperature: 0.35,
               maxOutputTokens: 1024,
               responseMimeType: "application/json",
-              thinkingConfig: { thinkingBudget: 0 }
+              thinkingConfig: { thinkingBudget: 1 }
             }
           })
         });
@@ -981,7 +981,7 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
               temperature: 0.35,
               maxOutputTokens: 256,
               responseMimeType: "application/json",
-              thinkingConfig: { thinkingBudget: 0 }
+              thinkingConfig: { thinkingBudget: 1 }
             }
           })
         });
@@ -1139,7 +1139,7 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
                 },
                 required: ["reformulatedPrompt", "reformulatedTier", "rationale"]
               },
-              thinkingConfig: { thinkingBudget: 0 }
+              thinkingConfig: { thinkingBudget: 1 }
             }
           })
         });
@@ -1259,7 +1259,7 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
               parts: [{ text: "You are generating a brief session summary for a study engine. Be specific and actionable. Respond as plain text, not JSON. 3-4 sentences." }]
             },
             contents: [{ parts: [{ text: summaryPrompt }] }],
-            generationConfig: { temperature: 0.4, maxOutputTokens: 256, thinkingConfig: { thinkingBudget: 0 } }
+            generationConfig: { temperature: 0.4, maxOutputTokens: 256, thinkingConfig: { thinkingBudget: 1 } }
           })
         });
 
@@ -1364,7 +1364,7 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
               temperature: 0.35,
               maxOutputTokens: 1024,
               responseMimeType: "application/json",
-              thinkingConfig: { thinkingBudget: 0 }
+              thinkingConfig: { thinkingBudget: 1 }
             }
           })
         });
@@ -1469,7 +1469,7 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
               temperature: 0.5,
               maxOutputTokens: 512,
               responseMimeType: "application/json",
-              thinkingConfig: { thinkingBudget: 0 }
+              thinkingConfig: { thinkingBudget: 1 }
             }
           })
         });
@@ -1671,7 +1671,7 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
               temperature: 0.3,
               maxOutputTokens: 4096,
               responseMimeType: "application/json",
-              thinkingConfig: { thinkingBudget: 0 }
+              thinkingConfig: { thinkingBudget: 1 }
             }
           })
         });
@@ -1879,7 +1879,7 @@ Respond in this EXACT JSON format and nothing else:
                   parts: [{ text: "You are a patient, expert tutor embedded in a spaced repetition study engine. When a student doesn't know the answer, you TEACH — explain WHY the answer is what it is for deep encoding. Respond in JSON." }]
                 },
                 contents: [{ parts: [{ text: explainPrompt }] }],
-                generationConfig: { temperature: 0.4, maxOutputTokens: 512, responseMimeType: "application/json", thinkingConfig: { thinkingBudget: 0 } }
+                generationConfig: { temperature: 0.4, maxOutputTokens: 512, responseMimeType: "application/json", thinkingConfig: { thinkingBudget: 1 } }
               })
             }
           );
@@ -2084,7 +2084,7 @@ Respond in this EXACT JSON format and nothing else:
                 temperature: 0.2,
                 maxOutputTokens: 1024,
                 responseMimeType: "application/json",
-                thinkingConfig: { thinkingBudget: 0 }
+                thinkingConfig: { thinkingBudget: 1 }
               }
             })
           }
@@ -2275,7 +2275,7 @@ graph LR
                 parts: [{ text: "You generate minimal Mermaid.js diagrams for study cards. Output ONLY valid Mermaid markup. graph TD or graph LR only. Target 5-7 nodes max 8. Short real-term labels. No code fences, no prose, no explanation." }]
               },
               contents: [{ parts: [{ text: visualPrompt }] }],
-              generationConfig: { temperature: 0.3, maxOutputTokens: 1024, thinkingConfig: { thinkingBudget: 0 } }
+              generationConfig: { temperature: 0.3, maxOutputTokens: 1024, thinkingConfig: { thinkingBudget: 1 } }
             })
           }
         );
@@ -2482,7 +2482,7 @@ Return JSON with this exact structure:
             temperature: 0.7,
             maxOutputTokens: 4096,
             responseMimeType: "application/json",
-            thinkingConfig: { thinkingBudget: 0 }
+            thinkingConfig: { thinkingBudget: 1 }
           }
         })
       });
@@ -2559,7 +2559,7 @@ Rules:
             temperature: 0.4,
             maxOutputTokens: 512,
             responseMimeType: "application/json",
-            thinkingConfig: { thinkingBudget: 0 }
+            thinkingConfig: { thinkingBudget: 1 }
           }
         })
       });
