@@ -167,6 +167,21 @@ export default {
               "- When reviewing cards from these topics, gently challenge the student's confidence: \"Your self-ratings on this topic have been optimistic — let's verify what you actually remember.\""
             );
           }
+          if (learner.primaryErrorPattern) {
+            const patternLabels = {
+              factual_miss: "factual recall gaps",
+              reasoning_gap: "incomplete reasoning chains",
+              under_elaboration: "naming concepts without explaining them",
+              misconception: "actively wrong mental models",
+              prerequisite_gap: "missing foundational concepts",
+              framework_mismatch: "using different analytical frameworks than expected"
+            };
+            const label = patternLabels[learner.primaryErrorPattern] || learner.primaryErrorPattern;
+            lines.push(
+              `- ⚠ Primary error pattern: ${label} (${learner.primaryErrorPct || "?"}% of recent errors)`,
+              `- When this student makes an error, it is most likely ${label}. Tailor your diagnostic questions accordingly.`
+            );
+          }
           if (mems.length > 0) {
             lines.push("- AI-observed patterns from prior sessions (do NOT present these as things the student said):");
             for (const mline of mems) lines.push(`  * ${String(mline)}`);
@@ -697,6 +712,14 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
           ? `\nLECTURE CONTEXT (source material the student studied):\n${body.lectureContext.courseDigest || ""}` +
             `${body.lectureContext.topicChunk ? "\n\nRELEVANT SECTION:\n" + body.lectureContext.topicChunk : ""}\n\n---\n\n`
           : "";
+        let sessionSummaryBlock = "";
+        const sessionSummary = Array.isArray(context.sessionSummary) ? context.sessionSummary : [];
+        if (sessionSummary.length > 0) {
+          sessionSummaryBlock = "\nSESSION CONTEXT (prior cards this session):\n" +
+            sessionSummary.map((s, i) => `${i + 1}. ${String(s).substring(0, 200)}`).join("\n") +
+            "\n\nUse this context to build bridges: reference topics the student got right earlier, " +
+            "connect related concepts across cards, and avoid re-explaining things they already demonstrated understanding of.\n\n---\n\n";
+        }
         const isFollowUpTurn = conversation.length >= 2;
         const systemPromptFinal = isFollowUpTurn
           ? systemPrompt + supportiveVoiceBlock + "\n\n" + modeInstructionsBase[mode]
@@ -705,6 +728,7 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
         const dynamicPrompt =
           modeInstructionsForMode +
           "\n\n---\n\n" +
+          sessionSummaryBlock +
           lectureCtxBlock +
           itemBlock +
           "\n" +
