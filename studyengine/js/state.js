@@ -24,6 +24,8 @@
     var SYLLABUS_ENDPOINT = STUDYENGINE_WORKER_BASE + '/syllabus';
     var LECTURE_CTX_ENDPOINT = STUDYENGINE_WORKER_BASE + '/lecture-context';
     var GRADE_ENDPOINT = STUDYENGINE_WORKER_BASE + '/grade';
+    var LEARN_PLAN_ENDPOINT = STUDYENGINE_WORKER_BASE + '/learn-plan';
+    var LEARN_CHECK_ENDPOINT = STUDYENGINE_WORKER_BASE + '/learn-check';
 
     /* ── State ── */
     var NS = 'studyengine';
@@ -31,6 +33,8 @@ var DEFAULT_STATE = {
       items: {},
       courses: {},
       subDecks: {},
+      learnProgress: {},
+      learnSessions: [],
       calibration: { totalSelfRatings: 0, totalActualCorrect: 0, history: [] },
       stats: {
         totalReviews: 0,
@@ -151,6 +155,8 @@ var state = null;
       if (items && typeof items === 'object') state.items = items;
       if (courses && typeof courses === 'object') state.courses = courses;
       if (subDecks && typeof subDecks === 'object') state.subDecks = subDecks;
+      state.learnProgress = SyncEngine.get(NS, 'learnProgress') || {};
+      state.learnSessions = SyncEngine.get(NS, 'learnSessions') || [];
       if (calibration && typeof calibration === 'object') state.calibration = calibration;
       if (stats && typeof stats === 'object') state.stats = stats;
       migrateItems();
@@ -170,6 +176,8 @@ var state = null;
       SyncEngine.set(NS, 'items', state.items || {});
       SyncEngine.set(NS, 'courses', state.courses || {});
       SyncEngine.set(NS, 'subDecks', state.subDecks || {});
+      SyncEngine.set(NS, 'learnProgress', state.learnProgress || {});
+      SyncEngine.set(NS, 'learnSessions', state.learnSessions || []);
       SyncEngine.set(NS, 'calibration', state.calibration || deepClone(DEFAULT_STATE.calibration));
       SyncEngine.set(NS, 'stats', state.stats || deepClone(DEFAULT_STATE.stats));
       SyncEngine.set(NS, 'settings', settings || deepClone(DEFAULT_SETTINGS));
