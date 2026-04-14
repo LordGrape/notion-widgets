@@ -62,9 +62,20 @@ setMaybeAutoPrepare((_course: string) => {});
 
 // ── Mount ───────────────────────────────────────────────────────
 function mountApp() {
+  console.log('[StudyEngine] mountApp called');
   mountSidebar();
   const root = document.getElementById('preact-root');
-  if (root) render(h(App, null), root);
+  console.log('[StudyEngine] preact-root element:', root);
+  if (root) {
+    try {
+      render(h(App, null), root);
+      console.log('[StudyEngine] App rendered successfully');
+    } catch (e) {
+      console.error('[StudyEngine] Failed to render App:', e);
+    }
+  } else {
+    console.error('[StudyEngine] preact-root element not found');
+  }
 
   // Wire topbar nav tabs
   document.querySelectorAll('.nav-tab[data-nav]').forEach(tab => {
@@ -380,12 +391,15 @@ function saveSettingsFromForm(): void {
 
 // ── Boot ─────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  console.log('[StudyEngine] DOMContentLoaded fired');
   // SyncEngine.init is already called from HTML <script> block
   initSyncAndBackground(); // Only sets up background, not SyncEngine
 
   const SE = (window as any).SyncEngine;
+  console.log('[StudyEngine] SyncEngine available:', !!SE);
 
   const boot = () => {
+    console.log('[StudyEngine] boot() called');
     loadState();
     loadOptimizedWeights();
     mountApp();
