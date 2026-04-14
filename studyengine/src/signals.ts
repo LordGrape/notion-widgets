@@ -4,7 +4,7 @@
  * saveState() is the SINGLE persistence function.
  */
 
-import { signal, computed } from '@preact/signals';
+import { signal, computed } from '@preact/signals-react';
 import type { AppState, Settings, StudyItem, Course, SessionState, DragonState, CalibrationData, Stats, LearnProgress, LearnSession } from './types';
 import { NS, DEFAULT_STATE, DEFAULT_SETTINGS, deepClone } from './constants';
 

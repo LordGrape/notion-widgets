@@ -3,9 +3,8 @@
  * Phase 4: Converted from dashboard.js
  */
 
-import { h, Fragment } from 'preact';
-import { computed, signal } from '@preact/signals';
-import { useEffect, useRef, useCallback } from 'preact/hooks';
+import { Fragment, useEffect, useRef, useCallback } from 'react';
+import { computed, signal } from '@preact/signals-react';
 import { 
   items, courses, settings, dragonState, currentView, selectedCourse, dueItems,
   calibration as calibrationSignal, stats as statsSignal
@@ -144,10 +143,10 @@ function EmptyState() {
   const hasCourses = coursesArray.value.length > 0;
   
   return (
-    <div class="empty-state" id="emptyState" style={{ display: 'block' }}>
-      <div class="empty-icon">📚</div>
-      <h2 class="empty-title">{hasCourses ? 'No items yet' : 'No decks yet'}</h2>
-      <p class="empty-desc">
+    <div className="empty-state" id="emptyState" style={{ display: 'block' }}>
+      <div className="empty-icon">📚</div>
+      <h2 className="empty-title">{hasCourses ? 'No items yet' : 'No decks yet'}</h2>
+      <p className="empty-desc">
         {hasCourses 
           ? 'Add study items manually or import a JSON batch to start your first retrieval session.'
           : 'Create your first deck to organize topics, track retention, and make the dashboard come alive.'
@@ -155,7 +154,7 @@ function EmptyState() {
       </p>
       {!hasCourses && (
         <button 
-          class="big-btn"
+          className="big-btn"
           id="emptyAddDeckBtn"
           onClick={() => {
             if (typeof (window as unknown as { openCreateCourseFlow?: () => void }).openCreateCourseFlow === 'function') {
@@ -176,11 +175,11 @@ function CramBanner() {
   if (crams.length === 0) return null;
   
   return (
-    <div class="cram-banner-container" id="cramBanner">
+    <div className="cram-banner-container" id="cramBanner">
       {crams.map(entry => (
         <div 
           key={entry.name}
-          class="cram-banner show"
+          className="cram-banner show"
           style={{
             background: 'linear-gradient(135deg,rgba(239,68,68,0.12),rgba(245,158,11,0.08))',
             border: '1px solid rgba(239,68,68,0.3)',
@@ -190,7 +189,7 @@ function CramBanner() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <span class="cram-dashboard-fire" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>🔥</span>
+            <span className="cram-dashboard-fire" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>🔥</span>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontWeight: 600, fontSize: '13px' }}>
                 CRAM MODE — {entry.name} ({entry.cram.daysUntil} days)
@@ -211,19 +210,19 @@ function TierBreakdown() {
   const due = dueCounts.value;
   
   return (
-    <div class="tier-breakdown" id="tierBreakdown">
+    <div className="tier-breakdown" id="tierBreakdown">
       {Object.entries(tierNames).map(([tier, name]) => {
         const count = due.byTier[tier] || 0;
         const color = tierColours[tier];
         return (
           <span 
             key={tier}
-            class="tier-pill info-icon"
+            className="tier-pill info-icon"
             data-count={count}
             style={{ borderColor: color + '30', cursor: 'help', position: 'relative' }}
           >
             <span 
-              class="tier-dot" 
+              className="tier-dot" 
               style={{ background: color, boxShadow: `0 0 12px ${color}33` }}
             />
             {name}: {count}
@@ -258,54 +257,54 @@ export function Dashboard() {
   }
 
   return (
-    <div class="view view-dash active" id="viewDash">
+    <div className="view view-dash active" id="viewDash">
       {/* Hero stat - Due count */}
-      <div class="hero-stat" id="heroStat">
-        <div class="hero-number" id="statDue">{due.total}</div>
-        <div class="hero-label">items due</div>
-        <div class="hero-hint" id="heroCourseHint">Across all tiers</div>
+      <div className="hero-stat" id="heroStat">
+        <div className="hero-number" id="statDue">{due.total}</div>
+        <div className="hero-label">items due</div>
+        <div className="hero-hint" id="heroCourseHint">Across all tiers</div>
       </div>
 
       {/* Cram banner */}
       <CramBanner />
 
       {/* Stats grid */}
-      <div class="stats-row">
+      <div className="stats-row">
         {/* Mastered */}
-        <div class="stat-card" id="streakStatWrap" style={{ display: gamificationMode === 'off' ? 'none' : '' }}>
-          <div class="stat-val" id="statStreak">{mastered}</div>
-          <div class="stat-label">mastered</div>
-          <div class="stat-sub">stability &gt;30 days, 0 lapses</div>
+        <div className="stat-card" id="streakStatWrap" style={{ display: gamificationMode === 'off' ? 'none' : '' }}>
+          <div className="stat-val" id="statStreak">{mastered}</div>
+          <div className="stat-label">mastered</div>
+          <div className="stat-sub">stability &gt;30 days, 0 lapses</div>
         </div>
 
         {/* Study streak */}
-        <div class="stat-card" id="streakStatWrap">
-          <div class="stat-val" id="statStudyStreak">{streak}</div>
-          <div class="stat-label" id="streakSub">{streak === 1 ? 'day' : 'days'}</div>
-          <div class="stat-sub">study streak</div>
+        <div className="stat-card" id="streakStatWrap">
+          <div className="stat-val" id="statStudyStreak">{streak}</div>
+          <div className="stat-label" id="streakSub">{streak === 1 ? 'day' : 'days'}</div>
+          <div className="stat-sub">study streak</div>
         </div>
 
         {/* Avg retention */}
-        <div class="stat-card">
-          <div class="stat-val" id="statRet">
+        <div className="stat-card">
+          <div className="stat-val" id="statRet">
             {retention !== null ? Math.round(retention * 100) + '%' : '—'}
           </div>
-          <div class="stat-label">avg retention</div>
-          <div class="stat-sub">across all cards</div>
+          <div className="stat-label">avg retention</div>
+          <div className="stat-sub">across all cards</div>
         </div>
 
         {/* Calibration */}
-        <div class="stat-card calibration-card">
-          <div class="stat-val" id="calVal">
+        <div className="stat-card calibration-card">
+          <div className="stat-val" id="calVal">
             {cal !== null ? Math.round(cal * 100) + '%' : '—'}
           </div>
-          <div class="stat-label">calibration</div>
-          <div class="stat-sub" id="calSub">
+          <div className="stat-label">calibration</div>
+          <div className="stat-sub" id="calSub">
             {cal === null ? 'Complete a session to begin' : 
              cal >= 0.75 ? 'Well calibrated' : 
              cal >= 0.55 ? 'Slight overconfidence' : 'Significant miscalibration'}
           </div>
-          <div class="cal-arc" id="calArc" style={{ '--cal-pct': cal !== null ? cal : 0 }} />
+          <div className="cal-arc" id="calArc" style={{ '--cal-pct': cal !== null ? cal : 0 }} />
         </div>
       </div>
 
@@ -313,16 +312,16 @@ export function Dashboard() {
       <TierBreakdown />
 
       {/* Actions */}
-      <div class="dash-actions">
+      <div className="dash-actions">
         {resumeSnapshot.value && resumeSnapshot.value._remaining > 0 ? (
-          <div class="resume-session-wrap" id="resumeSessionWrap">
-            <div class="resume-session-hint">
-              <span class="resume-session-dot"></span>
+          <div className="resume-session-wrap" id="resumeSessionWrap">
+            <div className="resume-session-hint">
+              <span className="resume-session-dot"></span>
               {resumeSnapshot.value._remaining} card{resumeSnapshot.value._remaining === 1 ? '' : 's'} remaining from your last session
             </div>
-            <div class="resume-session-actions">
+            <div className="resume-session-actions">
               <button 
-                class="big-btn" 
+                className="big-btn" 
                 onClick={() => {
                   (window as unknown as { resumeSavedSession?: (s: unknown) => void }).resumeSavedSession?.(resumeSnapshot.value);
                 }}
@@ -330,7 +329,7 @@ export function Dashboard() {
                 Continue Session
               </button>
               <button 
-                class="big-btn ghost-btn"
+                className="big-btn ghost-btn"
                 onClick={() => {
                   (window as unknown as { clearActiveSessionSnapshot?: () => void }).clearActiveSessionSnapshot?.();
                   resumeSnapshot.value = null;
@@ -343,7 +342,7 @@ export function Dashboard() {
           </div>
         ) : (
           <button 
-            class="big-btn"
+            className="big-btn"
             id="startBtn"
             disabled={due.total === 0}
             onClick={() => { currentView.value = 'session'; }}
@@ -352,9 +351,9 @@ export function Dashboard() {
           </button>
         )}
         
-        <div class="mini-actions" id="homeMiniActions">
+        <div className="mini-actions" id="homeMiniActions">
           <button 
-            class="mini-btn"
+            className="mini-btn"
             onClick={() => {
               if (typeof (window as unknown as { openModal?: () => void }).openModal === 'function') {
                 (window as unknown as { openModal: () => void }).openModal();
@@ -364,7 +363,7 @@ export function Dashboard() {
             ＋ Add Item
           </button>
           <button 
-            class="mini-btn"
+            className="mini-btn"
             onClick={() => {
               if (typeof (window as unknown as { openImportModal?: () => void }).openImportModal === 'function') {
                 (window as unknown as { openImportModal: () => void }).openImportModal();
@@ -377,7 +376,7 @@ export function Dashboard() {
       </div>
 
       {/* Sleep advice banner placeholder */}
-      <div class="break-banner" id="sleepAdviceBanner"></div>
+      <div className="break-banner" id="sleepAdviceBanner"></div>
     </div>
   );
 }

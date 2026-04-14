@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite';
 import { viteSingleFile } from 'vite-plugin-singlefile';
-import preact from '@preact/preset-vite';
+import react from '@vitejs/plugin-react';
 import { readFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
 
@@ -33,17 +33,10 @@ function inlineScriptsPlugin() {
 
 export default defineConfig({
   plugins: [
-    // Filter out the broken transform-hook-names sub-plugin (zimmerframe exports bug)
-    ...((preact() as unknown as any[]).flat().filter(
-      (p: any) => p && p.name !== 'preact:transform-hook-names'
-    )),
+    react(),
     viteSingleFile({ removeViteModuleLoader: true }),
     inlineScriptsPlugin()
   ],
-  esbuild: {
-    jsxFactory: 'h',
-    jsxFragment: 'Fragment',
-  },
   build: {
     outDir: '../dist',
     emptyOutDir: false,

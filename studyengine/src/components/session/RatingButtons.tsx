@@ -3,7 +3,6 @@
  * Again/Hard/Good/Easy rating buttons
  */
 
-import { h } from 'preact';
 
 interface RatingButtonsProps {
   onRate: (rating: number) => void;
@@ -20,13 +19,13 @@ const ratings = [
 
 export function RatingButtons({ onRate, disabled, aiSuggested }: RatingButtonsProps) {
   return (
-    <div class="rating-buttons">
+    <div className="rating-buttons">
       {ratings.map((rating) => {
         const isSuggested = aiSuggested === rating.value;
         return (
           <button
             key={rating.value}
-            class={`rating-btn ${isSuggested ? 'suggested' : ''}`}
+            className={`rating-btn ${isSuggested ? 'suggested' : ''}`}
             style={{ 
               borderColor: rating.color + '40',
               background: isSuggested ? rating.color + '15' : undefined
@@ -35,7 +34,7 @@ export function RatingButtons({ onRate, disabled, aiSuggested }: RatingButtonsPr
             disabled={disabled}
             data-rate={rating.value}
           >
-            <span class="rating-label">{rating.label}</span>
+            <span className="rating-label">{rating.label}</span>
           </button>
         );
       })}

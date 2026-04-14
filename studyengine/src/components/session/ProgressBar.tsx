@@ -3,7 +3,6 @@
  * Session progress indicator
  */
 
-import { h } from 'preact';
 import { sessionIndex, sessionQueue } from '../../signals';
 
 export function ProgressBar() {
@@ -12,13 +11,13 @@ export function ProgressBar() {
   const progress = total > 0 ? (sessionIndex.value / total) * 100 : 0;
 
   return (
-    <div class="progress-bar-container">
-      <div class="progress-text">
+    <div className="progress-bar-container">
+      <div className="progress-text">
         {current} of {total}
       </div>
-      <div class="progress-bar">
+      <div className="progress-bar">
         <div 
-          class="progress-fill" 
+          className="progress-fill" 
           style={{ width: `${progress}%` }}
         />
       </div>

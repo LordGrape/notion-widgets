@@ -5,18 +5,18 @@
  * imperatively by dom-controller.ts updating the HTML shell.
  */
 
-import { h, render } from 'preact';
+import { createRoot } from 'react-dom/client';
 import { Sidebar } from './components/Sidebar';
 import { Tutor } from './components/Tutor';
 
 export function App() {
   // Tutor is a floating panel that works alongside the HTML shell
-  return h(Tutor, null);
+  return <Tutor />;
 }
 
 export function mountSidebar() {
   const sidebarRoot = document.getElementById('preact-sidebar');
   if (sidebarRoot) {
-    render(h(Sidebar, null), sidebarRoot);
+    createRoot(sidebarRoot).render(<Sidebar />);
   }
 }

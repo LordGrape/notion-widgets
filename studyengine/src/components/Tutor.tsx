@@ -3,8 +3,7 @@
  * AI tutor dialogue panel
  */
 
-import { h, Fragment } from 'preact';
-import { useEffect, useRef, useCallback, useState } from 'preact/hooks';
+import { Fragment, useEffect, useRef, useCallback, useState } from 'react';
 import {
   tutorMessages,
   tutorLoading,
@@ -314,37 +313,37 @@ export function Tutor() {
   if (!tutorOpen.value) return null;
 
   return (
-    <div class="tutor-overlay">
-      <div class="tutor-panel">
+    <div className="tutor-overlay">
+      <div className="tutor-panel">
         {/* Header */}
-        <div class="tutor-header">
+        <div className="tutor-header">
           <h3>🎓 AI Tutor</h3>
-          <button class="close-btn" onClick={handleClose}>×</button>
+          <button className="close-btn" onClick={handleClose}>×</button>
         </div>
 
         {/* Relearning banner */}
         {isRelearning && (
-          <div class="tutor-relearn-banner">
+          <div className="tutor-relearn-banner">
             <span aria-hidden="true">🔁</span> Re-encoding — Active Recall
           </div>
         )}
 
         {/* Messages */}
-        <div class="tutor-messages" ref={messagesRef}>
+        <div className="tutor-messages" ref={messagesRef}>
           {tutorMessages.value.map((msg, i) => (
-            <div key={i} class={`tutor-message ${msg.role}`}>
-              <div class="message-content">{msg.content}</div>
+            <div key={i} className={`tutor-message ${msg.role}`}>
+              <div className="message-content">{msg.content}</div>
             </div>
           ))}
           {tutorLoading.value && (
-            <div class="tutor-message assistant loading">
-              <span class="typing-indicator">...</span>
+            <div className="tutor-message assistant loading">
+              <span className="typing-indicator">...</span>
             </div>
           )}
         </div>
 
         {/* Input */}
-        <div class="tutor-input-row">
+        <div className="tutor-input-row">
           <textarea
             ref={inputRef}
             placeholder="Type your response..."
@@ -356,7 +355,7 @@ export function Tutor() {
           />
           <button 
             type="button" 
-            class="send-btn"
+            className="send-btn"
             onClick={submitResponse}
             disabled={tutorLoading.value || !inputText.trim()}
             aria-label="Send"
@@ -366,8 +365,8 @@ export function Tutor() {
         </div>
 
         {/* Footer */}
-        <div class="tutor-footer">
-          <span class="turn-counter">Turn {turnCount} of 3</span>
+        <div className="tutor-footer">
+          <span className="turn-counter">Turn {turnCount} of 3</span>
         </div>
       </div>
     </div>

@@ -3,8 +3,7 @@
  * Post-session summary view: XP, calibration, tier breakdown, dragon, AI summary
  */
 
-import { h, Fragment } from 'preact';
-import { useEffect, useState } from 'preact/hooks';
+import { Fragment, useEffect, useState } from 'react';
 import {
   currentView,
   sessionXP,
@@ -103,18 +102,18 @@ export function Done() {
   };
 
   return (
-    <div class="view view-done active" id="viewDone">
+    <div className="view view-done active" id="viewDone">
       {/* Celebration header */}
-      <div class="done-celebration" id="doneCelebration">
-        <div class="done-emoji">
+      <div className="done-celebration" id="doneCelebration">
+        <div className="done-emoji">
           <svg width="40" height="40" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round">
             <circle cx="8" cy="8" r="6"/>
             <circle cx="8" cy="8" r="3.5"/>
             <circle cx="8" cy="8" r="1"/>
           </svg>
         </div>
-        <div class="done-headline" id="doneTitle">{totalReviewed} item{totalReviewed !== 1 ? 's' : ''} reviewed</div>
-        <div class="done-subtitle" id="doneSub">
+        <div className="done-headline" id="doneTitle">{totalReviewed} item{totalReviewed !== 1 ? 's' : ''} reviewed</div>
+        <div className="done-subtitle" id="doneSub">
           {totalReviewed === 0 ? 'Nothing reviewed this session' :
            totalReviewed < 5 ? 'Good start — keep going!' :
            totalReviewed < 15 ? 'Solid session!' : 'Excellent session! 🎉'}
@@ -123,35 +122,35 @@ export function Done() {
 
       {/* XP + Calibration */}
       {gamMode !== 'off' && (
-        <div class="done-stats">
-          <div class="stat" style={{ textAlign: 'center' }} id="doneXPSection">
-            <div class="k">XP Earned</div>
-            <div class="xp-badge">
+        <div className="done-stats">
+          <div className="stat" style={{ textAlign: 'center' }} id="doneXPSection">
+            <div className="k">XP Earned</div>
+            <div className="xp-badge">
               <span id="doneXP">{xp}</span>
-              <span class="xp-label">XP</span>
+              <span className="xp-label">XP</span>
             </div>
-            <div class="s" style={{ marginTop: '6px' }}>Pushed to dragon</div>
+            <div className="s" style={{ marginTop: '6px' }}>Pushed to dragon</div>
           </div>
-          <div class="stat" style={{ textAlign: 'center' }}>
-            <div class="k">Calibration</div>
-            <div class="v" id="doneCal">{calScore !== null ? Math.round(calScore * 100) + '%' : '—'}</div>
-            <div class="s" id="doneTrend">{calLabel}</div>
+          <div className="stat" style={{ textAlign: 'center' }}>
+            <div className="k">Calibration</div>
+            <div className="v" id="doneCal">{calScore !== null ? Math.round(calScore * 100) + '%' : '—'}</div>
+            <div className="s" id="doneTrend">{calLabel}</div>
           </div>
         </div>
       )}
 
       {/* Tier breakdown */}
-      <div class="breakdown" id="doneBreakdown">
+      <div className="breakdown" id="doneBreakdown">
         {Object.entries(TIER_NAMES).map(([tier, name]) => {
           const count = reviewsByTier[tier] || 0;
           if (count === 0) return null;
           return (
             <span
               key={tier}
-              class="tier-pill"
+              className="tier-pill"
               style={{ borderColor: TIER_COLOURS[tier] + '30' }}
             >
-              <span class="tier-dot" style={{ background: TIER_COLOURS[tier] }} />
+              <span className="tier-dot" style={{ background: TIER_COLOURS[tier] }} />
               {name}: {count}
             </span>
           );
@@ -160,13 +159,13 @@ export function Done() {
 
       {/* Dragon section */}
       {gamMode !== 'off' && (
-        <div class="done-dragon-section" id="doneDragonSection">
-          <div class="done-dragon-wrap" id="doneDragonWrap">
-            {Array.from({ length: 12 }, (_, i) => <div key={i} class="dragon-ember" />)}
-            <div class="done-dragon-orb" id="doneDragonOrb">{stage.emoji}</div>
+        <div className="done-dragon-section" id="doneDragonSection">
+          <div className="done-dragon-wrap" id="doneDragonWrap">
+            {Array.from({ length: 12 }, (_, i) => <div key={i} className="dragon-ember" />)}
+            <div className="done-dragon-orb" id="doneDragonOrb">{stage.emoji}</div>
           </div>
-          <div class="done-dragon-rank" id="doneDragonRank">{stage.rank}</div>
-          <div class="done-dragon-flavour" id="doneDragonFlavour">
+          <div className="done-dragon-rank" id="doneDragonRank">{stage.rank}</div>
+          <div className="done-dragon-flavour" id="doneDragonFlavour">
             {xp > 0 ? `+${xp} XP this session` : 'Keep reviewing to earn XP'}
           </div>
         </div>
@@ -174,15 +173,15 @@ export function Done() {
 
       {/* AI Session Summary */}
       {totalReviewed > 0 && (
-        <details class="session-summary" id="sessionAiSummaryWrap" open>
-          <summary class="ss-header">
-            <span class="ss-icon">✨</span>
-            <span class="ss-title">AI session summary</span>
+        <details className="session-summary" id="sessionAiSummaryWrap" open>
+          <summary className="ss-header">
+            <span className="ss-icon">✨</span>
+            <span className="ss-title">AI session summary</span>
           </summary>
-          <div class="ss-body" id="sessionAiSummaryBody">
+          <div className="ss-body" id="sessionAiSummaryBody">
             {aiLoading ? (
-              <div class="syllabus-status" id="sessionAiSummaryLoading">
-                <span class="af-spinner" /> Generating summary…
+              <div className="syllabus-status" id="sessionAiSummaryLoading">
+                <span className="af-spinner" /> Generating summary…
               </div>
             ) : aiSummary ? (
               <div style={{ fontSize: '12px', lineHeight: '1.6', color: 'var(--text-secondary)' }}>{aiSummary}</div>
@@ -194,7 +193,7 @@ export function Done() {
       )}
 
       {/* Back to dashboard */}
-      <button class="big-btn" id="backBtn" onClick={handleBack}>
+      <button className="big-btn" id="backBtn" onClick={handleBack}>
         Back to Dashboard
       </button>
     </div>

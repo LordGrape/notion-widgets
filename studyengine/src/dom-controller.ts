@@ -4,7 +4,7 @@
  * This replaces the Preact components for Dashboard, Session, and Done views.
  */
 
-import { effect } from '@preact/signals';
+import { effect } from '@preact/signals-react';
 import {
   items,
   courses,

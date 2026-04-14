@@ -3,8 +3,7 @@
  * Microbreak overlay
  */
 
-import { h } from 'preact';
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useState } from 'react';
 import { breakTimeRemaining, breakActive } from '../../signals';
 
 function formatTime(seconds: number): string {
@@ -46,13 +45,13 @@ export function BreakModal({ duration, onSkip }: BreakModalProps) {
   }, [remaining, onSkip]);
 
   return (
-    <div class="break-overlay show">
-      <div class="break-modal">
-        <div class="break-icon">🧘</div>
+    <div className="break-overlay show">
+      <div className="break-modal">
+        <div className="break-icon">🧘</div>
         <h2>Time for a break</h2>
-        <div class="break-timer">{formatTime(remaining)}</div>
-        <p class="break-tip">{tip}</p>
-        <button class="break-skip-btn" onClick={onSkip}>
+        <div className="break-timer">{formatTime(remaining)}</div>
+        <p className="break-tip">{tip}</p>
+        <button className="break-skip-btn" onClick={onSkip}>
           Skip break
         </button>
       </div>

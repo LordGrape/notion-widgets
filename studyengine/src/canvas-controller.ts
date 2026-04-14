@@ -1,4 +1,4 @@
-import { effect } from '@preact/signals';
+import { effect } from '@preact/signals-react';
 import { items, courses, settings, stats, calibration, currentView } from './signals';
 import { countDue, avgRetention, esc } from './utils';
 
