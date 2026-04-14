@@ -26,7 +26,7 @@ function courseKey(name: string): string {
 /**
  * Get course object by name
  */
-function getCourse(courseName: string): Course | null {
+export function getCourse(courseName: string): Course | null {
   if (!courseName) return null;
   return appState?.courses?.[courseName] || null;
 }
@@ -34,7 +34,7 @@ function getCourse(courseName: string): Course | null {
 /**
  * Get color for a course
  */
-function getCourseColor(courseName: string): string {
+export function getCourseColor(courseName: string): string {
   const c = getCourse(courseName);
   if (c && c.color) return c.color;
   return '#8b5cf6'; // default purple
@@ -148,7 +148,7 @@ function getCramState(courseName: string): CramState {
 /**
  * Detect which tiers are supported by an item
  */
-function detectSupportedTiers(item: StudyItem): string[] {
+export function detectSupportedTiers(item: StudyItem): string[] {
   if (!item || !item.prompt || !item.modelAnswer) return [];
   const tiers: string[] = ['quickfire', 'explain'];
   if (item.task || item.scenario) tiers.push('apply');
@@ -162,7 +162,7 @@ function detectSupportedTiers(item: StudyItem): string[] {
 /**
  * Normalize course for Phase 6 schema
  */
-function normalizeCoursePhase6(c: Course | null): Course | null {
+export function normalizeCoursePhase6(c: Course | null): Course | null {
   if (!c) return c;
   if (c.examWeight === undefined) c.examWeight = null;
   if (c.syllabusContext === undefined) c.syllabusContext = null;
@@ -493,7 +493,7 @@ function migrateCoursesPhase6(): void {
 /**
  * Get exam type for a course
  */
-function getCourseExamType(courseOrName: string | Course | null | undefined): string {
+export function getCourseExamType(courseOrName: string | Course | null | undefined): string {
   if (!courseOrName) return 'mixed';
   if (typeof courseOrName === 'string') {
     const c = getCourse(courseOrName);
@@ -526,7 +526,7 @@ export function saveCourse(courseObj: Course): void {
 /**
  * Delete course from state
  */
-function deleteCourse(courseName: string): void {
+export function deleteCourse(courseName: string): void {
   if (appState?.courses[courseName]) {
     delete appState?.courses[courseName];
   }
@@ -535,7 +535,7 @@ function deleteCourse(courseName: string): void {
 /**
  * List all courses
  */
-function listCourses(includeArchived?: boolean): Course[] {
+export function listCourses(includeArchived?: boolean): Course[] {
   const out: Course[] = [];
   for (const k in appState?.courses) {
     if (!appState?.courses.hasOwnProperty(k)) continue;
@@ -551,7 +551,7 @@ function listCourses(includeArchived?: boolean): Course[] {
 /**
  * Get topics for a course
  */
-function getTopicsForCourse(courseName: string): string[] {
+export function getTopicsForCourse(courseName: string): string[] {
   if (!courseName) return [];
   const topics: Record<string, number> = {};
   for (const id in appState?.items) {
@@ -571,7 +571,7 @@ function getTopicsForCourse(courseName: string): string[] {
 /**
  * Get subdeck
  */
-function getSubDeck(courseName: string, subDeckName: string): SubDeck | null {
+export function getSubDeck(courseName: string, subDeckName: string): SubDeck | null {
   if (!appState?.subDecks[courseName]) return null;
   return appState?.subDecks[courseName].subDecks[subDeckName] || null;
 }
@@ -593,7 +593,7 @@ function listSubDecks(courseName: string): SubDeck[] {
 /**
  * Create a subdeck
  */
-function createSubDeck(courseName: string, name: string): SubDeck {
+export function createSubDeck(courseName: string, name: string): SubDeck {
   if (appState?.subDecks && !appState.subDecks[courseName]) {
     appState.subDecks[courseName] = { subDecks: {} };
   }
@@ -732,7 +732,7 @@ function isItemInArchivedSubDeck(item: StudyItem): boolean {
 /**
  * Recount cards in subdeck
  */
-function recountSubDeck(courseName: string, subDeckName: string): void {
+export function recountSubDeck(courseName: string, subDeckName: string): void {
   if (!subDeckName) return;
   let count = 0;
   for (const id in appState?.items) {
@@ -761,7 +761,7 @@ function getCardsForSubDeck(courseName: string, subDeckName: string): StudyItem[
 /**
  * Render topic suggestions
  */
-function renderTopicSuggestions(inputId: string, courseName: string, containerId: string): void {
+export function renderTopicSuggestions(inputId: string, courseName: string, containerId: string): void {
   const existing = getTopicsForCourse(courseName);
   const container = el(containerId);
   if (!container) return;

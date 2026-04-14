@@ -3,9 +3,9 @@
  * Phase 3 conversion: types only, ZERO logic changes
  */
 
-import { el, esc, uid, isoNow, toast, tierLabel, generateVisual } from './utils';
-import { saveState, tierSupportBadgeHTML, state as appState } from './state';
-import { saveCourse } from './courses';
+import { el, esc, uid, isoNow, toast, tierLabel, generateVisual, renderMd } from './utils';
+import { saveState, tierSupportBadgeHTML, state as appState, settings as appSettings, COURSE_COLORS, EXAM_TYPE_LABELS } from './state';
+import { saveCourse, listCourses as listCoursesFromModule, getSubDeck as getSubDeckFromModule, createSubDeck as createSubDeckFromModule, recountSubDeck as recountSubDeckFromModule, detectSupportedTiers as detectSupportedTiersFromModule, renderTopicSuggestions as renderTopicSuggestionsFromModule } from './courses';
 import type { StudyItem, Course } from './types';
 
 // External CDN globals (keep as declare)
@@ -13,7 +13,6 @@ declare function playOpen(): void;
 declare function playClose(): void;
 declare function playError(): void;
 declare function playPresetSelect(): void;
-declare function updateImportModeUI(animate: boolean): void;
 declare const Core: { a11y?: { trap?: (el: HTMLElement) => void } };
 
 // Lazy getters for DOM globals
@@ -30,47 +29,258 @@ let modalCourse: string | null = null;
 let modalShowingPicker = false;
 let pendingImport: StudyItem[] | null = null;
 
-// Helper function stubs (will be injected by other modules)
+// Dependency injection stubs
 let reconcileStatsImpl: () => void = () => {};
 let renderDashboardImpl: () => void = () => {};
-let renderModalImpl: () => void = () => {};
-let renderTopicSuggestionsImpl: (inputId: string, courseName: string | null, containerId: string) => void = () => {};
-let listCoursesImpl: () => Course[] = () => [];
-let getSubDeckImpl: (course: string, subDeck: string) => { archived?: boolean } | null = () => null;
-let createSubDeckImpl: (course: string, subDeck: string) => void = () => {};
-let recountSubDeckImpl: (course: string, subDeck: string) => void = () => {};
-let detectSupportedTiersImpl: (item: StudyItem) => string[] = () => [];
 let openCourseModalImpl: () => void = () => {};
 let openCourseDetailImpl: (course: string) => void = () => {};
 let maybeAutoPrepareImpl: (course: string) => void = () => {};
 
-// Export setters for dependency injection
 export function setReconcileStats(fn: () => void) { reconcileStatsImpl = fn; }
 export function setRenderDashboard(fn: () => void) { renderDashboardImpl = fn; }
-export function setRenderModal(fn: () => void) { renderModalImpl = fn; }
-export function setRenderTopicSuggestions(fn: (inputId: string, courseName: string | null, containerId: string) => void) { renderTopicSuggestionsImpl = fn; }
-export function setListCourses(fn: () => Course[]) { listCoursesImpl = fn; }
-export function setGetSubDeck(fn: (course: string, subDeck: string) => { archived?: boolean } | null) { getSubDeckImpl = fn; }
-export function setCreateSubDeck(fn: (course: string, subDeck: string) => void) { createSubDeckImpl = fn; }
-export function setRecountSubDeck(fn: (course: string, subDeck: string) => void) { recountSubDeckImpl = fn; }
-export function setDetectSupportedTiers(fn: (item: StudyItem) => string[]) { detectSupportedTiersImpl = fn; }
 export function setOpenCourseModal(fn: () => void) { openCourseModalImpl = fn; }
 export function setOpenCourseDetail(fn: (course: string) => void) { openCourseDetailImpl = fn; }
 export function setMaybeAutoPrepare(fn: (course: string) => void) { maybeAutoPrepareImpl = fn; }
 
-// Local wrapper functions
+// Local wrappers — use direct module imports for most helpers
 function reconcileStats(): void { reconcileStatsImpl(); }
 function renderDashboard(): void { renderDashboardImpl(); }
-function renderModal(): void { renderModalImpl(); }
-function renderTopicSuggestions(inputId: string, courseName: string | null, containerId: string): void { renderTopicSuggestionsImpl(inputId, courseName, containerId); }
-function listCourses(): Course[] { return listCoursesImpl(); }
-function getSubDeck(course: string, subDeck: string): { archived?: boolean } | null { return getSubDeckImpl(course, subDeck); }
-function createSubDeck(course: string, subDeck: string): void { createSubDeckImpl(course, subDeck); }
-function recountSubDeck(course: string, subDeck: string): void { recountSubDeckImpl(course, subDeck); }
-function detectSupportedTiers(item: StudyItem): string[] { return detectSupportedTiersImpl(item); }
+function listCourses(): Course[] { return listCoursesFromModule(); }
+function getSubDeck(course: string, subDeck: string) { return getSubDeckFromModule(course, subDeck); }
+function createSubDeck(course: string, subDeck: string): void { createSubDeckFromModule(course, subDeck); }
+function recountSubDeck(course: string, subDeck: string): void { recountSubDeckFromModule(course, subDeck); }
+function detectSupportedTiers(item: StudyItem): string[] { return detectSupportedTiersFromModule(item); }
+function renderTopicSuggestions(inputId: string, courseName: string | null, containerId: string): void { renderTopicSuggestionsFromModule(inputId, courseName || '', containerId); }
 function openCourseModal(): void { openCourseModalImpl(); }
 function openCourseDetail(course: string): void { openCourseDetailImpl(course); }
 function maybeAutoPrepare(course: string): void { maybeAutoPrepareImpl(course); }
+
+/**
+ * Render the add/edit card modal form into #modalForm
+ */
+function renderModal(): void {
+  const formEl = el('modalForm');
+  if (!formEl) return;
+  const editing = editingItemId ? appState?.items?.[editingItemId] : null;
+  const courses = listCourses();
+
+  // Course picker (shown when multiple courses and no course selected)
+  if (modalShowingPicker && !editing) {
+    formEl.innerHTML =
+      '<div class="modal-course-picker">' +
+        '<div style="font-size:11px;font-weight:700;color:var(--text-secondary);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">Select a course</div>' +
+        courses.map((c) =>
+          '<button type="button" class="course-pick-btn" data-course="' + esc(c.name) + '" style="border-left:3px solid ' + esc(c.color || '#8b5cf6') + '">' +
+            '<span class="cpb-name">' + esc(c.name) + '</span>' +
+          '</button>'
+        ).join('') +
+      '</div>';
+    formEl.querySelectorAll('.course-pick-btn').forEach((btn) => {
+      btn.addEventListener('click', function(this: HTMLElement) {
+        modalCourse = this.getAttribute('data-course') || null;
+        modalShowingPicker = false;
+        renderModal();
+      });
+    });
+    updateModalTabs();
+    return;
+  }
+
+  const course = modalCourse || (courses.length === 1 ? courses[0].name : null) || '';
+  const it = editing;
+  const tab = activeTab || 'add';
+
+  if (tab === 'import') {
+    formEl.innerHTML =
+      '<div class="import-mode-toggle" style="display:flex;gap:6px;margin-bottom:10px;">' +
+        '<button type="button" class="imp-mode-btn ' + (importFormat === 'json' ? 'active' : '') + '" data-fmt="json">JSON</button>' +
+        '<button type="button" class="imp-mode-btn ' + (importFormat === 'qa' ? 'active' : '') + '" data-fmt="qa">Q/A Text</button>' +
+      '</div>' +
+      '<div id="importModeHint" style="font-size:10px;color:var(--text-secondary);margin-bottom:8px;">' +
+        (importFormat === 'qa' ? 'Format: Q: question<br>A: answer<br>T: topic (optional)' : 'Paste a JSON array of card objects') +
+      '</div>' +
+      '<textarea id="m_import" class="modal-ta" rows="8" placeholder="' + (importFormat === 'qa' ? 'Q: What is X?\nA: X is...\nT: Topic' : '[{"prompt":"...","modelAnswer":"...","course":"' + esc(course) + '"}]') + '"></textarea>' +
+      '<div id="importPreviewArea" style="margin-top:8px;"></div>' +
+      '<div style="display:flex;gap:8px;margin-top:10px;">' +
+        '<button type="button" class="big-btn" id="modalSaveBtn">Preview Import</button>' +
+      '</div>';
+
+    formEl.querySelectorAll('.imp-mode-btn').forEach((btn) => {
+      btn.addEventListener('click', function(this: HTMLElement) {
+        importFormat = (this.getAttribute('data-fmt') as 'json' | 'qa') || 'json';
+        updateImportModeUI(true);
+      });
+    });
+    formEl.querySelector('#modalSaveBtn')?.addEventListener('click', () => addFromModal());
+    updateModalTabs();
+    return;
+  }
+
+  // Add/Edit tab
+  const promptVal = it ? esc(it.prompt || '') : '';
+  const answerVal = it ? esc(it.modelAnswer || '') : '';
+  const topicVal = it ? esc(it.topic || '') : '';
+  const subDeckVal = it ? esc(it.subDeck || '') : '';
+  const priorityVal = it ? (it.priority || 'medium') : 'medium';
+  const scenarioVal = it ? esc(it.scenario || '') : '';
+  const taskVal = it ? esc(it.task || '') : '';
+  const conceptAVal = it ? esc(it.conceptA || '') : '';
+  const conceptBVal = it ? esc(it.conceptB || '') : '';
+  const timeVal = it ? (it.timeLimitMins || 0) : 0;
+
+  formEl.innerHTML =
+    (course ? '<div class="modal-course-label" style="font-size:10px;font-weight:700;color:var(--text-secondary);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px;">Course: <span style="color:var(--accent)">' + esc(course) + '</span></div>' : '') +
+    '<div class="form-row">' +
+      '<label class="form-label">Question / Prompt *</label>' +
+      '<textarea id="m_prompt" class="modal-ta" rows="3" placeholder="What is...">' + promptVal + '</textarea>' +
+    '</div>' +
+    '<div class="form-row">' +
+      '<label class="form-label">Model Answer *</label>' +
+      '<textarea id="m_answer" class="modal-ta" rows="4" placeholder="The answer is...">' + answerVal + '</textarea>' +
+    '</div>' +
+    '<div class="form-row-2col">' +
+      '<div class="form-row">' +
+        '<label class="form-label">Topic</label>' +
+        '<input id="m_topic" class="modal-input" type="text" value="' + topicVal + '" placeholder="e.g. Chapter 3" autocomplete="off">' +
+        '<div id="topicSuggestions" class="chip-row" style="display:none;margin-top:4px;flex-wrap:wrap;gap:4px;"></div>' +
+      '</div>' +
+      '<div class="form-row">' +
+        '<label class="form-label">Sub-deck</label>' +
+        '<input id="m_subDeck" class="modal-input" type="text" value="' + subDeckVal + '" placeholder="Optional group" autocomplete="off">' +
+      '</div>' +
+    '</div>' +
+    '<div class="form-row">' +
+      '<label class="form-label">Priority</label>' +
+      '<select id="m_priority" class="modal-input">' +
+        ['critical','high','medium','low'].map((p) => '<option value="' + p + '"' + (priorityVal === p ? ' selected' : '') + '>' + p.charAt(0).toUpperCase() + p.slice(1) + '</option>').join('') +
+      '</select>' +
+    '</div>' +
+    '<details class="advanced-fields" style="margin-top:8px;">' +
+      '<summary style="font-size:10px;font-weight:700;color:var(--text-secondary);cursor:pointer;user-select:none;text-transform:uppercase;letter-spacing:1px;">Advanced Fields</summary>' +
+      '<div style="padding-top:8px;">' +
+        '<div class="form-row">' +
+          '<label class="form-label">Scenario (Apply tier)</label>' +
+          '<textarea id="m_scenario" class="modal-ta" rows="2" placeholder="You are a doctor...">' + scenarioVal + '</textarea>' +
+        '</div>' +
+        '<div class="form-row">' +
+          '<label class="form-label">Task (Apply tier)</label>' +
+          '<textarea id="m_task" class="modal-ta" rows="2" placeholder="Diagnose the patient...">' + taskVal + '</textarea>' +
+        '</div>' +
+        '<div class="form-row-2col">' +
+          '<div class="form-row">' +
+            '<label class="form-label">Concept A (Distinguish)</label>' +
+            '<input id="m_conceptA" class="modal-input" type="text" value="' + conceptAVal + '" placeholder="Concept A">' +
+          '</div>' +
+          '<div class="form-row">' +
+            '<label class="form-label">Concept B (Distinguish)</label>' +
+            '<input id="m_conceptB" class="modal-input" type="text" value="' + conceptBVal + '" placeholder="Concept B">' +
+          '</div>' +
+        '</div>' +
+        '<div class="form-row">' +
+          '<label class="form-label">Time Limit (Mock tier)</label>' +
+          '<select id="m_time" class="modal-input">' +
+            '<option value="0"' + (!timeVal ? ' selected' : '') + '>None</option>' +
+            [5,10,15,30].map((t) => '<option value="' + t + '"' + (timeVal === t ? ' selected' : '') + '>' + t + ' min</option>').join('') +
+          '</select>' +
+        '</div>' +
+      '</div>' +
+    '</details>' +
+    '<div id="tierBadgeArea" style="margin-top:8px;"></div>' +
+    '<div style="display:flex;gap:8px;margin-top:14px;">' +
+      '<button type="button" class="big-btn" id="modalSaveBtn">' + (it ? 'Save Changes' : 'Add Card') + '</button>' +
+      (!it ? '<button type="button" class="mini-btn" id="modalSaveStayBtn">Add &amp; Stay</button>' : '') +
+      (it ? '<button type="button" class="mini-btn danger" id="modalDeleteBtn">Delete</button>' : '') +
+    '</div>';
+
+  // Wire buttons
+  formEl.querySelector('#modalSaveBtn')?.addEventListener('click', () => addFromModal());
+  formEl.querySelector('#modalSaveStayBtn')?.addEventListener('click', () => addFromModal(true));
+  if (it) {
+    formEl.querySelector('#modalDeleteBtn')?.addEventListener('click', () => deleteEditedItem(it.id));
+  }
+
+  // Topic suggestions
+  if (course) {
+    renderTopicSuggestions('m_topic', course, 'topicSuggestions');
+    const topicInput = el('m_topic') as HTMLInputElement | null;
+    topicInput?.addEventListener('input', () => {
+      renderTopicSuggestions('m_topic', course, 'topicSuggestions');
+    });
+  }
+
+  // Tier badge preview on input change
+  const updateBadge = () => {
+    const p = (el('m_prompt') as HTMLTextAreaElement | null)?.value || '';
+    const a = (el('m_answer') as HTMLTextAreaElement | null)?.value || '';
+    if (!p || !a) return;
+    const fake: Partial<StudyItem> = {
+      id: 'preview', prompt: p, modelAnswer: a,
+      scenario: (el('m_scenario') as HTMLTextAreaElement | null)?.value || undefined,
+      task: (el('m_task') as HTMLTextAreaElement | null)?.value || undefined,
+      conceptA: (el('m_conceptA') as HTMLInputElement | null)?.value || undefined,
+      conceptB: (el('m_conceptB') as HTMLInputElement | null)?.value || undefined,
+      timeLimitMins: parseInt((el('m_time') as HTMLSelectElement | null)?.value || '0') || undefined
+    };
+    const supported = detectSupportedTiers(fake as StudyItem);
+    const badgeArea = el('tierBadgeArea');
+    if (badgeArea) badgeArea.innerHTML = tierSupportBadgeHTML(supported);
+  };
+  ['m_prompt','m_answer','m_scenario','m_task','m_conceptA','m_conceptB','m_time'].forEach((id) => {
+    el(id)?.addEventListener(id === 'm_time' ? 'change' : 'input', updateBadge);
+  });
+  if (it) updateBadge();
+
+  updateModalTabs();
+}
+
+/**
+ * Update the modal tab bar to match activeTab
+ */
+function updateModalTabs(): void {
+  const tabs = document.getElementById('modalTabs');
+  if (!tabs) return;
+  tabs.querySelectorAll('[data-tab]').forEach((t) => {
+    if (t.getAttribute('data-tab') === activeTab) {
+      t.classList.add('active');
+    } else {
+      t.classList.remove('active');
+    }
+  });
+}
+
+/**
+ * Switch modal tab and re-render
+ */
+function switchModalTab(tab: string): void {
+  activeTab = tab;
+  renderModal();
+}
+
+/**
+ * Update import mode UI (toggle JSON/QA hints)
+ */
+function updateImportModeUI(animate: boolean): void {
+  const hint = el('importModeHint');
+  const ta = el('m_import') as HTMLTextAreaElement | null;
+  const btns = document.querySelectorAll('.imp-mode-btn');
+  btns.forEach((b) => {
+    if (b.getAttribute('data-fmt') === importFormat) b.classList.add('active');
+    else b.classList.remove('active');
+  });
+  if (hint) {
+    hint.innerHTML = importFormat === 'qa'
+      ? 'Format: Q: question<br>A: answer<br>T: topic (optional)'
+      : 'Paste a JSON array of card objects';
+  }
+  if (ta) {
+    ta.placeholder = importFormat === 'qa'
+      ? 'Q: What is X?\nA: X is...\nT: Topic'
+      : '[{"prompt":"...","modelAnswer":"...","course":"' + (modalCourse || '') + '"}]';
+  }
+  if (animate && (window as unknown as { gsap?: typeof gsap }).gsap && hint) {
+    (window as unknown as { gsap: typeof gsap }).gsap.fromTo(hint, { opacity: 0, y: 4 }, { opacity: 1, y: 0, duration: 0.2 });
+  }
+}
 
 /**
  * Open card modal
@@ -466,6 +676,7 @@ if (typeof window !== 'undefined') {
   const win = window as unknown as Record<string, unknown>;
   win.openModal = openModal;
   win.closeModal = closeModal;
+  win.switchModalTab = switchModalTab;
   win.detectImportMode = detectImportMode;
   win.parseQaImport = parseQaImport;
   win.getTierUnlockMessage = getTierUnlockMessage;
