@@ -20,7 +20,7 @@ import { listCourses, saveCourse, deleteCourse, getCourse, getCourseExamType } f
 import { esc } from './utils';
 import './state';
 import './signals';
-import { saveState, settings as appSettings, COURSE_COLORS, EXAM_TYPE_LABELS } from './state';
+import { loadState, saveState, state as legacyState, settings as appSettings, COURSE_COLORS, EXAM_TYPE_LABELS } from './state';
 
 // Preact
 import { h, render } from 'preact';
@@ -37,11 +37,10 @@ w.resumeSavedSession = (snap: unknown) => {
   currentView.value = 'session';
 };
 w.renderDashboard = () => {
-  // Sync global state → signals so Preact re-renders
-  const st = (w as any).state;
-  if (st) {
-    if (st.items) items.value = { ...st.items };
-    if (st.courses) courses.value = { ...st.courses };
+  // Sync legacy state → signals so Preact re-renders
+  if (legacyState) {
+    if (legacyState.items) items.value = { ...legacyState.items };
+    if (legacyState.courses) courses.value = { ...legacyState.courses };
   }
 };
 
@@ -76,6 +75,31 @@ if (!w.openCourseDetail) {
 if (!w.updateBreadcrumb) w.updateBreadcrumb = () => {};
 if (!w.applySidebarFilter) w.applySidebarFilter = () => {};
 if (!w.reconcileStats) w.reconcileStats = () => {};
+
+// Session resume stubs
+if (!w.checkForResumableSession) {
+  w.checkForResumableSession = () => {
+    try {
+      const SE = (window as any).SyncEngine;
+      if (SE) {
+        const snap = SE.get('studyengine', 'activeSession');
+        if (snap && typeof snap === 'object' && (snap as any).queue?.length) {
+          const remaining = (snap as any).queue.length - ((snap as any).index || 0);
+          return { ...snap as object, _remaining: remaining };
+        }
+      }
+    } catch (e) {}
+    return null;
+  };
+}
+if (!w.clearActiveSessionSnapshot) {
+  w.clearActiveSessionSnapshot = () => {
+    try {
+      const SE = (window as any).SyncEngine;
+      if (SE) SE.set('studyengine', 'activeSession', null);
+    } catch (e) {}
+  };
+}
 
 // ── Wire cards.ts dependency injection ─────────────────────────
 setOpenCourseModal(() => (w.openCourseModal as (() => void) | undefined)?.());
@@ -133,6 +157,11 @@ function mountApp() {
     (w.addFromModal as ((stay: boolean) => void) | undefined)?.(true);
   });
 
+  // Wire doneBtn (Add Card modal Done = add and close)
+  document.getElementById('doneBtn')?.addEventListener('click', () => {
+    (w.addFromModal as ((stay?: boolean) => void) | undefined)?.();
+  });
+
   // Render course modal when opened
   document.getElementById('courseOv')?.addEventListener('click', (e) => {
     if (e.target === document.getElementById('courseOv')) closeOverlay('courseOv');
@@ -160,6 +189,71 @@ function mountApp() {
   };
 
   // switchModalTab is already exposed by cards.ts via window.switchModalTab
+
+  // Wire settings tab switching
+  document.querySelectorAll('.settings-tab[data-settings-tab]').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      const t = tab.getAttribute('data-settings-tab');
+      document.querySelectorAll('.settings-tab').forEach(tt => {
+        tt.classList.remove('active');
+        (tt as HTMLElement).style.background = 'transparent';
+        (tt as HTMLElement).style.color = 'var(--text-secondary)';
+      });
+      tab.classList.add('active');
+      (tab as HTMLElement).style.background = 'rgba(var(--accent-rgb),0.18)';
+      (tab as HTMLElement).style.color = 'var(--text)';
+      document.querySelectorAll('.settings-tab-panel').forEach(p => (p as HTMLElement).style.display = 'none');
+      if (t === 'general') {
+        const gp = document.getElementById('settingsTabGeneral');
+        if (gp) gp.style.display = '';
+      } else if (t === 'data') {
+        const dp = document.getElementById('settingsTabData');
+        if (dp) dp.style.display = '';
+      }
+    });
+  });
+
+  // Wire settings Data tab buttons
+  document.getElementById('showDataBtn')?.addEventListener('click', () => {
+    const area = document.getElementById('showDataArea');
+    const ta = document.getElementById('showDataText') as HTMLTextAreaElement | null;
+    if (area && ta) {
+      area.style.display = area.style.display === 'none' ? '' : 'none';
+      try {
+        const SE = (window as any).SyncEngine;
+        const data = {
+          items: SE?.get('studyengine', 'items') || {},
+          courses: SE?.get('studyengine', 'courses') || {},
+          subDecks: SE?.get('studyengine', 'subDecks') || {},
+          calibration: SE?.get('studyengine', 'calibration') || {},
+          stats: SE?.get('studyengine', 'stats') || {},
+          settings: SE?.get('studyengine', 'settings') || {}
+        };
+        ta.value = JSON.stringify(data, null, 2);
+      } catch (e) { ta.value = 'Error exporting data'; }
+    }
+  });
+  document.getElementById('restoreDataBtn')?.addEventListener('click', () => {
+    const ta = document.getElementById('pasteDataText') as HTMLTextAreaElement | null;
+    const status = document.getElementById('restoreStatus');
+    if (!ta) return;
+    try {
+      const data = JSON.parse(ta.value);
+      const SE = (window as any).SyncEngine;
+      if (!SE) { if (status) status.textContent = 'SyncEngine not available'; return; }
+      let count = 0;
+      if (data.items && typeof data.items === 'object') { SE.set('studyengine', 'items', data.items); count++; }
+      if (data.courses && typeof data.courses === 'object') { SE.set('studyengine', 'courses', data.courses); count++; }
+      if (data.subDecks) { SE.set('studyengine', 'subDecks', data.subDecks); count++; }
+      if (data.calibration) { SE.set('studyengine', 'calibration', data.calibration); count++; }
+      if (data.stats) { SE.set('studyengine', 'stats', data.stats); count++; }
+      if (data.settings) { SE.set('studyengine', 'settings', data.settings); count++; }
+      if (status) status.textContent = 'Restored ' + count + ' data sections. Reload recommended.';
+      (w.toast as ((m: string) => void) | undefined)?.('Data restored — reload page');
+    } catch (e) {
+      if (status) status.textContent = 'Invalid JSON';
+    }
+  });
 
   // Wire legacy dashboard action buttons
   document.getElementById('addBtn')?.addEventListener('click', () => {
@@ -411,22 +505,25 @@ document.addEventListener('DOMContentLoaded', () => {
   if (SE && typeof SE.onReady === 'function') {
     // SyncEngine has onReady — wait for data to load
     SE.onReady(() => {
-      hydrateFromSync();
+      loadState();          // populate legacy state/settings
+      hydrateFromSync();    // populate Preact signals
       mountApp();
     });
     // Safety: if onReady never fires within 3s, mount anyway
     setTimeout(() => {
       if (!document.getElementById('preact-root')?.children.length) {
+        loadState();
         hydrateFromSync();
         mountApp();
       }
     }, 3000);
   } else {
     // No onReady — try hydrating now, retry after delay
+    loadState();
     hydrateFromSync();
     mountApp();
     // Re-hydrate after SyncEngine likely finishes
-    setTimeout(() => { hydrateFromSync(); }, 1500);
+    setTimeout(() => { loadState(); hydrateFromSync(); }, 1500);
   }
 });
 
