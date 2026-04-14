@@ -4,46 +4,73 @@
  */
 
 import { el, esc, uid, isoNow, toast, tierLabel, generateVisual } from './utils';
-import { saveState, tierSupportBadgeHTML } from './state';
+import { saveState, tierSupportBadgeHTML, state as appState } from './state';
 import { saveCourse } from './courses';
 import type { StudyItem, Course } from './types';
 
-// Global dependencies
-declare const state: {
-  items: Record<string, StudyItem>;
-  courses: Record<string, Course>;
-  subDecks: Record<string, { subDecks: Record<string, { archived?: boolean; cardCount?: number }> }>;
-};
-declare const modalOv: HTMLElement;
-declare let editingItemId: string | null;
-declare let modalEditAfterSave: ((item: StudyItem | null) => void) | null;
-declare let importFormat: 'json' | 'qa';
-declare let activeTab: string;
-declare let modalCourse: string | null;
-declare let modalShowingPicker: boolean;
-declare let pendingImport: StudyItem[] | null;
-
-// Helper functions (globals from other modules)
-declare function reconcileStats(): void;
-declare function renderDashboard(): void;
-declare function renderModal(): void;
-declare function renderTopicSuggestions(inputId: string, courseName: string | null, containerId: string): void;
-declare function listCourses(): Course[];
-declare function getSubDeck(course: string, subDeck: string): { archived?: boolean } | null;
-declare function createSubDeck(course: string, subDeck: string): void;
-declare function recountSubDeck(course: string, subDeck: string): void;
-declare function detectSupportedTiers(item: StudyItem): string[];
-declare function openCourseModal(): void;
-declare function openCourseDetail(course: string): void;
-declare function maybeAutoPrepare(course: string): void;
+// External CDN globals (keep as declare)
 declare function playOpen(): void;
 declare function playClose(): void;
 declare function playError(): void;
 declare function playPresetSelect(): void;
 declare function updateImportModeUI(animate: boolean): void;
-
-// Core global
 declare const Core: { a11y?: { trap?: (el: HTMLElement) => void } };
+
+// Lazy getters for DOM globals
+function getModalOv(): HTMLElement {
+  return document.getElementById('modalOverlay')!;
+}
+
+// Module-level mutable state (actual definitions, not just declares)
+let editingItemId: string | null = null;
+let modalEditAfterSave: ((item: StudyItem | null) => void) | null = null;
+let importFormat: 'json' | 'qa' = 'json';
+let activeTab = 'add';
+let modalCourse: string | null = null;
+let modalShowingPicker = false;
+let pendingImport: StudyItem[] | null = null;
+
+// Helper function stubs (will be injected by other modules)
+let reconcileStatsImpl: () => void = () => {};
+let renderDashboardImpl: () => void = () => {};
+let renderModalImpl: () => void = () => {};
+let renderTopicSuggestionsImpl: (inputId: string, courseName: string | null, containerId: string) => void = () => {};
+let listCoursesImpl: () => Course[] = () => [];
+let getSubDeckImpl: (course: string, subDeck: string) => { archived?: boolean } | null = () => null;
+let createSubDeckImpl: (course: string, subDeck: string) => void = () => {};
+let recountSubDeckImpl: (course: string, subDeck: string) => void = () => {};
+let detectSupportedTiersImpl: (item: StudyItem) => string[] = () => [];
+let openCourseModalImpl: () => void = () => {};
+let openCourseDetailImpl: (course: string) => void = () => {};
+let maybeAutoPrepareImpl: (course: string) => void = () => {};
+
+// Export setters for dependency injection
+export function setReconcileStats(fn: () => void) { reconcileStatsImpl = fn; }
+export function setRenderDashboard(fn: () => void) { renderDashboardImpl = fn; }
+export function setRenderModal(fn: () => void) { renderModalImpl = fn; }
+export function setRenderTopicSuggestions(fn: (inputId: string, courseName: string | null, containerId: string) => void) { renderTopicSuggestionsImpl = fn; }
+export function setListCourses(fn: () => Course[]) { listCoursesImpl = fn; }
+export function setGetSubDeck(fn: (course: string, subDeck: string) => { archived?: boolean } | null) { getSubDeckImpl = fn; }
+export function setCreateSubDeck(fn: (course: string, subDeck: string) => void) { createSubDeckImpl = fn; }
+export function setRecountSubDeck(fn: (course: string, subDeck: string) => void) { recountSubDeckImpl = fn; }
+export function setDetectSupportedTiers(fn: (item: StudyItem) => string[]) { detectSupportedTiersImpl = fn; }
+export function setOpenCourseModal(fn: () => void) { openCourseModalImpl = fn; }
+export function setOpenCourseDetail(fn: (course: string) => void) { openCourseDetailImpl = fn; }
+export function setMaybeAutoPrepare(fn: (course: string) => void) { maybeAutoPrepareImpl = fn; }
+
+// Local wrapper functions
+function reconcileStats(): void { reconcileStatsImpl(); }
+function renderDashboard(): void { renderDashboardImpl(); }
+function renderModal(): void { renderModalImpl(); }
+function renderTopicSuggestions(inputId: string, courseName: string | null, containerId: string): void { renderTopicSuggestionsImpl(inputId, courseName, containerId); }
+function listCourses(): Course[] { return listCoursesImpl(); }
+function getSubDeck(course: string, subDeck: string): { archived?: boolean } | null { return getSubDeckImpl(course, subDeck); }
+function createSubDeck(course: string, subDeck: string): void { createSubDeckImpl(course, subDeck); }
+function recountSubDeck(course: string, subDeck: string): void { recountSubDeckImpl(course, subDeck); }
+function detectSupportedTiers(item: StudyItem): string[] { return detectSupportedTiersImpl(item); }
+function openCourseModal(): void { openCourseModalImpl(); }
+function openCourseDetail(course: string): void { openCourseDetailImpl(course); }
+function maybeAutoPrepare(course: string): void { maybeAutoPrepareImpl(course); }
 
 /**
  * Open card modal
@@ -74,6 +101,7 @@ function openModal(tab?: string, courseName?: string): void {
     }
   }
 
+  const modalOv = getModalOv();
   modalOv.classList.add('show');
   modalOv.setAttribute('aria-hidden','false');
   renderModal();
@@ -85,6 +113,7 @@ function openModal(tab?: string, courseName?: string): void {
  * Close card modal
  */
 function closeModal(): void {
+  const modalOv = getModalOv();
   modalOv.classList.remove('show');
   modalOv.setAttribute('aria-hidden','true');
   pendingImport = null;
@@ -206,7 +235,7 @@ function getTierUnlockMessage(beforeTiers: string[], afterTiers: string[]): stri
  * Save edited item
  */
 function saveEditedItem(itemId: string): void {
-  const it = state.items[itemId];
+  const it = appState?.items?.[itemId];
   if (!it) { toast('Card not found'); closeModal(); return; }
 
   const prompt = ((el('m_prompt') as HTMLTextAreaElement | null)?.value || '').trim();
@@ -241,7 +270,7 @@ function saveEditedItem(itemId: string): void {
 
   if (beforePrompt !== prompt || beforeAnswer !== answer) it.visual = undefined;
 
-  state.items[itemId] = it;
+  if (appState?.items) appState.items[itemId] = it;
   saveState();
   renderDashboard();
 
@@ -262,9 +291,9 @@ function saveEditedItem(itemId: string): void {
  * Delete edited item
  */
 function deleteEditedItem(itemId: string): void {
-  if (!state.items[itemId]) return;
+  if (!appState?.items?.[itemId]) return;
   if (!window.confirm('Delete this card permanently?')) return;
-  delete state.items[itemId];
+  if (appState?.items) delete appState.items[itemId];
   reconcileStats();
   saveState();
   renderDashboard();
@@ -278,7 +307,7 @@ function deleteEditedItem(itemId: string): void {
  * Edit item
  */
 function editItem(itemId: string, opts?: { onSave?: (item: StudyItem | null) => void }): void {
-  const it = state.items[itemId];
+  const it = appState?.items?.[itemId];
   if (!it) { toast('Card not found'); return; }
   opts = opts || {};
   activeTab = 'add';
@@ -286,6 +315,7 @@ function editItem(itemId: string, opts?: { onSave?: (item: StudyItem | null) => 
   modalEditAfterSave = typeof opts.onSave === 'function' ? opts.onSave : null;
   modalCourse = it.course || null;
   modalShowingPicker = false;
+  const modalOv = getModalOv();
   modalOv.classList.add('show');
   modalOv.setAttribute('aria-hidden','false');
   renderModal();
@@ -294,7 +324,9 @@ function editItem(itemId: string, opts?: { onSave?: (item: StudyItem | null) => 
 }
 
 // Attach to window
-(window as unknown as { editCard: typeof editItem }).editCard = editItem;
+if (typeof window !== 'undefined') {
+  (window as unknown as { editCard: typeof editItem }).editCard = editItem;
+}
 
 /**
  * Add card from modal
@@ -315,7 +347,7 @@ function addFromModal(stayOpen?: boolean): void {
   if (!course) { toast('No course selected'); return; }
 
   // Auto-create course if somehow missing (safety net)
-  if (!state.courses[course]) {
+  if (!appState?.courses?.[course]) {
     saveCourse({
       name: course,
       examType: 'mixed',
@@ -367,7 +399,7 @@ function addFromModal(stayOpen?: boolean): void {
   // For backward compat: set tier if only basic fields (manual mode users can override)
   // Not setting tier — let the session builder assign dynamically
 
-  state.items[it.id] = it;
+  if (appState?.items) appState.items[it.id] = it;
   saveState();
   if (subDeck && !getSubDeck(course, subDeck)) {
     createSubDeck(course, subDeck);
@@ -379,7 +411,7 @@ function addFromModal(stayOpen?: boolean): void {
   generateVisual(it).then((visual) => {
     if (visual) {
       it.visual = visual;
-      state.items[it.id] = it;
+      if (appState?.items) appState.items[it.id] = it;
       saveState();
       renderDashboard();
     }
@@ -430,17 +462,16 @@ function doImport(): void {
 }
 
 // Attach to window for .js consumers
-const win = window as unknown as Record<string, unknown>;
-
-win.openModal = openModal;
-win.closeModal = closeModal;
-win.detectImportMode = detectImportMode;
-win.parseQaImport = parseQaImport;
-win.getTierUnlockMessage = getTierUnlockMessage;
-win.saveEditedItem = saveEditedItem;
-win.deleteEditedItem = deleteEditedItem;
-win.editItem = editItem;
-win.addFromModal = addFromModal;
-win.doImport = doImport;
-
-export {};
+if (typeof window !== 'undefined') {
+  const win = window as unknown as Record<string, unknown>;
+  win.openModal = openModal;
+  win.closeModal = closeModal;
+  win.detectImportMode = detectImportMode;
+  win.parseQaImport = parseQaImport;
+  win.getTierUnlockMessage = getTierUnlockMessage;
+  win.saveEditedItem = saveEditedItem;
+  win.deleteEditedItem = deleteEditedItem;
+  win.editItem = editItem;
+  win.addFromModal = addFromModal;
+  win.doImport = doImport;
+}

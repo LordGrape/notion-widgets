@@ -4,31 +4,42 @@
  */
 
 import { retrievability } from './fsrs';
+import { state as appState, settings as appSettings } from './state';
 import type { StudyItem, CalibrationData } from './types';
 
-// Global dependencies
-declare const isEmbedded: boolean;
-declare const state: {
-  items: Record<string, StudyItem>;
-  courses: Record<string, { archived?: boolean }>;
-};
-declare const settings: { ttsVoice?: string };
-declare const ICONS: Record<string, string>;
-declare const session: { queue: StudyItem[]; idx: number; currentShown?: boolean } | null;
-declare const modelAnswerEl: HTMLElement | null;
-declare const viewDash: HTMLElement;
-declare const viewSession: HTMLElement;
-declare const viewDone: HTMLElement;
-declare const activeNav: string;
-export const visualGenerationPending: Record<string, boolean> = {};
-
-// Helper functions (globals from this module or others)
-export function el(id: string): HTMLElement | null {
-  return document.getElementById(id);
-}
+// External CDN globals (keep as declare)
 declare function saveState(): void;
 declare function isItemInArchivedSubDeck(item: StudyItem): boolean;
 declare function switchNav(nav: string): void;
+
+// Lazy getters for DOM-dependent globals
+function getIsEmbedded(): boolean {
+  return typeof window !== 'undefined' && window.self !== window.top;
+}
+function getSession(): { queue: StudyItem[]; idx: number; currentShown?: boolean } | null {
+  return (window as unknown as { session?: { queue: StudyItem[]; idx: number; currentShown?: boolean } | null }).session || null;
+}
+function getModelAnswerEl(): HTMLElement | null {
+  return document.getElementById('modelAnswer');
+}
+function getViewDash(): HTMLElement {
+  return document.getElementById('viewDash')!;
+}
+function getViewSession(): HTMLElement {
+  return document.getElementById('viewSession')!;
+}
+function getViewDone(): HTMLElement {
+  return document.getElementById('viewDone')!;
+}
+function getActiveNav(): string {
+  return (window as unknown as { activeNav?: string }).activeNav || 'dashboard';
+}
+
+// Helper functions
+export function el(id: string): HTMLElement | null {
+  return document.getElementById(id);
+}
+export const visualGenerationPending: Record<string, boolean> = {};
 /**
  * Clamp number between min and max
  */
@@ -36,14 +47,15 @@ export function clamp(n: number, min: number, max: number): number {
   return Math.min(Math.max(n, min), max);
 }
 
-// Audio functions from core.js
+// Audio functions from core.js (keep as declare - external CDN)
 declare function playOpen(): void;
 declare function playClose(): void;
+declare function playClick(): void;
 
-// DOM globals
-declare const document: Document;
-declare const window: Window & typeof globalThis;
-declare const console: Console;
+// Default ICONS (can be overridden by HTML shell)
+const ICONS: Record<string, string> = (typeof window !== 'undefined' && (window as unknown as { ICONS?: Record<string, string> }).ICONS)
+  ? (window as unknown as { ICONS: Record<string, string> }).ICONS
+  : {};
 
 // Module-local state
 let toastEl: HTMLDivElement | null = null;
@@ -537,9 +549,12 @@ function ensureAnswerVisual(it: StudyItem, revealTier: string): void {
     visualGenerationPending[it.id] = false;
     if (!visual) return;
     it.visual = visual;
-    state.items[it.id] = it;
+    if (appState && appState.items) {
+      appState.items[it.id] = it;
+    }
     saveState();
 
+    const session = getSession();
     if (!session) return;
     const current = session.queue[session.idx];
     if (!current || current.id !== it.id) return;
@@ -547,7 +562,9 @@ function ensureAnswerVisual(it: StudyItem, revealTier: string): void {
     if (currentTier !== revealTier) return;
 
     if (currentTier === 'quickfire') {
-      if (session.currentShown && modelAnswerEl && modelAnswerEl.style.display !== 'none' && !modelAnswerEl.querySelector('.visual-container')) {
+      const modelAnswerEl = getModelAnswerEl();
+      const sessionObj = getSession();
+      if (sessionObj?.currentShown && modelAnswerEl && modelAnswerEl.style.display !== 'none' && !modelAnswerEl.querySelector('.visual-container')) {
         modelAnswerEl.insertAdjacentHTML('beforeend', renderMermaidBlock(visual, 'answer', it.id));
         setTimeout(initMermaidBlocks, 50);
       }
@@ -690,7 +707,7 @@ function setTierBadge(tier: string): void {
  * Switch to a different view
  */
 function showView(nextId: string): void {
-  const views = [viewDash, viewSession, viewDone];
+  const views = [getViewDash(), getViewSession(), getViewDone()];
   const next = el(nextId);
   // Clean up any stale calendar heatmap tooltips
   document.querySelectorAll('.cal-heatmap-tooltip').forEach((t) => { t.remove(); });
@@ -698,6 +715,7 @@ function showView(nextId: string): void {
   next?.classList.add('active');
 
   // Standalone: session mode collapses sidebar
+  const isEmbedded = getIsEmbedded();
   if (!isEmbedded) {
     if (nextId === 'viewSession' || nextId === 'viewDone') document.body.classList.add('in-session');
     else if (nextId === 'viewDash') document.body.classList.remove('in-session');
@@ -725,7 +743,7 @@ function showView(nextId: string): void {
 
   // When returning to dashboard, restore the active tab
   if (nextId === 'viewDash') {
-    switchNav(activeNav);
+    switchNav(getActiveNav());
   }
 
   if ((window as unknown as { gsap?: typeof gsap }).gsap) {
@@ -907,9 +925,9 @@ export function renderMd(text: string): string {
 }
 
 // Attach to window for .js consumers
-const win = window as unknown as Record<string, unknown>;
-
-win.uid = uid;
+if (typeof window !== 'undefined') {
+  const win = window as unknown as Record<string, unknown>;
+  win.uid = uid;
 win.esc = esc;
 win.getWidgetKey = getWidgetKey;
 win.playTTS = playTTS;
@@ -946,5 +964,4 @@ win.sidebarSelection = sidebarSelection;
 win.sidebarExpanded = sidebarExpanded;
 win.visualGenerationPending = visualGenerationPending;
 win.mermaidIdCounter = mermaidIdCounter;
-
-export {};
+}

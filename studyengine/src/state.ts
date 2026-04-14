@@ -6,11 +6,9 @@
 
 import type { StudyItem, Course, AppState, Settings, CalibrationData, Stats } from './types';
 
-// Global declarations for this module
-declare const window: Window & typeof globalThis;
-declare const document: Document;
+// External CDN globals (keep as declare)
 declare const SyncEngine: {
-  init: (opts: { worker: string; namespaces: string[] }) => Promise<void>;
+  init: (opts: { worker?: string; namespaces?: string[] }) => Promise<void>;
   get: (ns: string, key: string) => unknown;
   set: (ns: string, key: string, val: unknown) => void;
 };
@@ -19,6 +17,25 @@ declare const Core: {
   isDark: boolean;
 };
 declare function initBackground(canvasId: string, options: Record<string, unknown>): void;
+
+// Internal imports (will be set up after all modules load)
+let isoNowImpl: () => string = () => new Date().toISOString();
+let saveCourseImpl: (course: Course) => void = () => {};
+let migrateCoursesPhase6Impl: () => void = () => {};
+let tierLabelImpl: (tier: string) => string = (t) => t;
+let tierColourImpl: (tier: string) => string = () => '#8b5cf6';
+let toastImpl: (msg: string) => void = () => {};
+let detectSupportedTiersImpl: (item: StudyItem) => string[] = () => ['quickfire'];
+let reconcileStatsImpl: () => void = () => {};
+
+export function setIsoNow(fn: () => string) { isoNowImpl = fn; }
+export function setSaveCourse(fn: (course: Course) => void) { saveCourseImpl = fn; }
+export function setMigrateCoursesPhase6(fn: () => void) { migrateCoursesPhase6Impl = fn; }
+export function setTierLabel(fn: (tier: string) => string) { tierLabelImpl = fn; }
+export function setTierColour(fn: (tier: string) => string) { tierColourImpl = fn; }
+export function setToast(fn: (msg: string) => void) { toastImpl = fn; }
+export function setDetectSupportedTiers(fn: (item: StudyItem) => string[]) { detectSupportedTiersImpl = fn; }
+export function setReconcileStats(fn: () => void) { reconcileStatsImpl = fn; }
 
 // Worker endpoints
 const STUDYENGINE_WORKER_BASE = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine';
@@ -134,16 +151,16 @@ export let fsrsInstance: unknown = null;
 export let state: AppState | null = null;
 export let settings: Settings | null = null;
 
-// Helper functions from other modules
+// Helper functions from other modules (use injected implementations)
 export function deepClone<T>(obj: T): T { return JSON.parse(JSON.stringify(obj || {})); }
-declare function isoNow(): string;
-declare function saveCourse(course: Course): void;
-declare function migrateCoursesPhase6(): void;
-declare function tierLabel(tier: string): string;
-declare function tierColour(tier: string): string;
-declare function toast(msg: string): void;
-declare function detectSupportedTiers(item: StudyItem): string[];
-declare function reconcileStats(): void;
+function isoNow(): string { return isoNowImpl(); }
+function saveCourse(course: Course): void { return saveCourseImpl(course); }
+function migrateCoursesPhase6(): void { return migrateCoursesPhase6Impl(); }
+function tierLabel(tier: string): string { return tierLabelImpl(tier); }
+function tierColour(tier: string): string { return tierColourImpl(tier); }
+function toast(msg: string): void { return toastImpl(msg); }
+function detectSupportedTiers(item: StudyItem): string[] { return detectSupportedTiersImpl(item); }
+function reconcileStats(): void { return reconcileStatsImpl(); }
 
 /**
  * Get priority for an item
@@ -364,54 +381,57 @@ export function tierSupportBadgeHTML(tiers: string[]): string {
 }
 
 // Attach to window for .js consumers
-const win = window as unknown as Record<string, unknown>;
+if (typeof window !== 'undefined') {
+  const win = window as unknown as Record<string, unknown>;
+  win.NS = NS;
+  win.DEFAULT_STATE = DEFAULT_STATE;
+  win.DEFAULT_SETTINGS = DEFAULT_SETTINGS;
+  win.TIER_PROFILES = TIER_PROFILES;
+  win.CRAM_TIER_MOD = CRAM_TIER_MOD;
+  win.BLOOM_STABILITY_BONUS = BLOOM_STABILITY_BONUS;
+  win.PRIORITY_LEVELS = PRIORITY_LEVELS;
+  win.PRIORITY_LABELS = PRIORITY_LABELS;
+  win.PRIORITY_COLORS = PRIORITY_COLORS;
+  win.PRIORITY_WEIGHT = PRIORITY_WEIGHT;
+  win.CRAM_PRIORITY_BOOST = CRAM_PRIORITY_BOOST;
+  win.EXAM_TYPE_LABELS = EXAM_TYPE_LABELS;
+  win.COURSE_COLORS = COURSE_COLORS;
+  win.FSRS6_DEFAULT_DECAY = FSRS6_DEFAULT_DECAY;
+  win.DEFAULT_WEIGHTS = DEFAULT_WEIGHTS;
+  win.w = w;
+  win.fsrsInstance = fsrsInstance;
+  win.deepClone = deepClone;
+  win.getPriority = getPriority;
+  win.priorityWeight = priorityWeight;
+  win.priorityBadgeHTML = priorityBadgeHTML;
+  win.loadState = loadState;
+  win.saveState = saveState;
+  win.migrateItems = migrateItems;
+  win.migrateSubDecks = migrateSubDecks;
+  win.getPromotionCandidates = getPromotionCandidates;
+  win.promoteItemTier = promoteItemTier;
+  win.tierSupportBadgeHTML = tierSupportBadgeHTML;
+}
 
-win.NS = NS;
-win.DEFAULT_STATE = DEFAULT_STATE;
-win.DEFAULT_SETTINGS = DEFAULT_SETTINGS;
-win.TIER_PROFILES = TIER_PROFILES;
-win.CRAM_TIER_MOD = CRAM_TIER_MOD;
-win.BLOOM_STABILITY_BONUS = BLOOM_STABILITY_BONUS;
-win.PRIORITY_LEVELS = PRIORITY_LEVELS;
-win.PRIORITY_LABELS = PRIORITY_LABELS;
-win.PRIORITY_COLORS = PRIORITY_COLORS;
-win.PRIORITY_WEIGHT = PRIORITY_WEIGHT;
-win.CRAM_PRIORITY_BOOST = CRAM_PRIORITY_BOOST;
-win.EXAM_TYPE_LABELS = EXAM_TYPE_LABELS;
-win.COURSE_COLORS = COURSE_COLORS;
-win.FSRS6_DEFAULT_DECAY = FSRS6_DEFAULT_DECAY;
-win.DEFAULT_WEIGHTS = DEFAULT_WEIGHTS;
-win.w = w;
-win.fsrsInstance = fsrsInstance;
-win.deepClone = deepClone;
-win.getPriority = getPriority;
-win.priorityWeight = priorityWeight;
-win.priorityBadgeHTML = priorityBadgeHTML;
-win.loadState = loadState;
-win.saveState = saveState;
-win.migrateItems = migrateItems;
-win.migrateSubDecks = migrateSubDecks;
-win.getPromotionCandidates = getPromotionCandidates;
-win.promoteItemTier = promoteItemTier;
-win.tierSupportBadgeHTML = tierSupportBadgeHTML;
+// Initialize on load (only in browser)
+if (typeof window !== 'undefined') {
+  const isEmbedded = (window.self !== window.top);
+  if (!isEmbedded) document.body.classList.add('standalone');
 
-// Initialize on load
-const isEmbedded = (window.self !== window.top);
-if (!isEmbedded) document.body.classList.add('standalone');
+  // SyncEngine init with onReady callback
+  SyncEngine.init({
+    worker: 'https://widget-sync.lordgrape-widgets.workers.dev',
+    namespaces: ['dragon', 'clock', 'user', 'studyengine']
+  });
 
-// SyncEngine init
-SyncEngine.init({
-  worker: 'https://widget-sync.lordgrape-widgets.workers.dev',
-  namespaces: ['dragon', 'clock', 'user', 'studyengine']
-});
-
-// Background init
-initBackground('bgCanvas', {
-  orbCount: isEmbedded ? 2 : 3,
-  particleCount: Core.isLowEnd ? (Core.isDark ? 8 : 5) : (Core.isDark ? 18 : 12),
-  orbRadius: [80, 140],
-  hueRange: [250, 40],
-  mouseTracking: true
-});
+  // Background init
+  initBackground('bgCanvas', {
+    orbCount: isEmbedded ? 2 : 3,
+    particleCount: Core.isLowEnd ? (Core.isDark ? 8 : 5) : (Core.isDark ? 18 : 12),
+    orbRadius: [80, 140],
+    hueRange: [250, 40],
+    mouseTracking: true
+  });
+}
 
 export {};
