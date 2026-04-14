@@ -254,16 +254,24 @@ export function initSyncAndBackground(): void {
   const isEmbedded = (window.self !== window.top);
   if (!isEmbedded) document.body.classList.add('standalone');
 
-  SyncEngine.init({
-    worker: 'https://widget-sync.lordgrape-widgets.workers.dev',
-    namespaces: ['dragon', 'clock', 'user', 'studyengine']
-  });
+  try {
+    SyncEngine.init({
+      worker: 'https://widget-sync.lordgrape-widgets.workers.dev',
+      namespaces: ['dragon', 'clock', 'user', 'studyengine']
+    });
+  } catch (e) {
+    console.warn('[StudyEngine] SyncEngine.init failed:', e);
+  }
 
-  initBackground('bgCanvas', {
-    orbCount: isEmbedded ? 2 : 3,
-    particleCount: Core.isLowEnd ? (Core.isDark ? 8 : 5) : (Core.isDark ? 18 : 12),
-    orbRadius: [80, 140],
-    hueRange: [250, 40],
-    mouseTracking: true
-  });
+  try {
+    initBackground('bgCanvas', {
+      orbCount: isEmbedded ? 2 : 3,
+      particleCount: (typeof Core !== 'undefined' && Core.isLowEnd) ? ((typeof Core !== 'undefined' && Core.isDark) ? 8 : 5) : ((typeof Core !== 'undefined' && Core.isDark) ? 18 : 12),
+      orbRadius: [80, 140],
+      hueRange: [250, 40],
+      mouseTracking: true
+    });
+  } catch (e) {
+    console.warn('[StudyEngine] initBackground failed:', e);
+  }
 }
