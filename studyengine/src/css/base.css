@@ -7432,3 +7432,33 @@ body.standalone #userText {
   color: var(--tier-we);
   margin-bottom: 8px;
 }
+
+/* ── Preact mount points ── */
+
+/* Sidebar slot: #preact-sidebar renders the <aside class="sidebar"> */
+#preact-sidebar {
+  display: contents; /* transparent to flex layout — child <aside> gets flex item behaviour */
+}
+body:not(.standalone) #preact-sidebar { display: none; }
+
+/* View root: #preact-root replaces the old .wrap > .shell > .card */
+#preact-root {
+  width: 100%;
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.preact-view-root {
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Views rendered by Preact fill the available space */
+#preact-root .view,
+#preact-root > * {
+  width: 100%;
+  flex: 1;
+}
