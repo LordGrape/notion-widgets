@@ -7,6 +7,43 @@ function ctx2d(id: string): CanvasRenderingContext2D | null {
   return c?.getContext('2d') || null;
 }
 
+// ── Color Resolution (Canvas cannot resolve CSS variables) ──
+let cachedColors: {
+  accentRgb: string;
+  textTertiary: string;
+  textSecondary: string;
+  textPrimary: string;
+  accent: string;
+  surface0: string;
+} | null = null;
+
+function getColors(): typeof cachedColors & {} {
+  if (!cachedColors) {
+    const style = getComputedStyle(document.documentElement);
+    const accentRgb = style.getPropertyValue('--accent-rgb').trim() || '139, 92, 246';
+    cachedColors = {
+      accentRgb,
+      textTertiary: style.getPropertyValue('--text-tertiary').trim() || '#9ca3af',
+      textSecondary: style.getPropertyValue('--text-secondary').trim() || '#d1d5db',
+      textPrimary: style.getPropertyValue('--text-primary').trim() || '#f3f4f6',
+      accent: style.getPropertyValue('--accent').trim() || '#8b5cf6',
+      surface0: style.getPropertyValue('--surface-0').trim() || 'rgba(30, 20, 50, 0.4)',
+    };
+  }
+  return cachedColors;
+}
+
+function rgba(rgb: string, alpha: number): string {
+  return `rgba(${rgb}, ${alpha})`;
+}
+
+// Invalidate cache on color scheme change
+if (typeof window !== 'undefined') {
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    cachedColors = null;
+  });
+}
+
 export function drawRetentionCurve(): void {
   const ctx = ctx2d('retentionCanvas');
   if (!ctx) return;
@@ -16,13 +53,26 @@ export function drawRetentionCurve(): void {
   canvas.width = w;
   canvas.height = h;
 
-  const padding = { top: 20, right: 20, bottom: 35, left: 40 };
-  const chartW = w - padding.left - padding.right;
-  const chartH = h - padding.top - padding.bottom;
+  const colors = getColors();
 
   ctx.clearRect(0, 0, w, h);
 
   const all = Object.values(items.value).filter((it) => it && !it.archived);
+
+  // Empty state: no cards
+  if (all.length === 0) {
+    ctx.fillStyle = colors.textSecondary;
+    ctx.font = '12px Inter, system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Add cards to see retention data', w / 2, h / 2);
+    return;
+  }
+
+  const padding = { top: 20, right: 20, bottom: 35, left: 40 };
+  const chartW = w - padding.left - padding.right;
+  const chartH = h - padding.top - padding.bottom;
+
   const retention = Math.max(0.35, Math.min(0.99, avgRetention(items.value) ?? (settings.value.desiredRetention || 0.9)));
   const base = Math.pow(retention, 1 / 7);
 
@@ -37,9 +87,9 @@ export function drawRetentionCurve(): void {
 
   // Draw gradient fill under the curve
   const gradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + chartH);
-  gradient.addColorStop(0, 'rgba(139, 92, 246, 0.35)');
-  gradient.addColorStop(0.5, 'rgba(139, 92, 246, 0.15)');
-  gradient.addColorStop(1, 'rgba(139, 92, 246, 0.02)');
+  gradient.addColorStop(0, rgba(colors.accentRgb, 0.35));
+  gradient.addColorStop(0.5, rgba(colors.accentRgb, 0.15));
+  gradient.addColorStop(1, rgba(colors.accentRgb, 0.02));
 
   ctx.beginPath();
   ctx.moveTo(points[0].x, padding.top + chartH);
@@ -52,7 +102,7 @@ export function drawRetentionCurve(): void {
   ctx.fill();
 
   // Draw grid lines
-  ctx.strokeStyle = 'rgba(var(--accent-rgb), 0.08)';
+  ctx.strokeStyle = rgba(colors.accentRgb, 0.08);
   ctx.lineWidth = 1;
   ctx.setLineDash([4, 4]);
 
@@ -77,7 +127,7 @@ export function drawRetentionCurve(): void {
 
   // Draw the curve line
   ctx.beginPath();
-  ctx.strokeStyle = 'rgba(139, 92, 246, 0.95)';
+  ctx.strokeStyle = rgba(colors.accentRgb, 0.95);
   ctx.lineWidth = 2.5;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
@@ -89,7 +139,7 @@ export function drawRetentionCurve(): void {
 
   // Add glow effect to the line
   ctx.beginPath();
-  ctx.strokeStyle = 'rgba(139, 92, 246, 0.3)';
+  ctx.strokeStyle = rgba(colors.accentRgb, 0.3);
   ctx.lineWidth = 6;
   for (let i = 0; i < points.length; i++) {
     if (i === 0) ctx.moveTo(points[i].x, points[i].y);
@@ -98,7 +148,7 @@ export function drawRetentionCurve(): void {
   ctx.stroke();
 
   // Draw Y-axis labels (retention %)
-  ctx.fillStyle = 'var(--text-tertiary)';
+  ctx.fillStyle = colors.textTertiary;
   ctx.font = '10px Inter, system-ui, sans-serif';
   ctx.textAlign = 'right';
   ctx.textBaseline = 'middle';
@@ -118,7 +168,7 @@ export function drawRetentionCurve(): void {
   }
 
   // Draw title with card count
-  ctx.fillStyle = 'var(--text-secondary)';
+  ctx.fillStyle = colors.textSecondary;
   ctx.font = '11px Inter, system-ui, sans-serif';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
@@ -135,11 +185,27 @@ export function drawSparkline(): void {
   canvas.height = h;
   ctx.clearRect(0, 0, w, h);
 
+  const colors = getColors();
   const hist = calibration.value.history || [];
+
+  // Empty state: no history - draw flat dashed line at 50%
+  if (hist.length === 0) {
+    ctx.strokeStyle = rgba(colors.accentRgb, 0.3);
+    ctx.lineWidth = 2;
+    ctx.setLineDash([3, 3]);
+    const y = h / 2;
+    ctx.beginPath();
+    ctx.moveTo(2, y);
+    ctx.lineTo(w - 2, y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    return;
+  }
+
   const points = hist.slice(-24).map((v) => (v.correct ? 1 : 0));
   const data = points.length ? points : [0.55, 0.62, 0.58, 0.7, 0.75, 0.78];
   ctx.beginPath();
-  ctx.strokeStyle = 'rgba(167,139,250,0.95)';
+  ctx.strokeStyle = rgba(colors.accentRgb, 0.95);
   ctx.lineWidth = 2;
   data.forEach((v, i) => {
     const x = (i / Math.max(1, data.length - 1)) * (w - 4) + 2;
@@ -159,8 +225,20 @@ export function drawTierRing(): void {
   canvas.height = size;
   ctx.clearRect(0, 0, size, size);
 
+  const colors = getColors();
   const due = countDue(items.value).byTier;
-  const total = Object.values(due).reduce((a, b) => a + b, 0) || 1;
+  const total = Object.values(due).reduce((a, b) => a + b, 0);
+
+  // Empty state: no due items - draw grey ring
+  if (total === 0) {
+    ctx.beginPath();
+    ctx.strokeStyle = rgba(colors.accentRgb, 0.15);
+    ctx.lineWidth = 10;
+    ctx.arc(size / 2, size / 2, size / 2 - 12, 0, Math.PI * 2);
+    ctx.stroke();
+    return;
+  }
+
   const tiers = [
     ['quickfire', '#3b82f6'],
     ['explain', '#22c55e'],
@@ -191,6 +269,10 @@ export function drawActivityHeatmap(): void {
   // Clear existing content
   container.innerHTML = '';
 
+  // Get daily review data from stats
+  const dailyHistory = stats.value?.dailyHistory || {};
+  const hasHistory = Object.keys(dailyHistory).length > 0;
+
   // Create canvas for the heatmap
   const canvas = document.createElement('canvas');
   canvas.id = 'activityHeatmap';
@@ -200,6 +282,8 @@ export function drawActivityHeatmap(): void {
 
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
+
+  const colors = getColors();
 
   // Set canvas dimensions
   const cellSize = 20;
@@ -214,8 +298,16 @@ export function drawActivityHeatmap(): void {
   canvas.width = w;
   canvas.height = h;
 
-  // Get daily review data from stats
-  const dailyHistory = stats.value?.dailyHistory || {};
+  // Empty state: no history data
+  if (!hasHistory) {
+    ctx.fillStyle = colors.textSecondary;
+    ctx.font = '12px Inter, system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Complete sessions to see activity', w / 2, h / 2);
+    return;
+  }
+
   const today = new Date();
 
   // Generate last 30 days of data
@@ -237,7 +329,7 @@ export function drawActivityHeatmap(): void {
 
   // Color scale function (green intensity based on review count)
   const getCellColor = (count: number): string => {
-    if (count === 0) return 'rgba(var(--accent-rgb), 0.06)';
+    if (count === 0) return rgba(colors.accentRgb, 0.06);
     const intensity = Math.min(1, count / Math.max(1, maxCount * 0.6));
     // Green gradient from subtle to vibrant
     const r = Math.floor(34 + (16 - 34) * intensity);
@@ -248,7 +340,7 @@ export function drawActivityHeatmap(): void {
   };
 
   // Draw day labels (Mon, Wed, Fri)
-  ctx.fillStyle = 'var(--text-tertiary)';
+  ctx.fillStyle = colors.textTertiary;
   ctx.font = '9px Inter, system-ui, sans-serif';
   ctx.textAlign = 'right';
   ctx.textBaseline = 'middle';
@@ -291,14 +383,14 @@ export function drawActivityHeatmap(): void {
     ctx.fill();
 
     // Cell border (subtle)
-    ctx.strokeStyle = 'rgba(var(--accent-rgb), 0.08)';
+    ctx.strokeStyle = rgba(colors.accentRgb, 0.08);
     ctx.lineWidth = 1;
     ctx.stroke();
 
     // Highlight today
     const isToday = day.date.toDateString() === today.toDateString();
     if (isToday) {
-      ctx.strokeStyle = 'var(--accent)';
+      ctx.strokeStyle = colors.accent;
       ctx.lineWidth = 2;
       ctx.stroke();
     }
@@ -308,7 +400,7 @@ export function drawActivityHeatmap(): void {
   const legendY = h - 5;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'bottom';
-  ctx.fillStyle = 'var(--text-tertiary)';
+  ctx.fillStyle = colors.textTertiary;
   ctx.font = '9px Inter, system-ui, sans-serif';
   ctx.fillText('Less', padding.left, legendY);
 
@@ -322,7 +414,7 @@ export function drawActivityHeatmap(): void {
     ctx.beginPath();
     ctx.roundRect(x, legendY - 10, 12, 12, 2);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(var(--accent-rgb), 0.1)';
+    ctx.strokeStyle = rgba(colors.accentRgb, 0.1);
     ctx.lineWidth = 1;
     ctx.stroke();
   }
