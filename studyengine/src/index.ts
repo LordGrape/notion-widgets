@@ -15,17 +15,18 @@ import './fsrs';
 import './utils';
 import './tiers';
 import './courses';
-import { setOpenCourseModal, setRenderDashboard } from './cards';
-import { listCourses, saveCourse, deleteCourse, getCourse, getCourseExamType } from './courses';
-import { esc } from './utils';
+import { setOpenCourseModal, setRenderDashboard, setReconcileStats as setCardsReconcileStats, setOpenCourseDetail, setMaybeAutoPrepare } from './cards';
+import { listCourses, saveCourse, deleteCourse, getCourse, getCourseExamType, detectSupportedTiers, migrateCoursesPhase6, setReconcileStats as setCoursesReconcileStats } from './courses';
+import { esc, isoNow, tierLabel, tierColour, toast } from './utils';
 import './state';
 import './signals';
-import { saveState, settings as appSettings, COURSE_COLORS, EXAM_TYPE_LABELS } from './state';
+import { effect } from '@preact/signals';
+import { saveState, settings as appSettings, state as appState, loadState, setIsoNow, setSaveCourse, setMigrateCoursesPhase6, setTierLabel, setTierColour, setToast, setDetectSupportedTiers, setReconcileStats as setStateReconcileStats, COURSE_COLORS, EXAM_TYPE_LABELS } from './state';
 
 // Preact
 import { h, render } from 'preact';
 import { App, mountSidebar } from './App';
-import { hydrateFromSync, currentView, items, courses } from './signals';
+import { hydrateFromSync, currentView, items, courses, settings } from './signals';
 
 const w = window as unknown as Record<string, unknown>;
 
@@ -42,6 +43,9 @@ w.renderDashboard = () => {
   if (st) {
     if (st.items) items.value = { ...st.items };
     if (st.courses) courses.value = { ...st.courses };
+  }
+  if ((w as any).settings) {
+    settings.value = { ...(w as any).settings };
   }
 };
 
@@ -80,6 +84,31 @@ if (!w.reconcileStats) w.reconcileStats = () => {};
 // ── Wire cards.ts dependency injection ─────────────────────────
 setOpenCourseModal(() => (w.openCourseModal as (() => void) | undefined)?.());
 setRenderDashboard(() => (w.renderDashboard as (() => void) | undefined)?.());
+setIsoNow(isoNow);
+setSaveCourse(saveCourse);
+setMigrateCoursesPhase6(migrateCoursesPhase6);
+setTierLabel(tierLabel);
+setTierColour(tierColour);
+setToast(toast);
+setDetectSupportedTiers(detectSupportedTiers);
+const reconcileStatsBridge = () => (w.reconcileStats as (() => void) | undefined)?.();
+setStateReconcileStats(reconcileStatsBridge);
+setCardsReconcileStats(reconcileStatsBridge);
+setOpenCourseDetail((course: string) => (w.openCourseDetail as ((name: string) => void) | undefined)?.(course));
+setMaybeAutoPrepare((_course: string) => {});
+setCoursesReconcileStats(reconcileStatsBridge);
+
+effect(() => {
+  if (appState) appState.items = items.value;
+});
+
+effect(() => {
+  if (appState) appState.courses = courses.value;
+});
+
+effect(() => {
+  if (appSettings) Object.assign(appSettings, settings.value);
+});
 
 // ── Mount ───────────────────────────────────────────────────────
 function mountApp() {
@@ -411,22 +440,28 @@ document.addEventListener('DOMContentLoaded', () => {
   if (SE && typeof SE.onReady === 'function') {
     // SyncEngine has onReady — wait for data to load
     SE.onReady(() => {
+      loadState();
       hydrateFromSync();
       mountApp();
     });
     // Safety: if onReady never fires within 3s, mount anyway
     setTimeout(() => {
       if (!document.getElementById('preact-root')?.children.length) {
+        loadState();
         hydrateFromSync();
         mountApp();
       }
     }, 3000);
   } else {
     // No onReady — try hydrating now, retry after delay
+    loadState();
     hydrateFromSync();
     mountApp();
     // Re-hydrate after SyncEngine likely finishes
-    setTimeout(() => { hydrateFromSync(); }, 1500);
+    setTimeout(() => {
+      loadState();
+      hydrateFromSync();
+    }, 1500);
   }
 });
 

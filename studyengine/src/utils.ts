@@ -132,7 +132,7 @@ function getWidgetKey(): string {
 function playTTS(text: string): Promise<void> {
   return new Promise((resolve) => {
     if (!text || text.length < 3) { resolve(); return; }
-    const voiceName = settings.ttsVoice || 'en-US-Studio-O';
+    const voiceName = appSettings?.ttsVoice || 'en-US-Studio-O';
     fetch(TTS_WORKER_URL, {
       method: 'POST',
       headers: {
@@ -475,10 +475,10 @@ function attemptRecoverTruncatedMermaid(elm: HTMLElement, code: string): boolean
   const placement = (wrap && wrap.getAttribute('data-visual-placement')) || 'answer';
   if (!itemId || (elm as HTMLElement).dataset.mermaidRetryDone || !looksIncompleteMermaid(code)) return false;
   (elm as HTMLElement).dataset.mermaidRetryDone = '1';
-  const it = state.items[itemId];
+  const it = appState?.items?.[itemId];
   if (!it) return false;
   delete it.visual;
-  state.items[itemId] = it;
+  if (appState?.items) appState.items[itemId] = it;
   saveState();
   generateVisual(it).then((visual) => {
     if (!visual || !wrap || !wrap.parentNode) {
@@ -487,7 +487,7 @@ function attemptRecoverTruncatedMermaid(elm: HTMLElement, code: string): boolean
       return;
     }
     it.visual = visual;
-    state.items[itemId] = it;
+    if (appState?.items) appState.items[itemId] = it;
     saveState();
     wrap.outerHTML = renderMermaidBlock(visual, placement, itemId);
     setTimeout(initMermaidBlocks, 50);
@@ -766,7 +766,7 @@ function countDue(
     const it = itemsById[id];
     if (!it || it.archived) continue;
     if (isItemInArchivedSubDeck(it)) continue;
-    if (it.course && state.courses[it.course] && state.courses[it.course].archived) continue;
+    if (it.course && appState?.courses?.[it.course] && appState.courses[it.course].archived) continue;
     if (course && course !== 'All' && it.course !== course) continue;
     if (topic && topic !== 'All' && (it.topic || '') !== topic) continue;
     const f = it.fsrs || null;
@@ -806,7 +806,7 @@ function avgRetention(itemsById: Record<string, StudyItem>): number | null {
     const it = itemsById[id];
     if (!it || !it.fsrs || it.archived) continue;
     if (isItemInArchivedSubDeck(it)) continue;
-    if (it.course && state.courses[it.course] && state.courses[it.course].archived) continue;
+    if (it.course && appState?.courses?.[it.course] && appState.courses[it.course].archived) continue;
     sum += retrievability(it.fsrs, now);
     n++;
   }
