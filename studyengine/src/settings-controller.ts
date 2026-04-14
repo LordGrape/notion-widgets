@@ -29,12 +29,7 @@ function renderSettingsModal(): void {
         '<option value="off"' + (s.gamificationMode === 'off' ? ' selected' : '') + '>Off</option>' +
       '</select></div>' +
     '<div class="form-row"><label class="form-label">Your Name (for tutor)</label>' +
-      '<input id="s_userName" class="modal-input" type="text" value="' + esc(s.userName || '') + '" placeholder="Optional"></div>' +
-    '<div style="margin-top:14px;">' +
-      '<button type="button" class="big-btn" id="settingsSaveBtn">Save Settings</button>' +
-    '</div>';
-
-  body.querySelector('#settingsSaveBtn')?.addEventListener('click', () => saveSettingsFromForm());
+      '<input id="s_userName" class="modal-input" type="text" value="' + esc(s.userName || '') + '" placeholder="Optional"></div>';
 }
 
 export function openSettings(): void {

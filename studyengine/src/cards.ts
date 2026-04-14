@@ -150,7 +150,7 @@ function renderModal(): void {
     '</div>' +
     '<div class="form-row">' +
       '<label class="form-label">Priority</label>' +
-      '<select id="m_priority" class="modal-input">' +
+      '<select id="m_priority" class="modal-select">' +
         ['critical','high','medium','low'].map((p) => '<option value="' + p + '"' + (priorityVal === p ? ' selected' : '') + '>' + p.charAt(0).toUpperCase() + p.slice(1) + '</option>').join('') +
       '</select>' +
     '</div>' +
@@ -177,7 +177,7 @@ function renderModal(): void {
         '</div>' +
         '<div class="form-row">' +
           '<label class="form-label">Time Limit (Mock tier)</label>' +
-          '<select id="m_time" class="modal-input">' +
+          '<select id="m_time" class="modal-select">' +
             '<option value="0"' + (!timeVal ? ' selected' : '') + '>None</option>' +
             [5,10,15,30].map((t) => '<option value="' + t + '"' + (timeVal === t ? ' selected' : '') + '>' + t + ' min</option>').join('') +
           '</select>' +
