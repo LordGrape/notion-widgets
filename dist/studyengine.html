@@ -10870,7 +10870,7 @@ body:not(.standalone) .learn-heatmap-grid {
     }
 
     function showView(nextId) {
-      var views = [viewDash, viewSession, viewDone];
+      var views = [viewDash, viewSession, viewDone, viewLearn];
       var next = el(nextId);
       // Clean up any stale calendar heatmap tooltips
       document.querySelectorAll('.cal-heatmap-tooltip').forEach(function(t) { t.remove(); });
@@ -20691,6 +20691,7 @@ var el = function(id){ return document.getElementById(id); };
     var viewDash = el('viewDash');
     var viewSession = el('viewSession');
     var viewDone = el('viewDone');
+    var viewLearn = el('viewLearn');
     var rootCard = el('rootCard');
     var tierArea = el('tierArea');
     var modelAnswerEl = el('modelAnswer');

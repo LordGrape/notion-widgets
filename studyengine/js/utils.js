@@ -567,7 +567,7 @@
     }
 
     function showView(nextId) {
-      var views = [viewDash, viewSession, viewDone];
+      var views = [viewDash, viewSession, viewDone, viewLearn];
       var next = el(nextId);
       // Clean up any stale calendar heatmap tooltips
       document.querySelectorAll('.cal-heatmap-tooltip').forEach(function(t) { t.remove(); });

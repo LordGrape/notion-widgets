@@ -348,6 +348,7 @@ var el = function(id){ return document.getElementById(id); };
     var viewDash = el('viewDash');
     var viewSession = el('viewSession');
     var viewDone = el('viewDone');
+    var viewLearn = el('viewLearn');
     var rootCard = el('rootCard');
     var tierArea = el('tierArea');
     var modelAnswerEl = el('modelAnswer');
