@@ -3,8 +3,7 @@
  * Main session controller
  */
 
-import { h, Fragment } from 'preact';
-import { useEffect, useCallback, useRef, useState } from 'preact/hooks';
+import { Fragment, useEffect, useCallback, useRef, useState } from 'react';
 import {
   sessionQueue,
   sessionIndex,
@@ -340,8 +339,8 @@ export function Session() {
   // If no current item, show empty state
   if (!currentItem) {
     return (
-      <div class="view view-session">
-        <div class="empty-session">
+      <div className="view view-session">
+        <div className="empty-session">
           <p>No items in session queue</p>
           <button onClick={() => currentView.value = 'dashboard'}>
             Back to Dashboard
@@ -355,29 +354,29 @@ export function Session() {
   const tierColor = tierColours[tier] || tierColours.quickfire;
 
   return (
-    <div class="view view-session active">
+    <div className="view view-session active">
       {/* Header */}
-      <div class="session-header">
-        <div class="session-meta">
-          <span class="meta-course">{currentItem.course || '—'}</span>
-          <span class="meta-topic">{currentItem.topic || '—'}</span>
+      <div className="session-header">
+        <div className="session-meta">
+          <span className="meta-course">{currentItem.course || '—'}</span>
+          <span className="meta-topic">{currentItem.topic || '—'}</span>
         </div>
         <ProgressBar />
-        <button class="end-session-btn" onClick={handleEndSession}>
+        <button className="end-session-btn" onClick={handleEndSession}>
           End Session
         </button>
       </div>
 
       {/* Item card */}
-      <div class="item-card" style={{ borderColor: tierColor + '40' }}>
+      <div className="item-card" style={{ borderColor: tierColor + '40' }}>
         {/* Tier badge */}
-        <div class="tier-badge" style={{ background: tierColor + '20', color: tierColor }}>
+        <div className="tier-badge" style={{ background: tierColor + '20', color: tierColor }}>
           {tier.charAt(0).toUpperCase() + tier.slice(1)}
         </div>
 
         {/* Prompt */}
-        <div class="prompt-section">
-          <div class="prompt-text">
+        <div className="prompt-section">
+          <div className="prompt-text">
             {tier === 'apply' ? 'Scenario' : currentItem.prompt}
           </div>
         </div>
@@ -392,7 +391,7 @@ export function Session() {
 
         {/* Rating buttons (shown after reveal) */}
         {currentShown.value && (
-          <div class="rating-section">
+          <div className="rating-section">
             <RatingButtons
               onRate={handleRate}
               aiSuggested={aiRating.value}
@@ -402,8 +401,8 @@ export function Session() {
       </div>
 
       {/* Skip button */}
-      <div class="skip-section">
-        <button class="skip-btn" onClick={handleSkip}>
+      <div className="skip-section">
+        <button className="skip-btn" onClick={handleSkip}>
           Skip this item →
         </button>
       </div>

@@ -3,7 +3,6 @@
  * Dispatches to the correct tier component
  */
 
-import { h } from 'preact';
 import type { StudyItem } from '../../types';
 import { QuickFire } from './QuickFire';
 import { Explain } from './Explain';

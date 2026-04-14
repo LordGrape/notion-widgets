@@ -3,9 +3,8 @@
  * Phase 4: Converted from sidebar.js
  */
 
-import { h, Fragment } from 'preact';
-import { signal, computed } from '@preact/signals';
-import { useEffect, useRef } from 'preact/hooks';
+import { Fragment, useEffect, useRef } from 'react';
+import { signal, computed } from '@preact/signals-react';
 import { items, courses, selectedCourse, selectedTopic, currentView, sidebarOpen } from '../signals';
 import type { StudyItem, Course, SubDeck } from '../types';
 
@@ -119,12 +118,12 @@ export function Sidebar() {
   const courseNames = Object.keys(tree.value).sort();
 
   return (
-    <aside class="sidebar" id="sidebar" aria-label="Sidebar">
-      <div class="sb-header">
-        <div class="logo">◆</div>
-        <h1 class="sb-brand">STUDY ENGINE</h1>
+    <aside className="sidebar" id="sidebar" aria-label="Sidebar">
+      <div className="sb-header">
+        <div className="logo">◆</div>
+        <h1 className="sb-brand">STUDY ENGINE</h1>
         <button 
-          class="sb-collapse-btn icon-btn" 
+          className="sb-collapse-btn icon-btn" 
           id="sidebarCollapseBtn"
           onClick={() => sidebarOpen.value = !sidebarOpen.value}
           title="Collapse sidebar"
@@ -134,37 +133,37 @@ export function Sidebar() {
         </button>
       </div>
 
-      <div class="sb-search">
+      <div className="sb-search">
         <input 
           type="text" 
-          class="se-input sb-search-input" 
+          className="se-input sb-search-input" 
           id="sidebarSearch" 
           placeholder="Search cards..." 
           aria-label="Search cards"
         />
       </div>
 
-      <div class="sb-actions">
-        <button class="sb-action-btn" id="sbArchivedBtn" style={{ display: 'none' }}>
+      <div className="sb-actions">
+        <button className="sb-action-btn" id="sbArchivedBtn" style={{ display: 'none' }}>
           <span>📦</span>
           <span>Archived</span>
-          <span class="sb-badge" id="sbArchivedCount">0</span>
+          <span className="sb-badge" id="sbArchivedCount">0</span>
         </button>
       </div>
 
-      <div class="sb-tree" id="sidebarTree">
+      <div className="sb-tree" id="sidebarTree">
         {/* All Courses row */}
         <div 
-          class={`tree-node depth-0 tree-node-hoverable tree-node-root-actions ${sidebarSelection.value.level === 'all' ? 'active' : ''}`}
+          className={`tree-node depth-0 tree-node-hoverable tree-node-root-actions ${sidebarSelection.value.level === 'all' ? 'active' : ''}`}
           onClick={() => handleSelect('all', null)}
           data-level="all"
         >
-          <span class="tree-icon">📚</span>
-          <span class="tree-label">All Courses</span>
-          {totalCards.value.due > 0 && <span class="tree-badge">{totalCards.value.due}</span>}
-          <span class="tree-hover-actions">
+          <span className="tree-icon">📚</span>
+          <span className="tree-label">All Courses</span>
+          {totalCards.value.due > 0 && <span className="tree-badge">{totalCards.value.due}</span>}
+          <span className="tree-hover-actions">
             <button 
-              class="tree-action-btn" 
+              className="tree-action-btn" 
               data-action="create-course"
               title="Add deck"
               aria-label="Add deck"
@@ -179,7 +178,7 @@ export function Sidebar() {
             </button>
           </span>
         </div>
-        <div class="tree-section-divider"></div>
+        <div className="tree-section-divider"></div>
 
         {/* Course list */}
         {courseNames.map(courseName => {
@@ -193,23 +192,23 @@ export function Sidebar() {
             <Fragment key={courseName}>
               {/* Course row */}
               <div 
-                class={`tree-node depth-0 tree-node-hoverable ${isActive ? 'active' : ''}`}
+                className={`tree-node depth-0 tree-node-hoverable ${isActive ? 'active' : ''}`}
                 data-level="course"
                 data-course={courseName}
               >
                 <span 
-                  class={`tree-chevron ${isExpanded ? 'expanded' : ''}`}
+                  className={`tree-chevron ${isExpanded ? 'expanded' : ''}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleToggle(courseName);
                   }}
                 ></span>
-                <span class="tree-icon" style={{ color }}>●</span>
-                <span class="tree-label" onClick={() => handleSelect('course', courseName)}>{courseName}</span>
-                {ct.dueCards > 0 && <span class="tree-badge">{ct.dueCards}</span>}
-                <span class="tree-hover-actions">
+                <span className="tree-icon" style={{ color }}>●</span>
+                <span className="tree-label" onClick={() => handleSelect('course', courseName)}>{courseName}</span>
+                {ct.dueCards > 0 && <span className="tree-badge">{ct.dueCards}</span>}
+                <span className="tree-hover-actions">
                   <button 
-                    class="tree-action-btn" 
+                    className="tree-action-btn" 
                     data-action="add-module"
                     title="Add subdeck"
                     onClick={(e) => {
@@ -221,7 +220,7 @@ export function Sidebar() {
                     ＋
                   </button>
                   <button 
-                    class="tree-action-btn" 
+                    className="tree-action-btn" 
                     data-action="course-menu"
                     title="More options"
                     onClick={(e) => {
@@ -236,7 +235,7 @@ export function Sidebar() {
 
               {/* Expanded content */}
               {isExpanded && (
-                <div class="tree-children">
+                <div className="tree-children">
                   {/* Subdecks */}
                   {Object.keys(ct.subDecks).sort().map(sdName => {
                     const stats = ct.subDecks[sdName];
@@ -246,7 +245,7 @@ export function Sidebar() {
                     return (
                       <div
                         key={sdName}
-                        class={`tree-node depth-1 tree-node-hoverable ${
+                        className={`tree-node depth-1 tree-node-hoverable ${
                           sidebarSelection.value.subDeck === sdName && sidebarSelection.value.course === courseName ? 'active' : ''
                         }`}
                         data-level="subdeck"
@@ -254,11 +253,11 @@ export function Sidebar() {
                         data-subdeck={sdName}
                         onClick={() => handleSelect('subdeck', courseName, null, sdName)}
                       >
-                        <span class="tree-chevron" style={{ visibility: 'hidden' }}></span>
-                        <span class="subdeck-icon">{isUngrouped ? '📦' : '📂'}</span>
-                        <span class="tree-label">{label}</span>
-                        {stats.cards > 0 && <span class="tree-count">{stats.cards}</span>}
-                        {stats.due > 0 && <span class="tree-badge">{stats.due}</span>}
+                        <span className="tree-chevron" style={{ visibility: 'hidden' }}></span>
+                        <span className="subdeck-icon">{isUngrouped ? '📦' : '📂'}</span>
+                        <span className="tree-label">{label}</span>
+                        {stats.cards > 0 && <span className="tree-count">{stats.cards}</span>}
+                        {stats.due > 0 && <span className="tree-badge">{stats.due}</span>}
                       </div>
                     );
                   })}
@@ -271,15 +270,15 @@ export function Sidebar() {
                     return (
                       <div
                         key={topic}
-                        class={`tree-node depth-2 ${isTopicActive ? 'active' : ''}`}
+                        className={`tree-node depth-2 ${isTopicActive ? 'active' : ''}`}
                         data-level="topic"
                         data-course={courseName}
                         data-topic={topic}
                         onClick={() => handleSelect('topic', courseName, null, null, topic)}
                       >
-                        <span class="tree-label">{topic}</span>
-                        <span class="tree-count">{topicData.cards.length}</span>
-                        {topicData.dueCards > 0 && <span class="tree-badge">{topicData.dueCards}</span>}
+                        <span className="tree-label">{topic}</span>
+                        <span className="tree-count">{topicData.cards.length}</span>
+                        {topicData.dueCards > 0 && <span className="tree-badge">{topicData.dueCards}</span>}
                       </div>
                     );
                   })}
@@ -290,11 +289,11 @@ export function Sidebar() {
         })}
       </div>
 
-      <div class="sb-footer">
-        <button class="sb-footer-btn" id="footerStatsBtn" title="Stats" onClick={() => { currentView.value = 'dashboard'; }}>
+      <div className="sb-footer">
+        <button className="sb-footer-btn" id="footerStatsBtn" title="Stats" onClick={() => { currentView.value = 'dashboard'; }}>
           <span>📊</span>
         </button>
-        <button class="sb-footer-btn" id="footerSettingsBtn" title="Settings" onClick={() => { (window as unknown as { openSettings?: () => void }).openSettings?.(); }}>
+        <button className="sb-footer-btn" id="footerSettingsBtn" title="Settings" onClick={() => { (window as unknown as { openSettings?: () => void }).openSettings?.(); }}>
           <span>⚙️</span>
         </button>
       </div>

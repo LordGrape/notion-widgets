@@ -3,8 +3,7 @@
  * Learn mode: prime → encode → consolidate → complete
  */
 
-import { h, Fragment } from 'preact';
-import { useEffect, useCallback } from 'preact/hooks';
+import { useEffect, useCallback } from 'react';
 import {
   learnSession,
   learnSegmentIndex,
@@ -100,24 +99,24 @@ export function Learn() {
     const topics = courseName ? getLearnableTopics(courseName) : [];
 
     return (
-      <div class="view view-learn active">
-        <div class="learn-header">
+      <div className="view view-learn active">
+        <div className="learn-header">
           <h2>Learn Mode</h2>
           <p>Select a topic to begin guided learning</p>
         </div>
-        <div class="learn-topics">
+        <div className="learn-topics">
           {topics.map(topic => (
             <button 
               key={topic.name}
-              class="learn-topic-btn"
+              className="learn-topic-btn"
               onClick={() => startLearn(topic.name)}
             >
-              <span class="topic-name">{topic.name}</span>
-              <span class="topic-count">{topic.count} cards</span>
+              <span className="topic-name">{topic.name}</span>
+              <span className="topic-count">{topic.count} cards</span>
             </button>
           ))}
         </div>
-        <button class="back-btn" onClick={() => currentView.value = 'dashboard'}>
+        <button className="back-btn" onClick={() => currentView.value = 'dashboard'}>
           Back to Dashboard
         </button>
       </div>
@@ -127,39 +126,39 @@ export function Learn() {
   const currentSegment = session.segments[segmentIdx];
 
   return (
-    <div class="view view-learn active">
+    <div className="view view-learn active">
       {/* Header */}
-      <div class="learn-header">
+      <div className="learn-header">
         <h2>{session.course} — {session.topics[0]}</h2>
-        <span class="learn-phase">{phase}</span>
-        <button class="exit-btn" onClick={exitLearn}>Exit</button>
+        <span className="learn-phase">{phase}</span>
+        <button className="exit-btn" onClick={exitLearn}>Exit</button>
       </div>
 
       {/* Prime Phase */}
       {phase === 'prime' && (
-        <div class="learn-phase-content prime">
+        <div className="learn-phase-content prime">
           <h3>Prime Mode</h3>
           <p>Before we begin, here are some questions to activate your prior knowledge:</p>
-          <div class="prime-questions">
-            <div class="prime-question">What do you already know about {session.topics[0]}?</div>
-            <div class="prime-question">What questions do you have?</div>
+          <div className="prime-questions">
+            <div className="prime-question">What do you already know about {session.topics[0]}?</div>
+            <div className="prime-question">What questions do you have?</div>
           </div>
-          <button class="advance-btn" onClick={advance}>Start Learning</button>
+          <button className="advance-btn" onClick={advance}>Start Learning</button>
         </div>
       )}
 
       {/* Encode Phase */}
       {phase === 'encode' && currentSegment && (
-        <div class="learn-phase-content encode">
-          <div class="segment-indicator">
+        <div className="learn-phase-content encode">
+          <div className="segment-indicator">
             Segment {segmentIdx + 1} of {session.segments.length}
           </div>
           <h3>{currentSegment.title}</h3>
-          <div class="segment-content">{currentSegment.content}</div>
-          <div class="encoding-prompt">
+          <div className="segment-content">{currentSegment.content}</div>
+          <div className="encoding-prompt">
             <p>Take a moment to process this information. What's the key concept?</p>
           </div>
-          <button class="advance-btn" onClick={advance}>
+          <button className="advance-btn" onClick={advance}>
             {segmentIdx + 1 < session.segments.length ? 'Next Segment' : 'Continue to Consolidation'}
           </button>
         </div>
@@ -167,13 +166,13 @@ export function Learn() {
 
       {/* Consolidate Phase */}
       {phase === 'consolidate' && (
-        <div class="learn-phase-content consolidate">
+        <div className="learn-phase-content consolidate">
           <h3>Consolidation Check</h3>
           <p>Test your understanding before completing:</p>
-          <div class="consolidation-questions">
-            <div class="consol-question">
+          <div className="consolidation-questions">
+            <div className="consol-question">
               <p>Can you summarize the key points from {session.topics[0]}?</p>
-              <div class="consol-rating">
+              <div className="consol-rating">
                 <button data-rate="1">1 — Not confident</button>
                 <button data-rate="2">2 — Somewhat</button>
                 <button data-rate="3">3 — Pretty confident</button>
@@ -181,17 +180,17 @@ export function Learn() {
               </div>
             </div>
           </div>
-          <button class="advance-btn" onClick={advance}>Complete Learning</button>
+          <button className="advance-btn" onClick={advance}>Complete Learning</button>
         </div>
       )}
 
       {/* Complete Phase */}
       {phase === 'complete' && (
-        <div class="learn-phase-content complete">
+        <div className="learn-phase-content complete">
           <h3>🎉 Learning Complete!</h3>
           <p>You've completed the guided learning for {session.topics[0]}.</p>
           <p>The concepts you've learned are now primed for your next study session.</p>
-          <button class="advance-btn" onClick={advance}>Back to Dashboard</button>
+          <button className="advance-btn" onClick={advance}>Back to Dashboard</button>
         </div>
       )}
     </div>

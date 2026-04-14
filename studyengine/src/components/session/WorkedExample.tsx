@@ -3,7 +3,6 @@
  * Step-by-step problem solving
  */
 
-import { h } from 'preact';
 import { userAnswer, currentShown } from '../../signals';
 import type { StudyItem } from '../../types';
 
@@ -16,35 +15,35 @@ export function WorkedExample({ item, onReveal }: WorkedExampleProps) {
   const shown = currentShown.value;
 
   return (
-    <div class="tier-content tier-worked">
+    <div className="tier-content tier-worked">
       {!shown ? (
-        <div class="generative-input">
-          <div class="steps-hint">
+        <div className="generative-input">
+          <div className="steps-hint">
             Work through this problem step by step:
           </div>
           <textarea
             id="userText"
-            class="response-textarea"
+            className="response-textarea"
             placeholder="Show your work..."
             value={userAnswer.value}
             onInput={(e) => userAnswer.value = (e.target as HTMLTextAreaElement).value}
             rows={10}
           />
-          <div class="button-row">
-            <button class="qa-btn" onClick={onReveal}>
+          <div className="button-row">
+            <button className="qa-btn" onClick={onReveal}>
               Check Answer
             </button>
-            <button class="ghost-btn" onClick={onReveal}>
+            <button className="ghost-btn" onClick={onReveal}>
               Don't know
             </button>
           </div>
         </div>
       ) : (
-        <div class="revealed-content">
+        <div className="revealed-content">
           {item.modelAnswer && (
-            <div class="model-answer">
-              <div class="answer-header">Worked Solution</div>
-              <div class="md-content">{item.modelAnswer}</div>
+            <div className="model-answer">
+              <div className="answer-header">Worked Solution</div>
+              <div className="md-content">{item.modelAnswer}</div>
             </div>
           )}
         </div>

@@ -3,8 +3,7 @@
  * Dragon stage display and evolution
  */
 
-import { h, Fragment } from 'preact';
-import { useEffect, useRef } from 'preact/hooks';
+import { Fragment, useEffect, useRef } from 'react';
 import { dragonState, sessionXP } from '../signals';
 import type { DragonState } from '../types';
 
@@ -58,39 +57,39 @@ export function Dragon({ compact = false, showXP = true }: DragonProps) {
 
   if (compact) {
     return (
-      <div class="dragon-card compact">
-        <div class="dragon-emoji">{emoji}</div>
-        <div class="dragon-info">
-          <div class="dragon-stage">{stageName}</div>
-          {showXP && <div class="dragon-xp">{xp} XP</div>}
+      <div className="dragon-card compact">
+        <div className="dragon-emoji">{emoji}</div>
+        <div className="dragon-info">
+          <div className="dragon-stage">{stageName}</div>
+          {showXP && <div className="dragon-xp">{xp} XP</div>}
         </div>
       </div>
     );
   }
 
   return (
-    <div class="dragon-card">
-      <div class="dragon-display">
-        <div class="dragon-emoji large">{emoji}</div>
-        <div class="dragon-stage-name">{stageName}</div>
+    <div className="dragon-card">
+      <div className="dragon-display">
+        <div className="dragon-emoji large">{emoji}</div>
+        <div className="dragon-stage-name">{stageName}</div>
       </div>
       
       {showXP && (
-        <div class="dragon-xp-section">
-          <div class="xp-bar">
-            <div class="xp-fill" style={{ width: `${progress * 100}%` }} />
+        <div className="dragon-xp-section">
+          <div className="xp-bar">
+            <div className="xp-fill" style={{ width: `${progress * 100}%` }} />
           </div>
-          <div class="xp-text">
+          <div className="xp-text">
             {xp} XP • {xpToNext} to next stage
           </div>
         </div>
       )}
 
-      <div class="dragon-stages">
+      <div className="dragon-stages">
         {STAGE_NAMES.map((name, i) => (
           <div 
             key={name}
-            class={`stage-dot ${i === stage ? 'current' : ''} ${i < stage ? 'completed' : ''}`}
+            className={`stage-dot ${i === stage ? 'current' : ''} ${i < stage ? 'completed' : ''}`}
             title={name}
           >
             {STAGE_EMOJIS[i]}
@@ -111,23 +110,23 @@ export function DragonCompletion() {
   const emoji = STAGE_EMOJIS[stage] || '🥚';
 
   return (
-    <div class="dragon-completion">
-      <div class="completion-header">
+    <div className="dragon-completion">
+      <div className="completion-header">
         <h2>Session Complete!</h2>
       </div>
       
-      <div class="dragon-celebration">
-        <div class="dragon-emoji animated">{emoji}</div>
-        <div class="xp-earned">+{earnedXP} XP</div>
+      <div className="dragon-celebration">
+        <div className="dragon-emoji animated">{emoji}</div>
+        <div className="xp-earned">+{earnedXP} XP</div>
       </div>
 
-      <div class="dragon-status">
-        <div class="stage-name">{stageName}</div>
-        <div class="total-xp">Total: {totalXP} XP</div>
+      <div className="dragon-status">
+        <div className="stage-name">{stageName}</div>
+        <div className="total-xp">Total: {totalXP} XP</div>
       </div>
 
       <button 
-        class="back-btn"
+        className="back-btn"
         onClick={() => {
           // Update dragon state with earned XP
           dragonState.value = { ...dragon, xp: totalXP };
