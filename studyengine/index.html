@@ -9,7 +9,6 @@
   <script src="https://notion-widgets-93r.pages.dev/core.js"></script>
 </head>
 <body>
-  <div id="app"></div>
   <script type="module" src="/src/main.tsx"></script>
   <div id="awakening-overlay" aria-hidden="true">
     <div class="awakening-stars" aria-hidden="true"></div>
@@ -757,9 +756,7 @@
   </script>
   <!-- ts-fsrs UMD exposes global FSRS ({ FSRS, generatorParameters, … }) — browser scheduling still uses shared w[] + inline formulas -->
   <script src="https://cdn.jsdelivr.net/npm/ts-fsrs@5.3.2/dist/index.umd.js"></script>
-  <script>
-__SCRIPTS__
-</script>
+  <!-- Vite single-file build will inline the JS here -->
   <div class="anno-tip" id="annoTip"><div class="at-tag"></div><div class="at-note"></div></div>
   <div class="canvas-tooltip" id="canvasTooltip">
     <div class="ct-day" id="ctDay"></div>
