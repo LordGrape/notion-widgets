@@ -1,17 +1,24 @@
 /*
  * App TypeScript Component
- * Phase 4: Root Preact component - MINIMAL
- * Only renders Sidebar and Tutor. Dashboard, Session, Done views are handled
- * imperatively by dom-controller.ts updating the HTML shell.
+ * Phase 5: React components for Session/Done/Learn views
+ * ViewRouter handles session, done, and learn views.
+ * Dashboard stays in HTML shell.
  */
 
 import { createRoot } from 'react-dom/client';
 import { Sidebar } from './components/Sidebar';
 import { Tutor } from './components/Tutor';
+import { ViewRouter } from './components/ViewRouter';
 
 export function App() {
-  // Tutor is a floating panel that works alongside the HTML shell
-  return <Tutor />;
+  // Tutor is a floating panel that works alongside other views
+  // ViewRouter renders Session/Done/Learn when active
+  return (
+    <>
+      <ViewRouter />
+      <Tutor />
+    </>
+  );
 }
 
 export function mountSidebar() {
