@@ -45,7 +45,10 @@ export default defineConfig({
     outDir: '../dist',
     emptyOutDir: false,
     rollupOptions: {
-      input: 'index.html',
+      input: resolve(__dirname, 'index.html'),
+      output: {
+        entryFileNames: '[name].js',
+      },
     },
   },
 });
