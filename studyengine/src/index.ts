@@ -23,7 +23,7 @@ import { listCourses, saveCourse, deleteCourse, getCourse, getCourseExamType } f
 import { esc, toast } from './utils';
 import { items, courses, settings, currentView, saveState } from './signals';
 import { COURSE_COLORS, EXAM_TYPE_LABELS } from './constants';
-import { loadState, loadOptimizedWeights } from './state-io';
+import { loadState, loadOptimizedWeights, initSyncAndBackground } from './state-io';
 
 // Preact
 import { h, render } from 'preact';
@@ -380,6 +380,8 @@ function saveSettingsFromForm(): void {
 
 // ── Boot ─────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  initSyncAndBackground(); // Must run before anything touches SyncEngine
+
   const SE = (window as any).SyncEngine;
 
   const boot = () => {
