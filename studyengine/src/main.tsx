@@ -2,6 +2,14 @@ import { render } from 'preact';
 import { App } from './App';
 import { initStateSignals } from './signals';
 
+// Import original CSS files
+import './css/base.css';
+import './css/dashboard.css';
+import './css/session.css';
+import './css/sidebar.css';
+import './css/modals.css';
+import './css/learn.css';
+
 // Initialize state from SyncEngine before rendering
 initStateSignals();
 
