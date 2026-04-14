@@ -1,27 +1,17 @@
 /*
  * App TypeScript Component
- * Phase 4: Root Preact component
+ * Phase 4: Root Preact component - MINIMAL
+ * Only renders Sidebar and Tutor. Dashboard, Session, Done views are handled
+ * imperatively by dom-controller.ts updating the HTML shell.
  */
 
-import { h, Fragment, render } from 'preact';
-import { currentView } from './signals';
+import { h, render } from 'preact';
 import { Sidebar } from './components/Sidebar';
-import { Dashboard } from './components/Dashboard';
-import { Session } from './components/Session';
-import { Done } from './components/Done';
 import { Tutor } from './components/Tutor';
-import { Learn } from './components/Learn';
 
 export function App() {
-  return (
-    <Fragment>
-      {currentView.value === 'dashboard' && <Dashboard />}
-      {currentView.value === 'session' && <Session />}
-      {currentView.value === 'done' && <Done />}
-      {currentView.value === 'learn' && <Learn />}
-      <Tutor />
-    </Fragment>
-  );
+  // Tutor is a floating panel that works alongside the HTML shell
+  return h(Tutor, null);
 }
 
 export function mountSidebar() {

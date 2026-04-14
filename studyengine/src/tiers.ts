@@ -4,7 +4,7 @@
  */
 
 import { el, visualGenerationPending, esc, renderMd, generateVisual, fmtMMSS, toast } from './utils';
-import { saveState, settings as appSettings, state as appState } from './state';
+import { items, settings, saveState } from './signals';
 import type { StudyItem, SessionState } from './types';
 
 // External CDN globals (keep as declare)
@@ -99,9 +99,7 @@ function renderQuickfireTier(it: StudyItem, session: SessionState): void {
       visualGenerationPending[it.id] = false;
       if (v) {
         it.visual = v;
-        if (appState && appState.items) {
-          appState.items[it.id] = it;
-        }
+        items.value = { ...items.value, [it.id]: it };
         saveState();
       }
     }).catch(() => { visualGenerationPending[it.id] = false; });
@@ -190,7 +188,7 @@ function renderApplyTier(it: StudyItem, session: SessionState): void {
         '<button type="button" class="ghost-btn" id="dontKnowBtn" style="flex:0 0 auto;padding:10px 12px;font-size:10px;white-space:nowrap">🤷 Don\u2019t know</button>' +
       '</div>' +
     '</div>';
-  if (appSettings?.showApplyTimer) startApplyTimer();
+  if (settings.value.showApplyTimer) startApplyTimer();
   wireGenerative('apply');
 }
 
@@ -224,7 +222,7 @@ function renderDistinguishTier(it: StudyItem, session: SessionState): void {
  * Render Mock tier UI
  */
 function renderMockTier(it: StudyItem, session: SessionState): void {
-  let mins = parseInt(String(it.timeLimitMins || appSettings?.mockDefaultMins || 10), 10);
+  let mins = parseInt(String(it.timeLimitMins || settings.value.mockDefaultMins || 10), 10);
   mins = [5,10,15,30].indexOf(mins) >= 0 ? mins : 10;
   (window as unknown as { mockTotalMs: number }).mockTotalMs = mins * 60 * 1000;
   (window as unknown as { mockEndsAt: number }).mockEndsAt = Date.now() + (window as unknown as { mockTotalMs: number }).mockTotalMs;
