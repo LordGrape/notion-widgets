@@ -20,6 +20,7 @@ import {
   userAnswer,
   saveState,
   dueItems,
+  sessionStartTime,
 } from './signals';
 import { showView, countDue, avgRetention, calibrationPct, tierLabel, tierColour, el, esc, toast, fmtMMSS, renderMd } from './utils';
 import { listCourses } from './courses';
@@ -422,10 +423,27 @@ export function switchTab(tab: 'home' | 'courses'): void {
 export function wireViewSignal(): void {
   effect(() => {
     const view = currentView.value;
-    if (view === 'dashboard') showView('viewDash');
-    else if (view === 'session') showView('viewSession');
-    else if (view === 'done') showView('viewDone');
-    else if (view === 'learn') showView('viewLearn');
+    if (view === 'dashboard') {
+      // Show dashboard HTML shell, hide others
+      showView('viewDash');
+      const viewSession = el('viewSession');
+      const viewDone = el('viewDone');
+      const viewLearn = el('viewLearn');
+      if (viewSession) viewSession.style.display = 'none';
+      if (viewDone) viewDone.style.display = 'none';
+      if (viewLearn) viewLearn.style.display = 'none';
+    } else if (view === 'session' || view === 'done' || view === 'learn') {
+      // Hide ALL HTML shell views when React takes over
+      const viewDash = el('viewDash');
+      const viewSession = el('viewSession');
+      const viewDone = el('viewDone');
+      const viewLearn = el('viewLearn');
+      if (viewDash) viewDash.style.display = 'none';
+      if (viewSession) viewSession.style.display = 'none';
+      if (viewDone) viewDone.style.display = 'none';
+      if (viewLearn) viewLearn.style.display = 'none';
+      // React ViewRouter will render the appropriate component
+    }
   });
 }
 
@@ -504,25 +522,23 @@ function buildSessionQueue(allItems: Record<string, StudyItem>, sessionLimit: nu
 export function startSession(): void {
   const limit = settings.value.sessionLimit || 12;
   const queue = buildSessionQueue(items.value, limit);
-  
+
   if (queue.length === 0) {
     toast('No items due for review');
     return;
   }
-  
-  // Set session signals
+
+  // Set session signals - Session.tsx will pick up from there
   sessionQueue.value = queue;
   sessionIndex.value = 0;
   sessionPhase.value = 'question';
   sessionXP.value = 0;
   currentShown.value = false;
   userAnswer.value = '';
-  
-  // Switch to session view
+  sessionStartTime.value = Date.now();
+
+  // Switch to session view - React ViewRouter renders Session component
   currentView.value = 'session';
-  
-  // Render first item
-  renderCurrentItem();
 }
 
 export function renderCurrentItem(): void {
@@ -835,6 +851,17 @@ export function initDomController(): void {
     const newBtn = startBtn.cloneNode(true) as HTMLElement;
     startBtn.parentNode?.replaceChild(newBtn, startBtn);
     newBtn.addEventListener('click', startSession);
+  }
+
+  // Wire learn button on dashboard
+  const learnBtn = el('learnBtn');
+  if (learnBtn) {
+    // Remove old listeners by cloning
+    const newLearnBtn = learnBtn.cloneNode(true) as HTMLElement;
+    learnBtn.parentNode?.replaceChild(newLearnBtn, learnBtn);
+    newLearnBtn.addEventListener('click', () => {
+      currentView.value = 'learn';
+    });
   }
   
   // Wire nav tabs
