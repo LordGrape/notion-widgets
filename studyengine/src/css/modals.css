@@ -1,1 +1,405 @@
-/* Extraction-first scaffold: styles remain in base.css for exact parity. */
+/*
+ * Modal Styles - Glassmorphism Design System
+ * Overlay blur, modal card glass effects, and input styling
+ */
+
+/* ── Modal Overlay ── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px) saturate(1.2);
+  -webkit-backdrop-filter: blur(8px) saturate(1.2);
+  z-index: 50;
+  opacity: 0;
+  transition: opacity 0.25s ease, backdrop-filter 0.25s ease;
+}
+
+.overlay.show {
+  display: flex;
+  opacity: 1;
+}
+
+/* ── Modal Card ── */
+.modal {
+  width: 100%;
+  max-width: 820px;
+  max-height: 88vh;
+  border-radius: 22px;
+  background: var(--surface-1, rgba(30, 20, 50, 0.65));
+  backdrop-filter: blur(24px) saturate(1.6);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  border: 1px solid var(--border-subtle, rgba(139, 92, 246, 0.18));
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(var(--accent-rgb), 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transform: scale(0.96) translateY(10px);
+  opacity: 0;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
+}
+
+.overlay.show .modal {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
+
+/* ── Modal Header ── */
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(var(--accent-rgb), 0.12);
+  background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.08), transparent);
+}
+
+.modal-head .icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid rgba(var(--accent-rgb), 0.15);
+  background: rgba(var(--accent-rgb), 0.06);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.modal-head .icon-btn:hover {
+  background: rgba(var(--accent-rgb), 0.12);
+  border-color: rgba(var(--accent-rgb), 0.25);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+.modal-head .icon-btn:active {
+  transform: translateY(0) scale(0.97);
+}
+
+/* ── Modal Tabs ── */
+.modal-head .tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+
+.modal-head .tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.modal-head .tab {
+  flex: 0 0 auto;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(var(--accent-rgb), 0.14);
+  background: rgba(var(--accent-rgb), 0.04);
+  color: var(--text-secondary);
+  font-size: 10px;
+  letter-spacing: 1px;
+  font-weight: 700;
+  text-transform: uppercase;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.modal-head .tab:hover {
+  background: rgba(var(--accent-rgb), 0.08);
+  border-color: rgba(var(--accent-rgb), 0.22);
+}
+
+.modal-head .tab.active {
+  background: rgba(var(--accent-rgb), 0.18);
+  color: var(--text);
+  border-color: rgba(var(--accent-rgb), 0.32);
+  box-shadow: 0 2px 8px rgba(var(--accent-rgb), 0.15);
+}
+
+/* ── Modal Body ── */
+.modal-body {
+  padding: 18px;
+  overflow-y: auto;
+  flex: 1;
+  scrollbar-width: thin;
+}
+
+.modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+  background: rgba(var(--accent-rgb), 0.2);
+  border-radius: 99px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+  background: rgba(var(--accent-rgb), 0.05);
+  border-radius: 99px;
+}
+
+/* ── Modal Footer / Actions ── */
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  padding: 14px 18px;
+  border-top: 1px solid rgba(var(--accent-rgb), 0.1);
+  background: linear-gradient(180deg, transparent, rgba(var(--accent-rgb), 0.04));
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.modal-actions .ghost-btn {
+  min-width: 140px;
+  padding: 11px 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(var(--accent-rgb), 0.18);
+  background: rgba(var(--accent-rgb), 0.05);
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modal-actions .ghost-btn:hover {
+  background: rgba(var(--accent-rgb), 0.1);
+  border-color: rgba(var(--accent-rgb), 0.28);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+.modal-actions .big-btn {
+  min-width: 160px;
+  padding: 11px 22px;
+  border-radius: 14px;
+  border: none;
+  background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.9), rgba(var(--accent-rgb), 0.65));
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(var(--accent-rgb), 0.25);
+  transition: all 0.2s ease;
+}
+
+.modal-actions .big-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 32px rgba(var(--accent-rgb), 0.35);
+}
+
+.modal-actions .big-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.modal-actions .big-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ── Form Fields in Modals ── */
+.modal-body .field {
+  margin-bottom: 16px;
+}
+
+.modal-body .field label {
+  display: block;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.modal-body .field .input,
+.modal-body .field select,
+.modal-body .field textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(var(--accent-rgb), 0.18);
+  background: var(--surface-0, rgba(255, 255, 255, 0.04));
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 12px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.modal-body .field .input:focus,
+.modal-body .field select:focus,
+.modal-body .field textarea:focus {
+  border-color: rgba(var(--accent-rgb), 0.4);
+  background: rgba(var(--accent-rgb), 0.06);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.1);
+}
+
+.modal-body .field .input::placeholder,
+.modal-body .field textarea::placeholder {
+  color: var(--text-tertiary);
+}
+
+.modal-body .field textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+/* ── Settings Modal Specific ── */
+.settings-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid rgba(var(--accent-rgb), 0.12);
+  background: rgba(var(--accent-rgb), 0.03);
+  margin-bottom: 18px;
+}
+
+.settings-tab {
+  flex: 1;
+  border: none;
+  cursor: pointer;
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.settings-tab.active {
+  background: rgba(var(--accent-rgb), 0.18);
+  color: var(--text);
+  box-shadow: 0 2px 8px rgba(var(--accent-rgb), 0.12);
+}
+
+.settings-tab:hover:not(.active) {
+  background: rgba(var(--accent-rgb), 0.06);
+}
+
+/* ── Course Modal Specific ── */
+.course-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin: -6px -10px 16px;
+  border-radius: 14px;
+  background: rgba(var(--accent-rgb), 0.05);
+  border: 1px solid rgba(var(--accent-rgb), 0.12);
+}
+
+.course-modal-header .course-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 99px;
+  flex-shrink: 0;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.course-modal-header .course-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  flex: 1;
+}
+
+/* ── Archived Title ── */
+.archived-title {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+/* ── Modal Size Variants ── */
+.modal.modal-sm {
+  max-width: 420px;
+}
+
+.modal.modal-md {
+  max-width: 560px;
+}
+
+.modal.modal-lg {
+  max-width: 720px;
+}
+
+/* ── Light Mode Adjustments ── */
+@media (prefers-color-scheme: light) {
+  .overlay {
+    background: rgba(0, 0, 0, 0.45);
+  }
+
+  .modal {
+    background: rgba(255, 255, 255, 0.85);
+    border-color: rgba(139, 92, 246, 0.15);
+    box-shadow:
+      0 24px 80px rgba(0, 0, 0, 0.15),
+      0 0 0 1px rgba(139, 92, 246, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  }
+
+  .modal-head {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.06), transparent);
+  }
+
+  .modal-body .field .input,
+  .modal-body .field select,
+  .modal-body .field textarea {
+    background: rgba(139, 92, 246, 0.04);
+  }
+
+  .modal-body .field .input:focus,
+  .modal-body .field select:focus,
+  .modal-body .field textarea:focus {
+    background: rgba(139, 92, 246, 0.08);
+  }
+}
+
+/* ── Reduced Motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .overlay,
+  .modal {
+    transition: none !important;
+  }
+
+  .modal {
+    transform: none;
+    opacity: 1;
+  }
+
+  .modal-head .icon-btn,
+  .modal-head .tab,
+  .modal-actions .ghost-btn,
+  .modal-actions .big-btn,
+  .settings-tab {
+    transition: none !important;
+  }
+}
