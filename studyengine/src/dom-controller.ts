@@ -22,6 +22,7 @@ import {
   dueItems,
 } from './signals';
 import { showView, countDue, avgRetention, calibrationPct, tierLabel, tierColour, el, esc, toast, fmtMMSS, renderMd } from './utils';
+import { listCourses } from './courses';
 import type { StudyItem } from './types';
 
 // ============================================
@@ -211,6 +212,207 @@ function updateProgressionDisplay(): void {
   const pct = Math.min(100, Math.round((xp % xpForNext) / xpForNext * 100));
   if (progBarFill) progBarFill.style.width = pct + '%';
   if (progBarCurrent) progBarCurrent.textContent = pct + '%';
+}
+
+// ============================================
+// Courses Tab
+// ============================================
+
+let _activeCourseDetail: string | null = null;
+
+export function renderCourseList(): void {
+  const area = el('courseCardsArea');
+  if (!area) return;
+
+  const allCourses = listCourses(false);
+  const its = items.value;
+  const now = new Date();
+
+  if (allCourses.length === 0) {
+    area.innerHTML = '<div style="color:var(--text-secondary);font-size:11px;text-align:center;padding:20px 0;">No courses yet. Click ＋ Add or manage courses to get started.</div>';
+    return;
+  }
+
+  area.innerHTML = allCourses.map((c) => {
+    const courseItems = Object.values(its).filter((it) => it && !it.archived && it.course === c.name);
+    const due = countDue(its, c.name);
+    const ret = avgRetention(Object.fromEntries(courseItems.map((it) => [it!.id, it!])));
+
+    const retStr = ret !== null ? Math.round(ret * 100) + '%' : '—';
+
+    let examBadge = '';
+    if (c.examDate) {
+      const days = Math.ceil((new Date(c.examDate).getTime() - now.getTime()) / 86400000);
+      if (days > 0) {
+        examBadge = '<span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:8px;background:rgba(239,68,68,0.12);color:#ef4444;margin-left:6px;">' + days + 'd</span>';
+      }
+    }
+
+    return '<div class="course-card" data-course="' + esc(c.name) + '" style="cursor:pointer;padding:10px 12px;border-radius:10px;border:1px solid var(--border-subtle);margin-bottom:8px;background:var(--surface-1);">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
+        '<div style="width:10px;height:10px;border-radius:50%;background:' + (c.color || '#8b5cf6') + ';flex-shrink:0;"></div>' +
+        '<div style="font-weight:700;font-size:12px;color:var(--text-primary);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(c.name) + '</div>' +
+        examBadge +
+      '</div>' +
+      '<div style="display:flex;gap:12px;">' +
+        '<div style="font-size:10px;color:var(--text-secondary);"><span style="font-weight:700;color:var(--text-primary);">' + courseItems.length + '</span> cards</div>' +
+        '<div style="font-size:10px;color:var(--text-secondary);"><span style="font-weight:700;color:' + (due.total > 0 ? '#f59e0b' : 'var(--text-primary)') + ';">' + due.total + '</span> due</div>' +
+        '<div style="font-size:10px;color:var(--text-secondary);"><span style="font-weight:700;color:var(--text-primary);">' + retStr + '</span> ret.</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  area.querySelectorAll('.course-card[data-course]').forEach((card) => {
+    card.addEventListener('click', () => {
+      const name = card.getAttribute('data-course') || '';
+      openCourseDetail(name);
+    });
+  });
+}
+
+export function openCourseDetail(courseName: string): void {
+  _activeCourseDetail = courseName;
+  const panel = el('courseDetail') as HTMLElement | null;
+  if (panel) panel.style.display = '';
+
+  const its = items.value;
+  const now = new Date();
+  const course = courses.value[courseName];
+  const courseItems = Object.values(its).filter((it) => it && !it.archived && it.course === courseName) as StudyItem[];
+  const due = countDue(its, courseName);
+  const itemMap = Object.fromEntries(courseItems.map((it) => [it.id, it]));
+  const ret = avgRetention(itemMap);
+
+  const cdTitle = el('cdTitle');
+  if (cdTitle) cdTitle.textContent = courseName;
+
+  const cdItemCount = el('cdItemCount');
+  if (cdItemCount) cdItemCount.textContent = String(courseItems.length);
+
+  const cdDueCount = el('cdDueCount');
+  if (cdDueCount) cdDueCount.textContent = String(due.total) + ' due';
+
+  const cdAvgRet = el('cdAvgRet');
+  if (cdAvgRet) cdAvgRet.textContent = ret !== null ? Math.round(ret * 100) + '%' : '—';
+
+  const cdRetTrend = el('cdRetTrend');
+  if (cdRetTrend) cdRetTrend.textContent = ret !== null ? (ret >= 0.8 ? 'Good' : ret >= 0.6 ? 'Improving' : 'Needs work') : '—';
+
+  const cdCountdown = el('cdCountdown') as HTMLElement | null;
+  const cdDays = el('cdDays');
+  const cdDaysLabel = el('cdDaysLabel');
+  if (cdCountdown && course?.examDate) {
+    const days = Math.ceil((new Date(course.examDate).getTime() - now.getTime()) / 86400000);
+    if (days > 0) {
+      cdCountdown.style.display = '';
+      if (cdDays) cdDays.textContent = String(days);
+      if (cdDaysLabel) cdDaysLabel.textContent = 'Days until exam';
+    } else {
+      cdCountdown.style.display = 'none';
+    }
+  } else if (cdCountdown) {
+    cdCountdown.style.display = 'none';
+  }
+
+  const cdTierStats = el('cdTierStats');
+  if (cdTierStats) {
+    const tiers = ['quickfire', 'explain', 'apply', 'distinguish', 'mock', 'worked'];
+    const tierColors: Record<string, string> = {
+      quickfire: '#3b82f6', explain: '#22c55e', apply: '#f59e0b',
+      distinguish: '#8b5cf6', mock: '#ef4444', worked: '#06b6d4'
+    };
+    const tierCounts: Record<string, number> = {};
+    courseItems.forEach((it) => { const t = it.tier || 'quickfire'; tierCounts[t] = (tierCounts[t] || 0) + 1; });
+    cdTierStats.innerHTML = tiers.filter((t) => tierCounts[t]).map((t) =>
+      '<div class="tier-pill" style="background:' + tierColors[t] + '20;color:' + tierColors[t] + ';border:1px solid ' + tierColors[t] + '40;">' +
+        '<span class="tier-pill-label">' + tierLabel(t) + '</span>' +
+        '<span class="tier-pill-count">' + (tierCounts[t] || 0) + '</span>' +
+      '</div>'
+    ).join('');
+  }
+
+  const cdCardList = el('cdCardList');
+  if (cdCardList) {
+    if (courseItems.length === 0) {
+      cdCardList.innerHTML = '<div style="color:var(--text-secondary);font-size:11px;text-align:center;padding:12px 0;">No cards in this course yet.</div>';
+    } else {
+      cdCardList.innerHTML = courseItems.map((it) =>
+        '<div style="padding:6px 8px;border-radius:6px;border:1px solid var(--border-subtle);margin-bottom:4px;background:var(--surface-0);">' +
+          '<div style="font-size:11px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(it.prompt || '—') + '</div>' +
+          '<div style="font-size:9px;color:var(--text-tertiary);margin-top:2px;">' + tierLabel(it.tier || 'quickfire') + (it.topic ? ' · ' + esc(it.topic) : '') + '</div>' +
+        '</div>'
+      ).join('');
+    }
+  }
+
+  const cdBadges = el('cdBadges');
+  if (cdBadges && course) {
+    const examTypeLabel: Record<string, string> = {
+      mcq: 'MCQ', essay: 'Essay', oral: 'Oral', mixed: 'Mixed', problem: 'Problem-Solving'
+    };
+    cdBadges.innerHTML =
+      '<span class="cd-badge">' + (examTypeLabel[course.examType || 'mixed'] || 'Mixed') + '</span>' +
+      (course.color ? '<span class="cd-badge" style="background:' + course.color + '22;color:' + course.color + ';border-color:' + course.color + '44;">●</span>' : '');
+  }
+
+  const cdStart = el('cdStartSession');
+  const oldStart = cdStart?.cloneNode(true) as HTMLElement | null;
+  if (cdStart && oldStart) {
+    cdStart.parentNode?.replaceChild(oldStart, cdStart);
+    oldStart.addEventListener('click', () => {
+      const w = window as unknown as Record<string, unknown>;
+      (w.startCourseSession as ((c: string) => void) | undefined)?.(courseName) ||
+        (w.startSession as (() => void) | undefined)?.();
+    });
+  }
+
+  const cdAddCardBtn = el('cdAddCardBtn');
+  if (cdAddCardBtn) {
+    const newBtn = cdAddCardBtn.cloneNode(true) as HTMLElement;
+    cdAddCardBtn.parentNode?.replaceChild(newBtn, cdAddCardBtn);
+    newBtn.addEventListener('click', () => {
+      const w = window as unknown as Record<string, unknown>;
+      (w.openModal as ((course?: string) => void) | undefined)?.(courseName);
+    });
+  }
+
+  const cdImportBtn = el('cdImportBtn');
+  if (cdImportBtn) {
+    const newBtn = cdImportBtn.cloneNode(true) as HTMLElement;
+    cdImportBtn.parentNode?.replaceChild(newBtn, cdImportBtn);
+    newBtn.addEventListener('click', () => {
+      const w = window as unknown as Record<string, unknown>;
+      (w.openImportModal as (() => void) | undefined)?.();
+    });
+  }
+}
+
+export function closeCourseDetail(): void {
+  _activeCourseDetail = null;
+  const panel = el('courseDetail') as HTMLElement | null;
+  if (panel) panel.style.display = 'none';
+}
+
+export function switchTab(tab: 'home' | 'courses'): void {
+  const tabHome = el('tabHome');
+  const tabCourses = el('tabCourses');
+  const navHome = el('navHome');
+  const navCourses = el('navCourses');
+
+  if (tab === 'home') {
+    if (tabHome) { tabHome.style.display = ''; tabHome.classList.add('active'); }
+    if (tabCourses) { tabCourses.style.display = 'none'; tabCourses.classList.remove('active'); }
+    if (navHome) navHome.classList.add('active');
+    if (navCourses) navCourses.classList.remove('active');
+    closeCourseDetail();
+  } else {
+    if (tabHome) { tabHome.style.display = 'none'; tabHome.classList.remove('active'); }
+    if (tabCourses) { tabCourses.style.display = ''; tabCourses.classList.add('active'); }
+    if (navHome) navHome.classList.remove('active');
+    if (navCourses) navCourses.classList.add('active');
+    renderCourseList();
+    closeCourseDetail();
+  }
 }
 
 // ============================================
@@ -639,9 +841,36 @@ export function initDomController(): void {
   document.querySelectorAll('.nav-tab[data-nav]').forEach(tab => {
     tab.addEventListener('click', () => {
       const nav = tab.getAttribute('data-nav');
-      if (nav === 'home' || nav === 'courses') {
+      if (nav === 'home') {
         currentView.value = 'dashboard';
+        switchTab('home');
+      } else if (nav === 'courses') {
+        currentView.value = 'dashboard';
+        switchTab('courses');
       }
     });
   });
+
+  // Wire course detail back button
+  const cdBack = el('cdBack');
+  if (cdBack) {
+    cdBack.addEventListener('click', () => {
+      closeCourseDetail();
+    });
+  }
+
+  // Wire course detail settings button
+  const cdSettingsBtn = el('cdSettingsBtn');
+  if (cdSettingsBtn) {
+    cdSettingsBtn.addEventListener('click', () => {
+      if (_activeCourseDetail) {
+        const w = window as unknown as Record<string, unknown>;
+        (w.openCourseModal as (() => void) | undefined)?.();
+      }
+    });
+  }
+
+  // Ensure courseDetail starts hidden
+  const cdPanel = el('courseDetail') as HTMLElement | null;
+  if (cdPanel) cdPanel.style.display = 'none';
 }
