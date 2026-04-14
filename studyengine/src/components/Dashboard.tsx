@@ -10,6 +10,7 @@ import {
   items, courses, settings, dragonState, currentView, selectedCourse, dueItems 
 } from '../signals';
 import type { StudyItem, Course, CramState } from '../types';
+import { Dragon } from './Dragon';
 
 // Local signals for dashboard state
 const resumeSnapshot = signal<{ _remaining: number } | null>(null);
