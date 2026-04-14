@@ -7,8 +7,22 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <!-- Core.js is loaded externally for SyncEngine -->
   <script src="https://notion-widgets-93r.pages.dev/core.js"></script>
+  <!-- Legacy JS runtime (restored from working commit) -->
+  <script src="/legacy/state.js"></script>
+  <script src="/legacy/fsrs.js"></script>
+  <script src="/legacy/utils.js"></script>
+  <script src="/legacy/courses.js"></script>
+  <script src="/legacy/cards.js"></script>
+  <script src="/legacy/tiers.js"></script>
+  <script src="/legacy/dashboard.js"></script>
+  <script src="/legacy/sidebar.js"></script>
+  <script src="/legacy/tutor.js"></script>
+  <script src="/legacy/session.js"></script>
+  <script src="/legacy/dragon.js"></script>
+  <script src="/legacy/learn.js"></script>
 </head>
 <body>
+  <script>(function(){if(window.self===window.top)document.body.classList.add('standalone');})();</script>
   <script type="module" src="/src/main.tsx"></script>
   <div id="awakening-overlay" aria-hidden="true">
     <div class="awakening-stars" aria-hidden="true"></div>

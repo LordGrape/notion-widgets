@@ -13,6 +13,8 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "allowJs": true,
+    "checkJs": false,
     "outDir": "./dist",
     "baseUrl": ".",
     "paths": {
