@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Core.js is loaded externally for SyncEngine -->
+  <script src="https://notion-widgets-93r.pages.dev/core.js"></script>
   <!-- CSS files are now imported via Vite in src/index.ts -->
 </head>
 <body>
@@ -14,6 +16,19 @@
     function el(id) { return document.getElementById(id); }
     var visualGenerationPending = {};
     var globalUtils = {};
+  </script>
+  <script>
+    // SyncEngine must be initialized before the app loads
+    if (typeof SyncEngine !== 'undefined') {
+      try {
+        SyncEngine.init({
+          worker: 'https://widget-sync.lordgrape-widgets.workers.dev',
+          namespaces: ['dragon', 'clock', 'user', 'studyengine']
+        });
+      } catch (e) {
+        console.warn('[StudyEngine] SyncEngine.init failed:', e);
+      }
+    }
   </script>
   <div id="awakening-overlay" aria-hidden="true">
     <div class="awakening-stars" aria-hidden="true"></div>
@@ -143,11 +158,11 @@
       </div>
 
       <div class="main-content">
-        <!-- Preact mounts views here -->
+        <!-- Preact root - only Tutor mounts here (floating panel). Main views use HTML shell below. -->
         <div id="preact-root" class="preact-view-root"></div>
 
-        <!-- Legacy embedded card shell (hidden; kept for JS refs that target static IDs) -->
-        <div class="wrap" style="display:none" aria-hidden="true">
+        <!-- Legacy embedded card shell (VISIBLE - this is the primary UI) -->
+        <div class="wrap" aria-hidden="false">
           <div class="shell">
             <div class="card" id="rootCard">
         <div class="topbar">

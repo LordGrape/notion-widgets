@@ -1,20 +1,16 @@
 /*
  * Courses TypeScript Module
- * Phase 3 conversion: types only, ZERO logic changes
+ * Signals-first: all state access via signal .value
  */
 
-import { el, esc, isoNow, fmtMMSS, clamp } from './utils';
-import { saveState, deepClone, settings as appSettings, state as appState, NS, TIER_PROFILES, CRAM_TIER_MOD, BLOOM_STABILITY_BONUS } from './state';
+import { el, esc, isoNow } from './utils';
+import { items, courses, subDecks, settings, saveState } from './signals';
+import { deepClone, NS, TIER_PROFILES, CRAM_TIER_MOD, BLOOM_STABILITY_BONUS } from './constants';
 import { retrievability } from './fsrs';
 import type { StudyItem, Course, SubDeck, CramState, Assessment } from './types';
 
 // External CDN globals (keep as declare)
 declare function playClick(): void;
-
-// Helper function stub (will be injected)
-let reconcileStatsImpl: () => void = () => {};
-export function setReconcileStats(fn: () => void) { reconcileStatsImpl = fn; }
-function reconcileStats(): void { reconcileStatsImpl(); }
 
 /**
  * Generate a URL-safe key from course name
@@ -28,7 +24,7 @@ function courseKey(name: string): string {
  */
 export function getCourse(courseName: string): Course | null {
   if (!courseName) return null;
-  return appState?.courses?.[courseName] || null;
+  return courses.value?.[courseName] || null;
 }
 
 /**
@@ -45,9 +41,9 @@ export function getCourseColor(courseName: string): string {
  */
 function getEffectiveRetention(courseName: string): number {
   const cram = getCramState(courseName);
-  if (cram.active && cram.intensity === 'critical') return Math.min(appSettings?.desiredRetention || 0.90, 0.85);
-  if (cram.active && cram.intensity === 'high') return Math.min(appSettings?.desiredRetention || 0.90, 0.87);
-  return appSettings?.desiredRetention || 0.90;
+  if (cram.active && cram.intensity === 'critical') return Math.min(settings.value.desiredRetention || 0.90, 0.85);
+  if (cram.active && cram.intensity === 'high') return Math.min(settings.value.desiredRetention || 0.90, 0.87);
+  return settings.value.desiredRetention || 0.90;
 }
 
 /**
@@ -248,9 +244,9 @@ function applyTriagePriorities(courseName: string, assessId: string): void {
   });
 
   // Bulk update card priorities
-  for (const id in appState?.items) {
-    if (!appState?.items.hasOwnProperty(id)) continue;
-    const it = appState?.items[id];
+  for (const id in items.value) {
+    if (!items.value.hasOwnProperty(id)) continue;
+    const it = items.value[id];
     if (!it || it.archived || it.course !== courseName) continue;
     const topic = it.topic || 'General';
     if (priorityTopics[topic]) {
@@ -268,7 +264,7 @@ function applyTriagePriorities(courseName: string, assessId: string): void {
  * Ensure course has modules array
  */
 function ensureCourseModules(courseName: string): void {
-  const c = appState?.courses?.[courseName];
+  const c = courses.value?.[courseName];
   if (!c) return;
   if (!Array.isArray(c.modules)) c.modules = [];
 }
@@ -288,7 +284,7 @@ function generateModuleId(): string {
  */
 function addModuleToCourse(courseName: string, moduleObj?: Partial<SubDeck> & { name: string }): SubDeck | null {
   ensureCourseModules(courseName);
-  const c = appState?.courses?.[courseName];
+  const c = courses.value?.[courseName];
   if (!c) return null;
   if (!moduleObj) moduleObj = { name: '' };
   const mod: SubDeck = {
@@ -307,7 +303,7 @@ function addModuleToCourse(courseName: string, moduleObj?: Partial<SubDeck> & { 
  */
 function removeModuleFromCourse(courseName: string, moduleId: string): void {
   ensureCourseModules(courseName);
-  const c = appState?.courses?.[courseName];
+  const c = courses.value?.[courseName];
   if (!c) return;
   c.modules = c.modules!.filter((m) => m && m.id !== moduleId);
   saveCourse(c);
@@ -318,7 +314,7 @@ function removeModuleFromCourse(courseName: string, moduleId: string): void {
  */
 function renameModule(courseName: string, moduleId: string, newName: string): void {
   ensureCourseModules(courseName);
-  const c = appState?.courses?.[courseName];
+  const c = courses.value?.[courseName];
   if (!c) return;
   const mod = c.modules!.find((m) => m && m.id === moduleId);
   if (mod) { mod.name = newName; saveCourse(c); }
@@ -328,7 +324,7 @@ function renameModule(courseName: string, moduleId: string, newName: string): vo
  * Get module for a topic
  */
 function getModuleForTopic(courseName: string, topic: string): SubDeck | null {
-  const c = appState?.courses?.[courseName];
+  const c = courses.value?.[courseName];
   if (!c || !c.modules) return null;
   for (let i = 0; i < c.modules.length; i++) {
     if (c.modules[i] && c.modules[i].topics && c.modules[i].topics!.indexOf(topic) >= 0) return c.modules[i];
@@ -340,7 +336,7 @@ function getModuleForTopic(courseName: string, topic: string): SubDeck | null {
  * Get module by ID
  */
 function getModuleById(courseName: string, moduleId: string): SubDeck | null {
-  const c = appState?.courses?.[courseName];
+  const c = courses.value?.[courseName];
   if (!c || !c.modules) return null;
   return c.modules.find((m) => m && m.id === moduleId) || null;
 }
@@ -352,9 +348,9 @@ function getCardsForModule(courseName: string, moduleId: string): StudyItem[] {
   const mod = getModuleById(courseName, moduleId);
   if (!mod || !mod.topics) return [];
   const cards: StudyItem[] = [];
-  for (const id in appState?.items) {
-    if (!appState?.items.hasOwnProperty(id)) continue;
-    const it = appState?.items[id];
+  for (const id in items.value) {
+    if (!items.value.hasOwnProperty(id)) continue;
+    const it = items.value[id];
     if (!it || it.archived || it.course !== courseName) continue;
     if (mod.topics!.indexOf(it.topic || '') >= 0) cards.push(it);
   }
@@ -366,9 +362,9 @@ function getCardsForModule(courseName: string, moduleId: string): StudyItem[] {
  */
 function getCardsForTopic(courseName: string, topic: string): StudyItem[] {
   const cards: StudyItem[] = [];
-  for (const id in appState?.items) {
-    if (!appState?.items.hasOwnProperty(id)) continue;
-    const it = appState?.items[id];
+  for (const id in items.value) {
+    if (!items.value.hasOwnProperty(id)) continue;
+    const it = items.value[id];
     if (!it || it.archived) continue;
     if (courseName && it.course !== courseName) continue;
     if ((it.topic || 'General') === topic) cards.push(it);
@@ -381,9 +377,9 @@ function getCardsForTopic(courseName: string, topic: string): StudyItem[] {
  */
 function getCardsForCourse(courseName: string, excludeArchivedSubDecks?: boolean): StudyItem[] {
   const cards: StudyItem[] = [];
-  for (const id in appState?.items) {
-    if (!appState?.items.hasOwnProperty(id)) continue;
-    const it = appState?.items[id];
+  for (const id in items.value) {
+    if (!items.value.hasOwnProperty(id)) continue;
+    const it = items.value[id];
     if (!it || it.archived || it.course !== courseName) continue;
     if (excludeArchivedSubDecks && isItemInArchivedSubDeck(it)) continue;
     cards.push(it);
@@ -472,11 +468,11 @@ function clampCourseStringFields(c: Course): void {
 /**
  * Migrate courses to Phase 6 schema
  */
-function migrateCoursesPhase6(): void {
+export function migrateCoursesPhase6(): void {
   let changed = false;
-  for (const k in appState?.courses) {
-    if (!appState?.courses.hasOwnProperty(k)) continue;
-    const c0 = appState?.courses[k];
+  for (const k in courses.value) {
+    if (!courses.value.hasOwnProperty(k)) continue;
+    const c0 = courses.value[k];
     const snap = JSON.stringify(c0);
     normalizeCoursePhase6(c0);
     // Ensure modules array exists
@@ -485,7 +481,7 @@ function migrateCoursesPhase6(): void {
   }
   if (changed) {
     if (typeof SyncEngine !== 'undefined' && (SyncEngine as unknown as { set?: (ns: string, key: string, val: unknown) => void }).set) {
-      (SyncEngine as unknown as { set: (ns: string, key: string, val: unknown) => void }).set(NS, 'courses', appState?.courses || {});
+      (SyncEngine as unknown as { set: (ns: string, key: string, val: unknown) => void }).set(NS, 'courses', courses.value || {});
     }
   }
 }
@@ -519,7 +515,9 @@ export function saveCourse(courseObj: Course): void {
   courseObj.id = courseObj.id || courseObj.name;
   normalizeCoursePhase6(courseObj);
   clampCourseStringFields(courseObj);
-  if (appState?.courses) appState.courses[courseObj.name] = courseObj;
+  const c = { ...courses.value };
+  c[courseObj.name] = courseObj;
+  courses.value = c;
   saveState();
 }
 
@@ -527,8 +525,8 @@ export function saveCourse(courseObj: Course): void {
  * Delete course from state
  */
 export function deleteCourse(courseName: string): void {
-  if (appState?.courses[courseName]) {
-    delete appState?.courses[courseName];
+  if (courses.value[courseName]) {
+    delete courses.value[courseName];
   }
 }
 
@@ -537,9 +535,9 @@ export function deleteCourse(courseName: string): void {
  */
 export function listCourses(includeArchived?: boolean): Course[] {
   const out: Course[] = [];
-  for (const k in appState?.courses) {
-    if (!appState?.courses.hasOwnProperty(k)) continue;
-    const course = appState?.courses[k];
+  for (const k in courses.value) {
+    if (!courses.value.hasOwnProperty(k)) continue;
+    const course = courses.value[k];
     if (!course) continue;
     if (!includeArchived && course.archived) continue;
     out.push(course);
@@ -554,9 +552,9 @@ export function listCourses(includeArchived?: boolean): Course[] {
 export function getTopicsForCourse(courseName: string): string[] {
   if (!courseName) return [];
   const topics: Record<string, number> = {};
-  for (const id in appState?.items) {
-    if (!appState?.items.hasOwnProperty(id)) continue;
-    const it = appState?.items[id];
+  for (const id in items.value) {
+    if (!items.value.hasOwnProperty(id)) continue;
+    const it = items.value[id];
     if (!it || it.course !== courseName) continue;
     const t = (it.topic || '').trim();
     if (t) topics[t] = (topics[t] || 0) + 1;
@@ -572,16 +570,16 @@ export function getTopicsForCourse(courseName: string): string[] {
  * Get subdeck
  */
 export function getSubDeck(courseName: string, subDeckName: string): SubDeck | null {
-  if (!appState?.subDecks[courseName]) return null;
-  return appState?.subDecks[courseName].subDecks[subDeckName] || null;
+  if (!subDecks.value[courseName]) return null;
+  return subDecks.value[courseName].subDecks[subDeckName] || null;
 }
 
 /**
  * List subdecks for a course
  */
 function listSubDecks(courseName: string): SubDeck[] {
-  if (!appState?.subDecks[courseName]) return [];
-  const subs = appState?.subDecks[courseName].subDecks;
+  if (!subDecks.value[courseName]) return [];
+  const subs = subDecks.value[courseName].subDecks;
   const out: SubDeck[] = [];
   for (const k in subs) {
     if (subs.hasOwnProperty(k)) out.push(subs[k]);
@@ -594,10 +592,11 @@ function listSubDecks(courseName: string): SubDeck[] {
  * Create a subdeck
  */
 export function createSubDeck(courseName: string, name: string): SubDeck {
-  if (appState?.subDecks && !appState.subDecks[courseName]) {
-    appState.subDecks[courseName] = { subDecks: {} };
+  const sds = { ...subDecks.value };
+  if (!sds[courseName]) {
+    sds[courseName] = { subDecks: {} };
   }
-  const existing = appState?.subDecks?.[courseName] ? Object.keys(appState.subDecks[courseName].subDecks) : [];
+  const existing = sds[courseName] ? Object.keys(sds[courseName].subDecks) : [];
   const sd: SubDeck = {
     id: name,
     name: name,
@@ -607,9 +606,8 @@ export function createSubDeck(courseName: string, name: string): SubDeck {
     created: isoNow(),
     cardCount: 0
   };
-  if (appState?.subDecks?.[courseName]?.subDecks) {
-    appState.subDecks[courseName].subDecks[name] = sd;
-  }
+  sds[courseName].subDecks[name] = sd;
+  subDecks.value = sds;
   saveState();
   return sd;
 }
@@ -618,15 +616,15 @@ export function createSubDeck(courseName: string, name: string): SubDeck {
  * Rename subdeck
  */
 function renameSubDeck(courseName: string, oldName: string, newName: string): void {
-  const sd = appState?.subDecks[courseName];
+  const sd = subDecks.value[courseName];
   if (!sd || !sd.subDecks[oldName]) return;
   const meta = sd.subDecks[oldName];
   meta.name = newName;
   delete sd.subDecks[oldName];
   sd.subDecks[newName] = meta;
-  for (const id in appState?.items) {
-    if (!appState?.items.hasOwnProperty(id)) continue;
-    const it = appState?.items[id];
+  for (const id in items.value) {
+    if (!items.value.hasOwnProperty(id)) continue;
+    const it = items.value[id];
     if (it && it.course === courseName && it.subDeck === oldName) {
       it.subDeck = newName;
     }
@@ -654,29 +652,30 @@ function unarchiveSubDeck(courseName: string, subDeckName: string): void {
  * Delete subdeck
  */
 function deleteSubDeck(courseName: string, subDeckName: string, deleteCards?: boolean): void {
-  const sd = appState?.subDecks[courseName];
+  const sd = subDecks.value[courseName];
   if (!sd || !sd.subDecks[subDeckName]) return;
   if (deleteCards) {
     const toDelete: string[] = [];
-    for (const id in appState?.items) {
-      if (!appState?.items.hasOwnProperty(id)) continue;
-      const it = appState?.items[id];
+    for (const id in items.value) {
+      if (!items.value.hasOwnProperty(id)) continue;
+      const it = items.value[id];
       if (it && it.course === courseName && it.subDeck === subDeckName) {
         toDelete.push(id);
       }
     }
-    toDelete.forEach((did) => { delete appState?.items[did]; });
+    toDelete.forEach((did) => { delete items.value[did]; });
   } else {
-    for (const id2 in appState?.items) {
-      if (!appState?.items.hasOwnProperty(id2)) continue;
-      const it2 = appState?.items[id2];
+    for (const id2 in items.value) {
+      if (!items.value.hasOwnProperty(id2)) continue;
+      const it2 = items.value[id2];
       if (it2 && it2.course === courseName && it2.subDeck === subDeckName) {
         it2.subDeck = null;
       }
     }
   }
   delete sd.subDecks[subDeckName];
-  reconcileStats();
+  subDecks.value = { ...subDecks.value };
+  items.value = { ...items.value };
   saveState();
 }
 
@@ -684,23 +683,23 @@ function deleteSubDeck(courseName: string, subDeckName: string, deleteCards?: bo
  * Move subdeck to different course
  */
 function moveSubDeck(subDeckName: string, fromCourse: string, toCourse: string): void {
-  const fromSd = appState?.subDecks[fromCourse];
+  const fromSd = subDecks.value[fromCourse];
   if (!fromSd || !fromSd.subDecks[subDeckName]) return;
-  if (appState?.subDecks && !appState.subDecks[toCourse]) {
-    appState.subDecks[toCourse] = { subDecks: {} };
+  const sds = { ...subDecks.value };
+  if (!sds[toCourse]) {
+    sds[toCourse] = { subDecks: {} };
   }
-  if (appState?.subDecks?.[toCourse]?.subDecks) {
-    appState.subDecks[toCourse].subDecks[subDeckName] = fromSd.subDecks[subDeckName];
-  }
+  sds[toCourse].subDecks[subDeckName] = fromSd.subDecks[subDeckName];
   delete fromSd.subDecks[subDeckName];
-  for (const id in appState?.items) {
-    if (!appState?.items.hasOwnProperty(id)) continue;
-    const it = appState?.items[id];
+  subDecks.value = sds;
+  for (const id in items.value) {
+    if (!items.value.hasOwnProperty(id)) continue;
+    const it = items.value[id];
     if (it && it.course === fromCourse && it.subDeck === subDeckName) {
       it.course = toCourse;
     }
   }
-  if (!appState?.courses[toCourse]) {
+  if (!courses.value[toCourse]) {
     saveCourse({
       name: toCourse,
       examType: 'mixed',
@@ -735,9 +734,9 @@ function isItemInArchivedSubDeck(item: StudyItem): boolean {
 export function recountSubDeck(courseName: string, subDeckName: string): void {
   if (!subDeckName) return;
   let count = 0;
-  for (const id in appState?.items) {
-    if (!appState?.items.hasOwnProperty(id)) continue;
-    const it = appState?.items[id];
+  for (const id in items.value) {
+    if (!items.value.hasOwnProperty(id)) continue;
+    const it = items.value[id];
     if (it && !it.archived && it.course === courseName && it.subDeck === subDeckName) count++;
   }
   const sd = getSubDeck(courseName, subDeckName);
@@ -749,9 +748,9 @@ export function recountSubDeck(courseName: string, subDeckName: string): void {
  */
 function getCardsForSubDeck(courseName: string, subDeckName: string): StudyItem[] {
   const cards: StudyItem[] = [];
-  for (const id in appState?.items) {
-    if (!appState?.items.hasOwnProperty(id)) continue;
-    const it = appState?.items[id];
+  for (const id in items.value) {
+    if (!items.value.hasOwnProperty(id)) continue;
+    const it = items.value[id];
     if (!it || it.archived || it.course !== courseName) continue;
     if (it.subDeck === subDeckName) cards.push(it);
   }
