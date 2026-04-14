@@ -31,6 +31,55 @@ export const selectedCourse = signal<Course | null>(null);
 export const selectedTopic = signal<string | null>(null);
 export const sidebarOpen = signal<boolean>(true);
 
+// Session signals
+export const sessionQueue = signal<StudyItem[]>([]);
+export const sessionIndex = signal<number>(0);
+export const sessionPhase = signal<'question' | 'revealed' | 'rated' | 'restudy' | 'break' | 'complete'>('question');
+export const itemStartTime = signal<number>(0);
+export const userAnswer = signal<string>('');
+export const essayOutlineText = signal<string>('');
+export const essayPhase = signal<'outline' | 'writing' | null>(null);
+export const sessionXP = signal<number>(0);
+export const breakTimeRemaining = signal<number>(0);
+export const breakActive = signal<boolean>(false);
+export const aiFeedback = signal<unknown>(null);
+export const aiRating = signal<number | null>(null);
+export const currentShown = signal<boolean>(false);
+export const sessionLoops = signal<Record<string, number>>({});
+export const sessionReviewsByTier = signal<Record<string, number>>({ quickfire: 0, explain: 0, apply: 0, distinguish: 0, mock: 0, worked: 0 });
+export const recentRatings = signal<number[]>([]);
+export const sessionStartTime = signal<number>(0);
+
+// Tutor signals
+export interface TutorMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: number;
+}
+
+export const tutorMessages = signal<TutorMessage[]>([]);
+export const tutorLoading = signal<boolean>(false);
+export const tutorOpen = signal<boolean>(false);
+export const tutorCurrentItem = signal<StudyItem | null>(null);
+export const tutorCurrentMode = signal<string>('socratic');
+
+// Learn signals
+export interface LearnSessionData {
+  course: string;
+  topics: string[];
+  segments: Array<{
+    id: string;
+    content: string;
+    title?: string;
+  }>;
+  currentSegmentIndex: number;
+  status: 'prime' | 'encode' | 'consolidate' | 'complete';
+}
+
+export const learnSession = signal<LearnSessionData | null>(null);
+export const learnSegmentIndex = signal<number>(0);
+export const learnPhase = signal<'prime' | 'encode' | 'consolidate' | 'complete'>('prime');
+
 // Computed
 export const itemsArray = computed(() => Object.values(items.value));
 export const coursesArray = computed(() => Object.values(courses.value));

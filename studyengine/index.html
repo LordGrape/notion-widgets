@@ -5,9 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-__STYLES__
-</style>
+  <!-- CSS files are now imported via Vite in src/index.ts -->
 </head>
 <body>
   <div id="awakening-overlay" aria-hidden="true">
@@ -110,6 +108,9 @@ __STYLES__
     </div>
   </div>
   <canvas id="bgCanvas"></canvas>
+
+  <!-- Preact root mount point (Phase 4) -->
+  <div id="preact-root"></div>
 
   <!-- New: App layout wrapper (standalone only; sidebar hidden when embedded) -->
   <div class="app-layout">
@@ -756,9 +757,9 @@ __STYLES__
   </script>
   <!-- ts-fsrs UMD exposes global FSRS ({ FSRS, generatorParameters, … }) — browser scheduling still uses shared w[] + inline formulas -->
   <script src="https://cdn.jsdelivr.net/npm/ts-fsrs@5.3.2/dist/index.umd.js"></script>
-  <script>
-__SCRIPTS__
-</script>
+  <!-- Converted TypeScript modules (Vite bundles these) -->
+  <script type="module" src="src/index.ts"></script>
+  <!-- All JS converted to TypeScript/Preact modules -->
   <div class="anno-tip" id="annoTip"><div class="at-tag"></div><div class="at-note"></div></div>
   <div class="canvas-tooltip" id="canvasTooltip">
     <div class="ct-day" id="ctDay"></div>
