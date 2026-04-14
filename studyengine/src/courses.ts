@@ -472,7 +472,7 @@ function clampCourseStringFields(c: Course): void {
 /**
  * Migrate courses to Phase 6 schema
  */
-function migrateCoursesPhase6(): void {
+export function migrateCoursesPhase6(): void {
   let changed = false;
   for (const k in appState?.courses) {
     if (!appState?.courses.hasOwnProperty(k)) continue;
