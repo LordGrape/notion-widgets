@@ -218,51 +218,97 @@
 }
 
 /* ── Form Fields in Modals ── */
-.modal-body .field {
+.modal-body .field,
+.form-row {
   margin-bottom: 16px;
 }
 
-.modal-body .field label {
+.modal-body .field label,
+.modal-label,
+.form-label {
   display: block;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
-  letter-spacing: 1.4px;
+  letter-spacing: 1.2px;
   text-transform: uppercase;
   color: var(--text-secondary);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .modal-body .field .input,
 .modal-body .field select,
-.modal-body .field textarea {
+.modal-body .field textarea,
+.modal-input,
+.modal-select,
+.modal-ta {
   width: 100%;
-  padding: 12px 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(var(--accent-rgb), 0.18);
-  background: var(--surface-0, rgba(255, 255, 255, 0.04));
+  padding: 10px 14px;
+  border-radius: var(--radius, 12px);
+  border: 1px solid var(--border-subtle, rgba(var(--accent-rgb), 0.18));
+  background: var(--surface-1, rgba(30, 20, 50, 0.5));
   color: var(--text-primary);
-  font-family: inherit;
+  font-family: Inter, system-ui, sans-serif;
   font-size: 12px;
   outline: none;
   transition: all 0.2s ease;
+  box-sizing: border-box;
 }
 
 .modal-body .field .input:focus,
 .modal-body .field select:focus,
-.modal-body .field textarea:focus {
-  border-color: rgba(var(--accent-rgb), 0.4);
-  background: rgba(var(--accent-rgb), 0.06);
-  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.1);
+.modal-body .field textarea:focus,
+.modal-input:focus,
+.modal-select:focus,
+.modal-ta:focus {
+  border-color: var(--border-accent, rgba(var(--accent-rgb), 0.4));
+  background: rgba(var(--accent-rgb), 0.08);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.12);
 }
 
 .modal-body .field .input::placeholder,
-.modal-body .field textarea::placeholder {
+.modal-body .field textarea::placeholder,
+.modal-input::placeholder,
+.modal-ta::placeholder {
   color: var(--text-tertiary);
 }
 
-.modal-body .field textarea {
+.modal-body .field textarea,
+.modal-ta {
   min-height: 100px;
   resize: vertical;
+}
+
+/* Select dropdown with custom arrow */
+.modal-select,
+.modal-body .field select,
+.modal-input[type="select"] {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16' fill='none' stroke='%239ca3af' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='4,6 8,10 12,6'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+  cursor: pointer;
+}
+
+.modal-select option,
+.modal-body .field select option {
+  background: var(--surface-1, rgba(30, 20, 50, 0.9));
+  color: var(--text-primary);
+  padding: 8px;
+}
+
+/* Two-column form row layout */
+.form-row-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 480px) {
+  .form-row-2col {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
 }
 
 /* ── Settings Modal Specific ── */
