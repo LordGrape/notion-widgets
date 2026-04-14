@@ -1,13 +1,18 @@
 /*
  * Signals TypeScript Module
- * Phase 4: Preact signals reactive bridge for SyncEngine state
+ * Single source of truth for all reactive state.
+ * saveState() is the SINGLE persistence function.
  */
 
-import { signal, computed, effect } from '@preact/signals';
+import { signal, computed } from '@preact/signals';
 import type { AppState, Settings, StudyItem, Course, SessionState, DragonState, CalibrationData, Stats, LearnProgress, LearnSession } from './types';
+import { NS, DEFAULT_STATE, DEFAULT_SETTINGS, deepClone } from './constants';
 
-// Hydration gate - prevents persisting empty defaults before SyncEngine loads
-const hydrated = signal(false);
+// External CDN globals
+declare const SyncEngine: {
+  get: (ns: string, key: string) => unknown;
+  set: (ns: string, key: string, val: unknown) => void;
+};
 
 // Core state signals — populated from SyncEngine after load
 export const items = signal<Record<string, StudyItem>>({});
@@ -15,9 +20,9 @@ export const courses = signal<Record<string, Course>>({});
 export const subDecks = signal<AppState['subDecks']>({});
 export const learnProgress = signal<Record<string, Record<string, LearnProgress>>>({});
 export const learnSessions = signal<LearnSession[]>([]);
-export const calibration = signal<CalibrationData>({ totalSelfRatings: 0, totalActualCorrect: 0, history: [] });
-export const stats = signal<Stats>({ totalReviews: 0, streakDays: 0, lastSessionDate: '', reviewsByTier: { quickfire: 0, explain: 0, apply: 0, distinguish: 0, mock: 0, worked: 0 } });
-export const settings = signal<Settings>({} as Settings);
+export const calibration = signal<CalibrationData>(deepClone(DEFAULT_STATE.calibration));
+export const stats = signal<Stats>(deepClone(DEFAULT_STATE.stats));
+export const settings = signal<Settings>(deepClone(DEFAULT_SETTINGS));
 
 // Dragon state (synced from dragon namespace)
 export const dragonState = signal<DragonState>({} as DragonState);
@@ -117,107 +122,26 @@ export const topicsForSelectedCourse = computed(() => {
   });
 });
 
-// Hydration from SyncEngine
-export function hydrateFromSync(): void {
-  const NS = 'studyengine';
-  const DRAGON_NS = 'dragon';
-  
-  // StudyEngine namespace
-  const itemsData = (window as unknown as { SyncEngine?: { get: (ns: string, key: string) => unknown } }).SyncEngine?.get(NS, 'items');
-  const coursesData = (window as unknown as { SyncEngine?: { get: (ns: string, key: string) => unknown } }).SyncEngine?.get(NS, 'courses');
-  const subDecksData = (window as unknown as { SyncEngine?: { get: (ns: string, key: string) => unknown } }).SyncEngine?.get(NS, 'subDecks');
-  const learnProgressData = (window as unknown as { SyncEngine?: { get: (ns: string, key: string) => unknown } }).SyncEngine?.get(NS, 'learnProgress');
-  const learnSessionsData = (window as unknown as { SyncEngine?: { get: (ns: string, key: string) => unknown } }).SyncEngine?.get(NS, 'learnSessions');
-  const calibrationData = (window as unknown as { SyncEngine?: { get: (ns: string, key: string) => unknown } }).SyncEngine?.get(NS, 'calibration');
-  const statsData = (window as unknown as { SyncEngine?: { get: (ns: string, key: string) => unknown } }).SyncEngine?.get(NS, 'stats');
-  const settingsData = (window as unknown as { SyncEngine?: { get: (ns: string, key: string) => unknown } }).SyncEngine?.get(NS, 'settings');
-  
-  // Dragon namespace
-  const dragonData = (window as unknown as { SyncEngine?: { get: (ns: string, key: string) => unknown } }).SyncEngine?.get(DRAGON_NS, 'dragon');
-  
-  items.value = (itemsData as Record<string, StudyItem>) || {};
-  courses.value = (coursesData as Record<string, Course>) || {};
-  subDecks.value = (subDecksData as AppState['subDecks']) || {};
-  learnProgress.value = (learnProgressData as Record<string, Record<string, LearnProgress>>) || {};
-  learnSessions.value = (learnSessionsData as LearnSession[]) || [];
-  calibration.value = (calibrationData as CalibrationData) || { totalSelfRatings: 0, totalActualCorrect: 0, history: [] };
-  stats.value = (statsData as Stats) || { totalReviews: 0, streakDays: 0, lastSessionDate: '', reviewsByTier: { quickfire: 0, explain: 0, apply: 0, distinguish: 0, mock: 0, worked: 0 } };
-  settings.value = (settingsData as Settings) || {} as Settings;
-  dragonState.value = (dragonData as DragonState) || {} as DragonState;
-  
-  hydrated.value = true;
+/**
+ * saveState — SINGLE persistence function for the entire app.
+ * Reads every signal's .value and writes to SyncEngine.
+ */
+export function saveState(): void {
+  if (typeof SyncEngine === 'undefined') return;
+  SyncEngine.set(NS, 'items', { ...items.value });
+  SyncEngine.set(NS, 'courses', { ...courses.value });
+  SyncEngine.set(NS, 'subDecks', { ...subDecks.value });
+  SyncEngine.set(NS, 'learnProgress', { ...learnProgress.value });
+  SyncEngine.set(NS, 'learnSessions', [...learnSessions.value]);
+  SyncEngine.set(NS, 'calibration', { ...calibration.value });
+  SyncEngine.set(NS, 'stats', { ...stats.value });
+  SyncEngine.set(NS, 'settings', { ...settings.value });
 }
 
-// Persist to SyncEngine (gated by hydration)
-effect(() => {
-  if (!hydrated.value) return;
-  const NS = 'studyengine';
-  const se = (window as unknown as { SyncEngine?: { set: (ns: string, key: string, val: unknown) => void } }).SyncEngine;
-  if (!se) return;
-  se.set(NS, 'items', items.value);
-});
-
-effect(() => {
-  if (!hydrated.value) return;
-  const NS = 'studyengine';
-  const se = (window as unknown as { SyncEngine?: { set: (ns: string, key: string, val: unknown) => void } }).SyncEngine;
-  if (!se) return;
-  se.set(NS, 'courses', courses.value);
-});
-
-effect(() => {
-  if (!hydrated.value) return;
-  const NS = 'studyengine';
-  const se = (window as unknown as { SyncEngine?: { set: (ns: string, key: string, val: unknown) => void } }).SyncEngine;
-  if (!se) return;
-  se.set(NS, 'subDecks', subDecks.value);
-});
-
-effect(() => {
-  if (!hydrated.value) return;
-  const NS = 'studyengine';
-  const se = (window as unknown as { SyncEngine?: { set: (ns: string, key: string, val: unknown) => void } }).SyncEngine;
-  if (!se) return;
-  se.set(NS, 'learnProgress', learnProgress.value);
-});
-
-effect(() => {
-  if (!hydrated.value) return;
-  const NS = 'studyengine';
-  const se = (window as unknown as { SyncEngine?: { set: (ns: string, key: string, val: unknown) => void } }).SyncEngine;
-  if (!se) return;
-  se.set(NS, 'learnSessions', learnSessions.value);
-});
-
-effect(() => {
-  if (!hydrated.value) return;
-  const NS = 'studyengine';
-  const se = (window as unknown as { SyncEngine?: { set: (ns: string, key: string, val: unknown) => void } }).SyncEngine;
-  if (!se) return;
-  se.set(NS, 'calibration', calibration.value);
-});
-
-effect(() => {
-  if (!hydrated.value) return;
-  const NS = 'studyengine';
-  const se = (window as unknown as { SyncEngine?: { set: (ns: string, key: string, val: unknown) => void } }).SyncEngine;
-  if (!se) return;
-  se.set(NS, 'stats', stats.value);
-});
-
-effect(() => {
-  if (!hydrated.value) return;
-  const NS = 'studyengine';
-  const se = (window as unknown as { SyncEngine?: { set: (ns: string, key: string, val: unknown) => void } }).SyncEngine;
-  if (!se) return;
-  se.set(NS, 'settings', settings.value);
-});
-
-// Dragon persistence
-effect(() => {
-  if (!hydrated.value) return;
-  const DRAGON_NS = 'dragon';
-  const se = (window as unknown as { SyncEngine?: { set: (ns: string, key: string, val: unknown) => void } }).SyncEngine;
-  if (!se) return;
-  se.set(DRAGON_NS, 'dragon', dragonState.value);
-});
+/**
+ * saveDragonState — persist dragon namespace separately.
+ */
+export function saveDragonState(): void {
+  if (typeof SyncEngine === 'undefined') return;
+  SyncEngine.set('dragon', 'dragon', { ...dragonState.value });
+}

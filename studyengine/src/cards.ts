@@ -1,10 +1,12 @@
 /*
  * Cards TypeScript Module
- * Phase 3 conversion: types only, ZERO logic changes
+ * Signals-first: all state access via signal .value
  */
 
 import { el, esc, uid, isoNow, toast, tierLabel, generateVisual, renderMd } from './utils';
-import { saveState, tierSupportBadgeHTML, state as appState, settings as appSettings, COURSE_COLORS, EXAM_TYPE_LABELS } from './state';
+import { items, courses, subDecks, settings, saveState } from './signals';
+import { COURSE_COLORS, EXAM_TYPE_LABELS } from './constants';
+import { tierSupportBadgeHTML } from './state-io';
 import { saveCourse, listCourses as listCoursesFromModule, getSubDeck as getSubDeckFromModule, createSubDeck as createSubDeckFromModule, recountSubDeck as recountSubDeckFromModule, detectSupportedTiers as detectSupportedTiersFromModule, renderTopicSuggestions as renderTopicSuggestionsFromModule } from './courses';
 import type { StudyItem, Course } from './types';
 
@@ -29,22 +31,19 @@ let modalCourse: string | null = null;
 let modalShowingPicker = false;
 let pendingImport: StudyItem[] | null = null;
 
-// Dependency injection stubs
-let reconcileStatsImpl: () => void = () => {};
-let renderDashboardImpl: () => void = () => {};
+// Lazily resolved window callbacks (set by index.ts init)
 let openCourseModalImpl: () => void = () => {};
 let openCourseDetailImpl: (course: string) => void = () => {};
 let maybeAutoPrepareImpl: (course: string) => void = () => {};
-
-export function setReconcileStats(fn: () => void) { reconcileStatsImpl = fn; }
-export function setRenderDashboard(fn: () => void) { renderDashboardImpl = fn; }
 export function setOpenCourseModal(fn: () => void) { openCourseModalImpl = fn; }
 export function setOpenCourseDetail(fn: (course: string) => void) { openCourseDetailImpl = fn; }
 export function setMaybeAutoPrepare(fn: (course: string) => void) { maybeAutoPrepareImpl = fn; }
 
-// Local wrappers — use direct module imports for most helpers
-function reconcileStats(): void { reconcileStatsImpl(); }
-function renderDashboard(): void { renderDashboardImpl(); }
+// Signal mutations trigger Preact re-renders — no manual renderDashboard needed
+function renderDashboard(): void {
+  // Trigger signal update to force re-render
+  items.value = { ...items.value };
+}
 function listCourses(): Course[] { return listCoursesFromModule(); }
 function getSubDeck(course: string, subDeck: string) { return getSubDeckFromModule(course, subDeck); }
 function createSubDeck(course: string, subDeck: string): void { createSubDeckFromModule(course, subDeck); }
@@ -61,7 +60,7 @@ function maybeAutoPrepare(course: string): void { maybeAutoPrepareImpl(course); 
 function renderModal(): void {
   const formEl = el('modalForm');
   if (!formEl) return;
-  const editing = editingItemId ? appState?.items?.[editingItemId] : null;
+  const editing = editingItemId ? items.value[editingItemId] : null;
   const courses = listCourses();
 
   // Course picker (shown when multiple courses and no course selected)
@@ -445,7 +444,7 @@ function getTierUnlockMessage(beforeTiers: string[], afterTiers: string[]): stri
  * Save edited item
  */
 function saveEditedItem(itemId: string): void {
-  const it = appState?.items?.[itemId];
+  const it = items.value[itemId];
   if (!it) { toast('Card not found'); closeModal(); return; }
 
   const prompt = ((el('m_prompt') as HTMLTextAreaElement | null)?.value || '').trim();
@@ -480,7 +479,7 @@ function saveEditedItem(itemId: string): void {
 
   if (beforePrompt !== prompt || beforeAnswer !== answer) it.visual = undefined;
 
-  if (appState?.items) appState.items[itemId] = it;
+  items.value[itemId] = it;
   saveState();
   renderDashboard();
 
@@ -501,10 +500,11 @@ function saveEditedItem(itemId: string): void {
  * Delete edited item
  */
 function deleteEditedItem(itemId: string): void {
-  if (!appState?.items?.[itemId]) return;
+  if (!items.value[itemId]) return;
   if (!window.confirm('Delete this card permanently?')) return;
-  if (appState?.items) delete appState.items[itemId];
-  reconcileStats();
+  const its = { ...items.value };
+  delete its[itemId];
+  items.value = its;
   saveState();
   renderDashboard();
   const afterSave = modalEditAfterSave;
@@ -517,7 +517,7 @@ function deleteEditedItem(itemId: string): void {
  * Edit item
  */
 function editItem(itemId: string, opts?: { onSave?: (item: StudyItem | null) => void }): void {
-  const it = appState?.items?.[itemId];
+  const it = items.value[itemId];
   if (!it) { toast('Card not found'); return; }
   opts = opts || {};
   activeTab = 'add';
@@ -531,11 +531,6 @@ function editItem(itemId: string, opts?: { onSave?: (item: StudyItem | null) => 
   renderModal();
   if (Core && Core.a11y && Core.a11y.trap) Core.a11y.trap(modalOv);
   try { playOpen(); } catch(e) {}
-}
-
-// Attach to window
-if (typeof window !== 'undefined') {
-  (window as unknown as { editCard: typeof editItem }).editCard = editItem;
 }
 
 /**
@@ -557,7 +552,7 @@ function addFromModal(stayOpen?: boolean): void {
   if (!course) { toast('No course selected'); return; }
 
   // Auto-create course if somehow missing (safety net)
-  if (!appState?.courses?.[course]) {
+  if (!courses.value[course]) {
     saveCourse({
       name: course,
       examType: 'mixed',
@@ -609,7 +604,7 @@ function addFromModal(stayOpen?: boolean): void {
   // For backward compat: set tier if only basic fields (manual mode users can override)
   // Not setting tier — let the session builder assign dynamically
 
-  if (appState?.items) appState.items[it.id] = it;
+  items.value[it.id] = it;
   saveState();
   if (subDeck && !getSubDeck(course, subDeck)) {
     createSubDeck(course, subDeck);
@@ -621,7 +616,7 @@ function addFromModal(stayOpen?: boolean): void {
   generateVisual(it).then((visual) => {
     if (visual) {
       it.visual = visual;
-      if (appState?.items) appState.items[it.id] = it;
+      items.value[it.id] = it;
       saveState();
       renderDashboard();
     }

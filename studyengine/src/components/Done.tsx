@@ -12,6 +12,7 @@ import {
   dragonState,
   settings
 } from '../signals';
+import { SESSION_SUMMARY_ENDPOINT } from '../constants';
 
 const TIER_NAMES: Record<string, string> = {
   quickfire: 'Quick Fire',
@@ -31,7 +32,7 @@ const TIER_COLOURS: Record<string, string> = {
   worked: '#06b6d4'
 };
 
-const WORKER_URL = 'https://notion-widgets.musbah.workers.dev';
+// Worker URL imported from constants
 
 // Dragon stage info
 const DRAGON_STAGES = [
@@ -82,7 +83,7 @@ export function Done() {
       xpEarned: xp,
       reviewsByTier
     };
-    fetch(`${WORKER_URL}/studyengine/session-summary`, {
+    fetch(SESSION_SUMMARY_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ session: sessionData })

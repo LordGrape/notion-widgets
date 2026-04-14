@@ -253,27 +253,12 @@ declare function launchConfetti(options?: {
 }): void;
 
 // ============================================
-// State-level globals (from state.js)
-// ============================================
-
-declare const state: {
-  items: Record<string, import('./types').StudyItem>;
-  courses: Record<string, import('./types').Course>;
-  subDecks: Record<string, { subDecks: Record<string, import('./types').SubDeck> }>;
-  learnProgress: Record<string, Record<string, import('./types').LearnProgress>>;
-  learnSessions: import('./types').LearnSession[];
-  calibration: import('./types').CalibrationData;
-  stats: import('./types').Stats;
-};
-
-declare const settings: import('./types').Settings;
-
+// State is now in signals.ts — no global state/settings declarations needed.
 // Note: Session and Tutor are now TypeScript components (src/components/)
 // No longer need global declarations for these
 
 // ============================================
 // Constants from state.js
-// ============================================
 
 declare const TIER_PROFILES: Record<string, import('./types').TierProfile>;
 declare const CRAM_TIER_MOD: Record<string, import('./types').CramModifier>;

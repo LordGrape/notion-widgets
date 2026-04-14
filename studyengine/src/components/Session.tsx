@@ -27,6 +27,7 @@ import {
   recentRatings
 } from '../signals';
 import type { StudyItem } from '../types';
+import { GRADE_ENDPOINT } from '../constants';
 import { ProgressBar } from './session/ProgressBar';
 import { RatingButtons } from './session/RatingButtons';
 import { TierRenderer } from './session/TierRenderer';
@@ -190,8 +191,7 @@ async function requestAIGrade(item: StudyItem, answer: string): Promise<{
   };
   
   // Call Worker grading endpoint
-  const WORKER_URL = 'https://notion-widgets.musbah.workers.dev';
-  const response = await fetch(`${WORKER_URL}/studyengine/grade`, {
+  const response = await fetch(GRADE_ENDPOINT, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)

@@ -15,15 +15,13 @@ import {
   items,
   courses
 } from '../signals';
+import { TUTOR_ENDPOINT, LECTURE_CTX_ENDPOINT } from '../constants';
 import type { StudyItem } from '../types';
 
 // Tutor conversation entry (internal tracking uses 'tutor' for assistant)
 type TutorConversation = { role: 'user' | 'tutor'; text: string };
 
-// Worker endpoint
-const WORKER_URL = 'https://notion-widgets.musbah.workers.dev';
-const TUTOR_ENDPOINT = `${WORKER_URL}/studyengine/tutor`;
-const LECTURE_CTX_ENDPOINT = `${WORKER_URL}/studyengine/lecture-context`;
+// Worker endpoints imported from constants
 
 // Get widget key from Core
 function getWidgetKey(): string {
