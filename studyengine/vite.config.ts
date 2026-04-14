@@ -33,7 +33,10 @@ function inlineScriptsPlugin() {
 
 export default defineConfig({
   plugins: [
-    preact(),
+    // Filter out the broken transform-hook-names sub-plugin (zimmerframe exports bug)
+    ...((preact() as unknown as any[]).flat().filter(
+      (p: any) => p && p.name !== 'preact:transform-hook-names'
+    )),
     viteSingleFile({ removeViteModuleLoader: true }),
     inlineScriptsPlugin()
   ],
