@@ -15,7 +15,7 @@ import './fsrs';
 import './utils';
 import './tiers';
 import './courses';
-import './cards';
+import { setOpenCourseModal, setRenderModal, setRenderDashboard } from './cards';
 import './state';
 import './signals';
 
@@ -43,25 +43,26 @@ w.renderDashboard = () => {
 };
 
 // Missing globals that Preact components and modals call
-if (!w.openCreateCourseFlow) {
-  w.openCreateCourseFlow = () => {
-    const ocm = w.openCourseModal as (() => void) | undefined;
-    if (ocm) { ocm(); return; }
-    // Fallback: open the course modal overlay directly
-    const ov = document.getElementById('courseModalOv');
+if (!w.openCourseModal) {
+  w.openCourseModal = () => {
+    const ov = document.getElementById('courseOv');
     if (ov) { ov.classList.add('show'); ov.setAttribute('aria-hidden', 'false'); }
   };
 }
-if (!w.openCourseModal) {
-  w.openCourseModal = () => {
-    const ov = document.getElementById('courseModalOv');
-    if (ov) { ov.classList.add('show'); ov.setAttribute('aria-hidden', 'false'); }
+if (!w.openCreateCourseFlow) {
+  w.openCreateCourseFlow = () => {
+    (w.openCourseModal as (() => void))();
   };
 }
 if (!w.openSettings) {
   w.openSettings = () => {
-    const ov = document.getElementById('settingsModalOv');
+    const ov = document.getElementById('settingsOv');
     if (ov) { ov.classList.add('show'); ov.setAttribute('aria-hidden', 'false'); }
+  };
+}
+if (!w.openImportModal) {
+  w.openImportModal = () => {
+    (w.openModal as ((tab: string) => void) | undefined)?.('import');
   };
 }
 if (!w.renderModal) {
@@ -75,6 +76,11 @@ if (!w.openCourseDetail) {
 if (!w.updateBreadcrumb) w.updateBreadcrumb = () => {};
 if (!w.applySidebarFilter) w.applySidebarFilter = () => {};
 if (!w.reconcileStats) w.reconcileStats = () => {};
+
+// ── Wire cards.ts dependency injection ─────────────────────────
+setOpenCourseModal(() => (w.openCourseModal as (() => void) | undefined)?.());
+setRenderModal(() => (w.renderModal as (() => void) | undefined)?.());
+setRenderDashboard(() => (w.renderDashboard as (() => void) | undefined)?.());
 
 // ── Mount ───────────────────────────────────────────────────────
 function mountApp() {
@@ -98,6 +104,31 @@ function mountApp() {
     (w.openModal as (() => void) | undefined)?.();
   });
   document.getElementById('mainSettingsBtn')?.addEventListener('click', () => {
+    (w.openSettings as (() => void) | undefined)?.();
+  });
+
+  // Wire modal close buttons
+  const closeOverlay = (ovId: string) => {
+    const ov = document.getElementById(ovId);
+    if (ov) { ov.classList.remove('show'); ov.setAttribute('aria-hidden', 'true'); }
+  };
+  document.getElementById('modalClose')?.addEventListener('click', () => {
+    (w.closeModal as (() => void) | undefined)?.();
+  });
+  document.getElementById('settingsClose')?.addEventListener('click', () => closeOverlay('settingsOv'));
+  document.getElementById('courseClose')?.addEventListener('click', () => closeOverlay('courseOv'));
+
+  // Wire legacy dashboard action buttons
+  document.getElementById('addBtn')?.addEventListener('click', () => {
+    (w.openModal as (() => void) | undefined)?.();
+  });
+  document.getElementById('importBtn')?.addEventListener('click', () => {
+    (w.openImportModal as (() => void) | undefined)?.();
+  });
+  document.getElementById('manageCourses')?.addEventListener('click', () => {
+    (w.openCourseModal as (() => void) | undefined)?.();
+  });
+  document.getElementById('gearBtn')?.addEventListener('click', () => {
     (w.openSettings as (() => void) | undefined)?.();
   });
 }

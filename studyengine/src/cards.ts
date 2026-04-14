@@ -18,7 +18,7 @@ declare const Core: { a11y?: { trap?: (el: HTMLElement) => void } };
 
 // Lazy getters for DOM globals
 function getModalOv(): HTMLElement {
-  return document.getElementById('modalOverlay')!;
+  return document.getElementById('modalOv')!;
 }
 
 // Module-level mutable state (actual definitions, not just declares)
