@@ -272,42 +272,6 @@ declare const settings: import('./types').Settings;
 // No longer need global declarations for these
 
 // ============================================
-// External libraries (kept as globals)
-// ============================================
-
-declare const gsap: {
-  to: (target: unknown, vars: Record<string, unknown>) => unknown;
-  fromTo: (target: unknown, fromVars: Record<string, unknown>, toVars: Record<string, unknown>) => unknown;
-  timeline: () => {
-    to: (target: unknown, vars: Record<string, unknown>) => unknown;
-  };
-};
-
-declare const Chart: {
-  new (ctx: unknown, config: unknown): unknown;
-};
-
-declare const mermaid: {
-  init: (config: unknown, nodes: unknown) => Promise<void>;
-  run: (config: unknown) => Promise<string>;
-};
-
-declare const katex: {
-  render: (tex: string, element: HTMLElement, options?: unknown) => void;
-};
-
-declare const pdfjsLib: {
-  GlobalWorkerOptions: { workerSrc: string };
-  getDocument: (src: string | Uint8Array) => {
-    promise: Promise<{
-      getPage: (num: number) => Promise<{
-        getTextContent: () => Promise<{ items: Array<{ str: string }> }>;
-      }>;
-    }>;
-  };
-};
-
-// ============================================
 // Constants from state.js
 // ============================================
 

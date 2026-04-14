@@ -10,7 +10,8 @@ import {
   sessionXP,
   sessionReviewsByTier,
   dragonState,
-  settings
+  settings,
+  calibration as calibrationSignal
 } from '../signals';
 
 const TIER_NAMES: Record<string, string> = {
@@ -52,8 +53,7 @@ function getDragonStage(xp: number) {
 }
 
 function computeCalibration(): { score: number | null; label: string } {
-  const st = (window as unknown as { state?: { calibration?: { totalSelfRatings?: number; totalActualCorrect?: number } } }).state;
-  const cal = st?.calibration;
+  const cal = calibrationSignal.value;
   if (!cal || !cal.totalSelfRatings) return { score: null, label: 'No data yet' };
   const score = (cal.totalActualCorrect || 0) / cal.totalSelfRatings;
   const label = score >= 0.75 ? 'Well calibrated' : score >= 0.55 ? 'Slight overconfidence' : 'Significant miscalibration';

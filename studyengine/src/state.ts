@@ -406,6 +406,9 @@ if (typeof window !== 'undefined') {
   win.priorityBadgeHTML = priorityBadgeHTML;
   win.loadState = loadState;
   win.saveState = saveState;
+  // Expose state/settings as live getters so window.state always reflects current module value
+  Object.defineProperty(win, 'state', { get() { return state; }, configurable: true });
+  Object.defineProperty(win, 'settings', { get() { return settings; }, configurable: true });
   win.migrateItems = migrateItems;
   win.migrateSubDecks = migrateSubDecks;
   win.getPromotionCandidates = getPromotionCandidates;

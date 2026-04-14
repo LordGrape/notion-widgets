@@ -291,10 +291,22 @@ export function Sidebar() {
       </div>
 
       <div class="sb-footer">
-        <button class="sb-footer-btn" id="footerStatsBtn" title="Stats">
+        <button class="sb-footer-btn" id="footerStatsBtn" title="Stats"
+          onClick={() => {
+            if (typeof (window as unknown as { openCourseModal?: () => void }).openCourseModal === 'function') {
+              (window as unknown as { openCourseModal: () => void }).openCourseModal();
+            }
+          }}
+        >
           <span>📊</span>
         </button>
-        <button class="sb-footer-btn" id="footerSettingsBtn" title="Settings">
+        <button class="sb-footer-btn" id="footerSettingsBtn" title="Settings"
+          onClick={() => {
+            if (typeof (window as unknown as { openSettings?: () => void }).openSettings === 'function') {
+              (window as unknown as { openSettings: () => void }).openSettings();
+            }
+          }}
+        >
           <span>⚙️</span>
         </button>
       </div>
