@@ -24,7 +24,7 @@ import { esc, toast } from './utils';
 import { items, courses, settings, currentView, saveState } from './signals';
 import { COURSE_COLORS, EXAM_TYPE_LABELS } from './constants';
 import { loadState, loadOptimizedWeights, initSyncAndBackground } from './state-io';
-import { initDomController, wireViewSignal, wireAutoRender, renderDashboard } from './dom-controller';
+import { initDomController, wireViewSignal, wireAutoRender, renderDashboard, openCourseDetail, switchTab } from './dom-controller';
 
 // Preact
 import { h, render } from 'preact';
@@ -52,9 +52,14 @@ w.openSettings = () => {
   renderSettingsModal();
 };
 w.openImportModal = () => { (w.openModal as ((tab: string) => void) | undefined)?.('import'); };
-w.openCourseDetail = (_name: string) => {};
+w.openCourseDetail = (name: string) => { currentView.value = 'dashboard'; switchTab('courses'); openCourseDetail(name); };
 w.updateBreadcrumb = () => {};
 w.applySidebarFilter = () => {};
+w.startCourseSession = (courseName: string) => {
+  const courseItems = Object.values(items.value).filter((it) => it && !it.archived && it.course === courseName);
+  if (courseItems.length === 0) { toast('No cards in this course'); return; }
+  (w.startSession as (() => void) | undefined)?.();
+};
 
 // Wire remaining cards.ts callbacks
 setOpenCourseModal(() => (w.openCourseModal as () => void)());
@@ -77,17 +82,6 @@ function mountApp() {
   } else {
     console.error('[StudyEngine] preact-root element not found');
   }
-
-  // Wire topbar nav tabs
-  document.querySelectorAll('.nav-tab[data-nav]').forEach(tab => {
-    tab.addEventListener('click', () => {
-      const nav = tab.getAttribute('data-nav');
-      if (nav === 'home') currentView.value = 'dashboard';
-      if (nav === 'courses') currentView.value = 'dashboard';
-      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-    });
-  });
 
   // Wire topbar buttons
   document.getElementById('mainAddCard')?.addEventListener('click', () => {
