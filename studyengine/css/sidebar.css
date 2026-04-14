@@ -1,0 +1,19 @@
+/* Extraction-first scaffold: styles remain in base.css for exact parity. */
+
+.tree-node[data-level="subdeck"] {
+  padding-left: 28px;
+}
+.tree-node[data-level="subdeck"] .tree-label {
+  font-size: 0.82rem;
+}
+.tree-node[data-level="subdeck"].archived {
+  opacity: 0.5;
+}
+.tree-node[data-level="subdeck"].archived .tree-label {
+  text-decoration: line-through;
+  font-style: italic;
+}
+.subdeck-icon {
+  font-size: 0.8rem;
+  margin-right: 4px;
+}
