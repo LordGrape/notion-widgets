@@ -116,34 +116,11 @@
   </div>
   <canvas id="bgCanvas"></canvas>
 
-  <!-- Preact root mount point (Phase 4) -->
-  <div id="preact-root"></div>
-
   <!-- New: App layout wrapper (standalone only; sidebar hidden when embedded) -->
   <div class="app-layout">
 
-    <!-- New: Sidebar (standalone) -->
-    <aside class="sidebar" id="sidebar" aria-label="Sidebar">
-      <div class="sb-header">
-        <div class="logo" aria-hidden="true" style="width:18px;height:18px;border-radius:6px;background:rgba(var(--accent-rgb),0.18);border:1px solid rgba(var(--accent-rgb),0.18);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:10px;color:var(--accent);flex-shrink:0;">◆</div>
-        <h1 class="sb-brand">STUDY ENGINE</h1>
-        <button class="sb-collapse-btn icon-btn" id="sidebarCollapseBtn" type="button" title="Collapse sidebar" aria-label="Collapse sidebar">◀</button>
-      </div>
-
-      <div class="sb-search">
-        <input type="text" class="se-input sb-search-input" id="sidebarSearch" placeholder="Search cards..." aria-label="Search cards">
-      </div>
-
-      <nav class="sb-tree" id="sidebarTree" aria-label="Course tree"></nav>
-
-      <div class="sb-footer">
-        <button class="sb-footer-btn" id="sbAddCard" type="button"><span aria-hidden="true">＋</span><span>Add Card</span></button>
-        <button class="sb-footer-btn" id="sbImport" type="button"><span aria-hidden="true">📥</span><span>Import</span></button>
-        <button class="sb-footer-btn" id="sbSettings" type="button"><span aria-hidden="true">⚙</span><span>Settings</span></button>
-        <button class="sb-footer-btn" id="sbArchivedBtn" type="button" style="display:none"><span aria-hidden="true">📦</span><span>Archived (<span id="sbArchivedCount">0</span>)</span></button>
-        <div class="sb-sync-status" id="sbSyncStatus">● Synced</div>
-      </div>
-    </aside>
+    <!-- Sidebar slot: Preact Sidebar.tsx mounts here via #preact-sidebar -->
+    <div id="preact-sidebar"></div>
 
     <!-- Main area wraps existing content -->
     <div class="main-area">
@@ -166,7 +143,11 @@
       </div>
 
       <div class="main-content">
-        <div class="wrap">
+        <!-- Preact mounts views here -->
+        <div id="preact-root" class="preact-view-root"></div>
+
+        <!-- Legacy embedded card shell (hidden; kept for JS refs that target static IDs) -->
+        <div class="wrap" style="display:none" aria-hidden="true">
           <div class="shell">
             <div class="card" id="rootCard">
         <div class="topbar">
@@ -543,7 +524,8 @@
           <div id="topicDetailContent"></div>
         </div>
 
-      </div>
+      </div><!-- /.wrap (legacy hidden) -->
+
       <div class="break-overlay" id="breakOverlay">
         <div class="break-card">
           <div class="bc-emoji">🧘</div>
@@ -554,13 +536,12 @@
             <button class="bc-skip" id="breakSkip">Skip break</button>
           </div>
         </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      </div><!-- /.break-overlay -->
 
-    </div>
-  </div>
+      </div><!-- /.main-content -->
+
+    </div><!-- /.main-area -->
+  </div><!-- /.app-layout -->
 
   <!-- Modal: Add / Import -->
   <div class="overlay" id="modalOv" aria-hidden="true">
