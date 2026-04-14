@@ -3,6 +3,7 @@
  * Phase 3 conversion: types only, ZERO logic changes
  */
 
+import { retrievability } from './fsrs';
 import type { StudyItem, CalibrationData } from './types';
 
 // Global dependencies
@@ -19,15 +20,21 @@ declare const viewDash: HTMLElement;
 declare const viewSession: HTMLElement;
 declare const viewDone: HTMLElement;
 declare const activeNav: string;
-declare const visualGenerationPending: Record<string, boolean>;
+export const visualGenerationPending: Record<string, boolean> = {};
 
 // Helper functions (globals from this module or others)
-declare function el(id: string): HTMLElement | null;
-declare function retrievability(fsrs: unknown, nowTs: number): number;
+export function el(id: string): HTMLElement | null {
+  return document.getElementById(id);
+}
 declare function saveState(): void;
 declare function isItemInArchivedSubDeck(item: StudyItem): boolean;
 declare function switchNav(nav: string): void;
-declare function clamp(n: number, min: number, max: number): number;
+/**
+ * Clamp number between min and max
+ */
+export function clamp(n: number, min: number, max: number): number {
+  return Math.min(Math.max(n, min), max);
+}
 
 // Audio functions from core.js
 declare function playOpen(): void;
@@ -70,7 +77,7 @@ let lightboxLastY = 0;
 /**
  * Generate a UUID v4
  */
-function uid(): string {
+export function uid(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
     const r = Math.random() * 16 | 0;
     const v = c === 'x' ? r : (r & 0x3 | 0x8);
@@ -81,7 +88,7 @@ function uid(): string {
 /**
  * Escape HTML special characters
  */
-function esc(s: string): string {
+export function esc(s: string): string {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
@@ -219,7 +226,7 @@ document.addEventListener('visibilitychange', () => {
 /**
  * Generate visual for an item using the worker
  */
-async function generateVisual(item: StudyItem): Promise<string | null> {
+export async function generateVisual(item: StudyItem): Promise<string | null> {
   if (!item || !item.prompt || !item.modelAnswer) return null;
   try {
     const res = await fetch(VISUAL_WORKER_URL, {
@@ -598,7 +605,7 @@ function looksIncompleteMermaid(s: string): boolean {
 /**
  * Get abbreviated tier label
  */
-function tierLabel(tier: string): string {
+export function tierLabel(tier: string): string {
   return ({
     quickfire: 'QF',
     explain: 'EI',
@@ -612,7 +619,7 @@ function tierLabel(tier: string): string {
 /**
  * Get tier color from CSS variables
  */
-function tierColour(tier: string): string {
+export function tierColour(tier: string): string {
   return ({
     quickfire: getComputedStyle(document.documentElement).getPropertyValue('--tier-qf').trim(),
     explain: getComputedStyle(document.documentElement).getPropertyValue('--tier-ex').trim(),
@@ -812,7 +819,7 @@ function icon(name: string, size?: number): string {
 /**
  * Format seconds as MM:SS
  */
-function fmtMMSS(totalSec: number): string {
+export function fmtMMSS(totalSec: number): string {
   totalSec = Math.max(0, totalSec|0);
   const m = Math.floor(totalSec / 60);
   const s = totalSec % 60;
@@ -822,7 +829,7 @@ function fmtMMSS(totalSec: number): string {
 /**
  * Show toast message
  */
-function toast(msg: string): void {
+export function toast(msg: string): void {
   if (!toastEl) {
     toastEl = document.createElement('div');
     toastEl.style.cssText =
@@ -853,7 +860,7 @@ function toast(msg: string): void {
 /**
  * Get ISO timestamp
  */
-function isoNow(): string {
+export function isoNow(): string {
   return new Date().toISOString();
 }
 
@@ -869,7 +876,7 @@ function isoDate(): string {
 /**
  * Calculate days between two timestamps
  */
-function daysBetween(a: number | Date, b: number | Date): number {
+export function daysBetween(a: number | Date, b: number | Date): number {
   const aMs = a instanceof Date ? a.getTime() : a;
   const bMs = b instanceof Date ? b.getTime() : b;
   return (bMs - aMs) / (1000 * 60 * 60 * 24);
@@ -878,7 +885,7 @@ function daysBetween(a: number | Date, b: number | Date): number {
 /**
  * Render markdown to HTML
  */
-function renderMd(text: string): string {
+export function renderMd(text: string): string {
   if (!text) return '';
   const w = window as unknown as { marked?: { parse: (md: string, opts?: unknown) => string }; DOMPurify?: { sanitize: (dirty: string, config?: unknown) => string } };
   if (typeof w.marked === 'undefined' || typeof w.DOMPurify === 'undefined') {

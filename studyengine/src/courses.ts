@@ -3,6 +3,9 @@
  * Phase 3 conversion: types only, ZERO logic changes
  */
 
+import { el, esc, isoNow, fmtMMSS, clamp } from './utils';
+import { saveState, deepClone } from './state';
+import { retrievability } from './fsrs';
 import type { StudyItem, Course, SubDeck, CramState, Assessment } from './types';
 
 // Global constants
@@ -20,14 +23,8 @@ declare const TIER_PROFILES: Record<string, Record<string, number>>;
 declare const CRAM_TIER_MOD: Record<string, Record<string, number>>;
 declare const BLOOM_STABILITY_BONUS: Record<string, number>;
 
-// Helper functions (globals)
-declare function el(id: string): HTMLElement | null;
-declare function esc(s: string): string;
-declare function isoNow(): string;
-declare function saveState(): void;
+// Helper functions (globals from other modules)
 declare function reconcileStats(): void;
-declare function retrievability(fsrs: unknown, nowTs: number): number;
-declare function deepClone<T>(obj: T): T;
 declare function playClick(): void;
 
 /**
@@ -528,7 +525,7 @@ function isCourseManual(courseName: string): boolean {
 /**
  * Save course to state
  */
-function saveCourse(courseObj: Course): void {
+export function saveCourse(courseObj: Course): void {
   if (!courseObj || !courseObj.name) return;
   courseObj.id = courseObj.id || courseObj.name;
   normalizeCoursePhase6(courseObj);
