@@ -15051,6 +15051,7 @@ function startLearnSession(courseName, topics, subDeckFilter) {
         skipped: []
       };
       el('learnProgressLabel').textContent = '1/' + data.segments.length;
+      showView('viewLearn'); // Ensure view is visible before rendering
       renderLearnSegment();
     })
     .catch(function(err) {
