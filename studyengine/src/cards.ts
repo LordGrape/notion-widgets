@@ -250,7 +250,7 @@ function updateModalTabs(): void {
 /**
  * Switch modal tab and re-render
  */
-function switchModalTab(tab: string): void {
+export function switchModalTab(tab: string): void {
   activeTab = tab;
   renderModal();
 }
@@ -284,7 +284,7 @@ function updateImportModeUI(animate: boolean): void {
 /**
  * Open card modal
  */
-function openModal(tab?: string, courseName?: string): void {
+export function openModal(tab?: string, courseName?: string): void {
   editingItemId = null;
   modalEditAfterSave = null;
   importFormat = 'json';
@@ -321,7 +321,7 @@ function openModal(tab?: string, courseName?: string): void {
 /**
  * Close card modal
  */
-function closeModal(): void {
+export function closeModal(): void {
   const modalOv = getModalOv();
   modalOv.classList.remove('show');
   modalOv.setAttribute('aria-hidden','true');
@@ -536,7 +536,7 @@ function editItem(itemId: string, opts?: { onSave?: (item: StudyItem | null) => 
 /**
  * Add card from modal
  */
-function addFromModal(stayOpen?: boolean): void {
+export function addFromModal(stayOpen?: boolean): void {
   if (activeTab === 'import') {
     doImport();
     // Preview is now shown inline — don't close modal yet
@@ -658,7 +658,7 @@ function addFromModal(stayOpen?: boolean): void {
 /**
  * Execute import
  */
-function doImport(): void {
+export function doImport(): void {
   const raw = ((el('m_import') as HTMLTextAreaElement | null)?.value || '').trim();
   if (!raw) { try { playError(); } catch(e) {} toast(importFormat === 'qa' ? 'Paste Q/A text first' : 'Paste JSON first'); return; }
 
