@@ -8,6 +8,13 @@
   <!-- CSS files are now imported via Vite in src/index.ts -->
 </head>
 <body>
+  <!-- Critical globals shim (executes before Vite module) -->
+  <script>
+    // Define el() and other globals that HTML inline scripts need
+    function el(id) { return document.getElementById(id); }
+    var visualGenerationPending = false;
+    var globalUtils = {};
+  </script>
   <div id="awakening-overlay" aria-hidden="true">
     <div class="awakening-stars" aria-hidden="true"></div>
     <div id="awakening-content">
