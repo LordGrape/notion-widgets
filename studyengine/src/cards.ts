@@ -3,6 +3,9 @@
  * Phase 3 conversion: types only, ZERO logic changes
  */
 
+import { el, esc, uid, isoNow, toast, tierLabel, generateVisual } from './utils';
+import { saveState, tierSupportBadgeHTML } from './state';
+import { saveCourse } from './courses';
 import type { StudyItem, Course } from './types';
 
 // Global dependencies
@@ -20,26 +23,16 @@ declare let modalCourse: string | null;
 declare let modalShowingPicker: boolean;
 declare let pendingImport: StudyItem[] | null;
 
-// Helper functions (globals)
-declare function el(id: string): HTMLElement | null;
-declare function esc(s: string): string;
-declare function uid(): string;
-declare function isoNow(): string;
-declare function toast(msg: string): void;
-declare function saveState(): void;
+// Helper functions (globals from other modules)
 declare function reconcileStats(): void;
 declare function renderDashboard(): void;
 declare function renderModal(): void;
 declare function renderTopicSuggestions(inputId: string, courseName: string | null, containerId: string): void;
 declare function listCourses(): Course[];
-declare function saveCourse(course: Course): void;
 declare function getSubDeck(course: string, subDeck: string): { archived?: boolean } | null;
 declare function createSubDeck(course: string, subDeck: string): void;
 declare function recountSubDeck(course: string, subDeck: string): void;
 declare function detectSupportedTiers(item: StudyItem): string[];
-declare function tierLabel(tier: string): string;
-declare function tierSupportBadgeHTML(tiers: string[]): string;
-declare function generateVisual(item: StudyItem): Promise<string | null>;
 declare function openCourseModal(): void;
 declare function openCourseDetail(course: string): void;
 declare function maybeAutoPrepare(course: string): void;

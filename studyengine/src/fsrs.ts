@@ -104,7 +104,7 @@ function getFsrsFactor(): number {
 /**
  * Calculate retrievability for a given FSRS state and timestamp
  */
-function retrievability(fsrs: FSRSState | null | undefined, nowTs: number): number {
+export function retrievability(fsrs: FSRSState | null | undefined, nowTs: number): number {
   if (!fsrs) return 1;
   let S = fsrs.stability || 0;
   const last = fsrs.lastReview ? new Date(fsrs.lastReview).getTime() : null;

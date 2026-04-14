@@ -3,6 +3,8 @@
  * Phase 3 conversion: types only, ZERO logic changes
  */
 
+import { el, visualGenerationPending, esc, renderMd, generateVisual, fmtMMSS, toast } from './utils';
+import { saveState } from './state';
 import type { StudyItem, SessionState } from './types';
 
 // Global dependencies
@@ -14,14 +16,8 @@ declare const mockEndsAt: number;
 declare let essayPhase: 'outline' | 'writing' | null;
 declare let essayOutlineText: string;
 declare let essayOutlineEndsAt: number;
-declare const visualGenerationPending: Record<string, boolean>;
 
-// Helper functions (globals)
-declare function el(id: string): HTMLElement | null;
-declare function esc(s: string): string;
-declare function renderMd(text: string): string;
-declare function generateVisual(item: StudyItem): Promise<string | null>;
-declare function saveState(): void;
+// Helper functions (globals from other modules)
 declare function wireGenerative(tier: string): void;
 declare function wireMock(): void;
 declare function startApplyTimer(): void;
@@ -32,12 +28,10 @@ declare function isEssayMode(item: StudyItem): boolean;
 declare function getCourseExamType(course?: string): string;
 declare function getEssayWordTarget(mins: number): { min: number; max: number; label: string };
 declare function getEssayStructureHint(examType: string): string;
-declare function fmtMMSS(seconds: number): string;
 declare function autoGrowTextarea(ta: HTMLTextAreaElement): void;
 declare function updateEssayWordCount(text: string, wordTarget?: { min: number; max: number }): void;
 declare function rubricTemplate(tier: string): string;
 declare function revealAnswer(): void;
-declare function toast(message: string): void;
 declare function playClick(): void;
 
 /**
