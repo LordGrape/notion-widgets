@@ -1,9 +1,11 @@
 /*
  * FSRS TypeScript Module
- * Phase 3 conversion: types only, ZERO logic changes
+ * SACRED: Algorithm logic is untouched. Only imports and state access changed.
  */
 
-import { w, fsrsInstance, state as appState, settings as appSettings, NS, FSRS6_DEFAULT_DECAY } from './state';
+import { NS, FSRS6_DEFAULT_DECAY, DEFAULT_WEIGHTS } from './constants';
+import { settings, calibration } from './signals';
+import { daysBetween, clamp } from './utils';
 import type { StudyItem, FSRSState, FSRSModule } from './types';
 
 // External CDN globals (keep as declare)
@@ -12,13 +14,9 @@ declare const SyncEngine: {
   get: (ns: string, key: string) => unknown;
 };
 
-// Helper function stubs (will be injected)
-let daysBetweenImpl: (a: number | Date, b: number | Date) => number = () => 0;
-let clampImpl: (n: number, min: number, max: number) => number = (n) => n;
-export function setDaysBetween(fn: (a: number | Date, b: number | Date) => number) { daysBetweenImpl = fn; }
-export function setClamp(fn: (n: number, min: number, max: number) => number) { clampImpl = fn; }
-function daysBetween(a: number | Date, b: number | Date): number { return daysBetweenImpl(a, b); }
-function clamp(n: number, min: number, max: number): number { return clampImpl(n, min, max); }
+// Module-level mutable weights (optimizer updates these)
+let w = DEFAULT_WEIGHTS.slice();
+let fsrsInstance: unknown = null;
 
 /**
  * Optimize FSRS parameters based on review history
@@ -26,7 +24,7 @@ function clamp(n: number, min: number, max: number): number { return clampImpl(n
  */
 function optimizeFsrsParams(): boolean {
   const TS: FSRSModule | null = typeof FSRS !== 'undefined' ? (FSRS as unknown as FSRSModule) : null;
-  const history = (appState?.calibration?.history) || [];
+  const history = (calibration.value?.history) || [];
   if (history.length < 30 || !TS || !TS.clipParameters || !TS.checkParameters || !TS.migrateParameters) return false;
   try {
     let sum = 0;
@@ -52,7 +50,7 @@ function optimizeFsrsParams(): boolean {
     if (TS.FSRS && TS.generatorParameters) {
       const newInstance = new TS.FSRS(TS.generatorParameters({
         w: wNew,
-        request_retention: appSettings?.desiredRetention || 0.9,
+        request_retention: settings.value.desiredRetention || 0.9,
         enable_fuzz: true
       }));
       (window as unknown as { fsrsInstance: unknown }).fsrsInstance = newInstance;
@@ -67,28 +65,19 @@ function optimizeFsrsParams(): boolean {
   return false;
 }
 
-/**
- * Load optimized weights from SyncEngine
- */
-function loadOptimizedWeights(): void {
-  const saved = SyncEngine.get(NS, 'optimizedWeights') as number[] | null;
-  const TS: FSRSModule | null = typeof FSRS !== 'undefined' ? (FSRS as unknown as FSRSModule) : null;
-  if (!saved || !Array.isArray(saved) || saved.length < 19 || !TS || !TS.migrateParameters) return;
-  if (saved.length === 19) {
-    saved.push(0.0658, FSRS6_DEFAULT_DECAY);
-  }
-  try {
-    const newW = TS.migrateParameters(saved.slice());
-    (window as unknown as { w: number[] }).w = newW;
-    if (TS.FSRS && TS.generatorParameters) {
-      const newInstance = new TS.FSRS(TS.generatorParameters({
-        w: newW,
-        request_retention: (appSettings?.desiredRetention) || 0.9,
+// Initialize fsrsInstance
+try {
+  if (typeof FSRS !== 'undefined' && (FSRS as unknown as { FSRS?: new (params: unknown) => unknown }).FSRS && (FSRS as unknown as { generatorParameters?: (opts: unknown) => unknown }).generatorParameters) {
+    fsrsInstance = new (FSRS as unknown as { FSRS: new (params: unknown) => unknown }).FSRS(
+      (FSRS as unknown as { generatorParameters: (opts: unknown) => unknown }).generatorParameters({
+        w: DEFAULT_WEIGHTS.slice(),
+        request_retention: 0.9,
         enable_fuzz: true
-      }));
-      (window as unknown as { fsrsInstance: unknown }).fsrsInstance = newInstance;
-    }
-  } catch (e) {}
+      })
+    );
+  }
+} catch (e) {
+  console.warn('ts-fsrs not loaded; inline FSRS only');
 }
 
 /**
@@ -221,7 +210,7 @@ function scheduleFsrs(
   if (rating === 1) f.state = (f.state === 'review') ? 'relearning' : 'learning';
   else f.state = 'review';
 
-  let interval = nextIntervalDays(newS, settings.desiredRetention);
+  let interval = nextIntervalDays(newS, settings.value.desiredRetention);
   if (first && interval < 1) {
     interval = 1;
   }
@@ -294,21 +283,11 @@ function reweightProfile(
   return counts;
 }
 
-// Attach to window for .js consumers
+// Only expose what Session.tsx needs via window
 if (typeof window !== 'undefined') {
   const win = window as unknown as Record<string, unknown>;
-  win.optimizeFsrsParams = optimizeFsrsParams;
-  win.loadOptimizedWeights = loadOptimizedWeights;
-  win.getFsrsDecay = getFsrsDecay;
-  win.getFsrsFactor = getFsrsFactor;
-  win.retrievability = retrievability;
-  win.initialDifficulty = initialDifficulty;
-  win.updateDifficulty = updateDifficulty;
-  win.stabilityAfterSuccess = stabilityAfterSuccess;
-  win.stabilityAfterForget = stabilityAfterForget;
-  win.nextIntervalDays = nextIntervalDays;
   win.scheduleFsrs = scheduleFsrs;
   win.reweightProfile = reweightProfile;
 }
 
-export {};
+export { reweightProfile, scheduleFsrs, optimizeFsrsParams };

@@ -1,5 +1,6 @@
 /*
  * Study Engine TypeScript Entry Point
+ * Signals-first: no DI, no bridge effects, no hydrateFromSync.
  */
 
 // CSS imports (Vite inlines these)
@@ -10,105 +11,54 @@ import './css/sidebar.css';
 import './css/modals.css';
 import './css/learn.css';
 
-// Modules in dependency order
+// Modules in dependency order (side-effects: window assignments)
 import './fsrs';
 import './utils';
 import './tiers';
 import './courses';
-import { setOpenCourseModal, setRenderDashboard, setReconcileStats as setCardsReconcileStats, setOpenCourseDetail, setMaybeAutoPrepare } from './cards';
-import { listCourses, saveCourse, deleteCourse, getCourse, getCourseExamType, detectSupportedTiers, migrateCoursesPhase6, setReconcileStats as setCoursesReconcileStats } from './courses';
-import { esc, isoNow, tierLabel, tierColour, toast } from './utils';
-import './state';
-import './signals';
-import { effect } from '@preact/signals';
-import { saveState, settings as appSettings, state as appState, loadState, setIsoNow, setSaveCourse, setMigrateCoursesPhase6, setTierLabel, setTierColour, setToast, setDetectSupportedTiers, setReconcileStats as setStateReconcileStats, COURSE_COLORS, EXAM_TYPE_LABELS } from './state';
+import './cards';
+
+import { setOpenCourseModal, setOpenCourseDetail, setMaybeAutoPrepare } from './cards';
+import { listCourses, saveCourse, deleteCourse, getCourse, getCourseExamType } from './courses';
+import { esc, toast } from './utils';
+import { items, courses, settings, currentView, saveState } from './signals';
+import { COURSE_COLORS, EXAM_TYPE_LABELS } from './constants';
+import { loadState, loadOptimizedWeights } from './state-io';
 
 // Preact
 import { h, render } from 'preact';
 import { App, mountSidebar } from './App';
-import { hydrateFromSync, currentView, items, courses, settings } from './signals';
 
 const w = window as unknown as Record<string, unknown>;
 
-// ── Bridge globals (available immediately) ──────────────────────
+// ── Thin window shims (set signal values) ───────────────────────
 w.switchNav = (view: string) => { currentView.value = view; };
 w.startSession = () => { currentView.value = 'session'; };
 w.resumeSavedSession = (snap: unknown) => {
   (w as any)._resumeSnap = snap;
   currentView.value = 'session';
 };
-w.renderDashboard = () => {
-  // Sync global state → signals so Preact re-renders
-  const st = (w as any).state;
-  if (st) {
-    if (st.items) items.value = { ...st.items };
-    if (st.courses) courses.value = { ...st.courses };
-  }
-  if ((w as any).settings) {
-    settings.value = { ...(w as any).settings };
-  }
+w.renderDashboard = () => { items.value = { ...items.value }; };
+w.openCourseModal = () => {
+  const ov = document.getElementById('courseOv');
+  if (ov) { ov.classList.add('show'); ov.setAttribute('aria-hidden', 'false'); }
+  renderCourseModal();
 };
+w.openCreateCourseFlow = () => (w.openCourseModal as () => void)();
+w.openSettings = () => {
+  const ov = document.getElementById('settingsOv');
+  if (ov) { ov.classList.add('show'); ov.setAttribute('aria-hidden', 'false'); }
+  renderSettingsModal();
+};
+w.openImportModal = () => { (w.openModal as ((tab: string) => void) | undefined)?.('import'); };
+w.openCourseDetail = (_name: string) => {};
+w.updateBreadcrumb = () => {};
+w.applySidebarFilter = () => {};
 
-// Missing globals that Preact components and modals call
-if (!w.openCourseModal) {
-  w.openCourseModal = () => {
-    const ov = document.getElementById('courseOv');
-    if (ov) { ov.classList.add('show'); ov.setAttribute('aria-hidden', 'false'); }
-  };
-}
-if (!w.openCreateCourseFlow) {
-  w.openCreateCourseFlow = () => {
-    (w.openCourseModal as (() => void))();
-  };
-}
-if (!w.openSettings) {
-  w.openSettings = () => {
-    const ov = document.getElementById('settingsOv');
-    if (ov) { ov.classList.add('show'); ov.setAttribute('aria-hidden', 'false'); }
-  };
-}
-if (!w.openImportModal) {
-  w.openImportModal = () => {
-    (w.openModal as ((tab: string) => void) | undefined)?.('import');
-  };
-}
-if (!w.openCourseDetail) {
-  w.openCourseDetail = (name: string) => {
-    console.log('[bridge] openCourseDetail:', name);
-  };
-}
-if (!w.updateBreadcrumb) w.updateBreadcrumb = () => {};
-if (!w.applySidebarFilter) w.applySidebarFilter = () => {};
-if (!w.reconcileStats) w.reconcileStats = () => {};
-
-// ── Wire cards.ts dependency injection ─────────────────────────
-setOpenCourseModal(() => (w.openCourseModal as (() => void) | undefined)?.());
-setRenderDashboard(() => (w.renderDashboard as (() => void) | undefined)?.());
-setIsoNow(isoNow);
-setSaveCourse(saveCourse);
-setMigrateCoursesPhase6(migrateCoursesPhase6);
-setTierLabel(tierLabel);
-setTierColour(tierColour);
-setToast(toast);
-setDetectSupportedTiers(detectSupportedTiers);
-const reconcileStatsBridge = () => (w.reconcileStats as (() => void) | undefined)?.();
-setStateReconcileStats(reconcileStatsBridge);
-setCardsReconcileStats(reconcileStatsBridge);
-setOpenCourseDetail((course: string) => (w.openCourseDetail as ((name: string) => void) | undefined)?.(course));
+// Wire remaining cards.ts callbacks
+setOpenCourseModal(() => (w.openCourseModal as () => void)());
+setOpenCourseDetail((course: string) => (w.openCourseDetail as (name: string) => void)(course));
 setMaybeAutoPrepare((_course: string) => {});
-setCoursesReconcileStats(reconcileStatsBridge);
-
-effect(() => {
-  if (appState) appState.items = items.value;
-});
-
-effect(() => {
-  if (appState) appState.courses = courses.value;
-});
-
-effect(() => {
-  if (appSettings) Object.assign(appSettings, settings.value);
-});
 
 // ── Mount ───────────────────────────────────────────────────────
 function mountApp() {
@@ -257,17 +207,13 @@ function renderCourseModal(): void {
       const name = this.getAttribute('data-delete-course') || '';
       if (!confirm('Delete course "' + name + '" and all its cards?')) return;
       deleteCourse(name);
-      if (appSettings) {
-        const itemState = (w as any).state;
-        if (itemState && itemState.items) {
-          for (const id in itemState.items) {
-            if (itemState.items[id]?.course === name) delete itemState.items[id];
-          }
-          saveState();
-        }
+      const its = { ...items.value };
+      for (const id in its) {
+        if (its[id]?.course === name) delete its[id];
       }
+      items.value = its;
+      saveState();
       renderCourseModal();
-      (w.renderDashboard as (() => void) | undefined)?.();
     });
   });
 
@@ -386,8 +332,7 @@ function showEditCourseForm(container: HTMLElement, name: string): void {
 function renderSettingsModal(): void {
   const body = document.getElementById('settingsTabGeneral');
   if (!body) return;
-  const s = appSettings;
-  if (!s) return;
+  const s = settings.value;
   body.innerHTML =
     '<div class="form-row"><label class="form-label">Session Limit (cards per session)</label>' +
       '<input id="s_sessionLimit" class="modal-input" type="number" min="1" max="100" value="' + (s.sessionLimit || 12) + '"></div>' +
@@ -415,8 +360,7 @@ function renderSettingsModal(): void {
 }
 
 function saveSettingsFromForm(): void {
-  const s = appSettings;
-  if (!s) return;
+  const s = { ...settings.value };
   const limit = parseInt((document.getElementById('s_sessionLimit') as HTMLInputElement | null)?.value || '12');
   const ret = parseInt((document.getElementById('s_retention') as HTMLInputElement | null)?.value || '90');
   const feedback = (document.getElementById('s_feedback') as HTMLSelectElement | null)?.value || 'adaptive';
@@ -427,45 +371,37 @@ function saveSettingsFromForm(): void {
   if (['adaptive','immediate','delayed'].includes(feedback)) s.feedbackMode = feedback as any;
   if (['clean','motivated','off'].includes(gamification)) s.gamificationMode = gamification as any;
   s.userName = userName;
+  settings.value = s;
   saveState();
   const ov = document.getElementById('settingsOv');
   if (ov) { ov.classList.remove('show'); ov.setAttribute('aria-hidden', 'true'); }
-  (w.toast as ((m: string) => void) | undefined)?.('Settings saved');
+  toast('Settings saved');
 }
 
-// Gate hydration on SyncEngine readiness
+// ── Boot ─────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   const SE = (window as any).SyncEngine;
 
+  const boot = () => {
+    loadState();
+    loadOptimizedWeights();
+    mountApp();
+  };
+
   if (SE && typeof SE.onReady === 'function') {
-    // SyncEngine has onReady — wait for data to load
-    SE.onReady(() => {
-      loadState();
-      hydrateFromSync();
-      mountApp();
-    });
+    SE.onReady(boot);
     // Safety: if onReady never fires within 3s, mount anyway
     setTimeout(() => {
-      if (!document.getElementById('preact-root')?.children.length) {
-        loadState();
-        hydrateFromSync();
-        mountApp();
-      }
+      if (!document.getElementById('preact-root')?.children.length) boot();
     }, 3000);
   } else {
-    // No onReady — try hydrating now, retry after delay
-    loadState();
-    hydrateFromSync();
-    mountApp();
+    boot();
     // Re-hydrate after SyncEngine likely finishes
-    setTimeout(() => {
-      loadState();
-      hydrateFromSync();
-    }, 1500);
+    setTimeout(loadState, 1500);
   }
 });
 
-// Hide visual lightbox on load (shouldn't be visible)
+// Hide visual lightbox on load
 document.addEventListener('DOMContentLoaded', () => {
   const lb = document.getElementById('visualLightbox');
   if (lb && !lb.classList.contains('show')) {

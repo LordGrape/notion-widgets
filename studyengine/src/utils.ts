@@ -1,14 +1,13 @@
 /*
  * Utils TypeScript Module
- * Phase 3 conversion: types only, ZERO logic changes
+ * Signals-first: all state access via signal .value
  */
 
 import { retrievability } from './fsrs';
-import { state as appState, settings as appSettings } from './state';
+import { items, courses, settings, calibration, currentView, saveState } from './signals';
 import type { StudyItem, CalibrationData } from './types';
 
 // External CDN globals (keep as declare)
-declare function saveState(): void;
 declare function isItemInArchivedSubDeck(item: StudyItem): boolean;
 declare function switchNav(nav: string): void;
 
@@ -132,7 +131,7 @@ function getWidgetKey(): string {
 function playTTS(text: string): Promise<void> {
   return new Promise((resolve) => {
     if (!text || text.length < 3) { resolve(); return; }
-    const voiceName = appSettings?.ttsVoice || 'en-US-Studio-O';
+    const voiceName = settings.value.ttsVoice || 'en-US-Studio-O';
     fetch(TTS_WORKER_URL, {
       method: 'POST',
       headers: {
@@ -475,10 +474,10 @@ function attemptRecoverTruncatedMermaid(elm: HTMLElement, code: string): boolean
   const placement = (wrap && wrap.getAttribute('data-visual-placement')) || 'answer';
   if (!itemId || (elm as HTMLElement).dataset.mermaidRetryDone || !looksIncompleteMermaid(code)) return false;
   (elm as HTMLElement).dataset.mermaidRetryDone = '1';
-  const it = appState?.items?.[itemId];
+  const it = items.value[itemId];
   if (!it) return false;
   delete it.visual;
-  if (appState?.items) appState.items[itemId] = it;
+  items.value = { ...items.value, [itemId]: it };
   saveState();
   generateVisual(it).then((visual) => {
     if (!visual || !wrap || !wrap.parentNode) {
@@ -487,7 +486,7 @@ function attemptRecoverTruncatedMermaid(elm: HTMLElement, code: string): boolean
       return;
     }
     it.visual = visual;
-    if (appState?.items) appState.items[itemId] = it;
+    items.value = { ...items.value, [itemId]: it };
     saveState();
     wrap.outerHTML = renderMermaidBlock(visual, placement, itemId);
     setTimeout(initMermaidBlocks, 50);
@@ -549,9 +548,7 @@ function ensureAnswerVisual(it: StudyItem, revealTier: string): void {
     visualGenerationPending[it.id] = false;
     if (!visual) return;
     it.visual = visual;
-    if (appState && appState.items) {
-      appState.items[it.id] = it;
-    }
+    items.value = { ...items.value, [it.id]: it };
     saveState();
 
     const session = getSession();
@@ -766,7 +763,7 @@ function countDue(
     const it = itemsById[id];
     if (!it || it.archived) continue;
     if (isItemInArchivedSubDeck(it)) continue;
-    if (it.course && appState?.courses?.[it.course] && appState.courses[it.course].archived) continue;
+    if (it.course && courses.value?.[it.course]?.archived) continue;
     if (course && course !== 'All' && it.course !== course) continue;
     if (topic && topic !== 'All' && (it.topic || '') !== topic) continue;
     const f = it.fsrs || null;
@@ -806,7 +803,7 @@ function avgRetention(itemsById: Record<string, StudyItem>): number | null {
     const it = itemsById[id];
     if (!it || !it.fsrs || it.archived) continue;
     if (isItemInArchivedSubDeck(it)) continue;
-    if (it.course && appState?.courses?.[it.course] && appState.courses[it.course].archived) continue;
+    if (it.course && courses.value?.[it.course]?.archived) continue;
     sum += retrievability(it.fsrs, now);
     n++;
   }

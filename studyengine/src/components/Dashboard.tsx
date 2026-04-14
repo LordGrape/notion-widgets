@@ -7,7 +7,8 @@ import { h, Fragment } from 'preact';
 import { computed, signal } from '@preact/signals';
 import { useEffect, useRef, useCallback } from 'preact/hooks';
 import { 
-  items, courses, settings, dragonState, currentView, selectedCourse, dueItems 
+  items, courses, settings, dragonState, currentView, selectedCourse, dueItems,
+  calibration as calibrationSignal, stats as statsSignal
 } from '../signals';
 import type { StudyItem, Course, CramState } from '../types';
 import { Dragon } from './Dragon';
@@ -109,14 +110,11 @@ const dueCounts = computed(() => computeDueCounts(items.value));
 const masteredCount = computed(() => computeMasteredCount(items.value));
 const avgRetention = computed(() => computeAvgRetention(items.value));
 const calibration = computed(() => {
-  // Read from window.state for now (until calibration is in signals)
-  const st = (window as unknown as { state?: { calibration?: { totalSelfRatings?: number; totalActualCorrect?: number } } }).state;
-  return computeCalibration(st?.calibration || {});
+  return computeCalibration(calibrationSignal.value || {});
 });
 
 const streakDays = computed(() => {
-  const st = (window as unknown as { state?: { stats?: { streakDays?: number } } }).state;
-  return st?.stats?.streakDays || 0;
+  return statsSignal.value?.streakDays || 0;
 });
 
 const totalItems = computed(() => {
