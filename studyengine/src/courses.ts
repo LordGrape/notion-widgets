@@ -4,28 +4,17 @@
  */
 
 import { el, esc, isoNow, fmtMMSS, clamp } from './utils';
-import { saveState, deepClone } from './state';
+import { saveState, deepClone, settings as appSettings, state as appState, NS, TIER_PROFILES, CRAM_TIER_MOD, BLOOM_STABILITY_BONUS } from './state';
 import { retrievability } from './fsrs';
 import type { StudyItem, Course, SubDeck, CramState, Assessment } from './types';
 
-// Global constants
-declare const settings: {
-  desiredRetention?: number;
-  courseExamTypes?: Record<string, string>;
-};
-declare const state: {
-  courses: Record<string, Course>;
-  items: Record<string, StudyItem>;
-  subDecks: Record<string, { subDecks: Record<string, SubDeck> }>;
-};
-declare const NS: string;
-declare const TIER_PROFILES: Record<string, Record<string, number>>;
-declare const CRAM_TIER_MOD: Record<string, Record<string, number>>;
-declare const BLOOM_STABILITY_BONUS: Record<string, number>;
-
-// Helper functions (globals from other modules)
-declare function reconcileStats(): void;
+// External CDN globals (keep as declare)
 declare function playClick(): void;
+
+// Helper function stub (will be injected)
+let reconcileStatsImpl: () => void = () => {};
+export function setReconcileStats(fn: () => void) { reconcileStatsImpl = fn; }
+function reconcileStats(): void { reconcileStatsImpl(); }
 
 /**
  * Generate a URL-safe key from course name
@@ -39,7 +28,7 @@ function courseKey(name: string): string {
  */
 function getCourse(courseName: string): Course | null {
   if (!courseName) return null;
-  return state.courses[courseName] || null;
+  return appState?.courses?.[courseName] || null;
 }
 
 /**
@@ -56,9 +45,9 @@ function getCourseColor(courseName: string): string {
  */
 function getEffectiveRetention(courseName: string): number {
   const cram = getCramState(courseName);
-  if (cram.active && cram.intensity === 'critical') return Math.min(settings.desiredRetention || 0.90, 0.85);
-  if (cram.active && cram.intensity === 'high') return Math.min(settings.desiredRetention || 0.90, 0.87);
-  return settings.desiredRetention || 0.90;
+  if (cram.active && cram.intensity === 'critical') return Math.min(appSettings?.desiredRetention || 0.90, 0.85);
+  if (cram.active && cram.intensity === 'high') return Math.min(appSettings?.desiredRetention || 0.90, 0.87);
+  return appSettings?.desiredRetention || 0.90;
 }
 
 /**
@@ -259,9 +248,9 @@ function applyTriagePriorities(courseName: string, assessId: string): void {
   });
 
   // Bulk update card priorities
-  for (const id in state.items) {
-    if (!state.items.hasOwnProperty(id)) continue;
-    const it = state.items[id];
+  for (const id in appState?.items) {
+    if (!appState?.items.hasOwnProperty(id)) continue;
+    const it = appState?.items[id];
     if (!it || it.archived || it.course !== courseName) continue;
     const topic = it.topic || 'General';
     if (priorityTopics[topic]) {
@@ -279,7 +268,7 @@ function applyTriagePriorities(courseName: string, assessId: string): void {
  * Ensure course has modules array
  */
 function ensureCourseModules(courseName: string): void {
-  const c = state.courses?.[courseName];
+  const c = appState?.courses?.[courseName];
   if (!c) return;
   if (!Array.isArray(c.modules)) c.modules = [];
 }
@@ -299,7 +288,7 @@ function generateModuleId(): string {
  */
 function addModuleToCourse(courseName: string, moduleObj?: Partial<SubDeck> & { name: string }): SubDeck | null {
   ensureCourseModules(courseName);
-  const c = state.courses?.[courseName];
+  const c = appState?.courses?.[courseName];
   if (!c) return null;
   if (!moduleObj) moduleObj = { name: '' };
   const mod: SubDeck = {
@@ -318,7 +307,7 @@ function addModuleToCourse(courseName: string, moduleObj?: Partial<SubDeck> & { 
  */
 function removeModuleFromCourse(courseName: string, moduleId: string): void {
   ensureCourseModules(courseName);
-  const c = state.courses?.[courseName];
+  const c = appState?.courses?.[courseName];
   if (!c) return;
   c.modules = c.modules!.filter((m) => m && m.id !== moduleId);
   saveCourse(c);
@@ -329,7 +318,7 @@ function removeModuleFromCourse(courseName: string, moduleId: string): void {
  */
 function renameModule(courseName: string, moduleId: string, newName: string): void {
   ensureCourseModules(courseName);
-  const c = state.courses?.[courseName];
+  const c = appState?.courses?.[courseName];
   if (!c) return;
   const mod = c.modules!.find((m) => m && m.id === moduleId);
   if (mod) { mod.name = newName; saveCourse(c); }
@@ -339,7 +328,7 @@ function renameModule(courseName: string, moduleId: string, newName: string): vo
  * Get module for a topic
  */
 function getModuleForTopic(courseName: string, topic: string): SubDeck | null {
-  const c = state.courses?.[courseName];
+  const c = appState?.courses?.[courseName];
   if (!c || !c.modules) return null;
   for (let i = 0; i < c.modules.length; i++) {
     if (c.modules[i] && c.modules[i].topics && c.modules[i].topics!.indexOf(topic) >= 0) return c.modules[i];
@@ -351,7 +340,7 @@ function getModuleForTopic(courseName: string, topic: string): SubDeck | null {
  * Get module by ID
  */
 function getModuleById(courseName: string, moduleId: string): SubDeck | null {
-  const c = state.courses?.[courseName];
+  const c = appState?.courses?.[courseName];
   if (!c || !c.modules) return null;
   return c.modules.find((m) => m && m.id === moduleId) || null;
 }
@@ -363,9 +352,9 @@ function getCardsForModule(courseName: string, moduleId: string): StudyItem[] {
   const mod = getModuleById(courseName, moduleId);
   if (!mod || !mod.topics) return [];
   const cards: StudyItem[] = [];
-  for (const id in state.items) {
-    if (!state.items.hasOwnProperty(id)) continue;
-    const it = state.items[id];
+  for (const id in appState?.items) {
+    if (!appState?.items.hasOwnProperty(id)) continue;
+    const it = appState?.items[id];
     if (!it || it.archived || it.course !== courseName) continue;
     if (mod.topics!.indexOf(it.topic || '') >= 0) cards.push(it);
   }
@@ -377,9 +366,9 @@ function getCardsForModule(courseName: string, moduleId: string): StudyItem[] {
  */
 function getCardsForTopic(courseName: string, topic: string): StudyItem[] {
   const cards: StudyItem[] = [];
-  for (const id in state.items) {
-    if (!state.items.hasOwnProperty(id)) continue;
-    const it = state.items[id];
+  for (const id in appState?.items) {
+    if (!appState?.items.hasOwnProperty(id)) continue;
+    const it = appState?.items[id];
     if (!it || it.archived) continue;
     if (courseName && it.course !== courseName) continue;
     if ((it.topic || 'General') === topic) cards.push(it);
@@ -392,9 +381,9 @@ function getCardsForTopic(courseName: string, topic: string): StudyItem[] {
  */
 function getCardsForCourse(courseName: string, excludeArchivedSubDecks?: boolean): StudyItem[] {
   const cards: StudyItem[] = [];
-  for (const id in state.items) {
-    if (!state.items.hasOwnProperty(id)) continue;
-    const it = state.items[id];
+  for (const id in appState?.items) {
+    if (!appState?.items.hasOwnProperty(id)) continue;
+    const it = appState?.items[id];
     if (!it || it.archived || it.course !== courseName) continue;
     if (excludeArchivedSubDecks && isItemInArchivedSubDeck(it)) continue;
     cards.push(it);
@@ -485,9 +474,9 @@ function clampCourseStringFields(c: Course): void {
  */
 function migrateCoursesPhase6(): void {
   let changed = false;
-  for (const k in state.courses) {
-    if (!state.courses.hasOwnProperty(k)) continue;
-    const c0 = state.courses[k];
+  for (const k in appState?.courses) {
+    if (!appState?.courses.hasOwnProperty(k)) continue;
+    const c0 = appState?.courses[k];
     const snap = JSON.stringify(c0);
     normalizeCoursePhase6(c0);
     // Ensure modules array exists
@@ -496,7 +485,7 @@ function migrateCoursesPhase6(): void {
   }
   if (changed) {
     if (typeof SyncEngine !== 'undefined' && (SyncEngine as unknown as { set?: (ns: string, key: string, val: unknown) => void }).set) {
-      (SyncEngine as unknown as { set: (ns: string, key: string, val: unknown) => void }).set(NS, 'courses', state.courses || {});
+      (SyncEngine as unknown as { set: (ns: string, key: string, val: unknown) => void }).set(NS, 'courses', appState?.courses || {});
     }
   }
 }
@@ -530,7 +519,7 @@ export function saveCourse(courseObj: Course): void {
   courseObj.id = courseObj.id || courseObj.name;
   normalizeCoursePhase6(courseObj);
   clampCourseStringFields(courseObj);
-  state.courses[courseObj.name] = courseObj;
+  if (appState?.courses) appState.courses[courseObj.name] = courseObj;
   saveState();
 }
 
@@ -538,8 +527,8 @@ export function saveCourse(courseObj: Course): void {
  * Delete course from state
  */
 function deleteCourse(courseName: string): void {
-  if (state.courses[courseName]) {
-    delete state.courses[courseName];
+  if (appState?.courses[courseName]) {
+    delete appState?.courses[courseName];
   }
 }
 
@@ -548,9 +537,9 @@ function deleteCourse(courseName: string): void {
  */
 function listCourses(includeArchived?: boolean): Course[] {
   const out: Course[] = [];
-  for (const k in state.courses) {
-    if (!state.courses.hasOwnProperty(k)) continue;
-    const course = state.courses[k];
+  for (const k in appState?.courses) {
+    if (!appState?.courses.hasOwnProperty(k)) continue;
+    const course = appState?.courses[k];
     if (!course) continue;
     if (!includeArchived && course.archived) continue;
     out.push(course);
@@ -565,9 +554,9 @@ function listCourses(includeArchived?: boolean): Course[] {
 function getTopicsForCourse(courseName: string): string[] {
   if (!courseName) return [];
   const topics: Record<string, number> = {};
-  for (const id in state.items) {
-    if (!state.items.hasOwnProperty(id)) continue;
-    const it = state.items[id];
+  for (const id in appState?.items) {
+    if (!appState?.items.hasOwnProperty(id)) continue;
+    const it = appState?.items[id];
     if (!it || it.course !== courseName) continue;
     const t = (it.topic || '').trim();
     if (t) topics[t] = (topics[t] || 0) + 1;
@@ -583,16 +572,16 @@ function getTopicsForCourse(courseName: string): string[] {
  * Get subdeck
  */
 function getSubDeck(courseName: string, subDeckName: string): SubDeck | null {
-  if (!state.subDecks[courseName]) return null;
-  return state.subDecks[courseName].subDecks[subDeckName] || null;
+  if (!appState?.subDecks[courseName]) return null;
+  return appState?.subDecks[courseName].subDecks[subDeckName] || null;
 }
 
 /**
  * List subdecks for a course
  */
 function listSubDecks(courseName: string): SubDeck[] {
-  if (!state.subDecks[courseName]) return [];
-  const subs = state.subDecks[courseName].subDecks;
+  if (!appState?.subDecks[courseName]) return [];
+  const subs = appState?.subDecks[courseName].subDecks;
   const out: SubDeck[] = [];
   for (const k in subs) {
     if (subs.hasOwnProperty(k)) out.push(subs[k]);
@@ -605,10 +594,10 @@ function listSubDecks(courseName: string): SubDeck[] {
  * Create a subdeck
  */
 function createSubDeck(courseName: string, name: string): SubDeck {
-  if (!state.subDecks[courseName]) {
-    state.subDecks[courseName] = { subDecks: {} };
+  if (appState?.subDecks && !appState.subDecks[courseName]) {
+    appState.subDecks[courseName] = { subDecks: {} };
   }
-  const existing = Object.keys(state.subDecks[courseName].subDecks);
+  const existing = appState?.subDecks?.[courseName] ? Object.keys(appState.subDecks[courseName].subDecks) : [];
   const sd: SubDeck = {
     id: name,
     name: name,
@@ -618,7 +607,9 @@ function createSubDeck(courseName: string, name: string): SubDeck {
     created: isoNow(),
     cardCount: 0
   };
-  state.subDecks[courseName].subDecks[name] = sd;
+  if (appState?.subDecks?.[courseName]?.subDecks) {
+    appState.subDecks[courseName].subDecks[name] = sd;
+  }
   saveState();
   return sd;
 }
@@ -627,15 +618,15 @@ function createSubDeck(courseName: string, name: string): SubDeck {
  * Rename subdeck
  */
 function renameSubDeck(courseName: string, oldName: string, newName: string): void {
-  const sd = state.subDecks[courseName];
+  const sd = appState?.subDecks[courseName];
   if (!sd || !sd.subDecks[oldName]) return;
   const meta = sd.subDecks[oldName];
   meta.name = newName;
   delete sd.subDecks[oldName];
   sd.subDecks[newName] = meta;
-  for (const id in state.items) {
-    if (!state.items.hasOwnProperty(id)) continue;
-    const it = state.items[id];
+  for (const id in appState?.items) {
+    if (!appState?.items.hasOwnProperty(id)) continue;
+    const it = appState?.items[id];
     if (it && it.course === courseName && it.subDeck === oldName) {
       it.subDeck = newName;
     }
@@ -663,22 +654,22 @@ function unarchiveSubDeck(courseName: string, subDeckName: string): void {
  * Delete subdeck
  */
 function deleteSubDeck(courseName: string, subDeckName: string, deleteCards?: boolean): void {
-  const sd = state.subDecks[courseName];
+  const sd = appState?.subDecks[courseName];
   if (!sd || !sd.subDecks[subDeckName]) return;
   if (deleteCards) {
     const toDelete: string[] = [];
-    for (const id in state.items) {
-      if (!state.items.hasOwnProperty(id)) continue;
-      const it = state.items[id];
+    for (const id in appState?.items) {
+      if (!appState?.items.hasOwnProperty(id)) continue;
+      const it = appState?.items[id];
       if (it && it.course === courseName && it.subDeck === subDeckName) {
         toDelete.push(id);
       }
     }
-    toDelete.forEach((did) => { delete state.items[did]; });
+    toDelete.forEach((did) => { delete appState?.items[did]; });
   } else {
-    for (const id2 in state.items) {
-      if (!state.items.hasOwnProperty(id2)) continue;
-      const it2 = state.items[id2];
+    for (const id2 in appState?.items) {
+      if (!appState?.items.hasOwnProperty(id2)) continue;
+      const it2 = appState?.items[id2];
       if (it2 && it2.course === courseName && it2.subDeck === subDeckName) {
         it2.subDeck = null;
       }
@@ -693,21 +684,23 @@ function deleteSubDeck(courseName: string, subDeckName: string, deleteCards?: bo
  * Move subdeck to different course
  */
 function moveSubDeck(subDeckName: string, fromCourse: string, toCourse: string): void {
-  const fromSd = state.subDecks[fromCourse];
+  const fromSd = appState?.subDecks[fromCourse];
   if (!fromSd || !fromSd.subDecks[subDeckName]) return;
-  if (!state.subDecks[toCourse]) {
-    state.subDecks[toCourse] = { subDecks: {} };
+  if (appState?.subDecks && !appState.subDecks[toCourse]) {
+    appState.subDecks[toCourse] = { subDecks: {} };
   }
-  state.subDecks[toCourse].subDecks[subDeckName] = fromSd.subDecks[subDeckName];
+  if (appState?.subDecks?.[toCourse]?.subDecks) {
+    appState.subDecks[toCourse].subDecks[subDeckName] = fromSd.subDecks[subDeckName];
+  }
   delete fromSd.subDecks[subDeckName];
-  for (const id in state.items) {
-    if (!state.items.hasOwnProperty(id)) continue;
-    const it = state.items[id];
+  for (const id in appState?.items) {
+    if (!appState?.items.hasOwnProperty(id)) continue;
+    const it = appState?.items[id];
     if (it && it.course === fromCourse && it.subDeck === subDeckName) {
       it.course = toCourse;
     }
   }
-  if (!state.courses[toCourse]) {
+  if (!appState?.courses[toCourse]) {
     saveCourse({
       name: toCourse,
       examType: 'mixed',
@@ -742,9 +735,9 @@ function isItemInArchivedSubDeck(item: StudyItem): boolean {
 function recountSubDeck(courseName: string, subDeckName: string): void {
   if (!subDeckName) return;
   let count = 0;
-  for (const id in state.items) {
-    if (!state.items.hasOwnProperty(id)) continue;
-    const it = state.items[id];
+  for (const id in appState?.items) {
+    if (!appState?.items.hasOwnProperty(id)) continue;
+    const it = appState?.items[id];
     if (it && !it.archived && it.course === courseName && it.subDeck === subDeckName) count++;
   }
   const sd = getSubDeck(courseName, subDeckName);
@@ -756,9 +749,9 @@ function recountSubDeck(courseName: string, subDeckName: string): void {
  */
 function getCardsForSubDeck(courseName: string, subDeckName: string): StudyItem[] {
   const cards: StudyItem[] = [];
-  for (const id in state.items) {
-    if (!state.items.hasOwnProperty(id)) continue;
-    const it = state.items[id];
+  for (const id in appState?.items) {
+    if (!appState?.items.hasOwnProperty(id)) continue;
+    const it = appState?.items[id];
     if (!it || it.archived || it.course !== courseName) continue;
     if (it.subDeck === subDeckName) cards.push(it);
   }
@@ -807,54 +800,53 @@ function renderTopicSuggestions(inputId: string, courseName: string, containerId
 }
 
 // Attach to window for .js consumers
-const win = window as unknown as Record<string, unknown>;
-
-win.courseKey = courseKey;
-win.getCourse = getCourse;
-win.getCourseColor = getCourseColor;
-win.getEffectiveRetention = getEffectiveRetention;
-win.getEffectiveProfile = getEffectiveProfile;
-win.getEffectiveBloomBonus = getEffectiveBloomBonus;
-win.getCramState = getCramState;
-win.detectSupportedTiers = detectSupportedTiers;
-win.normalizeCoursePhase6 = normalizeCoursePhase6;
-win.getActiveAssessment = getActiveAssessment;
-win.getPastAssessments = getPastAssessments;
-win.getAssessmentById = getAssessmentById;
-win.applyTriagePriorities = applyTriagePriorities;
-win.ensureCourseModules = ensureCourseModules;
-win.generateModuleId = generateModuleId;
-win.addModuleToCourse = addModuleToCourse;
-win.removeModuleFromCourse = removeModuleFromCourse;
-win.renameModule = renameModule;
-win.getModuleForTopic = getModuleForTopic;
-win.getModuleById = getModuleById;
-win.getCardsForModule = getCardsForModule;
-win.getCardsForTopic = getCardsForTopic;
-win.getCardsForCourse = getCardsForCourse;
-win.isDueNow = isDueNow;
-win.getCourseStats = getCourseStats;
-win.getModuleStats = getModuleStats;
-win.clampCourseStringFields = clampCourseStringFields;
-win.migrateCoursesPhase6 = migrateCoursesPhase6;
-win.getCourseExamType = getCourseExamType;
-win.isCourseManual = isCourseManual;
-win.saveCourse = saveCourse;
-win.deleteCourse = deleteCourse;
-win.listCourses = listCourses;
-win.getTopicsForCourse = getTopicsForCourse;
-win.getSubDeck = getSubDeck;
-win.listSubDecks = listSubDecks;
-win.createSubDeck = createSubDeck;
-win.renameSubDeck = renameSubDeck;
-win.archiveSubDeck = archiveSubDeck;
-win.unarchiveSubDeck = unarchiveSubDeck;
-win.deleteSubDeck = deleteSubDeck;
-win.moveSubDeck = moveSubDeck;
-win.isSubDeckArchived = isSubDeckArchived;
-win.isItemInArchivedSubDeck = isItemInArchivedSubDeck;
-win.recountSubDeck = recountSubDeck;
-win.getCardsForSubDeck = getCardsForSubDeck;
-win.renderTopicSuggestions = renderTopicSuggestions;
-
-export {};
+if (typeof window !== 'undefined') {
+  const win = window as unknown as Record<string, unknown>;
+  win.courseKey = courseKey;
+  win.getCourse = getCourse;
+  win.getCourseColor = getCourseColor;
+  win.getEffectiveRetention = getEffectiveRetention;
+  win.getEffectiveProfile = getEffectiveProfile;
+  win.getEffectiveBloomBonus = getEffectiveBloomBonus;
+  win.getCramState = getCramState;
+  win.detectSupportedTiers = detectSupportedTiers;
+  win.normalizeCoursePhase6 = normalizeCoursePhase6;
+  win.getActiveAssessment = getActiveAssessment;
+  win.getPastAssessments = getPastAssessments;
+  win.getAssessmentById = getAssessmentById;
+  win.applyTriagePriorities = applyTriagePriorities;
+  win.ensureCourseModules = ensureCourseModules;
+  win.generateModuleId = generateModuleId;
+  win.addModuleToCourse = addModuleToCourse;
+  win.removeModuleFromCourse = removeModuleFromCourse;
+  win.renameModule = renameModule;
+  win.getModuleForTopic = getModuleForTopic;
+  win.getModuleById = getModuleById;
+  win.getCardsForModule = getCardsForModule;
+  win.getCardsForTopic = getCardsForTopic;
+  win.getCardsForCourse = getCardsForCourse;
+  win.isDueNow = isDueNow;
+  win.getCourseStats = getCourseStats;
+  win.getModuleStats = getModuleStats;
+  win.clampCourseStringFields = clampCourseStringFields;
+  win.migrateCoursesPhase6 = migrateCoursesPhase6;
+  win.getCourseExamType = getCourseExamType;
+  win.isCourseManual = isCourseManual;
+  win.saveCourse = saveCourse;
+  win.deleteCourse = deleteCourse;
+  win.listCourses = listCourses;
+  win.getTopicsForCourse = getTopicsForCourse;
+  win.getSubDeck = getSubDeck;
+  win.listSubDecks = listSubDecks;
+  win.createSubDeck = createSubDeck;
+  win.renameSubDeck = renameSubDeck;
+  win.archiveSubDeck = archiveSubDeck;
+  win.unarchiveSubDeck = unarchiveSubDeck;
+  win.deleteSubDeck = deleteSubDeck;
+  win.moveSubDeck = moveSubDeck;
+  win.isSubDeckArchived = isSubDeckArchived;
+  win.isItemInArchivedSubDeck = isItemInArchivedSubDeck;
+  win.recountSubDeck = recountSubDeck;
+  win.getCardsForSubDeck = getCardsForSubDeck;
+  win.renderTopicSuggestions = renderTopicSuggestions;
+}

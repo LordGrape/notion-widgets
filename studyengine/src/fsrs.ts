@@ -3,19 +3,22 @@
  * Phase 3 conversion: types only, ZERO logic changes
  */
 
+import { w, fsrsInstance, state as appState, settings as appSettings, NS, FSRS6_DEFAULT_DECAY } from './state';
 import type { StudyItem, FSRSState, FSRSModule } from './types';
 
-// Global constants from state.js
-declare const w: number[];
-declare const fsrsInstance: unknown;
-declare const state: { calibration?: { history?: Array<{ rating?: number }> } };
-declare const settings: { desiredRetention?: number };
-declare const NS: string;
-declare const FSRS6_DEFAULT_DECAY: number;
+// External CDN globals (keep as declare)
+declare const SyncEngine: {
+  set: (ns: string, key: string, val: unknown) => void;
+  get: (ns: string, key: string) => unknown;
+};
 
-// Helper functions from utils.js (globals)
-declare function daysBetween(a: number | Date, b: number | Date): number;
-declare function clamp(n: number, min: number, max: number): number;
+// Helper function stubs (will be injected)
+let daysBetweenImpl: (a: number | Date, b: number | Date) => number = () => 0;
+let clampImpl: (n: number, min: number, max: number) => number = (n) => n;
+export function setDaysBetween(fn: (a: number | Date, b: number | Date) => number) { daysBetweenImpl = fn; }
+export function setClamp(fn: (n: number, min: number, max: number) => number) { clampImpl = fn; }
+function daysBetween(a: number | Date, b: number | Date): number { return daysBetweenImpl(a, b); }
+function clamp(n: number, min: number, max: number): number { return clampImpl(n, min, max); }
 
 /**
  * Optimize FSRS parameters based on review history
@@ -23,7 +26,7 @@ declare function clamp(n: number, min: number, max: number): number;
  */
 function optimizeFsrsParams(): boolean {
   const TS: FSRSModule | null = typeof FSRS !== 'undefined' ? (FSRS as unknown as FSRSModule) : null;
-  const history = (state.calibration && state.calibration.history) || [];
+  const history = (appState?.calibration?.history) || [];
   if (history.length < 30 || !TS || !TS.clipParameters || !TS.checkParameters || !TS.migrateParameters) return false;
   try {
     let sum = 0;
@@ -49,12 +52,14 @@ function optimizeFsrsParams(): boolean {
     if (TS.FSRS && TS.generatorParameters) {
       const newInstance = new TS.FSRS(TS.generatorParameters({
         w: wNew,
-        request_retention: settings.desiredRetention || 0.9,
+        request_retention: appSettings?.desiredRetention || 0.9,
         enable_fuzz: true
       }));
       (window as unknown as { fsrsInstance: unknown }).fsrsInstance = newInstance;
     }
-    SyncEngine.set(NS, 'optimizedWeights', wNew);
+    if (typeof SyncEngine !== 'undefined') {
+      SyncEngine.set(NS, 'optimizedWeights', wNew);
+    }
     return true;
   } catch (e) {
     console.warn('FSRS optimization failed:', e);
@@ -78,7 +83,7 @@ function loadOptimizedWeights(): void {
     if (TS.FSRS && TS.generatorParameters) {
       const newInstance = new TS.FSRS(TS.generatorParameters({
         w: newW,
-        request_retention: (settings && settings.desiredRetention) || 0.9,
+        request_retention: (appSettings?.desiredRetention) || 0.9,
         enable_fuzz: true
       }));
       (window as unknown as { fsrsInstance: unknown }).fsrsInstance = newInstance;
@@ -290,31 +295,20 @@ function reweightProfile(
 }
 
 // Attach to window for .js consumers
-(window as unknown as {
-  optimizeFsrsParams: typeof optimizeFsrsParams;
-  loadOptimizedWeights: typeof loadOptimizedWeights;
-  getFsrsDecay: typeof getFsrsDecay;
-  getFsrsFactor: typeof getFsrsFactor;
-  retrievability: typeof retrievability;
-  initialDifficulty: typeof initialDifficulty;
-  updateDifficulty: typeof updateDifficulty;
-  stabilityAfterSuccess: typeof stabilityAfterSuccess;
-  stabilityAfterForget: typeof stabilityAfterForget;
-  nextIntervalDays: typeof nextIntervalDays;
-  scheduleFsrs: typeof scheduleFsrs;
-  reweightProfile: typeof reweightProfile;
-}).optimizeFsrsParams = optimizeFsrsParams;
-
-(window as unknown as { loadOptimizedWeights: typeof loadOptimizedWeights }).loadOptimizedWeights = loadOptimizedWeights;
-(window as unknown as { getFsrsDecay: typeof getFsrsDecay }).getFsrsDecay = getFsrsDecay;
-(window as unknown as { getFsrsFactor: typeof getFsrsFactor }).getFsrsFactor = getFsrsFactor;
-(window as unknown as { retrievability: typeof retrievability }).retrievability = retrievability;
-(window as unknown as { initialDifficulty: typeof initialDifficulty }).initialDifficulty = initialDifficulty;
-(window as unknown as { updateDifficulty: typeof updateDifficulty }).updateDifficulty = updateDifficulty;
-(window as unknown as { stabilityAfterSuccess: typeof stabilityAfterSuccess }).stabilityAfterSuccess = stabilityAfterSuccess;
-(window as unknown as { stabilityAfterForget: typeof stabilityAfterForget }).stabilityAfterForget = stabilityAfterForget;
-(window as unknown as { nextIntervalDays: typeof nextIntervalDays }).nextIntervalDays = nextIntervalDays;
-(window as unknown as { scheduleFsrs: typeof scheduleFsrs }).scheduleFsrs = scheduleFsrs;
-(window as unknown as { reweightProfile: typeof reweightProfile }).reweightProfile = reweightProfile;
+if (typeof window !== 'undefined') {
+  const win = window as unknown as Record<string, unknown>;
+  win.optimizeFsrsParams = optimizeFsrsParams;
+  win.loadOptimizedWeights = loadOptimizedWeights;
+  win.getFsrsDecay = getFsrsDecay;
+  win.getFsrsFactor = getFsrsFactor;
+  win.retrievability = retrievability;
+  win.initialDifficulty = initialDifficulty;
+  win.updateDifficulty = updateDifficulty;
+  win.stabilityAfterSuccess = stabilityAfterSuccess;
+  win.stabilityAfterForget = stabilityAfterForget;
+  win.nextIntervalDays = nextIntervalDays;
+  win.scheduleFsrs = scheduleFsrs;
+  win.reweightProfile = reweightProfile;
+}
 
 export {};
