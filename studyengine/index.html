@@ -5,11 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-__STYLES__
-</style>
+  <!-- Core.js is loaded externally for SyncEngine -->
+  <script src="https://notion-widgets-93r.pages.dev/core.js"></script>
 </head>
 <body>
+  <div id="app"></div>
+  <script type="module" src="/src/main.tsx"></script>
   <div id="awakening-overlay" aria-hidden="true">
     <div class="awakening-stars" aria-hidden="true"></div>
     <div id="awakening-content">
