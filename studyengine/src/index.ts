@@ -380,7 +380,8 @@ function saveSettingsFromForm(): void {
 
 // ── Boot ─────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  initSyncAndBackground(); // Must run before anything touches SyncEngine
+  // SyncEngine.init is already called from HTML <script> block
+  initSyncAndBackground(); // Only sets up background, not SyncEngine
 
   const SE = (window as any).SyncEngine;
 

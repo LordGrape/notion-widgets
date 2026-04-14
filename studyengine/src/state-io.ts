@@ -247,21 +247,12 @@ export function tierSupportBadgeHTML(tiers: string[]): string {
 }
 
 /**
- * Initialize SyncEngine and background on load
+ * Initialize background on load (SyncEngine.init is called from HTML)
  */
 export function initSyncAndBackground(): void {
   if (typeof window === 'undefined') return;
   const isEmbedded = (window.self !== window.top);
   if (!isEmbedded) document.body.classList.add('standalone');
-
-  try {
-    SyncEngine.init({
-      worker: 'https://widget-sync.lordgrape-widgets.workers.dev',
-      namespaces: ['dragon', 'clock', 'user', 'studyengine']
-    });
-  } catch (e) {
-    console.warn('[StudyEngine] SyncEngine.init failed:', e);
-  }
 
   try {
     initBackground('bgCanvas', {
