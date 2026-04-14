@@ -9,7 +9,7 @@ export default defineConfig({
     outDir: '../dist',
     emptyOutDir: false,
     rollupOptions: {
-      input: 'index.html',
+      input: 'studyengine.html',
       output: {
         entryFileNames: 'studyengine.js',
       },
