@@ -354,6 +354,7 @@ function renderLearnTab(courseName, container) {
   if (startBtn) {
     startBtn.addEventListener('click', function() {
       if (learnSelectedTopics.length === 0) return;
+      if (learnSession && learnSession.starting) return; // Prevent double-click
       startLearnSession(courseName, learnSelectedTopics.slice(), learnSubDeckFilter);
     });
   }
@@ -364,6 +365,9 @@ function renderLearnTab(courseName, container) {
 /* ── Learn Session ── */
 
 function startLearnSession(courseName, topics, subDeckFilter) {
+  /* Prevent duplicate fetches from double-clicks */
+  learnSession = { starting: true };
+
   var cards = [];
   topics.forEach(function(topicName) {
     for (var id in state.items) {
