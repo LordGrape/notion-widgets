@@ -224,6 +224,7 @@ export interface Stats {
     mock: number;
     worked: number;
   };
+  dailyHistory?: Record<string, { reviews: number; xp: number }>;
 }
 
 export interface LearnProgress {
