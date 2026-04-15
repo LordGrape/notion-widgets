@@ -384,6 +384,131 @@
     .icon-btn:hover{ transform: translateY(-1px); border-color: rgba(var(--accent-rgb),0.28); background: rgba(var(--accent-rgb),0.10); }
     .icon-btn:active{ transform: translateY(0) scale(0.98); }
 
+    /* ── CSS SECTION: XP Bar Widget ── */
+    /* XP Bar Widget */
+    .xp-bar-widget {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 10px 4px 4px;
+      border-radius: 999px;
+      background: rgba(var(--accent-rgb), 0.06);
+      border: 1px solid rgba(var(--accent-rgb), 0.14);
+      min-width: 0;
+      flex-shrink: 1;
+    }
+    .xp-rank-badge {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(var(--accent-rgb), 0.12);
+      border: 2px solid var(--accent);
+      flex-shrink: 0;
+      overflow: hidden;
+      transition: border-color 0.4s ease, box-shadow 0.4s ease;
+    }
+    .xp-rank-icon {
+      font-size: 12px;
+      line-height: 1;
+      position: absolute;
+      top: 3px;
+    }
+    .xp-rank-level {
+      font-size: 9px;
+      font-weight: 900;
+      color: var(--text);
+      position: absolute;
+      bottom: 2px;
+      letter-spacing: -0.3px;
+    }
+    .xp-bar-track {
+      position: relative;
+      flex: 1;
+      height: 10px;
+      min-width: 60px;
+      max-width: 120px;
+      border-radius: 999px;
+      background: rgba(var(--accent-rgb), 0.08);
+      border: 1px solid rgba(var(--accent-rgb), 0.10);
+      overflow: hidden;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
+    }
+    .xp-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.7), rgba(var(--accent-rgb), 1));
+      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+    /* Shimmer overlay — pure CSS */
+    .xp-bar-fill::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.25) 50%,
+        transparent 100%
+      );
+      background-size: 200% 100%;
+      animation: xp-shimmer 2.5s ease-in-out infinite;
+      border-radius: 999px;
+    }
+    @keyframes xp-shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    /* XP gain flash */
+    .xp-bar-fill.xp-flash {
+      box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.5);
+    }
+    /* Glow layer (hidden by default, shown on gain) */
+    .xp-bar-glow {
+      position: absolute;
+      inset: -2px;
+      border-radius: 999px;
+      opacity: 0;
+      background: rgba(var(--accent-rgb), 0.2);
+      filter: blur(4px);
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+    .xp-bar-glow.active {
+      opacity: 1;
+    }
+    .xp-bar-label {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    /* Level-up burst */
+    .xp-rank-badge.level-up {
+      animation: xp-levelup-burst 0.8s ease-out;
+    }
+    @keyframes xp-levelup-burst {
+      0% { box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0.6); transform: scale(1); }
+      40% { box-shadow: 0 0 0 12px rgba(var(--accent-rgb), 0); transform: scale(1.15); }
+      100% { box-shadow: 0 0 0 0 transparent; transform: scale(1); }
+    }
+    /* Responsive: compact on small screens */
+    @media (max-width: 640px) {
+      .xp-bar-label { display: none; }
+      .xp-bar-track { max-width: 80px; min-width: 40px; }
+      .xp-rank-badge { width: 28px; height: 28px; }
+      .xp-rank-icon { font-size: 10px; }
+      .xp-rank-level { font-size: 8px; }
+    }
+
     .se-icon{
       display: inline-flex;
       align-items: center;
@@ -6524,19 +6649,29 @@ input[type="range"]::-moz-range-thumb{
         <div class="topbar">
           <div class="brand">
             <div class="brand-mark" aria-hidden="true">
-              <canvas id="mascotCanvas" class="logo" width="28" height="28"></canvas>
+              <span style="font-size:18px">📚</span>
             </div>
             <div class="brand-copy">
-              <div class="brand-kicker">Adaptive recall desk</div>
-              <h1>Study Engine</h1>
-              <div class="sub">Focus dashboard for spaced retrieval</div>
+              <span class="brand-kicker">Study</span>
+              <h1>Engine</h1>
             </div>
           </div>
-          <div class="nav-tabs">
+          <div class="nav-tabs" role="tablist" aria-label="Main navigation">
             <button class="nav-tab active" data-nav="home" id="navHome">Home</button>
             <button class="nav-tab" data-nav="courses" id="navCourses">Courses</button>
           </div>
           <div class="topbar-right">
+            <div class="xp-bar-widget" id="xpBarWidget">
+              <div class="xp-rank-badge" id="xpRankBadge">
+                <span class="xp-rank-icon" id="xpRankIcon">📖</span>
+                <span class="xp-rank-level" id="xpRankLevel">1</span>
+              </div>
+              <div class="xp-bar-track">
+                <div class="xp-bar-fill" id="xpBarFill" style="width: 0%"></div>
+                <div class="xp-bar-glow" id="xpBarGlow"></div>
+              </div>
+              <span class="xp-bar-label" id="xpBarLabel">0 / 100 XP</span>
+            </div>
             <span id="syncBadge" title="Sync status" style="font-size:10px;padding:4px 8px;border-radius:999px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.04);color:var(--text-tertiary);letter-spacing:1px;font-weight:700;text-transform:uppercase;cursor:default;display:none;">⏳</span>
             <button class="icon-btn" id="gearBtn"><span class="se-icon"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.5"/><path d="M8 1.5v1.2M8 13.3v1.2M1.5 8h1.2M13.3 8h1.2M3.4 3.4l.85.85M11.75 11.75l.85.85M3.4 12.6l.85-.85M11.75 4.25l.85-.85"/></svg></span></button>
           </div>
@@ -14174,6 +14309,7 @@ input[type="range"]::-moz-range-thumb{
       session._xpFlashGuard = flashKey;
       session.xp += xp;
       flashXP(xp);
+      awardXP(xp);
       saveState();
       /* Build tutor context for Ask the Tutor */
       if (session) {
@@ -18913,220 +19049,148 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* ── Boot ── */
-    /* ── Dragon Mascot (topbar icon) ── */
-    var mascotCtx = null;
-    var mascotStage = 0;
-    var mascotFlapPhase = 0;
-    var mascotAnimFrame = null;
 
-    /* ═══ SECTION: Init Mascot | Functions: initMascot ═══ */
-    function initMascot() {
-      var c = el('mascotCanvas');
-      if (!c) return;
-      var dpr = window.devicePixelRatio || 1;
-      dpr = Math.min(dpr, 2);
-      c.width = 28 * dpr;
-      c.height = 28 * dpr;
-      c.style.width = '28px';
-      c.style.height = '28px';
-      mascotCtx = c.getContext('2d');
-      mascotCtx.scale(dpr, dpr);
+    /* ═══ SECTION: XP Level System | Functions: getLevelInfo, didLevelUp, xpForLevel, getRankForLevel ═══ */
+    /* XP Level System — pure functions for computing levels from XP totals */
+    var MAX_LEVEL = 50;
+    var RANKS = [
+      { minLevel: 1, maxLevel: 5, rank: 'Novice', icon: '📖', colour: '#6b7280' },
+      { minLevel: 6, maxLevel: 10, rank: 'Apprentice', icon: '📘', colour: '#3b82f6' },
+      { minLevel: 11, maxLevel: 15, rank: 'Scholar', icon: '🎓', colour: '#8b5cf6' },
+      { minLevel: 16, maxLevel: 20, rank: 'Adept', icon: '⚡', colour: '#06b6d4' },
+      { minLevel: 21, maxLevel: 25, rank: 'Sage', icon: '🌿', colour: '#10b981' },
+      { minLevel: 26, maxLevel: 30, rank: 'Expert', icon: '🔥', colour: '#f59e0b' },
+      { minLevel: 31, maxLevel: 35, rank: 'Master', icon: '⚔️', colour: '#ef4444' },
+      { minLevel: 36, maxLevel: 40, rank: 'Grandmaster', icon: '💎', colour: '#ec4899' },
+      { minLevel: 41, maxLevel: 45, rank: 'Luminary', icon: '✨', colour: '#8b5cf6' },
+      { minLevel: 46, maxLevel: 50, rank: 'Polymath', icon: '👑', colour: '#f59e0b' }
+    ];
 
-      /* Read dragon stage from SyncEngine */
-      updateMascotStage();
-      startMascotLoop();
+    function xpForLevel(level) {
+      if (level <= 1) return 0;
+      if (level > MAX_LEVEL) return xpForLevel(MAX_LEVEL);
+      return Math.floor(100 * Math.pow(level, 1.6));
     }
 
-    /* ═══ SECTION: Update Mascot Stage | Functions: updateMascotStage ═══ */
-    function updateMascotStage() {
+    function getRankForLevel(level) {
+      var clamped = Math.max(1, Math.min(level, MAX_LEVEL));
+      for (var i = 0; i < RANKS.length; i++) {
+        var r = RANKS[i];
+        if (clamped >= r.minLevel && clamped <= r.maxLevel) {
+          return { rank: r.rank, icon: r.icon, colour: r.colour };
+        }
+      }
+      return { rank: 'Novice', icon: '📖', colour: '#6b7280' };
+    }
+
+    function getLevelInfo(totalXP) {
+      var xp = Math.max(0, totalXP || 0);
+      var level = 1;
+      for (var i = 1; i <= MAX_LEVEL; i++) {
+        if (xp >= xpForLevel(i)) {
+          level = i;
+        } else {
+          break;
+        }
+      }
+      var rankInfo = getRankForLevel(level);
+      var xpForCurrent = xpForLevel(level);
+      var xpForNext = level < MAX_LEVEL ? xpForLevel(level + 1) : xpForCurrent;
+      var xpNeededInLevel = xpForNext - xpForCurrent;
+      var xpIntoLevel = xp - xpForCurrent;
+      var progressPct = xpNeededInLevel > 0 ? Math.min(100, Math.max(0, (xpIntoLevel / xpNeededInLevel) * 100)) : 100;
+      var isMaxLevel = level >= MAX_LEVEL;
+      return {
+        level: level,
+        rank: rankInfo.rank,
+        rankIcon: rankInfo.icon,
+        rankColour: rankInfo.colour,
+        currentXP: xp,
+        xpIntoLevel: xpIntoLevel,
+        xpForNextLevel: xpForNext,
+        xpNeededInLevel: xpNeededInLevel,
+        progressPct: progressPct,
+        isMaxLevel: isMaxLevel
+      };
+    }
+
+    function didLevelUp(oldXP, newXP) {
+      var oldInfo = getLevelInfo(oldXP);
+      var newInfo = getLevelInfo(newXP);
+      if (newInfo.level > oldInfo.level) {
+        return {
+          levelled: true,
+          oldLevel: oldInfo.level,
+          newLevel: newInfo.level,
+          newRank: newInfo.rank !== oldInfo.rank ? newInfo.rank : undefined
+        };
+      }
+      return {
+        levelled: false,
+        oldLevel: oldInfo.level,
+        newLevel: newInfo.level
+      };
+    }
+
+    /* ═══ SECTION: Render XP Bar | Functions: renderXPBar ═══ */
+    function renderXPBar() {
       var xp = 0;
       try { xp = SyncEngine.get('dragon', 'xp') || 0; } catch(e) {}
-      var thresholds = [0, 1000, 5000, 20000, 60000, 120000];
-      mascotStage = 0;
-      for (var i = thresholds.length - 1; i >= 0; i--) {
-        if (xp >= thresholds[i]) { mascotStage = i; break; }
+      var info = getLevelInfo(xp);
+
+      var badge = el('xpRankBadge');
+      var icon = el('xpRankIcon');
+      var level = el('xpRankLevel');
+      var fill = el('xpBarFill');
+      var label = el('xpBarLabel');
+
+      if (icon) icon.textContent = info.rankIcon;
+      if (level) level.textContent = String(info.level);
+      if (badge) badge.style.borderColor = info.rankColour;
+      if (fill) fill.style.width = info.progressPct + '%';
+      if (label) {
+        if (info.isMaxLevel) {
+          label.textContent = info.currentXP.toLocaleString() + ' XP · MAX';
+        } else {
+          label.textContent = info.xpIntoLevel + ' / ' + info.xpNeededInLevel + ' XP';
+        }
       }
     }
 
-    /* ═══ SECTION: Start Mascot Loop | Functions: startMascotLoop ═══ */
-    function startMascotLoop() {
-      /* ═══ SECTION: Tick | Functions: tick ═══ */
-      function tick() {
-        mascotFlapPhase += 0.04;
-        drawMascot();
-        mascotAnimFrame = requestAnimationFrame(tick);
+    /* ═══ SECTION: Award XP | Functions: awardXP ═══ */
+    function awardXP(amount) {
+      if (!amount || amount <= 0) return;
+
+      var oldXP = 0;
+      try { oldXP = SyncEngine.get('dragon', 'xp') || 0; } catch(e) {}
+      var newXP = oldXP + amount;
+
+      try {
+        SyncEngine.set('dragon', 'xp', newXP);
+        SyncEngine.set('dragon', 'lastFed', new Date().toISOString());
+      } catch(e) {}
+
+      var result = didLevelUp(oldXP, newXP);
+      renderXPBar();
+
+      /* XP gain flash */
+      var fill = el('xpBarFill');
+      var glow = el('xpBarGlow');
+      if (fill) { fill.classList.add('xp-flash'); setTimeout(function() { fill.classList.remove('xp-flash'); }, 600); }
+      if (glow) { glow.classList.add('active'); setTimeout(function() { glow.classList.remove('active'); }, 800); }
+
+      /* Level-up celebration */
+      if (result.levelled) {
+        var badge = el('xpRankBadge');
+        if (badge) { badge.classList.add('level-up'); setTimeout(function() { badge.classList.remove('level-up'); }, 900); }
+        if (result.newRank) {
+          toast('🎉 Rank up! ' + result.newRank);
+        } else {
+          toast('⬆ Level ' + result.newLevel + '!');
+        }
+        try { if (typeof Core !== 'undefined' && Core.confetti) Core.confetti.launch(); } catch(e) {}
+        try { playChime(); } catch(e) {}
       }
-      tick();
-    }
-
-    /* ═══ SECTION: Draw Mascot | Functions: drawMascot ═══ */
-    function drawMascot() {
-      var ctx = mascotCtx;
-      if (!ctx) return;
-      ctx.clearRect(0, 0, 28, 28);
-
-      var cx = 14, cy = 14;
-      var accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#8b5cf6';
-      var accentRGB = getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim() || '139,92,246';
-
-      if (mascotStage === 0) {
-        drawEggMascot(ctx, cx, cy, accent, accentRGB);
-      } else {
-        drawDragonMascot(ctx, cx, cy, accent, accentRGB, mascotStage);
-      }
-    }
-
-    /* ═══ SECTION: Draw Egg Mascot | Functions: drawEggMascot ═══ */
-    function drawEggMascot(ctx, cx, cy, accent, rgb) {
-      /* Subtle idle wobble */
-      var wobble = Math.sin(mascotFlapPhase * 1.5) * 1.5;
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.rotate(wobble * Math.PI / 180);
-
-      /* Glow */
-      var glow = ctx.createRadialGradient(0, 0, 3, 0, 0, 12);
-      glow.addColorStop(0, 'rgba(' + rgb + ',0.25)');
-      glow.addColorStop(1, 'rgba(' + rgb + ',0)');
-      ctx.fillStyle = glow;
-      ctx.fillRect(-14, -14, 28, 28);
-
-      /* Egg body */
-      ctx.beginPath();
-      ctx.ellipse(0, 1, 6, 8, 0, 0, Math.PI * 2);
-      var grad = ctx.createLinearGradient(-6, -8, 6, 8);
-      grad.addColorStop(0, accent);
-      grad.addColorStop(0.5, 'rgba(' + rgb + ',0.7)');
-      grad.addColorStop(1, 'rgba(' + rgb + ',0.4)');
-      ctx.fillStyle = grad;
-      ctx.fill();
-
-      /* Highlight */
-      ctx.beginPath();
-      ctx.ellipse(-2, -3, 2, 3, -0.3, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255,255,255,0.3)';
-      ctx.fill();
-
-      /* Crack lines */
-      ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-      ctx.lineWidth = 0.6;
-      ctx.beginPath();
-      ctx.moveTo(-2, 1); ctx.lineTo(0, -1); ctx.lineTo(2, 2);
-      ctx.stroke();
-
-      ctx.restore();
-    }
-
-    /* ═══ SECTION: Draw Dragon Mascot | Functions: drawDragonMascot ═══ */
-    function drawDragonMascot(ctx, cx, cy, accent, rgb, stage) {
-      var flap = Math.sin(mascotFlapPhase * 2.5);
-      var breathe = Math.sin(mascotFlapPhase * 1.2) * 0.5;
-
-      ctx.save();
-      ctx.translate(cx, cy + breathe);
-
-      /* Glow (stronger at higher stages) */
-      var glowSize = 10 + stage;
-      var glowAlpha = 0.12 + stage * 0.03;
-      var glow = ctx.createRadialGradient(0, 0, 2, 0, 0, glowSize);
-      glow.addColorStop(0, 'rgba(' + rgb + ',' + glowAlpha + ')');
-      glow.addColorStop(1, 'rgba(' + rgb + ',0)');
-      ctx.fillStyle = glow;
-      ctx.fillRect(-14, -14, 28, 28);
-
-      /* Body size scales with stage */
-      var bodyW = 4 + stage * 0.4;
-      var bodyH = 5 + stage * 0.5;
-
-      /* Wings */
-      var wingSpan = 5 + stage * 0.8;
-      var wingY = -2 + flap * 2;
-      ctx.fillStyle = 'rgba(' + rgb + ',0.5)';
-      /* Left wing */
-      ctx.beginPath();
-      ctx.moveTo(-1, 0);
-      ctx.quadraticCurveTo(-wingSpan - 2, wingY - 4, -wingSpan, wingY);
-      ctx.quadraticCurveTo(-wingSpan + 2, wingY + 2, -1, 2);
-      ctx.fill();
-      /* Right wing */
-      ctx.beginPath();
-      ctx.moveTo(1, 0);
-      ctx.quadraticCurveTo(wingSpan + 2, wingY - 4, wingSpan, wingY);
-      ctx.quadraticCurveTo(wingSpan - 2, wingY + 2, 1, 2);
-      ctx.fill();
-
-      /* Body */
-      ctx.beginPath();
-      ctx.ellipse(0, 1, bodyW, bodyH, 0, 0, Math.PI * 2);
-      var bodyGrad = ctx.createLinearGradient(-bodyW, -bodyH, bodyW, bodyH);
-      bodyGrad.addColorStop(0, accent);
-      bodyGrad.addColorStop(1, 'rgba(' + rgb + ',0.6)');
-      ctx.fillStyle = bodyGrad;
-      ctx.fill();
-
-      /* Head */
-      var headR = 3 + stage * 0.2;
-      ctx.beginPath();
-      ctx.arc(0, -bodyH + 1, headR, 0, Math.PI * 2);
-      ctx.fillStyle = accent;
-      ctx.fill();
-
-      /* Eyes */
-      ctx.fillStyle = '#fff';
-      ctx.beginPath();
-      ctx.arc(-1.2, -bodyH + 0.5, 1, 0, Math.PI * 2);
-      ctx.arc(1.2, -bodyH + 0.5, 1, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#1a1a2e';
-      ctx.beginPath();
-      ctx.arc(-1, -bodyH + 0.5, 0.5, 0, Math.PI * 2);
-      ctx.arc(1.4, -bodyH + 0.5, 0.5, 0, Math.PI * 2);
-      ctx.fill();
-
-      /* Horns (stage 2+) */
-      if (stage >= 2) {
-        ctx.strokeStyle = accent;
-        ctx.lineWidth = 1;
-        ctx.lineCap = 'round';
-        ctx.beginPath();
-        ctx.moveTo(-2, -bodyH - 1);
-        ctx.lineTo(-3.5, -bodyH - 4);
-        ctx.moveTo(2, -bodyH - 1);
-        ctx.lineTo(3.5, -bodyH - 4);
-        ctx.stroke();
-      }
-
-      /* Crown glow (stage 4+) */
-      if (stage >= 4) {
-        var crownGlow = ctx.createRadialGradient(0, -bodyH - 3, 0, 0, -bodyH - 3, 5);
-        crownGlow.addColorStop(0, 'rgba(245,158,11,0.35)');
-        crownGlow.addColorStop(1, 'rgba(245,158,11,0)');
-        ctx.fillStyle = crownGlow;
-        ctx.fillRect(-8, -bodyH - 8, 16, 10);
-
-        /* Tiny crown */
-        ctx.fillStyle = '#f59e0b';
-        ctx.beginPath();
-        ctx.moveTo(-2.5, -bodyH - 2);
-        ctx.lineTo(-1.5, -bodyH - 4.5);
-        ctx.lineTo(0, -bodyH - 3);
-        ctx.lineTo(1.5, -bodyH - 4.5);
-        ctx.lineTo(2.5, -bodyH - 2);
-        ctx.closePath();
-        ctx.fill();
-      }
-
-      /* Tail */
-      ctx.strokeStyle = 'rgba(' + rgb + ',0.6)';
-      ctx.lineWidth = 1.2;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(0, bodyH);
-      var tailWag = Math.sin(mascotFlapPhase * 3) * 2;
-      ctx.quadraticCurveTo(3 + tailWag, bodyH + 3, 2 + tailWag, bodyH + 5);
-      ctx.stroke();
-
-      ctx.restore();
     }
 
     /* ═══════════════════════════════════════════
@@ -20927,7 +20991,7 @@ input[type="range"]::-moz-range-thumb{
         });
       }
       loadOptimizedWeights();
-      initMascot();
+      renderXPBar();
       wireGlobalTutorNotesUI();
       renderDashboard();
       showView('viewDash');
