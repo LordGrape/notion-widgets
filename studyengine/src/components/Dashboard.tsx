@@ -1,5 +1,5 @@
 import { computed } from '@preact/signals-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { calibration, courses, currentView, dragonState, items, settings, stats, sessionIndex, sessionQueue, sessionXP } from '../signals';
 import type { CramState, StudyItem } from '../types';
@@ -141,6 +141,7 @@ const dashData = computed(() => {
 
 export function Dashboard() {
   const [activeSession, setActiveSession] = useState<{ queue: string[]; idx: number; xp: number } | null>(null);
+  const emptyStateRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const se = (window as unknown as { SyncEngine?: { get: (ns: string, key: string) => unknown } }).SyncEngine;
@@ -168,17 +169,33 @@ export function Dashboard() {
   const calPct = d.calibrationRatio !== null ? Math.round(d.calibrationRatio * 100) : null;
   const calStroke = 2 * Math.PI * 45;
   const calOffset = calPct !== null ? calStroke - (calPct / 100) * calStroke : calStroke;
+  const totalItemKeys = Object.keys(items.value || {}).length;
+  const isEmptyState = totalItemKeys === 0;
 
-  if (d.totalItems === 0) {
+  useEffect(() => {
+    if (!isEmptyState || !emptyStateRef.current) return;
+    const gsapRef = (window as unknown as { gsap?: { fromTo: (target: Element, fromVars: Record<string, unknown>, toVars: Record<string, unknown>) => void } }).gsap;
+    if (!gsapRef?.fromTo) return;
+    gsapRef.fromTo(
+      emptyStateRef.current,
+      { opacity: 0, y: 10 },
+      { opacity: 1, y: 0, duration: 0.45, ease: 'power2.out' }
+    );
+  }, [isEmptyState]);
+
+  if (isEmptyState) {
     return (
       <div className="se-dash se-dash-empty">
-        <div className="empty-state">
-          <div className="empty-icon">📚</div>
-          <h2 className="empty-title">No items yet</h2>
-          <p className="empty-desc">Create your first deck to start tracking retrieval, streaks, and calibration in one place.</p>
-          <button className="big-btn" onClick={() => (window as { openCreateCourseFlow?: () => void }).openCreateCourseFlow?.()}>
-            Create Your First Deck
+        <div className="se-dash-empty-panel" ref={emptyStateRef}>
+          <div className="se-dash-empty-icon" aria-hidden="true">🎓</div>
+          <h2 className="se-dash-empty-title">Welcome to Study Engine</h2>
+          <p className="se-dash-empty-subtitle">
+            Create your first course to start building your spaced repetition library. Import cards, add lecture context, and let the AI tutor personalise your review sessions.
+          </p>
+          <button className="big-btn se-dash-empty-cta" onClick={() => (window as { openCreateCourseFlow?: () => void }).openCreateCourseFlow?.()}>
+            ✦ Create Your First Course
           </button>
+          <div className="se-dash-empty-hint">Or import a JSON card batch from the sidebar</div>
         </div>
       </div>
     );
