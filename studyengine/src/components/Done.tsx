@@ -8,6 +8,8 @@ import {
   currentView,
   sessionXP,
   sessionReviewsByTier,
+  sessionQueue,
+  sessionIndex,
   dragonState,
   settings,
   calibration as calibrationSignal,
@@ -76,8 +78,9 @@ export function Done() {
   const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
-    const maybeCore = (window as unknown as { Core?: { confetti?: { launch?: () => void } } }).Core;
+    const maybeCore = (window as unknown as { Core?: { confetti?: { launch?: () => void }; audio?: { play?: (name: string) => void } } }).Core;
     maybeCore?.confetti?.launch?.();
+    maybeCore?.audio?.play?.('complete');
 
     if (totalReviewed === 0) return;
     setAiLoading(true);
@@ -102,6 +105,8 @@ export function Done() {
   const handleBack = () => {
     sessionXP.value = 0;
     sessionReviewsByTier.value = { quickfire: 0, explain: 0, apply: 0, distinguish: 0, mock: 0, worked: 0 };
+    sessionQueue.value = [];
+    sessionIndex.value = 0;
     saveState();
     currentView.value = 'dashboard';
   };

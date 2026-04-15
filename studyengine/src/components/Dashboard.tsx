@@ -1,6 +1,7 @@
 import { computed } from '@preact/signals-react';
+import { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { calibration, courses, currentView, dragonState, items, settings, stats } from '../signals';
+import { calibration, courses, currentView, dragonState, items, settings, stats, sessionIndex, sessionQueue, sessionXP } from '../signals';
 import type { CramState, StudyItem } from '../types';
 
 const tierNames = [
@@ -139,6 +140,30 @@ const dashData = computed(() => {
 });
 
 export function Dashboard() {
+  const [activeSession, setActiveSession] = useState<{ queue: string[]; idx: number; xp: number } | null>(null);
+
+  useEffect(() => {
+    const se = (window as unknown as { SyncEngine?: { get: (ns: string, key: string) => unknown } }).SyncEngine;
+    const snap = se?.get('studyengine', 'activeSession') as { queue?: string[]; idx?: number; xp?: number } | null | undefined;
+    if (snap && Array.isArray(snap.queue) && typeof snap.idx === 'number') {
+      setActiveSession({ queue: snap.queue, idx: snap.idx, xp: snap.xp || 0 });
+    } else {
+      setActiveSession(null);
+    }
+  }, []);
+
+  const handleContinueSession = () => {
+    if (!activeSession) return;
+    const restoredQueue = activeSession.queue
+      .map((id) => items.value[id])
+      .filter((it): it is StudyItem => Boolean(it && !it.archived));
+    if (restoredQueue.length === 0) return;
+    sessionQueue.value = restoredQueue;
+    sessionIndex.value = Math.max(0, Math.min(activeSession.idx, restoredQueue.length - 1));
+    sessionXP.value = activeSession.xp || 0;
+    currentView.value = 'session';
+  };
+
   const d = dashData.value;
   const calPct = d.calibrationRatio !== null ? Math.round(d.calibrationRatio * 100) : null;
   const calStroke = 2 * Math.PI * 45;
@@ -247,6 +272,9 @@ export function Dashboard() {
 
       <div className="se-dash-actions">
         <button className="big-btn" disabled={d.due.total === 0} onClick={() => { currentView.value = 'session'; }}>Start Session</button>
+        {activeSession && (
+          <button className="ghost-btn" onClick={handleContinueSession}>Continue Session</button>
+        )}
         <button className="ghost-btn" onClick={() => { currentView.value = 'learn'; }}>Learn</button>
         <button className="ghost-btn" onClick={() => (window as { openModal?: () => void }).openModal?.()}>Add Items</button>
         <button className="ghost-btn" onClick={() => (window as { openImportModal?: () => void }).openImportModal?.()}>Import JSON</button>
