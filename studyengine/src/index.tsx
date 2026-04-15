@@ -15,6 +15,7 @@ import './css/tiers-react.css';
 import './css/sidebar.css';
 import './css/modals.css';
 import './css/learn.css';
+import './css/done-react.css';
 
 // Modules in dependency order (side-effects: window assignments)
 import './fsrs';

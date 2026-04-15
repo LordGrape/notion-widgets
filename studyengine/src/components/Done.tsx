@@ -3,14 +3,15 @@
  * Post-session summary view: XP, calibration, tier breakdown, dragon, AI summary
  */
 
-import { Fragment, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   currentView,
   sessionXP,
   sessionReviewsByTier,
   dragonState,
   settings,
-  calibration as calibrationSignal
+  calibration as calibrationSignal,
+  saveState
 } from '../signals';
 import { SESSION_SUMMARY_ENDPOINT } from '../constants';
 
@@ -24,12 +25,12 @@ const TIER_NAMES: Record<string, string> = {
 };
 
 const TIER_COLOURS: Record<string, string> = {
-  quickfire: '#3b82f6',
-  explain: '#22c55e',
-  apply: '#f59e0b',
-  distinguish: '#8b5cf6',
-  mock: '#ef4444',
-  worked: '#06b6d4'
+  quickfire: 'var(--tier-qf)',
+  explain: 'var(--tier-ex)',
+  apply: 'var(--tier-ap)',
+  distinguish: 'var(--tier-di)',
+  mock: 'var(--tier-mk)',
+  worked: 'var(--tier-we)'
 };
 
 // Worker URL imported from constants
@@ -75,6 +76,9 @@ export function Done() {
   const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
+    const maybeCore = (window as unknown as { Core?: { confetti?: { launch?: () => void } } }).Core;
+    maybeCore?.confetti?.launch?.();
+
     if (totalReviewed === 0) return;
     setAiLoading(true);
     const sessionData = {
@@ -98,22 +102,19 @@ export function Done() {
   const handleBack = () => {
     sessionXP.value = 0;
     sessionReviewsByTier.value = { quickfire: 0, explain: 0, apply: 0, distinguish: 0, mock: 0, worked: 0 };
+    saveState();
     currentView.value = 'dashboard';
   };
 
   return (
-    <div className="view view-done active" id="viewDone">
+    <div className="view view-done active se-done" id="viewDone">
       {/* Celebration header */}
-      <div className="done-celebration" id="doneCelebration">
-        <div className="done-emoji">
-          <svg width="40" height="40" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round">
-            <circle cx="8" cy="8" r="6"/>
-            <circle cx="8" cy="8" r="3.5"/>
-            <circle cx="8" cy="8" r="1"/>
-          </svg>
+      <div className="se-done-header" id="doneCelebration">
+        <div className="se-done-sparkles" aria-hidden="true">
+          {Array.from({ length: 12 }, (_, i) => <span key={`hdr-${i}`} />)}
         </div>
-        <div className="done-headline" id="doneTitle">{totalReviewed} item{totalReviewed !== 1 ? 's' : ''} reviewed</div>
-        <div className="done-subtitle" id="doneSub">
+        <div className="se-done-title" id="doneTitle">{totalReviewed} item{totalReviewed !== 1 ? 's' : ''} reviewed</div>
+        <div className="se-done-subtitle" id="doneSub">
           {totalReviewed === 0 ? 'Nothing reviewed this session' :
            totalReviewed < 5 ? 'Good start — keep going!' :
            totalReviewed < 15 ? 'Solid session!' : 'Excellent session! 🎉'}
@@ -122,16 +123,13 @@ export function Done() {
 
       {/* XP + Calibration */}
       {gamMode !== 'off' && (
-        <div className="done-stats">
-          <div className="stat" style={{ textAlign: 'center' }} id="doneXPSection">
+        <div className="se-done-stats-row">
+          <div className="stat se-done-stat" id="doneXPSection">
             <div className="k">XP Earned</div>
-            <div className="xp-badge">
-              <span id="doneXP">{xp}</span>
-              <span className="xp-label">XP</span>
-            </div>
+            <div className="v v--xp" id="doneXP">{xp}</div>
             <div className="s" style={{ marginTop: '6px' }}>Pushed to dragon</div>
           </div>
-          <div className="stat" style={{ textAlign: 'center' }}>
+          <div className="stat se-done-stat">
             <div className="k">Calibration</div>
             <div className="v" id="doneCal">{calScore !== null ? Math.round(calScore * 100) + '%' : '—'}</div>
             <div className="s" id="doneTrend">{calLabel}</div>
@@ -140,7 +138,7 @@ export function Done() {
       )}
 
       {/* Tier breakdown */}
-      <div className="breakdown" id="doneBreakdown">
+      <div className="se-done-breakdown" id="doneBreakdown">
         {Object.entries(TIER_NAMES).map(([tier, name]) => {
           const count = reviewsByTier[tier] || 0;
           if (count === 0) return null;
@@ -148,7 +146,7 @@ export function Done() {
             <span
               key={tier}
               className="tier-pill"
-              style={{ borderColor: TIER_COLOURS[tier] + '30' }}
+              style={{ borderColor: TIER_COLOURS[tier] }}
             >
               <span className="tier-dot" style={{ background: TIER_COLOURS[tier] }} />
               {name}: {count}
@@ -159,13 +157,13 @@ export function Done() {
 
       {/* Dragon section */}
       {gamMode !== 'off' && (
-        <div className="done-dragon-section" id="doneDragonSection">
-          <div className="done-dragon-wrap" id="doneDragonWrap">
-            {Array.from({ length: 12 }, (_, i) => <div key={i} className="dragon-ember" />)}
-            <div className="done-dragon-orb" id="doneDragonOrb">{stage.emoji}</div>
+        <div className="se-done-dragon" id="doneDragonSection">
+          <div className="se-done-sparkles" aria-hidden="true">
+            {Array.from({ length: 12 }, (_, i) => <span key={`dragon-${i}`} />)}
           </div>
-          <div className="done-dragon-rank" id="doneDragonRank">{stage.rank}</div>
-          <div className="done-dragon-flavour" id="doneDragonFlavour">
+          <div className="se-done-dragon-emoji" id="doneDragonOrb">{stage.emoji}</div>
+          <div className="se-done-dragon-rank" id="doneDragonRank">{stage.rank}</div>
+          <div className="se-done-dragon-note" id="doneDragonFlavour">
             {xp > 0 ? `+${xp} XP this session` : 'Keep reviewing to earn XP'}
           </div>
         </div>
@@ -173,27 +171,29 @@ export function Done() {
 
       {/* AI Session Summary */}
       {totalReviewed > 0 && (
-        <details className="session-summary" id="sessionAiSummaryWrap" open>
+        <details className="se-done-summary" id="sessionAiSummaryWrap" open>
           <summary className="ss-header">
             <span className="ss-icon">✨</span>
             <span className="ss-title">AI session summary</span>
           </summary>
           <div className="ss-body" id="sessionAiSummaryBody">
             {aiLoading ? (
-              <div className="syllabus-status" id="sessionAiSummaryLoading">
-                <span className="af-spinner" /> Generating summary…
+              <div className="se-done-skeleton" id="sessionAiSummaryLoading" aria-label="Generating summary">
+                <span />
+                <span />
+                <span />
               </div>
             ) : aiSummary ? (
-              <div style={{ fontSize: '12px', lineHeight: '1.6', color: 'var(--text-secondary)' }}>{aiSummary}</div>
+              <div>{aiSummary}</div>
             ) : (
-              <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Summary unavailable</div>
+              <div className="se-done-empty">Summary unavailable</div>
             )}
           </div>
         </details>
       )}
 
       {/* Back to dashboard */}
-      <button className="big-btn" id="backBtn" onClick={handleBack}>
+      <button className="big-btn se-done-back-btn" id="backBtn" onClick={handleBack}>
         Back to Dashboard
       </button>
     </div>
