@@ -5,207 +5,10 @@
  */
 
 import { effect } from '@preact/signals-react';
-import {
-  items,
-  courses,
-  stats,
-  calibration,
-  settings,
-  currentView,
-  dueItems,
-} from './signals';
-import { showView, countDue, avgRetention, calibrationPct, tierLabel, el, esc, toast, fmtMMSS } from './utils';
+import { items, courses, currentView } from './signals';
+import { countDue, avgRetention, tierLabel, el, esc } from './utils';
 import { listCourses } from './courses';
 import type { StudyItem } from './types';
-
-// ============================================
-// Dashboard Rendering
-// ============================================
-
-export function renderDashboard(): void {
-  const its = items.value;
-  const now = new Date();
-  
-  // Count due items
-  const dueCount = countDue(its);
-  const totalDue = dueCount.total;
-  
-  // Calculate average retention
-  const avgRet = avgRetention(its);
-  
-  // Get calibration percentage
-  const calVal = calibrationPct(calibration.value);
-  
-  // Count mastered items (stability > 30d, no lapses)
-  let masteredCount = 0;
-  for (const id in its) {
-    const it = its[id];
-    if (!it || it.archived || !it.fsrs) continue;
-    if ((it.fsrs.stability || 0) > 30 && (it.fsrs.lapses || 0) === 0) {
-      masteredCount++;
-    }
-  }
-  
-  // Update stat elements
-  const statDue = el('statDue');
-  if (statDue) statDue.textContent = totalDue > 0 ? String(totalDue) : '0';
-  
-  const statRet = el('statRet');
-  if (statRet) statRet.textContent = avgRet !== null ? Math.round(avgRet * 100) + '%' : '—';
-  
-  const statStreak = el('statStreak');
-  if (statStreak) statStreak.textContent = masteredCount > 0 ? String(masteredCount) : '—';
-  
-  const statStudyStreak = el('statStudyStreak');
-  const streakVal = stats.value.streakDays || 0;
-  if (statStudyStreak) statStudyStreak.textContent = streakVal > 0 ? String(streakVal) : '—';
-  
-  // Update calibration
-  const calValEl = el('calVal');
-  const calSub = el('calSub');
-  if (calValEl) {
-    if (calVal !== null) {
-      const pct = Math.round(calVal * 100);
-      calValEl.textContent = pct + '%';
-      // Color coding
-      if (pct >= 80) calValEl.style.color = '#22c55e';
-      else if (pct >= 60) calValEl.style.color = '#f59e0b';
-      else calValEl.style.color = '#ef4444';
-    } else {
-      calValEl.textContent = '—';
-      calValEl.style.color = '';
-    }
-  }
-  if (calSub) {
-    if (calVal !== null) {
-      const pct = Math.round(calVal * 100);
-      if (pct >= 80) calSub.textContent = 'Well calibrated';
-      else if (pct >= 60) calSub.textContent = 'Improving';
-      else calSub.textContent = 'Needs practice';
-    } else {
-      calSub.textContent = 'Metacognitive feedback';
-    }
-  }
-  
-  // Update calibration arc
-  const calArc = document.getElementById('calArc') as SVGCircleElement | null;
-  if (calArc && calVal !== null) {
-    const pct = calVal;
-    const circumference = 120;
-    const offset = circumference - (pct * circumference);
-    calArc.style.strokeDashoffset = String(offset);
-  }
-  
-  // Enable/disable start button based on due items
-  const startBtn = el('startBtn') as HTMLButtonElement | null;
-  if (startBtn) {
-    if (totalDue > 0) {
-      startBtn.disabled = false;
-      startBtn.textContent = 'Start Session';
-    } else {
-      startBtn.disabled = true;
-      startBtn.textContent = 'No items due';
-    }
-  }
-  
-  // Update tier breakdown
-  renderTierBreakdown(dueCount.byTier);
-  
-  // Update progression hub (if gamification enabled)
-  const progHub = el('progressionHub');
-  if (progHub && settings.value.gamificationMode === 'motivated') {
-    progHub.style.display = '';
-    updateProgressionDisplay();
-  } else if (progHub) {
-    progHub.style.display = 'none';
-  }
-  
-  // Update cram banner
-  const cramBanner = el('cramBanner');
-  const cramText = el('cramText');
-  if (cramBanner && cramText) {
-    // Check if any course has exam date within 7 days
-    let cramActive = false;
-    let cramMsg = '';
-    for (const k in courses.value) {
-      const c = courses.value[k];
-      if (c.examDate && !c.archived) {
-        const exam = new Date(c.examDate);
-        const days = Math.ceil((exam.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-        if (days > 0 && days <= 7) {
-          cramActive = true;
-          cramMsg = `Cram mode — ${c.name} exam in ${days} day${days === 1 ? '' : 's'}`;
-          break;
-        }
-      }
-    }
-    if (cramActive) {
-      cramBanner.style.display = 'flex';
-      cramText.textContent = cramMsg;
-    } else {
-      cramBanner.style.display = 'none';
-    }
-  }
-  
-  // Update empty state visibility
-  const emptyState = el('emptyState');
-  if (emptyState) {
-    const hasItems = Object.keys(its).length > 0;
-    emptyState.style.display = hasItems ? 'none' : '';
-  }
-}
-
-function renderTierBreakdown(byTier: Record<string, number>): void {
-  const container = el('tierBreakdown');
-  if (!container) return;
-  
-  const tiers = ['quickfire', 'explain', 'apply', 'distinguish', 'mock', 'worked'];
-  const tierConfig: Record<string, { label: string; color: string }> = {
-    quickfire: { label: 'QF', color: '#3b82f6' },
-    explain: { label: 'EI', color: '#22c55e' },
-    apply: { label: 'AI', color: '#f59e0b' },
-    distinguish: { label: 'DI', color: '#8b5cf6' },
-    mock: { label: 'ME', color: '#ef4444' },
-    worked: { label: 'WE', color: '#06b6d4' }
-  };
-  
-  let html = '';
-  for (const tier of tiers) {
-    const count = byTier[tier] || 0;
-    const cfg = tierConfig[tier];
-    html += `<div class="tier-pill" style="background:${cfg.color}20;color:${cfg.color};border:1px solid ${cfg.color}40;">
-      <span class="tier-pill-label">${cfg.label}</span>
-      <span class="tier-pill-count">${count}</span>
-    </div>`;
-  }
-  
-  container.innerHTML = html;
-}
-
-function updateProgressionDisplay(): void {
-  // Get dragon state from SyncEngine or signals
-  const dragon = (window as unknown as { SyncEngine?: { get: (ns: string, key: string) => unknown } }).SyncEngine?.get('dragon', 'dragon') as { xp?: number; rank?: string; rankEmoji?: string } | undefined;
-  
-  const xp = dragon?.xp || 0;
-  const rank = dragon?.rank || 'RECRUIT';
-  const rankEmoji = dragon?.rankEmoji || '🥚';
-  
-  const progRankEmoji = el('progRankEmoji');
-  const progRankName = el('progRankName');
-  const progXPValue = el('progXPValue');
-  const progBarFill = el('progBarFill');
-  const progBarCurrent = el('progBarCurrent');
-  
-  if (progRankEmoji) progRankEmoji.textContent = rankEmoji;
-  if (progRankName) progRankName.textContent = rank;
-  if (progXPValue) progXPValue.textContent = String(xp);
-  
-  // Calculate XP progress (simplified - assume 1000 XP per rank)
-  const xpForNext = 1000;
-  const pct = Math.min(100, Math.round((xp % xpForNext) / xpForNext * 100));
-  if (progBarFill) progBarFill.style.width = pct + '%';
-  if (progBarCurrent) progBarCurrent.textContent = pct + '%';
-}
 
 // ============================================
 // Courses Tab
@@ -394,16 +197,16 @@ export function switchTab(tab: 'home' | 'courses'): void {
   const navCourses = el('navCourses');
 
   if (tab === 'home') {
-    // Keep viewDash visible, just switch tabs inside it
-    if (viewDash) { viewDash.classList.add('active'); }
+    // Home dashboard is rendered in React root now.
+    if (viewDash) { viewDash.style.display = 'none'; viewDash.classList.remove('active'); }
     if (tabHome) { tabHome.style.display = ''; tabHome.classList.add('active'); }
     if (tabCourses) { tabCourses.style.display = 'none'; tabCourses.classList.remove('active'); }
     if (navHome) navHome.classList.add('active');
     if (navCourses) navCourses.classList.remove('active');
     closeCourseDetail();
   } else {
-    // Keep viewDash visible (courses tab is inside it)
-    if (viewDash) { viewDash.classList.add('active'); }
+    // Courses still uses HTML shell for now.
+    if (viewDash) { viewDash.style.display = ''; viewDash.classList.add('active'); }
     if (tabHome) { tabHome.style.display = 'none'; tabHome.classList.remove('active'); }
     if (tabCourses) { tabCourses.style.display = ''; tabCourses.classList.add('active'); }
     if (navHome) navHome.classList.remove('active');
@@ -421,11 +224,12 @@ export function wireViewSignal(): void {
   effect(() => {
     const view = currentView.value;
     if (view === 'dashboard') {
-      // Show dashboard HTML shell, hide others
-      showView('viewDash');
+      // Hide dashboard HTML shell; React Dashboard is primary renderer.
+      const viewDash = el('viewDash');
       const viewSession = el('viewSession');
       const viewDone = el('viewDone');
       const viewLearn = el('viewLearn');
+      if (viewDash) viewDash.style.display = 'none';
       if (viewSession) viewSession.style.display = 'none';
       if (viewDone) viewDone.style.display = 'none';
       if (viewLearn) viewLearn.style.display = 'none';
@@ -444,18 +248,6 @@ export function wireViewSignal(): void {
   });
 }
 
-export function wireAutoRender(): void {
-  effect(() => {
-    // Touch the signals to subscribe
-    items.value;
-    courses.value;
-    stats.value;
-    calibration.value;
-    // Re-render dashboard
-    renderDashboard();
-  });
-}
-
 // ============================================
 // Initialization
 // ============================================
@@ -463,32 +255,6 @@ export function wireAutoRender(): void {
 export function initDomController(): void {
   // Wire view switching
   wireViewSignal();
-  wireAutoRender();
-  
-  // Initial render
-  renderDashboard();
-  
-  // Wire start button on dashboard
-  const startBtn = el('startBtn');
-  if (startBtn) {
-    // Remove old listeners by cloning
-    const newBtn = startBtn.cloneNode(true) as HTMLElement;
-    startBtn.parentNode?.replaceChild(newBtn, startBtn);
-    newBtn.addEventListener('click', () => {
-      currentView.value = 'session';
-    });
-  }
-
-  // Wire learn button on dashboard
-  const learnBtn = el('learnBtn');
-  if (learnBtn) {
-    // Remove old listeners by cloning
-    const newLearnBtn = learnBtn.cloneNode(true) as HTMLElement;
-    learnBtn.parentNode?.replaceChild(newLearnBtn, learnBtn);
-    newLearnBtn.addEventListener('click', () => {
-      currentView.value = 'learn';
-    });
-  }
   
   // Wire nav tabs
   document.querySelectorAll('.nav-tab[data-nav]').forEach(tab => {
