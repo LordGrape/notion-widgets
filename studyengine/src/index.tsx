@@ -3,6 +3,9 @@
  * Signals-first: no DI, no bridge effects, no hydrateFromSync.
  */
 
+// External CDN globals
+declare const Core: { isDark: boolean; isLowEnd: boolean; reducedMotion: boolean; dpr: number; gsapReady: Promise<typeof gsap>; a11y?: { trap?: (el: HTMLElement) => void } };
+
 // CSS imports (Vite inlines these)
 import './css/base.css';
 import './css/dashboard.css';
@@ -45,8 +48,12 @@ w.resumeSavedSession = (snap: unknown) => {
 w.renderDashboard = () => { renderDashboard(); };
 w.openCourseModal = () => {
   const ov = document.getElementById('courseOv');
-  if (ov) { ov.classList.add('show'); ov.setAttribute('aria-hidden', 'false'); }
-  renderCourseModal();
+  if (ov) { 
+    ov.classList.add('show'); 
+    ov.setAttribute('aria-hidden', 'false'); 
+    renderCourseModal();
+    if (Core?.a11y?.trap) Core.a11y.trap(ov);
+  }
 };
 w.openCreateCourseFlow = () => (w.openCourseModal as () => void)();
 w.openSettings = () => { openSettings(); };
@@ -133,12 +140,7 @@ function mountApp() {
     if (e.target === document.getElementById('modalOv')) (w.closeModal as (() => void) | undefined)?.();
   });
 
-  // Open course modal: render content
-  const origOpenCourseModal = w.openCourseModal as (() => void) | undefined;
-  w.openCourseModal = () => {
-    origOpenCourseModal?.();
-    renderCourseModal();
-  };
+  // Open course modal: already wired above via window.openCourseModal
   w.openCreateCourseFlow = () => (w.openCourseModal as () => void)();
 
   // switchModalTab is already exposed by cards.ts via window.switchModalTab
@@ -173,26 +175,26 @@ function renderCourseModal(): void {
 
   body.innerHTML =
     '<div style="margin-bottom:12px;">' +
-      '<button type="button" className="big-btn" id="courseAddNewBtn" style="width:100%;">+ New Course</button>' +
+      '<button type="button" class="big-btn" id="courseAddNewBtn" style="width:100%;">+ New Course</button>' +
     '</div>' +
     (active.length === 0 ? '<div style="color:var(--text-secondary);font-size:11px;text-align:center;padding:12px 0;">No courses yet.</div>' : '') +
     active.map((c) =>
-      '<div className="course-row" style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border-subtle);">' +
+      '<div class="course-row" style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border-subtle);">' +
         '<div style="width:10px;height:10px;border-radius:50%;background:' + (c.color || '#8b5cf6') + ';flex-shrink:0;"></div>' +
         '<div style="flex:1;min-width:0;">' +
           '<div style="font-weight:700;font-size:12px;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(c.name) + '</div>' +
           '<div style="font-size:10px;color:var(--text-secondary);">' + (EXAM_TYPE_LABELS[c.examType || 'mixed'] || 'Mixed') + '</div>' +
         '</div>' +
-        '<button type="button" className="mini-btn" data-edit-course="' + esc(c.name) + '">Edit</button>' +
-        '<button type="button" className="mini-btn danger" data-delete-course="' + esc(c.name) + '">Delete</button>' +
+        '<button type="button" class="mini-btn" data-edit-course="' + esc(c.name) + '">Edit</button>' +
+        '<button type="button" class="mini-btn danger" data-delete-course="' + esc(c.name) + '">Delete</button>' +
       '</div>'
     ).join('') +
     (archived.length > 0
       ? '<details style="margin-top:12px;"><summary style="font-size:10px;color:var(--text-secondary);cursor:pointer;">Archived (' + archived.length + ')</summary>' +
           archived.map((c) =>
-            '<div className="course-row" style="display:flex;align-items:center;gap:8px;padding:8px 0;opacity:0.6;">' +
+            '<div class="course-row" style="display:flex;align-items:center;gap:8px;padding:8px 0;opacity:0.6;">' +
               '<div style="flex:1;font-size:12px;">' + esc(c.name) + '</div>' +
-              '<button type="button" className="mini-btn" data-unarchive-course="' + esc(c.name) + '">Restore</button>' +
+              '<button type="button" class="mini-btn" data-unarchive-course="' + esc(c.name) + '">Restore</button>' +
             '</div>'
           ).join('') +
         '</details>'
@@ -238,22 +240,22 @@ function renderCourseModal(): void {
 function showCreateCourseForm(container: HTMLElement): void {
   container.innerHTML =
     '<div style="padding:4px 0;">' +
-      '<div className="form-row"><label className="form-label">Course Name *</label><input id="nc_name" className="modal-input" type="text" placeholder="e.g. Biology 101"></div>' +
-      '<div className="form-row"><label className="form-label">Exam Type</label>' +
-        '<select id="nc_examType" className="modal-input">' +
+      '<div class="form-row"><label class="form-label">Course Name *</label><input id="nc_name" class="modal-input" type="text" placeholder="e.g. Biology 101"></div>' +
+      '<div class="form-row"><label class="form-label">Exam Type</label>' +
+        '<select id="nc_examType" class="modal-input">' +
           Object.entries(EXAM_TYPE_LABELS).map(([v, l]) => '<option value="' + v + '">' + l + '</option>').join('') +
         '</select>' +
       '</div>' +
-      '<div className="form-row"><label className="form-label">Exam Date (optional)</label><input id="nc_examDate" className="modal-input" type="date"></div>' +
-      '<div className="form-row"><label className="form-label">Color</label>' +
+      '<div class="form-row"><label class="form-label">Exam Date (optional)</label><input id="nc_examDate" class="modal-input" type="date"></div>' +
+      '<div class="form-row"><label class="form-label">Color</label>' +
         '<div style="display:flex;gap:6px;flex-wrap:wrap;">' +
-          COURSE_COLORS.map((cc) => '<button type="button" className="color-swatch" data-color="' + cc.value + '" style="width:20px;height:20px;border-radius:50%;background:' + cc.value + ';border:2px solid transparent;cursor:pointer;" title="' + cc.name + '"></button>').join('') +
+          COURSE_COLORS.map((cc) => '<button type="button" class="color-swatch" data-color="' + cc.value + '" style="width:20px;height:20px;border-radius:50%;background:' + cc.value + ';border:2px solid transparent;cursor:pointer;" title="' + cc.name + '"></button>').join('') +
         '</div>' +
         '<input type="hidden" id="nc_color" value="#8b5cf6">' +
       '</div>' +
       '<div style="display:flex;gap:8px;margin-top:12px;">' +
-        '<button type="button" className="big-btn" id="nc_save">Create Course</button>' +
-        '<button type="button" className="mini-btn" id="nc_cancel">Cancel</button>' +
+        '<button type="button" class="big-btn" id="nc_save">Create Course</button>' +
+        '<button type="button" class="mini-btn" id="nc_cancel">Cancel</button>' +
       '</div>' +
     '</div>';
 
@@ -288,22 +290,22 @@ function showEditCourseForm(container: HTMLElement, name: string): void {
   container.innerHTML =
     '<div style="padding:4px 0;">' +
       '<div style="font-size:11px;font-weight:700;color:var(--text-secondary);margin-bottom:8px;">Editing: ' + esc(name) + '</div>' +
-      '<div className="form-row"><label className="form-label">Exam Type</label>' +
-        '<select id="ec_examType" className="modal-input">' +
+      '<div class="form-row"><label class="form-label">Exam Type</label>' +
+        '<select id="ec_examType" class="modal-input">' +
           Object.entries(EXAM_TYPE_LABELS).map(([v, l]) => '<option value="' + v + '"' + (getCourseExamType(c) === v ? ' selected' : '') + '>' + l + '</option>').join('') +
         '</select>' +
       '</div>' +
-      '<div className="form-row"><label className="form-label">Exam Date</label><input id="ec_examDate" className="modal-input" type="date" value="' + esc(c.examDate || '') + '"></div>' +
-      '<div className="form-row"><label className="form-label">Color</label>' +
+      '<div class="form-row"><label class="form-label">Exam Date</label><input id="ec_examDate" class="modal-input" type="date" value="' + esc(c.examDate || '') + '"></div>' +
+      '<div class="form-row"><label class="form-label">Color</label>' +
         '<div style="display:flex;gap:6px;flex-wrap:wrap;">' +
-          COURSE_COLORS.map((cc) => '<button type="button" className="color-swatch" data-color="' + cc.value + '" style="width:20px;height:20px;border-radius:50%;background:' + cc.value + ';border:2px solid ' + (c.color === cc.value ? '#fff' : 'transparent') + ';cursor:pointer;"></button>').join('') +
+          COURSE_COLORS.map((cc) => '<button type="button" class="color-swatch" data-color="' + cc.value + '" style="width:20px;height:20px;border-radius:50%;background:' + cc.value + ';border:2px solid ' + (c.color === cc.value ? '#fff' : 'transparent') + ';cursor:pointer;"></button>').join('') +
         '</div>' +
         '<input type="hidden" id="ec_color" value="' + esc(c.color || '#8b5cf6') + '">' +
       '</div>' +
       '<div style="display:flex;gap:8px;margin-top:12px;">' +
-        '<button type="button" className="big-btn" id="ec_save">Save</button>' +
-        '<button type="button" className="mini-btn" id="ec_archive">' + (c.archived ? 'Unarchive' : 'Archive') + '</button>' +
-        '<button type="button" className="mini-btn" id="ec_cancel">Cancel</button>' +
+        '<button type="button" class="big-btn" id="ec_save">Save</button>' +
+        '<button type="button" class="mini-btn" id="ec_archive">' + (c.archived ? 'Unarchive' : 'Archive') + '</button>' +
+        '<button type="button" class="mini-btn" id="ec_cancel">Cancel</button>' +
       '</div>' +
     '</div>';
 
