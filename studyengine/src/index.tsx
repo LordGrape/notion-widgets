@@ -24,7 +24,7 @@ import { esc, toast } from './utils';
 import { items, courses, settings, currentView, saveState } from './signals';
 import { COURSE_COLORS, EXAM_TYPE_LABELS } from './constants';
 import { loadState, loadOptimizedWeights, initSyncAndBackground } from './state-io';
-import { initDomController, wireViewSignal, wireAutoRender, renderDashboard, openCourseDetail, switchTab } from './dom-controller';
+import { initDomController, wireViewSignal, wireAutoRender, renderDashboard, openCourseDetail, switchTab, startSession } from './dom-controller';
 import { initSettingsController, openSettings } from './settings-controller';
 import { initCardsController } from './cards-controller';
 import { initCanvasController } from './canvas-controller';
@@ -37,12 +37,12 @@ const w = window as unknown as Record<string, unknown>;
 
 // ── Thin window shims (set signal values) ───────────────────────
 w.switchNav = (view: string) => { currentView.value = view; };
-w.startSession = () => { currentView.value = 'session'; };
+w.startSession = () => { startSession(); };
 w.resumeSavedSession = (snap: unknown) => {
   (w as any)._resumeSnap = snap;
   currentView.value = 'session';
 };
-w.renderDashboard = () => { items.value = { ...items.value }; };
+w.renderDashboard = () => { renderDashboard(); };
 w.openCourseModal = () => {
   const ov = document.getElementById('courseOv');
   if (ov) { ov.classList.add('show'); ov.setAttribute('aria-hidden', 'false'); }
@@ -57,7 +57,7 @@ w.applySidebarFilter = () => {};
 w.startCourseSession = (courseName: string) => {
   const courseItems = Object.values(items.value).filter((it) => it && !it.archived && it.course === courseName);
   if (courseItems.length === 0) { toast('No cards in this course'); return; }
-  (w.startSession as (() => void) | undefined)?.();
+  startSession();
 };
 
 // Wire remaining cards.ts callbacks
@@ -355,9 +355,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initSettingsController();
     initCardsController();
     initCanvasController();
-    wireViewSignal();
-    wireAutoRender();
-    renderDashboard();
   };
 
   if (SE && typeof SE.onReady === 'function') {

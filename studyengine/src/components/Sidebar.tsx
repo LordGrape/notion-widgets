@@ -7,6 +7,7 @@ import { Fragment, useEffect, useRef } from 'react';
 import { signal, computed } from '@preact/signals-react';
 import { items, courses, selectedCourse, selectedTopic, currentView, sidebarOpen } from '../signals';
 import type { StudyItem, Course, SubDeck } from '../types';
+import { switchTab } from '../dom-controller';
 
 // Tree node types
 type TreeLevel = 'all' | 'course' | 'module' | 'subdeck' | 'topic';
@@ -22,6 +23,17 @@ interface SidebarSelection {
 // Local state (not persisted to SyncEngine)
 export const sidebarSelection = signal<SidebarSelection>({ level: 'all', course: null, module: null, subDeck: null, topic: null });
 export const sidebarExpanded = signal<Record<string, boolean>>({});
+
+// Module-level computed signals to prevent memory leaks
+const tree = computed(() => buildCourseTree(items.value));
+const totalCards = computed(() => {
+  let total = 0, due = 0;
+  for (const c in tree.value) {
+    total += tree.value[c].totalCards;
+    due += tree.value[c].dueCards;
+  }
+  return { total, due };
+});
 
 // Build course tree from items
 function buildCourseTree(itemsData: Record<string, StudyItem>): Record<string, {
@@ -80,16 +92,6 @@ function buildCourseTree(itemsData: Record<string, StudyItem>): Record<string, {
 }
 
 export function Sidebar() {
-  const tree = computed(() => buildCourseTree(items.value));
-  const totalCards = computed(() => {
-    let total = 0, due = 0;
-    for (const c in tree.value) {
-      total += tree.value[c].totalCards;
-      due += tree.value[c].dueCards;
-    }
-    return { total, due };
-  });
-  
   const isEmbedded = typeof window !== 'undefined' && window.self !== window.top;
   if (isEmbedded) return null;
 
@@ -104,6 +106,11 @@ export function Sidebar() {
     
     if (course && !sidebarExpanded.value[course]) {
       sidebarExpanded.value = { ...sidebarExpanded.value, [course]: true };
+    }
+    
+    // Show courses view when selecting all courses or a specific course
+    if (level === 'all' || level === 'course') {
+      switchTab('courses');
     }
     
     // Call global handlers for compatibility

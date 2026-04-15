@@ -395,19 +395,19 @@ export function closeCourseDetail(): void {
 }
 
 export function switchTab(tab: 'home' | 'courses'): void {
-  const tabHome = el('tabHome');
+  const viewDash = el('viewDash');
   const tabCourses = el('tabCourses');
   const navHome = el('navHome');
   const navCourses = el('navCourses');
 
   if (tab === 'home') {
-    if (tabHome) { tabHome.style.display = ''; tabHome.classList.add('active'); }
+    if (viewDash) { viewDash.style.display = ''; viewDash.classList.add('active'); }
     if (tabCourses) { tabCourses.style.display = 'none'; tabCourses.classList.remove('active'); }
     if (navHome) navHome.classList.add('active');
     if (navCourses) navCourses.classList.remove('active');
     closeCourseDetail();
   } else {
-    if (tabHome) { tabHome.style.display = 'none'; tabHome.classList.remove('active'); }
+    if (viewDash) { viewDash.style.display = 'none'; viewDash.classList.remove('active'); }
     if (tabCourses) { tabCourses.style.display = ''; tabCourses.classList.add('active'); }
     if (navHome) navHome.classList.remove('active');
     if (navCourses) navCourses.classList.add('active');
