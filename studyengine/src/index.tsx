@@ -174,29 +174,36 @@ function renderCourseModal(): void {
   const archived = allCourses.filter((c) => c.archived);
 
   body.innerHTML =
-    '<div style="margin-bottom:12px;">' +
+    '<div class="add-course-row" style="margin-bottom:16px;">' +
       '<button type="button" class="big-btn" id="courseAddNewBtn" style="width:100%;">+ New Course</button>' +
     '</div>' +
-    (active.length === 0 ? '<div style="color:var(--text-secondary);font-size:11px;text-align:center;padding:12px 0;">No courses yet.</div>' : '') +
+    (active.length === 0 ? '<div class="empty-state" style="padding:20px 0;"><p>No courses yet. Create your first course to get started.</p></div>' : '') +
+    '<div class="course-cards">' +
     active.map((c) =>
-      '<div class="course-row" style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border-subtle);">' +
-        '<div style="width:10px;height:10px;border-radius:50%;background:' + (c.color || '#8b5cf6') + ';flex-shrink:0;"></div>' +
-        '<div style="flex:1;min-width:0;">' +
-          '<div style="font-weight:700;font-size:12px;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(c.name) + '</div>' +
-          '<div style="font-size:10px;color:var(--text-secondary);">' + (EXAM_TYPE_LABELS[c.examType || 'mixed'] || 'Mixed') + '</div>' +
+      '<div class="course-card" data-course="' + esc(c.name) + '" style="border-left-color:' + (c.color || '#8b5cf6') + ';">' +
+        '<div class="cc-left">' +
+          '<div class="cc-name">' + esc(c.name) + '</div>' +
+          '<div class="cc-meta">' +
+            '<span class="cc-exam-type">' + (EXAM_TYPE_LABELS[c.examType || 'mixed'] || 'Mixed') + '</span>' +
+          '</div>' +
         '</div>' +
-        '<button type="button" class="mini-btn" data-edit-course="' + esc(c.name) + '">Edit</button>' +
-        '<button type="button" class="mini-btn danger" data-delete-course="' + esc(c.name) + '">Delete</button>' +
+        '<div class="cc-actions">' +
+          '<button type="button" class="mini-btn" data-edit-course="' + esc(c.name) + '">Edit</button>' +
+          '<button type="button" class="mini-btn danger" data-delete-course="' + esc(c.name) + '">Delete</button>' +
+        '</div>' +
       '</div>'
     ).join('') +
+    '</div>' +
     (archived.length > 0
-      ? '<details style="margin-top:12px;"><summary style="font-size:10px;color:var(--text-secondary);cursor:pointer;">Archived (' + archived.length + ')</summary>' +
+      ? '<details class="archived-section" style="margin-top:16px;"><summary style="font-size:11px;color:var(--text-secondary);cursor:pointer;padding:8px 0;">Archived (' + archived.length + ')</summary>' +
+          '<div class="archive-course-row">' +
           archived.map((c) =>
-            '<div class="course-row" style="display:flex;align-items:center;gap:8px;padding:8px 0;opacity:0.6;">' +
-              '<div style="flex:1;font-size:12px;">' + esc(c.name) + '</div>' +
+            '<div class="archive-course-row" style="opacity:0.6;">' +
+              '<span>' + esc(c.name) + '</span>' +
               '<button type="button" class="mini-btn" data-unarchive-course="' + esc(c.name) + '">Restore</button>' +
             '</div>'
           ).join('') +
+          '</div>' +
         '</details>'
       : '');
 
