@@ -223,6 +223,9 @@ export function switchTab(tab: 'home' | 'courses'): void {
 export function wireViewSignal(): void {
   effect(() => {
     const view = currentView.value;
+    if (view === 'session') document.body.classList.add('in-session');
+    else document.body.classList.remove('in-session');
+
     if (view === 'dashboard') {
       // Hide dashboard HTML shell; React Dashboard is primary renderer.
       const viewDash = el('viewDash');
