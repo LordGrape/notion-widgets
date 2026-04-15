@@ -3,31 +3,37 @@
  * Learn mode: prime → encode → consolidate → complete
  */
 
-import { useEffect, useCallback } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   learnSession,
   learnSegmentIndex,
   learnPhase,
-  courses,
   items,
   currentView,
   selectedCourse
 } from '../signals';
 
+interface LearnableTopic {
+  name: string;
+  cards: string[];
+  count: number;
+}
+
 export function Learn() {
   const session = learnSession.value;
   const phase = learnPhase.value;
   const segmentIdx = learnSegmentIndex.value;
+  const [confidence, setConfidence] = useState<number | null>(null);
 
-  // Exit learn mode
   const exitLearn = useCallback(() => {
     if (confirm('Exit learn mode? Your progress will be saved.')) {
       learnSession.value = null;
+      learnSegmentIndex.value = 0;
+      learnPhase.value = 'prime';
       currentView.value = 'dashboard';
     }
   }, []);
 
-  // Advance to next phase/segment
   const advance = useCallback(() => {
     if (!session) return;
 
@@ -47,39 +53,44 @@ export function Learn() {
         break;
       case 'complete':
         learnSession.value = null;
+        learnSegmentIndex.value = 0;
+        learnPhase.value = 'prime';
         currentView.value = 'dashboard';
         break;
     }
   }, [phase, segmentIdx, session]);
 
-  // Get learnable topics for selected course
-  const getLearnableTopics = useCallback((courseName: string) => {
-    const topics: Record<string, { name: string; cards: string[]; count: number }> = {};
+  const getLearnableTopics = useCallback((courseName: string): LearnableTopic[] => {
+    const topics: Record<string, LearnableTopic> = {};
+
     for (const id in items.value) {
       const it = items.value[id];
       if (!it || it.archived || it.course !== courseName) continue;
-      const t = (it.topic || 'General').trim();
-      if (!topics[t]) topics[t] = { name: t, cards: [], count: 0 };
-      topics[t].cards.push(id);
-      topics[t].count++;
+
+      const topicName = (it.topic || 'General').trim();
+      if (!topics[topicName]) {
+        topics[topicName] = { name: topicName, cards: [], count: 0 };
+      }
+
+      topics[topicName].cards.push(id);
+      topics[topicName].count += 1;
     }
+
     return Object.values(topics).sort((a, b) => b.count - a.count);
   }, []);
 
-  // Start learn session
   const startLearn = useCallback((topicName: string) => {
     const courseName = selectedCourse.value?.name;
     if (!courseName) return;
 
-    // Create mock segments from topic content
     const topicItems = Object.values(items.value).filter(
       it => it && !it.archived && it.course === courseName && (it.topic || 'General').trim() === topicName
     );
 
     const segments = topicItems.slice(0, 5).map((it, i) => ({
       id: it.id,
-      content: it.prompt || 'Study this concept carefully.',
-      title: it.topic || `Segment ${i + 1}`
+      content: it.modelAnswer || it.prompt || 'Study this concept carefully.',
+      title: it.prompt || it.topic || `Segment ${i + 1}`
     }));
 
     learnSession.value = {
@@ -91,32 +102,43 @@ export function Learn() {
     };
     learnPhase.value = 'prime';
     learnSegmentIndex.value = 0;
+    setConfidence(null);
   }, []);
 
-  // If no session, show topic selection
-  if (!session) {
+  const topicList = useMemo(() => {
     const courseName = selectedCourse.value?.name;
-    const topics = courseName ? getLearnableTopics(courseName) : [];
+    if (!courseName) return [];
+    return getLearnableTopics(courseName);
+  }, [getLearnableTopics, selectedCourse.value?.name, items.value]);
 
+  if (!session) {
     return (
-      <div className="view view-learn active">
-        <div className="learn-header">
+      <div className="view view-learn active se-learn">
+        <div className="se-learn-card se-learn-title-card">
           <h2>Learn Mode</h2>
-          <p>Select a topic to begin guided learning</p>
+          <p>Choose a topic to begin your guided learning sequence.</p>
         </div>
-        <div className="learn-topics">
-          {topics.map(topic => (
-            <button 
+
+        <div className="se-learn-topic-grid">
+          {topicList.map(topic => (
+            <button
               key={topic.name}
-              className="learn-topic-btn"
+              className="se-learn-topic-card stat-style"
               onClick={() => startLearn(topic.name)}
             >
-              <span className="topic-name">{topic.name}</span>
-              <span className="topic-count">{topic.count} cards</span>
+              <span className="se-learn-topic-name">{topic.name}</span>
+              <span className="se-learn-topic-count">{topic.count} cards</span>
             </button>
           ))}
         </div>
-        <button className="back-btn" onClick={() => currentView.value = 'dashboard'}>
+
+        {topicList.length === 0 && (
+          <div className="se-learn-card">
+            <p>No topics found for this course yet. Add cards with topics to start Learn Mode.</p>
+          </div>
+        )}
+
+        <button className="ghost-btn" onClick={() => { currentView.value = 'dashboard'; }}>
           Back to Dashboard
         </button>
       </div>
@@ -126,71 +148,84 @@ export function Learn() {
   const currentSegment = session.segments[segmentIdx];
 
   return (
-    <div className="view view-learn active">
-      {/* Header */}
-      <div className="learn-header">
-        <h2>{session.course} — {session.topics[0]}</h2>
-        <span className="learn-phase">{phase}</span>
-        <button className="exit-btn" onClick={exitLearn}>Exit</button>
+    <div className="view view-learn active se-learn">
+      <div className="se-learn-header se-learn-card">
+        <div>
+          <h2>{session.course} — {session.topics[0]}</h2>
+        </div>
+        <div className="se-learn-header-meta">
+          <span className="se-learn-phase-pill">{phase.toUpperCase()}</span>
+          <button className="ghost-btn" onClick={exitLearn}>Exit</button>
+        </div>
       </div>
 
-      {/* Prime Phase */}
       {phase === 'prime' && (
-        <div className="learn-phase-content prime">
-          <h3>Prime Mode</h3>
-          <p>Before we begin, here are some questions to activate your prior knowledge:</p>
-          <div className="prime-questions">
-            <div className="prime-question">What do you already know about {session.topics[0]}?</div>
-            <div className="prime-question">What questions do you have?</div>
+        <div className="se-learn-phase-wrap">
+          <div className="se-learn-card">
+            <h3>Prime your understanding</h3>
+            <div className="se-learn-prompt">
+              <p>What do you already know about <strong>{session.topics[0]}</strong>?</p>
+              <p>What questions or confusions are you carrying into this topic?</p>
+            </div>
           </div>
-          <button className="advance-btn" onClick={advance}>Start Learning</button>
+          <button className="big-btn" onClick={advance}>Start Learning</button>
         </div>
       )}
 
-      {/* Encode Phase */}
       {phase === 'encode' && currentSegment && (
-        <div className="learn-phase-content encode">
-          <div className="segment-indicator">
-            Segment {segmentIdx + 1} of {session.segments.length}
+        <div className="se-learn-phase-wrap">
+          <div className="se-learn-segment-pill">Segment {segmentIdx + 1} of {session.segments.length}</div>
+          <div className="se-learn-card">
+            <h3>{currentSegment.title || `Segment ${segmentIdx + 1}`}</h3>
+            <p>{currentSegment.content}</p>
           </div>
-          <h3>{currentSegment.title}</h3>
-          <div className="segment-content">{currentSegment.content}</div>
-          <div className="encoding-prompt">
-            <p>Take a moment to process this information. What's the key concept?</p>
+          <div className="se-learn-prompt">
+            Reflect: What is the key idea here, and how would you explain it simply?
           </div>
-          <button className="advance-btn" onClick={advance}>
+          <button className="big-btn" onClick={advance}>
             {segmentIdx + 1 < session.segments.length ? 'Next Segment' : 'Continue to Consolidation'}
           </button>
         </div>
       )}
 
-      {/* Consolidate Phase */}
       {phase === 'consolidate' && (
-        <div className="learn-phase-content consolidate">
-          <h3>Consolidation Check</h3>
-          <p>Test your understanding before completing:</p>
-          <div className="consolidation-questions">
-            <div className="consol-question">
-              <p>Can you summarize the key points from {session.topics[0]}?</p>
-              <div className="consol-rating">
-                <button data-rate="1">1 — Not confident</button>
-                <button data-rate="2">2 — Somewhat</button>
-                <button data-rate="3">3 — Pretty confident</button>
-                <button data-rate="4">4 — Very confident</button>
-              </div>
-            </div>
+        <div className="se-learn-phase-wrap">
+          <div className="se-learn-card">
+            <h3>Consolidate what you learned</h3>
+            <p className="se-learn-prompt">
+              Summarize the key points from <strong>{session.topics[0]}</strong> in your own words.
+            </p>
           </div>
-          <button className="advance-btn" onClick={advance}>Complete Learning</button>
+
+          <div className="se-learn-confidence-row">
+            {[1, 2, 3, 4].map(level => (
+              <button
+                key={level}
+                className="se-learn-conf-btn"
+                data-active={confidence === level ? 'true' : 'false'}
+                data-level={level}
+                onClick={() => setConfidence(level)}
+              >
+                {level === 1 && 'Not confident'}
+                {level === 2 && 'Somewhat'}
+                {level === 3 && 'Confident'}
+                {level === 4 && 'Very confident'}
+              </button>
+            ))}
+          </div>
+
+          <button className="big-btn" onClick={advance}>Complete Learning</button>
         </div>
       )}
 
-      {/* Complete Phase */}
       {phase === 'complete' && (
-        <div className="learn-phase-content complete">
-          <h3>🎉 Learning Complete!</h3>
-          <p>You've completed the guided learning for {session.topics[0]}.</p>
-          <p>The concepts you've learned are now primed for your next study session.</p>
-          <button className="advance-btn" onClick={advance}>Back to Dashboard</button>
+        <div className="se-learn-phase-wrap se-learn-complete">
+          <div className="se-learn-complete-emoji" role="img" aria-label="Celebration">🎉</div>
+          <h3>Learning Complete!</h3>
+          <p>
+            You completed Learn Mode for <strong>{session.topics[0]}</strong>. Great momentum — revisit soon to lock it in.
+          </p>
+          <button className="big-btn" onClick={advance}>Back to Dashboard</button>
         </div>
       )}
     </div>
