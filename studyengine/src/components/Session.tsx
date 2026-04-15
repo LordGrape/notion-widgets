@@ -27,20 +27,9 @@ import {
 } from '../signals';
 import type { StudyItem } from '../types';
 import { GRADE_ENDPOINT } from '../constants';
-import { ProgressBar } from './session/ProgressBar';
 import { RatingButtons } from './session/RatingButtons';
 import { TierRenderer } from './session/TierRenderer';
 import { BreakModal } from './session/BreakModal';
-
-// Tier colors
-const tierColours: Record<string, string> = {
-  quickfire: '#3b82f6',
-  explain: '#22c55e',
-  apply: '#f59e0b',
-  distinguish: '#8b5cf6',
-  mock: '#ef4444',
-  worked: '#06b6d4'
-};
 
 // Utility: Get present tier for item
 function getPresentTier(item: StudyItem): string {
@@ -339,7 +328,7 @@ export function Session() {
   // If no current item, show empty state
   if (!currentItem) {
     return (
-      <div className="view view-session">
+      <div className="se-session">
         <div className="empty-session">
           <p>No items in session queue</p>
           <button onClick={() => currentView.value = 'dashboard'}>
@@ -351,37 +340,36 @@ export function Session() {
   }
 
   const tier = getPresentTier(currentItem);
-  const tierColor = tierColours[tier] || tierColours.quickfire;
+  const total = queue.length;
+  const current = idx + 1;
+  const progress = total > 0 ? (idx / total) * 100 : 0;
 
   return (
-    <div className="view view-session active">
-      {/* Header */}
-      <div className="session-header">
+    <div className="se-session">
+      <div className="se-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress)}>
+        <div className="se-progress-fill" style={{ width: `${progress}%` }} />
+      </div>
+
+      <div className="se-session-header">
         <div className="session-meta">
           <span className="meta-course">{currentItem.course || '—'}</span>
           <span className="meta-topic">{currentItem.topic || '—'}</span>
+          <span className="meta-count">{current} / {total}</span>
         </div>
-        <ProgressBar />
         <button className="end-session-btn" onClick={handleEndSession}>
           End Session
         </button>
       </div>
 
-      {/* Item card */}
-      <div className="item-card" style={{ borderColor: tierColor + '40' }}>
-        {/* Tier badge */}
-        <div className="tier-badge" style={{ background: tierColor + '20', color: tierColor }}>
+      <div className="se-item-card">
+        <span className="se-tier-badge" data-tier={tier}>
           {tier.charAt(0).toUpperCase() + tier.slice(1)}
+        </span>
+
+        <div className="se-prompt">
+          {tier === 'apply' ? 'Scenario' : currentItem.prompt}
         </div>
 
-        {/* Prompt */}
-        <div className="prompt-section">
-          <div className="prompt-text">
-            {tier === 'apply' ? 'Scenario' : currentItem.prompt}
-          </div>
-        </div>
-
-        {/* Tier-specific content */}
         <TierRenderer
           item={currentItem}
           tier={tier as 'quickfire' | 'explain' | 'apply' | 'distinguish' | 'mock' | 'worked'}
@@ -389,23 +377,17 @@ export function Session() {
           onDontKnow={handleReveal}
         />
 
-        {/* Rating buttons (shown after reveal) */}
         {currentShown.value && (
-          <div className="rating-section">
-            <RatingButtons
-              onRate={handleRate}
-              aiSuggested={aiRating.value}
-            />
-          </div>
+          <RatingButtons
+            onRate={handleRate}
+            aiSuggested={aiRating.value}
+          />
         )}
       </div>
 
-      {/* Skip button */}
-      <div className="skip-section">
-        <button className="skip-btn" onClick={handleSkip}>
-          Skip this item →
-        </button>
-      </div>
+      <button className="se-skip" onClick={handleSkip}>
+        Skip this item →
+      </button>
     </div>
   );
 }

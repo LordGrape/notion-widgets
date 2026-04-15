@@ -11,25 +11,21 @@ interface RatingButtonsProps {
 }
 
 const ratings = [
-  { value: 1, label: 'Again', color: '#ef4444' },
-  { value: 2, label: 'Hard', color: '#f59e0b' },
-  { value: 3, label: 'Good', color: '#22c55e' },
-  { value: 4, label: 'Easy', color: '#3b82f6' }
+  { value: 1, label: 'Again' },
+  { value: 2, label: 'Hard' },
+  { value: 3, label: 'Good' },
+  { value: 4, label: 'Easy' }
 ];
 
 export function RatingButtons({ onRate, disabled, aiSuggested }: RatingButtonsProps) {
   return (
-    <div className="rating-buttons">
+    <div className="se-ratings">
       {ratings.map((rating) => {
         const isSuggested = aiSuggested === rating.value;
         return (
           <button
             key={rating.value}
-            className={`rating-btn ${isSuggested ? 'suggested' : ''}`}
-            style={{ 
-              borderColor: rating.color + '40',
-              background: isSuggested ? rating.color + '15' : undefined
-            }}
+            className={`se-rate ${isSuggested ? 'suggested' : ''}`.trim()}
             onClick={() => onRate(rating.value)}
             disabled={disabled}
             data-rate={rating.value}

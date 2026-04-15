@@ -10,6 +10,7 @@ declare const Core: { isDark: boolean; isLowEnd: boolean; reducedMotion: boolean
 import './css/base.css';
 import './css/dashboard.css';
 import './css/session.css';
+import './css/session-react.css';
 import './css/sidebar.css';
 import './css/modals.css';
 import './css/learn.css';
