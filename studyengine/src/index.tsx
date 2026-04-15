@@ -9,6 +9,7 @@ declare const Core: { isDark: boolean; isLowEnd: boolean; reducedMotion: boolean
 // CSS imports (Vite inlines these)
 import './css/base.css';
 import './css/dashboard.css';
+import './css/dashboard-react.css';
 import './css/session.css';
 import './css/session-react.css';
 import './css/tiers-react.css';
@@ -30,7 +31,7 @@ import { esc, toast } from './utils';
 import { items, courses, settings, currentView, saveState } from './signals';
 import { COURSE_COLORS, EXAM_TYPE_LABELS } from './constants';
 import { loadState, loadOptimizedWeights, initSyncAndBackground } from './state-io';
-import { initDomController, wireViewSignal, wireAutoRender, renderDashboard, openCourseDetail, switchTab } from './dom-controller';
+import { initDomController, openCourseDetail, switchTab } from './dom-controller';
 import { initSettingsController, openSettings } from './settings-controller';
 import { initCardsController } from './cards-controller';
 import { initCanvasController } from './canvas-controller';
@@ -48,7 +49,7 @@ w.resumeSavedSession = (snap: unknown) => {
   (w as any)._resumeSnap = snap;
   currentView.value = 'session';
 };
-w.renderDashboard = () => { renderDashboard(); };
+w.renderDashboard = () => {};
 w.openCourseModal = () => {
   const ov = document.getElementById('courseOv');
   if (ov) { 
