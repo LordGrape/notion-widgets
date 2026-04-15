@@ -900,4 +900,95 @@ export function initDomController(): void {
   // Ensure courseDetail starts hidden
   const cdPanel = el('courseDetail') as HTMLElement | null;
   if (cdPanel) cdPanel.style.display = 'none';
+
+  // Initialize tooltips
+  initTooltips();
+}
+
+// ============================================
+// Tooltip System
+// ============================================
+
+function initTooltips(): void {
+  // Delegate click handler for info-icons
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+    const infoIcon = target.closest('.info-icon') as HTMLElement | null;
+    
+    // Hide any existing portaled tooltip
+    const existing = document.getElementById('portaled-tooltip');
+    if (existing) {
+      existing.classList.remove('shown');
+      setTimeout(() => existing.remove(), 150);
+    }
+    
+    if (!infoIcon) return;
+    
+    // Get the tooltip template from inside the info-icon
+    const template = infoIcon.querySelector('.info-tooltip') as HTMLElement | null;
+    if (!template) return;
+    
+    // Clone tooltip and portal it to body
+    const tooltip = template.cloneNode(true) as HTMLElement;
+    tooltip.id = 'portaled-tooltip';
+    tooltip.classList.add('visible');
+    document.body.appendChild(tooltip);
+    
+    // Position the tooltip
+    positionTooltip(infoIcon, tooltip);
+    
+    // Show with animation
+    requestAnimationFrame(() => {
+      tooltip.classList.add('shown');
+    });
+    
+    e.stopPropagation();
+  });
+  
+  // Hide tooltip when clicking elsewhere
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('.info-icon') || target.closest('#portaled-tooltip')) return;
+    
+    const existing = document.getElementById('portaled-tooltip');
+    if (existing) {
+      existing.classList.remove('shown');
+      setTimeout(() => existing.remove(), 150);
+    }
+  });
+  
+  // Reposition on resize
+  window.addEventListener('resize', () => {
+    const tooltip = document.getElementById('portaled-tooltip');
+    const lastIcon = document.querySelector('.info-icon[data-active="true"]') as HTMLElement | null;
+    if (tooltip && lastIcon) {
+      positionTooltip(lastIcon, tooltip);
+    }
+  });
+}
+
+function positionTooltip(icon: HTMLElement, tooltip: HTMLElement): void {
+  const iconRect = icon.getBoundingClientRect();
+  const tooltipRect = tooltip.getBoundingClientRect();
+  const margin = 8;
+  
+  // Calculate position
+  let top = iconRect.top - tooltipRect.height - margin;
+  let left = iconRect.left + (iconRect.width / 2) - (tooltipRect.width / 2);
+  
+  // Flip if too close to top
+  if (top < margin) {
+    top = iconRect.bottom + margin;
+    tooltip.classList.add('arrow-top');
+    tooltip.classList.remove('arrow-bottom');
+  } else {
+    tooltip.classList.add('arrow-bottom');
+    tooltip.classList.remove('arrow-top');
+  }
+  
+  // Keep within viewport horizontally
+  left = Math.max(margin, Math.min(left, window.innerWidth - tooltipRect.width - margin));
+  
+  tooltip.style.top = `${top}px`;
+  tooltip.style.left = `${left}px`;
 }
