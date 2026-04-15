@@ -349,12 +349,12 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('[StudyEngine] boot() called');
     loadState();
     loadOptimizedWeights();
-    mountApp();
-    // Initialize dom-controller for HTML shell UI
-    initDomController();
-    initSettingsController();
+    // Initialize controllers FIRST so window functions are available for mountApp
     initCardsController();
+    initSettingsController();
+    initDomController();
     initCanvasController();
+    mountApp();
   };
 
   if (SE && typeof SE.onReady === 'function') {
