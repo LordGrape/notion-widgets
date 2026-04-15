@@ -27,7 +27,7 @@ import { esc, toast } from './utils';
 import { items, courses, settings, currentView, saveState } from './signals';
 import { COURSE_COLORS, EXAM_TYPE_LABELS } from './constants';
 import { loadState, loadOptimizedWeights, initSyncAndBackground } from './state-io';
-import { initDomController, wireViewSignal, wireAutoRender, renderDashboard, openCourseDetail, switchTab, startSession } from './dom-controller';
+import { initDomController, wireViewSignal, wireAutoRender, renderDashboard, openCourseDetail, switchTab } from './dom-controller';
 import { initSettingsController, openSettings } from './settings-controller';
 import { initCardsController } from './cards-controller';
 import { initCanvasController } from './canvas-controller';
@@ -40,7 +40,7 @@ const w = window as unknown as Record<string, unknown>;
 
 // ── Thin window shims (set signal values) ───────────────────────
 w.switchNav = (view: string) => { currentView.value = view; };
-w.startSession = () => { startSession(); };
+w.startSession = () => { currentView.value = 'session'; };
 w.resumeSavedSession = (snap: unknown) => {
   (w as any)._resumeSnap = snap;
   currentView.value = 'session';
@@ -64,7 +64,7 @@ w.applySidebarFilter = () => {};
 w.startCourseSession = (courseName: string) => {
   const courseItems = Object.values(items.value).filter((it) => it && !it.archived && it.course === courseName);
   if (courseItems.length === 0) { toast('No cards in this course'); return; }
-  startSession();
+  currentView.value = 'session';
 };
 
 // Wire remaining cards.ts callbacks
@@ -159,10 +159,6 @@ function mountApp() {
     (w.openSettings as (() => void) | undefined)?.();
   });
 
-  // Wire startBtn for session start
-  document.getElementById('startBtn')?.addEventListener('click', () => {
-    (w.startSession as (() => void) | undefined)?.();
-  });
 }
 
 // ── Course modal renderer ───────────────────────────────────────
