@@ -18,6 +18,8 @@ import {
   courses,
   sessionStartTime,
   sessionReviewsByTier,
+  stats,
+  saveState,
   breakActive,
   breakTimeRemaining,
   essayOutlineText,
@@ -242,6 +244,23 @@ export function Session() {
 
   // Complete session - defined first since handleRate uses it
   const completeSession = useCallback(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const prevStats = stats.value;
+    const updatedStats = {
+      ...prevStats,
+      lastSessionDate: today
+    };
+
+    if (prevStats.lastSessionDate !== today) {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().slice(0, 10);
+      updatedStats.streakDays = prevStats.lastSessionDate === yesterdayStr
+        ? (prevStats.streakDays || 0) + 1
+        : 1;
+    }
+    stats.value = updatedStats;
+
     // Push XP to dragon
     if (settings.value.gamificationMode === 'motivated') {
       const se = (window as unknown as { SyncEngine?: { set: (ns: string, key: string, val: unknown) => void } }).SyncEngine;
@@ -256,7 +275,10 @@ export function Session() {
       se.set('studyengine', 'activeSession', null);
     }
 
+    saveState();
+
     // Show completion view
+    sessionPhase.value = 'complete';
     currentView.value = 'done';
   }, []);
 
@@ -291,15 +313,35 @@ export function Session() {
     reviews[tier] = (reviews[tier] || 0) + 1;
     sessionReviewsByTier.value = reviews;
 
+    // Update cumulative stats
+    const prevStats = stats.value;
+    stats.value = {
+      ...prevStats,
+      totalReviews: (prevStats.totalReviews || 0) + 1,
+      reviewsByTier: {
+        ...prevStats.reviewsByTier,
+        [tier]: (prevStats.reviewsByTier?.[tier as keyof typeof prevStats.reviewsByTier] || 0) + 1
+      }
+    };
+
     // Advance to next item or complete
     if (idx + 1 >= queue.length) {
-      sessionPhase.value = 'complete';
       completeSession();
     } else {
+      const nextIndex = idx + 1;
       sessionIndex.value = idx + 1;
       currentShown.value = false;
       userAnswer.value = '';
       sessionPhase.value = 'question';
+
+      const se = (window as unknown as { SyncEngine?: { set: (ns: string, key: string, val: unknown) => void } }).SyncEngine;
+      if (se) {
+        se.set('studyengine', 'activeSession', {
+          queue: sessionQueue.value.map(i => i.id),
+          idx: nextIndex,
+          xp: sessionXP.value
+        });
+      }
     }
   }, [currentItem, idx, queue.length, completeSession]);
 
