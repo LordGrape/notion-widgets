@@ -396,18 +396,23 @@ export function closeCourseDetail(): void {
 
 export function switchTab(tab: 'home' | 'courses'): void {
   const viewDash = el('viewDash');
+  const tabHome = el('tabHome');
   const tabCourses = el('tabCourses');
   const navHome = el('navHome');
   const navCourses = el('navCourses');
 
   if (tab === 'home') {
-    if (viewDash) { viewDash.style.display = ''; viewDash.classList.add('active'); }
+    // Keep viewDash visible, just switch tabs inside it
+    if (viewDash) { viewDash.classList.add('active'); }
+    if (tabHome) { tabHome.style.display = ''; tabHome.classList.add('active'); }
     if (tabCourses) { tabCourses.style.display = 'none'; tabCourses.classList.remove('active'); }
     if (navHome) navHome.classList.add('active');
     if (navCourses) navCourses.classList.remove('active');
     closeCourseDetail();
   } else {
-    if (viewDash) { viewDash.style.display = 'none'; viewDash.classList.remove('active'); }
+    // Keep viewDash visible (courses tab is inside it)
+    if (viewDash) { viewDash.classList.add('active'); }
+    if (tabHome) { tabHome.style.display = 'none'; tabHome.classList.remove('active'); }
     if (tabCourses) { tabCourses.style.display = ''; tabCourses.classList.add('active'); }
     if (navHome) navHome.classList.remove('active');
     if (navCourses) navCourses.classList.add('active');
@@ -910,59 +915,117 @@ export function initDomController(): void {
 // ============================================
 
 function initTooltips(): void {
-  // Delegate click handler for info-icons
-  document.addEventListener('click', (e) => {
-    const target = e.target as HTMLElement;
-    const infoIcon = target.closest('.info-icon') as HTMLElement | null;
-    
-    // Hide any existing portaled tooltip
-    const existing = document.getElementById('portaled-tooltip');
-    if (existing) {
-      existing.classList.remove('shown');
-      setTimeout(() => existing.remove(), 150);
+  let activeTooltip: HTMLElement | null = null;
+  let activeIcon: HTMLElement | null = null;
+  let hideTimer: number | null = null;
+  
+  function showTooltip(icon: HTMLElement): void {
+    // Clear any pending hide
+    if (hideTimer) {
+      clearTimeout(hideTimer);
+      hideTimer = null;
     }
     
-    if (!infoIcon) return;
+    // Hide existing tooltip
+    if (activeTooltip) {
+      activeTooltip.classList.remove('shown');
+      activeTooltip.remove();
+      activeTooltip = null;
+    }
     
     // Get the tooltip template from inside the info-icon
-    const template = infoIcon.querySelector('.info-tooltip') as HTMLElement | null;
+    const template = icon.querySelector('.info-tooltip') as HTMLElement | null;
     if (!template) return;
+    
+    activeIcon = icon;
     
     // Clone tooltip and portal it to body
     const tooltip = template.cloneNode(true) as HTMLElement;
     tooltip.id = 'portaled-tooltip';
     tooltip.classList.add('visible');
     document.body.appendChild(tooltip);
+    activeTooltip = tooltip;
     
     // Position the tooltip
-    positionTooltip(infoIcon, tooltip);
+    positionTooltip(icon, tooltip);
     
     // Show with animation
     requestAnimationFrame(() => {
       tooltip.classList.add('shown');
     });
-    
-    e.stopPropagation();
-  });
+  }
   
-  // Hide tooltip when clicking elsewhere
-  document.addEventListener('click', (e) => {
+  function hideTooltip(): void {
+    if (hideTimer) clearTimeout(hideTimer);
+    hideTimer = window.setTimeout(() => {
+      if (activeTooltip) {
+        activeTooltip.classList.remove('shown');
+        setTimeout(() => {
+          activeTooltip?.remove();
+          activeTooltip = null;
+          activeIcon = null;
+        }, 150);
+      }
+    }, 100); // Small delay to allow moving mouse to tooltip
+  }
+  
+  // Delegate mouseenter/mouseleave for info-icons
+  document.addEventListener('mouseenter', (e) => {
     const target = e.target as HTMLElement;
-    if (target.closest('.info-icon') || target.closest('#portaled-tooltip')) return;
+    const infoIcon = target.closest('.info-icon') as HTMLElement | null;
+    if (!infoIcon) return;
+    showTooltip(infoIcon);
+  }, true); // Use capture to catch events on dynamically added elements
+  
+  document.addEventListener('mouseleave', (e) => {
+    const target = e.target as HTMLElement;
+    const infoIcon = target.closest('.info-icon') as HTMLElement | null;
+    if (!infoIcon) return;
     
-    const existing = document.getElementById('portaled-tooltip');
-    if (existing) {
-      existing.classList.remove('shown');
-      setTimeout(() => existing.remove(), 150);
+    // Check if we're moving to the tooltip itself
+    const related = e.relatedTarget as HTMLElement | null;
+    if (related?.closest('#portaled-tooltip')) return;
+    
+    hideTooltip();
+  }, true);
+  
+  // Also handle tooltip hover to keep it open
+  document.addEventListener('mouseenter', (e) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('#portaled-tooltip')) {
+      if (hideTimer) {
+        clearTimeout(hideTimer);
+        hideTimer = null;
+      }
+    }
+  }, true);
+  
+  document.addEventListener('mouseleave', (e) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('#portaled-tooltip')) {
+      const related = e.relatedTarget as HTMLElement | null;
+      // Don't hide if moving back to the icon
+      if (related?.closest('.info-icon')) return;
+      hideTooltip();
+    }
+  }, true);
+  
+  // Hide on click elsewhere
+  document.addEventListener('click', () => {
+    if (activeTooltip) {
+      activeTooltip.classList.remove('shown');
+      setTimeout(() => {
+        activeTooltip?.remove();
+        activeTooltip = null;
+        activeIcon = null;
+      }, 150);
     }
   });
   
   // Reposition on resize
   window.addEventListener('resize', () => {
-    const tooltip = document.getElementById('portaled-tooltip');
-    const lastIcon = document.querySelector('.info-icon[data-active="true"]') as HTMLElement | null;
-    if (tooltip && lastIcon) {
-      positionTooltip(lastIcon, tooltip);
+    if (activeTooltip && activeIcon) {
+      positionTooltip(activeIcon, activeTooltip);
     }
   });
 }
