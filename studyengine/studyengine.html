@@ -3732,6 +3732,41 @@ body.standalone .answer.restudy-active{
       max-height: 220px;
       flex: 1 1 auto;
     }
+    .retention-empty-state{
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      text-align: center;
+      min-height: 160px;
+      padding: 20px 16px;
+      border: 1px dashed rgba(var(--accent-rgb),0.16);
+      border-radius: 14px;
+      background: rgba(var(--accent-rgb),0.04);
+      margin-top: 4px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .retention-empty-state .icon{
+      font-size: 22px;
+      line-height: 1;
+      margin-bottom: 10px;
+      color: var(--text-secondary);
+    }
+    .retention-empty-state .title{
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+    .retention-empty-state .subtitle{
+      font-size: 10px;
+      line-height: 1.45;
+      color: var(--text-tertiary);
+      max-width: 270px;
+    }
     .chart-empty{
       display: flex;
       flex-direction: column;
@@ -6756,6 +6791,11 @@ input[type="range"]::-moz-range-thumb{
                 <div class="ac-title">Predicted retention</div>
                 <div class="ret-filter-chips" id="retFilterChips"></div>
                 <canvas id="retentionCanvas" height="200"></canvas>
+                <div class="retention-empty-state" id="retentionEmptyState" aria-live="polite" role="status">
+                  <div class="icon" aria-hidden="true">📈</div>
+                  <div class="title">No retention data yet</div>
+                  <div class="subtitle">Complete your first review session to see your predicted retention curve.</div>
+                </div>
               </div>
               <div class="analytics-card" id="activityCard" data-dash-full>
                 <div class="ac-title"><span class="ac-icon">📊</span> Last 30 days</div>
@@ -19254,16 +19294,33 @@ input[type="range"]::-moz-range-thumb{
         if (it && it.fsrs && it.fsrs.lastReview) items.push(it);
       }
 
+      var emptyStateEl = rect ? rect.querySelector('.retention-empty-state') : null;
+
       /* Clear stored data */
       retentionGraphData[canvasId] = null;
 
       if (!items.length) {
-        ctx.fillStyle = textSec;
-        ctx.font = '500 9px Inter, system-ui, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('Review items to see retention forecast', w / 2, h / 2);
+        if (emptyStateEl) {
+          parent.style.display = 'none';
+          emptyStateEl.style.display = 'flex';
+          if (window.gsap) {
+            gsap.killTweensOf(emptyStateEl);
+            gsap.fromTo(emptyStateEl,
+              { opacity: 0, y: 8 },
+              { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' }
+            );
+          }
+        } else {
+          ctx.fillStyle = textSec;
+          ctx.font = '500 9px Inter, system-ui, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('Review items to see retention forecast', w / 2, h / 2);
+        }
         return;
       }
+
+      parent.style.display = '';
+      if (emptyStateEl) emptyStateEl.style.display = 'none';
 
       var days = 30;
       var pad = { top: 8, right: 12, bottom: 22, left: 32 };
@@ -20057,39 +20114,13 @@ input[type="range"]::-moz-range-thumb{
       var items = {};
       var filterCourse = retentionFilter || 'All';
       var label = filterCourse === 'All' ? 'All courses' : filterCourse;
-      var hasData = false;
       for (var id in state.items) {
         if (!state.items.hasOwnProperty(id)) continue;
         var it = state.items[id];
         if (!it || it.archived) continue;
         if (it.course && state.courses[it.course] && state.courses[it.course].archived) continue;
         if (filterCourse !== 'All' && it.course !== filterCourse) continue;
-        if (it.fsrs && it.fsrs.reps > 0) hasData = true;
         items[id] = it;
-      }
-      if (!hasData) {
-        var container = document.getElementById('retentionWrap') || document.querySelector('.retention-wrap');
-        if (container) {
-          var titleEl = container.querySelector('.ac-title');
-          var chipsEl = container.querySelector('.ret-filter-chips');
-          container.innerHTML = '';
-          if (titleEl) container.appendChild(titleEl);
-          if (chipsEl) container.appendChild(chipsEl);
-          var empty = document.createElement('div');
-          empty.className = 'chart-empty';
-          empty.innerHTML =
-            '<div class="chart-empty-icon">📈</div>' +
-            '<div class="chart-empty-title">No retention data yet</div>' +
-            '<div class="chart-empty-desc">Complete your first study session to see your predicted retention curve.</div>';
-          container.appendChild(empty);
-          if (window.gsap) {
-            gsap.fromTo(empty,
-              { opacity: 0, y: 8 },
-              { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }
-            );
-          }
-        }
-        return;
       }
       var retentionWrap = document.getElementById('retentionWrap') || document.querySelector('.retention-wrap');
       if (retentionWrap && !document.getElementById('retentionCanvas')) {
