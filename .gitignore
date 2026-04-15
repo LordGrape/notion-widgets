@@ -6,3 +6,5 @@ widget-sync/
 !.dev.vars.example
 .env*
 !.env.example
+
+dist/studyengine.html
