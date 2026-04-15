@@ -1,289 +1,122 @@
-/*
- * Global Type Declarations for Study Engine
- * Zero runtime changes - TypeScript declarations only
- */
-
-// ============================================
-// SyncEngine (from core.js)
-// ============================================
-
-declare const SyncEngine: {
-  /** Initialize sync with worker URL and namespaces */
-  init(opts: { worker?: string; namespaces?: string[] }): Promise<void>;
-  
-  /** Get value from namespace */
-  get(namespace: string, key: string): unknown;
-  
-  /** Set value in namespace */
-  set(namespace: string, key: string, value: unknown): void;
-  
-  /** Get all values from namespace */
-  getAll(namespace: string): Record<string, unknown>;
-  
-  /** Push all dirty namespaces to remote */
-  flush(): Promise<void>;
-  
-  /** Force pull from remote */
-  pull(namespace: string): Promise<void>;
-  
-  /** Force push to remote */
-  push(namespace: string): Promise<void>;
-  
-  /** Register callback for when sync is ready */
-  onReady(callback: (engine: typeof SyncEngine) => void): void;
-  
-  /** Register callback for sync status changes */
-  onSyncStatus(callback: (status: 'saving' | 'synced' | 'error') => void): void;
-  
-  /** Check online status */
-  isOnline(): boolean;
-  
-  /** Fetch milestones from Notion bridge */
-  fetchMilestones(dbId?: string): Promise<Array<{
-    id: string;
-    title: string;
-    date: string;
-    completed: boolean;
-  }>>;
-};
-
-// ============================================
-// Core.* namespace (from core.js)
-// ============================================
-
-declare const Core: {
-  // Environment detection
-  isDark: boolean;
-  isLowEnd: boolean;
-  reducedMotion: boolean;
-  dpr: number;
-  gsapReady: Promise<typeof gsap | null>;
-  
-  // Theme tokens
-  orbAlpha: number;
-  particleRGB: string;
-  particleAlphaBase: number;
-  confettiColors: string[];
-  
-  // Event system
-  on(event: string, callback: (data: unknown) => void): void;
-  off(event: string, callback: (data: unknown) => void): void;
-  emit(event: string, data: unknown): void;
-  
-  // Plugin system
-  register(name: string, plugin: unknown): unknown;
-  getPlugin(name: string): unknown | null;
-  
-  // Performance monitoring
-  perf: {
-    getFPS(): number;
-    isOverBudget(): boolean;
-    onDrop(callback: (fps: number) => void): void;
-  };
-  
-  // Theme utilities
-  applyThemeTokens(): void;
-  injectGlassStyles(): void;
-};
-
-// ============================================
-// GSAP (loaded from CDN)
-// ============================================
-
-declare const gsap: {
-  to(target: unknown, vars: Record<string, unknown>): unknown;
-  fromTo(target: unknown, from: Record<string, unknown>, to: Record<string, unknown>): unknown;
-  set(target: unknown, vars: Record<string, unknown>): void;
-  killTweensOf(target: unknown): void;
-  
-  // Core plugins/methods
-  registerPlugin(...plugins: unknown[]): void;
-  
-  // Timeline (simplified)
-  timeline(vars?: Record<string, unknown>): {
-    to(target: unknown, vars: Record<string, unknown>): unknown;
-    fromTo(target: unknown, from: Record<string, unknown>, to: Record<string, unknown>): unknown;
-    add(child: unknown, position?: string | number): unknown;
-    play(): void;
-    pause(): void;
-  };
-};
-
-// ============================================
-// Helper from HTML shell or utils.js
-// ============================================
+import type {
+  AppState,
+  CalibrationData,
+  Course,
+  FSRSState,
+  SessionState,
+  Settings,
+  StudyItem,
+  TierId,
+} from './types';
 
 declare function el(id: string): HTMLElement | null;
-declare function esc(str: string): string;
-declare function uid(): string;
-declare function isoNow(): string;
-declare function fmtMMSS(seconds: number): string;
-declare function clamp(n: number, min: number, max: number): number;
-declare function daysBetween(a: number | Date, b: number | Date): number;
-declare function tierLabel(tier: string): string;
-declare function tierColour(tier: string): string;
-declare function showView(viewId: string): void;
+
+declare function scheduleFsrs(
+  item: StudyItem,
+  rating: 1 | 2 | 3 | 4,
+  nowTs: number,
+  allowWrite: boolean,
+): { intervalDays: number; retr: number };
+
+declare function scheduleFSRS(
+  item: StudyItem,
+  rating: 1 | 2 | 3 | 4,
+  nowTs: number,
+  allowWrite: boolean,
+): { intervalDays: number; retr: number };
+
+declare function countDue(
+  itemsById: Record<string, StudyItem>,
+  course?: string,
+  topic?: string,
+): { total: number; byTier: Record<TierId, number> } | number;
+
+declare function avgRetention(itemsById: Record<string, StudyItem>): number | null;
+
+declare const SyncEngine: {
+  get(ns: string, key?: string): unknown;
+  set(ns: string, data: unknown, value?: unknown): Promise<void> | void;
+  init(): Promise<void>;
+  flush(): Promise<void>;
+};
+
+declare const Core: {
+  isDark?: boolean;
+  isLowEnd?: boolean;
+  audio: {
+    play(...args: unknown[]): void;
+    stop(): void;
+  };
+  background: {
+    init(): void;
+  };
+  confetti: {
+    launch(): void;
+  };
+  dragon: Record<string, unknown>;
+  a11y: Record<string, unknown>;
+  tooltip: Record<string, unknown>;
+  perf: Record<string, unknown>;
+};
+
+declare const gsap: any;
+declare const ScrollTrigger: any;
+
+declare const marked: { parse(md: string): string };
+declare const DOMPurify: { sanitize(html: string): string };
+declare const mermaid: {
+  run(config?: unknown): Promise<void>;
+  initialize(config: unknown): void;
+};
+
+declare function renderDashboard(): void;
+declare function startSession(): void;
+declare function rateCurrent(rating: 1 | 2 | 3 | 4): void;
+declare function completeSession(): void;
+declare function showView(nextId: string): void;
+declare function openSettings(): void;
+declare function closeSettings(): void;
+declare function renderSettings(): void;
+declare function switchTab(tabId: string): void;
+declare function switchTopic(topic: string): void;
+declare function switchCourse(course: string): void;
+declare function openEditCourse(name: string): void;
+declare function openEditCourseTab(name: string, tab: string): void;
+declare function startDeleteCourse(name: string): void;
+declare function confirmDeleteCourseNow(name: string): void;
+declare function editCard(id: string): void;
+declare function deleteCard(itemId: string, courseName?: string): void;
+declare function viewCourseDeck(name: string): void;
+declare function renderCurrentItem(): void;
 declare function toast(message: string): void;
 
-// ============================================
-// Chart.js (loaded from CDN)
-// ============================================
+declare global {
+  interface Window {
+    state: AppState;
+    settings: Settings;
+    session: SessionState | null;
 
-declare const Chart: any;
+    openEditCourseTab: (name: string, tab: string) => void;
+    openEditCourse: (name: string) => void;
+    startDeleteCourse: (name: string) => void;
+    confirmDeleteCourseNow: (name: string) => void;
+    editCard: (id: string) => void;
+    viewCourseDeck: (name: string) => void;
+    deleteCard: (itemId: string, courseName?: string) => void;
 
-// ============================================
-// Mermaid (loaded from CDN)
-// ============================================
+    scheduleFSRS?: typeof scheduleFSRS;
+    scheduleFsrs?: typeof scheduleFsrs;
+    renderDashboard?: typeof renderDashboard;
+    startSession?: typeof startSession;
+    rateCurrent?: typeof rateCurrent;
+    completeSession?: typeof completeSession;
+    openSettings?: typeof openSettings;
+    closeSettings?: typeof closeSettings;
 
-declare const mermaid: {
-  initialize(config: {
-    startOnLoad?: boolean;
-    theme?: 'dark' | 'default';
-    themeVariables?: Record<string, unknown>;
-    flowchart?: Record<string, unknown>;
-    securityLevel?: 'loose' | 'strict';
-  }): void;
-  render(id: string, definition: string): Promise<{ svg: string }>;
-};
+    courses?: Record<string, Course>;
+    calibration?: CalibrationData;
+    fsrsState?: FSRSState;
+  }
+}
 
-// ============================================
-// KaTeX (loaded from CDN)
-// ============================================
-
-declare const katex: {
-  renderToString(tex: string, options?: {
-    displayMode?: boolean;
-    throwOnError?: boolean;
-  }): string;
-};
-
-// ============================================
-// pdf.js (loaded from CDN)
-// ============================================
-
-declare const pdfjsLib: {
-  GlobalWorkerOptions: {
-    workerSrc: string;
-  };
-  getDocument(src: string | Uint8Array | { data: Uint8Array }): {
-    promise: Promise<{
-      numPages: number;
-      getPage(pageNum: number): Promise<{
-        getTextContent(): Promise<{
-          items: Array<{ str: string }>;
-        }>;
-      }>;
-    }>;
-  };
-};
-
-// ============================================
-// marked.js (loaded from CDN)
-// ============================================
-
-declare const marked: {
-  parse(markdown: string, options?: { breaks?: boolean }): string;
-};
-
-// ============================================
-// DOMPurify (loaded from CDN)
-// ============================================
-
-declare const DOMPurify: {
-  sanitize(dirty: string, config?: { ALLOWED_TAGS?: string[] }): string;
-};
-
-// ============================================
-// ts-fsrs UMD (loaded from CDN)
-// ============================================
-
-declare const FSRS: {
-  FSRS: new (params: {
-    w: number[];
-    request_retention: number;
-    enable_fuzz: boolean;
-  }) => unknown;
-  generatorParameters(opts: {
-    w: number[];
-    request_retention: number;
-    enable_fuzz: boolean;
-  }): {
-    w: number[];
-    request_retention: number;
-    enable_fuzz: boolean;
-  };
-  clipParameters(params: number[], clamp?: number, pad?: boolean): number[];
-  checkParameters(params: number[]): number[];
-  migrateParameters(params: number[]): number[];
-};
-
-// ============================================
-// Audio functions from core.js
-// ============================================
-
-declare function playClick(): void;
-declare function playOpen(): void;
-declare function playClose(): void;
-declare function playStart(): void;
-declare function playPause(): void;
-declare function playResume(): void;
-declare function playReset(): void;
-declare function playLap(): void;
-declare function playModeSwitch(): void;
-declare function playChime(): void;
-declare function playBreakAppear(): void;
-declare function playBreakDismiss(): void;
-
-// ============================================
-// Canvas/Background from core.js
-// ============================================
-
-declare function initBackground(canvasId: string, options: {
-  orbCount?: number;
-  particleCount?: number;
-  orbRadius?: [number, number];
-  hueRange?: [number, number];
-  mouseTracking?: boolean;
-}): void;
-
-declare function launchConfetti(options?: {
-  origin?: { x: number; y: number };
-  colors?: string[];
-  count?: number;
-}): void;
-
-// ============================================
-// State is now in signals.ts — no global state/settings declarations needed.
-// Note: Session and Tutor are now TypeScript components (src/components/)
-// No longer need global declarations for these
-
-// ============================================
-// Constants from state.js
-
-declare const TIER_PROFILES: Record<string, import('./types').TierProfile>;
-declare const CRAM_TIER_MOD: Record<string, import('./types').CramModifier>;
-declare const BLOOM_STABILITY_BONUS: Record<string, number>;
-declare const PRIORITY_LEVELS: string[];
-declare const PRIORITY_LABELS: Record<string, string>;
-declare const PRIORITY_COLORS: Record<string, string>;
-declare const PRIORITY_WEIGHT: Record<string, number>;
-declare const CRAM_PRIORITY_BOOST: Record<string, number>;
-declare const COURSE_COLORS: Array<{ name: string; value: string }>;
-declare const EXAM_TYPE_LABELS: Record<string, string>;
-declare const DEFAULT_WEIGHTS: number[];
-declare const FSRS6_DEFAULT_DECAY: number;
-
-// ============================================
-// Worker endpoints (from state.js)
-// ============================================
-
-declare const STUDYENGINE_WORKER_BASE: string;
-declare const TUTOR_ENDPOINT: string;
-declare const GRADE_ENDPOINT: string;
-declare const MEMORY_ENDPOINT: string;
-declare const PREPARE_ENDPOINT: string;
-declare const SYLLABUS_ENDPOINT: string;
-declare const LECTURE_CTX_ENDPOINT: string;
-declare const LEARN_PLAN_ENDPOINT: string;
-declare const LEARN_CHECK_ENDPOINT: string;
-declare const TRIAGE_ENDPOINT: string;
+export {};
