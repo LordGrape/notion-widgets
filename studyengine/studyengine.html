@@ -15624,6 +15624,10 @@ input[type="range"]::-moz-range-thumb{
             if (el('m_topic')) el('m_topic').value = topic;
           }, 0);
         }
+      } else {
+        closeModal();
+        renderDashboard();
+        if (!isEmbedded) renderSidebar();
       }
     }
 
