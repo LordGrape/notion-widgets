@@ -5756,6 +5756,49 @@ input[type="range"]::-moz-range-thumb{
     }
     .quick-feedback .qf-check.revealed .qf-check-a{ display: block; }
     .quick-feedback .qf-check.revealed{ border-style: solid; }
+    .qf-reret-insight{
+      margin-bottom: 12px;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      background: var(--surface-1);
+      backdrop-filter: var(--blur-glass);
+      -webkit-backdrop-filter: var(--blur-glass);
+      overflow: hidden;
+    }
+    .qf-reret-insight > summary{
+      list-style: none;
+      cursor: pointer;
+      padding: 10px 12px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+      color: var(--accent-primary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .qf-reret-insight > summary::-webkit-details-marker{ display: none; }
+    .qf-reret-insight > summary::after{
+      content: '▾';
+      margin-left: auto;
+      opacity: 0.75;
+      transform: rotate(-90deg);
+      transition: transform .2s ease;
+    }
+    .qf-reret-insight[open] > summary::after{ transform: rotate(0deg); }
+    .qf-reret-insight-body{
+      margin: 0;
+      padding: 0 12px 12px;
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--text-primary);
+      white-space: pre-wrap;
+    }
+    body.standalone .qf-reret-insight > summary{
+      font-size: 11px;
+      letter-spacing: 0.8px;
+    }
     .model-answer-collapsible{ margin-top: 10px; }
     .model-answer-collapsible .mac-toggle{
       display: flex;
@@ -14873,6 +14916,7 @@ input[type="range"]::-moz-range-thumb{
       root.innerHTML =
         '<div style="margin-top:14px;padding:18px 20px;border-radius:var(--radius-lg);border:1px solid rgba(var(--accent-rgb),0.18);background:rgba(var(--accent-rgb),0.04);">' +
           '<div style="font-size:9px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--accent);margin-bottom:10px;display:flex;align-items:center;gap:6px;">🔁 Re-test — try again from memory</div>' +
+          '<div id="qfReRetInsightWrap"></div>' +
           '<div style="font-size:13px;line-height:1.65;color:var(--text);margin-bottom:14px;">' + esc(data.followUpQuestion) + '</div>' +
           '<div style="display:flex;gap:8px;align-items:flex-end;">' +
             '<input id="qfReRetInput" type="text" placeholder="Type your answer..." style="flex:1;padding:12px 14px;border-radius:14px;border:1px solid rgba(var(--accent-rgb),0.18);background:rgba(var(--accent-rgb),0.04);color:var(--text);font-family:inherit;font-size:12px;outline:none;">' +
@@ -14905,11 +14949,26 @@ input[type="range"]::-moz-range-thumb{
       var input = document.getElementById('qfReRetInput');
       var sendBtn = document.getElementById('qfReRetSend');
       var skipBtn = document.getElementById('qfReRetSkip');
+      var insightWrap = document.getElementById('qfReRetInsightWrap');
       var reactionArea = document.getElementById('qfReRetReaction');
       var consolidation = document.getElementById('qfReRetConsolidation');
       var modelBody = document.getElementById('qfReRetModelBody');
       var finished = false;
       var spaceHandlerRef = null;
+
+      var insightText = data && typeof data.insight === 'string' ? data.insight.trim() : '';
+      if (insightWrap && insightText) {
+        var insightPanel = document.createElement('details');
+        insightPanel.className = 'qf-reret-insight';
+        var insightSummary = document.createElement('summary');
+        insightSummary.textContent = '💡 Tutor insight';
+        var insightBody = document.createElement('p');
+        insightBody.className = 'qf-reret-insight-body';
+        insightBody.textContent = insightText;
+        insightPanel.appendChild(insightSummary);
+        insightPanel.appendChild(insightBody);
+        insightWrap.appendChild(insightPanel);
+      }
 
       /* ═══ SECTION: Finish Flow | Functions: finishFlow ═══ */
       function finishFlow() {
@@ -14967,7 +15026,10 @@ input[type="range"]::-moz-range-thumb{
       function submitResponse() {
         if (!input || finished) return;
         var text = input.value.trim();
-        if (!text) return;
+        if (!text) {
+          skipToAnswer();
+          return;
+        }
 
         input.disabled = true;
         if (sendBtn) sendBtn.disabled = true;

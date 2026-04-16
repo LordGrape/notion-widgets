@@ -461,6 +461,9 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
         "\n\nQUICK FIRE RE-RETRIEVAL: The student cannot see the model answer yet. They just typed a short answer to a retrieval question after rating Again. " +
         "Compare their attempt to the model answer. Keep each JSON field (correct, missing, bridge) to 1–2 sentences max. " +
         "Do not paste the full model answer in your response — they will see it in a consolidation step next.\n\n" +
+        "FORMAT RULES (STRICT): Return ONLY the JSON object. No markdown, no code fences, no lead-in text. " +
+        "No greetings, no motivational preambles, and no restating the question in any field. " +
+        "If the student answer is empty, set correct exactly to \"No answer submitted.\" and place all substantive guidance in missing/bridge.\n\n" +
         "IMPORTANT — STUDENT QUESTIONS: If the student asks a question within their response (e.g., \"is that because of X?\" / \"why did Y happen?\"), " +
         "address it briefly in the \"bridge\" field. Acknowledge their thinking, answer the question in 1-2 sentences, then connect it back to the model answer. " +
         "Do NOT ignore student questions.\n";
@@ -716,7 +719,7 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
 
     const modeTokenLimits: Record<TutorMode, number> = {
       insight: 1024,
-      quick: 2048,
+      quick: 2560,
       acknowledge: 1024,
       socratic: 3072,
       teach: 3072,
@@ -767,7 +770,7 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
       }
       const retryPrompt =
         `${dynamicPrompt}\n\n` +
-        "Return ONLY a JSON object. No prose. No code fences.";
+        "Return ONLY a JSON object. No prose. No code fences. Keep each field value to at most 2 sentences.";
       const retryData = await callGemini(selectedModel, systemPromptFinal, retryPrompt, generationConfig, env);
       finishReason = getFinishReason(retryData);
       rawText = extractGeminiText(retryData);
