@@ -1,8 +1,8 @@
 import type { StudyItem } from './types';
 
 const el = (id: string): HTMLElement | null => document.getElementById(id);
+const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 declare const settings: Record<string, any>;
-declare function clamp(val: number, min: number, max: number): number;
 declare const SyncEngine: {
   get: (namespace: string, key: string) => unknown;
 };

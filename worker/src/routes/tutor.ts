@@ -156,7 +156,8 @@ export async function handleTutor(request: Request, env: Env): Promise<Response>
       "You evaluate reasoning quality, analytical structure, and evidence usage — not just factual accuracy. Multiple valid analytical approaches can exist.\n\n" +
       "When the student gets something wrong, you don't say \"incorrect.\" You ask a question that leads them to see the error themselves.\n\n" +
       "You keep turns concise: 3-5 sentences max. Never lecture. The student should be writing more than you.\n\n" +
-      "Tone: like a sharp TA who genuinely wants the student to succeed. Respect their intelligence. Challenge them.";
+      "Tone: like a sharp TA who genuinely wants the student to succeed. Respect their intelligence. Challenge them.\n\n" +
+      "CRITICAL: Return ONLY valid JSON. No markdown. No code fences. No preamble. Start with '{' and end with '}'.";
 
     const isRelearningPass = !!context.isRelearning;
 
@@ -662,10 +663,36 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
     );
 
     const rawText = extractGeminiText(geminiData);
-    const parsed = parseJsonResponse<unknown>(rawText);
+    
+    // Enhanced parsing: strip markdown fences and extract JSON
+    let cleanedText = rawText.trim();
+    
+    // Remove markdown code fences
+    if (cleanedText.startsWith('```json')) {
+      cleanedText = cleanedText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    } else if (cleanedText.startsWith('```')) {
+      cleanedText = cleanedText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
+    
+    // Extract JSON object if there's surrounding text
+    const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      cleanedText = jsonMatch[0];
+    }
+    
+    const parsed = parseJsonResponse<unknown>(cleanedText);
 
     if (!parsed || typeof parsed !== "object") {
-      return jsonResponse({ error: "Failed to parse tutor response", raw: rawText }, 500);
+      // Return a structured fallback instead of 500 error
+      const fallbackResponse = {
+        error: "Failed to parse tutor response",
+        raw: cleanedText.slice(0, 200), // First 200 chars for debugging
+        tutorMessage: "I'm having trouble processing your request. Please try again.",
+        followUpQuestion: null,
+        isComplete: true,
+        suggestedRating: 2
+      };
+      return jsonResponse(fallbackResponse, 200);
     }
 
     return jsonResponse(parsed, 200);

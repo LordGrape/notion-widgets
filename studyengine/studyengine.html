@@ -18842,6 +18842,15 @@ input[type="range"]::-moz-range-thumb{
 
     /* ═══ SECTION: Render Analytics | Functions: renderAnalytics ═══ */
     function renderAnalytics(courseFilter) {
+      // Defensive guard against null/undefined state
+      if (!state || !state.items) {
+        var analyticsHost = el('analyticsHost');
+        if (analyticsHost) {
+          analyticsHost.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-secondary);"><div style="font-size: 24px; margin-bottom: 8px;">📊</div><div style="font-weight: 500; margin-bottom: 4px;">No study data yet</div><div style="font-size: 12px;">Complete a study session to see your analytics</div></div>';
+        }
+        return;
+      }
+
       var items = {};
       for (var id in state.items) {
         if (!state.items.hasOwnProperty(id)) continue;
