@@ -464,6 +464,10 @@ export function rateCurrent(rating: Rating): void {
   if (hintElRate) hintElRate.remove();
 
   const tier = (it._presentTier || it.tier || 'quickfire') as TierId;
+  const normalizedTier = String(tier || '').toLowerCase().replace(/[\s_-]+/g, '');
+  const isQuickfireTier = normalizedTier === 'quickfire';
+  const itemSelfRateFlag = (it as any).self_rate === true || (it as any).selfRate === true;
+  const useQuickfireActiveAgain = isQuickfireTier && !itemSelfRateFlag && bridge.settings.feedbackMode !== 'self_rate';
   const mappedRating = rating;
 
   bridge.state.calibration.totalSelfRatings = (bridge.state.calibration.totalSelfRatings || 0) + 1;
@@ -555,7 +559,7 @@ export function rateCurrent(rating: Rating): void {
         bridge.startRelearningDialogue(it, nowTs);
         return;
       }
-      if (tier === 'quickfire' && bridge.settings.feedbackMode !== 'self_rate') {
+      if (useQuickfireActiveAgain) {
         session.loops[it.id] = session.loops[it.id] || 0;
         if (session.loops[it.id] >= 3) {
           bridge.toast('Review tomorrow');
@@ -578,7 +582,7 @@ export function rateCurrent(rating: Rating): void {
       bridge.beginPassiveRestudyFlow(it, nowTs);
     };
 
-    if (tier === 'quickfire' && bridge.settings.feedbackMode !== 'self_rate') {
+    if (useQuickfireActiveAgain) {
       bridge.runQuickFireFollowupMicro(it, proceedAfterAgain, { reRetrieval: true });
       return;
     }
@@ -586,7 +590,7 @@ export function rateCurrent(rating: Rating): void {
     return;
   }
 
-  if (tier === 'quickfire' && mappedRating === 2 && bridge.settings.feedbackMode !== 'self_rate') {
+  if (isQuickfireTier && mappedRating === 2 && bridge.settings.feedbackMode !== 'self_rate') {
     bridge.runQuickFireFollowupMicro(it, () => {
       if (againCount > 0 && mappedRating === 2) {
         const remainingItemsQ = session.queue.length - (session.idx + 1);
@@ -610,7 +614,7 @@ export function rateCurrent(rating: Rating): void {
     return;
   }
 
-  if (tier === 'quickfire' && bridge.settings.feedbackMode !== 'self_rate') {
+  if (isQuickfireTier && bridge.settings.feedbackMode !== 'self_rate') {
     const qfInsightArea = bridge.el('aiFeedbackArea');
     ratingsEl.style.display = 'none';
     const oldHint = document.querySelector('.override-hint');
