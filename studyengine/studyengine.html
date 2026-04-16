@@ -3767,6 +3767,82 @@ body.standalone .answer.restudy-active{
       color: var(--text-tertiary);
       max-width: 270px;
     }
+    #tabHome.dashboard-zero-mode > :not(#dashboardFirstCourseState){
+      display: none !important;
+    }
+    .dashboard-first-course-state{
+      position: relative;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 28px 16px 20px;
+      margin-top: 4px;
+      border-radius: 16px;
+      border: 1px solid rgba(var(--accent-rgb), 0.14);
+      background: linear-gradient(160deg, rgba(var(--accent-rgb),0.08), rgba(var(--accent-rgb),0.02));
+      overflow: hidden;
+      isolation: isolate;
+    }
+    .dashboard-first-course-state::before{
+      content: '';
+      position: absolute;
+      inset: -32% -16% auto -16%;
+      height: 220px;
+      background: radial-gradient(circle at 50% 20%, rgba(var(--accent-rgb),0.26), rgba(var(--accent-rgb),0));
+      pointer-events: none;
+      z-index: -1;
+    }
+    .dashboard-first-course-state .dfc-inner{
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 9px;
+    }
+    .dashboard-first-course-state .dfc-icon{
+      font-size: 48px;
+      line-height: 1;
+      filter: drop-shadow(0 8px 18px rgba(var(--accent-rgb),0.25));
+    }
+    .dashboard-first-course-state .dfc-title{
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+    .dashboard-first-course-state .dfc-subtitle{
+      max-width: 380px;
+      font-size: 11px;
+      line-height: 1.5;
+      color: var(--text-secondary);
+      opacity: 0.95;
+    }
+    .dashboard-first-course-state .dfc-cta{
+      width: 100%;
+      max-width: 320px;
+      margin-top: 4px;
+    }
+    .dashboard-first-course-state .dfc-hint{
+      font-size: 9px;
+      color: var(--text-tertiary);
+      letter-spacing: 0.2px;
+    }
+    body.standalone .dashboard-first-course-state{
+      min-height: 330px;
+      padding: 38px 24px 28px;
+      border-radius: 20px;
+    }
+    body.standalone .dashboard-first-course-state .dfc-title{
+      font-size: 18px;
+    }
+    body.standalone .dashboard-first-course-state .dfc-subtitle{
+      font-size: 12px;
+      max-width: 460px;
+    }
+    body.standalone .dashboard-first-course-state .dfc-hint{
+      font-size: 10px;
+    }
     .chart-empty{
       display: flex;
       flex-direction: column;
@@ -6716,6 +6792,15 @@ input[type="range"]::-moz-range-thumb{
         <div class="view active" id="viewDash">
           <!-- ── HOME TAB ── -->
           <div id="tabHome" class="tab-panel active">
+            <div id="dashboardFirstCourseState" class="dashboard-first-course-state" style="display:none;" aria-live="polite">
+              <div class="dfc-inner">
+                <div class="dfc-icon" aria-hidden="true">🎓</div>
+                <div class="dfc-title">Welcome to Study Engine</div>
+                <div class="dfc-subtitle">Create your first course to start building your spaced repetition library. Import cards, add lecture context, and let the AI tutor personalise your review sessions.</div>
+                <button class="big-btn dfc-cta" id="createFirstCourseBtn" type="button">✦ Create Your First Course</button>
+                <div class="dfc-hint">Or import a JSON card batch from the sidebar</div>
+              </div>
+            </div>
             <div class="dash-grid">
               <div class="hero-stat" id="heroStat">
                 <div class="hero-value" id="statDue">—</div>
@@ -8706,17 +8791,17 @@ input[type="range"]::-moz-range-thumb{
       }
 
       /* Empty state */
+      var homeTabEl = el('tabHome');
+      var welcomeStateEl = el('dashboardFirstCourseState');
       var emptyEl = el('emptyState');
       var heroEl = el('heroStat');
       if (totalItems === 0) {
-        emptyEl.style.display = 'block';
-        heroEl.style.display = 'none';
+        if (homeTabEl) homeTabEl.classList.add('dashboard-zero-mode');
+        if (welcomeStateEl) welcomeStateEl.style.display = 'flex';
+        emptyEl.style.display = 'none';
+        heroEl.style.display = 'block';
         el('startBtn').disabled = true;
         el('tierBreakdown').innerHTML = '';
-        if (document.body.classList.contains('standalone')) {
-          var emptyMiniActions = el('homeMiniActions');
-          if (emptyMiniActions) emptyEl.insertAdjacentElement('afterend', emptyMiniActions);
-        }
         var sleepBannerEmpty = el('sleepAdviceBanner');
         if (sleepBannerEmpty) {
           sleepBannerEmpty.className = 'break-banner';
@@ -8727,10 +8812,25 @@ input[type="range"]::-moz-range-thumb{
         el('calVal').textContent = '—';
         el('calSub').textContent = 'Add items to begin';
         setCalArc(0);
+        var firstCourseBtn = el('createFirstCourseBtn');
+        if (firstCourseBtn) {
+          firstCourseBtn.onclick = function() {
+            try { openCourseModal(); } catch (e) {}
+          };
+        }
+        if (welcomeStateEl && window.gsap) {
+          gsap.killTweensOf(welcomeStateEl);
+          gsap.fromTo(welcomeStateEl,
+            { opacity: 0, y: 10 },
+            { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }
+          );
+        }
         renderTutorAnalyticsDashboard();
         renderCourseCards();
         return;
       }
+      if (homeTabEl) homeTabEl.classList.remove('dashboard-zero-mode');
+      if (welcomeStateEl) welcomeStateEl.style.display = 'none';
       emptyEl.style.display = 'none';
       heroEl.style.display = 'block';
 
@@ -19309,6 +19409,9 @@ input[type="range"]::-moz-range-thumb{
               { opacity: 0, y: 8 },
               { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' }
             );
+          } else {
+            emptyStateEl.style.opacity = '1';
+            emptyStateEl.style.transform = 'translateY(0)';
           }
         } else {
           ctx.fillStyle = textSec;
@@ -19320,7 +19423,11 @@ input[type="range"]::-moz-range-thumb{
       }
 
       parent.style.display = '';
-      if (emptyStateEl) emptyStateEl.style.display = 'none';
+      if (emptyStateEl) {
+        emptyStateEl.style.display = 'none';
+        emptyStateEl.style.opacity = '';
+        emptyStateEl.style.transform = '';
+      }
 
       var days = 30;
       var pad = { top: 8, right: 12, bottom: 22, left: 32 };
