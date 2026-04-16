@@ -15257,8 +15257,6 @@ input[type="range"]::-moz-range-thumb{
     }
 
     Object.assign(globalThis.__studyEngineSessionFlow, {
-      state: state,
-      settings: settings,
       defaultTutorStats: defaultTutorStats,
       defaultTutorModeCounts: defaultTutorModeCounts,
       calibrationPct: calibrationPct,
@@ -15310,6 +15308,14 @@ input[type="range"]::-moz-range-thumb{
       launchConfetti: launchConfetti,
       SyncEngine: SyncEngine,
       el: el
+    });
+    Object.defineProperty(globalThis.__studyEngineSessionFlow, 'state', {
+      get: function() { return state; },
+      configurable: true
+    });
+    Object.defineProperty(globalThis.__studyEngineSessionFlow, 'settings', {
+      get: function() { return settings; },
+      configurable: true
     });
 
     /* ── Keyboard shortcuts ── */
