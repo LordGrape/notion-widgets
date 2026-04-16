@@ -1617,6 +1617,63 @@
     }
     .confirm-box .cb-leave:hover{ background: rgba(239,68,68,0.14); transform: translateY(-1px); }
 
+    .resume-banner{
+      position: fixed;
+      left: 50%;
+      bottom: 14px;
+      transform: translateX(-50%);
+      width: min(680px, calc(100vw - 24px));
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 12px;
+      border-radius: 16px;
+      border: 1px solid rgba(var(--accent-rgb),0.20);
+      background: var(--card-bg);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      box-shadow: var(--shadow-soft);
+      z-index: 90;
+    }
+    .resume-banner.show{ display: flex; }
+    .resume-banner .resume-copy{
+      flex: 1;
+      min-width: 0;
+      font-size: 10px;
+      line-height: 1.45;
+      color: var(--text-secondary);
+    }
+    .resume-banner .resume-copy strong{
+      display: block;
+      font-size: 11px;
+      color: var(--text);
+      margin-bottom: 2px;
+      letter-spacing: 0.3px;
+    }
+    .resume-banner .resume-actions{
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .resume-banner .resume-tertiary{
+      appearance: none;
+      border: 1px solid rgba(var(--accent-rgb),0.16);
+      background: rgba(var(--accent-rgb),0.04);
+      color: var(--text-secondary);
+      border-radius: 10px;
+      padding: 9px 10px;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .resume-banner .resume-tertiary:hover{ background: rgba(var(--accent-rgb),0.10); }
+
+    .resume-choice .cb-actions{ flex-direction: column; }
+    .resume-choice .cb-actions button{ width: 100%; }
+
     .item-card{
       padding: 14px;
       border-radius: var(--radius-lg);
@@ -7299,6 +7356,17 @@ input[type="range"]::-moz-range-thumb{
 
             <div class="break-banner" id="sleepAdviceBanner" style="margin-bottom:12px;"></div>
             <button class="big-btn" id="startBtn" disabled>Start Session</button>
+            <div class="resume-banner" id="resumeBanner" aria-live="polite">
+              <div class="resume-copy">
+                <strong id="resumeBannerTitle">Unfinished session</strong>
+                <span id="resumeBannerMeta">Continue where you left off.</span>
+              </div>
+              <div class="resume-actions">
+                <button class="big-btn" id="resumeBannerContinue" type="button" style="width:auto;min-width:120px;">Continue</button>
+                <button class="ghost-btn" id="resumeBannerStartNew" type="button" style="width:auto;min-width:110px;">Start new</button>
+                <button class="resume-tertiary" id="resumeBannerDismiss" type="button">Dismiss</button>
+              </div>
+            </div>
 
             <div class="mini-actions" id="homeMiniActions" style="margin-top: 12px;">
               <button class="ghost-btn" id="addBtn">Add Items</button>
@@ -7607,6 +7675,16 @@ input[type="range"]::-moz-range-thumb{
       <div class="cb-actions">
         <button class="cb-stay" id="confirmStay">Keep studying</button>
         <button class="cb-leave" id="confirmLeave">End session</button>
+      </div>
+    </div>
+  </div>
+  <div class="confirm-overlay" id="resumeChoiceOv">
+    <div class="confirm-box resume-choice">
+      <div class="cb-title">Unfinished session found</div>
+      <div class="cb-desc">You can continue your last queue from a clean checkpoint, or discard it and start fresh.</div>
+      <div class="cb-actions">
+        <button class="cb-stay" id="resumeChoiceContinue">Continue last session</button>
+        <button class="cb-leave" id="resumeChoiceStartNew">Start new session</button>
       </div>
     </div>
   </div>
@@ -8921,6 +8999,7 @@ input[type="range"]::-moz-range-thumb{
 
     var session = null;
     var sessionSummary = null;
+    var resumeSessionState = null;
 
     /* ═══ SECTION: Uid | Functions: uid ═══ */
     function uid() {
@@ -9005,6 +9084,165 @@ input[type="range"]::-moz-range-thumb{
       if (window.gsap) {
         gsap.fromTo(next, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' });
       }
+      if (nextId !== 'viewDash') setResumeBanner(false);
+    }
+
+    function formatAgo(ts) {
+      if (!ts || !isFinite(ts)) return 'just now';
+      var diff = Math.max(0, Date.now() - ts);
+      var mins = Math.floor(diff / 60000);
+      if (mins < 1) return 'just now';
+      if (mins < 60) return mins + 'm ago';
+      var hrs = Math.floor(mins / 60);
+      if (hrs < 24) return hrs + 'h ago';
+      var days = Math.floor(hrs / 24);
+      return days + 'd ago';
+    }
+
+    function clearResumeSession() {
+      resumeSessionState = null;
+      try {
+        if (typeof SyncEngine !== 'undefined' && SyncEngine.set) {
+          SyncEngine.set(NS, 'resumeSession', null);
+        }
+      } catch (e) {}
+    }
+
+    function readValidResumeSession() {
+      var payload = null;
+      try {
+        if (typeof SyncEngine !== 'undefined' && SyncEngine.get) {
+          payload = SyncEngine.get(NS, 'resumeSession') || null;
+        }
+      } catch (e) {
+        payload = null;
+      }
+      if (!payload || !Array.isArray(payload.queueIds) || !payload.queueIds.length || typeof payload.idx !== 'number') {
+        if (payload) clearResumeSession();
+        return null;
+      }
+      var idx = Math.floor(payload.idx);
+      if (idx < 0 || idx >= payload.queueIds.length) {
+        clearResumeSession();
+        return null;
+      }
+
+      var queue = [];
+      var validBeforeIdx = 0;
+      payload.queueIds.forEach(function(id, i) {
+        if (!id) return;
+        var it = state.items[id];
+        if (!it || it.archived) return;
+        queue.push(it);
+        if (i < idx) validBeforeIdx++;
+      });
+      if (!queue.length || validBeforeIdx < 0 || validBeforeIdx >= queue.length) {
+        clearResumeSession();
+        return null;
+      }
+      return {
+        startedAt: (typeof payload.startedAt === 'number' && isFinite(payload.startedAt)) ? payload.startedAt : Date.now(),
+        queue: queue,
+        idx: validBeforeIdx
+      };
+    }
+
+    function setResumeBanner(visible, data) {
+      var banner = el('resumeBanner');
+      if (!banner) return;
+      if (!visible || viewSession.classList.contains('active')) {
+        banner.classList.remove('show');
+        return;
+      }
+      var left = Math.max(0, data.queue.length - data.idx);
+      var t = el('resumeBannerTitle');
+      var m = el('resumeBannerMeta');
+      if (t) t.textContent = 'Unfinished session: ' + left + ' card' + (left === 1 ? '' : 's') + ' left';
+      if (m) m.textContent = 'Started ' + formatAgo(data.startedAt);
+      banner.classList.add('show');
+    }
+
+    function persistResumeFromCurrentSession() {
+      if (!session || !session.queue || !session.queue.length || session.idx >= session.queue.length) {
+        clearResumeSession();
+        return;
+      }
+      var queueIds = session.queue.map(function(it) { return it && it.id ? it.id : null; }).filter(Boolean);
+      if (!queueIds.length) {
+        clearResumeSession();
+        return;
+      }
+      var payload = {
+        startedAt: (typeof session.startedAt === 'number' && isFinite(session.startedAt)) ? session.startedAt : Date.now(),
+        queueIds: queueIds,
+        idx: Math.max(0, Math.min(session.idx, queueIds.length - 1))
+      };
+      resumeSessionState = {
+        startedAt: payload.startedAt,
+        queue: session.queue.slice(),
+        idx: payload.idx
+      };
+      try {
+        if (typeof SyncEngine !== 'undefined' && SyncEngine.set) {
+          SyncEngine.set(NS, 'resumeSession', payload);
+        }
+      } catch (e) {}
+    }
+
+    function closeResumeChoiceModal() {
+      var ov = el('resumeChoiceOv');
+      if (ov) ov.classList.remove('show');
+    }
+
+    function startNewSessionFlow() {
+      clearResumeSession();
+      closeResumeChoiceModal();
+      startSession();
+    }
+
+    function resumeSavedSession() {
+      var data = readValidResumeSession();
+      if (!data) {
+        clearResumeSession();
+        setResumeBanner(false);
+        closeResumeChoiceModal();
+        startSession();
+        return;
+      }
+      clearResumeSession();
+      closeResumeChoiceModal();
+      stopTTS();
+      cleanupAskTutor();
+      clearTimers();
+      session = {
+        queue: data.queue,
+        idx: data.idx,
+        loops: {},
+        currentShown: false,
+        startedAt: data.startedAt,
+        xp: 0,
+        reviewsByTier: { quickfire: 0, explain: 0, apply: 0, distinguish: 0, mock: 0, worked: 0 },
+        ratingSum: 0,
+        ratingN: 0,
+        calBefore: calibrationPct(state.calibration),
+        confidence: null,
+        recentRatings: [],
+        fatigueWarningShown: false,
+        tutorStats: defaultTutorStats(),
+        tutorModeCounts: defaultTutorModeCounts(),
+        sessionRatingsLog: [],
+        lastTutorContext: null,
+        tutorAnalyticsHistoryKey: 's' + Date.now()
+      };
+      sessionSummary = null;
+      breakState.sessionStartTime = Date.now();
+      breakState.lastBreakTime = 0;
+      breakState.breaksTaken = 0;
+      breakState.bannerDismissed = false;
+      showView('viewSession');
+      try { playStart(); } catch (e) {}
+      renderCurrentItem();
+      setResumeBanner(false);
     }
 
     /* ═══ SECTION: Count Due | Functions: countDue ═══ */
@@ -9221,6 +9459,7 @@ input[type="range"]::-moz-range-thumb{
     /* ═══ SECTION: Render Dashboard | Functions: renderDashboard ═══ */
     function renderDashboard() {
       ensureStandaloneDashboardLayout();
+      resumeSessionState = readValidResumeSession();
       var due = countDue(state.items, 'All', 'All');
       var totalItems = 0;
       for (var _id in state.items) {
@@ -9290,6 +9529,7 @@ input[type="range"]::-moz-range-thumb{
         }
         renderTutorAnalyticsDashboard();
         renderCourseCards();
+        setResumeBanner(false);
         return;
       }
       if (homeTabEl) homeTabEl.classList.remove('dashboard-zero-mode');
@@ -9408,6 +9648,7 @@ input[type="range"]::-moz-range-thumb{
 
       /* Render course cards for Courses tab */
       renderCourseCards();
+      setResumeBanner(!!resumeSessionState, resumeSessionState);
     }
 
     /* ═══ SECTION: Render Course Cards | Functions: renderCourseCards ═══ */
@@ -15342,10 +15583,11 @@ input[type="range"]::-moz-range-thumb{
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') {
         /* Close modals first */
-        var hadModal = modalSystem.getModalOvEl().classList.contains('show') || settingsOv.classList.contains('show') || courseOv.classList.contains('show') || el('confirmExitOv').classList.contains('show') || el('confirmDeleteCourseOv').classList.contains('show');
+        var hadModal = modalSystem.getModalOvEl().classList.contains('show') || settingsOv.classList.contains('show') || courseOv.classList.contains('show') || el('confirmExitOv').classList.contains('show') || el('confirmDeleteCourseOv').classList.contains('show') || el('resumeChoiceOv').classList.contains('show');
         closeModals();
         el('confirmExitOv').classList.remove('show');
         el('confirmDeleteCourseOv').classList.remove('show');
+        closeResumeChoiceModal();
         if (hadModal) return;
 
         /* If in session, show confirmation instead of exiting immediately */
@@ -15416,7 +15658,14 @@ input[type="range"]::-moz-range-thumb{
     el('startBtn').addEventListener('click', function(){
       selectedCourse = 'All';
       selectedTopic = 'All';
-      startSession();
+      var pending = readValidResumeSession();
+      if (pending) {
+        resumeSessionState = pending;
+        var choiceOv = el('resumeChoiceOv');
+        if (choiceOv) choiceOv.classList.add('show');
+        return;
+      }
+      startNewSessionFlow();
     });
     el('backBtn').addEventListener('click', function(){
       if (viewSession.classList.contains('active') && session) {
@@ -15490,6 +15739,7 @@ input[type="range"]::-moz-range-thumb{
       try { playClose(); } catch(e) {}
       if (session) {
         finalizeTutorAnalyticsSession();
+        persistResumeFromCurrentSession();
       }
       /* Save progress for items already reviewed */
       saveState();
@@ -15498,6 +15748,33 @@ input[type="range"]::-moz-range-thumb{
       clearTimers();
       showView('viewDash');
       renderDashboard();
+    });
+
+    if (el('resumeBannerContinue')) el('resumeBannerContinue').addEventListener('click', function() {
+      resumeSavedSession();
+    });
+    if (el('resumeBannerStartNew')) el('resumeBannerStartNew').addEventListener('click', function() {
+      selectedCourse = 'All';
+      selectedTopic = 'All';
+      startNewSessionFlow();
+      setResumeBanner(false);
+    });
+    if (el('resumeBannerDismiss')) el('resumeBannerDismiss').addEventListener('click', function() {
+      clearResumeSession();
+      setResumeBanner(false);
+    });
+    if (el('resumeChoiceContinue')) el('resumeChoiceContinue').addEventListener('click', function() {
+      selectedCourse = 'All';
+      selectedTopic = 'All';
+      resumeSavedSession();
+    });
+    if (el('resumeChoiceStartNew')) el('resumeChoiceStartNew').addEventListener('click', function() {
+      selectedCourse = 'All';
+      selectedTopic = 'All';
+      startNewSessionFlow();
+    });
+    if (el('resumeChoiceOv')) el('resumeChoiceOv').addEventListener('click', function(e) {
+      if (e.target === el('resumeChoiceOv')) closeResumeChoiceModal();
     });
 
     el('confirmExitOv').addEventListener('click', function(e) {
