@@ -667,15 +667,11 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
     // Enhanced parsing: strip markdown fences and extract JSON
     let cleanedText = rawText.trim();
     
-    // Remove markdown code fences
-    if (cleanedText.startsWith('```json')) {
-      cleanedText = cleanedText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-    } else if (cleanedText.startsWith('```')) {
-      cleanedText = cleanedText.replace(/^```\s*/, '').replace(/\s*```$/, '');
-    }
+    // Remove all markdown code fences (any language)
+    cleanedText = cleanedText.replace(/```[a-zA-Z]*\n?/g, '').replace(/```/g, '');
     
-    // Extract JSON object if there's surrounding text
-    const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
+    // Extract the first JSON object or array
+    const jsonMatch = cleanedText.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
     if (jsonMatch) {
       cleanedText = jsonMatch[0];
     }
@@ -683,15 +679,33 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
     const parsed = parseJsonResponse<unknown>(cleanedText);
 
     if (!parsed || typeof parsed !== "object") {
-      // Return a structured fallback instead of 500 error
-      const fallbackResponse = {
+      // Return a structured fallback that works for all tutor modes
+      const fallbackResponse: any = {
         error: "Failed to parse tutor response",
-        raw: cleanedText.slice(0, 200), // First 200 chars for debugging
-        tutorMessage: "I'm having trouble processing your request. Please try again.",
-        followUpQuestion: null,
-        isComplete: true,
-        suggestedRating: 2
+        raw: cleanedText.slice(0, 200) // First 200 chars for debugging
       };
+      
+      // Add mode-specific fallback fields
+      if (mode === "socratic" || mode === "teach" || mode === "freeform") {
+        fallbackResponse.tutorMessage = "I'm having trouble processing your request. Please try again.";
+        fallbackResponse.followUpQuestion = null;
+        fallbackResponse.isComplete = true;
+        fallbackResponse.suggestedRating = 2;
+      } else if (mode === "quick") {
+        fallbackResponse.correct = "I couldn't process your response.";
+        fallbackResponse.missing = "Please try again.";
+        fallbackResponse.bridge = "Let's attempt this once more.";
+        fallbackResponse.suggestedRating = 2;
+      } else if (mode === "insight") {
+        fallbackResponse.insight = "I'm having trouble generating an insight right now.";
+        fallbackResponse.followUpQuestion = null;
+        fallbackResponse.followUpAnswer = null;
+      } else if (mode === "acknowledge") {
+        fallbackResponse.acknowledgment = "I couldn't process your response properly.";
+        fallbackResponse.extensionQuestion = null;
+        fallbackResponse.isComplete = true;
+      }
+      
       return jsonResponse(fallbackResponse, 200);
     }
 
