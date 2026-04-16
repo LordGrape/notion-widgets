@@ -2,7 +2,6 @@ import type { StudyItem } from './types';
 
 const el = (id: string): HTMLElement | null => document.getElementById(id);
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
-declare const settings: Record<string, any>;
 declare const SyncEngine: {
   get: (namespace: string, key: string) => unknown;
 };
@@ -39,9 +38,14 @@ interface RetentionGraphSnapshot {
   days: number;
   itemCount: number;
   label: string;
+  chartSettings: RetentionChartSettings;
   lastItemsByFilter: Record<string, StudyItem>;
   lastLabelPrefix: string;
   baseImage?: ImageData;
+}
+
+export interface RetentionChartSettings {
+  desiredRetention: number;
 }
 
 interface SessionHistoryRow {
@@ -92,7 +96,12 @@ export function getTextColor(): string {
   return getComputedStyle(document.documentElement).getPropertyValue('--text').trim() || '#1a1a2e';
 }
 
-export function drawRetentionCurve(canvasId: string, itemsByFilter: Record<string, StudyItem>, labelPrefix: string): void {
+export function drawRetentionCurve(
+  canvasId: string,
+  itemsByFilter: Record<string, StudyItem>,
+  labelPrefix: string,
+  chartSettings: RetentionChartSettings,
+): void {
   const parent = el(canvasId) as HTMLCanvasElement | null;
   if (!parent) return;
   const rect = parent.parentElement;
@@ -179,6 +188,7 @@ export function drawRetentionCurve(canvasId: string, itemsByFilter: Record<strin
     days,
     itemCount: items.length,
     label: labelPrefix || 'All courses',
+    chartSettings,
     lastItemsByFilter: itemsByFilter,
     lastLabelPrefix: labelPrefix || 'All courses',
   };
@@ -251,7 +261,7 @@ export function drawRetentionCurve(canvasId: string, itemsByFilter: Record<strin
   ctx.textBaseline = 'bottom';
   ctx.fillText(`${Math.round(points[0].retention * 100)}% today`, points[0].x + 8, points[0].y - 2);
 
-  const dr = settings.desiredRetention || 0.9;
+  const dr = clamp(chartSettings.desiredRetention, 0, 1);
   const drY = pad.top + gh - dr * gh;
   ctx.setLineDash([3, 3]);
   ctx.strokeStyle = `rgba(${rgb},0.25)`;
@@ -355,7 +365,7 @@ export function drawRetentionHighlight(canvasId: string, idx: number): void {
 export function redrawRetentionBase(canvasId: string): void {
   const data = retentionGraphData[canvasId];
   if (!data) return;
-  drawRetentionCurve(canvasId, data.lastItemsByFilter || {}, data.lastLabelPrefix || '');
+  drawRetentionCurve(canvasId, data.lastItemsByFilter || {}, data.lastLabelPrefix || '', data.chartSettings);
 }
 
 export function handleRetentionHover(canvasId: string, clientX: number, clientY: number): void {

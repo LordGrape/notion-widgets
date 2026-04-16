@@ -18818,6 +18818,12 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* ═══ SECTION: Render Retention Graph | Functions: renderRetentionGraph ═══ */
+    function getRetentionChartSettings() {
+      var desired = (settings && typeof settings.desiredRetention === 'number') ? settings.desiredRetention : 0.9;
+      if (!Number.isFinite(desired)) desired = 0.9;
+      return { desiredRetention: desired };
+    }
+
     function renderRetentionGraph() {
       var items = {};
       var filterCourse = retentionFilter || 'All';
@@ -18837,7 +18843,7 @@ input[type="range"]::-moz-range-thumb{
         canvas.height = 200;
         retentionWrap.appendChild(canvas);
       }
-      drawRetentionCurve('retentionCanvas', items, label);
+      drawRetentionCurve('retentionCanvas', items, label, getRetentionChartSettings());
     }
 
     /* ═══ SECTION: Render Analytics | Functions: renderAnalytics ═══ */
@@ -19474,7 +19480,7 @@ input[type="range"]::-moz-range-thumb{
         drawCourseRatingHistory('cdaRatingCanvas', courseName);
         drawStabilityDistribution('cdaStabilityCanvas', courseItems);
         drawTierAccuracy('cdaTierAccCanvas', courseName);
-        drawRetentionCurve('cdaRetForecastCanvas', courseItems, c.name);
+        drawRetentionCurve('cdaRetForecastCanvas', courseItems, c.name, getRetentionChartSettings());
         wireRetentionInteractivity('cdaRetForecastCanvas');
       }, 60);
 
