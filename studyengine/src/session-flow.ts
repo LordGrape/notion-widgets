@@ -52,6 +52,11 @@ interface SessionFlowBridge {
   runQuickFireFollowupMicro: (it: StudyItem, done: () => void, opts?: { reRetrieval?: boolean }) => void;
   mountQuickFireReRetrieval: (it: StudyItem, data: any, done: () => void) => void;
   mountQuickFireFollowup: (it: StudyItem, data: any, done: () => void) => void;
+  revealAnswer: (fromCheck?: boolean) => void;
+  rubricTemplate: (tier: TierId) => string;
+  bindRubric: (tier: TierId) => void;
+  rubricToFsrsRating: () => Rating;
+  beginDontKnowFlow: (it: StudyItem, tier?: TierId) => void;
   startRelearningDialogue: (it: StudyItem, nowTs: number) => void;
   beginPassiveRestudyFlow: (it: StudyItem, nowTs: number) => void;
   ensureFsrs: (it: StudyItem) => void;
@@ -662,6 +667,12 @@ export function rateCurrent(rating: Rating): void {
     bridge.callTutor('insight', qfModelPost, it, '', [], qfCtxPost).then((insData) => {
       if (!qfInsightArea || !insData || insData.error || (!insData.insight && !insData.followUpQuestion)) {
         scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount);
+        return;
+      }
+      if (insData.followUpQuestion && typeof bridge.mountQuickFireFollowup === 'function') {
+        bridge.mountQuickFireFollowup(it, insData, () => {
+          scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount);
+        });
         return;
       }
       bridge.buildInsightUI(qfInsightArea, insData, () => {
