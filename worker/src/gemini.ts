@@ -7,8 +7,14 @@ export interface GeminiGenerationConfig {
   topK?: number;
   maxOutputTokens?: number;
   responseMimeType?: string;
-  [key: string]: string | number | boolean | null | undefined;
+  responseSchema?: GeminiJsonValue;
+  [key: string]: GeminiJsonValue | undefined;
 }
+
+export type GeminiJsonPrimitive = string | number | boolean | null;
+export type GeminiJsonObject = { [key: string]: GeminiJsonValue };
+export type GeminiJsonArray = GeminiJsonValue[];
+export type GeminiJsonValue = GeminiJsonPrimitive | GeminiJsonObject | GeminiJsonArray;
 
 export interface GeminiPart {
   thought?: boolean;

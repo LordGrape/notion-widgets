@@ -1,5 +1,6 @@
 import { getCorsHeaders } from "../cors";
 import { callGemini, extractGeminiText } from "../gemini";
+import type { GeminiJsonValue } from "../gemini";
 import type { Env, TutorMode, TutorRequest } from "../types";
 import { daysUntilExam } from "../utils/helpers";
 
@@ -526,7 +527,7 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
 }`
     };
 
-    const responseSchemaObjects: Record<TutorMode, unknown> = {
+    const responseSchemaObjects: Record<TutorMode, GeminiJsonValue> = {
       socratic: {
         type: "object",
         properties: {
@@ -744,7 +745,7 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
       maxOutputTokens: maxOut,
       responseMimeType: "application/json",
       responseSchema: responseSchemaObjects[mode] || responseSchemaObjects.socratic
-    } as any;
+    };
 
     const geminiData = await callGemini(selectedModel, systemPromptFinal, dynamicPrompt, generationConfig, env);
     let rawText = extractGeminiText(geminiData);
@@ -771,7 +772,7 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
       }
     }
 
-    if (!parsed || typeof parsed !== "object") {
+    if (!parsed || typeof parsed !== "object" || Object.keys(parsed).length === 0) {
       return jsonResponse({ error: "tutor_parse_failed", rawPreview: rawText.slice(0, 500) }, 502);
     }
 

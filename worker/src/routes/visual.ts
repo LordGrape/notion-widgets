@@ -2,6 +2,7 @@ import { getCorsHeaders } from "../cors";
 import { callGemini, extractGeminiText } from "../gemini";
 import type { Env, VisualRequest, VisualResponse } from "../types";
 import { hashString } from "../utils/helpers";
+import { parseJsonResponse } from "../utils/json";
 
 const VISUAL_CORS_HEADERS = {
   ...getCorsHeaders(),
@@ -114,7 +115,7 @@ graph LR
         "gemini-2.5-flash",
         "You generate minimal Mermaid.js diagrams for study cards. Output ONLY valid Mermaid markup. graph TD or graph LR only. Target 5-7 nodes max 8. Short real-term labels. No code fences, no prose, no explanation.",
         visualPrompt,
-        { temperature: 0.3, maxOutputTokens: 1024 },
+        { temperature: 0.3, maxOutputTokens: 1024, responseMimeType: "application/json" },
         env
       );
       const cand = data?.candidates?.[0];
@@ -123,6 +124,17 @@ graph LR
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       return jsonResponse({ error: "Gemini API error", detail }, 502);
+    }
+
+    const parsedVisualJson = parseJsonResponse<{ visual?: unknown } | string>(visual);
+    if (typeof parsedVisualJson === "string") {
+      visual = parsedVisualJson;
+    } else if (
+      parsedVisualJson &&
+      typeof parsedVisualJson === "object" &&
+      typeof parsedVisualJson.visual === "string"
+    ) {
+      visual = parsedVisualJson.visual;
     }
 
     visual = visual.replace(/^```mermaid\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/i, "").trim();
