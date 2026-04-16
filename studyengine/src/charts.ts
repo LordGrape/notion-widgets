@@ -2,13 +2,13 @@ import type { StudyItem } from './types';
 
 const el = (id: string): HTMLElement | null => document.getElementById(id);
 declare const settings: Record<string, any>;
-declare function retrievability(fsrs: any, timestamp: number): number;
 declare function clamp(val: number, min: number, max: number): number;
 declare const SyncEngine: {
   get: (namespace: string, key: string) => unknown;
 };
 declare const __studyEngineSessionFlow: {
   state?: Record<string, any>;
+  retrievability?: (fsrs: any, timestamp: number) => number;
 } | undefined;
 declare const gsap: {
   fromTo: (target: unknown, fromVars: Record<string, unknown>, toVars: Record<string, unknown>) => void;
@@ -108,6 +108,8 @@ export function drawRetentionCurve(canvasId: string, itemsByFilter: Record<strin
   const textCol = getTextColor();
 
   const now = Date.now();
+  const bridgeRetrievability = __studyEngineSessionFlow?.retrievability;
+  if (typeof bridgeRetrievability !== 'function') return;
   const items: StudyItem[] = [];
   for (const id in itemsByFilter) {
     if (!Object.prototype.hasOwnProperty.call(itemsByFilter, id)) continue;
@@ -159,7 +161,7 @@ export function drawRetentionCurve(canvasId: string, itemsByFilter: Record<strin
     const futureTs = now + d * 24 * 60 * 60 * 1000;
     let sum = 0;
     items.forEach((it) => {
-      sum += retrievability(it.fsrs, futureTs);
+      sum += bridgeRetrievability(it.fsrs, futureTs);
     });
     const avg = sum / items.length;
     const x = pad.left + (d / days) * gw;
