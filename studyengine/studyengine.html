@@ -6455,9 +6455,58 @@ input[type="range"]::-moz-range-thumb{
       pointer-events: auto;
     }
     .xp-popover .rank-header { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+    .xp-popover .rank-header-copy { display:flex; flex-direction:column; gap:4px; min-width:0; }
+    .xp-popover .rank-name-row { display:flex; align-items:center; gap:6px; position:relative; }
     .xp-popover .rank-icon { font-size: 36px; line-height: 1; }
     .xp-popover .rank-name { font-size: 16px; font-weight: 600; color: var(--text-primary, var(--text)); }
     .xp-popover .rank-level { font-size: 12px; color: var(--text-secondary); }
+    .xp-popover .xp-info-trigger {
+      border: 1px solid var(--border-subtle);
+      background: var(--surface-2);
+      color: var(--text-tertiary);
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      font-size: 10px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .xp-popover .xp-info-tooltip {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      z-index: 10000;
+      width: 240px;
+      padding: 12px;
+      background: var(--surface-2);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-md);
+      font-size: 10px;
+      line-height: 1.5;
+      color: var(--text-secondary);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      white-space: normal;
+    }
+    .xp-popover .xp-info-tooltip.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .xp-popover .xp-info-tooltip ul {
+      margin: 6px 0 0 14px;
+      padding: 0;
+    }
+    .xp-popover .xp-info-tooltip li {
+      margin-bottom: 3px;
+    }
     .xp-popover .next-rank { font-size: 11px; color: var(--text-secondary); margin-top: 6px; }
     .xp-popover .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:14px 0; }
     .xp-popover .stat-card { background: var(--surface-2, rgba(var(--accent-rgb),0.06)); border-radius: 12px; padding: 10px; text-align: center; }
@@ -6474,12 +6523,11 @@ input[type="range"]::-moz-range-thumb{
     .xp-popover .tod-bar-fill { height:100%; border-radius:3px; background: var(--accent-primary); width: 0%; }
     .xp-popover .tod-bar-fill.best { background: var(--rate-good); }
     .xp-popover .tod-avg { width:28px; text-align:right; font-weight:600; font-size:11px; color: var(--text-secondary); }
-    .xp-popover .xp-guide-toggle { font-size:11px; color:var(--text-tertiary); cursor:pointer; margin-top:14px; border:none; background:none; padding:0; text-decoration:underline; }
-    .xp-popover .xp-guide-content { font-size:11px; color:var(--text-secondary); margin-top:6px; line-height:1.5; display:none; }
-    .xp-popover .xp-guide-content.open { display:block; }
-
     @media (max-width: 480px) {
       .xp-popover { width: calc(100vw - 20px); left: 10px !important; right: 10px !important; }
+      .xp-popover .xp-info-tooltip {
+        width: min(240px, calc(100vw - 60px));
+      }
     }
 
     @media (max-width: 1100px) {
@@ -9138,15 +9186,13 @@ input[type="range"]::-moz-range-thumb{
         var importCardsBtn = el('dashboardImportCardsBtn');
         if (importCardsBtn) {
           importCardsBtn.onclick = function() {
-            var importBtn = el('importBtn');
-            if (importBtn) importBtn.click();
+            openModal('import');
           };
         }
         var addCardBtn = el('dashboardAddCardBtn');
         if (addCardBtn) {
           addCardBtn.onclick = function() {
-            var addBtn = el('addBtn');
-            if (addBtn) addBtn.click();
+            openModal('add');
           };
         }
         var zeroStateEl = (totalCourses === 0) ? welcomeStateEl : courseReadyStateEl;
@@ -17833,10 +17879,9 @@ input[type="range"]::-moz-range-thumb{
 
     var xpPopoverOpen = false;
     var xpPopoverAnchor = null;
-
-    function getXPGuideHTML() {
-      return 'Base XP starts at 10 and scales by tier: Quickfire ×1, Explain ×2, Apply/Distinguish ×3, Mock ×4, Worked ×2.5. New cards get a flat bonus (10 × tier). Reviewed cards scale by difficulty and interval, with rating 2 reduced and rating 1 giving 0 XP.';
-    }
+    var xpOutsideClickBound = false;
+    var xpEscBound = false;
+    var xpInfoHideTimer = null;
 
     function getOrCreateXPPopover() {
       var pop = document.getElementById('xpPopover');
@@ -17855,12 +17900,7 @@ input[type="range"]::-moz-range-thumb{
       if (window.innerWidth < 320) width = Math.max(220, window.innerWidth - 20);
       popover.style.width = width + 'px';
       var top = rect.bottom + 8;
-      var left;
-      if (isEmbedded) {
-        left = rect.left;
-      } else {
-        left = rect.right - width;
-      }
+      var left = rect.right - width;
       if (left + width > window.innerWidth - 10) left = window.innerWidth - width - 10;
       if (left < 10) left = 10;
       popover.style.top = top + 'px';
@@ -17905,8 +17945,23 @@ input[type="range"]::-moz-range-thumb{
       pop.innerHTML = '' +
         '<div class="rank-header">' +
           '<div class="rank-icon">' + data.rankIcon + '</div>' +
-          '<div>' +
-            '<div class="rank-name">' + esc(data.rank) + '</div>' +
+          '<div class="rank-header-copy">' +
+            '<div class="rank-name-row">' +
+              '<div class="rank-name">' + esc(data.rank) + '</div>' +
+              '<button class="xp-info-trigger" id="xpInfoTrigger" type="button" aria-label="How XP works" aria-expanded="false">ⓘ</button>' +
+              '<div class="xp-info-tooltip" id="xpInfoTooltip" role="tooltip">' +
+                '<div><strong>XP is earned per card review</strong>:</div>' +
+                '<ul>' +
+                  '<li>Again (1): 0 XP</li>' +
+                  '<li>Hard (2): 20% reduced XP (minimum 4)</li>' +
+                  '<li>Good (3): base XP</li>' +
+                  '<li>Easy (4): base XP</li>' +
+                '</ul>' +
+                '<div style="margin-top:6px;"><strong>Tier multipliers</strong>:</div>' +
+                '<div>Quickfire ×1, Explain ×2, Apply ×3, Distinguish ×3, Mock ×4, Worked ×2.5</div>' +
+                '<div style="margin-top:6px;">New cards: flat 10 × tier multiplier. Reviews: scaled by difficulty and interval.</div>' +
+              '</div>' +
+            '</div>' +
             '<div class="rank-level">Level ' + data.level + '</div>' +
           '</div>' +
         '</div>' +
@@ -17921,16 +17976,38 @@ input[type="range"]::-moz-range-thumb{
         '<div style="font-size:12px;color:var(--text-secondary);">' + data.dailyXP + ' / ' + data.dailyGoal + ' XP today</div>' +
         '<div class="daily-bar"><div class="daily-fill" style="width:' + data.dailyProgressPct.toFixed(1) + '%"></div></div>' +
         goalLine +
-        '<div class="tod-section">' + todHtml + '</div>' +
-        '<button class="xp-guide-toggle" id="xpGuideToggle" type="button">How XP works</button>' +
-        '<div class="xp-guide-content" id="xpGuideContent">' + esc(getXPGuideHTML()) + '</div>';
+        '<div class="tod-section">' + todHtml + '</div>';
 
       positionXPPopover(anchor, pop);
-      var guideToggle = pop.querySelector('#xpGuideToggle');
-      var guideContent = pop.querySelector('#xpGuideContent');
-      if (guideToggle && guideContent) {
-        guideToggle.addEventListener('click', function() {
-          guideContent.classList.toggle('open');
+      var infoTrigger = pop.querySelector('#xpInfoTrigger');
+      var infoTooltip = pop.querySelector('#xpInfoTooltip');
+      if (infoTrigger && infoTooltip) {
+        var showInfoTooltip = function() {
+          if (xpInfoHideTimer) {
+            clearTimeout(xpInfoHideTimer);
+            xpInfoHideTimer = null;
+          }
+          infoTooltip.classList.add('show');
+          infoTrigger.setAttribute('aria-expanded', 'true');
+        };
+        var hideInfoTooltip = function(withDelay) {
+          var delay = withDelay ? 200 : 0;
+          if (xpInfoHideTimer) clearTimeout(xpInfoHideTimer);
+          xpInfoHideTimer = setTimeout(function() {
+            infoTooltip.classList.remove('show');
+            infoTrigger.setAttribute('aria-expanded', 'false');
+            xpInfoHideTimer = null;
+          }, delay);
+        };
+        infoTrigger.addEventListener('mouseenter', showInfoTooltip);
+        infoTrigger.addEventListener('focus', showInfoTooltip);
+        infoTrigger.addEventListener('mouseleave', function() { hideInfoTooltip(true); });
+        infoTrigger.addEventListener('blur', function() { hideInfoTooltip(false); });
+        infoTrigger.addEventListener('click', function(ev) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          if (infoTooltip.classList.contains('show')) hideInfoTooltip(false);
+          else showInfoTooltip();
         });
       }
 
@@ -17955,13 +18032,43 @@ input[type="range"]::-moz-range-thumb{
       if (pop) {
         pop.classList.remove('visible');
       }
+      if (xpOutsideClickBound) {
+        document.removeEventListener('click', handleXPPopoverOutsideClick);
+        xpOutsideClickBound = false;
+      }
+      if (xpEscBound) {
+        document.removeEventListener('keydown', handleXPPopoverEsc);
+        xpEscBound = false;
+      }
+      if (xpInfoHideTimer) {
+        clearTimeout(xpInfoHideTimer);
+        xpInfoHideTimer = null;
+      }
       xpPopoverOpen = false;
       xpPopoverAnchor = null;
     }
 
+    function handleXPPopoverOutsideClick(ev) {
+      if (!xpPopoverOpen) return;
+      var pop = document.getElementById('xpPopover');
+      if (!pop) return;
+      if (pop.contains(ev.target)) return;
+      var widgets = [el('xpBarWidget'), el('mainXpBarWidget')].filter(Boolean);
+      for (var i = 0; i < widgets.length; i++) {
+        if (widgets[i].contains(ev.target)) return;
+      }
+      closeXPPopover();
+    }
+
+    function handleXPPopoverEsc(ev) {
+      if (ev.key === 'Escape' && xpPopoverOpen) {
+        closeXPPopover();
+      }
+    }
+
     function toggleXPPopover(anchor) {
       var pop = getOrCreateXPPopover();
-      if (xpPopoverOpen && xpPopoverAnchor === anchor) {
+      if (xpPopoverOpen && xpPopoverAnchor && xpPopoverAnchor === anchor) {
         closeXPPopover();
         return;
       }
@@ -17969,6 +18076,16 @@ input[type="range"]::-moz-range-thumb{
       renderXPPopover(anchor);
       pop.classList.add('visible');
       xpPopoverOpen = true;
+      if (!xpOutsideClickBound) {
+        xpOutsideClickBound = true;
+        setTimeout(function() {
+          document.addEventListener('click', handleXPPopoverOutsideClick);
+        }, 0);
+      }
+      if (!xpEscBound) {
+        xpEscBound = true;
+        document.addEventListener('keydown', handleXPPopoverEsc);
+      }
     }
 
     function wireXPPopover() {
@@ -17978,22 +18095,14 @@ input[type="range"]::-moz-range-thumb{
         widget.setAttribute('tabindex', '0');
         widget.addEventListener('click', function(ev) {
           ev.stopPropagation();
-          toggleXPPopover(widget);
+          toggleXPPopover(this);
         });
         widget.addEventListener('keydown', function(ev) {
           if (ev.key === 'Enter' || ev.key === ' ') {
             ev.preventDefault();
-            toggleXPPopover(widget);
+            toggleXPPopover(this);
           }
         });
-      });
-
-      document.addEventListener('click', function(ev) {
-        var pop = document.getElementById('xpPopover');
-        if (!xpPopoverOpen || !pop) return;
-        if (pop.contains(ev.target)) return;
-        if (xpPopoverAnchor && xpPopoverAnchor.contains(ev.target)) return;
-        closeXPPopover();
       });
 
       window.addEventListener('resize', function() {
