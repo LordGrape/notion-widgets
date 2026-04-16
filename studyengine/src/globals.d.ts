@@ -61,6 +61,12 @@ declare const Core: {
 
 declare const gsap: any;
 declare const ScrollTrigger: any;
+declare const SplitText:
+  | (new (target: Element, options?: { type?: string; charsClass?: string }) => {
+      chars: Element[];
+      revert?: () => void;
+    })
+  | undefined;
 
 declare const marked: { parse(md: string): string };
 declare const DOMPurify: { sanitize(html: string): string };
@@ -116,6 +122,12 @@ declare global {
     courses?: Record<string, Course>;
     calibration?: CalibrationData;
     fsrsState?: FSRSState;
+    SplitText?: typeof SplitText;
+    gsap?: {
+      to: (...args: unknown[]) => unknown;
+      fromTo: (...args: unknown[]) => unknown;
+      timeline: (...args: unknown[]) => { fromTo: (...timelineArgs: unknown[]) => unknown };
+    };
   }
 }
 
