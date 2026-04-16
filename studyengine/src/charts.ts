@@ -69,7 +69,12 @@ const retentionGraphData: Record<string, RetentionGraphSnapshot | null> = {};
 /* Wire canvas mouse/touch events for retention graphs */
 const wiredRetentionCanvases: Record<string, boolean> = {};
 
-export function getCanvasCtx(canvasId: string, w: number, h: number): CanvasContextResult | null {
+export function getCanvasCtx(
+  canvasId: string,
+  w: number,
+  h: number,
+  willReadFrequently = false,
+): CanvasContextResult | null {
   const c = el(canvasId) as HTMLCanvasElement | null;
   if (!c) return null;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -77,7 +82,7 @@ export function getCanvasCtx(canvasId: string, w: number, h: number): CanvasCont
   c.height = h * dpr;
   c.style.width = `${w}px`;
   c.style.height = `${h}px`;
-  const ctx = c.getContext('2d');
+  const ctx = c.getContext('2d', willReadFrequently ? { willReadFrequently: true } : undefined);
   if (!ctx) return null;
   ctx.scale(dpr, dpr);
   return { ctx, w, h };
@@ -109,7 +114,7 @@ export function drawRetentionCurve(
   pw = Math.max(200, pw);
   const ph = window.matchMedia('(max-width: 479px)').matches ? 160 : 185;
 
-  const r = getCanvasCtx(canvasId, pw, ph);
+  const r = getCanvasCtx(canvasId, pw, ph, true);
   if (!r) return;
   const { ctx, w, h } = r;
   const rgb = getAccentRGB();
@@ -280,7 +285,7 @@ export function drawRetentionCurve(
 
   const cacheCanvas = el(canvasId) as HTMLCanvasElement | null;
   if (cacheCanvas && retentionGraphData[canvasId]) {
-    const cacheCtx = cacheCanvas.getContext('2d');
+    const cacheCtx = cacheCanvas.getContext('2d', { willReadFrequently: true });
     if (cacheCtx) {
       retentionGraphData[canvasId]!.baseImage = cacheCtx.getImageData(0, 0, cacheCanvas.width, cacheCanvas.height);
     }
