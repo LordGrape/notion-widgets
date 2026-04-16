@@ -1,6 +1,6 @@
 import type { StudyItem } from './types';
 
-declare const el: (id: string) => HTMLElement | null;
+const el = (id: string): HTMLElement | null => document.getElementById(id);
 declare const state: Record<string, any>;
 declare const settings: Record<string, any>;
 declare function retrievability(fsrs: any, timestamp: number): number;
