@@ -15617,15 +15617,13 @@ input[type="range"]::-moz-range-thumb{
       maybeAutoPrepare(course);
 
       if (stayOpen) {
-        /* Clear content fields but keep topic */
-        if (el('m_prompt')) el('m_prompt').value = '';
-        if (el('m_answer')) el('m_answer').value = '';
-        if (el('m_scenario')) el('m_scenario').value = '';
-        if (el('m_task')) el('m_task').value = '';
-        if (el('m_conceptA')) el('m_conceptA').value = '';
-        if (el('m_conceptB')) el('m_conceptB').value = '';
-        /* Refresh topic suggestions (new topic may have been created) */
-        renderTopicSuggestions('m_topic', modalSystem.getModalCourse(), 'topicSuggestions');
+        /* Force a clean add-modal re-render to avoid stale import content. */
+        openModal('add', course);
+        if (topic) {
+          setTimeout(function() {
+            if (el('m_topic')) el('m_topic').value = topic;
+          }, 0);
+        }
       }
     }
 
