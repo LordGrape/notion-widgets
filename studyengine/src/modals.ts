@@ -220,7 +220,7 @@ export function setupModalSystem(bridge: ModalBridge): ModalSystem {
         textField('Concept B', 'm_conceptB', 'e.g., Trade diversion') +
         '</div>' +
         '<p class="help">Filling Concept A + B enables the Distinguish tier.</p>' +
-        selectField('Mock time limit', 'm_time', [{ v: '5', t: '5 min' }, { v: '10', t: '10 min' }, { v: '15', t: '15 min' }, { v: '30', t: '30 min' }], String(bridge.settings.mockDefaultMins || 10)) +
+        selectField('Mock time limit', 'm_time', [{ v: '5', t: '5 min' }, { v: '10', t: '10 min' }, { v: '15', t: '15 min' }, { v: '30', t: '30 min' }], String((bridge.settings && bridge.settings.mockDefaultMins) || 10)) +
         '<p class="help">Setting a time limit enables the Mock Exam tier.</p>' +
         '</div>' +
         tailFields() +
