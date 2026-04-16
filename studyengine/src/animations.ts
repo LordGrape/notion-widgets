@@ -1,15 +1,5 @@
 type TeardownFn = () => void;
 
-type SplitTextInstance = {
-  chars: Element[];
-  revert?: () => void;
-};
-
-type SplitTextCtor = new (
-  target: Element,
-  options?: { type?: string; charsClass?: string }
-) => SplitTextInstance;
-
 type ListenerBinding = {
   element: HTMLElement;
   type: keyof HTMLElementEventMap;
@@ -22,6 +12,7 @@ type GsapAnimVars = {
 
 type GsapLike = {
   to(targets: Element | Element[] | HTMLElement | HTMLElement[], vars: GsapAnimVars): unknown;
+  from(targets: Element | Element[] | HTMLElement | HTMLElement[], vars: GsapAnimVars): unknown;
   fromTo(
     targets: Element | Element[] | HTMLElement | HTMLElement[],
     fromVars: GsapAnimVars,
@@ -43,57 +34,25 @@ function resolveRoot(scope?: string): ParentNode {
   return document.querySelector(scope) ?? document;
 }
 
-function createCharacterSpans(target: HTMLElement): HTMLSpanElement[] {
-  const text = target.textContent ?? '';
-  target.innerHTML = '';
-
-  const fragment = document.createDocumentFragment();
-  const spans: HTMLSpanElement[] = [];
-
-  for (const char of text) {
-    const span = document.createElement('span');
-    span.textContent = char;
-    span.style.display = 'inline-block';
-    fragment.appendChild(span);
-    spans.push(span);
-  }
-
-  target.appendChild(fragment);
-  return spans;
-}
-
 export function animateHeaderEntrance(selector: string): void {
   const gsapInstance = window.gsap as GsapLike | undefined;
   if (!gsapInstance) return;
-  const header = document.querySelector<HTMLElement>(selector);
-  if (!header) return;
 
-  const splitCtor = window.SplitText as SplitTextCtor | undefined;
-  let chars: Element[] = [];
+  const headers = Array.from(document.querySelectorAll<HTMLElement>(selector));
+  if (!headers.length) return;
 
-  if (typeof splitCtor === 'function') {
-    const split = new splitCtor(header, { type: 'chars' });
-    chars = split.chars;
-  } else {
-    chars = createCharacterSpans(header);
-  }
-
-  if (!chars.length) return;
-
-  gsapInstance.fromTo(
-    chars,
-    { y: 20, opacity: 0 },
-    {
-      y: 0,
-      opacity: 1,
-      duration: 0.8,
+  headers.forEach((header) => {
+    gsapInstance.from(header, {
+      y: 15,
+      opacity: 0,
+      filter: 'blur(6px)',
+      duration: 0.7,
       ease: 'power3.out',
-      stagger: 0.04,
       onComplete: () => {
         header.classList.add('header-shimmer');
       },
-    },
-  );
+    });
+  });
 }
 
 export function animateEmptyStateEntrance(containerSelector: string): void {
