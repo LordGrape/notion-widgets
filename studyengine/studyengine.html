@@ -7293,6 +7293,7 @@ input[type="range"]::-moz-range-thumb{
     import { getLevelInfo, didLevelUp } from './src/xp-level-system';
     import { drawRetentionCurve, drawSparkline, drawTierRing, drawActivityHeatmap, wireRetentionInteractivity, hideCanvasTooltip, getCanvasCtx, getAccentRGB, getTextSecondary, getTextColor } from './src/charts';
     import { buildSessionQueue, startSession, rateCurrent, advanceItem, completeSession, calcRestudyDuration } from './src/session-flow';
+    import { setupSettingsModule } from './src/settings';
 
     /* Study Engine — multi-modal retrieval practice engine (FSRS) */
     /* FUNCTION INDEX (Auto-generated)
@@ -15832,165 +15833,36 @@ input[type="range"]::-moz-range-thumb{
 
     /* ── Settings ── */
     var settingsOv = el('settingsOv');
-    var settingsTabListenersBound = false;
-
-    /* ═══ SECTION: Reset Settings Modal Tabs | Functions: resetSettingsModalTabs ═══ */
-    function resetSettingsModalTabs() {
-      var generalPanel = el('settingsTabGeneral');
-      var dataPanel = el('settingsTabData');
-      if (generalPanel) generalPanel.style.display = 'block';
-      if (dataPanel) dataPanel.style.display = 'none';
-      if (!settingsOv) return;
-      settingsOv.querySelectorAll('.settings-tab').forEach(function(t) {
-        var isGeneral = t.dataset.settingsTab === 'general';
-        t.classList.toggle('active', isGeneral);
-        t.setAttribute('aria-selected', isGeneral ? 'true' : 'false');
-        t.style.background = isGeneral ? 'rgba(var(--accent-rgb),0.18)' : 'transparent';
-        t.style.color = isGeneral ? 'var(--text)' : 'var(--text-secondary)';
-      });
-    }
-
-    /* ═══ SECTION: Bind Settings Tab Listeners | Functions: bindSettingsTabListeners ═══ */
-    function bindSettingsTabListeners() {
-      if (settingsTabListenersBound || !settingsOv) return;
-      settingsOv.querySelectorAll('.settings-tab').forEach(function(tab) {
-        tab.addEventListener('click', function() {
-          var target = tab.dataset.settingsTab;
-          settingsOv.querySelectorAll('.settings-tab').forEach(function(t) {
-            var isActive = t.dataset.settingsTab === target;
-            t.classList.toggle('active', isActive);
-            t.setAttribute('aria-selected', isActive ? 'true' : 'false');
-            t.style.background = isActive ? 'rgba(var(--accent-rgb),0.18)' : 'transparent';
-            t.style.color = isActive ? 'var(--text)' : 'var(--text-secondary)';
-          });
-          var generalPanel = el('settingsTabGeneral');
-          var dataPanel = el('settingsTabData');
-          if (generalPanel) generalPanel.style.display = target === 'general' ? 'block' : 'none';
-          if (dataPanel) dataPanel.style.display = target === 'data' ? 'block' : 'none';
-          if (target === 'data') {
-            var showArea = el('showDataArea');
-            if (showArea) showArea.style.display = 'none';
-            var restoreStatus = el('restoreStatus');
-            if (restoreStatus) restoreStatus.textContent = '';
-            var pasteText = el('pasteDataText');
-            if (pasteText) pasteText.value = '';
-          }
-          try { playPresetSelect(); } catch(e) {}
-        });
-      });
-      settingsTabListenersBound = true;
-    }
-
-    /* ═══ SECTION: Open Settings | Functions: openSettings ═══ */
-    function openSettings() {
-      resetSettingsModalTabs();
-      var showDataAreaReset = el('showDataArea');
-      if (showDataAreaReset) showDataAreaReset.style.display = 'none';
-      var restoreStatusReset = el('restoreStatus');
-      if (restoreStatusReset) restoreStatusReset.textContent = '';
-      renderSettings();
-      refreshCostEstimateInSettings();
-      bindSettingsTabListeners();
-      settingsOv.classList.add('show');
-      settingsOv.setAttribute('aria-hidden','false');
-      if (Core && Core.a11y && Core.a11y.trap) Core.a11y.trap(settingsOv);
-
-      var showDataBtn = el('showDataBtn');
-      if (showDataBtn) {
-        showDataBtn.onclick = function() {
-          var area = el('showDataArea');
-          var textEl = el('showDataText');
-          if (!area || !textEl) return;
-          var exportData = {
-            _export: 'studyengine-full-backup',
-            _version: 1,
-            _date: new Date().toISOString(),
-            items: state.items || {},
-            courses: state.courses || {},
-            calibration: state.calibration || {},
-            stats: state.stats || {},
-            settings: settings || {}
-          };
-          textEl.value = JSON.stringify(exportData, null, 2);
-          area.style.display = 'block';
-          textEl.focus();
-          textEl.select();
-          toast('Data shown — select all and copy (Ctrl+A → Ctrl+C)');
-        };
-      }
-
-      var showDataTextEl = el('showDataText');
-      if (showDataTextEl) {
-        showDataTextEl.onclick = function() { this.select(); };
-      }
-
-      var restoreBtn = el('restoreDataBtn');
-      if (restoreBtn) {
-        restoreBtn.onclick = function() {
-          var textEl = el('pasteDataText');
-          var statusEl = el('restoreStatus');
-          if (!textEl) return;
-          var raw = (textEl.value || '').trim();
-          if (!raw) {
-            if (statusEl) statusEl.textContent = 'Paste your data first';
-            return;
-          }
+    var settingsModule = setupSettingsModule({
+      el: el,
+      settingsOv: settingsOv,
+      getState: function() { return state; },
+      getSettings: function() { return settings; },
+      saveState: saveState,
+      renderDashboard: renderDashboard,
+      renderSettings: renderSettings,
+      refreshCostEstimateInSettings: refreshCostEstimateInSettings,
+      migrateItems: migrateItems,
+      toast: toast,
+      clamp: clamp,
+      reinitFsrsWithRetention: function(retention) {
+        if (typeof FSRS !== 'undefined' && FSRS.FSRS && FSRS.generatorParameters) {
           try {
-            var imported = JSON.parse(raw);
-            if (!imported.items || typeof imported.items !== 'object') {
-              if (statusEl) statusEl.textContent = 'Invalid data — missing items';
-              return;
-            }
-            var itemCount = Object.keys(imported.items).length;
-            var courseCount = imported.courses ? Object.keys(imported.courses).length : 0;
+            fsrsInstance = new FSRS.FSRS(FSRS.generatorParameters({
+              w: w,
+              request_retention: retention,
+              enable_fuzz: true
+            }));
+          } catch (e) {}
+        }
+      },
+      playPresetSelect: function() { try { playPresetSelect(); } catch (e) {} },
+      playOpen: function() { try { playOpen(); } catch (e) {} },
+      playClose: function() { try { playClose(); } catch (e) {} }
+    });
+    var openSettings = settingsModule.openSettings;
+    var closeSettings = settingsModule.closeSettings;
 
-            for (var id in imported.items) {
-              if (imported.items.hasOwnProperty(id)) {
-                state.items[id] = imported.items[id];
-              }
-            }
-            if (imported.courses) {
-              for (var cName in imported.courses) {
-                if (imported.courses.hasOwnProperty(cName)) {
-                  state.courses[cName] = imported.courses[cName];
-                }
-              }
-            }
-            if (imported.calibration && imported.calibration.history &&
-                imported.calibration.history.length > ((state.calibration || {}).history || []).length) {
-              state.calibration = imported.calibration;
-            }
-            if (imported.stats && (imported.stats.totalReviews || 0) > ((state.stats || {}).totalReviews || 0)) {
-              state.stats = imported.stats;
-            }
-            if (imported.settings && typeof imported.settings === 'object') {
-              for (var sk in imported.settings) {
-                if (imported.settings.hasOwnProperty(sk)) {
-                  settings[sk] = imported.settings[sk];
-                }
-              }
-            }
-            migrateItems();
-            saveState();
-            if (statusEl) statusEl.textContent = 'Restored ' + itemCount + ' items, ' + courseCount + ' courses';
-            toast('Restored ' + itemCount + ' items');
-            setTimeout(function() {
-              renderDashboard();
-            }, 500);
-            try { playPresetSelect(); } catch(e2) {}
-          } catch (e) {
-            if (statusEl) statusEl.textContent = 'Invalid JSON — ' + (e.message || String(e));
-          }
-        };
-      }
-  try { playOpen(); } catch(e) {}
-    }
-    /* ═══ SECTION: Close Settings | Functions: closeSettings ═══ */
-    function closeSettings() {
-      settingsOv.classList.remove('show');
-      settingsOv.setAttribute('aria-hidden','true');
-  try { playClose(); } catch(e) {}
-    }
     el('gearBtn').addEventListener('click', openSettings);
     el('settingsClose').addEventListener('click', closeSettings);
     settingsOv.addEventListener('click', function(e){ if (e.target === settingsOv) closeSettings(); });
@@ -16547,55 +16419,8 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
-    el('settingsSave').addEventListener('click', function(){
-      var r = parseFloat(el('s_ret').value);
-      var lim = parseInt(el('s_lim').value, 10);
-      var mockGroup = document.querySelector('.mode-toggle[data-setting="s_mock"]');
-      var mockActive = mockGroup ? mockGroup.querySelector('.mode-btn.active') : null;
-      var mm = mockActive ? parseInt(mockActive.getAttribute('data-val'), 10) : 10;
+    el('settingsSave').addEventListener('click', settingsModule.saveSettings);
 
-      var applyGroup = document.querySelector('.mode-toggle[data-setting="s_apply"]');
-      var applyActive = applyGroup ? applyGroup.querySelector('.mode-btn.active') : null;
-      var at = applyActive ? applyActive.getAttribute('data-val') === '1' : true;
-      var revealGroup = document.querySelector('.mode-toggle[data-setting="s_revealMode"]');
-      var revealActive = revealGroup ? revealGroup.querySelector('.mode-btn.active') : null;
-      var revealMode = revealActive ? revealActive.getAttribute('data-val') : 'auto';
-      settings.desiredRetention = clamp(isFinite(r) ? r : 0.9, 0.80, 0.95);
-      /* Sync retention target to fsrsInstance */
-      if (typeof FSRS !== 'undefined' && FSRS.FSRS && FSRS.generatorParameters) {
-        try {
-          fsrsInstance = new FSRS.FSRS(FSRS.generatorParameters({
-            w: w,
-            request_retention: settings.desiredRetention,
-            enable_fuzz: true
-          }));
-        } catch (e) {}
-      }
-      settings.sessionLimit = clamp(isFinite(lim) ? lim : 12, 5, 60);
-      settings.mockDefaultMins = [5,10,15,30].indexOf(mm) >= 0 ? mm : 10;
-      settings.showApplyTimer = !!at;
-      settings.revealMode = (revealMode === 'auto' || revealMode === 'visual' || revealMode === 'audio' || revealMode === 'both') ? revealMode : 'auto';
-      settings.ttsVoice = (el('tts-voice') && el('tts-voice').value) ? el('tts-voice').value : 'en-US-Studio-O';
-      settings.breakReminders = (el('s_breakReminders') && el('s_breakReminders').value === 'true');
-      settings.breakIntervalMins = parseInt(el('s_breakInterval') ? el('s_breakInterval').value : '25', 10);
-      settings.performanceBreaks = (el('s_perfBreaks') && el('s_perfBreaks').value === 'true');
-      var fmEl = el('s_feedbackMode');
-      var fm = fmEl ? fmEl.value : 'adaptive';
-      settings.feedbackMode = (['adaptive', 'always_socratic', 'always_quick', 'self_rate'].indexOf(fm) >= 0) ? fm : 'adaptive';
-      var moEl = el('s_modelOverride');
-      var mo = moEl ? moEl.value : 'adaptive';
-      settings.modelOverride = (['adaptive', 'pro', 'flash'].indexOf(mo) >= 0) ? mo : 'adaptive';
-      var unEl = el('s_userName');
-      settings.userName = unEl ? String(unEl.value || '').trim() : '';
-      var tvEl = el('s_tutorVoice');
-      var tv = tvEl ? tvEl.value : 'rigorous';
-      settings.tutorVoice = (tv === 'supportive') ? 'supportive' : 'rigorous';
-      saveState();
-      closeSettings();
-      renderDashboard();
-      try { playPresetSelect(); } catch(e) {}
-      toast('Saved');
-    });
 
     /* ── Course Management Modal ── */
     var courseOv = el('courseOv');
