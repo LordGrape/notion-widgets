@@ -84,7 +84,7 @@ export function setupModalSystem(bridge: ModalBridge): ModalSystem {
   }
 
   function openModal(tab?: string, courseName?: string): void {
-    activeTab = tab || activeTab || 'add';
+    activeTab = tab || 'add';
 
     if (courseName) {
       modalCourse = courseName;
