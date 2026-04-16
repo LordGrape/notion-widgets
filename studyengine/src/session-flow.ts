@@ -404,7 +404,14 @@ export function startSession(): void {
   bridge.renderCurrentItem();
 }
 
-function scheduleRatingAndAdvance(it: StudyItem, mappedRating: Rating, nowTs: number, tier: TierId, againCount: number): void {
+function scheduleRatingAndAdvance(
+  it: StudyItem,
+  mappedRating: Rating,
+  nowTs: number,
+  tier: TierId,
+  againCount: number,
+  opts: { skipPostRatingUI?: boolean } = {}
+): void {
   const session = getSession();
   if (!session) return;
 
@@ -453,7 +460,9 @@ function scheduleRatingAndAdvance(it: StudyItem, mappedRating: Rating, nowTs: nu
     wasDontKnow: prevDontKnow,
     tier
   };
-  bridge.mountAskTutor(mappedRating);
+  if (!opts.skipPostRatingUI) {
+    bridge.mountAskTutor(mappedRating);
+  }
 }
 
 function runQuickfireAgainFollowup(it: StudyItem, done: () => void, session: SessionRuntime): void {
@@ -638,7 +647,7 @@ export function rateCurrent(rating: Rating): void {
         advanceItem();
         return;
       }
-      scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount);
+      scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount, { skipPostRatingUI: true });
     });
     return;
   }
@@ -671,12 +680,12 @@ export function rateCurrent(rating: Rating): void {
       }
       if (insData.followUpQuestion && typeof bridge.mountQuickFireFollowup === 'function') {
         bridge.mountQuickFireFollowup(it, insData, () => {
-          scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount);
+          scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount, { skipPostRatingUI: true });
         });
         return;
       }
       bridge.buildInsightUI(qfInsightArea, insData, () => {
-        scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount);
+        scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount, { skipPostRatingUI: true });
       });
     }).catch(() => {
       scheduleRatingAndAdvance(it, mappedRating, nowTs, tier, againCount);
