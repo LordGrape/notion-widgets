@@ -1,7 +1,6 @@
 import { getCorsHeaders } from "../cors";
 import { callGemini, extractGeminiText } from "../gemini";
 import type { Env, TutorMode, TutorRequest } from "../types";
-import { parseJsonResponse } from "../utils/json";
 import { daysUntilExam } from "../utils/helpers";
 
 const TUTOR_MODES: TutorMode[] = ["socratic", "quick", "teach", "insight", "acknowledge", "freeform"];
@@ -18,6 +17,97 @@ function jsonResponse(body: unknown, status = 200): Response {
       ...TUTOR_CORS_HEADERS
     }
   });
+}
+
+class TutorJsonParseError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "TutorJsonParseError";
+  }
+}
+
+function stripKnownJsonPreamble(input: string): string {
+  let cleaned = input.trim();
+  cleaned = cleaned.replace(/^```(?:json)?\s*/i, "");
+  cleaned = cleaned.replace(/\s*```$/i, "").trim();
+  cleaned = cleaned.replace(/^here is the json requested:\s*/i, "");
+  cleaned = cleaned.replace(/^here is (?:the )?json:\s*/i, "");
+  cleaned = cleaned.replace(/^json\s*:\s*/i, "");
+  return cleaned.trim();
+}
+
+function extractBalancedJsonCandidate(input: string): string | null {
+  let start = -1;
+  let opening = "";
+  let closing = "";
+  for (let i = 0; i < input.length; i += 1) {
+    const ch = input[i];
+    if (ch === "{" || ch === "[") {
+      start = i;
+      opening = ch;
+      closing = ch === "{" ? "}" : "]";
+      break;
+    }
+  }
+  if (start < 0) return null;
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < input.length; i += 1) {
+    const ch = input[i];
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (ch === "\\") {
+        escaped = true;
+      } else if (ch === "\"") {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (ch === "\"") {
+      inString = true;
+      continue;
+    }
+    if (ch === opening) depth += 1;
+    if (ch === closing) {
+      depth -= 1;
+      if (depth === 0) {
+        return input.slice(start, i + 1);
+      }
+    }
+  }
+  return null;
+}
+
+function parseFirstJsonObject(input: string): unknown {
+  const trimmed = stripKnownJsonPreamble(input);
+  const balanced = extractBalancedJsonCandidate(trimmed);
+  const candidate = balanced || trimmed.match(/(\{[\s\S]*\}|\[[\s\S]*\])/)?.[1] || trimmed;
+  if (!candidate) {
+    throw new TutorJsonParseError("No JSON candidate found in model output");
+  }
+
+  try {
+    return JSON.parse(candidate);
+  } catch {
+    const closingIndex = Math.max(candidate.lastIndexOf("}"), candidate.lastIndexOf("]"));
+    if (closingIndex > -1) {
+      const trimmedTail = candidate.slice(0, closingIndex + 1);
+      try {
+        return JSON.parse(trimmedTail);
+      } catch {
+        // fall through to typed error below
+      }
+    }
+    throw new TutorJsonParseError("Unable to parse JSON candidate from model output");
+  }
+}
+
+function extractJsonFromModelOutput(raw: string): unknown {
+  return parseFirstJsonObject(raw.trim());
 }
 
 function formatLearnerProfileBlock(learner: Record<string, unknown> | undefined, itemRef: TutorRequest["item"]): string {
@@ -649,64 +739,40 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
 
     const dynamicPrompt = `${modeInstructionsForMode}\n\n---\n\n${sessionSummaryBlock}${lectureCtxBlock}${itemBlock}\n${userBlock}`;
 
-    const geminiData = await callGemini(
-      selectedModel,
-      systemPromptFinal,
-      dynamicPrompt,
-      {
-        temperature: 0.35,
-        maxOutputTokens: maxOut,
-        responseMimeType: "application/json",
-        responseSchema: responseSchemaObjects[mode] || responseSchemaObjects.socratic
-      } as any,
-      env
-    );
+    const generationConfig = {
+      temperature: 0.35,
+      maxOutputTokens: maxOut,
+      responseMimeType: "application/json",
+      responseSchema: responseSchemaObjects[mode] || responseSchemaObjects.socratic
+    } as any;
 
-    const rawText = extractGeminiText(geminiData);
-    
-    // Enhanced parsing: strip markdown fences and extract JSON
-    let cleanedText = rawText.trim();
-    
-    // Remove all markdown code fences (any language)
-    cleanedText = cleanedText.replace(/```[a-zA-Z]*\n?/g, '').replace(/```/g, '');
-    
-    // Extract the first JSON object or array
-    const jsonMatch = cleanedText.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-    if (jsonMatch) {
-      cleanedText = jsonMatch[0];
+    const geminiData = await callGemini(selectedModel, systemPromptFinal, dynamicPrompt, generationConfig, env);
+    let rawText = extractGeminiText(geminiData);
+    let parsed: unknown;
+
+    try {
+      parsed = extractJsonFromModelOutput(rawText);
+    } catch (firstError) {
+      if (!(firstError instanceof TutorJsonParseError)) {
+        throw firstError;
+      }
+      const retryPrompt =
+        `${dynamicPrompt}\n\n` +
+        "Return ONLY a JSON object. No prose. No code fences.";
+      const retryData = await callGemini(selectedModel, systemPromptFinal, retryPrompt, generationConfig, env);
+      rawText = extractGeminiText(retryData);
+      try {
+        parsed = extractJsonFromModelOutput(rawText);
+      } catch (retryError) {
+        if (retryError instanceof TutorJsonParseError) {
+          return jsonResponse({ error: "tutor_parse_failed", rawPreview: rawText.slice(0, 500) }, 502);
+        }
+        throw retryError;
+      }
     }
-    
-    const parsed = parseJsonResponse<unknown>(cleanedText);
 
     if (!parsed || typeof parsed !== "object") {
-      // Return a structured fallback that works for all tutor modes
-      const fallbackResponse: any = {
-        error: "Failed to parse tutor response",
-        raw: cleanedText.slice(0, 200) // First 200 chars for debugging
-      };
-      
-      // Add mode-specific fallback fields
-      if (mode === "socratic" || mode === "teach" || mode === "freeform") {
-        fallbackResponse.tutorMessage = "I'm having trouble processing your request. Please try again.";
-        fallbackResponse.followUpQuestion = null;
-        fallbackResponse.isComplete = true;
-        fallbackResponse.suggestedRating = 2;
-      } else if (mode === "quick") {
-        fallbackResponse.correct = "I couldn't process your response.";
-        fallbackResponse.missing = "Please try again.";
-        fallbackResponse.bridge = "Let's attempt this once more.";
-        fallbackResponse.suggestedRating = 2;
-      } else if (mode === "insight") {
-        fallbackResponse.insight = "I'm having trouble generating an insight right now.";
-        fallbackResponse.followUpQuestion = null;
-        fallbackResponse.followUpAnswer = null;
-      } else if (mode === "acknowledge") {
-        fallbackResponse.acknowledgment = "I couldn't process your response properly.";
-        fallbackResponse.extensionQuestion = null;
-        fallbackResponse.isComplete = true;
-      }
-      
-      return jsonResponse(fallbackResponse, 200);
+      return jsonResponse({ error: "tutor_parse_failed", rawPreview: rawText.slice(0, 500) }, 502);
     }
 
     return jsonResponse(parsed, 200);
@@ -718,3 +784,11 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
     return jsonResponse({ error: "Internal error", detail: message }, 500);
   }
 }
+
+/*
+Unit-style sanity checks for extractJsonFromModelOutput:
+- `{"ok":true}` -> parses
+- `Here is the JSON:\n\`\`\`json\n{"ok":true}\n\`\`\`` -> parses
+- `{"ok":true}\nLet me know if you need more.` -> parses
+- `json: [{"ok":true}]` -> parses
+*/
