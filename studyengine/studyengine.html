@@ -5842,11 +5842,12 @@ input[type="range"]::-moz-range-thumb{
     .sb-search {
       padding: 8px 12px;
       flex-shrink: 0;
+      position: relative;
     }
 
     .sb-search-input {
       width: 100%;
-      padding: 7px 10px;
+      padding: 7px 30px 7px 10px;
       border-radius: 10px;
       border: 1px solid rgba(var(--accent-rgb), 0.14);
       background: rgba(var(--accent-rgb), 0.04);
@@ -5859,6 +5860,31 @@ input[type="range"]::-moz-range-thumb{
 
     .sb-search-input:focus {
       border-color: rgba(var(--accent-rgb), 0.35);
+    }
+
+    .sb-search-clear {
+      position: absolute;
+      top: 50%;
+      right: 20px;
+      transform: translateY(-50%);
+      width: 18px;
+      height: 18px;
+      border: none;
+      border-radius: 99px;
+      background: rgba(var(--accent-rgb), 0.08);
+      color: var(--text-secondary);
+      font-size: 11px;
+      line-height: 1;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      transition: background 150ms ease, color 150ms ease;
+    }
+
+    .sb-search-clear:hover {
+      background: rgba(var(--accent-rgb), 0.18);
+      color: var(--text);
     }
 
     /* ── CSS SECTION: Course Tree ── */
@@ -5878,9 +5904,9 @@ input[type="range"]::-moz-range-thumb{
       display: flex;
       align-items: center;
       gap: 6px;
-      padding: 6px 12px;
+      padding: 6px 12px 6px 9px;
       cursor: pointer;
-      transition: background var(--transition);
+      transition: background 150ms ease;
       user-select: none;
       min-height: 32px;
       border-left: 3px solid transparent;
@@ -5892,7 +5918,7 @@ input[type="range"]::-moz-range-thumb{
 
     .tree-node.active {
       background: rgba(var(--accent-rgb), 0.10);
-      border-left-color: var(--accent);
+      border-left-color: var(--accent-primary);
     }
 
     .tree-node .tree-icon {
@@ -5941,6 +5967,13 @@ input[type="range"]::-moz-range-thumb{
       letter-spacing: 0.2px;
     }
 
+    .tree-search-mark {
+      background: rgba(var(--accent-rgb), 0.2);
+      color: var(--text-primary);
+      border-radius: 4px;
+      padding: 0 2px;
+    }
+
     .tree-node .tree-count {
       font-size: 9px;
       color: var(--text-tertiary);
@@ -5948,14 +5981,32 @@ input[type="range"]::-moz-range-thumb{
       font-variant-numeric: tabular-nums;
     }
 
-    .tree-node .tree-badge {
-      font-size: 8px;
-      padding: 1px 5px;
-      border-radius: 99px;
+    .tree-node .tree-badge,
+    .tree-node .tree-due-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      border-radius: 9px;
       background: rgba(var(--accent-rgb), 0.15);
       color: var(--accent);
-      font-weight: 700;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
       flex-shrink: 0;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .tree-due-badge.has-due {
+        animation: breathe-due 3s ease-in-out infinite;
+      }
+    }
+
+    @keyframes breathe-due {
+      0%, 100% { background: rgba(var(--accent-rgb), 0.15); }
+      50% { background: rgba(var(--accent-rgb), 0.25); }
     }
 
     .tree-node.depth-0 { padding-left: 12px; }
@@ -5969,7 +6020,8 @@ input[type="range"]::-moz-range-thumb{
 
     /* ── CSS SECTION: Hover Action Buttons ── */
     /* ── Hover Action Buttons ── */
-    .tree-hover-actions {
+    .tree-hover-actions,
+    .tree-actions {
       display: none;
       align-items: center;
       gap: 2px;
@@ -5977,12 +6029,14 @@ input[type="range"]::-moz-range-thumb{
       margin-left: auto;
     }
 
-    .tree-node-hoverable:hover .tree-hover-actions {
+    .tree-node-hoverable:hover .tree-hover-actions,
+    .tree-node-hoverable:hover .tree-actions {
       display: flex;
     }
 
     .tree-node-hoverable:hover .tree-count,
-    .tree-node-hoverable:hover .tree-badge {
+    .tree-node-hoverable:hover .tree-badge,
+    .tree-node-hoverable:hover .tree-due-badge {
       display: none;
     }
 
@@ -6058,7 +6112,7 @@ input[type="range"]::-moz-range-thumb{
     /* ── CSS SECTION: Tighter Tree Spacing ── */
     /* ── Tighter Tree Spacing ── */
     .tree-node {
-      padding: 5px 12px;
+      padding: 5px 12px 5px 9px;
       min-height: 30px;
     }
 
@@ -6070,6 +6124,12 @@ input[type="range"]::-moz-range-thumb{
     .tree-inline-badge {
       padding: 0 12px 4px;
       font-size: 9px;
+    }
+
+    .tree-empty-state {
+      padding: 10px 12px;
+      font-size: 10px;
+      color: var(--text-tertiary);
     }
 
     /* ── CSS SECTION: Inline Sidebar Input ── */
@@ -6144,7 +6204,7 @@ input[type="range"]::-moz-range-thumb{
     /* ── Sidebar Footer ── */
     .sb-footer {
       flex-shrink: 0;
-      padding: 8px;
+      padding: 8px 8px 6px;
       border-top: 1px solid rgba(var(--accent-rgb), 0.08);
       display: flex;
       flex-direction: column;
@@ -6167,18 +6227,27 @@ input[type="range"]::-moz-range-thumb{
       transition: background var(--transition), color var(--transition);
       width: 100%;
       text-align: left;
+      justify-content: flex-start;
+    }
+
+    .sb-footer-btn .sb-footer-icon {
+      width: 16px;
+      text-align: center;
+      flex-shrink: 0;
+      font-size: 11px;
     }
 
     .sb-footer-btn:hover {
-      background: rgba(var(--accent-rgb), 0.08);
+      background: rgba(var(--accent-rgb), 0.06);
       color: var(--text);
     }
 
     .sb-sync-status {
-      padding: 4px 10px;
-      font-size: 9px;
+      padding: 4px 10px 2px;
+      font-size: 8px;
       color: var(--rate-good);
-      letter-spacing: 0.5px;
+      letter-spacing: 0.6px;
+      opacity: 0.85;
     }
 
     /* ── CSS SECTION: Main Area ── */
@@ -7024,15 +7093,16 @@ input[type="range"]::-moz-range-thumb{
 
       <div class="sb-search">
         <input type="text" class="se-input sb-search-input" id="sidebarSearch" placeholder="Search cards..." aria-label="Search cards">
+        <button class="sb-search-clear" id="sidebarSearchClear" type="button" aria-label="Clear sidebar search">✕</button>
       </div>
 
       <nav class="sb-tree" id="sidebarTree" aria-label="Course tree"></nav>
 
       <div class="sb-footer">
-        <button class="sb-footer-btn" id="sbAddCard" type="button"><span aria-hidden="true">＋</span><span>Add Card</span></button>
-        <button class="sb-footer-btn" id="sbImport" type="button"><span aria-hidden="true">📥</span><span>Import</span></button>
-        <button class="sb-footer-btn" id="sbSettings" type="button"><span aria-hidden="true">⚙</span><span>Settings</span></button>
-        <button class="sb-footer-btn" id="sbArchivedBtn" type="button" style="display:none"><span aria-hidden="true">📦</span><span>Archived (<span id="sbArchivedCount">0</span>)</span></button>
+        <button class="sb-footer-btn" id="sbAddCard" type="button"><span class="sb-footer-icon" aria-hidden="true">＋</span><span>Add Card</span></button>
+        <button class="sb-footer-btn" id="sbImport" type="button"><span class="sb-footer-icon" aria-hidden="true">📥</span><span>Import</span></button>
+        <button class="sb-footer-btn" id="sbSettings" type="button"><span class="sb-footer-icon" aria-hidden="true">⚙</span><span>Settings</span></button>
+        <button class="sb-footer-btn" id="sbArchivedBtn" type="button" style="display:none"><span class="sb-footer-icon" aria-hidden="true">📦</span><span>Archived (<span id="sbArchivedCount">0</span>)</span></button>
         <div class="sb-sync-status" id="sbSyncStatus">● Synced</div>
       </div>
     </aside>
@@ -9508,6 +9578,44 @@ input[type="range"]::-moz-range-thumb{
     /* ── Sidebar State (Standalone) ── */
     var sidebarSelection = { level: 'all', course: null, module: null, topic: null };
     var sidebarExpanded = {}; // keys: course names or module ids, values: booleans
+    var sidebarSearchQuery = '';
+    var sidebarSearchTimer = null;
+    var sidebarPendingTreeAnimation = null;
+    var sidebarAnimateActive = false;
+
+    function sidebarHighlightLabel(text) {
+      var safeText = String(text || '');
+      if (!sidebarSearchQuery) return esc(safeText);
+      var lower = safeText.toLowerCase();
+      var idx = lower.indexOf(sidebarSearchQuery);
+      if (idx < 0) return esc(safeText);
+      var start = esc(safeText.slice(0, idx));
+      var match = esc(safeText.slice(idx, idx + sidebarSearchQuery.length));
+      var end = esc(safeText.slice(idx + sidebarSearchQuery.length));
+      return start + '<mark class="tree-search-mark">' + match + '</mark>' + end;
+    }
+
+    function collectAnimatedChildNodes(container, parentNode) {
+      if (!container || !parentNode) return [];
+      var parentDepth = 0;
+      var depthMatch = (parentNode.className || '').match(/depth-(\d+)/);
+      if (depthMatch) parentDepth = parseInt(depthMatch[1], 10) || 0;
+      var out = [];
+      var next = parentNode.nextElementSibling;
+      while (next) {
+        if (next.classList && next.classList.contains('tree-inline-badge')) {
+          next = next.nextElementSibling;
+          continue;
+        }
+        if (!next.classList || !next.classList.contains('tree-node')) break;
+        var nextDepthMatch = (next.className || '').match(/depth-(\d+)/);
+        var nextDepth = nextDepthMatch ? (parseInt(nextDepthMatch[1], 10) || 0) : 0;
+        if (nextDepth <= parentDepth) break;
+        out.push(next);
+        next = next.nextElementSibling;
+      }
+      return out;
+    }
 
     /* ═══ SECTION: Build Course Tree | Functions: buildCourseTree ═══ */
     function buildCourseTree() {
@@ -9551,6 +9659,9 @@ input[type="range"]::-moz-range-thumb{
 
       var tree = buildCourseTree();
       var html = '';
+      var isSearching = !!sidebarSearchQuery;
+      var searchHasResults = false;
+      var expandedBySearch = {};
 
       // Total counts
       var totalCards = 0, totalDue = 0;
@@ -9558,10 +9669,13 @@ input[type="range"]::-moz-range-thumb{
 
       // "All Courses" row
       var allActive = sidebarSelection.level === 'all' ? ' active' : '';
-      html += '<div class="tree-node depth-0' + allActive + '" data-level="all">';
+      html += '<div class="tree-node depth-0 tree-node-hoverable' + allActive + '" data-level="all">';
       html += '<span class="tree-icon">📚</span>';
       html += '<span class="tree-label">All Courses</span>';
-      if (totalDue > 0) html += '<span class="tree-badge">' + totalDue + '</span>';
+      if (totalDue > 0) html += '<span class="tree-due-badge has-due">' + totalDue + '</span>';
+      html += '<span class="tree-hover-actions">';
+      html += '<button class="tree-action-btn" data-action="add-course" title="New Course">＋</button>';
+      html += '</span>';
       html += '</div>';
       html += '<div class="tree-section-divider"></div>';
 
@@ -9573,17 +9687,58 @@ input[type="range"]::-moz-range-thumb{
         ensureCourseModules(courseName);
         var ct = tree[courseName];
         var color = courseData.color || '#8b5cf6';
-        var isExpanded = sidebarExpanded[courseName] === true; // default collapsed
+        var shouldShowCourse = !isSearching;
+        var courseMatches = isSearching && courseName.toLowerCase().indexOf(sidebarSearchQuery) >= 0;
+        var matchingTopics = {};
+        var matchingModules = {};
+        var matchingTopicIds = {};
+        var moduleIdsFromTopic = {};
+        var courseHasTopicMatch = false;
+        var modules = (courseData.modules || []);
+
+        if (isSearching) {
+          if (courseMatches) shouldShowCourse = true;
+          modules.forEach(function(mod) {
+            if (!mod || !mod.id) return;
+            var modName = String(mod.name || 'Subdeck');
+            if (modName.toLowerCase().indexOf(sidebarSearchQuery) >= 0) {
+              shouldShowCourse = true;
+              matchingModules[mod.id] = true;
+            }
+            (mod.topics || []).forEach(function(t) {
+              var tName = String(t || '');
+              if (tName.toLowerCase().indexOf(sidebarSearchQuery) >= 0) {
+                shouldShowCourse = true;
+                courseHasTopicMatch = true;
+                matchingTopics[t] = true;
+                moduleIdsFromTopic[mod.id] = true;
+              }
+            });
+          });
+          Object.keys(ct.topics || {}).forEach(function(t) {
+            if (String(t).toLowerCase().indexOf(sidebarSearchQuery) >= 0) {
+              shouldShowCourse = true;
+              courseHasTopicMatch = true;
+              matchingTopics[t] = true;
+            }
+          });
+        }
+        if (!shouldShowCourse) return;
+        if (isSearching) {
+          searchHasResults = true;
+          expandedBySearch[courseName] = true;
+        }
+
+        var isExpanded = isSearching ? true : (sidebarExpanded[courseName] === true); // default collapsed
         var courseActive = (sidebarSelection.course === courseName) ? ' active' : '';
         var cram = getCramState(courseName);
-        var modules = (courseData.modules || []);
 
         // Course row with hover actions
         html += '<div class="tree-node depth-0 tree-node-hoverable' + courseActive + '" data-level="course" data-course="' + esc(courseName) + '">';
         html += '<span class="tree-chevron' + (isExpanded ? ' expanded' : '') + '" data-toggle="' + esc(courseName) + '"></span>';
         html += '<span class="tree-icon" style="color:' + color + ';">●</span>';
-        html += '<span class="tree-label">' + esc(courseName) + '</span>';
-        if (ct.dueCards > 0) html += '<span class="tree-badge">' + ct.dueCards + '</span>';
+        html += '<span class="tree-label">' + sidebarHighlightLabel(courseName) + '</span>';
+        if (ct.dueCards > 0) html += '<span class="tree-due-badge has-due">' + ct.dueCards + '</span>';
         // Hover actions
         html += '<span class="tree-hover-actions">';
         html += '<button class="tree-action-btn" data-action="add-module" data-course="' + esc(courseName) + '" title="Add subdeck">＋</button>';
@@ -9605,13 +9760,21 @@ input[type="range"]::-moz-range-thumb{
           // Modules
           modules.forEach(function(mod) {
             if (!mod || !mod.id) return;
-            var modExpanded = sidebarExpanded[mod.id] === true;
+            var modExpanded = isSearching ? true : (sidebarExpanded[mod.id] === true);
             var modActive = (sidebarSelection.module === mod.id) ? ' active' : '';
             var modCards = 0, modDue = 0;
             (mod.topics || []).forEach(function(t) {
               if (ct.topics[t]) { modCards += ct.topics[t].cards.length; modDue += ct.topics[t].dueCards; }
               assignedTopics[t] = true;
+              if (matchingTopics[t]) matchingTopicIds[t] = true;
             });
+
+            if (isSearching) {
+              var modName = String(mod.name || 'Subdeck');
+              var modMatches = !!matchingModules[mod.id] || modName.toLowerCase().indexOf(sidebarSearchQuery) >= 0 || !!moduleIdsFromTopic[mod.id];
+              var hasMatchingChildren = (mod.topics || []).some(function(t) { return !!matchingTopicIds[t]; });
+              if (!modMatches && !hasMatchingChildren) return;
+            }
 
             html += '<div class="tree-node depth-1 tree-node-hoverable' + modActive + '" data-level="module" data-course="' + esc(courseName) + '" data-module="' + esc(mod.id) + '">';
             if (mod.topics && mod.topics.length > 0) {
@@ -9620,9 +9783,9 @@ input[type="range"]::-moz-range-thumb{
               html += '<span class="tree-chevron" style="visibility:hidden;"></span>';
             }
             html += '<span class="tree-icon">' + (mod.lectureImported ? '📖' : '📁') + '</span>';
-            html += '<span class="tree-label">' + esc(mod.name || 'Subdeck') + '</span>';
+            html += '<span class="tree-label">' + sidebarHighlightLabel(mod.name || 'Subdeck') + '</span>';
             if (modCards > 0) html += '<span class="tree-count">' + modCards + '</span>';
-            if (modDue > 0) html += '<span class="tree-badge">' + modDue + '</span>';
+            if (modDue > 0) html += '<span class="tree-due-badge has-due">' + modDue + '</span>';
             html += '<span class="tree-hover-actions">';
             html += '<button class="tree-action-btn" data-action="module-menu" data-course="' + esc(courseName) + '" data-module="' + esc(mod.id) + '" title="Options">⋯</button>';
             html += '</span>';
@@ -9632,11 +9795,12 @@ input[type="range"]::-moz-range-thumb{
             if (modExpanded && mod.topics) {
               mod.topics.forEach(function(t) {
                 if (!ct.topics[t]) return;
+                if (isSearching && !matchingTopicIds[t] && !matchingModules[mod.id]) return;
                 var topicActive = (sidebarSelection.topic === t && sidebarSelection.course === courseName) ? ' active' : '';
                 html += '<div class="tree-node depth-2' + topicActive + '" data-level="topic" data-course="' + esc(courseName) + '" data-topic="' + esc(t) + '">';
-                html += '<span class="tree-label">' + esc(t) + '</span>';
+                html += '<span class="tree-label">' + sidebarHighlightLabel(t) + '</span>';
                 html += '<span class="tree-count">' + ct.topics[t].cards.length + '</span>';
-                if (ct.topics[t].dueCards > 0) html += '<span class="tree-badge">' + ct.topics[t].dueCards + '</span>';
+                if (ct.topics[t].dueCards > 0) html += '<span class="tree-due-badge has-due">' + ct.topics[t].dueCards + '</span>';
                 html += '</div>';
               });
             }
@@ -9644,10 +9808,15 @@ input[type="range"]::-moz-range-thumb{
 
           // Ungrouped topics
           var ungrouped = Object.keys(ct.topics).filter(function(t) { return !assignedTopics[t]; }).sort();
+          if (isSearching) {
+            ungrouped = ungrouped.filter(function(t) {
+              return !!matchingTopics[t] || courseMatches;
+            });
+          }
           if (ungrouped.length > 0) {
             if (modules.length > 0) {
               var ugKey = '_ungrouped_' + courseName;
-              var ugExpanded = sidebarExpanded[ugKey] === true;
+              var ugExpanded = isSearching ? true : (sidebarExpanded[ugKey] === true);
               html += '<div class="tree-node depth-1" data-level="ungrouped" data-course="' + esc(courseName) + '" style="opacity:0.65;">';
               html += '<span class="tree-chevron' + (ugExpanded ? ' expanded' : '') + '" data-toggle="' + esc(ugKey) + '"></span>';
               html += '<span class="tree-icon">📦</span>';
@@ -9658,15 +9827,15 @@ input[type="range"]::-moz-range-thumb{
                 ungrouped.forEach(function(t) {
                   var topicActive = (sidebarSelection.topic === t && sidebarSelection.course === courseName) ? ' active' : '';
                   html += '<div class="tree-node depth-2' + topicActive + '" data-level="topic" data-course="' + esc(courseName) + '" data-topic="' + esc(t) + '">';
-                  html += '<span class="tree-label">' + esc(t) + '</span>';
+                  html += '<span class="tree-label">' + sidebarHighlightLabel(t) + '</span>';
                   html += '<span class="tree-count">' + ct.topics[t].cards.length + '</span>';
-                  if (ct.topics[t].dueCards > 0) html += '<span class="tree-badge">' + ct.topics[t].dueCards + '</span>';
+                  if (ct.topics[t].dueCards > 0) html += '<span class="tree-due-badge has-due">' + ct.topics[t].dueCards + '</span>';
                   html += '</div>';
                 });
               }
             } else {
               var tKey = '_topics_' + courseName;
-              var topicsExpanded = sidebarExpanded[tKey] === true;
+              var topicsExpanded = isSearching ? true : (sidebarExpanded[tKey] === true);
               html += '<div class="tree-node depth-1" data-level="topics-toggle" data-course="' + esc(courseName) + '" style="opacity:0.7;">';
               html += '<span class="tree-chevron' + (topicsExpanded ? ' expanded' : '') + '" data-toggle="' + esc(tKey) + '"></span>';
               html += '<span class="tree-icon">🏷</span>';
@@ -9676,9 +9845,9 @@ input[type="range"]::-moz-range-thumb{
                 ungrouped.forEach(function(t) {
                   var topicActive = (sidebarSelection.topic === t && sidebarSelection.course === courseName) ? ' active' : '';
                   html += '<div class="tree-node depth-2' + topicActive + '" data-level="topic" data-course="' + esc(courseName) + '" data-topic="' + esc(t) + '">';
-                  html += '<span class="tree-label">' + esc(t) + '</span>';
+                  html += '<span class="tree-label">' + sidebarHighlightLabel(t) + '</span>';
                   html += '<span class="tree-count">' + ct.topics[t].cards.length + '</span>';
-                  if (ct.topics[t].dueCards > 0) html += '<span class="tree-badge">' + ct.topics[t].dueCards + '</span>';
+                  if (ct.topics[t].dueCards > 0) html += '<span class="tree-due-badge has-due">' + ct.topics[t].dueCards + '</span>';
                   html += '</div>';
                 });
               }
@@ -9687,7 +9856,37 @@ input[type="range"]::-moz-range-thumb{
         }
       });
 
+      if (isSearching && !searchHasResults) {
+        html += '<div class="tree-empty-state">No results for "' + esc(sidebarSearchQuery) + '"</div>';
+      }
+
       container.innerHTML = html;
+
+      var searchClearBtn = document.getElementById('sidebarSearchClear');
+      if (searchClearBtn) searchClearBtn.style.display = sidebarSearchQuery ? 'inline-flex' : 'none';
+
+      if (window.gsap && sidebarPendingTreeAnimation && sidebarPendingTreeAnimation.expanded) {
+        var selector = sidebarPendingTreeAnimation.level === 'course'
+          ? '.tree-node[data-level="course"][data-course="' + esc(sidebarPendingTreeAnimation.key) + '"]'
+          : '.tree-node[data-level="module"][data-module="' + esc(sidebarPendingTreeAnimation.key) + '"]';
+        var parentNode = container.querySelector(selector);
+        var animatedNodes = collectAnimatedChildNodes(container, parentNode);
+        if (animatedNodes.length) {
+          gsap.fromTo(animatedNodes,
+            { opacity: 0, x: -8 },
+            { opacity: 1, x: 0, duration: 0.2, stagger: 0.03, ease: 'power2.out' }
+          );
+        }
+      }
+      sidebarPendingTreeAnimation = null;
+
+      if (window.gsap && sidebarAnimateActive) {
+        var activeNode = container.querySelector('.tree-node.active');
+        if (activeNode) {
+          gsap.fromTo(activeNode, { boxShadow: 'inset 0 0 0 0 rgba(var(--accent-rgb), 0.55)' }, { boxShadow: 'inset 3px 0 0 0 rgba(var(--accent-rgb), 0.55)', duration: 0.2, ease: 'power2.out' });
+        }
+      }
+      sidebarAnimateActive = false;
 
       // Event delegation
       container.onclick = function(e) {
@@ -9696,6 +9895,13 @@ input[type="range"]::-moz-range-thumb{
         if (chevron) {
           var key = chevron.dataset.toggle;
           sidebarExpanded[key] = !sidebarExpanded[key];
+          var toggleNode = chevron.closest && chevron.closest('.tree-node');
+          var toggleLevel = toggleNode ? toggleNode.dataset.level : '';
+          if (toggleLevel === 'course' || toggleLevel === 'module') {
+            sidebarPendingTreeAnimation = { key: key, expanded: !!sidebarExpanded[key], level: toggleLevel };
+          } else {
+            sidebarPendingTreeAnimation = null;
+          }
           renderSidebar();
           try { playClick(); } catch (ex) {}
           return;
@@ -9708,6 +9914,11 @@ input[type="range"]::-moz-range-thumb{
           var action = actionBtn.dataset.action;
           var actionCourse = actionBtn.dataset.course;
           var actionModule = actionBtn.dataset.module;
+
+          if (action === 'add-course') {
+            openCourseModal();
+            return;
+          }
 
           if (action === 'add-module') {
             sidebarExpanded[actionCourse] = true;
@@ -9751,6 +9962,7 @@ input[type="range"]::-moz-range-thumb{
           sidebarExpanded[courseName] = true;
         }
 
+        sidebarAnimateActive = true;
         renderSidebar();
         updateBreadcrumb();
         applySidebarFilter();
@@ -19189,6 +19401,29 @@ input[type="range"]::-moz-range-thumb{
           collapseBtn.addEventListener('click', function() {
             var sb = document.getElementById('sidebar');
             if (sb) sb.classList.toggle('collapsed');
+          });
+        }
+
+        var sidebarSearchInput = document.getElementById('sidebarSearch');
+        var sidebarSearchClear = document.getElementById('sidebarSearchClear');
+        if (sidebarSearchInput) {
+          sidebarSearchInput.addEventListener('input', function() {
+            clearTimeout(sidebarSearchTimer);
+            var nextValue = String(sidebarSearchInput.value || '');
+            if (sidebarSearchClear) sidebarSearchClear.style.display = nextValue.trim() ? 'inline-flex' : 'none';
+            sidebarSearchTimer = setTimeout(function() {
+              sidebarSearchQuery = nextValue.trim().toLowerCase();
+              renderSidebar();
+            }, 150);
+          });
+        }
+        if (sidebarSearchClear) {
+          sidebarSearchClear.addEventListener('click', function() {
+            if (sidebarSearchInput) sidebarSearchInput.value = '';
+            sidebarSearchQuery = '';
+            sidebarSearchClear.style.display = 'none';
+            renderSidebar();
+            if (sidebarSearchInput) sidebarSearchInput.focus();
           });
         }
 
