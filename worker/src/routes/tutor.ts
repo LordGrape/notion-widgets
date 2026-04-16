@@ -715,12 +715,12 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
       fieldSepForMode;
 
     const modeTokenLimits: Record<TutorMode, number> = {
-      insight: 512,
-      quick: 768,
-      acknowledge: 768,
-      socratic: 1536,
-      teach: 1536,
-      freeform: 768
+      insight: 1024,
+      quick: 2048,
+      acknowledge: 1024,
+      socratic: 3072,
+      teach: 3072,
+      freeform: 1536
     };
     const maxOutBase = modeTokenLimits[mode] || 1536;
     const isProModel = selectedModel === "gemini-2.5-pro";
