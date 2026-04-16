@@ -15,3 +15,18 @@ export function handleOptions(_request: Request): Response {
     headers: getCorsHeaders()
   });
 }
+
+export function withCorsHeaders(response: Response): Response {
+  const headers = new Headers(response.headers);
+  const corsHeaders = getCorsHeaders();
+
+  for (const [key, value] of Object.entries(corsHeaders)) {
+    headers.set(key, value);
+  }
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers
+  });
+}
