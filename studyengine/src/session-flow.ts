@@ -80,7 +80,19 @@ interface SessionFlowBridge {
   el: (id: string) => HTMLElement | null;
 }
 
-const bridge = (globalThis as any).__studyEngineSessionFlow as SessionFlowBridge;
+const bridge = new Proxy(
+  {},
+  {
+    get(_target, prop) {
+      return (globalThis as any).__studyEngineSessionFlow?.[prop as string];
+    },
+    set(_target, prop, value) {
+      (globalThis as any).__studyEngineSessionFlow = (globalThis as any).__studyEngineSessionFlow || {};
+      (globalThis as any).__studyEngineSessionFlow[prop as string] = value;
+      return true;
+    },
+  },
+) as SessionFlowBridge;
 
 function getSession(): SessionRuntime | null {
   return bridge.getSession();
@@ -187,6 +199,7 @@ function interleaveQueue(queue: StudyItem[]): StudyItem[] {
 export function buildSessionQueue(): StudyItem[] {
   const state = bridge.state;
   const settings = bridge.settings;
+  if (!state || !state.items || !settings) return [];
   const now = Date.now();
   const selectedCourse = bridge.getSelectedCourse();
   const selectedTopic = bridge.getSelectedTopic();
@@ -346,6 +359,7 @@ export function buildSessionQueue(): StudyItem[] {
 }
 
 export function startSession(): void {
+  if (!bridge.state || !bridge.settings) return;
   const q = buildSessionQueue();
   const session = {
     queue: q,
