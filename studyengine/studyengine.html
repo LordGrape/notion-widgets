@@ -6326,6 +6326,42 @@ input[type="range"]::-moz-range-thumb{
       gap: 6px;
       flex-shrink: 0;
     }
+    /* Gradient text fill for header */
+    .topbar-title, .main-topbar-title {
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary), #c4b5fd);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      position: relative;
+    }
+    /* Shimmer loop — added by JS after entrance */
+    .header-shimmer {
+      background-size: 200% 100%;
+      animation: shimmer-slide 3s ease-in-out infinite;
+    }
+    @keyframes shimmer-slide {
+      0% { background-position: 100% 0; }
+      50% { background-position: 0% 0; }
+      100% { background-position: 100% 0; }
+    }
+    /* Button glow on hover — added/removed by JS */
+    .btn-glow {
+      box-shadow: 0 0 20px rgba(124, 58, 237, 0.4), 0 0 40px rgba(124, 58, 237, 0.15);
+      transition: box-shadow 0.3s ease;
+    }
+    /* Cursor ambient glow — subtle radial gradient following mouse */
+    .ambient-glow {
+      position: fixed;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(124, 58, 237, 0.06) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+      transform: translate(-50%, -50%);
+      transition: opacity 0.3s;
+    }
+    body:not(.standalone) .ambient-glow { display: none; }
     body.standalone .main-topbar-actions [data-standalone-hide="true"]{
       display: none;
     }
@@ -6812,6 +6848,7 @@ input[type="range"]::-moz-range-thumb{
 </head>
 <body>
   <canvas id="bgCanvas"></canvas>
+  <div class="ambient-glow" id="ambientGlow"></div>
 
   <!-- New: App layout wrapper (standalone only; sidebar hidden when embedded) -->
   <div class="app-layout">
@@ -6848,7 +6885,7 @@ input[type="range"]::-moz-range-thumb{
           <span class="bc-segment bc-root" data-level="all">All Courses</span>
         </div>
         <div class="main-wordmark" aria-hidden="true">
-          <div class="main-wordmark-title">Study Engine</div>
+          <div class="main-wordmark-title main-topbar-title">Study Engine</div>
         </div>
         <div class="main-tabs" id="mainTabs" role="tablist" aria-label="Main navigation">
           <button class="nav-tab active" data-nav="home" type="button">Home</button>
@@ -6881,7 +6918,7 @@ input[type="range"]::-moz-range-thumb{
             </div>
             <div class="brand-copy">
               <span class="brand-kicker">Study</span>
-              <h1>Engine</h1>
+              <h1 class="topbar-title">Engine</h1>
             </div>
           </div>
           <div class="nav-tabs" role="tablist" aria-label="Main navigation">
@@ -6919,7 +6956,7 @@ input[type="range"]::-moz-range-thumb{
               </div>
             </div>
             <div id="dashboardCourseReadyState" class="dashboard-course-ready-state" style="display:none;" aria-live="polite">
-              <div class="dcr-inner">
+              <div class="dcr-inner empty-state-panel">
                 <div class="dcr-icon" aria-hidden="true">📥</div>
                 <div class="dcr-title">Your courses are ready</div>
                 <div class="dcr-subtitle">Add study cards to start your first review session. Import a JSON batch, add cards manually, or let the AI generate cards from your lecture materials.</div>
@@ -7424,6 +7461,7 @@ input[type="range"]::-moz-range-thumb{
     import { buildSessionQueue, startSession, rateCurrent, advanceItem, completeSession, calcRestudyDuration } from './src/session-flow';
     import { setupSettingsModule } from './src/settings';
     import { setupModalSystem } from './src/modals';
+    import { initPageAnimations, animateEmptyStateEntrance } from './src/animations.js';
 
     /* Study Engine — multi-modal retrieval practice engine (FSRS) */
     /* FUNCTION INDEX (Auto-generated)
@@ -8976,6 +9014,9 @@ input[type="range"]::-moz-range-thumb{
             { opacity: 0, y: 10 },
             { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }
           );
+        }
+        if (totalCourses > 0) {
+          animateEmptyStateEntrance('.empty-state-panel');
         }
         renderTutorAnalyticsDashboard();
         renderCourseCards();
@@ -18685,6 +18726,14 @@ input[type="range"]::-moz-range-thumb{
       wireGlobalTutorNotesUI();
       renderDashboard();
       showView('viewDash');
+      initPageAnimations();
+      document.addEventListener('mousemove', function(e) {
+        var glow = document.getElementById('ambientGlow');
+        if (glow) {
+          glow.style.left = e.clientX + 'px';
+          glow.style.top = e.clientY + 'px';
+        }
+      });
 
       // ── Sidebar Init (standalone only) ──
       if (!isEmbedded) {
