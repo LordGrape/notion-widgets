@@ -1,10 +1,27 @@
 .wrangler/
 widget-sync/
 
+# Node modules
+**/node_modules/
+node_modules/
 
+# Environment files
 .dev.vars*
 !.dev.vars.example
 .env*
 !.env.example
 
+# Build artifacts
+dist/
 dist/studyengine.html
+
+# Worker build artifacts
+worker/dist/
+worker/.wrangler/
+
+# OS and editor files
+.DS_Store
+*.swp
+*.swo
+.vscode/
+.idea/
