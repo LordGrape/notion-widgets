@@ -6506,6 +6506,9 @@ input[type="range"]::-moz-range-thumb{
       width: 320px;
       max-height: 85vh;
       overflow-y: auto;
+      overflow-x: hidden;
+      scrollbar-width: thin;
+      resize: none;
       background: var(--surface-1, var(--card-bg));
       backdrop-filter: blur(24px) saturate(1.5);
       -webkit-backdrop-filter: blur(24px) saturate(1.5);
@@ -6518,10 +6521,18 @@ input[type="range"]::-moz-range-thumb{
       pointer-events: none;
       transition: opacity 0.2s ease, transform 0.2s ease;
     }
+    .xp-popover.hidden {
+      display: none;
+    }
     .xp-popover.visible {
       opacity: 1;
       transform: translateY(0);
       pointer-events: auto;
+    }
+    .xp-popover::-webkit-scrollbar { width: 4px; }
+    .xp-popover::-webkit-scrollbar-thumb {
+      background: rgba(var(--accent-rgb), 0.15);
+      border-radius: 99px;
     }
     .xp-popover .rank-header { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
     .xp-popover .rank-header-copy { display:flex; flex-direction:column; gap:4px; min-width:0; }
@@ -18091,8 +18102,6 @@ input[type="range"]::-moz-range-thumb{
 
     var xpPopoverOpen = false;
     var xpPopoverAnchor = null;
-    var xpOutsideClickBound = false;
-    var xpEscBound = false;
     var xpInfoHideTimer = null;
 
     function getOrCreateXPPopover() {
@@ -18100,7 +18109,7 @@ input[type="range"]::-moz-range-thumb{
       if (!pop) {
         pop = document.createElement('div');
         pop.id = 'xpPopover';
-        pop.className = 'xp-popover';
+        pop.className = 'xp-popover hidden';
         document.body.appendChild(pop);
       }
       return pop;
@@ -18108,15 +18117,17 @@ input[type="range"]::-moz-range-thumb{
 
     function positionXPPopover(anchor, popover) {
       var rect = anchor.getBoundingClientRect();
-      var width = (isEmbedded ? 280 : 320);
-      if (window.innerWidth < 320) width = Math.max(220, window.innerWidth - 20);
-      popover.style.width = width + 'px';
-      var top = rect.bottom + 8;
-      var left = rect.right - width;
-      if (left + width > window.innerWidth - 10) left = window.innerWidth - width - 10;
-      if (left < 10) left = 10;
-      popover.style.top = top + 'px';
-      popover.style.left = left + 'px';
+      popover.style.top = (rect.bottom + 8) + 'px';
+      var rightEdge = window.innerWidth - rect.right;
+      popover.style.right = Math.max(8, rightEdge) + 'px';
+      popover.style.left = 'auto';
+      popover.style.width = (isEmbedded ? 280 : 320) + 'px';
+
+      if (window.innerWidth < 360) {
+        popover.style.right = '8px';
+        popover.style.left = '8px';
+        popover.style.width = 'auto';
+      }
     }
 
     function renderXPPopover(anchor) {
@@ -18226,7 +18237,6 @@ input[type="range"]::-moz-range-thumb{
       var statCards = pop.querySelectorAll('.stat-card');
       var todBars = pop.querySelectorAll('.tod-bar-fill');
       if (window.gsap) {
-        gsap.fromTo(pop, { opacity: 0, y: -8 }, { opacity: 1, y: 0, duration: 0.25, ease: 'power2.out' });
         gsap.fromTo(statCards, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.2, stagger: 0.05, ease: 'power2.out' });
         todBars.forEach(function(bar, idx) {
           var target = bar.getAttribute('data-width') || '0%';
@@ -18239,64 +18249,84 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    function openXPPopover(anchorEl) {
+      var popover = getOrCreateXPPopover();
+      if (!popover || !anchorEl) return;
+
+      xpPopoverAnchor = anchorEl;
+      renderXPPopover(anchorEl);
+      positionXPPopover(anchorEl, popover);
+
+      popover.classList.remove('hidden');
+      popover.classList.add('visible');
+      xpPopoverOpen = true;
+
+      if (window.gsap) {
+        gsap.fromTo(popover, { opacity: 0, y: -8 }, { opacity: 1, y: 0, duration: 0.25, ease: 'power2.out' });
+      }
+
+      setTimeout(function() {
+        document.addEventListener('click', handlePopoverClickOutside, true);
+        document.addEventListener('keydown', handlePopoverEscape);
+      }, 10);
+    }
+
     function closeXPPopover() {
-      var pop = document.getElementById('xpPopover');
-      if (pop) {
-        pop.classList.remove('visible');
+      var popover = document.getElementById('xpPopover');
+      if (popover && window.gsap) {
+        gsap.to(popover, {
+          opacity: 0,
+          y: -8,
+          duration: 0.15,
+          ease: 'power2.in',
+          onComplete: function() {
+            popover.classList.remove('visible');
+            popover.classList.add('hidden');
+            popover.style.opacity = '';
+            popover.style.transform = '';
+          }
+        });
+      } else if (popover) {
+        popover.classList.remove('visible');
+        popover.classList.add('hidden');
       }
-      if (xpOutsideClickBound) {
-        document.removeEventListener('click', handleXPPopoverOutsideClick);
-        xpOutsideClickBound = false;
-      }
-      if (xpEscBound) {
-        document.removeEventListener('keydown', handleXPPopoverEsc);
-        xpEscBound = false;
-      }
+
       if (xpInfoHideTimer) {
         clearTimeout(xpInfoHideTimer);
         xpInfoHideTimer = null;
       }
+
       xpPopoverOpen = false;
       xpPopoverAnchor = null;
+      document.removeEventListener('click', handlePopoverClickOutside, true);
+      document.removeEventListener('keydown', handlePopoverEscape);
     }
 
-    function handleXPPopoverOutsideClick(ev) {
-      if (!xpPopoverOpen) return;
-      var pop = document.getElementById('xpPopover');
-      if (!pop) return;
-      if (pop.contains(ev.target)) return;
-      var widgets = [el('xpBarWidget'), el('mainXpBarWidget')].filter(Boolean);
-      for (var i = 0; i < widgets.length; i++) {
-        if (widgets[i].contains(ev.target)) return;
-      }
-      closeXPPopover();
-    }
+    function handlePopoverClickOutside(e) {
+      var popover = document.getElementById('xpPopover');
+      if (popover && popover.contains(e.target)) return;
 
-    function handleXPPopoverEsc(ev) {
-      if (ev.key === 'Escape' && xpPopoverOpen) {
-        closeXPPopover();
-      }
-    }
-
-    function toggleXPPopover(anchor) {
-      var pop = getOrCreateXPPopover();
-      if (xpPopoverOpen && xpPopoverAnchor && xpPopoverAnchor === anchor) {
+      var bar1 = document.getElementById('xpBarWidget');
+      var bar2 = document.getElementById('mainXpBarWidget');
+      if ((bar1 && bar1.contains(e.target)) || (bar2 && bar2.contains(e.target))) {
         closeXPPopover();
         return;
       }
-      xpPopoverAnchor = anchor;
-      renderXPPopover(anchor);
-      pop.classList.add('visible');
-      xpPopoverOpen = true;
-      if (!xpOutsideClickBound) {
-        xpOutsideClickBound = true;
-        setTimeout(function() {
-          document.addEventListener('click', handleXPPopoverOutsideClick);
-        }, 0);
+
+      closeXPPopover();
+    }
+
+    function handlePopoverEscape(e) {
+      if (e.key === 'Escape') {
+        closeXPPopover();
       }
-      if (!xpEscBound) {
-        xpEscBound = true;
-        document.addEventListener('keydown', handleXPPopoverEsc);
+    }
+
+    function toggleXPPopover(anchorEl) {
+      if (xpPopoverOpen) {
+        closeXPPopover();
+      } else {
+        openXPPopover(anchorEl);
       }
     }
 
@@ -18305,6 +18335,7 @@ input[type="range"]::-moz-range-thumb{
       widgets.forEach(function(widget) {
         widget.setAttribute('role', 'button');
         widget.setAttribute('tabindex', '0');
+        widget.style.cursor = 'pointer';
         widget.addEventListener('click', function(ev) {
           ev.stopPropagation();
           toggleXPPopover(this);
