@@ -1,0 +1,13 @@
+{
+  "name": "notion-widgets-worker",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
+  },
+  "devDependencies": {
+    "wrangler": "^4",
+    "@cloudflare/workers-types": "^4",
+    "typescript": "^5"
+  }
+}
