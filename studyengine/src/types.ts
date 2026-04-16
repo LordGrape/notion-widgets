@@ -153,6 +153,13 @@ export interface StatsData {
   lastSessionDate: string;
   reviewsByTier: Record<TierId, number>;
   history?: Array<{ date: string; reviews: number; xp?: number }>;
+  totalStudyTimeMs?: number;
+  timeOfDay?: {
+    morning: { totalRatings: number; ratingSum: number; sessions: number };
+    afternoon: { totalRatings: number; ratingSum: number; sessions: number };
+    evening: { totalRatings: number; ratingSum: number; sessions: number };
+    night: { totalRatings: number; ratingSum: number; sessions: number };
+  };
 }
 
 export interface DragonState {
