@@ -6213,6 +6213,28 @@ input[type="range"]::-moz-range-thumb{
       background: rgba(var(--accent-rgb), 0.03);
       flex-shrink: 0;
     }
+    .main-topbar .xp-bar-widget {
+      margin-left: auto;
+      min-width: 220px;
+      max-width: 340px;
+    }
+    .main-topbar .xp-bar-track {
+      max-width: none;
+    }
+    .main-topbar .xp-bar-label {
+      font-size: 9px;
+    }
+    @media (max-width: 1200px) {
+      .main-topbar .xp-bar-widget {
+        min-width: 180px;
+        max-width: 260px;
+      }
+    }
+    @media (max-width: 980px) {
+      .main-topbar .xp-bar-widget {
+        display: none;
+      }
+    }
 
     .main-topbar-actions {
       display: flex;
@@ -6746,6 +6768,17 @@ input[type="range"]::-moz-range-thumb{
         </div>
         <div class="main-tabs" id="mainTabs" role="tablist" aria-label="Main navigation">
           <button class="nav-tab active" data-nav="home" type="button">Home</button>
+        </div>
+        <div class="xp-bar-widget" id="mainXpBarWidget" aria-label="Experience progress">
+          <div class="xp-rank-badge" data-xp-role="rank-badge">
+            <span class="xp-rank-icon" data-xp-role="rank-icon">📖</span>
+            <span class="xp-rank-level" data-xp-role="rank-level">1</span>
+          </div>
+          <div class="xp-bar-track">
+            <div class="xp-bar-fill" data-xp-role="bar-fill" style="width: 0%"></div>
+            <div class="xp-bar-glow" data-xp-role="bar-glow"></div>
+          </div>
+          <span class="xp-bar-label" data-xp-role="bar-label">0 / 100 XP</span>
         </div>
         <div class="main-topbar-actions">
           <button class="icon-btn" id="mainAddCard" data-standalone-hide="true" type="button" title="Add card" aria-label="Add card">＋</button>
@@ -17485,23 +17518,31 @@ input[type="range"]::-moz-range-thumb{
       try { xp = SyncEngine.get('dragon', 'xp') || 0; } catch(e) {}
       var info = getLevelInfo(xp);
 
-      var badge = el('xpRankBadge');
-      var icon = el('xpRankIcon');
-      var level = el('xpRankLevel');
-      var fill = el('xpBarFill');
-      var label = el('xpBarLabel');
+      var widgets = [];
+      var legacyWidget = el('xpBarWidget');
+      if (legacyWidget) widgets.push(legacyWidget);
+      var standaloneWidget = el('mainXpBarWidget');
+      if (standaloneWidget) widgets.push(standaloneWidget);
 
-      if (icon) icon.textContent = info.rankIcon;
-      if (level) level.textContent = String(info.level);
-      if (badge) badge.style.borderColor = info.rankColour;
-      if (fill) fill.style.width = info.progressPct + '%';
-      if (label) {
-        if (info.isMaxLevel) {
-          label.textContent = info.currentXP.toLocaleString() + ' XP · MAX';
-        } else {
-          label.textContent = info.xpIntoLevel + ' / ' + info.xpNeededInLevel + ' XP';
+      widgets.forEach(function(widget) {
+        var badge = widget.querySelector('[data-xp-role="rank-badge"], #xpRankBadge');
+        var icon = widget.querySelector('[data-xp-role="rank-icon"], #xpRankIcon');
+        var level = widget.querySelector('[data-xp-role="rank-level"], #xpRankLevel');
+        var fill = widget.querySelector('[data-xp-role="bar-fill"], #xpBarFill');
+        var label = widget.querySelector('[data-xp-role="bar-label"], #xpBarLabel');
+
+        if (icon) icon.textContent = info.rankIcon;
+        if (level) level.textContent = String(info.level);
+        if (badge) badge.style.borderColor = info.rankColour;
+        if (fill) fill.style.width = info.progressPct + '%';
+        if (label) {
+          if (info.isMaxLevel) {
+            label.textContent = info.currentXP.toLocaleString() + ' XP · MAX';
+          } else {
+            label.textContent = info.xpIntoLevel + ' / ' + info.xpNeededInLevel + ' XP';
+          }
         }
-      }
+      });
     }
 
     /* ═══ SECTION: Award XP | Functions: awardXP ═══ */
@@ -17521,15 +17562,24 @@ input[type="range"]::-moz-range-thumb{
       renderXPBar();
 
       /* XP gain flash */
-      var fill = el('xpBarFill');
-      var glow = el('xpBarGlow');
-      if (fill) { fill.classList.add('xp-flash'); setTimeout(function() { fill.classList.remove('xp-flash'); }, 600); }
-      if (glow) { glow.classList.add('active'); setTimeout(function() { glow.classList.remove('active'); }, 800); }
+      var fills = Array.prototype.slice.call(document.querySelectorAll('#xpBarFill, [data-xp-role="bar-fill"]'));
+      var glows = Array.prototype.slice.call(document.querySelectorAll('#xpBarGlow, [data-xp-role="bar-glow"]'));
+      fills.forEach(function(fill) {
+        fill.classList.add('xp-flash');
+        setTimeout(function() { fill.classList.remove('xp-flash'); }, 600);
+      });
+      glows.forEach(function(glow) {
+        glow.classList.add('active');
+        setTimeout(function() { glow.classList.remove('active'); }, 800);
+      });
 
       /* Level-up celebration */
       if (result.levelled) {
-        var badge = el('xpRankBadge');
-        if (badge) { badge.classList.add('level-up'); setTimeout(function() { badge.classList.remove('level-up'); }, 900); }
+        var badges = Array.prototype.slice.call(document.querySelectorAll('#xpRankBadge, [data-xp-role="rank-badge"]'));
+        badges.forEach(function(badge) {
+          badge.classList.add('level-up');
+          setTimeout(function() { badge.classList.remove('level-up'); }, 900);
+        });
         if (result.newRank) {
           toast('🎉 Rank up! ' + result.newRank);
         } else {
