@@ -3767,7 +3767,7 @@ body.standalone .answer.restudy-active{
       color: var(--text-tertiary);
       max-width: 270px;
     }
-    #tabHome.dashboard-zero-mode > :not(#dashboardFirstCourseState){
+    #tabHome.dashboard-zero-mode > :not(#dashboardFirstCourseState):not(#dashboardCourseReadyState){
       display: none !important;
     }
     .dashboard-first-course-state{
@@ -3841,6 +3841,90 @@ body.standalone .answer.restudy-active{
       max-width: 460px;
     }
     body.standalone .dashboard-first-course-state .dfc-hint{
+      font-size: 10px;
+    }
+    .dashboard-course-ready-state{
+      position: relative;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 28px 16px 20px;
+      margin-top: 4px;
+      border-radius: 16px;
+      border: 1px solid rgba(var(--accent-rgb), 0.14);
+      background: linear-gradient(160deg, rgba(var(--accent-rgb),0.08), rgba(var(--accent-rgb),0.02));
+      overflow: hidden;
+      isolation: isolate;
+    }
+    .dashboard-course-ready-state::before{
+      content: '';
+      position: absolute;
+      inset: -32% -16% auto -16%;
+      height: 220px;
+      background: radial-gradient(circle at 50% 20%, rgba(var(--accent-rgb),0.26), rgba(var(--accent-rgb),0));
+      pointer-events: none;
+      z-index: -1;
+    }
+    .dashboard-course-ready-state .dcr-inner{
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 9px;
+    }
+    .dashboard-course-ready-state .dcr-icon{
+      font-size: 48px;
+      line-height: 1;
+      filter: drop-shadow(0 8px 18px rgba(var(--accent-rgb),0.25));
+    }
+    .dashboard-course-ready-state .dcr-title{
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+    .dashboard-course-ready-state .dcr-subtitle{
+      max-width: 380px;
+      font-size: 11px;
+      line-height: 1.5;
+      color: var(--text-secondary);
+      opacity: 0.95;
+    }
+    .dashboard-course-ready-state .dcr-actions{
+      width: 100%;
+      max-width: 340px;
+      margin-top: 4px;
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+    .dashboard-course-ready-state .dcr-actions .ghost-btn{
+      min-width: 0;
+      flex: 1 1 0;
+      padding: 10px 12px;
+    }
+    .dashboard-course-ready-state .dcr-hint{
+      font-size: 9px;
+      color: var(--text-tertiary);
+      letter-spacing: 0.2px;
+    }
+    body.standalone .dashboard-course-ready-state{
+      min-height: 330px;
+      padding: 38px 24px 28px;
+      border-radius: 20px;
+    }
+    body.standalone .dashboard-course-ready-state .dcr-icon{
+      font-size: 54px;
+    }
+    body.standalone .dashboard-course-ready-state .dcr-title{
+      font-size: 18px;
+    }
+    body.standalone .dashboard-course-ready-state .dcr-subtitle{
+      font-size: 12px;
+      max-width: 460px;
+    }
+    body.standalone .dashboard-course-ready-state .dcr-hint{
       font-size: 10px;
     }
     .chart-empty{
@@ -6834,6 +6918,18 @@ input[type="range"]::-moz-range-thumb{
                 <div class="dfc-hint">Or import a JSON card batch from the sidebar</div>
               </div>
             </div>
+            <div id="dashboardCourseReadyState" class="dashboard-course-ready-state" style="display:none;" aria-live="polite">
+              <div class="dcr-inner">
+                <div class="dcr-icon" aria-hidden="true">📥</div>
+                <div class="dcr-title">Your courses are ready</div>
+                <div class="dcr-subtitle">Add study cards to start your first review session. Import a JSON batch, add cards manually, or let the AI generate cards from your lecture materials.</div>
+                <div class="dcr-actions">
+                  <button class="ghost-btn" id="dashboardImportCardsBtn" type="button">📥 Import Cards</button>
+                  <button class="ghost-btn" id="dashboardAddCardBtn" type="button">✏️ Add Card</button>
+                </div>
+                <div class="dcr-hint">Tip: Import lecture PDFs in your course settings to generate AI-powered cards</div>
+              </div>
+            </div>
             <div class="dash-grid">
               <div class="hero-stat" id="heroStat">
                 <div class="hero-value" id="statDue">—</div>
@@ -8826,11 +8922,19 @@ input[type="range"]::-moz-range-thumb{
       /* Empty state */
       var homeTabEl = el('tabHome');
       var welcomeStateEl = el('dashboardFirstCourseState');
+      var courseReadyStateEl = el('dashboardCourseReadyState');
       var emptyEl = el('emptyState');
       var heroEl = el('heroStat');
+      var totalCourses = Object.keys(state.courses || {}).length;
       if (totalItems === 0) {
         if (homeTabEl) homeTabEl.classList.add('dashboard-zero-mode');
-        if (welcomeStateEl) welcomeStateEl.style.display = 'flex';
+        if (totalCourses === 0) {
+          if (welcomeStateEl) welcomeStateEl.style.display = 'flex';
+          if (courseReadyStateEl) courseReadyStateEl.style.display = 'none';
+        } else {
+          if (welcomeStateEl) welcomeStateEl.style.display = 'none';
+          if (courseReadyStateEl) courseReadyStateEl.style.display = 'flex';
+        }
         emptyEl.style.display = 'none';
         heroEl.style.display = 'block';
         el('startBtn').disabled = true;
@@ -8851,9 +8955,24 @@ input[type="range"]::-moz-range-thumb{
             try { openCourseModal(); } catch (e) {}
           };
         }
-        if (welcomeStateEl && window.gsap) {
-          gsap.killTweensOf(welcomeStateEl);
-          gsap.fromTo(welcomeStateEl,
+        var importCardsBtn = el('dashboardImportCardsBtn');
+        if (importCardsBtn) {
+          importCardsBtn.onclick = function() {
+            var importBtn = el('importBtn');
+            if (importBtn) importBtn.click();
+          };
+        }
+        var addCardBtn = el('dashboardAddCardBtn');
+        if (addCardBtn) {
+          addCardBtn.onclick = function() {
+            var addBtn = el('addBtn');
+            if (addBtn) addBtn.click();
+          };
+        }
+        var zeroStateEl = (totalCourses === 0) ? welcomeStateEl : courseReadyStateEl;
+        if (zeroStateEl && window.gsap) {
+          gsap.killTweensOf(zeroStateEl);
+          gsap.fromTo(zeroStateEl,
             { opacity: 0, y: 10 },
             { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }
           );
@@ -8864,6 +8983,7 @@ input[type="range"]::-moz-range-thumb{
       }
       if (homeTabEl) homeTabEl.classList.remove('dashboard-zero-mode');
       if (welcomeStateEl) welcomeStateEl.style.display = 'none';
+      if (courseReadyStateEl) courseReadyStateEl.style.display = 'none';
       emptyEl.style.display = 'none';
       heroEl.style.display = 'block';
 
