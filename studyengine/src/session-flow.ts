@@ -69,6 +69,9 @@ interface SessionFlowBridge {
   isoDate: () => string;
   daysBetween: (a: number, b: number) => number;
   tierColour: (tier: TierId) => string;
+  trackTimeOfDayRating: (rating: Rating) => void;
+  trackTimeOfDaySessionCompletion: () => void;
+  addStudyTime: (durationMs: number) => void;
   toast: (msg: string) => void;
   playClick: () => void;
   playChime: () => void;
@@ -474,6 +477,7 @@ export function rateCurrent(rating: Rating): void {
     actual: actualCorrect
   });
   if (bridge.state.calibration.history.length > 200) bridge.state.calibration.history.shift();
+  bridge.trackTimeOfDayRating(mappedRating);
 
   session.reviewsByTier[tier] = (session.reviewsByTier[tier] || 0) + 1;
   session.ratingSum += mappedRating;
@@ -691,6 +695,9 @@ export function completeSession(): void {
   }
 
   bridge.finalizeTutorAnalyticsSession();
+  const sessionDuration = Date.now() - (session.startedAt || Date.now());
+  if (sessionDuration > 0) bridge.addStudyTime(sessionDuration);
+  bridge.trackTimeOfDaySessionCompletion();
 
   try {
     bridge.SyncEngine.set('dragon', 'lastStudyXP', { xp: session.xp, timestamp: new Date().toISOString() });
