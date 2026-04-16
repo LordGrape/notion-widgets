@@ -7289,7 +7289,9 @@ input[type="range"]::-moz-range-thumb{
   </script>
   <!-- ts-fsrs UMD exposes global FSRS ({ FSRS, generatorParameters, … }) — browser scheduling still uses shared w[] + inline formulas -->
   <script src="https://cdn.jsdelivr.net/npm/ts-fsrs@5.3.2/dist/index.umd.js"></script>
-  <script>
+  <script type="module">
+    import { getLevelInfo, didLevelUp } from './src/xp-level-system';
+
     /* Study Engine — multi-modal retrieval practice engine (FSRS) */
     /* FUNCTION INDEX (Auto-generated)
        Navigation aid only — no runtime behavior changes.
@@ -8253,12 +8255,6 @@ input[type="range"]::-moz-range-thumb{
     function getCourse(courseName) {
       if (!courseName) return null;
       return state.courses[courseName] || null;
-    }
-
-    /* ═══ SECTION: Get Course Exam Type | Functions: getCourseExamType ═══ */
-    function getCourseExamType(courseName) {
-      var c = getCourse(courseName);
-      return (c && c.examType) ? c.examType : 'mixed';
     }
 
     /* ═══ SECTION: Is Course Manual | Functions: isCourseManual ═══ */
@@ -9607,7 +9603,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* ═══ SECTION: Show Course Context Menu | Functions: showCourseContextMenu ═══ */
-    function showCourseContextMenu(courseName, anchor) {
+    function __legacy_showCourseContextMenu(courseName, anchor) {
       showCtxMenuAt(anchor, [
         {
           icon: '📖',
@@ -9734,7 +9730,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* ═══ SECTION: Show Course Dashboard | Functions: showCourseDashboard ═══ */
-    function showCourseDashboard(courseName) {
+    function __legacy_showCourseDashboard(courseName) {
       hideContextViews();
       var view = document.getElementById('courseDashView');
       var content = document.getElementById('courseDashContent');
@@ -11391,7 +11387,7 @@ input[type="range"]::-moz-range-thumb{
       var scen = it.prompt || '';
       var task = (it.task || '');
       /* ═══ SECTION: Is Near Duplicate Instruction | Functions: isNearDuplicateInstruction ═══ */
-      function isNearDuplicateInstruction(longText, shortText) {
+      function __legacy_isNearDuplicateInstruction(longText, shortText) {
         var longNorm = String(longText || '')
           .toLowerCase()
           .replace(/[^a-z0-9\s]/g, ' ')
@@ -17585,7 +17581,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* ═══ SECTION: Render Course Modal Editor | Functions: renderCourseModalEditor ═══ */
-    function renderCourseModalEditor(courseName, tab) {
+    function __legacy_renderCourseModalEditor(courseName, tab) {
       var c = getCourse(courseName);
       if (!c) {
         courseModalState.mode = 'list';
@@ -17622,7 +17618,7 @@ input[type="range"]::-moz-range-thumb{
       courseModalBody.innerHTML = h;
 
       /* ═══ SECTION: Render Tab Content | Functions: renderTabContent ═══ */
-      function renderTabContent() {
+      function __legacy_renderTabContent() {
         var activeTab = courseModalState.tab || 'details';
         var inner = '';
         if (activeTab === 'details') {
@@ -17718,7 +17714,7 @@ input[type="range"]::-moz-range-thumb{
       }
 
       /* ═══ SECTION: Wire Editor Tab Interactions | Functions: wireEditorTabInteractions ═══ */
-      function wireEditorTabInteractions(activeTab) {
+      function __legacy_wireEditorTabInteractions(activeTab) {
         var back = el('cmBackToList');
         if (back) back.onclick = function() {
           courseModalState.mode = 'list';
@@ -17768,14 +17764,14 @@ input[type="range"]::-moz-range-thumb{
           };
         } else if (activeTab === 'syllabus') {
           /* ═══ SECTION: Set Ctx Status | Functions: setCtxStatus ═══ */
-          function setCtxStatus(msg, cls) {
+          function __legacy_setCtxStatus(msg, cls) {
             var st = el('cm_contextStatus');
             if (!st) return;
             st.className = 'syllabus-status' + (cls ? ' ' + cls : '');
             st.innerHTML = msg || '';
           }
           /* ═══ SECTION: Render Suggested Topics | Functions: renderSuggestedTopics ═══ */
-          function renderSuggestedTopics(topics) {
+          function __legacy_renderSuggestedTopics(topics) {
             var box = el('cm_suggestedTopics');
             if (!box) return;
             box.innerHTML = '';
@@ -17788,7 +17784,7 @@ input[type="range"]::-moz-range-thumb{
           }
           renderSuggestedTopics(c.syllabusKeyTopics || []);
           /* ═══ SECTION: Run Syllabus Process | Functions: runSyllabusProcess ═══ */
-          function runSyllabusProcess(rawText) {
+          function __legacy_runSyllabusProcess(rawText) {
             var trimmed = (rawText || '').trim();
             if (!trimmed) { toast('Paste text or import a PDF first'); return; }
             setCtxStatus('<span class="af-spinner"></span> Processing syllabus...', '');
@@ -17832,21 +17828,21 @@ input[type="range"]::-moz-range-thumb{
           if (reprocBtn) reprocBtn.onclick = function() { runSyllabusProcess(c.rawSyllabusText || (el('cm_courseContextText') ? el('cm_courseContextText').value : '')); };
 
           /* ═══ SECTION: Set Lecture Status | Functions: setLectureStatus ═══ */
-          function setLectureStatus(msg, cls) {
+          function __legacy_setLectureStatus(msg, cls) {
             var st = el('cm_lectureImportStatus');
             if (!st) return;
             st.className = 'syllabus-status' + (cls ? ' ' + cls : '');
             st.innerHTML = msg || '';
           }
           /* ═══ SECTION: Update Lecture Manifest Display | Functions: updateLectureManifestDisplay ═══ */
-          function updateLectureManifestDisplay() {
+          function __legacy_updateLectureManifestDisplay() {
             var box = el('cm_lectureManifestDisplay');
             if (!box) return;
             var count = Number(c._lectureCount || 0) || 0;
             box.innerHTML = count > 0 ? '<div style="font-size:9px;color:var(--text-secondary);padding:6px 8px;border-radius:10px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.03);">📚 ' + count + ' lecture' + (count !== 1 ? 's' : '') + ' imported</div>' : '';
           }
           /* ═══ SECTION: Import Lecture From Text | Functions: importLectureFromText ═══ */
-          function importLectureFromText(lectureTitle, rawText) {
+          function __legacy_importLectureFromText(lectureTitle, rawText) {
             var trimmed = (rawText || '').trim();
             if (!trimmed) { toast('Paste text or import a PDF first'); return Promise.resolve(null); }
             setLectureStatus('<span class="af-spinner"></span> Processing lecture...', '');
@@ -19189,88 +19185,6 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* ── Boot ── */
-
-    /* ═══ SECTION: XP Level System | Functions: getLevelInfo, didLevelUp, xpForLevel, getRankForLevel ═══ */
-    /* XP Level System — pure functions for computing levels from XP totals */
-    var MAX_LEVEL = 50;
-    var RANKS = [
-      { minLevel: 1, maxLevel: 5, rank: 'Novice', icon: '📖', colour: '#6b7280' },
-      { minLevel: 6, maxLevel: 10, rank: 'Apprentice', icon: '📘', colour: '#3b82f6' },
-      { minLevel: 11, maxLevel: 15, rank: 'Scholar', icon: '🎓', colour: '#8b5cf6' },
-      { minLevel: 16, maxLevel: 20, rank: 'Adept', icon: '⚡', colour: '#06b6d4' },
-      { minLevel: 21, maxLevel: 25, rank: 'Sage', icon: '🌿', colour: '#10b981' },
-      { minLevel: 26, maxLevel: 30, rank: 'Expert', icon: '🔥', colour: '#f59e0b' },
-      { minLevel: 31, maxLevel: 35, rank: 'Master', icon: '⚔️', colour: '#ef4444' },
-      { minLevel: 36, maxLevel: 40, rank: 'Grandmaster', icon: '💎', colour: '#ec4899' },
-      { minLevel: 41, maxLevel: 45, rank: 'Luminary', icon: '✨', colour: '#8b5cf6' },
-      { minLevel: 46, maxLevel: 50, rank: 'Polymath', icon: '👑', colour: '#f59e0b' }
-    ];
-
-    function xpForLevel(level) {
-      if (level <= 1) return 0;
-      if (level > MAX_LEVEL) return xpForLevel(MAX_LEVEL);
-      return Math.floor(100 * Math.pow(level, 1.6));
-    }
-
-    function getRankForLevel(level) {
-      var clamped = Math.max(1, Math.min(level, MAX_LEVEL));
-      for (var i = 0; i < RANKS.length; i++) {
-        var r = RANKS[i];
-        if (clamped >= r.minLevel && clamped <= r.maxLevel) {
-          return { rank: r.rank, icon: r.icon, colour: r.colour };
-        }
-      }
-      return { rank: 'Novice', icon: '📖', colour: '#6b7280' };
-    }
-
-    function getLevelInfo(totalXP) {
-      var xp = Math.max(0, totalXP || 0);
-      var level = 1;
-      for (var i = 1; i <= MAX_LEVEL; i++) {
-        if (xp >= xpForLevel(i)) {
-          level = i;
-        } else {
-          break;
-        }
-      }
-      var rankInfo = getRankForLevel(level);
-      var xpForCurrent = xpForLevel(level);
-      var xpForNext = level < MAX_LEVEL ? xpForLevel(level + 1) : xpForCurrent;
-      var xpNeededInLevel = xpForNext - xpForCurrent;
-      var xpIntoLevel = xp - xpForCurrent;
-      var progressPct = xpNeededInLevel > 0 ? Math.min(100, Math.max(0, (xpIntoLevel / xpNeededInLevel) * 100)) : 100;
-      var isMaxLevel = level >= MAX_LEVEL;
-      return {
-        level: level,
-        rank: rankInfo.rank,
-        rankIcon: rankInfo.icon,
-        rankColour: rankInfo.colour,
-        currentXP: xp,
-        xpIntoLevel: xpIntoLevel,
-        xpForNextLevel: xpForNext,
-        xpNeededInLevel: xpNeededInLevel,
-        progressPct: progressPct,
-        isMaxLevel: isMaxLevel
-      };
-    }
-
-    function didLevelUp(oldXP, newXP) {
-      var oldInfo = getLevelInfo(oldXP);
-      var newInfo = getLevelInfo(newXP);
-      if (newInfo.level > oldInfo.level) {
-        return {
-          levelled: true,
-          oldLevel: oldInfo.level,
-          newLevel: newInfo.level,
-          newRank: newInfo.rank !== oldInfo.rank ? newInfo.rank : undefined
-        };
-      }
-      return {
-        levelled: false,
-        oldLevel: oldInfo.level,
-        newLevel: newInfo.level
-      };
-    }
 
     /* ═══ SECTION: Render XP Bar | Functions: renderXPBar ═══ */
     function renderXPBar() {
@@ -21290,6 +21204,14 @@ input[type="range"]::-moz-range-thumb{
         );
       }
     };
+
+    /* Module-scope exports for inline HTML event handlers */
+    window.renderModal = renderModal;
+    Object.defineProperty(window, 'modalShowingPicker', {
+      configurable: true,
+      get: function() { return modalShowingPicker; },
+      set: function(value) { modalShowingPicker = value; }
+    });
 
     SyncEngine.onReady(function() {
       boot();
