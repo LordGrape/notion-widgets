@@ -8,7 +8,13 @@ export interface GeminiGenerationConfig {
   maxOutputTokens?: number;
   responseMimeType?: string;
   responseSchema?: GeminiJsonValue;
+  thinkingConfig?: GeminiThinkingConfig;
   [key: string]: GeminiJsonValue | undefined;
+}
+
+export interface GeminiThinkingConfig {
+  thinkingBudget?: number;
+  includeThoughts?: boolean;
 }
 
 export type GeminiJsonPrimitive = string | number | boolean | null;
@@ -63,13 +69,16 @@ export async function callGemini(
 
 export function extractGeminiText(geminiData: GeminiResponse): string {
   const parts = geminiData?.candidates?.[0]?.content?.parts;
-  if (!Array.isArray(parts) || parts.length === 0) return "{}";
+  if (!Array.isArray(parts) || parts.length === 0) return "";
   const textParts = parts.filter((part) => !part.thought && typeof part.text === "string");
   if (textParts.length === 0) {
-    const last = parts[parts.length - 1];
-    return last && typeof last.text === "string" ? last.text : "{}";
+    return "";
   }
-  return textParts[textParts.length - 1]?.text ?? "{}";
+  return textParts[textParts.length - 1]?.text ?? "";
+}
+
+export function getFinishReason(geminiData: GeminiResponse): string | undefined {
+  return geminiData?.candidates?.[0]?.finishReason;
 }
 
 export function parseGeminiJson<T>(geminiData: GeminiResponse): T | null {

@@ -1,5 +1,5 @@
 import { getCorsHeaders } from "../cors";
-import { callGemini, extractGeminiText } from "../gemini";
+import { callGemini, extractGeminiText, getFinishReason } from "../gemini";
 import type { GeminiJsonValue } from "../gemini";
 import type { Env, TutorMode, TutorRequest } from "../types";
 import { daysUntilExam } from "../utils/helpers";
@@ -715,14 +715,17 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
       fieldSepForMode;
 
     const modeTokenLimits: Record<TutorMode, number> = {
-      insight: 256,
-      quick: 512,
-      acknowledge: 512,
-      socratic: 1024,
-      teach: 1024,
-      freeform: 512
+      insight: 512,
+      quick: 768,
+      acknowledge: 768,
+      socratic: 1536,
+      teach: 1536,
+      freeform: 768
     };
-    const maxOut = modeTokenLimits[mode] || 1024;
+    const maxOutBase = modeTokenLimits[mode] || 1536;
+    const isProModel = selectedModel === "gemini-2.5-pro";
+    const thinkingBudget = isProModel ? 512 : 0;
+    const maxOut = maxOutBase + (isProModel ? 512 : 0);
     const lectureCtxBlock = body.lectureContext
       ? `\nLECTURE CONTEXT (source material the student studied):\n${body.lectureContext.courseDigest || ""}${body.lectureContext.topicChunk ? `\n\nRELEVANT SECTION:\n${body.lectureContext.topicChunk}` : ""}\n\n---\n\n`
       : "";
@@ -744,11 +747,16 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
       temperature: 0.35,
       maxOutputTokens: maxOut,
       responseMimeType: "application/json",
-      responseSchema: responseSchemaObjects[mode] || responseSchemaObjects.socratic
+      responseSchema: responseSchemaObjects[mode] || responseSchemaObjects.socratic,
+      thinkingConfig: { thinkingBudget }
     };
 
     const geminiData = await callGemini(selectedModel, systemPromptFinal, dynamicPrompt, generationConfig, env);
+    let finishReason = getFinishReason(geminiData);
     let rawText = extractGeminiText(geminiData);
+    if (rawText === "") {
+      return jsonResponse({ error: "tutor_empty_response", finishReason }, 502);
+    }
     let parsed: unknown;
 
     try {
@@ -761,19 +769,23 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
         `${dynamicPrompt}\n\n` +
         "Return ONLY a JSON object. No prose. No code fences.";
       const retryData = await callGemini(selectedModel, systemPromptFinal, retryPrompt, generationConfig, env);
+      finishReason = getFinishReason(retryData);
       rawText = extractGeminiText(retryData);
+      if (rawText === "") {
+        return jsonResponse({ error: "tutor_empty_response", finishReason }, 502);
+      }
       try {
         parsed = extractJsonFromModelOutput(rawText);
       } catch (retryError) {
         if (retryError instanceof TutorJsonParseError) {
-          return jsonResponse({ error: "tutor_parse_failed", rawPreview: rawText.slice(0, 500) }, 502);
+          return jsonResponse({ error: "tutor_parse_failed", rawPreview: rawText.slice(0, 500), finishReason }, 502);
         }
         throw retryError;
       }
     }
 
     if (!parsed || typeof parsed !== "object" || Object.keys(parsed).length === 0) {
-      return jsonResponse({ error: "tutor_parse_failed", rawPreview: rawText.slice(0, 500) }, 502);
+      return jsonResponse({ error: "tutor_parse_failed", rawPreview: rawText.slice(0, 500), finishReason }, 502);
     }
 
     return jsonResponse(parsed, 200);
