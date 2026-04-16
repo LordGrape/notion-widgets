@@ -281,3 +281,103 @@ export interface ErrorResponse {
   raw?: string;
   status?: number;
 }
+
+
+export interface SyllabusRequest {
+  rawText?: string;
+  courseName?: string;
+  existingExamType?: string;
+}
+
+export interface SummaryRequest {
+  userName?: string;
+  sessionStats?: {
+    totalCards?: number;
+    avgRating?: number;
+    ratingDistribution?: Record<string, number>;
+    courseBreakdown?: Record<string, number>;
+    dontKnows?: number;
+    skips?: number;
+    tutorModes?: Record<string, number>;
+  };
+  weakCards?: Array<{ topic?: string; prompt?: string }>;
+  strongCards?: Array<{ topic?: string }>;
+  calibrationBefore?: number | string | null;
+  calibrationAfter?: number | string | null;
+}
+
+export interface PrepareRequest {
+  courseName?: string;
+  cards?: Array<{ prompt?: string; topic?: string }>;
+  existingCourseContext?: {
+    syllabusContext?: string;
+  };
+}
+
+export interface FetchLectureRequest {
+  url?: string;
+}
+
+export interface LectureContextRequest {
+  courseName?: string;
+  topic?: string;
+}
+
+export interface LectureChunk {
+  topic?: string;
+  keyTerms?: string[];
+  content?: string;
+}
+
+export interface MemoryRequest {
+  item?: {
+    prompt?: string;
+    modelAnswer?: string;
+    course?: string;
+    topic?: string;
+  };
+  userName?: string;
+  dialogue?: Array<{ role?: string; text?: string | null }>;
+  suggestedRating?: number;
+  existingMemories?: Array<{
+    id?: string;
+    type?: string;
+    confidence?: number;
+    content?: string;
+  }>;
+}
+
+export interface ReformulateRequest {
+  originalPrompt?: string;
+  modelAnswer?: string;
+  tier?: string;
+  course?: string;
+  topic?: string;
+  lapses?: number;
+  diagnosisHistory?: Array<{ type?: string }>;
+}
+
+export interface LearnCheckRequest {
+  concept?: string;
+  checkQuestion?: string;
+  checkAnswer?: string;
+  userResponse?: string;
+}
+
+export interface ExamTriageRequest {
+  topics?: string[];
+  topicCardCounts?: Record<string, number>;
+  topicRetention?: Record<string, number>;
+  topicLearnStatus?: Record<string, string>;
+  chooseN?: number | null;
+  outOfM?: number | null;
+  syllabusContext?: string;
+  rawQuestions?: string;
+  mode?: string;
+  questions?: Array<{
+    id?: string;
+    text?: string;
+    mappedTopics?: string[];
+    themes?: string[];
+  }>;
+}
