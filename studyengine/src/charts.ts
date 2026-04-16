@@ -1,13 +1,15 @@
 import type { StudyItem } from './types';
 
 const el = (id: string): HTMLElement | null => document.getElementById(id);
-declare const state: Record<string, any>;
 declare const settings: Record<string, any>;
 declare function retrievability(fsrs: any, timestamp: number): number;
 declare function clamp(val: number, min: number, max: number): number;
 declare const SyncEngine: {
   get: (namespace: string, key: string) => unknown;
 };
+declare const __studyEngineSessionFlow: {
+  state?: Record<string, any>;
+} | undefined;
 declare const gsap: {
   fromTo: (target: unknown, fromVars: Record<string, unknown>, toVars: Record<string, unknown>) => void;
   killTweensOf: (target: Element) => void;
@@ -452,7 +454,8 @@ export function drawSparkline(canvasId: string): void {
   const textSec = getTextSecondary();
   const textCol = getTextColor();
 
-  const history: SessionHistoryRow[] = (state.calibration && state.calibration.history) || [];
+  const runtimeState = __studyEngineSessionFlow?.state;
+  const history: SessionHistoryRow[] = (runtimeState && runtimeState.calibration && runtimeState.calibration.history) || [];
   const days: Record<string, { count: number; ratingSum: number; ratingN: number }> = {};
   const now = new Date();
   for (let d = 29; d >= 0; d--) {
@@ -593,7 +596,8 @@ export function drawTierRing(canvasId: string): void {
   const rgb = getAccentRGB();
   const textCol = getTextColor();
 
-  const history: SessionHistoryRow[] = (state.calibration && state.calibration.history) || [];
+  const runtimeState = __studyEngineSessionFlow?.state;
+  const history: SessionHistoryRow[] = (runtimeState && runtimeState.calibration && runtimeState.calibration.history) || [];
   const recent = history.slice(-50);
   const tierCounts: Record<'quickfire' | 'explain' | 'apply' | 'distinguish' | 'mock' | 'worked', number> = {
     quickfire: 0,
@@ -696,7 +700,8 @@ export function drawActivityHeatmap(containerId: string): void {
     void e;
   }
 
-  let hasSessionData = !!(state.stats && state.stats.lastSessionDate);
+  const runtimeState = __studyEngineSessionFlow?.state;
+  let hasSessionData = !!(runtimeState && runtimeState.stats && runtimeState.stats.lastSessionDate);
   if (!hasSessionData) {
     for (const dayKey in dayMap) {
       if (Object.prototype.hasOwnProperty.call(dayMap, dayKey) && dayMap[dayKey] > 0) {
