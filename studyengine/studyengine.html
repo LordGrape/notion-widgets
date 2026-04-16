@@ -7698,6 +7698,8 @@ input[type="range"]::-moz-range-thumb{
   <!-- ts-fsrs UMD exposes global FSRS ({ FSRS, generatorParameters, … }) — browser scheduling still uses shared w[] + inline formulas -->
   <script src="https://cdn.jsdelivr.net/npm/ts-fsrs@5.3.2/dist/index.umd.js"></script>
   <script type="module">
+    const import_meta_env_VITE_WIDGET_KEY = '__VITE_WIDGET_KEY__';
+
     import { getLevelInfo, didLevelUp } from './src/xp-level-system';
     import { drawRetentionCurve, drawSparkline, drawTierRing, drawActivityHeatmap, wireRetentionInteractivity, hideCanvasTooltip, getCanvasCtx, getAccentRGB, getTextSecondary, getTextColor } from './src/charts';
     import { buildSessionQueue, startSession, rateCurrent, advanceItem, completeSession, calcRestudyDuration } from './src/session-flow';
@@ -8015,7 +8017,6 @@ input[type="range"]::-moz-range-thumb{
        - calcRestudyDuration: Handles calc restudy duration workflow and state updates.
        - fmtMMSS: Handles fmt mmss workflow and state updates.
        - initMascot: Handles init mascot workflow and state updates.
-       - updateMascotStage: Handles update mascot stage workflow and state updates.
        - startMascotLoop: Handles start mascot loop workflow and state updates.
        - tick: Handles tick workflow and state updates.
        - drawMascot: Handles draw mascot workflow and state updates.
@@ -10414,15 +10415,15 @@ input[type="range"]::-moz-range-thumb{
     /* ═══ SECTION: Get Widget Key | Functions: getWidgetKey ═══ */
     function getWidgetKey() {
       try {
-        if (typeof SyncEngine !== 'undefined') {
+        if (typeof SyncEngine !== "undefined") {
           if (SyncEngine._key) return SyncEngine._key;
           if (SyncEngine.key) return SyncEngine.key;
           if (SyncEngine.passphrase) return SyncEngine.passphrase;
         }
-      } catch (e) {}
-      try { if (window.WIDGET_KEY) return window.WIDGET_KEY; } catch (e2) {}
-      try { return localStorage.getItem('WIDGET_KEY') || localStorage.getItem('widgetKey') || ''; } catch (e3) {}
-      return '';
+      } catch(e) {}
+      var envKey = typeof import_meta_env_VITE_WIDGET_KEY !== 'undefined'
+          ? import_meta_env_VITE_WIDGET_KEY : '';
+      return envKey || '';
     }
 
     /* ═══ SECTION: Play Tts | Functions: playTTS ═══ */
@@ -15317,6 +15318,7 @@ input[type="range"]::-moz-range-thumb{
       optimizeFsrsParams: optimizeFsrsParams,
       finalizeTutorAnalyticsSession: finalizeTutorAnalyticsSession,
       requestSessionAiSummary: requestSessionAiSummary,
+      retrievability: retrievability,
       isoDate: isoDate,
       daysBetween: daysBetween,
       tierColour: tierColour,
@@ -19557,11 +19559,6 @@ input[type="range"]::-moz-range-thumb{
         wireRetentionInteractivity('retentionCanvas');
         /* cdRetentionCanvas removed — retention now in analytics grid */
       }, 200);
-
-      /* Refresh mascot stage every 30s (picks up XP changes from other widgets) */
-      setInterval(function() {
-        updateMascotStage();
-      }, 30000);
 
       /* Show sync status badge */
       var syncBadge = el('syncBadge');
