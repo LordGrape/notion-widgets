@@ -14366,26 +14366,37 @@ input[type="range"]::-moz-range-thumb{
       /* Store the AI rating on the session for calibration tracking */
       session.aiRating = suggestedRating;
 
-      /* Show rating buttons - pre-highlight the suggested one */
-      ratingsEl.style.display = 'grid';
-      ratingsEl.querySelectorAll('button').forEach(function(b) {
-        var r = parseInt(b.getAttribute('data-rate'), 10);
-        if (r === suggestedRating) {
-          b.style.outline = '2px solid ' + suggestedColor;
-          b.style.outlineOffset = '2px';
-        } else {
-          b.style.outline = 'none';
-          b.style.outlineOffset = '0';
-        }
-      });
-
-      /* Add override hint below ratings */
+      /* Generative tiers use rubric-driven self-rating instead of raw FSRS buttons. */
+      ratingsEl.style.display = 'none';
       var existingHint = document.querySelector('.override-hint');
-      if (!existingHint) {
-        var hint = document.createElement('div');
-        hint.className = 'override-hint';
-        hint.textContent = 'AI suggested ' + suggestedName + ' — tap a different rating to override';
-        ratingsEl.parentNode.insertBefore(hint, ratingsEl.nextSibling);
+      if (existingHint) existingHint.remove();
+
+      var oldRubric = document.getElementById('rubricWrap');
+      if (oldRubric) oldRubric.remove();
+      var rubricWrap = document.createElement('div');
+      rubricWrap.id = 'rubricWrap';
+      rubricWrap.className = 'rubric-wrap';
+      rubricWrap.innerHTML =
+        '<div class="rubric-head">Self-rate your response</div>' +
+        '<div class="rubric-sub">Select one level for each dimension, then continue.</div>' +
+        rubricTemplate(tier) +
+        '<div class="rubric-actions">' +
+          '<button type="button" class="qa-btn" id="rubricSubmitBtn" style="margin-top:10px;width:100%">Apply rating & continue</button>' +
+          '<div class="override-hint" style="margin-top:8px">AI suggested ' + suggestedName + ' — your rubric choices decide the final rating.</div>' +
+        '</div>';
+      fbArea.appendChild(rubricWrap);
+      bindRubric(tier);
+
+      var rubricSubmitBtn = document.getElementById('rubricSubmitBtn');
+      if (rubricSubmitBtn) {
+        rubricSubmitBtn.addEventListener('click', function() {
+          var mapped = rubricToFsrsRating();
+          if (activeRubric && (activeRubric.acc == null || activeRubric.dep == null || activeRubric.cla == null)) {
+            toast('Pick a level for Accuracy, Depth, and Clarity first.');
+            return;
+          }
+          rateCurrent(mapped);
+        });
       }
     }
 
@@ -15282,9 +15293,14 @@ input[type="range"]::-moz-range-thumb{
       callTutor: callTutor,
       getRecentAvg: getRecentAvg,
       buildInsightUI: buildInsightUI,
+      revealAnswer: revealAnswer,
+      rubricTemplate: rubricTemplate,
+      bindRubric: bindRubric,
+      rubricToFsrsRating: rubricToFsrsRating,
       mountQuickFireFollowup: mountQuickFireFollowup,
       mountQuickFireReRetrieval: mountQuickFireReRetrieval,
       runQuickFireFollowupMicro: runQuickFireFollowupMicro,
+      beginDontKnowFlow: handleDontKnowReveal,
       startRelearningDialogue: startRelearningDialogue,
       beginPassiveRestudyFlow: beginPassiveRestudyFlow,
       ensureFsrs: ensureFsrs,
