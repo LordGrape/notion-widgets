@@ -367,6 +367,9 @@ export function buildSessionQueue(): StudyItem[] {
 
 export function startSession(): void {
   if (!bridge.state || !bridge.settings) return;
+  try {
+    bridge.SyncEngine.set('studyengine', 'resumeSession', null);
+  } catch (e) {}
   const q = buildSessionQueue();
   const session = {
     queue: q,
@@ -746,6 +749,9 @@ export function advanceItem(): void {
 export function completeSession(): void {
   const session = getSession();
   if (!session) return;
+  try {
+    bridge.SyncEngine.set('studyengine', 'resumeSession', null);
+  } catch (e) {}
 
   bridge.stopTTS();
   bridge.cleanupAskTutor();
