@@ -7294,6 +7294,7 @@ input[type="range"]::-moz-range-thumb{
     import { drawRetentionCurve, drawSparkline, drawTierRing, drawActivityHeatmap, wireRetentionInteractivity, hideCanvasTooltip, getCanvasCtx, getAccentRGB, getTextSecondary, getTextColor } from './src/charts';
     import { buildSessionQueue, startSession, rateCurrent, advanceItem, completeSession, calcRestudyDuration } from './src/session-flow';
     import { setupSettingsModule } from './src/settings';
+    import { setupModalSystem } from './src/modals';
 
     /* Study Engine — multi-modal retrieval practice engine (FSRS) */
     /* FUNCTION INDEX (Auto-generated)
@@ -14926,7 +14927,7 @@ input[type="range"]::-moz-range-thumb{
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') {
         /* Close modals first */
-        var hadModal = modalOv.classList.contains('show') || settingsOv.classList.contains('show') || courseOv.classList.contains('show') || el('confirmExitOv').classList.contains('show') || el('confirmDeleteCourseOv').classList.contains('show');
+        var hadModal = modalSystem.getModalOvEl().classList.contains('show') || settingsOv.classList.contains('show') || courseOv.classList.contains('show') || el('confirmExitOv').classList.contains('show') || el('confirmDeleteCourseOv').classList.contains('show');
         closeModals();
         el('confirmExitOv').classList.remove('show');
         el('confirmDeleteCourseOv').classList.remove('show');
@@ -15104,266 +15105,49 @@ input[type="range"]::-moz-range-thumb{
     });
 
     /* ── Modal: Add items / Import JSON ── */
-    var modalOv = el('modalOv');
-    var modalForm = el('modalForm');
-    var activeTab = 'add';
-    var advancedOpen = false;
-    var modalCourse = null; /* course name the modal is scoped to */
-    var modalShowingPicker = false; /* true = showing course picker step */
+    var pendingImport = null; /* { valid: [], skipped: [], duplicates: [], skipDuplicates: false } */
+    var modalSystem = setupModalSystem({
+      el: el,
+      listCourses: listCourses,
+      toastFallback: function(msg) { toast(msg); },
+      openCourseModal: openCourseModal,
+      getCourseColor: getCourseColor,
+      esc: esc,
+      state: state,
+      settings: settings,
+      renderTopicSuggestions: renderTopicSuggestions,
+      playOpen: function() { try { playOpen(); } catch (e) {} },
+      playClose: function() { try { playClose(); } catch (e) {} },
+      playClick: function() { try { playClick(); } catch (e) {} },
+      closeSettings: function() { closeSettings(); },
+      closeCourseModal: function() { closeCourseModal(); },
+      closeDeleteCoursePrompt: function() { closeDeleteCoursePrompt(); },
+      closeArchivedCoursesOverlay: function() { closeArchivedCoursesOverlay(); },
+      getPendingImport: function() { return pendingImport; },
+      setPendingImport: function(pending) { pendingImport = pending; }
+    });
 
-    /* ═══ SECTION: Open Modal | Functions: openModal ═══ */
-    function openModal(tab, courseName) {
-      activeTab = tab || activeTab || 'add';
-
-      /* Determine course context */
-      if (courseName) {
-        modalCourse = courseName;
-        modalShowingPicker = false;
-      } else {
-        var courses = listCourses();
-        if (courses.length === 0) {
-          /* No courses: redirect to course management */
-          toast('Create a course first');
-          openCourseModal();
-          return;
-        } else if (courses.length === 1) {
-          modalCourse = courses[0].name;
-          modalShowingPicker = false;
-        } else {
-          modalCourse = null;
-          modalShowingPicker = true;
-        }
-      }
-
-      modalOv.classList.add('show');
-      modalOv.setAttribute('aria-hidden','false');
-      renderModal();
-      if (Core && Core.a11y && Core.a11y.trap) Core.a11y.trap(modalOv);
-  try { playOpen(); } catch(e) {}
-    }
-    /* ═══ SECTION: Close Modal | Functions: closeModal ═══ */
-    function closeModal() {
-      modalOv.classList.remove('show');
-      modalOv.setAttribute('aria-hidden','true');
-      pendingImport = null;
-      var previewArea = document.getElementById('importPreviewArea');
-      if (previewArea) previewArea.innerHTML = '';
-  try { playClose(); } catch(e) {}
-    }
-
-    /* ═══ SECTION: Close Modals | Functions: closeModals ═══ */
-    function closeModals() {
-      closeModal();
-      closeSettings();
-      closeCourseModal();
-      closeDeleteCoursePrompt();
-      closeArchivedCoursesOverlay();
-    }
-
-    el('addBtn').addEventListener('click', function(){ openModal('add'); });
-    el('importBtn').addEventListener('click', function(){ openModal('import'); });
-    el('modalClose').addEventListener('click', function(){ closeModal(); });
-    modalOv.addEventListener('click', function(e){ if (e.target === modalOv) closeModal(); });
-
-    /* Modal tabs (now "modalTabs" in HTML, but keep backward compat) */
-    var modalTabsEl = el('modalTabs') || el('tierTabs');
-    if (modalTabsEl) {
-      modalTabsEl.querySelectorAll('.tab').forEach(function(t){
-        t.addEventListener('click', function(){
-          activeTab = this.getAttribute('data-tab');
-          renderModal();
-        });
-      });
-    }
-
-    /* ═══ SECTION: Render Modal | Functions: renderModal ═══ */
-    function renderModal() {
-      /* tabs */
-      el('modalTabs') && el('modalTabs').querySelectorAll('.tab').forEach(function(t) {
-        var on = t.getAttribute('data-tab') === activeTab;
-        t.classList.toggle('active', on);
-        t.setAttribute('aria-selected', on ? 'true' : 'false');
-      });
-
-      /* Clear any pending import preview when switching tabs or reopening */
-      if (activeTab !== 'import' && pendingImport) {
-        pendingImport = null;
-        var previewArea = document.getElementById('importPreviewArea');
-        if (previewArea) previewArea.innerHTML = '';
-      }
-
-      var showAdd = (activeTab === 'add');
-      el('addNextBtn').style.display = showAdd ? 'inline-flex' : 'none';
-
-      /* ── Course picker step ── */
-      if (modalShowingPicker) {
-        var courses = listCourses();
-        var h = '<div class="section-header">Select a course</div>';
-        h += '<div class="course-picker-list">';
-        courses.forEach(function(c) {
-          var col = c.color || '#8b5cf6';
-          var itemCount = 0;
-          for (var id in state.items) {
-            if (!state.items.hasOwnProperty(id) || !state.items[id] || state.items[id].course !== c.name) continue;
-            if (!state.items[id].archived) itemCount++;
-          }
-          h += '<div class="course-picker-item" data-pick-course="' + esc(c.name) + '">' +
-              '<div class="cpi-dot" style="background:' + esc(col) + '"></div>' +
-              '<span class="cpi-name">' + esc(c.name) + '</span>' +
-              '<span class="cpi-count">' + itemCount + ' cards</span>' +
-              '</div>';
-        });
-        h += '</div>';
-        modalForm.innerHTML = h;
-
-        /* Wire course picker clicks */
-        modalForm.querySelectorAll('.course-picker-item').forEach(function(item) {
-          item.addEventListener('click', function() {
-            modalCourse = this.getAttribute('data-pick-course');
-            modalShowingPicker = false;
-            renderModal();
-            try { playClick(); } catch(e) {}
-          });
-        });
-
-        /* Hide action buttons during picker step */
-        el('addNextBtn').style.display = 'none';
-        el('doneBtn').style.display = 'none';
-        return;
-      }
-
-      /* Restore done button visibility */
-      el('doneBtn').style.display = 'inline-flex';
-
-      /* ── Card creation form (scoped to modalCourse) ── */
-      if (activeTab === 'add') {
-        var courseCol = getCourseColor(modalCourse);
-        var courseBadge = '<div class="modal-course-badge">' +
-            '<div class="mcb-dot" style="background:' + esc(courseCol) + '"></div>' +
-            '<span class="mcb-name">' + esc(modalCourse || 'Unknown') + '</span>' +
-            '<span class="mcb-change" onclick="modalShowingPicker=true;renderModal();">Change</span>' +
-            '</div>';
-
-        modalForm.innerHTML = courseBadge +
-          '<div class="field">' +
-          '<label>Topic <span style="font-weight:500;letter-spacing:0.5px;text-transform:lowercase;opacity:0.7">(optional)</span></label>' +
-          '<input class="input" id="m_topic" placeholder="e.g., WTO Dispute Settlement">' +
-          '<div class="chips topic-suggestions" id="topicSuggestions"></div>' +
-          '</div>' +
-          '<div class="field">' +
-          '  <label>Priority</label>' +
-          '  <select id="m_priority" class="input">' +
-          '    <option value="critical">🔴 Critical — almost certainly on exam</option>' +
-          '    <option value="high">🟡 High — very likely tested</option>' +
-          '    <option value="medium" selected>🟣 Medium — default</option>' +
-          '    <option value="low">⚪ Low — peripheral context</option>' +
-          '  </select>' +
-          '</div>' +
-          areaField('Prompt', 'm_prompt', 'Question, cue, or concept to recall') +
-          areaField('Model Answer', 'm_answer', 'Ideal response to compare against') +
-          '<div class="adv-toggle" id="advToggle">' +
-          '<span class="adv-arrow">▶</span>' +
-          '<span class="adv-text">Advanced fields (scenario, concepts, timer)</span>' +
-          '</div>' +
-          '<div class="adv-fields" id="advFields">' +
-          areaField('Scenario', 'm_scenario', 'Fact pattern or context for application (enables Apply It tier)') +
-          textField('Task', 'm_task', 'Instruction for the scenario (optional)') +
-          '<div class="course-form-row">' +
-          textField('Concept A', 'm_conceptA', 'e.g., Trade creation') +
-          textField('Concept B', 'm_conceptB', 'e.g., Trade diversion') +
-          '</div>' +
-          '<p class="help">Filling Concept A + B enables the Distinguish tier.</p>' +
-          selectField('Mock time limit', 'm_time', [{v:'5',t:'5 min'},{v:'10',t:'10 min'},{v:'15',t:'15 min'},{v:'30',t:'30 min'}], String(settings.mockDefaultMins || 10)) +
-          '<p class="help">Setting a time limit enables the Mock Exam tier.</p>' +
-          '</div>' +
-          '<div id="tierBadgeArea"></div>';
-
-        /* Wire advanced toggle */
-        setTimeout(function() {
-          var tog = el('advToggle');
-          if (tog) tog.addEventListener('click', function() {
-            advancedOpen = !advancedOpen;
-            tog.classList.toggle('open', advancedOpen);
-            el('advFields').classList.toggle('show', advancedOpen);
-          });
-          if (advancedOpen) {
-            tog && tog.classList.add('open');
-            el('advFields') && el('advFields').classList.add('show');
-          }
-        }, 0);
-
-        /* Render topic suggestions for this course */
-        setTimeout(function() {
-          renderTopicSuggestions('m_topic', modalCourse, 'topicSuggestions');
-        }, 10);
-
-      } else if (activeTab === 'import') {
-        var courseCol2 = getCourseColor(modalCourse);
-        var courseBadge2 = '<div class="modal-course-badge">' +
-            '<div class="mcb-dot" style="background:' + esc(courseCol2) + '"></div>' +
-            '<span class="mcb-name">' + esc(modalCourse || 'Unknown') + '</span>' +
-            '<span class="mcb-change" onclick="modalShowingPicker=true;renderModal();">Change</span>' +
-            '</div>';
-
-        modalForm.innerHTML = courseBadge2 +
-          '<div class="field">' +
-          '<label>Paste JSON array</label>' +
-          '<textarea class="input" id="m_import" rows="6" placeholder=\'[{"prompt":"...","modelAnswer":"..."}]\'></textarea>' +
-          '<p class="help">Each object needs at minimum: <b>prompt</b>, <b>modelAnswer</b>. Optional: topic, task, scenario, conceptA, conceptB, timeLimitMins. The course is set automatically to <b>' + esc(modalCourse) + '</b>.</p>' +
-          '</div>';
-      }
-
-      /* Focus first control */
-      setTimeout(function() {
-        var first = modalForm.querySelector('textarea, input, select');
-        if (first) first.focus();
-      }, 0);
-    }
-
-    /* ═══ SECTION: Tail Fields | Functions: tailFields ═══ */
-    function tailFields() { return ''; }
-    /* ═══ SECTION: Text Field | Functions: textField ═══ */
-    function textField(label, id, ph) {
-      return '' +
-        '<div class="field">' +
-          '<label>' + esc(label) + '</label>' +
-          '<input class="input" id="' + esc(id) + '" placeholder="' + esc(ph) + '" />' +
-        '</div>';
-    }
-    /* ═══ SECTION: Area Field | Functions: areaField ═══ */
-    function areaField(label, id, ph) {
-      return '' +
-        '<div class="field">' +
-          '<label>' + esc(label) + '</label>' +
-          '<textarea id="' + esc(id) + '" rows="4" placeholder="' + esc(ph) + '"></textarea>' +
-        '</div>';
-    }
-    /* ═══ SECTION: Select Field | Functions: selectField ═══ */
-    function selectField(label, id, opts, defV) {
-      var h = '<div class="field"><label>' + esc(label) + '</label><select id="' + esc(id) + '">';
-      opts.forEach(function(o){
-        h += '<option value="' + esc(o.v) + '"' + (String(o.v) === String(defV) ? ' selected' : '') + '>' + esc(o.t) + '</option>';
-      });
-      h += '</select></div>';
-      return h;
-    }
+    var openModal = modalSystem.openModal;
+    var closeModal = modalSystem.closeModal;
+    var closeModals = modalSystem.closeModals;
+    var renderModal = modalSystem.renderModal;
+    var toast = modalSystem.toast;
 
     el('addNextBtn').addEventListener('click', function(){ addFromModal(true); });
     el('doneBtn').addEventListener('click', function(){ addFromModal(false); });
 
     /* ── Import: Parse → Preview → Commit (3-phase) ── */
-    var pendingImport = null; /* { valid: [], skipped: [], duplicates: [], skipDuplicates: false } */
 
     /* ═══ SECTION: Add From Modal | Functions: addFromModal ═══ */
     function addFromModal(stayOpen) {
-      if (activeTab === 'import') {
+      if (modalSystem.getActiveTab() === 'import') {
         doImport();
         /* Preview is now shown inline — don't close modal yet */
         return;
       }
 
       /* Course comes from modalCourse context, not a form field */
-      var course = modalCourse;
+      var course = modalSystem.getModalCourse();
       if (!course) { toast('No course selected'); return; }
 
       /* Auto-create course if somehow missing (safety net) */
@@ -15452,7 +15236,7 @@ input[type="range"]::-moz-range-thumb{
         if (el('m_conceptA')) el('m_conceptA').value = '';
         if (el('m_conceptB')) el('m_conceptB').value = '';
         /* Refresh topic suggestions (new topic may have been created) */
-        renderTopicSuggestions('m_topic', modalCourse, 'topicSuggestions');
+        renderTopicSuggestions('m_topic', modalSystem.getModalCourse(), 'topicSuggestions');
       }
     }
 
@@ -15529,7 +15313,7 @@ input[type="range"]::-moz-range-thumb{
         if (!obj.modelAnswer && obj.model_answer) obj.modelAnswer = obj.model_answer;
         if (!obj.modelAnswer && obj.answer) obj.modelAnswer = obj.answer;
 
-        var itemCourse = modalCourse || obj.course || 'Uncategorised';
+        var itemCourse = modalSystem.getModalCourse() || obj.course || 'Uncategorised';
         var promptKey = itemCourse + ':::' + String(obj.prompt).trim().toLowerCase();
 
         var isDuplicate = false;
@@ -15676,16 +15460,16 @@ input[type="range"]::-moz-range-thumb{
       if (!previewArea) {
         previewArea = document.createElement('div');
         previewArea.id = 'importPreviewArea';
-        modalForm.appendChild(previewArea);
+        modalSystem.getModalFormEl().appendChild(previewArea);
       }
       previewArea.innerHTML = h;
 
       /* Hide the textarea and original import help text */
       var ta = el('m_import');
       if (ta) ta.style.display = 'none';
-      var helpEls = modalForm.querySelectorAll('.help');
+      var helpEls = modalSystem.getModalFormEl().querySelectorAll('.help');
       helpEls.forEach(function(he) { he.style.display = 'none'; });
-      var labelEls = modalForm.querySelectorAll('.field label');
+      var labelEls = modalSystem.getModalFormEl().querySelectorAll('.field label');
       labelEls.forEach(function(le) { le.style.display = 'none'; });
 
       /* Hide the modal's own Done/Add buttons — we use our own confirm button */
@@ -15821,8 +15605,8 @@ input[type="range"]::-moz-range-thumb{
       }
       processVisualBatch();
 
-      if (n > 0 && modalCourse) {
-        autoPrepareAfterImport(modalCourse, toImport);
+      if (n > 0 && modalSystem.getModalCourse()) {
+        autoPrepareAfterImport(modalSystem.getModalCourse(), toImport);
       }
 
       /* Clean up and close */
@@ -18294,35 +18078,6 @@ input[type="range"]::-moz-range-thumb{
       }
     };
 
-    /* ── Toast (lightweight) ── */
-    var toastEl = null;
-    var toastTimer = null;
-    /* ═══ SECTION: Toast | Functions: toast ═══ */
-    function toast(msg) {
-      if (!toastEl) {
-        toastEl = document.createElement('div');
-        toastEl.style.cssText =
-          'position:fixed;left:50%;bottom:14px;transform:translateX(-50%);' +
-          'z-index:99;padding:10px 12px;border-radius:14px;' +
-          'background:rgba(var(--accent-rgb),0.16);border:1px solid rgba(var(--accent-rgb),0.22);' +
-          'backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);' +
-          'color:var(--text);font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;' +
-          'box-shadow:var(--shadow-soft);opacity:0;pointer-events:none;';
-        document.body.appendChild(toastEl);
-      }
-      toastEl.textContent = msg;
-      if (toastTimer) clearTimeout(toastTimer);
-      if (window.gsap) {
-        gsap.to(toastEl, { opacity: 1, y: -4, duration: 0.18, ease: 'power2.out' });
-      } else {
-        toastEl.style.opacity = '1';
-      }
-      toastTimer = setTimeout(function() {
-        if (window.gsap) gsap.to(toastEl, { opacity: 0, y: 0, duration: 0.22, ease: 'power2.inOut' });
-        else toastEl.style.opacity = '0';
-      }, 1400);
-    }
-
     /* ── Restudy Duration Calculator ──
        Scales with model answer word count (reading time).
 
@@ -19540,8 +19295,8 @@ input[type="range"]::-moz-range-thumb{
     window.renderModal = renderModal;
     Object.defineProperty(window, 'modalShowingPicker', {
       configurable: true,
-      get: function() { return modalShowingPicker; },
-      set: function(value) { modalShowingPicker = value; }
+      get: function() { return modalSystem.getModalShowingPicker(); },
+      set: function(value) { modalSystem.setModalShowingPicker(!!value); }
     });
 
     SyncEngine.onReady(function() {
