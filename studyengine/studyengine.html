@@ -12983,7 +12983,24 @@ input[type="range"]::-moz-range-thumb{
           },
           body: JSON.stringify(payload)
         }).then(function(res) {
-          return res.json().then(function(data) {
+          return res.text().then(function(rawText) {
+            // Log response details for debugging
+            console.log('[Tutor] Response status:', res.status, 'Content-Type:', res.headers.get('content-type'));
+            console.log('[Tutor] Raw response (first 200 chars):', rawText.slice(0, 200));
+            
+            // Try to parse JSON, with fallback for malformed responses
+            var data;
+            try {
+              data = JSON.parse(rawText);
+            } catch (parseError) {
+              console.error('[Tutor] JSON parse error:', parseError);
+              data = { 
+                error: 'Failed to parse tutor response', 
+                raw: rawText.slice(0, 200), // First 200 chars for debugging
+                status: res.status 
+              };
+            }
+            
             if (res.ok && data && !data.error) {
               recordTutorApiSuccess(mode, modelEff);
             }
