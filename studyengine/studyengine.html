@@ -12,6 +12,8 @@
       --card-bg: rgba(255, 255, 255, 0.6);
       --card-border: rgba(139, 92, 246, 0.15);
       --accent: #8b5cf6;
+      --accent-primary: #7c3aed;
+      --accent-secondary: #8b5cf6;
       --accent-rgb: 139, 92, 246;
       --text: #1a1a2e;
       --text-secondary: #6b7280;
@@ -42,6 +44,8 @@
         --card-bg: rgba(30, 20, 50, 0.6);
         --card-border: rgba(167, 139, 250, 0.2);
         --accent: #a78bfa;
+        --accent-primary: #a78bfa;
+        --accent-secondary: #c4b5fd;
         --accent-rgb: 167, 139, 250;
         --text: #e8e0f0;
         --text-secondary: #9ca3af;
@@ -6333,6 +6337,8 @@ input[type="range"]::-moz-range-thumb{
       background-clip: text;
       -webkit-text-fill-color: transparent;
       position: relative;
+      display: inline-block;
+      opacity: 1;
     }
     /* Shimmer loop — added by JS after entrance */
     .header-shimmer {
@@ -6367,6 +6373,53 @@ input[type="range"]::-moz-range-thumb{
     }
     body.standalone .main-topbar-actions{
       display: none;
+    }
+
+
+    @media (prefers-reduced-motion: no-preference) {
+      @keyframes breathe-glow {
+        0%, 100% {
+          box-shadow: 0 0 15px rgba(124, 58, 237, 0.15), inset 0 0 15px rgba(124, 58, 237, 0.05);
+        }
+        50% {
+          box-shadow: 0 0 30px rgba(124, 58, 237, 0.3), inset 0 0 30px rgba(124, 58, 237, 0.1);
+        }
+      }
+
+      @keyframes breathe-bar {
+        0%, 100% { filter: brightness(1); }
+        50% { filter: brightness(1.25); }
+      }
+
+      @keyframes breathe-active {
+        0%, 100% { background-color: rgba(124, 58, 237, 0.08); }
+        50% { background-color: rgba(124, 58, 237, 0.15); }
+      }
+
+      .dashboard-course-ready-state .empty-state-panel {
+        animation: breathe-glow 4s ease-in-out infinite;
+      }
+
+      #xpBarWidget .xp-bar-fill,
+      #mainXpBarWidget .xp-bar-fill,
+      #mainXpBarWidget [data-xp-role="bar-fill"] {
+        animation: breathe-bar 3s ease-in-out infinite;
+      }
+
+      .tree-node.active {
+        animation: breathe-active 3.6s ease-in-out infinite;
+      }
+    }
+
+    @media (prefers-reduced-motion: no-preference) and (prefers-color-scheme: light) {
+      @keyframes breathe-glow {
+        0%, 100% {
+          box-shadow: 0 0 18px rgba(124, 58, 237, 0.22), inset 0 0 15px rgba(124, 58, 237, 0.07);
+        }
+        50% {
+          box-shadow: 0 0 34px rgba(124, 58, 237, 0.36), inset 0 0 30px rgba(124, 58, 237, 0.14);
+        }
+      }
     }
 
     @media (max-width: 1100px) {
