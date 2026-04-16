@@ -50,6 +50,8 @@ interface SessionFlowBridge {
   getRecentAvg: () => number;
   buildInsightUI: (area: HTMLElement, data: any, done: () => void) => void;
   runQuickFireFollowupMicro: (it: StudyItem, done: () => void, opts?: { reRetrieval?: boolean }) => void;
+  mountQuickFireReRetrieval: (it: StudyItem, data: any, done: () => void) => void;
+  mountQuickFireFollowup: (it: StudyItem, data: any, done: () => void) => void;
   startRelearningDialogue: (it: StudyItem, nowTs: number) => void;
   beginPassiveRestudyFlow: (it: StudyItem, nowTs: number) => void;
   ensureFsrs: (it: StudyItem) => void;
@@ -449,6 +451,37 @@ function scheduleRatingAndAdvance(it: StudyItem, mappedRating: Rating, nowTs: nu
   bridge.mountAskTutor(mappedRating);
 }
 
+function runQuickfireAgainFollowup(it: StudyItem, done: () => void, session: SessionRuntime): void {
+  const canMount = typeof bridge.mountQuickFireReRetrieval === 'function';
+  const canTutor = typeof bridge.callTutor === 'function';
+  if (!canMount || !canTutor) {
+    bridge.runQuickFireFollowupMicro(it, done, { reRetrieval: true });
+    return;
+  }
+
+  const ctx = bridge.tutorContextForItem(it);
+  ctx.quickFireFollowUp = true;
+  ctx.userRating = 1;
+  const model = bridge.selectModel(it, session);
+  bridge.callTutor('insight', model, it, '', [], ctx)
+    .then((data) => {
+      const payload = data && !data.error ? data : {};
+      if (!payload.followUpQuestion) {
+        payload.followUpQuestion = 'Try again from memory before checking the full answer.';
+      }
+      if (!payload.followUpAnswer) {
+        payload.followUpAnswer = it.modelAnswer || '';
+      }
+      bridge.mountQuickFireReRetrieval(it, payload, done);
+    })
+    .catch(() => {
+      bridge.mountQuickFireReRetrieval(it, {
+        followUpQuestion: 'Try again from memory before checking the full answer.',
+        followUpAnswer: it.modelAnswer || ''
+      }, done);
+    });
+}
+
 export function rateCurrent(rating: Rating): void {
   const session = getSession();
   if (!session) return;
@@ -583,7 +616,7 @@ export function rateCurrent(rating: Rating): void {
     };
 
     if (useQuickfireActiveAgain) {
-      bridge.runQuickFireFollowupMicro(it, proceedAfterAgain, { reRetrieval: true });
+      runQuickfireAgainFollowup(it, proceedAfterAgain, session);
       return;
     }
     proceedAfterAgain();
