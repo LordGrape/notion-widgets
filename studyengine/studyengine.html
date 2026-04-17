@@ -7233,6 +7233,53 @@ input[type="range"]::-moz-range-thumb{
       color: var(--text-secondary);
       margin: 18px 0 8px;
     }
+    .cards-header-row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      margin-top:14px;
+      margin-bottom:8px;
+    }
+    .cards-header-row .section-header,
+    .cards-header-row .ctx-section-title{
+      margin:0;
+      padding:0 2px;
+    }
+    .course-cards-delete-btn{
+      border:1px solid rgba(239,68,68,0.24);
+      background:rgba(239,68,68,0.06);
+      color:var(--rate-again);
+      border-radius:10px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+      cursor:pointer;
+      transition:background var(--transition), border-color var(--transition), color var(--transition), transform var(--transition);
+      flex-shrink:0;
+      white-space:nowrap;
+    }
+    .course-cards-delete-btn:hover{
+      background:rgba(239,68,68,0.12);
+      border-color:rgba(239,68,68,0.34);
+      color:#fff;
+      transform:translateY(-1px);
+    }
+    .course-cards-delete-btn.embed{
+      width:36px;
+      height:36px;
+      min-width:36px;
+      padding:0;
+      font-size:14px;
+      line-height:1;
+    }
+    .course-cards-delete-btn.standalone{
+      padding:6px 10px;
+      font-size:10px;
+      font-weight:700;
+      letter-spacing:0.3px;
+    }
 
     .ctx-lecture-badge {
       display: inline-flex;
@@ -7536,7 +7583,10 @@ input[type="range"]::-moz-range-thumb{
             <div id="cdTierPromoHost"></div>
             <div id="cdTutorNotesHost"></div>
             <!-- Retention forecast moved into analytics grid -->
-            <div class="section-header" style="margin-top:14px;">Cards</div>
+            <div class="cards-header-row">
+              <div class="section-header" id="cdCardsHeaderLabel">Cards (0)</div>
+              <button type="button" class="course-cards-delete-btn embed" id="cdDeleteCourseCardsBtn" title="Delete all cards in this course" aria-label="Delete all cards in this course" style="display:none;">🗑</button>
+            </div>
             <div id="cdCardList" style="max-height:260px;overflow-y:auto;margin-bottom:14px;scrollbar-width:thin;"></div>
             <button class="big-btn" id="cdStartSession">Study this course</button>
             <button type="button" class="ghost-btn" id="cdPrimeModeBtn" style="margin-top:8px;">🧠 Prime Mode — Pre-study Questions</button>
@@ -7811,6 +7861,19 @@ input[type="range"]::-moz-range-thumb{
       <div class="cb-actions">
         <button class="cb-stay" id="confirmDeleteCourseCancel">Cancel</button>
         <button class="cb-leave" id="confirmDeleteCourseConfirm">Delete course</button>
+      </div>
+    </div>
+  </div>
+  <div class="confirm-overlay" id="confirmDeleteCourseCardsOv">
+    <div class="confirm-box">
+      <div class="cb-icon"><svg width="28" height="28" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h10"/><path d="M6 4V2.5h4V4"/><path d="M4 4l.7 9.5a1 1 0 001 .9h4.6a1 1 0 001-.9L12 4"/></svg></div>
+      <div class="cb-title" id="confirmDeleteCourseCardsTitle">Delete all cards in this course?</div>
+      <div class="cb-desc" id="confirmDeleteCourseCardsDesc">This cannot be undone.</div>
+      <label for="confirmDeleteCourseCardsInput" style="display:block;text-align:left;font-size:10px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--text-secondary);margin:12px 0 6px;">Type DELETE to confirm</label>
+      <input type="text" id="confirmDeleteCourseCardsInput" autocomplete="off" placeholder="DELETE" style="width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--border-default);background:var(--surface-0);color:var(--text-primary);font-size:11px;">
+      <div class="cb-actions" style="margin-top:14px;">
+        <button class="cb-stay" id="confirmDeleteCourseCardsCancel">Cancel</button>
+        <button class="cb-leave" id="confirmDeleteCourseCardsConfirm" disabled>Delete all cards</button>
       </div>
     </div>
   </div>
@@ -10654,6 +10717,75 @@ input[type="range"]::-moz-range-thumb{
         openCourseDetail(selectedCourse);
       }
       toast('All cards deleted.');
+    }
+
+    function closeDeleteCourseCardsPrompt() {
+      var ov = el('confirmDeleteCourseCardsOv');
+      if (!ov) return;
+      ov.classList.remove('show');
+      delete ov.dataset.courseName;
+      delete ov.dataset.count;
+      var input = el('confirmDeleteCourseCardsInput');
+      var confirmBtn = el('confirmDeleteCourseCardsConfirm');
+      if (input) input.value = '';
+      if (confirmBtn) confirmBtn.disabled = true;
+    }
+
+    function confirmDeleteAllCardsInCourseNow() {
+      var ov = el('confirmDeleteCourseCardsOv');
+      var input = el('confirmDeleteCourseCardsInput');
+      if (!ov || !input || input.value !== 'DELETE') return;
+      var courseName = ov.dataset.courseName;
+      if (!courseName) return;
+      var deleted = 0;
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id) || !state.items[id]) continue;
+        if (state.items[id].course !== courseName) continue;
+        delete state.items[id];
+        deleted++;
+      }
+      if (deleted <= 0) {
+        closeDeleteCourseCardsPrompt();
+        toast('No cards to delete in ' + courseName + '.');
+        return;
+      }
+      if (typeof reconcileStats === 'function') reconcileStats();
+      saveState();
+      closeDeleteCourseCardsPrompt();
+      renderDashboard();
+      if (!isEmbedded) renderSidebar();
+      if (sidebarSelection && sidebarSelection.level === 'course' && sidebarSelection.course === courseName && !isEmbedded) {
+        showCourseDashboard(courseName);
+      }
+      var cd = el('courseDetail');
+      if (cd && cd.classList.contains('active') && selectedCourse === courseName) {
+        openCourseDetail(courseName);
+      }
+      toast('Deleted ' + deleted + ' cards from ' + courseName + '.');
+    }
+
+    function deleteAllCardsInCourse(courseName) {
+      if (!courseName) return;
+      var ov = el('confirmDeleteCourseCardsOv');
+      var title = el('confirmDeleteCourseCardsTitle');
+      var desc = el('confirmDeleteCourseCardsDesc');
+      var input = el('confirmDeleteCourseCardsInput');
+      var confirmBtn = el('confirmDeleteCourseCardsConfirm');
+      if (!ov || !title || !desc || !input || !confirmBtn) return;
+      var count = 0;
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id) || !state.items[id]) continue;
+        if (state.items[id].course === courseName) count++;
+      }
+      if (count <= 0) return;
+      title.textContent = 'Delete all cards in ' + courseName + '?';
+      desc.textContent = 'This will permanently delete all ' + count + ' cards in this course. Courses, modules, topics, and lecture materials are kept. This cannot be undone.';
+      ov.dataset.courseName = courseName;
+      ov.dataset.count = String(count);
+      input.value = '';
+      confirmBtn.disabled = true;
+      ov.classList.add('show');
+      setTimeout(function() { try { input.focus(); } catch (eFocus) {} }, 0);
     }
 
     function openCardEditorFromContext(itemId) {
@@ -16126,10 +16258,11 @@ input[type="range"]::-moz-range-thumb{
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') {
         /* Close modals first */
-        var hadModal = modalSystem.getModalOvEl().classList.contains('show') || settingsOv.classList.contains('show') || courseOv.classList.contains('show') || el('confirmExitOv').classList.contains('show') || el('confirmDeleteCourseOv').classList.contains('show') || el('resumeChoiceOv').classList.contains('show');
+        var hadModal = modalSystem.getModalOvEl().classList.contains('show') || settingsOv.classList.contains('show') || courseOv.classList.contains('show') || el('confirmExitOv').classList.contains('show') || el('confirmDeleteCourseOv').classList.contains('show') || el('confirmDeleteCourseCardsOv').classList.contains('show') || el('resumeChoiceOv').classList.contains('show');
         closeModals();
         el('confirmExitOv').classList.remove('show');
         el('confirmDeleteCourseOv').classList.remove('show');
+        el('confirmDeleteCourseCardsOv').classList.remove('show');
         closeResumeChoiceModal();
         if (hadModal) return;
 
@@ -16329,6 +16462,22 @@ input[type="range"]::-moz-range-thumb{
     if (el('confirmDeleteCourseConfirm')) el('confirmDeleteCourseConfirm').addEventListener('click', confirmDeleteCoursePrompt);
     if (el('confirmDeleteCourseOv')) el('confirmDeleteCourseOv').addEventListener('click', function(e) {
       if (e.target === el('confirmDeleteCourseOv')) closeDeleteCoursePrompt();
+    });
+    if (el('confirmDeleteCourseCardsCancel')) el('confirmDeleteCourseCardsCancel').addEventListener('click', closeDeleteCourseCardsPrompt);
+    if (el('confirmDeleteCourseCardsConfirm')) el('confirmDeleteCourseCardsConfirm').addEventListener('click', confirmDeleteAllCardsInCourseNow);
+    if (el('confirmDeleteCourseCardsOv')) el('confirmDeleteCourseCardsOv').addEventListener('click', function(e) {
+      if (e.target === el('confirmDeleteCourseCardsOv')) closeDeleteCourseCardsPrompt();
+    });
+    if (el('confirmDeleteCourseCardsInput')) el('confirmDeleteCourseCardsInput').addEventListener('input', function() {
+      var confirmBtn = el('confirmDeleteCourseCardsConfirm');
+      if (confirmBtn) confirmBtn.disabled = this.value !== 'DELETE';
+    });
+    if (el('confirmDeleteCourseCardsInput')) el('confirmDeleteCourseCardsInput').addEventListener('keydown', function(e) {
+      var confirmBtn = el('confirmDeleteCourseCardsConfirm');
+      if (e.key === 'Enter' && confirmBtn && !confirmBtn.disabled) {
+        e.preventDefault();
+        confirmDeleteAllCardsInCourseNow();
+      }
     });
     if (el('archivedCoursesClose')) el('archivedCoursesClose').addEventListener('click', closeArchivedCoursesOverlay);
     if (el('archivedCoursesOv')) el('archivedCoursesOv').addEventListener('click', function(e) {
@@ -18794,7 +18943,13 @@ input[type="range"]::-moz-range-thumb{
         '</div>' +
       '</div>';
 
+      h += '<div class="cards-header-row">';
       h += '<div class="ctx-section-title">Cards (' + cards.length + ')</div>';
+      if (cards.length > 0) {
+        /* Root cause: per-course bulk deletion belongs beside the course card list, not only under global Settings wipe. */
+        h += '<button type="button" class="course-cards-delete-btn standalone" data-delete-course-cards="' + esc(courseName) + '" title="Delete all cards in this course"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h10"/><path d="M6 4V2.5h4V4"/><path d="M4 4l.7 9.5a1 1 0 001 .9h4.6a1 1 0 001-.9L12 4"/></svg>Delete all cards</button>';
+      }
+      h += '</div>';
       h += cards.length ? renderCardList(cards) : '<div class="ctx-empty">No cards in this course yet.</div>';
 
       content.innerHTML = h;
@@ -18825,6 +18980,10 @@ input[type="range"]::-moz-range-thumb{
           showModuleView(courseName, modId);
           try { playClick(); } catch (e) {}
         });
+      });
+      var deleteCourseCardsBtn = content.querySelector('[data-delete-course-cards]');
+      if (deleteCourseCardsBtn) deleteCourseCardsBtn.addEventListener('click', function() {
+        deleteAllCardsInCourse(courseName);
       });
 
       /* Root cause: standalone course view had no row-level card action wiring, so edit/suspend/delete
@@ -20039,6 +20198,14 @@ input[type="range"]::-moz-range-thumb{
       el('cdDueCount').textContent = dueCount + ' due now';
       el('cdAvgRet').textContent = retN ? Math.round((retSum / retN) * 100) + '%' : '—';
       el('cdRetTrend').textContent = retN ? 'Across ' + retN + ' reviewed items' : 'No reviews yet';
+      var cdCardsHeaderLabel = el('cdCardsHeaderLabel');
+      if (cdCardsHeaderLabel) cdCardsHeaderLabel.textContent = 'Cards (' + totalItems + ')';
+      var cdDeleteCourseCardsBtn = el('cdDeleteCourseCardsBtn');
+      if (cdDeleteCourseCardsBtn) {
+        /* Root cause: users clear cards from a course detail list, but the only bulk wipe lived in global Settings. */
+        cdDeleteCourseCardsBtn.style.display = totalItems > 0 ? 'inline-flex' : 'none';
+        cdDeleteCourseCardsBtn.onclick = function() { deleteAllCardsInCourse(courseName); };
+      }
 
       /* Per-tier stats */
       var tierOrder = ['quickfire', 'explain', 'apply', 'distinguish', 'mock', 'worked'];
