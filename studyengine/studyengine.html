@@ -18687,6 +18687,7 @@ input[type="range"]::-moz-range-thumb{
       var courseData = state.courses && state.courses[courseName] ? state.courses[courseName] : {};
       ensureCourseModules(courseName);
       var stats = getCourseStats(courseName);
+      var cards = getCardsForCourse(courseName);
       var color = courseData.color || '#8b5cf6';
       var cram = (typeof getCramState === 'function') ? getCramState(courseName) : { active: false };
       var modules = courseData.modules || [];
@@ -18694,6 +18695,7 @@ input[type="range"]::-moz-range-thumb{
       var examLine = courseData.examDate
         ? ((daysLeft != null ? daysLeft + ' day' + (daysLeft === 1 ? '' : 's') + ' until exam' : 'Exam scheduled') + ' · ' + courseData.examDate)
         : 'No exam date set · Long-term retention mode';
+      var examTypeLabel = EXAM_TYPE_LABELS[courseData.examType] || courseData.examType || 'Recall';
 
       var h = '';
       h += '<div class="ctx-header">';
@@ -18702,9 +18704,16 @@ input[type="range"]::-moz-range-thumb{
       h += '<div class="ctx-title">' + esc(courseName) + '</div>';
       h += '<div class="ctx-subtitle">' + esc(stats.total + ' cards' + (stats.due > 0 ? ' · ' + stats.due + ' due' : '') + (courseData.examDate ? ' · Exam: ' + courseData.examDate : '')) + '</div>';
       h += '</div>';
-      if (cram && cram.active) h += '<span class="tree-cram-badge">🔥 CRAM</span>';
+      if (cram && cram.active) h += '<span class="tree-cram-badge">🔥 CRAM MODE ACTIVE</span>';
+      h += '<span class="cd-badge">' + esc(examTypeLabel) + '</span>';
       h += '<div class="ctx-header-actions"><button class="icon-btn ctx-kebab" id="ctxCourseActions" type="button" title="Course actions" aria-label="Course actions">⋮</button></div>';
       h += '</div>';
+
+      if (cram && cram.active) {
+        /* Root cause: standalone course context only surfaced a tiny CRAM tag in header, not
+           the full status banner shown in embed course detail. */
+        h += '<div style="margin-bottom:10px;padding:10px 12px;border-radius:12px;border:1px solid rgba(245,158,11,0.30);background:rgba(245,158,11,0.08);font-size:11px;color:#f59e0b;font-weight:700;">🔥 CRAM MODE ACTIVE · Daily target elevated for ' + esc(courseName) + '</div>';
+      }
 
       h += '<div class="ctx-hero">';
       h += '<div class="ctx-hero-due">' + stats.due + '</div>';
@@ -18728,6 +18737,15 @@ input[type="range"]::-moz-range-thumb{
       h += '<details class="dash-details" open>';
       h += '<summary class="dash-details-toggle"><span class="se-icon">📊</span> Tier Breakdown &amp; Materials <span class="dash-details-arrow">▸</span></summary>';
       h += '<div class="dash-details-body ctx-detail-stack">';
+      h += '<div><div class="ctx-section-title">Tier Breakdown (QF / EX / AP / DI / MK / WE)</div>';
+      h += '<div class="breakdown">';
+      h += '<div class="tier-pill"><span class="tier-dot" style="background:' + tierColour('quickfire') + ';"></span>QF ' + (stats.tierDist.quickfire || 0) + '</div>';
+      h += '<div class="tier-pill"><span class="tier-dot" style="background:' + tierColour('explain') + ';"></span>EX ' + (stats.tierDist.explain || 0) + '</div>';
+      h += '<div class="tier-pill"><span class="tier-dot" style="background:' + tierColour('apply') + ';"></span>AP ' + (stats.tierDist.apply || 0) + '</div>';
+      h += '<div class="tier-pill"><span class="tier-dot" style="background:' + tierColour('distinguish') + ';"></span>DI ' + (stats.tierDist.distinguish || 0) + '</div>';
+      h += '<div class="tier-pill"><span class="tier-dot" style="background:' + tierColour('mock') + ';"></span>MK ' + (stats.tierDist.mock || 0) + '</div>';
+      h += '<div class="tier-pill"><span class="tier-dot" style="background:' + tierColour('worked') + ';"></span>WE ' + (stats.tierDist.worked || 0) + '</div>';
+      h += '</div></div>';
       if (modules.length > 0) {
         h += '<div><div class="ctx-section-title">Subdecks</div>';
         h += '<div class="ctx-modules-grid">';
@@ -18758,8 +18776,26 @@ input[type="range"]::-moz-range-thumb{
       var importedCount = modules.filter(function(m) { return m && m.lectureImported; }).length;
       if (importedCount > 0) h += '<div class="ctx-lecture-badge">📚 ' + importedCount + ' lecture' + (importedCount !== 1 ? 's' : '') + ' imported · Context active for AI grading</div>';
       else h += '<div style="font-size:11px;color:var(--text-tertiary);margin:4px 0;">No lectures imported yet. Import lectures to improve AI grading accuracy.</div>';
+      h += '<button class="ghost-btn" id="ctxImportLecture" style="margin-top:8px;">📖 Import Lecture Materials</button>';
       h += '</div>';
       h += '</div></details>';
+
+      /* Root cause: standalone course context rendered only summary cards; analytics/card-level
+         interaction was implemented in embed course detail render path only. */
+      h += '<div class="cd-analytics" id="ctxCourseAnalytics">' +
+        '<div class="cda-section-header">Course Analytics</div>' +
+        '<div class="cda-grid">' +
+          '<div class="analytics-card"><div class="ac-title">Rating History</div><div class="ac-subtitle">Last 30 reviews</div><canvas id="ctxCdaRatingCanvas" height="100"></canvas></div>' +
+          '<div class="analytics-card"><div class="ac-title">Tier Accuracy</div><div class="ac-subtitle">Average rating per tier</div><canvas id="ctxCdaTierAccCanvas" height="100"></canvas></div>' +
+        '</div>' +
+        '<div class="cda-grid">' +
+          '<div class="analytics-card"><div class="ac-title">Stability</div><div class="ac-subtitle">Memory strength distribution</div><canvas id="ctxCdaStabilityCanvas" height="100"></canvas></div>' +
+          '<div class="analytics-card"><div class="ac-title">Retention Forecast</div><div class="ac-subtitle">Predicted decay over 30 days</div><canvas id="ctxCdaRetForecastCanvas" height="100"></canvas></div>' +
+        '</div>' +
+      '</div>';
+
+      h += '<div class="ctx-section-title">Cards (' + cards.length + ')</div>';
+      h += cards.length ? renderCardList(cards) : '<div class="ctx-empty">No cards in this course yet.</div>';
 
       content.innerHTML = h;
 
@@ -18775,6 +18811,10 @@ input[type="range"]::-moz-range-thumb{
         e.stopPropagation();
         showCourseContextMenu(courseName, actionsBtn);
       });
+      var importLectureBtn = document.getElementById('ctxImportLecture');
+      if (importLectureBtn) importLectureBtn.addEventListener('click', function() {
+        try { window.openEditCourseTab(courseName, 'syllabus'); } catch (e1) {}
+      });
 
       content.querySelectorAll('.ctx-module-card').forEach(function(card) {
         card.addEventListener('click', function() {
@@ -18786,6 +18826,29 @@ input[type="range"]::-moz-range-thumb{
           try { playClick(); } catch (e) {}
         });
       });
+
+      /* Root cause: standalone course view had no row-level card action wiring, so edit/suspend/delete
+         context panel was inaccessible there despite existing openCardContextActions pipeline. */
+      content.querySelectorAll('.ctx-card-row[data-card-id], .course-list-item[data-card-id]').forEach(function(row) {
+        row.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          var cardId = this.getAttribute('data-card-id');
+          if (!cardId || !state.items[cardId]) return;
+          openCardContextActions(cardId, this);
+          try { playClick(); } catch (e2) {}
+        });
+      });
+
+      setTimeout(function() {
+        var courseItemsMap = {};
+        cards.forEach(function(card) { if (card && card.id) courseItemsMap[card.id] = card; });
+        drawCourseRatingHistory('ctxCdaRatingCanvas', courseName);
+        drawTierAccuracy('ctxCdaTierAccCanvas', courseName);
+        drawStabilityDistribution('ctxCdaStabilityCanvas', courseItemsMap);
+        drawRetentionCurve('ctxCdaRetForecastCanvas', courseItemsMap, courseName, getRetentionChartSettings());
+        wireRetentionInteractivity('ctxCdaRetForecastCanvas');
+      }, 30);
 
       if (window.gsap) gsap.fromTo(content, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
     }
