@@ -17086,6 +17086,93 @@ input[type="range"]::-moz-range-thumb{
     el('addNextBtn').addEventListener('click', function(){ addFromModal(true); });
     el('doneBtn').addEventListener('click', function(){ addFromModal(false); });
 
+    function normalizeImportText(raw) {
+      if (!raw) return '';
+      return String(raw)
+        .replace(/^\uFEFF/, '')
+        .replace(/\r\n?/g, '\n')
+        .replace(/[“”]/g, '"')
+        .replace(/[‘’]/g, "'");
+    }
+
+    function parsePlainTextCards(raw, fallbackCourse) {
+      var text = normalizeImportText(raw || '');
+      if (!text) return [];
+
+      var blocks = text
+        .split(/\n(?:---+|\*{3,})\n/g)
+        .map(function(b) { return String(b || '').trim(); })
+        .filter(function(b) { return !!b; });
+      if (!blocks.length) blocks = [text];
+
+      var out = [];
+      blocks.forEach(function(block) {
+        var lines = block.split('\n');
+        var prompt = '';
+        var answer = '';
+        var topic = '';
+        var task = '';
+        var scenario = '';
+        var conceptA = '';
+        var conceptB = '';
+        var timeLimitMins = null;
+        var current = '';
+
+        function pushLine(line) {
+          var t = String(line || '').trim();
+          if (!t) return;
+          if (current === 'prompt') prompt += (prompt ? '\n' : '') + t;
+          else if (current === 'answer') answer += (answer ? '\n' : '') + t;
+          else if (current === 'task') task += (task ? '\n' : '') + t;
+          else if (current === 'scenario') scenario += (scenario ? '\n' : '') + t;
+          else if (current === 'conceptA') conceptA += (conceptA ? ' ' : '') + t;
+          else if (current === 'conceptB') conceptB += (conceptB ? ' ' : '') + t;
+          else if (!prompt) prompt = t;
+          else answer += (answer ? '\n' : '') + t;
+        }
+
+        lines.forEach(function(line) {
+          var m = String(line || '').match(/^\s*(prompt|q|question|front|modelanswer|answer|a|back|topic|task|scenario|concepta|conceptb|timelimitmins|time)\s*:\s*(.*)$/i);
+          if (m) {
+            var key = String(m[1] || '').toLowerCase();
+            var val = String(m[2] || '').trim();
+            if (key === 'prompt' || key === 'q' || key === 'question' || key === 'front') current = 'prompt';
+            else if (key === 'modelanswer' || key === 'answer' || key === 'a' || key === 'back') current = 'answer';
+            else if (key === 'topic') current = 'topic';
+            else if (key === 'task') current = 'task';
+            else if (key === 'scenario') current = 'scenario';
+            else if (key === 'concepta') current = 'conceptA';
+            else if (key === 'conceptb') current = 'conceptB';
+            else if (key === 'timelimitmins' || key === 'time') current = 'time';
+            if (current === 'topic') topic = val;
+            else if (current === 'time') {
+              var n = parseInt(val, 10);
+              timeLimitMins = isNaN(n) ? null : n;
+            } else {
+              pushLine(val);
+            }
+            return;
+          }
+          pushLine(line);
+        });
+
+        if (!prompt || !answer) return;
+        out.push({
+          prompt: prompt,
+          modelAnswer: answer,
+          topic: topic,
+          task: task,
+          scenario: scenario,
+          conceptA: conceptA,
+          conceptB: conceptB,
+          timeLimitMins: timeLimitMins,
+          course: fallbackCourse || 'Uncategorised'
+        });
+      });
+
+      return out;
+    }
+
     /* ── Import: Parse → Preview → Commit (3-phase) ── */
 
     /* ═══ SECTION: Add From Modal | Functions: addFromModal ═══ */
@@ -17228,7 +17315,7 @@ input[type="range"]::-moz-range-thumb{
     /* ── Import: Parse → Preview → Commit (3-phase) ── */
     /* ═══ SECTION: Do Import | Functions: doImport ═══ */
     function doImport() {
-      var raw = (el('m_import').value || '').trim();
+      var raw = normalizeImportText((el('m_import').value || '').trim());
       if (!raw) { try { playError(); } catch(e) {} toast('Paste JSON first'); return; }
 
       /* Full-state restore from backup file */
@@ -17258,7 +17345,15 @@ input[type="range"]::-moz-range-thumb{
       } catch(e) { /* not a backup file, fall through to normal import */ }
 
       var arr = null;
-      try { arr = JSON.parse(raw); } catch (e) { toast('Invalid JSON'); return; }
+      try {
+        arr = JSON.parse(raw);
+      } catch (e) {
+        arr = parsePlainTextCards(raw, modalSystem.getModalCourse());
+        if (!arr.length) {
+          toast('Invalid JSON. On iPhone, disable smart quotes or use Prompt:/Answer: plain text.');
+          return;
+        }
+      }
       if (!Array.isArray(arr)) { try { playError(); } catch(e) {} toast('Expected an array'); return; }
 
       /* Phase 1: Parse and classify each item */
