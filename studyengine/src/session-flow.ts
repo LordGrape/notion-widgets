@@ -1,4 +1,4 @@
-import type { SessionState, StudyItem, TierId } from './types';
+import type { SessionState, StudyItem, TierId, SubjectType } from './types';
 
 type Rating = 1 | 2 | 3 | 4;
 type SessionRuntime = SessionState & Record<string, any>;
@@ -977,4 +977,13 @@ export function calcRestudyDuration(modelAnswer: string | null | undefined): num
   let seconds = Math.ceil(wordCount / 25) * 5;
   seconds = Math.max(6, Math.min(20, seconds));
   return seconds * 1000;
+}
+
+
+export function resolveCourseSubjectType(courseName: string | null | undefined): SubjectType {
+  if (!courseName || !bridge.state || !bridge.state.courses) return 'mixed';
+  const course = bridge.state.courses[courseName];
+  const subjectType = course && typeof course.subjectType === 'string' ? course.subjectType : 'mixed';
+  if (subjectType === 'recall' || subjectType === 'reasoning' || subjectType === 'mixed') return subjectType;
+  return 'mixed';
 }

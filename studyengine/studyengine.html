@@ -8828,6 +8828,16 @@ input[type="range"]::-moz-range-thumb{
       return c ? !!c.manualMode : false;
     }
 
+    function normalizeSubjectTypeValue(value) {
+      if (value === 'recall' || value === 'reasoning' || value === 'mixed') return value;
+      return 'mixed';
+    }
+
+    function resolveCourseSubjectType(courseName) {
+      if (!courseName || !state.courses || !state.courses[courseName]) return 'mixed';
+      return normalizeSubjectTypeValue(state.courses[courseName].subjectType);
+    }
+
     /* ═══ SECTION: Save Course | Functions: saveCourse ═══ */
     function saveCourse(courseObj) {
       if (!courseObj || !courseObj.name) return;
@@ -13919,7 +13929,8 @@ input[type="range"]::-moz-range-thumb{
         userResponse: userText,
         tier: tier,
         course: item.course || '',
-        topic: item.topic || ''
+        topic: item.topic || '',
+        subjectType: resolveCourseSubjectType(item.course || '')
       };
       if (tier === 'distinguish') {
         payload.conceptA = item.conceptA || '';
@@ -14554,6 +14565,7 @@ input[type="range"]::-moz-range-thumb{
           tier: revealTier,
           course: it.course || '',
           topic: it.topic || '',
+          subjectType: resolveCourseSubjectType(it.course || ''),
           essayOutline: essayOutlineText || ''
         };
         if (revealTier === 'distinguish') {
@@ -14593,6 +14605,7 @@ input[type="range"]::-moz-range-thumb{
       var scoreLabels = { 0: 'Missed', 1: 'Partial', 2: 'Strong' };
 
       var dimensions;
+      var isReasoningRubric = !data.essayMode && data.conceptualAccuracy && data.reasoningQuality && data.criticalEngagement;
       if (data.essayMode) {
         dimensions = [
           { key: 'thesisClarity', label: 'Thesis' },
@@ -14600,6 +14613,12 @@ input[type="range"]::-moz-range-thumb{
           { key: 'argumentStructure', label: 'Structure' },
           { key: 'analyticalDepth', label: 'Analysis' },
           { key: 'conclusionQuality', label: 'Conclusion' }
+        ];
+      } else if (isReasoningRubric) {
+        dimensions = [
+          { key: 'conceptualAccuracy', label: 'Conceptual Accuracy' },
+          { key: 'reasoningQuality', label: 'Reasoning Quality' },
+          { key: 'criticalEngagement', label: 'Critical Engagement' }
         ];
       } else {
         dimensions = [
@@ -14644,11 +14663,35 @@ input[type="range"]::-moz-range-thumb{
       var suggestedName = ratingNames[suggestedRating] || 'Hard';
       var suggestedColor = ratingColors[suggestedRating] || 'var(--text)';
 
+      var classificationBadge = '';
+      if (data.classification === 'single_answer') {
+        classificationBadge = '<div style="font-size:9px;color:var(--text-tertiary);margin:4px 0 8px;">Graded as: Single-answer</div>';
+      } else if (data.classification === 'multi_lens') {
+        classificationBadge = '<div style="font-size:9px;color:var(--text-tertiary);margin:4px 0 8px;">Graded as: Multi-lens interpretation</div>';
+      }
+
+      var activeItem = session && session.queue && session.queue[session.idx] ? session.queue[session.idx] : null;
+      var activeSubjectType = activeItem ? resolveCourseSubjectType(activeItem.course || '') : 'mixed';
+      var showReasoningNote = activeSubjectType === 'reasoning' || data.classification === 'multi_lens';
+      var modelRight = el('modelAnswerRight');
+      if (modelRight) {
+        var existingReasoningNote = modelRight.querySelector('.reasoning-model-note');
+        if (existingReasoningNote) existingReasoningNote.remove();
+        if (showReasoningNote) {
+          var noteEl = document.createElement('div');
+          noteEl.className = 'reasoning-model-note';
+          noteEl.style.cssText = 'font-size:9px;color:var(--text-secondary);margin:6px 0 8px;';
+          noteEl.textContent = 'The model answer shows one strong approach — your reasoning can differ if it\'s conceptually sound.';
+          modelRight.insertBefore(noteEl, modelRight.firstChild);
+        }
+      }
+
       var h = '<div class="ai-feedback">' +
         '<div class="af-header">' +
           '<div class="af-icon"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="10" height="8" rx="2"/><line x1="8" y1="2" x2="8" y2="5"/><circle cx="8" cy="1.5" r="0.8"/><circle cx="6" cy="9" r="1"/><circle cx="10" cy="9" r="1"/></svg></div>' +
           '<div class="af-title">AI Feedback</div>' +
         '</div>' +
+        classificationBadge +
         '<div class="af-score-row">' + scoreRowHTML + '</div>' +
         dimHTML +
         '<div class="af-improvement">' +
@@ -17253,6 +17296,19 @@ input[type="range"]::-moz-range-thumb{
             '<div id="nc_examTypeDesc" class="help" style="margin-top:6px;line-height:1.5;"></div>' +
           '</div>' +
           '<div class="field">' +
+            '<label>Grading style</label>' +
+            '<select id="nc_subjectType" class="input">' +
+              '<option value="mixed" selected>Mixed — let AI adapt per question</option>' +
+              '<option value="recall">Recall (STEM, language, fact-based)</option>' +
+              '<option value="reasoning">Reasoning (law, political science, philosophy)</option>' +
+            '</select>' +
+            '<div class="help" style="margin-top:6px;line-height:1.5;">' +
+              '<div title="One right answer. Graded strictly against the model answer."><strong>Recall:</strong> One right answer. Graded strictly against the model answer.</div>' +
+              '<div title="Multiple defensible framings. Graded on argument quality and conceptual engagement."><strong>Reasoning:</strong> Multiple defensible framings. Graded on argument quality and conceptual engagement.</div>' +
+              '<div title="AI classifies each question and picks the right rubric. Recommended default."><strong>Mixed:</strong> AI classifies each question and picks the right rubric. Recommended default.</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="field">' +
             '<label>Exam date (optional)</label>' +
             '<input type="date" id="nc_examDate" class="input">' +
             '<div id="nc_examDateDesc" class="help" style="line-height:1.5;"><span class="info-icon" tabindex="0">ⓘ</span> When set, the engine activates cram mode as the date approaches — reviews intensify, session sizes increase, and your weakest cards are prioritised automatically. When left empty, FSRS schedules reviews for long-term retention at your configured desired retention rate.</div>' +
@@ -17374,6 +17430,7 @@ input[type="range"]::-moz-range-thumb{
             name: name,
             examType: examType,
             examDate: examDate,
+            subjectType: normalizeSubjectTypeValue((el('nc_subjectType') && el('nc_subjectType').value) || 'mixed'),
             color: selectedColor,
             manualMode: false,
             created: isoNow()
@@ -17745,6 +17802,11 @@ input[type="range"]::-moz-range-thumb{
           inner += '<option value="mixed"' + (c.examType === 'mixed' ? ' selected' : '') + '>Mixed</option>';
           inner += '</select></div>';
           inner += '<div class="field"><label>Exam date</label><input id="cm_examDate" type="date" class="input" value="' + esc(c.examDate || '') + '" /></div></div>';
+          inner += '<div class="field"><label>Grading style</label><select id="cm_subjectType" class="input">';
+          inner += '<option value="mixed"' + ((c.subjectType || 'mixed') === 'mixed' ? ' selected' : '') + '>Mixed — let AI adapt per question</option>';
+          inner += '<option value="recall"' + ((c.subjectType || 'mixed') === 'recall' ? ' selected' : '') + '>Recall (STEM, language, fact-based)</option>';
+          inner += '<option value="reasoning"' + ((c.subjectType || 'mixed') === 'reasoning' ? ' selected' : '') + '>Reasoning (law, political science, philosophy)</option>';
+          inner += '</select><div class="help" style="margin-top:6px;line-height:1.5;"><div title="One right answer. Graded strictly against the model answer."><strong>Recall:</strong> One right answer. Graded strictly against the model answer.</div><div title="Multiple defensible framings. Graded on argument quality and conceptual engagement."><strong>Reasoning:</strong> Multiple defensible framings. Graded on argument quality and conceptual engagement.</div><div title="AI classifies each question and picks the right rubric. Recommended default."><strong>Mixed:</strong> AI classifies each question and picks the right rubric. Recommended default.</div></div></div>';
           inner += '<div class="field"><label>Exam Weight (%)</label><input id="cm_examWeight" type="number" min="0" max="100" step="1" class="input" value="' + esc(c.examWeight != null ? String(c.examWeight) : '') + '" /></div>';
           inner += '<div style="display:flex;justify-content:flex-end;margin-top:12px;"><button class="big-btn" id="cmSaveDetails" type="button">Save Details</button></div>';
         } else if (activeTab === 'syllabus') {
@@ -17884,6 +17946,7 @@ input[type="range"]::-moz-range-thumb{
             c.color = activeSwatch ? activeSwatch.getAttribute('data-color') : (c.color || '#8b5cf6');
             c.examType = (el('cm_examType').value || 'mixed');
             c.examDate = (el('cm_examDate').value || '').trim() || null;
+            c.subjectType = normalizeSubjectTypeValue((el('cm_subjectType') && el('cm_subjectType').value) || 'mixed');
             var ew = (el('cm_examWeight').value || '').trim();
             c.examWeight = ew ? Math.max(0, Math.min(100, Math.round(Number(ew) || 0))) : null;
             if (newName !== oldName) {
