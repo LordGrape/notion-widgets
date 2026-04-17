@@ -691,6 +691,242 @@
       height: 12px;
       border-width: 2px;
     }
+    .cm-syllabus-zone{
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 70vh;
+      min-height: 140px;
+      padding: 12px;
+      overflow: hidden;
+      background: var(--surface-1);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      backdrop-filter: var(--blur-glass);
+      -webkit-backdrop-filter: var(--blur-glass);
+      transition: border-color 200ms ease, box-shadow 200ms ease, background 200ms ease;
+    }
+    body.standalone .cm-syllabus-zone{
+      min-height: 200px;
+    }
+    .cm-syllabus-zone.drag-over{
+      border-color: rgba(var(--accent-rgb), 0.7);
+      box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb),0.22), inset 0 0 24px rgba(var(--accent-rgb),0.06);
+      background: color-mix(in srgb, var(--surface-1) 92%, var(--accent-primary) 8%);
+    }
+    .cm-syllabus-empty{
+      position: absolute;
+      inset: 12px;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      color: var(--text-tertiary);
+      font-size: 10px;
+      text-align: center;
+    }
+    .cm-syllabus-empty .doc{
+      font-size: 20px;
+      opacity: 0.45;
+    }
+    .cm-syllabus-text{
+      position: relative;
+      z-index: 1;
+      margin: 0;
+      min-height: 110px;
+      max-height: calc(70vh - 120px);
+      overflow-y: auto;
+      background: transparent;
+      border: 1px dashed var(--border-subtle);
+      resize: vertical;
+    }
+    .cm-syllabus-actions{
+      display: flex;
+      justify-content: flex-end;
+      position: relative;
+      z-index: 1;
+    }
+    .cm-upload-link{
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--accent-primary);
+      text-decoration: none;
+      font-weight: 700;
+    }
+    .cm-upload-link:hover{ text-decoration: underline; }
+    .cm-syllabus-chip{
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 2;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(var(--accent-rgb), 0.25);
+      background: rgba(var(--accent-rgb), 0.12);
+      color: var(--text-primary);
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      max-width: calc(100% - 24px);
+    }
+    .cm-syllabus-chip span{
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .cm-syllabus-chip button{
+      border: none;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      font-size: 12px;
+      line-height: 1;
+      padding: 0;
+    }
+    .cm-process-row{
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    .cm-process-row .big-btn{
+      flex: 1 1 260px;
+      min-width: 220px;
+    }
+    .cm-process-row .cm-rerun-btn{
+      flex: 0 0 auto;
+      min-width: 0;
+      width: auto;
+      text-transform: none;
+      letter-spacing: 0.4px;
+    }
+    .cm-results-card{
+      margin-top: 8px;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      background: var(--surface-1);
+    }
+    .cm-results-card summary{
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-primary);
+      background: rgba(var(--accent-rgb), 0.08);
+    }
+    .cm-results-card summary::-webkit-details-marker{ display: none; }
+    .cm-results-card[open] .cm-results-arrow{ transform: rotate(90deg); }
+    .cm-results-arrow{ transition: transform 180ms ease; }
+    .cm-results-body{ padding: 10px 12px 12px; }
+    .cm-additional-context{
+      margin-top: 10px;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      background: var(--surface-0);
+      overflow: hidden;
+    }
+    .cm-additional-context > summary{
+      list-style: none;
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 10px 12px;
+      color: var(--text-secondary);
+      background: rgba(var(--accent-rgb),0.04);
+    }
+    .cm-additional-context > summary::-webkit-details-marker{ display: none; }
+    .cm-additional-body{ padding: 10px 12px 12px; }
+    .cm-lecture-source-row{
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .cm-lecture-source-row .input{
+      flex: 1 1 220px;
+      min-width: 180px;
+    }
+    .cm-lecture-source-row .ghost-btn{
+      flex: 0 0 auto;
+      min-width: 0;
+      width: auto;
+      text-transform: none;
+      letter-spacing: 0.2px;
+    }
+    .cm-lecture-source-list{
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .cm-lecture-source-item{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 7px 9px;
+      background: var(--surface-1);
+    }
+    .cm-lecture-source-main{
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+    .cm-lecture-source-title{
+      font-size: 9px;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 220px;
+    }
+    .cm-source-badge{
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid rgba(var(--accent-rgb),0.24);
+      background: rgba(var(--accent-rgb),0.08);
+      border-radius: 999px;
+      padding: 2px 6px;
+      font-size: 7px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+    }
+    .cm-source-remove{
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      padding: 2px;
+    }
+    @media (max-width: 600px) {
+      .cm-syllabus-zone{ min-height: 140px; }
+      .cm-syllabus-text{ min-height: 80px; }
+      .cm-syllabus-actions{ justify-content: flex-start; }
+      .cm-upload-link{ white-space: normal; }
+      .cm-lecture-source-row{ align-items: stretch; }
+      .cm-lecture-source-row .input{ flex-basis: 100%; min-width: 100%; }
+    }
     .pdf-import-btn{
       display: inline-flex;
       align-items: center;
@@ -18415,29 +18651,30 @@ input[type="range"]::-moz-range-thumb{
           inner += '<div class="field"><label>Exam Weight (%)</label><input id="cm_examWeight" type="number" min="0" max="100" step="1" class="input" value="' + esc(c.examWeight != null ? String(c.examWeight) : '') + '" /></div>';
           inner += '<div style="display:flex;justify-content:flex-end;margin-top:12px;"><button class="big-btn" id="cmSaveDetails" type="button">Save Details</button></div>';
         } else if (activeTab === 'syllabus') {
-          inner += '<div class="field"><label>Syllabus / Exam Info' + renderEditorInfoIcon('Syllabus / Exam Info', "Paste the raw syllabus or any official exam instructions here. The AI uses this as the ground truth for what your course covers and how it's assessed. It does not auto-generate cards from this — use 'Process syllabus with AI' for that.") + '</label><textarea class="input" id="cm_courseContextText" rows="7" placeholder="Paste syllabus text, exam instructions, or course outline...">' + esc(c.rawSyllabusText || '') + '</textarea></div>';
-          inner += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+          inner += '<div class="field"><label>Syllabus / Exam Info' + renderEditorInfoIcon('Syllabus / Exam Info', "Paste the raw syllabus or any official exam instructions here. The AI uses this as the ground truth for what your course covers and how it's assessed. It does not auto-generate cards from this — use 'Process syllabus with AI' for that.") + '</label>';
+          inner += '<div class="cm-syllabus-zone" id="cm_syllabusZone">';
+          inner += '<div class="cm-syllabus-empty" id="cm_syllabusEmpty"><span class="doc">📄</span><span>Paste your syllabus or drop a PDF here</span></div>';
+          inner += '<div class="cm-syllabus-chip" id="cm_syllabusChip" style="display:none;"><span id="cm_syllabusChipText"></span><button type="button" aria-label="Clear syllabus text" id="cm_clearSyllabusChip">×</button></div>';
+          inner += '<textarea class="input cm-syllabus-text" id="cm_courseContextText" rows="7" placeholder="Paste syllabus text, exam instructions, or course outline...">' + esc(c.rawSyllabusText || '') + '</textarea>';
+          inner += '<div class="cm-syllabus-actions"><a href="#" id="cm_pdfBtn" class="cm-upload-link">📄 Or upload PDF</a></div>';
           inner += '<input type="file" accept="application/pdf,.pdf" id="cm_pdfFile" style="display:none">';
-          inner += '<button type="button" class="ghost-btn" id="cm_pdfBtn">📄 Import PDF</button>';
-          inner += '<button type="button" class="ghost-btn tooltip-host" id="cm_processSyllabus">Process syllabus with AI' +
+          inner += '</div></div>';
+          inner += '<div class="cm-process-row">';
+          inner += '<button type="button" class="big-btn tooltip-host" id="cm_processSyllabus">Process with AI' +
             '<span class="info-tooltip">Runs your syllabus through the tutor to extract modules, topics, and suggested study priorities. Non-destructive — nothing is saved until you confirm.<span class="tip-arrow"></span></span></button>';
-          inner += '<button type="button" class="ghost-btn tooltip-host" id="cm_reprocessSyllabus">Re-process' +
+          inner += '<button type="button" class="ghost-btn tooltip-host cm-rerun-btn" id="cm_reprocessSyllabus" style="display:none;">↻ Re-run' +
             '<span class="info-tooltip">Re-runs AI extraction if you\'ve edited the syllabus or the first pass missed content. Replaces the previous AI-suggested structure.<span class="tip-arrow"></span></span></button>';
           inner += '</div>';
           inner += '<div class="syllabus-status" id="cm_contextStatus"></div>';
-          inner += '<div class="chips" id="cm_suggestedTopics" style="margin-top:6px;"></div>';
-          inner += '<div id="cm_previewWrap" style="' + (c.syllabusContext ? '' : 'display:none;') + 'margin-top:8px;"><div style="font-size:9px;font-weight:700;margin-bottom:4px;color:var(--text-secondary);">Processed summary</div><div class="syllabus-preview" id="cm_syllabusPreview">' + esc(c.syllabusContext || '') + '</div></div>';
+          inner += '<details class="cm-results-card" id="cm_resultsCard"><summary><span>Extracted course context</span><span class="cm-results-arrow">▸</span></summary><div class="cm-results-body"><div class="help">This will populate once "Process with AI" is wired (Milestone 1).</div><div class="chips" id="cm_suggestedTopics" style="margin-top:8px;"></div><div id="cm_previewWrap" style="' + (c.syllabusContext ? '' : 'display:none;') + 'margin-top:8px;"><div style="font-size:9px;font-weight:700;margin-bottom:4px;color:var(--text-secondary);">Processed summary</div><div class="syllabus-preview" id="cm_syllabusPreview">' + esc(c.syllabusContext || '') + '</div></div></div></details>';
+          inner += '<details class="cm-additional-context" id="cm_additionalContext"><summary>Additional context (optional)</summary><div class="cm-additional-body">';
           inner += '<div class="field"><label>Professor values' + renderEditorInfoIcon('Professor values', "Things your professor explicitly emphasizes (e.g. 'cites primary sources', 'engages counter-arguments', 'uses theoretical framing'). Feeds into AI grading so your responses are judged by what your professor actually rewards — not generic rubrics.") + '</label><textarea class="input" id="cm_professorValues" rows="3">' + esc(c.professorValues || '') + '</textarea></div>';
           inner += '<div class="field"><label>Allowed materials' + renderEditorInfoIcon('Allowed materials', "What you're allowed to reference during the exam (e.g. 'open notes', 'one-page cheat sheet', 'closed book'). Shapes how the AI calibrates difficulty and whether it expects memorized recall vs reasoning.") + '</label><input type="text" class="input" id="cm_allowedMaterials" value="' + esc(c.allowedMaterials || '') + '"></div>';
-          inner += '<div class="or-divider">LECTURE MATERIALS</div>';
-          inner += '<div class="field"><label>Lecture materials (URL)' + renderEditorInfoIcon('Lecture Materials (URL)', 'Link to a published Notion page, article, or lecture transcript. The AI pulls context from this when generating cards and grading responses. Must be publicly accessible.') + '</label><input type="text" class="input" id="cm_lectureUrlInput" placeholder="Paste any URL (published Notion page, article, etc.)"></div>';
-          inner += '<div style="display:flex;gap:8px;">';
-          inner += '<button type="button" class="ghost-btn" id="cm_importLectureUrl" style="flex:1;">🌐 Import from URL</button>';
-          inner += '<input type="file" accept="application/pdf,.pdf" id="cm_importLecturePdf" style="display:none">';
-          inner += '<button type="button" class="ghost-btn" id="cm_importLecturePdfBtn" style="flex:1;">📄 Import PDF</button>' + renderEditorInfoIcon('Lecture Materials (PDF import)', 'Upload a lecture PDF. Text is extracted and used as context for card generation and grading. Stored locally; not sent anywhere except the tutor call.');
-          inner += '</div>';
+          inner += '<div class="field"><label>Lecture materials' + renderEditorInfoIcon('Lecture Materials (URL)', 'Link to a published Notion page, article, or lecture transcript. The AI pulls context from this when generating cards and grading responses. Must be publicly accessible.') + renderEditorInfoIcon('Lecture Materials (PDF import)', 'Upload a lecture PDF. Text is extracted and used as context for card generation and grading. Stored locally; not sent anywhere except the tutor call.') + '</label>';
+          inner += '<div class="cm-lecture-source-row"><input type="text" class="input" id="cm_lectureSourceInput" placeholder="Paste lecture URL"><button type="button" class="ghost-btn" id="cm_addLectureSource">Add source</button><a href="#" id="cm_importLecturePdfBtn" class="cm-upload-link">📄 Upload PDF</a><input type="file" accept="application/pdf,.pdf" id="cm_importLecturePdf" style="display:none"></div>';
           inner += '<div class="syllabus-status" id="cm_lectureImportStatus" style="min-height:0;"></div>';
-          inner += '<div id="cm_lectureManifestDisplay" style="margin-top:8px;"></div>';
+          inner += '<div id="cm_lectureManifestDisplay" style="margin-top:8px;"></div><div id="cm_lectureSourceList" class="cm-lecture-source-list"></div>';
+          inner += '</div></div></details>';
           inner += '<div style="display:flex;justify-content:flex-end;margin-top:12px;"><button class="big-btn" id="cmSaveSyllabus" type="button">Save Syllabus & AI</button></div>';
         } else if (activeTab === 'structure') {
           ensureCourseModules(courseName);
@@ -18598,6 +18835,30 @@ input[type="range"]::-moz-range-thumb{
             renderCourseModalEditor(courseName, 'details');
           };
         } else if (activeTab === 'syllabus') {
+          function playCourseAudio(name) {
+            try {
+              if (!window.Core || !Core.audio) return;
+              if (typeof Core.audio.prefersMuted === 'function' && Core.audio.prefersMuted()) return;
+              if (typeof Core.audio[name] === 'function') Core.audio[name]();
+            } catch (e) {}
+          }
+          function askSyllabusReplace(message) {
+            return new Promise(function(resolve) {
+              var ov = document.createElement('div');
+              ov.className = 'confirm-overlay show';
+              ov.innerHTML = '<div class="confirm-box"><div class="cb-icon">📄</div><div class="cb-title">Replace syllabus text?</div><div class="cb-desc">' + esc(message || 'Replace existing syllabus text?') + '</div><div class="cb-actions"><button type="button" class="cb-stay">Keep current</button><button type="button" class="cb-leave">Replace</button></div></div>';
+              document.body.appendChild(ov);
+              var stay = ov.querySelector('.cb-stay');
+              var leave = ov.querySelector('.cb-leave');
+              function done(val) {
+                if (ov && ov.parentNode) ov.parentNode.removeChild(ov);
+                resolve(val);
+              }
+              if (stay) stay.onclick = function() { done(false); };
+              if (leave) leave.onclick = function() { done(true); };
+              ov.addEventListener('click', function(e) { if (e.target === ov) done(false); });
+            });
+          }
           function setCtxStatus(msg, cls) {
             var st = el('cm_contextStatus');
             if (!st) return;
@@ -18616,13 +18877,25 @@ input[type="range"]::-moz-range-thumb{
             });
           }
           renderSuggestedTopics(c.syllabusKeyTopics || []);
-          function runSyllabusProcess(rawText) {
+          function runSyllabusProcess(rawText, opts) {
             var trimmed = (rawText || '').trim();
             if (!trimmed) { toast('Paste text or import a PDF first'); return; }
+            var processBtn = el('cm_processSyllabus');
+            var rerunBtn = el('cm_reprocessSyllabus');
+            if (processBtn) {
+              processBtn.disabled = true;
+              processBtn.innerHTML = '<span class="af-spinner"></span> Extracting...';
+            }
+            if (rerunBtn) rerunBtn.disabled = true;
             setCtxStatus('<span class="af-spinner"></span> Processing syllabus...', '');
+            playCourseAudio('click');
             var examT = (el('cm_examType') && el('cm_examType').value) || c.examType || 'mixed';
             postSyllabusDistill(trimmed, c.name, examT).then(function(data) {
-              if (!data || data.error) { setCtxStatus(esc(data && data.error ? String(data.error) : 'Could not process syllabus'), ''); return; }
+              if (!data || data.error) {
+                setCtxStatus(esc(data && data.error ? String(data.error) : 'Could not process syllabus'), '');
+                playCourseAudio('error');
+                return;
+              }
               c.rawSyllabusText = trimmed.length > 15000 ? trimmed.slice(0, 15000) : trimmed;
               if (data.syllabusContext != null) c.syllabusContext = String(data.syllabusContext).slice(0, 4000);
               c.professorValues = data.professorValues != null && data.professorValues !== 'null' ? String(data.professorValues).slice(0, 500) : c.professorValues;
@@ -18637,27 +18910,154 @@ input[type="range"]::-moz-range-thumb{
               var alEl = el('cm_allowedMaterials'); if (alEl) alEl.value = c.allowedMaterials || '';
               renderSuggestedTopics(c.syllabusKeyTopics);
               setCtxStatus('✓ Syllabus processed', 'ok');
-            }).catch(function() { setCtxStatus('Network error — try again', ''); });
+              playCourseAudio('chime');
+              if (rerunBtn) rerunBtn.style.display = '';
+            }).catch(function() {
+              setCtxStatus('Network error — try again', '');
+              playCourseAudio('error');
+            }).finally(function() {
+              if (processBtn) {
+                processBtn.disabled = false;
+                processBtn.innerHTML = 'Process with AI<span class="info-tooltip">Runs your syllabus through the tutor to extract modules, topics, and suggested study priorities. Non-destructive — nothing is saved until you confirm.<span class="tip-arrow"></span></span>';
+              }
+              if (rerunBtn) rerunBtn.disabled = false;
+              if (opts && typeof opts.onDone === 'function') opts.onDone();
+            });
           }
+
+          var syllabusZone = el('cm_syllabusZone');
+          var syllabusText = el('cm_courseContextText');
+          var syllabusChip = el('cm_syllabusChip');
+          var syllabusChipText = el('cm_syllabusChipText');
+          var syllabusEmpty = el('cm_syllabusEmpty');
+          var clearSyllabusChip = el('cm_clearSyllabusChip');
+          var procBtn = el('cm_processSyllabus');
+          var reprocBtn = el('cm_reprocessSyllabus');
+          var prefersReducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+          var syllabusMeta = {
+            source: c.rawSyllabusText ? 'Pasted text' : '',
+            chars: c.rawSyllabusText ? String(c.rawSyllabusText).trim().length : 0
+          };
+
+          function updateSyllabusZoneState() {
+            if (!syllabusText) return;
+            var text = String(syllabusText.value || '').trim();
+            var hasText = !!text;
+            if (syllabusEmpty) syllabusEmpty.style.display = hasText ? 'none' : 'flex';
+            if (syllabusChip) syllabusChip.style.display = hasText ? '' : 'none';
+            if (syllabusChipText && hasText) syllabusChipText.textContent = 'parsed: ' + (syllabusMeta.source || 'Pasted text') + ' • ' + text.length + ' chars';
+            if (syllabusChip) {
+              syllabusChip.classList.remove('breathe-active');
+              if (!prefersReducedMotion && hasText) syllabusChip.classList.add('breathe-active');
+            }
+            if (procBtn) {
+              var disabled = !hasText;
+              procBtn.disabled = disabled;
+              procBtn.title = disabled ? 'Add a syllabus first.' : '';
+            }
+            if (reprocBtn) {
+              reprocBtn.style.display = c.syllabusContext ? '' : 'none';
+              reprocBtn.title = 'Use this after changing syllabus text or importing a newer version.';
+            }
+          }
+
+          async function applySyllabusText(nextText, sourceLabel, fromPdf) {
+            var existing = syllabusText ? String(syllabusText.value || '').trim() : '';
+            if (fromPdf && existing && sourceLabel && sourceLabel !== 'Pasted text') {
+              var ok = await askSyllabusReplace('Replace pasted text with PDF contents?');
+              if (!ok) return false;
+            }
+            if (syllabusText) syllabusText.value = nextText || '';
+            syllabusMeta.source = sourceLabel || 'Pasted text';
+            syllabusMeta.chars = String(nextText || '').trim().length;
+            updateSyllabusZoneState();
+            playCourseAudio('click');
+            return true;
+          }
+
+          if (syllabusText) {
+            syllabusText.oninput = function() {
+              var val = String(syllabusText.value || '').trim();
+              if (!val) syllabusMeta.source = '';
+              else if (!syllabusMeta.source || syllabusMeta.source !== 'Pasted text') syllabusMeta.source = 'Pasted text';
+              syllabusMeta.chars = val.length;
+              updateSyllabusZoneState();
+            };
+            syllabusText.onpaste = function() {
+              setTimeout(function() {
+                var val = String(syllabusText.value || '').trim();
+                if (val) {
+                  syllabusMeta.source = 'Pasted text';
+                  syllabusMeta.chars = val.length;
+                  updateSyllabusZoneState();
+                  playCourseAudio('click');
+                }
+              }, 0);
+            };
+          }
+          if (clearSyllabusChip) clearSyllabusChip.onclick = function() {
+            if (syllabusText) syllabusText.value = '';
+            syllabusMeta.source = '';
+            syllabusMeta.chars = 0;
+            updateSyllabusZoneState();
+          };
+
           var pdfBtn = el('cm_pdfBtn');
           var pdfFile = el('cm_pdfFile');
           if (pdfBtn && pdfFile) {
-            pdfBtn.onclick = function() { pdfFile.click(); };
+            pdfBtn.onclick = function(e) { e.preventDefault(); pdfFile.click(); };
             pdfFile.onchange = function() {
               var f = pdfFile.files && pdfFile.files[0];
               if (!f) return;
+              setCtxStatus('<span class="af-spinner"></span> Extracting PDF text…', '');
               extractPdfText(f).then(function(text) {
-                var ta = el('cm_courseContextText');
-                if (ta) ta.value = text || '';
-                runSyllabusProcess(text || '');
+                return applySyllabusText(text || '', String(f.name || 'PDF'), true);
+              }).then(function(applied) {
+                if (applied) setCtxStatus('✓ Syllabus PDF parsed', 'ok');
                 pdfFile.value = '';
-              }).catch(function(err) { toast(err && err.message ? err.message : 'Could not read PDF'); });
+              }).catch(function(err) {
+                setCtxStatus(esc(err && err.message ? err.message : 'Could not read PDF'), '');
+                playCourseAudio('error');
+                pdfFile.value = '';
+              });
             };
           }
-          var procBtn = el('cm_processSyllabus');
-          if (procBtn) procBtn.onclick = function() { runSyllabusProcess(el('cm_courseContextText') ? el('cm_courseContextText').value : ''); };
-          var reprocBtn = el('cm_reprocessSyllabus');
-          if (reprocBtn) reprocBtn.onclick = function() { runSyllabusProcess(c.rawSyllabusText || (el('cm_courseContextText') ? el('cm_courseContextText').value : '')); };
+
+          if (syllabusZone) {
+            ['dragenter', 'dragover'].forEach(function(evt) {
+              syllabusZone.addEventListener(evt, function(e) {
+                e.preventDefault();
+                syllabusZone.classList.add('drag-over');
+              });
+            });
+            ['dragleave', 'drop'].forEach(function(evt) {
+              syllabusZone.addEventListener(evt, function(e) {
+                e.preventDefault();
+                if (evt === 'dragleave' && syllabusZone.contains(e.relatedTarget)) return;
+                syllabusZone.classList.remove('drag-over');
+              });
+            });
+            syllabusZone.addEventListener('drop', function(e) {
+              var file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+              if (!file || !/\.pdf$/i.test(file.name || '')) { toast('Drop a PDF file'); return; }
+              setCtxStatus('<span class="af-spinner"></span> Extracting PDF text…', '');
+              extractPdfText(file).then(function(text) {
+                return applySyllabusText(text || '', String(file.name || 'PDF'), true);
+              }).then(function(applied) {
+                if (applied) setCtxStatus('✓ Syllabus PDF parsed', 'ok');
+              }).catch(function(err) {
+                setCtxStatus(esc(err && err.message ? err.message : 'Could not read PDF'), '');
+                playCourseAudio('error');
+              });
+            });
+          }
+
+          if (procBtn) procBtn.onclick = function() {
+            runSyllabusProcess(syllabusText ? syllabusText.value : '', { onDone: updateSyllabusZoneState });
+          };
+          if (reprocBtn) reprocBtn.onclick = function() {
+            runSyllabusProcess(c.rawSyllabusText || (syllabusText ? syllabusText.value : ''), { onDone: updateSyllabusZoneState });
+          };
 
           function setLectureStatus(msg, cls) {
             var st = el('cm_lectureImportStatus');
@@ -18665,13 +19065,40 @@ input[type="range"]::-moz-range-thumb{
             st.className = 'syllabus-status' + (cls ? ' ' + cls : '');
             st.innerHTML = msg || '';
           }
+          function lectureSourceRows() {
+            ensureCourseModules(c.name);
+            return (c.modules || []).filter(function(mod) { return !!mod.lectureImported; });
+          }
           function updateLectureManifestDisplay() {
             var box = el('cm_lectureManifestDisplay');
             if (!box) return;
-            var count = Number(c._lectureCount || 0) || 0;
+            var count = lectureSourceRows().length;
             box.innerHTML = count > 0 ? '<div style="font-size:9px;color:var(--text-secondary);padding:6px 8px;border-radius:10px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.03);">📚 ' + count + ' lecture' + (count !== 1 ? 's' : '') + ' imported</div>' : '';
           }
-          function importLectureFromText(lectureTitle, rawText) {
+          function renderLectureSourceList() {
+            var list = el('cm_lectureSourceList');
+            if (!list) return;
+            var rows = lectureSourceRows();
+            list.innerHTML = '';
+            rows.forEach(function(mod) {
+              var row = document.createElement('div');
+              var srcType = mod.sourceType === 'pdf' ? 'PDF' : 'URL';
+              row.className = 'cm-lecture-source-item';
+              row.innerHTML = '<div class="cm-lecture-source-main"><div class="cm-lecture-source-title">' + esc(mod.name || 'Lecture') + '</div><span class="cm-source-badge">' + srcType + '</span></div><button type="button" class="cm-source-remove" data-remove-lecture-module="' + esc(mod.id) + '">×</button>';
+              list.appendChild(row);
+            });
+            list.querySelectorAll('[data-remove-lecture-module]').forEach(function(btn) {
+              btn.onclick = function() {
+                var id = btn.getAttribute('data-remove-lecture-module');
+                removeModuleFromCourse(c.name, id);
+                saveCourse(c);
+                updateLectureManifestDisplay();
+                renderLectureSourceList();
+                setLectureStatus('Removed lecture source', 'ok');
+              };
+            });
+          }
+          function importLectureFromText(lectureTitle, rawText, sourceType) {
             var trimmed = (rawText || '').trim();
             if (!trimmed) { toast('Paste text or import a PDF first'); return Promise.resolve(null); }
             setLectureStatus('<span class="af-spinner"></span> Processing lecture...', '');
@@ -18684,20 +19111,23 @@ input[type="range"]::-moz-range-thumb{
               if (data.courseDigestUpdate != null && String(data.courseDigestUpdate).trim()) c.syllabusContext = String(data.courseDigestUpdate).slice(0, 4000);
               if (data.topicChunks && data.topicChunks.length > 0) {
                 var modTopics = data.topicChunks.map(function(tc) { return tc && tc.topic ? tc.topic : null; }).filter(Boolean);
-                if (modTopics.length > 0) addModuleToCourse(c.name, { name: lectureTitle || 'Imported Lecture', topics: modTopics, lectureImported: true, importDate: new Date().toISOString() });
+                if (modTopics.length > 0) addModuleToCourse(c.name, { name: lectureTitle || 'Imported Lecture', topics: modTopics, lectureImported: true, sourceType: sourceType || 'url', importDate: new Date().toISOString() });
               }
-              c._lectureCount = (Number(c._lectureCount || 0) || 0) + 1;
+              c._lectureCount = lectureSourceRows().length;
               saveCourse(c);
               if (!isEmbedded) renderSidebar();
               updateLectureManifestDisplay();
+              renderLectureSourceList();
               setLectureStatus('✓ Imported lecture context', 'ok');
+              playCourseAudio('click');
               return data;
-            }).catch(function() { setLectureStatus('Network error — try again', ''); return null; });
+            }).catch(function() { setLectureStatus('Network error — try again', ''); playCourseAudio('error'); return null; });
           }
           updateLectureManifestDisplay();
-          var importUrlBtn = el('cm_importLectureUrl');
-          if (importUrlBtn) importUrlBtn.onclick = function() {
-            var inEl = el('cm_lectureUrlInput');
+          renderLectureSourceList();
+          var addLectureSourceBtn = el('cm_addLectureSource');
+          if (addLectureSourceBtn) addLectureSourceBtn.onclick = function() {
+            var inEl = el('cm_lectureSourceInput');
             var url = inEl ? String(inEl.value || '').trim() : '';
             if (!url || url.indexOf('http') !== 0) { toast('Paste a valid URL'); return; }
             setLectureStatus('<span class="af-spinner"></span> Fetching page…', '');
@@ -18708,24 +19138,26 @@ input[type="range"]::-moz-range-thumb{
             }).then(function(res) { return res.json(); }).then(function(data) {
               if (!data || data.error || !data.text || String(data.text).length < 200) { setLectureStatus('Could not extract enough text from this page', ''); return; }
               var title = data.title || (url.split('/').pop() || 'Lecture');
-              importLectureFromText(title, String(data.text));
-            }).catch(function() { setLectureStatus('Network error — try again', ''); });
+              importLectureFromText(title, String(data.text), 'url');
+              if (inEl) inEl.value = '';
+            }).catch(function() { setLectureStatus('Network error — try again', ''); playCourseAudio('error'); });
           };
           var lecturePdfBtn = el('cm_importLecturePdfBtn');
           var lecturePdfFile = el('cm_importLecturePdf');
           if (lecturePdfBtn && lecturePdfFile) {
-            lecturePdfBtn.onclick = function() { lecturePdfFile.click(); };
+            lecturePdfBtn.onclick = function(e) { e.preventDefault(); lecturePdfFile.click(); };
             lecturePdfFile.onchange = function() {
               var f = lecturePdfFile.files && lecturePdfFile.files[0];
               if (!f) return;
               setLectureStatus('<span class="af-spinner"></span> Extracting PDF text…', '');
               extractPdfText(f).then(function(text) {
                 if (!text || String(text).length < 200) { setLectureStatus('Could not extract enough text from this PDF', ''); return; }
-                importLectureFromText(String(f.name || 'Lecture').replace(/\.pdf$/i, ''), String(text));
-              }).catch(function(err) { setLectureStatus(esc(err && err.message ? err.message : 'Could not read PDF'), ''); });
+                importLectureFromText(String(f.name || 'Lecture').replace(/\.pdf$/i, ''), String(text), 'pdf');
+              }).catch(function(err) { setLectureStatus(esc(err && err.message ? err.message : 'Could not read PDF'), ''); playCourseAudio('error'); });
               lecturePdfFile.value = '';
             };
           }
+
           var saveSyllabus = el('cmSaveSyllabus');
           if (saveSyllabus) saveSyllabus.onclick = function() {
             c.rawSyllabusText = (el('cm_courseContextText') && el('cm_courseContextText').value.trim()) ? el('cm_courseContextText').value.trim().slice(0, 15000) : null;
@@ -18734,6 +19166,12 @@ input[type="range"]::-moz-range-thumb{
             saveCourse(c);
             toast('Syllabus settings saved');
           };
+
+          updateSyllabusZoneState();
+          if (window.gsap && !prefersReducedMotion) {
+            var animTargets = [el('cm_syllabusZone'), el('cm_processSyllabus'), el('cm_additionalContext')].filter(Boolean);
+            if (animTargets.length) gsap.fromTo(animTargets, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.2, stagger: 0.08, ease: 'power2.out' });
+          }
         } else if (activeTab === 'structure') {
           var addModBtn = el('cm_addModule');
           if (addModBtn) addModBtn.onclick = function() {
