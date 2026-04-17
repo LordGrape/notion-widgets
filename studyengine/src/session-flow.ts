@@ -1,4 +1,4 @@
-import type { SessionState, StudyItem, TierId, SubjectType } from './types';
+import type { CourseContext, SessionState, StudyItem, TierId, SubjectType } from './types';
 
 type Rating = 1 | 2 | 3 | 4;
 type SessionRuntime = SessionState & Record<string, any>;
@@ -989,4 +989,11 @@ export function resolveCourseSubjectType(courseName: string | null | undefined):
   const subjectType = course && typeof course.subjectType === 'string' ? course.subjectType : 'mixed';
   if (subjectType === 'recall' || subjectType === 'reasoning' || subjectType === 'mixed') return subjectType;
   return 'mixed';
+}
+
+export function resolveCourseContext(courseName: string | null | undefined): CourseContext | undefined {
+  if (!courseName || !bridge.state || !bridge.state.courses) return undefined;
+  const course = bridge.state.courses[courseName];
+  if (!course || !course.courseContext || typeof course.courseContext !== 'object') return undefined;
+  return course.courseContext as CourseContext;
 }
