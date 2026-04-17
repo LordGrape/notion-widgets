@@ -1,4 +1,4 @@
-import type { StudyItem, TierId } from './types';
+import type { BloomProfile, CourseContext, StudyItem, TierId } from './types';
 
 export type Tier = TierId;
 
@@ -109,6 +109,45 @@ export function classifyTier(
 
 function normalizeTier(tier: unknown): string {
   return String(tier || '').toLowerCase().replace(/[\s_-]+/g, '');
+}
+
+type TierTargetDistribution = Record<TierId, number>;
+
+export function resolveTierTargetDistribution(
+  course: { courseContext?: CourseContext | null } | null | undefined
+): TierTargetDistribution | null {
+  const bloom = (course && course.courseContext && course.courseContext.bloomProfile) || null;
+  if (!bloom || typeof bloom !== 'object') return null;
+
+  const safe = (value: unknown): number => {
+    const num = Number(value);
+    return Number.isFinite(num) && num > 0 ? num : 0;
+  };
+
+  const remember = safe((bloom as BloomProfile).remember);
+  const understand = safe((bloom as BloomProfile).understand);
+  const apply = safe((bloom as BloomProfile).apply);
+  const analyze = safe((bloom as BloomProfile).analyze);
+  const evaluate = safe((bloom as BloomProfile).evaluate);
+  const create = safe((bloom as BloomProfile).create);
+
+  const raw: TierTargetDistribution = {
+    quickfire: (remember * 1.0) + (understand * 0.35),
+    explain: (remember * 0.35) + (understand * 1.0),
+    apply: (apply * 1.0) + (analyze * 0.35),
+    distinguish: (apply * 0.35) + (analyze * 1.0),
+    mock: (evaluate * 0.8) + (create * 0.45),
+    worked: (evaluate * 0.45) + (create * 0.8)
+  };
+
+  const total = (Object.values(raw) as number[]).reduce((sum, value) => sum + value, 0);
+  if (!(total > 0)) return null;
+
+  const normalized = {} as TierTargetDistribution;
+  (Object.keys(raw) as TierId[]).forEach((tier) => {
+    normalized[tier] = raw[tier] / total;
+  });
+  return normalized;
 }
 
 export function maybeReclassify(

@@ -115,6 +115,102 @@ function normalizeTier(tier: unknown): string {
   return String(tier || '').toLowerCase().replace(/[\s_-]+/g, '');
 }
 
+function normalizeTopicKey(value: unknown): string {
+  return String(value || '').trim().toLowerCase();
+}
+
+function resolveTopicWeightBias(courseName: string | null | undefined, nowTs: number): Map<string, number> | null {
+  if (!courseName || courseName === 'All') return null;
+  const courseContext = resolveCourseContext(courseName);
+  if (!courseContext || !Array.isArray(courseContext.topicWeights) || !courseContext.topicWeights.length) return null;
+  const course = bridge.state && bridge.state.courses ? bridge.state.courses[courseName] : null;
+  const fallbackExamDate = course && typeof course.examDate === 'string' ? course.examDate : null;
+  const contextExamDate = (courseContext as any)?.assessmentFormat?.examDate;
+  const rawExamDate = fallbackExamDate || (typeof contextExamDate === 'string' ? contextExamDate : null);
+  if (!rawExamDate) return null;
+  const examTs = new Date(rawExamDate).getTime();
+  if (!Number.isFinite(examTs)) return null;
+
+  const daysToExam = (examTs - nowTs) / 86400000;
+  if (daysToExam > 30) return null;
+  const biasStrength = daysToExam <= 0 ? 1 : (30 - daysToExam) / 30;
+  if (biasStrength <= 0) return null;
+
+  const normalizedWeights = new Map<string, number>();
+  let totalWeight = 0;
+  courseContext.topicWeights.forEach((entry) => {
+    const topicKey = normalizeTopicKey(entry && entry.topic);
+    const weightRaw = Number(entry && entry.weight);
+    if (!topicKey || !Number.isFinite(weightRaw) || weightRaw <= 0) return;
+    totalWeight += weightRaw;
+    normalizedWeights.set(topicKey, (normalizedWeights.get(topicKey) || 0) + weightRaw);
+  });
+  if (!(totalWeight > 0)) return null;
+
+  const biasMap = new Map<string, number>();
+  normalizedWeights.forEach((weight, topicKey) => {
+    biasMap.set(topicKey, (weight / totalWeight) * biasStrength);
+  });
+  return biasMap.size ? biasMap : null;
+}
+
+function resolveCardTopicBiasScore(card: StudyItem, topicBiasMap: Map<string, number>): number {
+  if (!topicBiasMap || !topicBiasMap.size || !card) return 0;
+  const exactTopic = normalizeTopicKey(card.topic);
+  if (exactTopic && topicBiasMap.has(exactTopic)) {
+    return topicBiasMap.get(exactTopic) || 0;
+  }
+
+  const promptOrFront = String((card as any).front || card.prompt || '').toLowerCase();
+  const tagsText = Array.isArray(card.tags) ? card.tags.join(' ').toLowerCase() : '';
+  let best = 0;
+  topicBiasMap.forEach((weight, topicKey) => {
+    if (!topicKey) return;
+    if ((promptOrFront && promptOrFront.indexOf(topicKey) >= 0) || (tagsText && tagsText.indexOf(topicKey) >= 0)) {
+      if (weight > best) best = weight;
+    }
+  });
+  return best;
+}
+
+function applyTopicBiasWithinDueBands(items: StudyItem[], topicBiasMap: Map<string, number>): void {
+  if (!items.length || !topicBiasMap || !topicBiasMap.size) return;
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const todayStartTs = startOfToday.getTime();
+  const tomorrowStartTs = todayStartTs + 86400000;
+  const bands: Record<string, StudyItem[]> = { overdue: [], today: [], unscheduled: [], future: [] };
+  let matched = 0;
+
+  items.forEach((item) => {
+    const dueTs = item && item.fsrs && item.fsrs.due ? new Date(item.fsrs.due).getTime() : NaN;
+    const score = resolveCardTopicBiasScore(item, topicBiasMap);
+    if (score > 0) matched++;
+    (item as any)._topicBiasScore = score;
+    if (!Number.isFinite(dueTs)) {
+      bands.unscheduled.push(item);
+      return;
+    }
+    if (dueTs < todayStartTs) {
+      bands.overdue.push(item);
+      return;
+    }
+    if (dueTs < tomorrowStartTs) {
+      bands.today.push(item);
+      return;
+    }
+    bands.future.push(item);
+  });
+
+  ['overdue', 'today', 'unscheduled', 'future'].forEach((band) => {
+    bands[band].sort((a, b) => ((b as any)._topicBiasScore || 0) - ((a as any)._topicBiasScore || 0));
+  });
+  if (matched === 0) {
+    console.warn('[StudyEngine] topicWeights bias resolved but no cards matched weighted topics.');
+  }
+  items.splice(0, items.length, ...bands.overdue, ...bands.today, ...bands.unscheduled, ...bands.future);
+}
+
 function getCachedInsightText(it: StudyItem): string {
   return typeof it.cachedInsight === 'string' ? it.cachedInsight.trim() : '';
 }
@@ -263,6 +359,11 @@ export function buildSessionQueue(): StudyItem[] {
       const bRev = (b.fsrs && b.fsrs.lastReview && (b.fsrs.stability || 0) >= 5) ? 0 : 1;
       return aRev - bRev;
     });
+  }
+
+  const topicWeightBias = resolveTopicWeightBias(courseFilter, now);
+  if (topicWeightBias) {
+    applyTopicBiasWithinDueBands(dueItems, topicWeightBias);
   }
 
   const profile = bridge.getEffectiveProfile(courseFilter !== 'All' ? courseFilter : null);
