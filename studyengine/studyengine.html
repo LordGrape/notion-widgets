@@ -18762,11 +18762,21 @@ input[type="range"]::-moz-range-thumb{
           inner += '<div class="field"><label>Exam Weight (%)</label><input id="cm_examWeight" type="number" min="0" max="100" step="1" class="input" value="' + esc(c.examWeight != null ? String(c.examWeight) : '') + '" /></div>';
           inner += '<div style="display:flex;justify-content:flex-end;margin-top:12px;"><button class="cm-save-btn" id="cmSaveDetails" type="button">Save Details</button></div>';
         } else if (activeTab === 'syllabus') {
+          inner += '<div class="cm-results-card" style="margin-bottom:10px;"><div class="cm-results-body">';
+          inner += '<button type="button" class="cm-preview-success-chip" id="cm_previewSuccessChip" style="display:none;">✓ <span id="cm_previewSuccessCount">0 fields extracted</span> · Review →</button>';
+          inner += '<div class="help" id="cm_previewHelperText" style="margin-top:8px;">Extracted course context appears in a review modal after processing.</div>';
+          inner += '</div></div>';
+          inner += '<div class="cm-syllabus-collapsed-row" id="cm_syllabusCollapsedRow" style="display:none;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;padding:10px 12px;border:1px solid var(--border-subtle);border-radius:12px;background:var(--surface-0);">';
+          inner += '<div class="help" id="cm_syllabusCollapsedMeta" style="margin:0;">Syllabus parsed · just now</div>';
+          inner += '<button type="button" class="ghost-btn" id="cm_changeSyllabusBtn" style="min-width:0;padding:6px 10px;">Change syllabus</button>';
+          inner += '</div>';
+          inner += '<div id="cm_syllabusPasteWrap">';
           inner += '<div class="field"><label>Syllabus / Exam Info' + renderEditorInfoIcon('Syllabus / Exam Info', "Paste the raw syllabus or any official exam instructions here. The AI uses this as the ground truth for what your course covers and how it's assessed. It does not auto-generate cards from this — use 'Process syllabus with AI' for that.") + '</label>';
           inner += '<div class="cm-syllabus-zone" id="cm_syllabusZone">';
           inner += '<div class="cm-syllabus-empty" id="cm_syllabusEmpty"><span class="doc">📄</span><span>Paste your syllabus or drop a PDF here</span></div>';
           inner += '<div class="cm-syllabus-chip" id="cm_syllabusChip" style="display:none;"><span id="cm_syllabusChipText"></span><button type="button" aria-label="Clear syllabus text" id="cm_clearSyllabusChip">×</button></div>';
           inner += '<textarea class="input cm-syllabus-text" id="cm_courseContextText" rows="7" placeholder="Paste syllabus text, exam instructions, or course outline...">' + esc(c.rawSyllabusText || '') + '</textarea>';
+          inner += '<div class="help" id="cm_replaceContextWarning" style="display:none;margin-top:6px;">Processing a new syllabus will replace the current course context on save.</div>';
           inner += '<div class="cm-syllabus-actions"><a href="#" id="cm_pdfBtn" class="cm-upload-link">📄 Or upload PDF</a></div>';
           inner += '<input type="file" accept="application/pdf,.pdf" id="cm_pdfFile" style="display:none">';
           inner += '</div></div>';
@@ -18776,8 +18786,9 @@ input[type="range"]::-moz-range-thumb{
           inner += '<button type="button" class="ghost-btn tooltip-host cm-rerun-btn" id="cm_reprocessSyllabus" style="display:none;">↻ Re-run' +
             '<span class="info-tooltip">Re-runs AI extraction if you\'ve edited the syllabus or the first pass missed content. Replaces the previous AI-suggested structure.<span class="tip-arrow"></span></span></button>';
           inner += '</div>';
+          inner += '</div>';
           inner += '<div class="syllabus-status" id="cm_contextStatus"></div>';
-          inner += '<div class="cm-results-card"><div class="cm-results-body"><div class="help">Extracted course context appears in a review modal after processing.</div><div class="chips" id="cm_suggestedTopics" style="margin-top:8px;"></div><button type="button" class="cm-preview-success-chip" id="cm_previewSuccessChip" style="display:none;">✓ <span id="cm_previewSuccessCount">0 fields extracted</span> · Review →</button><div id="cm_previewWrap" style="display:none;margin-top:8px;"></div></div></div>';
+          inner += '<div class="cm-results-card"><div class="cm-results-body"><div class="chips" id="cm_suggestedTopics" style="margin-top:8px;"></div><div id="cm_previewWrap" style="display:none;margin-top:8px;"></div></div></div>';
           inner += '<div class="confirm-overlay cm-preview-overlay" id="cm_previewOverlay" aria-hidden="true" tabindex="-1"><div class="modal cm-preview-modal" role="dialog" aria-modal="true" aria-labelledby="cm_previewModalTitle"><div class="cm-preview-modal-head"><div><div class="cm-preview-title" id="cm_previewModalTitle">Extracted course context</div><div class="cm-preview-subtitle">Review each field before saving</div></div><div class="cm-preview-head-right"><span class="cm-preview-count" id="cm_previewFieldCount">0 fields extracted</span><button type="button" class="icon-btn cm-preview-close" id="cm_previewCloseBtn" aria-label="Close extracted context preview">×</button></div></div><div class="cm-preview-modal-body" id="cm_previewModalBody"></div><div class="cm-preview-footer"><div class="cm-preview-footer-left"><button type="button" class="ghost-btn cm-preview-footer-btn" id="cm_acceptAllBtn">Accept all</button><button type="button" class="ghost-btn cm-preview-footer-btn" id="cm_rejectAllBtn">Reject all</button></div><div class="cm-preview-footer-right"><div class="cm-preview-counter" id="cm_previewAcceptedCount">0 of 0 accepted</div><button type="button" class="big-btn cm-preview-save-btn" id="cm_saveAcceptedContext">Save accepted</button><button type="button" class="cm-save-btn cm-preview-discard-btn" id="cm_discardContextPreview">Discard all</button></div></div></div></div>';
           inner += '<details class="cm-additional-context" id="cm_additionalContext"><summary>Additional context (optional)</summary><div class="cm-additional-body">';
           inner += '<div class="field"><label>Professor values' + renderEditorInfoIcon('Professor values', "Things your professor explicitly emphasizes (e.g. 'cites primary sources', 'engages counter-arguments', 'uses theoretical framing'). Feeds into AI grading so your responses are judged by what your professor actually rewards — not generic rubrics.") + '</label><textarea class="input" id="cm_professorValues" rows="3">' + esc(c.professorValues || '') + '</textarea></div>';
@@ -19120,7 +19131,22 @@ input[type="range"]::-moz-range-thumb{
             if (row.key === 'subjectType') return '<div><strong>' + esc(value && value.subjectType ? value.subjectType : '') + '</strong>' + renderEvidenceBlock(value && value.subjectTypeReason ? value.subjectTypeReason : '') + '</div>';
             return '<div class="help">No preview renderer available.</div>';
           }
-          function renderSyllabusPreviewCard(courseKey, sourceText, parsed) {
+          function countAcceptedContextFields(context) {
+            if (!context) return 0;
+            var rows = buildParserRows(context).filter(function(row) {
+              if (row.kind === 'professor' || row.kind === 'rubric') return !!row.value;
+              if (row.key === 'assessmentFormat' || row.key === 'allowedMaterials' || row.key === 'bloomProfile') return row.value != null;
+              return row.value != null;
+            });
+            return rows.length;
+          }
+          function renderSavedCourseContextPreview(courseKey) {
+            if (!state.courses[courseKey] || !state.courses[courseKey].courseContext) return;
+            var courseContext = state.courses[courseKey].courseContext;
+            renderSyllabusPreviewCard(courseKey, state.courses[courseKey].rawSyllabusText || '', courseContext, { mode: 'saved' });
+          }
+          function renderSyllabusPreviewCard(courseKey, sourceText, parsed, opts) {
+            var mode = opts && opts.mode === 'saved' ? 'saved' : 'preview';
             var wrap = el('cm_previewModalBody');
             var overlay = el('cm_previewOverlay');
             var successChip = el('cm_previewSuccessChip');
@@ -19129,21 +19155,26 @@ input[type="range"]::-moz-range-thumb{
             if (!wrap || !overlay || !successChip || !successCount || !fieldCountChip) return;
             var rows = buildParserRows(parsed).filter(function(row) {
               if (row.kind === 'professor' || row.kind === 'rubric') return !!row.value;
-              if (row.key === 'assessmentFormat' || row.key === 'allowedMaterials' || row.key === 'bloomProfile') return true;
+              if (row.key === 'assessmentFormat' || row.key === 'allowedMaterials' || row.key === 'bloomProfile') return row.value != null;
               return row.value != null;
             });
             if (!rows.length) return;
-            var existingState = syllabusPreviewStateByCourse[courseKey];
+            var existingState = mode === 'preview' ? syllabusPreviewStateByCourse[courseKey] : null;
             var decisions = existingState && existingState.decisions ? Object.assign({}, existingState.decisions) : {};
             var edits = existingState && existingState.edits ? Object.assign({}, existingState.edits) : {};
             var initialDecisions = existingState && existingState.initialDecisions ? Object.assign({}, existingState.initialDecisions) : {};
             rows.forEach(function(row) {
-              if (!Object.prototype.hasOwnProperty.call(decisions, row.key)) decisions[row.key] = defaultDecisionForConfidence(row.confidence);
-              if (!Object.prototype.hasOwnProperty.call(initialDecisions, row.key)) initialDecisions[row.key] = decisions[row.key];
+              if (mode === 'saved') {
+                decisions[row.key] = 'accept';
+                initialDecisions[row.key] = 'accept';
+              } else {
+                if (!Object.prototype.hasOwnProperty.call(decisions, row.key)) decisions[row.key] = defaultDecisionForConfidence(row.confidence);
+                if (!Object.prototype.hasOwnProperty.call(initialDecisions, row.key)) initialDecisions[row.key] = decisions[row.key];
+              }
             });
-            syllabusPreviewStateByCourse[courseKey] = { sourceText: sourceText, parsed: parsed, rows: rows, decisions: decisions, edits: edits, initialDecisions: initialDecisions };
+            if (mode === 'preview') syllabusPreviewStateByCourse[courseKey] = { sourceText: sourceText, parsed: parsed, rows: rows, decisions: decisions, edits: edits, initialDecisions: initialDecisions };
             successChip.style.display = '';
-            successCount.textContent = rows.length + ' fields extracted';
+            successCount.textContent = mode === 'saved' ? ('Syllabus on file · ' + rows.length + ' fields') : (rows.length + ' fields extracted');
             fieldCountChip.textContent = rows.length + ' fields extracted';
 
             function acceptedCount() { return rows.reduce(function(acc, row) { return acc + (decisions[row.key] === 'accept' ? 1 : 0); }, 0); }
@@ -19151,10 +19182,11 @@ input[type="range"]::-moz-range-thumb{
               var cnt = el('cm_previewAcceptedCount');
               var save = el('cm_saveAcceptedContext');
               var accepted = acceptedCount();
-              if (cnt) cnt.textContent = accepted + ' of ' + rows.length + ' accepted';
-              if (save) save.disabled = accepted === 0;
+              if (cnt) cnt.textContent = mode === 'saved' ? (rows.length + ' fields on file') : (accepted + ' of ' + rows.length + ' accepted');
+              if (save) save.disabled = mode === 'saved' || accepted === 0;
             }
             function hasUnsavedAccepted() {
+              if (mode === 'saved') return false;
               if (acceptedCount() > 0) return true;
               return rows.some(function(row) { return decisions[row.key] !== initialDecisions[row.key]; });
             }
@@ -19174,12 +19206,12 @@ input[type="range"]::-moz-range-thumb{
               rows.forEach(function(row) {
                 var decision = decisions[row.key] || 'pending';
                 var isRejected = decision === 'reject';
-                var isEdit = decision === 'edit';
+                var isEdit = mode !== 'saved' && decision === 'edit';
                 var displayVal = Object.prototype.hasOwnProperty.call(edits, row.key) ? edits[row.key] : row.value;
                 html += '<div class="cm-preview-row' + (isRejected ? ' is-rejected' : '') + '"><div class="cm-preview-row-head"><div class="cm-preview-label"><span class="cm-conf-dot ' + esc(row.confidence) + '" data-conf-dot="' + escapeAttr(row.key) + '"></span>' + esc(row.title) + '</div></div>';
                 html += '<div class="cm-preview-value">' + formatRowValue(row, displayVal) + '</div>';
                 if (row.evidence) html += '<div class="cm-preview-evidence">' + esc(row.evidence) + '</div>';
-                html += '<div class="cm-preview-controls"><button type="button" class="cm-mini-btn' + (decision === 'accept' ? ' active' : '') + '" data-row-action="accept" data-row-key="' + esc(row.key) + '">✓ Accept</button><button type="button" class="cm-mini-btn' + (decision === 'edit' ? ' active' : '') + '" data-row-action="edit" data-row-key="' + esc(row.key) + '">✎ Edit</button><button type="button" class="cm-mini-btn' + (decision === 'reject' ? ' active' : '') + '" data-row-action="reject" data-row-key="' + esc(row.key) + '">✗ Reject</button></div>';
+                if (mode !== 'saved') html += '<div class="cm-preview-controls"><button type="button" class="cm-mini-btn' + (decision === 'accept' ? ' active' : '') + '" data-row-action="accept" data-row-key="' + esc(row.key) + '">✓ Accept</button><button type="button" class="cm-mini-btn' + (decision === 'edit' ? ' active' : '') + '" data-row-action="edit" data-row-key="' + esc(row.key) + '">✎ Edit</button><button type="button" class="cm-mini-btn' + (decision === 'reject' ? ' active' : '') + '" data-row-action="reject" data-row-key="' + esc(row.key) + '">✗ Reject</button></div>';
                 if (isEdit) {
                   var editorValue = Object.prototype.hasOwnProperty.call(edits, row.key) ? edits[row.key] : row.value;
                   var serialized = row.mode === 'string' ? String(editorValue || '') : JSON.stringify(editorValue, null, 2);
@@ -19214,30 +19246,41 @@ input[type="range"]::-moz-range-thumb{
             var saveBtn = el('cm_saveAcceptedContext');
             var acceptAllBtn = el('cm_acceptAllBtn');
             var rejectAllBtn = el('cm_rejectAllBtn');
+            var subtitle = el('cm_previewModalTitle');
+            var subtitleText = overlay.querySelector('.cm-preview-subtitle');
             successChip.onclick = function() { openPreview(); };
             if (closeBtn) closeBtn.onclick = function() { closePreview(false); };
             if (discardBtn) discardBtn.onclick = function() {
-              rows.forEach(function(row) { decisions[row.key] = 'pending'; });
-              edits = {};
-              syllabusPreviewStateByCourse[courseKey].edits = edits;
-              render();
+              if (mode === 'saved') {
+                closePreview(true);
+                return;
+              }
+              delete syllabusPreviewStateByCourse[courseKey];
+              closePreview(true);
+              renderCourseModalEditor(courseKey, 'syllabus');
             };
             if (acceptAllBtn) acceptAllBtn.onclick = function() {
+              if (mode === 'saved') return;
               rows.forEach(function(row) { decisions[row.key] = 'accept'; });
               render();
               wrap.querySelectorAll('[data-conf-dot]').forEach(function(dot) { dot.classList.add('cm-pulse'); setTimeout(function() { dot.classList.remove('cm-pulse'); }, 380); });
             };
-            if (rejectAllBtn) rejectAllBtn.onclick = function() { rows.forEach(function(row) { decisions[row.key] = 'reject'; }); render(); };
+            if (rejectAllBtn) rejectAllBtn.onclick = function() {
+              if (mode === 'saved') return;
+              rows.forEach(function(row) { decisions[row.key] = 'reject'; });
+              render();
+            };
             overlay.onclick = function(e) { if (e.target === overlay) closePreview(false); };
             overlay.onkeydown = function(e) {
               if (e.key === 'Escape') { e.preventDefault(); closePreview(false); return; }
-              if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && acceptedCount() > 0) {
+              if (mode !== 'saved' && (e.ctrlKey || e.metaKey) && e.key === 'Enter' && acceptedCount() > 0) {
                 e.preventDefault();
                 var saveAction = el('cm_saveAcceptedContext');
                 if (saveAction) saveAction.click();
               }
             };
             if (saveBtn) saveBtn.onclick = function() {
+              if (mode === 'saved') return;
               var result = { subjectType: parsed.subjectType, subjectTypeReason: parsed.subjectTypeReason || '', confidence: Object.assign({}, parsed.confidence || {}) };
               var subjectRow = rows.find(function(r) { return r.key === 'subjectType'; });
               if (subjectRow && decisions.subjectType !== 'reject') {
@@ -19279,8 +19322,15 @@ input[type="range"]::-moz-range-thumb{
               toast('Course context saved');
               delete syllabusPreviewStateByCourse[courseKey];
               closePreview(true);
+              renderCourseModalEditor(courseKey, 'syllabus');
             };
 
+            if (subtitle) subtitle.textContent = mode === 'saved' ? 'Saved course context' : 'Extracted course context';
+            if (subtitleText) subtitleText.textContent = mode === 'saved' ? 'Review saved syllabus fields' : 'Review each field before saving';
+            if (acceptAllBtn) acceptAllBtn.style.display = mode === 'saved' ? 'none' : '';
+            if (rejectAllBtn) rejectAllBtn.style.display = mode === 'saved' ? 'none' : '';
+            if (saveBtn) saveBtn.style.display = mode === 'saved' ? 'none' : '';
+            if (discardBtn) discardBtn.textContent = mode === 'saved' ? 'Close' : 'Discard all';
             render();
             openPreview();
           }
@@ -19375,6 +19425,13 @@ input[type="range"]::-moz-range-thumb{
           var clearSyllabusChip = el('cm_clearSyllabusChip');
           var procBtn = el('cm_processSyllabus');
           var reprocBtn = el('cm_reprocessSyllabus');
+          var syllabusPasteWrap = el('cm_syllabusPasteWrap');
+          var collapsedRow = el('cm_syllabusCollapsedRow');
+          var collapsedMeta = el('cm_syllabusCollapsedMeta');
+          var changeSyllabusBtn = el('cm_changeSyllabusBtn');
+          var replaceWarning = el('cm_replaceContextWarning');
+          var previewHelperText = el('cm_previewHelperText');
+          var showPasteEditor = !c.courseContext;
           var prefersReducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
           var syllabusMeta = {
             source: c.rawSyllabusText ? 'Pasted text' : '',
@@ -19383,18 +19440,34 @@ input[type="range"]::-moz-range-thumb{
           var previewChip = el('cm_previewSuccessChip');
           var previewCount = el('cm_previewSuccessCount');
           var existingPreviewState = syllabusPreviewStateByCourse[c.name];
-          if (previewChip && previewCount && existingPreviewState && Array.isArray(existingPreviewState.rows)) {
-            previewChip.style.display = '';
-            previewCount.textContent = existingPreviewState.rows.length + ' fields extracted';
-            previewChip.onclick = function() {
-              renderSyllabusPreviewCard(c.name, existingPreviewState.sourceText, existingPreviewState.parsed);
-            };
+          if (previewChip && previewCount) {
+            if (existingPreviewState && Array.isArray(existingPreviewState.rows)) {
+              previewChip.style.display = '';
+              previewCount.textContent = existingPreviewState.rows.length + ' fields extracted';
+              if (previewHelperText) previewHelperText.textContent = 'Unsaved extraction ready. Review and save accepted fields.';
+              previewChip.onclick = function() {
+                renderSyllabusPreviewCard(c.name, existingPreviewState.sourceText, existingPreviewState.parsed);
+              };
+            } else if (c.courseContext) {
+              var savedCount = countAcceptedContextFields(c.courseContext);
+              previewChip.style.display = '';
+              previewCount.textContent = 'Syllabus on file · ' + savedCount + ' fields';
+              if (previewHelperText) previewHelperText.textContent = 'Saved syllabus context is on file.';
+              previewChip.onclick = function() { renderSavedCourseContextPreview(c.name); };
+            } else {
+              previewChip.style.display = 'none';
+              if (previewHelperText) previewHelperText.textContent = 'Extracted course context appears in a review modal after processing.';
+            }
           }
 
           function updateSyllabusZoneState() {
             if (!syllabusText) return;
             var text = String(syllabusText.value || '').trim();
             var hasText = !!text;
+            if (collapsedRow) collapsedRow.style.display = c.courseContext && !showPasteEditor ? 'flex' : 'none';
+            if (syllabusPasteWrap) syllabusPasteWrap.style.display = c.courseContext && !showPasteEditor ? 'none' : '';
+            if (collapsedMeta && c.courseContext) collapsedMeta.textContent = 'Syllabus parsed · ' + formatAgo(c.courseContext.parsedAt || c.courseContext.acceptedAt || Date.now());
+            if (replaceWarning) replaceWarning.style.display = c.courseContext && showPasteEditor ? '' : 'none';
             if (syllabusEmpty) syllabusEmpty.style.display = hasText ? 'none' : 'flex';
             if (syllabusChip) syllabusChip.style.display = hasText ? '' : 'none';
             if (syllabusChipText && hasText) syllabusChipText.textContent = 'parsed: ' + (syllabusMeta.source || 'Pasted text') + ' • ' + text.length + ' chars';
@@ -19412,6 +19485,10 @@ input[type="range"]::-moz-range-thumb{
               reprocBtn.title = 'Use this after changing syllabus text or importing a newer version.';
             }
           }
+          if (changeSyllabusBtn) changeSyllabusBtn.onclick = function() {
+            showPasteEditor = true;
+            updateSyllabusZoneState();
+          };
 
           async function applySyllabusText(nextText, sourceLabel, fromPdf) {
             var existing = syllabusText ? String(syllabusText.value || '').trim() : '';
