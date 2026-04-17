@@ -52,6 +52,7 @@ interface SessionFlowBridge {
   runQuickFireFollowupMicro: (it: StudyItem, done: () => void, opts?: { reRetrieval?: boolean }) => void;
   mountQuickFireReRetrieval: (it: StudyItem, data: any, done: () => void) => void;
   updateQuickFireReRetrievalInsight?: (itemId: string, insightText: string | null, opts?: { failed?: boolean }) => void;
+  preloadQuickfireInsight: (it: StudyItem) => void;
   mountQuickFireFollowup: (it: StudyItem, data: any, done: () => void) => void;
   revealAnswer: (fromCheck?: boolean) => void;
   rubricTemplate: (tier: TierId) => string;
@@ -108,6 +109,14 @@ function getSession(): SessionRuntime | null {
 
 function setSession(session: SessionRuntime | null): void {
   bridge.setSession(session);
+}
+
+function normalizeTier(tier: unknown): string {
+  return String(tier || '').toLowerCase().replace(/[\s_-]+/g, '');
+}
+
+function getCachedInsightText(it: StudyItem): string {
+  return typeof it.cachedInsight === 'string' ? it.cachedInsight.trim() : '';
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -473,6 +482,7 @@ function runQuickfireAgainFollowup(it: StudyItem, done: () => void, session: Ses
   const canMount = typeof bridge.mountQuickFireReRetrieval === 'function';
   const canTutor = typeof bridge.callTutor === 'function';
   session._qfAgainInFlight = session._qfAgainInFlight || new Set<string>();
+  session._insightPreloadInFlight = session._insightPreloadInFlight || new Set<string>();
   if (session._qfAgainInFlight.has(it.id)) {
     console.debug('[Quickfire Again] duplicate followup blocked for item', it.id);
     return;
@@ -487,16 +497,55 @@ function runQuickfireAgainFollowup(it: StudyItem, done: () => void, session: Ses
     return;
   }
 
+  const cachedInsight = getCachedInsightText(it);
+  if (cachedInsight) {
+    bridge.mountQuickFireReRetrieval(it, {
+      followUpQuestion: 'Try again from memory before checking the full answer.',
+      followUpAnswer: it.modelAnswer || '',
+      insight: cachedInsight,
+      insightLoading: false
+    }, done);
+    session._qfAgainInFlight.delete(it.id);
+    return;
+  }
+
+  const preloadInFlight = session._insightPreloadInFlight.has(it.id);
   const ctx = bridge.tutorContextForItem(it);
   ctx.quickFireFollowUp = true;
   ctx.userRating = 1;
-  const model = bridge.selectModel(it, session);
   bridge.mountQuickFireReRetrieval(it, {
     followUpQuestion: 'Try again from memory before checking the full answer.',
     followUpAnswer: it.modelAnswer || '',
     insight: null,
     insightLoading: true
   }, done);
+  if (preloadInFlight) {
+    let waitedMs = 0;
+    const poll = window.setInterval(() => {
+      const activeSession = getSession();
+      const activeItem = activeSession && activeSession.queue ? activeSession.queue[activeSession.idx] : null;
+      if (!activeSession || !activeItem || activeItem.id !== it.id) {
+        window.clearInterval(poll);
+        session._qfAgainInFlight.delete(it.id);
+        return;
+      }
+      const polledInsight = getCachedInsightText(it);
+      if (polledInsight) {
+        bridge.updateQuickFireReRetrievalInsight?.(it.id, polledInsight);
+        window.clearInterval(poll);
+        session._qfAgainInFlight.delete(it.id);
+        return;
+      }
+      waitedMs += 200;
+      if (waitedMs >= 15000) {
+        bridge.updateQuickFireReRetrievalInsight?.(it.id, null, { failed: true });
+        window.clearInterval(poll);
+        session._qfAgainInFlight.delete(it.id);
+      }
+    }, 200);
+    return;
+  }
+  const model = bridge.selectModel(it, session);
   bridge.callTutor('insight', model, it, '', [], ctx)
     .then((data) => {
       const insightText = data && !data.error && typeof data.insight === 'string'
@@ -506,6 +555,10 @@ function runQuickfireAgainFollowup(it: StudyItem, done: () => void, session: Ses
         bridge.updateQuickFireReRetrievalInsight?.(it.id, null, { failed: true });
         return;
       }
+      if (!getCachedInsightText(it)) {
+        it.cachedInsight = insightText;
+        bridge.saveState();
+      }
       bridge.updateQuickFireReRetrievalInsight?.(it.id, insightText);
     })
     .catch(() => {
@@ -513,6 +566,37 @@ function runQuickfireAgainFollowup(it: StudyItem, done: () => void, session: Ses
     })
     .finally(() => {
       session._qfAgainInFlight.delete(it.id);
+    });
+}
+
+export function preloadQuickfireInsight(it: StudyItem): void {
+  const session = getSession();
+  if (!session || !it || !it.id) return;
+  const normalizedTier = normalizeTier(it._presentTier || it.tier || 'quickfire');
+  if (normalizedTier !== 'quickfire') return;
+  if (getCachedInsightText(it)) return;
+  session._insightPreloadInFlight = session._insightPreloadInFlight || new Set<string>();
+  if (session._insightPreloadInFlight.has(it.id)) return;
+
+  session._insightPreloadInFlight.add(it.id);
+  const ctx = bridge.tutorContextForItem(it);
+  ctx.quickFireFollowUp = true;
+  ctx.userRating = 1;
+  const model = bridge.selectModel(it, session);
+  bridge.callTutor('insight', model, it, '', [], ctx)
+    .then((data) => {
+      const insightText = data && !data.error && typeof data.insight === 'string'
+        ? data.insight.trim()
+        : '';
+      if (!insightText) return;
+      if (!getCachedInsightText(it)) {
+        it.cachedInsight = insightText;
+        bridge.saveState();
+      }
+    })
+    .catch(() => {})
+    .finally(() => {
+      session._insightPreloadInFlight.delete(it.id);
     });
 }
 
@@ -536,7 +620,7 @@ export function rateCurrent(rating: Rating): void {
   if (hintElRate) hintElRate.remove();
 
   const tier = (it._presentTier || it.tier || 'quickfire') as TierId;
-  const normalizedTier = String(tier || '').toLowerCase().replace(/[\s_-]+/g, '');
+  const normalizedTier = normalizeTier(tier);
   const isQuickfireTier = normalizedTier === 'quickfire';
   const itemSelfRateFlag = (it as any).self_rate === true || (it as any).selfRate === true;
   const useQuickfireActiveAgain = isQuickfireTier && !itemSelfRateFlag && bridge.settings.feedbackMode !== 'self_rate';
@@ -803,6 +887,9 @@ export function completeSession(): void {
   } catch (e) {}
 
   bridge.saveState();
+  if (session._insightPreloadInFlight && typeof session._insightPreloadInFlight.clear === 'function') {
+    session._insightPreloadInFlight.clear();
+  }
 
   const sessionSnap = {
     xp: session.xp,

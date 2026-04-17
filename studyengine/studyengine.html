@@ -7824,7 +7824,7 @@ input[type="range"]::-moz-range-thumb{
 
     import { getLevelInfo, didLevelUp } from './src/xp-level-system';
     import { drawRetentionCurve, drawSparkline, drawTierRing, drawActivityHeatmap, wireRetentionInteractivity, hideCanvasTooltip, getCanvasCtx, getAccentRGB, getTextSecondary, getTextColor } from './src/charts';
-    import { buildSessionQueue, startSession, rateCurrent, advanceItem, completeSession, calcRestudyDuration } from './src/session-flow';
+    import { buildSessionQueue, startSession, rateCurrent, advanceItem, completeSession, calcRestudyDuration, preloadQuickfireInsight } from './src/session-flow';
     import { setupSettingsModule } from './src/settings';
     import { setupModalSystem } from './src/modals';
     import { initPageAnimations, animateEmptyStateEntrance } from './src/animations.js';
@@ -11526,6 +11526,7 @@ input[type="range"]::-moz-range-thumb{
       getSession: function() { return session; },
       setSession: function(nextSession) { session = nextSession; },
       setSessionSummary: function(nextSummary) { sessionSummary = nextSummary; },
+      preloadQuickfireInsight: preloadQuickfireInsight,
       getSelectedCourse: function() { return selectedCourse; },
       getSelectedTopic: function() { return selectedTopic; },
       getIsEmbedded: function() { return isEmbedded; },
@@ -11743,6 +11744,11 @@ input[type="range"]::-moz-range-thumb{
             { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: 'power2.out' }
           );
         }
+      }
+      if (String(tier || '').toLowerCase().replace(/[\s_-]+/g, '') === 'quickfire') {
+        requestAnimationFrame(function() {
+          globalThis.__studyEngineSessionFlow.preloadQuickfireInsight?.(it);
+        });
       }
     }
 
@@ -15091,12 +15097,6 @@ input[type="range"]::-moz-range-thumb{
         });
       }
 
-      function expandQuickFireInsightPanel() {
-        var insightPanel = root ? root.querySelector('.qf-reret-insight') : null;
-        if (!insightPanel) return;
-        insightPanel.open = true;
-      }
-
       bindQuickFireHintTelemetryOnce();
 
       /* ═══ SECTION: Finish Flow | Functions: finishFlow ═══ */
@@ -15187,8 +15187,6 @@ input[type="range"]::-moz-range-thumb{
         if (sendBtn) sendBtn.disabled = true;
         if (skipBtn) skipBtn.style.display = 'none';
         try { playClick(); } catch (eSr) {}
-        expandQuickFireInsightPanel();
-
         if (reactionArea) {
           reactionArea.style.display = 'block';
           reactionArea.innerHTML = '<div style="padding:12px 14px;border-radius:14px;border:1px solid rgba(var(--accent-rgb),0.14);background:rgba(var(--accent-rgb),0.03);font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-secondary);">Checking your response...</div>';
@@ -15242,7 +15240,6 @@ input[type="range"]::-moz-range-thumb{
         if (sendBtn) sendBtn.disabled = true;
         if (skipBtn) skipBtn.style.display = 'none';
         try { playClick(); } catch (eSk) {}
-        expandQuickFireInsightPanel();
         showConsolidation();
       }
 

@@ -23,6 +23,7 @@ export interface StudyItem {
   prompt: string;
   /** canonical field in source */
   modelAnswer: string;
+  cachedInsight?: string;
   /** import compatibility field seen in source */
   answer?: string;
   tier?: TierId;
