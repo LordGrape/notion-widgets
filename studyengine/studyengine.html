@@ -9373,6 +9373,13 @@ input[type="range"]::-moz-range-thumb{
       return normalizeSubjectTypeValue(state.courses[courseName].subjectType);
     }
 
+    function resolveCourseContext(courseName) {
+      if (!courseName || !state.courses || !state.courses[courseName]) return undefined;
+      var course = state.courses[courseName];
+      if (!course || !course.courseContext || typeof course.courseContext !== 'object') return undefined;
+      return course.courseContext;
+    }
+
     /* ═══ SECTION: Save Course | Functions: saveCourse ═══ */
     function saveCourse(courseObj) {
       if (!courseObj || !courseObj.name) return;
@@ -13843,6 +13850,10 @@ input[type="range"]::-moz-range-thumb{
         conversation: conversation || [],
         context: context || {}
       };
+      if (mode !== 'acknowledge') {
+        var tutorCourseContext = resolveCourseContext(item && item.course ? item.course : '');
+        if (tutorCourseContext) payload.courseContext = tutorCourseContext;
+      }
       if (item.conceptA) payload.item.conceptA = item.conceptA;
       if (item.conceptB) payload.item.conceptB = item.conceptB;
       if (item.task) payload.item.task = item.task;
@@ -14760,6 +14771,8 @@ input[type="range"]::-moz-range-thumb{
         topic: item.topic || '',
         subjectType: resolveCourseSubjectType(item.course || '')
       };
+      var gradeCourseContext = resolveCourseContext(item.course || '');
+      if (gradeCourseContext) payload.courseContext = gradeCourseContext;
       if (tier === 'distinguish') {
         payload.conceptA = item.conceptA || '';
         payload.conceptB = item.conceptB || '';
@@ -15396,6 +15409,8 @@ input[type="range"]::-moz-range-thumb{
           subjectType: resolveCourseSubjectType(it.course || ''),
           essayOutline: essayOutlineText || ''
         };
+        var essayCourseContext = resolveCourseContext(it.course || '');
+        if (essayCourseContext) essayPayload.courseContext = essayCourseContext;
         if (revealTier === 'distinguish') {
           essayPayload.conceptA = it.conceptA || '';
           essayPayload.conceptB = it.conceptB || '';

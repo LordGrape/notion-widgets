@@ -113,6 +113,75 @@ function formatExamContextBlock(cc: NonNullable<TutorRequest["context"]>["course
   return lines.join("\n");
 }
 
+function buildTutorContextBlock(ctx: TutorRequest["courseContext"] | undefined, mode: TutorMode): string {
+  if (!ctx || mode === "acknowledge") return "";
+
+  const blocks: string[] = [];
+  const stance = ctx.aiPolicy && typeof ctx.aiPolicy === "object" ? ctx.aiPolicy.stance : undefined;
+  if (stance === "banned") {
+    blocks.push(
+      "CRITICAL: The student's professor has banned AI use on graded work. Your role is strictly practice and understanding. NEVER produce text that could be submitted as the student's work. If asked to write an essay, outline, or answer for submission, refuse and redirect to practice questions."
+    );
+  } else if (stance === "restricted") {
+    blocks.push(
+      "Note: The student's professor restricts AI use. Stay focused on explaining concepts and probing understanding. Do not produce polished submittable prose."
+    );
+  }
+
+  const academicIntegrityHints = Array.isArray(ctx.academicIntegrityHints) ? ctx.academicIntegrityHints : [];
+  if (academicIntegrityHints.length > 0) {
+    const hints = academicIntegrityHints
+      .map((hint) => String(hint || "").trim())
+      .filter(Boolean)
+      .map((hint) => `- ${hint}`);
+    if (hints.length > 0) {
+      blocks.push(`Course integrity notes:\n${hints.join("\n")}`);
+    }
+  }
+
+  const allowedMode = ctx.allowedMaterials && typeof ctx.allowedMaterials === "object"
+    ? ctx.allowedMaterials.mode
+    : undefined;
+  if ((mode === "quick" || mode === "insight") && allowedMode === "closed_book") {
+    blocks.push("The student is studying for closed-book conditions. Keep scaffolds terse — framework names, not full explanations.");
+  } else if ((mode === "quick" || mode === "insight") && allowedMode === "open_book") {
+    blocks.push("Open-book assessment. Referencing textbooks or specific chapter concepts is acceptable.");
+  }
+
+  const contextSections: string[] = [];
+  const professorValueHints = Array.isArray(ctx.professorValueHints) ? ctx.professorValueHints : [];
+  if (professorValueHints.length > 0) {
+    const lines = professorValueHints
+      .map((hint) => {
+        const value = String((hint as { value?: string }).value || "").trim();
+        const evidence = String((hint as { evidence?: string }).evidence || "").trim();
+        if (!value) return "";
+        return evidence ? `- ${value} (evidence: "${evidence}")` : `- ${value}`;
+      })
+      .filter(Boolean);
+    if (lines.length > 0) {
+      contextSections.push(`Professor's stated values for this course:\n${lines.join("\n")}`);
+    }
+  }
+
+  const scopeTerms = Array.isArray(ctx.scopeTerms)
+    ? ctx.scopeTerms.map((term) => String(term || "").trim()).filter(Boolean)
+    : [];
+  if (scopeTerms.length > 0) {
+    contextSections.push(
+      "Course scope (student answers should engage these terms/concepts):\n" +
+      `${scopeTerms.join(", ")}`
+    );
+  }
+
+  if (contextSections.length > 0) {
+    blocks.push(`COURSE CONTEXT:\n\n${contextSections.join("\n\n")}`);
+  }
+
+  if (blocks.length === 0) return "";
+  return blocks.join("\n\n");
+}
+
 export async function handleTutor(request: Request, env: Env): Promise<Response> {
   if (request.method !== "POST") {
     return jsonResponse({ error: "Method not allowed" }, 405);
@@ -660,8 +729,10 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
     }
     const isFollowUpTurn = conversation.length >= 2;
     const systemPromptFinal = isFollowUpTurn ? `${systemPrompt}${supportiveVoiceBlock}\n\n${modeInstructionsBase[mode]}` : systemPromptAugmented;
+    const tutorContextBlock = buildTutorContextBlock(body.courseContext, mode);
+    const tutorContextInsertion = tutorContextBlock ? `\n\n${tutorContextBlock}` : "";
 
-    const dynamicPrompt = `${modeInstructionsForMode}\n\n---\n\n${sessionSummaryBlock}${lectureCtxBlock}${itemBlock}\n${userBlock}`;
+    const dynamicPrompt = `${modeInstructionsForMode}${tutorContextInsertion}\n\n---\n\n${sessionSummaryBlock}${lectureCtxBlock}${itemBlock}\n${userBlock}`;
 
     const generationConfig = {
       temperature: 0.35,

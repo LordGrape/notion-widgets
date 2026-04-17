@@ -45,6 +45,70 @@ function buildLectureContextBlock(body: GradeRequest): string {
     "- Reference specific terms or examples from the lecture in your feedback\n";
 }
 
+function buildCourseContextBlock(ctx: GradeRequest["courseContext"] | undefined): string {
+  if (!ctx) return "";
+  const sections: string[] = [];
+
+  const professorValueHints = Array.isArray(ctx.professorValueHints) ? ctx.professorValueHints : [];
+  if (professorValueHints.length > 0) {
+    const lines = professorValueHints
+      .map((hint) => {
+        const value = String((hint as { value?: string }).value || "").trim();
+        const evidence = String((hint as { evidence?: string }).evidence || "").trim();
+        if (!value) return "";
+        return evidence ? `- ${value} (evidence: "${evidence}")` : `- ${value}`;
+      })
+      .filter(Boolean);
+    if (lines.length > 0) {
+      sections.push(`Professor's stated values for this course:\n${lines.join("\n")}`);
+    }
+  }
+
+  const rubricHints = Array.isArray(ctx.rubricHints) ? ctx.rubricHints : [];
+  if (rubricHints.length > 0) {
+    const lines = rubricHints
+      .map((hint) => {
+        const dimension = String((hint as { dimension?: string }).dimension || "").trim();
+        const description = String((hint as { description?: string }).description || "").trim();
+        const verbatim = String((hint as { verbatim?: string }).verbatim || "").trim();
+        if (!dimension) return "";
+        const desc = description || verbatim;
+        return verbatim
+          ? `- ${dimension}: ${desc} (verbatim: "${verbatim}")`
+          : `- ${dimension}: ${desc}`;
+      })
+      .filter(Boolean);
+    if (lines.length > 0) {
+      sections.push(`Rubric dimensions the professor grades on:\n${lines.join("\n")}`);
+    }
+  }
+
+  const scopeTerms = Array.isArray(ctx.scopeTerms)
+    ? ctx.scopeTerms.map((term) => String(term || "").trim()).filter(Boolean)
+    : [];
+  if (scopeTerms.length > 0) {
+    sections.push(
+      "Course scope (student answers should engage these terms/concepts):\n" +
+      `${scopeTerms.join(", ")}`
+    );
+  }
+
+  const allowedMaterialsMode = ctx.allowedMaterials && typeof ctx.allowedMaterials === "object"
+    ? String(ctx.allowedMaterials.mode || "").trim()
+    : "";
+  if (allowedMaterialsMode) {
+    sections.push(`Allowed materials mode: ${allowedMaterialsMode}`);
+  }
+
+  if (sections.length === 0) return "";
+  return `COURSE CONTEXT (from syllabus):\n\n${sections.join("\n\n")}`;
+}
+
+function buildRubricHintsOverrideInstruction(ctx: GradeRequest["courseContext"] | undefined): string {
+  if (!ctx || !Array.isArray(ctx.rubricHints) || ctx.rubricHints.length === 0) return "";
+  return "When this course provides rubric hints, treat those as the authoritative rubric dimensions instead of the generic <accuracy/depth/clarity | conceptualAccuracy/reasoningQuality/criticalEngagement>. Map your scores onto the generic dimensions in the response, but internally grade on the professor's stated criteria.";
+}
+
 function buildTierInstructions(tier: string | undefined, conceptA?: string, conceptB?: string): string {
   const tierInstructions: Record<string, string> = {
     quickfire: `This is a QUICK FIRE (cued recall) item. The student must retrieve specific facts from memory.
@@ -89,6 +153,11 @@ Grading priorities:
 function buildRecallPrompt(body: GradeRequest, isDistinguish: boolean): string {
   const { prompt, modelAnswer, userResponse, tier, course, topic } = body;
   const lectureContextBlock = buildLectureContextBlock(body);
+  const courseContextBlock = buildCourseContextBlock(body.courseContext);
+  const rubricOverrideInstruction = buildRubricHintsOverrideInstruction(body.courseContext);
+  const contextInsertion = (courseContextBlock || rubricOverrideInstruction)
+    ? `\n\n${[courseContextBlock, rubricOverrideInstruction].filter(Boolean).join("\n\n")}`
+    : "";
   const tierInstructions = buildTierInstructions(tier, body.conceptA, body.conceptB);
 
   return `You are an expert academic grader embedded in a spaced repetition study engine. Your role is to provide precise, calibrated, evidence-based feedback that helps the student close the gap between their current understanding and the target knowledge.
@@ -105,7 +174,7 @@ QUESTION/PROMPT:
 ${prompt}
 
 MODEL ANSWER (the reference standard — grade against this, not your own knowledge):
-${modelAnswer}
+${modelAnswer}${contextInsertion}
 
 STUDENT RESPONSE:
 ${userResponse}
@@ -148,6 +217,11 @@ Respond in this EXACT JSON format and nothing else:
 function buildReasoningPrompt(body: GradeRequest, isDistinguish: boolean): string {
   const { prompt, modelAnswer, userResponse, tier, course, topic } = body;
   const lectureContextBlock = buildLectureContextBlock(body);
+  const courseContextBlock = buildCourseContextBlock(body.courseContext);
+  const rubricOverrideInstruction = buildRubricHintsOverrideInstruction(body.courseContext);
+  const contextInsertion = (courseContextBlock || rubricOverrideInstruction)
+    ? `\n\n${[courseContextBlock, rubricOverrideInstruction].filter(Boolean).join("\n\n")}`
+    : "";
   const tierInstructions = buildTierInstructions(tier, body.conceptA, body.conceptB);
 
   return `You are an expert academic grader embedded in a spaced repetition study engine. You are grading a reasoning-heavy response in an ill-structured domain where multiple defensible interpretations can be valid.
@@ -164,7 +238,7 @@ QUESTION/PROMPT:
 ${prompt}
 
 MODEL ANSWER (an exemplar response, not the only valid framing):
-${modelAnswer}
+${modelAnswer}${contextInsertion}
 
 STUDENT RESPONSE:
 ${userResponse}
@@ -211,6 +285,11 @@ Respond in this EXACT JSON format and nothing else:
 function buildAdaptivePrompt(body: GradeRequest, isDistinguish: boolean): string {
   const { prompt, modelAnswer, userResponse, tier, course, topic } = body;
   const lectureContextBlock = buildLectureContextBlock(body);
+  const courseContextBlock = buildCourseContextBlock(body.courseContext);
+  const rubricOverrideInstruction = buildRubricHintsOverrideInstruction(body.courseContext);
+  const contextInsertion = (courseContextBlock || rubricOverrideInstruction)
+    ? `\n\n${[courseContextBlock, rubricOverrideInstruction].filter(Boolean).join("\n\n")}`
+    : "";
   const tierInstructions = buildTierInstructions(tier, body.conceptA, body.conceptB);
 
   return `You are an expert academic grader embedded in a spaced repetition study engine. Use an adaptive rubric.
@@ -226,7 +305,7 @@ QUESTION/PROMPT:
 ${prompt}
 
 MODEL ANSWER:
-${modelAnswer}
+${modelAnswer}${contextInsertion}
 
 STUDENT RESPONSE:
 ${userResponse}
@@ -290,6 +369,8 @@ export async function handleGrade(request: Request, env: Env): Promise<Response>
     const essayOutline = body.essayOutline || "";
     const isEssayMode = essayOutline.length > 0;
     const subjectType = body.subjectType || "mixed";
+    const courseContextBlock = buildCourseContextBlock(body.courseContext);
+    const essayContextInsertion = courseContextBlock ? `\n\n${courseContextBlock}` : "";
 
     if (!prompt || !modelAnswer) {
       return jsonResponse({ error: "Missing required fields" }, 400);
@@ -391,7 +472,7 @@ MODEL ANSWER:
 ${modelAnswer}
 
 STUDENT'S OUTLINE (written before the essay):
-${essayOutline}
+${essayOutline}${essayContextInsertion}
 
 STUDENT'S ESSAY RESPONSE:
 ${userResponse}

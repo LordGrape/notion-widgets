@@ -121,6 +121,7 @@ export type ParseSyllabusResponse = ParsedSyllabus;
 
 export interface TutorRequest {
   mode: TutorMode;
+  courseContext?: ParsedSyllabus;
   item: {
     prompt: string;
     modelAnswer: string;
@@ -228,6 +229,7 @@ export interface GradeRequest {
     courseDigest?: string;
     topicChunk?: string;
   };
+  courseContext?: ParsedSyllabus;
 }
 
 export interface ScoreFeedback {
