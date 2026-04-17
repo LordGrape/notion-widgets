@@ -10642,6 +10642,20 @@ input[type="range"]::-moz-range-thumb{
       toast('Card deleted.');
     }
 
+    function deleteAllCardsWithConfirmation() {
+      state.items = {};
+      reconcileStats();
+      saveState();
+      closeCardDetailView();
+      renderDashboard();
+      if (!isEmbedded) renderSidebar();
+      var cd = el('courseDetail');
+      if (cd && cd.classList.contains('active') && selectedCourse && state.courses[selectedCourse]) {
+        openCourseDetail(selectedCourse);
+      }
+      toast('All cards deleted.');
+    }
+
     function openCardEditorFromContext(itemId) {
       var it = state.items[itemId];
       if (!it) return;
@@ -17302,6 +17316,19 @@ input[type="range"]::-moz-range-thumb{
           '<div class="sr-control">' +
             '<select id="s_perfBreaks"><option value="true"' + (settings.performanceBreaks !== false ? ' selected' : '') + '>On (recommended)</option><option value="false"' + (settings.performanceBreaks === false ? ' selected' : '') + '>Off</option></select>' +
           '</div>' +
+        '</div>' +
+        '<div class="setting-row">' +
+          '<div class="sr-left">' +
+            '<div class="sr-label" style="color:var(--rate-again)">Danger zone · Delete all cards</div>' +
+            '<div class="sr-desc">Removes every card in every course. Courses, modules, and topics are preserved.</div>' +
+          '</div>' +
+          '<div class="sr-control">' +
+            '<div style="display:flex;flex-direction:column;gap:8px;">' +
+              '<label for="s_deleteAllConfirm" style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-secondary);">Type DELETE ALL to confirm</label>' +
+              '<input type="text" id="s_deleteAllConfirm" placeholder="DELETE ALL" autocomplete="off" style="width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--border-default);background:var(--surface-0);color:var(--text-primary);font-size:11px;">' +
+              '<button type="button" class="ghost-btn" id="s_deleteAllCards" disabled style="width:100%;min-width:0;border-color:var(--border-default);color:var(--rate-again);background:var(--surface-0);">Delete all cards</button>' +
+            '</div>' +
+          '</div>' +
         '</div>';
 
       body.querySelectorAll('.mode-toggle').forEach(function(group) {
@@ -17349,6 +17376,28 @@ input[type="range"]::-moz-range-thumb{
             this.textContent = 'Not enough data yet';
           }
         });
+      }
+
+      var deleteAllInput = el('s_deleteAllConfirm');
+      var deleteAllBtn = el('s_deleteAllCards');
+      if (deleteAllInput && deleteAllBtn) {
+        var syncDeleteAllState = function() {
+          deleteAllBtn.disabled = deleteAllInput.value !== 'DELETE ALL';
+        };
+        deleteAllInput.addEventListener('input', syncDeleteAllState);
+        deleteAllInput.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter' && !deleteAllBtn.disabled) {
+            e.preventDefault();
+            deleteAllBtn.click();
+          }
+        });
+        deleteAllBtn.addEventListener('click', function() {
+          if (deleteAllInput.value !== 'DELETE ALL') return;
+          deleteAllCardsWithConfirmation();
+          deleteAllInput.value = '';
+          syncDeleteAllState();
+        });
+        syncDeleteAllState();
       }
 
       var regenBtn = el('regenVisuals');
@@ -20126,6 +20175,20 @@ input[type="range"]::-moz-range-thumb{
           }
 
           cardListEl.innerHTML = clHTML + archiveHTML;
+
+          /* Root cause note:
+             The standalone course detail list rendered rows without wiring row clicks to
+             openCardContextActions(), so the standalone action panel (Edit/Suspend/Delete)
+             was unreachable there. Module/topic rows were wired, but course-detail rows were not. */
+          cardListEl.querySelectorAll('.course-list-item[data-card-id]').forEach(function(row) {
+            row.addEventListener('click', function(e) {
+              if (e.target && e.target.closest && e.target.closest('button')) return;
+              var cardId = this.getAttribute('data-card-id');
+              if (!cardId || !state.items[cardId]) return;
+              openCardContextActions(cardId, this);
+              try { playClick(); } catch (e2) {}
+            });
+          });
 
           cardListEl.querySelectorAll('.cd-delete-card').forEach(function(btn) {
             btn.addEventListener('click', function(e) {
