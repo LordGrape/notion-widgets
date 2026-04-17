@@ -10,6 +10,7 @@ import { handleMemory } from "./routes/memory";
 import { handleNotionMilestones } from "./routes/notion";
 import { handlePrepare } from "./routes/prepare";
 import { handlePrime } from "./routes/prime";
+import { handleParseSyllabus } from "./routes/parse-syllabus";
 import { handleReformulate } from "./routes/reformulate";
 import { handleState } from "./routes/state";
 import { handleSummary } from "./routes/summary";
@@ -71,6 +72,11 @@ export default {
       if (url.pathname === "/studyengine/syllabus") {
         if (request.method !== "POST") return methodNotAllowed();
         return withCorsHeaders(await handleSyllabus(request, env));
+      }
+
+      if (url.pathname === "/studyengine/parse-syllabus") {
+        if (request.method !== "POST") return methodNotAllowed();
+        return withCorsHeaders(await handleParseSyllabus(request, env));
       }
 
       if (url.pathname === "/studyengine/memory") {

@@ -7,6 +7,107 @@ export type TierId = 'quickfire' | 'explain' | 'apply' | 'distinguish' | 'mock' 
 export type Priority = 'critical' | 'high' | 'medium' | 'low';
 export type ExamType = 'mc' | 'short_answer' | 'essay' | 'mixed';
 export type SubjectType = 'recall' | 'reasoning' | 'mixed';
+export type AllowedMaterialsMode = "closed_book" | "open_book" | "one_page_sheet" | "take_home" | "unknown";
+
+export interface AllowedMaterials {
+  mode: AllowedMaterialsMode;
+  rawText?: string;
+}
+
+export interface AssessmentFormat {
+  hasEssay: boolean;
+  hasShortAnswer: boolean;
+  hasMultipleChoice: boolean;
+  hasOralComponent: boolean;
+  hasPresentation: boolean;
+  hasParticipation: boolean;
+  weights: Record<string, number>;
+}
+
+export interface Reading {
+  citation: string;
+  week?: number;
+  availability: "textbook" | "brightspace" | "library" | "open" | "unknown";
+}
+
+export interface Textbook {
+  citation: string;
+  required: boolean;
+  chapterMapping?: Record<number, string>;
+}
+
+export interface TopicWeight {
+  topic: string;
+  week?: number;
+  weight?: number;
+  readings?: Reading[];
+}
+
+export interface ProfessorValueHint {
+  value: string;
+  evidence: string;
+  confidence: "high" | "medium" | "low";
+}
+
+export interface RubricHint {
+  dimension: string;
+  weight?: number;
+  verbatim: string;
+}
+
+export interface BloomProfile {
+  remember: number;
+  understand: number;
+  apply: number;
+  analyze: number;
+  evaluate: number;
+  create: number;
+}
+
+// Descriptive extraction of the course's AI policy. Informational ONLY.
+// Study Engine does NOT gate features on this. Used in later milestones to
+// calibrate tutor safeguards (e.g. when stance is 'banned', tutor leans
+// harder on Socratic questioning vs expository feedback, never produces
+// submittable essay-length content). NEVER surfaced as a warning modal to
+// the user: learning use of AI is legitimate; submission use is the line,
+// and that line is enforced at the tutor/grade prompt level, not here.
+export type AIPolicyStance = "banned" | "restricted" | "permitted" | "unspecified";
+
+export interface AIPolicy {
+  stance: AIPolicyStance;
+  verbatimQuote?: string;
+}
+
+// Submission-related language from the syllabus. Seeds Milestone 2's tutor
+// safeguards. Each entry should be a short phrase or sentence the model
+// extracted verbatim from the syllabus that pertains to what counts as
+// submittable work, academic integrity expectations, or citation norms.
+export type AcademicIntegrityHint = string;
+export type FieldConfidence = "high" | "medium" | "low";
+
+// Keep in sync with worker/src/types.ts ParsedSyllabus.
+export interface ParsedSyllabus {
+  subjectType: SubjectType;
+  subjectTypeReason: string;
+  assessmentFormat?: AssessmentFormat;
+  allowedMaterials?: AllowedMaterials;
+  topicWeights?: TopicWeight[];
+  professorValueHints?: ProfessorValueHint[];
+  scopeTerms?: string[];
+  aiPolicy?: AIPolicy;
+  academicIntegrityHints?: AcademicIntegrityHint[];
+  rubricHints?: RubricHint[];
+  bloomProfile?: BloomProfile;
+  textbooks?: Textbook[];
+  supplementaryReadings?: Reading[];
+  confidence: Record<string, FieldConfidence>;
+}
+
+export interface CourseContext extends ParsedSyllabus {
+  parsedAt: number;
+  acceptedAt: number;
+  sourceFingerprint: string;
+}
 
 export interface FSRSState {
   difficulty: number;
@@ -85,6 +186,7 @@ export interface Course {
   syllabusKeyTopics: string[];
   rawSyllabusText: string | null;
   professorValues: string | null;
+  courseContext?: CourseContext;
 
   modules: SubDeck[];
   cramMode?: {
