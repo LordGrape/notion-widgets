@@ -17088,11 +17088,46 @@ input[type="range"]::-moz-range-thumb{
 
     function normalizeImportText(raw) {
       if (!raw) return '';
-      return String(raw)
+      var normalized = String(raw)
         .replace(/^\uFEFF/, '')
         .replace(/\r\n?/g, '\n')
         .replace(/[“”]/g, '"')
         .replace(/[‘’]/g, "'");
+      /* Strip markdown fences often introduced by mobile clipboard/share sheets */
+      var fenced = normalized.match(/^\s*```(?:json)?\s*([\s\S]*?)\s*```\s*$/i);
+      if (fenced && fenced[1]) normalized = fenced[1];
+      return normalized;
+    }
+
+    function tryParseJsonPayload(raw) {
+      if (!raw) return null;
+      var parsed = null;
+      try {
+        parsed = JSON.parse(raw);
+      } catch (e) {
+        /* Try extracting the first JSON array/object from pasted wrappers */
+        var firstArray = raw.indexOf('[');
+        var lastArray = raw.lastIndexOf(']');
+        if (firstArray >= 0 && lastArray > firstArray) {
+          try { parsed = JSON.parse(raw.slice(firstArray, lastArray + 1)); } catch (e2) {}
+        }
+        if (!parsed) {
+          var firstObj = raw.indexOf('{');
+          var lastObj = raw.lastIndexOf('}');
+          if (firstObj >= 0 && lastObj > firstObj) {
+            try { parsed = JSON.parse(raw.slice(firstObj, lastObj + 1)); } catch (e3) {}
+          }
+        }
+      }
+      if (!parsed) return null;
+      if (Array.isArray(parsed)) return parsed;
+      if (parsed && typeof parsed === 'object') {
+        if (Array.isArray(parsed.cards)) return parsed.cards;
+        if (Array.isArray(parsed.items)) return parsed.items;
+        if (Array.isArray(parsed.data)) return parsed.data;
+        if (parsed.prompt && (parsed.modelAnswer || parsed.model_answer || parsed.answer)) return [parsed];
+      }
+      return parsed;
     }
 
     function parsePlainTextCards(raw, fallbackCourse) {
@@ -17117,6 +17152,45 @@ input[type="range"]::-moz-range-thumb{
         var conceptB = '';
         var timeLimitMins = null;
         var current = '';
+        var hasStructuredLabels = false;
+
+        function resetCardFields() {
+          prompt = '';
+          answer = '';
+          topic = '';
+          task = '';
+          scenario = '';
+          conceptA = '';
+          conceptB = '';
+          timeLimitMins = null;
+          current = '';
+        }
+
+        function flushCardIfComplete() {
+          if (!prompt || !answer) return false;
+          out.push({
+            prompt: prompt,
+            modelAnswer: answer,
+            topic: topic,
+            task: task,
+            scenario: scenario,
+            conceptA: conceptA,
+            conceptB: conceptB,
+            timeLimitMins: timeLimitMins,
+            course: fallbackCourse || 'Uncategorised'
+          });
+          return true;
+        }
+
+        function parseJsonishValue(rawVal) {
+          var v = String(rawVal || '').trim();
+          v = v.replace(/,$/, '').trim();
+          if (!v) return '';
+          if ((v[0] === '"' && v[v.length - 1] === '"') || (v[0] === "'" && v[v.length - 1] === "'")) {
+            try { return JSON.parse(v.replace(/^'/, '"').replace(/'$/, '"')); } catch (e) { return v.slice(1, -1); }
+          }
+          return v;
+        }
 
         function pushLine(line) {
           var t = String(line || '').trim();
@@ -17132,12 +17206,17 @@ input[type="range"]::-moz-range-thumb{
         }
 
         lines.forEach(function(line) {
-          var m = String(line || '').match(/^\s*(prompt|q|question|front|modelanswer|answer|a|back|topic|task|scenario|concepta|conceptb|timelimitmins|time)\s*:\s*(.*)$/i);
+          var m = String(line || '').match(/^\s*(?:"|')?(prompt|q|question|front|modelanswer|model_answer|answer|a|back|topic|task|scenario|concepta|conceptb|timelimitmins|time)(?:"|')?\s*:\s*(.*)$/i);
           if (m) {
+            hasStructuredLabels = true;
             var key = String(m[1] || '').toLowerCase();
-            var val = String(m[2] || '').trim();
+            var val = String(parseJsonishValue(m[2] || ''));
+            if ((key === 'prompt' || key === 'q' || key === 'question' || key === 'front') && (prompt || answer)) {
+              flushCardIfComplete();
+              resetCardFields();
+            }
             if (key === 'prompt' || key === 'q' || key === 'question' || key === 'front') current = 'prompt';
-            else if (key === 'modelanswer' || key === 'answer' || key === 'a' || key === 'back') current = 'answer';
+            else if (key === 'modelanswer' || key === 'model_answer' || key === 'answer' || key === 'a' || key === 'back') current = 'answer';
             else if (key === 'topic') current = 'topic';
             else if (key === 'task') current = 'task';
             else if (key === 'scenario') current = 'scenario';
@@ -17156,18 +17235,7 @@ input[type="range"]::-moz-range-thumb{
           pushLine(line);
         });
 
-        if (!prompt || !answer) return;
-        out.push({
-          prompt: prompt,
-          modelAnswer: answer,
-          topic: topic,
-          task: task,
-          scenario: scenario,
-          conceptA: conceptA,
-          conceptB: conceptB,
-          timeLimitMins: timeLimitMins,
-          course: fallbackCourse || 'Uncategorised'
-        });
+        if (!flushCardIfComplete() && !hasStructuredLabels) return;
       });
 
       return out;
@@ -17345,9 +17413,8 @@ input[type="range"]::-moz-range-thumb{
       } catch(e) { /* not a backup file, fall through to normal import */ }
 
       var arr = null;
-      try {
-        arr = JSON.parse(raw);
-      } catch (e) {
+      arr = tryParseJsonPayload(raw);
+      if (!arr) {
         arr = parsePlainTextCards(raw, modalSystem.getModalCourse());
         if (!arr.length) {
           toast('Invalid JSON. On iPhone, disable smart quotes or use Prompt:/Answer: plain text.');
