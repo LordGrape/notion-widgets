@@ -11520,6 +11520,7 @@ input[type="range"]::-moz-range-thumb{
     var mockTotalMs = 0;
     var restudyIntervalTimer = null;
     var restudyTimeoutTimer = null;
+    var _qfReRetMountedForId = null;
 
     globalThis.__studyEngineSessionFlow = {
       getSession: function() { return session; },
@@ -11675,7 +11676,10 @@ input[type="range"]::-moz-range-thumb{
       var qfRoot = document.getElementById('qfFollowupRoot');
       if (qfRoot) qfRoot.remove();
       var qfReRoot = document.getElementById('qfReRetrievalRoot');
-      if (qfReRoot) qfReRoot.remove();
+      if (qfReRoot) {
+        qfReRoot.remove();
+        _qfReRetMountedForId = null;
+      }
       /* Remove override hint if present */
       var oldHint = document.querySelector('.override-hint');
       if (oldHint) oldHint.remove();
@@ -14894,12 +14898,95 @@ input[type="range"]::-moz-range-thumb{
       input.focus();
     }
 
+    function ensureQuickFireReRetrievalInsight(root) {
+      if (!root) return null;
+      var insightWrap = root.querySelector('#qfReRetInsightWrap');
+      if (!insightWrap) return null;
+      var insightPanel = insightWrap.querySelector('.qf-reret-insight');
+      var insightSummary = insightPanel ? insightPanel.querySelector('summary') : null;
+      var insightBody = insightPanel ? insightPanel.querySelector('.qf-reret-insight-body') : null;
+      if (!insightPanel) {
+        insightPanel = document.createElement('details');
+        insightPanel.className = 'qf-reret-insight';
+        insightSummary = document.createElement('summary');
+        insightBody = document.createElement('p');
+        insightBody.className = 'qf-reret-insight-body';
+        insightPanel.appendChild(insightSummary);
+        insightPanel.appendChild(insightBody);
+        insightWrap.appendChild(insightPanel);
+      }
+      return {
+        wrap: insightWrap,
+        panel: insightPanel,
+        summary: insightSummary,
+        body: insightBody
+      };
+    }
+
+    function setQuickFireReRetrievalInsight(root, insightText, opts) {
+      opts = opts || {};
+      if (!root) return;
+      var nodes = ensureQuickFireReRetrievalInsight(root);
+      if (!nodes) return;
+      if (opts.failed) {
+        if (nodes.panel && nodes.panel.parentNode) nodes.panel.parentNode.removeChild(nodes.panel);
+        root.setAttribute('data-has-rich-insight', 'false');
+        root.setAttribute('data-insight-loading', 'false');
+        return;
+      }
+      if (opts.loading) {
+        nodes.summary.textContent = 'Tutor insight';
+        nodes.body.textContent = 'Tutor is thinking...';
+        nodes.panel.open = true;
+        root.setAttribute('data-has-rich-insight', 'false');
+        root.setAttribute('data-insight-loading', 'true');
+        return;
+      }
+      var cleanedInsight = typeof insightText === 'string' ? insightText.trim() : '';
+      if (!cleanedInsight) {
+        if (nodes.panel && nodes.panel.parentNode) nodes.panel.parentNode.removeChild(nodes.panel);
+        root.setAttribute('data-has-rich-insight', 'false');
+        root.setAttribute('data-insight-loading', 'false');
+        return;
+      }
+      nodes.summary.textContent = 'Tutor insight';
+      nodes.body.textContent = cleanedInsight;
+      nodes.panel.open = false;
+      root.setAttribute('data-has-rich-insight', 'true');
+      root.setAttribute('data-insight-loading', 'false');
+    }
+
+    function updateQuickFireReRetrievalInsight(itemId, insightText, opts) {
+      var currentRoot = document.getElementById('qfReRetrievalRoot');
+      if (!currentRoot) return;
+      if (_qfReRetMountedForId !== itemId) return;
+      setQuickFireReRetrievalInsight(currentRoot, insightText, opts);
+    }
+
     /* ═══ SECTION: Mount Quick Fire Re Retrieval | Functions: mountQuickFireReRetrieval ═══ */
     function mountQuickFireReRetrieval(it, data, done) {
+      var existingRoot = document.getElementById('qfReRetrievalRoot');
+      var incomingInsight = data && typeof data.insight === 'string' ? data.insight.trim() : '';
+      var incomingLoading = !!(data && data.insightLoading);
+      var incomingFallback = !incomingInsight && (!data || !data.followUpQuestion || data.followUpQuestion === 'Try again from memory before checking the full answer.');
+      if (_qfReRetMountedForId === it.id && existingRoot) {
+        var existingHasRichInsight = existingRoot.getAttribute('data-has-rich-insight') === 'true';
+        if (incomingInsight && !existingHasRichInsight) {
+          setQuickFireReRetrievalInsight(existingRoot, incomingInsight);
+        } else if (incomingLoading && !existingHasRichInsight) {
+          setQuickFireReRetrievalInsight(existingRoot, null, { loading: true });
+        } else if (incomingFallback && existingHasRichInsight) {
+          console.debug('[Quickfire Again] preserving richer re-retrieval card for item', it.id);
+        }
+        return;
+      }
       var oldQ = document.getElementById('qfFollowupRoot');
       if (oldQ) oldQ.remove();
       var oldRe = document.getElementById('qfReRetrievalRoot');
-      if (oldRe) oldRe.remove();
+      if (oldRe) {
+        oldRe.remove();
+        _qfReRetMountedForId = null;
+      }
       if (!ratingsEl || !ratingsEl.parentNode) {
         done();
         return;
@@ -14913,6 +15000,7 @@ input[type="range"]::-moz-range-thumb{
       var root = document.createElement('div');
       root.id = 'qfReRetrievalRoot';
       root.className = 'qf-re-retrieval';
+      root.setAttribute('data-item-id', it.id);
       root.innerHTML =
         '<div style="margin-top:14px;padding:18px 20px;border-radius:var(--radius-lg);border:1px solid rgba(var(--accent-rgb),0.18);background:rgba(var(--accent-rgb),0.04);">' +
           '<div style="font-size:9px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--accent);margin-bottom:10px;display:flex;align-items:center;gap:6px;">🔁 Re-test — try again from memory</div>' +
@@ -14932,6 +15020,7 @@ input[type="range"]::-moz-range-thumb{
         '</div>';
 
       ratingsEl.parentNode.insertBefore(root, ratingsEl.nextSibling);
+      _qfReRetMountedForId = it.id;
 
       if (window.gsap) {
         gsap.fromTo(root, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' });
@@ -14959,23 +15048,19 @@ input[type="range"]::-moz-range-thumb{
       var spaceHandlerRef = null;
 
       var insightText = data && typeof data.insight === 'string' ? data.insight.trim() : '';
-      if (insightWrap && insightText) {
-        var insightPanel = document.createElement('details');
-        insightPanel.className = 'qf-reret-insight';
-        var insightSummary = document.createElement('summary');
-        insightSummary.textContent = '💡 Tutor insight';
-        var insightBody = document.createElement('p');
-        insightBody.className = 'qf-reret-insight-body';
-        insightBody.textContent = insightText;
-        insightPanel.appendChild(insightSummary);
-        insightPanel.appendChild(insightBody);
-        insightWrap.appendChild(insightPanel);
+      root.setAttribute('data-has-rich-insight', 'false');
+      root.setAttribute('data-insight-loading', 'false');
+      if (insightWrap && data && data.insightLoading) {
+        setQuickFireReRetrievalInsight(root, null, { loading: true });
+      } else if (insightWrap && insightText) {
+        setQuickFireReRetrievalInsight(root, insightText);
       }
 
       /* ═══ SECTION: Finish Flow | Functions: finishFlow ═══ */
       function finishFlow() {
         if (finished) return;
         finished = true;
+        if (_qfReRetMountedForId === it.id) _qfReRetMountedForId = null;
         if (spaceHandlerRef) {
           document.removeEventListener('keydown', spaceHandlerRef);
           spaceHandlerRef = null;
@@ -15648,6 +15733,7 @@ input[type="range"]::-moz-range-thumb{
       rubricToFsrsRating: rubricToFsrsRating,
       mountQuickFireFollowup: mountQuickFireFollowup,
       mountQuickFireReRetrieval: mountQuickFireReRetrieval,
+      updateQuickFireReRetrievalInsight: updateQuickFireReRetrievalInsight,
       runQuickFireFollowupMicro: runQuickFireFollowupMicro,
       beginDontKnowFlow: handleDontKnowReveal,
       startRelearningDialogue: startRelearningDialogue,
@@ -15900,7 +15986,7 @@ input[type="range"]::-moz-range-thumb{
     });
 
     ratingsEl.querySelectorAll('button').forEach(function(b){
-      b.addEventListener('click', function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); });
+      b.onclick = function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); };
     });
 
     /* ── Modal: Add items / Import JSON ── */

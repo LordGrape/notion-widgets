@@ -51,6 +51,7 @@ interface SessionFlowBridge {
   buildInsightUI: (area: HTMLElement, data: any, done: () => void) => void;
   runQuickFireFollowupMicro: (it: StudyItem, done: () => void, opts?: { reRetrieval?: boolean }) => void;
   mountQuickFireReRetrieval: (it: StudyItem, data: any, done: () => void) => void;
+  updateQuickFireReRetrievalInsight?: (itemId: string, insightText: string | null, opts?: { failed?: boolean }) => void;
   mountQuickFireFollowup: (it: StudyItem, data: any, done: () => void) => void;
   revealAnswer: (fromCheck?: boolean) => void;
   rubricTemplate: (tier: TierId) => string;
@@ -471,8 +472,18 @@ function scheduleRatingAndAdvance(
 function runQuickfireAgainFollowup(it: StudyItem, done: () => void, session: SessionRuntime): void {
   const canMount = typeof bridge.mountQuickFireReRetrieval === 'function';
   const canTutor = typeof bridge.callTutor === 'function';
+  session._qfAgainInFlight = session._qfAgainInFlight || new Set<string>();
+  if (session._qfAgainInFlight.has(it.id)) {
+    console.debug('[Quickfire Again] duplicate followup blocked for item', it.id);
+    return;
+  }
+  session._qfAgainInFlight.add(it.id);
   if (!canMount || !canTutor) {
-    bridge.runQuickFireFollowupMicro(it, done, { reRetrieval: true });
+    try {
+      bridge.runQuickFireFollowupMicro(it, done, { reRetrieval: true });
+    } finally {
+      session._qfAgainInFlight.delete(it.id);
+    }
     return;
   }
 
@@ -480,22 +491,28 @@ function runQuickfireAgainFollowup(it: StudyItem, done: () => void, session: Ses
   ctx.quickFireFollowUp = true;
   ctx.userRating = 1;
   const model = bridge.selectModel(it, session);
+  bridge.mountQuickFireReRetrieval(it, {
+    followUpQuestion: 'Try again from memory before checking the full answer.',
+    followUpAnswer: it.modelAnswer || '',
+    insight: null,
+    insightLoading: true
+  }, done);
   bridge.callTutor('insight', model, it, '', [], ctx)
     .then((data) => {
-      const payload = data && !data.error ? data : {};
-      if (!payload.followUpQuestion) {
-        payload.followUpQuestion = 'Try again from memory before checking the full answer.';
+      const insightText = data && !data.error && typeof data.insight === 'string'
+        ? data.insight.trim()
+        : '';
+      if (!insightText) {
+        bridge.updateQuickFireReRetrievalInsight?.(it.id, null, { failed: true });
+        return;
       }
-      if (!payload.followUpAnswer) {
-        payload.followUpAnswer = it.modelAnswer || '';
-      }
-      bridge.mountQuickFireReRetrieval(it, payload, done);
+      bridge.updateQuickFireReRetrievalInsight?.(it.id, insightText);
     })
     .catch(() => {
-      bridge.mountQuickFireReRetrieval(it, {
-        followUpQuestion: 'Try again from memory before checking the full answer.',
-        followUpAnswer: it.modelAnswer || ''
-      }, done);
+      bridge.updateQuickFireReRetrievalInsight?.(it.id, null, { failed: true });
+    })
+    .finally(() => {
+      session._qfAgainInFlight.delete(it.id);
     });
 }
 
@@ -503,6 +520,11 @@ export function rateCurrent(rating: Rating): void {
   const session = getSession();
   if (!session) return;
   const nowTs = Date.now();
+  if ((session._lastRateTs || 0) && (nowTs - session._lastRateTs) < 300) {
+    console.debug('[Quickfire Again] rateCurrent debounced', { rating, delta: nowTs - session._lastRateTs });
+    return;
+  }
+  session._lastRateTs = nowTs;
   const it = session.queue[session.idx] as StudyItem | undefined;
   if (!it) return;
   if (!session.currentShown) return;
