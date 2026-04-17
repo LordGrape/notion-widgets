@@ -333,6 +333,34 @@
     .nav-tab:active{
       transform: scale(0.97);
     }
+    .course-editor-tabs{
+      padding: 2px;
+      gap: 4px;
+      border-radius: var(--radius-md);
+      background: rgba(var(--accent-rgb),0.03);
+      border: 1px solid var(--border-subtle);
+    }
+    .course-editor-tabs .nav-tab{
+      position: relative;
+      border-radius: var(--radius-md);
+      background: transparent;
+      color: var(--text-secondary);
+      border-bottom: 2px solid transparent;
+      transition: background var(--transition), color var(--transition), border-color var(--transition), transform var(--transition);
+    }
+    .course-editor-tabs .nav-tab.active{
+      background: rgba(var(--accent-rgb),0.12);
+      color: var(--accent-primary);
+      border-bottom-color: var(--accent-primary);
+    }
+    .course-editor-tabs .nav-tab:hover:not(.active){
+      background: rgba(var(--accent-rgb),0.05);
+      color: var(--text-secondary);
+    }
+    .course-editor-tabs .nav-tab:focus-visible{
+      outline: 2px solid var(--accent-primary);
+      outline-offset: 1px;
+    }
     .topbar-right{
       display: flex;
       align-items: center;
@@ -5046,6 +5074,21 @@ body.standalone .answer.restudy-active{
   flex-shrink: 0;
   user-select: none;
   transition: background var(--transition), border-color var(--transition);
+}
+.tooltip-host{
+  position: relative;
+}
+.tooltip-help-btn{
+  appearance: none;
+  border: none;
+  padding: 0;
+  margin-left: 6px;
+  background: transparent;
+  line-height: 1;
+}
+.tooltip-help-btn.info-icon:focus-visible{
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
 }
 .info-icon:hover{
   background: rgba(var(--accent-rgb),0.14);
@@ -17266,7 +17309,7 @@ input[type="range"]::-moz-range-thumb{
 
     /* Event delegation */
     document.addEventListener('mouseover', function(e) {
-      var icon = e.target.closest('.info-icon');
+      var icon = e.target.closest('.info-icon, .tooltip-host');
       if (!icon) return;
       if (activeTooltipIcon && activeTooltipIcon !== icon) {
         clearTooltipTimer();
@@ -17280,7 +17323,7 @@ input[type="range"]::-moz-range-thumb{
     });
 
     document.addEventListener('mouseout', function(e) {
-      var icon = e.target.closest('.info-icon');
+      var icon = e.target.closest('.info-icon, .tooltip-host');
       if (!icon) return;
       if (!icon.contains(e.relatedTarget)) {
         clearTooltipTimer();
@@ -17290,7 +17333,7 @@ input[type="range"]::-moz-range-thumb{
     });
 
     document.addEventListener('focusin', function(e) {
-      var icon = e.target.closest('.info-icon');
+      var icon = e.target.closest('.info-icon, .tooltip-host');
       if (icon) {
         clearTooltipTimer();
         if (activeTooltipIcon && activeTooltipIcon !== icon) hideTooltip();
@@ -17300,7 +17343,7 @@ input[type="range"]::-moz-range-thumb{
     });
 
     document.addEventListener('focusout', function(e) {
-      var icon = e.target.closest('.info-icon');
+      var icon = e.target.closest('.info-icon, .tooltip-host');
       if (icon) {
         clearTooltipTimer();
         hideTooltip();
@@ -17315,6 +17358,14 @@ input[type="range"]::-moz-range-thumb{
         hideTooltip();
         activeTooltipIcon = null;
       }
+    }, true);
+
+    document.addEventListener('click', function(e) {
+      if (!activeTooltipIcon) return;
+      if (activeTooltipIcon.contains(e.target)) return;
+      clearTooltipTimer();
+      hideTooltip();
+      activeTooltipIcon = null;
     }, true);
 
     /* Reposition on scroll/resize */
@@ -18317,9 +18368,15 @@ input[type="range"]::-moz-range-thumb{
       var cards = getCardsForCourse(courseName);
       var cram = getCramState(courseName);
       var subtitle = (EXAM_TYPE_LABELS[c.examType] || c.examType) + (cram.active ? ' 🔥 Cram' : '') + ' · ' + cards.length + ' cards' + (c.examDate ? ' · Exam: ' + c.examDate : '');
+      function renderEditorInfoIcon(fieldName, text) {
+        return '<button type="button" class="info-icon tooltip-help-btn" aria-label="Help: ' + esc(fieldName) + '">' +
+          'ⓘ<span class="info-tooltip">' + esc(text) + '<span class="tip-arrow"></span></span></button>';
+      }
       var tabNav = tabs.map(function(t) {
         var active = courseModalState.tab === t.id ? ' active' : '';
-        return '<button class="nav-tab' + active + '" type="button" data-course-tab="' + t.id + '" style="font-size:' + (isEmbedded ? '8px' : '9px') + ';">' + t.label + '</button>';
+        var isActive = courseModalState.tab === t.id;
+        var tabBtnId = 'cm-tab-' + t.id;
+        return '<button class="nav-tab' + active + '" type="button" data-course-tab="' + t.id + '" id="' + tabBtnId + '" role="tab" aria-controls="cmTabContent" aria-selected="' + (isActive ? 'true' : 'false') + '" tabindex="' + (isActive ? '0' : '-1') + '" style="font-size:' + (isEmbedded ? '8px' : '9px') + ';">' + t.label + '</button>';
       }).join('');
 
       var h = '';
@@ -18328,8 +18385,8 @@ input[type="range"]::-moz-range-thumb{
       h += '<div style="font-size:11px;font-weight:800;letter-spacing:0.5px;">' + esc(courseName) + '</div>';
       h += '</div>';
       h += '<div style="font-size:10px;color:var(--text-secondary);margin-bottom:10px;">' + esc(subtitle) + '</div>';
-      h += '<div class="nav-tabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">' + tabNav + '</div>';
-      h += '<div id="cmTabContent"></div>';
+      h += '<div class="nav-tabs course-editor-tabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;" role="tablist" aria-label="Course editor sections">' + tabNav + '</div>';
+      h += '<div id="cmTabContent" role="tabpanel" aria-live="polite" aria-labelledby="cm-tab-' + esc(courseModalState.tab || 'details') + '"></div>';
       courseModalBody.innerHTML = h;
 
       function renderTabContent() {
@@ -18358,24 +18415,26 @@ input[type="range"]::-moz-range-thumb{
           inner += '<div class="field"><label>Exam Weight (%)</label><input id="cm_examWeight" type="number" min="0" max="100" step="1" class="input" value="' + esc(c.examWeight != null ? String(c.examWeight) : '') + '" /></div>';
           inner += '<div style="display:flex;justify-content:flex-end;margin-top:12px;"><button class="big-btn" id="cmSaveDetails" type="button">Save Details</button></div>';
         } else if (activeTab === 'syllabus') {
-          inner += '<div class="field"><label>Syllabus / Exam Info</label><textarea class="input" id="cm_courseContextText" rows="7" placeholder="Paste syllabus text, exam instructions, or course outline...">' + esc(c.rawSyllabusText || '') + '</textarea></div>';
+          inner += '<div class="field"><label>Syllabus / Exam Info' + renderEditorInfoIcon('Syllabus / Exam Info', "Paste the raw syllabus or any official exam instructions here. The AI uses this as the ground truth for what your course covers and how it's assessed. It does not auto-generate cards from this — use 'Process syllabus with AI' for that.") + '</label><textarea class="input" id="cm_courseContextText" rows="7" placeholder="Paste syllabus text, exam instructions, or course outline...">' + esc(c.rawSyllabusText || '') + '</textarea></div>';
           inner += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
           inner += '<input type="file" accept="application/pdf,.pdf" id="cm_pdfFile" style="display:none">';
           inner += '<button type="button" class="ghost-btn" id="cm_pdfBtn">📄 Import PDF</button>';
-          inner += '<button type="button" class="ghost-btn" id="cm_processSyllabus">Process syllabus with AI</button>';
-          inner += '<button type="button" class="ghost-btn" id="cm_reprocessSyllabus">Re-process</button>';
+          inner += '<button type="button" class="ghost-btn tooltip-host" id="cm_processSyllabus">Process syllabus with AI' +
+            '<span class="info-tooltip">Runs your syllabus through the tutor to extract modules, topics, and suggested study priorities. Non-destructive — nothing is saved until you confirm.<span class="tip-arrow"></span></span></button>';
+          inner += '<button type="button" class="ghost-btn tooltip-host" id="cm_reprocessSyllabus">Re-process' +
+            '<span class="info-tooltip">Re-runs AI extraction if you\'ve edited the syllabus or the first pass missed content. Replaces the previous AI-suggested structure.<span class="tip-arrow"></span></span></button>';
           inner += '</div>';
           inner += '<div class="syllabus-status" id="cm_contextStatus"></div>';
           inner += '<div class="chips" id="cm_suggestedTopics" style="margin-top:6px;"></div>';
           inner += '<div id="cm_previewWrap" style="' + (c.syllabusContext ? '' : 'display:none;') + 'margin-top:8px;"><div style="font-size:9px;font-weight:700;margin-bottom:4px;color:var(--text-secondary);">Processed summary</div><div class="syllabus-preview" id="cm_syllabusPreview">' + esc(c.syllabusContext || '') + '</div></div>';
-          inner += '<div class="field"><label>Professor values</label><textarea class="input" id="cm_professorValues" rows="3">' + esc(c.professorValues || '') + '</textarea></div>';
-          inner += '<div class="field"><label>Allowed materials</label><input type="text" class="input" id="cm_allowedMaterials" value="' + esc(c.allowedMaterials || '') + '"></div>';
+          inner += '<div class="field"><label>Professor values' + renderEditorInfoIcon('Professor values', "Things your professor explicitly emphasizes (e.g. 'cites primary sources', 'engages counter-arguments', 'uses theoretical framing'). Feeds into AI grading so your responses are judged by what your professor actually rewards — not generic rubrics.") + '</label><textarea class="input" id="cm_professorValues" rows="3">' + esc(c.professorValues || '') + '</textarea></div>';
+          inner += '<div class="field"><label>Allowed materials' + renderEditorInfoIcon('Allowed materials', "What you're allowed to reference during the exam (e.g. 'open notes', 'one-page cheat sheet', 'closed book'). Shapes how the AI calibrates difficulty and whether it expects memorized recall vs reasoning.") + '</label><input type="text" class="input" id="cm_allowedMaterials" value="' + esc(c.allowedMaterials || '') + '"></div>';
           inner += '<div class="or-divider">LECTURE MATERIALS</div>';
-          inner += '<div class="field"><input type="text" class="input" id="cm_lectureUrlInput" placeholder="Paste any URL (published Notion page, article, etc.)"></div>';
+          inner += '<div class="field"><label>Lecture materials (URL)' + renderEditorInfoIcon('Lecture Materials (URL)', 'Link to a published Notion page, article, or lecture transcript. The AI pulls context from this when generating cards and grading responses. Must be publicly accessible.') + '</label><input type="text" class="input" id="cm_lectureUrlInput" placeholder="Paste any URL (published Notion page, article, etc.)"></div>';
           inner += '<div style="display:flex;gap:8px;">';
           inner += '<button type="button" class="ghost-btn" id="cm_importLectureUrl" style="flex:1;">🌐 Import from URL</button>';
           inner += '<input type="file" accept="application/pdf,.pdf" id="cm_importLecturePdf" style="display:none">';
-          inner += '<button type="button" class="ghost-btn" id="cm_importLecturePdfBtn" style="flex:1;">📄 Import PDF</button>';
+          inner += '<button type="button" class="ghost-btn" id="cm_importLecturePdfBtn" style="flex:1;">📄 Import PDF</button>' + renderEditorInfoIcon('Lecture Materials (PDF import)', 'Upload a lecture PDF. Text is extracted and used as context for card generation and grading. Stored locally; not sent anywhere except the tutor call.');
           inner += '</div>';
           inner += '<div class="syllabus-status" id="cm_lectureImportStatus" style="min-height:0;"></div>';
           inner += '<div id="cm_lectureManifestDisplay" style="margin-top:8px;"></div>';
@@ -18471,10 +18530,39 @@ input[type="range"]::-moz-range-thumb{
         courseModalBody.querySelectorAll('[data-course-tab]').forEach(function(btn) {
           btn.onclick = function() {
             courseModalState.tab = btn.getAttribute('data-course-tab') || 'details';
+            updateCourseEditorTabState();
             renderTabContent();
             try { playClick(); } catch (e) {}
           };
         });
+        var tablist = courseModalBody.querySelector('.course-editor-tabs');
+        if (tablist) {
+          tablist.onkeydown = function(e) {
+            var key = e.key;
+            if (key !== 'ArrowRight' && key !== 'ArrowLeft' && key !== 'Home' && key !== 'End' && key !== 'Enter' && key !== ' ') return;
+            var tabButtons = Array.from(tablist.querySelectorAll('[data-course-tab]'));
+            if (!tabButtons.length) return;
+            var currentIndex = tabButtons.indexOf(document.activeElement);
+            if (currentIndex < 0) {
+              currentIndex = tabButtons.findIndex(function(tb) { return tb.getAttribute('data-course-tab') === (courseModalState.tab || 'details'); });
+              if (currentIndex < 0) currentIndex = 0;
+            }
+            var targetIndex = currentIndex;
+            if (key === 'ArrowRight') targetIndex = (currentIndex + 1) % tabButtons.length;
+            if (key === 'ArrowLeft') targetIndex = (currentIndex - 1 + tabButtons.length) % tabButtons.length;
+            if (key === 'Home') targetIndex = 0;
+            if (key === 'End') targetIndex = tabButtons.length - 1;
+            if (key === 'ArrowRight' || key === 'ArrowLeft' || key === 'Home' || key === 'End') {
+              e.preventDefault();
+              tabButtons[targetIndex].focus();
+              return;
+            }
+            if (key === 'Enter' || key === ' ') {
+              e.preventDefault();
+              tabButtons[currentIndex].click();
+            }
+          };
+        }
 
         if (activeTab === 'details') {
           var cp = el('cm_colorPicker');
@@ -18728,6 +18816,21 @@ input[type="range"]::-moz-range-thumb{
         }
       }
 
+      function updateCourseEditorTabState() {
+        var current = courseModalState.tab || 'details';
+        var tabButtons = courseModalBody.querySelectorAll('[data-course-tab]');
+        tabButtons.forEach(function(btn) {
+          var tabId = btn.getAttribute('data-course-tab') || 'details';
+          var isActive = tabId === current;
+          btn.classList.toggle('active', isActive);
+          btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+          btn.setAttribute('tabindex', isActive ? '0' : '-1');
+        });
+        var panel = el('cmTabContent');
+        if (panel) panel.setAttribute('aria-labelledby', 'cm-tab-' + current);
+      }
+
+      updateCourseEditorTabState();
       renderTabContent();
     }
 
