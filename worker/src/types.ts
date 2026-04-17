@@ -26,6 +26,98 @@ export interface Annotation {
 }
 
 export type StudyTier = "quickfire" | "explain" | "apply" | "distinguish" | "mock" | "guided" | string;
+export type SubjectType = "recall" | "reasoning" | "mixed";
+
+export type AllowedMaterialsMode = "closed_book" | "open_book" | "one_page_sheet" | "take_home" | "unknown";
+
+export interface AllowedMaterials {
+  mode: AllowedMaterialsMode;
+  rawText?: string;
+}
+
+export interface AssessmentFormat {
+  hasEssay: boolean;
+  hasShortAnswer: boolean;
+  hasMultipleChoice: boolean;
+  hasOralComponent: boolean;
+  hasPresentation: boolean;
+  hasParticipation: boolean;
+  weights: Record<string, number>;
+}
+
+export interface Reading {
+  citation: string;
+  week?: number;
+  availability: "textbook" | "brightspace" | "library" | "open" | "unknown";
+}
+
+export interface Textbook {
+  citation: string;
+  required: boolean;
+  chapterMapping?: Record<number, string>;
+}
+
+export interface TopicWeight {
+  topic: string;
+  week?: number;
+  weight?: number;
+  readings?: Reading[];
+}
+
+export interface ProfessorValueHint {
+  value: string;
+  evidence: string;
+  confidence: "high" | "medium" | "low";
+}
+
+export interface RubricHint {
+  dimension: string;
+  weight?: number;
+  verbatim: string;
+}
+
+export interface BloomProfile {
+  remember: number;
+  understand: number;
+  apply: number;
+  analyze: number;
+  evaluate: number;
+  create: number;
+}
+
+export type AIPolicyStance = "banned" | "restricted" | "permitted" | "unspecified";
+
+export interface AIPolicy {
+  stance: AIPolicyStance;
+  verbatimQuote?: string;
+}
+
+export type AcademicIntegrityHint = string;
+export type FieldConfidence = "high" | "medium" | "low";
+
+// Keep in sync with studyengine/src/types.ts ParsedSyllabus.
+export interface ParsedSyllabus {
+  subjectType: SubjectType;
+  subjectTypeReason: string;
+  assessmentFormat?: AssessmentFormat;
+  allowedMaterials?: AllowedMaterials;
+  topicWeights?: TopicWeight[];
+  professorValueHints?: ProfessorValueHint[];
+  scopeTerms?: string[];
+  aiPolicy?: AIPolicy;
+  academicIntegrityHints?: AcademicIntegrityHint[];
+  rubricHints?: RubricHint[];
+  bloomProfile?: BloomProfile;
+  textbooks?: Textbook[];
+  supplementaryReadings?: Reading[];
+  confidence: Record<string, FieldConfidence>;
+}
+
+export interface ParseSyllabusRequest {
+  syllabusText: string;
+}
+
+export type ParseSyllabusResponse = ParsedSyllabus;
 
 export interface TutorRequest {
   mode: TutorMode;
@@ -130,7 +222,7 @@ export interface GradeRequest {
   conceptA?: string;
   conceptB?: string;
   mode?: string;
-  subjectType?: "recall" | "reasoning" | "mixed";
+  subjectType?: SubjectType;
   essayOutline?: string;
   lectureContext?: {
     courseDigest?: string;
