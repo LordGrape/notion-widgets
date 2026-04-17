@@ -7955,6 +7955,7 @@ input[type="range"]::-moz-range-thumb{
     import { getLevelInfo, didLevelUp } from './src/xp-level-system';
     import { drawRetentionCurve, drawSparkline, drawTierRing, drawActivityHeatmap, wireRetentionInteractivity, hideCanvasTooltip, getCanvasCtx, getAccentRGB, getTextSecondary, getTextColor } from './src/charts';
     import { buildSessionQueue, startSession, rateCurrent, advanceItem, completeSession, calcRestudyDuration, preloadQuickfireInsight } from './src/session-flow';
+    import { maybeReclassify } from './src/tier-classifier';
     import { setupSettingsModule } from './src/settings';
     import { setupModalSystem } from './src/modals';
     import { initPageAnimations, animateEmptyStateEntrance } from './src/animations.js';
@@ -16934,6 +16935,8 @@ input[type="range"]::-moz-range-thumb{
       var toImport = skipDups ? valid.filter(function(v) { return !v.isDuplicate; }) : valid;
       var n = 0;
       var importedIds = [];
+      var autoClassifiedNonQf = 0;
+      var batchTierDist = { quickfire: 0, explain: 0, apply: 0, distinguish: 0, mock: 0, worked: 0 };
 
       toImport.forEach(function(entry) {
         var obj = entry.obj;
@@ -16948,6 +16951,11 @@ input[type="range"]::-moz-range-thumb{
 
         obj.course = entry.course;
         obj.priority = obj.priority || 'medium';
+        var reclassify = maybeReclassify(obj, { isEssayMode: isEssayMode }, { respectExplicitTier: true });
+        if (reclassify && reclassify.changed && reclassify.tier !== 'quickfire') autoClassifiedNonQf++;
+        obj.tier = (reclassify && reclassify.tier) ? reclassify.tier : (obj.tier || 'quickfire');
+        if (batchTierDist.hasOwnProperty(obj.tier)) batchTierDist[obj.tier]++;
+        else batchTierDist.quickfire++;
 
         /* Auto-create course directly — avoid saveCourse() mid-loop which triggers
            premature saveState(), causing KV sync race conditions where courses
@@ -16982,6 +16990,15 @@ input[type="range"]::-moz-range-thumb{
          The first save fires the async KV push; this catches cases where the
          push was throttled, batched, or the tab closes before it resolves. */
       setTimeout(function() { saveState(); }, 2500);
+      console.log(
+        '[Import] Tier distribution after auto-classify: QF=' + batchTierDist.quickfire +
+        ' EX=' + batchTierDist.explain +
+        ' AP=' + batchTierDist.apply +
+        ' DI=' + batchTierDist.distinguish +
+        ' MK=' + batchTierDist.mock +
+        ' WE=' + batchTierDist.worked
+      );
+      toast('Imported ' + n + ' cards · Auto-classified ' + autoClassifiedNonQf + ' into non-QF tiers');
 
       var dupSkipped = skipDups ? pendingImport.duplicates.length : 0;
       var skipCount = pendingImport.skipped.length;
