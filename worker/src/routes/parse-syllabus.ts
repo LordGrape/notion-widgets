@@ -23,10 +23,8 @@ const PARSED_SYLLABUS_RESPONSE_SCHEMA: GeminiJsonValue = {
         hasOralComponent: { type: "boolean" },
         hasPresentation: { type: "boolean" },
         hasParticipation: { type: "boolean" },
-        weights: {
-          type: "object",
-          additionalProperties: { type: "number" }
-        }
+        // weights intentionally omitted from responseSchema because Gemini's OpenAPI subset
+        // cannot express dynamic map-style keys for assessment labels.
       },
       required: [
         "hasEssay",
@@ -34,8 +32,7 @@ const PARSED_SYLLABUS_RESPONSE_SCHEMA: GeminiJsonValue = {
         "hasMultipleChoice",
         "hasOralComponent",
         "hasPresentation",
-        "hasParticipation",
-        "weights"
+        "hasParticipation"
       ]
     },
     allowedMaterials: {
@@ -129,10 +126,8 @@ const PARSED_SYLLABUS_RESPONSE_SCHEMA: GeminiJsonValue = {
         properties: {
           citation: { type: "string" },
           required: { type: "boolean" },
-          chapterMapping: {
-            type: "object",
-            additionalProperties: { type: "string" }
-          }
+          // chapterMapping intentionally omitted from responseSchema because chapter numbers
+          // are dynamic keys and Gemini's OpenAPI subset cannot express map-style keys.
         },
         required: ["citation", "required"]
       }
@@ -151,9 +146,19 @@ const PARSED_SYLLABUS_RESPONSE_SCHEMA: GeminiJsonValue = {
     },
     confidence: {
       type: "object",
-      additionalProperties: {
-        type: "string",
-        enum: ["high", "medium", "low"]
+      properties: {
+        subjectType: { type: "string", enum: ["high", "medium", "low"] },
+        assessmentFormat: { type: "string", enum: ["high", "medium", "low"] },
+        allowedMaterials: { type: "string", enum: ["high", "medium", "low"] },
+        topicWeights: { type: "string", enum: ["high", "medium", "low"] },
+        professorValueHints: { type: "string", enum: ["high", "medium", "low"] },
+        scopeTerms: { type: "string", enum: ["high", "medium", "low"] },
+        aiPolicy: { type: "string", enum: ["high", "medium", "low"] },
+        academicIntegrityHints: { type: "string", enum: ["high", "medium", "low"] },
+        rubricHints: { type: "string", enum: ["high", "medium", "low"] },
+        bloomProfile: { type: "string", enum: ["high", "medium", "low"] },
+        textbooks: { type: "string", enum: ["high", "medium", "low"] },
+        supplementaryReadings: { type: "string", enum: ["high", "medium", "low"] }
       }
     }
   },
