@@ -99,7 +99,7 @@ export async function callParseSyllabus(syllabusText: string): Promise<ParsedSyl
     throw new Error('Missing widget key — check VITE_WIDGET_KEY');
   }
 
-  const response = await fetch('/studyengine/parse-syllabus', {
+  const response = await fetch('https://widget-sync.lordgrape-widgets.workers.dev/studyengine/parse-syllabus', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
