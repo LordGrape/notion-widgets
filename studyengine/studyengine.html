@@ -855,62 +855,92 @@
     .cm-results-card[open] .cm-results-arrow{ transform: rotate(90deg); }
     .cm-results-arrow{ transition: transform 180ms ease; }
     .cm-results-body{ padding: 10px 12px 12px; }
-    .cm-context-preview{
-      margin-top: 8px;
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-lg);
+    .cm-preview-success-chip{
+      margin-top: 10px;
+      border: 1px solid rgba(var(--accent-rgb),0.26);
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--surface-0) 70%, var(--accent-primary) 30%);
+      color: var(--text-primary);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+    .cm-preview-overlay{
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 95;
+    }
+    .cm-preview-overlay .cm-preview-modal{
+      max-width: 820px;
+      max-height: 80vh;
+      border-color: var(--border-default);
       background: var(--surface-1);
-      backdrop-filter: var(--blur-glass);
-      -webkit-backdrop-filter: var(--blur-glass);
-      padding: 12px;
-      max-height: 60vh;
-      overflow: auto;
-      animation: cmFadeIn 180ms ease-out;
     }
-    .cm-context-preview.is-rejected{ opacity: 0.55; text-decoration: line-through; }
-    .cm-context-preview.cm-collapsing{ animation: cmFadeOut 180ms ease-in forwards; }
-    .cm-preview-head{
-      display:flex; justify-content:space-between; gap:8px; align-items:flex-start; margin-bottom:10px;
+    body:not(.standalone) .cm-preview-overlay .cm-preview-modal{
+      max-width: 600px;
     }
-    .cm-preview-title{ font-size:11px; font-weight:800; color:var(--text-primary); }
-    .cm-preview-subtitle{ font-size:9px; color:var(--text-secondary); margin-top:2px; }
-    .cm-preview-count{ font-size:8px; font-weight:700; color:var(--text-secondary); border:1px solid var(--border-subtle); border-radius:999px; padding:3px 8px; white-space:nowrap; }
-    .cm-preview-row{ border:1px solid var(--border-subtle); border-radius:12px; padding:8px; margin-bottom:8px; background:var(--surface-0); }
+    .cm-preview-modal-head{
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .cm-preview-head-right{ display:flex; gap:8px; align-items:center; }
+    .cm-preview-title{ font-size:14px; font-weight:800; color:var(--text-primary); }
+    .cm-preview-subtitle{ font-size:11px; color:var(--text-secondary); margin-top:2px; }
+    .cm-preview-count{ font-size:10px; font-weight:700; color:var(--text-secondary); border:1px solid var(--border-subtle); border-radius:999px; padding:4px 10px; white-space:nowrap; }
+    .cm-preview-close{ width:30px; height:30px; border-radius:10px; border:1px solid var(--border-subtle); font-size:20px; line-height:1; }
+    .cm-preview-modal-body{ padding: 12px 16px; overflow: auto; }
+    .cm-preview-row{ border:1px solid var(--border-subtle); border-radius:12px; padding:10px; margin-bottom:8px; background:var(--surface-0); }
     .cm-preview-row.is-rejected{ opacity:0.6; text-decoration:line-through; }
-    .cm-preview-row-head{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px; }
-    .cm-preview-label{ font-size:9px; text-transform:uppercase; letter-spacing:0.8px; font-weight:700; color:var(--text-secondary); display:flex; align-items:center; gap:6px; }
-    .cm-conf-dot{ width:8px; height:8px; border-radius:50%; display:inline-block; }
+    .cm-preview-row-head{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; }
+    .cm-preview-label{ font-size:10px; text-transform:uppercase; letter-spacing:0.8px; font-weight:700; color:var(--text-secondary); display:flex; align-items:center; gap:6px; }
+    .cm-conf-dot{ width:10px; height:10px; border-radius:50%; display:inline-block; }
     .cm-conf-dot.high{ background:var(--rate-good); }
     .cm-conf-dot.medium{ background:var(--rate-hard); }
     .cm-conf-dot.low{ background:var(--rate-again); }
-    .cm-preview-value{ font-size:10px; color:var(--text-primary); line-height:1.5; }
-    .cm-preview-evidence{ margin-top:6px; border-left:3px solid var(--accent-primary); padding-left:8px; font-size:9px; color:var(--text-secondary); font-style:italic; }
+    .cm-conf-dot.cm-pulse{ animation: cmPulse 360ms ease; }
+    .cm-preview-value{ font-size:11px; color:var(--text-primary); line-height:1.5; }
+    .cm-preview-evidence{ margin-top:6px; border-left:3px solid var(--accent-primary); padding-left:8px; font-size:13px; color:var(--text-secondary); font-style:italic; }
     .cm-preview-controls{ margin-top:8px; display:flex; gap:6px; flex-wrap:wrap; }
     .cm-mini-btn{ font-size:9px; border:1px solid var(--border-subtle); background:transparent; color:var(--text-secondary); border-radius:999px; padding:4px 8px; cursor:pointer; }
     .cm-mini-btn.active{ border-color:var(--border-accent); color:var(--text-primary); background:rgba(var(--accent-rgb),0.08); }
     .cm-inline-editor{ margin-top:8px; display:flex; flex-direction:column; gap:6px; }
     .cm-inline-editor textarea{ min-height:64px; font-size:10px; }
     .cm-preview-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:6px; }
-    .cm-preview-chip-row{ display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
-    .cm-preview-chip{ font-size:9px; border:1px solid var(--border-subtle); border-radius:999px; padding:3px 8px; color:var(--text-secondary); }
+    .cm-preview-chip-row{ display:flex; flex-wrap:wrap; gap:4px; margin-top:4px; }
+    .cm-preview-chip{ font-size:9px; border:1px solid var(--border-subtle); border-radius:999px; padding:3px 8px; color:var(--text-secondary); background: var(--surface-2); }
     .cm-bloom{ display:flex; border-radius:10px; overflow:hidden; border:1px solid var(--border-subtle); margin-top:4px; }
-    .cm-bloom-seg{ min-height:20px; display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:700; color:var(--text-primary); text-shadow: 0 1px 1px rgba(0,0,0,0.2); }
-    .cm-preview-actions{ display:flex; gap:8px; margin-top:10px; }
-    .cm-preview-actions .big-btn{ flex:1; min-width:0; }
-    .cm-preview-actions .cm-save-btn{ flex:1; min-width:0; }
+    .cm-bloom-seg{ min-height:24px; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; color:var(--text-primary); text-shadow: 0 1px 1px rgba(0,0,0,0.2); }
+    .cm-preview-footer{
+      border-top:1px solid var(--border-subtle);
+      padding:12px 16px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      position: sticky;
+      bottom: 0;
+      background: var(--surface-1);
+    }
+    .cm-preview-footer-left,.cm-preview-footer-right{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .cm-preview-footer-btn{ min-width:0; }
+    .cm-preview-counter{ font-size:10px; color:var(--text-secondary); font-weight:700; }
+    .cm-preview-discard-btn{ border-color: color-mix(in srgb, var(--rate-again) 32%, var(--border-subtle)); color: color-mix(in srgb, var(--rate-again) 68%, var(--text-primary)); }
+    body:not(.standalone) .cm-preview-modal-head{ padding: 12px; }
+    body:not(.standalone) .cm-preview-modal-body{ padding: 10px 12px; }
+    body:not(.standalone) .cm-preview-footer{ padding: 10px 12px; flex-direction: column; align-items: stretch; }
+    body:not(.standalone) .cm-preview-footer-left,
+    body:not(.standalone) .cm-preview-footer-right{ width:100%; justify-content:stretch; }
+    body:not(.standalone) .cm-preview-footer button{ width:100%; }
     .cm-preview-error{ border:1px solid color-mix(in srgb, var(--rate-again) 35%, transparent); background:color-mix(in srgb, var(--rate-again) 8%, var(--surface-0)); border-radius:12px; padding:10px; color:var(--text-primary); font-size:10px; }
-    body.standalone .cm-context-preview{ padding:14px; }
-    body.standalone .cm-preview-actions{ justify-content:flex-end; }
-    body.standalone .cm-preview-actions .big-btn,
-    body.standalone .cm-preview-actions .cm-save-btn{ flex:0 0 auto; min-width:170px; }
-    body:not(.standalone) .cm-preview-actions{ flex-direction:column; }
-    body:not(.standalone) .cm-preview-actions .big-btn,
-    body:not(.standalone) .cm-preview-actions .cm-save-btn{ width:100%; }
-    @keyframes cmFadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
-    @keyframes cmFadeOut { from { opacity:1; } to { opacity:0; transform:translateY(4px); } }
+    @keyframes cmPulse { 0% { transform: scale(1); } 50% { transform: scale(1.35); } 100% { transform: scale(1); } }
     @media (prefers-reduced-motion: reduce) {
-      .cm-context-preview,
-      .cm-context-preview.cm-collapsing{ animation:none !important; }
+      .cm-conf-dot.cm-pulse{ animation:none !important; }
     }
     .cm-additional-context{
       margin-top: 10px;
@@ -12926,6 +12956,7 @@ input[type="range"]::-moz-range-thumb{
     var DISTILL_ENDPOINT = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/distill';
     var LECTURE_CTX_ENDPOINT = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/lecture-context';
     var syllabusParseInFlightByCourse = new Set();
+    var syllabusPreviewStateByCourse = {};
 
     /* ═══ SECTION: Default Tutor Stats | Functions: defaultTutorStats ═══ */
     function defaultTutorStats() {
@@ -18746,7 +18777,8 @@ input[type="range"]::-moz-range-thumb{
             '<span class="info-tooltip">Re-runs AI extraction if you\'ve edited the syllabus or the first pass missed content. Replaces the previous AI-suggested structure.<span class="tip-arrow"></span></span></button>';
           inner += '</div>';
           inner += '<div class="syllabus-status" id="cm_contextStatus"></div>';
-          inner += '<details class="cm-results-card" id="cm_resultsCard"><summary><span>Extracted course context</span><span class="cm-results-arrow">▸</span></summary><div class="cm-results-body"><div class="help">This will populate once "Process with AI" is wired (Milestone 1).</div><div class="chips" id="cm_suggestedTopics" style="margin-top:8px;"></div><div id="cm_previewWrap" style="' + (c.syllabusContext ? '' : 'display:none;') + 'margin-top:8px;"><div style="font-size:9px;font-weight:700;margin-bottom:4px;color:var(--text-secondary);">Processed summary</div><div class="syllabus-preview" id="cm_syllabusPreview">' + esc(c.syllabusContext || '') + '</div></div></div></details>';
+          inner += '<div class="cm-results-card"><div class="cm-results-body"><div class="help">Extracted course context appears in a review modal after processing.</div><div class="chips" id="cm_suggestedTopics" style="margin-top:8px;"></div><button type="button" class="cm-preview-success-chip" id="cm_previewSuccessChip" style="display:none;">✓ <span id="cm_previewSuccessCount">0 fields extracted</span> · Review →</button><div id="cm_previewWrap" style="display:none;margin-top:8px;"></div></div></div>';
+          inner += '<div class="confirm-overlay cm-preview-overlay" id="cm_previewOverlay" aria-hidden="true" tabindex="-1"><div class="modal cm-preview-modal" role="dialog" aria-modal="true" aria-labelledby="cm_previewModalTitle"><div class="cm-preview-modal-head"><div><div class="cm-preview-title" id="cm_previewModalTitle">Extracted course context</div><div class="cm-preview-subtitle">Review each field before saving</div></div><div class="cm-preview-head-right"><span class="cm-preview-count" id="cm_previewFieldCount">0 fields extracted</span><button type="button" class="icon-btn cm-preview-close" id="cm_previewCloseBtn" aria-label="Close extracted context preview">×</button></div></div><div class="cm-preview-modal-body" id="cm_previewModalBody"></div><div class="cm-preview-footer"><div class="cm-preview-footer-left"><button type="button" class="ghost-btn cm-preview-footer-btn" id="cm_acceptAllBtn">Accept all</button><button type="button" class="ghost-btn cm-preview-footer-btn" id="cm_rejectAllBtn">Reject all</button></div><div class="cm-preview-footer-right"><div class="cm-preview-counter" id="cm_previewAcceptedCount">0 of 0 accepted</div><button type="button" class="big-btn cm-preview-save-btn" id="cm_saveAcceptedContext">Save accepted</button><button type="button" class="cm-save-btn cm-preview-discard-btn" id="cm_discardContextPreview">Discard all</button></div></div></div></div>';
           inner += '<details class="cm-additional-context" id="cm_additionalContext"><summary>Additional context (optional)</summary><div class="cm-additional-body">';
           inner += '<div class="field"><label>Professor values' + renderEditorInfoIcon('Professor values', "Things your professor explicitly emphasizes (e.g. 'cites primary sources', 'engages counter-arguments', 'uses theoretical framing'). Feeds into AI grading so your responses are judged by what your professor actually rewards — not generic rubrics.") + '</label><textarea class="input" id="cm_professorValues" rows="3">' + esc(c.professorValues || '') + '</textarea></div>';
           inner += '<div class="field"><label>Allowed materials' + renderEditorInfoIcon('Allowed materials', "What you're allowed to reference during the exam (e.g. 'open notes', 'one-page cheat sheet', 'closed book'). Shapes how the AI calibrates difficulty and whether it expects memorized recall vs reasoning.") + '</label><input type="text" class="input" id="cm_allowedMaterials" value="' + esc(c.allowedMaterials || '') + '"></div>';
@@ -18973,6 +19005,9 @@ input[type="range"]::-moz-range-thumb{
             if (mode === 'string') return String(raw || '').trim();
             try { return JSON.parse(String(raw || '')); } catch (e) { return null; }
           }
+          function escapeAttr(raw) {
+            return String(raw || '').replace(/"/g, '&quot;');
+          }
           function buildParserRows(parsed) {
             var rows = [];
             rows.push({
@@ -19002,67 +19037,146 @@ input[type="range"]::-moz-range-thumb{
           function renderBloomBar(profile) {
             if (!profile) return '<div class="help">No bloom profile extracted.</div>';
             var keys = ['remember', 'understand', 'apply', 'analyze', 'evaluate', 'create'];
-            return '<div class="cm-bloom">' + keys.map(function(k) {
-              var pct = Math.max(0, Math.min(100, Number(profile[k] || 0)));
+            var segments = keys.map(function(k) {
+              var pct = Math.max(0, Math.min(100, Math.round(Number(profile[k] || 0) * 100)));
               var color = k === 'remember' ? 'var(--rate-easy)' : (k === 'understand' ? 'var(--rate-good)' : (k === 'apply' ? 'var(--accent-primary)' : (k === 'analyze' ? 'var(--accent-secondary)' : (k === 'evaluate' ? 'var(--rate-hard)' : 'var(--rate-again)'))));
-              return '<div class="cm-bloom-seg" style="width:' + pct + '%;background:' + color + ';">' + esc(k) + ' ' + pct + '%</div>';
+              return { key: k, pct: pct, color: color };
+            });
+            var bar = '<div class="cm-bloom">' + segments.map(function(seg) {
+              var text = seg.pct >= 14 ? (seg.key + ' ' + seg.pct + '%') : '';
+              return '<div class="cm-bloom-seg" style="width:' + seg.pct + '%;background:' + seg.color + ';">' + esc(text) + '</div>';
             }).join('') + '</div>';
+            var legend = '<div class="cm-preview-grid" style="margin-top:6px;">' + segments.map(function(seg) {
+              return '<div><strong>' + esc(seg.key) + ':</strong> ' + seg.pct + '%</div>';
+            }).join('') + '</div>';
+            return bar + legend;
+          }
+          function renderEvidenceBlock(text) {
+            if (!text) return '';
+            return '<div class="cm-preview-evidence">' + esc(String(text)) + '</div>';
+          }
+          function renderRowStack(list, titleFn, quoteFn, weightFn) {
+            if (!Array.isArray(list) || !list.length) return '<div class="help">None extracted.</div>';
+            return list.map(function(entry) {
+              var weight = typeof weightFn === 'function' ? weightFn(entry) : null;
+              var weightHtml = weight != null ? '<span class="cm-preview-chip">' + esc(String(weight)) + '</span>' : '';
+              return '<div style="margin-bottom:8px;"><div style="display:flex;align-items:center;gap:6px;font-size:15px;font-weight:700;color:var(--text-primary);"><span>' + esc(titleFn(entry) || 'Untitled') + '</span>' + weightHtml + '</div>' + renderEvidenceBlock(quoteFn(entry) || '') + '</div>';
+            }).join('');
+          }
+          function renderTopicWeights(value) {
+            var items = Array.isArray(value) ? value : [];
+            if (!items.length) return '<div class="help">No topic weights extracted.</div>';
+            var hasWeight = items.some(function(item) { return item && item.weight != null; });
+            var header = '<tr><th style="text-align:left;padding:6px;border-bottom:1px solid var(--border-subtle);">Week</th><th style="text-align:left;padding:6px;border-bottom:1px solid var(--border-subtle);">Topic</th>' + (hasWeight ? '<th style="text-align:left;padding:6px;border-bottom:1px solid var(--border-subtle);">Weight</th>' : '') + '</tr>';
+            var body = items.map(function(item) {
+              return '<tr><td style="padding:6px;vertical-align:top;">' + esc(String(item.week != null ? item.week : '—')) + '</td><td style="padding:6px;white-space:normal;word-break:break-word;">' + esc(String(item.topic || '—')) + '</td>' + (hasWeight ? '<td style="padding:6px;">' + (item.weight != null ? esc(String(item.weight)) + '%' : '—') + '</td>' : '') + '</tr>';
+            }).join('');
+            return '<table style="width:100%;border-collapse:collapse;font-size:10px;">' + header + body + '</table>';
+          }
+          function renderReadings(value) {
+            var textbooks = value && Array.isArray(value.textbooks) ? value.textbooks : [];
+            var supplementary = value && Array.isArray(value.supplementaryReadings) ? value.supplementaryReadings : [];
+            if (!textbooks.length && !supplementary.length) return '<div class="help">None specified.</div>';
+            function renderEntry(entry, kind) {
+              var chapterMap = entry && Array.isArray(entry.chapterMapping) ? entry.chapterMapping : [];
+              var mapHtml = chapterMap.length ? '<div style="margin-top:6px;">' + chapterMap.map(function(m) { return '<div style="font-size:10px;color:var(--text-secondary);">Ch. ' + esc(String(m.chapter || '—')) + ' → ' + esc(String(m.topic || '')) + '</div>'; }).join('') + '</div>' : '';
+              return '<div style="border:1px solid var(--border-subtle);border-radius:10px;padding:8px;background:var(--surface-0);margin-bottom:6px;"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;"><strong>' + esc(String(entry.citation || kind)) + '</strong><span class="cm-preview-chip">' + esc(String(entry.availability || 'unspecified')) + '</span></div>' + mapHtml + '</div>';
+            }
+            var html = '';
+            if (textbooks.length) html += '<div style="margin-bottom:8px;"><div style="font-weight:700;margin-bottom:4px;">Textbooks</div>' + textbooks.map(function(tb) { return renderEntry(tb, 'textbook'); }).join('') + '</div>';
+            if (supplementary.length) html += '<div><div style="font-weight:700;margin-bottom:4px;">Supplementary readings</div>' + supplementary.map(function(sr) { return renderEntry(sr, 'reading'); }).join('') + '</div>';
+            return html;
+          }
+          function renderAiPolicy(value) {
+            var stance = (value && value.stance) || 'unspecified';
+            var colorMap = { banned: 'rgba(239,68,68,0.14)', restricted: 'rgba(245,158,11,0.16)', permitted: 'rgba(34,197,94,0.16)', unspecified: 'rgba(148,163,184,0.18)' };
+            return '<div><span class="cm-preview-chip" style="background:' + (colorMap[stance] || colorMap.unspecified) + ';color:var(--text-primary);">' + esc(stance) + '</span>' + renderEvidenceBlock(value && value.verbatimQuote ? value.verbatimQuote : '') + '</div>';
           }
           function formatRowValue(row, value) {
             if (row.key === 'assessmentFormat') {
               if (!value) return '<div class="help">No assessment format extracted.</div>';
               var flags = ['hasEssay', 'hasShortAnswer', 'hasMultipleChoice', 'hasOralComponent', 'hasPresentation', 'hasParticipation'];
-              var bits = flags.map(function(f) { return '<div><strong>' + esc(f) + ':</strong> ' + ((value[f] ? 'yes' : 'no')) + '</div>'; }).join('');
-              var weights = value.weights ? Object.keys(value.weights).map(function(k) { return '<div><strong>' + esc(k) + ':</strong> ' + esc(String(value.weights[k])) + '%</div>'; }).join('') : '<div>none</div>';
-              return '<div class="cm-preview-grid">' + bits + '<div style="grid-column:1/-1;"><strong>weights</strong><div class="cm-preview-grid">' + weights + '</div></div></div>';
+              var bits = flags.map(function(f) { return '<div><strong>' + esc(f) + ':</strong> ' + (value[f] ? 'yes' : 'no') + '</div>'; }).join('');
+              var weightKeys = value.weights ? Object.keys(value.weights) : [];
+              var weights = weightKeys.length ? '<div style="grid-column:1/-1;"><strong>weights</strong><div class="cm-preview-grid">' + weightKeys.map(function(k) { return '<div><strong>' + esc(k) + ':</strong> ' + esc(String(value.weights[k])) + '%</div>'; }).join('') + '</div></div>' : '';
+              return '<div class="cm-preview-grid">' + bits + weights + '</div>';
             }
             if (row.key === 'allowedMaterials') {
               if (!value) return '<div class="help">No allowed materials extracted.</div>';
               return '<div><strong>Mode:</strong> ' + esc(value.mode || 'unknown') + (value.rawText ? '<div class="cm-preview-evidence">' + esc(value.rawText) + '</div>' : '') + '</div>';
             }
+            if (row.kind === 'professor') return renderRowStack([value], function(entry) { return entry && entry.value || 'Professor value'; }, function(entry) { return entry && entry.evidence || ''; });
+            if (row.kind === 'rubric') return renderRowStack([value], function(entry) { return entry && entry.dimension || 'Rubric hint'; }, function(entry) { return entry && entry.verbatim || ''; }, function(entry) { return entry && entry.weight != null ? String(entry.weight) + '%' : null; });
+            if (row.key === 'topicWeights') return renderTopicWeights(value);
             if (row.key === 'scopeTerms') {
               var terms = Array.isArray(value) ? value : [];
-              return terms.length ? '<div class="cm-preview-chip-row">' + terms.map(function(t) { return '<span class="cm-preview-chip">' + esc(String(t)) + '</span>'; }).join('') + '</div>' : '<div class="help">No scope terms extracted.</div>';
+              if (!terms.length) return '<div class="help">No scope terms extracted.</div>';
+              return '<div class="cm-preview-chip-row">' + terms.slice(0, 10).map(function(t) { return '<span class="cm-preview-chip">' + esc(String(t)) + '</span>'; }).join('') + (terms.length > 10 ? '<span class="cm-preview-chip">+' + (terms.length - 10) + ' more</span>' : '') + '</div>';
             }
             if (row.key === 'bloomProfile') return renderBloomBar(value);
-            if (row.key === 'aiPolicy') {
-              var stance = (value && value.stance) || 'unspecified';
-              var chip = '<span class="cm-preview-chip">' + esc(stance) + '</span>';
-              return '<div>' + chip + (value && value.verbatimQuote ? '<div class="cm-preview-evidence">' + esc(value.verbatimQuote) + '</div>' : '') + '</div>';
-            }
-            if (row.key === 'readings') {
-              var textbooks = value && value.textbooks ? value.textbooks : [];
-              var supp = value && value.supplementaryReadings ? value.supplementaryReadings : [];
-              return '<div><strong>Textbooks:</strong> ' + esc(String(textbooks.length)) + ' · <strong>Supplementary:</strong> ' + esc(String(supp.length)) + '</div><pre style="white-space:pre-wrap;margin:6px 0 0;font-size:9px;">' + esc(JSON.stringify(value || {}, null, 2)) + '</pre>';
-            }
-            if (row.key === 'subjectType') {
-              return '<div><strong>' + esc(value && value.subjectType ? value.subjectType : '') + '</strong></div>';
-            }
-            return '<pre style="white-space:pre-wrap;margin:0;font-size:9px;">' + esc(JSON.stringify(value, null, 2)) + '</pre>';
+            if (row.key === 'aiPolicy') return renderAiPolicy(value);
+            if (row.key === 'readings') return renderReadings(value);
+            if (row.key === 'academicIntegrityHints') return Array.isArray(value) && value.length ? '<ul style="margin:0;padding-left:18px;">' + value.map(function(q) { return '<li>' + renderEvidenceBlock(q) + '</li>'; }).join('') + '</ul>' : '<div class="help">No academic integrity hints extracted.</div>';
+            if (row.key === 'subjectType') return '<div><strong>' + esc(value && value.subjectType ? value.subjectType : '') + '</strong>' + renderEvidenceBlock(value && value.subjectTypeReason ? value.subjectTypeReason : '') + '</div>';
+            return '<div class="help">No preview renderer available.</div>';
           }
           function renderSyllabusPreviewCard(courseKey, sourceText, parsed) {
-            var wrap = el('cm_previewWrap');
-            var resultsCard = el('cm_resultsCard');
-            if (!wrap || !resultsCard) return;
-            wrap.style.display = '';
-            if (!resultsCard.open) resultsCard.open = true;
+            var wrap = el('cm_previewModalBody');
+            var overlay = el('cm_previewOverlay');
+            var successChip = el('cm_previewSuccessChip');
+            var successCount = el('cm_previewSuccessCount');
+            var fieldCountChip = el('cm_previewFieldCount');
+            if (!wrap || !overlay || !successChip || !successCount || !fieldCountChip) return;
             var rows = buildParserRows(parsed).filter(function(row) {
               if (row.kind === 'professor' || row.kind === 'rubric') return !!row.value;
               if (row.key === 'assessmentFormat' || row.key === 'allowedMaterials' || row.key === 'bloomProfile') return true;
               return row.value != null;
             });
-            var decisions = {};
-            var edits = {};
-            rows.forEach(function(row) { decisions[row.key] = defaultDecisionForConfidence(row.confidence); });
+            if (!rows.length) return;
+            var existingState = syllabusPreviewStateByCourse[courseKey];
+            var decisions = existingState && existingState.decisions ? Object.assign({}, existingState.decisions) : {};
+            var edits = existingState && existingState.edits ? Object.assign({}, existingState.edits) : {};
+            var initialDecisions = existingState && existingState.initialDecisions ? Object.assign({}, existingState.initialDecisions) : {};
+            rows.forEach(function(row) {
+              if (!Object.prototype.hasOwnProperty.call(decisions, row.key)) decisions[row.key] = defaultDecisionForConfidence(row.confidence);
+              if (!Object.prototype.hasOwnProperty.call(initialDecisions, row.key)) initialDecisions[row.key] = decisions[row.key];
+            });
+            syllabusPreviewStateByCourse[courseKey] = { sourceText: sourceText, parsed: parsed, rows: rows, decisions: decisions, edits: edits, initialDecisions: initialDecisions };
+            successChip.style.display = '';
+            successCount.textContent = rows.length + ' fields extracted';
+            fieldCountChip.textContent = rows.length + ' fields extracted';
 
+            function acceptedCount() { return rows.reduce(function(acc, row) { return acc + (decisions[row.key] === 'accept' ? 1 : 0); }, 0); }
+            function updateFooterCount() {
+              var cnt = el('cm_previewAcceptedCount');
+              var save = el('cm_saveAcceptedContext');
+              var accepted = acceptedCount();
+              if (cnt) cnt.textContent = accepted + ' of ' + rows.length + ' accepted';
+              if (save) save.disabled = accepted === 0;
+            }
+            function hasUnsavedAccepted() {
+              if (acceptedCount() > 0) return true;
+              return rows.some(function(row) { return decisions[row.key] !== initialDecisions[row.key]; });
+            }
+            function closePreview(forceClose) {
+              if (!forceClose && hasUnsavedAccepted() && !window.confirm('Discard unsaved preview selections?')) return;
+              overlay.classList.remove('show');
+            }
+            function openPreview() {
+              overlay.classList.add('show');
+              if (window.gsap && !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+                gsap.fromTo(overlay.querySelector('.cm-preview-modal'), { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.24, ease: 'power2.out' });
+              }
+              setTimeout(function() { var closeBtn = el('cm_previewCloseBtn'); if (closeBtn) closeBtn.focus(); }, 0);
+            }
             function render() {
-              var html = '<div class="cm-context-preview" id="cm_contextPreviewCard"><div class="cm-preview-head"><div><div class="cm-preview-title">Extracted course context</div><div class="cm-preview-subtitle">Review each field before saving</div></div><div class="cm-preview-count">' + rows.length + ' fields extracted</div></div>';
+              var html = '';
               rows.forEach(function(row) {
                 var decision = decisions[row.key] || 'pending';
                 var isRejected = decision === 'reject';
                 var isEdit = decision === 'edit';
                 var displayVal = Object.prototype.hasOwnProperty.call(edits, row.key) ? edits[row.key] : row.value;
-                html += '<div class="cm-preview-row' + (isRejected ? ' is-rejected' : '') + '"><div class="cm-preview-row-head"><div class="cm-preview-label"><span class="cm-conf-dot ' + esc(row.confidence) + '"></span>' + esc(row.title) + '</div></div>';
+                html += '<div class="cm-preview-row' + (isRejected ? ' is-rejected' : '') + '"><div class="cm-preview-row-head"><div class="cm-preview-label"><span class="cm-conf-dot ' + esc(row.confidence) + '" data-conf-dot="' + escapeAttr(row.key) + '"></span>' + esc(row.title) + '</div></div>';
                 html += '<div class="cm-preview-value">' + formatRowValue(row, displayVal) + '</div>';
                 if (row.evidence) html += '<div class="cm-preview-evidence">' + esc(row.evidence) + '</div>';
                 html += '<div class="cm-preview-controls"><button type="button" class="cm-mini-btn' + (decision === 'accept' ? ' active' : '') + '" data-row-action="accept" data-row-key="' + esc(row.key) + '">✓ Accept</button><button type="button" class="cm-mini-btn' + (decision === 'edit' ? ' active' : '') + '" data-row-action="edit" data-row-key="' + esc(row.key) + '">✎ Edit</button><button type="button" class="cm-mini-btn' + (decision === 'reject' ? ' active' : '') + '" data-row-action="reject" data-row-key="' + esc(row.key) + '">✗ Reject</button></div>';
@@ -19073,26 +19187,16 @@ input[type="range"]::-moz-range-thumb{
                 }
                 html += '</div>';
               });
-              html += '<div class="cm-preview-actions"><button type="button" class="big-btn" id="cm_saveAcceptedContext">Save accepted</button><button type="button" class="cm-save-btn" id="cm_discardContextPreview">Discard all</button></div></div>';
               wrap.innerHTML = html;
-
+              updateFooterCount();
               wrap.querySelectorAll('[data-row-action]').forEach(function(btn) {
                 btn.onclick = function() {
                   var action = btn.getAttribute('data-row-action');
                   var key = btn.getAttribute('data-row-key') || '';
-                  if (action === 'accept' || action === 'edit' || action === 'reject') {
-                    decisions[key] = action;
-                    render();
-                    return;
-                  }
-                  if (action === 'cancel-edit') {
-                    decisions[key] = 'pending';
-                    delete edits[key];
-                    render();
-                    return;
-                  }
+                  if (action === 'accept' || action === 'edit' || action === 'reject') { decisions[key] = action; render(); return; }
+                  if (action === 'cancel-edit') { decisions[key] = 'pending'; delete edits[key]; render(); return; }
                   if (action === 'save-edit') {
-                    var editor = wrap.querySelector('[data-row-editor=\"' + key.replace(/\"/g, '&quot;') + '\"]');
+                    var editor = wrap.querySelector('[data-row-editor="' + escapeAttr(key) + '"]');
                     var row = rows.find(function(r) { return r.key === key; });
                     if (!editor || !row) return;
                     var parsedValue = parseEditorValue(editor.value, row.mode);
@@ -19103,78 +19207,88 @@ input[type="range"]::-moz-range-thumb{
                   }
                 };
               });
-
-              var discardBtn = el('cm_discardContextPreview');
-              if (discardBtn) discardBtn.onclick = function() { wrap.innerHTML = ''; };
-
-              var saveBtn = el('cm_saveAcceptedContext');
-              if (saveBtn) saveBtn.onclick = function() {
-                var result = {
-                  subjectType: parsed.subjectType,
-                  subjectTypeReason: parsed.subjectTypeReason || '',
-                  confidence: Object.assign({}, parsed.confidence || {})
-                };
-                var subjectRow = rows.find(function(r) { return r.key === 'subjectType'; });
-                if (subjectRow && decisions.subjectType !== 'reject') {
-                  var subjectValue = Object.prototype.hasOwnProperty.call(edits, 'subjectType') ? edits.subjectType : subjectRow.value;
-                  if (subjectValue && subjectValue.subjectType) {
-                    result.subjectType = subjectValue.subjectType;
-                    result.subjectTypeReason = subjectValue.subjectTypeReason || '';
-                  }
-                }
-                function assignOptional(key, targetKey) {
-                  var row = rows.find(function(r) { return r.key === key; });
-                  if (!row) return;
-                  if (decisions[key] === 'reject' || decisions[key] === 'pending') return;
-                  result[targetKey || key] = Object.prototype.hasOwnProperty.call(edits, key) ? edits[key] : row.value;
-                }
-                assignOptional('assessmentFormat');
-                assignOptional('allowedMaterials');
-                assignOptional('topicWeights');
-                assignOptional('scopeTerms');
-                assignOptional('bloomProfile');
-                assignOptional('aiPolicy');
-                assignOptional('academicIntegrityHints');
-                var readingRow = rows.find(function(r) { return r.key === 'readings'; });
-                if (readingRow && decisions.readings !== 'reject' && decisions.readings !== 'pending') {
-                  var readingVal = Object.prototype.hasOwnProperty.call(edits, 'readings') ? edits.readings : readingRow.value;
-                  result.textbooks = readingVal && Array.isArray(readingVal.textbooks) ? readingVal.textbooks : [];
-                  result.supplementaryReadings = readingVal && Array.isArray(readingVal.supplementaryReadings) ? readingVal.supplementaryReadings : [];
-                }
-                var profRows = rows.filter(function(r) { return r.kind === 'professor'; });
-                var acceptedProf = [];
-                profRows.forEach(function(row) {
-                  if (decisions[row.key] === 'accept') acceptedProf.push(Object.prototype.hasOwnProperty.call(edits, row.key) ? edits[row.key] : row.value);
-                });
-                if (acceptedProf.length) result.professorValueHints = acceptedProf;
-                var rubricRows = rows.filter(function(r) { return r.kind === 'rubric'; });
-                var acceptedRubric = [];
-                rubricRows.forEach(function(row) {
-                  if (decisions[row.key] === 'accept') acceptedRubric.push(Object.prototype.hasOwnProperty.call(edits, row.key) ? edits[row.key] : row.value);
-                });
-                if (acceptedRubric.length) result.rubricHints = acceptedRubric;
-
-                var context = buildCourseContext(result, sourceText, Date.now());
-                if (!state.courses[courseKey]) return;
-                state.courses[courseKey].courseContext = context;
-                saveState();
-                toast('Course context saved');
-                var card = el('cm_contextPreviewCard');
-                var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-                if (!card || reduceMotion) { wrap.innerHTML = ''; return; }
-                card.classList.add('cm-collapsing');
-                setTimeout(function() { wrap.innerHTML = ''; }, 180);
-              };
             }
+
+            var closeBtn = el('cm_previewCloseBtn');
+            var discardBtn = el('cm_discardContextPreview');
+            var saveBtn = el('cm_saveAcceptedContext');
+            var acceptAllBtn = el('cm_acceptAllBtn');
+            var rejectAllBtn = el('cm_rejectAllBtn');
+            successChip.onclick = function() { openPreview(); };
+            if (closeBtn) closeBtn.onclick = function() { closePreview(false); };
+            if (discardBtn) discardBtn.onclick = function() {
+              rows.forEach(function(row) { decisions[row.key] = 'pending'; });
+              edits = {};
+              syllabusPreviewStateByCourse[courseKey].edits = edits;
+              render();
+            };
+            if (acceptAllBtn) acceptAllBtn.onclick = function() {
+              rows.forEach(function(row) { decisions[row.key] = 'accept'; });
+              render();
+              wrap.querySelectorAll('[data-conf-dot]').forEach(function(dot) { dot.classList.add('cm-pulse'); setTimeout(function() { dot.classList.remove('cm-pulse'); }, 380); });
+            };
+            if (rejectAllBtn) rejectAllBtn.onclick = function() { rows.forEach(function(row) { decisions[row.key] = 'reject'; }); render(); };
+            overlay.onclick = function(e) { if (e.target === overlay) closePreview(false); };
+            overlay.onkeydown = function(e) {
+              if (e.key === 'Escape') { e.preventDefault(); closePreview(false); return; }
+              if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && acceptedCount() > 0) {
+                e.preventDefault();
+                var saveAction = el('cm_saveAcceptedContext');
+                if (saveAction) saveAction.click();
+              }
+            };
+            if (saveBtn) saveBtn.onclick = function() {
+              var result = { subjectType: parsed.subjectType, subjectTypeReason: parsed.subjectTypeReason || '', confidence: Object.assign({}, parsed.confidence || {}) };
+              var subjectRow = rows.find(function(r) { return r.key === 'subjectType'; });
+              if (subjectRow && decisions.subjectType !== 'reject') {
+                var subjectValue = Object.prototype.hasOwnProperty.call(edits, 'subjectType') ? edits.subjectType : subjectRow.value;
+                if (subjectValue && subjectValue.subjectType) { result.subjectType = subjectValue.subjectType; result.subjectTypeReason = subjectValue.subjectTypeReason || ''; }
+              }
+              function assignOptional(key, targetKey) {
+                var row = rows.find(function(r) { return r.key === key; });
+                if (!row) return;
+                if (decisions[key] === 'reject' || decisions[key] === 'pending') return;
+                result[targetKey || key] = Object.prototype.hasOwnProperty.call(edits, key) ? edits[key] : row.value;
+              }
+              assignOptional('assessmentFormat');
+              assignOptional('allowedMaterials');
+              assignOptional('topicWeights');
+              assignOptional('scopeTerms');
+              assignOptional('bloomProfile');
+              assignOptional('aiPolicy');
+              assignOptional('academicIntegrityHints');
+              var readingRow = rows.find(function(r) { return r.key === 'readings'; });
+              if (readingRow && decisions.readings !== 'reject' && decisions.readings !== 'pending') {
+                var readingVal = Object.prototype.hasOwnProperty.call(edits, 'readings') ? edits.readings : readingRow.value;
+                result.textbooks = readingVal && Array.isArray(readingVal.textbooks) ? readingVal.textbooks : [];
+                result.supplementaryReadings = readingVal && Array.isArray(readingVal.supplementaryReadings) ? readingVal.supplementaryReadings : [];
+              }
+              var profRows = rows.filter(function(r) { return r.kind === 'professor'; });
+              var acceptedProf = [];
+              profRows.forEach(function(row) { if (decisions[row.key] === 'accept') acceptedProf.push(Object.prototype.hasOwnProperty.call(edits, row.key) ? edits[row.key] : row.value); });
+              if (acceptedProf.length) result.professorValueHints = acceptedProf;
+              var rubricRows = rows.filter(function(r) { return r.kind === 'rubric'; });
+              var acceptedRubric = [];
+              rubricRows.forEach(function(row) { if (decisions[row.key] === 'accept') acceptedRubric.push(Object.prototype.hasOwnProperty.call(edits, row.key) ? edits[row.key] : row.value); });
+              if (acceptedRubric.length) result.rubricHints = acceptedRubric;
+
+              var context = buildCourseContext(result, sourceText, Date.now());
+              if (!state.courses[courseKey]) return;
+              state.courses[courseKey].courseContext = context;
+              saveState();
+              toast('Course context saved');
+              delete syllabusPreviewStateByCourse[courseKey];
+              closePreview(true);
+            };
+
             render();
+            openPreview();
           }
           function renderSyllabusParseError(finishReason, message, retryFn) {
             var wrap = el('cm_previewWrap');
-            var resultsCard = el('cm_resultsCard');
-            if (!wrap || !resultsCard) return;
+            if (!wrap) return;
             wrap.style.display = '';
-            if (!resultsCard.open) resultsCard.open = true;
-            wrap.innerHTML = '<div class="cm-context-preview"><div class="cm-preview-error"><div style="font-weight:700;margin-bottom:6px;">Could not extract course context</div><div style="margin-bottom:8px;"><strong>Finish reason:</strong> ' + esc(finishReason || 'unknown') + '</div><div style="margin-bottom:10px;">' + esc(message || 'Unknown error') + '</div><button type="button" class="cm-save-btn" id="cm_retryParseSyllabus">Retry</button></div></div>';
+            wrap.innerHTML = '<div class="cm-preview-error"><div style="font-weight:700;margin-bottom:6px;">Could not extract course context</div><div style="margin-bottom:8px;"><strong>Finish reason:</strong> ' + esc(finishReason || 'unknown') + '</div><div style="margin-bottom:10px;">' + esc(message || 'Unknown error') + '</div><button type="button" class="cm-save-btn" id="cm_retryParseSyllabus">Retry</button></div>';
             var retryBtn = el('cm_retryParseSyllabus');
             if (retryBtn) retryBtn.onclick = retryFn;
           }
@@ -19232,8 +19346,6 @@ input[type="range"]::-moz-range-thumb{
               c.allowedMaterials = data.allowedMaterials != null && data.allowedMaterials !== 'null' ? String(data.allowedMaterials) : c.allowedMaterials;
               c.syllabusKeyTopics = Array.isArray(data.keyTopics) ? data.keyTopics.slice(0, 20) : [];
               saveCourse(c);
-              var prev = el('cm_syllabusPreview');
-              if (prev) prev.textContent = c.syllabusContext || '';
               var wrap = el('cm_previewWrap');
               if (wrap && c.syllabusContext) wrap.style.display = '';
               var profEl = el('cm_professorValues'); if (profEl) profEl.value = c.professorValues || '';
@@ -19268,6 +19380,16 @@ input[type="range"]::-moz-range-thumb{
             source: c.rawSyllabusText ? 'Pasted text' : '',
             chars: c.rawSyllabusText ? String(c.rawSyllabusText).trim().length : 0
           };
+          var previewChip = el('cm_previewSuccessChip');
+          var previewCount = el('cm_previewSuccessCount');
+          var existingPreviewState = syllabusPreviewStateByCourse[c.name];
+          if (previewChip && previewCount && existingPreviewState && Array.isArray(existingPreviewState.rows)) {
+            previewChip.style.display = '';
+            previewCount.textContent = existingPreviewState.rows.length + ' fields extracted';
+            previewChip.onclick = function() {
+              renderSyllabusPreviewCard(c.name, existingPreviewState.sourceText, existingPreviewState.parsed);
+            };
+          }
 
           function updateSyllabusZoneState() {
             if (!syllabusText) return;
