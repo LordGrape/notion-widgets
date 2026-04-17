@@ -8398,7 +8398,7 @@ input[type="range"]::-moz-range-thumb{
     import { getLevelInfo, didLevelUp } from './src/xp-level-system';
     import { drawRetentionCurve, drawSparkline, drawTierRing, drawActivityHeatmap, wireRetentionInteractivity, hideCanvasTooltip, getCanvasCtx, getAccentRGB, getTextSecondary, getTextColor } from './src/charts';
     import { buildSessionQueue, startSession, rateCurrent, advanceItem, completeSession, calcRestudyDuration, preloadQuickfireInsight } from './src/session-flow';
-    import { maybeReclassify } from './src/tier-classifier';
+    import { maybeReclassify, resolveTierTargetDistribution } from './src/tier-classifier';
     import { callParseSyllabus, validateEvidenceQuotes, buildCourseContext, SyllabusParseError } from './src/syllabus-parser';
     import { setupSettingsModule } from './src/settings';
     import { setupModalSystem } from './src/modals';
@@ -9479,6 +9479,22 @@ input[type="range"]::-moz-range-thumb{
       var d = new Date();
       var pad = function(n) { return String(n).padStart(2, '0'); };
       return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    }
+
+    function formatTierDistCaption(prefix, dist) {
+      if (!dist) return '';
+      var tiers = [
+        { id: 'quickfire', label: 'QF' },
+        { id: 'explain', label: 'Ex' },
+        { id: 'apply', label: 'Ap' },
+        { id: 'distinguish', label: 'Di' },
+        { id: 'mock', label: 'Mk' },
+        { id: 'worked', label: 'We' }
+      ];
+      return prefix + ' ' + tiers.map(function(t) {
+        var pct = Math.round((Number(dist[t.id]) || 0) * 100);
+        return t.label + ' ' + pct + '%';
+      }).join(' · ');
     }
 
     /* ═══ SECTION: Get Fsrs Decay | Functions: getFsrsDecay ═══ */
@@ -20113,6 +20129,17 @@ input[type="range"]::-moz-range-thumb{
         h += '</div></div>';
       }
       if (stats.total > 0) {
+        var actualDistTotal = 0;
+        ['quickfire', 'explain', 'apply', 'distinguish', 'mock', 'worked'].forEach(function(t) {
+          actualDistTotal += Number(stats.tierDist[t] || 0);
+        });
+        var actualDist = { quickfire: 0, explain: 0, apply: 0, distinguish: 0, mock: 0, worked: 0 };
+        if (actualDistTotal > 0) {
+          ['quickfire', 'explain', 'apply', 'distinguish', 'mock', 'worked'].forEach(function(t) {
+            actualDist[t] = Number(stats.tierDist[t] || 0) / actualDistTotal;
+          });
+        }
+        var tierTargetDist = resolveTierTargetDistribution(courseData);
         h += '<div><div class="ctx-section-title">Tier Distribution</div>';
         h += '<div class="breakdown">';
         ['quickfire', 'explain', 'apply', 'distinguish', 'mock', 'worked'].forEach(function(t) {
@@ -20120,6 +20147,11 @@ input[type="range"]::-moz-range-thumb{
           if (count > 0) h += '<div class="tier-pill"><span class="tier-dot" style="background:' + tierColour(t) + ';"></span>' + esc(tierLabel(t)) + ' ' + count + '</div>';
         });
         h += '</div></div>';
+        if (tierTargetDist) {
+          h += '<div style="margin-top:6px;font-size:10px;color:var(--text-tertiary);line-height:1.4;">';
+          h += esc(formatTierDistCaption('Actual:', actualDist) + ' | ' + formatTierDistCaption('Target:', tierTargetDist));
+          h += '</div>';
+        }
       }
       h += '<div><div class="ctx-section-title">Lecture Materials</div>';
       var importedCount = modules.filter(function(m) { return m && m.lectureImported; }).length;
