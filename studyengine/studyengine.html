@@ -14935,7 +14935,7 @@ input[type="range"]::-moz-range-thumb{
         return;
       }
       if (opts.loading) {
-        nodes.summary.textContent = 'Tutor insight';
+        nodes.summary.textContent = '💡 Stuck? Reveal hint';
         nodes.body.textContent = 'Tutor is thinking...';
         nodes.panel.open = true;
         root.setAttribute('data-has-rich-insight', 'false');
@@ -14949,7 +14949,7 @@ input[type="range"]::-moz-range-thumb{
         root.setAttribute('data-insight-loading', 'false');
         return;
       }
-      nodes.summary.textContent = 'Tutor insight';
+      nodes.summary.textContent = '💡 Stuck? Reveal hint';
       nodes.body.textContent = cleanedInsight;
       nodes.panel.open = false;
       root.setAttribute('data-has-rich-insight', 'true');
@@ -15056,6 +15056,49 @@ input[type="range"]::-moz-range-thumb{
         setQuickFireReRetrievalInsight(root, insightText);
       }
 
+      function markQuickFireHintUsedTelemetry() {
+        if (!session || !Array.isArray(session.sessionRatingsLog)) return;
+        var log = session.sessionRatingsLog;
+        if (!log.length) return;
+        var currentPrompt = ((it && it.prompt) || '').substring(0, 100);
+        var currentCourse = (it && it.course) || '';
+        var currentTopic = (it && it.topic) || '';
+        var currentEntry = -1;
+        for (var i = log.length - 1; i >= 0; i--) {
+          var entry = log[i];
+          if (!entry) continue;
+          var promptMatch = (entry.prompt || '') === currentPrompt;
+          var courseMatch = (entry.course || '') === currentCourse;
+          var topicMatch = (entry.topic || '') === currentTopic;
+          if (promptMatch && courseMatch && topicMatch) {
+            currentEntry = i;
+            break;
+          }
+        }
+        if (currentEntry < 0) currentEntry = log.length - 1;
+        if (!log[currentEntry] || log[currentEntry].hintUsed) return;
+        log[currentEntry].hintUsed = true;
+      }
+
+      function bindQuickFireHintTelemetryOnce() {
+        var insightPanel = root ? root.querySelector('.qf-reret-insight') : null;
+        if (!insightPanel || insightPanel._hintTelemetryBound) return;
+        insightPanel._hintTelemetryBound = true;
+        insightPanel.addEventListener('toggle', function() {
+          if (!insightPanel.open || insightPanel._hintUsedLogged) return;
+          insightPanel._hintUsedLogged = true;
+          markQuickFireHintUsedTelemetry();
+        });
+      }
+
+      function expandQuickFireInsightPanel() {
+        var insightPanel = root ? root.querySelector('.qf-reret-insight') : null;
+        if (!insightPanel) return;
+        insightPanel.open = true;
+      }
+
+      bindQuickFireHintTelemetryOnce();
+
       /* ═══ SECTION: Finish Flow | Functions: finishFlow ═══ */
       function finishFlow() {
         if (finished) return;
@@ -15144,6 +15187,7 @@ input[type="range"]::-moz-range-thumb{
         if (sendBtn) sendBtn.disabled = true;
         if (skipBtn) skipBtn.style.display = 'none';
         try { playClick(); } catch (eSr) {}
+        expandQuickFireInsightPanel();
 
         if (reactionArea) {
           reactionArea.style.display = 'block';
@@ -15198,6 +15242,7 @@ input[type="range"]::-moz-range-thumb{
         if (sendBtn) sendBtn.disabled = true;
         if (skipBtn) skipBtn.style.display = 'none';
         try { playClick(); } catch (eSk) {}
+        expandQuickFireInsightPanel();
         showConsolidation();
       }
 
