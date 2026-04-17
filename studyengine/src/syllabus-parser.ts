@@ -1,7 +1,5 @@
 import type { CourseContext, ParsedSyllabus } from './types';
 
-declare function getWidgetKey(): string;
-
 interface ParseSyllabusFailurePayload {
   error?: string;
   finishReason?: string;
@@ -75,12 +73,37 @@ function getBodyPreview(raw: string): string {
   return trimmed.length > 300 ? `${trimmed.slice(0, 300)}…` : trimmed;
 }
 
+type SyncEngineAuthShape = {
+  _key?: unknown;
+  key?: unknown;
+  passphrase?: unknown;
+};
+
+function nonEmptyString(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function resolveWidgetKey(): string {
+  const syncEngine = (globalThis as { SyncEngine?: SyncEngineAuthShape }).SyncEngine;
+  const syncKey = nonEmptyString(syncEngine?._key) || nonEmptyString(syncEngine?.key) || nonEmptyString(syncEngine?.passphrase);
+  if (syncKey) return syncKey;
+
+  const envKey = nonEmptyString(import.meta.env.VITE_WIDGET_KEY);
+  const globalEnvKey = nonEmptyString((globalThis as { __VITE_WIDGET_KEY__?: unknown }).__VITE_WIDGET_KEY__);
+  return envKey || globalEnvKey;
+}
+
 export async function callParseSyllabus(syllabusText: string): Promise<ParsedSyllabus> {
+  const widgetKey = resolveWidgetKey();
+  if (!widgetKey) {
+    throw new Error('Missing widget key — check VITE_WIDGET_KEY');
+  }
+
   const response = await fetch('/studyengine/parse-syllabus', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-Widget-Key': getWidgetKey(),
+      'X-Widget-Key': widgetKey,
     },
     body: JSON.stringify({ syllabusText }),
   });
