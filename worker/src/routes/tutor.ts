@@ -469,6 +469,12 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
         "Do NOT ignore student questions.\n";
     }
 
+    if (mode === "insight") {
+      modeInstructionsForMode +=
+        "\n\nFORMAT RULES (STRICT): Return ONLY the JSON object. No markdown, no code fences, no lead-in text. " +
+        "No greetings, no motivational preambles. The \"insight\" field value must be at most 3 sentences.\n";
+    }
+
     const jsonFieldSeparationHint = {
       tutorAndFollowUp:
         "\n\nIMPORTANT: Do NOT include the follow-up question inside \"tutorMessage\". " +
@@ -718,7 +724,7 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
       fieldSepForMode;
 
     const modeTokenLimits: Record<TutorMode, number> = {
-      insight: 1024,
+      insight: 1536,
       quick: 2560,
       acknowledge: 1024,
       socratic: 3072,
@@ -770,7 +776,8 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
       }
       const retryPrompt =
         `${dynamicPrompt}\n\n` +
-        "Return ONLY a JSON object. No prose. No code fences. Keep each field value to at most 2 sentences.";
+        "Return ONLY a JSON object. No prose. No code fences. Keep each field value to at most 2 sentences." +
+        (mode === "insight" ? " Keep the insight value to at most 3 sentences." : "");
       const retryData = await callGemini(selectedModel, systemPromptFinal, retryPrompt, generationConfig, env);
       finishReason = getFinishReason(retryData);
       rawText = extractGeminiText(retryData);
