@@ -19383,13 +19383,10 @@ input[type="range"]::-moz-range-thumb{
           }
 
           if (procBtn) procBtn.onclick = function() {
-            runSyllabusProcess(syllabusText ? syllabusText.value : '', { onDone: updateSyllabusZoneState });
-          };
-          if (procBtn) procBtn.addEventListener('click', function() {
             var raw = syllabusText ? syllabusText.value : '';
             if (!String(raw || '').trim()) return;
             runSyllabusParsePreview(raw);
-          });
+          };
           if (reprocBtn) reprocBtn.onclick = function() {
             runSyllabusProcess(c.rawSyllabusText || (syllabusText ? syllabusText.value : ''), { onDone: updateSyllabusZoneState });
           };
