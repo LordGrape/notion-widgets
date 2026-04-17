@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <link rel="icon" href="data:," />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
@@ -56,12 +56,18 @@
       }
     }
 
-    html, body { height: 100%; }
+    html, body { height: 100%; height: 100dvh; }
     body{
       font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       background: var(--bg);
       color: var(--text);
       overflow: hidden;
+      overscroll-behavior-y: contain;
+    }
+
+    @media (max-width: 700px) {
+      body { overflow: auto; -webkit-overflow-scrolling: touch; }
+      .wrap { height: auto; min-height: 100dvh; overflow: visible; padding: 8px 0 24px; }
     }
 
     #bgCanvas{
@@ -7743,6 +7749,46 @@ input[type="range"]::-moz-range-thumb{
       color: var(--text-tertiary);
       font-size: 12px;
     }
+
+    @media (max-width: 700px) {
+      #mobileCourseSwitchBtn { display: inline-flex !important; }
+    }
+
+    @media (max-width: 700px) {
+      input, textarea, select { font-size: 16px !important; }
+    }
+
+    @media (hover: none) {
+      .rate:hover, .icon-btn:hover, .big-btn:hover, .ghost-btn:hover,
+      .nav-tab:hover:not(.active), .course-picker-item:hover,
+      .cm-preview-success-chip:hover, .cm-save-btn:hover,
+      .tree-row:hover, .course-list-item:hover {
+        transform: none !important;
+        background: inherit;
+        border-color: inherit;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .rate { min-height: 44px; font-size: 10px; padding: 12px 6px; }
+      .icon-btn { min-width: 40px; min-height: 40px; padding: 10px; }
+      .big-btn { min-height: 48px; }
+      .ghost-btn { min-height: 44px; }
+      .nav-tab { min-height: 36px; padding: 8px 14px; font-size: 10px; }
+      .rub-pill { min-height: 40px; padding: 10px 14px; }
+      .xp-rank-badge { width: 36px; height: 36px; }
+      .cm-syllabus-saved-actions .ghost-btn { min-height: 40px; padding: 10px 14px; width: auto; }
+      .cm-upload-link { min-height: 36px; padding: 8px 10px; }
+    }
+
+    @media (max-width: 700px), (prefers-reduced-motion: reduce) {
+      #bgCanvas { display: none; }
+      body { background: var(--bg); }
+    }
+
+    .rate, .big-btn, .icon-btn, .ghost-btn, .nav-tab, .rub-pill,
+    .cm-preview-success-chip, .cm-save-btn { touch-action: manipulation; }
+
   </style>
 </head>
 <body>
@@ -7838,6 +7884,9 @@ input[type="range"]::-moz-range-thumb{
               <span class="xp-bar-label" id="xpBarLabel">0 / 100 XP</span>
             </div>
             <span id="syncBadge" title="Sync status" style="font-size:10px;padding:4px 8px;border-radius:999px;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.04);color:var(--text-tertiary);letter-spacing:1px;font-weight:700;text-transform:uppercase;cursor:default;display:none;">⏳</span>
+            <button id="mobileCourseSwitchBtn" class="icon-btn course-switch-btn" aria-label="Switch course" style="display:none;" type="button">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h12"/></svg>
+            </button>
             <button class="icon-btn" id="gearBtn"><span class="se-icon"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.5"/><path d="M8 1.5v1.2M8 13.3v1.2M1.5 8h1.2M13.3 8h1.2M3.4 3.4l.85.85M11.75 11.75l.85.85M3.4 12.6l.85-.85M11.75 4.25l.85-.85"/></svg></span></button>
           </div>
         </div>
@@ -8747,7 +8796,13 @@ input[type="range"]::-moz-range-thumb{
        - setSyncBadge: Handles set sync badge workflow and state updates.
        END FUNCTION INDEX */
     var isEmbedded = (window.self !== window.top);
-    if (!isEmbedded) document.body.classList.add('standalone');
+    function applyLayoutMode() {
+      var forceEmbed = window.matchMedia('(max-width: 700px)').matches;
+      var shouldBeStandalone = !isEmbedded;
+      document.body.classList.toggle('standalone', shouldBeStandalone && !forceEmbed);
+    }
+    applyLayoutMode();
+    window.addEventListener('resize', applyLayoutMode);
 
     /* ── SyncEngine Init ── */
     SyncEngine.init({
@@ -21931,6 +21986,11 @@ input[type="range"]::-moz-range-thumb{
         if (mainSet) mainSet.addEventListener('click', function() {
           var b = el('gearBtn');
           if (b) b.click();
+        });
+        var mobileCourseSwitchBtn = document.getElementById('mobileCourseSwitchBtn');
+        if (mobileCourseSwitchBtn) mobileCourseSwitchBtn.addEventListener('click', function() {
+          if (typeof openCourseModal === 'function') openCourseModal();
+          else console.warn('[mobile] no course picker function found');
         });
 
         // Main tabs: HOME resets sidebar selection; COURSES opens course manager
