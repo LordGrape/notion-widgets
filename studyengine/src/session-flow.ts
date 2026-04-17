@@ -229,6 +229,7 @@ export function buildSessionQueue(): StudyItem[] {
     if (!Object.prototype.hasOwnProperty.call(state.items, id)) continue;
     const it = state.items[id] as StudyItem;
     if (!it || it.archived) continue;
+    if (it.suspended === true) continue;
     if (courseFilter !== 'All' && it.course !== courseFilter) continue;
     if (selectedTopic !== 'All' && (it.topic || '') !== selectedTopic) continue;
     if (!isEmbedded && sidebarSelection) {

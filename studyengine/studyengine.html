@@ -7120,6 +7120,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     .ctx-card-row:hover { background: rgba(var(--accent-rgb), 0.05); }
+    .ctx-card-row.is-suspended { opacity: 0.6; }
 
     .ctx-card-row .cr-tier {
       font-size: 8px;
@@ -7156,6 +7157,72 @@ input[type="range"]::-moz-range-thumb{
       color: var(--accent);
       font-weight: 700;
       flex-shrink: 0;
+    }
+
+    .ctx-card-row .cr-suspended-badge {
+      font-size: 8px;
+      padding: 1px 5px;
+      border-radius: 99px;
+      background: rgba(var(--accent-rgb), 0.12);
+      color: var(--text-secondary);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .ctx-card-detail {
+      position: fixed;
+      z-index: 80;
+      width: min(520px, calc(100vw - 20px));
+      border-radius: 16px;
+      border: 1px solid var(--border-default);
+      background: var(--surface-1);
+      backdrop-filter: blur(20px) saturate(1.4);
+      -webkit-backdrop-filter: blur(20px) saturate(1.4);
+      box-shadow: var(--shadow-soft);
+      padding: 12px;
+    }
+
+    .ctx-card-detail-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .ctx-card-detail-meta {
+      font-size: 10px;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+
+    .ctx-card-detail-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .ctx-card-action-btn {
+      min-height: 44px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border-subtle);
+      background: var(--surface-0);
+      color: var(--text-primary);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      flex: 1;
+    }
+
+    .ctx-card-action-btn.danger {
+      color: var(--rate-again);
+      border-color: rgba(239,68,68,0.25);
+      background: rgba(239,68,68,0.08);
     }
 
     .ctx-section-title {
@@ -10385,14 +10452,16 @@ input[type="range"]::-moz-range-thumb{
         var tColor = tierColour(tier);
         var prompt = (card.prompt || '').substring(0, 120);
         var due = isDueNow(card);
+        var isSuspended = card.suspended === true;
         var stability = (card.fsrs && card.fsrs.stability) ? (Math.round(card.fsrs.stability) + 'd') : 'new';
         var reps = (card.fsrs && card.fsrs.reps) || 0;
 
-        h += '<div class="ctx-card-row">';
+        h += '<div class="ctx-card-row' + (isSuspended ? ' is-suspended' : '') + '" data-card-id="' + esc(card.id || '') + '">';
         h += '<span class="cr-tier" style="background:' + tColor + '22;color:' + tColor + ';">' + esc(String(tierLabel(tier) || '').substring(0, 2).toUpperCase()) + '</span>';
         h += '<span class="cr-prompt">' + esc(prompt) + '</span>';
         h += '<span class="cr-meta">' + esc(stability) + ' · ' + reps + ' reps</span>';
         if (due) h += '<span class="cr-due-badge">DUE</span>';
+        if (isSuspended) h += '<span class="cr-suspended-badge">Suspended</span>';
         h += '</div>';
       });
       h += '</div>';
@@ -10504,6 +10573,165 @@ input[type="range"]::-moz-range-thumb{
 
       setTimeout(function() {
         document.addEventListener('click', dismissCtxMenu);
+      }, 10);
+    }
+
+    var _activeCardDetail = null;
+    var cardEditId = null;
+
+    function closeCardDetailView() {
+      if (_activeCardDetail && _activeCardDetail.parentNode) _activeCardDetail.remove();
+      _activeCardDetail = null;
+      document.removeEventListener('click', handleOutsideCardDetailClick, true);
+    }
+
+    function handleOutsideCardDetailClick(e) {
+      if (!_activeCardDetail) return;
+      if (_activeCardDetail.contains(e.target)) return;
+      closeCardDetailView();
+    }
+
+    function refreshContextViewsAfterCardMutation(item) {
+      if (!item) return;
+      renderDashboard();
+      if (!isEmbedded) renderSidebar();
+      if (sidebarSelection && sidebarSelection.level === 'topic' && sidebarSelection.course && sidebarSelection.topic) {
+        showTopicView(sidebarSelection.course, sidebarSelection.topic);
+      } else if (sidebarSelection && sidebarSelection.level === 'module' && sidebarSelection.course && sidebarSelection.module) {
+        showModuleView(sidebarSelection.course, sidebarSelection.module);
+      } else if (sidebarSelection && sidebarSelection.level === 'course' && sidebarSelection.course) {
+        showCourseDashboard(sidebarSelection.course);
+      }
+      if (item.course) {
+        var cd = el('courseDetail');
+        if (cd && cd.classList.contains('active')) openCourseDetail(item.course);
+      }
+    }
+
+    function suspendLabelForItem(it) {
+      return it && it.suspended === true ? 'Unsuspend Card' : 'Suspend Card';
+    }
+
+    function toggleSuspendCard(itemId) {
+      var it = state.items[itemId];
+      if (!it) return;
+      var next = !(it.suspended === true);
+      if (next) {
+        it.suspended = true;
+        it.suspendedAt = Date.now();
+        toast('Card suspended.');
+      } else {
+        delete it.suspended;
+        delete it.suspendedAt;
+        toast('Card unsuspended.');
+      }
+      state.items[itemId] = it;
+      saveState();
+      closeCardDetailView();
+      refreshContextViewsAfterCardMutation(it);
+    }
+
+    function deleteCardFromContext(itemId) {
+      var it = state.items[itemId];
+      if (!it) return;
+      if (!window.confirm('Delete this card? This cannot be undone.')) return;
+      delete state.items[itemId];
+      saveState();
+      closeCardDetailView();
+      refreshContextViewsAfterCardMutation(it);
+      toast('Card deleted.');
+    }
+
+    function openCardEditorFromContext(itemId) {
+      var it = state.items[itemId];
+      if (!it) return;
+      closeCardDetailView();
+      cardEditId = itemId;
+      openModal('add', it.course || undefined);
+      setTimeout(function() {
+        var tierOpts = [
+          { v: 'quickfire', t: 'Quick Fire' },
+          { v: 'explain', t: 'Explain' },
+          { v: 'apply', t: 'Apply It' },
+          { v: 'distinguish', t: 'Distinguish' },
+          { v: 'mock', t: 'Mock Exam' },
+          { v: 'worked', t: 'Worked Example' }
+        ];
+        if (el('m_prompt')) el('m_prompt').value = it.prompt || '';
+        if (el('m_answer')) el('m_answer').value = it.modelAnswer || '';
+        if (el('m_topic')) el('m_topic').value = it.topic || '';
+        if (el('m_priority')) el('m_priority').value = it.priority || 'medium';
+        if (el('m_scenario')) el('m_scenario').value = it.scenario || '';
+        if (el('m_task')) el('m_task').value = it.task || '';
+        if (el('m_conceptA')) el('m_conceptA').value = it.conceptA || '';
+        if (el('m_conceptB')) el('m_conceptB').value = it.conceptB || '';
+        if (el('m_time') && it.timeLimitMins) el('m_time').value = String(it.timeLimitMins);
+
+        var tierField = document.getElementById('m_tier');
+        if (!tierField) {
+          var priorityField = document.getElementById('m_priority');
+          if (priorityField && priorityField.parentNode) {
+            var tierWrap = document.createElement('div');
+            tierWrap.className = 'field';
+            var tierHtml = '<label>Tier</label><select id="m_tier" class="input">';
+            tierOpts.forEach(function(o) {
+              tierHtml += '<option value="' + esc(o.v) + '">' + esc(o.t) + '</option>';
+            });
+            tierHtml += '</select></div>';
+            tierWrap.innerHTML = tierHtml;
+            priorityField.parentNode.insertAdjacentElement('afterend', tierWrap);
+          }
+        }
+        if (el('m_tier')) el('m_tier').value = it.tier || 'quickfire';
+        if (el('doneBtn')) el('doneBtn').textContent = 'Save Card';
+        if (el('addNextBtn')) el('addNextBtn').style.display = 'none';
+      }, 20);
+    }
+
+    function openCardContextActions(cardId, anchorEl) {
+      var it = state.items[cardId];
+      if (!it || !anchorEl) return;
+
+      if (isEmbedded) {
+        showCtxMenuAt(anchorEl, [
+          { icon: '✏', label: 'Edit Card', action: function() { openCardEditorFromContext(cardId); } },
+          { icon: (it.suspended ? '▶' : '⏸'), label: suspendLabelForItem(it), action: function() { toggleSuspendCard(cardId); } },
+          { divider: true },
+          { icon: '🗑', label: 'Delete Card', danger: true, action: function() { deleteCardFromContext(cardId); } }
+        ]);
+        return;
+      }
+
+      closeCardDetailView();
+      var panel = document.createElement('div');
+      panel.className = 'ctx-card-detail';
+      panel.innerHTML =
+        '<div class="ctx-card-detail-title">' + esc((it.prompt || '').substring(0, 120)) + '</div>' +
+        '<div class="ctx-card-detail-meta">' + esc(it.course || 'No course') + (it.topic ? (' · ' + esc(it.topic)) : '') + '</div>' +
+        '<div class="ctx-card-detail-actions">' +
+          '<button type="button" class="ctx-card-action-btn" data-card-action="edit">✏ Edit Card</button>' +
+          '<button type="button" class="ctx-card-action-btn" data-card-action="suspend">' + (it.suspended ? '▶ Unsuspend Card' : '⏸ Suspend Card') + '</button>' +
+          '<button type="button" class="ctx-card-action-btn danger" data-card-action="delete">🗑 Delete Card</button>' +
+        '</div>';
+      document.body.appendChild(panel);
+      _activeCardDetail = panel;
+
+      var rect = anchorEl.getBoundingClientRect();
+      panel.style.left = Math.max(10, Math.min(window.innerWidth - panel.offsetWidth - 10, rect.left)) + 'px';
+      panel.style.top = Math.max(10, Math.min(window.innerHeight - panel.offsetHeight - 10, rect.bottom + 8)) + 'px';
+
+      panel.querySelectorAll('[data-card-action]').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          e.preventDefault();
+          var action = this.getAttribute('data-card-action');
+          if (action === 'edit') openCardEditorFromContext(cardId);
+          if (action === 'suspend') toggleSuspendCard(cardId);
+          if (action === 'delete') deleteCardFromContext(cardId);
+        });
+      });
+
+      setTimeout(function() {
+        document.addEventListener('click', handleOutsideCardDetailClick, true);
       }, 10);
     }
 
@@ -10652,6 +10880,17 @@ input[type="range"]::-moz-range-thumb{
         });
       });
 
+      content.querySelectorAll('.ctx-card-row[data-card-id]').forEach(function(row) {
+        row.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          var cardId = this.getAttribute('data-card-id');
+          if (!cardId) return;
+          openCardContextActions(cardId, this);
+          try { playClick(); } catch (e2) {}
+        });
+      });
+
       if (window.gsap) gsap.fromTo(content, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
     }
 
@@ -10696,6 +10935,17 @@ input[type="range"]::-moz-range-thumb{
         sidebarSelection = { level: 'topic', course: courseName, module: null, topic: topic };
         applySidebarFilterChipsOnly();
         startSession();
+      });
+
+      content.querySelectorAll('.ctx-card-row[data-card-id]').forEach(function(row) {
+        row.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          var cardId = this.getAttribute('data-card-id');
+          if (!cardId) return;
+          openCardContextActions(cardId, this);
+          try { playClick(); } catch (e2) {}
+        });
       });
 
       if (window.gsap) gsap.fromTo(content, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
@@ -16099,8 +16349,16 @@ input[type="range"]::-moz-range-thumb{
     });
 
     var openModal = modalSystem.openModal;
-    var closeModal = modalSystem.closeModal;
-    var closeModals = modalSystem.closeModals;
+    var closeModal = function() {
+      cardEditId = null;
+      if (el('doneBtn')) el('doneBtn').textContent = 'Done';
+      modalSystem.closeModal();
+    };
+    var closeModals = function() {
+      cardEditId = null;
+      if (el('doneBtn')) el('doneBtn').textContent = 'Done';
+      modalSystem.closeModals();
+    };
     var renderModal = modalSystem.renderModal;
     var toast = modalSystem.toast;
 
@@ -16140,6 +16398,39 @@ input[type="range"]::-moz-range-thumb{
       if (!prompt || !answer) {
         try { playError(); } catch(e) {}
         toast('Prompt and model answer are required');
+        return;
+      }
+
+      if (cardEditId && state.items[cardEditId]) {
+        var editItem = state.items[cardEditId];
+        var editTier = (el('m_tier') && el('m_tier').value) ? el('m_tier').value : (editItem.tier || 'quickfire');
+        editItem.prompt = prompt;
+        editItem.modelAnswer = answer;
+        editItem.topic = topic;
+        editItem.course = course;
+        editItem.tier = editTier;
+        editItem.priority = (el('m_priority') && el('m_priority').value) || editItem.priority || 'medium';
+
+        var editScenario = (el('m_scenario') && el('m_scenario').value || '').trim();
+        var editTask = (el('m_task') && el('m_task').value || '').trim();
+        var editConceptA = (el('m_conceptA') && el('m_conceptA').value || '').trim();
+        var editConceptB = (el('m_conceptB') && el('m_conceptB').value || '').trim();
+        var editTime = el('m_time') ? parseInt(el('m_time').value, 10) : 0;
+
+        if (editScenario) editItem.scenario = editScenario; else delete editItem.scenario;
+        if (editTask) editItem.task = editTask; else delete editItem.task;
+        if (editConceptA) editItem.conceptA = editConceptA; else delete editItem.conceptA;
+        if (editConceptB) editItem.conceptB = editConceptB; else delete editItem.conceptB;
+        if (editTime && [5,10,15,30].indexOf(editTime) >= 0) editItem.timeLimitMins = editTime; else delete editItem.timeLimitMins;
+
+        state.items[cardEditId] = editItem;
+        saveState();
+        toast('Card updated.');
+        closeModal();
+        renderDashboard();
+        if (!isEmbedded) renderSidebar();
+        refreshContextViewsAfterCardMutation(editItem);
+        cardEditId = null;
         return;
       }
 
@@ -19783,16 +20074,18 @@ input[type="range"]::-moz-range-thumb{
           sortedIds.forEach(function(cid) {
             var it = courseItems[cid];
             var delId = it.id || cid;
+            var suspended = it.suspended === true;
             var preview = (it.prompt || '').substring(0, 80) + ((it.prompt || '').length > 80 ? '…' : '');
             var retVal = (it.fsrs && it.fsrs.lastReview) ? Math.round(retrievability(it.fsrs, now) * 100) : null;
             var retDisplay = retVal !== null ? retVal + '%' : 'New';
             var retCol = retVal === null ? 'var(--text-secondary)' : retVal >= 80 ? 'var(--rate-good)' : retVal >= 50 ? 'var(--rate-hard)' : 'var(--rate-again)';
             var topicTag = it.topic ? '<span class="meta"><span class="tag" style="font-size:7px;padding:3px 6px;">' + esc(it.topic) + '</span></span>' : '';
+            var suspendedTag = suspended ? '<span class="meta"><span class="tag" style="font-size:7px;padding:3px 6px;opacity:0.9;">Suspended</span></span>' : '';
             var priorityTag = (it.priority && it.priority !== 'medium') ? priorityBadgeHTML(it.priority) : '';
-            clHTML += '<div class="course-list-item" data-card-id="' + esc(delId) + '" style="flex-wrap:wrap;">' +
+            clHTML += '<div class="course-list-item" data-card-id="' + esc(delId) + '" style="flex-wrap:wrap;' + (suspended ? 'opacity:0.6;' : '') + '">' +
               '<div style="flex:1;min-width:0;">' +
               '<div class="cli-name">' + esc(preview) + '</div>' +
-                '<div style="display:flex;gap:6px;margin-top:3px;align-items:center;">' + topicTag + (priorityTag ? '<span class="meta">' + priorityTag + '</span>' : '') + '</div>' +
+                '<div style="display:flex;gap:6px;margin-top:3px;align-items:center;">' + topicTag + suspendedTag + (priorityTag ? '<span class="meta">' + priorityTag + '</span>' : '') + '</div>' +
               '</div>' +
               '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">' +
               '<span style="font-size:10px;font-weight:700;color:' + retCol + ';">' + retDisplay + '</span>' +

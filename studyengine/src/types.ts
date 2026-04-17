@@ -39,6 +39,8 @@ export interface StudyItem {
   created: string;
   modified?: string;
   archived?: boolean;
+  suspended?: boolean;
+  suspendedAt?: number;
   imageUrl?: string;
 
   task?: string;
