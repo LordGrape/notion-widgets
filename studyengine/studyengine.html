@@ -14978,6 +14978,7 @@ input[type="range"]::-moz-range-thumb{
       var nodes = ensureQuickFireReRetrievalInsight(root);
       if (!nodes) return;
       if (opts.failed) {
+        if (root.getAttribute('data-has-rich-insight') === 'true') return;
         if (nodes.panel && nodes.panel.parentNode) nodes.panel.parentNode.removeChild(nodes.panel);
         root.setAttribute('data-has-rich-insight', 'false');
         root.setAttribute('data-insight-loading', 'false');

@@ -594,7 +594,9 @@ export function preloadQuickfireInsight(it: StudyItem): void {
         bridge.saveState();
       }
     })
-    .catch(() => {})
+    .catch(() => {
+      bridge.updateQuickFireReRetrievalInsight?.(it.id, null, { failed: true });
+    })
     .finally(() => {
       session._insightPreloadInFlight.delete(it.id);
     });

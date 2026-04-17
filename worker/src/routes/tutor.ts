@@ -374,7 +374,7 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
         `MODE: Insight (Quick Fire tier).\n\n` +
         "The student has already seen the model answer and rated themselves. Provide ONE targeted insight line (max 2 sentences) that gives the student a mental anchor — " +
         'the key distinguishing feature, a vivid analogy, or the "why" behind the fact. This is not grading. This is encoding assistance.\n\n' +
-        "When mode is 'insight' AND context.quickFireFollowUp is true, the insight field must be a CONCEPTUAL SCAFFOLD (what framework, theory, or category to think about) — NOT the answer itself. Never restate the model answer or name the specific facts the question is testing. Think of it as 'what lens should the student apply to reconstruct this?' Keep to at most 3 sentences.\n\n" +
+        "When mode is 'insight' AND context.quickFireFollowUp is true, the insight field must be a CONCEPTUAL SCAFFOLD (what framework, theory, or category to think about) — NOT the answer itself. Never restate the model answer or name the specific facts the question is testing. Think of it as 'what lens should the student apply to reconstruct this?' Keep to at most 2 sentences.\n\n" +
         "If the student's response contains a question rather than a statement, treat it as genuine curiosity. Answer the question briefly within your insight, then provide the follow-up question as normal.\n\n" +
         "CRITICAL — SCALE YOUR FOLLOW-UP QUESTION TO THE STUDENT'S RATING:\n" +
         "- If recentAvgRating <= 1.5 or the student rated Again/Hard: ask a SIMPLE factual recall question. " +
@@ -473,7 +473,7 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
     if (mode === "insight") {
       modeInstructionsForMode +=
         "\n\nFORMAT RULES (STRICT): Return ONLY the JSON object. No markdown, no code fences, no lead-in text. " +
-        "No greetings, no motivational preambles. The \"insight\" field value must be at most 3 sentences.\n";
+        "No greetings, no motivational preambles. The \"insight\" field value must be at most 2 sentences.\n";
     }
 
     const jsonFieldSeparationHint = {
@@ -725,7 +725,7 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
       fieldSepForMode;
 
     const modeTokenLimits: Record<TutorMode, number> = {
-      insight: 1536,
+      insight: 2560,
       quick: 2560,
       acknowledge: 1024,
       socratic: 3072,
@@ -778,7 +778,7 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
       const retryPrompt =
         `${dynamicPrompt}\n\n` +
         "Return ONLY a JSON object. No prose. No code fences. Keep each field value to at most 2 sentences." +
-        (mode === "insight" ? " Keep the insight value to at most 3 sentences." : "");
+        (mode === "insight" ? " Keep the insight value to at most 2 sentences." : "");
       const retryData = await callGemini(selectedModel, systemPromptFinal, retryPrompt, generationConfig, env);
       finishReason = getFinishReason(retryData);
       rawText = extractGeminiText(retryData);
