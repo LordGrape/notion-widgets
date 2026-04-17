@@ -811,6 +811,27 @@
       text-transform: none;
       letter-spacing: 0.4px;
     }
+    .cm-save-btn{
+      width: 100%;
+      border: 1px solid var(--border-default);
+      cursor: pointer;
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: transparent;
+      color: var(--text-primary);
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      transition: background var(--transition), transform var(--transition), border-color var(--transition), color var(--transition);
+      font-size: 11px;
+      min-height: 43px;
+    }
+    .cm-save-btn:hover{
+      background: rgba(var(--accent-rgb), 0.06);
+      transform: translateY(-1px);
+    }
+    .cm-save-btn:active{ transform: translateY(0) scale(0.99); }
+    .cm-save-btn:disabled{ opacity: 0.55; cursor: not-allowed; transform: none; }
     .cm-results-card{
       margin-top: 8px;
       border: 1px solid var(--border-subtle);
@@ -18649,7 +18670,7 @@ input[type="range"]::-moz-range-thumb{
           inner += '<option value="reasoning"' + ((c.subjectType || 'mixed') === 'reasoning' ? ' selected' : '') + '>Reasoning (law, political science, philosophy)</option>';
           inner += '</select><div class="help" style="margin-top:6px;line-height:1.5;"><div title="One right answer. Graded strictly against the model answer."><strong>Recall:</strong> One right answer. Graded strictly against the model answer.</div><div title="Multiple defensible framings. Graded on argument quality and conceptual engagement."><strong>Reasoning:</strong> Multiple defensible framings. Graded on argument quality and conceptual engagement.</div><div title="AI classifies each question and picks the right rubric. Recommended default."><strong>Mixed:</strong> AI classifies each question and picks the right rubric. Recommended default.</div></div></div>';
           inner += '<div class="field"><label>Exam Weight (%)</label><input id="cm_examWeight" type="number" min="0" max="100" step="1" class="input" value="' + esc(c.examWeight != null ? String(c.examWeight) : '') + '" /></div>';
-          inner += '<div style="display:flex;justify-content:flex-end;margin-top:12px;"><button class="big-btn" id="cmSaveDetails" type="button">Save Details</button></div>';
+          inner += '<div style="display:flex;justify-content:flex-end;margin-top:12px;"><button class="cm-save-btn" id="cmSaveDetails" type="button">Save Details</button></div>';
         } else if (activeTab === 'syllabus') {
           inner += '<div class="field"><label>Syllabus / Exam Info' + renderEditorInfoIcon('Syllabus / Exam Info', "Paste the raw syllabus or any official exam instructions here. The AI uses this as the ground truth for what your course covers and how it's assessed. It does not auto-generate cards from this — use 'Process syllabus with AI' for that.") + '</label>';
           inner += '<div class="cm-syllabus-zone" id="cm_syllabusZone">';
@@ -18675,7 +18696,7 @@ input[type="range"]::-moz-range-thumb{
           inner += '<div class="syllabus-status" id="cm_lectureImportStatus" style="min-height:0;"></div>';
           inner += '<div id="cm_lectureManifestDisplay" style="margin-top:8px;"></div><div id="cm_lectureSourceList" class="cm-lecture-source-list"></div>';
           inner += '</div></div></details>';
-          inner += '<div style="display:flex;justify-content:flex-end;margin-top:12px;"><button class="big-btn" id="cmSaveSyllabus" type="button">Save Syllabus & AI</button></div>';
+          inner += '<div style="display:flex;justify-content:flex-end;margin-top:12px;"><button class="cm-save-btn" id="cmSaveSyllabus" type="button">Save Syllabus & AI</button></div>';
         } else if (activeTab === 'structure') {
           ensureCourseModules(courseName);
           var modules = c.modules || [];
