@@ -6135,10 +6135,26 @@ input[type="range"]::-moz-range-thumb{
       display: flex;
     }
 
+    .tree-node-hoverable:focus-within .tree-hover-actions,
+    .tree-node-hoverable:focus-within .tree-actions {
+      display: flex;
+    }
+
     .tree-node-hoverable:hover .tree-count,
     .tree-node-hoverable:hover .tree-badge,
     .tree-node-hoverable:hover .tree-due-badge {
       display: none;
+    }
+
+    .tree-node-hoverable:focus-within .tree-count,
+    .tree-node-hoverable:focus-within .tree-badge,
+    .tree-node-hoverable:focus-within .tree-due-badge {
+      display: none;
+    }
+
+    .tree-node .tree-count.tree-count-muted {
+      color: var(--text-secondary);
+      opacity: 0.75;
     }
 
     .tree-action-btn {
@@ -10118,12 +10134,17 @@ input[type="range"]::-moz-range-thumb{
       html += '<div class="tree-section-divider"></div>';
 
       // Courses — collapsed by default
-      var courseNames = Object.keys(tree).sort();
+      // Root cause: buildCourseTree() is card-driven, so relying on Object.keys(tree) hides valid zero-card courses.
+      var courseNames = Object.keys(state.courses || {}).filter(function(courseName) {
+        return state.courses[courseName] && !state.courses[courseName].archived;
+      });
+      if (tree.Uncategorized && !state.courses.Uncategorized) courseNames.push('Uncategorized');
+      courseNames.sort();
 
       courseNames.forEach(function(courseName) {
         var courseData = state.courses[courseName] || {};
         ensureCourseModules(courseName);
-        var ct = tree[courseName];
+        var ct = tree[courseName] || { topics: {}, totalCards: 0, dueCards: 0 };
         var color = courseData.color || '#8b5cf6';
         var shouldShowCourse = !isSearching;
         var courseMatches = isSearching && courseName.toLowerCase().indexOf(sidebarSearchQuery) >= 0;
@@ -10176,11 +10197,12 @@ input[type="range"]::-moz-range-thumb{
         html += '<span class="tree-chevron' + (isExpanded ? ' expanded' : '') + '" data-toggle="' + esc(courseName) + '"></span>';
         html += '<span class="tree-icon" style="color:' + color + ';">●</span>';
         html += '<span class="tree-label">' + sidebarHighlightLabel(courseName) + '</span>';
+        if (ct.totalCards === 0) html += '<span class="tree-count tree-count-muted">0 cards</span>';
         if (ct.dueCards > 0) html += '<span class="tree-due-badge has-due">' + ct.dueCards + '</span>';
         // Hover actions
         html += '<span class="tree-hover-actions">';
         html += '<button class="tree-action-btn" data-action="add-module" data-course="' + esc(courseName) + '" title="Add subdeck">＋</button>';
-        html += '<button class="tree-action-btn" data-action="course-menu" data-course="' + esc(courseName) + '" title="More options">⋯</button>';
+        html += '<button class="tree-action-btn" data-action="course-menu" data-course="' + esc(courseName) + '" title="More options" aria-label="Course options for ' + esc(courseName) + '" aria-haspopup="menu" aria-expanded="false">⋯</button>';
         html += '</span>';
         html += '</div>';
 
@@ -10591,6 +10613,14 @@ input[type="range"]::-moz-range-thumb{
 
     /* ── Sidebar Context Menus ── */
     var _activeCtxMenu = null;
+    var _activeCtxMenuAnchor = null;
+
+    function handleCtxMenuKeydown(e) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        dismissCtxMenu();
+      }
+    }
 
     /* ═══ SECTION: Dismiss Ctx Menu | Functions: dismissCtxMenu ═══ */
     function dismissCtxMenu() {
@@ -10598,7 +10628,12 @@ input[type="range"]::-moz-range-thumb{
         _activeCtxMenu.remove();
         _activeCtxMenu = null;
       }
+      if (_activeCtxMenuAnchor) {
+        _activeCtxMenuAnchor.setAttribute('aria-expanded', 'false');
+        _activeCtxMenuAnchor = null;
+      }
       document.removeEventListener('click', dismissCtxMenu);
+      document.removeEventListener('keydown', handleCtxMenuKeydown);
     }
 
     /* ═══ SECTION: Show Ctx Menu At | Functions: showCtxMenuAt ═══ */
@@ -10628,6 +10663,8 @@ input[type="range"]::-moz-range-thumb{
 
       document.body.appendChild(menu);
       _activeCtxMenu = menu;
+      _activeCtxMenuAnchor = anchorEl || null;
+      if (_activeCtxMenuAnchor) _activeCtxMenuAnchor.setAttribute('aria-expanded', 'true');
 
       var rect = anchorEl.getBoundingClientRect();
       var left = Math.min(rect.right, window.innerWidth - menu.offsetWidth - 8);
@@ -10635,8 +10672,12 @@ input[type="range"]::-moz-range-thumb{
       menu.style.left = left + 'px';
       menu.style.top = top + 'px';
 
+      var firstBtn = menu.querySelector('.tree-ctx-menu-item');
+      if (firstBtn && firstBtn.focus) firstBtn.focus();
+
       setTimeout(function() {
         document.addEventListener('click', dismissCtxMenu);
+        document.addEventListener('keydown', handleCtxMenuKeydown);
       }, 10);
     }
 
@@ -18785,53 +18826,36 @@ input[type="range"]::-moz-range-thumb{
     function showCourseContextMenu(courseName, anchor) {
       showCtxMenuAt(anchor, [
         {
+          icon: '✏',
+          label: 'Rename',
+          action: function() {
+            try { window.openEditCourseTab(courseName, 'details'); } catch (e0) {}
+            setTimeout(function() {
+              var nameInput = document.getElementById('cm_name');
+              if (!nameInput) return;
+              try { nameInput.focus(); } catch (e1) {}
+              try { nameInput.select(); } catch (e2) {}
+            }, 180);
+          }
+        },
+        {
           icon: '⚙',
           label: 'Edit Details',
           action: function() {
             try { window.openEditCourseTab(courseName, 'details'); } catch (e1) {}
           }
         },
-        {
-          icon: '📥',
-          label: 'Import Cards',
-          action: function() {
-            openModal('import', courseName);
-          }
-        },
-        {
-          icon: '📖',
-          label: 'Import Lecture',
-          action: function() {
-            try { window.openEditCourseTab(courseName, 'syllabus'); } catch (e1) {}
-          }
-        },
-        {
-          icon: '📁',
-          label: 'Add Subdeck',
-          action: function() {
-            sidebarExpanded[courseName] = true;
-            renderSidebar();
-            var freshNode = document.getElementById('sidebarTree')
-              ? document.getElementById('sidebarTree').querySelector('.tree-node[data-level="course"][data-course="' + esc(courseName) + '"]')
-              : null;
-            showInlineSidebarInput(freshNode, 'Subdeck name...', function(name) {
-              addModuleToCourse(courseName, { name: name, topics: [], lectureImported: false });
-              renderSidebar();
-              toast('Created subdeck: ' + name);
-            });
-          }
-        },
         { divider: true },
         {
           icon: '📦',
-          label: 'Archive Course',
+          label: 'Archive',
           action: function() {
             archiveCourse(courseName);
           }
         },
         {
           icon: '🗑',
-          label: 'Delete Course',
+          label: 'Delete course',
           danger: true,
           action: function() {
             openDeleteCoursePrompt(courseName);
