@@ -130,6 +130,7 @@ export interface GradeRequest {
   conceptA?: string;
   conceptB?: string;
   mode?: string;
+  subjectType?: "recall" | "reasoning" | "mixed";
   essayOutline?: string;
   lectureContext?: {
     courseDigest?: string;
@@ -153,6 +154,21 @@ export interface GradeStandardResponse {
   depth: ScoreFeedback;
   clarity: ScoreFeedback;
   discrimination?: ScoreFeedback;
+  classification?: "single_answer" | "multi_lens";
+  improvement: string;
+  summary: string;
+  annotations: Annotation[];
+  essayMode: false;
+  totalScore: number;
+  maxScore: number;
+  fsrsRating: 1 | 2 | 3 | 4;
+}
+
+export interface GradeReasoningResponse {
+  conceptualAccuracy: ScoreFeedback;
+  reasoningQuality: ScoreFeedback;
+  criticalEngagement: ScoreFeedback;
+  classification?: "single_answer" | "multi_lens";
   improvement: string;
   summary: string;
   annotations: Annotation[];
@@ -176,7 +192,7 @@ export interface GradeEssayResponse {
   fsrsRating: 1 | 2 | 3 | 4;
 }
 
-export type GradeResponse = GradeExplainResponse | GradeStandardResponse | GradeEssayResponse;
+export type GradeResponse = GradeExplainResponse | GradeStandardResponse | GradeReasoningResponse | GradeEssayResponse;
 
 export interface VisualRequest {
   prompt: string;

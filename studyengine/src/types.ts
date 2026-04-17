@@ -6,6 +6,7 @@
 export type TierId = 'quickfire' | 'explain' | 'apply' | 'distinguish' | 'mock' | 'worked';
 export type Priority = 'critical' | 'high' | 'medium' | 'low';
 export type ExamType = 'mc' | 'short_answer' | 'essay' | 'mixed';
+export type SubjectType = 'recall' | 'reasoning' | 'mixed';
 
 export interface FSRSState {
   difficulty: number;
@@ -73,6 +74,7 @@ export interface Course {
   examFormat: string | null;
   allowedMaterials: string | null;
   manualMode: boolean;
+  subjectType?: SubjectType;
   created: string;
   prepared: boolean;
   archived?: boolean;
