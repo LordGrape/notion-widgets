@@ -52,7 +52,7 @@ function applySettingsFromDom(ctx: SettingsModuleContext): void {
   settings.sessionLimit = clamp(Number.isFinite(lim) ? lim : 12, 5, 60);
   settings.mockDefaultMins = [5, 10, 15, 30].includes(mm) ? mm : 10;
   settings.showApplyTimer = !!at;
-  settings.revealMode = (['auto', 'visual', 'audio', 'both'] as const).includes(
+  settings.revealMode = (['auto', 'manual', 'visual', 'audio', 'both'] as const).includes(
     revealMode as Settings['revealMode']
   )
     ? (revealMode as Settings['revealMode'])
@@ -190,7 +190,7 @@ export function setupSettingsModule(ctx: SettingsModuleContext): {
     const showDataTextEl = el<HTMLTextAreaElement>('showDataText');
     if (showDataTextEl) {
       showDataTextEl.onclick = function onShowDataClick(): void {
-        this.select();
+        (this as HTMLTextAreaElement).select();
       };
     }
 
@@ -251,7 +251,7 @@ export function setupSettingsModule(ctx: SettingsModuleContext): {
             const settings = ctx.getSettings();
             for (const sk in imported.settings) {
               if (Object.prototype.hasOwnProperty.call(imported.settings, sk)) {
-                (settings as Record<string, unknown>)[sk] = (imported.settings as Record<string, unknown>)[sk];
+                (settings as unknown as Record<string, unknown>)[sk] = (imported.settings as unknown as Record<string, unknown>)[sk];
               }
             }
           }

@@ -145,6 +145,8 @@ export interface StudyItem {
   topic?: string;
   subdeck?: string;
   subDeck?: string | null;
+  learnStatus?: 'unlearned' | 'taught' | 'consolidated' | null;
+  consolidationRating?: 1 | 2 | 3 | 4 | null;
   fsrs: FSRSState;
   tags?: string[];
   notes?: string;
@@ -327,6 +329,10 @@ export interface LearnSession {
   segments: Array<Record<string, unknown>>;
   currentSegment: number;
   consolidationBattery: Array<Record<string, unknown>>;
+  currentMechanism?: 'worked_example' | 'elaborative_interrogation' | 'self_explanation' | 'predictive_question' | 'test_closure';
+  completedSegmentIds?: string[];
+  subDeck?: string | null;
+  course?: string | null;
   startedAt?: string;
   completedAt?: string;
 }

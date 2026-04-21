@@ -792,6 +792,17 @@ export function rateCurrent(rating: Rating): void {
   const againCount = session.loops[it.id] || 0;
 
   if (mappedRating === 1) {
+    const learnModeBridge = (globalThis as typeof globalThis & {
+      __studyEngineLearnMode?: {
+        maybeDemoteOnAgain?: (item: StudyItem, rating: Rating) => boolean;
+      };
+    }).__studyEngineLearnMode;
+    if (learnModeBridge && typeof learnModeBridge.maybeDemoteOnAgain === 'function') {
+      const demoted = learnModeBridge.maybeDemoteOnAgain(it, mappedRating);
+      if (demoted) {
+        bridge.toast('This consolidated card was demoted to taught. Start a Learn micro-session?');
+      }
+    }
     session.loops[it.id] = againCount + 1;
 
     const proceedAfterAgain = () => {

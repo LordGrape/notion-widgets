@@ -8456,6 +8456,7 @@ input[type="range"]::-moz-range-thumb{
     import { setupModalSystem } from './src/modals';
     import { initPageAnimations, animateEmptyStateEntrance } from './src/animations.js';
     import { computePopoverData, getTimeBucket } from './src/xp-popover';
+    import './src/learn-mode';
 
     globalThis.__studyEngineSubDecks = {
       loadSubDecks: loadSubDecks,
@@ -9127,6 +9128,9 @@ input[type="range"]::-moz-range-thumb{
       migrateCoursesPhase6();
       globalThis.__studyEngineSubDecks.loadSubDecks(state);
       globalThis.__studyEngineSubDecks.migrateSubDecks(state);
+      if (globalThis.__studyEngineLearnMode && typeof globalThis.__studyEngineLearnMode.applyLearnStatusMigration === 'function') {
+        globalThis.__studyEngineLearnMode.applyLearnStatusMigration(state.items || {});
+      }
       var s = SyncEngine.get(NS, 'settings') || null;
       settings = deepClone(DEFAULT_SETTINGS);
       if (s && typeof s === 'object') {
@@ -9157,7 +9161,17 @@ input[type="range"]::-moz-range-thumb{
 
     /* ═══ SECTION: Save State | Functions: saveState ═══ */
     function saveState() {
-      SyncEngine.set(NS, 'items', state.items || {});
+      var persistItems = {};
+      for (var itemId in (state.items || {})) {
+        if (!Object.prototype.hasOwnProperty.call(state.items, itemId)) continue;
+        var srcItem = state.items[itemId];
+        if (!srcItem) continue;
+        var cloneItem = Object.assign({}, srcItem);
+        if (cloneItem.learnStatus == null) delete cloneItem.learnStatus;
+        if (cloneItem.consolidationRating == null) delete cloneItem.consolidationRating;
+        persistItems[itemId] = cloneItem;
+      }
+      SyncEngine.set(NS, 'items', persistItems);
       SyncEngine.set(NS, 'courses', state.courses || {});
       if (subDecksDirty) {
         SyncEngine.set(NS, 'subDecks', state.subDecks || {});
@@ -21944,18 +21958,52 @@ input[type="range"]::-moz-range-thumb{
             }
           });
 
-          if (cdSubDeckAction) {
-            if (selectedSubDeck) {
-              cdSubDeckAction.style.display = 'block';
-              cdSubDeckAction.innerHTML = '<button class="big-btn" id="cdStartSubDeckSession" type="button">Study this sub-deck</button>';
-              var studySubDeckBtn = el('cdStartSubDeckSession');
-              if (studySubDeckBtn) studySubDeckBtn.onclick = function() {
-                var q = buildSessionQueue().filter(function(item) {
-                  return item && item.course === courseName && item.subDeck === selectedSubDeck;
-                });
-                if (!q.length) { toast('No due cards in this sub-deck'); return; }
-                session = {
-                  queue: q,
+	          if (cdSubDeckAction) {
+	            if (selectedSubDeck) {
+	              var selectedCards = Object.keys(allCourseItems).map(function(itemId){ return allCourseItems[itemId]; }).filter(function(item){
+	                return item && item.subDeck === selectedSubDeck;
+	              });
+	              var coverage = globalThis.__studyEngineLearnMode && typeof globalThis.__studyEngineLearnMode.getCoverageStats === 'function'
+	                ? globalThis.__studyEngineLearnMode.getCoverageStats(courseName, selectedSubDeck, selectedCards)
+	                : { total: selectedCards.length, taught: 0, consolidated: 0, unlearned: 0, pctUnlearned: 0 };
+	              var consolidatedCount = Number(coverage.consolidated || 0);
+	              var totalCoverage = Number(coverage.total || selectedCards.length || 0);
+	              var coverageRatio = totalCoverage > 0 ? Math.max(0, Math.min(100, Math.round((consolidatedCount / totalCoverage) * 100))) : 0;
+	              cdSubDeckAction.style.display = 'block';
+	              cdSubDeckAction.innerHTML = ''
+	                + '<div style=\"display:flex;flex-direction:column;gap:10px;\">'
+	                + '<div style=\"padding:10px 12px;border-radius:12px;border:1px solid rgba(var(--accent-rgb),0.16);background:rgba(var(--accent-rgb),0.06);\">'
+	                + '<div style=\"display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:10px;color:var(--text-secondary);margin-bottom:6px;\">'
+	                + '<span>Coverage</span><strong style=\"color:var(--text-primary);\">' + consolidatedCount + '/' + totalCoverage + ' consolidated</strong>'
+	                + '</div>'
+	                + '<div style=\"height:8px;border-radius:999px;background:rgba(var(--accent-rgb),0.15);overflow:hidden;\">'
+	                + '<div style=\"height:100%;width:' + coverageRatio + '%;background:linear-gradient(90deg,var(--accent-primary),var(--accent-secondary));\"></div>'
+	                + '</div>'
+	                + '</div>'
+	                + '<div style=\"display:flex;flex-wrap:wrap;gap:8px;\">'
+	                + '<button class=\"big-btn\" id=\"cdLearnSubDeck\" type=\"button\" style=\"flex:1;min-width:120px;\">Learn</button>'
+	                + '<button class=\"big-btn\" id=\"cdReviewSubDeck\" type=\"button\" style=\"flex:1;min-width:120px;position:relative;\">Review'
+	                + ((coverage.unlearned || 0) > 0 ? '<span style=\"margin-left:8px;display:inline-block;font-size:9px;padding:2px 6px;border-radius:999px;background:rgba(59,130,246,0.16);border:1px solid rgba(59,130,246,0.45);color:#60a5fa;\">Learn first</span>' : '')
+	                + '</button>'
+	                + '</div>'
+	                + '</div>';
+	              var reviewSubDeckBtn = el('cdReviewSubDeck');
+	              if (reviewSubDeckBtn) reviewSubDeckBtn.onclick = function() {
+	                var q = buildSessionQueue().filter(function(item) {
+	                  return item && item.course === courseName && item.subDeck === selectedSubDeck;
+	                });
+	                if (!q.length) { toast('No due cards in this sub-deck'); return; }
+	                if ((coverage.pctUnlearned || 0) > 30) {
+	                  var nCount = Number(coverage.unlearned || 0);
+	                  var shouldLearn = window.confirm('You have ' + nCount + ' unlearned cards in this sub-deck. Learn first?');
+	                  if (shouldLearn) {
+	                    var learnBtn = el('cdLearnSubDeck');
+	                    if (learnBtn) learnBtn.click();
+	                    return;
+	                  }
+	                }
+	                session = {
+	                  queue: q,
                   idx: 0,
                   loops: {},
                   currentShown: false,
@@ -21977,13 +22025,71 @@ input[type="range"]::-moz-range-thumb{
                 sessionSummary = null;
                 closeCourseDetail();
                 showView('viewSession');
-                try { playStart(); } catch (e0) {}
-                renderCurrentItem();
-              };
-            } else {
-              cdSubDeckAction.style.display = 'none';
-              cdSubDeckAction.innerHTML = '';
-            }
+	                try { playStart(); } catch (e0) {}
+	                renderCurrentItem();
+	              };
+	              var learnSubDeckBtn = el('cdLearnSubDeck');
+	              if (learnSubDeckBtn) learnSubDeckBtn.onclick = async function() {
+	                if (!globalThis.__studyEngineLearnMode || typeof globalThis.__studyEngineLearnMode.generateLearnPlan !== 'function') {
+	                  toast('Learn mode unavailable.');
+	                  return;
+	                }
+	                try {
+	                  toast('Generating Learn plan...');
+	                  var plan = await globalThis.__studyEngineLearnMode.generateLearnPlan(courseName, selectedSubDeck, selectedCards, settings.userName || '', '');
+	                  if (plan && plan.warning) {
+	                    toast(plan.warning);
+	                  }
+	                  if (!state.learnSession || typeof state.learnSession !== 'object') state.learnSession = {};
+	                  state.learnSession = {
+	                    segments: plan.segments || [],
+	                    currentSegment: 0,
+	                    consolidationBattery: [],
+	                    currentMechanism: (plan.segments && plan.segments[0] ? plan.segments[0].mechanism : 'worked_example'),
+	                    completedSegmentIds: [],
+	                    subDeck: selectedSubDeck,
+	                    course: courseName,
+	                    startedAt: new Date().toISOString()
+	                  };
+	                  var firstSeg = plan.segments && plan.segments[0];
+	                  if (!firstSeg) {
+	                    toast('No learn segments generated');
+	                    return;
+	                  }
+	                  var learnerInput = window.prompt('Learn • ' + firstSeg.title + '\\n\\n' + firstSeg.tutorPrompt, '');
+	                  if (learnerInput == null) return;
+	                  var turn = await globalThis.__studyEngineLearnMode.runLearnTurn(
+	                    globalThis.__studyEngineLearnMode.startLearnSession(plan),
+	                    learnerInput,
+	                    settings.userName || ''
+	                  );
+	                  toast('Tutor: ' + String(turn.feedback || '').slice(0, 140));
+	                  (firstSeg.linkedCardIds || []).forEach(function(cardId) {
+	                    var card = state.items[cardId];
+	                    if (card && (card.learnStatus == null || card.learnStatus === 'unlearned')) {
+	                      card.learnStatus = 'taught';
+	                    }
+	                  });
+	                  var consolidate = window.confirm('Mark this segment as consolidated?');
+	                  if (consolidate) {
+	                    (firstSeg.linkedCardIds || []).forEach(function(cardId) {
+	                      var card = state.items[cardId];
+	                      if (card) {
+	                        card.learnStatus = 'consolidated';
+	                        card.consolidationRating = 3;
+	                      }
+	                    });
+	                  }
+	                  saveState();
+	                  openCourseDetail(courseName);
+	                } catch (learnErr) {
+	                  toast('Learn failed: ' + (learnErr && learnErr.message ? learnErr.message : String(learnErr)));
+	                }
+	              };
+	            } else {
+	              cdSubDeckAction.style.display = 'none';
+	              cdSubDeckAction.innerHTML = '';
+	            }
           }
         }
       }

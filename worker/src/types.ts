@@ -347,42 +347,61 @@ export interface DistillResponse {
   totalChunksStored: number;
 }
 
-export interface LearnRequest {
-  course: string;
-  topics: string[];
-  cards: Array<{
-    id?: string;
-    prompt?: string;
-    modelAnswer?: string;
-  }>;
-  courseContext?: {
-    syllabusContext?: string;
-    professorValues?: string;
-  };
+export interface StudyCardInput {
+  id?: string;
+  prompt?: string;
+  modelAnswer?: string;
 }
 
-export type LearnCheckType = "elaborative" | "predict";
+export interface LearnPlanRequest {
+  course: string;
+  subDeck: string;
+  cards: StudyCardInput[];
+  userName?: string;
+  learnerContext?: string;
+}
+
+export type LearnMechanism =
+  | "worked_example"
+  | "elaborative_interrogation"
+  | "self_explanation"
+  | "predictive_question"
+  | "test_closure";
+
+export interface GroundingSnippet {
+  cardId: string;
+  quote: string;
+}
 
 export interface LearnPlanSegment {
   id: string;
-  concept: string;
-  explanation: string;
-  elaboration: string;
-  checkType: LearnCheckType;
-  checkQuestion: string;
-  checkAnswer: string;
+  title: string;
+  mechanism: LearnMechanism;
+  objective: string;
+  tutorPrompt: string;
+  expectedAnswer: string;
   linkedCardIds: string[];
+  groundingSnippets: GroundingSnippet[];
 }
 
-export interface LearnPlanConsolidationQuestion {
-  question: string;
-  answer: string;
-  linkedCardIds: string[];
-}
-
-export interface LearnResponse {
+export interface LearnPlanResponse {
   segments: LearnPlanSegment[];
-  consolidationQuestions: LearnPlanConsolidationQuestion[];
+  planMode?: "verified" | "retry_verified" | "card_density_fallback";
+  warning?: string;
+}
+
+export interface LearnTurnRequest {
+  mechanism: LearnMechanism;
+  segment: LearnPlanSegment;
+  userInput?: string;
+  userName?: string;
+}
+
+export interface LearnTurnResponse {
+  feedback: string;
+  nextPrompt: string;
+  isSegmentComplete: boolean;
+  suggestedStatus?: "taught" | "consolidated" | null | string;
 }
 
 export interface ErrorResponse {
@@ -465,13 +484,6 @@ export interface ReformulateRequest {
   topic?: string;
   lapses?: number;
   diagnosisHistory?: Array<{ type?: string }>;
-}
-
-export interface LearnCheckRequest {
-  concept?: string;
-  checkQuestion?: string;
-  checkAnswer?: string;
-  userResponse?: string;
 }
 
 export interface ExamTriageRequest {
