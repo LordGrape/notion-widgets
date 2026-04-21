@@ -7317,6 +7317,11 @@ input[type="range"]::-moz-range-thumb{
       margin: 14px 0;
       flex-wrap: wrap;
     }
+    .ctx-actions.course-hero-actions .ctx-study-btn,
+    .ctx-actions.course-hero-actions .ctx-learn-btn {
+      flex: 1 1 220px;
+      min-height: 40px;
+    }
 
     .ctx-hero {
       text-align: center;
@@ -7395,6 +7400,43 @@ input[type="range"]::-moz-range-thumb{
       box-shadow: 0 10px 30px rgba(var(--accent-rgb), 0.28);
     }
     .ctx-study-btn:active { transform: translateY(0) scale(0.99); }
+    .ctx-learn-btn {
+      padding: 10px 18px;
+      border-radius: 14px;
+      background: rgba(var(--accent-rgb),0.08);
+      color: var(--text-primary);
+      font-weight: 700;
+      font-size: 11px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      border: 1px solid rgba(var(--accent-rgb),0.28);
+      cursor: pointer;
+      transition: transform var(--transition), background var(--transition), border-color var(--transition);
+    }
+    .ctx-learn-btn:hover {
+      transform: translateY(-1px);
+      background: rgba(var(--accent-rgb),0.12);
+      border-color: rgba(var(--accent-rgb),0.36);
+    }
+    .ctx-learn-btn:active { transform: translateY(0) scale(0.99); }
+
+    @media (max-width: 420px) {
+      .ctx-actions.course-hero-actions {
+        flex-direction: column;
+      }
+    }
+
+    .cd-course-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    .cd-course-actions .big-btn,
+    .cd-course-actions .ghost-btn {
+      flex: 1 1 180px;
+      min-height: 40px;
+    }
 
     .ctx-detail-stack {
       display: flex;
@@ -8082,7 +8124,10 @@ input[type="range"]::-moz-range-thumb{
               <button type="button" class="course-cards-delete-btn embed" id="cdDeleteCourseCardsBtn" title="Delete all cards in this course" aria-label="Delete all cards in this course" style="display:none;">🗑</button>
             </div>
             <div id="cdCardList" style="max-height:260px;overflow-y:auto;margin-bottom:14px;scrollbar-width:thin;"></div>
-            <button class="big-btn" id="cdStartSession">Study this course</button>
+            <div class="cd-course-actions">
+              <button class="big-btn" id="cdStartSession">Study this course</button>
+              <button type="button" class="ghost-btn" id="cdLearnCourseBtn">🧠 Learn</button>
+            </div>
             <button type="button" class="ghost-btn" id="cdPrimeModeBtn" style="margin-top:8px;">🧠 Prime Mode — Pre-study Questions</button>
             <div class="mini-actions">
               <button class="ghost-btn" id="cdAddCardBtn">＋ Add Card</button>
@@ -8321,6 +8366,8 @@ input[type="range"]::-moz-range-thumb{
       <div class="modal-body archived-overlay" id="archivedCoursesBody"></div>
     </div>
   </div>
+  <div class="overlay" id="courseLearnEmptyOv" aria-hidden="true"><div class="modal" style="max-width:520px;"><div class="modal-head"><span style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--text);">Learn course</span><button type="button" class="icon-btn" id="courseLearnEmptyClose" aria-label="Close"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg></button></div><div class="modal-body"><div id="courseLearnEmptyBody" style="font-size:11px;line-height:1.5;color:var(--text-secondary);"></div></div><div class="modal-actions"><button type="button" class="ghost-btn" id="courseLearnEmptyCancel">Cancel</button><button type="button" class="big-btn" id="courseLearnEmptyConfirm">Create &amp; Learn</button></div></div></div>
+  <div class="overlay" id="courseLearnPickerOv" aria-hidden="true"><div class="modal" style="max-width:560px;"><div class="modal-head"><span style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--text);">Choose sub-deck to learn</span><button type="button" class="icon-btn" id="courseLearnPickerClose" aria-label="Close"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg></button></div><div class="modal-body"><div id="courseLearnPickerBody" style="max-height:min(56vh,360px);overflow-y:auto;"></div></div></div></div>
 
   <div class="confirm-overlay" id="confirmExitOv">
     <div class="confirm-box">
@@ -20548,8 +20595,9 @@ input[type="range"]::-moz-range-thumb{
       h += '<div class="ctx-hero-due">' + stats.due + '</div>';
       h += '<div class="ctx-hero-label">Cards due</div>';
       h += '<div class="ctx-hero-exam">' + esc(examLine) + '</div>';
-      h += '<div class="ctx-actions">';
+      h += '<div class="ctx-actions course-hero-actions">';
       h += '<button class="ctx-study-btn" id="ctxStudyCourse" style="width:100%;max-width:480px;">▶ Study This Course' + (stats.due > 0 ? ' (' + stats.due + ' due)' : '') + '</button>';
+      h += '<button class="ctx-learn-btn" id="ctxLearnCourse" type="button">🧠 Learn</button>';
       h += '</div>';
       h += '</div>';
 
@@ -20655,6 +20703,14 @@ input[type="range"]::-moz-range-thumb{
         sidebarSelection = { level: 'course', course: courseName, module: null, topic: null };
         applySidebarFilterChipsOnly();
         startSession();
+      });
+      var learnBtn = document.getElementById('ctxLearnCourse');
+      if (learnBtn) learnBtn.addEventListener('click', function() {
+        var allCourseItems = {};
+        cards.forEach(function(card) {
+          if (card && card.id) allCourseItems[card.id] = card;
+        });
+        handleCourseLearnClick({ name: courseName }, allCourseItems);
       });
 
       var actionsBtn = document.getElementById('ctxCourseActions');
@@ -21822,6 +21878,62 @@ input[type="range"]::-moz-range-thumb{
       });
     }
 
+    var pendingCourseLearnStart = null;
+
+    function closeCourseLearnModals() {
+      ['courseLearnEmptyOv', 'courseLearnPickerOv'].forEach(function(id){ var ov = el(id); if (ov) { ov.classList.remove('show'); ov.setAttribute('aria-hidden', 'true'); } });
+      pendingCourseLearnStart = null;
+    }
+
+    function triggerCourseLearnSubDeck(courseName, subDeckKey) {
+      selectedSubDeck = subDeckKey;
+      openCourseDetail(courseName);
+      setTimeout(function(){ var learnBtn = el('cdLearnSubDeck'); if (learnBtn) learnBtn.click(); else toast('Could not start Learn for that sub-deck'); }, 0);
+    }
+
+    function handleCourseLearnClick(course, allCourseItems) {
+      if (!globalThis.__studyEngineLearnMode || typeof globalThis.__studyEngineLearnMode.resolveCourseLearnEntry !== 'function') return toast('Learn mode unavailable.');
+      var courseName = course && course.name ? course.name : '';
+      var allCards = Object.keys(allCourseItems || {}).map(function(id) { return allCourseItems[id]; }).filter(function(item) { return !!item; });
+      var emptyBody = el('courseLearnEmptyBody');
+      var emptyConfirm = el('courseLearnEmptyConfirm');
+      var showEmpty = function() { var ov = el('courseLearnEmptyOv'); if (ov) { ov.classList.add('show'); ov.setAttribute('aria-hidden', 'false'); } };
+
+      if (!allCards.length) {
+        if (emptyBody) emptyBody.textContent = 'Add cards to this course first, then start Learning.';
+        if (emptyConfirm) emptyConfirm.textContent = 'Add Card';
+        pendingCourseLearnStart = function() { closeCourseLearnModals(); openModal('add', courseName); };
+        return showEmpty();
+      }
+
+      var resolution = globalThis.__studyEngineLearnMode.resolveCourseLearnEntry(course, state);
+      if (resolution.kind === 'single') return triggerCourseLearnSubDeck(courseName, resolution.subDeckKey);
+      if (resolution.kind === 'picker') {
+        var pickerBody = el('courseLearnPickerBody');
+        if (!pickerBody) return;
+        pickerBody.innerHTML = (resolution.subDecks || []).map(function(entry) { return '<button type="button" data-course-learn-key="' + esc(entry.key) + '" style="width:100%;text-align:left;padding:10px 12px;border-radius:12px;border:1px solid rgba(var(--accent-rgb),0.18);background:rgba(var(--accent-rgb),0.04);color:var(--text-primary);cursor:pointer;margin-bottom:8px;"><span style="display:block;font-size:11px;font-weight:700;margin-bottom:4px;">' + esc(entry.name || entry.key) + '</span><span style="display:block;font-size:10px;color:var(--text-secondary);">' + Number(entry.stats.consolidated || 0) + '/' + Number(entry.stats.total || 0) + ' consolidated, ' + Number(entry.stats.unlearned || 0) + ' unlearned</span></button>'; }).join('');
+        pickerBody.querySelectorAll('[data-course-learn-key]').forEach(function(btn) { btn.addEventListener('click', function() { var key = this.getAttribute('data-course-learn-key'); closeCourseLearnModals(); if (key) triggerCourseLearnSubDeck(courseName, key); }); });
+        var pickerOv = el('courseLearnPickerOv');
+        if (pickerOv) { pickerOv.classList.add('show'); pickerOv.setAttribute('aria-hidden', 'false'); }
+        return;
+      }
+
+      if (emptyBody) emptyBody.textContent = 'This course has no sub-decks yet. Create a default \'All cards\' sub-deck with your current ' + allCards.length + ' cards and start Learning?';
+      if (emptyConfirm) emptyConfirm.textContent = 'Create & Learn';
+      pendingCourseLearnStart = function() {
+        try {
+          var key = globalThis.__studyEngineLearnMode.createDefaultSubDeckForCourse(course, state);
+          subDecksDirty = true;
+          saveState();
+          closeCourseLearnModals();
+          triggerCourseLearnSubDeck(courseName, key);
+        } catch (eCreateDefaultSubDeck) {
+          toast((eCreateDefaultSubDeck && eCreateDefaultSubDeck.message) ? eCreateDefaultSubDeck.message : 'Could not create default sub-deck');
+        }
+      };
+      showEmpty();
+    }
+
     /* ── Course Detail View ── */
     /* ═══ SECTION: Open Course Detail | Functions: openCourseDetail ═══ */
     function openCourseDetail(courseName) {
@@ -22451,6 +22563,23 @@ input[type="range"]::-moz-range-thumb{
     }
 
     el('cdBack').addEventListener('click', closeCourseDetail);
+    ['courseLearnEmptyClose', 'courseLearnEmptyCancel', 'courseLearnPickerClose'].forEach(function(id) {
+      var btn = el(id);
+      if (btn) btn.addEventListener('click', closeCourseLearnModals);
+    });
+    var courseLearnEmptyConfirmBtn = el('courseLearnEmptyConfirm');
+    if (courseLearnEmptyConfirmBtn) {
+      courseLearnEmptyConfirmBtn.addEventListener('click', function() {
+        if (typeof pendingCourseLearnStart === 'function') pendingCourseLearnStart();
+      });
+    }
+    ['courseLearnEmptyOv', 'courseLearnPickerOv'].forEach(function(id) {
+      var ov = el(id);
+      if (!ov) return;
+      ov.addEventListener('click', function(e) {
+        if (e.target === ov) closeCourseLearnModals();
+      });
+    });
     el('cdStartSession').addEventListener('click', function() {
       var title = el('cdTitle').textContent;
       if (title && title !== '—') {
@@ -22458,6 +22587,21 @@ input[type="range"]::-moz-range-thumb{
         closeCourseDetail();
         startSession();
       }
+    });
+    var cdLearnCourseBtn = el('cdLearnCourseBtn');
+    if (cdLearnCourseBtn) cdLearnCourseBtn.addEventListener('click', function() {
+      var title = el('cdTitle').textContent;
+      if (!title || title === '—') return;
+      var course = getCourse(title);
+      if (!course) return;
+      var allCourseItems = {};
+      for (var id in state.items) {
+        if (!state.items.hasOwnProperty(id)) continue;
+        var item = state.items[id];
+        if (!item || item.course !== title || item.archived) continue;
+        allCourseItems[id] = item;
+      }
+      handleCourseLearnClick(course, allCourseItems);
     });
 
     /* Redraw canvases on resize */
