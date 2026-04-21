@@ -9,7 +9,7 @@ export interface GeminiGenerationConfig {
   responseMimeType?: string;
   responseSchema?: GeminiJsonValue;
   thinkingConfig?: GeminiThinkingConfig;
-  [key: string]: GeminiJsonValue | undefined;
+  [key: string]: unknown;
 }
 
 export interface GeminiThinkingConfig {

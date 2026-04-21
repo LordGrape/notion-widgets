@@ -88,7 +88,7 @@ function resolveWidgetKey(): string {
   const syncKey = nonEmptyString(syncEngine?._key) || nonEmptyString(syncEngine?.key) || nonEmptyString(syncEngine?.passphrase);
   if (syncKey) return syncKey;
 
-  const envKey = nonEmptyString(import.meta.env.VITE_WIDGET_KEY);
+  const envKey = nonEmptyString((import.meta as { env?: { VITE_WIDGET_KEY?: unknown } }).env?.VITE_WIDGET_KEY);
   const globalEnvKey = nonEmptyString((globalThis as { __VITE_WIDGET_KEY__?: unknown }).__VITE_WIDGET_KEY__);
   return envKey || globalEnvKey;
 }

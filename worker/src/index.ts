@@ -4,8 +4,8 @@ import { handleDistill } from "./routes/distill";
 import { handleFetchLecture } from "./routes/fetchLecture";
 import { handleGrade } from "./routes/grade";
 import { handleLectureContext } from "./routes/lectureContext";
-import { handleLearn } from "./routes/learn";
-import { handleLearnCheck } from "./routes/learnCheck";
+import { handleLearnPlan } from "./routes/learn-plan";
+import { handleLearnTurn } from "./routes/learn-turn";
 import { handleMemory } from "./routes/memory";
 import { handleNotionMilestones } from "./routes/notion";
 import { handlePrepare } from "./routes/prepare";
@@ -134,14 +134,14 @@ export default {
         return withCorsHeaders(await handlePrime(request, env));
       }
 
-      if (url.pathname === "/studyengine/learn" || url.pathname === "/studyengine/learn-plan") {
+      if (url.pathname === "/studyengine/learn-plan") {
         if (request.method !== "POST") return methodNotAllowed();
-        return withCorsHeaders(await handleLearn(request, env));
+        return withCorsHeaders(await handleLearnPlan(request, env));
       }
 
-      if (url.pathname === "/studyengine/learn-check") {
+      if (url.pathname === "/studyengine/learn-turn") {
         if (request.method !== "POST") return methodNotAllowed();
-        return withCorsHeaders(await handleLearnCheck(request, env));
+        return withCorsHeaders(await handleLearnTurn(request, env));
       }
 
       if (url.pathname === "/studyengine/exam-triage" || url.pathname === "/studyengine/triage") {
