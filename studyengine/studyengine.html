@@ -8055,6 +8055,8 @@ input[type="range"]::-moz-range-thumb{
               <button class="cd-settings-btn" id="cdSettingsBtn" title="Course settings"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.5"/><path d="M8 1.5v1.2M8 13.3v1.2M1.5 8h1.2M13.3 8h1.2M3.4 3.4l.85.85M11.75 11.75l.85.85M3.4 12.6l.85-.85M11.75 4.25l.85-.85"/></svg></button>
             </div>
             <div id="cdBadges" class="cd-badges"></div>
+            <div id="cdSubDeckChips" class="chips" style="display:none;margin:8px 0 10px 0;gap:6px;flex-wrap:wrap;"></div>
+            <div id="cdSubDeckAction" style="display:none;margin:0 0 10px 0;"></div>
             <div class="cd-countdown" id="cdCountdown" style="display:none;">
               <div class="cd-days" id="cdDays">—</div>
               <div class="cd-days-label" id="cdDaysLabel">Days until exam</div>
@@ -8447,12 +8449,25 @@ input[type="range"]::-moz-range-thumb{
     import { getLevelInfo, didLevelUp } from './src/xp-level-system';
     import { drawRetentionCurve, drawSparkline, drawTierRing, drawActivityHeatmap, wireRetentionInteractivity, hideCanvasTooltip, getCanvasCtx, getAccentRGB, getTextSecondary, getTextColor } from './src/charts';
     import { buildSessionQueue, startSession, rateCurrent, advanceItem, completeSession, calcRestudyDuration, preloadQuickfireInsight } from './src/session-flow';
+    import { loadSubDecks, saveSubDecks, createSubDeck, renameSubDeck, deleteSubDeck, reorderSubDecks, getCardsInSubDeck, getSubDeckStats, migrateSubDecks } from './src/sub-decks';
     import { maybeReclassify, resolveTierTargetDistribution } from './src/tier-classifier';
     import { callParseSyllabus, validateEvidenceQuotes, buildCourseContext, SyllabusParseError } from './src/syllabus-parser';
     import { setupSettingsModule } from './src/settings';
     import { setupModalSystem } from './src/modals';
     import { initPageAnimations, animateEmptyStateEntrance } from './src/animations.js';
     import { computePopoverData, getTimeBucket } from './src/xp-popover';
+
+    globalThis.__studyEngineSubDecks = {
+      loadSubDecks: loadSubDecks,
+      saveSubDecks: saveSubDecks,
+      createSubDeck: createSubDeck,
+      renameSubDeck: renameSubDeck,
+      deleteSubDeck: deleteSubDeck,
+      reorderSubDecks: reorderSubDecks,
+      getCardsInSubDeck: getCardsInSubDeck,
+      getSubDeckStats: getSubDeckStats,
+      migrateSubDecks: migrateSubDecks
+    };
 
     /* Study Engine — multi-modal retrieval practice engine (FSRS) */
     /* FUNCTION INDEX (Auto-generated)
@@ -9030,6 +9045,7 @@ input[type="range"]::-moz-range-thumb{
 
     var state = null;
     var settings = null;
+    var subDecksDirty = false;
 
     /* ═══ SECTION: Deep Clone | Functions: deepClone ═══ */
     function deepClone(obj){ return JSON.parse(JSON.stringify(obj || {})); }
@@ -9098,15 +9114,19 @@ input[type="range"]::-moz-range-thumb{
     function loadState() {
       var items = SyncEngine.get(NS, 'items') || null;
       var courses = SyncEngine.get(NS, 'courses') || null;
+      var subDecks = SyncEngine.get(NS, 'subDecks') || null;
       var calibration = SyncEngine.get(NS, 'calibration') || null;
       var stats = SyncEngine.get(NS, 'stats') || null;
       state = deepClone(DEFAULT_STATE);
       if (items && typeof items === 'object') state.items = items;
       if (courses && typeof courses === 'object') state.courses = courses;
+      if (subDecks && typeof subDecks === 'object') state.subDecks = subDecks;
       if (calibration && typeof calibration === 'object') state.calibration = calibration;
       if (stats && typeof stats === 'object') state.stats = stats;
       migrateItems();
       migrateCoursesPhase6();
+      globalThis.__studyEngineSubDecks.loadSubDecks(state);
+      globalThis.__studyEngineSubDecks.migrateSubDecks(state);
       var s = SyncEngine.get(NS, 'settings') || null;
       settings = deepClone(DEFAULT_SETTINGS);
       if (s && typeof s === 'object') {
@@ -9139,6 +9159,10 @@ input[type="range"]::-moz-range-thumb{
     function saveState() {
       SyncEngine.set(NS, 'items', state.items || {});
       SyncEngine.set(NS, 'courses', state.courses || {});
+      if (subDecksDirty) {
+        SyncEngine.set(NS, 'subDecks', state.subDecks || {});
+        subDecksDirty = false;
+      }
       SyncEngine.set(NS, 'calibration', state.calibration || deepClone(DEFAULT_STATE.calibration));
       SyncEngine.set(NS, 'stats', state.stats || deepClone(DEFAULT_STATE.stats));
       SyncEngine.set(NS, 'settings', settings || deepClone(DEFAULT_SETTINGS));
@@ -9702,6 +9726,7 @@ input[type="range"]::-moz-range-thumb{
 
     var selectedCourse = 'All';
     var selectedTopic = 'All';
+    var selectedSubDeck = null;
     var retentionFilter = 'All'; /* controls which course the retention graph shows */
 
     var session = null;
@@ -10417,6 +10442,7 @@ input[type="range"]::-moz-range-thumb{
           var name = this.getAttribute('data-course-name');
           if (name) {
             selectedCourse = name;
+            selectedSubDeck = null;
             if (isEmbedded) {
               openCourseDetail(name);
             } else {
@@ -10453,6 +10479,7 @@ input[type="range"]::-moz-range-thumb{
         ch.addEventListener('click', function() {
           selectedCourse = this.getAttribute('data-course');
           selectedTopic = 'All';
+          selectedSubDeck = null;
           try { playPresetSelect(); } catch(e) {}
           renderDashboard();
         });
@@ -11354,6 +11381,8 @@ input[type="range"]::-moz-range-thumb{
         if (el('m_prompt')) el('m_prompt').value = it.prompt || '';
         if (el('m_answer')) el('m_answer').value = it.modelAnswer || '';
         if (el('m_topic')) el('m_topic').value = it.topic || '';
+        renderSubDeckSelectForModal();
+        if (el('m_subDeck')) el('m_subDeck').value = it.subDeck || '';
         if (el('m_priority')) el('m_priority').value = it.priority || 'medium';
         if (el('m_scenario')) el('m_scenario').value = it.scenario || '';
         if (el('m_task')) el('m_task').value = it.task || '';
@@ -17069,7 +17098,12 @@ input[type="range"]::-moz-range-thumb{
       setPendingImport: function(pending) { pendingImport = pending; }
     });
 
-    var openModal = modalSystem.openModal;
+    var openModal = function(tab, courseName) {
+      modalSystem.openModal(tab, courseName);
+      setTimeout(function() {
+        renderSubDeckSelectForModal();
+      }, 0);
+    };
     var closeModal = function() {
       cardEditId = null;
       if (el('doneBtn')) el('doneBtn').textContent = 'Done';
@@ -17085,6 +17119,69 @@ input[type="range"]::-moz-range-thumb{
 
     el('addNextBtn').addEventListener('click', function(){ addFromModal(true); });
     el('doneBtn').addEventListener('click', function(){ addFromModal(false); });
+
+    function getCourseSubDeckEntries(courseName) {
+      var subDeckState = (state && state.subDecks && state.subDecks[courseName]) ? state.subDecks[courseName] : {};
+      var entries = Object.keys(subDeckState || {}).map(function(key) {
+        return { key: key, meta: subDeckState[key] };
+      }).filter(function(entry) { return entry && entry.meta; });
+      entries.sort(function(a, b) {
+        var ao = typeof a.meta.order === 'number' ? a.meta.order : 0;
+        var bo = typeof b.meta.order === 'number' ? b.meta.order : 0;
+        if (ao !== bo) return ao - bo;
+        return String(a.meta.name || '').localeCompare(String(b.meta.name || ''));
+      });
+      return entries;
+    }
+
+    function renderSubDeckSelectForModal() {
+      if (modalSystem.getActiveTab() !== 'add') return;
+      var formEl = modalSystem.getModalFormEl();
+      if (!formEl) return;
+
+      var course = modalSystem.getModalCourse();
+      var topicField = document.getElementById('m_topic');
+      if (!topicField || !course) return;
+
+      var wrap = document.getElementById('m_subDeck_wrap');
+      if (!wrap) {
+        wrap = document.createElement('div');
+        wrap.className = 'field';
+        wrap.id = 'm_subDeck_wrap';
+        wrap.innerHTML = '<label>Sub-deck</label><select id="m_subDeck" class="input"></select>';
+        topicField.parentNode.insertAdjacentElement('afterend', wrap);
+      }
+
+      var sel = document.getElementById('m_subDeck');
+      if (!sel) return;
+      var current = sel.value || '';
+      var opts = '<option value="">(None)</option>';
+      getCourseSubDeckEntries(course).forEach(function(entry) {
+        opts += '<option value="' + esc(entry.key) + '">' + esc(entry.meta.name || entry.key) + '</option>';
+      });
+      opts += '<option value="__create__">＋ New sub-deck…</option>';
+      sel.innerHTML = opts;
+      if (current && sel.querySelector('option[value="' + current + '"]')) sel.value = current;
+      sel.onchange = function() {
+        if (sel.value !== '__create__') return;
+        var typed = window.prompt('New sub-deck name');
+        if (!typed || !typed.trim()) { sel.value = ''; return; }
+        try {
+          globalThis.__studyEngineSubDecks.createSubDeck(course, typed.trim());
+          subDecksDirty = true;
+          saveState();
+          renderSubDeckSelectForModal();
+          var target = getCourseSubDeckEntries(course).find(function(entry) {
+            return String(entry.meta.name || '').toLowerCase() === String(typed || '').trim().toLowerCase();
+          });
+          sel.value = target ? target.key : '';
+          toast('Created sub-deck: ' + typed.trim());
+        } catch (eCreate) {
+          toast((eCreate && eCreate.message) ? eCreate.message : 'Could not create sub-deck');
+          sel.value = '';
+        }
+      };
+    }
 
     function normalizeImportText(raw) {
       if (!raw) return '';
@@ -17268,6 +17365,7 @@ input[type="range"]::-moz-range-thumb{
       }
 
       var topic = (el('m_topic').value || '').trim();
+      var subDeck = (el('m_subDeck') && el('m_subDeck').value && el('m_subDeck').value !== '__create__') ? el('m_subDeck').value : null;
       var prompt = (el('m_prompt').value || '').trim();
       var answer = (el('m_answer').value || '').trim();
 
@@ -17284,6 +17382,7 @@ input[type="range"]::-moz-range-thumb{
         editItem.modelAnswer = answer;
         editItem.topic = topic;
         editItem.course = course;
+        editItem.subDeck = subDeck;
         editItem.tier = editTier;
         editItem.priority = (el('m_priority') && el('m_priority').value) || editItem.priority || 'medium';
 
@@ -17316,6 +17415,7 @@ input[type="range"]::-moz-range-thumb{
         modelAnswer: answer,
         course: course,
         topic: topic,
+        subDeck: subDeck,
         created: isoNow(),
         fsrs: { stability: 0, difficulty: 0, due: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), lastReview: null, reps: 0, lapses: 0, state: 'new' },
         variants: {}
@@ -17394,6 +17494,7 @@ input[type="range"]::-moz-range-thumb{
           if (count > 0) {
             state.items = parsed.items;
             if (parsed.courses) state.courses = parsed.courses;
+            if (parsed.subDecks) { state.subDecks = parsed.subDecks; subDecksDirty = true; }
             if (parsed.calibration) state.calibration = parsed.calibration;
             if (parsed.stats) state.stats = parsed.stats;
             if (parsed.settings) {
@@ -17487,6 +17588,7 @@ input[type="range"]::-moz-range-thumb{
           obj: obj,
           course: itemCourse,
           topic: (obj.topic || '').trim(),
+          subDeck: (obj.subDeck != null ? String(obj.subDeck).trim() : ''),
           promptPreview: String(obj.prompt).trim().substring(0, 120),
           tiers: tiers,
           isDuplicate: isDuplicate
@@ -17654,6 +17756,7 @@ input[type="range"]::-moz-range-thumb{
       var toImport = skipDups ? valid.filter(function(v) { return !v.isDuplicate; }) : valid;
       var n = 0;
       var importedIds = [];
+      var autoCreatedSubDeckNames = {};
       var autoClassifiedNonQf = 0;
       var batchTierDist = { quickfire: 0, explain: 0, apply: 0, distinguish: 0, mock: 0, worked: 0 };
 
@@ -17669,6 +17772,7 @@ input[type="range"]::-moz-range-thumb{
         if (!obj.modelAnswer && obj.answer) obj.modelAnswer = obj.answer;
 
         obj.course = entry.course;
+        obj.subDeck = entry.subDeck || null;
         obj.priority = obj.priority || 'medium';
         var reclassify = maybeReclassify(obj, { isEssayMode: isEssayMode }, { respectExplicitTier: true });
         if (reclassify && reclassify.changed && reclassify.tier !== 'quickfire') autoClassifiedNonQf++;
@@ -17699,6 +17803,24 @@ input[type="range"]::-moz-range-thumb{
           };
         }
 
+        if (obj.course && obj.subDeck) {
+          var existingSubDecks = getCourseSubDeckEntries(obj.course);
+          var matchedSubDeck = existingSubDecks.find(function(sd) {
+            return String(sd.meta.name || '').toLowerCase() === String(obj.subDeck || '').toLowerCase() || sd.key === obj.subDeck;
+          });
+          if (!matchedSubDeck) {
+            try {
+              globalThis.__studyEngineSubDecks.createSubDeck(obj.course, obj.subDeck);
+              autoCreatedSubDeckNames[obj.subDeck] = true;
+              subDecksDirty = true;
+            } catch (eCreateImport) {}
+            matchedSubDeck = getCourseSubDeckEntries(obj.course).find(function(sd2) {
+              return String(sd2.meta.name || '').toLowerCase() === String(obj.subDeck || '').toLowerCase();
+            });
+          }
+          obj.subDeck = matchedSubDeck ? matchedSubDeck.key : null;
+        }
+
         state.items[obj.id] = obj;
         importedIds.push(obj.id);
         n++;
@@ -17718,6 +17840,10 @@ input[type="range"]::-moz-range-thumb{
         ' WE=' + batchTierDist.worked
       );
       toast('Imported ' + n + ' cards · Auto-classified ' + autoClassifiedNonQf + ' into non-QF tiers');
+      var createdSubDeckList = Object.keys(autoCreatedSubDeckNames);
+      if (createdSubDeckList.length > 0) {
+        toast('Auto-created sub-deck: ' + createdSubDeckList.join(', '));
+      }
 
       var dupSkipped = skipDups ? pendingImport.duplicates.length : 0;
       var skipCount = pendingImport.skipped.length;
@@ -19144,6 +19270,34 @@ input[type="range"]::-moz-range-thumb{
           inner += '</div>';
           inner += '<div class="structure-divider"></div>';
           inner += '<div class="structure-section">';
+          inner += '<div class="structure-section-header"><span class="structure-icon">🗂️</span><div><div class="structure-title">Sub-decks overlay</div><div class="structure-desc">Optional groupings for cards inside this course. Does not replace existing modules.</div></div></div>';
+          inner += '<div style="display:flex;gap:8px;margin-bottom:10px;">';
+          inner += '<input type="text" class="input" id="cm_newOverlaySubDeckName" placeholder="New sub-deck name" />';
+          inner += '<button type="button" class="ghost-btn" id="cm_addOverlaySubDeck">＋ Add sub-deck</button>';
+          inner += '</div>';
+          var overlaySubDecks = getCourseSubDeckEntries(courseName);
+          if (!overlaySubDecks.length) {
+            inner += '<p class="help">No overlay sub-decks yet.</p>';
+          } else {
+            overlaySubDecks.forEach(function(sd, idx) {
+              var sdStats = globalThis.__studyEngineSubDecks.getSubDeckStats(courseName, sd.key, cards);
+              inner += '<div class="structure-module-card">';
+              inner += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">';
+              inner += '<input class="input" data-overlay-subdeck-name="' + esc(sd.key) + '" value="' + esc(sd.meta.name || sd.key) + '" style="flex:1;">';
+              inner += '<button class="ghost-btn" type="button" data-overlay-subdeck-up="' + esc(sd.key) + '"' + (idx === 0 ? ' disabled' : '') + ' style="min-width:0;padding:6px 10px;">↑</button>';
+              inner += '<button class="ghost-btn" type="button" data-overlay-subdeck-down="' + esc(sd.key) + '"' + (idx === overlaySubDecks.length - 1 ? ' disabled' : '') + ' style="min-width:0;padding:6px 10px;">↓</button>';
+              inner += '<button class="ghost-btn" type="button" data-overlay-subdeck-save="' + esc(sd.key) + '" style="min-width:0;padding:6px 10px;">Save</button>';
+              inner += '</div>';
+              inner += '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">';
+              inner += '<span class="help">' + sdStats.total + ' cards · ' + sdStats.due + ' due · ' + sdStats.archived + ' archived</span>';
+              inner += '<button class="ghost-btn" type="button" data-overlay-subdeck-delete="' + esc(sd.key) + '" style="min-width:0;padding:6px 10px;color:#ef4444;border-color:rgba(239,68,68,0.25);">Delete</button>';
+              inner += '</div>';
+              inner += '</div>';
+            });
+          }
+          inner += '</div>';
+          inner += '<div class="structure-divider"></div>';
+          inner += '<div class="structure-section">';
           inner += '<div class="structure-section-header"><span class="structure-icon">🏷️</span><div><div class="structure-title">Topics</div><div class="structure-desc">Concepts and themes across your cards. Used for filtering, not grouping.</div></div></div>';
           if (!allTopics.length) inner += '<p class="help">No topics yet. Topics are created when you add cards.</p>';
           else {
@@ -20094,6 +20248,85 @@ input[type="range"]::-moz-range-thumb{
               updateBreadcrumb();
               showTopicView(courseName, topic);
               try { playClick(); } catch (e) {}
+            };
+          });
+          var addOverlayBtn = el('cm_addOverlaySubDeck');
+          if (addOverlayBtn) addOverlayBtn.onclick = function() {
+            var overlayInput = el('cm_newOverlaySubDeckName');
+            var overlayName = overlayInput ? String(overlayInput.value || '').trim() : '';
+            if (!overlayName) { toast('Enter a sub-deck name'); return; }
+            try {
+              globalThis.__studyEngineSubDecks.createSubDeck(courseName, overlayName);
+              subDecksDirty = true;
+              saveState();
+              renderCourseModalEditor(courseName, 'structure');
+              toast('Created sub-deck: ' + overlayName);
+            } catch (eOverlayCreate) {
+              toast((eOverlayCreate && eOverlayCreate.message) ? eOverlayCreate.message : 'Could not create sub-deck');
+            }
+          };
+          courseModalBody.querySelectorAll('[data-overlay-subdeck-save]').forEach(function(btn) {
+            btn.onclick = function() {
+              var key = btn.getAttribute('data-overlay-subdeck-save');
+              var nameInput = courseModalBody.querySelector('[data-overlay-subdeck-name=\"' + key + '\"]');
+              var nextName = nameInput ? String(nameInput.value || '').trim() : '';
+              if (!nextName) { toast('Name cannot be empty'); return; }
+              try {
+                globalThis.__studyEngineSubDecks.renameSubDeck(courseName, key, nextName);
+                subDecksDirty = true;
+                saveState();
+                renderCourseModalEditor(courseName, 'structure');
+                if (selectedCourse === courseName) openCourseDetail(courseName);
+                toast('Sub-deck renamed');
+              } catch (eOverlayRename) {
+                toast((eOverlayRename && eOverlayRename.message) ? eOverlayRename.message : 'Could not rename sub-deck');
+              }
+            };
+          });
+          courseModalBody.querySelectorAll('[data-overlay-subdeck-up]').forEach(function(btn) {
+            btn.onclick = function() {
+              var key = btn.getAttribute('data-overlay-subdeck-up');
+              var keys = getCourseSubDeckEntries(courseName).map(function(sd){ return sd.key; });
+              var idx = keys.indexOf(key);
+              if (idx <= 0) return;
+              var tmp = keys[idx - 1];
+              keys[idx - 1] = keys[idx];
+              keys[idx] = tmp;
+              globalThis.__studyEngineSubDecks.reorderSubDecks(courseName, keys);
+              subDecksDirty = true;
+              saveState();
+              renderCourseModalEditor(courseName, 'structure');
+            };
+          });
+          courseModalBody.querySelectorAll('[data-overlay-subdeck-down]').forEach(function(btn) {
+            btn.onclick = function() {
+              var key = btn.getAttribute('data-overlay-subdeck-down');
+              var keys = getCourseSubDeckEntries(courseName).map(function(sd){ return sd.key; });
+              var idx = keys.indexOf(key);
+              if (idx < 0 || idx >= keys.length - 1) return;
+              var tmp = keys[idx + 1];
+              keys[idx + 1] = keys[idx];
+              keys[idx] = tmp;
+              globalThis.__studyEngineSubDecks.reorderSubDecks(courseName, keys);
+              subDecksDirty = true;
+              saveState();
+              renderCourseModalEditor(courseName, 'structure');
+            };
+          });
+          courseModalBody.querySelectorAll('[data-overlay-subdeck-delete]').forEach(function(btn) {
+            btn.onclick = function() {
+              var key = btn.getAttribute('data-overlay-subdeck-delete');
+              var mode = window.prompt('Type ORPHAN to move cards to course root, or DELETE to remove cards too.', 'ORPHAN');
+              if (!mode) return;
+              var normalizedMode = String(mode).trim().toUpperCase();
+              if (normalizedMode !== 'ORPHAN' && normalizedMode !== 'DELETE') { toast('Cancelled. Type ORPHAN or DELETE.'); return; }
+              globalThis.__studyEngineSubDecks.deleteSubDeck(courseName, key, normalizedMode === 'DELETE' ? 'delete' : 'orphan');
+              if (normalizedMode === 'DELETE') reconcileStats();
+              subDecksDirty = true;
+              saveState();
+              renderCourseModalEditor(courseName, 'structure');
+              if (selectedCourse === courseName) openCourseDetail(courseName);
+              toast(normalizedMode === 'DELETE' ? 'Sub-deck and cards deleted' : 'Sub-deck deleted, cards moved to course root');
             };
           });
         } else if (activeTab === 'notes') {
@@ -21623,6 +21856,7 @@ input[type="range"]::-moz-range-thumb{
       }
 
       /* Course items */
+      var allCourseItems = {};
       var courseItems = {};
       var totalItems = 0;
       var dueCount = 0;
@@ -21632,9 +21866,21 @@ input[type="range"]::-moz-range-thumb{
         if (!state.items.hasOwnProperty(id)) continue;
         var it = state.items[id];
         if (!it || it.course !== courseName || it.archived) continue;
-        courseItems[id] = it;
+        allCourseItems[id] = it;
+      }
+
+      var subDeckEntries = getCourseSubDeckEntries(courseName);
+      if (selectedSubDeck && !subDeckEntries.some(function(sd){ return sd.key === selectedSubDeck; })) {
+        selectedSubDeck = null;
+      }
+
+      for (var cid in allCourseItems) {
+        if (!allCourseItems.hasOwnProperty(cid)) continue;
+        var cit = allCourseItems[cid];
+        if (selectedSubDeck && cit.subDeck !== selectedSubDeck) continue;
+        courseItems[cid] = cit;
         totalItems++;
-        var f = it.fsrs || null;
+        var f = cit.fsrs || null;
         var dueTs = f && f.due ? new Date(f.due).getTime() : 0;
         if (!f || !f.lastReview || dueTs <= now) dueCount++;
         if (f && f.lastReview) {
@@ -21654,6 +21900,92 @@ input[type="range"]::-moz-range-thumb{
         /* Root cause: users clear cards from a course detail list, but the only bulk wipe lived in global Settings. */
         cdDeleteCourseCardsBtn.style.display = totalItems > 0 ? 'inline-flex' : 'none';
         cdDeleteCourseCardsBtn.onclick = function() { deleteAllCardsInCourse(courseName); };
+      }
+
+      var cdSubDeckChips = el('cdSubDeckChips');
+      var cdSubDeckAction = el('cdSubDeckAction');
+      if (cdSubDeckChips) {
+        if (!subDeckEntries.length) {
+          cdSubDeckChips.style.display = 'none';
+          cdSubDeckChips.innerHTML = '';
+          if (cdSubDeckAction) { cdSubDeckAction.style.display = 'none'; cdSubDeckAction.innerHTML = ''; }
+        } else {
+          var chipsHtml = '';
+          chipsHtml += '<button class="chip' + (!selectedSubDeck ? ' active' : '') + '" data-subdeck-key="">All (' + Object.keys(allCourseItems).length + ')</button>';
+          subDeckEntries.forEach(function(entry) {
+            var stats = globalThis.__studyEngineSubDecks.getSubDeckStats(courseName, entry.key, Object.keys(allCourseItems).map(function(itemId){ return allCourseItems[itemId]; }));
+            chipsHtml += '<button class="chip' + (selectedSubDeck === entry.key ? ' active' : '') + '" data-subdeck-key="' + esc(entry.key) + '">' + esc(entry.meta.name || entry.key) + ' (' + stats.total + ')</button>';
+          });
+          chipsHtml += '<button class="chip" data-subdeck-new>＋ New sub-deck</button>';
+          cdSubDeckChips.innerHTML = chipsHtml;
+          cdSubDeckChips.style.display = 'flex';
+
+          cdSubDeckChips.querySelectorAll('[data-subdeck-key]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+              selectedSubDeck = this.getAttribute('data-subdeck-key') || null;
+              openCourseDetail(courseName);
+            });
+          });
+          var newBtn = cdSubDeckChips.querySelector('[data-subdeck-new]');
+          if (newBtn) newBtn.addEventListener('click', function() {
+            var nextName = window.prompt('New sub-deck name');
+            if (!nextName || !nextName.trim()) return;
+            try {
+              globalThis.__studyEngineSubDecks.createSubDeck(courseName, nextName.trim());
+              subDecksDirty = true;
+              saveState();
+              selectedSubDeck = getCourseSubDeckEntries(courseName).find(function(sd) {
+                return String(sd.meta.name || '').toLowerCase() === nextName.trim().toLowerCase();
+              });
+              selectedSubDeck = selectedSubDeck ? selectedSubDeck.key : null;
+              openCourseDetail(courseName);
+            } catch (eCreateCourse) {
+              toast((eCreateCourse && eCreateCourse.message) ? eCreateCourse.message : 'Could not create sub-deck');
+            }
+          });
+
+          if (cdSubDeckAction) {
+            if (selectedSubDeck) {
+              cdSubDeckAction.style.display = 'block';
+              cdSubDeckAction.innerHTML = '<button class="big-btn" id="cdStartSubDeckSession" type="button">Study this sub-deck</button>';
+              var studySubDeckBtn = el('cdStartSubDeckSession');
+              if (studySubDeckBtn) studySubDeckBtn.onclick = function() {
+                var q = buildSessionQueue().filter(function(item) {
+                  return item && item.course === courseName && item.subDeck === selectedSubDeck;
+                });
+                if (!q.length) { toast('No due cards in this sub-deck'); return; }
+                session = {
+                  queue: q,
+                  idx: 0,
+                  loops: {},
+                  currentShown: false,
+                  startedAt: Date.now(),
+                  xp: 0,
+                  reviewsByTier: { quickfire: 0, explain: 0, apply: 0, distinguish: 0, mock: 0, worked: 0 },
+                  ratingSum: 0,
+                  ratingN: 0,
+                  calBefore: calibrationPct(state.calibration),
+                  confidence: null,
+                  recentRatings: [],
+                  fatigueWarningShown: false,
+                  tutorStats: defaultTutorStats(),
+                  tutorModeCounts: defaultTutorModeCounts(),
+                  sessionRatingsLog: [],
+                  lastTutorContext: null,
+                  tutorAnalyticsHistoryKey: 's' + Date.now()
+                };
+                sessionSummary = null;
+                closeCourseDetail();
+                showView('viewSession');
+                try { playStart(); } catch (e0) {}
+                renderCurrentItem();
+              };
+            } else {
+              cdSubDeckAction.style.display = 'none';
+              cdSubDeckAction.innerHTML = '';
+            }
+          }
+        }
       }
 
       /* Per-tier stats */
