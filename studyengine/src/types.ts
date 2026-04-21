@@ -120,6 +120,17 @@ export interface FSRSState {
   state: 'new' | 'learning' | 'review' | 'relearning';
 }
 
+
+
+export interface SubDeckMeta {
+  name: string;
+  order: number;
+  created: number;
+  color?: string;
+  icon?: string;
+}
+
+export type SubDecksState = Record<string, Record<string, SubDeckMeta>>;
 export interface StudyItem {
   id: string;
   prompt: string;
@@ -133,7 +144,7 @@ export interface StudyItem {
   course?: string;
   topic?: string;
   subdeck?: string;
-  subDeck?: string;
+  subDeck?: string | null;
   fsrs: FSRSState;
   tags?: string[];
   notes?: string;
@@ -323,6 +334,7 @@ export interface LearnSession {
 export interface AppState {
   items: Record<string, StudyItem>;
   courses: Record<string, Course>;
+  subDecks?: SubDecksState;
   calibration: CalibrationData;
   stats: StatsData;
   settings?: Settings;
