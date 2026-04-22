@@ -8106,6 +8106,76 @@ input[type="range"]::-moz-range-thumb{
       .learn-actions .learn-exit-btn,
       .learn-actions .learn-submit-btn{ width: 100%; min-width: 0; }
     }
+    .learn-stats{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    @media (max-width: 1199px){
+      .learn-stats{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 799px){
+      .learn-stats{ grid-template-columns: 1fr; }
+      .learn-stats-card{ max-height: none; }
+    }
+    .learn-stats-card{
+      background: var(--surface-1);
+      border:1px solid var(--border-subtle);
+      border-radius: var(--radius);
+      padding: 12px;
+      min-height: 136px;
+      max-height: 180px;
+      overflow: hidden;
+      transition: border-color var(--transition);
+    }
+    .learn-stats-card:hover{ border-color: var(--surface-2); }
+    .learn-stats-label{
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .learn-stats-main{
+      font-size: 22px;
+      line-height: 1.2;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+    .learn-stats-main-with-chart{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+    }
+    .learn-stats-sub{
+      font-size: 10px;
+      line-height: 1.4;
+      color: var(--text-secondary);
+    }
+    .learn-stats-ring{ transform: rotate(-90deg); flex-shrink:0; }
+    .learn-stats-ring-track{ fill:none; stroke: var(--surface-2); stroke-width: 6; }
+    .learn-stats-ring-fill{ fill:none; stroke: var(--accent-primary); stroke-width: 6; stroke-linecap: round; }
+    .learn-stats-dist-bar{
+      display:flex;
+      width:100%;
+      height:12px;
+      border-radius:999px;
+      overflow:hidden;
+      border:1px solid var(--border-subtle);
+      background: var(--surface-2);
+      margin-bottom: 8px;
+    }
+    .learn-stats-dist-segment{ min-width: 0; }
+    .learn-stats-dist-legend{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 6px 10px;
+      font-size: 9px;
+      color: var(--text-secondary);
+    }
 
     /* ── CSS SECTION: Learn Session Phase 3 (consolidation, summary, polish) ── */
     /* Defect 2 fix: the UA `[hidden] { display: none }` rule is overridden by the
@@ -8848,6 +8918,7 @@ input[type="range"]::-moz-range-thumb{
               </div>
             </section>
             <section role="tabpanel" id="learn-tab-panel" aria-labelledby="learn-tab" hidden tabindex="-1">
+              <div id="learnStatsRoot"></div>
               <div class="empty-state" id="learnTabEmptyState">
                 <div class="empty-title">Pick a sub-deck from Review to start Learn</div>
               </div>
@@ -9321,6 +9392,7 @@ input[type="range"]::-moz-range-thumb{
     import { computePopoverData, getTimeBucket } from './src/xp-popover';
     import './src/learn-mode';
     import './src/learn-flow';
+    import './src/learn-stats';
 
     globalThis.__studyEngineSubDecks = {
       loadSubDecks: loadSubDecks,
@@ -22813,6 +22885,49 @@ input[type="range"]::-moz-range-thumb{
     /* Phase 4 streaming: references to the latest streaming-orchestration
        inputs so the Retry button can restart the SSE stream cleanly. */
     var lastLearnStreamArgs = null; /* { courseName, subDeckKey, userName, learnerContext } */
+    var learnTeachReadTimer = { segmentId: null, startedAt: 0, recorded: false };
+
+    function renderLearnStatsForCourse(courseName) {
+      var root = el('learnStatsRoot');
+      var bridge = globalThis.__studyEngineLearnStats;
+      if (!root || !bridge || typeof bridge.computeLearnStats !== 'function' || typeof bridge.renderLearnStats !== 'function') return;
+      var stats = bridge.computeLearnStats(state, String(courseName || ''));
+      bridge.renderLearnStats(root, stats);
+    }
+
+    function currentLearnSegmentRef() {
+      if (!activeLearnSession || !activeLearnSession.flow || !activeLearnSession.flow.plan) return null;
+      var idx = Number(activeLearnSession.flow.segmentIndex || 0);
+      var segments = activeLearnSession.flow.plan.segments || [];
+      return segments[idx] || null;
+    }
+
+    function beginTeachReadTimerForCurrentSegment() {
+      var seg = currentLearnSegmentRef();
+      if (!seg || !seg.id) return;
+      if (typeof seg.teachReadMs === 'number') return;
+      if (learnTeachReadTimer.segmentId !== seg.id) {
+        learnTeachReadTimer.segmentId = seg.id;
+        learnTeachReadTimer.startedAt = performance.now();
+        learnTeachReadTimer.recorded = false;
+      }
+    }
+
+    function recordTeachReadTimerOnce() {
+      if (!activeLearnSession) return;
+      if (!learnTeachReadTimer.segmentId || learnTeachReadTimer.recorded) return;
+      var seg = currentLearnSegmentRef();
+      if (!seg || seg.id !== learnTeachReadTimer.segmentId) return;
+      if (typeof seg.teachReadMs === 'number') {
+        learnTeachReadTimer.recorded = true;
+        return;
+      }
+      if (!(learnTeachReadTimer.startedAt > 0)) return;
+      seg.teachReadMs = Math.max(0, performance.now() - learnTeachReadTimer.startedAt);
+      learnTeachReadTimer.recorded = true;
+      renderLearnStatsForCourse(activeLearnSession.courseName || activeLearnSession.flow.course || '');
+      saveState();
+    }
 
     function getCourseContextForLearn(courseName) {
       if (!state || !state.courses) return undefined;
@@ -23348,6 +23463,11 @@ input[type="range"]::-moz-range-thumb{
       var input = el('learnSessionInput');
       var staleBadge = el('learnPlanStaleBadge');
       var regenBtn = el('learnSessionRegen');
+      if (input && !input.__learnReadTimerWired) {
+        input.addEventListener('focus', recordTeachReadTimerOnce, { once: false });
+        input.addEventListener('input', recordTeachReadTimerOnce, { once: false });
+        input.__learnReadTimerWired = true;
+      }
 
       if (staleBadge) staleBadge.hidden = !activeLearnSession.planOutOfDate;
       if (regenBtn) regenBtn.disabled = flow.phase === 'loading' || flow.phase === 'streaming';
@@ -23378,6 +23498,7 @@ input[type="range"]::-moz-range-thumb{
 
       /* Tutor body (Teach block) */
       if (tutor) tutor.innerHTML = renderLearnMarkdownSafe(flow.tutorBody);
+      beginTeachReadTimerForCurrentSegment();
 
       /* Your-Turn prompt (Defect 1 split): render segment.tutorPrompt as the
          Socratic opener above the textarea. Falls back to empty string when
@@ -23413,6 +23534,7 @@ input[type="range"]::-moz-range-thumb{
       }
 
       if (input) input.placeholder = 'Type your response…';
+      renderLearnStatsForCourse(activeLearnSession.courseName || activeLearnSession.flow.course || '');
 
       /* Pane switching */
       if (flow.phase === 'consolidating') {
@@ -23501,6 +23623,13 @@ input[type="range"]::-moz-range-thumb{
         (flow.plan.segments || []).forEach(function(s){ if (s && s.title) topicsSet[s.title] = true; });
         var ratingList = [];
         Object.keys(flow.consolidationRatings || {}).forEach(function(k){ ratingList.push(flow.consolidationRatings[k]); });
+        var segmentRecords = (flow.plan.segments || []).map(function(seg) {
+          return {
+            id: seg && seg.id ? String(seg.id) : undefined,
+            teachReadMs: (seg && typeof seg.teachReadMs === 'number') ? seg.teachReadMs : undefined,
+            groundingSource: (seg && (seg.groundingSource === 'gemini' || seg.groundingSource === 'fallback')) ? seg.groundingSource : undefined
+          };
+        });
         var durationMs = Date.now() - (new Date(flow.startedAt).getTime() || now);
         sessionFlowBridge.writeLearnSessionRecord && sessionFlowBridge.writeLearnSessionRecord({
           course: courseName,
@@ -23508,6 +23637,7 @@ input[type="range"]::-moz-range-thumb{
           subDeck: subDeckKey,
           segmentsCompleted: (flow.completedSegmentIds || []).length,
           consolidationRatings: ratingList,
+          segments: segmentRecords,
           cardsHandedOff: stats.handedOff,
           durationMs: Math.max(0, durationMs),
           timestamp: new Date(now).toISOString()
@@ -23855,9 +23985,15 @@ input[type="range"]::-moz-range-thumb{
       startLearnStreamTicker();
 
       var handlers = {
-        onSegment: function(segment) {
+        onSegment: function(segment, meta) {
           if (!activeLearnSession) return;
           activeLearnSession.flow = flowBridge.appendStreamedSegment(activeLearnSession.flow, segment);
+          var appended = activeLearnSession.flow.plan.segments[activeLearnSession.flow.plan.segments.length - 1];
+          if (appended) {
+            appended.groundingSource = (meta && (meta.groundingSource === 'gemini' || meta.groundingSource === 'fallback'))
+              ? meta.groundingSource
+              : undefined;
+          }
           /* First-segment race guard: mount after appendStreamedSegment so the flow
              state the modal renders is consistent. appendStreamedSegment silently
              no-ops if activeLearnSession was cleared in the same tick (user escaped
@@ -23908,6 +24044,7 @@ input[type="range"]::-moz-range-thumb{
               renderLearnSessionUI();
             } else {
               toast(message || 'Learn plan failed');
+              learnTeachReadTimer = { segmentId: null, startedAt: 0, recorded: false };
               activeLearnSession = null;
             }
             return;
@@ -24057,6 +24194,7 @@ input[type="range"]::-moz-range-thumb{
       if (_fsrsRows) _fsrsRows.innerHTML = '';
       if (_fsrsNote) _fsrsNote.textContent = '';
       if (_staleBadge) _staleBadge.hidden = true;
+      learnTeachReadTimer = { segmentId: null, startedAt: 0, recorded: false };
       activeLearnSession = null;
       learnSummaryState = null;
       try { playClick(); } catch(e) {}
@@ -24326,6 +24464,7 @@ input[type="range"]::-moz-range-thumb{
         });
       }
       applyCourseTabUI(getActiveCourseTab(c.name));
+      renderLearnStatsForCourse(c.name);
       var cdHeader = document.querySelector('#courseDetail .cd-header');
       if (cdHeader) {
         cdHeader.style.borderLeft = '5px solid ' + (c.color || '#8b5cf6');

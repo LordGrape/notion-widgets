@@ -1223,7 +1223,6 @@ export function applyLearnHandoff(
   if (!stateBag || !stateBag.items) {
     return { handedOff: 0, consolidated: 0, taught: 0, unlearned: 0 };
   }
-  const nowIso = new Date(nowTs).toISOString();
   let consolidated = 0, taught = 0, unlearned = 0;
 
   const rank: Record<'unlearned' | 'taught' | 'consolidated', number> = {
@@ -1245,12 +1244,9 @@ export function applyLearnHandoff(
 
     if (shouldUpgradeStatus) {
       item.learnStatus = entry.status;
-      if (entry.status !== 'unlearned') {
-        item.learnedAt = nowIso;
+      if (entry.status === 'consolidated' && typeof item.learnedAt !== 'number') {
+        item.learnedAt = nowTs;
       }
-    } else if (priorRank === nextRank && entry.status !== 'unlearned') {
-      // Same status: refresh learnedAt so sorting by recency reflects this session.
-      item.learnedAt = nowIso;
     }
     // Only overwrite consolidationRating when the handoff has a fresh rating.
     // Preserves prior ratings when this session didn't rate the card.
@@ -1267,6 +1263,7 @@ export function applyLearnHandoff(
     // is a scheduling hint not a scheduling replacement.
     if (entry.consolidationRating === 1) {
       item.forceNextQF = true;
+      item.forceNextQFOrigin = 'learn';
     }
 
     // FSRS seed: only apply if this is a first exposure (no lastReview). For

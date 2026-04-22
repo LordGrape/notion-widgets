@@ -146,7 +146,7 @@ export interface StudyItem {
   subdeck?: string;
   subDeck?: string | null;
   learnStatus?: 'unlearned' | 'taught' | 'consolidated' | null;
-  learnedAt?: string | null;
+  learnedAt?: number;
   consolidationRating?: 1 | 2 | 3 | 4 | null;
   /**
    * Phase 3 successive relearning flag. When true and the card's course+tier
@@ -154,6 +154,7 @@ export interface StudyItem {
    * queue. Cleared on first rating >= 3; persists on rating === 1.
    */
   forceNextQF?: boolean;
+  forceNextQFOrigin?: 'learn' | 'review';
   fsrs: FSRSState;
   tags?: string[];
   notes?: string;
@@ -358,6 +359,11 @@ export interface LearnSessionRecord {
   subDeck: string;
   segmentsCompleted: number;
   consolidationRatings: Array<1 | 2 | 3 | 4>;
+  segments?: Array<{
+    id?: string;
+    teachReadMs?: number;
+    groundingSource?: 'gemini' | 'fallback';
+  }>;
   cardsHandedOff: number;
   durationMs: number;
   timestamp: string;

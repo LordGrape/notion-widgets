@@ -26,6 +26,7 @@ export interface LearnSegment {
   expectedAnswer: string;
   linkedCardIds: string[];
   groundingSnippets: GroundingSnippet[];
+  groundingSource?: 'gemini' | 'fallback';
 }
 
 export interface ConsolidationQuestion {
@@ -207,7 +208,7 @@ export function startLearnSession(plan: LearnPlan): LearnSessionState {
  * survives future worker changes.
  */
 export interface StreamLearnPlanHandlers {
-  onSegment?: (segment: LearnSegment) => void;
+  onSegment?: (segment: LearnSegment, meta?: { groundingSource?: 'gemini' | 'fallback' }) => void;
   onConsolidationQuestions?: (questions: ConsolidationQuestion[]) => void;
   onComplete?: (meta: { segmentCount: number; consolidationCount: number; planMode?: string; warning?: string }) => void;
   onError?: (message: string, opts?: { hasSegments: boolean }) => void;
@@ -233,11 +234,14 @@ export async function streamLearnPlan(
 
   let emittedCount = 0;
 
-  const emitSegment = (seg: LearnSegment): void => {
+  const emitSegment = (
+    seg: LearnSegment,
+    meta?: { groundingSource?: 'gemini' | 'fallback' }
+  ): void => {
     const verified = substringVerified([seg], subDeckCards);
     if (verified.length === 0) return;
     emittedCount += 1;
-    handlers.onSegment?.(verified[0]);
+    handlers.onSegment?.(verified[0], meta);
   };
 
   const emitQuestions = (qs: ConsolidationQuestion[]): void => {
@@ -317,7 +321,15 @@ export async function streamLearnPlan(
     try { data = JSON.parse(dataLines.join('\n')); } catch { return; }
 
     if (eventName === 'segment' && data && typeof data === 'object') {
-      emitSegment(data as LearnSegment);
+      const payload = data as LearnSegment & {
+        groundingSource?: 'gemini' | 'fallback';
+        origin?: 'gemini' | 'fallback';
+        source?: 'gemini' | 'fallback';
+      };
+      // TODO(learn-stats): worker segment events currently do not emit a stable
+      // origin marker. Keep undefined until protocol adds one; metric handles it.
+      const groundingSource = payload.groundingSource ?? payload.origin ?? payload.source;
+      emitSegment(payload, { groundingSource });
     } else if (eventName === 'consolidationQuestions' && data && typeof data === 'object') {
       const qs = (data as { questions?: ConsolidationQuestion[] }).questions;
       if (Array.isArray(qs)) emitQuestions(qs);
