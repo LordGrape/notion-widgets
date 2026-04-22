@@ -584,6 +584,7 @@ export function markSessionCompleted(flow: LearnFlowState, now: number): LearnFl
  * previously marked abandoned). `completedAt` is set so downstream analytics
  * still see an end time.
  */
+// Abandonment-phase contract: closeLearnSessionImmediate maps streaming→streaming, consolidating→consolidating, and {tutor,loading,error}→tutor. Loading/error coercion preserves the semantic "user was in a tutor segment when they abandoned" for telemetry analysis.
 export function markAbandoned(
   flow: LearnFlowState,
   phase: LearnAbandonmentPhase,
