@@ -7926,6 +7926,12 @@ input[type="range"]::-moz-range-thumb{
       min-height: 0;
       align-items: start;
     }
+    @media (min-width: 1000px){
+      #learn-tab-panel .learn-body{
+        display:grid;
+        grid-template-columns: 260px minmax(0,1fr);
+      }
+    }
     .learn-main{
       min-width: 0;
       position: relative;
@@ -8205,6 +8211,24 @@ input[type="range"]::-moz-range-thumb{
       letter-spacing: 0.5px;
       padding: 7px 10px;
       cursor:pointer;
+    }
+    .course-settings-panel{
+      display:grid;
+      gap: 12px;
+    }
+    .course-settings-summary{
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 12px;
+      background: var(--surface-1);
+      color: var(--text-primary);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+    .course-settings-actions{
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 8px;
     }
     @media (max-width: 999px){
       #learn-tab-panel .learn-body{
@@ -9217,26 +9241,11 @@ input[type="range"]::-moz-range-thumb{
                   <div class="s" id="cdRetTrend">—</div>
                 </div>
               </div>
-              <div class="cd-tier-stats" id="cdTierStats"></div>
-              <div id="cdTierPromoHost"></div>
-              <div id="cdTutorNotesHost"></div>
-              <!-- Retention forecast moved into analytics grid -->
-              <div class="cards-header-row">
-                <div class="section-header" id="cdCardsHeaderLabel">Cards (0)</div>
-                <button type="button" class="course-cards-delete-btn embed" id="cdDeleteCourseCardsBtn" title="Delete all cards in this course" aria-label="Delete all cards in this course" style="display:none;">🗑</button>
-              </div>
-              <div id="cdCardList" style="max-height:260px;overflow-y:auto;margin-bottom:14px;scrollbar-width:thin;"></div>
               <div class="cd-course-actions">
                 <button class="big-btn" id="cdStartSession">Study this course</button>
                 <button type="button" class="ghost-btn" id="cdLearnCourseBtn">🧠 Learn</button>
               </div>
               <button type="button" class="ghost-btn" id="cdPrimeModeBtn" style="margin-top:8px;">🧠 Prime Mode — Pre-study Questions</button>
-              <div class="mini-actions">
-                <button class="ghost-btn" id="cdAddCardBtn">＋ Add Card</button>
-                <button class="ghost-btn" id="cdImportBtn"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><line x1="8" y1="2" x2="8" y2="10.5"/><polyline points="4.5,7 8,10.5 11.5,7"/><path d="M2.5 12.5h11"/></svg>Import JSON</button>
-                  </div>
-                </div>
-              </div>
             </section>
             <section role="tabpanel" id="learn-tab-panel" aria-labelledby="learn-tab" hidden tabindex="-1">
               <div id="learnStatsRoot"></div>
@@ -9331,9 +9340,26 @@ input[type="range"]::-moz-range-thumb{
                 </div>
               </div>
             </section>
-            <section role="tabpanel" id="cards-tab-panel" aria-labelledby="cards-tab" hidden><p class="empty-state">Coming soon</p></section>
-            <section role="tabpanel" id="analytics-tab-panel" aria-labelledby="analytics-tab" hidden><p class="empty-state">Coming soon</p></section>
-            <section role="tabpanel" id="settings-tab-panel" aria-labelledby="settings-tab" hidden><p class="empty-state">Coming soon</p></section>
+            <section role="tabpanel" id="cards-tab-panel" aria-labelledby="cards-tab" hidden>
+              <div class="cards-header-row">
+                <div class="section-header" id="cdCardsHeaderLabel">Cards (0)</div>
+                <button type="button" class="course-cards-delete-btn embed" id="cdDeleteCourseCardsBtn" title="Delete all cards in this course" aria-label="Delete all cards in this course" style="display:none;">🗑</button>
+              </div>
+              <div id="cdCardList" style="max-height:420px;overflow-y:auto;margin-bottom:14px;scrollbar-width:thin;"></div>
+              <div class="mini-actions">
+                <button class="ghost-btn" id="cdAddCardBtn">＋ Add Card</button>
+                <button class="ghost-btn" id="cdImportBtn"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><line x1="8" y1="2" x2="8" y2="10.5"/><polyline points="4.5,7 8,10.5 11.5,7"/><path d="M2.5 12.5h11"/></svg>Import JSON</button>
+              </div>
+            </section>
+            <section role="tabpanel" id="analytics-tab-panel" aria-labelledby="analytics-tab" hidden>
+              <div class="cd-tier-stats" id="cdTierStats"></div>
+              <div id="cdTierPromoHost"></div>
+              <div id="cdTutorNotesHost"></div>
+              <div class="cd-analytics" id="cdAnalytics"></div>
+            </section>
+            <section role="tabpanel" id="settings-tab-panel" aria-labelledby="settings-tab" hidden>
+              <div id="cdSettingsTabContent"></div>
+            </section>
           </div>
         </div>
 
@@ -21791,6 +21817,48 @@ input[type="range"]::-moz-range-thumb{
       ]);
     }
 
+    function renderCourseSettingsTab(courseName) {
+      var host = el('cdSettingsTabContent');
+      if (!host) return;
+      var course = getCourse(courseName) || {};
+      var examDate = course.examDate ? esc(course.examDate) : 'Not set';
+      var examType = esc(EXAM_TYPE_LABELS[course.examType] || course.examType || 'Mixed');
+      var subjectType = esc(SUBJECT_TYPE_LABELS[course.subjectType] || course.subjectType || 'Mixed');
+      var retentionTarget = Number(course.retentionTarget || settings.retentionTarget || 0.9);
+      var retentionPct = Math.round(clamp(retentionTarget, 0.5, 0.99) * 100);
+      host.innerHTML =
+        '<div class="course-settings-panel">'
+          + '<div class="course-settings-summary">'
+            + '<div style="font-size:9px;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:var(--text-tertiary);margin-bottom:8px;">Course Settings</div>'
+            + '<div><strong>Exam date:</strong> ' + examDate + '</div>'
+            + '<div><strong>Exam format:</strong> ' + examType + '</div>'
+            + '<div><strong>Subject type:</strong> ' + subjectType + '</div>'
+            + '<div><strong>Retention target:</strong> ' + retentionPct + '%</div>'
+          + '</div>'
+          + '<div class="course-settings-actions">'
+            + '<button type="button" class="ghost-btn" id="cdSettingsOpenDetails">Edit course details</button>'
+            + '<button type="button" class="ghost-btn" id="cdSettingsOpenSyllabus">Lecture materials</button>'
+            + '<button type="button" class="ghost-btn" id="cdSettingsOpenStructure">Modules & topics</button>'
+            + '<button type="button" class="ghost-btn" id="cdSettingsOpenNotes">Tutor notes</button>'
+            + '<button type="button" class="ghost-btn" id="cdSettingsContextMenu">More actions</button>'
+          + '</div>'
+        + '</div>';
+
+      var openTab = function(tab) {
+        try { window.openEditCourseTab(courseName, tab); } catch (e0) {}
+      };
+      var detailsBtn = el('cdSettingsOpenDetails');
+      if (detailsBtn) detailsBtn.onclick = function() { openTab('details'); };
+      var syllabusBtn = el('cdSettingsOpenSyllabus');
+      if (syllabusBtn) syllabusBtn.onclick = function() { openTab('syllabus'); };
+      var structureBtn = el('cdSettingsOpenStructure');
+      if (structureBtn) structureBtn.onclick = function() { openTab('structure'); };
+      var notesBtn = el('cdSettingsOpenNotes');
+      if (notesBtn) notesBtn.onclick = function() { openTab('notes'); };
+      var actionsBtn = el('cdSettingsContextMenu');
+      if (actionsBtn) actionsBtn.onclick = function() { showCourseContextMenu(courseName, actionsBtn); };
+    }
+
     function showCourseDashboard(courseName) {
       hideContextViews();
       var view = document.getElementById('courseDashView');
@@ -25292,20 +25360,18 @@ input[type="range"]::-moz-range-thumb{
         tnHost.innerHTML = renderCourseTutorNotesPanelHTML(courseName);
         wireTutorNotesPanelToggle(tnHost);
       }
+      renderCourseSettingsTab(courseName);
 
       /* ── Advanced Analytics ── */
       var cdAnalytics = el('cdAnalytics');
       if (!cdAnalytics) {
-        /* Create analytics container if it doesn't exist in HTML yet */
-        var analyticsDiv = document.createElement('div');
-        analyticsDiv.id = 'cdAnalytics';
-        analyticsDiv.className = 'cd-analytics';
-        /* Insert after tier stats */
-        var tierStatsEl = el('cdTierStats');
-        if (tierStatsEl && tierStatsEl.nextSibling) {
-          tierStatsEl.parentNode.insertBefore(analyticsDiv, tierStatsEl.nextSibling);
+        var analyticsPanel = el('analytics-tab-panel');
+        if (analyticsPanel) {
+          cdAnalytics = document.createElement('div');
+          cdAnalytics.id = 'cdAnalytics';
+          cdAnalytics.className = 'cd-analytics';
+          analyticsPanel.appendChild(cdAnalytics);
         }
-        cdAnalytics = analyticsDiv;
       }
 
       /* Inline SVG icons for analytics cards (12×12, matches Lucide style) */
