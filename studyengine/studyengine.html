@@ -8159,6 +8159,16 @@ input[type="range"]::-moz-range-thumb{
       color: var(--text-secondary);
       line-height: 1.45;
     }
+    .learn-hero-empty-helper{
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.5;
+      color: var(--text-secondary);
+      display: none;
+    }
+    #learn-tab-panel.learn-tab-panel--mode-empty .learn-hero-empty-helper{
+      display: block;
+    }
     .learn-hero-coverage{
       flex: 0 0 auto;
       min-width: 140px;
@@ -8196,6 +8206,46 @@ input[type="range"]::-moz-range-thumb{
     }
     .learn-insights{
       margin-bottom: 10px;
+    }
+    #learn-tab-panel.learn-tab-panel--mode-empty .learn-insights,
+    #learn-tab-panel.learn-tab-panel--mode-empty .learn-hero-coverage,
+    #learn-tab-panel.learn-tab-panel--mode-populated .learn-hero-coverage{
+      display: none;
+    }
+    #learn-tab-panel.learn-tab-panel--mode-populated .learn-venn-teaching{
+      display: none;
+    }
+    .learn-hero[data-single-subdeck="true"] .learn-hero-subdeck-btn,
+    .learn-hero[data-single-subdeck="true"] .learn-hero-copy{
+      display: none;
+    }
+    .learn-venn-teaching{
+      margin: 0 0 12px;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      background: var(--surface-1);
+      backdrop-filter: var(--blur-glass);
+      padding: 20px;
+    }
+    .learn-venn-teaching #learnTabEmptyState.learn-main-empty{
+      min-height: 0;
+      padding: 0;
+      justify-content: center;
+    }
+    .learn-venn-teaching .learn-empty-pedagogy{
+      max-width: 680px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .learn-venn-teaching .learn-empty-pedagogy h2{
+      margin-bottom: 10px;
+    }
+    .learn-venn-teaching .learn-empty-body,
+    .learn-venn-teaching .learn-empty-cta{
+      max-width: 640px;
+      margin-left: auto;
+      margin-right: auto;
+      text-align: center;
     }
     body.learn-session-active #learn-tab-panel .learn-hero,
     body.learn-session-active #learn-tab-panel .learn-insights,
@@ -8488,6 +8538,12 @@ input[type="range"]::-moz-range-thumb{
       .learn-hero-subdeck-btn{ order: -1; }
       .learn-hero-coverage{
         justify-content: flex-start;
+      }
+      .learn-venn-teaching{
+        padding: 16px;
+      }
+      .learn-venn-teaching .learn-empty-illustration{
+        max-width: 280px;
       }
       .learn-main-empty{
         padding: 24px;
@@ -9613,6 +9669,7 @@ input[type="range"]::-moz-range-thumb{
                     <button type="button" class="ghost-btn learn-hero-subdeck-btn" id="learnHeroSubDeckBtn" aria-controls="learnSubDeckRail" aria-expanded="false">Sub-deck picker</button>
                   </div>
                   <p class="learn-hero-copy">Choose a sub-deck, then start a focused Learn session.</p>
+                  <p class="learn-hero-empty-helper">Start your first Learn session to build a foundation, then insights will appear here.</p>
                 </div>
                 <div class="learn-hero-coverage" id="learnHeroCoverage" aria-live="polite"></div>
               </section>
@@ -10127,6 +10184,7 @@ input[type="range"]::-moz-range-thumb{
     import './src/learn-flow';
     import './src/learn-stats';
     import './src/learn-rail';
+    import { deriveLearnDisplayMode } from './src/learn-display-mode';
     import { LEARN_EMPTY_HEADING, LEARN_EMPTY_BODY, LEARN_EMPTY_CTA, LEARN_EMPTY_LABEL_ENCODING, LEARN_EMPTY_LABEL_RETRIEVAL, LEARN_LANDING_STATUS_UNLEARNED, LEARN_LANDING_STATUS_TAUGHT, LEARN_LANDING_STATUS_CONSOLIDATED, LEARN_LANDING_CACHE_HIT, LEARN_LANDING_CACHE_MISS, LEARN_LANDING_START, LEARN_LANDING_REGEN, LEARN_REGEN_CONFIRM, LEARN_INTRO_TEXT, LEARN_INTRO_DISMISS, formatRelativeTime } from './src/learn-copy';
 
     globalThis.__studyEngineSubDecks = {
@@ -23928,6 +23986,21 @@ input[type="range"]::-moz-range-thumb{
     var learnIntroDismissCleanup = null;
     var learnTeachReadTimer = { segmentId: null, startedAt: 0, recorded: false };
     var learnTurnBreathingTimeline = null;
+    var learnTeachingBlockRelocated = false;
+
+    function ensureLearnTeachingBlockPlacement() {
+      if (learnTeachingBlockRelocated) return;
+      var panel = el('learn-tab-panel');
+      var hero = el('learnHero');
+      var teaching = el('learnTabEmptyState');
+      if (!panel || !hero || !teaching) return;
+      var wrapper = document.createElement('section');
+      wrapper.className = 'learn-venn-teaching';
+      wrapper.id = 'learnVennTeaching';
+      panel.insertBefore(wrapper, hero.nextSibling);
+      wrapper.appendChild(teaching);
+      learnTeachingBlockRelocated = true;
+    }
 
     function setLearnLandingSelection(courseName, subDeckKey, persist) {
       learnLandingSelection = (courseName && subDeckKey)
@@ -23944,6 +24017,26 @@ input[type="range"]::-moz-range-thumb{
       var bridge = globalThis.__studyEngineLearnStats;
       if (!root || !bridge || typeof bridge.computeLearnStats !== 'function' || typeof bridge.renderLearnStats !== 'function') return;
       var stats = bridge.computeLearnStats(state, String(courseName || ''));
+      var modeBridge = globalThis.__studyEngineLearnMode;
+      var subDeckEntries = (modeBridge && typeof modeBridge.getCourseSubDeckEntries === 'function')
+        ? modeBridge.getCourseSubDeckEntries(String(courseName || ''), state)
+        : [];
+      var learnMode = deriveLearnDisplayMode({
+        consolidatedCount: stats && stats.encodingCoverage && typeof stats.encodingCoverage.consolidated === 'number'
+          ? Number(stats.encodingCoverage.consolidated)
+          : 0,
+        subDeckCount: subDeckEntries.length
+      });
+      var panel = el('learn-tab-panel');
+      if (panel) {
+        panel.classList.toggle('learn-tab-panel--mode-empty', learnMode.mode === 'empty');
+        panel.classList.toggle('learn-tab-panel--mode-populated', learnMode.mode === 'populated');
+      }
+      var hero = el('learnHero');
+      if (hero) {
+        hero.dataset.singleSubdeck = learnMode.showSubDeckPickerButton ? 'false' : 'true';
+      }
+      ensureLearnTeachingBlockPlacement();
       bridge.renderLearnStats(root, stats);
       renderLearnHeroCoverage(stats && stats.encodingCoverage ? stats.encodingCoverage : null);
       renderLearnMainSurface(courseName);
