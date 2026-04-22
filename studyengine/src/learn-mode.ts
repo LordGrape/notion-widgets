@@ -40,6 +40,8 @@ export interface LearnPlan {
   consolidationQuestions?: ConsolidationQuestion[];
   planMode?: 'verified' | 'retry_verified' | 'card_density_fallback';
   warning?: string;
+  /** djb2 hash of the sub-deck's card set (id + prompt + modelAnswer) at plan-generation time. Used by the UI to detect whether the active plan is stale vs. the current deck. Optional for legacy plans. */
+  subDeckFingerprint?: string;
 }
 
 export interface LearnSessionState {
@@ -101,6 +103,15 @@ export function fingerprintLearnInputs(args: {
   if (!args.courseContext) return cardHash;
   const contextHash = shortDjb2Hash(JSON.stringify(args.courseContext));
   return `${cardHash}:${contextHash}`;
+}
+
+export function fingerprintSubDeckCards(cards: StudyItem[]): string {
+  const fingerprintInput = (cards || [])
+    .slice()
+    .sort((a, b) => String(a?.id || '').localeCompare(String(b?.id || '')))
+    .map((card) => `${String(card?.id || '')}|${String(card?.prompt || '').trim()}|${String(card?.modelAnswer || '').trim()}`)
+    .join('\n');
+  return shortDjb2Hash(fingerprintInput);
 }
 
 export function verifyConsolidationQuestions(questions: ConsolidationQuestion[], items: StudyItem[]): ConsolidationQuestion[] {
@@ -174,8 +185,9 @@ export async function generateLearnPlan(course: string, subDeck: string, items: 
     throw new Error('Learn plan grounding verification failed: fewer than 2 verified segments.');
   }
   const verifiedQuestions = verifyConsolidationQuestions(data.consolidationQuestions || [], subDeckCards);
+  const subDeckFingerprint = fingerprintSubDeckCards(subDeckCards);
 
-  return { ...data, segments: verifiedSegments, consolidationQuestions: verifiedQuestions };
+  return { ...data, segments: verifiedSegments, consolidationQuestions: verifiedQuestions, subDeckFingerprint };
 }
 
 export function startLearnSession(plan: LearnPlan): LearnSessionState {
@@ -210,7 +222,7 @@ export function startLearnSession(plan: LearnPlan): LearnSessionState {
 export interface StreamLearnPlanHandlers {
   onSegment?: (segment: LearnSegment, meta?: { groundingSource?: 'gemini' | 'fallback' }) => void;
   onConsolidationQuestions?: (questions: ConsolidationQuestion[]) => void;
-  onComplete?: (meta: { segmentCount: number; consolidationCount: number; planMode?: string; warning?: string }) => void;
+  onComplete?: (meta: { segmentCount: number; consolidationCount: number; planMode?: string; warning?: string; subDeckFingerprint?: string }) => void;
   onError?: (message: string, opts?: { hasSegments: boolean }) => void;
 }
 
@@ -224,6 +236,7 @@ export async function streamLearnPlan(
   signal?: AbortSignal
 ): Promise<void> {
   const subDeckCards = getCardsInSubDeck(course, subDeck, items);
+  const subDeckFingerprint = fingerprintSubDeckCards(subDeckCards);
   const payload = {
     course,
     subDeck,
@@ -280,6 +293,7 @@ export async function streamLearnPlan(
       handlers.onError?.('Learn plan response was not parseable JSON.', { hasSegments: false });
       return;
     }
+    parsed.subDeckFingerprint = subDeckFingerprint;
     const segments = substringVerified(parsed.segments || [], subDeckCards);
     if (segments.length < 2) {
       handlers.onError?.('Learn plan grounding verification failed: fewer than 2 verified segments.', { hasSegments: false });
@@ -295,7 +309,8 @@ export async function streamLearnPlan(
       segmentCount: segments.length,
       consolidationCount: qs.length,
       planMode: parsed.planMode,
-      warning: parsed.warning
+      warning: parsed.warning,
+      subDeckFingerprint
     });
     return;
   }
@@ -334,7 +349,8 @@ export async function streamLearnPlan(
       const qs = (data as { questions?: ConsolidationQuestion[] }).questions;
       if (Array.isArray(qs)) emitQuestions(qs);
     } else if (eventName === 'complete' && data && typeof data === 'object') {
-      handlers.onComplete?.(data as { segmentCount: number; consolidationCount: number; planMode?: string; warning?: string });
+      const completeMeta = data as { segmentCount: number; consolidationCount: number; planMode?: string; warning?: string };
+      handlers.onComplete?.({ ...completeMeta, subDeckFingerprint });
     } else if (eventName === 'error' && data && typeof data === 'object') {
       sawFatalError = true;
       const message = String((data as { message?: string }).message || 'Learn plan stream error');
@@ -548,5 +564,6 @@ export function createDefaultSubDeckForCourse(course: CourseLike | string, state
   resolveCourseLearnEntry,
   createDefaultSubDeckForCourse,
   fingerprintLearnInputs,
+  fingerprintSubDeckCards,
   getCourseSubDeckEntries
 };
