@@ -5,6 +5,7 @@ export interface LearnStats {
   courseId: string;
   encodingCoverage: {
     consolidated: number;
+    taught: number;
     total: number;
     pct: number;
     empty: boolean;
@@ -59,6 +60,7 @@ export interface LearnStats {
 export function computeLearnStats(state: AppState, courseId: string): LearnStats {
   const items = Object.values(state.items || {}).filter((item) => item?.course === courseId);
   const { consolidated, total, percent: pct } = computeCoverageRatio(items);
+  const taught = items.filter((item) => item?.learnStatus === 'taught').length;
 
   const buckets = {
     again: 0,
@@ -106,6 +108,7 @@ export function computeLearnStats(state: AppState, courseId: string): LearnStats
     courseId,
     encodingCoverage: {
       consolidated,
+      taught,
       total,
       pct,
       empty: total === 0
