@@ -466,7 +466,7 @@ function getCourseName(course: CourseLike | string): string {
   return String(course?.name || '').trim();
 }
 
-function getCourseSubDeckEntries(courseName: string, state: AppState): Array<{ key: string; meta: SubDeckMeta }> {
+export function getCourseSubDeckEntries(courseName: string, state: AppState): Array<{ key: string; meta: SubDeckMeta }> {
   const map = (state?.subDecks && state.subDecks[courseName]) ? state.subDecks[courseName] : {};
   return Object.keys(map || {})
     .map((key) => ({ key, meta: map[key] }))
@@ -547,5 +547,6 @@ export function createDefaultSubDeckForCourse(course: CourseLike | string, state
   applyLearnStatusMigration,
   resolveCourseLearnEntry,
   createDefaultSubDeckForCourse,
-  fingerprintLearnInputs
+  fingerprintLearnInputs,
+  getCourseSubDeckEntries
 };
