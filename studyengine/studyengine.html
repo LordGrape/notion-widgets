@@ -25123,6 +25123,7 @@ input[type="range"]::-moz-range-thumb{
     function renderLearnSessionUI() {
       if (!activeLearnSession) return;
       var flow = activeLearnSession.flow;
+      var flowBridge = globalThis.__studyEngineLearnFlow;
       /* Phase B telemetry: record first-entry into the current segment.
          Gated on a phase that actually presents a tutor turn and on having
          a concrete segment at the current index, so the pre-segment
