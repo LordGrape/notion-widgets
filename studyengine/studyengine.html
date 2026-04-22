@@ -7909,11 +7909,203 @@ input[type="range"]::-moz-range-thumb{
       border-color: rgba(var(--accent-rgb),0.6);
       box-shadow: 0 0 0 3px rgba(var(--accent-rgb),0.12);
     }
-    .learn-body{
+    .learn-session-body{
       padding: 18px 18px 4px;
       overflow-y: auto;
       flex: 1 1 auto;
       min-height: 0;
+    }
+    #learn-tab-panel{
+      position: relative;
+      min-height: 0;
+    }
+    #learn-tab-panel .learn-body{
+      display:grid;
+      grid-template-columns: 260px minmax(0,1fr);
+      gap: 12px;
+      min-height: 0;
+      align-items: start;
+    }
+    .learn-main{
+      min-width: 0;
+      position: relative;
+    }
+    .learn-main-top{
+      display:flex;
+      justify-content:flex-start;
+      margin-bottom: 8px;
+    }
+    .learn-main-empty{
+      margin: 0;
+    }
+    .learn-subdeck-rail{
+      background: var(--surface-1);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius);
+      padding: 12px;
+      overflow-y: auto;
+      max-height: calc(100vh - 320px);
+      scrollbar-width: thin;
+    }
+    .learn-rail-course-row{
+      display:flex;
+      align-items:center;
+      gap: 8px;
+      margin-bottom: 10px;
+      min-width: 0;
+    }
+    .learn-rail-course-icon{
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 1px solid var(--border-default);
+      flex-shrink: 0;
+    }
+    .learn-rail-course-name{
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .learn-rail-coverage{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap: 6px;
+      margin-bottom: 10px;
+      padding: 8px;
+      border-radius: 12px;
+      border: 1px solid var(--border-subtle);
+      background: var(--surface-0);
+    }
+    .learn-rail-ring{ transform: rotate(-90deg); }
+    .learn-rail-ring-track{ fill:none; stroke: var(--surface-2); stroke-width: 7; }
+    .learn-rail-ring-fill{ fill:none; stroke: var(--accent-primary); stroke-width: 7; stroke-linecap: round; }
+    .learn-rail-ring-label{
+      font-size: 11px;
+      font-weight: 700;
+      fill: var(--text-primary);
+      transform: rotate(90deg);
+      transform-origin: center;
+    }
+    .learn-rail-coverage-copy{
+      font-size: 10px;
+      color: var(--text-secondary);
+      margin: 0;
+      text-align: center;
+    }
+    .learn-rail-list{
+      display:flex;
+      flex-direction:column;
+      gap: 6px;
+    }
+    .learn-rail-empty{
+      margin: 6px 2px 0;
+      font-size: 10px;
+      color: var(--text-secondary);
+    }
+    .learn-subdeck{
+      appearance:none;
+      width:100%;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 8px;
+      border: 1px solid var(--border-subtle);
+      border-left: 3px solid transparent;
+      border-radius: 10px;
+      padding: 8px 10px;
+      background: transparent;
+      color: var(--text-primary);
+      cursor: pointer;
+      text-align:left;
+    }
+    .learn-subdeck:focus-visible{
+      outline: 2px solid var(--border-accent);
+      outline-offset: 2px;
+    }
+    .learn-subdeck.is-active{
+      border-left-color: var(--accent-primary);
+      background: var(--surface-2);
+    }
+    .learn-subdeck-main{ min-width:0; flex:1 1 auto; }
+    .learn-subdeck-name-row{ display:flex; align-items:center; gap:5px; margin-bottom:4px; }
+    .learn-subdeck-name{
+      font-size: 10px;
+      font-weight: 700;
+      line-height: 1.35;
+      color: var(--text-primary);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .learn-subdeck-check{ color: var(--accent-success); flex-shrink:0; }
+    .learn-subdeck-dots{
+      display:flex;
+      gap: 8px;
+      font-size: 9px;
+      color: var(--text-secondary);
+      flex-wrap: wrap;
+    }
+    .learn-subdeck-dot-group{ display:inline-flex; align-items:center; gap:4px; }
+    .learn-subdeck-dot{
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .learn-subdeck-dot.is-consolidated{ background: var(--accent-success); }
+    .learn-subdeck-dot.is-taught{ background: var(--accent-warning); }
+    .learn-subdeck-dot.is-unlearned{ background: var(--accent-danger); }
+    .learn-subdeck-badge{
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 999px;
+      padding: 2px 7px;
+      flex-shrink: 0;
+    }
+    .learn-rail-toggle{
+      display:none;
+      appearance:none;
+      border:1px solid var(--border-default);
+      background: var(--surface-1);
+      color: var(--text-primary);
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      padding: 7px 10px;
+      cursor:pointer;
+    }
+    @media (max-width: 999px){
+      #learn-tab-panel .learn-body{
+        grid-template-columns: minmax(0,1fr);
+      }
+      .learn-rail-toggle{ display:inline-flex; align-items:center; }
+      .learn-subdeck-rail{
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 280px;
+        max-width: calc(100% - 24px);
+        max-height: calc(100vh - 240px);
+        z-index: 20;
+        box-shadow: 0 14px 30px rgba(0,0,0,0.22);
+        transform: translateX(-110%);
+        opacity: 0;
+        pointer-events: none;
+        transition: transform var(--transition), opacity var(--transition);
+      }
+      .learn-subdeck-rail.learn-subdeck-rail--open{
+        transform: translateX(0);
+        opacity: 1;
+        pointer-events: auto;
+      }
     }
     .learn-tutor{
       font-size: 13px;
@@ -8915,14 +9107,22 @@ input[type="range"]::-moz-range-thumb{
               <div class="mini-actions">
                 <button class="ghost-btn" id="cdAddCardBtn">＋ Add Card</button>
                 <button class="ghost-btn" id="cdImportBtn"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><line x1="8" y1="2" x2="8" y2="10.5"/><polyline points="4.5,7 8,10.5 11.5,7"/><path d="M2.5 12.5h11"/></svg>Import JSON</button>
+                  </div>
+                </div>
               </div>
             </section>
             <section role="tabpanel" id="learn-tab-panel" aria-labelledby="learn-tab" hidden tabindex="-1">
               <div id="learnStatsRoot"></div>
-              <div class="empty-state" id="learnTabEmptyState">
-                <div class="empty-title">Pick a sub-deck from Review to start Learn</div>
-              </div>
-              <div id="learnSessionOv" class="learn-inline-surface" hidden>
+              <div class="learn-body" id="learnTabBody">
+                <nav class="learn-subdeck-rail" id="learnSubDeckRail" aria-label="Sub-decks"></nav>
+                <div class="learn-main" id="learnMain">
+                  <div class="learn-main-top" id="learnMainTop">
+                    <button type="button" class="learn-rail-toggle" id="learnRailToggle" aria-controls="learnSubDeckRail" aria-expanded="false" aria-label="Toggle sub-deck rail">☰ Sub-decks</button>
+                  </div>
+                  <div class="empty-state learn-main-empty" id="learnTabEmptyState">
+                    <div class="empty-title">Pick a sub-deck from the rail to begin.</div>
+                  </div>
+                  <div id="learnSessionOv" class="learn-inline-surface" hidden>
                 <div class="modal">
                   <div class="modal-head">
                     <div class="learn-head-copy">
@@ -8948,7 +9148,7 @@ input[type="range"]::-moz-range-thumb{
                     <span class="learn-stream-strip-pct" id="learnSessionStreamStripPct" aria-hidden="true">0%</span>
                     <div class="learn-stream-strip-bar" aria-hidden="true"><div class="learn-stream-strip-bar-fill" id="learnSessionStreamStripFill"></div></div>
                   </div>
-                  <div class="learn-body" id="learnSessionBody">
+                  <div class="learn-session-body" id="learnSessionBody">
                     <div class="learn-tutor-pane" id="learnTutorPane">
                       <div class="learn-card-block learn-teach">
                         <div class="learn-card-block-label">Teach</div>
@@ -9001,6 +9201,8 @@ input[type="range"]::-moz-range-thumb{
                       <span class="learn-submit-label">Submit</span>
                     </button>
                   </div>
+                </div>
+              </div>
                 </div>
               </div>
             </section>
@@ -9393,6 +9595,7 @@ input[type="range"]::-moz-range-thumb{
     import './src/learn-mode';
     import './src/learn-flow';
     import './src/learn-stats';
+    import './src/learn-rail';
 
     globalThis.__studyEngineSubDecks = {
       loadSubDecks: loadSubDecks,
@@ -22893,6 +23096,23 @@ input[type="range"]::-moz-range-thumb{
       if (!root || !bridge || typeof bridge.computeLearnStats !== 'function' || typeof bridge.renderLearnStats !== 'function') return;
       var stats = bridge.computeLearnStats(state, String(courseName || ''));
       bridge.renderLearnStats(root, stats);
+      renderLearnRailForCourse(courseName);
+    }
+
+    function setLearnRailOpen(nextOpen) {
+      var rail = el('learnSubDeckRail');
+      var toggle = el('learnRailToggle');
+      if (!rail || !toggle) return;
+      var open = !!nextOpen;
+      rail.classList.toggle('learn-subdeck-rail--open', open);
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+
+    function renderLearnRailForCourse(courseName) {
+      var rail = el('learnSubDeckRail');
+      var bridge = globalThis.__studyEngineLearnRail;
+      if (!rail || !bridge || typeof bridge.renderLearnSubDeckRail !== 'function') return;
+      bridge.renderLearnSubDeckRail(rail, String(courseName || ''), state);
     }
 
     function currentLearnSegmentRef() {
@@ -23970,6 +24190,7 @@ input[type="range"]::-moz-range-thumb{
         var inputEl = el('learnSessionInput');
         if (inputEl) { inputEl.value = ''; inputEl.disabled = false; }
         renderLearnSessionUI();
+        renderLearnRailForCourse(courseName);
         if (window.gsap) {
           try { gsap.fromTo(ov.querySelector('.modal'), { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' }); } catch(e) {}
         }
@@ -24101,6 +24322,7 @@ input[type="range"]::-moz-range-thumb{
       var input = el('learnSessionInput');
       if (input) { input.value = ''; input.disabled = false; }
       renderLearnSessionUI();
+      renderLearnRailForCourse(courseName);
       if (window.gsap) {
         try { gsap.fromTo(ov.querySelector('.modal'), { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' }); } catch(e) {}
       }
@@ -24195,8 +24417,12 @@ input[type="range"]::-moz-range-thumb{
       if (_fsrsNote) _fsrsNote.textContent = '';
       if (_staleBadge) _staleBadge.hidden = true;
       learnTeachReadTimer = { segmentId: null, startedAt: 0, recorded: false };
+      var _lastCourse = (state.learnSession && state.learnSession.course) ? String(state.learnSession.course) : '';
+      state.learnSession = null;
       activeLearnSession = null;
       learnSummaryState = null;
+      if (_lastCourse) renderLearnRailForCourse(_lastCourse);
+      setLearnRailOpen(false);
       try { playClick(); } catch(e) {}
     }
 
@@ -24276,6 +24502,33 @@ input[type="range"]::-moz-range-thumb{
       var rateRow = document.querySelector('.learn-consol-rate-row');
       var summaryReview = el('learnSummaryReview');
       var summaryDone = el('learnSummaryDone');
+      var rail = el('learnSubDeckRail');
+      var railToggle = el('learnRailToggle');
+
+      if (railToggle) {
+        railToggle.addEventListener('click', function() {
+          var open = rail && rail.classList.contains('learn-subdeck-rail--open');
+          setLearnRailOpen(!open);
+        });
+      }
+      if (rail) {
+        rail.addEventListener('click', function(e) {
+          var target = e.target;
+          if (!(target instanceof Element)) return;
+          var btn = target.closest('[data-learn-subdeck-key]');
+          if (!btn) return;
+          var key = btn.getAttribute('data-learn-subdeck-key');
+          var courseName = el('cdTitle') ? el('cdTitle').textContent : '';
+          if (!key || !courseName || courseName === '—') return;
+          if (activeLearnSession && activeLearnSession.flow && String(activeLearnSession.flow.subDeck || '') === String(key || '')) {
+            setLearnRailOpen(false);
+            return;
+          }
+          if (activeLearnSession) closeLearnSessionImmediate();
+          triggerCourseLearnSubDeck(courseName, key);
+          setLearnRailOpen(false);
+        });
+      }
 
       if (submit) submit.addEventListener('click', function(){ submitLearnTurn(); });
       if (exitBtn) exitBtn.addEventListener('click', function(){ closeLearnSession(false); });
@@ -24465,6 +24718,8 @@ input[type="range"]::-moz-range-thumb{
       }
       applyCourseTabUI(getActiveCourseTab(c.name));
       renderLearnStatsForCourse(c.name);
+      renderLearnRailForCourse(c.name);
+      setLearnRailOpen(false);
       var cdHeader = document.querySelector('#courseDetail .cd-header');
       if (cdHeader) {
         cdHeader.style.borderLeft = '5px solid ' + (c.color || '#8b5cf6');

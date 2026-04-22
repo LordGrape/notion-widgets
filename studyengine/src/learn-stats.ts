@@ -1,4 +1,5 @@
-import type { AppState, LearnSessionRecord, StudyItem } from './types';
+import type { AppState, LearnSessionRecord } from './types';
+import { computeCoverageRatio } from './learn-coverage';
 
 export interface LearnStats {
   courseId: string;
@@ -57,9 +58,7 @@ export interface LearnStats {
  */
 export function computeLearnStats(state: AppState, courseId: string): LearnStats {
   const items = Object.values(state.items || {}).filter((item) => item?.course === courseId);
-  const consolidated = items.filter((item) => item?.learnStatus === 'consolidated').length;
-  const total = items.length;
-  const pct = total > 0 ? Math.round((consolidated / total) * 100) : 0;
+  const { consolidated, total, percent: pct } = computeCoverageRatio(items);
 
   const buckets = {
     again: 0,
