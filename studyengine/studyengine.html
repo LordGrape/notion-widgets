@@ -12329,7 +12329,7 @@ input[type="range"]::-moz-range-thumb{
       // 2) Context views
       if (!isEmbedded) {
         if (sidebarSelection.level === 'course' && sidebarSelection.course) {
-          showCourseDashboard(sidebarSelection.course);
+          openCourseDetail(sidebarSelection.course);
           return;
         } else if (sidebarSelection.level === 'module' && sidebarSelection.course && sidebarSelection.module) {
           showModuleView(sidebarSelection.course, sidebarSelection.module);
@@ -12553,7 +12553,7 @@ input[type="range"]::-moz-range-thumb{
       } else if (sidebarSelection && sidebarSelection.level === 'module' && sidebarSelection.course && sidebarSelection.module) {
         showModuleView(sidebarSelection.course, sidebarSelection.module);
       } else if (sidebarSelection && sidebarSelection.level === 'course' && sidebarSelection.course) {
-        showCourseDashboard(sidebarSelection.course);
+        openCourseDetail(sidebarSelection.course);
       }
       if (item.course) {
         var cd = el('courseDetail');
@@ -12645,7 +12645,7 @@ input[type="range"]::-moz-range-thumb{
       renderDashboard();
       if (!isEmbedded) renderSidebar();
       if (sidebarSelection && sidebarSelection.level === 'course' && sidebarSelection.course === courseName && !isEmbedded) {
-        showCourseDashboard(courseName);
+        openCourseDetail(courseName);
       }
       var cd = el('courseDetail');
       if (cd && cd.classList.contains('active') && selectedCourse === courseName) {
