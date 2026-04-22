@@ -52,10 +52,40 @@ export interface LearnSessionState {
 }
 
 export interface LearnTurnResult {
+  verdict?: 'surface' | 'partial' | 'deep';
+  understandingScore?: number;
+  missingConcepts?: string[];
+  followUp?: string | null;
+  advance?: boolean;
   feedback: string;
   nextPrompt: string;
   isSegmentComplete: boolean;
   suggestedStatus?: 'taught' | 'consolidated' | null | string;
+}
+
+export function capAssistedLearnTurnResult(result: LearnTurnResult, assisted: boolean): LearnTurnResult {
+  const rawVerdict = (result && result.verdict) ? result.verdict : 'surface';
+  const missingConcepts = Array.isArray(result?.missingConcepts) ? result.missingConcepts.slice() : [];
+  if (!assisted) return { ...result, missingConcepts };
+
+  const cappedVerdict = rawVerdict === 'deep'
+    ? 'partial'
+    : rawVerdict === 'partial'
+      ? 'surface'
+      : 'surface';
+  const demoted = cappedVerdict !== rawVerdict;
+  const assistedNote = 'You opened the teach while answering; next time try reconstructing without it first.';
+  const followUpBase = result?.followUp == null ? '' : String(result.followUp).trim();
+  const followUp = demoted ? (followUpBase ? `${assistedNote}\n\n${followUpBase}` : assistedNote) : result?.followUp ?? null;
+  const cappedAdvance = cappedVerdict === 'partial' && missingConcepts.length === 0;
+
+  return {
+    ...result,
+    verdict: cappedVerdict,
+    advance: demoted ? cappedAdvance : (result?.advance ?? cappedAdvance),
+    followUp,
+    missingConcepts
+  };
 }
 
 export interface CourseLearnPickerSubDeck {
@@ -555,6 +585,7 @@ export function createDefaultSubDeckForCourse(course: CourseLike | string, state
   streamLearnPlan,
   startLearnSession,
   runLearnTurn,
+  capAssistedLearnTurnResult,
   completeLearnSegment,
   getCoverageStats,
   substringVerified,
