@@ -8211,6 +8211,32 @@ input[type="range"]::-moz-range-thumb{
       flex-shrink: 0;
     }
     .learn-stream-strip-text{ flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* Percent readout — right-aligned, tabular-nums so the width does not
+       jitter as digits change. Hidden when streaming has not started yet. */
+    .learn-stream-strip-pct{
+      flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+      color: var(--accent-secondary, var(--accent));
+      font-weight: 800;
+      letter-spacing: 0.4px;
+    }
+    /* Thin progress fill laid across the bottom edge of the strip. Independent
+       of the main session progress bar in the header. Fades out with the
+       strip when streaming completes. */
+    .learn-stream-strip-bar{
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      height: 2px;
+      background: color-mix(in srgb, var(--accent-secondary, var(--accent)) 14%, transparent);
+      overflow: hidden;
+    }
+    .learn-stream-strip{ position: relative; }
+    .learn-stream-strip-bar-fill{
+      height: 100%;
+      width: 0%;
+      background: var(--accent-secondary, var(--accent));
+      transition: width 320ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
     @keyframes learnStreamPulse{
       0%, 100% { transform: scale(1); opacity: 1; }
       50%      { transform: scale(1.25); opacity: 0.6; }
@@ -8218,6 +8244,7 @@ input[type="range"]::-moz-range-thumb{
     @media (prefers-reduced-motion: reduce) {
       .learn-stream-strip{ transition: none; }
       .learn-stream-strip-dot{ animation: none; }
+      .learn-stream-strip-bar-fill{ transition: none; }
     }
 
     /* Submit button disabled-but-waiting state (last loaded segment, streaming in flight) */
@@ -8958,10 +8985,13 @@ input[type="range"]::-moz-range-thumb{
           <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>
         </button>
       </div>
-      <!-- Streaming status strip (Phase 4): visible while /learn-plan SSE is still emitting segments. -->
+      <!-- Streaming status strip (Phase 4): visible while /learn-plan SSE is still emitting segments.
+           Includes a live percentage and a thin progress fill along the bottom edge. -->
       <div class="learn-stream-strip" id="learnSessionStreamStrip" role="status" aria-live="polite" hidden>
         <span class="learn-stream-strip-dot" aria-hidden="true"></span>
         <span class="learn-stream-strip-text" id="learnSessionStreamStripText">Preparing your learning plan…</span>
+        <span class="learn-stream-strip-pct" id="learnSessionStreamStripPct" aria-hidden="true">0%</span>
+        <div class="learn-stream-strip-bar" aria-hidden="true"><div class="learn-stream-strip-bar-fill" id="learnSessionStreamStripFill"></div></div>
       </div>
       <div class="learn-body" id="learnSessionBody">
         <!-- Pane A: tutor turn (Teach + Your-Turn split, UI polish 1) -->
@@ -22648,20 +22678,82 @@ input[type="range"]::-moz-range-thumb{
       submit.classList.remove('awaiting-segment');
       submit.removeAttribute('title');
       submit.removeAttribute('aria-disabled');
-      var disabled = (phase === 'loading') || !String((input && input.value) || '').trim();
+      /* Pre-segment streaming state: modal is mounted but no segment has
+         arrived yet. Disable the textarea + submit until the first segment
+         lands so the user cannot type a response to nothing. */
+      var segsLoaded = ((flow.plan && flow.plan.segments) || []).length;
+      var preSegmentStreaming = (phase === 'streaming' && segsLoaded === 0);
+      var disabled = (phase === 'loading') || preSegmentStreaming || !String((input && input.value) || '').trim();
       submit.disabled = disabled;
       submit.classList.toggle('loading', phase === 'loading');
-      if (input) input.disabled = (phase === 'loading');
-      if (label) label.textContent = (phase === 'loading') ? 'Sending…' : 'Submit';
+      if (input) {
+        input.disabled = (phase === 'loading') || preSegmentStreaming;
+        if (preSegmentStreaming && !input.getAttribute('data-stream-placeholder')) {
+          input.setAttribute('data-stream-placeholder', input.getAttribute('placeholder') || '');
+          input.setAttribute('placeholder', 'Drafting your first segment…');
+        } else if (!preSegmentStreaming && input.getAttribute('data-stream-placeholder') !== null) {
+          var orig = input.getAttribute('data-stream-placeholder');
+          if (orig !== null) {
+            input.setAttribute('placeholder', orig);
+            input.removeAttribute('data-stream-placeholder');
+          }
+        }
+      }
+      if (label) label.textContent = (phase === 'loading') ? 'Sending…' : (preSegmentStreaming ? 'Generating…' : 'Submit');
       if (exit) exit.textContent = 'Exit';
     }
 
     /* Phase 4: update the streaming status strip. Shows
        `Segment N of M ready · generating remaining...` while streaming,
        collapses via CSS transition once markStreamingComplete has fired. */
+    /* Estimate how many segments Gemini is likely to emit for a given card
+       count. Used to anchor the streaming percentage. Gemini targets roughly
+       one segment per 3-5 cards, with a floor of 2 and a soft ceiling of 5.
+       Result is clamped to [2, 5]. */
+    function estimateLearnSegmentTotal(cardCount) {
+      var n = Math.max(0, Number(cardCount) || 0);
+      if (n <= 1) return 1;
+      var est = Math.ceil(n / 4);
+      if (est < 2) est = 2;
+      if (est > 5) est = 5;
+      return est;
+    }
+
+    /* Compute the streaming percentage. Uses the higher of:
+       - segment-based fill: `loaded / estimated * 85` (reserves the last 15%
+         for consolidationQuestions + complete).
+       - time-based ease: asymptotic approach toward 85% over ~28s so the user
+         sees continuous motion while Gemini is still drafting the first
+         segment (no segments have arrived yet).
+       Jumps to 100% the moment streaming completes. */
+    function computeLearnStreamPct(flow) {
+      if (!flow) return 0;
+      var flowBridge = globalThis.__studyEngineLearnFlow;
+      if (flowBridge && flowBridge.isStreamingComplete && flowBridge.isStreamingComplete(flow)) {
+        return 100;
+      }
+      var loaded = (flowBridge && flowBridge.getLoadedSegmentCount) ? flowBridge.getLoadedSegmentCount(flow) : 0;
+      var est = (activeLearnSession && activeLearnSession.estimatedSegmentTotal) ? activeLearnSession.estimatedSegmentTotal : 3;
+      var segPct = Math.min(85, Math.floor((loaded / est) * 85));
+
+      var startedAt = (activeLearnSession && activeLearnSession.streamStartedAt) ? activeLearnSession.streamStartedAt : Date.now();
+      var elapsedMs = Math.max(0, Date.now() - startedAt);
+      /* Asymptotic ease: pct = 85 * (1 - exp(-t / 10s)). Reaches ~63% at 10s,
+         ~85% at 28s, and never crosses 85% so the segment-based path always
+         wins once segments start arriving. */
+      var timePct = Math.floor(85 * (1 - Math.exp(-elapsedMs / 10000)));
+
+      var pct = Math.max(segPct, timePct);
+      if (pct < 3) pct = 3; /* Show at least a sliver immediately so the bar is visible. */
+      if (pct > 95) pct = 95;
+      return pct;
+    }
+
     function updateLearnStreamStrip() {
       var strip = el('learnSessionStreamStrip');
       var text = el('learnSessionStreamStripText');
+      var pctEl = el('learnSessionStreamStripPct');
+      var fillEl = el('learnSessionStreamStripFill');
       if (!strip || !text) return;
       var flowBridge = globalThis.__studyEngineLearnFlow;
       if (!activeLearnSession || !flowBridge || !flowBridge.isStreamingComplete) {
@@ -22672,9 +22764,17 @@ input[type="range"]::-moz-range-thumb{
       var flow = activeLearnSession.flow;
       if (flowBridge.isStreamingComplete(flow)) {
         if (strip.hidden) return;
+        /* Snap to 100% briefly before collapsing, so the bar visibly resolves. */
+        if (pctEl) pctEl.textContent = '100%';
+        if (fillEl) fillEl.style.width = '100%';
         strip.classList.add('is-hiding');
         /* Fully remove from flow after transition. */
-        var teardown = function() { strip.hidden = true; strip.classList.remove('is-hiding'); };
+        var teardown = function() {
+          strip.hidden = true;
+          strip.classList.remove('is-hiding');
+          if (fillEl) fillEl.style.width = '0%';
+          if (pctEl) pctEl.textContent = '0%';
+        };
         if (prefersReducedMotion()) teardown();
         else setTimeout(teardown, 260);
         return;
@@ -22683,12 +22783,41 @@ input[type="range"]::-moz-range-thumb{
       strip.hidden = false;
       strip.classList.remove('is-hiding');
       var loaded = flowBridge.getLoadedSegmentCount ? flowBridge.getLoadedSegmentCount(flow) : 0;
+      var est = (activeLearnSession.estimatedSegmentTotal) || 3;
       if (activeLearnSession.pendingTurnResult) {
         text.textContent = 'Preparing next segment…';
       } else if (loaded === 0) {
-        text.textContent = 'Preparing your learning plan…';
+        text.textContent = 'Generating your learning plan…';
       } else {
-        text.textContent = 'Segment ' + loaded + ' ready · generating remaining…';
+        text.textContent = 'Segment ' + loaded + ' of ~' + est + ' ready · drafting more…';
+      }
+      var pct = computeLearnStreamPct(flow);
+      if (pctEl) pctEl.textContent = pct + '%';
+      if (fillEl) fillEl.style.width = pct + '%';
+    }
+
+    /* Ticker that re-renders the stream strip every 400ms while streaming is
+       in flight so the time-based percentage animates smoothly even when no
+       SSE events are arriving. Cleared by `closeLearnSessionImmediate` and
+       by the ticker itself once streaming completes. */
+    var learnStreamTicker = null;
+    function startLearnStreamTicker() {
+      if (learnStreamTicker) return;
+      learnStreamTicker = setInterval(function() {
+        if (!activeLearnSession) { stopLearnStreamTicker(); return; }
+        var flowBridge = globalThis.__studyEngineLearnFlow;
+        if (flowBridge && flowBridge.isStreamingComplete && flowBridge.isStreamingComplete(activeLearnSession.flow)) {
+          updateLearnStreamStrip();
+          stopLearnStreamTicker();
+          return;
+        }
+        updateLearnStreamStrip();
+      }, 400);
+    }
+    function stopLearnStreamTicker() {
+      if (learnStreamTicker) {
+        try { clearInterval(learnStreamTicker); } catch (eT) {}
+        learnStreamTicker = null;
       }
     }
 
@@ -22837,7 +22966,15 @@ input[type="range"]::-moz-range-thumb{
         var seg = (flow.plan.segments || [])[flow.segmentIndex];
         var stepIdx = Math.min(flow.segmentIndex + 1, total);
         var segTitle = seg ? String(seg.title || 'Segment') : '';
-        if (title) title.textContent = 'Step ' + stepIdx + ' of ' + total + (segTitle ? (' · ' + segTitle) : '');
+        var segsLoaded = (flow.plan.segments || []).length;
+        if (flow.phase === 'streaming' && segsLoaded === 0) {
+          /* Pre-segment streaming state: no segment loaded yet, so a
+             "Step 1 of 1" title would be misleading. Show a generating label
+             instead. The stream strip below the header carries the percentage. */
+          if (title) title.textContent = 'Generating your learning plan…';
+        } else if (title) {
+          title.textContent = 'Step ' + stepIdx + ' of ' + total + (segTitle ? (' · ' + segTitle) : '');
+        }
       }
 
       /* Tutor body (Teach block) */
@@ -23178,19 +23315,22 @@ input[type="range"]::-moz-range-thumb{
         learnerContext: learnerContext
       };
 
-      /* Create the session shell up-front. Modal stays hidden until first segment. */
+      /* Create the session shell up-front. Modal is mounted immediately so the
+         streaming strip (with percentage) is visible from the moment the user
+         clicks Learn, not after the first segment arrives ~5–15s later. */
       var streamController = new AbortController();
+      var estTotal = estimateLearnSegmentTotal((allItems || []).length);
       activeLearnSession = {
         flow: flowBridge.createStreamingLearnFlow(courseName, subDeckKey),
         courseName: courseName,
         streamController: streamController,
         pendingTurnResult: null,
-        modalMounted: false
+        modalMounted: false,
+        streamStartedAt: Date.now(),
+        estimatedSegmentTotal: estTotal
       };
-      /* Legacy state.learnSession is populated on first-segment mount so other
-         code paths see it only once the modal is actually up. */
-
-      toast('Generating Learn plan…');
+      /* Legacy state.learnSession is populated on mount so other code paths
+         see it only once the modal is actually up. */
 
       var ensureModalMounted = function() {
         if (!activeLearnSession || activeLearnSession.modalMounted) return;
@@ -23218,6 +23358,14 @@ input[type="range"]::-moz-range-thumb{
         }
         setTimeout(function(){ if (inputEl) inputEl.focus(); }, 60);
       };
+
+      /* Mount immediately so the streaming strip (percentage + progress bar)
+         is visible from the moment the user clicks Learn, rather than after
+         the first segment arrives. Start the 400ms ticker so the time-based
+         percentage animates smoothly during the pre-segment dead zone. */
+      ensureModalMounted();
+      updateLearnStreamStrip();
+      startLearnStreamTicker();
 
       var handlers = {
         onSegment: function(segment) {
@@ -23331,6 +23479,12 @@ input[type="range"]::-moz-range-thumb{
       /* Collapse the strip immediately so a fast re-open doesn't flash stale state. */
       var strip = el('learnSessionStreamStrip');
       if (strip) { strip.hidden = true; strip.classList.remove('is-hiding'); }
+      var _stripFill = el('learnSessionStreamStripFill');
+      var _stripPct = el('learnSessionStreamStripPct');
+      if (_stripFill) _stripFill.style.width = '0%';
+      if (_stripPct) _stripPct.textContent = '0%';
+      /* Stop the streaming-percentage ticker. */
+      try { stopLearnStreamTicker(); } catch (eT) {}
       if (ov) {
         ov.classList.remove('show');
         ov.setAttribute('aria-hidden', 'true');
