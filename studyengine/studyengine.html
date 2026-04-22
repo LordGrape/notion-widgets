@@ -8196,9 +8196,15 @@ input[type="range"]::-moz-range-thumb{
     body.learn-session-active #learn-tab-panel #learnTabEmptyState {
       display: none !important;
     }
+    body.learn-session-active #learn-tab-panel .learn-body {
+      grid-template-columns: minmax(0,1fr);
+      gap: 0;
+    }
     .learn-session-host.learn-session-host--active {
       max-width: 820px;
       margin: 24px auto;
+      width: 100%;
+      box-sizing: border-box;
       padding: 0 16px;
     }
     @media (max-width: 700px) {
