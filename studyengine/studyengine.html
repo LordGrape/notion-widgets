@@ -7437,6 +7437,11 @@ input[type="range"]::-moz-range-thumb{
       flex: 1 1 180px;
       min-height: 40px;
     }
+    .cd-insights{
+      margin-top: 14px;
+      display: grid;
+      gap: 10px;
+    }
 
     .ctx-detail-stack {
       display: flex;
@@ -7991,6 +7996,85 @@ input[type="range"]::-moz-range-thumb{
       line-height: 1.3;
       color: var(--text-primary);
     }
+    .learn-hero{
+      display:flex;
+      align-items: stretch;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+      padding: 12px;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      background: var(--surface-1);
+      backdrop-filter: var(--blur-glass);
+    }
+    .learn-hero-main{
+      display:flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+    .learn-hero-actions{
+      display:flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .learn-hero-subdeck-btn{
+      min-height: 44px;
+      min-width: 160px;
+      font-weight: 700;
+    }
+    .learn-hero-start-btn{
+      min-height: 44px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .learn-hero-copy{
+      margin: 0;
+      font-size: 10px;
+      color: var(--text-secondary);
+      line-height: 1.45;
+    }
+    .learn-hero-coverage{
+      flex: 0 0 auto;
+      min-width: 140px;
+      display:flex;
+      align-items: center;
+      justify-content: flex-end;
+    }
+    .learn-hero-coverage-card{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 8px 10px;
+      background: var(--surface-0);
+    }
+    .learn-hero-coverage-copy{
+      display:flex;
+      flex-direction:column;
+      gap: 2px;
+      min-width: 0;
+    }
+    .learn-hero-coverage-label{
+      font-size: 8px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      font-weight: 700;
+    }
+    .learn-hero-coverage-value{
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.2;
+    }
+    .learn-insights{
+      margin-bottom: 10px;
+    }
     .learn-subdeck-status{
       margin: 0 0 10px;
       font-size: 12px;
@@ -8234,6 +8318,22 @@ input[type="range"]::-moz-range-thumb{
       #learn-tab-panel .learn-body{
         grid-template-columns: minmax(0,1fr);
       }
+      .learn-hero{
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .learn-hero-actions{
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .learn-hero-subdeck-btn,
+      .learn-hero-start-btn{
+        width: 100%;
+      }
+      .learn-hero-subdeck-btn{ order: -1; }
+      .learn-hero-coverage{
+        justify-content: flex-start;
+      }
       .learn-main-empty{
         padding: 24px;
       }
@@ -8462,6 +8562,9 @@ input[type="range"]::-moz-range-thumb{
       .learn-stats{ grid-template-columns: 1fr; }
       .learn-stats-card{ max-height: none; }
     }
+    body:not(.standalone) .learn-insights .learn-stats{
+      grid-template-columns: 1fr;
+    }
     .learn-stats-card{
       background: var(--surface-1);
       border:1px solid var(--border-subtle);
@@ -8518,6 +8621,11 @@ input[type="range"]::-moz-range-thumb{
       gap: 6px 10px;
       font-size: 9px;
       color: var(--text-secondary);
+    }
+    @media (max-width: 700px){
+      .learn-subdeck{ min-height: 44px; }
+      .learn-hero-subdeck-btn,
+      .learn-hero-start-btn{ min-height: 44px; }
     }
 
     /* ── CSS SECTION: Learn Session Phase 3 (consolidation, summary, polish) ── */
@@ -9218,7 +9326,6 @@ input[type="range"]::-moz-range-thumb{
               <button type="button" class="course-tab" role="tab" aria-selected="true" aria-controls="review-tab-panel" id="review-tab" tabindex="0" data-course-tab-target="review">Review</button>
               <button type="button" class="course-tab" role="tab" aria-selected="false" aria-controls="learn-tab-panel" id="learn-tab" tabindex="-1" data-course-tab-target="learn">Learn</button>
               <button type="button" class="course-tab" role="tab" aria-selected="false" aria-controls="cards-tab-panel" id="cards-tab" tabindex="-1" data-course-tab-target="cards">Cards</button>
-              <button type="button" class="course-tab" role="tab" aria-selected="false" aria-controls="analytics-tab-panel" id="analytics-tab" tabindex="-1" data-course-tab-target="analytics">Analytics</button>
               <button type="button" class="course-tab" role="tab" aria-selected="false" aria-controls="settings-tab-panel" id="settings-tab" tabindex="-1" data-course-tab-target="settings">Settings</button>
             </nav>
             <section role="tabpanel" id="review-tab-panel" aria-labelledby="review-tab">
@@ -9243,12 +9350,31 @@ input[type="range"]::-moz-range-thumb{
               </div>
               <div class="cd-course-actions">
                 <button class="big-btn" id="cdStartSession">Study this course</button>
-                <button type="button" class="ghost-btn" id="cdLearnCourseBtn">🧠 Learn</button>
               </div>
               <button type="button" class="ghost-btn" id="cdPrimeModeBtn" style="margin-top:8px;">🧠 Prime Mode — Pre-study Questions</button>
+              <section class="cd-insights" aria-label="Review insights">
+                <div class="cda-section-header">Review insights</div>
+                <div class="cd-tier-stats" id="cdTierStats"></div>
+                <div id="cdTierPromoHost"></div>
+                <div id="cdTutorNotesHost"></div>
+                <div class="cd-analytics" id="cdAnalytics"></div>
+              </section>
             </section>
             <section role="tabpanel" id="learn-tab-panel" aria-labelledby="learn-tab" hidden tabindex="-1">
-              <div id="learnStatsRoot"></div>
+              <section class="learn-hero" id="learnHero" aria-label="Learn session start">
+                <div class="learn-hero-main">
+                  <div class="learn-hero-actions">
+                    <button type="button" class="big-btn learn-hero-start-btn" id="cdLearnCourseBtn">Start Learn Session</button>
+                    <button type="button" class="ghost-btn learn-hero-subdeck-btn" id="learnHeroSubDeckBtn" aria-controls="learnSubDeckRail" aria-expanded="false">Sub-deck picker</button>
+                  </div>
+                  <p class="learn-hero-copy">Choose a sub-deck, then start a focused Learn session.</p>
+                </div>
+                <div class="learn-hero-coverage" id="learnHeroCoverage" aria-live="polite"></div>
+              </section>
+              <section class="learn-insights" aria-label="Learn insights">
+                <div class="cda-section-header">Learn insights</div>
+                <div id="learnStatsRoot"></div>
+              </section>
               <div class="learn-body" id="learnTabBody">
                 <nav class="learn-subdeck-rail" id="learnSubDeckRail" aria-label="Sub-decks"></nav>
                 <div class="learn-main" id="learnMain">
@@ -9350,12 +9476,6 @@ input[type="range"]::-moz-range-thumb{
                 <button class="ghost-btn" id="cdAddCardBtn">＋ Add Card</button>
                 <button class="ghost-btn" id="cdImportBtn"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><line x1="8" y1="2" x2="8" y2="10.5"/><polyline points="4.5,7 8,10.5 11.5,7"/><path d="M2.5 12.5h11"/></svg>Import JSON</button>
               </div>
-            </section>
-            <section role="tabpanel" id="analytics-tab-panel" aria-labelledby="analytics-tab" hidden>
-              <div class="cd-tier-stats" id="cdTierStats"></div>
-              <div id="cdTierPromoHost"></div>
-              <div id="cdTutorNotesHost"></div>
-              <div class="cd-analytics" id="cdAnalytics"></div>
             </section>
             <section role="tabpanel" id="settings-tab-panel" aria-labelledby="settings-tab" hidden>
               <div id="cdSettingsTabContent"></div>
@@ -11041,7 +11161,7 @@ input[type="range"]::-moz-range-thumb{
     var selectedCourse = 'All';
     var selectedTopic = 'All';
     var selectedSubDeck = null;
-    var COURSE_TAB_IDS = ['review', 'learn', 'cards', 'analytics', 'settings'];
+    var COURSE_TAB_IDS = ['review', 'learn', 'cards', 'settings'];
     var retentionFilter = 'All'; /* controls which course the retention graph shows */
 
     var session = null;
@@ -23241,6 +23361,12 @@ input[type="range"]::-moz-range-thumb{
         if (courseName && courseName !== '—') {
           renderLearnMainSurface(courseName);
           maybeShowLearnIntroTooltip();
+          if (window.gsap && !prefersReducedMotion()) {
+            gsap.fromTo('#learnHero, #learnStatsRoot .learn-stats-card',
+              { opacity: 0, y: 8 },
+              { opacity: 1, y: 0, duration: 0.28, stagger: 0.05, ease: 'power2.out', overwrite: 'auto' }
+            );
+          }
         }
         setTimeout(focusLearnPanelTarget, 0);
       } else {
@@ -23311,16 +23437,46 @@ input[type="range"]::-moz-range-thumb{
       if (!root || !bridge || typeof bridge.computeLearnStats !== 'function' || typeof bridge.renderLearnStats !== 'function') return;
       var stats = bridge.computeLearnStats(state, String(courseName || ''));
       bridge.renderLearnStats(root, stats);
+      renderLearnHeroCoverage(stats && stats.encodingCoverage ? stats.encodingCoverage : null);
       renderLearnMainSurface(courseName);
+    }
+
+    function renderLearnHeroCoverage(coverageStats) {
+      var host = el('learnHeroCoverage');
+      if (!host) return;
+      var pct = coverageStats && typeof coverageStats.pct === 'number' ? Math.max(0, Math.min(100, Math.round(coverageStats.pct))) : 0;
+      var total = coverageStats && typeof coverageStats.total === 'number' ? Number(coverageStats.total) : 0;
+      var consolidated = coverageStats && typeof coverageStats.consolidated === 'number' ? Number(coverageStats.consolidated) : 0;
+      var size = 42;
+      var stroke = 5;
+      var radius = (size - stroke) / 2;
+      var circumference = 2 * Math.PI * radius;
+      var offset = circumference * (1 - (pct / 100));
+      var value = total > 0 ? (pct + '%') : '—';
+      var copy = total > 0 ? (consolidated + ' of ' + total + ' consolidated') : 'No cards yet';
+      host.innerHTML = ''
+        + '<div class="learn-hero-coverage-card">'
+        + '<svg class="learn-stats-ring" width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '" aria-hidden="true">'
+        + '<circle cx="' + (size / 2) + '" cy="' + (size / 2) + '" r="' + radius + '" class="learn-stats-ring-track"></circle>'
+        + '<circle cx="' + (size / 2) + '" cy="' + (size / 2) + '" r="' + radius + '" class="learn-stats-ring-fill" stroke-dasharray="' + circumference + '" stroke-dashoffset="' + offset + '"></circle>'
+        + '</svg>'
+        + '<div class="learn-hero-coverage-copy">'
+        + '<span class="learn-hero-coverage-label">Coverage</span>'
+        + '<span class="learn-hero-coverage-value">' + value + '</span>'
+        + '<span class="learn-stats-sub">' + copy + '</span>'
+        + '</div>'
+        + '</div>';
     }
 
     function setLearnRailOpen(nextOpen) {
       var rail = el('learnSubDeckRail');
       var toggle = el('learnRailToggle');
+      var heroToggle = el('learnHeroSubDeckBtn');
       if (!rail || !toggle) return;
       var open = !!nextOpen;
       rail.classList.toggle('learn-subdeck-rail--open', open);
       toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (heroToggle) heroToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
     }
 
     function renderLearnRailForCourse(courseName) {
@@ -24889,9 +25045,16 @@ input[type="range"]::-moz-range-thumb{
       var summaryDone = el('learnSummaryDone');
       var rail = el('learnSubDeckRail');
       var railToggle = el('learnRailToggle');
+      var heroSubDeckBtn = el('learnHeroSubDeckBtn');
 
       if (railToggle) {
         railToggle.addEventListener('click', function() {
+          var open = rail && rail.classList.contains('learn-subdeck-rail--open');
+          setLearnRailOpen(!open);
+        });
+      }
+      if (heroSubDeckBtn) {
+        heroSubDeckBtn.addEventListener('click', function() {
           var open = rail && rail.classList.contains('learn-subdeck-rail--open');
           setLearnRailOpen(!open);
         });
@@ -25365,15 +25528,6 @@ input[type="range"]::-moz-range-thumb{
 
       /* ── Advanced Analytics ── */
       var cdAnalytics = el('cdAnalytics');
-      if (!cdAnalytics) {
-        var analyticsPanel = el('analytics-tab-panel');
-        if (analyticsPanel) {
-          cdAnalytics = document.createElement('div');
-          cdAnalytics.id = 'cdAnalytics';
-          cdAnalytics.className = 'cd-analytics';
-          analyticsPanel.appendChild(cdAnalytics);
-        }
-      }
 
       /* Inline SVG icons for analytics cards (12×12, matches Lucide style) */
       var acIcons = {
