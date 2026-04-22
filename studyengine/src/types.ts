@@ -391,6 +391,9 @@ export interface CachedLearnPlan {
 export interface AppState {
   items: Record<string, StudyItem>;
   courses: Record<string, Course>;
+  ui?: {
+    activeCourseTab?: Record<string, 'review' | 'learn' | 'cards' | 'analytics' | 'settings'>;
+  };
   subDecks?: SubDecksState;
   calibration: CalibrationData;
   stats: StatsData;
