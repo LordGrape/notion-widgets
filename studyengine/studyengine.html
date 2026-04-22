@@ -8832,6 +8832,8 @@ input[type="range"]::-moz-range-thumb{
     .learn-stats-ring{ transform: rotate(-90deg); flex-shrink:0; }
     .learn-stats-ring-track{ fill:none; stroke: var(--surface-2); stroke-width: 6; }
     .learn-stats-ring-fill{ fill:none; stroke: var(--accent-primary); stroke-width: 6; stroke-linecap: round; }
+    .learn-stats-ring-fill--exposed{ stroke: color-mix(in srgb, var(--accent-primary) 35%, transparent); }
+    .learn-stats-ring-fill--consolidated{ stroke: var(--accent-primary); }
     .learn-stats-dist-bar{
       display:flex;
       width:100%;
@@ -8962,6 +8964,14 @@ input[type="range"]::-moz-range-thumb{
     #learnSessionOv.learn-segment--read .learn-card-block.learn-yourturn,
     #learnSessionOv.learn-segment--read #learnSessionSubmit{ display: none; }
     #learnSessionOv.learn-segment--read .learn-read-continue-btn{ display: inline-flex; }
+    /* Larger teach during read sub-phase: reduces decoding load (Mayer 2009 coherence), redirects capacity to meaning (Craik & Lockhart 1972 levels of processing). */
+    #learnSessionOv.learn-segment--read #learnTeachBlock{
+      font-size: 17px;
+      line-height: 1.75;
+      max-width: 68ch;
+      margin: 0 auto;
+      padding: 24px 28px;
+    }
     #learnSessionOv.learn-segment--answer .learn-read-continue-btn{ display: none; }
     #learnSessionOv.learn-segment--answer .learn-teach-toggle{ display: block; }
     #learnSessionOv.learn-segment--feedback .learn-read-continue-btn,
@@ -8986,6 +8996,14 @@ input[type="range"]::-moz-range-thumb{
     #learnSessionOv.learn-segment--read .learn-feedback{ display: none; }
     @media (prefers-reduced-motion: reduce) {
       #learnSessionOv.learn-segment--answer .learn-teach .learn-tutor{ transition: none; }
+    }
+    @media (max-width: 700px){
+      #learnSessionOv.learn-segment--read #learnTeachBlock{
+        font-size: 16px;
+        line-height: 1.7;
+        max-width: none;
+        padding: 16px 20px;
+      }
     }
     .learn-step-title,
     .learn-summary-title,
@@ -9032,16 +9050,37 @@ input[type="range"]::-moz-range-thumb{
     .learn-progress-bar-fill.consol{
       background: linear-gradient(90deg, var(--accent) 0%, #c4b5fd 100%);
     }
-    .learn-progress-bar-label{
-      font-size: 9px;
-      font-weight: 700;
-      letter-spacing: 0.6px;
+    .learn-progress-bar-label{ display: none; }
+    .learn-course-coverage-chip{
       color: var(--text-tertiary);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
       white-space: nowrap;
-      min-width: 62px;
-      text-align: right;
-      font-family: "Space Grotesk", Inter, system-ui, sans-serif;
-      font-feature-settings: 'ss01', 'cv11';
+    }
+    @media (max-width: 500px){
+      .learn-course-coverage-chip{ display: none; }
+    }
+    .learn-plan-stale-note{
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-tertiary);
+      font-size: 12px;
+      padding: 6px 0;
+      border: none;
+      background: transparent;
+      margin-bottom: 8px;
+    }
+    .learn-plan-stale-note-dismiss{
+      margin-left: auto;
+      border: none;
+      background: transparent;
+      color: var(--text-tertiary);
+      font-size: 14px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0;
     }
     @media (prefers-reduced-motion: reduce) {
       .learn-progress-bar-fill{ transition: none; }
@@ -9773,7 +9812,6 @@ input[type="range"]::-moz-range-thumb{
                     <div class="learn-head-copy">
                       <span class="learn-head-kicker" id="learnSessionKicker">Learn</span>
                       <span class="learn-head-title" id="learnSessionTitle">Loading…</span>
-                      <span id="learnPlanStaleBadge" style="display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;border:1px solid var(--border-accent);background:var(--surface-2);color:var(--text-secondary);font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;margin-top:6px;" hidden>Deck changed since this plan was generated · Regenerate to refresh</span>
                     </div>
                     <div class="learn-progress-bar" id="learnSessionProgress" aria-hidden="true">
                       <div class="learn-progress-bar-track">
@@ -9782,6 +9820,7 @@ input[type="range"]::-moz-range-thumb{
                       </div>
                       <span class="learn-progress-bar-label" id="learnSessionProgressLabel">0 / 0</span>
                     </div>
+                    <span class="learn-course-coverage-chip" id="learnCourseCoverageChip" hidden>Course: 0 / 0 · 0%</span>
                     <span class="learn-mastery-chip" id="learnMasteryChip" aria-live="polite" hidden>
                       <span class="learn-mastery-chip-dot" aria-hidden="true"></span>
                       <span id="learnMasteryChipText">Mastery 0%</span>
@@ -9799,6 +9838,11 @@ input[type="range"]::-moz-range-thumb{
                       <div class="learn-card-block learn-teach">
                         <div class="learn-card-block-label">Teach</div>
                         <button type="button" class="learn-teach-toggle" id="learnTeachToggle">Show teach (counts as assisted)</button>
+                        <div class="learn-plan-stale-note" id="learnPlanStaleNote" hidden>
+                          <span aria-hidden="true">⚠</span>
+                          <span>Deck changed since this plan was generated.</span>
+                          <button type="button" class="learn-plan-stale-note-dismiss" id="learnPlanStaleDismissBtn" aria-label="Dismiss deck changed note">×</button>
+                        </div>
                         <div class="learn-tutor" id="learnTeachBlock" aria-live="polite"></div>
                         <button type="button" class="learn-submit-btn learn-read-continue-btn" id="learnReadContinueBtn">I have read this, continue</button>
                       </div>
@@ -24129,6 +24173,21 @@ input[type="range"]::-moz-range-thumb{
       renderLearnMainSurface(courseName);
     }
 
+    function getCourseCoverageSnapshot(courseName) {
+      var bridge = globalThis.__studyEngineLearnStats;
+      if (!bridge || typeof bridge.computeLearnStats !== 'function') {
+        return { consolidated: 0, total: 0, pct: 0, taught: 0 };
+      }
+      var stats = bridge.computeLearnStats(state, String(courseName || ''));
+      var coverage = (stats && stats.encodingCoverage) ? stats.encodingCoverage : null;
+      return {
+        consolidated: coverage && typeof coverage.consolidated === 'number' ? Number(coverage.consolidated) : 0,
+        total: coverage && typeof coverage.total === 'number' ? Number(coverage.total) : 0,
+        pct: coverage && typeof coverage.pct === 'number' ? Number(coverage.pct) : 0,
+        taught: coverage && typeof coverage.taught === 'number' ? Number(coverage.taught) : 0
+      };
+    }
+
     function handleLearnHeroStart() {
       var courseName = el('cdTitle') ? el('cdTitle').textContent.trim() : '';
       if (!courseName || courseName === '—') return;
@@ -24166,23 +24225,31 @@ input[type="range"]::-moz-range-thumb{
       var pct = coverageStats && typeof coverageStats.pct === 'number' ? Math.max(0, Math.min(100, Math.round(coverageStats.pct))) : 0;
       var total = coverageStats && typeof coverageStats.total === 'number' ? Number(coverageStats.total) : 0;
       var consolidated = coverageStats && typeof coverageStats.consolidated === 'number' ? Number(coverageStats.consolidated) : 0;
+      var taught = coverageStats && typeof coverageStats.taught === 'number' ? Number(coverageStats.taught) : 0;
+      var exposed = Math.max(0, Math.min(total, consolidated + taught));
       var size = 42;
       var stroke = 5;
       var radius = (size - stroke) / 2;
       var circumference = 2 * Math.PI * radius;
-      var offset = circumference * (1 - (pct / 100));
+      var consolidatedPct = total > 0 ? Math.max(0, Math.min(100, (consolidated / total) * 100)) : 0;
+      var exposedPct = total > 0 ? Math.max(0, Math.min(100, (exposed / total) * 100)) : 0;
+      var exposedOffset = circumference * (1 - (exposedPct / 100));
+      var consolidatedOffset = circumference * (1 - (consolidatedPct / 100));
       var value = total > 0 ? (pct + '%') : '—';
       var copy = total > 0 ? (consolidated + ' of ' + total + ' consolidated') : 'No cards yet';
+      var taughtCopy = taught > 0 ? ('<span class="learn-stats-sub">· ' + taught + ' taught</span>') : '';
       host.innerHTML = ''
         + '<div class="learn-hero-coverage-card">'
         + '<svg class="learn-stats-ring" width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '" aria-hidden="true">'
         + '<circle cx="' + (size / 2) + '" cy="' + (size / 2) + '" r="' + radius + '" class="learn-stats-ring-track"></circle>'
-        + '<circle cx="' + (size / 2) + '" cy="' + (size / 2) + '" r="' + radius + '" class="learn-stats-ring-fill" stroke-dasharray="' + circumference + '" stroke-dashoffset="' + offset + '"></circle>'
+        + '<circle cx="' + (size / 2) + '" cy="' + (size / 2) + '" r="' + radius + '" class="learn-stats-ring-fill learn-stats-ring-fill--exposed" stroke-dasharray="' + circumference + '" stroke-dashoffset="' + exposedOffset + '"></circle>'
+        + '<circle cx="' + (size / 2) + '" cy="' + (size / 2) + '" r="' + radius + '" class="learn-stats-ring-fill learn-stats-ring-fill--consolidated" stroke-dasharray="' + circumference + '" stroke-dashoffset="' + consolidatedOffset + '"></circle>'
         + '</svg>'
         + '<div class="learn-hero-coverage-copy">'
         + '<span class="learn-hero-coverage-label">Coverage</span>'
         + '<span class="learn-hero-coverage-value">' + value + '</span>'
         + '<span class="learn-stats-sub">' + copy + '</span>'
+        + taughtCopy
         + '</div>'
         + '</div>';
     }
@@ -24213,6 +24280,35 @@ input[type="range"]::-moz-range-thumb{
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+    }
+
+    function ensureLearnPlanStaleNoteNode() {
+      var existing = el('learnPlanStaleNote');
+      if (existing) return existing;
+      var teachCard = document.querySelector('#learnSessionOv .learn-card-block.learn-teach');
+      if (!teachCard) return null;
+      var note = document.createElement('div');
+      note.className = 'learn-plan-stale-note';
+      note.id = 'learnPlanStaleNote';
+      note.hidden = true;
+      var icon = document.createElement('span');
+      icon.setAttribute('aria-hidden', 'true');
+      icon.textContent = '⚠';
+      var text = document.createElement('span');
+      text.textContent = 'Deck changed since this plan was generated.';
+      var dismiss = document.createElement('button');
+      dismiss.type = 'button';
+      dismiss.className = 'learn-plan-stale-note-dismiss';
+      dismiss.id = 'learnPlanStaleDismissBtn';
+      dismiss.setAttribute('aria-label', 'Dismiss deck changed note');
+      dismiss.textContent = '×';
+      note.appendChild(icon);
+      note.appendChild(text);
+      note.appendChild(dismiss);
+      var teachBody = el('learnTeachBlock');
+      if (teachBody && teachBody.parentNode === teachCard) teachCard.insertBefore(note, teachBody);
+      else teachCard.appendChild(note);
+      return note;
     }
 
     function renderLearnEmptyState() {
@@ -24748,7 +24844,7 @@ input[type="range"]::-moz-range-thumb{
       var fill = el('learnSessionProgressFill');
       var dot = el('learnSessionProgressDot');
       var labelEl = el('learnSessionProgressLabel');
-      if (!fill || !labelEl) return;
+      if (!fill) return;
       var flow = activeLearnSession.flow;
       var segs = (flow.plan && flow.plan.segments) || [];
       var segTotal = segs.length || 1;
@@ -24786,6 +24882,7 @@ input[type="range"]::-moz-range-thumb{
       fill.classList.toggle('consol', isConsol);
 
       /* Label */
+      if (!labelEl) return;
       if (phase === 'consolidating') {
         var currentQ = Math.min((flow.consolidationIdx || 0) + 1, qTotal);
         labelEl.textContent = 'Check ' + currentQ + ' / ' + qTotal;
@@ -25059,7 +25156,9 @@ input[type="range"]::-moz-range-thumb{
       var submitLabelEl = el('learnSessionSubmitLabel');
       var assistedBadge = el('learnAssistedBadge');
       var feedbackHost = el('learnFeedbackBlock');
-      var staleBadge = el('learnPlanStaleBadge');
+      var staleNote = ensureLearnPlanStaleNoteNode();
+      var staleDismissBtn = el('learnPlanStaleDismissBtn');
+      var coverageChip = el('learnCourseCoverageChip');
       var regenBtn = el('learnSessionRegen');
       if (regenBtn) regenBtn.textContent = LEARN_LANDING_REGEN;
       if (input && !input.__learnReadTimerWired) {
@@ -25070,7 +25169,26 @@ input[type="range"]::-moz-range-thumb{
         input.__learnReadTimerWired = true;
       }
 
-      if (staleBadge) staleBadge.hidden = !isLearnPlanStale(activeLearnSession);
+      var planIsStale = isLearnPlanStale(activeLearnSession);
+      if (coverageChip) {
+        var snapshot = activeLearnSession.courseCoverageSnapshot || { consolidated: 0, total: 0, pct: 0 };
+        var pctRounded = Math.round(Number(snapshot.pct || 0));
+        coverageChip.textContent = 'Course: ' + Number(snapshot.consolidated || 0) + ' / ' + Number(snapshot.total || 0) + ' · ' + pctRounded + '%';
+        coverageChip.hidden = false;
+      }
+      if (staleNote) {
+        var showStaleNote = planIsStale && flow.currentSubPhase === 'read' && !activeLearnSession.dismissedPlanStaleNote;
+        staleNote.hidden = !showStaleNote;
+      }
+      if (staleDismissBtn && !staleDismissBtn.__learnDismissWired) {
+        staleDismissBtn.addEventListener('click', function() {
+          if (!activeLearnSession) return;
+          activeLearnSession.dismissedPlanStaleNote = true;
+          var note = el('learnPlanStaleNote');
+          if (note) note.remove();
+        });
+        staleDismissBtn.__learnDismissWired = true;
+      }
       if (regenBtn) regenBtn.disabled = flow.phase === 'loading' || flow.phase === 'streaming';
 
       /* Kicker + title by phase */
@@ -25595,6 +25713,7 @@ input[type="range"]::-moz-range-thumb{
         flow: flowBridge.createStreamingLearnFlow(courseName, subDeckKey),
         courseName: courseName,
         subDeckKey: subDeckKey,
+        courseCoverageSnapshot: getCourseCoverageSnapshot(courseName),
         streamController: streamController,
         pendingTurnResult: null,
         modalMounted: false,
@@ -25759,6 +25878,7 @@ input[type="range"]::-moz-range-thumb{
         flow: flowBridge.createLearnFlow(plan, courseName, subDeckKey),
         courseName: courseName,
         subDeckKey: subDeckKey,
+        courseCoverageSnapshot: getCourseCoverageSnapshot(courseName),
         planOutOfDate: !!opts.outOfDate,
         planVersion: Math.max(1, Number(opts.planVersion || 1)),
         fromCache: !!opts.fromCache
@@ -25879,11 +25999,13 @@ input[type="range"]::-moz-range-thumb{
       var _fsrsProj = el('learnFsrsProjection');
       var _fsrsRows = el('learnFsrsProjectionRows');
       var _fsrsNote = el('learnFsrsProjectionNote');
-      var _staleBadge = el('learnPlanStaleBadge');
+      var _staleNote = el('learnPlanStaleNote');
+      var _coverageChip = el('learnCourseCoverageChip');
       if (_fsrsProj) _fsrsProj.hidden = true;
       if (_fsrsRows) _fsrsRows.innerHTML = '';
       if (_fsrsNote) _fsrsNote.textContent = '';
-      if (_staleBadge) _staleBadge.hidden = true;
+      if (_staleNote) _staleNote.hidden = true;
+      if (_coverageChip) _coverageChip.hidden = true;
       learnTeachReadTimer = { segmentId: null, startedAt: 0, recorded: false };
       var _lastCourse = (state.learnSession && state.learnSession.course) ? String(state.learnSession.course) : '';
       state.learnSession = null;
