@@ -594,6 +594,151 @@ export function markAbandoned(
   return { ...flow, abandonmentPhase: phase, completedAt: now };
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+ * Phase C: mastery + telemetry selectors (pure, DOM-free).
+ *
+ * These are read-only views over the state already captured by Phase B
+ * telemetry actions and the Phase 3 consolidation battery. They do NOT
+ * mutate the flow and NEVER influence FSRS scheduling \u2014 they exist so
+ * the monolith can render a mastery chip during the session and a
+ * forward-looking FSRS projection card on the summary pane.
+ *
+ * Mastery semantics (`computeLearnMasteryProjection`):
+ *   - A card is "covered" if it is linked to at least one completed segment.
+ *   - A covered card is "consolidated" if it received a consolidation
+ *     rating through at least one question in the Phase 3 battery; the
+ *     lowest rating wins (mirrors `getFsrsHandoffPlan`).
+ *   - Otherwise the covered card is "taught".
+ *   - Per-card mastery weights: rating 4 = 1.0, rating 3 = 0.75,
+ *     rating 2 = 0.5, rating 1 = 0.25, taught = 0.25. The score is the
+ *     unweighted mean across covered cards. Returns 0 when nothing is
+ *     covered yet (no division-by-zero surprises at the UI layer).
+ * \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
+
+export interface LearnMasteryProjection {
+  /** Total cards linked to at least one completed segment. */
+  coveredCards: number;
+  /** Subset of covered cards that received a consolidation rating. */
+  consolidatedCards: number;
+  /** Subset of covered cards without a consolidation rating. */
+  taughtCards: number;
+  /** Count of consolidated cards per rating bucket (1..4). */
+  ratingsBreakdown: { 1: number; 2: number; 3: number; 4: number };
+  /** 0..1. Weighted mean per-card mastery; 0 when coveredCards === 0. */
+  masteryScore: number;
+}
+
+const MASTERY_WEIGHT_BY_RATING: Record<1 | 2 | 3 | 4, number> = {
+  1: 0.25,
+  2: 0.5,
+  3: 0.75,
+  4: 1.0
+};
+const MASTERY_WEIGHT_TAUGHT = 0.25;
+
+export function computeLearnMasteryProjection(flow: LearnFlowState): LearnMasteryProjection {
+  const breakdown: { 1: number; 2: number; 3: number; 4: number } = { 1: 0, 2: 0, 3: 0, 4: 0 };
+  if (!flow) {
+    return { coveredCards: 0, consolidatedCards: 0, taughtCards: 0, ratingsBreakdown: breakdown, masteryScore: 0 };
+  }
+  /* Reuse the same card-classification logic FSRS handoff uses so the
+     chip can never disagree with what actually ends up in the handoff. */
+  const plan = getFsrsHandoffPlan(flow, []);
+  let covered = 0;
+  let consolidated = 0;
+  let taught = 0;
+  let masterySum = 0;
+  plan.forEach((entry) => {
+    if (entry.status === 'unlearned') return;
+    covered += 1;
+    if (entry.status === 'consolidated' && entry.consolidationRating) {
+      const r = entry.consolidationRating;
+      breakdown[r] += 1;
+      consolidated += 1;
+      masterySum += MASTERY_WEIGHT_BY_RATING[r];
+    } else {
+      taught += 1;
+      masterySum += MASTERY_WEIGHT_TAUGHT;
+    }
+  });
+  const masteryScore = covered > 0 ? masterySum / covered : 0;
+  return { coveredCards: covered, consolidatedCards: consolidated, taughtCards: taught, ratingsBreakdown: breakdown, masteryScore };
+}
+
+export interface LearnTelemetrySummary {
+  /** Total segments that exist in the plan at time of read. */
+  totalSegments: number;
+  /** Completed segments (isSegmentComplete=true). */
+  completedSegments: number;
+  /** Sum of `totalTurnsPerSegment` values. */
+  totalTurns: number;
+  /** Mean turns per completed segment, or null when none are completed. */
+  avgTurnsPerCompletedSegment: number | null;
+  /** Mean (submittedAt - enteredAt) over all closed turns, or null when no turn closed. */
+  avgTimePerTurnMs: number | null;
+  /** startedAt as ms; null when startedAt is unparseable. */
+  startedAt: number | null;
+  /** Wall-clock end of the session (completion or abandonment), or null while active. */
+  completedAt: number | null;
+  /** completedAt - startedAt when both known, or now - startedAt when active and `now` given. */
+  elapsedMs: number | null;
+  /** Set only on abandonment; mirrors `flow.abandonmentPhase`. */
+  abandonmentPhase: LearnAbandonmentPhase | null;
+}
+
+export function getLearnTelemetrySummary(flow: LearnFlowState, now?: number): LearnTelemetrySummary {
+  const empty: LearnTelemetrySummary = {
+    totalSegments: 0,
+    completedSegments: 0,
+    totalTurns: 0,
+    avgTurnsPerCompletedSegment: null,
+    avgTimePerTurnMs: null,
+    startedAt: null,
+    completedAt: null,
+    elapsedMs: null,
+    abandonmentPhase: null
+  };
+  if (!flow) return empty;
+
+  const totalSegments = Array.isArray(flow.plan?.segments) ? flow.plan.segments.length : 0;
+  const completedSegments = Array.isArray(flow.completedSegmentIds) ? flow.completedSegmentIds.length : 0;
+  let totalTurns = 0;
+  Object.values(flow.totalTurnsPerSegment || {}).forEach((n) => { totalTurns += Number(n) || 0; });
+  const avgTurnsPerCompletedSegment = completedSegments > 0 ? totalTurns / completedSegments : null;
+
+  let closedTurns = 0;
+  let totalTurnDurationMs = 0;
+  (flow.turnTimings || []).forEach((t) => {
+    if (t && typeof t.submittedAt === 'number' && typeof t.enteredAt === 'number' && t.submittedAt >= t.enteredAt) {
+      closedTurns += 1;
+      totalTurnDurationMs += t.submittedAt - t.enteredAt;
+    }
+  });
+  const avgTimePerTurnMs = closedTurns > 0 ? totalTurnDurationMs / closedTurns : null;
+
+  const startedAtMs = typeof flow.startedAt === 'string' ? Date.parse(flow.startedAt) : Number.NaN;
+  const startedAt = Number.isFinite(startedAtMs) ? startedAtMs : null;
+  const completedAt = typeof flow.completedAt === 'number' ? flow.completedAt : null;
+  let elapsedMs: number | null = null;
+  if (startedAt != null && completedAt != null) {
+    elapsedMs = Math.max(0, completedAt - startedAt);
+  } else if (startedAt != null && typeof now === 'number') {
+    elapsedMs = Math.max(0, now - startedAt);
+  }
+
+  return {
+    totalSegments,
+    completedSegments,
+    totalTurns,
+    avgTurnsPerCompletedSegment,
+    avgTimePerTurnMs,
+    startedAt,
+    completedAt,
+    elapsedMs,
+    abandonmentPhase: flow.abandonmentPhase || null
+  };
+}
+
 /**
  * False if the user is on the last-loaded segment and streaming is still
  * in flight. True otherwise.
@@ -689,5 +834,8 @@ function buildClosingTutorBody(feedback: string): string {
   markTurnSubmitted,
   markTurnContinuation,
   markSessionCompleted,
-  markAbandoned
+  markAbandoned,
+  // Phase C selectors (pure reads — no mutation, no FSRS impact):
+  computeLearnMasteryProjection,
+  getLearnTelemetrySummary
 };

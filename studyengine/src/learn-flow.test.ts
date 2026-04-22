@@ -5,9 +5,13 @@ import {
   markTurnSubmitted,
   markTurnContinuation,
   markSessionCompleted,
-  markAbandoned
+  markAbandoned,
+  computeLearnMasteryProjection,
+  getLearnTelemetrySummary,
+  submitConsolidationRating,
+  enterConsolidation
 } from './learn-flow';
-import type { LearnPlan } from './learn-mode';
+import type { ConsolidationQuestion, LearnPlan } from './learn-mode';
 
 /**
  * Phase B telemetry action tests. These verify the pure actions that
@@ -33,6 +37,45 @@ function planWith(segIds: string[]): LearnPlan {
     })),
     consolidationQuestions: []
   };
+}
+
+/**
+ * Builds a plan where each segment is linked to exactly one card; card ids
+ * are deterministic (`c-${segmentId}`). Consolidation questions each link
+ * to a single segment's card, so ratings map one-to-one.
+ */
+function planWithCards(segIds: string[], qLinks: string[][] = []): LearnPlan {
+  const segments = segIds.map((id) => ({
+    id,
+    title: id,
+    mechanism: 'worked_example' as const,
+    objective: 'x',
+    teach: 'x',
+    tutorPrompt: 'x',
+    expectedAnswer: 'x',
+    linkedCardIds: [`c-${id}`],
+    groundingSnippets: []
+  }));
+  const consolidationQuestions: ConsolidationQuestion[] = qLinks.map((cardIds, i) => ({
+    question: `q${i}`,
+    answer: `a${i}`,
+    linkedCardIds: cardIds
+  }));
+  return { segments, consolidationQuestions };
+}
+
+/**
+ * Seed a flow that has completed all listed segments (so their linked cards
+ * become "covered") and entered consolidation with the given questions.
+ */
+function completedFlowWithRatings(segIds: string[], qLinks: string[][], ratings: Array<1 | 2 | 3 | 4 | undefined>) {
+  let flow = createLearnFlow(planWithCards(segIds, qLinks), 'c', 'sd');
+  flow = { ...flow, completedSegmentIds: segIds.slice() };
+  flow = enterConsolidation(flow, flow.consolidationQuestions);
+  ratings.forEach((r, idx) => {
+    if (r != null) flow = submitConsolidationRating(flow, idx, r);
+  });
+  return flow;
 }
 
 describe('Phase B telemetry: factory seeds', () => {
@@ -151,5 +194,128 @@ describe('Phase B telemetry: session finalization', () => {
     const flow2 = markSessionCompleted(flow1, 5000);
     expect(flow2.completedAt).toBe(3000); // Abandonment timestamp preserved.
     expect(flow2.abandonmentPhase).toBe('streaming');
+  });
+});
+
+describe('Phase C: computeLearnMasteryProjection', () => {
+  it('returns zero counts when nothing is covered', () => {
+    const flow = createLearnFlow(planWithCards(['s1', 's2']), 'c', 'sd');
+    const proj = computeLearnMasteryProjection(flow);
+    expect(proj.coveredCards).toBe(0);
+    expect(proj.consolidatedCards).toBe(0);
+    expect(proj.taughtCards).toBe(0);
+    expect(proj.masteryScore).toBe(0);
+    expect(proj.ratingsBreakdown).toEqual({ 1: 0, 2: 0, 3: 0, 4: 0 });
+  });
+
+  it('treats covered-but-unrated cards as taught at weight 0.25', () => {
+    const flow = completedFlowWithRatings(['s1', 's2'], [], []);
+    const proj = computeLearnMasteryProjection(flow);
+    expect(proj.coveredCards).toBe(2);
+    expect(proj.taughtCards).toBe(2);
+    expect(proj.consolidatedCards).toBe(0);
+    expect(proj.masteryScore).toBeCloseTo(0.25, 6);
+  });
+
+  it('computes per-rating breakdown and weighted mean for consolidated cards', () => {
+    // s1 rated 4, s2 rated 3, s3 rated 1.
+    const flow = completedFlowWithRatings(
+      ['s1', 's2', 's3'],
+      [['c-s1'], ['c-s2'], ['c-s3']],
+      [4, 3, 1]
+    );
+    const proj = computeLearnMasteryProjection(flow);
+    expect(proj.coveredCards).toBe(3);
+    expect(proj.consolidatedCards).toBe(3);
+    expect(proj.taughtCards).toBe(0);
+    expect(proj.ratingsBreakdown).toEqual({ 1: 1, 2: 0, 3: 1, 4: 1 });
+    // (1.0 + 0.75 + 0.25) / 3 = 2.0 / 3 ~= 0.6667
+    expect(proj.masteryScore).toBeCloseTo((1.0 + 0.75 + 0.25) / 3, 6);
+  });
+
+  it('all-Easy ratings yield masteryScore = 1.0', () => {
+    const flow = completedFlowWithRatings(
+      ['s1', 's2'],
+      [['c-s1'], ['c-s2']],
+      [4, 4]
+    );
+    const proj = computeLearnMasteryProjection(flow);
+    expect(proj.masteryScore).toBe(1);
+  });
+
+  it('mixed covered: some rated, some not', () => {
+    // s1 rated 4, s2 completed but unrated (taught).
+    const flow = completedFlowWithRatings(
+      ['s1', 's2'],
+      [['c-s1']], // only one consolidation question, for s1
+      [4]
+    );
+    const proj = computeLearnMasteryProjection(flow);
+    expect(proj.coveredCards).toBe(2);
+    expect(proj.consolidatedCards).toBe(1);
+    expect(proj.taughtCards).toBe(1);
+    // (1.0 + 0.25) / 2 = 0.625
+    expect(proj.masteryScore).toBeCloseTo(0.625, 6);
+  });
+});
+
+describe('Phase C: getLearnTelemetrySummary', () => {
+  it('returns safe zero/null defaults for a fresh flow', () => {
+    const flow = createLearnFlow(planWith(['s1', 's2']), 'c', 'sd');
+    const s = getLearnTelemetrySummary(flow);
+    expect(s.totalSegments).toBe(2);
+    expect(s.completedSegments).toBe(0);
+    expect(s.totalTurns).toBe(0);
+    expect(s.avgTurnsPerCompletedSegment).toBeNull();
+    expect(s.avgTimePerTurnMs).toBeNull();
+    expect(s.completedAt).toBeNull();
+    expect(s.abandonmentPhase).toBeNull();
+  });
+
+  it('aggregates turn counts and average turn duration across segments', () => {
+    let flow = createLearnFlow(planWith(['s1', 's2']), 'c', 'sd');
+    flow = markSegmentEntered(flow, 's1', 1000);
+    flow = markTurnSubmitted(flow, 's1', 10, 1800); // 800 ms
+    flow = markTurnContinuation(flow, 's1', 2000);
+    flow = markTurnSubmitted(flow, 's1', 20, 3200); // 1200 ms
+    flow = { ...flow, completedSegmentIds: ['s1'] };
+    flow = markSegmentEntered(flow, 's2', 4000);
+    flow = markTurnSubmitted(flow, 's2', 30, 4400); // 400 ms
+    flow = { ...flow, completedSegmentIds: ['s1', 's2'] };
+
+    const s = getLearnTelemetrySummary(flow);
+    expect(s.totalTurns).toBe(3);
+    expect(s.completedSegments).toBe(2);
+    expect(s.avgTurnsPerCompletedSegment).toBe(1.5);
+    // Mean of 800, 1200, 400 = 800
+    expect(s.avgTimePerTurnMs).toBe(800);
+  });
+
+  it('elapsedMs uses completedAt when available', () => {
+    const iso = new Date(5000).toISOString();
+    let flow = createLearnFlow(planWith(['s1']), 'c', 'sd');
+    flow = { ...flow, startedAt: iso };
+    flow = markSessionCompleted(flow, 7500);
+    const s = getLearnTelemetrySummary(flow);
+    expect(s.completedAt).toBe(7500);
+    expect(s.startedAt).toBe(5000);
+    expect(s.elapsedMs).toBe(2500);
+  });
+
+  it('elapsedMs falls back to now when session still active', () => {
+    const iso = new Date(1000).toISOString();
+    let flow = createLearnFlow(planWith(['s1']), 'c', 'sd');
+    flow = { ...flow, startedAt: iso };
+    const s = getLearnTelemetrySummary(flow, 4500);
+    expect(s.completedAt).toBeNull();
+    expect(s.elapsedMs).toBe(3500);
+  });
+
+  it('surfaces abandonmentPhase on abandoned sessions', () => {
+    let flow = createLearnFlow(planWith(['s1']), 'c', 'sd');
+    flow = markAbandoned(flow, 'tutor', 2000);
+    const s = getLearnTelemetrySummary(flow);
+    expect(s.abandonmentPhase).toBe('tutor');
+    expect(s.completedAt).toBe(2000);
   });
 });

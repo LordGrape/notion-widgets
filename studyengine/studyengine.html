@@ -8408,6 +8408,97 @@ input[type="range"]::-moz-range-thumb{
       min-height: 44px;
     }
 
+    /* Phase C: mastery chip in the modal head. Surfaces the running
+       `computeLearnMasteryProjection` score so the learner sees retrieval
+       progress at a glance. Hidden until there is at least one covered card. */
+    .learn-mastery-chip{
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 22px;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: rgba(var(--accent-rgb), 0.12);
+      border: 1px solid rgba(var(--accent-rgb), 0.28);
+      color: var(--text);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: background var(--transition), border-color var(--transition), opacity var(--transition);
+    }
+    .learn-mastery-chip[hidden]{ display: none; }
+    .learn-mastery-chip-dot{
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex-shrink: 0;
+    }
+    /* Tier colouring: the same chip shifts hue once mastery crosses a
+       threshold so the learner gets a qualitative signal alongside the %. */
+    .learn-mastery-chip.tier-solid{
+      background: rgba(34, 197, 94, 0.12);
+      border-color: rgba(34, 197, 94, 0.32);
+    }
+    .learn-mastery-chip.tier-solid .learn-mastery-chip-dot{ background: #22c55e; }
+    .learn-mastery-chip.tier-shaky{
+      background: rgba(245, 158, 11, 0.12);
+      border-color: rgba(245, 158, 11, 0.32);
+    }
+    .learn-mastery-chip.tier-shaky .learn-mastery-chip-dot{ background: #f59e0b; }
+
+    /* Phase C: FSRS projection card in the summary pane. Groups covered
+       cards by the due-offset bucket they will receive through
+       `applyLearnHandoff` so the learner can see the review schedule the
+       session just committed them to. Purely read-only — does not trigger
+       scheduling and does not read from the live FSRS store. */
+    .learn-fsrs-projection{
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin: 6px 0 2px;
+      padding: 14px 16px;
+      background: var(--surface-1);
+      border: 1px solid var(--border-subtle, var(--card-border));
+      border-radius: 12px;
+      text-align: left;
+    }
+    .learn-fsrs-projection[hidden]{ display: none; }
+    .learn-fsrs-projection-title{
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+    .learn-fsrs-projection-rows{
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .learn-fsrs-projection-row{
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 12px;
+      color: var(--text);
+    }
+    .learn-fsrs-projection-row-count{
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+    .learn-fsrs-projection-row-label{
+      color: var(--text-secondary);
+    }
+    .learn-fsrs-projection-note{
+      font-size: 10px;
+      color: var(--text-tertiary, var(--text-secondary));
+      line-height: 1.5;
+    }
+
     /* Learn-first badge (shown in session item cards when learnStatus==='unlearned') */
     .learn-first-badge{
       display: inline-flex;
@@ -8981,6 +9072,12 @@ input[type="range"]::-moz-range-thumb{
           </div>
           <span class="learn-progress-bar-label" id="learnSessionProgressLabel">0 / 0</span>
         </div>
+        <!-- Phase C: mastery chip. Hidden until computeLearnMasteryProjection
+             reports coveredCards > 0. Updates on every renderLearnSessionUI. -->
+        <span class="learn-mastery-chip" id="learnMasteryChip" aria-live="polite" hidden>
+          <span class="learn-mastery-chip-dot" aria-hidden="true"></span>
+          <span id="learnMasteryChipText">Mastery 0%</span>
+        </span>
         <button type="button" class="icon-btn" id="learnSessionClose" aria-label="Close Learn session">
           <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>
         </button>
@@ -9030,6 +9127,14 @@ input[type="range"]::-moz-range-thumb{
         <div class="learn-summary-pane" id="learnSummaryPane" hidden>
           <div class="learn-summary-title" id="learnSummaryTitle">You learned 0 concepts.</div>
           <div class="learn-summary-sub" id="learnSummarySub">0 cards ready for review.</div>
+          <!-- Phase C: FSRS projection card. Populated by renderLearnFsrsProjection
+               from getFsrsHandoffPlan + getLearnTelemetrySummary. Hidden when
+               there are no covered cards (e.g. the user abandoned early). -->
+          <div class="learn-fsrs-projection" id="learnFsrsProjection" hidden>
+            <div class="learn-fsrs-projection-title">Projected review schedule</div>
+            <div class="learn-fsrs-projection-rows" id="learnFsrsProjectionRows"></div>
+            <div class="learn-fsrs-projection-note" id="learnFsrsProjectionNote"></div>
+          </div>
           <div class="learn-summary-actions">
             <button type="button" class="learn-summary-review-btn" id="learnSummaryReview">Review now</button>
             <button type="button" class="learn-summary-done-btn" id="learnSummaryDone">Done</button>
@@ -22940,6 +23045,116 @@ input[type="range"]::-moz-range-thumb{
         var ready = learnSummaryState.consolidated + learnSummaryState.taught;
         subEl.textContent = ready + ' card' + (ready === 1 ? '' : 's') + ' ready for review.';
       }
+      /* Phase C: forward-looking FSRS projection. Reads directly from the
+         in-memory flow via the handoff plan so the buckets exactly match
+         what applyLearnHandoff just wrote into state.items[*].fsrs. */
+      try { renderLearnFsrsProjection(); } catch (e) { /* non-fatal */ }
+    }
+
+    /* Phase C: mastery chip in the modal head. Called from renderLearnSessionUI
+       on every render. Hidden until there is at least one covered card; the
+       score is the unweighted mean of per-card mastery (rating 4 = 1.0, 3 = 0.75,
+       2 = 0.5, 1 = 0.25, taught = 0.25). Tier is a qualitative band for
+       colour-coding: shaky < 0.5, default 0.5..<0.8, solid >= 0.8. Pure read
+       \u2014 never mutates flow state. */
+    function updateLearnMasteryChip() {
+      var chip = el('learnMasteryChip');
+      var text = el('learnMasteryChipText');
+      if (!chip || !text) return;
+      if (!activeLearnSession || !activeLearnSession.flow) { chip.hidden = true; return; }
+      var fb = globalThis.__studyEngineLearnFlow;
+      if (!fb || typeof fb.computeLearnMasteryProjection !== 'function') { chip.hidden = true; return; }
+      var proj = fb.computeLearnMasteryProjection(activeLearnSession.flow);
+      if (!proj || proj.coveredCards === 0) { chip.hidden = true; return; }
+      var pct = Math.round((proj.masteryScore || 0) * 100);
+      text.textContent = 'Mastery ' + pct + '%';
+      chip.classList.remove('tier-solid', 'tier-shaky');
+      if (proj.masteryScore >= 0.8) chip.classList.add('tier-solid');
+      else if (proj.masteryScore < 0.5) chip.classList.add('tier-shaky');
+      chip.hidden = false;
+    }
+
+    /* Phase C: FSRS projection card in the summary pane. Groups covered cards
+       into the two due-offset buckets that `applyLearnHandoff` actually uses
+       (1 day and 3 days) and surfaces a note about any relearning-flagged
+       cards. Reads the handoff plan directly from the flow, which mirrors
+       the exact input applyLearnHandoff will consume. */
+    function renderLearnFsrsProjection() {
+      var host = el('learnFsrsProjection');
+      var rowsEl = el('learnFsrsProjectionRows');
+      var noteEl = el('learnFsrsProjectionNote');
+      if (!host || !rowsEl || !noteEl) return;
+      if (!activeLearnSession || !activeLearnSession.flow) { host.hidden = true; return; }
+      var fb = globalThis.__studyEngineLearnFlow;
+      if (!fb || typeof fb.getFsrsHandoffPlan !== 'function') { host.hidden = true; return; }
+      var plan = fb.getFsrsHandoffPlan(activeLearnSession.flow, []);
+      if (!plan || typeof plan.forEach !== 'function') { host.hidden = true; return; }
+      /* Tally by bucket. The exact numbers (1 day / 3 days) mirror
+         session-flow.ts::fsrsSeedForEntry. If that table changes, this
+         UI must follow. */
+      var tomorrow = 0;
+      var inThreeDays = 0;
+      var relearning = 0;
+      plan.forEach(function(entry) {
+        if (!entry || entry.status === 'unlearned') return;
+        if (entry.status === 'taught') { tomorrow += 1; return; }
+        // consolidated
+        var r = entry.consolidationRating;
+        if (r === 4) { inThreeDays += 1; return; }
+        if (r === 1) { relearning += 1; tomorrow += 1; return; }
+        tomorrow += 1; // ratings 2 and 3
+      });
+      if (tomorrow === 0 && inThreeDays === 0) { host.hidden = true; return; }
+      var rowsHtml = '';
+      if (tomorrow > 0) {
+        rowsHtml += '<div class="learn-fsrs-projection-row">'
+          + '<span class="learn-fsrs-projection-row-count">' + tomorrow + '</span>'
+          + '<span class="learn-fsrs-projection-row-label">'
+          + (tomorrow === 1 ? 'card due tomorrow' : 'cards due tomorrow')
+          + '</span></div>';
+      }
+      if (inThreeDays > 0) {
+        rowsHtml += '<div class="learn-fsrs-projection-row">'
+          + '<span class="learn-fsrs-projection-row-count">' + inThreeDays + '</span>'
+          + '<span class="learn-fsrs-projection-row-label">'
+          + (inThreeDays === 1 ? 'card due in 3 days' : 'cards due in 3 days')
+          + '</span></div>';
+      }
+      rowsEl.innerHTML = rowsHtml;
+      /* Note: combine relearning flag with telemetry summary (session length,
+         turns per segment). The telemetry summary is best-effort \u2014 if the
+         selector is unavailable the note falls back to the relearning-only
+         line without failing the render. */
+      var noteParts = [];
+      if (relearning > 0) {
+        noteParts.push(relearning + ' ' + (relearning === 1 ? 'card returns' : 'cards return') + ' as relearning.');
+      }
+      try {
+        if (typeof fb.getLearnTelemetrySummary === 'function') {
+          var summary = fb.getLearnTelemetrySummary(activeLearnSession.flow, Date.now());
+          if (summary) {
+            if (summary.elapsedMs && summary.elapsedMs >= 1000) {
+              noteParts.push('Session time: ' + formatLearnDurationMs(summary.elapsedMs) + '.');
+            }
+            if (summary.avgTurnsPerCompletedSegment != null && summary.completedSegments > 0) {
+              var avg = Math.round(summary.avgTurnsPerCompletedSegment * 10) / 10;
+              noteParts.push('Average ' + avg + ' turn' + (avg === 1 ? '' : 's') + ' per segment.');
+            }
+          }
+        }
+      } catch (eSum) { /* non-fatal */ }
+      noteEl.textContent = noteParts.join(' ');
+      host.hidden = false;
+    }
+
+    /* Small formatter: ms \u2192 "1m 23s" / "23s". Kept local to the projection
+       card so the rest of the monolith's time formatters stay untouched. */
+    function formatLearnDurationMs(ms) {
+      var total = Math.max(0, Math.round(ms / 1000));
+      var m = Math.floor(total / 60);
+      var s = total % 60;
+      if (m <= 0) return s + 's';
+      return m + 'm ' + s + 's';
     }
 
     function renderLearnSessionUI() {
@@ -22964,6 +23179,10 @@ input[type="range"]::-moz-range-thumb{
         activeLearnSession.flow = fb.markSegmentEntered(flow, seg.id, Date.now());
         flow = activeLearnSession.flow;
       })();
+      /* Phase C: keep the mastery chip in the modal head in sync with the
+         current flow. updateLearnMasteryChip handles its own visibility so
+         it is safe to call unconditionally on every render. */
+      try { updateLearnMasteryChip(); } catch (eMC) { /* non-fatal */ }
       var tutor = el('learnSessionTutor');
       var caption = el('learnSessionCaption');
       var errorHost = el('learnSessionError');
@@ -23600,6 +23819,22 @@ input[type="range"]::-moz-range-thumb{
       if (_tutorPane) _tutorPane.hidden = false;
       if (_consolPane) _consolPane.hidden = true;
       if (_summaryPane) _summaryPane.hidden = true;
+      /* Phase C: reset the mastery chip and projection card so a subsequent
+         session starts from a blank state rather than inheriting the
+         previous run's numbers on re-open. */
+      var _masteryChip = el('learnMasteryChip');
+      var _masteryChipText = el('learnMasteryChipText');
+      if (_masteryChip) {
+        _masteryChip.hidden = true;
+        _masteryChip.classList.remove('tier-solid', 'tier-shaky');
+      }
+      if (_masteryChipText) _masteryChipText.textContent = 'Mastery 0%';
+      var _fsrsProj = el('learnFsrsProjection');
+      var _fsrsRows = el('learnFsrsProjectionRows');
+      var _fsrsNote = el('learnFsrsProjectionNote');
+      if (_fsrsProj) _fsrsProj.hidden = true;
+      if (_fsrsRows) _fsrsRows.innerHTML = '';
+      if (_fsrsNote) _fsrsNote.textContent = '';
       var courseName = activeLearnSession && activeLearnSession.courseName;
       activeLearnSession = null;
       learnSummaryState = null;
