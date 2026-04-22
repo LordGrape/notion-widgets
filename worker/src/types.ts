@@ -392,6 +392,7 @@ export interface LearnPlanSegment {
   expectedAnswer: string;
   linkedCardIds: string[];
   groundingSnippets: GroundingSnippet[];
+  questionQualityWarning?: "answer_copyable_from_teach";
 }
 
 export interface ConsolidationQuestion {
@@ -414,11 +415,16 @@ export interface LearnTurnRequest {
   userName?: string;
 }
 
+export type LearnTurnVerdict = "surface" | "partial" | "deep";
+
 export interface LearnTurnResponse {
+  verdict: LearnTurnVerdict;
+  understandingScore: number;
+  copyRatio: number;
+  missingConcepts: string[];
   feedback: string;
-  nextPrompt: string;
-  isSegmentComplete: boolean;
-  suggestedStatus?: "taught" | "consolidated" | null | string;
+  followUp: string | null;
+  advance: boolean;
 }
 
 export interface ErrorResponse {
