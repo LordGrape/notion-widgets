@@ -3700,6 +3700,121 @@ body.standalone .answer.restudy-active{
       color: var(--text-secondary);
       font-weight: 600;
     }
+    .start-session-picker-modal{
+      max-width: 680px;
+      background: var(--surface-1);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      backdrop-filter: var(--blur-glass);
+      -webkit-backdrop-filter: var(--blur-glass);
+    }
+    .start-session-picker-head{
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+    }
+    .start-session-picker-title{
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--text-primary);
+      flex: 1;
+      text-align: left;
+    }
+    .start-session-picker-back{
+      min-height: 44px;
+      min-width: 88px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border-subtle);
+      background: var(--surface-2);
+      color: var(--text-secondary);
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .start-session-picker-step{
+      display: grid;
+      gap: 14px;
+    }
+    .start-session-picker-step-title{
+      margin: 0;
+      font-size: 14px;
+      color: var(--text-primary);
+      letter-spacing: 0.3px;
+    }
+    .start-session-picker-choice-grid{
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 24px;
+    }
+    .start-session-picker-option{
+      min-height: 44px;
+      width: 100%;
+    }
+    .start-session-picker-caption{
+      margin: 8px 0 0;
+      color: var(--text-secondary);
+      font-size: 11px;
+      line-height: 1.4;
+    }
+    .start-session-picker-courses{
+      display: grid;
+      gap: 10px;
+      width: 100%;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+    .start-session-picker-course{
+      display: block;
+      width: 100%;
+      min-height: 44px;
+      text-align: left;
+      border-radius: 12px;
+      border: 1px solid var(--border-subtle);
+      background: var(--surface-2);
+      color: var(--text-primary);
+      padding: 12px 14px;
+      cursor: pointer;
+    }
+    .start-session-picker-course-name{
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+    .start-session-picker-course-meta{
+      display: block;
+      margin-top: 4px;
+      font-size: 10px;
+      color: var(--text-secondary);
+      line-height: 1.35;
+    }
+    .start-session-picker-empty{
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      background: var(--surface-2);
+      padding: 14px;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+    .start-session-picker-empty p{
+      margin: 0 0 12px;
+      color: var(--text-secondary);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+    @media (max-width: 900px){
+      .start-session-picker-choice-grid{
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+      .start-session-picker-option{
+        width: 100%;
+      }
+    }
     @media (max-width: 480px){
       .course-form-row{ grid-template-columns: 1fr; }
     }
@@ -9732,6 +9847,20 @@ input[type="range"]::-moz-range-thumb{
   </div>
   <div class="overlay" id="courseLearnEmptyOv" aria-hidden="true"><div class="modal" style="max-width:520px;"><div class="modal-head"><span style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--text);">Learn course</span><button type="button" class="icon-btn" id="courseLearnEmptyClose" aria-label="Close"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg></button></div><div class="modal-body"><div id="courseLearnEmptyBody" style="font-size:11px;line-height:1.5;color:var(--text-secondary);"></div></div><div class="modal-actions"><button type="button" class="ghost-btn" id="courseLearnEmptyCancel">Cancel</button><button type="button" class="big-btn" id="courseLearnEmptyConfirm">Create &amp; Learn</button></div></div></div>
   <div class="overlay" id="courseLearnPickerOv" aria-hidden="true"><div class="modal" style="max-width:560px;"><div class="modal-head"><span style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--text);">Choose sub-deck to learn</span><button type="button" class="icon-btn" id="courseLearnPickerClose" aria-label="Close"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg></button></div><div class="modal-body"><div id="courseLearnPickerBody" style="max-height:min(56vh,360px);overflow-y:auto;"></div></div></div></div>
+  <div class="overlay" id="startSessionPickerOv" aria-hidden="true">
+    <div class="modal start-session-picker-modal" role="dialog" aria-modal="true" aria-label="Start session picker">
+      <div class="modal-head">
+        <div class="start-session-picker-head">
+          <button type="button" class="start-session-picker-back" id="startSessionPickerBack" hidden>← Back</button>
+          <span class="start-session-picker-title" id="startSessionPickerTitle">Start session</span>
+          <button type="button" class="icon-btn" id="startSessionPickerClose" aria-label="Close"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg></button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div id="startSessionPickerBody"></div>
+      </div>
+    </div>
+  </div>
 
   <!-- Confirm exit overlay for mid-consolidation abandon -->
   <div class="confirm-overlay" id="confirmLearnExitOv">
@@ -18310,12 +18439,13 @@ input[type="range"]::-moz-range-thumb{
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') {
         /* Close modals first */
-        var hadModal = modalSystem.getModalOvEl().classList.contains('show') || settingsOv.classList.contains('show') || courseOv.classList.contains('show') || el('confirmExitOv').classList.contains('show') || el('confirmDeleteCourseOv').classList.contains('show') || el('confirmDeleteCourseCardsOv').classList.contains('show') || el('resumeChoiceOv').classList.contains('show');
+        var hadModal = modalSystem.getModalOvEl().classList.contains('show') || settingsOv.classList.contains('show') || courseOv.classList.contains('show') || el('confirmExitOv').classList.contains('show') || el('confirmDeleteCourseOv').classList.contains('show') || el('confirmDeleteCourseCardsOv').classList.contains('show') || el('resumeChoiceOv').classList.contains('show') || el('startSessionPickerOv').classList.contains('show');
         closeModals();
         el('confirmExitOv').classList.remove('show');
         el('confirmDeleteCourseOv').classList.remove('show');
         el('confirmDeleteCourseCardsOv').classList.remove('show');
         closeResumeChoiceModal();
+        closeStartSessionPicker(true);
         if (hadModal) return;
 
         /* If in session, show confirmation instead of exiting immediately */
@@ -18382,8 +18512,7 @@ input[type="range"]::-moz-range-thumb{
       }
     });
 
-    /* ── Buttons wiring ── */
-    el('startBtn').addEventListener('click', function(){
+    function legacyAllCoursesStartSession() {
       selectedCourse = 'All';
       selectedTopic = 'All';
       var pending = readValidResumeSession();
@@ -18394,6 +18523,253 @@ input[type="range"]::-moz-range-thumb{
         return;
       }
       startNewSessionFlow();
+    }
+
+    function countUnlearnedCardsForCourse(courseName, appState) {
+      var items = Object.keys((appState && appState.items) || {}).map(function(id) { return appState.items[id]; });
+      return items.filter(function(item) {
+        return item && item.course === courseName && item.learnStatus !== 'consolidated';
+      }).length;
+    }
+
+    var startSessionPickerState = {
+      step: 'choice',
+      focusIndex: 0,
+      rows: []
+    };
+
+    function isStartSessionPickerOpen() {
+      var ov = el('startSessionPickerOv');
+      return !!(ov && ov.classList.contains('show'));
+    }
+
+    function closeStartSessionPicker(immediate) {
+      var ov = el('startSessionPickerOv');
+      var body = el('startSessionPickerBody');
+      if (body) body.innerHTML = '';
+      startSessionPickerState.step = 'choice';
+      startSessionPickerState.focusIndex = 0;
+      startSessionPickerState.rows = [];
+      var backBtn = el('startSessionPickerBack');
+      if (backBtn) backBtn.hidden = true;
+      var title = el('startSessionPickerTitle');
+      if (title) title.textContent = 'Start session';
+      if (!ov) return;
+      ov.classList.remove('show');
+      ov.setAttribute('aria-hidden', 'true');
+      if (!immediate && window.gsap && !prefersReducedMotion()) {
+        var modalEl = ov.querySelector('.start-session-picker-modal');
+        if (modalEl) gsap.set(modalEl, { clearProps: 'opacity,y,scale' });
+      }
+    }
+
+    function runLearnPathFromPicker(courseName) {
+      if (!courseName) return;
+      closeStartSessionPicker(true);
+      openCourseDetail(courseName);
+      setActiveCourseTab(courseName, 'learn');
+      requestAnimationFrame(function() { handleLearnHeroStart(); });
+    }
+
+    function renderStartSessionPickerChoiceStep() {
+      var body = el('startSessionPickerBody');
+      if (!body) return;
+      startSessionPickerState.step = 'choice';
+      startSessionPickerState.rows = [];
+      startSessionPickerState.focusIndex = 0;
+      var backBtn = el('startSessionPickerBack');
+      if (backBtn) backBtn.hidden = true;
+      var title = el('startSessionPickerTitle');
+      if (title) title.textContent = 'Start session';
+      body.innerHTML = ''
+        + '<section class="start-session-picker-step" data-picker-step="choice">'
+        +   '<h3 class="start-session-picker-step-title">What kind of session?</h3>'
+        +   '<div class="start-session-picker-choice-grid">'
+        +     '<div>'
+        +       '<button type="button" class="big-btn start-session-picker-option" id="startSessionPickerReviewBtn">⟳ Review</button>'
+        +       '<p class="start-session-picker-caption">Review uses your FSRS due queue exactly as before.</p>'
+        +     '</div>'
+        +     '<div>'
+        +       '<button type="button" class="big-btn start-session-picker-option" id="startSessionPickerLearnBtn">✦ Learn</button>'
+        +       '<p class="start-session-picker-caption">Learn teaches new cards with guided streaming prompts.</p>'
+        +     '</div>'
+        +   '</div>'
+        + '</section>';
+      var reviewBtn = el('startSessionPickerReviewBtn');
+      var learnBtn = el('startSessionPickerLearnBtn');
+      if (reviewBtn) {
+        reviewBtn.addEventListener('click', function() {
+          closeStartSessionPicker(true);
+          legacyAllCoursesStartSession();
+        });
+      }
+      if (learnBtn) {
+        learnBtn.addEventListener('click', function() {
+          openStartSessionPickerLearnStep();
+        });
+      }
+      if (reviewBtn) reviewBtn.focus();
+    }
+
+    function renderStartSessionPickerLearnEmptyState() {
+      var body = el('startSessionPickerBody');
+      if (!body) return;
+      startSessionPickerState.step = 'empty';
+      startSessionPickerState.rows = [];
+      startSessionPickerState.focusIndex = 0;
+      var backBtn = el('startSessionPickerBack');
+      if (backBtn) backBtn.hidden = false;
+      var title = el('startSessionPickerTitle');
+      if (title) title.textContent = 'Choose a course';
+      body.innerHTML = ''
+        + '<section class="start-session-picker-step" data-picker-step="empty">'
+        +   '<h3 class="start-session-picker-step-title">Which course?</h3>'
+        +   '<div class="start-session-picker-empty">'
+        +     '<p>No courses with unlearned cards. Add cards or pick Review.</p>'
+        +     '<button type="button" class="ghost-btn" id="startSessionPickerBackFromEmpty">Back to picker</button>'
+        +   '</div>'
+        + '</section>';
+      var backToPickerBtn = el('startSessionPickerBackFromEmpty');
+      if (backToPickerBtn) {
+        backToPickerBtn.addEventListener('click', function() { renderStartSessionPickerChoiceStep(); });
+        backToPickerBtn.focus();
+      }
+    }
+
+    function renderStartSessionPickerLearnCourses(courses) {
+      var body = el('startSessionPickerBody');
+      if (!body) return;
+      startSessionPickerState.step = 'learn-courses';
+      startSessionPickerState.rows = courses.slice();
+      startSessionPickerState.focusIndex = 0;
+      var backBtn = el('startSessionPickerBack');
+      if (backBtn) backBtn.hidden = false;
+      var title = el('startSessionPickerTitle');
+      if (title) title.textContent = 'Choose a course';
+      body.innerHTML = ''
+        + '<section class="start-session-picker-step" data-picker-step="learn-courses">'
+        +   '<h3 class="start-session-picker-step-title">Which course?</h3>'
+        +   '<div class="start-session-picker-courses" id="startSessionPickerCoursesList">'
+        +     courses.map(function(entry) {
+                return ''
+                  + '<button type="button" class="start-session-picker-course" data-picker-course="' + esc(entry.courseName).replace(/"/g, '&quot;') + '">'
+                  +   '<span class="start-session-picker-course-name">' + esc(entry.courseName) + '</span>'
+                  +   '<span class="start-session-picker-course-meta">' + Number(entry.unlearnedCount || 0) + ' cards to learn</span>'
+                  + '</button>';
+              }).join('')
+        +   '</div>'
+        + '</section>';
+      var courseButtons = Array.from(body.querySelectorAll('[data-picker-course]'));
+      courseButtons.forEach(function(btn, idx) {
+        btn.addEventListener('click', function() {
+          var courseName = btn.getAttribute('data-picker-course') || '';
+          runLearnPathFromPicker(courseName);
+        });
+        if (idx === 0) btn.focus();
+      });
+    }
+
+    function openStartSessionPickerLearnStep() {
+      var courseNames = Object.keys(state.courses || {}).filter(function(courseName) {
+        return state.courses[courseName] && !state.courses[courseName].archived;
+      });
+      var learnable = courseNames.map(function(courseName) {
+        return {
+          courseName: courseName,
+          unlearnedCount: countUnlearnedCardsForCourse(courseName, state)
+        };
+      }).filter(function(entry) {
+        return entry.unlearnedCount > 0;
+      }).sort(function(a, b) {
+        return a.courseName.localeCompare(b.courseName);
+      });
+      if (learnable.length === 1) {
+        runLearnPathFromPicker(learnable[0].courseName);
+        return;
+      }
+      if (!learnable.length) {
+        renderStartSessionPickerLearnEmptyState();
+        return;
+      }
+      renderStartSessionPickerLearnCourses(learnable);
+    }
+
+    function openStartSessionPicker() {
+      closeCourseLearnModals();
+      closeModals();
+      closeResumeChoiceModal();
+      var ov = el('startSessionPickerOv');
+      var modalEl = ov ? ov.querySelector('.start-session-picker-modal') : null;
+      if (!ov) return;
+      renderStartSessionPickerChoiceStep();
+      ov.classList.add('show');
+      ov.setAttribute('aria-hidden', 'false');
+      if (modalEl && window.gsap && !prefersReducedMotion()) {
+        gsap.fromTo(modalEl, { opacity: 0, y: 10, scale: 0.99 }, { opacity: 1, y: 0, scale: 1, duration: 0.2, ease: 'power2.out', overwrite: 'auto' });
+      }
+    }
+
+    function handleStartSessionPickerKeydown(e) {
+      if (!isStartSessionPickerOpen()) return;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        if (startSessionPickerState.step === 'learn-courses' || startSessionPickerState.step === 'empty') {
+          renderStartSessionPickerChoiceStep();
+          return;
+        }
+        closeStartSessionPicker(true);
+        return;
+      }
+      if (startSessionPickerState.step === 'choice') {
+        if (e.key === 'r' || e.key === 'R') {
+          e.preventDefault();
+          e.stopPropagation();
+          var reviewBtn = el('startSessionPickerReviewBtn');
+          if (reviewBtn) reviewBtn.click();
+          return;
+        }
+        if (e.key === 'l' || e.key === 'L') {
+          e.preventDefault();
+          e.stopPropagation();
+          var learnBtn = el('startSessionPickerLearnBtn');
+          if (learnBtn) learnBtn.click();
+        }
+        return;
+      }
+      if (startSessionPickerState.step !== 'learn-courses') return;
+      if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp' && e.key !== 'Enter') return;
+      var rows = Array.from((el('startSessionPickerBody') || document).querySelectorAll('[data-picker-course]'));
+      if (!rows.length) return;
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        e.stopPropagation();
+        startSessionPickerState.focusIndex = (startSessionPickerState.focusIndex + 1) % rows.length;
+        rows[startSessionPickerState.focusIndex].focus();
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        e.stopPropagation();
+        startSessionPickerState.focusIndex = (startSessionPickerState.focusIndex - 1 + rows.length) % rows.length;
+        rows[startSessionPickerState.focusIndex].focus();
+        return;
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        var active = document.activeElement;
+        if (active && active.getAttribute && active.getAttribute('data-picker-course')) {
+          active.click();
+        } else if (rows[startSessionPickerState.focusIndex]) {
+          rows[startSessionPickerState.focusIndex].click();
+        }
+      }
+    }
+
+    /* ── Buttons wiring ── */
+    el('startBtn').addEventListener('click', function() {
+      openStartSessionPicker();
     });
     el('backBtn').addEventListener('click', function(){
       if (viewSession.classList.contains('active') && session) {
@@ -25896,6 +26272,40 @@ input[type="range"]::-moz-range-thumb{
         if (e.target === ov) closeCourseLearnModals();
       });
     });
+    var startSessionPickerBackBtn = el('startSessionPickerBack');
+    if (startSessionPickerBackBtn) {
+      startSessionPickerBackBtn.addEventListener('click', function() { renderStartSessionPickerChoiceStep(); });
+    }
+    var startSessionPickerCloseBtn = el('startSessionPickerClose');
+    if (startSessionPickerCloseBtn) {
+      startSessionPickerCloseBtn.addEventListener('click', function() { closeStartSessionPicker(true); });
+    }
+    var startSessionPickerOv = el('startSessionPickerOv');
+    if (startSessionPickerOv) {
+      startSessionPickerOv.addEventListener('click', function(e) {
+        if (e.target !== startSessionPickerOv) return;
+        if (startSessionPickerState.step === 'learn-courses' || startSessionPickerState.step === 'empty') {
+          renderStartSessionPickerChoiceStep();
+          return;
+        }
+        closeStartSessionPicker(true);
+      });
+    }
+    document.addEventListener('keydown', handleStartSessionPickerKeydown, true);
+    var overlayConflictObserver = new MutationObserver(function(mutations) {
+      if (!isStartSessionPickerOpen()) return;
+      var shouldClose = mutations.some(function(mutation) {
+        if (!(mutation.target instanceof HTMLElement)) return false;
+        if (mutation.attributeName !== 'class') return false;
+        if (mutation.target.id === 'startSessionPickerOv') return false;
+        if (mutation.target.classList.contains('overlay') || mutation.target.classList.contains('confirm-overlay') || mutation.target.classList.contains('break-overlay')) {
+          return mutation.target.classList.contains('show');
+        }
+        return false;
+      });
+      if (shouldClose) closeStartSessionPicker(true);
+    });
+    overlayConflictObserver.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] });
     el('cdStartSession').addEventListener('click', function() {
       var title = el('cdTitle').textContent;
       if (title && title !== '—') {
