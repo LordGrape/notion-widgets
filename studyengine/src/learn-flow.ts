@@ -20,7 +20,18 @@
 
 import type { ConsolidationQuestion, LearnPlan, LearnSegment, LearnTurnResult } from './learn-mode';
 
-export type LearnFlowPhase = 'tutor' | 'loading' | 'error' | 'consolidating' | 'done';
+/**
+ * Phases:
+ *   - 'streaming'     : plan is still being generated; no segments received yet.
+ *                       Modal should not be open in this phase (will open on
+ *                       first appendStreamedSegment).
+ *   - 'tutor'         : tutor is awaiting user input for current segment.
+ *   - 'loading'       : /learn-turn request in flight.
+ *   - 'error'         : last /learn-turn errored; show retry.
+ *   - 'consolidating' : battery of consolidation questions.
+ *   - 'done'          : session complete.
+ */
+export type LearnFlowPhase = 'streaming' | 'tutor' | 'loading' | 'error' | 'consolidating' | 'done';
 
 export type ConsolidationRating = 1 | 2 | 3 | 4;
 
@@ -60,6 +71,8 @@ export interface LearnFlowState {
   consolidationRatings: Record<string, ConsolidationRating>;
   /** True once the battery finished (either all rated or explicitly skipped). */
   consolidationFinished: boolean;
+  /** Streaming: true once the server has emitted 'complete'. */
+  streamingComplete: boolean;
 }
 
 export function createLearnFlow(plan: LearnPlan, course: string, subDeck: string): LearnFlowState {
@@ -81,7 +94,37 @@ export function createLearnFlow(plan: LearnPlan, course: string, subDeck: string
       : [],
     consolidationIdx: 0,
     consolidationRatings: {},
-    consolidationFinished: false
+    consolidationFinished: false,
+    streamingComplete: true
+  };
+}
+
+/**
+ * Create an empty flow seeded for SSE streaming. The modal is NOT supposed
+ * to open yet — the UI should open on the first `appendStreamedSegment`
+ * call. `phase` is set to `'streaming'` and `plan.segments` is empty.
+ *
+ * No consolidation questions yet; attach them later with
+ * `attachStreamedConsolidationQuestions`.
+ */
+export function createStreamingLearnFlow(course: string, subDeck: string): LearnFlowState {
+  const plan: LearnPlan = { segments: [], consolidationQuestions: [] };
+  return {
+    course: String(course || ''),
+    subDeck: String(subDeck || ''),
+    plan,
+    segmentIndex: 0,
+    tutorBody: 'Preparing your learning plan…',
+    phase: 'streaming',
+    errorMessage: null,
+    turns: [],
+    completedSegmentIds: [],
+    startedAt: new Date().toISOString(),
+    consolidationQuestions: [],
+    consolidationIdx: 0,
+    consolidationRatings: {},
+    consolidationFinished: false,
+    streamingComplete: false
   };
 }
 
@@ -308,6 +351,113 @@ export function getFsrsHandoffPlan(
   return out;
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+ * Streaming: plan segments arriving incrementally over SSE.
+ *
+ * The monolith drives these during the lifetime of a /learn-plan fetch.
+ * Contract:
+ *   - `createStreamingLearnFlow` seeds a flow with phase='streaming' and
+ *     an empty segments array.
+ *   - Each SSE `segment` event → `appendStreamedSegment(flow, seg)`.
+ *     The first call flips phase='streaming' → 'tutor' (so the modal can
+ *     render the first tutor body). Subsequent calls only push onto the
+ *     segments list.
+ *   - SSE `consolidationQuestions` → `attachStreamedConsolidationQuestions`.
+ *     Overwrites the array in-place (immutably).
+ *   - SSE `complete` → `markStreamingComplete(flow)` flips a flag. Does
+ *     NOT change phase — the monolith may still be in 'tutor' or
+ *     'consolidating' at that point.
+ *
+ * `canAdvanceToNextSegment` lets the monolith detect "user is on the last
+ * loaded segment and more may be coming"; when true, the Submit button
+ * should stall rather than prematurely transitioning to 'done'.
+ * ═══════════════════════════════════════════════════════════════════ */
+
+/**
+ * Push a streamed segment onto `flow.plan.segments`. If the flow is in
+ * 'streaming' phase (first segment), flip to 'tutor' and seed the tutor
+ * body from the new segment. Otherwise this is a silent append — the
+ * tutor body for the current segment is preserved.
+ */
+export function appendStreamedSegment(flow: LearnFlowState, segment: LearnSegment): LearnFlowState {
+  if (!flow || !segment) return flow;
+  const segments = Array.isArray(flow.plan?.segments) ? flow.plan.segments.slice() : [];
+  // De-dupe by id (server backstop might re-emit).
+  if (segment.id && segments.some((s) => s && s.id === segment.id)) {
+    return flow;
+  }
+  segments.push(segment);
+  const nextPlan: LearnPlan = { ...flow.plan, segments };
+
+  // First segment: transition streaming -> tutor, seed tutorBody.
+  if (flow.phase === 'streaming' && segments.length === 1) {
+    return {
+      ...flow,
+      plan: nextPlan,
+      segmentIndex: 0,
+      phase: 'tutor',
+      errorMessage: null,
+      tutorBody: buildInitialTutorBody(segment)
+    };
+  }
+
+  return { ...flow, plan: nextPlan };
+}
+
+/**
+ * Mark streaming complete. The server has emitted its `complete` event
+ * and no further segments are coming. Does NOT change phase.
+ */
+export function markStreamingComplete(flow: LearnFlowState): LearnFlowState {
+  if (!flow) return flow;
+  return { ...flow, streamingComplete: true };
+}
+
+/**
+ * Attach streamed consolidation questions. Overwrites the list.
+ * Safe to call multiple times (idempotent on equal input).
+ */
+export function attachStreamedConsolidationQuestions(
+  flow: LearnFlowState,
+  questions: ConsolidationQuestion[]
+): LearnFlowState {
+  if (!flow) return flow;
+  const qs = Array.isArray(questions) ? questions.slice() : [];
+  const nextPlan: LearnPlan = { ...flow.plan, consolidationQuestions: qs };
+  return { ...flow, plan: nextPlan, consolidationQuestions: qs };
+}
+
+export function getLoadedSegmentCount(flow: LearnFlowState): number {
+  if (!flow || !flow.plan || !Array.isArray(flow.plan.segments)) return 0;
+  return flow.plan.segments.length;
+}
+
+/**
+ * Best-effort expected total. Unknown during streaming → returns null.
+ * Once streaming is complete, equals loaded count.
+ */
+export function getTotalExpectedSegments(flow: LearnFlowState): number | null {
+  if (!flow) return null;
+  if (flow.streamingComplete) return getLoadedSegmentCount(flow);
+  return null;
+}
+
+export function isStreamingComplete(flow: LearnFlowState): boolean {
+  return !!(flow && flow.streamingComplete);
+}
+
+/**
+ * False if the user is on the last-loaded segment and streaming is still
+ * in flight. True otherwise.
+ */
+export function canAdvanceToNextSegment(flow: LearnFlowState): boolean {
+  if (!flow) return true;
+  if (isStreamingComplete(flow)) return true;
+  const total = getLoadedSegmentCount(flow);
+  if (total === 0) return false;
+  return flow.segmentIndex < total - 1;
+}
+
 export function linkedCardIdsForSegment(flow: LearnFlowState, segmentId: string): string[] {
   if (!flow || !flow.plan || !Array.isArray(flow.plan.segments)) return [];
   for (const seg of flow.plan.segments) {
@@ -353,6 +503,7 @@ function buildClosingTutorBody(feedback: string): string {
 
 (globalThis as typeof globalThis & { __studyEngineLearnFlow?: Record<string, unknown> }).__studyEngineLearnFlow = {
   createLearnFlow,
+  createStreamingLearnFlow,
   currentSegment,
   isLastSegment,
   markLoading,
@@ -363,5 +514,13 @@ function buildClosingTutorBody(feedback: string): string {
   submitConsolidationRating,
   skipConsolidation,
   isConsolidationComplete,
-  getFsrsHandoffPlan
+  getFsrsHandoffPlan,
+  // Streaming:
+  appendStreamedSegment,
+  markStreamingComplete,
+  attachStreamedConsolidationQuestions,
+  getLoadedSegmentCount,
+  getTotalExpectedSegments,
+  isStreamingComplete,
+  canAdvanceToNextSegment
 };

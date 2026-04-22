@@ -158,6 +158,186 @@ export function startLearnSession(plan: LearnPlan): LearnSessionState {
   };
 }
 
+/**
+ * Streaming variant of `generateLearnPlan`.
+ *
+ * Opens an SSE connection to /studyengine/learn-plan and dispatches events
+ * to the provided handlers as they arrive. Returns a promise that resolves
+ * when the stream has ended (either `complete`, `error`, or connection
+ * close). Forwards the AbortSignal to `fetch()` so aborting propagates
+ * upstream and closes the Gemini stream on the worker (freeing tokens).
+ *
+ * Graceful fallback: if the server responds with a non-`text/event-stream`
+ * Content-Type (e.g., a 500 JSON error payload or a proxy that stripped
+ * SSE), we buffer the full body and attempt a legacy one-shot parse of
+ * `{segments, consolidationQuestions}` and emit it via the handlers.
+ *
+ * All server-side segments are already grounding-verified per spec, but
+ * we run `substringVerified` / `verifyConsolidationQuestions` again
+ * client-side as a defense-in-depth — a drift-resistant check that
+ * survives future worker changes.
+ */
+export interface StreamLearnPlanHandlers {
+  onSegment?: (segment: LearnSegment) => void;
+  onConsolidationQuestions?: (questions: ConsolidationQuestion[]) => void;
+  onComplete?: (meta: { segmentCount: number; consolidationCount: number; planMode?: string; warning?: string }) => void;
+  onError?: (message: string, opts?: { hasSegments: boolean }) => void;
+}
+
+export async function streamLearnPlan(
+  course: string,
+  subDeck: string,
+  items: StudyItem[],
+  userName = '',
+  learnerContext = '',
+  handlers: StreamLearnPlanHandlers = {},
+  signal?: AbortSignal
+): Promise<void> {
+  const subDeckCards = getCardsInSubDeck(course, subDeck, items);
+  const payload = {
+    course,
+    subDeck,
+    cards: subDeckCards.map((item) => ({ id: item.id, prompt: item.prompt, modelAnswer: item.modelAnswer })),
+    userName,
+    learnerContext
+  };
+
+  let emittedCount = 0;
+
+  const emitSegment = (seg: LearnSegment): void => {
+    const verified = substringVerified([seg], subDeckCards);
+    if (verified.length === 0) return;
+    emittedCount += 1;
+    handlers.onSegment?.(verified[0]);
+  };
+
+  const emitQuestions = (qs: ConsolidationQuestion[]): void => {
+    const verified = verifyConsolidationQuestions(qs || [], subDeckCards);
+    handlers.onConsolidationQuestions?.(verified);
+  };
+
+  let response: Response;
+  try {
+    response = await fetch(LEARN_PLAN_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
+      body: JSON.stringify(payload),
+      signal
+    });
+  } catch (err) {
+    if ((err as { name?: string }).name === 'AbortError') return;
+    handlers.onError?.(`Learn plan failed: ${(err as Error).message || String(err)}`, { hasSegments: false });
+    return;
+  }
+
+  const contentType = (response.headers.get('content-type') || '').toLowerCase();
+  const isSSE = contentType.includes('text/event-stream');
+
+  // ── Legacy fallback path: non-SSE response (proxy stripped, server errored, or legacy route).
+  if (!isSSE || !response.body) {
+    let bodyText = '';
+    try { bodyText = await response.text(); } catch { /* noop */ }
+    if (!response.ok) {
+      handlers.onError?.(`Learn plan failed: ${bodyText || response.status}`, { hasSegments: false });
+      return;
+    }
+    let parsed: LearnPlan | null = null;
+    try { parsed = JSON.parse(bodyText) as LearnPlan; } catch { parsed = null; }
+    if (!parsed) {
+      handlers.onError?.('Learn plan response was not parseable JSON.', { hasSegments: false });
+      return;
+    }
+    const segments = substringVerified(parsed.segments || [], subDeckCards);
+    if (segments.length < 2) {
+      handlers.onError?.('Learn plan grounding verification failed: fewer than 2 verified segments.', { hasSegments: false });
+      return;
+    }
+    for (const seg of segments) {
+      emittedCount += 1;
+      handlers.onSegment?.(seg);
+    }
+    const qs = verifyConsolidationQuestions(parsed.consolidationQuestions || [], subDeckCards);
+    handlers.onConsolidationQuestions?.(qs);
+    handlers.onComplete?.({
+      segmentCount: segments.length,
+      consolidationCount: qs.length,
+      planMode: parsed.planMode,
+      warning: parsed.warning
+    });
+    return;
+  }
+
+  // ── SSE happy path.
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let sawFatalError = false;
+
+  const handleSSEEvent = (rawEvent: string): void => {
+    let eventName = 'message';
+    const dataLines: string[] = [];
+    for (const line of rawEvent.split(/\r?\n/)) {
+      if (line.startsWith('event:')) {
+        eventName = line.slice(6).trim();
+      } else if (line.startsWith('data:')) {
+        dataLines.push(line.slice(5).replace(/^ /, ''));
+      }
+    }
+    if (!dataLines.length) return;
+    let data: unknown;
+    try { data = JSON.parse(dataLines.join('\n')); } catch { return; }
+
+    if (eventName === 'segment' && data && typeof data === 'object') {
+      emitSegment(data as LearnSegment);
+    } else if (eventName === 'consolidationQuestions' && data && typeof data === 'object') {
+      const qs = (data as { questions?: ConsolidationQuestion[] }).questions;
+      if (Array.isArray(qs)) emitQuestions(qs);
+    } else if (eventName === 'complete' && data && typeof data === 'object') {
+      handlers.onComplete?.(data as { segmentCount: number; consolidationCount: number; planMode?: string; warning?: string });
+    } else if (eventName === 'error' && data && typeof data === 'object') {
+      sawFatalError = true;
+      const message = String((data as { message?: string }).message || 'Learn plan stream error');
+      handlers.onError?.(message, { hasSegments: emittedCount > 0 });
+    }
+  };
+
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      // Partial-chunk buffering: split on blank-line separators, keep remainder.
+      let sep: number;
+      while ((sep = buffer.indexOf('\n\n')) >= 0) {
+        const rawEvent = buffer.slice(0, sep);
+        buffer = buffer.slice(sep + 2);
+        try {
+          handleSSEEvent(rawEvent);
+        } catch (innerErr) {
+          // SSE parse threw mid-stream — spec says fall back to legacy one-shot.
+          console.warn('[streamLearnPlan] SSE handler threw; aborting stream', innerErr);
+          try { await reader.cancel(); } catch { /* noop */ }
+          handlers.onError?.('Learn plan stream parse failed.', { hasSegments: emittedCount > 0 });
+          return;
+        }
+      }
+    }
+    // Flush trailing buffered event if any.
+    const tail = buffer.trim();
+    if (tail) {
+      try { handleSSEEvent(tail); } catch { /* noop */ }
+    }
+    if (!sawFatalError && emittedCount === 0) {
+      handlers.onError?.('Learn plan stream ended without any segments.', { hasSegments: false });
+    }
+  } catch (err) {
+    if ((err as { name?: string }).name === 'AbortError') return;
+    handlers.onError?.(`Learn plan stream failed: ${(err as Error).message || String(err)}`, { hasSegments: emittedCount > 0 });
+  } finally {
+    try { reader.releaseLock(); } catch { /* noop */ }
+  }
+}
+
 export async function runLearnTurn(session: LearnSessionState, userInput: string, userName = ''): Promise<LearnTurnResult> {
   const segment = session.plan.segments[session.index];
   if (!segment) throw new Error('No active learn segment.');
@@ -315,6 +495,7 @@ export function createDefaultSubDeckForCourse(course: CourseLike | string, state
 
 (globalThis as typeof globalThis & { __studyEngineLearnMode?: Record<string, unknown> }).__studyEngineLearnMode = {
   generateLearnPlan,
+  streamLearnPlan,
   startLearnSession,
   runLearnTurn,
   completeLearnSegment,

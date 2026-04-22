@@ -8150,6 +8150,61 @@ input[type="range"]::-moz-range-thumb{
       .learn-progress-bar-fill{ transition: none; }
     }
 
+    /* Streaming status strip — appears between modal-head and learn-body
+       while /learn-plan is emitting segments. Collapses via height/opacity
+       once the server sends `complete`. Tinted with --accent-secondary so
+       it reads as a transient "still arriving" state distinct from the
+       main progress bar. prefers-reduced-motion skips the transition. */
+    .learn-stream-strip{
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      background: color-mix(in srgb, var(--accent-secondary, var(--accent)) 6%, transparent);
+      border-bottom: 1px solid color-mix(in srgb, var(--accent-secondary, var(--accent)) 20%, transparent);
+      overflow: hidden;
+      transition: opacity 220ms ease, max-height 220ms ease, padding 220ms ease, border-color 220ms ease;
+      max-height: 40px;
+      opacity: 1;
+    }
+    .learn-stream-strip[hidden]{ display: none; }
+    .learn-stream-strip.is-hiding{
+      max-height: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+      opacity: 0;
+      border-bottom-color: transparent;
+      pointer-events: none;
+    }
+    .learn-stream-strip-dot{
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent-secondary, var(--accent));
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-secondary, var(--accent)) 18%, transparent);
+      animation: learnStreamPulse 1.2s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+    .learn-stream-strip-text{ flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    @keyframes learnStreamPulse{
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50%      { transform: scale(1.25); opacity: 0.6; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .learn-stream-strip{ transition: none; }
+      .learn-stream-strip-dot{ animation: none; }
+    }
+
+    /* Submit button disabled-but-waiting state (last loaded segment, streaming in flight) */
+    .learn-submit-btn.awaiting-segment{ cursor: progress; }
+    .learn-submit-btn.awaiting-segment .learn-submit-label::after{
+      content: '';
+    }
+
     /* Keyboard hint row (UI polish 3) */
     .learn-kbd-hint{
       font-size: 9px;
@@ -8881,6 +8936,11 @@ input[type="range"]::-moz-range-thumb{
         <button type="button" class="icon-btn" id="learnSessionClose" aria-label="Close Learn session">
           <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>
         </button>
+      </div>
+      <!-- Streaming status strip (Phase 4): visible while /learn-plan SSE is still emitting segments. -->
+      <div class="learn-stream-strip" id="learnSessionStreamStrip" role="status" aria-live="polite" hidden>
+        <span class="learn-stream-strip-dot" aria-hidden="true"></span>
+        <span class="learn-stream-strip-text" id="learnSessionStreamStripText">Preparing your learning plan…</span>
       </div>
       <div class="learn-body" id="learnSessionBody">
         <!-- Pane A: tutor turn (Teach + Your-Turn split, UI polish 1) -->
@@ -22517,6 +22577,10 @@ input[type="range"]::-moz-range-thumb{
     var activeLearnSession = null;
     var learnSummaryState = null; /* { consolidated, taught, unlearned, handoffCount, courseName, subDeckKey } */
 
+    /* Phase 4 streaming: references to the latest streaming-orchestration
+       inputs so the Retry button can restart the SSE stream cleanly. */
+    var lastLearnStreamArgs = null; /* { courseName, subDeckKey, userName, learnerContext } */
+
     function prefersReducedMotion() {
       try { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
       catch (e) { return false; }
@@ -22539,12 +22603,68 @@ input[type="range"]::-moz-range-thumb{
         if (actions) actions.style.display = '';
       }
 
+      var flowBridge = globalThis.__studyEngineLearnFlow;
+      var flow = activeLearnSession.flow;
+      /* Phase 4: awaiting-next — a pending turn result has already completed the
+         last loaded segment but more segments are still streaming in. */
+      var awaitingNext = !!(activeLearnSession.pendingTurnResult) ||
+        (flowBridge && flowBridge.canAdvanceToNextSegment && !flowBridge.canAdvanceToNextSegment(flow) && !flowBridge.isStreamingComplete(flow) && (phase === 'tutor' || phase === 'loading'));
+      if (awaitingNext && activeLearnSession.pendingTurnResult) {
+        submit.disabled = true;
+        submit.classList.add('awaiting-segment');
+        submit.classList.remove('loading');
+        if (input) input.disabled = true;
+        if (label) label.textContent = 'Preparing next segment…';
+        submit.setAttribute('title', 'Preparing next segment…');
+        submit.setAttribute('aria-disabled', 'true');
+        if (exit) exit.textContent = 'Exit';
+        return;
+      }
+      submit.classList.remove('awaiting-segment');
+      submit.removeAttribute('title');
+      submit.removeAttribute('aria-disabled');
       var disabled = (phase === 'loading') || !String((input && input.value) || '').trim();
       submit.disabled = disabled;
       submit.classList.toggle('loading', phase === 'loading');
       if (input) input.disabled = (phase === 'loading');
       if (label) label.textContent = (phase === 'loading') ? 'Sending…' : 'Submit';
       if (exit) exit.textContent = 'Exit';
+    }
+
+    /* Phase 4: update the streaming status strip. Shows
+       `Segment N of M ready · generating remaining...` while streaming,
+       collapses via CSS transition once markStreamingComplete has fired. */
+    function updateLearnStreamStrip() {
+      var strip = el('learnSessionStreamStrip');
+      var text = el('learnSessionStreamStripText');
+      if (!strip || !text) return;
+      var flowBridge = globalThis.__studyEngineLearnFlow;
+      if (!activeLearnSession || !flowBridge || !flowBridge.isStreamingComplete) {
+        strip.hidden = true;
+        strip.classList.remove('is-hiding');
+        return;
+      }
+      var flow = activeLearnSession.flow;
+      if (flowBridge.isStreamingComplete(flow)) {
+        if (strip.hidden) return;
+        strip.classList.add('is-hiding');
+        /* Fully remove from flow after transition. */
+        var teardown = function() { strip.hidden = true; strip.classList.remove('is-hiding'); };
+        if (prefersReducedMotion()) teardown();
+        else setTimeout(teardown, 260);
+        return;
+      }
+      /* Streaming still in flight. */
+      strip.hidden = false;
+      strip.classList.remove('is-hiding');
+      var loaded = flowBridge.getLoadedSegmentCount ? flowBridge.getLoadedSegmentCount(flow) : 0;
+      if (activeLearnSession.pendingTurnResult) {
+        text.textContent = 'Preparing next segment…';
+      } else if (loaded === 0) {
+        text.textContent = 'Preparing your learning plan…';
+      } else {
+        text.textContent = 'Segment ' + loaded + ' ready · generating remaining…';
+      }
     }
 
     function renderLearnProgress() {
@@ -22729,6 +22849,7 @@ input[type="range"]::-moz-range-thumb{
       }
 
       renderLearnProgress();
+      updateLearnStreamStrip();
       updateLearnSubmitState();
       autogrowLearnInput();
     }
@@ -22851,6 +22972,21 @@ input[type="range"]::-moz-range-thumb{
         };
         var result = await modeBridge.runLearnTurn(sessionSnapshot, userInput, settings.userName || '');
 
+        /* Phase 4 streaming: if the tutor marked this segment complete but streaming
+           hasn't closed AND the user is on the last-loaded segment, park the result.
+           We'll apply it the moment `appendStreamedSegment` or `markStreamingComplete`
+           fires. Keeps the UI honest about what's actually available. */
+        if (result && result.isSegmentComplete
+            && flowBridge.canAdvanceToNextSegment
+            && !flowBridge.canAdvanceToNextSegment(activeLearnSession.flow)) {
+          activeLearnSession.pendingTurnResult = { userInput: userInput, result: result, pendingSegment: pendingSegment };
+          activeLearnSession.flow = Object.assign({}, activeLearnSession.flow, { phase: 'tutor', errorMessage: null });
+          if (input) input.value = '';
+          try { playClick(); } catch(e) {}
+          renderLearnSessionUI();
+          return;
+        }
+
         activeLearnSession.flow = flowBridge.applyTurnResult(activeLearnSession.flow, userInput, result);
         /* Mark linked cards for the segment that was just worked on as taught (if unlearned). */
         applyTaughtStatusForSegment(pendingSegment);
@@ -22942,6 +23078,170 @@ input[type="range"]::-moz-range-thumb{
       renderLearnSessionUI();
     }
 
+    /* Phase 4 streaming: applies any parked turn result once the flow can
+       advance (new segment landed OR streaming finished). Called from the
+       SSE handlers. Safe to call with no pending result. The worker emits
+       `consolidationQuestions` before `complete`, and the client processes
+       SSE events in order, so by the time `canAdvanceToNextSegment` returns
+       true at the terminal segment (requires `streamingComplete=true`), the
+       questions (or an explicitly empty list) are already attached. */
+    function applyPendingTurnIfReady() {
+      if (!activeLearnSession || !activeLearnSession.pendingTurnResult) return;
+      var flowBridge = globalThis.__studyEngineLearnFlow;
+      if (!flowBridge) return;
+      if (!flowBridge.canAdvanceToNextSegment(activeLearnSession.flow)) return;
+      var pending = activeLearnSession.pendingTurnResult;
+      activeLearnSession.pendingTurnResult = null;
+      var prevIdx = activeLearnSession.flow.segmentIndex;
+      activeLearnSession.flow = flowBridge.applyTurnResult(activeLearnSession.flow, pending.userInput, pending.result);
+      applyTaughtStatusForSegment(pending.pendingSegment);
+      if (activeLearnSession.flow.segmentIndex !== prevIdx && activeLearnSession.flow.phase === 'tutor') {
+        var pane = el('learnTutorPane');
+        animateLearnPaneSwap(pane, pane, 'forward');
+      }
+      /* If that advance landed us in 'done', fire the same consolidation-or-summary
+         transition that submitLearnTurn does. */
+      if (activeLearnSession.flow.phase === 'done') {
+        var qs = (activeLearnSession.flow.consolidationQuestions || []);
+        if (qs.length > 0) {
+          activeLearnSession.flow = flowBridge.enterConsolidation(activeLearnSession.flow);
+          try { playClick(); } catch(e) {}
+        } else {
+          finalizeLearnHandoff();
+          saveState();
+          try { playChime(); } catch(e) {}
+        }
+      } else {
+        saveState();
+      }
+      renderLearnSessionUI();
+    }
+
+    /* Phase 4 entry point — orchestrates the SSE stream + modal lifecycle.
+       Replaces the legacy `generateLearnPlan + openLearnSession` callsite.
+       Modal does NOT mount until the first segment event arrives. */
+    function startLearnPlanStreaming(courseName, subDeckKey, allItems, userName, learnerContext) {
+      var flowBridge = globalThis.__studyEngineLearnFlow;
+      var modeBridge = globalThis.__studyEngineLearnMode;
+      if (!flowBridge || !modeBridge || typeof modeBridge.streamLearnPlan !== 'function'
+          || typeof flowBridge.createStreamingLearnFlow !== 'function') {
+        toast('Learn mode unavailable.');
+        return;
+      }
+
+      lastLearnStreamArgs = {
+        courseName: courseName,
+        subDeckKey: subDeckKey,
+        allItems: allItems,
+        userName: userName,
+        learnerContext: learnerContext
+      };
+
+      /* Create the session shell up-front. Modal stays hidden until first segment. */
+      var streamController = new AbortController();
+      activeLearnSession = {
+        flow: flowBridge.createStreamingLearnFlow(courseName, subDeckKey),
+        courseName: courseName,
+        streamController: streamController,
+        pendingTurnResult: null,
+        modalMounted: false
+      };
+      /* Legacy state.learnSession is populated on first-segment mount so other
+         code paths see it only once the modal is actually up. */
+
+      toast('Generating Learn plan…');
+
+      var ensureModalMounted = function() {
+        if (!activeLearnSession || activeLearnSession.modalMounted) return;
+        activeLearnSession.modalMounted = true;
+        var segments = (activeLearnSession.flow.plan && activeLearnSession.flow.plan.segments) || [];
+        state.learnSession = {
+          segments: segments,
+          currentSegment: 0,
+          consolidationBattery: [],
+          currentMechanism: (segments[0] && segments[0].mechanism) || 'worked_example',
+          completedSegmentIds: [],
+          subDeck: subDeckKey,
+          course: courseName,
+          startedAt: activeLearnSession.flow.startedAt
+        };
+        var ov = el('learnSessionOv');
+        if (!ov) return;
+        ov.classList.add('show');
+        ov.setAttribute('aria-hidden', 'false');
+        var inputEl = el('learnSessionInput');
+        if (inputEl) { inputEl.value = ''; inputEl.disabled = false; }
+        renderLearnSessionUI();
+        if (window.gsap) {
+          try { gsap.fromTo(ov.querySelector('.modal'), { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' }); } catch(e) {}
+        }
+        setTimeout(function(){ if (inputEl) inputEl.focus(); }, 60);
+      };
+
+      var handlers = {
+        onSegment: function(segment) {
+          if (!activeLearnSession) return;
+          activeLearnSession.flow = flowBridge.appendStreamedSegment(activeLearnSession.flow, segment);
+          /* First-segment race guard: mount after appendStreamedSegment so the flow
+             state the modal renders is consistent. appendStreamedSegment silently
+             no-ops if activeLearnSession was cleared in the same tick (user escaped
+             before mount). */
+          if (!activeLearnSession.modalMounted) {
+            ensureModalMounted();
+          } else {
+            renderLearnSessionUI();
+          }
+          /* Also sync the legacy state.learnSession segments list for any consumer
+             still reading it during the session. */
+          if (state.learnSession) {
+            state.learnSession.segments = activeLearnSession.flow.plan.segments.slice();
+          }
+          applyPendingTurnIfReady();
+        },
+        onConsolidationQuestions: function(questions) {
+          if (!activeLearnSession) return;
+          activeLearnSession.flow = flowBridge.attachStreamedConsolidationQuestions(activeLearnSession.flow, questions || []);
+          if (activeLearnSession.modalMounted) renderLearnSessionUI();
+        },
+        onComplete: function(meta) {
+          if (!activeLearnSession) return;
+          activeLearnSession.flow = flowBridge.markStreamingComplete(activeLearnSession.flow);
+          if (meta && meta.warning) toast(meta.warning);
+          if (activeLearnSession.modalMounted) renderLearnSessionUI();
+          /* If a parked turn result was waiting on streaming completion, apply it
+             now. Synchronous — no frame delay for the Submit button re-enable. */
+          applyPendingTurnIfReady();
+        },
+        onError: function(message, opts) {
+          if (!activeLearnSession) return;
+          var hasSegments = !!(opts && opts.hasSegments);
+          if (!hasSegments) {
+            /* No segments yet — clean abort of the whole session. */
+            if (activeLearnSession.modalMounted) {
+              activeLearnSession.flow = flowBridge.markError(activeLearnSession.flow, message || 'Learn plan failed');
+              renderLearnSessionUI();
+            } else {
+              toast(message || 'Learn plan failed');
+              activeLearnSession = null;
+            }
+            return;
+          }
+          /* We already had segments; allow the session to continue with what we have. */
+          activeLearnSession.flow = flowBridge.markStreamingComplete(activeLearnSession.flow);
+          if (activeLearnSession.modalMounted) renderLearnSessionUI();
+          applyPendingTurnIfReady();
+        }
+      };
+
+      modeBridge.streamLearnPlan(
+        courseName, subDeckKey, allItems, userName || '', learnerContext || '',
+        handlers, streamController.signal
+      ).catch(function(err) {
+        if (err && err.name === 'AbortError') return;
+        console.warn('[Learn] streamLearnPlan threw', err);
+      });
+    }
+
     function openLearnSession(plan, courseName, subDeckKey) {
       var flowBridge = globalThis.__studyEngineLearnFlow;
       if (!flowBridge) { toast('Learn mode unavailable.'); return; }
@@ -22982,6 +23282,14 @@ input[type="range"]::-moz-range-thumb{
     function closeLearnSessionImmediate() {
       var ov = el('learnSessionOv');
       var input = el('learnSessionInput');
+      /* Phase 4: abort any in-flight /learn-plan SSE stream so the upstream
+         Gemini fetch closes on the worker (frees tokens). */
+      if (activeLearnSession && activeLearnSession.streamController) {
+        try { activeLearnSession.streamController.abort(); } catch(e) {}
+      }
+      /* Collapse the strip immediately so a fast re-open doesn't flash stale state. */
+      var strip = el('learnSessionStreamStrip');
+      if (strip) { strip.hidden = true; strip.classList.remove('is-hiding'); }
       if (ov) {
         ov.classList.remove('show');
         ov.setAttribute('aria-hidden', 'true');
@@ -23077,6 +23385,19 @@ input[type="range"]::-moz-range-thumb{
       if (closeBtn) closeBtn.addEventListener('click', function(){ closeLearnSession(false); });
       if (retry) retry.addEventListener('click', function(){
         if (!activeLearnSession) return;
+        var flowBridge = globalThis.__studyEngineLearnFlow;
+        /* Phase 4: if the error happened mid-stream (no segments yet) and we have
+           cached stream args, restart the SSE stream. Otherwise behave as before
+           and just re-enter the tutor phase on the existing flow. */
+        var loaded = flowBridge && flowBridge.getLoadedSegmentCount
+          ? flowBridge.getLoadedSegmentCount(activeLearnSession.flow)
+          : (activeLearnSession.flow.plan.segments || []).length;
+        if (loaded === 0 && lastLearnStreamArgs) {
+          var args = lastLearnStreamArgs;
+          closeLearnSessionImmediate();
+          startLearnPlanStreaming(args.courseName, args.subDeckKey, args.allItems, args.userName, args.learnerContext);
+          return;
+        }
         activeLearnSession.flow = Object.assign({}, activeLearnSession.flow, { phase: 'tutor', errorMessage: null });
         renderLearnSessionUI();
         if (input) input.focus();
@@ -23387,25 +23708,14 @@ input[type="range"]::-moz-range-thumb{
 	                renderCurrentItem();
 	              };
 	              var learnSubDeckBtn = el('cdLearnSubDeck');
-	              if (learnSubDeckBtn) learnSubDeckBtn.onclick = async function() {
-	                if (!globalThis.__studyEngineLearnMode || typeof globalThis.__studyEngineLearnMode.generateLearnPlan !== 'function') {
+	              if (learnSubDeckBtn) learnSubDeckBtn.onclick = function() {
+	                /* Phase 4: stream the plan via SSE. Modal mounts on the first
+	                   segment event — see `startLearnPlanStreaming`. */
+	                if (!globalThis.__studyEngineLearnMode || typeof globalThis.__studyEngineLearnMode.streamLearnPlan !== 'function') {
 	                  toast('Learn mode unavailable.');
 	                  return;
 	                }
-	                try {
-	                  toast('Generating Learn plan...');
-	                  var plan = await globalThis.__studyEngineLearnMode.generateLearnPlan(courseName, selectedSubDeck, selectedCards, settings.userName || '', '');
-	                  if (plan && plan.warning) {
-	                    toast(plan.warning);
-	                  }
-	                  if (!plan || !plan.segments || !plan.segments.length) {
-	                    toast('No learn segments generated');
-	                    return;
-	                  }
-	                  openLearnSession(plan, courseName, selectedSubDeck);
-	                } catch (learnErr) {
-	                  toast('Learn failed: ' + (learnErr && learnErr.message ? learnErr.message : String(learnErr)));
-	                }
+	                startLearnPlanStreaming(courseName, selectedSubDeck, selectedCards, settings.userName || '', '');
 	              };
 	            } else {
 	              cdSubDeckAction.style.display = 'none';

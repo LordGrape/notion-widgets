@@ -1,5 +1,5 @@
 import { getCorsHeaders } from "../cors";
-import { callGemini, extractGeminiText } from "../gemini";
+import { callGemini, extractGeminiText, streamGemini } from "../gemini";
 import type { ConsolidationQuestion, Env, LearnPlanRequest, LearnPlanResponse, LearnPlanSegment, StudyCardInput } from "../types";
 import { parseJsonResponse } from "../utils/json";
 
@@ -69,13 +69,11 @@ function verifyConsolidationQuestion(
   const linked = Array.isArray(question.linkedCardIds) ? question.linkedCardIds : [];
   if (linked.length === 0) return false;
 
-  // Answer must be substring-matched against at least one linked card corpus entry.
   const anchor = a.length > 200 ? a.slice(0, 200) : a;
   for (const cardId of linked) {
     const source = corpus[String(cardId || "")];
     if (!source) continue;
     if (textHasAnchor(source, anchor)) return true;
-    // Also permit any shorter contiguous substring >= 40 chars that appears in card.
     if (a.length >= 40) {
       const norm = normalizeText(a);
       const hay = normalizeText(source);
@@ -145,7 +143,8 @@ function buildSystemPrompt(): string {
     "Also generate 3-5 consolidationQuestions that span ALL segments taught. Each question tests recall OR conceptual connection between segments.",
     "Each consolidation answer MUST be grounded: copy a verbatim substring from a supplied card modelAnswer or prompt. Unverifiable answers will be dropped.",
     "Each consolidation question must list linkedCardIds referencing which cards the answer draws from.",
-    "No markdown."
+    "No markdown.",
+    "IMPORTANT STREAM HINT: emit the JSON in source order so each \"segments\" object is complete before the next begins, and emit \"consolidationQuestions\" after all segments."
   ].join("\n");
 }
 
@@ -189,12 +188,7 @@ function buildUserPrompt(body: LearnPlanRequest): string {
   ].join("\n");
 }
 
-function logUsage(tag: string, model: string, response: Record<string, unknown>): void {
-  const usage = (response && typeof response === "object") ? (response.usageMetadata as Record<string, unknown> | undefined) : undefined;
-  console.log(`[${tag}] model=${model} usage=${JSON.stringify(usage || {})}`);
-}
-
-async function requestPlan(body: LearnPlanRequest, env: Env): Promise<LearnPlanResponse | null> {
+function buildGenerationConfig(): Record<string, unknown> {
   const responseSchema = {
     type: "object",
     properties: {
@@ -240,22 +234,220 @@ async function requestPlan(body: LearnPlanRequest, env: Env): Promise<LearnPlanR
     },
     required: ["segments", "consolidationQuestions"]
   };
+  return {
+    temperature: 0.3,
+    maxOutputTokens: 2560,
+    responseMimeType: "application/json",
+    responseSchema,
+    thinkingConfig: { thinkingBudget: 512 }
+  };
+}
 
+/* ─────────────────────────────────────────────────────────────────────────
+ * Incremental segment extractor.
+ *
+ * Scans a growing JSON buffer and emits complete segment objects from
+ * inside the `segments` array as soon as their closing `}` lands at the
+ * array's top depth. Tracks escape + string state so braces inside string
+ * values are ignored.
+ *
+ * State survives across chunks. `consume(buffer)` returns any newly
+ * completed segment JSON substrings since last call; caller tracks parse
+ * cursor via `pos`.
+ * ──────────────────────────────────────────────────────────────────────── */
+interface IncrementalSegmentParser {
+  consume: (buffer: string) => string[];
+  /** True after we've seen the segments array close bracket `]`. */
+  segmentsClosed: () => boolean;
+  /** Cursor into buffer — caller does not touch, but exposes for tests. */
+  cursor: () => number;
+}
+
+function createSegmentParser(): IncrementalSegmentParser {
+  // Phases:
+  //   0 — searching for `"segments"` key
+  //   1 — searching for the opening `[` that starts the segments array
+  //   2 — inside segments array, matching segment objects
+  //   3 — done (segments array closed)
+  let phase: 0 | 1 | 2 | 3 = 0;
+  let pos = 0;
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  let segStart = -1;
+
+  function advanceSearchKey(buffer: string): void {
+    // Look for the literal "segments" (as a key). We accept either
+    // `"segments"` followed by `:`.
+    const re = /"segments"\s*:/g;
+    re.lastIndex = pos;
+    const m = re.exec(buffer);
+    if (!m) {
+      // Safe rollback: keep pos at last byte we might need to rescan from.
+      pos = Math.max(pos, buffer.length - 16);
+      return;
+    }
+    pos = m.index + m[0].length;
+    phase = 1;
+  }
+
+  function advanceFindOpenBracket(buffer: string): void {
+    while (pos < buffer.length) {
+      const ch = buffer[pos];
+      if (ch === "[") {
+        pos++;
+        phase = 2;
+        return;
+      }
+      if (ch === "{" || ch === "\"") {
+        // Unexpected — schema said array. Abort gracefully.
+        phase = 3;
+        return;
+      }
+      pos++;
+    }
+  }
+
+  function advanceInArray(buffer: string, out: string[]): void {
+    while (pos < buffer.length) {
+      const ch = buffer[pos];
+
+      if (inString) {
+        if (escape) {
+          escape = false;
+        } else if (ch === "\\") {
+          escape = true;
+        } else if (ch === "\"") {
+          inString = false;
+        }
+        pos++;
+        continue;
+      }
+
+      if (ch === "\"") {
+        inString = true;
+        pos++;
+        continue;
+      }
+
+      if (ch === "{") {
+        if (depth === 0) {
+          segStart = pos;
+        }
+        depth++;
+        pos++;
+        continue;
+      }
+
+      if (ch === "}") {
+        depth--;
+        pos++;
+        if (depth === 0 && segStart >= 0) {
+          const slice = buffer.slice(segStart, pos);
+          out.push(slice);
+          segStart = -1;
+        }
+        continue;
+      }
+
+      if (ch === "]" && depth === 0) {
+        // End of segments array.
+        phase = 3;
+        pos++;
+        return;
+      }
+
+      pos++;
+    }
+  }
+
+  return {
+    consume(buffer: string) {
+      const out: string[] = [];
+      // Loop to allow transitioning multiple phases per call.
+      let guard = 0;
+      while (guard++ < 8) {
+        const before = pos;
+        if (phase === 0) advanceSearchKey(buffer);
+        if (phase === 1) advanceFindOpenBracket(buffer);
+        if (phase === 2) advanceInArray(buffer, out);
+        if (phase === 3) break;
+        if (pos === before) break; // no progress
+      }
+      return out;
+    },
+    segmentsClosed() { return phase === 3; },
+    cursor() { return pos; }
+  };
+}
+
+interface StreamEmitter {
+  event: (name: string, data: unknown) => Promise<void>;
+  close: () => Promise<void>;
+}
+
+function makeSSEResponse(run: (emit: StreamEmitter, signal: AbortSignal) => Promise<void>): Response {
+  const encoder = new TextEncoder();
+  const controllerAbort = new AbortController();
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      let closed = false;
+      const emit: StreamEmitter = {
+        async event(name, data) {
+          if (closed) return;
+          const payload = `event: ${name}\ndata: ${JSON.stringify(data)}\n\n`;
+          try {
+            controller.enqueue(encoder.encode(payload));
+          } catch {
+            // Stream was cancelled by the client (abort) between the closed
+            // flag check and the enqueue. Flip the flag so subsequent emits
+            // short-circuit instead of re-throwing.
+            closed = true;
+          }
+        },
+        async close() {
+          if (closed) return;
+          closed = true;
+          try { controller.close(); } catch { /* noop */ }
+        }
+      };
+      try {
+        await run(emit, controllerAbort.signal);
+      } catch (err) {
+        try {
+          const message = err instanceof Error ? err.message : String(err);
+          controller.enqueue(encoder.encode(`event: error\ndata: ${JSON.stringify({ message })}\n\n`));
+        } catch { /* noop */ }
+      } finally {
+        try { controller.close(); } catch { /* noop */ }
+      }
+    },
+    cancel() {
+      // Client disconnected — propagate abort to upstream Gemini fetch.
+      try { controllerAbort.abort(); } catch { /* noop */ }
+    }
+  });
+
+  return new Response(stream, {
+    status: 200,
+    headers: {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      "Connection": "keep-alive",
+      "X-Accel-Buffering": "no",
+      ...LEARN_PLAN_CORS_HEADERS
+    }
+  });
+}
+
+async function requestPlanOneShot(body: LearnPlanRequest, env: Env): Promise<LearnPlanResponse | null> {
   const geminiData = await callGemini(
     PLAN_MODEL,
     buildSystemPrompt(),
     buildUserPrompt(body),
-    {
-      temperature: 0.3,
-      maxOutputTokens: 2560,
-      responseMimeType: "application/json",
-      responseSchema,
-      thinkingConfig: { thinkingBudget: 512 }
-    },
+    buildGenerationConfig() as Parameters<typeof callGemini>[3],
     env
   );
-
-  logUsage("learn-plan", PLAN_MODEL, geminiData as unknown as Record<string, unknown>);
   const raw = extractGeminiText(geminiData);
   return parseJsonResponse<LearnPlanResponse>(raw);
 }
@@ -263,64 +455,129 @@ async function requestPlan(body: LearnPlanRequest, env: Env): Promise<LearnPlanR
 export async function handleLearnPlan(request: Request, env: Env): Promise<Response> {
   if (request.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
 
+  let body: LearnPlanRequest;
   try {
-    const body = (await request.json()) as LearnPlanRequest;
-    const validationError = validateRequest(body);
-    if (validationError) return jsonResponse({ error: validationError }, 400);
+    body = (await request.json()) as LearnPlanRequest;
+  } catch (error) {
+    return jsonResponse({ error: "Invalid JSON body", detail: error instanceof Error ? error.message : String(error) }, 400);
+  }
+  const validationError = validateRequest(body);
+  if (validationError) return jsonResponse({ error: validationError }, 400);
 
-    const cardCorpus = collectCardCorpus(body.cards);
+  const cardCorpus = collectCardCorpus(body.cards);
 
-    const firstAttempt = await requestPlan(body, env);
-    const verifiedFirst = filterVerifiedSegments(firstAttempt?.segments || [], cardCorpus);
-    const verifiedFirstQs = filterVerifiedConsolidationQuestions(firstAttempt?.consolidationQuestions || [], cardCorpus);
-    if (verifiedFirst.length >= 2 && verifiedFirstQs.length >= 2) {
-      return jsonResponse({ segments: verifiedFirst, consolidationQuestions: verifiedFirstQs, planMode: "verified" }, 200);
+  return makeSSEResponse(async (emit, signal) => {
+    // ── Attempt 1: stream.
+    const parser = createSegmentParser();
+    let fullBuffer = "";
+    const emittedSegments: LearnPlanSegment[] = [];
+    const emittedSegmentIds = new Set<string>();
+
+    let streamFailed = false;
+    try {
+      for await (const chunk of streamGemini(
+        PLAN_MODEL,
+        buildSystemPrompt(),
+        buildUserPrompt(body),
+        buildGenerationConfig() as Parameters<typeof streamGemini>[3],
+        env,
+        signal
+      )) {
+        fullBuffer += chunk;
+        const completed = parser.consume(fullBuffer);
+        for (const slice of completed) {
+          const seg = parseJsonResponse<LearnPlanSegment>(slice);
+          if (!seg || typeof seg !== "object") continue;
+          if (!verifySegmentGrounding(seg, cardCorpus)) continue;
+          if (emittedSegmentIds.has(String(seg.id))) continue;
+          emittedSegmentIds.add(String(seg.id));
+          emittedSegments.push(seg);
+          await emit.event("segment", seg);
+        }
+      }
+    } catch (err) {
+      streamFailed = true;
+      console.warn("[learn-plan] stream attempt failed", err);
     }
 
-    console.warn("[learn-plan] first attempt failed grounding threshold", {
-      requested: (firstAttempt?.segments || []).length,
-      verified: verifiedFirst.length,
-      questionsRequested: (firstAttempt?.consolidationQuestions || []).length,
-      questionsVerified: verifiedFirstQs.length
+    // Final parse for consolidationQuestions + any trailing segment we missed.
+    const fullParsed = parseJsonResponse<LearnPlanResponse>(fullBuffer);
+    if (fullParsed && Array.isArray(fullParsed.segments)) {
+      // Backstop: any verified segments not yet emitted (e.g. parser drift).
+      for (const seg of fullParsed.segments) {
+        if (!seg || typeof seg !== "object") continue;
+        if (emittedSegmentIds.has(String(seg.id))) continue;
+        if (!verifySegmentGrounding(seg, cardCorpus)) continue;
+        emittedSegmentIds.add(String(seg.id));
+        emittedSegments.push(seg);
+        await emit.event("segment", seg);
+      }
+    }
+
+    let verifiedQs: ConsolidationQuestion[] = [];
+    if (fullParsed && Array.isArray(fullParsed.consolidationQuestions)) {
+      verifiedQs = filterVerifiedConsolidationQuestions(fullParsed.consolidationQuestions, cardCorpus);
+    }
+
+    if (emittedSegments.length >= 2) {
+      await emit.event("consolidationQuestions", { questions: verifiedQs });
+      await emit.event("complete", {
+        segmentCount: emittedSegments.length,
+        consolidationCount: verifiedQs.length,
+        planMode: streamFailed ? "retry_verified" : "verified",
+        warning: verifiedQs.length < 2 ? "Fewer than 2 consolidation questions verified." : undefined
+      });
+      return;
+    }
+
+    // ── Attempt 2: one-shot fallback (non-streaming).
+    console.warn("[learn-plan] streaming produced < 2 verified segments; falling back to one-shot.", {
+      emittedSegments: emittedSegments.length,
+      bufferLength: fullBuffer.length,
+      streamFailed
     });
 
-    const secondAttempt = await requestPlan(body, env);
+    let secondAttempt: LearnPlanResponse | null = null;
+    try {
+      secondAttempt = await requestPlanOneShot(body, env);
+    } catch (err) {
+      console.warn("[learn-plan] one-shot fallback threw", err);
+    }
+
     const verifiedSecond = filterVerifiedSegments(secondAttempt?.segments || [], cardCorpus);
     const verifiedSecondQs = filterVerifiedConsolidationQuestions(secondAttempt?.consolidationQuestions || [], cardCorpus);
-    if (verifiedSecond.length >= 2 && verifiedSecondQs.length >= 2) {
-      return jsonResponse({ segments: verifiedSecond, consolidationQuestions: verifiedSecondQs, planMode: "retry_verified" }, 200);
-    }
 
-    // Partial-success fallback: if segments verified but questions did not, still return the segments
-    // (client will proceed without consolidation — not ideal but better than blocking). Questions-only
-    // failure on both attempts with segments passing gets the best surviving segments + whatever
-    // questions verified (may be 0-1).
     if (verifiedSecond.length >= 2) {
-      return jsonResponse({
-        segments: verifiedSecond,
-        consolidationQuestions: verifiedSecondQs,
+      for (const seg of verifiedSecond) {
+        if (emittedSegmentIds.has(String(seg.id))) continue;
+        emittedSegmentIds.add(String(seg.id));
+        emittedSegments.push(seg);
+        await emit.event("segment", seg);
+      }
+      await emit.event("consolidationQuestions", { questions: verifiedSecondQs });
+      await emit.event("complete", {
+        segmentCount: emittedSegments.length,
+        consolidationCount: verifiedSecondQs.length,
         planMode: "retry_verified",
         warning: verifiedSecondQs.length < 2 ? "Fewer than 2 consolidation questions verified." : undefined
-      }, 200);
-    }
-    if (verifiedFirst.length >= 2) {
-      return jsonResponse({
-        segments: verifiedFirst,
-        consolidationQuestions: verifiedFirstQs,
-        planMode: "verified",
-        warning: verifiedFirstQs.length < 2 ? "Fewer than 2 consolidation questions verified." : undefined
-      }, 200);
+      });
+      return;
     }
 
-    console.warn("[learn-plan] retry failed, using card-density fallback", {
-      requested: (secondAttempt?.segments || []).length,
-      verified: verifiedSecond.length
+    // ── Attempt 3: density fallback.
+    console.warn("[learn-plan] fallback failed, using card-density fallback", {
+      verifiedSecond: verifiedSecond.length
     });
-
     const fallback = buildDensityFallback(body.cards);
-    return jsonResponse({ ...fallback, warning: "Grounding verification failed. Used card-density fallback." }, 200);
-  } catch (error) {
-    console.error("[learn-plan] error", error);
-    return jsonResponse({ error: "learn_plan_failed", detail: error instanceof Error ? error.message : String(error) }, 500);
-  }
+    for (const seg of fallback.segments) {
+      await emit.event("segment", seg);
+    }
+    await emit.event("consolidationQuestions", { questions: fallback.consolidationQuestions || [] });
+    await emit.event("complete", {
+      segmentCount: fallback.segments.length,
+      consolidationCount: (fallback.consolidationQuestions || []).length,
+      planMode: "card_density_fallback",
+      warning: "Grounding verification failed. Used card-density fallback."
+    });
+  });
 }
