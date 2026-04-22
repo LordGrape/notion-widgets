@@ -21823,7 +21823,8 @@ input[type="range"]::-moz-range-thumb{
       var course = getCourse(courseName) || {};
       var examDate = course.examDate ? esc(course.examDate) : 'Not set';
       var examType = esc(EXAM_TYPE_LABELS[course.examType] || course.examType || 'Mixed');
-      var subjectType = esc(SUBJECT_TYPE_LABELS[course.subjectType] || course.subjectType || 'Mixed');
+      var subjectTypeLabels = (typeof SUBJECT_TYPE_LABELS !== 'undefined' && SUBJECT_TYPE_LABELS) ? SUBJECT_TYPE_LABELS : null;
+      var subjectType = esc((subjectTypeLabels && subjectTypeLabels[course.subjectType]) || course.subjectType || 'Mixed');
       var retentionTarget = Number(course.retentionTarget || settings.retentionTarget || 0.9);
       var retentionPct = Math.round(clamp(retentionTarget, 0.5, 0.99) * 100);
       host.innerHTML =
