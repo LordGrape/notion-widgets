@@ -22945,6 +22945,25 @@ input[type="range"]::-moz-range-thumb{
     function renderLearnSessionUI() {
       if (!activeLearnSession) return;
       var flow = activeLearnSession.flow;
+      /* Phase B telemetry: record first-entry into the current segment.
+         Gated on a phase that actually presents a tutor turn and on having
+         a concrete segment at the current index, so the pre-segment
+         streaming state (no segments loaded yet) never fires this. The
+         markSegmentEntered action is idempotent, so re-firing on every
+         render is safe; the first-entry timestamp is written once per
+         segment. Side-channel only, never feeds FSRS. */
+      (function _telemetrySegmentEntered() {
+        if (!flow) return;
+        if (flow.phase !== 'tutor' && flow.phase !== 'loading' && flow.phase !== 'error') return;
+        var segs = (flow.plan && flow.plan.segments) || [];
+        var seg = segs[flow.segmentIndex];
+        if (!seg || !seg.id) return;
+        if (flow.segmentEnteredAt && flow.segmentEnteredAt[seg.id] != null) return;
+        var fb = globalThis.__studyEngineLearnFlow;
+        if (!fb || typeof fb.markSegmentEntered !== 'function') return;
+        activeLearnSession.flow = fb.markSegmentEntered(flow, seg.id, Date.now());
+        flow = activeLearnSession.flow;
+      })();
       var tutor = el('learnSessionTutor');
       var caption = el('learnSessionCaption');
       var errorHost = el('learnSessionError');
@@ -23138,6 +23157,17 @@ input[type="range"]::-moz-range-thumb{
 
       var pendingSegment = flowBridge.currentSegment(activeLearnSession.flow);
       var prevIdx = activeLearnSession.flow.segmentIndex;
+      /* Phase B telemetry: record the turn submission before we flip into
+         'loading'. The open turnTimings entry for this segment gets
+         submittedAt + turnResponseCharCount set, and totalTurnsPerSegment
+         is incremented. If no open entry exists (e.g. the very first turn
+         raced ahead of the initial render hook), markTurnSubmitted still
+         bumps the counter so the submission is not lost. */
+      if (pendingSegment && pendingSegment.id && typeof flowBridge.markTurnSubmitted === 'function') {
+        activeLearnSession.flow = flowBridge.markTurnSubmitted(
+          activeLearnSession.flow, pendingSegment.id, userInput.length, Date.now()
+        );
+      }
       activeLearnSession.flow = flowBridge.markLoading(activeLearnSession.flow);
       renderLearnSessionUI();
 
@@ -23166,6 +23196,17 @@ input[type="range"]::-moz-range-thumb{
         }
 
         activeLearnSession.flow = flowBridge.applyTurnResult(activeLearnSession.flow, userInput, result);
+        /* Phase B telemetry: when the turn did not complete the segment, open
+           a fresh turnTimings entry at turnIndex+1 so the next submit records
+           its own enteredAt. When the segment IS complete, the render-driven
+           markSegmentEntered hook will open the timing entry for the next
+           segment the first time renderLearnSessionUI runs with the new index. */
+        if (!result.isSegmentComplete && pendingSegment && pendingSegment.id
+            && typeof flowBridge.markTurnContinuation === 'function') {
+          activeLearnSession.flow = flowBridge.markTurnContinuation(
+            activeLearnSession.flow, pendingSegment.id, Date.now()
+          );
+        }
         /* Mark linked cards for the segment that was just worked on as taught (if unlearned). */
         applyTaughtStatusForSegment(pendingSegment);
 
@@ -23186,6 +23227,13 @@ input[type="range"]::-moz-range-thumb{
             return;
           } else {
             /* No questions: run handoff with current state (cards taught, no ratings). */
+            /* Phase B telemetry: session reached 'done' naturally without a
+               consolidation battery. Record the completion timestamp before
+               finalizeLearnHandoff so downstream consumers see a finalized
+               flow. Idempotent. */
+            if (typeof flowBridge.markSessionCompleted === 'function') {
+              activeLearnSession.flow = flowBridge.markSessionCompleted(activeLearnSession.flow, Date.now());
+            }
             finalizeLearnHandoff();
             saveState();
             try { playChime(); } catch(e) {}
@@ -23234,6 +23282,11 @@ input[type="range"]::-moz-range-thumb{
 
       if (activeLearnSession.flow.phase === 'done') {
         /* Battery complete — fire handoff + show summary. */
+        /* Phase B telemetry: consolidation battery finished cleanly.
+           Record the completion timestamp before the handoff. */
+        if (typeof flowBridge.markSessionCompleted === 'function') {
+          activeLearnSession.flow = flowBridge.markSessionCompleted(activeLearnSession.flow, Date.now());
+        }
         finalizeLearnHandoff();
         saveState();
         try { playChime(); } catch(e) {}
@@ -23251,6 +23304,11 @@ input[type="range"]::-moz-range-thumb{
       var flowBridge = globalThis.__studyEngineLearnFlow;
       if (!flowBridge) return;
       activeLearnSession.flow = flowBridge.skipConsolidation(activeLearnSession.flow);
+      /* Phase B telemetry: explicitly skipping the battery is an intentional
+         completion ("done enough"), not abandonment. Record completedAt. */
+      if (typeof flowBridge.markSessionCompleted === 'function') {
+        activeLearnSession.flow = flowBridge.markSessionCompleted(activeLearnSession.flow, Date.now());
+      }
       finalizeLearnHandoff();
       saveState();
       renderLearnSessionUI();
@@ -23285,6 +23343,12 @@ input[type="range"]::-moz-range-thumb{
           activeLearnSession.flow = flowBridge.enterConsolidation(activeLearnSession.flow);
           try { playClick(); } catch(e) {}
         } else {
+          /* Phase B telemetry: parked-turn path landed us in 'done' without
+             a consolidation battery. Mirror the submitLearnTurn completion
+             hook so abandonment vs completion is correctly disambiguated. */
+          if (typeof flowBridge.markSessionCompleted === 'function') {
+            activeLearnSession.flow = flowBridge.markSessionCompleted(activeLearnSession.flow, Date.now());
+          }
           finalizeLearnHandoff();
           saveState();
           try { playChime(); } catch(e) {}
@@ -23471,6 +23535,25 @@ input[type="range"]::-moz-range-thumb{
     function closeLearnSessionImmediate() {
       var ov = el('learnSessionOv');
       var input = el('learnSessionInput');
+      /* Phase B telemetry: if the session is being torn down before reaching
+         'done', stamp an abandonmentPhase on the flow. Mapping collapses
+         the richer LearnFlowPhase set onto the three abandonment buckets:
+         pre-segment streaming, any tutor pane, or the consolidation battery.
+         Runs BEFORE the stream abort and DOM teardown so the flow state is
+         still intact. markAbandoned is idempotent and is a no-op when the
+         session already finalized (markSessionCompleted ran first). */
+      if (activeLearnSession && activeLearnSession.flow) {
+        var _fb = globalThis.__studyEngineLearnFlow;
+        if (_fb && typeof _fb.markAbandoned === 'function') {
+          var _phase = activeLearnSession.flow.phase;
+          if (_phase !== 'done') {
+            var _ap = (_phase === 'streaming') ? 'streaming'
+              : (_phase === 'consolidating') ? 'consolidating'
+              : 'tutor';
+            activeLearnSession.flow = _fb.markAbandoned(activeLearnSession.flow, _ap, Date.now());
+          }
+        }
+      }
       /* Phase 4: abort any in-flight /learn-plan SSE stream so the upstream
          Gemini fetch closes on the worker (frees tokens). */
       if (activeLearnSession && activeLearnSession.streamController) {
