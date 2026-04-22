@@ -1,4 +1,4 @@
-import type { AppState, StudyItem, SubDeckMeta } from './types';
+import type { AppState, CourseContext, StudyItem, SubDeckMeta } from './types';
 import { createSubDeck, getCardsInSubDeck, loadSubDecks } from './sub-decks';
 
 export type LearnStatus = 'unlearned' | 'taught' | 'consolidated' | null;
@@ -79,6 +79,27 @@ const LEARN_TURN_ENDPOINT = 'https://widget-sync.lordgrape-widgets.workers.dev/s
 
 function normalize(value: string): string {
   return String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+function shortDjb2Hash(value: string): string {
+  let hash = 5381;
+  for (let i = 0; i < value.length; i++) {
+    hash = (hash * 33) ^ value.charCodeAt(i);
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0').slice(-8);
+}
+
+export function fingerprintLearnInputs(args: {
+  cardIds: string[];
+  courseContext?: CourseContext;
+}): string {
+  const cardIds = Array.isArray(args.cardIds)
+    ? args.cardIds.map((id) => String(id || ''))
+    : [];
+  const cardHash = shortDjb2Hash(cardIds.join('|'));
+  if (!args.courseContext) return cardHash;
+  const contextHash = shortDjb2Hash(JSON.stringify(args.courseContext));
+  return `${cardHash}:${contextHash}`;
 }
 
 export function verifyConsolidationQuestions(questions: ConsolidationQuestion[], items: StudyItem[]): ConsolidationQuestion[] {
@@ -513,5 +534,6 @@ export function createDefaultSubDeckForCourse(course: CourseLike | string, state
   maybeDemoteOnAgain,
   applyLearnStatusMigration,
   resolveCourseLearnEntry,
-  createDefaultSubDeckForCourse
+  createDefaultSubDeckForCourse,
+  fingerprintLearnInputs
 };

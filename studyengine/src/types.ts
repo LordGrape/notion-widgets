@@ -363,6 +363,31 @@ export interface LearnSessionRecord {
   timestamp: string;
 }
 
+export interface LearnPlanGroundingSnippet {
+  cardId: string;
+  quote: string;
+}
+
+export interface LearnPlanSegment {
+  id: string;
+  title: string;
+  mechanism: 'worked_example' | 'elaborative_interrogation' | 'self_explanation' | 'predictive_question' | 'test_closure';
+  objective: string;
+  teach?: string;
+  tutorPrompt: string;
+  expectedAnswer: string;
+  linkedCardIds: string[];
+  groundingSnippets: LearnPlanGroundingSnippet[];
+}
+
+export interface CachedLearnPlan {
+  fingerprint: string;
+  plan: LearnPlanSegment[];
+  generatedAt: number;
+  planVersion: number;
+  courseContextHash?: string;
+}
+
 export interface AppState {
   items: Record<string, StudyItem>;
   courses: Record<string, Course>;
@@ -377,4 +402,5 @@ export interface AppState {
   learnProgress?: Record<string, Record<string, LearnProgressMeta>>;
   /** Capped at last 30 completed Learn sessions (Phase 3). */
   learnSessions?: LearnSessionRecord[];
+  learnPlans?: Record<string, Record<string, CachedLearnPlan>>;
 }

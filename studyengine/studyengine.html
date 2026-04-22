@@ -9064,6 +9064,7 @@ input[type="range"]::-moz-range-thumb{
         <div class="learn-head-copy">
           <span class="learn-head-kicker" id="learnSessionKicker">Learn</span>
           <span class="learn-head-title" id="learnSessionTitle">Loading…</span>
+          <span id="learnPlanStaleBadge" style="display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;border:1px solid var(--border-accent);background:var(--surface-2);color:var(--text-secondary);font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;margin-top:6px;" hidden>Plan may be out of date</span>
         </div>
         <!-- Continuous progress bar (UI polish 2). Shows 2 phases: segments + consolidation. -->
         <div class="learn-progress-bar" id="learnSessionProgress" aria-hidden="true">
@@ -9078,6 +9079,7 @@ input[type="range"]::-moz-range-thumb{
           <span class="learn-mastery-chip-dot" aria-hidden="true"></span>
           <span id="learnMasteryChipText">Mastery 0%</span>
         </span>
+        <button type="button" class="ghost-btn" id="learnSessionRegen" style="min-width:auto;padding:6px 10px;font-size:9px;letter-spacing:0.6px;text-transform:uppercase;">Regenerate plan</button>
         <button type="button" class="icon-btn" id="learnSessionClose" aria-label="Close Learn session">
           <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>
         </button>
@@ -9963,12 +9965,14 @@ input[type="range"]::-moz-range-thumb{
       var items = SyncEngine.get(NS, 'items') || null;
       var courses = SyncEngine.get(NS, 'courses') || null;
       var subDecks = SyncEngine.get(NS, 'subDecks') || null;
+      var learnPlans = SyncEngine.get(NS, 'learnPlans') || null;
       var calibration = SyncEngine.get(NS, 'calibration') || null;
       var stats = SyncEngine.get(NS, 'stats') || null;
       state = deepClone(DEFAULT_STATE);
       if (items && typeof items === 'object') state.items = items;
       if (courses && typeof courses === 'object') state.courses = courses;
       if (subDecks && typeof subDecks === 'object') state.subDecks = subDecks;
+      if (learnPlans && typeof learnPlans === 'object') state.learnPlans = learnPlans;
       if (calibration && typeof calibration === 'object') state.calibration = calibration;
       if (stats && typeof stats === 'object') state.stats = stats;
       migrateItems();
@@ -10020,6 +10024,7 @@ input[type="range"]::-moz-range-thumb{
       }
       SyncEngine.set(NS, 'items', persistItems);
       SyncEngine.set(NS, 'courses', state.courses || {});
+      SyncEngine.set(NS, 'learnPlans', state.learnPlans || {});
       if (subDecksDirty) {
         SyncEngine.set(NS, 'subDecks', state.subDecks || {});
         subDecksDirty = false;
@@ -22741,6 +22746,89 @@ input[type="range"]::-moz-range-thumb{
        inputs so the Retry button can restart the SSE stream cleanly. */
     var lastLearnStreamArgs = null; /* { courseName, subDeckKey, userName, learnerContext } */
 
+    function getCourseContextForLearn(courseName) {
+      if (!state || !state.courses) return undefined;
+      var course = state.courses[courseName];
+      return (course && course.courseContext) ? course.courseContext : undefined;
+    }
+
+    function getCourseLearnPlanEntry(courseName, subDeckKey) {
+      if (!state) return null;
+      var byCourse = state.learnPlans && state.learnPlans[courseName];
+      return (byCourse && byCourse[subDeckKey]) ? byCourse[subDeckKey] : null;
+    }
+
+    function extractContextHashFromFingerprint(fingerprint) {
+      var raw = String(fingerprint || '');
+      var sepIdx = raw.indexOf(':');
+      if (sepIdx < 0) return undefined;
+      var hash = raw.slice(sepIdx + 1).trim();
+      return hash || undefined;
+    }
+
+    function getCurrentLearnCardIds(courseName, subDeckKey, allItems) {
+      var cards = getCardsInSubDeck(courseName, subDeckKey, allItems || []);
+      return cards
+        .filter(function(card){ return card && card.id && card.learnStatus !== 'consolidated'; })
+        .map(function(card){ return String(card.id); });
+    }
+
+    function buildLearnPlanFingerprint(courseName, subDeckKey, allItems) {
+      var modeBridge = globalThis.__studyEngineLearnMode;
+      var cardIds = getCurrentLearnCardIds(courseName, subDeckKey, allItems || []);
+      var courseContext = getCourseContextForLearn(courseName);
+      var fallback = cardIds.join('|');
+      var fingerprint = (modeBridge && typeof modeBridge.fingerprintLearnInputs === 'function')
+        ? modeBridge.fingerprintLearnInputs({ cardIds: cardIds, courseContext: courseContext })
+        : fallback;
+      return {
+        cardIds: cardIds,
+        fingerprint: String(fingerprint || fallback),
+        courseContextHash: extractContextHashFromFingerprint(fingerprint)
+      };
+    }
+
+    function isStrictSubsetCacheHit(cacheEntry, currentCardIds, currentCourseContextHash) {
+      if (!cacheEntry || !Array.isArray(cacheEntry.plan) || !currentCardIds || !currentCardIds.length) return false;
+      var savedContextHash = cacheEntry.courseContextHash || extractContextHashFromFingerprint(cacheEntry.fingerprint);
+      if ((savedContextHash || '') !== (currentCourseContextHash || '')) return false;
+      var currentSet = new Set(currentCardIds.map(function(id){ return String(id); }));
+      var savedSet = new Set();
+      cacheEntry.plan.forEach(function(seg) {
+        var linked = Array.isArray(seg && seg.linkedCardIds) ? seg.linkedCardIds : [];
+        linked.forEach(function(id){ savedSet.add(String(id)); });
+      });
+      if (savedSet.size === 0 || currentSet.size >= savedSet.size) return false;
+      for (var i = 0; i < currentCardIds.length; i++) {
+        var id = String(currentCardIds[i]);
+        if (!savedSet.has(id)) return false;
+      }
+      return true;
+    }
+
+    function sliceCachedPlanToCards(cacheEntry, currentCardIds) {
+      var currentSet = new Set((currentCardIds || []).map(function(id){ return String(id); }));
+      var segments = (cacheEntry && Array.isArray(cacheEntry.plan)) ? cacheEntry.plan.filter(function(seg) {
+        var linked = Array.isArray(seg && seg.linkedCardIds) ? seg.linkedCardIds : [];
+        return linked.some(function(id){ return currentSet.has(String(id)); });
+      }) : [];
+      return { segments: segments, consolidationQuestions: [] };
+    }
+
+    function persistLearnPlanCache(courseName, subDeckKey, payload) {
+      if (!state || !payload || !payload.fingerprint) return;
+      if (!state.learnPlans || typeof state.learnPlans !== 'object') state.learnPlans = {};
+      if (!state.learnPlans[courseName] || typeof state.learnPlans[courseName] !== 'object') state.learnPlans[courseName] = {};
+      state.learnPlans[courseName][subDeckKey] = {
+        fingerprint: String(payload.fingerprint),
+        plan: Array.isArray(payload.plan) ? payload.plan.slice() : [],
+        generatedAt: Number(payload.generatedAt || Date.now()),
+        planVersion: Math.max(1, Number(payload.planVersion || 1)),
+        courseContextHash: payload.courseContextHash ? String(payload.courseContextHash) : undefined
+      };
+      saveState();
+    }
+
     function prefersReducedMotion() {
       try { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
       catch (e) { return false; }
@@ -23190,6 +23278,11 @@ input[type="range"]::-moz-range-thumb{
       var title = el('learnSessionTitle');
       var kicker = el('learnSessionKicker');
       var input = el('learnSessionInput');
+      var staleBadge = el('learnPlanStaleBadge');
+      var regenBtn = el('learnSessionRegen');
+
+      if (staleBadge) staleBadge.hidden = !activeLearnSession.planOutOfDate;
+      if (regenBtn) regenBtn.disabled = flow.phase === 'loading' || flow.phase === 'streaming';
 
       /* Kicker + title by phase */
       var total = (flow.plan.segments || []).length || 1;
@@ -23581,7 +23674,7 @@ input[type="range"]::-moz-range-thumb{
     /* Phase 4 entry point — orchestrates the SSE stream + modal lifecycle.
        Replaces the legacy `generateLearnPlan + openLearnSession` callsite.
        Modal does NOT mount until the first segment event arrives. */
-    function startLearnPlanStreaming(courseName, subDeckKey, allItems, userName, learnerContext) {
+    function startLearnPlanStreaming(courseName, subDeckKey, allItems, userName, learnerContext, opts) {
       var flowBridge = globalThis.__studyEngineLearnFlow;
       var modeBridge = globalThis.__studyEngineLearnMode;
       if (!flowBridge || !modeBridge || typeof modeBridge.streamLearnPlan !== 'function'
@@ -23589,13 +23682,50 @@ input[type="range"]::-moz-range-thumb{
         toast('Learn mode unavailable.');
         return;
       }
+      opts = opts || {};
+      var forceRegenerate = !!opts.forceRegenerate;
+      var fingerprintMeta = buildLearnPlanFingerprint(courseName, subDeckKey, allItems || []);
+      var currentFingerprint = fingerprintMeta.fingerprint;
+      var currentCardIds = fingerprintMeta.cardIds;
+      var existingCache = getCourseLearnPlanEntry(courseName, subDeckKey);
+      var nextPlanVersion = existingCache ? Math.max(1, Number(existingCache.planVersion || 1) + 1) : 1;
+
+      var openCachedPlan = function(planObj, cacheEntry, isOutdated) {
+        if (!planObj || !Array.isArray(planObj.segments) || !planObj.segments.length) return false;
+        console.info('[learn] cache hit', cacheEntry && cacheEntry.planVersion ? cacheEntry.planVersion : 1);
+        openLearnSession(planObj, courseName, subDeckKey, {
+          planVersion: cacheEntry && cacheEntry.planVersion ? cacheEntry.planVersion : 1,
+          outOfDate: !!isOutdated,
+          fromCache: true
+        });
+        return true;
+      };
+
+      if (!forceRegenerate && existingCache && existingCache.fingerprint === currentFingerprint) {
+        if (openCachedPlan({ segments: existingCache.plan.slice(), consolidationQuestions: [] }, existingCache, false)) return;
+      }
+
+      if (!forceRegenerate && existingCache && isStrictSubsetCacheHit(existingCache, currentCardIds, fingerprintMeta.courseContextHash)) {
+        var subsetPlan = sliceCachedPlanToCards(existingCache, currentCardIds);
+        if (openCachedPlan(subsetPlan, existingCache, false)) return;
+      }
+
+      if (!forceRegenerate && existingCache && existingCache.fingerprint !== currentFingerprint) {
+        /* TODO: replace with project-wide non-blocking confirm primitive when available. */
+        var shouldRegenerate = window.confirm('This sub-deck has changed since the last plan was generated. Regenerate the learning plan? (uses API tokens)');
+        if (!shouldRegenerate) {
+          if (openCachedPlan({ segments: existingCache.plan.slice(), consolidationQuestions: [] }, existingCache, true)) return;
+          toast('Cached plan is empty. Regenerating…');
+        }
+      }
 
       lastLearnStreamArgs = {
         courseName: courseName,
         subDeckKey: subDeckKey,
         allItems: allItems,
         userName: userName,
-        learnerContext: learnerContext
+        learnerContext: learnerContext,
+        opts: opts
       };
 
       /* Create the session shell up-front. Modal is mounted immediately so the
@@ -23610,7 +23740,11 @@ input[type="range"]::-moz-range-thumb{
         pendingTurnResult: null,
         modalMounted: false,
         streamStartedAt: Date.now(),
-        estimatedSegmentTotal: estTotal
+        estimatedSegmentTotal: estTotal,
+        planOutOfDate: false,
+        planVersion: nextPlanVersion,
+        planFingerprint: currentFingerprint,
+        planCourseContextHash: fingerprintMeta.courseContextHash
       };
       /* Legacy state.learnSession is populated on mount so other code paths
          see it only once the modal is actually up. */
@@ -23678,6 +23812,13 @@ input[type="range"]::-moz-range-thumb{
         onComplete: function(meta) {
           if (!activeLearnSession) return;
           activeLearnSession.flow = flowBridge.markStreamingComplete(activeLearnSession.flow);
+          persistLearnPlanCache(courseName, subDeckKey, {
+            fingerprint: currentFingerprint,
+            plan: (activeLearnSession.flow.plan && activeLearnSession.flow.plan.segments) ? activeLearnSession.flow.plan.segments : [],
+            generatedAt: Date.now(),
+            planVersion: activeLearnSession.planVersion || 1,
+            courseContextHash: fingerprintMeta.courseContextHash
+          });
           if (meta && meta.warning) toast(meta.warning);
           if (activeLearnSession.modalMounted) renderLearnSessionUI();
           /* If a parked turn result was waiting on streaming completion, apply it
@@ -23714,11 +23855,12 @@ input[type="range"]::-moz-range-thumb{
       });
     }
 
-    function openLearnSession(plan, courseName, subDeckKey) {
+    function openLearnSession(plan, courseName, subDeckKey, opts) {
       var flowBridge = globalThis.__studyEngineLearnFlow;
       if (!flowBridge) { toast('Learn mode unavailable.'); return; }
       var segments = (plan && plan.segments) || [];
       if (!segments.length) { toast('No learn segments generated'); return; }
+      opts = opts || {};
 
       /* Keep legacy state.learnSession metadata so other code paths relying on it don't regress. */
       state.learnSession = {
@@ -23734,7 +23876,10 @@ input[type="range"]::-moz-range-thumb{
 
       activeLearnSession = {
         flow: flowBridge.createLearnFlow(plan, courseName, subDeckKey),
-        courseName: courseName
+        courseName: courseName,
+        planOutOfDate: !!opts.outOfDate,
+        planVersion: Math.max(1, Number(opts.planVersion || 1)),
+        fromCache: !!opts.fromCache
       };
 
       var ov = el('learnSessionOv');
@@ -23832,9 +23977,11 @@ input[type="range"]::-moz-range-thumb{
       var _fsrsProj = el('learnFsrsProjection');
       var _fsrsRows = el('learnFsrsProjectionRows');
       var _fsrsNote = el('learnFsrsProjectionNote');
+      var _staleBadge = el('learnPlanStaleBadge');
       if (_fsrsProj) _fsrsProj.hidden = true;
       if (_fsrsRows) _fsrsRows.innerHTML = '';
       if (_fsrsNote) _fsrsNote.textContent = '';
+      if (_staleBadge) _staleBadge.hidden = true;
       var courseName = activeLearnSession && activeLearnSession.courseName;
       activeLearnSession = null;
       learnSummaryState = null;
@@ -23913,6 +24060,7 @@ input[type="range"]::-moz-range-thumb{
       var submit = el('learnSessionSubmit');
       var exitBtn = el('learnSessionExit');
       var closeBtn = el('learnSessionClose');
+      var regenBtn = el('learnSessionRegen');
       var retry = el('learnSessionRetry');
       var input = el('learnSessionInput');
       var revealBtn = el('learnConsolReveal');
@@ -23923,6 +24071,26 @@ input[type="range"]::-moz-range-thumb{
       if (submit) submit.addEventListener('click', function(){ submitLearnTurn(); });
       if (exitBtn) exitBtn.addEventListener('click', function(){ closeLearnSession(false); });
       if (closeBtn) closeBtn.addEventListener('click', function(){ closeLearnSession(false); });
+      if (regenBtn) regenBtn.addEventListener('click', function() {
+        if (!activeLearnSession) return;
+        /* TODO: replace with project-wide non-blocking confirm primitive when available. */
+        var ok = window.confirm('Regenerate the learning plan for this sub-deck? (uses API tokens)');
+        if (!ok) return;
+        var args = lastLearnStreamArgs || {
+          courseName: activeLearnSession.courseName,
+          subDeckKey: activeLearnSession.flow.subDeck,
+          allItems: Object.keys(state.items || {}).map(function(id){ return state.items[id]; }).filter(function(item){
+            return item && item.course === activeLearnSession.courseName && item.subDeck === activeLearnSession.flow.subDeck;
+          }),
+          userName: settings.userName || '',
+          learnerContext: '',
+          opts: {}
+        };
+        closeLearnSessionImmediate();
+        startLearnPlanStreaming(args.courseName, args.subDeckKey, args.allItems, args.userName, args.learnerContext, {
+          forceRegenerate: true
+        });
+      });
       if (retry) retry.addEventListener('click', function(){
         if (!activeLearnSession) return;
         var flowBridge = globalThis.__studyEngineLearnFlow;
@@ -23935,7 +24103,7 @@ input[type="range"]::-moz-range-thumb{
         if (loaded === 0 && lastLearnStreamArgs) {
           var args = lastLearnStreamArgs;
           closeLearnSessionImmediate();
-          startLearnPlanStreaming(args.courseName, args.subDeckKey, args.allItems, args.userName, args.learnerContext);
+          startLearnPlanStreaming(args.courseName, args.subDeckKey, args.allItems, args.userName, args.learnerContext, args.opts || {});
           return;
         }
         activeLearnSession.flow = Object.assign({}, activeLearnSession.flow, { phase: 'tutor', errorMessage: null });
