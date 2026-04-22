@@ -8091,6 +8091,27 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* ── CSS SECTION: Learn Session Phase 3 (consolidation, summary, polish) ── */
+    /* Defect 2 fix: the UA `[hidden] { display: none }` rule is overridden by the
+       class-level `display: flex` on `.learn-consol-pane` and `.learn-summary-pane`,
+       which made the `hidden` attribute a no-op and caused all three phase panes
+       to render simultaneously. Re-assert `display: none` for the hidden attribute
+       with `!important` so the phase gating from `showLearnPane` actually takes
+       effect. Tutor pane is included defensively for symmetry. */
+    .learn-tutor-pane[hidden],
+    .learn-consol-pane[hidden],
+    .learn-summary-pane[hidden]{ display: none !important; }
+
+    /* Your-Turn segment prompt (the Socratic opener that lives above the textarea).
+       Rendered from segment.tutorPrompt; hidden when empty so legacy plans without
+       a populated tutorPrompt do not leave a floating empty slot. */
+    .learn-yourturn-prompt{
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .learn-yourturn-prompt:empty{ display: none; }
+
     /* Teach / Your-Turn split (UI polish 1) */
     .learn-card-block{
       background: var(--surface-1);
@@ -8951,6 +8972,10 @@ input[type="range"]::-moz-range-thumb{
           </div>
           <div class="learn-card-block learn-yourturn">
             <div class="learn-card-block-label">Your Turn</div>
+            <!-- Defect 1 split: segment.tutorPrompt (Socratic opener) renders here,
+                 above the textarea. The Teach block above carries segment.teach
+                 (declarative instruction). Empty when a legacy plan lacks tutorPrompt. -->
+            <div class="learn-yourturn-prompt" id="learnYourTurnPrompt"></div>
             <textarea class="learn-input" id="learnSessionInput" rows="3" placeholder="Type your response…" aria-label="Your response"></textarea>
             <div class="learn-kbd-hint"><kbd>⌘/Ctrl</kbd> + <kbd>Enter</kbd> to submit · <kbd>Esc</kbd> to exit</div>
             <div class="learn-caption" id="learnSessionCaption"></div>
@@ -22815,8 +22840,24 @@ input[type="range"]::-moz-range-thumb{
         if (title) title.textContent = 'Step ' + stepIdx + ' of ' + total + (segTitle ? (' · ' + segTitle) : '');
       }
 
-      /* Tutor body */
+      /* Tutor body (Teach block) */
       if (tutor) tutor.innerHTML = renderLearnMarkdownSafe(flow.tutorBody);
+
+      /* Your-Turn prompt (Defect 1 split): render segment.tutorPrompt as the
+         Socratic opener above the textarea. Falls back to empty string when
+         there is no current segment (streaming phase before first segment
+         arrives, or a legacy plan with no tutorPrompt), and the CSS
+         `:empty { display: none }` rule collapses the slot. */
+      var yourTurnPromptEl = el('learnYourTurnPrompt');
+      if (yourTurnPromptEl) {
+        var flowBridgeLocal = globalThis.__studyEngineLearnFlow;
+        var curSeg = null;
+        try {
+          curSeg = (flowBridgeLocal && flowBridgeLocal.currentSegment) ? flowBridgeLocal.currentSegment(flow) : null;
+        } catch (eCur) { curSeg = null; }
+        var curPrompt = (curSeg && curSeg.tutorPrompt) ? String(curSeg.tutorPrompt).trim() : '';
+        yourTurnPromptEl.innerHTML = curPrompt ? renderLearnMarkdownSafe(curPrompt) : '';
+      }
 
       /* Caption */
       if (caption) {
@@ -23295,6 +23336,33 @@ input[type="range"]::-moz-range-thumb{
         ov.setAttribute('aria-hidden', 'true');
       }
       if (input) input.value = '';
+      /* Defect 2 fix: clear stale per-pane DOM so a subsequent Learn session
+         cannot inherit rendered content (consolidation question, revealed
+         answer, summary copy) from the session we are closing. Also re-assert
+         the `hidden` attribute on the consol and summary panes so their
+         initial state matches the HTML default. */
+      var _tutorBody = el('learnSessionTutor');
+      var _yourTurnPrompt = el('learnYourTurnPrompt');
+      var _consolQ = el('learnConsolQuestion');
+      var _consolA = el('learnConsolAnswer');
+      var _consolReveal = el('learnConsolReveal');
+      var _consolRate = el('learnConsolRate');
+      var _summaryTitle = el('learnSummaryTitle');
+      var _summarySub = el('learnSummarySub');
+      var _tutorPane = el('learnTutorPane');
+      var _consolPane = el('learnConsolPane');
+      var _summaryPane = el('learnSummaryPane');
+      if (_tutorBody) _tutorBody.innerHTML = '';
+      if (_yourTurnPrompt) _yourTurnPrompt.innerHTML = '';
+      if (_consolQ) _consolQ.innerHTML = '';
+      if (_consolA) { _consolA.innerHTML = ''; _consolA.hidden = true; }
+      if (_consolReveal) { _consolReveal.hidden = false; _consolReveal.textContent = 'Show answer'; }
+      if (_consolRate) _consolRate.hidden = true;
+      if (_summaryTitle) _summaryTitle.textContent = 'You learned 0 concepts.';
+      if (_summarySub) _summarySub.textContent = '0 cards ready for review.';
+      if (_tutorPane) _tutorPane.hidden = false;
+      if (_consolPane) _consolPane.hidden = true;
+      if (_summaryPane) _summaryPane.hidden = true;
       var courseName = activeLearnSession && activeLearnSession.courseName;
       activeLearnSession = null;
       learnSummaryState = null;

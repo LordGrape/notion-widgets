@@ -14,6 +14,14 @@ export interface LearnSegment {
   title: string;
   mechanism: LearnMechanism;
   objective: string;
+  /**
+   * Declarative pre-retrieval teaching block. Comes verbatim from the worker's
+   * /studyengine/learn-plan response. See `verifySegmentTeach` worker-side for
+   * the validation contract (>=60 words, not a question, not opening with a
+   * banned phrase). Older plans may omit this field; UI treats missing teach
+   * as a graceful fall-through to tutorPrompt.
+   */
+  teach?: string;
   tutorPrompt: string;
   expectedAnswer: string;
   linkedCardIds: string[];

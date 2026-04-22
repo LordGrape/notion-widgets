@@ -468,18 +468,31 @@ export function linkedCardIdsForSegment(flow: LearnFlowState, segmentId: string)
   return [];
 }
 
+/**
+ * Pick the body that should render inside the UI's Teach block for a
+ * freshly-entered segment. Prefers the declarative `teach` field (added
+ * in the Defect 1 fix); falls back to `tutorPrompt` for older plans so the
+ * UI still renders something meaningful if a legacy plan is hydrated from
+ * cache or SyncEngine.
+ */
+function segmentTeachBody(segment: LearnSegment): string {
+  const teach = String(segment?.teach || '').trim();
+  if (teach) return teach;
+  return String(segment?.tutorPrompt || '').trim();
+}
+
 function buildInitialTutorBody(segment: LearnSegment): string {
   const title = String(segment.title || '').trim();
-  const prompt = String(segment.tutorPrompt || '').trim();
-  if (title && prompt) return `**${title}**\n\n${prompt}`;
-  return prompt || title || 'Ready when you are.';
+  const body = segmentTeachBody(segment);
+  if (title && body) return `**${title}**\n\n${body}`;
+  return body || title || 'Ready when you are.';
 }
 
 function buildContinuingTutorBody(feedback: string, nextPrompt: string, segment: LearnSegment | null): string {
   const parts: string[] = [];
   if (feedback) parts.push(feedback);
   if (nextPrompt) parts.push(nextPrompt);
-  if (!parts.length && segment) parts.push(String(segment.tutorPrompt || ''));
+  if (!parts.length && segment) parts.push(segmentTeachBody(segment));
   return parts.join('\n\n').trim() || 'Keep going.';
 }
 
@@ -488,9 +501,9 @@ function buildAdvanceTutorBody(feedback: string, nextSeg: LearnSegment | undefin
   if (feedback) parts.push(feedback);
   if (nextSeg) {
     const nextTitle = String(nextSeg.title || '').trim();
-    const nextPrompt = String(nextSeg.tutorPrompt || '').trim();
+    const nextBody = segmentTeachBody(nextSeg);
     if (nextTitle) parts.push(`**Next: ${nextTitle}**`);
-    if (nextPrompt) parts.push(nextPrompt);
+    if (nextBody) parts.push(nextBody);
   }
   return parts.join('\n\n').trim() || 'Moving on.';
 }

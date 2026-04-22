@@ -54,8 +54,48 @@ function verifySegmentGrounding(segment: LearnPlanSegment, corpus: Record<string
   return true;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────
+ * Defect 1 fix: teach-block validation.
+ *
+ * Gemini sometimes returns a stub or a question in the `teach` field. The
+ * grounding gate alone does not catch that, because a meta-question is
+ * trivially "grounded" in the card front. This validator enforces
+ * pedagogical density:
+ *   - >= 60 words after trimming
+ *   - does not end with a question mark
+ *   - does not start with a banned opener phrase (after stripping markdown
+ *     formatting and whitespace)
+ *
+ * Segments that fail teach validation are dropped and routed through the
+ * same three-tier fallback the grounding gate uses. The regex only matches
+ * openers that are genuinely interrogative or second-person imperative;
+ * legitimate teach openers such as "What follows is..." or "How this works:"
+ * are intentionally allowed.
+ * ──────────────────────────────────────────────────────────────────────── */
+const BANNED_TEACH_OPENERS_RE =
+  /^\s*(let['\u2019]?s|can you|what (is|are|do|does|was|were|did)\b|how (do|does|can|should) you|think about|consider|imagine|picture|recall|tell me|describe|explain to)\b/i;
+
+function countWords(s: string): number {
+  const m = String(s || '').trim().match(/\S+/g);
+  return m ? m.length : 0;
+}
+
+function verifySegmentTeach(seg: LearnPlanSegment): boolean {
+  const teach = String(seg?.teach || '').trim();
+  if (!teach) return false;
+  if (countWords(teach) < 60) return false;
+  // Trailing question mark after trimming trailing whitespace/punctuation-safe
+  // check: if the last non-whitespace char is '?', reject.
+  if (/\?\s*$/.test(teach)) return false;
+  // Strip leading markdown formatting (asterisks, underscores, hashes, blockquote,
+  // list markers, backticks) before applying the opener regex.
+  const stripped = teach.replace(/^[\s>#*_\-`]+/, '');
+  if (BANNED_TEACH_OPENERS_RE.test(stripped)) return false;
+  return true;
+}
+
 function filterVerifiedSegments(segments: LearnPlanSegment[], corpus: Record<string, string>): LearnPlanSegment[] {
-  return (segments || []).filter((seg) => verifySegmentGrounding(seg, corpus));
+  return (segments || []).filter((seg) => verifySegmentGrounding(seg, corpus) && verifySegmentTeach(seg));
 }
 
 function verifyConsolidationQuestion(
@@ -104,12 +144,21 @@ function buildDensityFallback(cards: StudyCardInput[]): LearnPlanResponse {
   const segments = maxCards.map((card, idx) => {
     const prompt = String(card.prompt || "").trim();
     const answer = String(card.modelAnswer || "").trim();
+    // Density-fallback teach: a declarative synthesis of prompt+answer. Not
+    // intended to satisfy the >=60-word teach validator (fallback segments
+    // bypass that gate because they are locally constructed, not Gemini
+    // output), but still legitimate declarative prose so the UI does not
+    // render a question in the Teach block.
+    const teachBody = answer
+      ? `This segment covers the card "${prompt}". The grounded answer: ${answer}. Read the answer carefully before attempting retrieval; the tutor prompt below asks you to reconstruct it from memory using your own words.`
+      : `This segment covers the card "${prompt}". Study the prompt before attempting retrieval; the tutor prompt below asks you to reconstruct it from memory using your own words.`;
     return {
       id: `fallback-${idx + 1}`,
       title: prompt ? prompt.slice(0, 80) : `Card ${idx + 1}`,
       mechanism: "worked_example",
       objective: "Ground first exposure using this card's core content.",
-      tutorPrompt: `Let's encode this card from first principles. What is the core claim in your own words?`,
+      teach: teachBody,
+      tutorPrompt: `In your own words, what is the core claim of this card?`,
       expectedAnswer: answer || "",
       linkedCardIds: [String(card.id || `card-${idx + 1}`)],
       groundingSnippets: [
@@ -140,6 +189,21 @@ function buildSystemPrompt(): string {
     "Each segment must include groundingSnippets with exact substrings copied from card prompt/modelAnswer.",
     "Use mechanisms from: worked_example, elaborative_interrogation, self_explanation, predictive_question, test_closure.",
     "At least 2 segments unless card count is 1.",
+    "",
+    "TEACH-BLOCK RULES (each segment's `teach` field):",
+    "- Minimum 80 words of declarative instruction.",
+    "- Must contain at least one concrete fact drawn from the grounding card set (date, name, event, mechanism, or relationship).",
+    "- Must NOT be a question. Must NOT end with a question mark.",
+    "- Must NOT open with 'Let's', 'Can you', 'What is/are/was/were/do/does/did', 'How do/does/can/should you', 'Think about', 'Consider', 'Imagine', 'Picture', 'Recall', 'Tell me', 'Describe', 'Explain to', or any second-person imperative or interrogative at the start.",
+    "- Must teach BEFORE retrieval: state the facts clearly, then let the `tutorPrompt` field carry the Socratic question that asks the learner to reconstruct them.",
+    "- Positive example: 'The Essex and Kent Scottish Regiment traces its origin to 1885, when the 21st Essex Battalion of Infantry was formed in Windsor, Ontario. It was redesignated several times through the late 19th and 20th centuries, absorbing the Kent Regiment in 1954 to become the unified Essex and Kent Scottish. The regiment's modern role is as a primary reserve infantry unit of the Canadian Army, headquartered in Windsor, with subunits across southwestern Ontario.'",
+    "- Negative example (DO NOT emit): 'Let's encode this card from first principles. What is the core claim?'",
+    "",
+    "TUTOR-PROMPT RULES (each segment's `tutorPrompt` field):",
+    "- This is the Socratic question the learner answers AFTER reading `teach`.",
+    "- Keep it brief (one or two sentences).",
+    "- It is the only field that may end with a question mark.",
+    "",
     "Also generate 3-5 consolidationQuestions that span ALL segments taught. Each question tests recall OR conceptual connection between segments.",
     "Each consolidation answer MUST be grounded: copy a verbatim substring from a supplied card modelAnswer or prompt. Unverifiable answers will be dropped.",
     "Each consolidation question must list linkedCardIds referencing which cards the answer draws from.",
@@ -171,7 +235,8 @@ function buildUserPrompt(body: LearnPlanRequest): string {
     '      "title": "...",',
     '      "mechanism": "worked_example",',
     '      "objective": "...",',
-    '      "tutorPrompt": "...",',
+    '      "teach": "80+ words of declarative instruction with concrete facts; no questions; no banned openers.",',
+    '      "tutorPrompt": "Socratic question for the learner to answer.",',
     '      "expectedAnswer": "...",',
     '      "linkedCardIds": ["card-id"],',
     '      "groundingSnippets": [{ "cardId": "card-id", "quote": "exact substring" }]',
@@ -201,6 +266,7 @@ function buildGenerationConfig(): Record<string, unknown> {
             title: { type: "string" },
             mechanism: { type: "string" },
             objective: { type: "string" },
+            teach: { type: "string" },
             tutorPrompt: { type: "string" },
             expectedAnswer: { type: "string" },
             linkedCardIds: { type: "array", items: { type: "string" } },
@@ -216,7 +282,7 @@ function buildGenerationConfig(): Record<string, unknown> {
               }
             }
           },
-          required: ["id", "title", "mechanism", "objective", "tutorPrompt", "expectedAnswer", "linkedCardIds", "groundingSnippets"]
+          required: ["id", "title", "mechanism", "objective", "teach", "tutorPrompt", "expectedAnswer", "linkedCardIds", "groundingSnippets"]
         }
       },
       consolidationQuestions: {
@@ -489,6 +555,7 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
           const seg = parseJsonResponse<LearnPlanSegment>(slice);
           if (!seg || typeof seg !== "object") continue;
           if (!verifySegmentGrounding(seg, cardCorpus)) continue;
+          if (!verifySegmentTeach(seg)) continue;
           if (emittedSegmentIds.has(String(seg.id))) continue;
           emittedSegmentIds.add(String(seg.id));
           emittedSegments.push(seg);
@@ -508,6 +575,7 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
         if (!seg || typeof seg !== "object") continue;
         if (emittedSegmentIds.has(String(seg.id))) continue;
         if (!verifySegmentGrounding(seg, cardCorpus)) continue;
+        if (!verifySegmentTeach(seg)) continue;
         emittedSegmentIds.add(String(seg.id));
         emittedSegments.push(seg);
         await emit.event("segment", seg);
