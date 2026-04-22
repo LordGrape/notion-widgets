@@ -1226,19 +1226,54 @@ export function applyLearnHandoff(
   const nowIso = new Date(nowTs).toISOString();
   let consolidated = 0, taught = 0, unlearned = 0;
 
+  const rank: Record<'unlearned' | 'taught' | 'consolidated', number> = {
+    unlearned: 0,
+    taught: 1,
+    consolidated: 2
+  };
+
   handoffPlan.forEach((entry, cardId) => {
     const item = stateBag.items[cardId] as StudyItem | undefined;
     if (!item) return;
 
-    item.learnStatus = entry.status;
-    if (entry.status !== 'unlearned') {
+    // 3-state ordinal: never demote. A previously 'consolidated' card stays
+    // consolidated even if this session didn't link it to a rated question.
+    const priorStatus = (item.learnStatus as 'unlearned' | 'taught' | 'consolidated' | null) || null;
+    const priorRank = priorStatus ? rank[priorStatus] : -1;
+    const nextRank = rank[entry.status];
+    const shouldUpgradeStatus = nextRank > priorRank;
+
+    if (shouldUpgradeStatus) {
+      item.learnStatus = entry.status;
+      if (entry.status !== 'unlearned') {
+        item.learnedAt = nowIso;
+      }
+    } else if (priorRank === nextRank && entry.status !== 'unlearned') {
+      // Same status: refresh learnedAt so sorting by recency reflects this session.
       item.learnedAt = nowIso;
     }
-    item.consolidationRating = entry.consolidationRating ?? null;
+    // Only overwrite consolidationRating when the handoff has a fresh rating.
+    // Preserves prior ratings when this session didn't rate the card.
+    if (entry.consolidationRating != null) {
+      item.consolidationRating = entry.consolidationRating;
+    }
 
     if (entry.status === 'consolidated') consolidated++;
     else if (entry.status === 'taught') taught++;
     else unlearned++;
+
+    // Successive-relearning flag honors a rating=1 (Again) regardless of prior
+    // FSRS history — the user explicitly signaled recall failure, and the flag
+    // is a scheduling hint not a scheduling replacement.
+    if (entry.consolidationRating === 1) {
+      item.forceNextQF = true;
+    }
+
+    // FSRS seed: only apply if this is a first exposure (no lastReview). For
+    // cards with real review history, their accrued stability/difficulty are
+    // a stronger signal than our seed — we defer to scheduleFsrs.
+    const hasHistory = !!(item.fsrs && item.fsrs.lastReview);
+    if (hasHistory) return;
 
     const seed = fsrsSeedForEntry(entry, nowTs);
     if (!seed) return; // 'unlearned' → no FSRS change
@@ -1258,13 +1293,9 @@ export function applyLearnHandoff(
     item.fsrs.stability = seed.stability;
     item.fsrs.due = new Date(seed.dueTs).toISOString();
     item.fsrs.state = seed.state;
-    // Don't touch reps/lapses/lastReview — they stay at zero-state so the next
-    // rating pass treats this as a first review (scheduleFsrs uses lastReview==null
-    // as its "first" signal). This preserves FSRS semantics while still giving
-    // us a seeded difficulty/stability.
-    if (seed.forceNextQF) {
-      item.forceNextQF = true;
-    }
+    // Don't touch reps/lapses/lastReview — stay at zero-state so the next rating
+    // pass treats this as a first review (scheduleFsrs uses lastReview==null as
+    // its "first" signal). Preserves FSRS semantics while seeding D/S.
   });
 
   // ONE flush at the end.
