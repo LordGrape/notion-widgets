@@ -9690,7 +9690,7 @@ input[type="range"]::-moz-range-thumb{
                     <div class="learn-head-copy">
                       <span class="learn-head-kicker" id="learnSessionKicker">Learn</span>
                       <span class="learn-head-title" id="learnSessionTitle">Loading…</span>
-                      <span id="learnPlanStaleBadge" style="display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;border:1px solid var(--border-accent);background:var(--surface-2);color:var(--text-secondary);font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;margin-top:6px;" hidden>Plan may be out of date</span>
+                      <span id="learnPlanStaleBadge" style="display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;border:1px solid var(--border-accent);background:var(--surface-2);color:var(--text-secondary);font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;margin-top:6px;" hidden>Deck changed since this plan was generated · Regenerate to refresh</span>
                     </div>
                     <div class="learn-progress-bar" id="learnSessionProgress" aria-hidden="true">
                       <div class="learn-progress-bar-track">
@@ -24372,6 +24372,19 @@ input[type="range"]::-moz-range-thumb{
       };
     }
 
+    function isLearnPlanStale(session) {
+      if (!session || !session.flow || !session.flow.plan) return false;
+      var stored = session.flow.plan.subDeckFingerprint;
+      if (!stored) return false;
+      var cards = getCardsInSubDeck(session.courseName, session.subDeckKey, Object.values(state.items || {}));
+      var modeBridge = globalThis.__studyEngineLearnMode;
+      var current = (modeBridge && typeof modeBridge.fingerprintSubDeckCards === 'function')
+        ? modeBridge.fingerprintSubDeckCards(cards)
+        : null;
+      if (!current) return false;
+      return String(current) !== String(stored);
+    }
+
     function isStrictSubsetCacheHit(cacheEntry, currentCardIds, currentCourseContextHash) {
       if (!cacheEntry || !Array.isArray(cacheEntry.plan) || !currentCardIds || !currentCardIds.length) return false;
       var savedContextHash = cacheEntry.courseContextHash || extractContextHashFromFingerprint(cacheEntry.fingerprint);
@@ -24923,7 +24936,7 @@ input[type="range"]::-moz-range-thumb{
         input.__learnReadTimerWired = true;
       }
 
-      if (staleBadge) staleBadge.hidden = !activeLearnSession.planOutOfDate;
+      if (staleBadge) staleBadge.hidden = !isLearnPlanStale(activeLearnSession);
       if (regenBtn) regenBtn.disabled = flow.phase === 'loading' || flow.phase === 'streaming';
 
       /* Kicker + title by phase */
@@ -25372,6 +25385,7 @@ input[type="range"]::-moz-range-thumb{
 
       var openCachedPlan = function(planObj, cacheEntry, isOutdated) {
         if (!planObj || !Array.isArray(planObj.segments) || !planObj.segments.length) return false;
+        if (!planObj.subDeckFingerprint) planObj.subDeckFingerprint = currentFingerprint;
         console.info('[learn] cache hit', cacheEntry && cacheEntry.planVersion ? cacheEntry.planVersion : 1);
         openLearnSession(planObj, courseName, subDeckKey, {
           planVersion: cacheEntry && cacheEntry.planVersion ? cacheEntry.planVersion : 1,
@@ -25417,6 +25431,7 @@ input[type="range"]::-moz-range-thumb{
       activeLearnSession = {
         flow: flowBridge.createStreamingLearnFlow(courseName, subDeckKey),
         courseName: courseName,
+        subDeckKey: subDeckKey,
         streamController: streamController,
         pendingTurnResult: null,
         modalMounted: false,
@@ -25503,6 +25518,14 @@ input[type="range"]::-moz-range-thumb{
           if (!activeLearnSession) return;
           activeLearnSession.streamCompleted = true;
           activeLearnSession.flow = flowBridge.markStreamingComplete(activeLearnSession.flow);
+          if (activeLearnSession.flow && activeLearnSession.flow.plan) {
+            var streamFingerprint = (meta && meta.subDeckFingerprint)
+              ? String(meta.subDeckFingerprint)
+              : (modeBridge && typeof modeBridge.fingerprintSubDeckCards === 'function'
+                ? modeBridge.fingerprintSubDeckCards(getCardsInSubDeck(courseName, subDeckKey, allItems || []))
+                : null);
+            if (streamFingerprint) activeLearnSession.flow.plan.subDeckFingerprint = String(streamFingerprint);
+          }
           if (activeLearnSession.streamCompleted) {
             persistLearnPlanCache(courseName, subDeckKey, {
               fingerprint: currentFingerprint,
@@ -25573,10 +25596,18 @@ input[type="range"]::-moz-range-thumb{
       activeLearnSession = {
         flow: flowBridge.createLearnFlow(plan, courseName, subDeckKey),
         courseName: courseName,
+        subDeckKey: subDeckKey,
         planOutOfDate: !!opts.outOfDate,
         planVersion: Math.max(1, Number(opts.planVersion || 1)),
         fromCache: !!opts.fromCache
       };
+      if (activeLearnSession.flow && activeLearnSession.flow.plan && !activeLearnSession.flow.plan.subDeckFingerprint) {
+        var modeBridge = globalThis.__studyEngineLearnMode;
+        if (modeBridge && typeof modeBridge.fingerprintSubDeckCards === 'function') {
+          var openCards = getCardsInSubDeck(courseName, subDeckKey, Object.values(state.items || {}));
+          activeLearnSession.flow.plan.subDeckFingerprint = modeBridge.fingerprintSubDeckCards(openCards);
+        }
+      }
 
       var ov = el('learnSessionOv');
       if (!ov) return;
