@@ -399,6 +399,8 @@ export interface AppState {
   courses: Record<string, Course>;
   ui?: {
     activeCourseTab?: Record<string, 'review' | 'learn' | 'cards' | 'analytics' | 'settings'>;
+    seenLearnIntro?: boolean;
+    learnSelectedSubDeck?: Record<string, string>;
   };
   subDecks?: SubDecksState;
   calibration: CalibrationData;

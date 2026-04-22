@@ -7936,7 +7936,131 @@ input[type="range"]::-moz-range-thumb{
       margin-bottom: 8px;
     }
     .learn-main-empty{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height: min(64vh, 540px);
+      padding: 48px;
       margin: 0;
+    }
+    .learn-empty-pedagogy,
+    .learn-subdeck-landing{
+      width: 100%;
+      max-width: 560px;
+      text-align: left;
+    }
+    .learn-empty-pedagogy{
+      color: var(--text-primary);
+    }
+    .learn-empty-illustration{
+      display:block;
+      width:100%;
+      max-width: 360px;
+      height: auto;
+      max-height: 158px;
+      margin: 0 auto 20px;
+      color: var(--text-primary);
+    }
+    .learn-empty-pedagogy h2{
+      margin: 0 0 12px;
+      font-size: 22px;
+      line-height: 1.25;
+      color: var(--text-primary);
+    }
+    .learn-empty-body{
+      margin: 0 0 14px;
+      font-size: 13px;
+      line-height: 1.65;
+      font-weight: 400;
+      color: var(--text-primary);
+    }
+    .learn-empty-cta{
+      margin: 0;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .learn-subdeck-landing h3{
+      margin: 0 0 8px;
+      font-size: 20px;
+      line-height: 1.3;
+      color: var(--text-primary);
+    }
+    .learn-subdeck-status{
+      margin: 0 0 10px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .learn-subdeck-cache-status{
+      margin: 0 0 16px;
+      font-size: 11px;
+      line-height: 1.5;
+      color: var(--text-primary);
+    }
+    .learn-subdeck-actions{
+      display:flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .learn-start-btn,
+    .learn-regen-btn{
+      appearance:none;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      padding: 10px 12px;
+      cursor: pointer;
+      border:1px solid transparent;
+    }
+    .learn-start-btn{
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      color: #fff;
+      border-color: rgba(var(--accent-rgb),0.3);
+    }
+    .learn-regen-btn{
+      background: var(--surface-1);
+      color: var(--text-primary);
+      border-color: var(--border-default);
+    }
+    .learn-intro-tooltip{
+      position: fixed;
+      max-width: 280px;
+      z-index: 80;
+      background: var(--surface-2);
+      color: var(--text-primary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      box-shadow: 0 14px 30px rgba(0,0,0,0.2);
+      padding: 12px;
+    }
+    .learn-intro-tooltip::before{
+      content: '';
+      position: absolute;
+      top: -7px;
+      left: var(--learn-intro-arrow-left, 22px);
+      width: 12px;
+      height: 12px;
+      background: var(--surface-2);
+      border-left: 1px solid var(--border-subtle);
+      border-top: 1px solid var(--border-subtle);
+      transform: rotate(45deg);
+    }
+    .learn-intro-tooltip p{
+      margin: 0 0 10px;
+      font-size: 11px;
+      line-height: 1.5;
+    }
+    .learn-intro-dismiss{
+      appearance:none;
+      border:1px solid var(--border-default);
+      background: var(--surface-1);
+      color: var(--text-primary);
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 10px;
+      font-weight: 700;
+      cursor:pointer;
     }
     .learn-subdeck-rail{
       background: var(--surface-1);
@@ -8085,6 +8209,9 @@ input[type="range"]::-moz-range-thumb{
     @media (max-width: 999px){
       #learn-tab-panel .learn-body{
         grid-template-columns: minmax(0,1fr);
+      }
+      .learn-main-empty{
+        padding: 24px;
       }
       .learn-rail-toggle{ display:inline-flex; align-items:center; }
       .learn-subdeck-rail{
@@ -9119,9 +9246,7 @@ input[type="range"]::-moz-range-thumb{
                   <div class="learn-main-top" id="learnMainTop">
                     <button type="button" class="learn-rail-toggle" id="learnRailToggle" aria-controls="learnSubDeckRail" aria-expanded="false" aria-label="Toggle sub-deck rail">☰ Sub-decks</button>
                   </div>
-                  <div class="empty-state learn-main-empty" id="learnTabEmptyState">
-                    <div class="empty-title">Pick a sub-deck from the rail to begin.</div>
-                  </div>
+                  <div class="learn-main-empty" id="learnTabEmptyState"></div>
                   <div id="learnSessionOv" class="learn-inline-surface" hidden>
                 <div class="modal">
                   <div class="modal-head">
@@ -9140,7 +9265,7 @@ input[type="range"]::-moz-range-thumb{
                       <span class="learn-mastery-chip-dot" aria-hidden="true"></span>
                       <span id="learnMasteryChipText">Mastery 0%</span>
                     </span>
-                    <button type="button" class="ghost-btn" id="learnSessionRegen" style="min-width:auto;padding:6px 10px;font-size:9px;letter-spacing:0.6px;text-transform:uppercase;">Regenerate plan</button>
+                    <button type="button" class="ghost-btn" id="learnSessionRegen" style="min-width:auto;padding:6px 10px;font-size:9px;letter-spacing:0.6px;text-transform:uppercase;"></button>
                   </div>
                   <div class="learn-stream-strip" id="learnSessionStreamStrip" role="status" aria-live="polite" hidden>
                     <span class="learn-stream-strip-dot" aria-hidden="true"></span>
@@ -9596,6 +9721,7 @@ input[type="range"]::-moz-range-thumb{
     import './src/learn-flow';
     import './src/learn-stats';
     import './src/learn-rail';
+    import { LEARN_EMPTY_HEADING, LEARN_EMPTY_BODY, LEARN_EMPTY_CTA, LEARN_EMPTY_LABEL_ENCODING, LEARN_EMPTY_LABEL_RETRIEVAL, LEARN_LANDING_STATUS_UNLEARNED, LEARN_LANDING_STATUS_TAUGHT, LEARN_LANDING_STATUS_CONSOLIDATED, LEARN_LANDING_CACHE_HIT, LEARN_LANDING_CACHE_MISS, LEARN_LANDING_START, LEARN_LANDING_REGEN, LEARN_REGEN_CONFIRM, LEARN_INTRO_TEXT, LEARN_INTRO_DISMISS, formatRelativeTime } from './src/learn-copy';
 
     globalThis.__studyEngineSubDecks = {
       loadSubDecks: loadSubDecks,
@@ -23042,7 +23168,14 @@ input[type="range"]::-moz-range-thumb{
         if (panel) panel.hidden = (id !== selected);
       });
       if (selected === 'learn') {
+        var courseName = el('cdTitle') ? el('cdTitle').textContent : '';
+        if (courseName && courseName !== '—') {
+          renderLearnMainSurface(courseName);
+          maybeShowLearnIntroTooltip();
+        }
         setTimeout(focusLearnPanelTarget, 0);
+      } else {
+        dismissLearnIntroTooltip();
       }
     }
 
@@ -23088,7 +23221,20 @@ input[type="range"]::-moz-range-thumb{
     /* Phase 4 streaming: references to the latest streaming-orchestration
        inputs so the Retry button can restart the SSE stream cleanly. */
     var lastLearnStreamArgs = null; /* { courseName, subDeckKey, userName, learnerContext } */
+    var learnLandingSelection = null; /* { courseName, subDeckKey } */
+    var learnIntroTooltipTimer = null;
+    var learnIntroDismissCleanup = null;
     var learnTeachReadTimer = { segmentId: null, startedAt: 0, recorded: false };
+
+    function setLearnLandingSelection(courseName, subDeckKey, persist) {
+      learnLandingSelection = (courseName && subDeckKey)
+        ? { courseName: String(courseName), subDeckKey: String(subDeckKey) }
+        : null;
+      if (!state.ui || typeof state.ui !== 'object') state.ui = {};
+      if (!state.ui.learnSelectedSubDeck || typeof state.ui.learnSelectedSubDeck !== 'object') state.ui.learnSelectedSubDeck = {};
+      if (courseName && subDeckKey) state.ui.learnSelectedSubDeck[String(courseName)] = String(subDeckKey);
+      if (persist) saveState();
+    }
 
     function renderLearnStatsForCourse(courseName) {
       var root = el('learnStatsRoot');
@@ -23096,7 +23242,7 @@ input[type="range"]::-moz-range-thumb{
       if (!root || !bridge || typeof bridge.computeLearnStats !== 'function' || typeof bridge.renderLearnStats !== 'function') return;
       var stats = bridge.computeLearnStats(state, String(courseName || ''));
       bridge.renderLearnStats(root, stats);
-      renderLearnRailForCourse(courseName);
+      renderLearnMainSurface(courseName);
     }
 
     function setLearnRailOpen(nextOpen) {
@@ -23113,6 +23259,174 @@ input[type="range"]::-moz-range-thumb{
       var bridge = globalThis.__studyEngineLearnRail;
       if (!rail || !bridge || typeof bridge.renderLearnSubDeckRail !== 'function') return;
       bridge.renderLearnSubDeckRail(rail, String(courseName || ''), state);
+    }
+
+
+    function escapeLearnText(input) {
+      return String(input == null ? '' : input)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function renderLearnEmptyState() {
+      var emptyState = el('learnTabEmptyState');
+      if (!emptyState) return;
+      emptyState.innerHTML = ''
+        + '<div class="learn-empty-pedagogy">'
+        + '<svg class="learn-empty-illustration" viewBox="0 0 360 160" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
+        + '<circle cx="138" cy="78" r="54" fill="none" stroke="currentColor" stroke-width="2"></circle>'
+        + '<circle cx="222" cy="78" r="54" fill="none" stroke="currentColor" stroke-width="2"></circle>'
+        + '<path d="M180 24a54 54 0 0 0 0 108a54 54 0 0 0 0-108Z" fill="var(--accent-primary)" fill-opacity="0.2" stroke="none"></path>'
+        + '<text x="96" y="150" text-anchor="middle" fill="currentColor" font-size="14" font-weight="600">' + escapeLearnText(LEARN_EMPTY_LABEL_ENCODING) + '</text>'
+        + '<text x="264" y="150" text-anchor="middle" fill="currentColor" font-size="14" font-weight="600">' + escapeLearnText(LEARN_EMPTY_LABEL_RETRIEVAL) + '</text>'
+        + '</svg>'
+        + '<h2>' + escapeLearnText(LEARN_EMPTY_HEADING) + '</h2>'
+        + '<p class="learn-empty-body">' + escapeLearnText(LEARN_EMPTY_BODY) + '</p>'
+        + '<p class="learn-empty-cta">' + escapeLearnText(LEARN_EMPTY_CTA) + '</p>'
+        + '</div>';
+      emptyState.hidden = false;
+    }
+
+    function getLearnLandingCounts(courseName, subDeckKey) {
+      var bridge = globalThis.__studyEngineLearnRail;
+      if (bridge && typeof bridge.getSubDeckLearnCounts === 'function') {
+        return bridge.getSubDeckLearnCounts(state, String(courseName || ''), String(subDeckKey || ''));
+      }
+      return { consolidated: 0, taught: 0, unlearned: 0, total: 0 };
+    }
+
+    function renderLearnSubDeckLanding(courseName, subDeckKey) {
+      var emptyState = el('learnTabEmptyState');
+      if (!emptyState) return;
+      var modeBridge = globalThis.__studyEngineLearnMode;
+      var entries = (modeBridge && typeof modeBridge.getCourseSubDeckEntries === 'function')
+        ? modeBridge.getCourseSubDeckEntries(String(courseName || ''), state)
+        : [];
+      var entry = entries.find(function(item){ return item && item.key === subDeckKey; });
+      var subDeckName = entry && entry.meta && entry.meta.name ? entry.meta.name : subDeckKey;
+      var counts = getLearnLandingCounts(courseName, subDeckKey);
+      var fingerprintMeta = buildLearnPlanFingerprint(courseName, subDeckKey, Object.keys(state.items || {}).map(function(id){ return state.items[id]; }));
+      var cache = getCourseLearnPlanEntry(courseName, subDeckKey);
+      var hasCache = !!(cache && (cache.fingerprint === fingerprintMeta.fingerprint || isStrictSubsetCacheHit(cache, fingerprintMeta.cardIds, fingerprintMeta.courseContextHash)));
+      var cacheLine = hasCache
+        ? LEARN_LANDING_CACHE_HIT(formatRelativeTime(Number(cache.generatedAt || 0)))
+        : LEARN_LANDING_CACHE_MISS;
+      emptyState.innerHTML = ''
+        + '<div class="learn-subdeck-landing">'
+        + '<h3>' + escapeLearnText(subDeckName) + '</h3>'
+        + '<p class="learn-subdeck-status">' + Number(counts.unlearned || 0) + ' ' + escapeLearnText(LEARN_LANDING_STATUS_UNLEARNED) + ' · ' + Number(counts.taught || 0) + ' ' + escapeLearnText(LEARN_LANDING_STATUS_TAUGHT) + ' · ' + Number(counts.consolidated || 0) + ' ' + escapeLearnText(LEARN_LANDING_STATUS_CONSOLIDATED) + '</p>'
+        + '<p class="learn-subdeck-cache-status">' + escapeLearnText(cacheLine) + '</p>'
+        + '<div class="learn-subdeck-actions">'
+        + '<button type="button" class="learn-start-btn primary" id="learnLandingStartBtn">' + escapeLearnText(LEARN_LANDING_START) + '</button>'
+        + (hasCache ? '<button type="button" class="learn-regen-btn secondary" id="learnLandingRegenBtn">' + escapeLearnText(LEARN_LANDING_REGEN) + '</button>' : '')
+        + '</div>'
+        + '</div>';
+      emptyState.hidden = false;
+      var startBtn = el('learnLandingStartBtn');
+      if (startBtn) startBtn.onclick = function() {
+        var args = getLearnStreamArgsForSubDeck(courseName, subDeckKey, {});
+        startLearnPlanStreaming(args.courseName, args.subDeckKey, args.allItems, args.userName, args.learnerContext, args.opts);
+      };
+      var regenBtn = el('learnLandingRegenBtn');
+      if (regenBtn) regenBtn.onclick = function() {
+        triggerLearnPlanRegeneration(getLearnStreamArgsForSubDeck(courseName, subDeckKey, {}));
+      };
+    }
+
+    function getLearnStreamArgsForSubDeck(courseName, subDeckKey, opts) {
+      return {
+        courseName: courseName,
+        subDeckKey: subDeckKey,
+        allItems: Object.keys(state.items || {}).map(function(id){ return state.items[id]; }).filter(function(item){
+          return item && item.course === courseName && item.subDeck === subDeckKey;
+        }),
+        userName: settings.userName || '',
+        learnerContext: '',
+        opts: opts || {}
+      };
+    }
+
+    function triggerLearnPlanRegeneration(args) {
+      if (!args) return;
+      var ok = window.confirm(LEARN_REGEN_CONFIRM);
+      if (!ok) return;
+      closeLearnSessionImmediate();
+      startLearnPlanStreaming(args.courseName, args.subDeckKey, args.allItems, args.userName, args.learnerContext, {
+        forceRegenerate: true
+      });
+    }
+
+    function renderLearnMainSurface(courseName) {
+      if (activeLearnSession) return;
+      if (learnLandingSelection && learnLandingSelection.courseName === courseName) {
+        renderLearnSubDeckLanding(courseName, learnLandingSelection.subDeckKey);
+      } else {
+        renderLearnEmptyState();
+      }
+      renderLearnRailForCourse(courseName);
+    }
+
+    function dismissLearnIntroTooltip() {
+      if (learnIntroTooltipTimer) {
+        clearTimeout(learnIntroTooltipTimer);
+        learnIntroTooltipTimer = null;
+      }
+      var tip = document.querySelector('.learn-intro-tooltip');
+      if (tip && tip.parentNode) tip.parentNode.removeChild(tip);
+      if (typeof learnIntroDismissCleanup === 'function') {
+        learnIntroDismissCleanup();
+        learnIntroDismissCleanup = null;
+      }
+      if (!state.ui || typeof state.ui !== 'object') state.ui = {};
+      if (!state.ui.seenLearnIntro) {
+        state.ui.seenLearnIntro = true;
+        saveState();
+      }
+    }
+
+    function maybeShowLearnIntroTooltip() {
+      if (!state.ui || typeof state.ui !== 'object') state.ui = {};
+      if (state.ui.seenLearnIntro) return;
+      if (learnIntroTooltipTimer) clearTimeout(learnIntroTooltipTimer);
+      learnIntroTooltipTimer = setTimeout(function() {
+        var tab = el('learn-tab');
+        if (!tab) return;
+        if (tab.getAttribute('aria-selected') !== 'true') return;
+        dismissLearnIntroTooltip();
+        var rect = tab.getBoundingClientRect();
+        var tip = document.createElement('div');
+        tip.className = 'learn-intro-tooltip';
+        tip.setAttribute('role', 'dialog');
+        tip.setAttribute('aria-labelledby', 'learn-intro-title');
+        tip.innerHTML = '<p id="learn-intro-title">' + escapeLearnText(LEARN_INTRO_TEXT) + '</p>'
+          + '<button type="button" class="learn-intro-dismiss">' + escapeLearnText(LEARN_INTRO_DISMISS) + '</button>';
+        document.body.appendChild(tip);
+        var tipRect = tip.getBoundingClientRect();
+        var top = rect.bottom + 10;
+        var left = Math.min(window.innerWidth - tipRect.width - 12, Math.max(12, rect.left + (rect.width / 2) - (tipRect.width / 2)));
+        tip.style.top = Math.round(top) + 'px';
+        tip.style.left = Math.round(left) + 'px';
+        var arrowLeft = Math.max(14, Math.min(tipRect.width - 18, (rect.left + rect.width / 2) - left));
+        tip.style.setProperty('--learn-intro-arrow-left', Math.round(arrowLeft) + 'px');
+
+        var outsideHandler = function(evt) {
+          if (!tip.contains(evt.target)) dismissLearnIntroTooltip();
+        };
+        var escHandler = function(evt) {
+          if (evt.key === 'Escape') dismissLearnIntroTooltip();
+        };
+        document.addEventListener('mousedown', outsideHandler, true);
+        document.addEventListener('keydown', escHandler, true);
+        var btn = tip.querySelector('.learn-intro-dismiss');
+        if (btn) btn.addEventListener('click', function(){ dismissLearnIntroTooltip(); });
+        learnIntroDismissCleanup = function() {
+          document.removeEventListener('mousedown', outsideHandler, true);
+          document.removeEventListener('keydown', escHandler, true);
+        };
+      }, 400);
     }
 
     function currentLearnSegmentRef() {
@@ -23683,6 +23997,7 @@ input[type="range"]::-moz-range-thumb{
       var input = el('learnSessionInput');
       var staleBadge = el('learnPlanStaleBadge');
       var regenBtn = el('learnSessionRegen');
+      if (regenBtn) regenBtn.textContent = LEARN_LANDING_REGEN;
       if (input && !input.__learnReadTimerWired) {
         input.addEventListener('focus', recordTeachReadTimerOnce, { once: false });
         input.addEventListener('input', recordTeachReadTimerOnce, { once: false });
@@ -24093,6 +24408,7 @@ input[type="range"]::-moz-range-thumb{
        Replaces the legacy `generateLearnPlan + openLearnSession` callsite.
        Modal does NOT mount until the first segment event arrives. */
     function startLearnPlanStreaming(courseName, subDeckKey, allItems, userName, learnerContext, opts) {
+      setLearnLandingSelection(courseName, subDeckKey, true);
       var flowBridge = globalThis.__studyEngineLearnFlow;
       var modeBridge = globalThis.__studyEngineLearnMode;
       if (!flowBridge || !modeBridge || typeof modeBridge.streamLearnPlan !== 'function'
@@ -24421,7 +24737,7 @@ input[type="range"]::-moz-range-thumb{
       state.learnSession = null;
       activeLearnSession = null;
       learnSummaryState = null;
-      if (_lastCourse) renderLearnRailForCourse(_lastCourse);
+      if (_lastCourse) renderLearnMainSurface(_lastCourse);
       setLearnRailOpen(false);
       try { playClick(); } catch(e) {}
     }
@@ -24525,7 +24841,10 @@ input[type="range"]::-moz-range-thumb{
             return;
           }
           if (activeLearnSession) closeLearnSessionImmediate();
-          triggerCourseLearnSubDeck(courseName, key);
+          setLearnLandingSelection(courseName, key, true);
+          selectedSubDeck = key;
+          setActiveCourseTab(courseName, 'learn');
+          renderLearnMainSurface(courseName);
           setLearnRailOpen(false);
         });
       }
@@ -24534,23 +24853,8 @@ input[type="range"]::-moz-range-thumb{
       if (exitBtn) exitBtn.addEventListener('click', function(){ closeLearnSession(false); });
       if (regenBtn) regenBtn.addEventListener('click', function() {
         if (!activeLearnSession) return;
-        /* TODO: replace with project-wide non-blocking confirm primitive when available. */
-        var ok = window.confirm('Regenerate the learning plan for this sub-deck? (uses API tokens)');
-        if (!ok) return;
-        var args = lastLearnStreamArgs || {
-          courseName: activeLearnSession.courseName,
-          subDeckKey: activeLearnSession.flow.subDeck,
-          allItems: Object.keys(state.items || {}).map(function(id){ return state.items[id]; }).filter(function(item){
-            return item && item.course === activeLearnSession.courseName && item.subDeck === activeLearnSession.flow.subDeck;
-          }),
-          userName: settings.userName || '',
-          learnerContext: '',
-          opts: {}
-        };
-        closeLearnSessionImmediate();
-        startLearnPlanStreaming(args.courseName, args.subDeckKey, args.allItems, args.userName, args.learnerContext, {
-          forceRegenerate: true
-        });
+        var args = lastLearnStreamArgs || getLearnStreamArgsForSubDeck(activeLearnSession.courseName, activeLearnSession.flow.subDeck, {});
+        triggerLearnPlanRegeneration(args);
       });
       if (retry) retry.addEventListener('click', function(){
         if (!activeLearnSession) return;
@@ -24623,9 +24927,10 @@ input[type="range"]::-moz-range-thumb{
 
     function triggerCourseLearnSubDeck(courseName, subDeckKey) {
       selectedSubDeck = subDeckKey;
+      setLearnLandingSelection(courseName, subDeckKey, true);
       openCourseDetail(courseName);
       setActiveCourseTab(courseName, 'learn');
-      setTimeout(function(){ var learnBtn = el('cdLearnSubDeck'); if (learnBtn) learnBtn.click(); else toast('Could not start Learn for that sub-deck'); }, 0);
+      setTimeout(function(){ renderLearnMainSurface(courseName); }, 0);
     }
 
     function handleCourseLearnClick(course, allCourseItems) {
@@ -24918,14 +25223,9 @@ input[type="range"]::-moz-range-thumb{
 	              };
 	              var learnSubDeckBtn = el('cdLearnSubDeck');
 	              if (learnSubDeckBtn) learnSubDeckBtn.onclick = function() {
-	                /* Phase 4: stream the plan via SSE. Modal mounts on the first
-	                   segment event — see `startLearnPlanStreaming`. */
-	                if (!globalThis.__studyEngineLearnMode || typeof globalThis.__studyEngineLearnMode.streamLearnPlan !== 'function') {
-	                  toast('Learn mode unavailable.');
-	                  return;
-	                }
+                  setLearnLandingSelection(courseName, selectedSubDeck, true);
                   setActiveCourseTab(courseName, 'learn');
-	                startLearnPlanStreaming(courseName, selectedSubDeck, selectedCards, settings.userName || '', '');
+                  renderLearnMainSurface(courseName);
 	              };
 	            } else {
 	              cdSubDeckAction.style.display = 'none';

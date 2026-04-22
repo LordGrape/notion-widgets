@@ -53,7 +53,7 @@ export function renderLearnSubDeckRail(root: HTMLElement, courseId: string, stat
 function buildEntries(state: AppState, courseId: string): SubDeckRailEntry[] {
   const source = getCourseSubDeckEntries(courseId, state);
   return source.map((entry) => {
-    const counts = countLearnStatesForSubDeck(state, courseId, entry.key);
+    const counts = getSubDeckLearnCounts(state, courseId, entry.key);
     return {
       key: entry.key,
       name: String(entry.meta.name || entry.key),
@@ -66,7 +66,7 @@ function getCourseItems(state: AppState, courseId: string): StudyItem[] {
   return Object.values(state?.items || {}).filter((item): item is StudyItem => !!item && item.course === courseId);
 }
 
-function countLearnStatesForSubDeck(state: AppState, courseId: string, subDeckKey: string): SubDeckRailCounts {
+export function getSubDeckLearnCounts(state: AppState, courseId: string, subDeckKey: string): SubDeckRailCounts {
   let consolidated = 0;
   let taught = 0;
   let unlearned = 0;
@@ -87,8 +87,11 @@ function countLearnStatesForSubDeck(state: AppState, courseId: string, subDeckKe
 
 function getActiveSubDeck(state: AppState, courseId: string): string | null {
   const ls = state.learnSession;
-  if (!ls || ls.course !== courseId || !ls.subDeck) return null;
-  return String(ls.subDeck);
+  if (ls && ls.course === courseId && ls.subDeck) {
+    return String(ls.subDeck);
+  }
+  const selected = state?.ui?.learnSelectedSubDeck?.[courseId];
+  return selected ? String(selected) : null;
 }
 
 function buildRailHtml(
@@ -191,5 +194,6 @@ function escapeHtml(input: string): string {
 }
 
 (globalThis as typeof globalThis & { __studyEngineLearnRail?: Record<string, unknown> }).__studyEngineLearnRail = {
-  renderLearnSubDeckRail
+  renderLearnSubDeckRail,
+  getSubDeckLearnCounts
 };
