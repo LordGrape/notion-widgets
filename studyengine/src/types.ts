@@ -120,6 +120,11 @@ export interface FSRSState {
   state: 'new' | 'learning' | 'review' | 'relearning';
 }
 
+export interface ReviewEvent {
+  at: number;
+  rating: 1 | 2 | 3 | 4;
+}
+
 
 
 export interface SubDeckMeta {
@@ -156,6 +161,7 @@ export interface StudyItem {
   forceNextQF?: boolean;
   forceNextQFOrigin?: 'learn' | 'review';
   fsrs: FSRSState;
+  reviewLog?: ReviewEvent[];
   tags?: string[];
   notes?: string;
   created: string;

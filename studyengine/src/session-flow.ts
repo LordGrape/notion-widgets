@@ -573,6 +573,7 @@ function scheduleRatingAndAdvance(
     it.forceNextQF = false;
   }
   const res = bridge.scheduleFsrs(it, mappedRating, nowTs, true);
+  appendReviewLogEvent(it, mappedRating, nowTs);
   const effectiveBonus = bridge.getEffectiveBloomBonus(it.course);
   if (mappedRating >= 3 && effectiveBonus[tier]) {
     const bonus = effectiveBonus[tier] as number;
@@ -614,6 +615,15 @@ function scheduleRatingAndAdvance(
   };
   if (!opts.skipPostRatingUI) {
     bridge.mountAskTutor(mappedRating);
+  }
+}
+
+function appendReviewLogEvent(item: StudyItem, rating: Rating, at: number): void {
+  const reviewRating: 1 | 2 | 3 | 4 = rating;
+  if (!Array.isArray(item.reviewLog)) item.reviewLog = [];
+  item.reviewLog.push({ at, rating: reviewRating });
+  if (item.reviewLog.length > 50) {
+    item.reviewLog = item.reviewLog.slice(-50);
   }
 }
 
