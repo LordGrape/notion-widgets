@@ -8075,19 +8075,19 @@ input[type="range"]::-moz-range-thumb{
     .learn-insights{
       margin-bottom: 10px;
     }
-    .learn-tab-panel--session-active .learn-hero,
-    .learn-tab-panel--session-active .learn-insights,
-    .learn-tab-panel--session-active #learnSubDeckRail,
-    .learn-tab-panel--session-active #learnTabEmptyState {
+    body.learn-session-active #learn-tab-panel .learn-hero,
+    body.learn-session-active #learn-tab-panel .learn-insights,
+    body.learn-session-active #learn-tab-panel #learnSubDeckRail,
+    body.learn-session-active #learn-tab-panel #learnTabEmptyState {
       display: none !important;
     }
-    .learn-tab-panel--session-active .learn-session-host {
+    .learn-session-host.learn-session-host--active {
       max-width: 820px;
       margin: 24px auto;
       padding: 0 16px;
     }
     @media (max-width: 700px) {
-      .learn-tab-panel--session-active .learn-session-host {
+      .learn-session-host.learn-session-host--active {
         margin: 12px auto;
         padding: 0 12px;
       }
@@ -23632,11 +23632,17 @@ input[type="range"]::-moz-range-thumb{
       });
     }
 
-    function renderLearnMainSurface(courseName) {
+    function setLearnSessionSurfaceActive(isActive) {
+      var active = !!isActive;
       var learnPanel = el('learn-tab-panel');
-      if (learnPanel && !activeLearnSession) {
-        learnPanel.classList.remove('learn-tab-panel--session-active');
-      }
+      var ov = el('learnSessionOv');
+      if (learnPanel) learnPanel.classList.toggle('learn-tab-panel--session-active', active);
+      if (ov) ov.classList.toggle('learn-session-host--active', active);
+      document.body.classList.toggle('learn-session-active', active);
+    }
+
+    function renderLearnMainSurface(courseName) {
+      if (!activeLearnSession) setLearnSessionSurfaceActive(false);
       if (activeLearnSession) return;
       if (learnLandingSelection && learnLandingSelection.courseName === courseName) {
         renderLearnSubDeckLanding(courseName, learnLandingSelection.subDeckKey);
@@ -24738,6 +24744,7 @@ input[type="range"]::-moz-range-thumb{
         learnerContext: learnerContext,
         opts: opts
       };
+      setLearnSessionSurfaceActive(true);
 
       /* Create the session shell up-front. Modal is mounted immediately so the
          streaming strip (with percentage) is visible from the moment the user
@@ -24784,7 +24791,7 @@ input[type="range"]::-moz-range-thumb{
         if (inputEl) { inputEl.value = ''; inputEl.disabled = false; }
         renderLearnSessionUI();
         renderLearnRailForCourse(courseName);
-        if (window.gsap) {
+        if (window.gsap && !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
           try { gsap.fromTo(ov.querySelector('.modal'), { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' }); } catch(e) {}
         }
         setTimeout(function(){ if (inputEl) inputEl.focus(); }, 60);
@@ -24859,8 +24866,7 @@ input[type="range"]::-moz-range-thumb{
             } else {
               toast(message || 'Learn plan failed');
               learnTeachReadTimer = { segmentId: null, startedAt: 0, recorded: false };
-              var learnPanel = el('learn-tab-panel');
-              if (learnPanel) learnPanel.classList.remove('learn-tab-panel--session-active');
+              setLearnSessionSurfaceActive(false);
               activeLearnSession = null;
             }
             return;
@@ -24882,8 +24888,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     function openLearnSession(plan, courseName, subDeckKey, opts) {
-      var learnPanel = el('learn-tab-panel');
-      if (learnPanel) learnPanel.classList.add('learn-tab-panel--session-active');
+      setLearnSessionSurfaceActive(true);
       var flowBridge = globalThis.__studyEngineLearnFlow;
       if (!flowBridge) { toast('Learn mode unavailable.'); return; }
       var segments = (plan && plan.segments) || [];
@@ -24920,15 +24925,14 @@ input[type="range"]::-moz-range-thumb{
       if (input) { input.value = ''; input.disabled = false; }
       renderLearnSessionUI();
       renderLearnRailForCourse(courseName);
-      if (window.gsap) {
+      if (window.gsap && !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
         try { gsap.fromTo(ov.querySelector('.modal'), { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' }); } catch(e) {}
       }
       setTimeout(function(){ if (input) input.focus(); }, 60);
     }
 
     function closeLearnSessionImmediate() {
-      var learnPanel = el('learn-tab-panel');
-      if (learnPanel) learnPanel.classList.remove('learn-tab-panel--session-active');
+      setLearnSessionSurfaceActive(false);
       var ov = el('learnSessionOv');
       var input = el('learnSessionInput');
       /* Phase B telemetry: if the session is being torn down before reaching
@@ -25055,8 +25059,7 @@ input[type="range"]::-moz-range-thumb{
 
     function closeLearnSession(force) {
       if (!el('learnSessionOv')) {
-        var learnPanel = el('learn-tab-panel');
-        if (learnPanel) learnPanel.classList.remove('learn-tab-panel--session-active');
+        setLearnSessionSurfaceActive(false);
         activeLearnSession = null;
         return;
       }
