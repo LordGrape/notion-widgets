@@ -75,6 +75,40 @@ function verifySegmentGrounding(segment: LearnPlanSegment, corpus: Record<string
 const BANNED_TEACH_OPENERS_RE =
   /^\s*(let['\u2019]?s|can you|what (is|are|do|does|was|were|did)\b|how (do|does|can|should) you|think about|consider|imagine|picture|recall|tell me|describe|explain to)\b/i;
 
+/**
+ * Phase A1: banned meta-phrases inside a teach block.
+ *
+ * After the 2026-04-22 teach-block leak report, production teach bodies
+ * were found to contain pedagogy-describing prose like
+ *   "Read the answer carefully before attempting retrieval; the tutor
+ *    prompt below asks you to reconstruct it from memory using your own
+ *    words."
+ * That copy is legitimate English and passes every existing check
+ * (word count, no question mark, no banned opener) but teaches nothing
+ * about the card content. These substrings are matched case-insensitively
+ * anywhere in the teach body and route the segment through the same
+ * three-tier fallback as the banned-opener check.
+ */
+const BANNED_TEACH_META_PHRASES: string[] = [
+  'tutor prompt',
+  'prompt below',
+  'question below',
+  'attempt retrieval',
+  'attempt recall',
+  'reconstruct it from memory',
+  'reconstruct from memory',
+  'you will be asked',
+  'asks you to'
+];
+
+function containsBannedTeachMetaPhrase(teach: string): boolean {
+  const hay = teach.toLowerCase();
+  for (const phrase of BANNED_TEACH_META_PHRASES) {
+    if (hay.indexOf(phrase) >= 0) return true;
+  }
+  return false;
+}
+
 function countWords(s: string): number {
   const m = String(s || '').trim().match(/\S+/g);
   return m ? m.length : 0;
@@ -91,11 +125,59 @@ function verifySegmentTeach(seg: LearnPlanSegment): boolean {
   // list markers, backticks) before applying the opener regex.
   const stripped = teach.replace(/^[\s>#*_\-`]+/, '');
   if (BANNED_TEACH_OPENERS_RE.test(stripped)) return false;
+  // Phase A1: reject meta-instructional teach bodies (see constant above).
+  if (containsBannedTeachMetaPhrase(teach)) return false;
   return true;
 }
 
+/**
+ * Phase A3: tutor-prompt validator.
+ *
+ * Production tutor prompts were falling through to generic meta-summaries
+ * ("What is the core claim of this card?") which are not retrieval practice.
+ * A valid tutor prompt is a specific retrieval question that targets a
+ * concrete fact from the card content.
+ *
+ * Rejection rules (all case-insensitive for substring matches):
+ *   - trimmed length < 15 chars
+ *   - does not end in `?`
+ *   - contains any generic meta-summary phrase from the banlist
+ *
+ * Returns a discriminated object so callers can optionally log the reason
+ * (useful for post-deploy telemetry in Phase B).
+ */
+const BANNED_TUTOR_PROMPT_PHRASES: string[] = [
+  'core claim',
+  'main point',
+  'main idea',
+  'key takeaway',
+  'in your own words, what',
+  'summarize this card',
+  'summarise this card',
+  'what is this card about',
+  'what is the card about',
+  'describe this card',
+  'explain this card',
+  'what does this card teach'
+];
+
+export function verifySegmentTutorPrompt(tp: string): { ok: boolean; reason?: string } {
+  const trimmed = String(tp || '').trim();
+  if (trimmed.length < 15) return { ok: false, reason: 'too_short' };
+  if (!/\?\s*$/.test(trimmed)) return { ok: false, reason: 'no_question_mark' };
+  const lower = trimmed.toLowerCase();
+  for (const phrase of BANNED_TUTOR_PROMPT_PHRASES) {
+    if (lower.indexOf(phrase) >= 0) return { ok: false, reason: `banned_phrase:${phrase}` };
+  }
+  return { ok: true };
+}
+
 function filterVerifiedSegments(segments: LearnPlanSegment[], corpus: Record<string, string>): LearnPlanSegment[] {
-  return (segments || []).filter((seg) => verifySegmentGrounding(seg, corpus) && verifySegmentTeach(seg));
+  return (segments || []).filter((seg) => (
+    verifySegmentGrounding(seg, corpus)
+    && verifySegmentTeach(seg)
+    && verifySegmentTutorPrompt(String(seg?.tutorPrompt || '')).ok
+  ));
 }
 
 function verifyConsolidationQuestion(
@@ -130,13 +212,36 @@ function filterVerifiedConsolidationQuestions(
   return (questions || []).filter((q) => verifyConsolidationQuestion(q, corpus));
 }
 
+/**
+ * Build a card-specific tutor prompt for the density fallback. The goal is
+ * to produce a concrete retrieval question tied to the actual card front,
+ * not a meta-summary. Behaviour:
+ *   - If the front already ends in `?`, use it verbatim.
+ *   - Otherwise, strip a trailing period and wrap it so the learner is
+ *     prompted to answer from memory: "Using only what you have just read,
+ *     ${front}?"
+ * The result is guaranteed to end in `?` and avoids every banned phrase
+ * in BANNED_TUTOR_PROMPT_PHRASES.
+ */
+function buildFallbackTutorPrompt(front: string): string {
+  const trimmed = String(front || '').trim();
+  if (!trimmed) return 'Using only what you have just read, what fact did the card state?';
+  if (/\?\s*$/.test(trimmed)) return trimmed;
+  const withoutTrailingPunct = trimmed.replace(/[\s.!,;:]+$/, '');
+  return `Using only what you have just read, ${withoutTrailingPunct}?`;
+}
+
 function buildDensityFallback(cards: StudyCardInput[]): LearnPlanResponse {
   const maxCards = cards.slice(0, 5);
   const consolidationQuestions: ConsolidationQuestion[] = maxCards.slice(0, 3).map((card) => {
     const id = String(card.id || "");
     const answer = String(card.modelAnswer || card.prompt || "").trim().slice(0, 200);
+    const front = String(card.prompt || "").trim();
+    // Consolidation questions are separate from segment tutor prompts and are
+    // not gated by verifySegmentTutorPrompt, but we still avoid the
+    // "core claim" phrasing so the learner-facing copy stays consistent.
     return {
-      question: `What is the core claim of: ${String(card.prompt || "").slice(0, 80)}?`,
+      question: buildFallbackTutorPrompt(front.slice(0, 120)),
       answer,
       linkedCardIds: id ? [id] : []
     };
@@ -148,17 +253,19 @@ function buildDensityFallback(cards: StudyCardInput[]): LearnPlanResponse {
     // intended to satisfy the >=60-word teach validator (fallback segments
     // bypass that gate because they are locally constructed, not Gemini
     // output), but still legitimate declarative prose so the UI does not
-    // render a question in the Teach block.
+    // render a question in the Teach block, and free of the Phase A1
+    // banned meta-phrases so the learner is not told what is about to
+    // happen next.
     const teachBody = answer
-      ? `This segment covers the card "${prompt}". The grounded answer: ${answer}. Read the answer carefully before attempting retrieval; the tutor prompt below asks you to reconstruct it from memory using your own words.`
-      : `This segment covers the card "${prompt}". Study the prompt before attempting retrieval; the tutor prompt below asks you to reconstruct it from memory using your own words.`;
+      ? `This segment presents the card titled "${prompt}". The grounded content is as follows. ${answer}`
+      : `This segment presents the card titled "${prompt}".`;
     return {
       id: `fallback-${idx + 1}`,
       title: prompt ? prompt.slice(0, 80) : `Card ${idx + 1}`,
       mechanism: "worked_example",
       objective: "Ground first exposure using this card's core content.",
       teach: teachBody,
-      tutorPrompt: `In your own words, what is the core claim of this card?`,
+      tutorPrompt: buildFallbackTutorPrompt(prompt),
       expectedAnswer: answer || "",
       linkedCardIds: [String(card.id || `card-${idx + 1}`)],
       groundingSnippets: [
@@ -196,6 +303,7 @@ function buildSystemPrompt(): string {
     "- Must NOT be a question. Must NOT end with a question mark.",
     "- Must NOT open with 'Let's', 'Can you', 'What is/are/was/were/do/does/did', 'How do/does/can/should you', 'Think about', 'Consider', 'Imagine', 'Picture', 'Recall', 'Tell me', 'Describe', 'Explain to', or any second-person imperative or interrogative at the start.",
     "- Must teach BEFORE retrieval: state the facts clearly, then let the `tutorPrompt` field carry the Socratic question that asks the learner to reconstruct them.",
+    "- The teach block must teach the content directly. Do NOT describe the upcoming retrieval step, the tutor prompt, or the pedagogical structure. Do NOT use meta-phrases like 'read carefully', 'attempt retrieval', 'reconstruct from memory', 'in your own words', 'the tutor prompt below', 'you will be asked'. The learner will see your teach block and then a separate retrieval question. They do not need to be told this is about to happen.",
     "- Positive example: 'The Essex and Kent Scottish Regiment traces its origin to 1885, when the 21st Essex Battalion of Infantry was formed in Windsor, Ontario. It was redesignated several times through the late 19th and 20th centuries, absorbing the Kent Regiment in 1954 to become the unified Essex and Kent Scottish. The regiment's modern role is as a primary reserve infantry unit of the Canadian Army, headquartered in Windsor, with subunits across southwestern Ontario.'",
     "- Negative example (DO NOT emit): 'Let's encode this card from first principles. What is the core claim?'",
     "",
@@ -203,6 +311,7 @@ function buildSystemPrompt(): string {
     "- This is the Socratic question the learner answers AFTER reading `teach`.",
     "- Keep it brief (one or two sentences).",
     "- It is the only field that may end with a question mark.",
+    "- The tutor prompt must be a specific retrieval question targeting a concrete fact, date, name, mechanism, or relationship from the card content. Not a meta-summary. Good examples: 'When was the regiment founded?' 'What was its original name?' 'In which city is the regiment headquartered?' 'What battalion did the unit originate as?' Bad examples: 'What is the core claim?' 'Summarize this card.' 'In your own words, what is this about?'",
     "",
     "Also generate 3-5 consolidationQuestions that span ALL segments taught. Each question tests recall OR conceptual connection between segments.",
     "Each consolidation answer MUST be grounded: copy a verbatim substring from a supplied card modelAnswer or prompt. Unverifiable answers will be dropped.",
@@ -556,6 +665,7 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
           if (!seg || typeof seg !== "object") continue;
           if (!verifySegmentGrounding(seg, cardCorpus)) continue;
           if (!verifySegmentTeach(seg)) continue;
+          if (!verifySegmentTutorPrompt(String(seg.tutorPrompt || "")).ok) continue;
           if (emittedSegmentIds.has(String(seg.id))) continue;
           emittedSegmentIds.add(String(seg.id));
           emittedSegments.push(seg);
@@ -576,6 +686,7 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
         if (emittedSegmentIds.has(String(seg.id))) continue;
         if (!verifySegmentGrounding(seg, cardCorpus)) continue;
         if (!verifySegmentTeach(seg)) continue;
+        if (!verifySegmentTutorPrompt(String(seg.tutorPrompt || "")).ok) continue;
         emittedSegmentIds.add(String(seg.id));
         emittedSegments.push(seg);
         await emit.event("segment", seg);
