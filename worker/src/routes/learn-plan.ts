@@ -1,6 +1,6 @@
 import { getCorsHeaders } from "../cors";
 import { callGemini, extractGeminiText } from "../gemini";
-import type { Env, LearnPlanRequest, LearnPlanResponse, LearnPlanSegment, StudyCardInput } from "../types";
+import type { ConsolidationQuestion, Env, LearnPlanRequest, LearnPlanResponse, LearnPlanSegment, StudyCardInput } from "../types";
 import { parseJsonResponse } from "../utils/json";
 
 const LEARN_PLAN_CORS_HEADERS = {
@@ -58,8 +58,51 @@ function filterVerifiedSegments(segments: LearnPlanSegment[], corpus: Record<str
   return (segments || []).filter((seg) => verifySegmentGrounding(seg, corpus));
 }
 
+function verifyConsolidationQuestion(
+  question: ConsolidationQuestion,
+  corpus: Record<string, string>
+): boolean {
+  if (!question || typeof question !== "object") return false;
+  const q = String(question.question || "").trim();
+  const a = String(question.answer || "").trim();
+  if (!q || !a) return false;
+  const linked = Array.isArray(question.linkedCardIds) ? question.linkedCardIds : [];
+  if (linked.length === 0) return false;
+
+  // Answer must be substring-matched against at least one linked card corpus entry.
+  const anchor = a.length > 200 ? a.slice(0, 200) : a;
+  for (const cardId of linked) {
+    const source = corpus[String(cardId || "")];
+    if (!source) continue;
+    if (textHasAnchor(source, anchor)) return true;
+    // Also permit any shorter contiguous substring >= 40 chars that appears in card.
+    if (a.length >= 40) {
+      const norm = normalizeText(a);
+      const hay = normalizeText(source);
+      if (norm.length >= 40 && hay.indexOf(norm.slice(0, Math.min(160, norm.length))) >= 0) return true;
+    }
+  }
+  return false;
+}
+
+function filterVerifiedConsolidationQuestions(
+  questions: ConsolidationQuestion[],
+  corpus: Record<string, string>
+): ConsolidationQuestion[] {
+  return (questions || []).filter((q) => verifyConsolidationQuestion(q, corpus));
+}
+
 function buildDensityFallback(cards: StudyCardInput[]): LearnPlanResponse {
   const maxCards = cards.slice(0, 5);
+  const consolidationQuestions: ConsolidationQuestion[] = maxCards.slice(0, 3).map((card) => {
+    const id = String(card.id || "");
+    const answer = String(card.modelAnswer || card.prompt || "").trim().slice(0, 200);
+    return {
+      question: `What is the core claim of: ${String(card.prompt || "").slice(0, 80)}?`,
+      answer,
+      linkedCardIds: id ? [id] : []
+    };
+  }).filter((q) => q.answer && q.linkedCardIds.length > 0);
   const segments = maxCards.map((card, idx) => {
     const prompt = String(card.prompt || "").trim();
     const answer = String(card.modelAnswer || "").trim();
@@ -79,7 +122,7 @@ function buildDensityFallback(cards: StudyCardInput[]): LearnPlanResponse {
       ]
     } as LearnPlanSegment;
   });
-  return { segments, planMode: "card_density_fallback" };
+  return { segments, consolidationQuestions, planMode: "card_density_fallback" };
 }
 
 function validateRequest(body: LearnPlanRequest): string | null {
@@ -99,6 +142,9 @@ function buildSystemPrompt(): string {
     "Each segment must include groundingSnippets with exact substrings copied from card prompt/modelAnswer.",
     "Use mechanisms from: worked_example, elaborative_interrogation, self_explanation, predictive_question, test_closure.",
     "At least 2 segments unless card count is 1.",
+    "Also generate 3-5 consolidationQuestions that span ALL segments taught. Each question tests recall OR conceptual connection between segments.",
+    "Each consolidation answer MUST be grounded: copy a verbatim substring from a supplied card modelAnswer or prompt. Unverifiable answers will be dropped.",
+    "Each consolidation question must list linkedCardIds referencing which cards the answer draws from.",
     "No markdown."
   ].join("\n");
 }
@@ -130,6 +176,13 @@ function buildUserPrompt(body: LearnPlanRequest): string {
     '      "expectedAnswer": "...",',
     '      "linkedCardIds": ["card-id"],',
     '      "groundingSnippets": [{ "cardId": "card-id", "quote": "exact substring" }]',
+    "    }",
+    "  ],",
+    '  "consolidationQuestions": [',
+    "    {",
+    '      "question": "...",',
+    '      "answer": "verbatim substring from a linked card modelAnswer or prompt",',
+    '      "linkedCardIds": ["card-id"]',
     "    }",
     "  ]",
     "}"
@@ -171,9 +224,21 @@ async function requestPlan(body: LearnPlanRequest, env: Env): Promise<LearnPlanR
           },
           required: ["id", "title", "mechanism", "objective", "tutorPrompt", "expectedAnswer", "linkedCardIds", "groundingSnippets"]
         }
+      },
+      consolidationQuestions: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            question: { type: "string" },
+            answer: { type: "string" },
+            linkedCardIds: { type: "array", items: { type: "string" } }
+          },
+          required: ["question", "answer", "linkedCardIds"]
+        }
       }
     },
-    required: ["segments"]
+    required: ["segments", "consolidationQuestions"]
   };
 
   const geminiData = await callGemini(
@@ -207,19 +272,44 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
 
     const firstAttempt = await requestPlan(body, env);
     const verifiedFirst = filterVerifiedSegments(firstAttempt?.segments || [], cardCorpus);
-    if (verifiedFirst.length >= 2) {
-      return jsonResponse({ segments: verifiedFirst, planMode: "verified" }, 200);
+    const verifiedFirstQs = filterVerifiedConsolidationQuestions(firstAttempt?.consolidationQuestions || [], cardCorpus);
+    if (verifiedFirst.length >= 2 && verifiedFirstQs.length >= 2) {
+      return jsonResponse({ segments: verifiedFirst, consolidationQuestions: verifiedFirstQs, planMode: "verified" }, 200);
     }
 
     console.warn("[learn-plan] first attempt failed grounding threshold", {
       requested: (firstAttempt?.segments || []).length,
-      verified: verifiedFirst.length
+      verified: verifiedFirst.length,
+      questionsRequested: (firstAttempt?.consolidationQuestions || []).length,
+      questionsVerified: verifiedFirstQs.length
     });
 
     const secondAttempt = await requestPlan(body, env);
     const verifiedSecond = filterVerifiedSegments(secondAttempt?.segments || [], cardCorpus);
+    const verifiedSecondQs = filterVerifiedConsolidationQuestions(secondAttempt?.consolidationQuestions || [], cardCorpus);
+    if (verifiedSecond.length >= 2 && verifiedSecondQs.length >= 2) {
+      return jsonResponse({ segments: verifiedSecond, consolidationQuestions: verifiedSecondQs, planMode: "retry_verified" }, 200);
+    }
+
+    // Partial-success fallback: if segments verified but questions did not, still return the segments
+    // (client will proceed without consolidation — not ideal but better than blocking). Questions-only
+    // failure on both attempts with segments passing gets the best surviving segments + whatever
+    // questions verified (may be 0-1).
     if (verifiedSecond.length >= 2) {
-      return jsonResponse({ segments: verifiedSecond, planMode: "retry_verified" }, 200);
+      return jsonResponse({
+        segments: verifiedSecond,
+        consolidationQuestions: verifiedSecondQs,
+        planMode: "retry_verified",
+        warning: verifiedSecondQs.length < 2 ? "Fewer than 2 consolidation questions verified." : undefined
+      }, 200);
+    }
+    if (verifiedFirst.length >= 2) {
+      return jsonResponse({
+        segments: verifiedFirst,
+        consolidationQuestions: verifiedFirstQs,
+        planMode: "verified",
+        warning: verifiedFirstQs.length < 2 ? "Fewer than 2 consolidation questions verified." : undefined
+      }, 200);
     }
 
     console.warn("[learn-plan] retry failed, using card-density fallback", {

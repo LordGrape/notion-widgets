@@ -8090,6 +8090,241 @@ input[type="range"]::-moz-range-thumb{
       .learn-actions .learn-submit-btn{ width: 100%; min-width: 0; }
     }
 
+    /* ── CSS SECTION: Learn Session Phase 3 (consolidation, summary, polish) ── */
+    /* Teach / Your-Turn split (UI polish 1) */
+    .learn-card-block{
+      background: var(--surface-1);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 14px 14px 12px;
+      margin-bottom: 16px;
+    }
+    .learn-card-block:last-child{ margin-bottom: 0; }
+    .learn-card-block-label{
+      display: inline-block;
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin-bottom: 8px;
+    }
+    .learn-card-block.learn-yourturn .learn-card-block-label{ color: var(--accent); }
+
+    /* Continuous progress bar replacing 5-dot cluster (UI polish 2) */
+    .learn-progress-bar{
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 140px;
+      flex-shrink: 1;
+    }
+    .learn-progress-bar-track{
+      flex: 1 1 auto;
+      height: 4px;
+      background: var(--surface-2, rgba(0,0,0,0.08));
+      border-radius: 999px;
+      overflow: hidden;
+      position: relative;
+      min-width: 80px;
+    }
+    .learn-progress-bar-fill{
+      height: 100%;
+      background: var(--accent);
+      border-radius: 999px;
+      transition: width 0.35s cubic-bezier(.2,.9,.3,1);
+    }
+    .learn-progress-bar-fill.consol{
+      background: linear-gradient(90deg, var(--accent) 0%, #c4b5fd 100%);
+    }
+    .learn-progress-bar-label{
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      color: var(--text-tertiary);
+      white-space: nowrap;
+      min-width: 62px;
+      text-align: right;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .learn-progress-bar-fill{ transition: none; }
+    }
+
+    /* Keyboard hint row (UI polish 3) */
+    .learn-kbd-hint{
+      font-size: 9px;
+      color: var(--text-secondary);
+      letter-spacing: 0.4px;
+      margin: 6px 2px 0;
+      opacity: 0.8;
+    }
+    .learn-kbd-hint kbd{
+      display: inline-block;
+      padding: 1px 5px;
+      border-radius: 4px;
+      border: 1px solid var(--border-subtle);
+      background: var(--surface-1);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 9px;
+      color: var(--text-secondary);
+    }
+
+    /* Consolidation battery pane */
+    .learn-consol-pane{
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .learn-consol-question{
+      font-size: 14px;
+      line-height: 1.5;
+      font-weight: 600;
+      color: var(--text);
+      padding: 4px 2px;
+    }
+    .learn-consol-reveal-btn{
+      appearance: none;
+      align-self: flex-start;
+      border: 1px dashed rgba(var(--accent-rgb),0.35);
+      background: transparent;
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 8px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background var(--transition), border-color var(--transition);
+    }
+    .learn-consol-reveal-btn:hover{
+      background: rgba(var(--accent-rgb),0.08);
+      border-style: solid;
+    }
+    .learn-consol-answer{
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text);
+      background: rgba(var(--accent-rgb),0.05);
+      border-left: 3px solid var(--accent);
+      border-radius: 8px;
+      padding: 10px 14px;
+      overflow: hidden;
+    }
+    .learn-consol-rate{
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-top: 4px;
+      border-top: 1px solid var(--border-subtle);
+    }
+    .learn-consol-rate-label{
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+    .learn-consol-rate-row{
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .learn-consol-rate-row button{
+      appearance: none;
+      border: 1px solid var(--border-default);
+      background: var(--surface-1);
+      color: var(--text);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 12px 8px;
+      border-radius: 10px;
+      cursor: pointer;
+      min-height: 44px;
+      transition: background var(--transition), border-color var(--transition), transform var(--transition);
+    }
+    .learn-consol-rate-row button:hover{ transform: translateY(-1px); }
+    .learn-consol-rate-row .consol-rate-again{ color: var(--rate-again, #ef4444); border-color: rgba(239,68,68,0.35); }
+    .learn-consol-rate-row .consol-rate-hard{ color: var(--rate-hard, #f59e0b); border-color: rgba(245,158,11,0.35); }
+    .learn-consol-rate-row .consol-rate-good{ color: var(--rate-good, #10b981); border-color: rgba(16,185,129,0.35); }
+    .learn-consol-rate-row .consol-rate-easy{ color: var(--rate-easy, #3b82f6); border-color: rgba(59,130,246,0.35); }
+    .learn-consol-rate-row .consol-rate-again:hover{ background: rgba(239,68,68,0.10); }
+    .learn-consol-rate-row .consol-rate-hard:hover{ background: rgba(245,158,11,0.10); }
+    .learn-consol-rate-row .consol-rate-good:hover{ background: rgba(16,185,129,0.10); }
+    .learn-consol-rate-row .consol-rate-easy:hover{ background: rgba(59,130,246,0.10); }
+
+    /* Summary pane (post-consolidation) */
+    .learn-summary-pane{
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+      text-align: center;
+      padding: 12px 8px 4px;
+    }
+    .learn-summary-title{
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text);
+    }
+    .learn-summary-sub{
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .learn-summary-actions{
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .learn-summary-review-btn{
+      appearance: none;
+      border: none;
+      padding: 12px 22px;
+      border-radius: 12px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      min-height: 44px;
+      transition: transform var(--transition), box-shadow var(--transition);
+    }
+    .learn-summary-review-btn:hover{ transform: translateY(-1px); box-shadow: 0 10px 24px rgba(var(--accent-rgb),0.28); }
+    .learn-summary-done-btn{
+      appearance: none;
+      border: 1px solid var(--border-default);
+      background: var(--surface-1);
+      color: var(--text);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 10px 18px;
+      border-radius: 10px;
+      cursor: pointer;
+      min-height: 44px;
+    }
+
+    /* Learn-first badge (shown in session item cards when learnStatus==='unlearned') */
+    .learn-first-badge{
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(59,130,246,0.12);
+      color: #3b82f6;
+      border: 1px solid rgba(59,130,246,0.28);
+      margin-left: 6px;
+    }
+
+    /* Segment transition wrapper */
+    .learn-pane-anim-in{ will-change: transform, opacity; }
+
   </style>
 </head>
 <body>
@@ -8628,36 +8863,87 @@ input[type="range"]::-moz-range-thumb{
   <div class="overlay" id="courseLearnEmptyOv" aria-hidden="true"><div class="modal" style="max-width:520px;"><div class="modal-head"><span style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--text);">Learn course</span><button type="button" class="icon-btn" id="courseLearnEmptyClose" aria-label="Close"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg></button></div><div class="modal-body"><div id="courseLearnEmptyBody" style="font-size:11px;line-height:1.5;color:var(--text-secondary);"></div></div><div class="modal-actions"><button type="button" class="ghost-btn" id="courseLearnEmptyCancel">Cancel</button><button type="button" class="big-btn" id="courseLearnEmptyConfirm">Create &amp; Learn</button></div></div></div>
   <div class="overlay" id="courseLearnPickerOv" aria-hidden="true"><div class="modal" style="max-width:560px;"><div class="modal-head"><span style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--text);">Choose sub-deck to learn</span><button type="button" class="icon-btn" id="courseLearnPickerClose" aria-label="Close"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg></button></div><div class="modal-body"><div id="courseLearnPickerBody" style="max-height:min(56vh,360px);overflow-y:auto;"></div></div></div></div>
 
-  <!-- Learn session modal: replaces window.prompt()/window.confirm() UI -->
+  <!-- Learn session modal: multi-pane (tutor -> consolidation -> summary) -->
   <div class="overlay learn-ov" id="learnSessionOv" aria-hidden="true" role="dialog" aria-labelledby="learnSessionTitle" aria-modal="true">
     <div class="modal">
       <div class="modal-head">
         <div class="learn-head-copy">
-          <span class="learn-head-kicker">Learn</span>
+          <span class="learn-head-kicker" id="learnSessionKicker">Learn</span>
           <span class="learn-head-title" id="learnSessionTitle">Loading…</span>
         </div>
-        <div class="learn-progress" id="learnSessionProgress" aria-hidden="true"></div>
+        <!-- Continuous progress bar (UI polish 2). Shows 2 phases: segments + consolidation. -->
+        <div class="learn-progress-bar" id="learnSessionProgress" aria-hidden="true">
+          <div class="learn-progress-bar-track">
+            <div class="learn-progress-bar-fill" id="learnSessionProgressFill" style="width:0%"></div>
+          </div>
+          <span class="learn-progress-bar-label" id="learnSessionProgressLabel">0 / 0</span>
+        </div>
         <button type="button" class="icon-btn" id="learnSessionClose" aria-label="Close Learn session">
           <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>
         </button>
       </div>
-      <div class="learn-body">
-        <div class="learn-tutor" id="learnSessionTutor" aria-live="polite"></div>
+      <div class="learn-body" id="learnSessionBody">
+        <!-- Pane A: tutor turn (Teach + Your-Turn split, UI polish 1) -->
+        <div class="learn-tutor-pane" id="learnTutorPane">
+          <div class="learn-card-block learn-teach">
+            <div class="learn-card-block-label">Teach</div>
+            <div class="learn-tutor" id="learnSessionTutor" aria-live="polite"></div>
+          </div>
+          <div class="learn-card-block learn-yourturn">
+            <div class="learn-card-block-label">Your Turn</div>
+            <textarea class="learn-input" id="learnSessionInput" rows="3" placeholder="Type your response…" aria-label="Your response"></textarea>
+            <div class="learn-kbd-hint"><kbd>⌘/Ctrl</kbd> + <kbd>Enter</kbd> to submit · <kbd>Esc</kbd> to exit</div>
+            <div class="learn-caption" id="learnSessionCaption"></div>
+          </div>
+        </div>
+        <!-- Pane B: consolidation battery (Phase 3) -->
+        <div class="learn-consol-pane" id="learnConsolPane" hidden>
+          <div class="learn-consol-question" id="learnConsolQuestion"></div>
+          <button type="button" class="learn-consol-reveal-btn" id="learnConsolReveal">Show answer</button>
+          <div class="learn-consol-answer" id="learnConsolAnswer" hidden></div>
+          <div class="learn-consol-rate" id="learnConsolRate" hidden>
+            <div class="learn-consol-rate-label">How well did you know that?</div>
+            <div class="learn-consol-rate-row">
+              <button type="button" class="consol-rate-again" data-rating="1">Again</button>
+              <button type="button" class="consol-rate-hard" data-rating="2">Hard</button>
+              <button type="button" class="consol-rate-good" data-rating="3">Good</button>
+              <button type="button" class="consol-rate-easy" data-rating="4">Easy</button>
+            </div>
+          </div>
+        </div>
+        <!-- Pane C: summary -->
+        <div class="learn-summary-pane" id="learnSummaryPane" hidden>
+          <div class="learn-summary-title" id="learnSummaryTitle">You learned 0 concepts.</div>
+          <div class="learn-summary-sub" id="learnSummarySub">0 cards ready for review.</div>
+          <div class="learn-summary-actions">
+            <button type="button" class="learn-summary-review-btn" id="learnSummaryReview">Review now</button>
+            <button type="button" class="learn-summary-done-btn" id="learnSummaryDone">Done</button>
+          </div>
+        </div>
         <div class="learn-error" id="learnSessionError" role="alert">
           <span id="learnSessionErrorMsg"></span>
           <button type="button" class="learn-error-retry" id="learnSessionRetry">Retry</button>
         </div>
       </div>
-      <div class="learn-input-wrap">
-        <textarea class="learn-input" id="learnSessionInput" rows="3" placeholder="Type your response…" aria-label="Your response"></textarea>
-        <div class="learn-caption" id="learnSessionCaption"></div>
-      </div>
-      <div class="learn-actions">
+      <div class="learn-actions" id="learnSessionActions">
         <button type="button" class="learn-exit-btn" id="learnSessionExit">Exit</button>
         <button type="button" class="learn-submit-btn" id="learnSessionSubmit">
           <span class="learn-spinner" aria-hidden="true"></span>
           <span class="learn-submit-label">Submit</span>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm exit overlay for mid-consolidation abandon -->
+  <div class="confirm-overlay" id="confirmLearnExitOv">
+    <div class="confirm-box">
+      <div class="cb-icon"><svg width="28" height="28" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.5L1.5 13.5h13z"/><line x1="8" y1="6.5" x2="8" y2="9.5"/><circle cx="8" cy="11.5" r="0.5" fill="currentColor" stroke="none"/></svg></div>
+      <div class="cb-title" id="confirmLearnExitTitle">Exit before finishing calibration?</div>
+      <div class="cb-desc" id="confirmLearnExitDesc">Cards you just learned won't get reliable scheduling.</div>
+      <div class="cb-actions">
+        <button class="cb-stay" id="confirmLearnExitStay">Keep going</button>
+        <button class="cb-leave" id="confirmLearnExitLeave">Exit anyway</button>
       </div>
     </div>
   </div>
@@ -13058,6 +13344,19 @@ input[type="range"]::-moz-range-thumb{
         badge.id = 'metaPriority';
         badge.innerHTML = priorityBadgeHTML(it.priority);
         metaEl.appendChild(badge);
+      }
+      /* Phase 3: Learn-first blue badge for cards whose Learn handoff flagged them
+         as 'unlearned' (in topic pool but not yet covered by any completed Learn
+         segment). Non-blocking nudge — card is still reviewable. */
+      var existingLFBadge = document.getElementById('metaLearnFirst');
+      if (existingLFBadge) existingLFBadge.remove();
+      if (metaEl && it.learnStatus === 'unlearned') {
+        var lfBadge = document.createElement('span');
+        lfBadge.id = 'metaLearnFirst';
+        lfBadge.className = 'learn-first-badge';
+        lfBadge.title = 'This card was not covered by a Learn session yet.';
+        lfBadge.textContent = 'Learn first';
+        metaEl.appendChild(lfBadge);
       }
       el('metaTopic').textContent = it.topic || '—';
       el('courseHint').textContent = (selectedCourse === 'All') ? (it.course || '—') : selectedCourse;
@@ -22216,38 +22515,157 @@ input[type="range"]::-moz-range-thumb{
     }
 
     var activeLearnSession = null;
+    var learnSummaryState = null; /* { consolidated, taught, unlearned, handoffCount, courseName, subDeckKey } */
+
+    function prefersReducedMotion() {
+      try { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+      catch (e) { return false; }
+    }
 
     function updateLearnSubmitState() {
       var submit = el('learnSessionSubmit');
       var input = el('learnSessionInput');
       var label = submit ? submit.querySelector('.learn-submit-label') : null;
-      if (!activeLearnSession || !submit || !input) return;
+      var exit = el('learnSessionExit');
+      var actions = el('learnSessionActions');
+      if (!activeLearnSession || !submit) return;
       var phase = activeLearnSession.flow.phase;
-      var disabled = (phase === 'loading') || (phase === 'done') || !String(input.value || '').trim();
+
+      /* In consolidation + done phases the footer Submit/Exit row is hidden: rating + summary buttons drive UI. */
+      if (phase === 'consolidating' || phase === 'done') {
+        if (actions) actions.style.display = 'none';
+        return;
+      } else {
+        if (actions) actions.style.display = '';
+      }
+
+      var disabled = (phase === 'loading') || !String((input && input.value) || '').trim();
       submit.disabled = disabled;
       submit.classList.toggle('loading', phase === 'loading');
-      input.disabled = (phase === 'loading');
-      if (label) {
-        if (phase === 'loading') label.textContent = 'Sending…';
-        else if (phase === 'done') label.textContent = 'Finish';
-        else label.textContent = 'Submit';
-      }
+      if (input) input.disabled = (phase === 'loading');
+      if (label) label.textContent = (phase === 'loading') ? 'Sending…' : 'Submit';
+      if (exit) exit.textContent = 'Exit';
     }
 
     function renderLearnProgress() {
-      var host = el('learnSessionProgress');
-      if (!host || !activeLearnSession) return;
-      var segs = (activeLearnSession.flow.plan && activeLearnSession.flow.plan.segments) || [];
-      var idx = activeLearnSession.flow.segmentIndex;
-      var isDone = activeLearnSession.flow.phase === 'done';
-      var dots = '';
-      for (var i = 0; i < segs.length; i++) {
-        var cls = 'learn-progress-dot';
-        if (i < idx || (isDone && i === segs.length - 1)) cls += ' done';
-        else if (i === idx) cls += ' active';
-        dots += '<span class="' + cls + '"></span>';
+      if (!activeLearnSession) return;
+      var fill = el('learnSessionProgressFill');
+      var labelEl = el('learnSessionProgressLabel');
+      if (!fill || !labelEl) return;
+      var flow = activeLearnSession.flow;
+      var segs = (flow.plan && flow.plan.segments) || [];
+      var segTotal = segs.length || 1;
+      var qs = flow.consolidationQuestions || [];
+      var qTotal = qs.length;
+
+      /* Two-phase bar: segments -> consolidation. Each phase scales within its own half
+         proportional to its length; if only segments exist, segments get full width. */
+      var phase = flow.phase;
+      var segProgress = 0; /* 0..1 across segments */
+      if (phase === 'done' || phase === 'consolidating') {
+        segProgress = 1;
+      } else {
+        segProgress = Math.min(1, (flow.completedSegmentIds || []).length / segTotal);
       }
-      host.innerHTML = dots;
+
+      var consolProgress = 0; /* 0..1 across consolidation */
+      if (qTotal > 0) {
+        var rated = Object.keys(flow.consolidationRatings || {}).length;
+        consolProgress = Math.min(1, rated / qTotal);
+      }
+
+      /* Allocate bar width: if no questions, segments take 100%. If questions, split 60/40. */
+      var fillPct;
+      var isConsol = phase === 'consolidating' || (phase === 'done' && flow.consolidationFinished);
+      if (qTotal === 0) {
+        fillPct = Math.round(segProgress * 100);
+      } else {
+        var segShare = 60;
+        var consolShare = 40;
+        fillPct = Math.round(segProgress * segShare + consolProgress * consolShare);
+      }
+      fill.style.width = Math.max(0, Math.min(100, fillPct)) + '%';
+      fill.classList.toggle('consol', isConsol);
+
+      /* Label */
+      if (phase === 'consolidating') {
+        var currentQ = Math.min((flow.consolidationIdx || 0) + 1, qTotal);
+        labelEl.textContent = 'Check ' + currentQ + ' / ' + qTotal;
+      } else if (phase === 'done' && learnSummaryState) {
+        labelEl.textContent = 'Complete';
+      } else {
+        var stepIdx = Math.min(flow.segmentIndex + 1, segTotal);
+        labelEl.textContent = 'Step ' + stepIdx + ' / ' + segTotal;
+      }
+    }
+
+    function showLearnPane(which) {
+      var tutorP = el('learnTutorPane');
+      var consolP = el('learnConsolPane');
+      var sumP = el('learnSummaryPane');
+      if (tutorP) tutorP.hidden = (which !== 'tutor');
+      if (consolP) consolP.hidden = (which !== 'consol');
+      if (sumP) sumP.hidden = (which !== 'summary');
+    }
+
+    function animateLearnPaneSwap(fromEl, toEl, direction) {
+      /* UI polish 4: slide-left exit 180ms / slide-right enter 180ms.
+         prefers-reduced-motion guarded. */
+      if (!toEl) return;
+      if (prefersReducedMotion() || !window.gsap) {
+        if (fromEl) fromEl.style.transform = '';
+        toEl.style.transform = '';
+        toEl.style.opacity = '';
+        return;
+      }
+      var sign = direction === 'back' ? 1 : -1;
+      try {
+        if (fromEl) {
+          gsap.to(fromEl, { x: sign * 20, opacity: 0, duration: 0.18, ease: 'power2.in' });
+        }
+        gsap.fromTo(
+          toEl,
+          { x: -sign * 20, opacity: 0 },
+          { x: 0, opacity: 1, duration: 0.18, ease: 'power2.out', delay: 0.04 }
+        );
+      } catch (e) {}
+    }
+
+    function renderConsolidationPane() {
+      if (!activeLearnSession) return;
+      var flow = activeLearnSession.flow;
+      var qs = flow.consolidationQuestions || [];
+      var idx = flow.consolidationIdx || 0;
+      if (idx >= qs.length) return;
+      var q = qs[idx] || { question: '', answer: '' };
+      var questionEl = el('learnConsolQuestion');
+      var answerEl = el('learnConsolAnswer');
+      var revealBtn = el('learnConsolReveal');
+      var rateBox = el('learnConsolRate');
+      if (questionEl) questionEl.innerHTML = renderLearnMarkdownSafe(q.question || '');
+      if (answerEl) {
+        answerEl.innerHTML = renderLearnMarkdownSafe(q.answer || '');
+        answerEl.hidden = true;
+      }
+      if (revealBtn) {
+        revealBtn.hidden = false;
+        revealBtn.textContent = 'Show answer';
+      }
+      if (rateBox) rateBox.hidden = true;
+    }
+
+    function renderSummaryPane() {
+      if (!learnSummaryState) return;
+      var titleEl = el('learnSummaryTitle');
+      var subEl = el('learnSummarySub');
+      if (titleEl) {
+        var concepts = learnSummaryState.consolidated + learnSummaryState.taught;
+        titleEl.textContent = 'You learned ' + concepts + ' concept' + (concepts === 1 ? '' : 's') + '.';
+      }
+      if (subEl) {
+        var ready = learnSummaryState.consolidated + learnSummaryState.taught;
+        subEl.textContent = ready + ' card' + (ready === 1 ? '' : 's') + ' ready for review.';
+      }
     }
 
     function renderLearnSessionUI() {
@@ -22258,25 +22676,35 @@ input[type="range"]::-moz-range-thumb{
       var errorHost = el('learnSessionError');
       var errorMsg = el('learnSessionErrorMsg');
       var title = el('learnSessionTitle');
+      var kicker = el('learnSessionKicker');
       var input = el('learnSessionInput');
 
-      if (title) {
+      /* Kicker + title by phase */
+      var total = (flow.plan.segments || []).length || 1;
+      if (flow.phase === 'consolidating') {
+        if (kicker) kicker.textContent = 'Consolidation';
+        if (title) title.textContent = 'Quick check — what stuck?';
+      } else if (flow.phase === 'done' && learnSummaryState) {
+        if (kicker) kicker.textContent = 'Done';
+        if (title) title.textContent = 'Learn complete';
+      } else {
+        if (kicker) kicker.textContent = 'Learn';
         var seg = (flow.plan.segments || [])[flow.segmentIndex];
-        var total = (flow.plan.segments || []).length || 1;
         var stepIdx = Math.min(flow.segmentIndex + 1, total);
         var segTitle = seg ? String(seg.title || 'Segment') : '';
-        title.textContent = (flow.phase === 'done')
-          ? 'Learn complete'
-          : ('Step ' + stepIdx + ' of ' + total + (segTitle ? (' · ' + segTitle) : ''));
+        if (title) title.textContent = 'Step ' + stepIdx + ' of ' + total + (segTitle ? (' · ' + segTitle) : '');
       }
 
+      /* Tutor body */
       if (tutor) tutor.innerHTML = renderLearnMarkdownSafe(flow.tutorBody);
 
+      /* Caption */
       if (caption) {
         if (flow.phase === 'loading') { caption.textContent = 'Tutor is thinking…'; caption.classList.add('thinking'); }
         else { caption.textContent = ''; caption.classList.remove('thinking'); }
       }
 
+      /* Error */
       if (errorHost && errorMsg) {
         if (flow.phase === 'error') {
           errorMsg.textContent = flow.errorMessage || 'Something went wrong.';
@@ -22287,8 +22715,18 @@ input[type="range"]::-moz-range-thumb{
         }
       }
 
-      if (input && flow.phase === 'done') input.placeholder = 'Session complete. Press Finish to exit.';
-      else if (input) input.placeholder = 'Type your response…';
+      if (input) input.placeholder = 'Type your response…';
+
+      /* Pane switching */
+      if (flow.phase === 'consolidating') {
+        showLearnPane('consol');
+        renderConsolidationPane();
+      } else if (flow.phase === 'done' && learnSummaryState) {
+        showLearnPane('summary');
+        renderSummaryPane();
+      } else {
+        showLearnPane('tutor');
+      }
 
       renderLearnProgress();
       updateLearnSubmitState();
@@ -22314,19 +22752,79 @@ input[type="range"]::-moz-range-thumb{
       });
     }
 
-    function applyConsolidatedStatusForFlow(flow) {
-      if (!flow || !flow.plan) return;
-      var completedIds = flow.completedSegmentIds || [];
-      (flow.plan.segments || []).forEach(function(segment) {
-        if (!segment || completedIds.indexOf(segment.id) < 0) return;
-        (segment.linkedCardIds || []).forEach(function(cardId) {
-          var card = state.items[cardId];
-          if (card) {
-            card.learnStatus = 'consolidated';
-            if (card.consolidationRating == null) card.consolidationRating = 3;
-          }
+    /* Collect the topic-pool card ids for the Learn session (entire sub-deck) so the
+       handoff can flag orphans ('unlearned'). Uses the monolith's getCardsInSubDeck. */
+    function collectLearnTopicPool(courseName, subDeckKey) {
+      try {
+        var itemsBag = state && state.items ? state.items : {};
+        var items = Object.keys(itemsBag).map(function(id){ return itemsBag[id]; }).filter(Boolean);
+        var cards = getCardsInSubDeck(courseName, subDeckKey, items);
+        return cards.map(function(c){ return c && c.id ? String(c.id) : ''; }).filter(Boolean);
+      } catch (e) { return []; }
+    }
+
+    /* Fires the FSRS handoff, persists learnProgress/learnSessions, and hydrates
+       learnSummaryState for the summary screen. Returns handoff stats. */
+    function finalizeLearnHandoff() {
+      if (!activeLearnSession) return null;
+      var flowBridge = globalThis.__studyEngineLearnFlow;
+      var sessionFlowBridge = globalThis.__studyEngineSessionFlow;
+      if (!flowBridge || !sessionFlowBridge || !sessionFlowBridge.applyLearnHandoff) return null;
+
+      var flow = activeLearnSession.flow;
+      var courseName = activeLearnSession.courseName || flow.course;
+      var subDeckKey = flow.subDeck;
+      var topicPool = collectLearnTopicPool(courseName, subDeckKey);
+
+      var handoffMap = flowBridge.getFsrsHandoffPlan(flow, topicPool);
+      var now = Date.now();
+      var stats = sessionFlowBridge.applyLearnHandoff(handoffMap, now);
+
+      /* learnProgress metadata — keyed by topic if any card has one, else subDeck. */
+      try {
+        var linkedCardIds = [];
+        handoffMap.forEach(function(_entry, id) { linkedCardIds.push(id); });
+        var ratings = Object.keys(flow.consolidationRatings || {}).map(function(k){ return flow.consolidationRatings[k]; });
+        var avg = ratings.length ? (ratings.reduce(function(a,b){return a+b;}, 0) / ratings.length) : null;
+        /* Pick a representative topic: first segment title or subDeck key as fallback. */
+        var topicKey = subDeckKey || (flow.plan.segments && flow.plan.segments[0] && flow.plan.segments[0].title) || 'General';
+        sessionFlowBridge.writeLearnProgress && sessionFlowBridge.writeLearnProgress(courseName, String(topicKey), {
+          segmentsTotal: (flow.plan.segments || []).length,
+          segmentsCompleted: (flow.completedSegmentIds || []).length,
+          consolidationAvgRating: avg,
+          lastLearnedAt: new Date(now).toISOString(),
+          linkedCardIds: linkedCardIds
         });
-      });
+      } catch (e) { console.warn('[Learn] writeLearnProgress failed', e); }
+
+      /* Session record (capped at 30). */
+      try {
+        var topicsSet = {};
+        (flow.plan.segments || []).forEach(function(s){ if (s && s.title) topicsSet[s.title] = true; });
+        var ratingList = [];
+        Object.keys(flow.consolidationRatings || {}).forEach(function(k){ ratingList.push(flow.consolidationRatings[k]); });
+        var durationMs = Date.now() - (new Date(flow.startedAt).getTime() || now);
+        sessionFlowBridge.writeLearnSessionRecord && sessionFlowBridge.writeLearnSessionRecord({
+          course: courseName,
+          topics: Object.keys(topicsSet),
+          subDeck: subDeckKey,
+          segmentsCompleted: (flow.completedSegmentIds || []).length,
+          consolidationRatings: ratingList,
+          cardsHandedOff: stats.handedOff,
+          durationMs: Math.max(0, durationMs),
+          timestamp: new Date(now).toISOString()
+        });
+      } catch (e) { console.warn('[Learn] writeLearnSessionRecord failed', e); }
+
+      learnSummaryState = {
+        consolidated: stats.consolidated,
+        taught: stats.taught,
+        unlearned: stats.unlearned,
+        handoffCount: stats.handedOff,
+        courseName: courseName,
+        subDeckKey: subDeckKey
+      };
+      return stats;
     }
 
     async function submitLearnTurn() {
@@ -22337,9 +22835,10 @@ input[type="range"]::-moz-range-thumb{
       var input = el('learnSessionInput');
       var userInput = input ? String(input.value || '').trim() : '';
       if (!userInput) return;
-      if (activeLearnSession.flow.phase === 'done') { closeLearnSession(true); return; }
+      if (activeLearnSession.flow.phase === 'done' || activeLearnSession.flow.phase === 'consolidating') return;
 
       var pendingSegment = flowBridge.currentSegment(activeLearnSession.flow);
+      var prevIdx = activeLearnSession.flow.segmentIndex;
       activeLearnSession.flow = flowBridge.markLoading(activeLearnSession.flow);
       renderLearnSessionUI();
 
@@ -22355,23 +22854,92 @@ input[type="range"]::-moz-range-thumb{
         activeLearnSession.flow = flowBridge.applyTurnResult(activeLearnSession.flow, userInput, result);
         /* Mark linked cards for the segment that was just worked on as taught (if unlearned). */
         applyTaughtStatusForSegment(pendingSegment);
-        if (activeLearnSession.flow.phase === 'done') {
-          applyConsolidatedStatusForFlow(activeLearnSession.flow);
-        }
-        saveState();
 
+        /* If we just advanced to a new segment, animate the tutor pane swap (UI polish 4). */
+        if (activeLearnSession.flow.segmentIndex !== prevIdx && activeLearnSession.flow.phase === 'tutor') {
+          var pane = el('learnTutorPane');
+          animateLearnPaneSwap(pane, pane, 'forward');
+        }
+
+        /* End of segments: transition to consolidation if we have questions, else summary. */
+        if (activeLearnSession.flow.phase === 'done') {
+          var qs = (activeLearnSession.flow.consolidationQuestions || []);
+          if (qs.length > 0) {
+            activeLearnSession.flow = flowBridge.enterConsolidation(activeLearnSession.flow);
+            if (input) input.value = '';
+            try { playClick(); } catch(e) {}
+            renderLearnSessionUI();
+            return;
+          } else {
+            /* No questions: run handoff with current state (cards taught, no ratings). */
+            finalizeLearnHandoff();
+            saveState();
+            try { playChime(); } catch(e) {}
+            renderLearnSessionUI();
+            return;
+          }
+        }
+
+        saveState();
         if (input) input.value = '';
         try { playClick(); } catch(e) {}
-        if (activeLearnSession.flow.phase === 'done') {
-          try { playChime(); } catch(e) {}
-        }
         renderLearnSessionUI();
-        if (input && activeLearnSession.flow.phase !== 'done') input.focus();
+        if (input) input.focus();
       } catch (err) {
         activeLearnSession.flow = flowBridge.markError(activeLearnSession.flow, err && err.message ? err.message : String(err));
         try { playError(); } catch(e) {}
         renderLearnSessionUI();
       }
+    }
+
+    /* Consolidation: reveal answer, rate question, advance battery. */
+    function revealConsolAnswer() {
+      var answerEl = el('learnConsolAnswer');
+      var revealBtn = el('learnConsolReveal');
+      var rateBox = el('learnConsolRate');
+      if (!answerEl || !rateBox) return;
+      answerEl.hidden = false;
+      if (revealBtn) revealBtn.hidden = true;
+      rateBox.hidden = false;
+      if (!prefersReducedMotion() && window.gsap) {
+        try {
+          gsap.fromTo(answerEl, { opacity: 0, y: -6 }, { opacity: 1, y: 0, duration: 0.22, ease: 'power2.out' });
+          gsap.fromTo(rateBox, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.22, ease: 'power2.out', delay: 0.06 });
+        } catch(e) {}
+      }
+    }
+
+    function rateConsolidationQuestion(rating) {
+      if (!activeLearnSession) return;
+      var flowBridge = globalThis.__studyEngineLearnFlow;
+      if (!flowBridge) return;
+      if (activeLearnSession.flow.phase !== 'consolidating') return;
+      var idx = activeLearnSession.flow.consolidationIdx || 0;
+      activeLearnSession.flow = flowBridge.submitConsolidationRating(activeLearnSession.flow, idx, rating);
+      try { playClick(); } catch(e) {}
+
+      if (activeLearnSession.flow.phase === 'done') {
+        /* Battery complete — fire handoff + show summary. */
+        finalizeLearnHandoff();
+        saveState();
+        try { playChime(); } catch(e) {}
+        renderLearnSessionUI();
+      } else {
+        /* Advance to next question with a brief pane swap. */
+        var pane = el('learnConsolPane');
+        animateLearnPaneSwap(pane, pane, 'forward');
+        renderLearnSessionUI();
+      }
+    }
+
+    function skipConsolidationAndHandoff() {
+      if (!activeLearnSession) return;
+      var flowBridge = globalThis.__studyEngineLearnFlow;
+      if (!flowBridge) return;
+      activeLearnSession.flow = flowBridge.skipConsolidation(activeLearnSession.flow);
+      finalizeLearnHandoff();
+      saveState();
+      renderLearnSessionUI();
     }
 
     function openLearnSession(plan, courseName, subDeckKey) {
@@ -22411,23 +22979,82 @@ input[type="range"]::-moz-range-thumb{
       setTimeout(function(){ if (input) input.focus(); }, 60);
     }
 
+    function closeLearnSessionImmediate() {
+      var ov = el('learnSessionOv');
+      var input = el('learnSessionInput');
+      if (ov) {
+        ov.classList.remove('show');
+        ov.setAttribute('aria-hidden', 'true');
+      }
+      if (input) input.value = '';
+      var courseName = activeLearnSession && activeLearnSession.courseName;
+      activeLearnSession = null;
+      learnSummaryState = null;
+      try { playClick(); } catch(e) {}
+      if (courseName) { try { openCourseDetail(courseName); } catch(e) {} }
+    }
+
+    function openConfirmLearnExit(opts) {
+      opts = opts || {};
+      var ov = el('confirmLearnExitOv');
+      var titleEl = el('confirmLearnExitTitle');
+      var descEl = el('confirmLearnExitDesc');
+      var stayBtn = el('confirmLearnExitStay');
+      var leaveBtn = el('confirmLearnExitLeave');
+      if (!ov || !stayBtn || !leaveBtn) { closeLearnSessionImmediate(); return; }
+      if (titleEl) titleEl.textContent = opts.title || 'Exit before finishing calibration?';
+      if (descEl) descEl.textContent = opts.desc || "Cards you just learned won't get reliable scheduling.";
+      ov.classList.add('show');
+      var cleanup = function() {
+        ov.classList.remove('show');
+        stayBtn.onclick = null;
+        leaveBtn.onclick = null;
+      };
+      stayBtn.onclick = function() { cleanup(); };
+      leaveBtn.onclick = function() {
+        cleanup();
+        /* If abandoning during consolidation, run partial handoff so already-taught
+           cards still get written (no consolidated ratings for unrated questions). */
+        if (activeLearnSession && activeLearnSession.flow && activeLearnSession.flow.phase === 'consolidating') {
+          try { skipConsolidationAndHandoff(); } catch(e) {}
+        }
+        closeLearnSessionImmediate();
+      };
+    }
+
     function closeLearnSession(force) {
       var ov = el('learnSessionOv');
       if (!ov) { activeLearnSession = null; return; }
       var input = el('learnSessionInput');
       var hasContent = input && String(input.value || '').trim().length > 0;
-      var isFinished = activeLearnSession && activeLearnSession.flow && activeLearnSession.flow.phase === 'done';
-      if (!force && hasContent && !isFinished) {
-        var ok = window.confirm("Exit Learn? Your response won't be saved.");
-        if (!ok) return;
+      var phase = activeLearnSession && activeLearnSession.flow ? activeLearnSession.flow.phase : null;
+      var isFinished = phase === 'done' && learnSummaryState;
+
+      if (force || isFinished || !activeLearnSession) {
+        closeLearnSessionImmediate();
+        return;
       }
-      ov.classList.remove('show');
-      ov.setAttribute('aria-hidden', 'true');
-      if (input) input.value = '';
-      var courseName = activeLearnSession && activeLearnSession.courseName;
-      activeLearnSession = null;
-      try { playClick(); } catch(e) {}
-      if (courseName) openCourseDetail(courseName);
+
+      /* Mid-consolidation: custom confirm overlay. */
+      if (phase === 'consolidating') {
+        openConfirmLearnExit({
+          title: 'Exit before finishing calibration?',
+          desc: "Cards you just learned won't get reliable scheduling."
+        });
+        return;
+      }
+
+      /* Mid-tutor with unsent input: custom confirm overlay (no native chrome). */
+      if (hasContent) {
+        openConfirmLearnExit({
+          title: 'Exit Learn?',
+          desc: "Your response won't be saved."
+        });
+        return;
+      }
+
+      /* Clean exit. */
+      closeLearnSessionImmediate();
     }
 
     function wireLearnSessionOnce() {
@@ -22440,6 +23067,10 @@ input[type="range"]::-moz-range-thumb{
       var closeBtn = el('learnSessionClose');
       var retry = el('learnSessionRetry');
       var input = el('learnSessionInput');
+      var revealBtn = el('learnConsolReveal');
+      var rateRow = document.querySelector('.learn-consol-rate-row');
+      var summaryReview = el('learnSummaryReview');
+      var summaryDone = el('learnSummaryDone');
 
       if (submit) submit.addEventListener('click', function(){ submitLearnTurn(); });
       if (exitBtn) exitBtn.addEventListener('click', function(){ closeLearnSession(false); });
@@ -22450,6 +23081,32 @@ input[type="range"]::-moz-range-thumb{
         renderLearnSessionUI();
         if (input) input.focus();
       });
+      if (revealBtn) revealBtn.addEventListener('click', function(){ revealConsolAnswer(); });
+      if (rateRow) {
+        rateRow.addEventListener('click', function(e){
+          var target = e.target;
+          if (!(target instanceof Element)) return;
+          var btn = target.closest('button[data-rating]');
+          if (!btn) return;
+          var r = parseInt(btn.getAttribute('data-rating'), 10);
+          if (r >= 1 && r <= 4) rateConsolidationQuestion(r);
+        });
+      }
+      if (summaryDone) summaryDone.addEventListener('click', function(){ closeLearnSession(true); });
+      if (summaryReview) summaryReview.addEventListener('click', function(){
+        /* Jump into a Review session scoped to the course + sub-deck we just learned. */
+        var courseName = learnSummaryState && learnSummaryState.courseName;
+        var subDeckKey = learnSummaryState && learnSummaryState.subDeckKey;
+        closeLearnSessionImmediate();
+        if (!courseName) return;
+        try {
+          selectedCourse = courseName;
+          if (subDeckKey) selectedSubDeck = subDeckKey;
+          if (typeof startSession === 'function') startSession();
+          else toast('Review session unavailable');
+        } catch(e) { toast('Could not start Review'); }
+      });
+
       if (input) {
         input.addEventListener('input', function(){
           autogrowLearnInput();
@@ -22465,6 +23122,9 @@ input[type="range"]::-moz-range-thumb{
       document.addEventListener('keydown', function(e){
         if (e.key !== 'Escape') return;
         if (!ov.classList.contains('show')) return;
+        /* Don't hijack Escape when the confirm overlay is open. */
+        var confirmOv = el('confirmLearnExitOv');
+        if (confirmOv && confirmOv.classList.contains('show')) return;
         e.preventDefault();
         closeLearnSession(false);
       });

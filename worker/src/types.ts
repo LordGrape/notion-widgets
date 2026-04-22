@@ -384,8 +384,15 @@ export interface LearnPlanSegment {
   groundingSnippets: GroundingSnippet[];
 }
 
+export interface ConsolidationQuestion {
+  question: string;
+  answer: string;
+  linkedCardIds: string[];
+}
+
 export interface LearnPlanResponse {
   segments: LearnPlanSegment[];
+  consolidationQuestions?: ConsolidationQuestion[];
   planMode?: "verified" | "retry_verified" | "card_density_fallback";
   warning?: string;
 }

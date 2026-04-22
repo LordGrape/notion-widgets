@@ -1,4 +1,12 @@
-import type { CourseContext, SessionState, StudyItem, TierId, SubjectType } from './types';
+import type {
+  CourseContext,
+  LearnProgressMeta,
+  LearnSessionRecord,
+  SessionState,
+  StudyItem,
+  SubjectType,
+  TierId
+} from './types';
 
 type Rating = 1 | 2 | 3 | 4;
 type SessionRuntime = SessionState & Record<string, any>;
@@ -460,6 +468,29 @@ export function buildSessionQueue(): StudyItem[] {
 
   queue = interleaveQueue(queue);
 
+  // Phase 3 successive relearning: hoist cards flagged forceNextQF to the front
+  // of the Quick Fire queue for the matching course. These cards may not be
+  // "due" per FSRS; force-include them regardless.
+  try {
+    const itemsBag = state.items || {};
+    const forcedItems: StudyItem[] = [];
+    const forcedIds: Record<string, boolean> = {};
+    Object.keys(itemsBag).forEach((id) => {
+      const it = itemsBag[id] as StudyItem;
+      if (!it || !it.forceNextQF) return;
+      if (it.archived || it.suspended) return;
+      if (courseFilter !== 'All' && it.course !== courseFilter) return;
+      forcedItems.push(it);
+      forcedIds[it.id] = true;
+    });
+    if (forcedItems.length) {
+      // Remove any duplicates already in the queue to avoid double-review.
+      queue = queue.filter((it) => !forcedIds[it.id]);
+      forcedItems.forEach((it) => { it._presentTier = 'quickfire'; });
+      queue = forcedItems.concat(queue);
+    }
+  } catch (e) {}
+
   const overconfTopics = bridge.getOverconfidentTopics(selectedCourse);
   if (overconfTopics.length > 0) {
     const overconfSet: Record<string, boolean> = {};
@@ -535,6 +566,12 @@ function scheduleRatingAndAdvance(
     return;
   }
   if (againCount > 0 && mappedRating >= 3) session.loops[it.id] = 0;
+  // Phase 3 successive relearning: clear forceNextQF on first rating >= 3.
+  // Rating === 1 path returns earlier; rating === 2 falls through here but
+  // spec says keep the flag. Only clear on 3 or 4.
+  if (mappedRating >= 3 && it.forceNextQF) {
+    it.forceNextQF = false;
+  }
   const res = bridge.scheduleFsrs(it, mappedRating, nowTs, true);
   const effectiveBonus = bridge.getEffectiveBloomBonus(it.course);
   if (mappedRating >= 3 && effectiveBonus[tier]) {
@@ -1109,3 +1146,171 @@ export function resolveCourseContext(courseName: string | null | undefined): Cou
   if (!course || !course.courseContext || typeof course.courseContext !== 'object') return undefined;
   return course.courseContext as CourseContext;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+ * Phase 3: Learn handoff to FSRS.
+ *
+ * `applyLearnHandoff` initializes per-card FSRS parameters based on the
+ * `LearnFlowState.getFsrsHandoffPlan()` output. The mapping table was agreed
+ * on with the spec and anchored to the existing FSRS-6 scale used by
+ * scheduleFsrs in the monolith:
+ *   - difficulty ∈ [1..10] clamped (lower = easier)
+ *   - stability in days (>= 0.1 floor for non-first reviews)
+ *   - state ∈ new|learning|review|relearning
+ *
+ * | status         | rating | difficulty | stability | due override | state       | forceNextQF |
+ * | consolidated   | 4 Easy | 3.0        | 3 d       | FSRS-computed| review      | false       |
+ * | consolidated   | 3 Good | 4.5        | 1 d       | FSRS-computed| review      | false       |
+ * | consolidated   | 2 Hard | 6.5        | 0.5 d     | now + 1 d    | review      | false       |
+ * | consolidated   | 1 Again| 8.0        | 0.1 d     | now + 1 d    | relearning  | true        |
+ * | taught         | —      | 5.5        | 0.1 d     | now + 1 d    | learning    | false       |
+ * | unlearned      | —      | (unchanged — card keeps default new-card FSRS zero-state)         |
+ *
+ * This writes initialisation ONLY — it does not call scheduleFsrs. That stays
+ * sacred. The next time the card is rated, scheduleFsrs will compute a new
+ * interval using these seed values.
+ * ═══════════════════════════════════════════════════════════════════ */
+
+export type LearnHandoffStatus = 'consolidated' | 'taught' | 'unlearned';
+
+export interface LearnHandoffEntry {
+  status: LearnHandoffStatus;
+  consolidationRating?: 1 | 2 | 3 | 4;
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function fsrsSeedForEntry(entry: LearnHandoffEntry, nowTs: number): {
+  difficulty: number;
+  stability: number;
+  dueTs: number;
+  state: 'learning' | 'review' | 'relearning';
+  forceNextQF: boolean;
+} | null {
+  if (entry.status === 'unlearned') return null;
+  if (entry.status === 'taught') {
+    return {
+      difficulty: 5.5,
+      stability: 0.1,
+      dueTs: nowTs + 1 * DAY_MS,
+      state: 'learning',
+      forceNextQF: false
+    };
+  }
+  // consolidated
+  const rating = entry.consolidationRating;
+  if (rating === 4) {
+    return { difficulty: 3.0, stability: 3, dueTs: nowTs + 3 * DAY_MS, state: 'review', forceNextQF: false };
+  }
+  if (rating === 3) {
+    return { difficulty: 4.5, stability: 1, dueTs: nowTs + 1 * DAY_MS, state: 'review', forceNextQF: false };
+  }
+  if (rating === 2) {
+    return { difficulty: 6.5, stability: 0.5, dueTs: nowTs + 1 * DAY_MS, state: 'review', forceNextQF: false };
+  }
+  if (rating === 1) {
+    return { difficulty: 8.0, stability: 0.1, dueTs: nowTs + 1 * DAY_MS, state: 'relearning', forceNextQF: true };
+  }
+  // consolidated with no rating (shouldn't happen per getFsrsHandoffPlan, but defensive)
+  return { difficulty: 5.5, stability: 0.1, dueTs: nowTs + 1 * DAY_MS, state: 'learning', forceNextQF: false };
+}
+
+export function applyLearnHandoff(
+  handoffPlan: Map<string, LearnHandoffEntry>,
+  nowTs: number
+): { handedOff: number; consolidated: number; taught: number; unlearned: number } {
+  const stateBag = bridge.state;
+  if (!stateBag || !stateBag.items) {
+    return { handedOff: 0, consolidated: 0, taught: 0, unlearned: 0 };
+  }
+  const nowIso = new Date(nowTs).toISOString();
+  let consolidated = 0, taught = 0, unlearned = 0;
+
+  handoffPlan.forEach((entry, cardId) => {
+    const item = stateBag.items[cardId] as StudyItem | undefined;
+    if (!item) return;
+
+    item.learnStatus = entry.status;
+    if (entry.status !== 'unlearned') {
+      item.learnedAt = nowIso;
+    }
+    item.consolidationRating = entry.consolidationRating ?? null;
+
+    if (entry.status === 'consolidated') consolidated++;
+    else if (entry.status === 'taught') taught++;
+    else unlearned++;
+
+    const seed = fsrsSeedForEntry(entry, nowTs);
+    if (!seed) return; // 'unlearned' → no FSRS change
+
+    if (!item.fsrs) {
+      item.fsrs = {
+        stability: 0,
+        difficulty: 0,
+        due: new Date(nowTs + DAY_MS).toISOString(),
+        reps: 0,
+        lapses: 0,
+        lastReview: null,
+        state: 'new'
+      };
+    }
+    item.fsrs.difficulty = seed.difficulty;
+    item.fsrs.stability = seed.stability;
+    item.fsrs.due = new Date(seed.dueTs).toISOString();
+    item.fsrs.state = seed.state;
+    // Don't touch reps/lapses/lastReview — they stay at zero-state so the next
+    // rating pass treats this as a first review (scheduleFsrs uses lastReview==null
+    // as its "first" signal). This preserves FSRS semantics while still giving
+    // us a seeded difficulty/stability.
+    if (seed.forceNextQF) {
+      item.forceNextQF = true;
+    }
+  });
+
+  // ONE flush at the end.
+  bridge.saveState();
+  return { handedOff: consolidated + taught + unlearned, consolidated, taught, unlearned };
+}
+
+export function writeLearnSessionRecord(record: LearnSessionRecord): void {
+  const stateBag = bridge.state;
+  if (!stateBag) return;
+  if (!Array.isArray(stateBag.learnSessions)) stateBag.learnSessions = [];
+  stateBag.learnSessions.push(record);
+  while (stateBag.learnSessions.length > 30) stateBag.learnSessions.shift();
+  // Caller (applyLearnHandoff) already triggers saveState at end of pipeline,
+  // but this helper can be called independently; persist if so.
+  bridge.saveState();
+}
+
+export function writeLearnProgress(
+  course: string,
+  topic: string,
+  meta: LearnProgressMeta
+): void {
+  const stateBag = bridge.state;
+  if (!stateBag) return;
+  if (!stateBag.learnProgress) stateBag.learnProgress = {};
+  const courseKey = String(course || '');
+  const topicKey = String(topic || '');
+  if (!courseKey || !topicKey) return;
+  if (!stateBag.learnProgress[courseKey]) stateBag.learnProgress[courseKey] = {};
+  stateBag.learnProgress[courseKey][topicKey] = {
+    segmentsTotal: Number(meta.segmentsTotal) || 0,
+    segmentsCompleted: Number(meta.segmentsCompleted) || 0,
+    consolidationAvgRating: meta.consolidationAvgRating == null ? null : Number(meta.consolidationAvgRating),
+    lastLearnedAt: meta.lastLearnedAt || null,
+    linkedCardIds: Array.isArray(meta.linkedCardIds) ? meta.linkedCardIds.slice() : []
+  };
+  bridge.saveState();
+}
+
+// Expose handoff helpers on the session-flow bridge so the monolith can call
+// them without extra imports.
+(() => {
+  const g = globalThis as any;
+  g.__studyEngineSessionFlow = g.__studyEngineSessionFlow || {};
+  g.__studyEngineSessionFlow.applyLearnHandoff = applyLearnHandoff;
+  g.__studyEngineSessionFlow.writeLearnSessionRecord = writeLearnSessionRecord;
+  g.__studyEngineSessionFlow.writeLearnProgress = writeLearnProgress;
+})();

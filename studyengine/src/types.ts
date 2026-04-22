@@ -146,7 +146,14 @@ export interface StudyItem {
   subdeck?: string;
   subDeck?: string | null;
   learnStatus?: 'unlearned' | 'taught' | 'consolidated' | null;
+  learnedAt?: string | null;
   consolidationRating?: 1 | 2 | 3 | 4 | null;
+  /**
+   * Phase 3 successive relearning flag. When true and the card's course+tier
+   * matches, buildSessionQueue hoists the card to the front of the Quick Fire
+   * queue. Cleared on first rating >= 3; persists on rating === 1.
+   */
+  forceNextQF?: boolean;
   fsrs: FSRSState;
   tags?: string[];
   notes?: string;
@@ -337,6 +344,25 @@ export interface LearnSession {
   completedAt?: string;
 }
 
+export interface LearnProgressMeta {
+  segmentsTotal: number;
+  segmentsCompleted: number;
+  consolidationAvgRating: number | null;
+  lastLearnedAt: string | null;
+  linkedCardIds: string[];
+}
+
+export interface LearnSessionRecord {
+  course: string;
+  topics: string[];
+  subDeck: string;
+  segmentsCompleted: number;
+  consolidationRatings: Array<1 | 2 | 3 | 4>;
+  cardsHandedOff: number;
+  durationMs: number;
+  timestamp: string;
+}
+
 export interface AppState {
   items: Record<string, StudyItem>;
   courses: Record<string, Course>;
@@ -347,4 +373,8 @@ export interface AppState {
   dragon?: DragonState;
   session?: SessionState;
   learnSession?: LearnSession;
+  /** Per-course, per-topic Learn progress metadata (Phase 3). */
+  learnProgress?: Record<string, Record<string, LearnProgressMeta>>;
+  /** Capped at last 30 completed Learn sessions (Phase 3). */
+  learnSessions?: LearnSessionRecord[];
 }

@@ -20,8 +20,15 @@ export interface LearnSegment {
   groundingSnippets: GroundingSnippet[];
 }
 
+export interface ConsolidationQuestion {
+  question: string;
+  answer: string;
+  linkedCardIds: string[];
+}
+
 export interface LearnPlan {
   segments: LearnSegment[];
+  consolidationQuestions?: ConsolidationQuestion[];
   planMode?: 'verified' | 'retry_verified' | 'card_density_fallback';
   warning?: string;
 }
@@ -64,6 +71,27 @@ const LEARN_TURN_ENDPOINT = 'https://widget-sync.lordgrape-widgets.workers.dev/s
 
 function normalize(value: string): string {
   return String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+export function verifyConsolidationQuestions(questions: ConsolidationQuestion[], items: StudyItem[]): ConsolidationQuestion[] {
+  const cardMap = new Map<string, string>();
+  (items || []).forEach((item) => {
+    if (!item || !item.id) return;
+    cardMap.set(item.id, `${item.prompt || ''}\n${item.modelAnswer || ''}`);
+  });
+  return (questions || []).filter((q) => {
+    if (!q || !q.question || !q.answer) return false;
+    const linked = Array.isArray(q.linkedCardIds) ? q.linkedCardIds : [];
+    if (linked.length === 0) return false;
+    const ans = normalize(q.answer);
+    if (!ans || ans.length < 10) return false;
+    const anchor = ans.length > 200 ? ans.slice(0, 200) : ans;
+    return linked.some((cardId) => {
+      const source = cardMap.get(String(cardId || ''));
+      if (!source) return false;
+      return normalize(source).includes(anchor);
+    });
+  });
 }
 
 export function substringVerified(segments: LearnSegment[], items: StudyItem[]): LearnSegment[] {
@@ -110,12 +138,14 @@ export async function generateLearnPlan(course: string, subDeck: string, items: 
   }
 
   const data = (await response.json()) as LearnPlan;
-  const verifiedSegments = substringVerified(data.segments || [], getCardsInSubDeck(course, subDeck, items));
+  const subDeckCards = getCardsInSubDeck(course, subDeck, items);
+  const verifiedSegments = substringVerified(data.segments || [], subDeckCards);
   if (verifiedSegments.length < 2) {
     throw new Error('Learn plan grounding verification failed: fewer than 2 verified segments.');
   }
+  const verifiedQuestions = verifyConsolidationQuestions(data.consolidationQuestions || [], subDeckCards);
 
-  return { ...data, segments: verifiedSegments };
+  return { ...data, segments: verifiedSegments, consolidationQuestions: verifiedQuestions };
 }
 
 export function startLearnSession(plan: LearnPlan): LearnSessionState {
@@ -290,6 +320,7 @@ export function createDefaultSubDeckForCourse(course: CourseLike | string, state
   completeLearnSegment,
   getCoverageStats,
   substringVerified,
+  verifyConsolidationQuestions,
   maybeDemoteOnAgain,
   applyLearnStatusMigration,
   resolveCourseLearnEntry,
