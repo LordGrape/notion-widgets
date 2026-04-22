@@ -373,6 +373,8 @@ export interface GroundingSnippet {
   quote: string;
 }
 
+export type LearnCheckType = "elaborative" | "predictive" | "self_explain";
+
 export interface LearnPlanSegment {
   id: string;
   title: string;
@@ -386,6 +388,7 @@ export interface LearnPlanSegment {
    */
   teach: string;
   tutorPrompt: string;
+  checkType: LearnCheckType;
   expectedAnswer: string;
   linkedCardIds: string[];
   groundingSnippets: GroundingSnippet[];

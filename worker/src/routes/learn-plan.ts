@@ -1,6 +1,6 @@
 import { getCorsHeaders } from "../cors";
 import { callGemini, extractGeminiText, streamGemini } from "../gemini";
-import type { ConsolidationQuestion, Env, LearnPlanRequest, LearnPlanResponse, LearnPlanSegment, StudyCardInput } from "../types";
+import type { ConsolidationQuestion, Env, LearnCheckType, LearnPlanRequest, LearnPlanResponse, LearnPlanSegment, StudyCardInput } from "../types";
 import { parseJsonResponse } from "../utils/json";
 
 const LEARN_PLAN_CORS_HEADERS = {
@@ -9,6 +9,16 @@ const LEARN_PLAN_CORS_HEADERS = {
 };
 
 const PLAN_MODEL = "gemini-2.5-pro";
+
+const LEARN_CHECK_TYPES: readonly LearnCheckType[] = ["elaborative", "predictive", "self_explain"] as const;
+
+function isLearnCheckType(value: unknown): value is LearnCheckType {
+  return typeof value === "string" && LEARN_CHECK_TYPES.includes(value as LearnCheckType);
+}
+
+function verifySegmentCheckType(segment: LearnPlanSegment): boolean {
+  return isLearnCheckType(segment?.checkType);
+}
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -177,6 +187,7 @@ function filterVerifiedSegments(segments: LearnPlanSegment[], corpus: Record<str
     verifySegmentGrounding(seg, corpus)
     && verifySegmentTeach(seg)
     && verifySegmentTutorPrompt(String(seg?.tutorPrompt || '')).ok
+    && verifySegmentCheckType(seg)
   ));
 }
 
@@ -266,6 +277,7 @@ function buildDensityFallback(cards: StudyCardInput[]): LearnPlanResponse {
       objective: "Ground first exposure using this card's core content.",
       teach: teachBody,
       tutorPrompt: buildFallbackTutorPrompt(prompt),
+      checkType: "elaborative",
       expectedAnswer: answer || "",
       linkedCardIds: [String(card.id || `card-${idx + 1}`)],
       groundingSnippets: [
@@ -307,11 +319,24 @@ function buildSystemPrompt(): string {
     "- Positive example: 'The Essex and Kent Scottish Regiment traces its origin to 1885, when the 21st Essex Battalion of Infantry was formed in Windsor, Ontario. It was redesignated several times through the late 19th and 20th centuries, absorbing the Kent Regiment in 1954 to become the unified Essex and Kent Scottish. The regiment's modern role is as a primary reserve infantry unit of the Canadian Army, headquartered in Windsor, with subunits across southwestern Ontario.'",
     "- Negative example (DO NOT emit): 'Let's encode this card from first principles. What is the core claim?'",
     "",
-    "TUTOR-PROMPT RULES (each segment's `tutorPrompt` field):",
+    "YOUR TURN RULES (each segment's `tutorPrompt` + `checkType` fields):",
     "- This is the Socratic question the learner answers AFTER reading `teach`.",
     "- Keep it brief (one or two sentences).",
     "- It is the only field that may end with a question mark.",
-    "- The tutor prompt must be a specific retrieval question targeting a concrete fact, date, name, mechanism, or relationship from the card content. Not a meta-summary. Good examples: 'When was the regiment founded?' 'What was its original name?' 'In which city is the regiment headquartered?' 'What battalion did the unit originate as?' Bad examples: 'What is the core claim?' 'Summarize this card.' 'In your own words, what is this about?'",
+    "- You must choose exactly one checkType for each segment:",
+    "  - elaborative: 'In your own words, why does [concept] matter / work / apply?' or 'How does [concept] connect to [prior segment]?' — forces causal reasoning.",
+    "  - predictive: 'Before the next segment: what would happen if [varied scenario]?' — builds anticipatory schema.",
+    "  - self_explain: 'Explain [concept] as if teaching someone who has not read the segment.' — forces recoding in own words.",
+    "- Never:",
+    "  - Ask questions whose answer is a literal string from the teach (dates, names, places, numbers, titles, proper nouns).",
+    "  - Ask 'When / who / where / which / what is' questions that target a fact stated in the teach.",
+    "  - Ask yes/no questions.",
+    "  - Ask questions answerable by scanning the teach for a single phrase.",
+    "  - Ask the student to 'repeat' or 'state' or 'name' something just taught.",
+    "- Worked counterexample:",
+    "  - BAD: 'When was the regiment founded, and under what name?'",
+    "  - GOOD: 'The regiment was founded in 1885 as an infantry battalion headquartered in Windsor. Why might Windsor specifically reflect late-nineteenth-century Canadian defensive priorities, and what would change if it had been headquartered in Halifax instead?'",
+    "- Every segment MUST include `checkType` alongside `tutorPrompt`.",
     "",
     "Also generate 3-5 consolidationQuestions that span ALL segments taught. Each question tests recall OR conceptual connection between segments.",
     "Each consolidation answer MUST be grounded: copy a verbatim substring from a supplied card modelAnswer or prompt. Unverifiable answers will be dropped.",
@@ -346,6 +371,7 @@ function buildUserPrompt(body: LearnPlanRequest): string {
     '      "objective": "...",',
     '      "teach": "80+ words of declarative instruction with concrete facts; no questions; no banned openers.",',
     '      "tutorPrompt": "Socratic question for the learner to answer.",',
+    '      "checkType": "elaborative",',
     '      "expectedAnswer": "...",',
     '      "linkedCardIds": ["card-id"],',
     '      "groundingSnippets": [{ "cardId": "card-id", "quote": "exact substring" }]',
@@ -377,6 +403,7 @@ function buildGenerationConfig(): Record<string, unknown> {
             objective: { type: "string" },
             teach: { type: "string" },
             tutorPrompt: { type: "string" },
+            checkType: { type: "string", enum: ["elaborative", "predictive", "self_explain"] },
             expectedAnswer: { type: "string" },
             linkedCardIds: { type: "array", items: { type: "string" } },
             groundingSnippets: {
@@ -391,7 +418,7 @@ function buildGenerationConfig(): Record<string, unknown> {
               }
             }
           },
-          required: ["id", "title", "mechanism", "objective", "teach", "tutorPrompt", "expectedAnswer", "linkedCardIds", "groundingSnippets"]
+          required: ["id", "title", "mechanism", "objective", "teach", "tutorPrompt", "checkType", "expectedAnswer", "linkedCardIds", "groundingSnippets"]
         }
       },
       consolidationQuestions: {
@@ -666,6 +693,7 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
           if (!verifySegmentGrounding(seg, cardCorpus)) continue;
           if (!verifySegmentTeach(seg)) continue;
           if (!verifySegmentTutorPrompt(String(seg.tutorPrompt || "")).ok) continue;
+          if (!verifySegmentCheckType(seg)) continue;
           if (emittedSegmentIds.has(String(seg.id))) continue;
           emittedSegmentIds.add(String(seg.id));
           emittedSegments.push(seg);
@@ -687,6 +715,7 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
         if (!verifySegmentGrounding(seg, cardCorpus)) continue;
         if (!verifySegmentTeach(seg)) continue;
         if (!verifySegmentTutorPrompt(String(seg.tutorPrompt || "")).ok) continue;
+        if (!verifySegmentCheckType(seg)) continue;
         emittedSegmentIds.add(String(seg.id));
         emittedSegments.push(seg);
         await emit.event("segment", seg);
