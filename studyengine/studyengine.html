@@ -7831,16 +7831,41 @@ input[type="range"]::-moz-range-thumb{
     .rate, .big-btn, .icon-btn, .ghost-btn, .nav-tab, .rub-pill,
     .cm-preview-success-chip, .cm-save-btn { touch-action: manipulation; }
 
-    /* ── CSS SECTION: Learn Session Modal ── */
-    .learn-ov{ z-index: 110; }
-    .learn-ov .modal{
+    .course-tabs{
+      display:flex;
+      gap:6px;
+      margin: 8px 0 12px;
+      padding: 4px;
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      background: var(--surface-1);
+      backdrop-filter: blur(20px) saturate(1.4);
+    }
+    .course-tab{
+      appearance:none;
+      border:none;
+      background:transparent;
+      color:var(--text-muted);
+      border-bottom:2px solid transparent;
+      padding:8px 12px;
+      border-radius:999px;
+      font-size:14px;
+      font-weight:600;
+      cursor:pointer;
+    }
+    .course-tab:hover{ color:var(--text-primary); }
+    .course-tab[aria-selected="true"]{
+      color:var(--text-primary);
+      border-bottom-color: var(--accent-primary);
+    }
+    .learn-inline-surface .modal{
       max-width: 680px;
       width: 100%;
       display: flex;
       flex-direction: column;
-      max-height: min(92vh, 860px);
+      max-height: min(80vh, 860px);
     }
-    .learn-ov .modal-head{
+    .learn-inline-surface .modal-head{
       align-items: center;
       gap: 10px;
     }
@@ -8071,17 +8096,9 @@ input[type="range"]::-moz-range-thumb{
 
     /* Embed (<=900px): full-view takeover inside the card surface */
     @media (max-width: 900px) {
-      .learn-ov{
-        padding: 0;
-        background: transparent;
-      }
-      .learn-ov .modal{
+      .learn-inline-surface .modal{
         max-width: 100%;
-        max-height: 100vh;
-        height: 100%;
-        border-radius: 0;
-        border-left: none;
-        border-right: none;
+        max-height: 100%;
       }
     }
     @media (max-width: 700px) {
@@ -8784,43 +8801,141 @@ input[type="range"]::-moz-range-thumb{
               <div class="cd-title" id="cdTitle">—</div>
               <button class="cd-settings-btn" id="cdSettingsBtn" title="Course settings"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.5"/><path d="M8 1.5v1.2M8 13.3v1.2M1.5 8h1.2M13.3 8h1.2M3.4 3.4l.85.85M11.75 11.75l.85.85M3.4 12.6l.85-.85M11.75 4.25l.85-.85"/></svg></button>
             </div>
-            <div id="cdBadges" class="cd-badges"></div>
-            <div id="cdSubDeckChips" class="chips" style="display:none;margin:8px 0 10px 0;gap:6px;flex-wrap:wrap;"></div>
-            <div id="cdSubDeckAction" style="display:none;margin:0 0 10px 0;"></div>
-            <div class="cd-countdown" id="cdCountdown" style="display:none;">
-              <div class="cd-days" id="cdDays">—</div>
-              <div class="cd-days-label" id="cdDaysLabel">Days until exam</div>
-            </div>
-            <div class="stats-row">
-              <div class="stat">
-                <div class="k">Items</div>
-                <div class="v" id="cdItemCount">—</div>
-                <div class="s" id="cdDueCount">— due</div>
+            <nav class="course-tabs" role="tablist" aria-label="Course sections" id="courseTabs">
+              <button type="button" class="course-tab" role="tab" aria-selected="true" aria-controls="review-tab-panel" id="review-tab" tabindex="0" data-course-tab-target="review">Review</button>
+              <button type="button" class="course-tab" role="tab" aria-selected="false" aria-controls="learn-tab-panel" id="learn-tab" tabindex="-1" data-course-tab-target="learn">Learn</button>
+              <button type="button" class="course-tab" role="tab" aria-selected="false" aria-controls="cards-tab-panel" id="cards-tab" tabindex="-1" data-course-tab-target="cards">Cards</button>
+              <button type="button" class="course-tab" role="tab" aria-selected="false" aria-controls="analytics-tab-panel" id="analytics-tab" tabindex="-1" data-course-tab-target="analytics">Analytics</button>
+              <button type="button" class="course-tab" role="tab" aria-selected="false" aria-controls="settings-tab-panel" id="settings-tab" tabindex="-1" data-course-tab-target="settings">Settings</button>
+            </nav>
+            <section role="tabpanel" id="review-tab-panel" aria-labelledby="review-tab">
+              <div id="cdBadges" class="cd-badges"></div>
+              <div id="cdSubDeckChips" class="chips" style="display:none;margin:8px 0 10px 0;gap:6px;flex-wrap:wrap;"></div>
+              <div id="cdSubDeckAction" style="display:none;margin:0 0 10px 0;"></div>
+              <div class="cd-countdown" id="cdCountdown" style="display:none;">
+                <div class="cd-days" id="cdDays">—</div>
+                <div class="cd-days-label" id="cdDaysLabel">Days until exam</div>
               </div>
-              <div class="stat">
-                <div class="k">Avg retention</div>
-                <div class="v" id="cdAvgRet">—</div>
-                <div class="s" id="cdRetTrend">—</div>
+              <div class="stats-row">
+                <div class="stat">
+                  <div class="k">Items</div>
+                  <div class="v" id="cdItemCount">—</div>
+                  <div class="s" id="cdDueCount">— due</div>
+                </div>
+                <div class="stat">
+                  <div class="k">Avg retention</div>
+                  <div class="v" id="cdAvgRet">—</div>
+                  <div class="s" id="cdRetTrend">—</div>
+                </div>
               </div>
-            </div>
-            <div class="cd-tier-stats" id="cdTierStats"></div>
-            <div id="cdTierPromoHost"></div>
-            <div id="cdTutorNotesHost"></div>
-            <!-- Retention forecast moved into analytics grid -->
-            <div class="cards-header-row">
-              <div class="section-header" id="cdCardsHeaderLabel">Cards (0)</div>
-              <button type="button" class="course-cards-delete-btn embed" id="cdDeleteCourseCardsBtn" title="Delete all cards in this course" aria-label="Delete all cards in this course" style="display:none;">🗑</button>
-            </div>
-            <div id="cdCardList" style="max-height:260px;overflow-y:auto;margin-bottom:14px;scrollbar-width:thin;"></div>
-            <div class="cd-course-actions">
-              <button class="big-btn" id="cdStartSession">Study this course</button>
-              <button type="button" class="ghost-btn" id="cdLearnCourseBtn">🧠 Learn</button>
-            </div>
-            <button type="button" class="ghost-btn" id="cdPrimeModeBtn" style="margin-top:8px;">🧠 Prime Mode — Pre-study Questions</button>
-            <div class="mini-actions">
-              <button class="ghost-btn" id="cdAddCardBtn">＋ Add Card</button>
-              <button class="ghost-btn" id="cdImportBtn"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><line x1="8" y1="2" x2="8" y2="10.5"/><polyline points="4.5,7 8,10.5 11.5,7"/><path d="M2.5 12.5h11"/></svg>Import JSON</button>
-            </div>
+              <div class="cd-tier-stats" id="cdTierStats"></div>
+              <div id="cdTierPromoHost"></div>
+              <div id="cdTutorNotesHost"></div>
+              <!-- Retention forecast moved into analytics grid -->
+              <div class="cards-header-row">
+                <div class="section-header" id="cdCardsHeaderLabel">Cards (0)</div>
+                <button type="button" class="course-cards-delete-btn embed" id="cdDeleteCourseCardsBtn" title="Delete all cards in this course" aria-label="Delete all cards in this course" style="display:none;">🗑</button>
+              </div>
+              <div id="cdCardList" style="max-height:260px;overflow-y:auto;margin-bottom:14px;scrollbar-width:thin;"></div>
+              <div class="cd-course-actions">
+                <button class="big-btn" id="cdStartSession">Study this course</button>
+                <button type="button" class="ghost-btn" id="cdLearnCourseBtn">🧠 Learn</button>
+              </div>
+              <button type="button" class="ghost-btn" id="cdPrimeModeBtn" style="margin-top:8px;">🧠 Prime Mode — Pre-study Questions</button>
+              <div class="mini-actions">
+                <button class="ghost-btn" id="cdAddCardBtn">＋ Add Card</button>
+                <button class="ghost-btn" id="cdImportBtn"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><line x1="8" y1="2" x2="8" y2="10.5"/><polyline points="4.5,7 8,10.5 11.5,7"/><path d="M2.5 12.5h11"/></svg>Import JSON</button>
+              </div>
+            </section>
+            <section role="tabpanel" id="learn-tab-panel" aria-labelledby="learn-tab" hidden tabindex="-1">
+              <div class="empty-state" id="learnTabEmptyState">
+                <div class="empty-title">Pick a sub-deck from Review to start Learn</div>
+              </div>
+              <div id="learnSessionOv" class="learn-inline-surface" hidden>
+                <div class="modal">
+                  <div class="modal-head">
+                    <div class="learn-head-copy">
+                      <span class="learn-head-kicker" id="learnSessionKicker">Learn</span>
+                      <span class="learn-head-title" id="learnSessionTitle">Loading…</span>
+                      <span id="learnPlanStaleBadge" style="display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;border:1px solid var(--border-accent);background:var(--surface-2);color:var(--text-secondary);font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;margin-top:6px;" hidden>Plan may be out of date</span>
+                    </div>
+                    <div class="learn-progress-bar" id="learnSessionProgress" aria-hidden="true">
+                      <div class="learn-progress-bar-track">
+                        <div class="learn-progress-bar-fill" id="learnSessionProgressFill" style="width:0%"></div>
+                      </div>
+                      <span class="learn-progress-bar-label" id="learnSessionProgressLabel">0 / 0</span>
+                    </div>
+                    <span class="learn-mastery-chip" id="learnMasteryChip" aria-live="polite" hidden>
+                      <span class="learn-mastery-chip-dot" aria-hidden="true"></span>
+                      <span id="learnMasteryChipText">Mastery 0%</span>
+                    </span>
+                    <button type="button" class="ghost-btn" id="learnSessionRegen" style="min-width:auto;padding:6px 10px;font-size:9px;letter-spacing:0.6px;text-transform:uppercase;">Regenerate plan</button>
+                  </div>
+                  <div class="learn-stream-strip" id="learnSessionStreamStrip" role="status" aria-live="polite" hidden>
+                    <span class="learn-stream-strip-dot" aria-hidden="true"></span>
+                    <span class="learn-stream-strip-text" id="learnSessionStreamStripText">Preparing your learning plan…</span>
+                    <span class="learn-stream-strip-pct" id="learnSessionStreamStripPct" aria-hidden="true">0%</span>
+                    <div class="learn-stream-strip-bar" aria-hidden="true"><div class="learn-stream-strip-bar-fill" id="learnSessionStreamStripFill"></div></div>
+                  </div>
+                  <div class="learn-body" id="learnSessionBody">
+                    <div class="learn-tutor-pane" id="learnTutorPane">
+                      <div class="learn-card-block learn-teach">
+                        <div class="learn-card-block-label">Teach</div>
+                        <div class="learn-tutor" id="learnSessionTutor" aria-live="polite"></div>
+                      </div>
+                      <div class="learn-card-block learn-yourturn">
+                        <div class="learn-card-block-label">Your Turn</div>
+                        <div class="learn-yourturn-prompt" id="learnYourTurnPrompt"></div>
+                        <textarea class="learn-input" id="learnSessionInput" rows="3" placeholder="Type your response…" aria-label="Your response"></textarea>
+                        <div class="learn-kbd-hint"><kbd>⌘/Ctrl</kbd> + <kbd>Enter</kbd> to submit · <kbd>Esc</kbd> to exit</div>
+                        <div class="learn-caption" id="learnSessionCaption"></div>
+                      </div>
+                    </div>
+                    <div class="learn-consol-pane" id="learnConsolPane" hidden>
+                      <div class="learn-consol-question" id="learnConsolQuestion"></div>
+                      <button type="button" class="learn-consol-reveal-btn" id="learnConsolReveal">Show answer</button>
+                      <div class="learn-consol-answer" id="learnConsolAnswer" hidden></div>
+                      <div class="learn-consol-rate" id="learnConsolRate" hidden>
+                        <div class="learn-consol-rate-label">How well did you know that?</div>
+                        <div class="learn-consol-rate-row">
+                          <button type="button" class="consol-rate-again" data-rating="1">Again</button>
+                          <button type="button" class="consol-rate-hard" data-rating="2">Hard</button>
+                          <button type="button" class="consol-rate-good" data-rating="3">Good</button>
+                          <button type="button" class="consol-rate-easy" data-rating="4">Easy</button>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="learn-summary-pane" id="learnSummaryPane" hidden>
+                      <div class="learn-summary-title" id="learnSummaryTitle">You learned 0 concepts.</div>
+                      <div class="learn-summary-sub" id="learnSummarySub">0 cards ready for review.</div>
+                      <div class="learn-fsrs-projection" id="learnFsrsProjection" hidden>
+                        <div class="learn-fsrs-projection-title">Projected review schedule</div>
+                        <div class="learn-fsrs-projection-rows" id="learnFsrsProjectionRows"></div>
+                        <div class="learn-fsrs-projection-note" id="learnFsrsProjectionNote"></div>
+                      </div>
+                      <div class="learn-summary-actions">
+                        <button type="button" class="learn-summary-review-btn" id="learnSummaryReview">Review now</button>
+                        <button type="button" class="learn-summary-done-btn" id="learnSummaryDone">Done</button>
+                      </div>
+                    </div>
+                    <div class="learn-error" id="learnSessionError" role="alert">
+                      <span id="learnSessionErrorMsg"></span>
+                      <button type="button" class="learn-error-retry" id="learnSessionRetry">Retry</button>
+                    </div>
+                  </div>
+                  <div class="learn-actions" id="learnSessionActions">
+                    <button type="button" class="learn-exit-btn" id="learnSessionExit">Back to sub-decks</button>
+                    <button type="button" class="learn-submit-btn" id="learnSessionSubmit">
+                      <span class="learn-spinner" aria-hidden="true"></span>
+                      <span class="learn-submit-label">Submit</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+            <section role="tabpanel" id="cards-tab-panel" aria-labelledby="cards-tab" hidden><p class="empty-state">Coming soon</p></section>
+            <section role="tabpanel" id="analytics-tab-panel" aria-labelledby="analytics-tab" hidden><p class="empty-state">Coming soon</p></section>
+            <section role="tabpanel" id="settings-tab-panel" aria-labelledby="settings-tab" hidden><p class="empty-state">Coming soon</p></section>
           </div>
         </div>
 
@@ -9056,106 +9171,6 @@ input[type="range"]::-moz-range-thumb{
   </div>
   <div class="overlay" id="courseLearnEmptyOv" aria-hidden="true"><div class="modal" style="max-width:520px;"><div class="modal-head"><span style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--text);">Learn course</span><button type="button" class="icon-btn" id="courseLearnEmptyClose" aria-label="Close"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg></button></div><div class="modal-body"><div id="courseLearnEmptyBody" style="font-size:11px;line-height:1.5;color:var(--text-secondary);"></div></div><div class="modal-actions"><button type="button" class="ghost-btn" id="courseLearnEmptyCancel">Cancel</button><button type="button" class="big-btn" id="courseLearnEmptyConfirm">Create &amp; Learn</button></div></div></div>
   <div class="overlay" id="courseLearnPickerOv" aria-hidden="true"><div class="modal" style="max-width:560px;"><div class="modal-head"><span style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--text);">Choose sub-deck to learn</span><button type="button" class="icon-btn" id="courseLearnPickerClose" aria-label="Close"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg></button></div><div class="modal-body"><div id="courseLearnPickerBody" style="max-height:min(56vh,360px);overflow-y:auto;"></div></div></div></div>
-
-  <!-- Learn session modal: multi-pane (tutor -> consolidation -> summary) -->
-  <div class="overlay learn-ov" id="learnSessionOv" aria-hidden="true" role="dialog" aria-labelledby="learnSessionTitle" aria-modal="true">
-    <div class="modal">
-      <div class="modal-head">
-        <div class="learn-head-copy">
-          <span class="learn-head-kicker" id="learnSessionKicker">Learn</span>
-          <span class="learn-head-title" id="learnSessionTitle">Loading…</span>
-          <span id="learnPlanStaleBadge" style="display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;border:1px solid var(--border-accent);background:var(--surface-2);color:var(--text-secondary);font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;margin-top:6px;" hidden>Plan may be out of date</span>
-        </div>
-        <!-- Continuous progress bar (UI polish 2). Shows 2 phases: segments + consolidation. -->
-        <div class="learn-progress-bar" id="learnSessionProgress" aria-hidden="true">
-          <div class="learn-progress-bar-track">
-            <div class="learn-progress-bar-fill" id="learnSessionProgressFill" style="width:0%"></div>
-          </div>
-          <span class="learn-progress-bar-label" id="learnSessionProgressLabel">0 / 0</span>
-        </div>
-        <!-- Phase C: mastery chip. Hidden until computeLearnMasteryProjection
-             reports coveredCards > 0. Updates on every renderLearnSessionUI. -->
-        <span class="learn-mastery-chip" id="learnMasteryChip" aria-live="polite" hidden>
-          <span class="learn-mastery-chip-dot" aria-hidden="true"></span>
-          <span id="learnMasteryChipText">Mastery 0%</span>
-        </span>
-        <button type="button" class="ghost-btn" id="learnSessionRegen" style="min-width:auto;padding:6px 10px;font-size:9px;letter-spacing:0.6px;text-transform:uppercase;">Regenerate plan</button>
-        <button type="button" class="icon-btn" id="learnSessionClose" aria-label="Close Learn session">
-          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>
-        </button>
-      </div>
-      <!-- Streaming status strip (Phase 4): visible while /learn-plan SSE is still emitting segments.
-           Includes a live percentage and a thin progress fill along the bottom edge. -->
-      <div class="learn-stream-strip" id="learnSessionStreamStrip" role="status" aria-live="polite" hidden>
-        <span class="learn-stream-strip-dot" aria-hidden="true"></span>
-        <span class="learn-stream-strip-text" id="learnSessionStreamStripText">Preparing your learning plan…</span>
-        <span class="learn-stream-strip-pct" id="learnSessionStreamStripPct" aria-hidden="true">0%</span>
-        <div class="learn-stream-strip-bar" aria-hidden="true"><div class="learn-stream-strip-bar-fill" id="learnSessionStreamStripFill"></div></div>
-      </div>
-      <div class="learn-body" id="learnSessionBody">
-        <!-- Pane A: tutor turn (Teach + Your-Turn split, UI polish 1) -->
-        <div class="learn-tutor-pane" id="learnTutorPane">
-          <div class="learn-card-block learn-teach">
-            <div class="learn-card-block-label">Teach</div>
-            <div class="learn-tutor" id="learnSessionTutor" aria-live="polite"></div>
-          </div>
-          <div class="learn-card-block learn-yourturn">
-            <div class="learn-card-block-label">Your Turn</div>
-            <!-- Defect 1 split: segment.tutorPrompt (Socratic opener) renders here,
-                 above the textarea. The Teach block above carries segment.teach
-                 (declarative instruction). Empty when a legacy plan lacks tutorPrompt. -->
-            <div class="learn-yourturn-prompt" id="learnYourTurnPrompt"></div>
-            <textarea class="learn-input" id="learnSessionInput" rows="3" placeholder="Type your response…" aria-label="Your response"></textarea>
-            <div class="learn-kbd-hint"><kbd>⌘/Ctrl</kbd> + <kbd>Enter</kbd> to submit · <kbd>Esc</kbd> to exit</div>
-            <div class="learn-caption" id="learnSessionCaption"></div>
-          </div>
-        </div>
-        <!-- Pane B: consolidation battery (Phase 3) -->
-        <div class="learn-consol-pane" id="learnConsolPane" hidden>
-          <div class="learn-consol-question" id="learnConsolQuestion"></div>
-          <button type="button" class="learn-consol-reveal-btn" id="learnConsolReveal">Show answer</button>
-          <div class="learn-consol-answer" id="learnConsolAnswer" hidden></div>
-          <div class="learn-consol-rate" id="learnConsolRate" hidden>
-            <div class="learn-consol-rate-label">How well did you know that?</div>
-            <div class="learn-consol-rate-row">
-              <button type="button" class="consol-rate-again" data-rating="1">Again</button>
-              <button type="button" class="consol-rate-hard" data-rating="2">Hard</button>
-              <button type="button" class="consol-rate-good" data-rating="3">Good</button>
-              <button type="button" class="consol-rate-easy" data-rating="4">Easy</button>
-            </div>
-          </div>
-        </div>
-        <!-- Pane C: summary -->
-        <div class="learn-summary-pane" id="learnSummaryPane" hidden>
-          <div class="learn-summary-title" id="learnSummaryTitle">You learned 0 concepts.</div>
-          <div class="learn-summary-sub" id="learnSummarySub">0 cards ready for review.</div>
-          <!-- Phase C: FSRS projection card. Populated by renderLearnFsrsProjection
-               from getFsrsHandoffPlan + getLearnTelemetrySummary. Hidden when
-               there are no covered cards (e.g. the user abandoned early). -->
-          <div class="learn-fsrs-projection" id="learnFsrsProjection" hidden>
-            <div class="learn-fsrs-projection-title">Projected review schedule</div>
-            <div class="learn-fsrs-projection-rows" id="learnFsrsProjectionRows"></div>
-            <div class="learn-fsrs-projection-note" id="learnFsrsProjectionNote"></div>
-          </div>
-          <div class="learn-summary-actions">
-            <button type="button" class="learn-summary-review-btn" id="learnSummaryReview">Review now</button>
-            <button type="button" class="learn-summary-done-btn" id="learnSummaryDone">Done</button>
-          </div>
-        </div>
-        <div class="learn-error" id="learnSessionError" role="alert">
-          <span id="learnSessionErrorMsg"></span>
-          <button type="button" class="learn-error-retry" id="learnSessionRetry">Retry</button>
-        </div>
-      </div>
-      <div class="learn-actions" id="learnSessionActions">
-        <button type="button" class="learn-exit-btn" id="learnSessionExit">Exit</button>
-        <button type="button" class="learn-submit-btn" id="learnSessionSubmit">
-          <span class="learn-spinner" aria-hidden="true"></span>
-          <span class="learn-submit-label">Submit</span>
-        </button>
-      </div>
-    </div>
-  </div>
 
   <!-- Confirm exit overlay for mid-consolidation abandon -->
   <div class="confirm-overlay" id="confirmLearnExitOv">
@@ -9693,6 +9708,7 @@ input[type="range"]::-moz-range-thumb{
     var DEFAULT_STATE = {
       items: {},
       courses: {},
+      ui: { activeCourseTab: {} },
       calibration: { totalSelfRatings: 0, totalActualCorrect: 0, history: [] },
       stats: {
         totalReviews: 0,
@@ -9966,6 +9982,7 @@ input[type="range"]::-moz-range-thumb{
       var courses = SyncEngine.get(NS, 'courses') || null;
       var subDecks = SyncEngine.get(NS, 'subDecks') || null;
       var learnPlans = SyncEngine.get(NS, 'learnPlans') || null;
+      var ui = SyncEngine.get(NS, 'ui') || null;
       var calibration = SyncEngine.get(NS, 'calibration') || null;
       var stats = SyncEngine.get(NS, 'stats') || null;
       state = deepClone(DEFAULT_STATE);
@@ -9973,6 +9990,9 @@ input[type="range"]::-moz-range-thumb{
       if (courses && typeof courses === 'object') state.courses = courses;
       if (subDecks && typeof subDecks === 'object') state.subDecks = subDecks;
       if (learnPlans && typeof learnPlans === 'object') state.learnPlans = learnPlans;
+      if (ui && typeof ui === 'object') state.ui = ui;
+      if (!state.ui || typeof state.ui !== 'object') state.ui = { activeCourseTab: {} };
+      if (!state.ui.activeCourseTab || typeof state.ui.activeCourseTab !== 'object') state.ui.activeCourseTab = {};
       if (calibration && typeof calibration === 'object') state.calibration = calibration;
       if (stats && typeof stats === 'object') state.stats = stats;
       migrateItems();
@@ -10025,6 +10045,7 @@ input[type="range"]::-moz-range-thumb{
       SyncEngine.set(NS, 'items', persistItems);
       SyncEngine.set(NS, 'courses', state.courses || {});
       SyncEngine.set(NS, 'learnPlans', state.learnPlans || {});
+      SyncEngine.set(NS, 'ui', state.ui || deepClone(DEFAULT_STATE.ui));
       if (subDecksDirty) {
         SyncEngine.set(NS, 'subDecks', state.subDecks || {});
         subDecksDirty = false;
@@ -10593,6 +10614,7 @@ input[type="range"]::-moz-range-thumb{
     var selectedCourse = 'All';
     var selectedTopic = 'All';
     var selectedSubDeck = null;
+    var COURSE_TAB_IDS = ['review', 'learn', 'cards', 'analytics', 'settings'];
     var retentionFilter = 'All'; /* controls which course the retention graph shows */
 
     var session = null;
@@ -22703,6 +22725,52 @@ input[type="range"]::-moz-range-thumb{
       pendingCourseLearnStart = null;
     }
 
+    function getActiveCourseTab(courseId) {
+      var ui = state && state.ui;
+      var map = ui && ui.activeCourseTab;
+      var saved = map && courseId ? map[courseId] : null;
+      return COURSE_TAB_IDS.indexOf(saved) >= 0 ? saved : 'review';
+    }
+
+    function setActiveCourseTab(courseId, tabId) {
+      if (!courseId || COURSE_TAB_IDS.indexOf(tabId) < 0) return;
+      var prev = getActiveCourseTab(courseId);
+      if (!state.ui || typeof state.ui !== 'object') state.ui = {};
+      if (!state.ui.activeCourseTab || typeof state.ui.activeCourseTab !== 'object') state.ui.activeCourseTab = {};
+      state.ui.activeCourseTab[courseId] = tabId;
+      if (prev === 'learn' && tabId !== 'learn' && activeLearnSession) {
+        closeLearnSessionImmediate();
+      }
+      saveState();
+      applyCourseTabUI(tabId);
+    }
+
+    function focusLearnPanelTarget() {
+      var panel = el('learn-tab-panel');
+      if (!panel) return;
+      var focusTarget = activeLearnSession ? panel.querySelector('button, textarea, [href], [tabindex]:not([tabindex="-1"])') : panel;
+      if (focusTarget && typeof focusTarget.focus === 'function') focusTarget.focus();
+    }
+
+    function applyCourseTabUI(tabId) {
+      var tabsNav = el('courseTabs');
+      if (!tabsNav) return;
+      var selected = COURSE_TAB_IDS.indexOf(tabId) >= 0 ? tabId : 'review';
+      tabsNav.querySelectorAll('[data-course-tab-target]').forEach(function(btn) {
+        var target = btn.getAttribute('data-course-tab-target');
+        var isActive = target === selected;
+        btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        btn.setAttribute('tabindex', isActive ? '0' : '-1');
+      });
+      COURSE_TAB_IDS.forEach(function(id) {
+        var panel = el(id + '-tab-panel');
+        if (panel) panel.hidden = (id !== selected);
+      });
+      if (selected === 'learn') {
+        setTimeout(focusLearnPanelTarget, 0);
+      }
+    }
+
     /* ═══ SECTION: Learn Session Modal | Functions: renderLearnMarkdownSafe, openLearnSession, submitLearnTurn, closeLearnSession ═══ */
     /* Lightweight markdown renderer for tutor turn bodies.
        HTML is escaped first; only **bold**, *italic*, `code`, bullet/numbered lists, and
@@ -22865,7 +22933,7 @@ input[type="range"]::-moz-range-thumb{
         if (label) label.textContent = 'Preparing next segment…';
         submit.setAttribute('title', 'Preparing next segment…');
         submit.setAttribute('aria-disabled', 'true');
-        if (exit) exit.textContent = 'Exit';
+        if (exit) exit.textContent = 'Back to sub-decks';
         return;
       }
       submit.classList.remove('awaiting-segment');
@@ -22893,7 +22961,7 @@ input[type="range"]::-moz-range-thumb{
         }
       }
       if (label) label.textContent = (phase === 'loading') ? 'Sending…' : (preSegmentStreaming ? 'Generating…' : 'Submit');
-      if (exit) exit.textContent = 'Exit';
+      if (exit) exit.textContent = 'Back to sub-decks';
     }
 
     /* Phase 4: update the streaming status strip. Shows
@@ -23744,7 +23812,8 @@ input[type="range"]::-moz-range-thumb{
         planOutOfDate: false,
         planVersion: nextPlanVersion,
         planFingerprint: currentFingerprint,
-        planCourseContextHash: fingerprintMeta.courseContextHash
+        planCourseContextHash: fingerprintMeta.courseContextHash,
+        streamCompleted: false
       };
       /* Legacy state.learnSession is populated on mount so other code paths
          see it only once the modal is actually up. */
@@ -23765,8 +23834,9 @@ input[type="range"]::-moz-range-thumb{
         };
         var ov = el('learnSessionOv');
         if (!ov) return;
-        ov.classList.add('show');
-        ov.setAttribute('aria-hidden', 'false');
+        ov.hidden = false;
+        var emptyState = el('learnTabEmptyState');
+        if (emptyState) emptyState.hidden = true;
         var inputEl = el('learnSessionInput');
         if (inputEl) { inputEl.value = ''; inputEl.disabled = false; }
         renderLearnSessionUI();
@@ -23811,14 +23881,17 @@ input[type="range"]::-moz-range-thumb{
         },
         onComplete: function(meta) {
           if (!activeLearnSession) return;
+          activeLearnSession.streamCompleted = true;
           activeLearnSession.flow = flowBridge.markStreamingComplete(activeLearnSession.flow);
-          persistLearnPlanCache(courseName, subDeckKey, {
-            fingerprint: currentFingerprint,
-            plan: (activeLearnSession.flow.plan && activeLearnSession.flow.plan.segments) ? activeLearnSession.flow.plan.segments : [],
-            generatedAt: Date.now(),
-            planVersion: activeLearnSession.planVersion || 1,
-            courseContextHash: fingerprintMeta.courseContextHash
-          });
+          if (activeLearnSession.streamCompleted) {
+            persistLearnPlanCache(courseName, subDeckKey, {
+              fingerprint: currentFingerprint,
+              plan: (activeLearnSession.flow.plan && activeLearnSession.flow.plan.segments) ? activeLearnSession.flow.plan.segments : [],
+              generatedAt: Date.now(),
+              planVersion: activeLearnSession.planVersion || 1,
+              courseContextHash: fingerprintMeta.courseContextHash
+            });
+          }
           if (meta && meta.warning) toast(meta.warning);
           if (activeLearnSession.modalMounted) renderLearnSessionUI();
           /* If a parked turn result was waiting on streaming completion, apply it
@@ -23884,8 +23957,9 @@ input[type="range"]::-moz-range-thumb{
 
       var ov = el('learnSessionOv');
       if (!ov) return;
-      ov.classList.add('show');
-      ov.setAttribute('aria-hidden', 'false');
+      ov.hidden = false;
+      var emptyState = el('learnTabEmptyState');
+      if (emptyState) emptyState.hidden = true;
 
       var input = el('learnSessionInput');
       if (input) { input.value = ''; input.disabled = false; }
@@ -23933,9 +24007,10 @@ input[type="range"]::-moz-range-thumb{
       /* Stop the streaming-percentage ticker. */
       try { stopLearnStreamTicker(); } catch (eT) {}
       if (ov) {
-        ov.classList.remove('show');
-        ov.setAttribute('aria-hidden', 'true');
+        ov.hidden = true;
       }
+      var _emptyState = el('learnTabEmptyState');
+      if (_emptyState) _emptyState.hidden = false;
       if (input) input.value = '';
       /* Defect 2 fix: clear stale per-pane DOM so a subsequent Learn session
          cannot inherit rendered content (consolidation question, revealed
@@ -23982,11 +24057,9 @@ input[type="range"]::-moz-range-thumb{
       if (_fsrsRows) _fsrsRows.innerHTML = '';
       if (_fsrsNote) _fsrsNote.textContent = '';
       if (_staleBadge) _staleBadge.hidden = true;
-      var courseName = activeLearnSession && activeLearnSession.courseName;
       activeLearnSession = null;
       learnSummaryState = null;
       try { playClick(); } catch(e) {}
-      if (courseName) { try { openCourseDetail(courseName); } catch(e) {} }
     }
 
     function openConfirmLearnExit(opts) {
@@ -24018,8 +24091,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     function closeLearnSession(force) {
-      var ov = el('learnSessionOv');
-      if (!ov) { activeLearnSession = null; return; }
+      if (!el('learnSessionOv')) { activeLearnSession = null; return; }
       var input = el('learnSessionInput');
       var hasContent = input && String(input.value || '').trim().length > 0;
       var phase = activeLearnSession && activeLearnSession.flow ? activeLearnSession.flow.phase : null;
@@ -24059,7 +24131,6 @@ input[type="range"]::-moz-range-thumb{
 
       var submit = el('learnSessionSubmit');
       var exitBtn = el('learnSessionExit');
-      var closeBtn = el('learnSessionClose');
       var regenBtn = el('learnSessionRegen');
       var retry = el('learnSessionRetry');
       var input = el('learnSessionInput');
@@ -24070,7 +24141,6 @@ input[type="range"]::-moz-range-thumb{
 
       if (submit) submit.addEventListener('click', function(){ submitLearnTurn(); });
       if (exitBtn) exitBtn.addEventListener('click', function(){ closeLearnSession(false); });
-      if (closeBtn) closeBtn.addEventListener('click', function(){ closeLearnSession(false); });
       if (regenBtn) regenBtn.addEventListener('click', function() {
         if (!activeLearnSession) return;
         /* TODO: replace with project-wide non-blocking confirm primitive when available. */
@@ -24150,7 +24220,7 @@ input[type="range"]::-moz-range-thumb{
       }
       document.addEventListener('keydown', function(e){
         if (e.key !== 'Escape') return;
-        if (!ov.classList.contains('show')) return;
+        if (ov.hidden) return;
         /* Don't hijack Escape when the confirm overlay is open. */
         var confirmOv = el('confirmLearnExitOv');
         if (confirmOv && confirmOv.classList.contains('show')) return;
@@ -24163,6 +24233,7 @@ input[type="range"]::-moz-range-thumb{
     function triggerCourseLearnSubDeck(courseName, subDeckKey) {
       selectedSubDeck = subDeckKey;
       openCourseDetail(courseName);
+      setActiveCourseTab(courseName, 'learn');
       setTimeout(function(){ var learnBtn = el('cdLearnSubDeck'); if (learnBtn) learnBtn.click(); else toast('Could not start Learn for that sub-deck'); }, 0);
     }
 
@@ -24214,11 +24285,47 @@ input[type="range"]::-moz-range-thumb{
     function openCourseDetail(courseName) {
       var c = getCourse(courseName);
       if (!c) return;
+      if (activeLearnSession && activeLearnSession.courseName && activeLearnSession.courseName !== courseName) {
+        closeLearnSessionImmediate();
+      }
 
       var gearBtn = document.querySelector('.topbar-right .icon-btn');
       if (gearBtn) gearBtn.style.display = 'none';
 
       el('cdTitle').textContent = c.name;
+      var tabsNav = el('courseTabs');
+      if (tabsNav && !tabsNav.__wired) {
+        tabsNav.__wired = true;
+        tabsNav.addEventListener('click', function(e) {
+          var target = e.target;
+          if (!(target instanceof Element)) return;
+          var btn = target.closest('[data-course-tab-target]');
+          if (!btn) return;
+          var tabId = btn.getAttribute('data-course-tab-target');
+          if (!tabId) return;
+          var activeCourseName = el('cdTitle') ? el('cdTitle').textContent : '';
+          if (!activeCourseName || activeCourseName === '—') return;
+          setActiveCourseTab(activeCourseName, tabId);
+          btn.focus();
+        });
+        tabsNav.addEventListener('keydown', function(e) {
+          if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+          var buttons = Array.from(tabsNav.querySelectorAll('[data-course-tab-target]'));
+          if (!buttons.length) return;
+          var idx = buttons.indexOf(document.activeElement);
+          if (idx < 0) idx = buttons.findIndex(function(btn){ return btn.getAttribute('aria-selected') === 'true'; });
+          var next = e.key === 'ArrowRight' ? (idx + 1) % buttons.length : (idx - 1 + buttons.length) % buttons.length;
+          var nextBtn = buttons[next];
+          if (!nextBtn) return;
+          var nextTab = nextBtn.getAttribute('data-course-tab-target') || 'review';
+          var activeCourseName = el('cdTitle') ? el('cdTitle').textContent : '';
+          if (!activeCourseName || activeCourseName === '—') return;
+          setActiveCourseTab(activeCourseName, nextTab);
+          nextBtn.focus();
+          e.preventDefault();
+        });
+      }
+      applyCourseTabUI(getActiveCourseTab(c.name));
       var cdHeader = document.querySelector('#courseDetail .cd-header');
       if (cdHeader) {
         cdHeader.style.borderLeft = '5px solid ' + (c.color || '#8b5cf6');
@@ -24423,6 +24530,7 @@ input[type="range"]::-moz-range-thumb{
 	                  toast('Learn mode unavailable.');
 	                  return;
 	                }
+                  setActiveCourseTab(courseName, 'learn');
 	                startLearnPlanStreaming(courseName, selectedSubDeck, selectedCards, settings.userName || '', '');
 	              };
 	            } else {
