@@ -10,6 +10,12 @@ const LEARN_TURN_CORS_HEADERS = {
 
 const TURN_MODEL = "gemini-2.5-flash";
 
+const LEARN_GATE_STOPWORDS = new Set([
+  "a", "an", "the", "and", "or", "but", "is", "are", "was", "were", "be", "been", "being",
+  "in", "on", "at", "to", "of", "for", "with", "by", "from", "as", "that", "this", "these", "those",
+  "it", "its", "which", "who", "whom", "whose", "what", "when", "where", "why", "how"
+]);
+
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -20,26 +26,54 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
+function tokenizeForLearnGate(input: string): string[] {
+  return String(input || "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length > 0 && !LEARN_GATE_STOPWORDS.has(token));
+}
+
+function computeCopyRatio(sourceText: string, targetText: string): number {
+  const sourceTokens = Array.from(new Set(tokenizeForLearnGate(sourceText)));
+  const targetTokens = Array.from(new Set(tokenizeForLearnGate(targetText)));
+  if (sourceTokens.length === 0) return 1;
+  const targetSet = new Set(targetTokens);
+  const overlap = sourceTokens.filter((token) => targetSet.has(token)).length;
+  return overlap / sourceTokens.length;
+}
+
 function validateRequest(body: LearnTurnRequest): string | null {
   if (!body || typeof body !== "object") return "Invalid JSON body";
   if (!body.segment || typeof body.segment !== "object") return "Missing segment";
   if (!body.segment.tutorPrompt) return "Missing segment.tutorPrompt";
+  if (!body.segment.teach) return "Missing segment.teach";
   if (!body.mechanism) return "Missing mechanism";
   return null;
 }
 
 function buildPrompts(body: LearnTurnRequest): { system: string; user: string } {
   const system = [
-    "You are running a first-exposure learning turn.",
-    "Mechanisms: worked_example, elaborative_interrogation, self_explanation, predictive_question, test_closure.",
-    "Respond in concise Canadian English.",
-    "Return JSON only."
+    "You are grading a first-exposure Learn mode response during encoding.",
+    "The teach block remains visible for novice support, but copying it must not pass.",
+    "Ground your judgement in the learner text, teach block, and expected answer.",
+    "Return JSON only.",
+    "Verdict definitions:",
+    "- surface: response is substantially a paraphrase or direct lift of teach tokens with no added reasoning.",
+    "- partial: response paraphrases teach but adds at least one causal connector, inference step, or application not stated in teach.",
+    "- deep: response constructs a mechanism, predicts a downstream consequence, applies the concept to a novel case, or explains WHY in terms not present in teach.",
+    "Set advance=true only if verdict is deep, or verdict is partial and missingConcepts is empty.",
+    "When advance=false, followUp must be exactly one specific Socratic question targeting the gap. Not generic. Not multi-part.",
+    "feedback must reference something the learner actually wrote.",
+    "Use concise Canadian English."
   ].join("\n");
 
   const user = [
     `MECHANISM: ${body.mechanism}`,
     `SEGMENT_TITLE: ${body.segment.title || ""}`,
     `OBJECTIVE: ${body.segment.objective || ""}`,
+    `TEACH: ${body.segment.teach || ""}`,
     `TUTOR_PROMPT: ${body.segment.tutorPrompt || ""}`,
     `EXPECTED_ANSWER: ${body.segment.expectedAnswer || ""}`,
     `STUDENT_INPUT: ${body.userInput || ""}`,
@@ -47,10 +81,13 @@ function buildPrompts(body: LearnTurnRequest): { system: string; user: string } 
     "",
     "Return schema:",
     "{",
-    '  "feedback": "1-3 short paragraphs",',
-    '  "nextPrompt": "short follow-up prompt",',
-    '  "isSegmentComplete": true or false,',
-    '  "suggestedStatus": "taught" or "consolidated" or null',
+    '  "verdict": "surface" | "partial" | "deep",',
+    '  "understandingScore": 0-100 number,',
+    '  "copyRatio": 0-1 number,',
+    '  "missingConcepts": ["named concept"],',
+    '  "feedback": "1-2 sentences tied to learner text",',
+    '  "followUp": "single Socratic question" or null,',
+    '  "advance": true or false',
     "}"
   ].join("\n");
 
@@ -74,12 +111,15 @@ export async function handleLearnTurn(request: Request, env: Env): Promise<Respo
     const responseSchema = {
       type: "object",
       properties: {
+        verdict: { type: "string", enum: ["surface", "partial", "deep"] },
+        understandingScore: { type: "number", minimum: 0, maximum: 100 },
+        copyRatio: { type: "number", minimum: 0, maximum: 1 },
+        missingConcepts: { type: "array", items: { type: "string" } },
         feedback: { type: "string" },
-        nextPrompt: { type: "string" },
-        isSegmentComplete: { type: "boolean" },
-        suggestedStatus: { type: "string", nullable: true }
+        followUp: { type: "string", nullable: true },
+        advance: { type: "boolean" }
       },
-      required: ["feedback", "nextPrompt", "isSegmentComplete"]
+      required: ["verdict", "understandingScore", "copyRatio", "missingConcepts", "feedback", "followUp", "advance"]
     };
 
     const geminiData = await callGemini(
@@ -87,7 +127,7 @@ export async function handleLearnTurn(request: Request, env: Env): Promise<Respo
       system,
       user,
       {
-        temperature: 0.35,
+        temperature: 0.25,
         maxOutputTokens: 1024,
         responseMimeType: "application/json",
         responseSchema
@@ -98,9 +138,22 @@ export async function handleLearnTurn(request: Request, env: Env): Promise<Respo
 
     const raw = extractGeminiText(geminiData);
     const parsed = parseJsonResponse<LearnTurnResponse>(raw);
-    if (!parsed || !parsed.feedback) {
+    if (!parsed || typeof parsed.feedback !== "string") {
       return jsonResponse({ error: "learn_turn_parse_failed" }, 502);
     }
+
+    const serverCopyRatio = computeCopyRatio(body.userInput || "", body.segment.teach || "");
+    parsed.copyRatio = serverCopyRatio;
+    const missingConcepts = Array.isArray(parsed.missingConcepts) ? parsed.missingConcepts : [];
+    parsed.missingConcepts = missingConcepts;
+    parsed.advance = parsed.verdict === "deep" || (parsed.verdict === "partial" && missingConcepts.length === 0);
+
+    if (serverCopyRatio > 0.7) {
+      parsed.verdict = "surface";
+      parsed.advance = false;
+      parsed.followUp = "That response reads as a paraphrase of the teach. Close or look away from the teach block and answer again in your own words, focusing on WHY rather than WHAT.";
+    }
+
     return jsonResponse(parsed, 200);
   } catch (error) {
     console.error("[learn-turn] error", error);

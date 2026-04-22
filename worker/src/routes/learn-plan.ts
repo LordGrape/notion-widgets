@@ -34,6 +34,30 @@ function normalizeText(input: string): string {
   return String(input || "").replace(/\s+/g, " ").trim().toLowerCase();
 }
 
+const LEARN_GATE_STOPWORDS = new Set([
+  "a", "an", "the", "and", "or", "but", "is", "are", "was", "were", "be", "been", "being",
+  "in", "on", "at", "to", "of", "for", "with", "by", "from", "as", "that", "this", "these", "those",
+  "it", "its", "which", "who", "whom", "whose", "what", "when", "where", "why", "how"
+]);
+
+function tokenizeForLearnGate(input: string): string[] {
+  return String(input || "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length > 0 && !LEARN_GATE_STOPWORDS.has(token));
+}
+
+function computeTokenOverlapRatio(sourceText: string, targetText: string): number {
+  const sourceTokens = Array.from(new Set(tokenizeForLearnGate(sourceText)));
+  const targetTokens = Array.from(new Set(tokenizeForLearnGate(targetText)));
+  if (sourceTokens.length === 0) return 1;
+  const targetSet = new Set(targetTokens);
+  const overlapCount = sourceTokens.filter((token) => targetSet.has(token)).length;
+  return overlapCount / sourceTokens.length;
+}
+
 function textHasAnchor(cardText: string, anchor: string): boolean {
   const hay = normalizeText(cardText);
   const needle = normalizeText(anchor);
@@ -654,6 +678,74 @@ async function requestPlanOneShot(body: LearnPlanRequest, env: Env): Promise<Lea
   return parseJsonResponse<LearnPlanResponse>(raw);
 }
 
+async function regenerateRejectedSegment(
+  body: LearnPlanRequest,
+  currentPlan: LearnPlanResponse,
+  segmentId: string,
+  answerInTeachRatio: number,
+  env: Env
+): Promise<LearnPlanSegment | null> {
+  const regenerationInstruction =
+    `Segment ${segmentId} was rejected. Its expected answer is copyable from its teach (overlap ${answerInTeachRatio.toFixed(3)}). ` +
+    `Regenerate ONLY segment ${segmentId}. The new expectedAnswer must require inference, mechanism construction, prediction, or transfer that is NOT stated verbatim in the teach. Keep all other segments unchanged.`;
+  const regenUserPrompt = [
+    buildUserPrompt(body),
+    "",
+    "CURRENT_PLAN_JSON:",
+    JSON.stringify(currentPlan),
+    "",
+    regenerationInstruction
+  ].join("\n");
+
+  const geminiData = await callGemini(
+    PLAN_MODEL,
+    buildSystemPrompt(),
+    regenUserPrompt,
+    buildGenerationConfig() as Parameters<typeof callGemini>[3],
+    env
+  );
+  const raw = extractGeminiText(geminiData);
+  const parsed = parseJsonResponse<LearnPlanResponse>(raw);
+  if (!parsed || !Array.isArray(parsed.segments)) return null;
+  return parsed.segments.find((segment) => String(segment?.id) === segmentId) || null;
+}
+
+async function enforceUncopyableSegment(
+  segment: LearnPlanSegment,
+  currentPlan: LearnPlanResponse,
+  body: LearnPlanRequest,
+  env: Env
+): Promise<LearnPlanSegment> {
+  let workingSegment: LearnPlanSegment = { ...segment };
+  const maxRetries = 2;
+  for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+    const answerInTeachRatio = computeTokenOverlapRatio(workingSegment.expectedAnswer, workingSegment.teach);
+    if (answerInTeachRatio <= 0.6) {
+      return workingSegment;
+    }
+    console.warn("[learn-plan] answer_copyable_from_teach", {
+      segmentId: String(workingSegment.id || ""),
+      answerInTeachRatio,
+      tutorPrompt: String(workingSegment.tutorPrompt || ""),
+      expectedAnswer: String(workingSegment.expectedAnswer || ""),
+      retryAttemptCount: attempt
+    });
+    if (attempt > maxRetries) {
+      return {
+        ...workingSegment,
+        questionQualityWarning: "answer_copyable_from_teach"
+      };
+    }
+    const regenerated = await regenerateRejectedSegment(body, currentPlan, String(workingSegment.id || ""), answerInTeachRatio, env);
+    if (!regenerated) continue;
+    workingSegment = {
+      ...workingSegment,
+      ...regenerated
+    };
+  }
+  return workingSegment;
+}
+
 export async function handleLearnPlan(request: Request, env: Env): Promise<Response> {
   if (request.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
 
@@ -694,10 +786,16 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
           if (!verifySegmentTeach(seg)) continue;
           if (!verifySegmentTutorPrompt(String(seg.tutorPrompt || "")).ok) continue;
           if (!verifySegmentCheckType(seg)) continue;
-          if (emittedSegmentIds.has(String(seg.id))) continue;
-          emittedSegmentIds.add(String(seg.id));
-          emittedSegments.push(seg);
-          await emit.event("segment", seg);
+          const copyCheckedSegment = await enforceUncopyableSegment(
+            seg,
+            { segments: [seg], consolidationQuestions: [] },
+            body,
+            env
+          );
+          if (emittedSegmentIds.has(String(copyCheckedSegment.id))) continue;
+          emittedSegmentIds.add(String(copyCheckedSegment.id));
+          emittedSegments.push(copyCheckedSegment);
+          await emit.event("segment", copyCheckedSegment);
         }
       }
     } catch (err) {
@@ -716,9 +814,10 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
         if (!verifySegmentTeach(seg)) continue;
         if (!verifySegmentTutorPrompt(String(seg.tutorPrompt || "")).ok) continue;
         if (!verifySegmentCheckType(seg)) continue;
-        emittedSegmentIds.add(String(seg.id));
-        emittedSegments.push(seg);
-        await emit.event("segment", seg);
+        const copyCheckedSegment = await enforceUncopyableSegment(seg, fullParsed, body, env);
+        emittedSegmentIds.add(String(copyCheckedSegment.id));
+        emittedSegments.push(copyCheckedSegment);
+        await emit.event("segment", copyCheckedSegment);
       }
     }
 
@@ -752,7 +851,17 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
       console.warn("[learn-plan] one-shot fallback threw", err);
     }
 
-    const verifiedSecond = filterVerifiedSegments(secondAttempt?.segments || [], cardCorpus);
+    const verifiedSecondBase = filterVerifiedSegments(secondAttempt?.segments || [], cardCorpus);
+    const verifiedSecond: LearnPlanSegment[] = [];
+    for (const segment of verifiedSecondBase) {
+      const checkedSegment = await enforceUncopyableSegment(
+        segment,
+        secondAttempt || { segments: verifiedSecondBase, consolidationQuestions: secondAttempt?.consolidationQuestions || [] },
+        body,
+        env
+      );
+      verifiedSecond.push(checkedSegment);
+    }
     const verifiedSecondQs = filterVerifiedConsolidationQuestions(secondAttempt?.consolidationQuestions || [], cardCorpus);
 
     if (verifiedSecond.length >= 2) {
