@@ -7831,6 +7831,265 @@ input[type="range"]::-moz-range-thumb{
     .rate, .big-btn, .icon-btn, .ghost-btn, .nav-tab, .rub-pill,
     .cm-preview-success-chip, .cm-save-btn { touch-action: manipulation; }
 
+    /* ── CSS SECTION: Learn Session Modal ── */
+    .learn-ov{ z-index: 110; }
+    .learn-ov .modal{
+      max-width: 680px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      max-height: min(92vh, 860px);
+    }
+    .learn-ov .modal-head{
+      align-items: center;
+      gap: 10px;
+    }
+    .learn-head-copy{
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+    .learn-head-kicker{
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .learn-head-title{
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .learn-progress{
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .learn-progress-dot{
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: rgba(var(--accent-rgb),0.14);
+      border: 1px solid rgba(var(--accent-rgb),0.28);
+    }
+    .learn-progress-dot.done{ background: var(--accent); border-color: var(--accent); }
+    .learn-progress-dot.active{
+      background: rgba(var(--accent-rgb),0.4);
+      border-color: rgba(var(--accent-rgb),0.6);
+      box-shadow: 0 0 0 3px rgba(var(--accent-rgb),0.12);
+    }
+    .learn-body{
+      padding: 18px 18px 4px;
+      overflow-y: auto;
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+    .learn-tutor{
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text);
+      background: rgba(var(--accent-rgb),0.05);
+      border: 1px solid rgba(var(--accent-rgb),0.14);
+      border-radius: 16px;
+      padding: 16px 18px;
+      margin-bottom: 14px;
+      word-wrap: break-word;
+    }
+    .learn-tutor p{ margin: 0 0 10px; }
+    .learn-tutor p:last-child{ margin-bottom: 0; }
+    .learn-tutor strong{ color: var(--text); font-weight: 700; }
+    .learn-tutor em{ color: var(--text); font-style: italic; }
+    .learn-tutor ul, .learn-tutor ol{ margin: 4px 0 10px 20px; padding: 0; }
+    .learn-tutor li{ margin: 4px 0; line-height: 1.55; }
+    .learn-tutor code{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      background: rgba(var(--accent-rgb),0.10);
+      border: 1px solid rgba(var(--accent-rgb),0.16);
+      padding: 1px 6px;
+      border-radius: 6px;
+    }
+    .learn-caption{
+      font-size: 10px;
+      color: var(--text-tertiary);
+      letter-spacing: 0.4px;
+      margin: 0 2px 10px;
+      min-height: 14px;
+    }
+    .learn-caption.thinking::before{
+      content: "";
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      border: 1.5px solid var(--accent);
+      border-right-color: transparent;
+      margin-right: 6px;
+      vertical-align: -1px;
+      animation: learn-spin 0.7s linear infinite;
+    }
+    @keyframes learn-spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) {
+      .learn-caption.thinking::before{ animation: none; }
+    }
+    .learn-error{
+      display: none;
+      font-size: 11px;
+      line-height: 1.5;
+      color: var(--rate-again);
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.25);
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .learn-error.show{ display: flex; }
+    .learn-error-retry{
+      appearance: none;
+      border: 1px solid rgba(239,68,68,0.3);
+      background: rgba(239,68,68,0.12);
+      color: var(--rate-again);
+      font-weight: 700;
+      font-size: 9px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 6px 10px;
+      border-radius: 10px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .learn-error-retry:hover{ background: rgba(239,68,68,0.18); }
+    .learn-input-wrap{
+      padding: 6px 18px 14px;
+      border-top: 1px solid rgba(var(--accent-rgb),0.08);
+    }
+    .learn-input{
+      width: 100%;
+      resize: none;
+      min-height: 72px;
+      max-height: 240px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(var(--accent-rgb),0.18);
+      background: var(--card-bg);
+      color: var(--text);
+      font-family: Inter, system-ui, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      outline: none;
+      transition: border-color var(--transition), background var(--transition);
+      touch-action: manipulation;
+    }
+    .learn-input:focus{
+      border-color: rgba(var(--accent-rgb),0.45);
+      background: rgba(var(--accent-rgb),0.03);
+    }
+    .learn-input:disabled{ opacity: 0.55; cursor: not-allowed; }
+    .learn-hint{
+      display: block;
+      font-size: 9px;
+      color: var(--text-tertiary);
+      letter-spacing: 0.5px;
+      margin-top: 6px;
+    }
+    .learn-actions{
+      padding: 10px 18px 16px;
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+    .learn-actions .learn-exit-btn,
+    .learn-actions .learn-submit-btn{
+      min-height: 44px;
+    }
+    .learn-exit-btn{
+      appearance: none;
+      flex: 0 0 auto;
+      min-width: 110px;
+      padding: 10px 16px;
+      border-radius: 14px;
+      border: 1px solid rgba(var(--accent-rgb),0.18);
+      background: transparent;
+      color: var(--text-secondary);
+      font-weight: 700;
+      font-size: 10px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background var(--transition), border-color var(--transition), color var(--transition);
+    }
+    .learn-exit-btn:hover{
+      background: rgba(var(--accent-rgb),0.06);
+      border-color: rgba(var(--accent-rgb),0.28);
+      color: var(--text);
+    }
+    .learn-submit-btn{
+      appearance: none;
+      flex: 0 0 auto;
+      min-width: 180px;
+      padding: 12px 20px;
+      border-radius: 14px;
+      border: 1px solid rgba(var(--accent-rgb),0.3);
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      color: #fff;
+      font-weight: 800;
+      font-size: 11px;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 8px 22px rgba(var(--accent-rgb),0.25);
+      transition: transform var(--transition), box-shadow var(--transition), opacity var(--transition);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .learn-submit-btn:hover:not(:disabled){ transform: translateY(-1px); box-shadow: 0 10px 28px rgba(var(--accent-rgb),0.32); }
+    .learn-submit-btn:active:not(:disabled){ transform: translateY(0) scale(0.99); }
+    .learn-submit-btn:disabled{ opacity: 0.55; cursor: not-allowed; box-shadow: none; }
+    .learn-submit-btn .learn-spinner{
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.55);
+      border-right-color: transparent;
+      display: none;
+      animation: learn-spin 0.7s linear infinite;
+    }
+    .learn-submit-btn.loading .learn-spinner{ display: inline-block; }
+    @media (prefers-reduced-motion: reduce) {
+      .learn-submit-btn .learn-spinner{ animation: none; border-right-color: rgba(255,255,255,0.2); }
+    }
+
+    /* Embed (<=900px): full-view takeover inside the card surface */
+    @media (max-width: 900px) {
+      .learn-ov{
+        padding: 0;
+        background: transparent;
+      }
+      .learn-ov .modal{
+        max-width: 100%;
+        max-height: 100vh;
+        height: 100%;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+      }
+    }
+    @media (max-width: 700px) {
+      .learn-actions{ flex-direction: column-reverse; }
+      .learn-actions .learn-exit-btn,
+      .learn-actions .learn-submit-btn{ width: 100%; min-width: 0; }
+    }
+
   </style>
 </head>
 <body>
@@ -8369,6 +8628,40 @@ input[type="range"]::-moz-range-thumb{
   <div class="overlay" id="courseLearnEmptyOv" aria-hidden="true"><div class="modal" style="max-width:520px;"><div class="modal-head"><span style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--text);">Learn course</span><button type="button" class="icon-btn" id="courseLearnEmptyClose" aria-label="Close"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg></button></div><div class="modal-body"><div id="courseLearnEmptyBody" style="font-size:11px;line-height:1.5;color:var(--text-secondary);"></div></div><div class="modal-actions"><button type="button" class="ghost-btn" id="courseLearnEmptyCancel">Cancel</button><button type="button" class="big-btn" id="courseLearnEmptyConfirm">Create &amp; Learn</button></div></div></div>
   <div class="overlay" id="courseLearnPickerOv" aria-hidden="true"><div class="modal" style="max-width:560px;"><div class="modal-head"><span style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--text);">Choose sub-deck to learn</span><button type="button" class="icon-btn" id="courseLearnPickerClose" aria-label="Close"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg></button></div><div class="modal-body"><div id="courseLearnPickerBody" style="max-height:min(56vh,360px);overflow-y:auto;"></div></div></div></div>
 
+  <!-- Learn session modal: replaces window.prompt()/window.confirm() UI -->
+  <div class="overlay learn-ov" id="learnSessionOv" aria-hidden="true" role="dialog" aria-labelledby="learnSessionTitle" aria-modal="true">
+    <div class="modal">
+      <div class="modal-head">
+        <div class="learn-head-copy">
+          <span class="learn-head-kicker">Learn</span>
+          <span class="learn-head-title" id="learnSessionTitle">Loading…</span>
+        </div>
+        <div class="learn-progress" id="learnSessionProgress" aria-hidden="true"></div>
+        <button type="button" class="icon-btn" id="learnSessionClose" aria-label="Close Learn session">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>
+        </button>
+      </div>
+      <div class="learn-body">
+        <div class="learn-tutor" id="learnSessionTutor" aria-live="polite"></div>
+        <div class="learn-error" id="learnSessionError" role="alert">
+          <span id="learnSessionErrorMsg"></span>
+          <button type="button" class="learn-error-retry" id="learnSessionRetry">Retry</button>
+        </div>
+      </div>
+      <div class="learn-input-wrap">
+        <textarea class="learn-input" id="learnSessionInput" rows="3" placeholder="Type your response…" aria-label="Your response"></textarea>
+        <div class="learn-caption" id="learnSessionCaption"></div>
+      </div>
+      <div class="learn-actions">
+        <button type="button" class="learn-exit-btn" id="learnSessionExit">Exit</button>
+        <button type="button" class="learn-submit-btn" id="learnSessionSubmit">
+          <span class="learn-spinner" aria-hidden="true"></span>
+          <span class="learn-submit-label">Submit</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div class="confirm-overlay" id="confirmExitOv">
     <div class="confirm-box">
       <div class="cb-icon"><svg width="28" height="28" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.5L1.5 13.5h13z"/><line x1="8" y1="6.5" x2="8" y2="9.5"/><circle cx="8" cy="11.5" r="0.5" fill="currentColor" stroke="none"/></svg></div>
@@ -8504,6 +8797,7 @@ input[type="range"]::-moz-range-thumb{
     import { initPageAnimations, animateEmptyStateEntrance } from './src/animations.js';
     import { computePopoverData, getTimeBucket } from './src/xp-popover';
     import './src/learn-mode';
+    import './src/learn-flow';
 
     globalThis.__studyEngineSubDecks = {
       loadSubDecks: loadSubDecks,
@@ -21885,6 +22179,298 @@ input[type="range"]::-moz-range-thumb{
       pendingCourseLearnStart = null;
     }
 
+    /* ═══ SECTION: Learn Session Modal | Functions: renderLearnMarkdownSafe, openLearnSession, submitLearnTurn, closeLearnSession ═══ */
+    /* Lightweight markdown renderer for tutor turn bodies.
+       HTML is escaped first; only **bold**, *italic*, `code`, bullet/numbered lists, and
+       paragraph breaks are re-enabled. No raw HTML injection possible. */
+    function renderLearnMarkdownSafe(src) {
+      var text = String(src == null ? '' : src);
+      var escaped = text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+      /* Inline: code first (so ** inside code isn't interpreted), then bold, italic. */
+      escaped = escaped.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+      escaped = escaped.replace(/\*\*([^*\n][^*]*?)\*\*/g, '<strong>$1</strong>');
+      escaped = escaped.replace(/(^|[^*])\*([^*\n][^*]*?)\*(?!\*)/g, '$1<em>$2</em>');
+
+      var blocks = escaped.split(/\n{2,}/);
+      var html = '';
+      for (var i = 0; i < blocks.length; i++) {
+        var block = blocks[i].replace(/^\n+|\n+$/g, '');
+        if (!block) continue;
+        var lines = block.split('\n');
+        var isUl = lines.every(function(l){ return /^\s*-\s+/.test(l); });
+        var isOl = lines.every(function(l){ return /^\s*\d+\.\s+/.test(l); });
+        if (isUl && lines.length) {
+          html += '<ul>' + lines.map(function(l){ return '<li>' + l.replace(/^\s*-\s+/, '') + '</li>'; }).join('') + '</ul>';
+        } else if (isOl && lines.length) {
+          html += '<ol>' + lines.map(function(l){ return '<li>' + l.replace(/^\s*\d+\.\s+/, '') + '</li>'; }).join('') + '</ol>';
+        } else {
+          html += '<p>' + lines.join('<br>') + '</p>';
+        }
+      }
+      return html || '<p></p>';
+    }
+
+    var activeLearnSession = null;
+
+    function updateLearnSubmitState() {
+      var submit = el('learnSessionSubmit');
+      var input = el('learnSessionInput');
+      var label = submit ? submit.querySelector('.learn-submit-label') : null;
+      if (!activeLearnSession || !submit || !input) return;
+      var phase = activeLearnSession.flow.phase;
+      var disabled = (phase === 'loading') || (phase === 'done') || !String(input.value || '').trim();
+      submit.disabled = disabled;
+      submit.classList.toggle('loading', phase === 'loading');
+      input.disabled = (phase === 'loading');
+      if (label) {
+        if (phase === 'loading') label.textContent = 'Sending…';
+        else if (phase === 'done') label.textContent = 'Finish';
+        else label.textContent = 'Submit';
+      }
+    }
+
+    function renderLearnProgress() {
+      var host = el('learnSessionProgress');
+      if (!host || !activeLearnSession) return;
+      var segs = (activeLearnSession.flow.plan && activeLearnSession.flow.plan.segments) || [];
+      var idx = activeLearnSession.flow.segmentIndex;
+      var isDone = activeLearnSession.flow.phase === 'done';
+      var dots = '';
+      for (var i = 0; i < segs.length; i++) {
+        var cls = 'learn-progress-dot';
+        if (i < idx || (isDone && i === segs.length - 1)) cls += ' done';
+        else if (i === idx) cls += ' active';
+        dots += '<span class="' + cls + '"></span>';
+      }
+      host.innerHTML = dots;
+    }
+
+    function renderLearnSessionUI() {
+      if (!activeLearnSession) return;
+      var flow = activeLearnSession.flow;
+      var tutor = el('learnSessionTutor');
+      var caption = el('learnSessionCaption');
+      var errorHost = el('learnSessionError');
+      var errorMsg = el('learnSessionErrorMsg');
+      var title = el('learnSessionTitle');
+      var input = el('learnSessionInput');
+
+      if (title) {
+        var seg = (flow.plan.segments || [])[flow.segmentIndex];
+        var total = (flow.plan.segments || []).length || 1;
+        var stepIdx = Math.min(flow.segmentIndex + 1, total);
+        var segTitle = seg ? String(seg.title || 'Segment') : '';
+        title.textContent = (flow.phase === 'done')
+          ? 'Learn complete'
+          : ('Step ' + stepIdx + ' of ' + total + (segTitle ? (' · ' + segTitle) : ''));
+      }
+
+      if (tutor) tutor.innerHTML = renderLearnMarkdownSafe(flow.tutorBody);
+
+      if (caption) {
+        if (flow.phase === 'loading') { caption.textContent = 'Tutor is thinking…'; caption.classList.add('thinking'); }
+        else { caption.textContent = ''; caption.classList.remove('thinking'); }
+      }
+
+      if (errorHost && errorMsg) {
+        if (flow.phase === 'error') {
+          errorMsg.textContent = flow.errorMessage || 'Something went wrong.';
+          errorHost.classList.add('show');
+        } else {
+          errorMsg.textContent = '';
+          errorHost.classList.remove('show');
+        }
+      }
+
+      if (input && flow.phase === 'done') input.placeholder = 'Session complete. Press Finish to exit.';
+      else if (input) input.placeholder = 'Type your response…';
+
+      renderLearnProgress();
+      updateLearnSubmitState();
+      autogrowLearnInput();
+    }
+
+    function autogrowLearnInput() {
+      var input = el('learnSessionInput');
+      if (!input) return;
+      input.style.height = 'auto';
+      var h = Math.min(input.scrollHeight, 240);
+      input.style.height = h + 'px';
+    }
+
+    function applyTaughtStatusForSegment(segment) {
+      if (!segment) return;
+      var ids = Array.isArray(segment.linkedCardIds) ? segment.linkedCardIds : [];
+      ids.forEach(function(cardId) {
+        var card = state.items[cardId];
+        if (card && (card.learnStatus == null || card.learnStatus === 'unlearned')) {
+          card.learnStatus = 'taught';
+        }
+      });
+    }
+
+    function applyConsolidatedStatusForFlow(flow) {
+      if (!flow || !flow.plan) return;
+      var completedIds = flow.completedSegmentIds || [];
+      (flow.plan.segments || []).forEach(function(segment) {
+        if (!segment || completedIds.indexOf(segment.id) < 0) return;
+        (segment.linkedCardIds || []).forEach(function(cardId) {
+          var card = state.items[cardId];
+          if (card) {
+            card.learnStatus = 'consolidated';
+            if (card.consolidationRating == null) card.consolidationRating = 3;
+          }
+        });
+      });
+    }
+
+    async function submitLearnTurn() {
+      if (!activeLearnSession) return;
+      var flowBridge = globalThis.__studyEngineLearnFlow;
+      var modeBridge = globalThis.__studyEngineLearnMode;
+      if (!flowBridge || !modeBridge) { toast('Learn mode unavailable.'); return; }
+      var input = el('learnSessionInput');
+      var userInput = input ? String(input.value || '').trim() : '';
+      if (!userInput) return;
+      if (activeLearnSession.flow.phase === 'done') { closeLearnSession(true); return; }
+
+      var pendingSegment = flowBridge.currentSegment(activeLearnSession.flow);
+      activeLearnSession.flow = flowBridge.markLoading(activeLearnSession.flow);
+      renderLearnSessionUI();
+
+      try {
+        var sessionSnapshot = {
+          plan: activeLearnSession.flow.plan,
+          index: activeLearnSession.flow.segmentIndex,
+          currentMechanism: (pendingSegment && pendingSegment.mechanism) || 'worked_example',
+          completedSegmentIds: activeLearnSession.flow.completedSegmentIds.slice()
+        };
+        var result = await modeBridge.runLearnTurn(sessionSnapshot, userInput, settings.userName || '');
+
+        activeLearnSession.flow = flowBridge.applyTurnResult(activeLearnSession.flow, userInput, result);
+        /* Mark linked cards for the segment that was just worked on as taught (if unlearned). */
+        applyTaughtStatusForSegment(pendingSegment);
+        if (activeLearnSession.flow.phase === 'done') {
+          applyConsolidatedStatusForFlow(activeLearnSession.flow);
+        }
+        saveState();
+
+        if (input) input.value = '';
+        try { playClick(); } catch(e) {}
+        if (activeLearnSession.flow.phase === 'done') {
+          try { playChime(); } catch(e) {}
+        }
+        renderLearnSessionUI();
+        if (input && activeLearnSession.flow.phase !== 'done') input.focus();
+      } catch (err) {
+        activeLearnSession.flow = flowBridge.markError(activeLearnSession.flow, err && err.message ? err.message : String(err));
+        try { playError(); } catch(e) {}
+        renderLearnSessionUI();
+      }
+    }
+
+    function openLearnSession(plan, courseName, subDeckKey) {
+      var flowBridge = globalThis.__studyEngineLearnFlow;
+      if (!flowBridge) { toast('Learn mode unavailable.'); return; }
+      var segments = (plan && plan.segments) || [];
+      if (!segments.length) { toast('No learn segments generated'); return; }
+
+      /* Keep legacy state.learnSession metadata so other code paths relying on it don't regress. */
+      state.learnSession = {
+        segments: segments,
+        currentSegment: 0,
+        consolidationBattery: [],
+        currentMechanism: segments[0].mechanism || 'worked_example',
+        completedSegmentIds: [],
+        subDeck: subDeckKey,
+        course: courseName,
+        startedAt: new Date().toISOString()
+      };
+
+      activeLearnSession = {
+        flow: flowBridge.createLearnFlow(plan, courseName, subDeckKey),
+        courseName: courseName
+      };
+
+      var ov = el('learnSessionOv');
+      if (!ov) return;
+      ov.classList.add('show');
+      ov.setAttribute('aria-hidden', 'false');
+
+      var input = el('learnSessionInput');
+      if (input) { input.value = ''; input.disabled = false; }
+      renderLearnSessionUI();
+      if (window.gsap) {
+        try { gsap.fromTo(ov.querySelector('.modal'), { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' }); } catch(e) {}
+      }
+      setTimeout(function(){ if (input) input.focus(); }, 60);
+    }
+
+    function closeLearnSession(force) {
+      var ov = el('learnSessionOv');
+      if (!ov) { activeLearnSession = null; return; }
+      var input = el('learnSessionInput');
+      var hasContent = input && String(input.value || '').trim().length > 0;
+      var isFinished = activeLearnSession && activeLearnSession.flow && activeLearnSession.flow.phase === 'done';
+      if (!force && hasContent && !isFinished) {
+        var ok = window.confirm("Exit Learn? Your response won't be saved.");
+        if (!ok) return;
+      }
+      ov.classList.remove('show');
+      ov.setAttribute('aria-hidden', 'true');
+      if (input) input.value = '';
+      var courseName = activeLearnSession && activeLearnSession.courseName;
+      activeLearnSession = null;
+      try { playClick(); } catch(e) {}
+      if (courseName) openCourseDetail(courseName);
+    }
+
+    function wireLearnSessionOnce() {
+      var ov = el('learnSessionOv');
+      if (!ov || ov.__learnWired) return;
+      ov.__learnWired = true;
+
+      var submit = el('learnSessionSubmit');
+      var exitBtn = el('learnSessionExit');
+      var closeBtn = el('learnSessionClose');
+      var retry = el('learnSessionRetry');
+      var input = el('learnSessionInput');
+
+      if (submit) submit.addEventListener('click', function(){ submitLearnTurn(); });
+      if (exitBtn) exitBtn.addEventListener('click', function(){ closeLearnSession(false); });
+      if (closeBtn) closeBtn.addEventListener('click', function(){ closeLearnSession(false); });
+      if (retry) retry.addEventListener('click', function(){
+        if (!activeLearnSession) return;
+        activeLearnSession.flow = Object.assign({}, activeLearnSession.flow, { phase: 'tutor', errorMessage: null });
+        renderLearnSessionUI();
+        if (input) input.focus();
+      });
+      if (input) {
+        input.addEventListener('input', function(){
+          autogrowLearnInput();
+          updateLearnSubmitState();
+        });
+        input.addEventListener('keydown', function(e){
+          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            submitLearnTurn();
+          }
+        });
+      }
+      document.addEventListener('keydown', function(e){
+        if (e.key !== 'Escape') return;
+        if (!ov.classList.contains('show')) return;
+        e.preventDefault();
+        closeLearnSession(false);
+      });
+    }
+    wireLearnSessionOnce();
+
     function triggerCourseLearnSubDeck(courseName, subDeckKey) {
       selectedSubDeck = subDeckKey;
       openCourseDetail(courseName);
@@ -22152,48 +22738,11 @@ input[type="range"]::-moz-range-thumb{
 	                  if (plan && plan.warning) {
 	                    toast(plan.warning);
 	                  }
-	                  if (!state.learnSession || typeof state.learnSession !== 'object') state.learnSession = {};
-	                  state.learnSession = {
-	                    segments: plan.segments || [],
-	                    currentSegment: 0,
-	                    consolidationBattery: [],
-	                    currentMechanism: (plan.segments && plan.segments[0] ? plan.segments[0].mechanism : 'worked_example'),
-	                    completedSegmentIds: [],
-	                    subDeck: selectedSubDeck,
-	                    course: courseName,
-	                    startedAt: new Date().toISOString()
-	                  };
-	                  var firstSeg = plan.segments && plan.segments[0];
-	                  if (!firstSeg) {
+	                  if (!plan || !plan.segments || !plan.segments.length) {
 	                    toast('No learn segments generated');
 	                    return;
 	                  }
-	                  var learnerInput = window.prompt('Learn • ' + firstSeg.title + '\\n\\n' + firstSeg.tutorPrompt, '');
-	                  if (learnerInput == null) return;
-	                  var turn = await globalThis.__studyEngineLearnMode.runLearnTurn(
-	                    globalThis.__studyEngineLearnMode.startLearnSession(plan),
-	                    learnerInput,
-	                    settings.userName || ''
-	                  );
-	                  toast('Tutor: ' + String(turn.feedback || '').slice(0, 140));
-	                  (firstSeg.linkedCardIds || []).forEach(function(cardId) {
-	                    var card = state.items[cardId];
-	                    if (card && (card.learnStatus == null || card.learnStatus === 'unlearned')) {
-	                      card.learnStatus = 'taught';
-	                    }
-	                  });
-	                  var consolidate = window.confirm('Mark this segment as consolidated?');
-	                  if (consolidate) {
-	                    (firstSeg.linkedCardIds || []).forEach(function(cardId) {
-	                      var card = state.items[cardId];
-	                      if (card) {
-	                        card.learnStatus = 'consolidated';
-	                        card.consolidationRating = 3;
-	                      }
-	                    });
-	                  }
-	                  saveState();
-	                  openCourseDetail(courseName);
+	                  openLearnSession(plan, courseName, selectedSubDeck);
 	                } catch (learnErr) {
 	                  toast('Learn failed: ' + (learnErr && learnErr.message ? learnErr.message : String(learnErr)));
 	                }
