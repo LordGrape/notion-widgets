@@ -8854,6 +8854,11 @@ input[type="range"]::-moz-range-thumb{
       .learn-subdeck{ min-height: 44px; }
       .learn-hero-subdeck-btn,
       .learn-hero-start-btn{ min-height: 44px; }
+      .learn-teach-toggle,
+      .learn-read-continue-btn,
+      .learn-submit-btn{ min-height: 44px; }
+      #learnSessionInput{ font-size: 16px; }
+      #learnSessionOv.learn-segment--answer .learn-teach-toggle{ position: sticky; top: 0; z-index: 2; }
     }
 
     /* ── CSS SECTION: Learn Session Phase 3 (consolidation, summary, polish) ── */
@@ -8904,6 +8909,84 @@ input[type="range"]::-moz-range-thumb{
       font-feature-settings: 'ss01', 'cv11';
     }
     .learn-card-block.learn-yourturn .learn-card-block-label{ color: var(--accent); }
+    .learn-teach-toggle{
+      display: none;
+      width: 100%;
+      min-height: 44px;
+      border-radius: 12px;
+      border: 1px solid var(--border-default);
+      background: var(--surface-1);
+      color: var(--text-primary);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      cursor: pointer;
+      margin: 0 0 10px;
+      text-align: left;
+      padding: 10px 12px;
+    }
+    .learn-read-continue-btn{ display: none; width: 100%; margin-top: 12px; min-height: 44px; }
+    .learn-assisted-badge{ font-size: 10px; line-height: 1.4; color: var(--accent-secondary); margin: 0 0 8px; }
+    .learn-feedback{
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--text-primary);
+      border: 1px solid var(--border-subtle);
+      background: var(--surface-1);
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-top: 10px;
+    }
+    .learn-feedback-verdict{
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 10px;
+      font-weight: 700;
+      margin-right: 8px;
+      text-transform: capitalize;
+      border: 1px solid var(--border-default);
+      background: var(--surface-2);
+    }
+    .learn-feedback-score{
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 10px;
+      font-weight: 700;
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+    }
+    #learnSessionOv.learn-segment--read .learn-card-block.learn-yourturn,
+    #learnSessionOv.learn-segment--read #learnSessionSubmit{ display: none; }
+    #learnSessionOv.learn-segment--read .learn-read-continue-btn{ display: inline-flex; }
+    #learnSessionOv.learn-segment--answer .learn-read-continue-btn{ display: none; }
+    #learnSessionOv.learn-segment--answer .learn-teach-toggle{ display: block; }
+    #learnSessionOv.learn-segment--feedback .learn-read-continue-btn,
+    #learnSessionOv.learn-segment--feedback .learn-teach-toggle{ display: none; }
+    #learnSessionOv.learn-segment--answer .learn-teach .learn-tutor{
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      margin: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+      transition: max-height 240ms ease-out, opacity 240ms ease-out, padding 240ms ease-out;
+    }
+    #learnSessionOv.learn-segment--answer.teach-open .learn-teach .learn-tutor{
+      max-height: 480px;
+      opacity: 1;
+      padding-top: 16px;
+      padding-bottom: 16px;
+    }
+    #learnSessionOv.learn-segment--feedback .learn-feedback{ display: block; }
+    #learnSessionOv.learn-segment--answer .learn-feedback,
+    #learnSessionOv.learn-segment--read .learn-feedback{ display: none; }
+    @media (prefers-reduced-motion: reduce) {
+      #learnSessionOv.learn-segment--answer .learn-teach .learn-tutor{ transition: none; }
+    }
     .learn-step-title,
     .learn-summary-title,
     .learn-consol-rate-label{
@@ -9715,13 +9798,17 @@ input[type="range"]::-moz-range-thumb{
                     <div class="learn-tutor-pane" id="learnTutorPane">
                       <div class="learn-card-block learn-teach">
                         <div class="learn-card-block-label">Teach</div>
-                        <div class="learn-tutor" id="learnSessionTutor" aria-live="polite"></div>
+                        <button type="button" class="learn-teach-toggle" id="learnTeachToggle">Show teach (counts as assisted)</button>
+                        <div class="learn-tutor" id="learnTeachBlock" aria-live="polite"></div>
+                        <button type="button" class="learn-submit-btn learn-read-continue-btn" id="learnReadContinueBtn">I have read this, continue</button>
                       </div>
                       <div class="learn-card-block learn-yourturn">
                         <div class="learn-card-block-label">Your Turn</div>
-                        <div class="learn-yourturn-prompt" id="learnYourTurnPrompt"></div>
+                        <div class="learn-yourturn-prompt" id="learnTutorPrompt"></div>
+                        <div class="learn-assisted-badge" id="learnAssistedBadge" hidden>Assisted: teach was reopened. Verdict will cap one tier lower.</div>
                         <textarea class="learn-input" id="learnSessionInput" rows="3" placeholder="Type your response…" aria-label="Your response"></textarea>
-                        <div class="learn-kbd-hint"><kbd>⌘/Ctrl</kbd> + <kbd>Enter</kbd> to submit · <kbd>Esc</kbd> to exit</div>
+                        <div class="learn-feedback" id="learnFeedbackBlock" hidden></div>
+                        <div class="learn-kbd-hint"><kbd>⌘/Ctrl</kbd> + <kbd>Enter</kbd> to continue/submit · <kbd>Esc</kbd> to exit</div>
                         <div class="learn-caption" id="learnSessionCaption"></div>
                       </div>
                     </div>
@@ -9761,7 +9848,7 @@ input[type="range"]::-moz-range-thumb{
                     <button type="button" class="learn-exit-btn" id="learnSessionExit">Back to sub-decks</button>
                     <button type="button" class="learn-submit-btn" id="learnSessionSubmit">
                       <span class="learn-spinner" aria-hidden="true"></span>
-                      <span class="learn-submit-label">Submit</span>
+                      <span class="learn-submit-label" id="learnSessionSubmitLabel">Submit</span>
                     </button>
                   </div>
                 </div>
@@ -24449,6 +24536,10 @@ input[type="range"]::-moz-range-thumb{
         stopLearnTurnBreathing();
         return;
       }
+      if (activeLearnSession.flow.currentSubPhase && activeLearnSession.flow.currentSubPhase !== 'answer') {
+        stopLearnTurnBreathing();
+        return;
+      }
       var turnCard = document.querySelector('#learnSessionOv .learn-card-block.learn-yourturn');
       var input = el('learnSessionInput');
       if (!turnCard || (input && document.activeElement === input)) {
@@ -24462,6 +24553,8 @@ input[type="range"]::-moz-range-thumb{
 
     function updateLearnSubmitState() {
       var submit = el('learnSessionSubmit');
+      var readContinueBtn = el('learnReadContinueBtn');
+      var teachToggleBtn = el('learnTeachToggle');
       var input = el('learnSessionInput');
       var label = submit ? submit.querySelector('.learn-submit-label') : null;
       var exit = el('learnSessionExit');
@@ -24479,6 +24572,7 @@ input[type="range"]::-moz-range-thumb{
 
       var flowBridge = globalThis.__studyEngineLearnFlow;
       var flow = activeLearnSession.flow;
+      var subPhase = String(flow.currentSubPhase || 'read');
       /* Phase 4: awaiting-next — a pending turn result has already completed the
          last loaded segment but more segments are still streaming in. */
       var awaitingNext = !!(activeLearnSession.pendingTurnResult) ||
@@ -24502,11 +24596,12 @@ input[type="range"]::-moz-range-thumb{
          lands so the user cannot type a response to nothing. */
       var segsLoaded = ((flow.plan && flow.plan.segments) || []).length;
       var preSegmentStreaming = (phase === 'streaming' && segsLoaded === 0);
-      var disabled = (phase === 'loading') || preSegmentStreaming || !String((input && input.value) || '').trim();
+      var needsInput = subPhase === 'answer';
+      var disabled = (phase === 'loading') || preSegmentStreaming || (needsInput && !String((input && input.value) || '').trim());
       submit.disabled = disabled;
       submit.classList.toggle('loading', phase === 'loading');
       if (input) {
-        input.disabled = (phase === 'loading') || preSegmentStreaming;
+        input.disabled = (phase === 'loading') || preSegmentStreaming || subPhase !== 'answer';
         if (preSegmentStreaming && !input.getAttribute('data-stream-placeholder')) {
           input.setAttribute('data-stream-placeholder', input.getAttribute('placeholder') || '');
           input.setAttribute('placeholder', 'Drafting your first segment…');
@@ -24518,7 +24613,15 @@ input[type="range"]::-moz-range-thumb{
           }
         }
       }
-      if (label) label.textContent = (phase === 'loading') ? 'Sending…' : (preSegmentStreaming ? 'Generating…' : 'Submit');
+      if (label) {
+        if (phase === 'loading') label.textContent = 'Sending…';
+        else if (preSegmentStreaming) label.textContent = 'Generating…';
+        else if (subPhase === 'feedback') {
+          var latest = getCurrentLearnTurnResult(flow);
+          label.textContent = (latest && latest.isSegmentComplete) ? 'Continue to next segment' : 'Answer again';
+        } else if (subPhase === 'read') label.textContent = 'Continue';
+        else label.textContent = 'Submit';
+      }
       if (exit) exit.textContent = 'Back to sub-decks';
     }
 
@@ -24892,6 +24995,34 @@ input[type="range"]::-moz-range-thumb{
       return m + 'm ' + s + 's';
     }
 
+    function getCurrentLearnTurnResult(flow) {
+      if (!flow || !Array.isArray(flow.turns) || !flow.turns.length) return null;
+      var seg = (flow.plan && flow.plan.segments && flow.plan.segments[flow.segmentIndex]) || null;
+      var segId = seg && seg.id ? String(seg.id) : '';
+      for (var i = flow.turns.length - 1; i >= 0; i--) {
+        var t = flow.turns[i];
+        if (!t) continue;
+        if (!segId || String(t.segmentId || '') === segId) return t;
+      }
+      return null;
+    }
+
+    function updateLearnSubPhaseUI(flow) {
+      var ov = el('learnSessionOv');
+      var flowBridge = globalThis.__studyEngineLearnFlow;
+      if (!ov || !flowBridge) return;
+      var isRead = !!(flowBridge.isReadPhase && flowBridge.isReadPhase(flow));
+      var isAnswer = !!(flowBridge.isAnswerPhase && flowBridge.isAnswerPhase(flow));
+      var isFeedback = !!(flowBridge.isFeedbackPhase && flowBridge.isFeedbackPhase(flow));
+      ov.classList.toggle('learn-segment--read', isRead);
+      ov.classList.toggle('learn-segment--answer', isAnswer);
+      ov.classList.toggle('learn-segment--feedback', isFeedback);
+      if (!isAnswer) ov.classList.remove('teach-open');
+      if (!prefersReducedMotion() && window.gsap) {
+        try { gsap.fromTo('#learnSessionBody', { opacity: 0.92 }, { opacity: 1, duration: 0.18, ease: 'power1.out' }); } catch (ePhase) {}
+      }
+    }
+
     function renderLearnSessionUI() {
       if (!activeLearnSession) return;
       var flow = activeLearnSession.flow;
@@ -24918,13 +25049,16 @@ input[type="range"]::-moz-range-thumb{
          current flow. updateLearnMasteryChip handles its own visibility so
          it is safe to call unconditionally on every render. */
       try { updateLearnMasteryChip(); } catch (eMC) { /* non-fatal */ }
-      var tutor = el('learnSessionTutor');
+      var tutor = el('learnTeachBlock');
       var caption = el('learnSessionCaption');
       var errorHost = el('learnSessionError');
       var errorMsg = el('learnSessionErrorMsg');
       var title = el('learnSessionTitle');
       var kicker = el('learnSessionKicker');
       var input = el('learnSessionInput');
+      var submitLabelEl = el('learnSessionSubmitLabel');
+      var assistedBadge = el('learnAssistedBadge');
+      var feedbackHost = el('learnFeedbackBlock');
       var staleBadge = el('learnPlanStaleBadge');
       var regenBtn = el('learnSessionRegen');
       if (regenBtn) regenBtn.textContent = LEARN_LANDING_REGEN;
@@ -24963,9 +25097,16 @@ input[type="range"]::-moz-range-thumb{
         }
       }
 
+      updateLearnSubPhaseUI(flow);
+
       /* Tutor body (Teach block) */
       if (tutor) {
-        var nextTutorBody = String(flow.tutorBody || '');
+        var flowBridgeLocal2 = globalThis.__studyEngineLearnFlow;
+        var segForTeach = null;
+        try { segForTeach = (flowBridgeLocal2 && flowBridgeLocal2.currentSegment) ? flowBridgeLocal2.currentSegment(flow) : null; } catch (eSegTeach) { segForTeach = null; }
+        var nextTutorBody = (segForTeach && segForTeach.teach)
+          ? String(segForTeach.teach || '').trim()
+          : String(flow.tutorBody || '');
         var prevTutorBody = String(activeLearnSession._lastTutorBody || '');
         if (prefersReducedMotion()) {
           tutor.innerHTML = renderLearnMarkdownSafe(nextTutorBody);
@@ -24998,7 +25139,7 @@ input[type="range"]::-moz-range-thumb{
          there is no current segment (streaming phase before first segment
          arrives, or a legacy plan with no tutorPrompt), and the CSS
          `:empty { display: none }` rule collapses the slot. */
-      var yourTurnPromptEl = el('learnYourTurnPrompt');
+      var yourTurnPromptEl = el('learnTutorPrompt');
       if (yourTurnPromptEl) {
         var flowBridgeLocal = globalThis.__studyEngineLearnFlow;
         var curSeg = null;
@@ -25007,6 +25148,27 @@ input[type="range"]::-moz-range-thumb{
         } catch (eCur) { curSeg = null; }
         var curPrompt = (curSeg && curSeg.tutorPrompt) ? String(curSeg.tutorPrompt).trim() : '';
         yourTurnPromptEl.innerHTML = curPrompt ? renderLearnMarkdownSafe(curPrompt) : '';
+      }
+      if (assistedBadge) {
+        var isAssisted = !!(flowBridge && flowBridge.wasAssisted && flowBridge.wasAssisted(flow));
+        assistedBadge.hidden = !isAssisted;
+      }
+      if (feedbackHost) {
+        var turnResult = getCurrentLearnTurnResult(flow);
+        if (flow.currentSubPhase === 'feedback' && turnResult) {
+          var verdict = String(turnResult.verdict || '').trim() || 'surface';
+          var score = (typeof turnResult.understandingScore === 'number') ? String(turnResult.understandingScore) : '—';
+          var fbHtml = ''
+            + '<div><span class="learn-feedback-verdict">' + esc(verdict) + '</span>'
+            + '<span class="learn-feedback-score">Score ' + esc(score) + '</span></div>';
+          if (turnResult.feedback) fbHtml += '<p>' + renderLearnMarkdownSafe(String(turnResult.feedback)) + '</p>';
+          if (turnResult.nextPrompt) fbHtml += '<p>' + renderLearnMarkdownSafe(String(turnResult.nextPrompt)) + '</p>';
+          feedbackHost.innerHTML = fbHtml;
+          feedbackHost.hidden = false;
+        } else {
+          feedbackHost.innerHTML = '';
+          feedbackHost.hidden = true;
+        }
       }
 
       /* Caption */
@@ -25045,6 +25207,10 @@ input[type="range"]::-moz-range-thumb{
       updateLearnSubmitState();
       autogrowLearnInput();
       updateLearnTurnBreathing();
+      if (submitLabelEl && flow.currentSubPhase === 'feedback') {
+        var tRes = getCurrentLearnTurnResult(flow);
+        submitLabelEl.textContent = (tRes && tRes.isSegmentComplete) ? 'Continue to next segment' : 'Answer again';
+      }
     }
 
     function autogrowLearnInput() {
@@ -25154,10 +25320,57 @@ input[type="range"]::-moz-range-thumb{
       var flowBridge = globalThis.__studyEngineLearnFlow;
       var modeBridge = globalThis.__studyEngineLearnMode;
       if (!flowBridge || !modeBridge) { toast('Learn mode unavailable.'); return; }
+      var flow = activeLearnSession.flow;
+      if (flow.phase === 'done' || flow.phase === 'consolidating') return;
+      if (flow.currentSubPhase === 'read') {
+        activeLearnSession.flow = flowBridge.markReadComplete ? flowBridge.markReadComplete(flow) : flow;
+        renderLearnSessionUI();
+        var _ansInput = el('learnSessionInput');
+        if (_ansInput) _ansInput.focus();
+        return;
+      }
+      if (flow.currentSubPhase === 'feedback') {
+        var latestTurn = getCurrentLearnTurnResult(flow);
+        var canAdvance = !!(latestTurn && latestTurn.isSegmentComplete);
+        if (canAdvance) {
+          var prevIdxFb = flow.segmentIndex;
+          activeLearnSession.flow = flowBridge.continueToNextSegment ? flowBridge.continueToNextSegment(flow) : flow;
+          if (activeLearnSession.flow.segmentIndex !== prevIdxFb && activeLearnSession.flow.phase === 'tutor') {
+            var paneFb = el('learnTutorPane');
+            animateLearnPaneSwap(paneFb, paneFb, 'forward');
+          }
+          if (activeLearnSession.flow.phase === 'done') {
+            var qsFb = (activeLearnSession.flow.consolidationQuestions || []);
+            if (qsFb.length > 0) {
+              activeLearnSession.flow = flowBridge.enterConsolidation(activeLearnSession.flow);
+            } else {
+              if (typeof flowBridge.markSessionCompleted === 'function') {
+                activeLearnSession.flow = flowBridge.markSessionCompleted(activeLearnSession.flow, Date.now());
+              }
+              finalizeLearnHandoff();
+              saveState();
+            }
+          } else {
+            saveState();
+          }
+          renderLearnSessionUI();
+          var _continueBtn = el('learnReadContinueBtn');
+          if (_continueBtn) _continueBtn.focus();
+          return;
+        }
+        activeLearnSession.flow = Object.assign({}, flow, { currentSubPhase: 'answer', errorMessage: null });
+        var retryInput = el('learnSessionInput');
+        if (retryInput) retryInput.value = '';
+        var retryPrompt = latestTurn && latestTurn.nextPrompt ? String(latestTurn.nextPrompt).trim() : '';
+        var promptHost = el('learnTutorPrompt');
+        if (promptHost) promptHost.innerHTML = retryPrompt ? renderLearnMarkdownSafe(retryPrompt) : '';
+        renderLearnSessionUI();
+        if (retryInput) retryInput.focus();
+        return;
+      }
       var input = el('learnSessionInput');
       var userInput = input ? String(input.value || '').trim() : '';
       if (!userInput) return;
-      if (activeLearnSession.flow.phase === 'done' || activeLearnSession.flow.phase === 'consolidating') return;
 
       var pendingSegment = flowBridge.currentSegment(activeLearnSession.flow);
       var prevIdx = activeLearnSession.flow.segmentIndex;
@@ -25182,7 +25395,14 @@ input[type="range"]::-moz-range-thumb{
           currentMechanism: (pendingSegment && pendingSegment.mechanism) || 'worked_example',
           completedSegmentIds: activeLearnSession.flow.completedSegmentIds.slice()
         };
-        var result = await modeBridge.runLearnTurn(sessionSnapshot, userInput, settings.userName || '');
+        var rawResult = await modeBridge.runLearnTurn(sessionSnapshot, userInput, settings.userName || '');
+        var cappedResult = (modeBridge.capAssistedLearnTurnResult && flowBridge.wasAssisted)
+          ? modeBridge.capAssistedLearnTurnResult(rawResult, !!flowBridge.wasAssisted(activeLearnSession.flow))
+          : rawResult;
+        var result = Object.assign({}, rawResult, cappedResult, {
+          isSegmentComplete: !!(cappedResult && cappedResult.advance),
+          nextPrompt: (cappedResult && cappedResult.followUp != null) ? String(cappedResult.followUp) : String((cappedResult && cappedResult.nextPrompt) || '')
+        });
 
         /* Phase 4 streaming: if the tutor marked this segment complete but streaming
            hasn't closed AND the user is on the last-loaded segment, park the result.
@@ -25192,7 +25412,7 @@ input[type="range"]::-moz-range-thumb{
             && flowBridge.canAdvanceToNextSegment
             && !flowBridge.canAdvanceToNextSegment(activeLearnSession.flow)) {
           activeLearnSession.pendingTurnResult = { userInput: userInput, result: result, pendingSegment: pendingSegment };
-          activeLearnSession.flow = Object.assign({}, activeLearnSession.flow, { phase: 'tutor', errorMessage: null });
+          activeLearnSession.flow = Object.assign({}, activeLearnSession.flow, { phase: 'tutor', errorMessage: null, currentSubPhase: 'feedback' });
           if (input) input.value = '';
           try { playClick(); } catch(e) {}
           renderLearnSessionUI();
@@ -25214,43 +25434,11 @@ input[type="range"]::-moz-range-thumb{
         /* Mark linked cards for the segment that was just worked on as taught (if unlearned). */
         applyTaughtStatusForSegment(pendingSegment);
 
-        /* If we just advanced to a new segment, animate the tutor pane swap (UI polish 4). */
-        if (activeLearnSession.flow.segmentIndex !== prevIdx && activeLearnSession.flow.phase === 'tutor') {
-          var pane = el('learnTutorPane');
-          animateLearnPaneSwap(pane, pane, 'forward');
-        }
-
-        /* End of segments: transition to consolidation if we have questions, else summary. */
-        if (activeLearnSession.flow.phase === 'done') {
-          var qs = (activeLearnSession.flow.consolidationQuestions || []);
-          if (qs.length > 0) {
-            activeLearnSession.flow = flowBridge.enterConsolidation(activeLearnSession.flow);
-            if (input) input.value = '';
-            try { playClick(); } catch(e) {}
-            renderLearnSessionUI();
-            return;
-          } else {
-            /* No questions: run handoff with current state (cards taught, no ratings). */
-            /* Phase B telemetry: session reached 'done' naturally without a
-               consolidation battery. Record the completion timestamp before
-               finalizeLearnHandoff so downstream consumers see a finalized
-               flow. Idempotent. */
-            if (typeof flowBridge.markSessionCompleted === 'function') {
-              activeLearnSession.flow = flowBridge.markSessionCompleted(activeLearnSession.flow, Date.now());
-            }
-            finalizeLearnHandoff();
-            saveState();
-            try { playChime(); } catch(e) {}
-            renderLearnSessionUI();
-            return;
-          }
-        }
-
         saveState();
-        if (input) input.value = '';
+        if (input) input.setAttribute('data-last-submitted', userInput);
         try { playClick(); } catch(e) {}
         renderLearnSessionUI();
-        if (input) input.focus();
+        if (input) input.blur();
       } catch (err) {
         activeLearnSession.flow = flowBridge.markError(activeLearnSession.flow, err && err.message ? err.message : String(err));
         try { playError(); } catch(e) {}
@@ -25332,34 +25520,9 @@ input[type="range"]::-moz-range-thumb{
       if (!flowBridge.canAdvanceToNextSegment(activeLearnSession.flow)) return;
       var pending = activeLearnSession.pendingTurnResult;
       activeLearnSession.pendingTurnResult = null;
-      var prevIdx = activeLearnSession.flow.segmentIndex;
       activeLearnSession.flow = flowBridge.applyTurnResult(activeLearnSession.flow, pending.userInput, pending.result);
       applyTaughtStatusForSegment(pending.pendingSegment);
-      if (activeLearnSession.flow.segmentIndex !== prevIdx && activeLearnSession.flow.phase === 'tutor') {
-        var pane = el('learnTutorPane');
-        animateLearnPaneSwap(pane, pane, 'forward');
-      }
-      /* If that advance landed us in 'done', fire the same consolidation-or-summary
-         transition that submitLearnTurn does. */
-      if (activeLearnSession.flow.phase === 'done') {
-        var qs = (activeLearnSession.flow.consolidationQuestions || []);
-        if (qs.length > 0) {
-          activeLearnSession.flow = flowBridge.enterConsolidation(activeLearnSession.flow);
-          try { playClick(); } catch(e) {}
-        } else {
-          /* Phase B telemetry: parked-turn path landed us in 'done' without
-             a consolidation battery. Mirror the submitLearnTurn completion
-             hook so abandonment vs completion is correctly disambiguated. */
-          if (typeof flowBridge.markSessionCompleted === 'function') {
-            activeLearnSession.flow = flowBridge.markSessionCompleted(activeLearnSession.flow, Date.now());
-          }
-          finalizeLearnHandoff();
-          saveState();
-          try { playChime(); } catch(e) {}
-        }
-      } else {
-        saveState();
-      }
+      saveState();
       renderLearnSessionUI();
     }
 
@@ -25468,20 +25631,19 @@ input[type="range"]::-moz-range-thumb{
         var inputEl = el('learnSessionInput');
         if (inputEl) { inputEl.value = ''; inputEl.disabled = false; }
         renderLearnSessionUI();
+        startLearnStreamTicker();
         renderLearnRailForCourse(courseName);
         if (window.gsap && !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
           try { gsap.fromTo(ov.querySelector('.modal'), { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' }); } catch(e) {}
         }
-        setTimeout(function(){ if (inputEl) inputEl.focus(); }, 60);
+        setTimeout(function(){
+          var continueBtn = el('learnReadContinueBtn');
+          if (continueBtn) continueBtn.focus();
+        }, 60);
       };
 
-      /* Mount immediately so the streaming strip (percentage + progress bar)
-         is visible from the moment the user clicks Learn, rather than after
-         the first segment arrives. Start the 400ms ticker so the time-based
-         percentage animates smoothly during the pre-segment dead zone. */
-      ensureModalMounted();
-      updateLearnStreamStrip();
-      startLearnStreamTicker();
+      /* Mount only when the first segment arrives so tutor sub-phase state
+         always initializes into read mode for a concrete segment. */
 
       var handlers = {
         onSegment: function(segment, meta) {
@@ -25622,7 +25784,10 @@ input[type="range"]::-moz-range-thumb{
       if (window.gsap && !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
         try { gsap.fromTo(ov.querySelector('.modal'), { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' }); } catch(e) {}
       }
-      setTimeout(function(){ if (input) input.focus(); }, 60);
+      setTimeout(function(){
+        var continueBtn = el('learnReadContinueBtn');
+        if (continueBtn) continueBtn.focus();
+      }, 60);
     }
 
     function closeLearnSessionImmediate() {
@@ -25665,6 +25830,7 @@ input[type="range"]::-moz-range-thumb{
       try { stopLearnStreamTicker(); } catch (eT) {}
       if (ov) {
         ov.hidden = true;
+        ov.classList.remove('teach-open', 'learn-segment--read', 'learn-segment--answer', 'learn-segment--feedback');
       }
       var _emptyState = el('learnTabEmptyState');
       if (_emptyState) _emptyState.hidden = false;
@@ -25674,8 +25840,10 @@ input[type="range"]::-moz-range-thumb{
          answer, summary copy) from the session we are closing. Also re-assert
          the `hidden` attribute on the consol and summary panes so their
          initial state matches the HTML default. */
-      var _tutorBody = el('learnSessionTutor');
-      var _yourTurnPrompt = el('learnYourTurnPrompt');
+      var _tutorBody = el('learnTeachBlock');
+      var _yourTurnPrompt = el('learnTutorPrompt');
+      var _assistBadge = el('learnAssistedBadge');
+      var _feedbackBlock = el('learnFeedbackBlock');
       var _consolQ = el('learnConsolQuestion');
       var _consolA = el('learnConsolAnswer');
       var _consolReveal = el('learnConsolReveal');
@@ -25687,6 +25855,8 @@ input[type="range"]::-moz-range-thumb{
       var _summaryPane = el('learnSummaryPane');
       if (_tutorBody) _tutorBody.innerHTML = '';
       if (_yourTurnPrompt) _yourTurnPrompt.innerHTML = '';
+      if (_assistBadge) _assistBadge.hidden = true;
+      if (_feedbackBlock) { _feedbackBlock.innerHTML = ''; _feedbackBlock.hidden = true; }
       if (_consolQ) _consolQ.innerHTML = '';
       if (_consolA) { _consolA.innerHTML = ''; _consolA.hidden = true; }
       if (_consolReveal) { _consolReveal.hidden = false; _consolReveal.textContent = 'Show answer'; }
@@ -25796,6 +25966,8 @@ input[type="range"]::-moz-range-thumb{
       ov.__learnWired = true;
 
       var submit = el('learnSessionSubmit');
+      var readContinueBtn = el('learnReadContinueBtn');
+      var teachToggleBtn = el('learnTeachToggle');
       var exitBtn = el('learnSessionExit');
       var regenBtn = el('learnSessionRegen');
       var retry = el('learnSessionRetry');
@@ -25843,6 +26015,28 @@ input[type="range"]::-moz-range-thumb{
       }
 
       if (submit) submit.addEventListener('click', function(){ submitLearnTurn(); });
+      if (readContinueBtn) readContinueBtn.addEventListener('click', function() {
+        if (!activeLearnSession) return;
+        var flowBridge = globalThis.__studyEngineLearnFlow;
+        if (!flowBridge || !flowBridge.markReadComplete) return;
+        activeLearnSession.flow = flowBridge.markReadComplete(activeLearnSession.flow);
+        renderLearnSessionUI();
+        var inputEl = el('learnSessionInput');
+        if (inputEl) inputEl.focus();
+      });
+      if (teachToggleBtn) teachToggleBtn.addEventListener('click', function() {
+        var ovEl = el('learnSessionOv');
+        if (!ovEl || !activeLearnSession) return;
+        var opening = !ovEl.classList.contains('teach-open');
+        ovEl.classList.toggle('teach-open', opening);
+        if (opening) {
+          var fb = globalThis.__studyEngineLearnFlow;
+          if (fb && fb.markAssisted) {
+            activeLearnSession.flow = fb.markAssisted(activeLearnSession.flow);
+          }
+          renderLearnSessionUI();
+        }
+      });
       if (exitBtn) exitBtn.addEventListener('click', function(){ closeLearnSession(false); });
       if (regenBtn) regenBtn.addEventListener('click', function() {
         if (!activeLearnSession) return;
@@ -25864,9 +26058,15 @@ input[type="range"]::-moz-range-thumb{
           startLearnPlanStreaming(args.courseName, args.subDeckKey, args.allItems, args.userName, args.learnerContext, args.opts || {});
           return;
         }
-        activeLearnSession.flow = Object.assign({}, activeLearnSession.flow, { phase: 'tutor', errorMessage: null });
+        activeLearnSession.flow = Object.assign({}, activeLearnSession.flow, {
+          phase: 'tutor',
+          errorMessage: null,
+          currentSubPhase: 'read',
+          currentAssisted: false
+        });
         renderLearnSessionUI();
-        if (input) input.focus();
+        var continueBtn = el('learnReadContinueBtn');
+        if (continueBtn) continueBtn.focus();
       });
       if (revealBtn) revealBtn.addEventListener('click', function(){ revealConsolAnswer(); });
       if (rateRow) {
@@ -25906,6 +26106,12 @@ input[type="range"]::-moz-range-thumb{
           }
         });
       }
+      document.addEventListener('keydown', function(e){
+        if (!(e.key === 'Enter' && (e.ctrlKey || e.metaKey))) return;
+        if (ov.hidden) return;
+        e.preventDefault();
+        submitLearnTurn();
+      });
       document.addEventListener('keydown', function(e){
         if (e.key !== 'Escape') return;
         if (ov.hidden) return;

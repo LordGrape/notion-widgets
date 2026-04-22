@@ -32,6 +32,7 @@ import type { ConsolidationQuestion, LearnPlan, LearnSegment, LearnTurnResult } 
  *   - 'done'          : session complete.
  */
 export type LearnFlowPhase = 'streaming' | 'tutor' | 'loading' | 'error' | 'consolidating' | 'done';
+export type LearnSegmentSubPhase = 'read' | 'answer' | 'feedback';
 
 export type ConsolidationRating = 1 | 2 | 3 | 4;
 
@@ -48,6 +49,11 @@ export interface LearnFlowTurn {
   feedback: string;
   nextPrompt: string;
   isSegmentComplete: boolean;
+  verdict?: 'surface' | 'partial' | 'deep';
+  understandingScore?: number;
+  missingConcepts?: string[];
+  followUp?: string | null;
+  advance?: boolean;
   suggestedStatus?: string | null;
 }
 
@@ -87,6 +93,8 @@ export interface LearnFlowState {
   /** Markdown source the UI should render as the current tutor message. */
   tutorBody: string;
   phase: LearnFlowPhase;
+  currentSubPhase: LearnSegmentSubPhase;
+  currentAssisted: boolean;
   errorMessage: string | null;
   turns: LearnFlowTurn[];
   /** Segment ids the user has fully completed (isSegmentComplete=true). */
@@ -126,6 +134,8 @@ export function createLearnFlow(plan: LearnPlan, course: string, subDeck: string
     segmentIndex: 0,
     tutorBody,
     phase: first ? 'tutor' : 'done',
+    currentSubPhase: 'read',
+    currentAssisted: false,
     errorMessage: null,
     turns: [],
     completedSegmentIds: [],
@@ -161,6 +171,8 @@ export function createStreamingLearnFlow(course: string, subDeck: string): Learn
     segmentIndex: 0,
     tutorBody: 'Preparing your learning plan…',
     phase: 'streaming',
+    currentSubPhase: 'read',
+    currentAssisted: false,
     errorMessage: null,
     turns: [],
     completedSegmentIds: [],
@@ -219,6 +231,11 @@ export function applyTurnResult(
     feedback,
     nextPrompt,
     isSegmentComplete: isComplete,
+    verdict: result.verdict,
+    understandingScore: result.understandingScore,
+    missingConcepts: Array.isArray(result.missingConcepts) ? result.missingConcepts.slice() : [],
+    followUp: result.followUp == null ? null : String(result.followUp),
+    advance: result.advance,
     suggestedStatus: result.suggestedStatus == null ? null : String(result.suggestedStatus)
   };
 
@@ -229,38 +246,73 @@ export function applyTurnResult(
 
   const turns = flow.turns.concat([turn]);
 
-  if (isComplete) {
-    if (isLastSegment(flow)) {
-      return {
-        ...flow,
-        phase: 'done',
-        errorMessage: null,
-        turns,
-        completedSegmentIds,
-        tutorBody: buildClosingTutorBody(feedback)
-      };
-    }
-    const nextIndex = flow.segmentIndex + 1;
-    const nextSeg = flow.plan.segments[nextIndex];
-    return {
-      ...flow,
-      segmentIndex: nextIndex,
-      phase: 'tutor',
-      errorMessage: null,
-      turns,
-      completedSegmentIds,
-      tutorBody: buildAdvanceTutorBody(feedback, nextSeg)
-    };
-  }
-
   return {
     ...flow,
     phase: 'tutor',
+    currentSubPhase: 'feedback',
     errorMessage: null,
     turns,
     completedSegmentIds,
-    tutorBody: buildContinuingTutorBody(feedback, nextPrompt, segment)
+    tutorBody: isComplete
+      ? String(flow.tutorBody || '')
+      : buildContinuingTutorBody(feedback, nextPrompt, segment)
   };
+}
+
+export function markReadComplete(flow: LearnFlowState): LearnFlowState {
+  if (!flow || flow.currentSubPhase !== 'read') return flow;
+  return { ...flow, currentSubPhase: 'answer' };
+}
+
+export function markAssisted(flow: LearnFlowState): LearnFlowState {
+  if (!flow || flow.currentAssisted) return flow;
+  return { ...flow, currentAssisted: true };
+}
+
+export function continueToNextSegment(flow: LearnFlowState): LearnFlowState {
+  if (!flow || flow.currentSubPhase !== 'feedback') return flow;
+  const segment = currentSegment(flow);
+  const segmentId = segment ? segment.id : '';
+  const latestTurn = flow.turns.length ? flow.turns[flow.turns.length - 1] : null;
+  if (!latestTurn || latestTurn.segmentId !== segmentId || !latestTurn.isSegmentComplete) return flow;
+
+  if (isLastSegment(flow)) {
+    return {
+      ...flow,
+      phase: 'done',
+      errorMessage: null,
+      currentSubPhase: 'feedback',
+      currentAssisted: false,
+      tutorBody: buildClosingTutorBody(latestTurn.feedback)
+    };
+  }
+  const nextIndex = flow.segmentIndex + 1;
+  const nextSeg = flow.plan.segments[nextIndex];
+  return {
+    ...flow,
+    segmentIndex: nextIndex,
+    phase: 'tutor',
+    currentSubPhase: 'read',
+    currentAssisted: false,
+    errorMessage: null,
+    tutorBody: buildInitialTutorBody(nextSeg)
+  };
+}
+
+export function isReadPhase(flow: LearnFlowState): boolean {
+  return !!flow && flow.currentSubPhase === 'read';
+}
+
+export function isAnswerPhase(flow: LearnFlowState): boolean {
+  return !!flow && flow.currentSubPhase === 'answer';
+}
+
+export function isFeedbackPhase(flow: LearnFlowState): boolean {
+  return !!flow && flow.currentSubPhase === 'feedback';
+}
+
+export function wasAssisted(flow: LearnFlowState): boolean {
+  return !!(flow && flow.currentAssisted);
 }
 
 /**
@@ -445,6 +497,8 @@ export function appendStreamedSegment(flow: LearnFlowState, segment: LearnSegmen
       plan: nextPlan,
       segmentIndex: 0,
       phase: 'tutor',
+      currentSubPhase: 'read',
+      currentAssisted: false,
       errorMessage: null,
       tutorBody: buildInitialTutorBody(segment)
     };
@@ -816,6 +870,13 @@ function buildClosingTutorBody(feedback: string): string {
   markLoading,
   markError,
   applyTurnResult,
+  markReadComplete,
+  markAssisted,
+  continueToNextSegment,
+  isReadPhase,
+  isAnswerPhase,
+  isFeedbackPhase,
+  wasAssisted,
   linkedCardIdsForSegment,
   enterConsolidation,
   submitConsolidationRating,
