@@ -115,6 +115,32 @@ describe('Phase B telemetry: markSegmentEntered', () => {
   });
 });
 
+describe('markSegmentEntered cross-render idempotency', () => {
+  it('keeps first-entry timestamp and does not seed new turns on re-renders', () => {
+    let flow = createLearnFlow(planWith(['s1']), 'c', 'sd');
+    const segmentId = 's1';
+
+    flow = markSegmentEntered(flow, segmentId, 1000);
+    expect(flow.segmentEnteredAt[segmentId]).toBe(1000);
+    expect(flow.turnTimings.length).toBe(1);
+    expect(flow.turnTimings[0].turnIndex).toBe(0);
+    expect(flow.turnTimings[0].submittedAt).toBeUndefined();
+
+    flow = markSegmentEntered(flow, segmentId, 2000);
+    expect(flow.segmentEnteredAt[segmentId]).toBe(1000);
+    expect(flow.turnTimings.length).toBe(1);
+    expect(flow.turnTimings[0].turnIndex).toBe(0);
+    expect(flow.turnTimings[0].submittedAt).toBeUndefined();
+
+    flow = markTurnSubmitted(flow, segmentId, 42, 3000);
+    flow = markSegmentEntered(flow, segmentId, 4000);
+    // Invariant: markSegmentEntered is strictly first-entry-only; re-renders never open continuation turns.
+    expect(flow.turnTimings.length).toBe(1);
+    expect(flow.turnTimings[0].turnIndex).toBe(0);
+    expect(flow.turnTimings[0].submittedAt).toBe(3000);
+  });
+});
+
 describe('Phase B telemetry: markTurnSubmitted', () => {
   it('closes the most recent open turn for the segment and increments count', () => {
     let flow = createLearnFlow(planWith(['s1']), 'c', 'sd');
@@ -158,6 +184,35 @@ describe('Phase B telemetry: markTurnContinuation', () => {
     const s2Timings = flow.turnTimings.filter((t) => t.segmentId === 's2');
     expect(s1Timings.map((t) => t.turnIndex)).toEqual([0, 1]);
     expect(s2Timings.map((t) => t.turnIndex)).toEqual([0, 1]);
+  });
+});
+
+describe('markTurnContinuation after parked-turn flush', () => {
+  it('opens the next turn on flush and preserves per-segment counters across segment advance', () => {
+    let flow = createLearnFlow(planWith(['s1', 's2']), 'c', 'sd');
+    const seg0 = 's1';
+    const seg1 = 's2';
+
+    flow = markSegmentEntered(flow, seg0, 1000);
+    flow = markTurnSubmitted(flow, seg0, 30, 2000);
+    flow = markTurnContinuation(flow, seg0, 3000);
+
+    let seg0Timings = flow.turnTimings.filter((t) => t.segmentId === seg0);
+    expect(seg0Timings).toHaveLength(2);
+    expect(seg0Timings[1].turnIndex).toBe(1);
+    expect(seg0Timings[1].enteredAt).toBe(3000);
+    expect(seg0Timings[1].submittedAt).toBeUndefined();
+
+    flow = markTurnSubmitted(flow, seg0, 25, 4000);
+    flow = markSegmentEntered(flow, seg1, 5000);
+
+    seg0Timings = flow.turnTimings.filter((t) => t.segmentId === seg0);
+    const seg1Timings = flow.turnTimings.filter((t) => t.segmentId === seg1);
+    expect(seg0Timings).toHaveLength(2);
+    expect(seg0Timings.every((t) => t.submittedAt != null)).toBe(true);
+    expect(seg1Timings).toHaveLength(1);
+    expect(flow.totalTurnsPerSegment[seg0]).toBe(2);
+    expect(flow.totalTurnsPerSegment[seg1]).toBe(0);
   });
 });
 
