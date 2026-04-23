@@ -8,9 +8,17 @@ const LEARN_PLAN_CORS_HEADERS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS"
 };
 
-const PLAN_MODEL = "gemini-2.5-pro";
+const PLAN_PRIMARY_MODEL = "gemini-2.5-flash";
+const PLAN_ESCALATION_MODEL = "gemini-2.5-pro";
 
 const LEARN_CHECK_TYPES: readonly LearnCheckType[] = ["elaborative", "predictive", "self_explain"] as const;
+
+function logPlanUsage(tag: string, model: string, response: unknown): void {
+  const usage = (response && typeof response === "object")
+    ? ((response as Record<string, unknown>).usageMetadata as Record<string, unknown> | undefined)
+    : undefined;
+  console.info(`[learn-plan] ${tag} model=${model} usage=${JSON.stringify(usage || {})}`);
+}
 
 function isLearnCheckType(value: unknown): value is LearnCheckType {
   return typeof value === "string" && LEARN_CHECK_TYPES.includes(value as LearnCheckType);
@@ -421,7 +429,7 @@ function buildSystemPrompt(): string {
     "- Must NOT open with 'Let's', 'Can you', 'What is/are/was/were/do/does/did', 'How do/does/can/should you', 'Think about', 'Consider', 'Imagine', 'Picture', 'Recall', 'Tell me', 'Describe', 'Explain to', or any second-person imperative or interrogative at the start.",
     "- Must teach BEFORE retrieval: state the facts clearly, then let the `tutorPrompt` field carry the Socratic question that asks the learner to reconstruct them.",
     "- The teach block must teach the content directly. Do NOT describe the upcoming retrieval step, the tutor prompt, or the pedagogical structure. Do NOT use meta-phrases like 'read carefully', 'attempt retrieval', 'reconstruct from memory', 'in your own words', 'the tutor prompt below', 'you will be asked'. The learner will see your teach block and then a separate retrieval question. They do not need to be told this is about to happen.",
-    "- Positive example: 'The Essex and Kent Scottish Regiment traces its origin to 1885, when the 21st Essex Battalion of Infantry was formed in Windsor, Ontario. It was redesignated several times through the late 19th and 20th centuries, absorbing the Kent Regiment in 1954 to become the unified Essex and Kent Scottish. The regiment's modern role is as a primary reserve infantry unit of the Canadian Army, headquartered in Windsor, with subunits across southwestern Ontario.'",
+    "- Positive example: 'The United Nations was formally founded on 24 October 1945 when the UN Charter was ratified by the five permanent Security Council members and a majority of other signatories. It succeeded the League of Nations, which had dissolved after failing to prevent the Second World War. The UN's modern role centres on collective security, international law codification, and coordination of humanitarian response, headquartered in New York with major offices in Geneva, Vienna, and Nairobi.',",
     "- Negative example (DO NOT emit): 'Let's encode this card from first principles. What is the core claim?'",
     "",
     "YOUR TURN RULES (each segment's `tutorPrompt` + `checkType` fields):",
@@ -439,8 +447,8 @@ function buildSystemPrompt(): string {
     "  - Ask questions answerable by scanning the teach for a single phrase.",
     "  - Ask the student to 'repeat' or 'state' or 'name' something just taught.",
     "- Worked counterexample:",
-    "  - BAD: 'When was the regiment founded, and under what name?'",
-    "  - GOOD: 'The regiment was founded in 1885 as an infantry battalion headquartered in Windsor. Why might Windsor specifically reflect late-nineteenth-century Canadian defensive priorities, and what would change if it had been headquartered in Halifax instead?'",
+    "  - BAD: 'When was the UN founded, and under what charter?'",
+    "  - GOOD: 'The UN was founded in 1945 and succeeded the League of Nations. Why might the drafters have chosen San Francisco for the charter conference rather than a European capital, and what does that choice suggest about post-war geopolitical assumptions?'",
     "- Every segment MUST include `checkType` alongside `tutorPrompt`.",
     "",
     "Also generate 3-5 consolidationQuestions that span ALL segments taught. Each question tests recall OR conceptual connection between segments.",
@@ -546,7 +554,7 @@ function buildGenerationConfig(): Record<string, unknown> {
     maxOutputTokens: 2560,
     responseMimeType: "application/json",
     responseSchema,
-    thinkingConfig: { thinkingBudget: 512 }
+    thinkingConfig: { thinkingBudget: 0 }
   };
 }
 
@@ -747,19 +755,21 @@ function makeSSEResponse(run: (emit: StreamEmitter, signal: AbortSignal) => Prom
   });
 }
 
-async function requestPlanOneShot(body: LearnPlanRequest, env: Env): Promise<LearnPlanResponse | null> {
+async function requestPlanOneShot(model: string, body: LearnPlanRequest, env: Env): Promise<LearnPlanResponse | null> {
   const geminiData = await callGemini(
-    PLAN_MODEL,
+    model,
     buildSystemPrompt(),
     buildUserPrompt(body),
     buildGenerationConfig() as Parameters<typeof callGemini>[3],
     env
   );
+  logPlanUsage("oneshot", model, geminiData);
   const raw = extractGeminiText(geminiData);
   return parseJsonResponse<LearnPlanResponse>(raw);
 }
 
 async function regenerateRejectedSegment(
+  model: string,
   body: LearnPlanRequest,
   currentPlan: LearnPlanResponse,
   segmentId: string,
@@ -772,19 +782,22 @@ async function regenerateRejectedSegment(
   const regenUserPrompt = [
     buildUserPrompt(body),
     "",
-    "CURRENT_PLAN_JSON:",
-    JSON.stringify(currentPlan),
+    `REJECTED_SEGMENT_ID: ${segmentId}`,
+    `REJECTED_SEGMENT_EXPECTED_ANSWER: ${String(currentPlan.segments.find((segment) => String(segment.id) === segmentId)?.expectedAnswer ?? "")}`,
+    `REJECTED_SEGMENT_TEACH_OVERLAP_RATIO: ${answerInTeachRatio.toFixed(3)}`,
     "",
-    regenerationInstruction
+    regenerationInstruction,
+    "Return only a single-segment response with segments: [the regenerated segment]. Other segments are handled separately."
   ].join("\n");
 
   const geminiData = await callGemini(
-    PLAN_MODEL,
+    model,
     buildSystemPrompt(),
     regenUserPrompt,
     buildGenerationConfig() as Parameters<typeof callGemini>[3],
     env
   );
+  logPlanUsage("regenerate", model, geminiData);
   const raw = extractGeminiText(geminiData);
   const parsed = parseJsonResponse<LearnPlanResponse>(raw);
   if (!parsed || !Array.isArray(parsed.segments)) return null;
@@ -795,10 +808,11 @@ async function enforceUncopyableSegment(
   segment: LearnPlanSegment,
   currentPlan: LearnPlanResponse,
   body: LearnPlanRequest,
+  model: string,
   env: Env
 ): Promise<LearnPlanSegment> {
   let workingSegment: LearnPlanSegment = { ...segment };
-  const maxRetries = 2;
+  const maxRetries = 1;
   for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
     const answerInTeachRatio = computeTokenOverlapRatio(workingSegment.expectedAnswer, workingSegment.teach);
     if (answerInTeachRatio <= 0.6) {
@@ -817,7 +831,7 @@ async function enforceUncopyableSegment(
         questionQualityWarning: "answer_copyable_from_teach"
       };
     }
-    const regenerated = await regenerateRejectedSegment(body, currentPlan, String(workingSegment.id || ""), answerInTeachRatio, env);
+    const regenerated = await regenerateRejectedSegment(model, body, currentPlan, String(workingSegment.id || ""), answerInTeachRatio, env);
     if (!regenerated) continue;
     workingSegment = {
       ...workingSegment,
@@ -851,7 +865,7 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
     let streamFailed = false;
     try {
       for await (const chunk of streamGemini(
-        PLAN_MODEL,
+        PLAN_PRIMARY_MODEL,
         buildSystemPrompt(),
         buildUserPrompt(body),
         buildGenerationConfig() as Parameters<typeof streamGemini>[3],
@@ -871,6 +885,7 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
             seg,
             { segments: [seg], consolidationQuestions: [] },
             body,
+            PLAN_PRIMARY_MODEL,
             env
           );
           if (emittedSegmentIds.has(String(copyCheckedSegment.id))) continue;
@@ -883,6 +898,7 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
       streamFailed = true;
       console.warn("[learn-plan] stream attempt failed", err);
     }
+    console.info(`[learn-plan] stream model=${PLAN_PRIMARY_MODEL} bufferLength=${fullBuffer.length} verified=${emittedSegments.length}`);
 
     // Final parse for consolidationQuestions + any trailing segment we missed.
     const fullParsed = parseJsonResponse<LearnPlanResponse>(fullBuffer);
@@ -895,7 +911,7 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
         if (!verifySegmentTeach(seg)) continue;
         if (!verifySegmentTutorPrompt(String(seg.tutorPrompt || "")).ok) continue;
         if (!verifySegmentCheckType(seg)) continue;
-        const copyCheckedSegment = await enforceUncopyableSegment(seg, fullParsed, body, env);
+        const copyCheckedSegment = await enforceUncopyableSegment(seg, fullParsed, body, PLAN_PRIMARY_MODEL, env);
         emittedSegmentIds.add(String(copyCheckedSegment.id));
         emittedSegments.push(copyCheckedSegment);
         await emit.event("segment", copyCheckedSegment);
@@ -919,26 +935,41 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
     }
 
     // ── Attempt 2: one-shot fallback (non-streaming).
-    console.warn("[learn-plan] streaming produced < 2 verified segments; falling back to one-shot.", {
-      emittedSegments: emittedSegments.length,
-      bufferLength: fullBuffer.length,
-      streamFailed
-    });
+    const streamProducedNothing = emittedSegments.length === 0;
+    const streamFinishedCleanly = !streamFailed;
+    const deckTooSmall = body.cards.length <= 1;
+    const skipOneShot = streamFinishedCleanly && streamProducedNothing && deckTooSmall;
+    if (skipOneShot) {
+      console.info("[learn-plan] one-shot skipped: small-deck structural rejection", {
+        cardCount: body.cards.length,
+        bufferLength: fullBuffer.length
+      });
+    } else {
+      console.warn("[learn-plan] streaming produced < 2 verified segments; falling back to one-shot.", {
+        emittedSegments: emittedSegments.length,
+        bufferLength: fullBuffer.length,
+        streamFailed
+      });
+    }
 
     let secondAttempt: LearnPlanResponse | null = null;
-    try {
-      secondAttempt = await requestPlanOneShot(body, env);
-    } catch (err) {
-      console.warn("[learn-plan] one-shot fallback threw", err);
+    if (!skipOneShot) {
+      try {
+        secondAttempt = await requestPlanOneShot(PLAN_ESCALATION_MODEL, body, env);
+      } catch (err) {
+        console.warn("[learn-plan] one-shot fallback threw", err);
+      }
     }
 
     const verifiedSecondBase = filterVerifiedSegments(secondAttempt?.segments || [], cardCorpus);
+    const secondAttemptPlan: LearnPlanResponse = secondAttempt || { segments: verifiedSecondBase, consolidationQuestions: [] };
     const verifiedSecond: LearnPlanSegment[] = [];
     for (const segment of verifiedSecondBase) {
       const checkedSegment = await enforceUncopyableSegment(
         segment,
-        secondAttempt || { segments: verifiedSecondBase, consolidationQuestions: secondAttempt?.consolidationQuestions || [] },
+        secondAttemptPlan,
         body,
+        PLAN_ESCALATION_MODEL,
         env
       );
       verifiedSecond.push(checkedSegment);
