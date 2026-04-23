@@ -58,6 +58,28 @@ function computeTokenOverlapRatio(sourceText: string, targetText: string): numbe
   return overlapCount / sourceTokens.length;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────
+ * Grounding token-overlap floors (Turn 4).
+ *
+ * verifySegmentGrounding originally required every groundingSnippet quote
+ * to appear verbatim (normalized whitespace) in the card corpus. Gemini
+ * legitimately paraphrases quotes, which caused the
+ * "GROUNDING VERIFICATION FAILED. USED CARD-DENSITY FALLBACK." defect at
+ * 2026-04-22 20:59. We retain the substring check as a fast-path accept
+ * and, on miss, fall through to a segment-level token-overlap check
+ * against the same card's corpus ({prompt}\n{modelAnswer}).
+ *
+ * Teach floor is higher because the teach block is long and should be
+ * substantively anchored in the card content. Tutor floor is lower
+ * because tutor prompts legitimately introduce framing tokens ("Using
+ * only what you have just read...") that do not appear in the source.
+ *
+ * Exported to signal that these are the tuning knobs for grounding
+ * sensitivity, not arbitrary magic numbers buried in the function body.
+ * ──────────────────────────────────────────────────────────────────── */
+export const GROUNDING_TEACH_OVERLAP_FLOOR = 0.55;
+export const GROUNDING_TUTOR_OVERLAP_FLOOR = 0.35;
+
 function textHasAnchor(cardText: string, anchor: string): boolean {
   const hay = normalizeText(cardText);
   const needle = normalizeText(anchor);
@@ -76,6 +98,8 @@ function collectCardCorpus(cards: StudyCardInput[]): Record<string, string> {
 
 function verifySegmentGrounding(segment: LearnPlanSegment, corpus: Record<string, string>): boolean {
   if (!Array.isArray(segment.groundingSnippets) || segment.groundingSnippets.length === 0) return false;
+  const teach = String(segment.teach || "");
+  const tutorPrompt = String(segment.tutorPrompt || "");
   for (const snippet of segment.groundingSnippets) {
     if (!snippet || typeof snippet !== "object") return false;
     const cardId = String(snippet.cardId || "");
@@ -83,7 +107,31 @@ function verifySegmentGrounding(segment: LearnPlanSegment, corpus: Record<string
     if (!cardId || !quote) return false;
     const source = corpus[cardId];
     if (!source) return false;
-    if (!textHasAnchor(source, quote)) return false;
+
+    // Fast-path: exact-substring anchor match (original behaviour,
+    // preserves green cases).
+    if (textHasAnchor(source, quote)) continue;
+
+    // Fallback: segment-level token overlap against this card's corpus.
+    // Gemini may have paraphrased the quote rather than copying; the
+    // segment as a whole still has to draw substantively from the card.
+    const teachRatio = computeTokenOverlapRatio(teach, source);
+    const tutorRatio = computeTokenOverlapRatio(tutorPrompt, source);
+    const overlapAccepts = teachRatio >= GROUNDING_TEACH_OVERLAP_FLOOR && tutorRatio >= GROUNDING_TUTOR_OVERLAP_FLOOR;
+
+    if (overlapAccepts) {
+      console.info(
+        '[learn-plan] grounding accepted via token-overlap',
+        JSON.stringify({ cardId, teachRatio, tutorRatio })
+      );
+      continue;
+    }
+
+    console.info(
+      '[learn-plan] grounding rejected',
+      JSON.stringify({ cardId, teachRatio, tutorRatio, teachHead: teach.slice(0, 120) })
+    );
+    return false;
   }
   return true;
 }
@@ -317,16 +365,16 @@ function buildDensityFallback(cards: StudyCardInput[]): LearnPlanResponse {
   const segments = maxCards.map((card, idx) => {
     const prompt = String(card.prompt || "").trim();
     const answer = String(card.modelAnswer || "").trim();
-    // Density-fallback teach: a declarative synthesis of prompt+answer. Not
-    // intended to satisfy the >=60-word teach validator (fallback segments
-    // bypass that gate because they are locally constructed, not Gemini
-    // output), but still legitimate declarative prose so the UI does not
-    // render a question in the Teach block, and free of the Phase A1
-    // banned meta-phrases so the learner is not told what is about to
-    // happen next.
-    const teachBody = answer
-      ? `This segment presents the card titled "${prompt}". The grounded content is as follows. ${answer}`
-      : `This segment presents the card titled "${prompt}".`;
+    // Density-fallback teach (Turn 4): surface the card's own modelAnswer
+    // unchanged. The prior scaffold ("This segment presents the card
+    // titled \"${prompt}\"...") pretended to be narrative teach and leaked
+    // to learners when grounding verification legitimately failed. This
+    // form degrades gracefully: the learner sees the card's actual content,
+    // not meta-prose about there being a card. If `answer` is empty,
+    // `prompt` alone is degenerate but not misleading. Schema unchanged
+    // (string in/out); fallback segments still bypass the >=60-word teach
+    // validator because they are locally constructed, not Gemini output.
+    const teachBody = answer ? answer : prompt;
     return {
       id: `fallback-${idx + 1}`,
       title: prompt ? prompt.slice(0, 80) : `Card ${idx + 1}`,
