@@ -27,6 +27,13 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
+function logUsage(tag: string, model: string, response: unknown): void {
+  const usage = (response && typeof response === "object")
+    ? ((response as Record<string, unknown>).usageMetadata as Record<string, unknown> | undefined)
+    : undefined;
+  console.log(`[${tag}] model=${model} usage=${JSON.stringify(usage || {})}`);
+}
+
 function coerceScoreFeedback(input: unknown): ScoreFeedback {
   const value = input && typeof input === "object" ? (input as Partial<ScoreFeedback>) : {};
   return {
@@ -412,6 +419,7 @@ Respond in this EXACT JSON format and nothing else:
           env
         );
 
+        logUsage("grade", "gemini-2.5-flash", explainData);
         const explainRaw = extractGeminiText(explainData);
         let explainResult = parseJsonResponse<GradeExplainResponse>(explainRaw);
 
@@ -508,6 +516,7 @@ Respond in this EXACT JSON format and nothing else:
         },
         env
       );
+      logUsage("grade", "gemini-2.5-flash", geminiData);
       gradingRaw = extractGeminiText(geminiData);
     } catch (error) {
       return jsonResponse({ error: "Gemini API error", detail: error instanceof Error ? error.message.replace(/^Gemini API error:\s*/, "") : String(error) }, 502);

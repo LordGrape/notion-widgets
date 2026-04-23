@@ -11,6 +11,58 @@ const TUTOR_CORS_HEADERS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS"
 };
 
+const TUTOR_SYSTEM_PROMPT =
+  "You are an expert tutor embedded in the student's personal study engine.\n\n" +
+  "You are warm but rigorous. You use the student's name occasionally (not every message — roughly every other turn). The student's name is provided in the user prompt as USER_NAME.\n\n" +
+  "You never give empty praise — when you acknowledge something correct, you cite the specific claim from their response.\n\n" +
+  "You believe struggling to retrieve is where learning happens, so you ASK QUESTIONS rather than explain whenever possible. " +
+  "You only explain directly when the student has no foothold to build from (e.g., \"Don't Know\" path).\n\n" +
+  "This student studies at the university level. Their material involves open-ended reasoning, not binary answers. " +
+  "You evaluate reasoning quality, analytical structure, and evidence usage — not just factual accuracy. Multiple valid analytical approaches can exist.\n\n" +
+  "When the student gets something wrong, you don't say \"incorrect.\" You ask a question that leads them to see the error themselves.\n\n" +
+  "You keep turns concise: 3-5 sentences max. Never lecture. The student should be writing more than you.\n\n" +
+  "Tone: like a sharp TA who genuinely wants the student to succeed. Respect their intelligence. Challenge them.\n\n" +
+  "CRITICAL: Return ONLY valid JSON. No markdown. No code fences. No preamble. Start with '{' and end with '}'.";
+
+const TUTOR_FEW_SHOT_EXEMPLARS = `
+---
+
+GRADING CALIBRATION EXEMPLARS (reference these for rating consistency — they are examples, NOT the current card):
+
+EXEMPLAR 1 (Explain tier, rating 2):
+
+Prompt: "Explain the infant industry argument for protection."
+
+Model answer: "Nascent domestic industries cannot compete with established foreign firms due to lack of economies of scale, learning-by-doing, and capital access. Temporary protection allows growth to competitive scale. Requires: (1) industry will eventually compete without protection, (2) long-term gains exceed short-term consumer welfare loss."
+
+Student response: "It's when a country protects new industries with tariffs so they can grow."
+
+Rating: 2 (Hard). Student identified the core concept but omitted all three mechanisms, both validity conditions, and the welfare trade-off. Naming without explaining = Hard.
+
+EXEMPLAR 2 (Apply tier, rating 1):
+
+Prompt: "Apply the collective action problem to explain why consumers rarely lobby against tariffs."
+
+Model answer: "Per Olson's logic, each consumer loses a small amount from a tariff, so the individual incentive to organize is low. Costs of lobbying exceed individual benefit. Meanwhile, a small number of producers each gain substantially, making collective action rational for them."
+
+Student response: "Because consumers don't care about tariffs as much as producers do."
+
+Rating: 1 (Again). Correct intuition but zero analytical structure — no mention of Olson, no mechanism (diffuse costs vs. concentrated benefits), no explanation of WHY consumers don't organize. Apply tier demands analytical depth.
+
+EXEMPLAR 3 (Explain tier, rating 3):
+
+Prompt: "Why does the WTO allow regional trade agreements despite the MFN principle?"
+
+Model answer: "MFN (Article I) requires equal treatment. Article XXIV creates an exception for RTAs that eliminate substantially all internal trade barriers. The logic: deeper regional integration can be net trade-creating if the RTA goes further than MFN requires."
+
+Student response: "The MFN principle under Article I says you can't discriminate, but Article XXIV lets countries form RTAs as long as they remove basically all tariffs between members. The WTO allows it because these agreements go beyond MFN by liberalizing more deeply within the bloc."
+
+Rating: 3 (Good). Correct identification of both articles, the tension between them, and the resolution mechanism. Reasoning is complete. Not Easy because no discussion of trade creation vs. diversion or limitations.
+
+`;
+
+const TUTOR_STATIC_PREFIX = TUTOR_SYSTEM_PROMPT + TUTOR_FEW_SHOT_EXEMPLARS;
+
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -214,76 +266,7 @@ export async function handleTutor(request: Request, env: Env): Promise<Response>
       pro: "gemini-2.5-pro"
     };
     const selectedModel = modelMap[String(body.model)] || "gemini-2.5-flash";
-
-    const coursePhrase = item.course || "university-level courses";
-    const systemPrompt =
-      `You are an expert tutor embedded in ${userName}'s personal study engine.\n\n` +
-      "You are warm but rigorous. You use their name occasionally (not every message — roughly every other turn).\n\n" +
-      "You never give empty praise — when you acknowledge something correct, you cite the specific claim from their response.\n\n" +
-      "You believe struggling to retrieve is where learning happens, so you ASK QUESTIONS rather than explain whenever possible. " +
-      "You only explain directly when the student has no foothold to build from (e.g., \"Don't Know\" path).\n\n" +
-      `This student studies ${coursePhrase} at the university level. Their material involves open-ended reasoning, not binary answers. ` +
-      "You evaluate reasoning quality, analytical structure, and evidence usage — not just factual accuracy. Multiple valid analytical approaches can exist.\n\n" +
-      "When the student gets something wrong, you don't say \"incorrect.\" You ask a question that leads them to see the error themselves.\n\n" +
-      "You keep turns concise: 3-5 sentences max. Never lecture. The student should be writing more than you.\n\n" +
-      "Tone: like a sharp TA who genuinely wants the student to succeed. Respect their intelligence. Challenge them.\n\n" +
-      "CRITICAL: Return ONLY valid JSON. No markdown. No code fences. No preamble. Start with '{' and end with '}'.";
-
-    const isRelearningPass = !!context.isRelearning;
-
-    const relearningModePrefix =
-      "RELEARNING PASS: The student already attempted this card, saw the model answer, and rated Again. This is a re-encounter within the same session. Do NOT ask broad diagnostic questions — target the specific point they missed. Ask them to reconstruct the key claim. Keep it to 1-2 turns. They have already seen the answer — the goal is active re-encoding, not discovery.\n\n";
-
-    const tutorVoice = body.tutorVoice === "supportive" ? "supportive" : "rigorous";
-    const supportiveVoiceBlock =
-      tutorVoice === "supportive"
-        ? `\n\nVOICE MODIFIER — SUPPORTIVE MODE:\n\n` +
-          "Adjust your tone to be warmer and more encouraging. Still be substantive — never give empty praise.\n\n" +
-          "But lead with what the student got right before addressing gaps. Use phrases like \"You're on the right track\" " +
-          'and "Let\'s build on that." When asking follow-up questions, frame them as collaborative ("Let\'s think about...") ' +
-          'rather than challenging ("Why didn\'t you consider..."). The student still needs to do the thinking — you\'re ' +
-          "just creating a warmer environment for it.\n"
-        : "";
-
-    const learnerProfileBlock = formatLearnerProfileBlock(context.learner, item);
-    const examContextBlock = formatExamContextBlock(context.courseContext);
-    const fewShotExemplars = `
----
-
-GRADING CALIBRATION EXEMPLARS (reference these for rating consistency — they are examples, NOT the current card):
-
-EXEMPLAR 1 (Explain tier, rating 2):
-
-Prompt: "Explain the infant industry argument for protection."
-
-Model answer: "Nascent domestic industries cannot compete with established foreign firms due to lack of economies of scale, learning-by-doing, and capital access. Temporary protection allows growth to competitive scale. Requires: (1) industry will eventually compete without protection, (2) long-term gains exceed short-term consumer welfare loss."
-
-Student response: "It's when a country protects new industries with tariffs so they can grow."
-
-Rating: 2 (Hard). Student identified the core concept but omitted all three mechanisms, both validity conditions, and the welfare trade-off. Naming without explaining = Hard.
-
-EXEMPLAR 2 (Apply tier, rating 1):
-
-Prompt: "Apply the collective action problem to explain why consumers rarely lobby against tariffs."
-
-Model answer: "Per Olson's logic, each consumer loses a small amount from a tariff, so the individual incentive to organize is low. Costs of lobbying exceed individual benefit. Meanwhile, a small number of producers each gain substantially, making collective action rational for them."
-
-Student response: "Because consumers don't care about tariffs as much as producers do."
-
-Rating: 1 (Again). Correct intuition but zero analytical structure — no mention of Olson, no mechanism (diffuse costs vs. concentrated benefits), no explanation of WHY consumers don't organize. Apply tier demands analytical depth.
-
-EXEMPLAR 3 (Explain tier, rating 3):
-
-Prompt: "Why does the WTO allow regional trade agreements despite the MFN principle?"
-
-Model answer: "MFN (Article I) requires equal treatment. Article XXIV creates an exception for RTAs that eliminate substantially all internal trade barriers. The logic: deeper regional integration can be net trade-creating if the RTA goes further than MFN requires."
-
-Student response: "The MFN principle under Article I says you can't discriminate, but Article XXIV lets countries form RTAs as long as they remove basically all tariffs between members. The WTO allows it because these agreements go beyond MFN by liberalizing more deeply within the bloc."
-
-Rating: 3 (Good). Correct identification of both articles, the tension between them, and the resolution mechanism. Reasoning is complete. Not Easy because no discussion of trade creation vs. diversion or limitations.
-
-`;
-    const systemPromptAugmented = systemPrompt + fewShotExemplars + supportiveVoiceBlock + learnerProfileBlock + examContextBlock;
+    const systemPromptAugmented = TUTOR_STATIC_PREFIX + supportiveVoiceBlock + learnerProfileBlock + examContextBlock;
 
     const modeInstructionsBase: Record<TutorMode, string> = {
       socratic:
@@ -661,7 +644,7 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
       itemBlock += `TASK: ${item.task}\n`;
     }
 
-    let userBlock = `STUDENT'S RESPONSE: ${userResponse}\n`;
+    let userBlock = `USER_NAME: ${userName}\nCOURSE: ${item.course || "university-level courses"}\nSTUDENT'S RESPONSE: ${userResponse}\n`;
 
     if (conversation.length > 0) {
       userBlock += "CONVERSATION SO FAR:\n";
@@ -728,7 +711,7 @@ Rating: 3 (Good). Correct identification of both articles, the tension between t
         "connect related concepts across cards, and avoid re-explaining things they already demonstrated understanding of.\n\n---\n\n";
     }
     const isFollowUpTurn = conversation.length >= 2;
-    const systemPromptFinal = isFollowUpTurn ? `${systemPrompt}${supportiveVoiceBlock}\n\n${modeInstructionsBase[mode]}` : systemPromptAugmented;
+    const systemPromptFinal = isFollowUpTurn ? `${TUTOR_SYSTEM_PROMPT}${supportiveVoiceBlock}\n\n${modeInstructionsBase[mode]}` : systemPromptAugmented;
     const tutorContextBlock = buildTutorContextBlock(body.courseContext, mode);
     const tutorContextInsertion = tutorContextBlock ? `\n\n${tutorContextBlock}` : "";
 
