@@ -11,6 +11,14 @@ const LEARN_PLAN_CORS_HEADERS = {
 const PLAN_PRIMARY_MODEL = "gemini-2.5-flash";
 const PLAN_ESCALATION_MODEL = "gemini-2.5-pro";
 
+const PLAN_CACHE_VERSION = "v1";
+const PLAN_CACHE_TTL_SECONDS = 86400;
+const PLAN_CACHE_KEY_PREFIX = `learn-plan:${PLAN_CACHE_VERSION}:`;
+
+interface PlanCachedResponse extends LearnPlanResponse {
+  cachedAt: string;
+}
+
 const LEARN_CHECK_TYPES: readonly LearnCheckType[] = ["elaborative", "predictive", "self_explain"] as const;
 
 function logPlanUsage(tag: string, model: string, response: unknown): void {
@@ -404,6 +412,65 @@ function buildDensityFallback(cards: StudyCardInput[]): LearnPlanResponse {
   return { segments, consolidationQuestions, planMode: "card_density_fallback" };
 }
 
+function isValidCachedPlan(value: unknown): value is PlanCachedResponse {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  return (
+    Array.isArray(v.segments) &&
+    v.segments.length >= 1 &&
+    Array.isArray(v.consolidationQuestions) &&
+    typeof v.cachedAt === "string"
+  );
+}
+
+async function planCacheKey(body: LearnPlanRequest): Promise<string> {
+  const sortedCards = [...body.cards]
+    .map((card) => ({
+      id: String(card.id || ""),
+      prompt: String(card.prompt || ""),
+      modelAnswer: String(card.modelAnswer || "")
+    }))
+    .sort((a, b) => a.id.localeCompare(b.id));
+
+  const payload = JSON.stringify({
+    v: PLAN_CACHE_VERSION,
+    course: body.course,
+    subDeck: body.subDeck,
+    cards: sortedCards
+  });
+
+  const bytes = new TextEncoder().encode(payload);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  const hex = Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+  return `${PLAN_CACHE_KEY_PREFIX}${hex}`;
+}
+
+function isCacheEnabled(env: Env): boolean {
+  return String((env as unknown as { LEARN_PLAN_CACHE_ENABLED?: string }).LEARN_PLAN_CACHE_ENABLED || "") !== "false";
+}
+
+async function writePlanCache(
+  cacheKey: string | null,
+  env: Env,
+  segments: LearnPlanSegment[],
+  consolidationQuestions: ConsolidationQuestion[]
+): Promise<void> {
+  if (!cacheKey) return;
+  try {
+    const payload: PlanCachedResponse = {
+      segments,
+      consolidationQuestions,
+      cachedAt: new Date().toISOString()
+    };
+    await env.WIDGET_KV.put(cacheKey, JSON.stringify(payload), { expirationTtl: PLAN_CACHE_TTL_SECONDS });
+    console.info(`[learn-plan] cache write key=${cacheKey.slice(0, 32)} segments=${segments.length}`);
+  } catch (err) {
+    console.warn("[learn-plan] cache write failed", err);
+  }
+}
+
 function validateRequest(body: LearnPlanRequest): string | null {
   if (!body || typeof body !== "object") return "Invalid JSON body";
   if (!body.course || !body.subDeck) return "Missing required fields: course, subDeck";
@@ -429,7 +496,7 @@ function buildSystemPrompt(): string {
     "- Must NOT open with 'Let's', 'Can you', 'What is/are/was/were/do/does/did', 'How do/does/can/should you', 'Think about', 'Consider', 'Imagine', 'Picture', 'Recall', 'Tell me', 'Describe', 'Explain to', or any second-person imperative or interrogative at the start.",
     "- Must teach BEFORE retrieval: state the facts clearly, then let the `tutorPrompt` field carry the Socratic question that asks the learner to reconstruct them.",
     "- The teach block must teach the content directly. Do NOT describe the upcoming retrieval step, the tutor prompt, or the pedagogical structure. Do NOT use meta-phrases like 'read carefully', 'attempt retrieval', 'reconstruct from memory', 'in your own words', 'the tutor prompt below', 'you will be asked'. The learner will see your teach block and then a separate retrieval question. They do not need to be told this is about to happen.",
-    "- Positive example: 'The United Nations was formally founded on 24 October 1945 when the UN Charter was ratified by the five permanent Security Council members and a majority of other signatories. It succeeded the League of Nations, which had dissolved after failing to prevent the Second World War. The UN's modern role centres on collective security, international law codification, and coordination of humanitarian response, headquartered in New York with major offices in Geneva, Vienna, and Nairobi.',",
+    "- Positive example: 'The United Nations was founded on 24 October 1945 when fifty signatory states ratified its Charter in San Francisco. The organisation emerged from the wartime alliance against the Axis powers and replaced the League of Nations, which had collapsed in the 1930s. Its founding structure, the Security Council with five permanent veto-holding members, reflected the strategic balance of power at the end of the Second World War and was intended to prevent the paralysis that had disabled the League.',",
     "- Negative example (DO NOT emit): 'Let's encode this card from first principles. What is the core claim?'",
     "",
     "YOUR TURN RULES (each segment's `tutorPrompt` + `checkType` fields):",
@@ -447,8 +514,8 @@ function buildSystemPrompt(): string {
     "  - Ask questions answerable by scanning the teach for a single phrase.",
     "  - Ask the student to 'repeat' or 'state' or 'name' something just taught.",
     "- Worked counterexample:",
-    "  - BAD: 'When was the UN founded, and under what charter?'",
-    "  - GOOD: 'The UN was founded in 1945 and succeeded the League of Nations. Why might the drafters have chosen San Francisco for the charter conference rather than a European capital, and what does that choice suggest about post-war geopolitical assumptions?'",
+    "  - BAD: 'When was the UN founded, and in what city?'",
+    "  - GOOD: 'The UN was founded in 1945 in San Francisco. Why might a post-war American city have been chosen as the ratification venue, and what would change if the ratification had happened in Geneva instead?'",
     "- Every segment MUST include `checkType` alongside `tutorPrompt`.",
     "",
     "Also generate 3-5 consolidationQuestions that span ALL segments taught. Each question tests recall OR conceptual connection between segments.",
@@ -459,10 +526,39 @@ function buildSystemPrompt(): string {
   ].join("\n");
 }
 
-function buildUserPrompt(body: LearnPlanRequest): string {
+const STATIC_USER_SCHEMA_PREFIX = [
+  "Return this schema:",
+  "{",
+  "  \"segments\": [",
+  "    {",
+  "      \"id\": \"seg-1\",",
+  "      \"title\": \"...\",",
+  "      \"mechanism\": \"worked_example\",",
+  "      \"objective\": \"...\",",
+  "      \"teach\": \"80+ words of declarative instruction with concrete facts; no questions; no banned openers.\",",
+  "      \"tutorPrompt\": \"Socratic question for the learner to answer.\",",
+  "      \"checkType\": \"elaborative\",",
+  "      \"expectedAnswer\": \"...\",",
+  "      \"linkedCardIds\": [\"card-id\"],",
+  "      \"groundingSnippets\": [{ \"cardId\": \"card-id\", \"quote\": \"exact substring\" }]",
+  "    }",
+  "  ],",
+  "  \"consolidationQuestions\": [",
+  "    {",
+  "      \"question\": \"...\",",
+  "      \"answer\": \"verbatim substring from a linked card modelAnswer or prompt\",",
+  "      \"linkedCardIds\": [\"card-id\"]",
+  "    }",
+  "  ]",
+  "}"
+].join("\n");
+
+function buildDynamicUserSuffix(body: LearnPlanRequest): string {
   const cardsBlock = body.cards.map((card, idx) => {
     const id = String(card.id || `card-${idx + 1}`);
-    return `CARD_ID: ${id}\nPROMPT: ${String(card.prompt || "")}\nMODEL_ANSWER: ${String(card.modelAnswer || "")}`;
+    return `CARD_ID: ${id}
+PROMPT: ${String(card.prompt || "")}
+MODEL_ANSWER: ${String(card.modelAnswer || "")}`;
   }).join("\n\n---\n\n");
 
   return [
@@ -472,33 +568,14 @@ function buildUserPrompt(body: LearnPlanRequest): string {
     `LEARNER_CONTEXT: ${body.learnerContext || ""}`,
     "",
     "CARDS:",
-    cardsBlock,
-    "",
-    "Return this schema:",
-    "{",
-    '  "segments": [',
-    "    {",
-    '      "id": "seg-1",',
-    '      "title": "...",',
-    '      "mechanism": "worked_example",',
-    '      "objective": "...",',
-    '      "teach": "80+ words of declarative instruction with concrete facts; no questions; no banned openers.",',
-    '      "tutorPrompt": "Socratic question for the learner to answer.",',
-    '      "checkType": "elaborative",',
-    '      "expectedAnswer": "...",',
-    '      "linkedCardIds": ["card-id"],',
-    '      "groundingSnippets": [{ "cardId": "card-id", "quote": "exact substring" }]',
-    "    }",
-    "  ],",
-    '  "consolidationQuestions": [',
-    "    {",
-    '      "question": "...",',
-    '      "answer": "verbatim substring from a linked card modelAnswer or prompt",',
-    '      "linkedCardIds": ["card-id"]',
-    "    }",
-    "  ]",
-    "}"
+    cardsBlock
   ].join("\n");
+}
+
+function buildUserPrompt(body: LearnPlanRequest): string {
+  return `${STATIC_USER_SCHEMA_PREFIX}
+
+${buildDynamicUserSuffix(body)}`;
 }
 
 function buildGenerationConfig(): Record<string, unknown> {
@@ -551,7 +628,7 @@ function buildGenerationConfig(): Record<string, unknown> {
   };
   return {
     temperature: 0.3,
-    maxOutputTokens: 2560,
+    maxOutputTokens: 2048,
     responseMimeType: "application/json",
     responseSchema,
     thinkingConfig: { thinkingBudget: 0 }
@@ -854,6 +931,29 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
   if (validationError) return jsonResponse({ error: validationError }, 400);
 
   const cardCorpus = collectCardCorpus(body.cards);
+  const cacheEnabled = isCacheEnabled(env);
+  const cacheKey = cacheEnabled ? await planCacheKey(body) : null;
+
+  if (cacheKey) {
+    try {
+      const cached = await env.WIDGET_KV.get(cacheKey, { type: "json" });
+      if (isValidCachedPlan(cached)) {
+        console.info(`[learn-plan] cache hit key=${cacheKey.slice(0, 32)}`);
+        return makeSSEResponse(async (emit) => {
+          for (const seg of cached.segments) await emit.event("segment", seg);
+          await emit.event("consolidationQuestions", { questions: cached.consolidationQuestions || [] });
+          await emit.event("complete", {
+            segmentCount: cached.segments.length,
+            consolidationCount: (cached.consolidationQuestions || []).length,
+            planMode: "cached"
+          });
+        });
+      }
+      console.info(`[learn-plan] cache miss key=${cacheKey.slice(0, 32)}`);
+    } catch (err) {
+      console.warn("[learn-plan] cache read failed", err);
+    }
+  }
 
   return makeSSEResponse(async (emit, signal) => {
     // ── Attempt 1: stream.
@@ -899,6 +999,7 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
       console.warn("[learn-plan] stream attempt failed", err);
     }
     console.info(`[learn-plan] stream model=${PLAN_PRIMARY_MODEL} bufferLength=${fullBuffer.length} verified=${emittedSegments.length}`);
+    logPlanUsage("stream", PLAN_PRIMARY_MODEL, {});
 
     // Final parse for consolidationQuestions + any trailing segment we missed.
     const fullParsed = parseJsonResponse<LearnPlanResponse>(fullBuffer);
@@ -931,6 +1032,7 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
         planMode: streamFailed ? "retry_verified" : "verified",
         warning: verifiedQs.length < 2 ? "Fewer than 2 consolidation questions verified." : undefined
       });
+      await writePlanCache(cacheKey, env, emittedSegments, verifiedQs);
       return;
     }
 
@@ -990,6 +1092,7 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
         planMode: "retry_verified",
         warning: verifiedSecondQs.length < 2 ? "Fewer than 2 consolidation questions verified." : undefined
       });
+      await writePlanCache(cacheKey, env, verifiedSecond, verifiedSecondQs);
       return;
     }
 

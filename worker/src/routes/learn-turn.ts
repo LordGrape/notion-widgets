@@ -60,6 +60,19 @@ function validateRequest(body: LearnTurnRequest): string | null {
   return null;
 }
 
+const LEARN_TURN_USER_STATIC_PREFIX = [
+  "Return schema:",
+  "{",
+  "  \"verdict\": \"surface\" | \"partial\" | \"deep\",",
+  "  \"understandingScore\": 0-100 number,",
+  "  \"copyRatio\": 0-1 number,",
+  "  \"missingConcepts\": [\"named concept\"],",
+  "  \"feedback\": \"1-2 sentences tied to learner text\",",
+  "  \"followUp\": \"single Socratic question\" or null,",
+  "  \"advance\": true or false",
+  "}"
+].join("\n");
+
 function buildPrompts(body: LearnTurnRequest): { system: string; user: string } {
   const system = [
     "You are grading a first-exposure Learn mode response during encoding.",
@@ -76,7 +89,7 @@ function buildPrompts(body: LearnTurnRequest): { system: string; user: string } 
     "Use concise Canadian English."
   ].join("\n");
 
-  const user = [
+  const dynamic = [
     `MECHANISM: ${body.mechanism}`,
     `SEGMENT_TITLE: ${body.segment.title || ""}`,
     `OBJECTIVE: ${body.segment.objective || ""}`,
@@ -84,19 +97,12 @@ function buildPrompts(body: LearnTurnRequest): { system: string; user: string } 
     `TUTOR_PROMPT: ${body.segment.tutorPrompt || ""}`,
     `EXPECTED_ANSWER: ${body.segment.expectedAnswer || ""}`,
     `STUDENT_INPUT: ${body.userInput || ""}`,
-    `USER_NAME: ${body.userName || "student"}`,
-    "",
-    "Return schema:",
-    "{",
-    '  "verdict": "surface" | "partial" | "deep",',
-    '  "understandingScore": 0-100 number,',
-    '  "copyRatio": 0-1 number,',
-    '  "missingConcepts": ["named concept"],',
-    '  "feedback": "1-2 sentences tied to learner text",',
-    '  "followUp": "single Socratic question" or null,',
-    '  "advance": true or false',
-    "}"
+    `USER_NAME: ${body.userName || "student"}`
   ].join("\n");
+
+  const user = `${LEARN_TURN_USER_STATIC_PREFIX}
+
+${dynamic}`;
 
   return { system, user };
 }
