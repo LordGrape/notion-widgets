@@ -113,6 +113,60 @@ const UPSTREAM_FAILED_MESSAGE = "The Learn Mode service is temporarily unavailab
 const SCHEMA_INVALID_MESSAGE = "The Learn Mode service returned an unexpected response. Please retry.";
 const INTERNAL_ERROR_MESSAGE = "Learn Mode hit an internal error. Please retry.";
 
+/**
+ * Copy shown as `followUp` when the copyRatio > 0.7 backstop force-demotes
+ * the turn to "surface". Extracted so the skip branch added below references
+ * the same literal the original backstop did; no drift possible if the copy
+ * is tweaked later.
+ */
+const SURFACE_COPY_FOLLOWUP =
+  "That response reads as a paraphrase of the teach. Close or look away from the teach block and answer again in your own words, focusing on WHY rather than WHAT.";
+
+/**
+ * Mirror of BANNED_TUTOR_PROMPT_RECALL_PATTERNS in worker/src/routes/learn-plan.ts.
+ * Kept in sync intentionally as a duplicate to avoid cross-route imports.
+ * When modifying, update both files.
+ */
+const BANNED_TUTOR_PROMPT_RECALL_PATTERNS: readonly RegExp[] = [
+  /^(on\s+)?what\s+(date|year|month|day)\b/i,
+  /^when\s+(was|were|did|is|are)\b/i,
+  /^who\s+(was|is|were|are|led|founded|commanded|signed|wrote|built)\b/i,
+  /^where\s+(was|is|were|are)\b/i,
+  /^which\s+\w+\s+(was|is|were|are|led|founded|commanded)\b/i,
+  /^what\s+(is|was|are|were)\s+the\s+(name|date|year|title|location|role|number)\b/i,
+  /^what\s+(is|was)\s+\w+'s\s+(name|date|year|title|location|role)\b/i,
+  /^how\s+many\b/i,
+  /^name\s+(the|a|an|one|two|three|all)\b/i,
+  /^list\s+(the|a|an|one|two|three|all)\b/i,
+  /^identify\s+(the|a|an|one|two|three|all)\b/i
+] as const;
+
+const LEARNER_RESPONSE_MAX_SHORT_TOKENS = 8;
+const UNDERSTANDING_SCORE_TRUST_FLOOR = 80;
+
+/**
+ * Returns true when the tutor prompt matches one of the banned recall
+ * patterns. Mirrors the stripping logic in verifySegmentTutorPrompt so a
+ * prompt prefixed with markdown / quote chars still matches.
+ */
+function tutorPromptMatchesRecallPattern(tutorPrompt: string): boolean {
+  const stripped = String(tutorPrompt || "").trim().replace(/^[\s>#*_\-`]+/, "");
+  return BANNED_TUTOR_PROMPT_RECALL_PATTERNS.some((re) => re.test(stripped));
+}
+
+/**
+ * Append a subtle note to Gemini's feedback telling the learner that deeper
+ * probing is coming. Used only on the backstop-skip path. Keeps the feedback
+ * tidy: strips trailing whitespace and collapses any double-full-stop that
+ * would arise from Gemini terminating with a period already.
+ */
+function appendDeeperProbeNote(feedback: string): string {
+  const base = String(feedback || "").trim().replace(/\s+$/g, "");
+  const separator = /[.!?]$/.test(base) ? "" : ".";
+  const joined = `${base}${separator} The next question on this topic will probe understanding more deeply.`;
+  return joined.replace(/\s{2,}/g, " ").trim();
+}
+
 function failureEnvelope(errorCode: LearnTurnErrorCode, message: string): LearnTurnFailure {
   return { ok: false, errorCode, message };
 }
@@ -230,9 +284,32 @@ export async function handleLearnTurn(request: Request, env: Env): Promise<Respo
     payload.advance = payload.verdict === "deep" || (payload.verdict === "partial" && missingConcepts.length === 0);
 
     if (serverCopyRatio > 0.7) {
-      payload.verdict = "surface";
-      payload.advance = false;
-      payload.followUp = "That response reads as a paraphrase of the teach. Close or look away from the teach block and answer again in your own words, focusing on WHY rather than WHAT.";
+      const tokenCount = tokenizeForLearnGate(body.userInput || "").length;
+      const isShortResponse = tokenCount <= LEARNER_RESPONSE_MAX_SHORT_TOKENS;
+      const geminiGradedHigh =
+        (payload.verdict === "partial" || payload.verdict === "deep")
+        && typeof payload.understandingScore === "number"
+        && payload.understandingScore >= UNDERSTANDING_SCORE_TRUST_FLOOR;
+      const questionIsBannedRecall = tutorPromptMatchesRecallPattern(body.segment.tutorPrompt || "");
+      const shouldSkipBackstop = questionIsBannedRecall && isShortResponse && geminiGradedHigh;
+
+      if (shouldSkipBackstop) {
+        // Planner shipped a banned recall question (fix A's validator missed
+        // it, or this is a cached plan from before fix A shipped). Trust
+        // Gemini's grade, advance the learner, append a subtle note that
+        // deeper probing is coming.
+        payload.advance =
+          payload.verdict === "deep"
+          || (payload.verdict === "partial" && missingConcepts.length === 0);
+        payload.feedback = appendDeeperProbeNote(payload.feedback);
+        console.info(
+          `[learn-turn] backstop skipped: planner recall-violation; verdict=${payload.verdict} score=${payload.understandingScore} tokens=${tokenCount}`
+        );
+      } else {
+        payload.verdict = "surface";
+        payload.advance = false;
+        payload.followUp = SURFACE_COPY_FOLLOWUP;
+      }
     }
 
     const response: LearnTurnResponse = successEnvelope(payload);

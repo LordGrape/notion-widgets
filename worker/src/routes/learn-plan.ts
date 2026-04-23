@@ -195,10 +195,43 @@ const BANNED_TUTOR_PROMPT_PHRASES: string[] = [
   'what does this card teach'
 ];
 
+/**
+ * Banned recall-pattern regexes on tutor prompts.
+ *
+ * The planner system prompt bans these in text but Gemini occasionally
+ * ignores it. Enforced at runtime in verifySegmentTutorPrompt. Matched
+ * case-insensitively after trimming whitespace and stripping leading
+ * markdown. Segments whose tutorPrompt matches any of these patterns are
+ * dropped and routed through the existing three-tier fallback.
+ *
+ * Also duplicated in worker/src/routes/learn-turn.ts (BANNED_TUTOR_PROMPT_RECALL_PATTERNS)
+ * where the same regex array conditions the copyRatio backstop.
+ * Keep the two arrays in sync.
+ */
+export const BANNED_TUTOR_PROMPT_RECALL_PATTERNS: readonly RegExp[] = [
+  /^(on\s+)?what\s+(date|year|month|day)\b/i,
+  /^when\s+(was|were|did|is|are)\b/i,
+  /^who\s+(was|is|were|are|led|founded|commanded|signed|wrote|built)\b/i,
+  /^where\s+(was|is|were|are)\b/i,
+  /^which\s+\w+\s+(was|is|were|are|led|founded|commanded)\b/i,
+  /^what\s+(is|was|are|were)\s+the\s+(name|date|year|title|location|role|number)\b/i,
+  /^what\s+(is|was)\s+\w+'s\s+(name|date|year|title|location|role)\b/i,
+  /^how\s+many\b/i,
+  /^name\s+(the|a|an|one|two|three|all)\b/i,
+  /^list\s+(the|a|an|one|two|three|all)\b/i,
+  /^identify\s+(the|a|an|one|two|three|all)\b/i
+] as const;
+
 export function verifySegmentTutorPrompt(tp: string): { ok: boolean; reason?: string } {
   const trimmed = String(tp || '').trim();
   if (trimmed.length < 15) return { ok: false, reason: 'too_short' };
   if (!/\?\s*$/.test(trimmed)) return { ok: false, reason: 'no_question_mark' };
+  // Strip leading markdown / quote / whitespace noise so a planner emitting
+  // "> When was X founded?" still gets caught by the recall patterns below.
+  const stripped = trimmed.replace(/^[\s>#*_\-`]+/, '');
+  for (const pattern of BANNED_TUTOR_PROMPT_RECALL_PATTERNS) {
+    if (pattern.test(stripped)) return { ok: false, reason: `banned_recall_pattern:${pattern.source}` };
+  }
   const lower = trimmed.toLowerCase();
   for (const phrase of BANNED_TUTOR_PROMPT_PHRASES) {
     if (lower.indexOf(phrase) >= 0) return { ok: false, reason: `banned_phrase:${phrase}` };
