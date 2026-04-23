@@ -8274,10 +8274,78 @@ input[type="range"]::-moz-range-thumb{
       position: relative;
       z-index: 1;
     }
+    .learn-regen-loading{
+      width: 100%;
+      box-sizing: border-box;
+      padding: 0 16px;
+      margin: 24px auto;
+      max-width: 820px;
+      display: none;
+    }
+    .learn-regen-loading.is-active{
+      display: block;
+    }
+    .learn-regen-loading-card{
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 18px 18px 16px;
+      border-radius: 16px;
+      border: 1px solid var(--border-default);
+      background: var(--surface-1);
+      box-shadow: 0 14px 34px rgba(0,0,0,0.16);
+      backdrop-filter: blur(20px) saturate(1.4);
+      -webkit-backdrop-filter: blur(20px) saturate(1.4);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .learn-regen-loading-copy{
+      min-width: 0;
+    }
+    .learn-regen-loading-status{
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.35;
+    }
+    .learn-regen-loading-caption{
+      margin: 4px 0 0;
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+    .learn-regen-loading .af-spinner{
+      width: 18px;
+      height: 18px;
+      border-width: 2px;
+      flex: 0 0 auto;
+    }
     @media (max-width: 700px) {
       .learn-session-host.learn-session-host--active {
         margin: 12px auto;
         padding: 0 12px;
+      }
+      .learn-regen-loading{
+        margin: 12px auto;
+        padding: 0 12px;
+      }
+      .learn-regen-loading-card{
+        padding: 16px 14px;
+      }
+      .learn-regen-loading-status{
+        font-size: 14px;
+      }
+    }
+    @media (prefers-color-scheme: dark) {
+      .learn-regen-loading-card{
+        box-shadow: 0 14px 34px rgba(0,0,0,0.36);
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .learn-regen-loading .af-spinner{
+        animation: none;
+        border-top-color: rgba(var(--accent-rgb),0.15);
       }
     }
     .learn-subdeck-status{
@@ -9806,6 +9874,15 @@ input[type="range"]::-moz-range-thumb{
                     <button type="button" class="learn-rail-toggle" id="learnRailToggle" aria-controls="learnSubDeckRail" aria-expanded="false" aria-label="Toggle sub-deck rail">☰ Sub-decks</button>
                   </div>
                   <div class="learn-main-empty" id="learnTabEmptyState"></div>
+                  <div id="learnRegenLoading" class="learn-regen-loading" hidden aria-live="polite">
+                    <div class="learn-regen-loading-card" role="status" aria-live="polite">
+                      <span class="af-spinner" aria-hidden="true"></span>
+                      <div class="learn-regen-loading-copy">
+                        <p class="learn-regen-loading-status" id="learnRegenLoadingStatus">Regenerating your plan…</p>
+                        <p class="learn-regen-loading-caption">This usually takes under ten seconds.</p>
+                      </div>
+                    </div>
+                  </div>
                   <div id="learnSessionOv" class="learn-inline-surface learn-session-host" hidden>
                 <div class="modal">
                   <div class="modal-head">
@@ -24118,6 +24195,59 @@ input[type="range"]::-moz-range-thumb{
     var learnTeachReadTimer = { segmentId: null, startedAt: 0, recorded: false };
     var learnTurnBreathingTimeline = null;
     var learnTeachingBlockRelocated = false;
+    var learnRegenLoadingShownAt = 0;
+    var learnRegenLoadingPhase = null;
+    var learnRegenLoadingToken = 0;
+
+    function getLearnRegenLoadingCopy(phase) {
+      if (phase === 'cache_hit_mounting') return 'Loading your plan…';
+      if (phase === 'streaming_connected') return 'Preparing first segment…';
+      return 'Regenerating your plan…';
+    }
+
+    function isLearnRegenLoadingVisible() {
+      var host = el('learnRegenLoading');
+      return !!(host && !host.hidden);
+    }
+
+    function setLearnRegenLoadingActive(isActive, phase) {
+      var host = el('learnRegenLoading');
+      var status = el('learnRegenLoadingStatus');
+      var active = !!isActive;
+      if (!host) return;
+      if (active) {
+        learnRegenLoadingToken += 1;
+        learnRegenLoadingShownAt = Date.now();
+        learnRegenLoadingPhase = phase || 'regenerating';
+        host.hidden = false;
+        host.classList.add('is-active');
+        if (status) status.textContent = getLearnRegenLoadingCopy(learnRegenLoadingPhase);
+        setLearnSessionSurfaceActive(true);
+      } else {
+        learnRegenLoadingToken += 1;
+        learnRegenLoadingShownAt = 0;
+        learnRegenLoadingPhase = null;
+        host.hidden = true;
+        host.classList.remove('is-active');
+        if (!activeLearnSession) setLearnSessionSurfaceActive(false);
+      }
+    }
+
+    function hideLearnRegenLoadingWithMinimum(onDone) {
+      if (!isLearnRegenLoadingVisible()) {
+        if (typeof onDone === 'function') onDone();
+        return;
+      }
+      var minDuration = learnRegenLoadingPhase === 'cache_hit_mounting' ? 200 : 0;
+      var elapsed = learnRegenLoadingShownAt ? (Date.now() - learnRegenLoadingShownAt) : 0;
+      var wait = Math.max(0, minDuration - elapsed);
+      var tokenAtCall = learnRegenLoadingToken;
+      setTimeout(function() {
+        if (tokenAtCall !== learnRegenLoadingToken) return;
+        setLearnRegenLoadingActive(false);
+        if (typeof onDone === 'function') onDone();
+      }, wait);
+    }
 
     function ensureLearnTeachingBlockPlacement() {
       if (learnTeachingBlockRelocated) return;
@@ -24393,6 +24523,7 @@ input[type="range"]::-moz-range-thumb{
       if (!args) return;
       var ok = window.confirm(LEARN_REGEN_CONFIRM);
       if (!ok) return;
+      setLearnRegenLoadingActive(true, 'regenerating');
       closeLearnSessionImmediate();
       startLearnPlanStreaming(args.courseName, args.subDeckKey, args.allItems, args.userName, args.learnerContext, {
         forceRegenerate: true
@@ -25654,6 +25785,7 @@ input[type="range"]::-moz-range-thumb{
       var modeBridge = globalThis.__studyEngineLearnMode;
       if (!flowBridge || !modeBridge || typeof modeBridge.streamLearnPlan !== 'function'
           || typeof flowBridge.createStreamingLearnFlow !== 'function') {
+        setLearnRegenLoadingActive(false);
         toast('Learn mode unavailable.');
         return;
       }
@@ -25669,10 +25801,13 @@ input[type="range"]::-moz-range-thumb{
         if (!planObj || !Array.isArray(planObj.segments) || !planObj.segments.length) return false;
         if (!planObj.subDeckFingerprint) planObj.subDeckFingerprint = currentFingerprint;
         console.info('[learn] cache hit', cacheEntry && cacheEntry.planVersion ? cacheEntry.planVersion : 1);
-        openLearnSession(planObj, courseName, subDeckKey, {
-          planVersion: cacheEntry && cacheEntry.planVersion ? cacheEntry.planVersion : 1,
-          outOfDate: !!isOutdated,
-          fromCache: true
+        setLearnRegenLoadingActive(true, 'cache_hit_mounting');
+        hideLearnRegenLoadingWithMinimum(function() {
+          openLearnSession(planObj, courseName, subDeckKey, {
+            planVersion: cacheEntry && cacheEntry.planVersion ? cacheEntry.planVersion : 1,
+            outOfDate: !!isOutdated,
+            fromCache: true
+          });
         });
         return true;
       };
@@ -25703,6 +25838,9 @@ input[type="range"]::-moz-range-thumb{
         learnerContext: learnerContext,
         opts: opts
       };
+      if (forceRegenerate || isLearnRegenLoadingVisible()) {
+        setLearnRegenLoadingActive(true, 'regenerating');
+      }
       setLearnSessionSurfaceActive(true);
 
       /* Create the session shell up-front. Modal is mounted immediately so the
@@ -25768,6 +25906,7 @@ input[type="range"]::-moz-range-thumb{
       var handlers = {
         onSegment: function(segment, meta) {
           if (!activeLearnSession) return;
+          hideLearnRegenLoadingWithMinimum();
           activeLearnSession.flow = flowBridge.appendStreamedSegment(activeLearnSession.flow, segment);
           var appended = activeLearnSession.flow.plan.segments[activeLearnSession.flow.plan.segments.length - 1];
           if (appended) {
@@ -25825,6 +25964,7 @@ input[type="range"]::-moz-range-thumb{
         },
         onError: function(message, opts) {
           if (!activeLearnSession) return;
+          setLearnRegenLoadingActive(false);
           var hasSegments = !!(opts && opts.hasSegments);
           if (!hasSegments) {
             /* No segments yet — clean abort of the whole session. */
@@ -25846,16 +25986,21 @@ input[type="range"]::-moz-range-thumb{
         }
       };
 
+      if (isLearnRegenLoadingVisible()) {
+        setLearnRegenLoadingActive(true, 'streaming_connected');
+      }
       modeBridge.streamLearnPlan(
         courseName, subDeckKey, allItems, userName || '', learnerContext || '',
         handlers, streamController.signal
       ).catch(function(err) {
         if (err && err.name === 'AbortError') return;
+        setLearnRegenLoadingActive(false);
         console.warn('[Learn] streamLearnPlan threw', err);
       });
     }
 
     function openLearnSession(plan, courseName, subDeckKey, opts) {
+      setLearnRegenLoadingActive(false);
       setLearnSessionSurfaceActive(true);
       var flowBridge = globalThis.__studyEngineLearnFlow;
       if (!flowBridge) { toast('Learn mode unavailable.'); return; }
@@ -25912,6 +26057,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     function closeLearnSessionImmediate() {
+      setLearnRegenLoadingActive(false);
       setLearnSessionSurfaceActive(false);
       stopLearnTurnBreathing();
       var ov = el('learnSessionOv');
@@ -26046,6 +26192,10 @@ input[type="range"]::-moz-range-thumb{
     }
 
     function closeLearnSession(force) {
+      if (isLearnRegenLoadingVisible() && !activeLearnSession) {
+        closeLearnSessionImmediate();
+        return;
+      }
       if (!el('learnSessionOv')) {
         setLearnSessionSurfaceActive(false);
         activeLearnSession = null;
@@ -26237,7 +26387,7 @@ input[type="range"]::-moz-range-thumb{
       });
       document.addEventListener('keydown', function(e){
         if (e.key !== 'Escape') return;
-        if (ov.hidden) return;
+        if (ov.hidden && !isLearnRegenLoadingVisible()) return;
         /* Don't hijack Escape when the confirm overlay is open. */
         var confirmOv = el('confirmLearnExitOv');
         if (confirmOv && confirmOv.classList.contains('show')) return;
