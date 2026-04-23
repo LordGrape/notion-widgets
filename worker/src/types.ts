@@ -417,7 +417,14 @@ export interface LearnTurnRequest {
 
 export type LearnTurnVerdict = "surface" | "partial" | "deep";
 
-export interface LearnTurnResponse {
+/**
+ * Graded turn payload. Byte-identical to the pre-discriminated-union schema
+ * (verdict, understandingScore, copyRatio, missingConcepts, feedback, followUp,
+ * advance). Clients that predate the `ok` envelope look at these fields
+ * directly; the envelope adds `ok: true` without renaming anything.
+ */
+export interface LearnTurnSuccess {
+  ok: true;
   verdict: LearnTurnVerdict;
   understandingScore: number;
   copyRatio: number;
@@ -426,6 +433,27 @@ export interface LearnTurnResponse {
   followUp: string | null;
   advance: boolean;
 }
+
+/**
+ * Structured failure envelope. Always returned with HTTP 200 so clients can
+ * branch on `errorCode` without double-handling a network status. The 400/405
+ * client-fault responses remain on the legacy `{ error: string }` shape.
+ *
+ * errorCode semantics:
+ *   - "upstream_failed": Gemini threw or returned non-2xx (retry-safe, transient).
+ *   - "schema_invalid" : Gemini returned a body `parseJsonResponse` rejected
+ *                         twice in a row (retry already attempted worker-side).
+ *   - "internal_error" : Anything else thrown from the handler body.
+ */
+export type LearnTurnErrorCode = "upstream_failed" | "schema_invalid" | "internal_error";
+
+export interface LearnTurnFailure {
+  ok: false;
+  errorCode: LearnTurnErrorCode;
+  message: string;
+}
+
+export type LearnTurnResponse = LearnTurnSuccess | LearnTurnFailure;
 
 export interface ErrorResponse {
   error: string;

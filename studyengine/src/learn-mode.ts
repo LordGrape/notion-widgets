@@ -1,5 +1,9 @@
 import type { AppState, CourseContext, StudyItem, SubDeckMeta } from './types';
 import { createSubDeck, getCardsInSubDeck, loadSubDecks } from './sub-decks';
+import { runLearnTurn, LearnTurnClientError } from './learn-turn-client';
+
+// Re-export for callers that previously imported from `./learn-mode`.
+export { runLearnTurn, LearnTurnClientError };
 
 export type LearnStatus = 'unlearned' | 'taught' | 'consolidated' | null;
 export type LearnMechanism = 'worked_example' | 'elaborative_interrogation' | 'self_explanation' | 'predictive_question' | 'test_closure';
@@ -108,7 +112,7 @@ interface CourseLike {
 }
 
 const LEARN_PLAN_ENDPOINT = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/learn-plan';
-const LEARN_TURN_ENDPOINT = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/learn-turn';
+// LEARN_TURN_ENDPOINT moved to `./learn-turn-client.ts` along with `runLearnTurn`.
 
 function normalize(value: string): string {
   return String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
@@ -425,28 +429,10 @@ export async function streamLearnPlan(
   }
 }
 
-export async function runLearnTurn(session: LearnSessionState, userInput: string, userName = ''): Promise<LearnTurnResult> {
-  const segment = session.plan.segments[session.index];
-  if (!segment) throw new Error('No active learn segment.');
-
-  const response = await fetch(LEARN_TURN_ENDPOINT, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      mechanism: segment.mechanism,
-      segment,
-      userInput,
-      userName
-    })
-  });
-
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(`Learn turn failed: ${detail}`);
-  }
-
-  return (await response.json()) as LearnTurnResult;
-}
+// `runLearnTurn` now lives in `./learn-turn-client.ts` and is re-exported at
+// the top of this file. The module-level re-export preserves the
+// `__studyEngineLearnMode.runLearnTurn` bridge signature consumed from
+// studyengine.html (`modeBridge.runLearnTurn(...)` in `submitLearnTurn`).
 
 export function completeLearnSegment(session: LearnSessionState, segmentId: string): void {
   if (!session.completedSegmentIds.includes(segmentId)) {

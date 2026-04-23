@@ -1,7 +1,14 @@
 import { getCorsHeaders } from "../cors";
-import { callGemini, extractGeminiText } from "../gemini";
+import { callGemini, extractGeminiText, type GeminiGenerationConfig } from "../gemini";
 import { parseJsonResponse } from "../utils/json";
-import type { Env, LearnTurnRequest, LearnTurnResponse } from "../types";
+import type {
+  Env,
+  LearnTurnErrorCode,
+  LearnTurnFailure,
+  LearnTurnRequest,
+  LearnTurnResponse,
+  LearnTurnSuccess
+} from "../types";
 
 const LEARN_TURN_CORS_HEADERS = {
   ...getCorsHeaders(),
@@ -99,6 +106,84 @@ function logUsage(tag: string, model: string, response: Record<string, unknown>)
   console.log(`[${tag}] model=${model} usage=${JSON.stringify(usage || {})}`);
 }
 
+/** Shape of a successfully-parsed Gemini turn body, before the envelope wrap. */
+type LearnTurnPayload = Omit<LearnTurnSuccess, "ok">;
+
+const UPSTREAM_FAILED_MESSAGE = "The Learn Mode service is temporarily unavailable. Please retry.";
+const SCHEMA_INVALID_MESSAGE = "The Learn Mode service returned an unexpected response. Please retry.";
+const INTERNAL_ERROR_MESSAGE = "Learn Mode hit an internal error. Please retry.";
+
+function failureEnvelope(errorCode: LearnTurnErrorCode, message: string): LearnTurnFailure {
+  return { ok: false, errorCode, message };
+}
+
+function successEnvelope(payload: LearnTurnPayload): LearnTurnSuccess {
+  return { ok: true, ...payload };
+}
+
+const LEARN_TURN_RESPONSE_SCHEMA = {
+  type: "object",
+  properties: {
+    verdict: { type: "string", enum: ["surface", "partial", "deep"] },
+    understandingScore: { type: "number", minimum: 0, maximum: 100 },
+    copyRatio: { type: "number", minimum: 0, maximum: 1 },
+    missingConcepts: { type: "array", items: { type: "string" } },
+    feedback: { type: "string" },
+    followUp: { type: "string", nullable: true },
+    advance: { type: "boolean" }
+  },
+  required: ["verdict", "understandingScore", "copyRatio", "missingConcepts", "feedback", "followUp", "advance"]
+} as const;
+
+function buildGenerationConfig(maxOutputTokens: number): GeminiGenerationConfig {
+  return {
+    temperature: 0.25,
+    maxOutputTokens,
+    responseMimeType: "application/json",
+    responseSchema: LEARN_TURN_RESPONSE_SCHEMA as unknown as GeminiGenerationConfig["responseSchema"]
+  };
+}
+
+/**
+ * Call Gemini once and attempt to parse a valid LearnTurnPayload. Returns null
+ * on any failure (upstream throw, empty body, parse miss, or missing required
+ * `feedback` string). Logs a truncated raw-body preview for debuggability.
+ *
+ * Caller owns the retry policy. Upstream-throw is distinguished from
+ * parse-failure by the `outcome` return field so the route can branch on
+ * errorCode.
+ */
+async function tryGradeTurn(
+  system: string,
+  user: string,
+  maxOutputTokens: number,
+  env: Env,
+  attempt: number
+): Promise<
+  | { outcome: "ok"; payload: LearnTurnPayload }
+  | { outcome: "upstream_failed"; detail: string }
+  | { outcome: "schema_invalid"; detail: string }
+> {
+  let geminiData;
+  try {
+    geminiData = await callGemini(TURN_MODEL, system, user, buildGenerationConfig(maxOutputTokens), env);
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    console.warn(`[learn-turn] upstream attempt=${attempt} maxTokens=${maxOutputTokens} failed: ${detail}`);
+    return { outcome: "upstream_failed", detail };
+  }
+  logUsage("learn-turn", TURN_MODEL, geminiData as unknown as Record<string, unknown>);
+
+  const raw = extractGeminiText(geminiData);
+  const parsed = parseJsonResponse<LearnTurnPayload>(raw);
+  if (!parsed || typeof parsed.feedback !== "string") {
+    const preview = typeof raw === "string" ? raw.slice(0, 400) : "";
+    console.warn(`[learn-turn] schema attempt=${attempt} maxTokens=${maxOutputTokens} parse failed; rawPreview=${JSON.stringify(preview)}`);
+    return { outcome: "schema_invalid", detail: preview };
+  }
+  return { outcome: "ok", payload: parsed };
+}
+
 export async function handleLearnTurn(request: Request, env: Env): Promise<Response> {
   if (request.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
 
@@ -108,55 +193,53 @@ export async function handleLearnTurn(request: Request, env: Env): Promise<Respo
     if (validationError) return jsonResponse({ error: validationError }, 400);
 
     const { system, user } = buildPrompts(body);
-    const responseSchema = {
-      type: "object",
-      properties: {
-        verdict: { type: "string", enum: ["surface", "partial", "deep"] },
-        understandingScore: { type: "number", minimum: 0, maximum: 100 },
-        copyRatio: { type: "number", minimum: 0, maximum: 1 },
-        missingConcepts: { type: "array", items: { type: "string" } },
-        feedback: { type: "string" },
-        followUp: { type: "string", nullable: true },
-        advance: { type: "boolean" }
-      },
-      required: ["verdict", "understandingScore", "copyRatio", "missingConcepts", "feedback", "followUp", "advance"]
-    };
 
-    const geminiData = await callGemini(
-      TURN_MODEL,
-      system,
-      user,
-      {
-        temperature: 0.25,
-        maxOutputTokens: 1024,
-        responseMimeType: "application/json",
-        responseSchema
-      },
-      env
-    );
-    logUsage("learn-turn", TURN_MODEL, geminiData as unknown as Record<string, unknown>);
+    // First attempt at the historical token budget. On schema_invalid the most
+    // frequent root cause is the 1024-token cap truncating the JSON mid-value
+    // for long learner responses, so the retry doubles the budget. Upstream
+    // throws also get one retry (Gemini transient 5xx / network blips).
+    let attempt1 = await tryGradeTurn(system, user, 1024, env, 1);
+    let payload: LearnTurnPayload | null = attempt1.outcome === "ok" ? attempt1.payload : null;
+    let lastFailure: "upstream_failed" | "schema_invalid" | null =
+      attempt1.outcome === "ok" ? null : attempt1.outcome;
 
-    const raw = extractGeminiText(geminiData);
-    const parsed = parseJsonResponse<LearnTurnResponse>(raw);
-    if (!parsed || typeof parsed.feedback !== "string") {
-      return jsonResponse({ error: "learn_turn_parse_failed" }, 502);
+    if (!payload) {
+      const retryMaxTokens = attempt1.outcome === "schema_invalid" ? 2048 : 1024;
+      const attempt2 = await tryGradeTurn(system, user, retryMaxTokens, env, 2);
+      if (attempt2.outcome === "ok") {
+        payload = attempt2.payload;
+        lastFailure = null;
+      } else {
+        lastFailure = attempt2.outcome;
+      }
     }
 
+    if (!payload) {
+      const code: LearnTurnErrorCode = lastFailure ?? "schema_invalid";
+      const message = code === "upstream_failed" ? UPSTREAM_FAILED_MESSAGE : SCHEMA_INVALID_MESSAGE;
+      return jsonResponse(failureEnvelope(code, message), 200);
+    }
+
+    // Server-side backstops — MUST run after regeneration too (17:54 depth-graded
+    // schema invariant). copyRatio > 0.7 force-demotes to surface regardless of
+    // what Gemini said.
     const serverCopyRatio = computeCopyRatio(body.userInput || "", body.segment.teach || "");
-    parsed.copyRatio = serverCopyRatio;
-    const missingConcepts = Array.isArray(parsed.missingConcepts) ? parsed.missingConcepts : [];
-    parsed.missingConcepts = missingConcepts;
-    parsed.advance = parsed.verdict === "deep" || (parsed.verdict === "partial" && missingConcepts.length === 0);
+    payload.copyRatio = serverCopyRatio;
+    const missingConcepts = Array.isArray(payload.missingConcepts) ? payload.missingConcepts : [];
+    payload.missingConcepts = missingConcepts;
+    payload.advance = payload.verdict === "deep" || (payload.verdict === "partial" && missingConcepts.length === 0);
 
     if (serverCopyRatio > 0.7) {
-      parsed.verdict = "surface";
-      parsed.advance = false;
-      parsed.followUp = "That response reads as a paraphrase of the teach. Close or look away from the teach block and answer again in your own words, focusing on WHY rather than WHAT.";
+      payload.verdict = "surface";
+      payload.advance = false;
+      payload.followUp = "That response reads as a paraphrase of the teach. Close or look away from the teach block and answer again in your own words, focusing on WHY rather than WHAT.";
     }
 
-    return jsonResponse(parsed, 200);
+    const response: LearnTurnResponse = successEnvelope(payload);
+    return jsonResponse(response, 200);
   } catch (error) {
-    console.error("[learn-turn] error", error);
-    return jsonResponse({ error: "learn_turn_failed", detail: error instanceof Error ? error.message : String(error) }, 500);
+    console.error("[learn-turn] internal error", error);
+    const detail = error instanceof Error ? error.message : String(error);
+    return jsonResponse(failureEnvelope("internal_error", `${INTERNAL_ERROR_MESSAGE} (${detail})`), 200);
   }
 }

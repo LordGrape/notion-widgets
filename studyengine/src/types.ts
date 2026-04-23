@@ -392,6 +392,35 @@ export interface LearnPlanSegment {
   groundingSnippets: LearnPlanGroundingSnippet[];
 }
 
+/**
+ * Wire-level discriminated union mirroring worker `LearnTurnResponse`. Kept in
+ * sync with `worker/src/types.ts` `LearnTurnSuccess` / `LearnTurnFailure`. The
+ * client's richer `LearnTurnResult` (see `learn-mode.ts`) is derived from the
+ * success branch plus the client-side `nextPrompt` / `isSegmentComplete` flags.
+ */
+export type LearnTurnVerdict = 'surface' | 'partial' | 'deep';
+
+export interface LearnTurnSuccessEnvelope {
+  ok: true;
+  verdict: LearnTurnVerdict;
+  understandingScore: number;
+  copyRatio: number;
+  missingConcepts: string[];
+  feedback: string;
+  followUp: string | null;
+  advance: boolean;
+}
+
+export type LearnTurnErrorCode = 'upstream_failed' | 'schema_invalid' | 'internal_error';
+
+export interface LearnTurnFailureEnvelope {
+  ok: false;
+  errorCode: LearnTurnErrorCode;
+  message: string;
+}
+
+export type LearnTurnEnvelope = LearnTurnSuccessEnvelope | LearnTurnFailureEnvelope;
+
 export interface CachedLearnPlan {
   fingerprint: string;
   plan: LearnPlanSegment[];
