@@ -9855,6 +9855,7 @@ input[type="range"]::-moz-range-thumb{
               <section class="learn-hero" id="learnHero" aria-label="Learn session start">
                 <div class="learn-hero-main">
                   <div class="learn-hero-actions">
+                    <button type="button" class="big-btn" id="cdStudyCourseBtn">Study</button>
                     <button type="button" class="big-btn learn-hero-start-btn" id="cdLearnCourseBtn">Start Learn Session</button>
                     <button type="button" class="ghost-btn learn-hero-subdeck-btn" id="learnHeroSubDeckBtn" aria-controls="learnSubDeckRail" aria-expanded="false">Sub-deck picker</button>
                   </div>
@@ -10048,6 +10049,7 @@ input[type="range"]::-moz-range-thumb{
               <button class="rate hard" data-rate="2">Hard (2)</button>
               <button class="rate good" data-rate="3">Good (3)</button>
               <button class="rate easy" data-rate="4">Easy (4)</button>
+              <button class="rate" data-rate="relearn">Relearn</button>
             </div>
           </div>
         </div>
@@ -10380,7 +10382,8 @@ input[type="range"]::-moz-range-thumb{
 
     import { getLevelInfo, didLevelUp } from './src/xp-level-system';
     import { drawRetentionCurve, drawSparkline, drawTierRing, drawActivityHeatmap, wireRetentionInteractivity, hideCanvasTooltip, getCanvasCtx, getAccentRGB, getTextSecondary, getTextColor } from './src/charts';
-    import { buildSessionQueue, startSession, rateCurrent, advanceItem, completeSession, calcRestudyDuration, preloadQuickfireInsight } from './src/session-flow';
+    import { buildSessionQueue, startSession, rateCurrent, advanceItem, completeSession, calcRestudyDuration, preloadQuickfireInsight, evaluateRelearningTriggers } from './src/session-flow';
+    import { startStudySession } from './src/study-flow';
     import { loadSubDecks, saveSubDecks, createSubDeck, renameSubDeck, deleteSubDeck, reorderSubDecks, getCardsInSubDeck, getCardsInScope, getSubDeckStats, getSubDeckTree, getDescendantSubDeckKeys, getAncestorSubDeckKeys, moveSubDeck, archiveSubDeck, unarchiveSubDeck, migrateSubDecks } from './src/sub-decks';
     import { maybeReclassify, resolveTierTargetDistribution } from './src/tier-classifier';
     import { callParseSyllabus, validateEvidenceQuotes, buildCourseContext, SyllabusParseError } from './src/syllabus-parser';
@@ -16687,6 +16690,25 @@ input[type="range"]::-moz-range-thumb{
       }
     }
 
+    function handleSessionRatingButtonClick(btn) {
+      if (!btn || !session) return;
+      var raw = btn.getAttribute('data-rate');
+      if (raw === 'relearn') {
+        var item = session.queue && session.queue[session.idx];
+        if (!item) return;
+        var fired = evaluateRelearningTriggers(item, Date.now(), { manual: true });
+        if (fired) {
+          saveState();
+          toast('Marked for relearning');
+        }
+        return;
+      }
+      var parsed = parseInt(raw, 10);
+      if (parsed >= 1 && parsed <= 4) {
+        rateCurrent(parsed);
+      }
+    }
+
     /* ═══ SECTION: Skip To Rating | Functions: skipToRating ═══ */
     function skipToRating() {
       if (tutorInRelearning) {
@@ -17387,7 +17409,7 @@ input[type="range"]::-moz-range-thumb{
       // Re-bind rating buttons to ensure clean handler
       ratingsEl.querySelectorAll('button').forEach(function(b) {
         b.onclick = function() {
-          rateCurrent(parseInt(this.getAttribute('data-rate'), 10));
+          handleSessionRatingButtonClick(this);
         };
       });
     }
@@ -17449,7 +17471,7 @@ input[type="range"]::-moz-range-thumb{
         ratingsEl.style.display = 'grid';
         try { playClick(); } catch(e) {}
         ratingsEl.querySelectorAll('button').forEach(function(b) {
-          b.onclick = function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); };
+          b.onclick = function() { handleSessionRatingButtonClick(this); };
         });
         if (it.modelAnswer) insertListenButton(modelAnswerEl, it.modelAnswer);
         return;
@@ -18821,6 +18843,37 @@ input[type="range"]::-moz-range-thumb{
       get: function() { return settings; },
       configurable: true
     });
+    globalThis.__studyEngineStudyFlow = {
+      state: state,
+      startReviewSession: function(scope, onComplete) {
+        if (!scope || !scope.course) return;
+        selectedCourse = String(scope.course || selectedCourse || 'All');
+        if (scope.subDeck) selectedSubDeck = String(scope.subDeck);
+        startSession();
+        if (typeof onComplete === 'function') {
+          var maxChecks = 600;
+          var checks = 0;
+          var poll = function() {
+            var active = globalThis.__studyEngineSessionFlow && typeof globalThis.__studyEngineSessionFlow.getSession === 'function'
+              ? globalThis.__studyEngineSessionFlow.getSession()
+              : null;
+            if (!active || checks >= maxChecks) {
+              onComplete();
+              return;
+            }
+            checks++;
+            setTimeout(poll, 300);
+          };
+          setTimeout(poll, 300);
+        }
+      },
+      startLearnSessionForScope: function(scope) {
+        startLearnForScope(scope);
+      },
+      showAllCaughtUp: function() {
+        toast('All caught up');
+      }
+    };
 
     /* ── Keyboard shortcuts ── */
     document.addEventListener('keydown', function(e) {
@@ -19300,7 +19353,7 @@ input[type="range"]::-moz-range-thumb{
     });
 
     ratingsEl.querySelectorAll('button').forEach(function(b){
-      b.onclick = function() { rateCurrent(parseInt(this.getAttribute('data-rate'), 10)); };
+      b.onclick = function() { handleSessionRatingButtonClick(this); };
     });
 
     /* ── Modal: Add items / Import JSON ── */
@@ -23073,6 +23126,7 @@ input[type="range"]::-moz-range-thumb{
         optionalHTML +
         '<div class="ef-actions">' +
           '<button type="button" id="' + formId + '_cancel">Cancel</button>' +
+          '<button type="button" id="' + formId + '_relearn">Mark for relearning</button>' +
           '<button type="button" class="ef-save" id="' + formId + '_save">Save changes</button>' +
         '</div>';
       document.body.appendChild(form);
@@ -23151,6 +23205,14 @@ input[type="range"]::-moz-range-thumb{
       el(formId + '_cancel').addEventListener('click', function() {
         closeSheet(true);
         try { playClick(); } catch (e4) {}
+      });
+      el(formId + '_relearn').addEventListener('click', function() {
+        var marked = evaluateRelearningTriggers(it, Date.now(), { manual: true });
+        if (marked) {
+          state.items[id] = it;
+          saveState();
+          toast('Card marked for relearning');
+        }
       });
     };
 
@@ -24376,6 +24438,36 @@ input[type="range"]::-moz-range-thumb{
         args.courseName, args.subDeckKey, args.allItems,
         args.userName, args.learnerContext, args.opts
       );
+    }
+
+    function startLearnForScope(scope) {
+      if (!scope || !scope.course) return;
+      var courseName = String(scope.course || '');
+      var subDeckKey = scope.subDeck || null;
+      if (!subDeckKey) {
+        var selection = learnLandingSelection && learnLandingSelection.courseName === courseName ? learnLandingSelection : null;
+        subDeckKey = selection ? selection.subDeckKey : null;
+      }
+      if (!subDeckKey) {
+        var entries = getCourseSubDeckEntries(courseName, { rootOnly: true });
+        var first = entries.find(function(e){ return e && e.key; });
+        if (first) subDeckKey = first.key;
+      }
+      if (!subDeckKey) return;
+      setLearnLandingSelection(courseName, subDeckKey, true);
+      selectedSubDeck = subDeckKey;
+      var args = getLearnStreamArgsForSubDeck(courseName, subDeckKey, {});
+      startLearnPlanStreaming(
+        args.courseName, args.subDeckKey, args.allItems,
+        args.userName, args.learnerContext, args.opts
+      );
+    }
+
+    function handleStudyHeroStart() {
+      var courseName = el('cdTitle') ? el('cdTitle').textContent.trim() : '';
+      if (!courseName || courseName === '—') return;
+      var subDeckKey = selectedSubDeck || ((learnLandingSelection && learnLandingSelection.courseName === courseName) ? learnLandingSelection.subDeckKey : null) || undefined;
+      startStudySession({ course: courseName, subDeck: subDeckKey });
     }
 
     function renderLearnHeroCoverage(coverageStats) {
@@ -27180,6 +27272,8 @@ input[type="range"]::-moz-range-thumb{
         startSession();
       }
     });
+    var studyStartBtn = el('cdStudyCourseBtn');
+    if (studyStartBtn) studyStartBtn.onclick = handleStudyHeroStart;
     var heroStartBtn = el('cdLearnCourseBtn');
     if (heroStartBtn) heroStartBtn.onclick = handleLearnHeroStart;
 

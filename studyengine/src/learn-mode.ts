@@ -674,6 +674,21 @@ export function maybeDemoteOnAgain(item: StudyItem, rating: 1 | 2 | 3 | 4): bool
   return false;
 }
 
+export function deriveLifecycleStage(item: StudyItem): StudyItem['lifecycleStage'] {
+  if (item.suspended === true && item.archived === true) return 'retired';
+  if (item.fsrs?.state === 'relearning') return 'relearning';
+  if (item.learnStatus === 'consolidated' && item.fsrs?.state === 'review') return 'maintaining';
+  if (item.learnStatus === 'taught') return 'consolidating';
+  if (item.learnStatus === 'unlearned') return 'encoding';
+  if (item.learnStatus == null && !item.fsrs?.lastReview) return 'new';
+  if (item.fsrs?.lastReview) return 'maintaining';
+  return 'new';
+}
+
+export function setLifecycleStage(item: StudyItem, stage: StudyItem['lifecycleStage']): void {
+  item.lifecycleStage = stage;
+}
+
 export function applyLearnStatusMigration(items: Record<string, StudyItem>): void {
   Object.keys(items || {}).forEach((itemId) => {
     const item = items[itemId];
@@ -684,6 +699,11 @@ export function applyLearnStatusMigration(items: Record<string, StudyItem>): voi
     if (typeof item.consolidationRating === 'undefined') {
       item.consolidationRating = null;
     }
+  });
+  Object.keys(items || {}).forEach((itemId) => {
+    const item = items[itemId];
+    if (!item) return;
+    setLifecycleStage(item, deriveLifecycleStage(item));
   });
 }
 
@@ -796,6 +816,8 @@ export function createDefaultSubDeckForCourse(course: CourseLike | string, state
   verifyConsolidationQuestions,
   maybeDemoteOnAgain,
   applyLearnStatusMigration,
+  deriveLifecycleStage,
+  setLifecycleStage,
   resolveCourseLearnEntry,
   createDefaultSubDeckForCourse,
   fingerprintLearnInputs,
