@@ -133,6 +133,9 @@ export interface SubDeckMeta {
   created: number;
   color?: string;
   icon?: string;
+  parentSubDeck?: string | null;
+  archived?: boolean;
+  archivedAt?: number;
 }
 
 export type SubDecksState = Record<string, Record<string, SubDeckMeta>>;
