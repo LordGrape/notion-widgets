@@ -1,5 +1,5 @@
 import type { AppState, CourseContext, StudyItem, SubDeckMeta } from './types';
-import { createSubDeck, getCardsInSubDeck, loadSubDecks } from './sub-decks';
+import { createSubDeck, getCardsInScope, getCardsInSubDeck, loadSubDecks } from './sub-decks';
 import { runLearnTurn, LearnTurnClientError } from './learn-turn-client';
 
 // Re-export for callers that previously imported from `./learn-mode`.
@@ -112,6 +112,7 @@ interface CourseLike {
 }
 
 const LEARN_PLAN_ENDPOINT = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/learn-plan';
+export const COURSE_ROOT_SUBDECK_KEY = '__course_root__';
 // LEARN_TURN_ENDPOINT moved to `./learn-turn-client.ts` along with `runLearnTurn`.
 
 function normalize(value: string): string {
@@ -221,6 +222,47 @@ export async function generateLearnPlan(course: string, subDeck: string, items: 
   const verifiedQuestions = verifyConsolidationQuestions(data.consolidationQuestions || [], subDeckCards);
   const subDeckFingerprint = fingerprintSubDeckCards(subDeckCards);
 
+  return { ...data, segments: verifiedSegments, consolidationQuestions: verifiedQuestions, subDeckFingerprint };
+}
+
+export async function generateCourseLearnPlan(
+  course: string,
+  items: StudyItem[],
+  state: AppState,
+  userName = '',
+  learnerContext = ''
+): Promise<LearnPlan> {
+  const courseCards = getCardsInScope(course, null, items, state, { includeArchivedSubDecks: false });
+  const cards = courseCards.map((item) => ({
+    id: item.id,
+    prompt: item.prompt,
+    modelAnswer: item.modelAnswer
+  }));
+
+  const response = await fetch(LEARN_PLAN_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      course,
+      subDeck: COURSE_ROOT_SUBDECK_KEY,
+      cards,
+      userName,
+      learnerContext
+    })
+  });
+
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(`Learn plan failed: ${detail}`);
+  }
+
+  const data = (await response.json()) as LearnPlan;
+  const verifiedSegments = substringVerified(data.segments || [], courseCards);
+  if (verifiedSegments.length < 2) {
+    throw new Error('Learn plan grounding verification failed: fewer than 2 verified segments.');
+  }
+  const verifiedQuestions = verifyConsolidationQuestions(data.consolidationQuestions || [], courseCards);
+  const subDeckFingerprint = fingerprintSubDeckCards(courseCards);
   return { ...data, segments: verifiedSegments, consolidationQuestions: verifiedQuestions, subDeckFingerprint };
 }
 
@@ -429,6 +471,158 @@ export async function streamLearnPlan(
   }
 }
 
+export async function streamCourseLearnPlan(
+  course: string,
+  items: StudyItem[],
+  state: AppState,
+  userName = '',
+  learnerContext = '',
+  handlers: StreamLearnPlanHandlers = {},
+  signal?: AbortSignal
+): Promise<void> {
+  const courseCards = getCardsInScope(course, null, items, state, { includeArchivedSubDecks: false });
+  const subDeckFingerprint = fingerprintSubDeckCards(courseCards);
+  const payload = {
+    course,
+    subDeck: COURSE_ROOT_SUBDECK_KEY,
+    cards: courseCards.map((item) => ({ id: item.id, prompt: item.prompt, modelAnswer: item.modelAnswer })),
+    userName,
+    learnerContext
+  };
+
+  return streamLearnPlanInternal(payload, courseCards, subDeckFingerprint, handlers, signal);
+}
+
+async function streamLearnPlanInternal(
+  payload: { course: string; subDeck: string; cards: Array<{ id: string; prompt: string; modelAnswer: string }>; userName: string; learnerContext: string; },
+  sourceCards: StudyItem[],
+  subDeckFingerprint: string,
+  handlers: StreamLearnPlanHandlers = {},
+  signal?: AbortSignal
+): Promise<void> {
+  let emittedCount = 0;
+  const emitSegment = (seg: LearnSegment, meta?: { groundingSource?: 'gemini' | 'fallback' }): void => {
+    const verified = substringVerified([seg], sourceCards);
+    if (!verified.length) return;
+    emittedCount += 1;
+    handlers.onSegment?.(verified[0], meta);
+  };
+  const emitQuestions = (qs: ConsolidationQuestion[]): void => {
+    const verified = verifyConsolidationQuestions(qs || [], sourceCards);
+    handlers.onConsolidationQuestions?.(verified);
+  };
+  let response: Response;
+  try {
+    response = await fetch(LEARN_PLAN_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
+      body: JSON.stringify(payload),
+      signal
+    });
+  } catch (err) {
+    if ((err as { name?: string }).name === 'AbortError') return;
+    handlers.onError?.(`Learn plan failed: ${(err as Error).message || String(err)}`, { hasSegments: false });
+    return;
+  }
+  const contentType = (response.headers.get('content-type') || '').toLowerCase();
+  const isSSE = contentType.includes('text/event-stream');
+  if (!isSSE || !response.body) {
+    let bodyText = '';
+    try { bodyText = await response.text(); } catch { /* noop */ }
+    if (!response.ok) {
+      handlers.onError?.(`Learn plan failed: ${bodyText || response.status}`, { hasSegments: false });
+      return;
+    }
+    let parsed: LearnPlan | null = null;
+    try { parsed = JSON.parse(bodyText) as LearnPlan; } catch { parsed = null; }
+    if (!parsed) {
+      handlers.onError?.('Learn plan response was not parseable JSON.', { hasSegments: false });
+      return;
+    }
+    parsed.subDeckFingerprint = subDeckFingerprint;
+    const segments = substringVerified(parsed.segments || [], sourceCards);
+    if (segments.length < 2) {
+      handlers.onError?.('Learn plan grounding verification failed: fewer than 2 verified segments.', { hasSegments: false });
+      return;
+    }
+    for (const seg of segments) {
+      emittedCount += 1;
+      handlers.onSegment?.(seg);
+    }
+    const qs = verifyConsolidationQuestions(parsed.consolidationQuestions || [], sourceCards);
+    handlers.onConsolidationQuestions?.(qs);
+    handlers.onComplete?.({
+      segmentCount: segments.length,
+      consolidationCount: qs.length,
+      planMode: parsed.planMode,
+      warning: parsed.warning,
+      subDeckFingerprint
+    });
+    return;
+  }
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let sawFatalError = false;
+  const handleSSEEvent = (rawEvent: string): void => {
+    let eventName = 'message';
+    const dataLines: string[] = [];
+    for (const line of rawEvent.split(/\r?\n/)) {
+      if (line.startsWith('event:')) eventName = line.slice(6).trim();
+      else if (line.startsWith('data:')) dataLines.push(line.slice(5).replace(/^ /, ''));
+    }
+    if (!dataLines.length) return;
+    let data: unknown;
+    try { data = JSON.parse(dataLines.join('\n')); } catch { return; }
+    if (eventName === 'segment' && data && typeof data === 'object') {
+      const segmentPayload = data as LearnSegment & { groundingSource?: 'gemini' | 'fallback'; origin?: 'gemini' | 'fallback'; source?: 'gemini' | 'fallback'; };
+      const groundingSource = segmentPayload.groundingSource ?? segmentPayload.origin ?? segmentPayload.source;
+      emitSegment(segmentPayload, { groundingSource });
+    } else if (eventName === 'consolidationQuestions' && data && typeof data === 'object') {
+      const qs = (data as { questions?: ConsolidationQuestion[] }).questions;
+      if (Array.isArray(qs)) emitQuestions(qs);
+    } else if (eventName === 'complete' && data && typeof data === 'object') {
+      const completeMeta = data as { segmentCount: number; consolidationCount: number; planMode?: string; warning?: string };
+      handlers.onComplete?.({ ...completeMeta, subDeckFingerprint });
+    } else if (eventName === 'error' && data && typeof data === 'object') {
+      sawFatalError = true;
+      const message = String((data as { message?: string }).message || 'Learn plan stream error');
+      handlers.onError?.(message, { hasSegments: emittedCount > 0 });
+    }
+  };
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let sep: number;
+      while ((sep = buffer.indexOf('\n\n')) >= 0) {
+        const rawEvent = buffer.slice(0, sep);
+        buffer = buffer.slice(sep + 2);
+        try { handleSSEEvent(rawEvent); }
+        catch (innerErr) {
+          console.warn('[streamLearnPlan] SSE handler threw; aborting stream', innerErr);
+          try { await reader.cancel(); } catch { /* noop */ }
+          handlers.onError?.('Learn plan stream parse failed.', { hasSegments: emittedCount > 0 });
+          return;
+        }
+      }
+    }
+    const tail = buffer.trim();
+    if (tail) {
+      try { handleSSEEvent(tail); } catch { /* noop */ }
+    }
+    if (!sawFatalError && emittedCount === 0) {
+      handlers.onError?.('Learn plan stream ended without any segments.', { hasSegments: false });
+    }
+  } catch (err) {
+    if ((err as { name?: string }).name === 'AbortError') return;
+    handlers.onError?.(`Learn plan stream failed: ${(err as Error).message || String(err)}`, { hasSegments: emittedCount > 0 });
+  } finally {
+    try { reader.releaseLock(); } catch { /* noop */ }
+  }
+}
+
 // `runLearnTurn` now lives in `./learn-turn-client.ts` and is re-exported at
 // the top of this file. The module-level re-export preserves the
 // `__studyEngineLearnMode.runLearnTurn` bridge signature consumed from
@@ -501,6 +695,7 @@ function getCourseName(course: CourseLike | string): string {
 export function getCourseSubDeckEntries(courseName: string, state: AppState): Array<{ key: string; meta: SubDeckMeta }> {
   const map = (state?.subDecks && state.subDecks[courseName]) ? state.subDecks[courseName] : {};
   return Object.keys(map || {})
+    .filter((key) => key !== COURSE_ROOT_SUBDECK_KEY)
     .map((key) => ({ key, meta: map[key] }))
     .filter((entry) => !!entry.meta)
     .sort((a, b) => {
@@ -526,11 +721,32 @@ function findSubDeckKeyByName(courseName: string, state: AppState, targetName: s
 export function resolveCourseLearnEntry(course: CourseLike | string, state: AppState): CourseLearnEntryResolution {
   const courseName = getCourseName(course);
   const subDeckEntries = getCourseSubDeckEntries(courseName, state);
-  if (subDeckEntries.length === 0) return { kind: 'empty-prompt' };
-  if (subDeckEntries.length === 1) return { kind: 'single', subDeckKey: subDeckEntries[0].key };
+  const rootEntries = subDeckEntries.filter((entry) => !entry.meta.parentSubDeck);
+  if (rootEntries.length === 0) return { kind: 'empty-prompt' };
+  if (rootEntries.length === 1) {
+    const onlyRoot = rootEntries[0];
+    const hasChildren = subDeckEntries.some((entry) => entry.meta.parentSubDeck === onlyRoot.key);
+    if (!hasChildren) return { kind: 'single', subDeckKey: onlyRoot.key };
+  }
 
   const items = Object.keys(state?.items || {}).map((id) => state.items[id]).filter((item): item is StudyItem => !!item);
-  const subDecks: CourseLearnPickerSubDeck[] = subDeckEntries.map((entry) => {
+  const subDecks: CourseLearnPickerSubDeck[] = [
+    {
+      key: COURSE_ROOT_SUBDECK_KEY,
+      name: 'Whole course',
+      stats: (() => {
+        const coverage = getCardsInScope(courseName, null, items, state, { includeArchivedSubDecks: false });
+        let consolidated = 0;
+        let unlearned = 0;
+        coverage.forEach((card) => {
+          const status = (card.learnStatus ?? null) as LearnStatus;
+          if (status === 'consolidated') consolidated += 1;
+          else if (status === 'unlearned') unlearned += 1;
+        });
+        return { total: coverage.length, consolidated, unlearned };
+      })()
+    },
+    ...subDeckEntries.map((entry) => {
     const coverage = getCoverageStats(courseName, entry.key, items);
     return {
       key: entry.key,
@@ -541,7 +757,7 @@ export function resolveCourseLearnEntry(course: CourseLike | string, state: AppS
         unlearned: Number(coverage.unlearned || 0),
       }
     };
-  });
+  })];
   return { kind: 'picker', subDecks };
 }
 
@@ -568,7 +784,9 @@ export function createDefaultSubDeckForCourse(course: CourseLike | string, state
 
 (globalThis as typeof globalThis & { __studyEngineLearnMode?: Record<string, unknown> }).__studyEngineLearnMode = {
   generateLearnPlan,
+  generateCourseLearnPlan,
   streamLearnPlan,
+  streamCourseLearnPlan,
   startLearnSession,
   runLearnTurn,
   capAssistedLearnTurnResult,
@@ -582,5 +800,6 @@ export function createDefaultSubDeckForCourse(course: CourseLike | string, state
   createDefaultSubDeckForCourse,
   fingerprintLearnInputs,
   fingerprintSubDeckCards,
-  getCourseSubDeckEntries
+  getCourseSubDeckEntries,
+  COURSE_ROOT_SUBDECK_KEY
 };

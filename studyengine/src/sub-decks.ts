@@ -1,6 +1,7 @@
 import type { AppState, StudyItem, SubDeckMeta, SubDecksState } from './types';
 
 type DeleteHandling = 'orphan' | 'delete';
+const RESERVED_SUBDECK_KEYS = new Set(['__course_root__']);
 
 export interface SubDeckTreeNode {
   key: string;
@@ -112,6 +113,9 @@ export function createSubDeck(course: string, name: string): SubDeckMeta {
   }
 
   const baseKey = toKey(cleanName) || 'subdeck';
+  if (RESERVED_SUBDECK_KEYS.has(baseKey)) {
+    throw new Error('Reserved sub-deck key.');
+  }
   let key = baseKey;
   let n = 2;
   while (courseMap[key]) {
@@ -128,8 +132,6 @@ export function createSubDeck(course: string, name: string): SubDeckMeta {
     name: cleanName,
     order,
     created: Date.now(),
-    parentSubDeck: null,
-    archived: false,
   };
 
   courseMap[key] = meta;
@@ -142,6 +144,9 @@ export function renameSubDeck(course: string, oldKey: string, newName: string): 
   const courseMap = ensureCourseMap(subDecks, course);
   const existing = courseMap[oldKey];
   if (!existing) return;
+  if (RESERVED_SUBDECK_KEYS.has(oldKey)) {
+    throw new Error('Reserved sub-deck key.');
+  }
 
   const cleanName = normalizeName(newName);
   if (!cleanName) {
@@ -154,6 +159,9 @@ export function renameSubDeck(course: string, oldKey: string, newName: string): 
   }
 
   const nextBase = toKey(cleanName) || oldKey;
+  if (RESERVED_SUBDECK_KEYS.has(nextBase)) {
+    throw new Error('Reserved sub-deck key.');
+  }
   let newKey = nextBase;
   let n = 2;
   while (courseMap[newKey] && newKey !== oldKey) {
@@ -266,9 +274,11 @@ export function getCardsInScope(
   key: string | null,
   items: StudyItem[],
   state: AppState,
-  opts?: { includeArchivedSubDecks?: boolean }
+  opts?: { includeArchivedSubDecks?: boolean; includeArchived?: boolean }
 ): StudyItem[] {
-  const includeArchivedSubDecks = !!opts?.includeArchivedSubDecks;
+  const includeArchivedSubDecks = typeof opts?.includeArchivedSubDecks === 'boolean'
+    ? opts.includeArchivedSubDecks
+    : !!opts?.includeArchived;
   const map = (state?.subDecks && state.subDecks[course]) ? state.subDecks[course] : {};
 
   let allowedDecks = new Set<string>();
@@ -358,7 +368,7 @@ export function unarchiveSubDeck(course: string, key: string): void {
   const state = ensureRuntimeState();
   const map = ensureCourseMap(ensureSubDeckMap(state), course);
   if (!map[key]) throw new Error('Sub-deck not found.');
-  map[key].archived = false;
+  delete map[key].archived;
   delete map[key].archivedAt;
 }
 
@@ -463,19 +473,22 @@ export function migrateSubDecks(state: AppState): void {
     if (!rawCourseMap || typeof rawCourseMap !== 'object' || Array.isArray(rawCourseMap)) continue;
     const nextCourseMap: Record<string, SubDeckMeta> = {};
     for (const key of Object.keys(rawCourseMap)) {
+      if (RESERVED_SUBDECK_KEYS.has(key)) continue;
       const rawMeta = rawCourseMap[key];
       if (!rawMeta || typeof rawMeta !== 'object' || Array.isArray(rawMeta)) continue;
       const cleanName = normalizeName(String((rawMeta as SubDeckMeta).name || ''));
       if (!cleanName) continue;
       const rawParent = (rawMeta as SubDeckMeta).parentSubDeck;
+      const normalizedParent = typeof rawParent === 'string' && rawParent.trim() ? rawParent.trim() : undefined;
+      const archived = (rawMeta as SubDeckMeta).archived === true ? true : undefined;
       nextCourseMap[key] = {
         name: cleanName,
         order: Number.isFinite((rawMeta as SubDeckMeta).order) ? Number((rawMeta as SubDeckMeta).order) : 0,
         created: Number.isFinite((rawMeta as SubDeckMeta).created) ? Number((rawMeta as SubDeckMeta).created) : Date.now(),
         color: typeof (rawMeta as SubDeckMeta).color === 'string' ? (rawMeta as SubDeckMeta).color : undefined,
         icon: typeof (rawMeta as SubDeckMeta).icon === 'string' ? (rawMeta as SubDeckMeta).icon : undefined,
-        parentSubDeck: typeof rawParent === 'string' && rawParent.trim() ? rawParent.trim() : null,
-        archived: typeof (rawMeta as SubDeckMeta).archived === 'boolean' ? Boolean((rawMeta as SubDeckMeta).archived) : false,
+        parentSubDeck: normalizedParent,
+        archived,
         archivedAt: Number.isFinite((rawMeta as SubDeckMeta).archivedAt) ? Number((rawMeta as SubDeckMeta).archivedAt) : undefined,
       };
     }
