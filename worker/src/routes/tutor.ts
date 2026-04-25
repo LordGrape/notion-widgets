@@ -73,6 +73,20 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
+function logUsage(tag: string, model: string, response: unknown): void {
+  const usage = (response && typeof response === "object")
+    ? ((response as Record<string, unknown>).usageMetadata as Record<string, unknown> | undefined)
+    : undefined;
+  const total = Number(usage?.totalTokenCount ?? usage?.totalTokens ?? 0);
+  const cached = Number(usage?.cachedContentTokenCount ?? usage?.cachedTokens ?? 0);
+  if (!Number.isFinite(cached) || cached <= 0) {
+    console.log(`[${tag}] model=${model} usage=${JSON.stringify(usage || {})}`);
+    return;
+  }
+  const cacheHitPct = total > 0 ? Number(((cached / total) * 100).toFixed(2)) : 0;
+  console.log(`[${tag}] ${JSON.stringify({ model, cached, total, cache_hit_pct: cacheHitPct })}`);
+}
+
 function formatLearnerProfileBlock(learner: Record<string, unknown> | undefined, itemRef: TutorRequest["item"]): string {
   if (!learner || typeof learner !== "object") return "";
   const cs = (learner.courseStats as Record<string, unknown> | undefined) || {};
@@ -266,6 +280,15 @@ export async function handleTutor(request: Request, env: Env): Promise<Response>
       pro: "gemini-2.5-pro"
     };
     const selectedModel = modelMap[String(body.model)] || "gemini-2.5-flash";
+    const supportiveVoiceBlock = body.tutorVoice === "rigorous"
+      ? "\n\nVOICE: Rigorous mode. Be concise and direct. Prioritize precision over encouragement."
+      : "\n\nVOICE: Supportive mode. Be warm and encouraging while staying rigorous and specific.";
+    const learnerProfileBlock = formatLearnerProfileBlock(context.learner, item);
+    const examContextBlock = context.courseContext ? formatExamContextBlock(context.courseContext) : "";
+    const isRelearningPass = Boolean(context.isRelearning || (Number(context.sessionRetryCount) || 0) > 0);
+    const relearningModePrefix = isRelearningPass
+      ? "RELEARNING PASS: The student recently rated Again/Hard on this card. Use tighter scaffolding and ask a narrower bridge question before moving on.\n\n"
+      : "";
     const systemPromptAugmented = TUTOR_STATIC_PREFIX + supportiveVoiceBlock + learnerProfileBlock + examContextBlock;
 
     const modeInstructionsBase: Record<TutorMode, string> = {
@@ -711,11 +734,15 @@ export async function handleTutor(request: Request, env: Env): Promise<Response>
         "connect related concepts across cards, and avoid re-explaining things they already demonstrated understanding of.\n\n---\n\n";
     }
     const isFollowUpTurn = conversation.length >= 2;
-    const systemPromptFinal = isFollowUpTurn ? `${TUTOR_SYSTEM_PROMPT}${supportiveVoiceBlock}\n\n${modeInstructionsBase[mode]}` : systemPromptAugmented;
+    const modeInstructionInSystem = modeInstructionsForMode.trim();
+    const systemPromptFinal = isFollowUpTurn
+      ? `${TUTOR_SYSTEM_PROMPT}${supportiveVoiceBlock}\n\n${modeInstructionInSystem}`
+      : `${systemPromptAugmented}\n\n${modeInstructionInSystem}`;
     const tutorContextBlock = buildTutorContextBlock(body.courseContext, mode);
     const tutorContextInsertion = tutorContextBlock ? `\n\n${tutorContextBlock}` : "";
 
-    const dynamicPrompt = `${modeInstructionsForMode}${tutorContextInsertion}\n\n---\n\n${sessionSummaryBlock}${lectureCtxBlock}${itemBlock}\n${userBlock}`;
+    const dynamicPrompt =
+      `${lectureCtxBlock}${tutorContextInsertion}${sessionSummaryBlock}---\n\n${itemBlock}\n${userBlock}`;
 
     const generationConfig = {
       temperature: 0.35,
@@ -725,7 +752,10 @@ export async function handleTutor(request: Request, env: Env): Promise<Response>
       thinkingConfig: { thinkingBudget }
     };
 
-    const geminiData = await callGemini(selectedModel, systemPromptFinal, dynamicPrompt, generationConfig, env);
+    const useFlexTier = mode === "acknowledge" || mode === "insight";
+    const geminiOptions = useFlexTier ? { serviceTier: "flex" as const } : undefined;
+    const geminiData = await callGemini(selectedModel, systemPromptFinal, dynamicPrompt, generationConfig, env, geminiOptions);
+    logUsage("tutor", selectedModel, geminiData);
     let finishReason = getFinishReason(geminiData);
     let rawText = extractGeminiText(geminiData);
     if (rawText === "") {
@@ -743,7 +773,8 @@ export async function handleTutor(request: Request, env: Env): Promise<Response>
         `${dynamicPrompt}\n\n` +
         "Return ONLY a JSON object. No prose. No code fences. Keep each field value to at most 2 sentences." +
         (mode === "insight" ? " Keep the insight value to at most 2 sentences." : "");
-      const retryData = await callGemini(selectedModel, systemPromptFinal, retryPrompt, generationConfig, env);
+      const retryData = await callGemini(selectedModel, systemPromptFinal, retryPrompt, generationConfig, env, geminiOptions);
+      logUsage("tutor", selectedModel, retryData);
       finishReason = getFinishReason(retryData);
       rawText = extractGeminiText(retryData);
       if (rawText === "") {
