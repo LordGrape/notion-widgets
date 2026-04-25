@@ -31,7 +31,14 @@ function logUsage(tag: string, model: string, response: unknown): void {
   const usage = (response && typeof response === "object")
     ? ((response as Record<string, unknown>).usageMetadata as Record<string, unknown> | undefined)
     : undefined;
-  console.log(`[${tag}] model=${model} usage=${JSON.stringify(usage || {})}`);
+  const total = Number(usage?.totalTokenCount ?? usage?.totalTokens ?? 0);
+  const cached = Number(usage?.cachedContentTokenCount ?? usage?.cachedTokens ?? 0);
+  if (!Number.isFinite(cached) || cached <= 0) {
+    console.log(`[${tag}] model=${model} usage=${JSON.stringify(usage || {})}`);
+    return;
+  }
+  const cacheHitPct = total > 0 ? Number(((cached / total) * 100).toFixed(2)) : 0;
+  console.log(`[${tag}] ${JSON.stringify({ model, cached, total, cache_hit_pct: cacheHitPct })}`);
 }
 
 function coerceScoreFeedback(input: unknown): ScoreFeedback {
@@ -162,13 +169,11 @@ function buildRecallPrompt(body: GradeRequest, isDistinguish: boolean): string {
   const lectureContextBlock = buildLectureContextBlock(body);
   const courseContextBlock = buildCourseContextBlock(body.courseContext);
   const rubricOverrideInstruction = buildRubricHintsOverrideInstruction(body.courseContext);
-  const contextInsertion = (courseContextBlock || rubricOverrideInstruction)
-    ? `\n\n${[courseContextBlock, rubricOverrideInstruction].filter(Boolean).join("\n\n")}`
-    : "";
+  const contextInsertion = [courseContextBlock, rubricOverrideInstruction, lectureContextBlock].filter(Boolean).join("\n\n");
   const tierInstructions = buildTierInstructions(tier, body.conceptA, body.conceptB);
 
   return `You are an expert academic grader embedded in a spaced repetition study engine. Your role is to provide precise, calibrated, evidence-based feedback that helps the student close the gap between their current understanding and the target knowledge.
-${lectureContextBlock}
+${contextInsertion}
 
 COURSE: ${course || "General"}
 TOPIC: ${topic || "General"}
@@ -181,7 +186,7 @@ QUESTION/PROMPT:
 ${prompt}
 
 MODEL ANSWER (the reference standard — grade against this, not your own knowledge):
-${modelAnswer}${contextInsertion}
+${modelAnswer}
 
 STUDENT RESPONSE:
 ${userResponse}
@@ -226,13 +231,11 @@ function buildReasoningPrompt(body: GradeRequest, isDistinguish: boolean): strin
   const lectureContextBlock = buildLectureContextBlock(body);
   const courseContextBlock = buildCourseContextBlock(body.courseContext);
   const rubricOverrideInstruction = buildRubricHintsOverrideInstruction(body.courseContext);
-  const contextInsertion = (courseContextBlock || rubricOverrideInstruction)
-    ? `\n\n${[courseContextBlock, rubricOverrideInstruction].filter(Boolean).join("\n\n")}`
-    : "";
+  const contextInsertion = [courseContextBlock, rubricOverrideInstruction, lectureContextBlock].filter(Boolean).join("\n\n");
   const tierInstructions = buildTierInstructions(tier, body.conceptA, body.conceptB);
 
   return `You are an expert academic grader embedded in a spaced repetition study engine. You are grading a reasoning-heavy response in an ill-structured domain where multiple defensible interpretations can be valid.
-${lectureContextBlock}
+${contextInsertion}
 
 COURSE: ${course || "General"}
 TOPIC: ${topic || "General"}
@@ -245,7 +248,7 @@ QUESTION/PROMPT:
 ${prompt}
 
 MODEL ANSWER (an exemplar response, not the only valid framing):
-${modelAnswer}${contextInsertion}
+${modelAnswer}
 
 STUDENT RESPONSE:
 ${userResponse}
@@ -294,13 +297,11 @@ function buildAdaptivePrompt(body: GradeRequest, isDistinguish: boolean): string
   const lectureContextBlock = buildLectureContextBlock(body);
   const courseContextBlock = buildCourseContextBlock(body.courseContext);
   const rubricOverrideInstruction = buildRubricHintsOverrideInstruction(body.courseContext);
-  const contextInsertion = (courseContextBlock || rubricOverrideInstruction)
-    ? `\n\n${[courseContextBlock, rubricOverrideInstruction].filter(Boolean).join("\n\n")}`
-    : "";
+  const contextInsertion = [courseContextBlock, rubricOverrideInstruction, lectureContextBlock].filter(Boolean).join("\n\n");
   const tierInstructions = buildTierInstructions(tier, body.conceptA, body.conceptB);
 
   return `You are an expert academic grader embedded in a spaced repetition study engine. Use an adaptive rubric.
-${lectureContextBlock}
+${contextInsertion}
 
 COURSE: ${course || "General"}
 TOPIC: ${topic || "General"}
@@ -312,7 +313,7 @@ QUESTION/PROMPT:
 ${prompt}
 
 MODEL ANSWER:
-${modelAnswer}${contextInsertion}
+${modelAnswer}
 
 STUDENT RESPONSE:
 ${userResponse}
@@ -377,7 +378,8 @@ export async function handleGrade(request: Request, env: Env): Promise<Response>
     const isEssayMode = essayOutline.length > 0;
     const subjectType = body.subjectType || "mixed";
     const courseContextBlock = buildCourseContextBlock(body.courseContext);
-    const essayContextInsertion = courseContextBlock ? `\n\n${courseContextBlock}` : "";
+    const lectureContextBlock = buildLectureContextBlock(body);
+    const essayContextInsertion = [courseContextBlock, lectureContextBlock].filter(Boolean).join("\n\n");
 
     if (!prompt || !modelAnswer) {
       return jsonResponse({ error: "Missing required fields" }, 400);
@@ -389,6 +391,7 @@ export async function handleGrade(request: Request, env: Env): Promise<Response>
 COURSE: ${course || "General"}
 TOPIC: ${topic || "General"}
 TIER: ${tier || "explain"}
+${essayContextInsertion ? `\n\n${essayContextInsertion}` : ""}
 
 QUESTION/PROMPT:
 ${prompt}
@@ -416,7 +419,8 @@ Respond in this EXACT JSON format and nothing else:
           "You are a patient, expert tutor embedded in a spaced repetition study engine. When a student doesn't know the answer, you TEACH — explain WHY the answer is what it is for deep encoding. Respond in JSON.",
           explainPrompt,
           { temperature: 0.4, maxOutputTokens: 512, responseMimeType: "application/json" },
-          env
+          env,
+          { serviceTier: "flex" }
         );
 
         logUsage("grade", "gemini-2.5-flash", explainData);
@@ -445,6 +449,7 @@ Respond in this EXACT JSON format and nothing else:
 
 COURSE: ${course || "General"}
 TOPIC: ${topic || "General"}
+${essayContextInsertion ? `\n\n${essayContextInsertion}` : ""}
 
 Grade the essay on FIVE dimensions, each scored 0 (weak), 1 (adequate), or 2 (strong):
 
@@ -480,7 +485,7 @@ MODEL ANSWER:
 ${modelAnswer}
 
 STUDENT'S OUTLINE (written before the essay):
-${essayOutline}${essayContextInsertion}
+${essayOutline}
 
 STUDENT'S ESSAY RESPONSE:
 ${userResponse}

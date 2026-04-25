@@ -37,25 +37,39 @@ export interface GeminiResponse {
   [key: string]: unknown;
 }
 
+export interface GeminiCallOptions {
+  serviceTier?: "default" | "flex";
+  cachedContent?: string;
+}
+
+/**
+ * Calls Gemini generateContent.
+ * Keep stable instructions in `systemInstruction` (best cache prefix reuse),
+ * and put volatile turn-specific content in `contents`.
+ */
 export async function callGemini(
   model: string,
   systemPrompt: string,
   userPrompt: string,
   generationConfig: GeminiGenerationConfig,
-  env: Env
+  env: Env,
+  options?: GeminiCallOptions
 ): Promise<GeminiResponse> {
+  const serviceTierQuery = options?.serviceTier === "flex" ? "&serviceTier=flex" : "";
   const geminiUrl =
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`;
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}${serviceTierQuery}`;
 
   const response = await fetch(geminiUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      contents: [
-        { parts: [{ text: systemPrompt }] },
-        { parts: [{ text: userPrompt }] }
-      ],
-      generationConfig
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+      contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+      generationConfig,
+      ...(options?.cachedContent ? { cachedContent: options.cachedContent } : {}),
+      // Flex inference docs show REST body field `service_tier`.
+      // https://ai.google.dev/gemini-api/docs/flex-inference
+      ...(options?.serviceTier === "flex" ? { service_tier: "flex" } : {})
     })
   });
 
@@ -104,22 +118,28 @@ export async function* streamGemini(
   userPrompt: string,
   generationConfig: GeminiGenerationConfig,
   env: Env,
+  optionsOrSignal?: GeminiCallOptions | AbortSignal,
   signal?: AbortSignal
 ): AsyncGenerator<string, void, unknown> {
+  const options = optionsOrSignal instanceof AbortSignal ? undefined : optionsOrSignal;
+  const streamSignal = optionsOrSignal instanceof AbortSignal ? optionsOrSignal : signal;
+  const serviceTierQuery = options?.serviceTier === "flex" ? "&serviceTier=flex" : "";
   const url =
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${env.GEMINI_API_KEY}`;
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${env.GEMINI_API_KEY}${serviceTierQuery}`;
 
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      contents: [
-        { parts: [{ text: systemPrompt }] },
-        { parts: [{ text: userPrompt }] }
-      ],
-      generationConfig
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+      contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+      generationConfig,
+      ...(options?.cachedContent ? { cachedContent: options.cachedContent } : {}),
+      // Flex inference docs show REST body field `service_tier`.
+      // https://ai.google.dev/gemini-api/docs/flex-inference
+      ...(options?.serviceTier === "flex" ? { service_tier: "flex" } : {})
     }),
-    signal
+    signal: streamSignal
   });
 
   if (!response.ok || !response.body) {
