@@ -1,5 +1,6 @@
 import { getCorsHeaders } from "../cors";
 import { callGemini, extractGeminiText, streamGemini } from "../gemini";
+import { emitTier2Event } from "../lib/tier2";
 import type { ConsolidationQuestion, Env, LearnCheckType, LearnPlanRequest, LearnPlanResponse, LearnPlanSegment, StudyCardInput } from "../types";
 import { parseJsonResponse } from "../utils/json";
 
@@ -1033,6 +1034,7 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
         warning: verifiedQs.length < 2 ? "Fewer than 2 consolidation questions verified." : undefined
       });
       await writePlanCache(cacheKey, env, emittedSegments, verifiedQs);
+      await emitTier2Event(env, { route: "learn-plan", model: PLAN_PRIMARY_MODEL, ts: Date.now() });
       return;
     }
 
@@ -1093,6 +1095,7 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
         warning: verifiedSecondQs.length < 2 ? "Fewer than 2 consolidation questions verified." : undefined
       });
       await writePlanCache(cacheKey, env, verifiedSecond, verifiedSecondQs);
+      await emitTier2Event(env, { route: "learn-plan", model: PLAN_ESCALATION_MODEL, ts: Date.now() });
       return;
     }
 

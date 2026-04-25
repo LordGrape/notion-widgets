@@ -154,6 +154,7 @@ export interface StudyItem {
   subdeck?: string;
   subDeck?: string | null;
   learnStatus?: 'unlearned' | 'taught' | 'consolidated' | null;
+  lifecycleStage?: 'new' | 'encoding' | 'consolidating' | 'maintaining' | 'relearning' | 'retired';
   learnedAt?: number;
   consolidationRating?: 1 | 2 | 3 | 4 | null;
   /**

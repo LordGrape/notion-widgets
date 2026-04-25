@@ -7,6 +7,7 @@ import type {
   SubjectType,
   TierId
 } from './types';
+import { deriveLifecycleStage, setLifecycleStage } from './learn-mode';
 
 type Rating = 1 | 2 | 3 | 4;
 type SessionRuntime = SessionState & Record<string, any>;
@@ -334,6 +335,7 @@ export function buildSessionQueue(): StudyItem[] {
     const it = state.items[id] as StudyItem;
     if (!it || it.archived) continue;
     if (it.suspended === true) continue;
+    if (it.lifecycleStage === 'retired') continue;
     if (courseFilter !== 'All' && it.course !== courseFilter) continue;
     if (selectedTopic !== 'All' && (it.topic || '') !== selectedTopic) continue;
     if (!isEmbedded && sidebarSelection) {
@@ -562,6 +564,7 @@ function scheduleRatingAndAdvance(
   if (!session) return;
 
   if (mappedRating < 2) {
+    evaluateRelearningTriggers(it, nowTs);
     advanceItem();
     return;
   }
@@ -618,10 +621,21 @@ function scheduleRatingAndAdvance(
   }
 }
 
-function appendReviewLogEvent(item: StudyItem, rating: Rating, at: number): void {
-  const reviewRating: 1 | 2 | 3 | 4 = rating;
+function appendReviewLogEvent(
+  item: StudyItem,
+  ratingOrEvent: Rating | { ts: string; rating: 1 | 2 | 3 | 4; reason?: string },
+  at?: number
+): void {
   if (!Array.isArray(item.reviewLog)) item.reviewLog = [];
-  item.reviewLog.push({ at, rating: reviewRating });
+  if (typeof ratingOrEvent === 'number') {
+    const reviewRating: 1 | 2 | 3 | 4 = ratingOrEvent;
+    item.reviewLog.push({ at: Number(at || Date.now()), rating: reviewRating } as any);
+  } else {
+    const eventAt = Number.isFinite(new Date(ratingOrEvent.ts).getTime())
+      ? new Date(ratingOrEvent.ts).getTime()
+      : Date.now();
+    item.reviewLog.push({ at: eventAt, rating: ratingOrEvent.rating, reason: ratingOrEvent.reason, ts: ratingOrEvent.ts } as any);
+  }
   if (item.reviewLog.length > 50) {
     item.reviewLog = item.reviewLog.slice(-50);
   }
@@ -1210,10 +1224,10 @@ function fsrsSeedForEntry(entry: LearnHandoffEntry, nowTs: number): {
   // consolidated
   const rating = entry.consolidationRating;
   if (rating === 4) {
-    return { difficulty: 3.0, stability: 3, dueTs: nowTs + 3 * DAY_MS, state: 'review', forceNextQF: false };
+    return { difficulty: 3.0, stability: 14, dueTs: nowTs + 14 * DAY_MS, state: 'review', forceNextQF: false };
   }
   if (rating === 3) {
-    return { difficulty: 4.5, stability: 1, dueTs: nowTs + 1 * DAY_MS, state: 'review', forceNextQF: false };
+    return { difficulty: 4.5, stability: 5, dueTs: nowTs + 5 * DAY_MS, state: 'review', forceNextQF: false };
   }
   if (rating === 2) {
     return { difficulty: 6.5, stability: 0.5, dueTs: nowTs + 1 * DAY_MS, state: 'review', forceNextQF: false };
@@ -1258,6 +1272,7 @@ export function applyLearnHandoff(
         item.learnedAt = nowTs;
       }
     }
+    setLifecycleStage(item, deriveLifecycleStage(item));
     // Only overwrite consolidationRating when the handoff has a fresh rating.
     // Preserves prior ratings when this session didn't rate the card.
     if (entry.consolidationRating != null) {
@@ -1343,6 +1358,56 @@ export function writeLearnProgress(
   bridge.saveState();
 }
 
+function createDefaultFsrs(nowTs: number): StudyItem['fsrs'] {
+  return {
+    stability: 0,
+    difficulty: 0,
+    due: new Date(nowTs + DAY_MS).toISOString(),
+    reps: 0,
+    lapses: 0,
+    lastReview: null,
+    state: 'new'
+  };
+}
+
+function toReviewEventTs(event: any): number {
+  if (!event) return Number.NaN;
+  if (typeof event.at === 'number') return event.at;
+  if (typeof event.ts === 'string') return new Date(event.ts).getTime();
+  return Number.NaN;
+}
+
+function markForRelearning(item: StudyItem, nowTs: number, reason: string): void {
+  item.fsrs = item.fsrs ?? createDefaultFsrs(nowTs);
+  item.fsrs.state = 'relearning';
+  item.fsrs.due = new Date(nowTs).toISOString();
+  setLifecycleStage(item, 'relearning');
+  appendReviewLogEvent(item, { ts: new Date(nowTs).toISOString(), rating: 1, reason: `relearn:${reason}` });
+}
+
+export function evaluateRelearningTriggers(
+  item: StudyItem,
+  nowTs: number,
+  opts: { manual?: boolean } = {}
+): boolean {
+  if (opts.manual) {
+    markForRelearning(item, nowTs, 'manual');
+    return true;
+  }
+  const log = item.reviewLog ?? [];
+  const cutoff = nowTs - 14 * DAY_MS;
+  const recentLapses = log.filter((e: any) => e && e.rating === 1 && toReviewEventTs(e) >= cutoff).length;
+  if (recentLapses >= 3) {
+    markForRelearning(item, nowTs, 'lapse-cluster');
+    return true;
+  }
+  if ((item.fsrs?.stability ?? 0) < 3) {
+    markForRelearning(item, nowTs, 'low-stability');
+    return true;
+  }
+  return false;
+}
+
 // Expose handoff helpers on the session-flow bridge so the monolith can call
 // them without extra imports.
 (() => {
@@ -1351,4 +1416,5 @@ export function writeLearnProgress(
   g.__studyEngineSessionFlow.applyLearnHandoff = applyLearnHandoff;
   g.__studyEngineSessionFlow.writeLearnSessionRecord = writeLearnSessionRecord;
   g.__studyEngineSessionFlow.writeLearnProgress = writeLearnProgress;
+  g.__studyEngineSessionFlow.evaluateRelearningTriggers = evaluateRelearningTriggers;
 })();

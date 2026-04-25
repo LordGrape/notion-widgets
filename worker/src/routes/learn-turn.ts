@@ -1,5 +1,6 @@
 import { getCorsHeaders } from "../cors";
 import { callGemini, extractGeminiText, type GeminiGenerationConfig } from "../gemini";
+import { emitTier2Event } from "../lib/tier2";
 import { parseJsonResponse } from "../utils/json";
 import type {
   Env,
@@ -319,6 +320,7 @@ export async function handleLearnTurn(request: Request, env: Env): Promise<Respo
     }
 
     const response: LearnTurnResponse = successEnvelope(payload);
+    await emitTier2Event(env, { route: "learn-turn", model: TURN_MODEL, ts: Date.now() });
     return jsonResponse(response, 200);
   } catch (error) {
     console.error("[learn-turn] internal error", error);
