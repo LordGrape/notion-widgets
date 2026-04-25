@@ -24730,13 +24730,15 @@ input[type="range"]::-moz-range-thumb{
       if (!state || !payload || !payload.fingerprint) return;
       if (!state.learnPlans || typeof state.learnPlans !== 'object') state.learnPlans = {};
       if (!state.learnPlans[courseName] || typeof state.learnPlans[courseName] !== 'object') state.learnPlans[courseName] = {};
-      state.learnPlans[courseName][subDeckKey] = {
+      var entry = {
         fingerprint: String(payload.fingerprint),
         plan: Array.isArray(payload.plan) ? payload.plan.slice() : [],
         generatedAt: Number(payload.generatedAt || Date.now()),
         planVersion: Math.max(1, Number(payload.planVersion || 1)),
         courseContextHash: payload.courseContextHash ? String(payload.courseContextHash) : undefined
       };
+      if (payload.subDeckFingerprint) entry.subDeckFingerprint = String(payload.subDeckFingerprint);
+      state.learnPlans[courseName][subDeckKey] = entry;
       saveState();
     }
 
@@ -25799,7 +25801,13 @@ input[type="range"]::-moz-range-thumb{
 
       var openCachedPlan = function(planObj, cacheEntry, isOutdated) {
         if (!planObj || !Array.isArray(planObj.segments) || !planObj.segments.length) return false;
-        if (!planObj.subDeckFingerprint) planObj.subDeckFingerprint = currentFingerprint;
+        if (!planObj.subDeckFingerprint) {
+          var cachedSubDeckFingerprint = cacheEntry && cacheEntry.subDeckFingerprint ? String(cacheEntry.subDeckFingerprint) : null;
+          if (!cachedSubDeckFingerprint && modeBridge && typeof modeBridge.fingerprintSubDeckCards === 'function') {
+            cachedSubDeckFingerprint = modeBridge.fingerprintSubDeckCards(getCardsInSubDeck(courseName, subDeckKey, Object.values(state.items || {})));
+          }
+          if (cachedSubDeckFingerprint) planObj.subDeckFingerprint = cachedSubDeckFingerprint;
+        }
         console.info('[learn] cache hit', cacheEntry && cacheEntry.planVersion ? cacheEntry.planVersion : 1);
         setLearnRegenLoadingActive(true, 'cache_hit_mounting');
         hideLearnRegenLoadingWithMinimum(function() {
@@ -25939,13 +25947,14 @@ input[type="range"]::-moz-range-thumb{
           if (!activeLearnSession) return;
           activeLearnSession.streamCompleted = true;
           activeLearnSession.flow = flowBridge.markStreamingComplete(activeLearnSession.flow);
+          var streamSubDeckFingerprint = null;
           if (activeLearnSession.flow && activeLearnSession.flow.plan) {
-            var streamFingerprint = (meta && meta.subDeckFingerprint)
+            streamSubDeckFingerprint = (meta && meta.subDeckFingerprint)
               ? String(meta.subDeckFingerprint)
               : (modeBridge && typeof modeBridge.fingerprintSubDeckCards === 'function'
                 ? modeBridge.fingerprintSubDeckCards(getCardsInSubDeck(courseName, subDeckKey, allItems || []))
                 : null);
-            if (streamFingerprint) activeLearnSession.flow.plan.subDeckFingerprint = String(streamFingerprint);
+            if (streamSubDeckFingerprint) activeLearnSession.flow.plan.subDeckFingerprint = String(streamSubDeckFingerprint);
           }
           if (activeLearnSession.streamCompleted) {
             persistLearnPlanCache(courseName, subDeckKey, {
@@ -25953,7 +25962,8 @@ input[type="range"]::-moz-range-thumb{
               plan: (activeLearnSession.flow.plan && activeLearnSession.flow.plan.segments) ? activeLearnSession.flow.plan.segments : [],
               generatedAt: Date.now(),
               planVersion: activeLearnSession.planVersion || 1,
-              courseContextHash: fingerprintMeta.courseContextHash
+              courseContextHash: fingerprintMeta.courseContextHash,
+              subDeckFingerprint: streamSubDeckFingerprint
             });
           }
           if (meta && meta.warning) toast(meta.warning);
