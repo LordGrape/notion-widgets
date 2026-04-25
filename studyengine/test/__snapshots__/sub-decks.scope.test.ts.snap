@@ -1,0 +1,28 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`sub-deck scope > migrateSubDecks snapshot emits optional metadata only when present 1`] = `
+{
+  "Chemistry": {
+    "base": {
+      "archived": undefined,
+      "archivedAt": undefined,
+      "color": undefined,
+      "created": 1,
+      "icon": undefined,
+      "name": "Base",
+      "order": 0,
+      "parentSubDeck": undefined,
+    },
+    "child": {
+      "archived": true,
+      "archivedAt": 10,
+      "color": undefined,
+      "created": 2,
+      "icon": undefined,
+      "name": "Child",
+      "order": 1,
+      "parentSubDeck": "base",
+    },
+  },
+}
+`;

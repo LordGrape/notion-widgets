@@ -430,6 +430,7 @@ export interface CachedLearnPlan {
   generatedAt: number;
   planVersion: number;
   courseContextHash?: string;
+  subDeckFingerprint?: string;
 }
 
 export interface AppState {

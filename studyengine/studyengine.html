@@ -19353,7 +19353,7 @@ input[type="range"]::-moz-range-thumb{
       var subDeckState = (state && state.subDecks && state.subDecks[courseName]) ? state.subDecks[courseName] : {};
       var entries = Object.keys(subDeckState || {}).map(function(key) {
         return { key: key, meta: subDeckState[key] };
-      }).filter(function(entry) { return entry && entry.meta; });
+      }).filter(function(entry) { return entry && entry.meta && entry.key !== '__course_root__'; });
       entries.sort(function(a, b) {
         var ao = typeof a.meta.order === 'number' ? a.meta.order : 0;
         var bo = typeof b.meta.order === 'number' ? b.meta.order : 0;
@@ -19374,7 +19374,7 @@ input[type="range"]::-moz-range-thumb{
           scopeKey == null ? null : scopeKey,
           allItems || [],
           state,
-          { includeArchivedSubDecks: !!includeArchivedSubDecks }
+          { includeArchived: !!includeArchivedSubDecks }
         );
       }
       if (scopeKey == null) {
@@ -22935,6 +22935,7 @@ input[type="range"]::-moz-range-thumb{
 
       var studyBtn = document.getElementById('ctxStudyCourse');
       if (studyBtn) studyBtn.addEventListener('click', function() {
+        selectedSubDeck = null;
         sidebarSelection = { level: 'course', course: courseName, module: null, topic: null };
         applySidebarFilterChipsOnly();
         startSession();
@@ -24534,10 +24535,13 @@ input[type="range"]::-moz-range-thumb{
 
     function getLearnStreamArgsForSubDeck(courseName, subDeckKey, opts) {
       var items = Object.keys(state.items || {}).map(function(id){ return state.items[id]; });
+      var isCourseRoot = subDeckKey === '__course_root__';
       return {
         courseName: courseName,
         subDeckKey: subDeckKey,
-        allItems: getCardsForScope(courseName, subDeckKey, items),
+        allItems: isCourseRoot
+          ? getCardsForScope(courseName, null, items, false)
+          : getCardsInSubDeck(courseName, subDeckKey, items),
         userName: settings.userName || '',
         learnerContext: '',
         opts: opts || {}
@@ -24690,7 +24694,9 @@ input[type="range"]::-moz-range-thumb{
     }
 
     function getCurrentLearnCardIds(courseName, subDeckKey, allItems) {
-      var cards = getCardsForScope(courseName, subDeckKey, allItems || []);
+      var cards = subDeckKey === '__course_root__'
+        ? getCardsForScope(courseName, null, allItems || [], false)
+        : getCardsInSubDeck(courseName, subDeckKey, allItems || []);
       return cards
         .filter(function(card){ return card && card.id && card.learnStatus !== 'consolidated'; })
         .map(function(card){ return String(card.id); });
@@ -24715,7 +24721,9 @@ input[type="range"]::-moz-range-thumb{
       if (!session || !session.flow || !session.flow.plan) return false;
       var stored = session.flow.plan.subDeckFingerprint;
       if (!stored) return false;
-      var cards = getCardsForScope(session.courseName, session.subDeckKey, Object.values(state.items || {}));
+      var cards = session.subDeckKey === '__course_root__'
+        ? getCardsForScope(session.courseName, null, Object.values(state.items || {}), false)
+        : getCardsInSubDeck(session.courseName, session.subDeckKey, Object.values(state.items || {}));
       var modeBridge = globalThis.__studyEngineLearnMode;
       var current = (modeBridge && typeof modeBridge.fingerprintSubDeckCards === 'function')
         ? modeBridge.fingerprintSubDeckCards(cards)
@@ -25829,7 +25837,10 @@ input[type="range"]::-moz-range-thumb{
         if (!planObj.subDeckFingerprint) {
           var cachedSubDeckFingerprint = cacheEntry && cacheEntry.subDeckFingerprint ? String(cacheEntry.subDeckFingerprint) : null;
           if (!cachedSubDeckFingerprint && modeBridge && typeof modeBridge.fingerprintSubDeckCards === 'function') {
-            cachedSubDeckFingerprint = modeBridge.fingerprintSubDeckCards(getCardsForScope(courseName, subDeckKey, Object.values(state.items || {})));
+            var openScopeCards = subDeckKey === '__course_root__'
+              ? getCardsForScope(courseName, null, Object.values(state.items || {}), false)
+              : getCardsInSubDeck(courseName, subDeckKey, Object.values(state.items || {}));
+            cachedSubDeckFingerprint = modeBridge.fingerprintSubDeckCards(openScopeCards);
           }
           if (cachedSubDeckFingerprint) planObj.subDeckFingerprint = cachedSubDeckFingerprint;
         }
@@ -25977,7 +25988,11 @@ input[type="range"]::-moz-range-thumb{
             streamSubDeckFingerprint = (meta && meta.subDeckFingerprint)
               ? String(meta.subDeckFingerprint)
               : (modeBridge && typeof modeBridge.fingerprintSubDeckCards === 'function'
-                ? modeBridge.fingerprintSubDeckCards(getCardsForScope(courseName, subDeckKey, allItems || []))
+                ? modeBridge.fingerprintSubDeckCards(
+                    subDeckKey === '__course_root__'
+                      ? getCardsForScope(courseName, null, allItems || [], false)
+                      : getCardsInSubDeck(courseName, subDeckKey, allItems || [])
+                  )
                 : null);
             if (streamSubDeckFingerprint) activeLearnSession.flow.plan.subDeckFingerprint = String(streamSubDeckFingerprint);
           }
@@ -26024,10 +26039,16 @@ input[type="range"]::-moz-range-thumb{
       if (isLearnRegenLoadingVisible()) {
         setLearnRegenLoadingActive(true, 'streaming_connected');
       }
-      modeBridge.streamLearnPlan(
-        courseName, subDeckKey, allItems, userName || '', learnerContext || '',
-        handlers, streamController.signal
-      ).catch(function(err) {
+      var streamPromise = (subDeckKey === '__course_root__' && typeof modeBridge.streamCourseLearnPlan === 'function')
+        ? modeBridge.streamCourseLearnPlan(
+            courseName, allItems, state, userName || '', learnerContext || '',
+            handlers, streamController.signal
+          )
+        : modeBridge.streamLearnPlan(
+            courseName, subDeckKey, allItems, userName || '', learnerContext || '',
+            handlers, streamController.signal
+          );
+      streamPromise.catch(function(err) {
         if (err && err.name === 'AbortError') return;
         setLearnRegenLoadingActive(false);
         console.warn('[Learn] streamLearnPlan threw', err);
@@ -26067,7 +26088,9 @@ input[type="range"]::-moz-range-thumb{
       if (activeLearnSession.flow && activeLearnSession.flow.plan && !activeLearnSession.flow.plan.subDeckFingerprint) {
         var modeBridge = globalThis.__studyEngineLearnMode;
         if (modeBridge && typeof modeBridge.fingerprintSubDeckCards === 'function') {
-          var openCards = getCardsForScope(courseName, subDeckKey, Object.values(state.items || {}));
+          var openCards = subDeckKey === '__course_root__'
+            ? getCardsForScope(courseName, null, Object.values(state.items || {}), false)
+            : getCardsInSubDeck(courseName, subDeckKey, Object.values(state.items || {}));
           activeLearnSession.flow.plan.subDeckFingerprint = modeBridge.fingerprintSubDeckCards(openCards);
         }
       }
@@ -26584,12 +26607,15 @@ input[type="range"]::-moz-range-thumb{
       }
 
       var subDeckEntries = getCourseSubDeckEntries(courseName);
-      if (selectedSubDeck && !subDeckEntries.some(function(sd){ return sd.key === selectedSubDeck; })) {
+      if (selectedSubDeck && selectedSubDeck !== '__course_root__' && !subDeckEntries.some(function(sd){ return sd.key === selectedSubDeck; })) {
         selectedSubDeck = null;
       }
 
-      var scopedItems = getCardsForScope(courseName, selectedSubDeck, Object.keys(allCourseItems).map(function(itemId){ return allCourseItems[itemId]; }));
-      scopedItems.forEach(function(cit) {
+      var allVisibleCourseItems = getCardsForScope(courseName, null, Object.keys(allCourseItems).map(function(itemId){ return allCourseItems[itemId]; }), false);
+      var scopedItems = selectedSubDeck
+        ? getCardsInSubDeck(courseName, selectedSubDeck, Object.keys(allCourseItems).map(function(itemId){ return allCourseItems[itemId]; })).filter(function(card){ return card && !card.archived; })
+        : allVisibleCourseItems;
+      allVisibleCourseItems.forEach(function(cit) {
         if (!cit || !cit.id) return;
         courseItems[cit.id] = cit;
         totalItems++;
@@ -26627,7 +26653,12 @@ input[type="range"]::-moz-range-thumb{
           chipsHtml += '<button class="chip' + (!selectedSubDeck ? ' active' : '') + '" data-subdeck-key="">All (' + Object.keys(allCourseItems).length + ')</button>';
           subDeckEntries.forEach(function(entry) {
             var stats = globalThis.__studyEngineSubDecks.getSubDeckStats(courseName, entry.key, Object.keys(allCourseItems).map(function(itemId){ return allCourseItems[itemId]; }));
+            var scopedTotal = getCardsForScope(courseName, entry.key, Object.keys(allCourseItems).map(function(itemId){ return allCourseItems[itemId]; }), false).length;
+            var descCount = Math.max(0, scopedTotal - Number(stats.total || 0));
             chipsHtml += '<button class="chip' + (selectedSubDeck === entry.key ? ' active' : '') + '" data-subdeck-key="' + esc(entry.key) + '">' + esc(entry.meta.name || entry.key) + ' (' + stats.total + ')</button>';
+            if (descCount > 0) {
+              chipsHtml += '<span class="chip" style="opacity:0.75;font-size:10px;pointer-events:none;">+' + descCount + ' in subdecks</span>';
+            }
           });
           chipsHtml += '<button class="chip" data-subdeck-new>＋ New sub-deck</button>';
           cdSubDeckChips.innerHTML = chipsHtml;
@@ -26659,9 +26690,9 @@ input[type="range"]::-moz-range-thumb{
 
 	          if (cdSubDeckAction) {
 	            if (selectedSubDeck) {
-	              var selectedCards = Object.keys(allCourseItems).map(function(itemId){ return allCourseItems[itemId]; }).filter(function(item){
-	                return item && item.id && !!getCardsForScope(courseName, selectedSubDeck, [item]).length;
-	              });
+	              var selectedCards = getCardsInSubDeck(courseName, selectedSubDeck, Object.keys(allCourseItems).map(function(itemId){ return allCourseItems[itemId]; })).filter(function(item){ return item && !item.archived; });
+                var scopedTotalCards = getCardsForScope(courseName, selectedSubDeck, Object.keys(allCourseItems).map(function(itemId){ return allCourseItems[itemId]; }), false).length;
+                var nestedCount = Math.max(0, scopedTotalCards - selectedCards.length);
 	              var coverage = globalThis.__studyEngineLearnMode && typeof globalThis.__studyEngineLearnMode.getCoverageStats === 'function'
 	                ? globalThis.__studyEngineLearnMode.getCoverageStats(courseName, selectedSubDeck, selectedCards)
 	                : { total: selectedCards.length, taught: 0, consolidated: 0, unlearned: 0, pctUnlearned: 0 };
@@ -26675,6 +26706,7 @@ input[type="range"]::-moz-range-thumb{
 	                + '<div style=\"display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:10px;color:var(--text-secondary);margin-bottom:6px;\">'
 	                + '<span>Coverage</span><strong style=\"color:var(--text-primary);\">' + consolidatedCount + '/' + totalCoverage + ' consolidated</strong>'
 	                + '</div>'
+                  + (nestedCount > 0 ? '<div style=\"font-size:10px;color:var(--text-tertiary);margin-bottom:6px;\">+' + nestedCount + ' in subdecks</div>' : '')
 	                + '<div style=\"height:8px;border-radius:999px;background:rgba(var(--accent-rgb),0.15);overflow:hidden;\">'
 	                + '<div style=\"height:100%;width:' + coverageRatio + '%;background:linear-gradient(90deg,var(--accent-primary),var(--accent-secondary));\"></div>'
 	                + '</div>'
@@ -26688,8 +26720,9 @@ input[type="range"]::-moz-range-thumb{
 	                + '</div>';
 	              var reviewSubDeckBtn = el('cdReviewSubDeck');
 	              if (reviewSubDeckBtn) reviewSubDeckBtn.onclick = function() {
+	                var directMap = new Set(getCardsInSubDeck(courseName, selectedSubDeck, Object.keys(allCourseItems).map(function(itemId){ return allCourseItems[itemId]; })).filter(function(item){ return item && !item.archived; }).map(function(item){ return item.id; }));
 	                var q = buildSessionQueue().filter(function(item) {
-	                  return item && item.course === courseName && !!getCardsForScope(courseName, selectedSubDeck, [item]).length;
+	                  return item && item.course === courseName && directMap.has(item.id);
 	                });
 	                if (!q.length) { toast('No due cards in this sub-deck'); return; }
 	                if ((coverage.pctUnlearned || 0) > 30) {
@@ -27142,6 +27175,7 @@ input[type="range"]::-moz-range-thumb{
       var title = el('cdTitle').textContent;
       if (title && title !== '—') {
         selectedCourse = title;
+        selectedSubDeck = null;
         closeCourseDetail();
         startSession();
       }

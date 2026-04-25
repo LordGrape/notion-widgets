@@ -212,7 +212,9 @@ describe('markTurnContinuation after parked-turn flush', () => {
     expect(seg0Timings.every((t) => t.submittedAt != null)).toBe(true);
     expect(seg1Timings).toHaveLength(1);
     expect(flow.totalTurnsPerSegment[seg0]).toBe(2);
-    expect(flow.totalTurnsPerSegment[seg1]).toBe(0);
+    // Telemetry shape changed: segments are only inserted after first submitted turn,
+    // so untouched segments stay undefined instead of explicit 0.
+    expect(flow.totalTurnsPerSegment[seg1]).toBeUndefined();
   });
 });
 
