@@ -677,6 +677,28 @@ async function streamLearnPlanInternal(
   }
 }
 
+
+export async function runRelearningBurst(item: StudyItem, userName = ''): Promise<LearnTurnResult> {
+  const segment: LearnSegment = {
+    id: `relearn-${item.id}`,
+    title: 'Relearning burst',
+    mechanism: 'self_explanation',
+    objective: 'Rebuild understanding for a lapsed card.',
+    teach: item.modelAnswer || '',
+    tutorPrompt: item.prompt || '',
+    expectedAnswer: item.modelAnswer || '',
+    linkedCardIds: [item.id],
+    groundingSnippets: []
+  };
+  const session: LearnSessionState = {
+    plan: { segments: [segment] },
+    index: 0,
+    currentMechanism: segment.mechanism,
+    completedSegmentIds: []
+  };
+  return runLearnTurn(session, '', userName, { segmentLimit: 1 });
+}
+
 // `runLearnTurn` now lives in `./learn-turn-client.ts` and is re-exported at
 // the top of this file. The module-level re-export preserves the
 // `__studyEngineLearnMode.runLearnTurn` bridge signature consumed from
@@ -863,6 +885,7 @@ export function createDefaultSubDeckForCourse(course: CourseLike | string, state
   streamCourseLearnPlan,
   startLearnSession,
   runLearnTurn,
+  runRelearningBurst,
   capAssistedLearnTurnResult,
   completeLearnSegment,
   getCoverageStats,

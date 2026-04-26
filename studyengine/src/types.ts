@@ -153,6 +153,13 @@ export interface StudyItem {
   topic?: string;
   subdeck?: string;
   subDeck?: string | null;
+  parentCardId?: string;
+  siblingCardIds?: string[];
+  relearningBattery?: {
+    startedAt: number;
+    plannedBursts: number[];
+    completedBursts: number[];
+  };
   learnStatus?: 'unlearned' | 'taught' | 'consolidated' | null;
   lifecycleStage?: 'new' | 'encoding' | 'consolidating' | 'maintaining' | 'relearning' | 'retired';
   jolHistory?: Array<{
@@ -174,6 +181,11 @@ export interface StudyItem {
   fsrs: FSRSState;
   reviewLog?: ReviewEvent[];
   tags?: string[];
+  source?: {
+    type: string;
+    authoredFromCardId?: string;
+    mode?: string;
+  };
   notes?: string;
   created: string;
   modified?: string;
@@ -467,5 +479,6 @@ export interface AppState {
   learnPlans?: Record<string, Record<string, CachedLearnPlan>>;
   studyEngineFeatures?: {
     run1Pedagogy?: boolean;
+    run2Generative?: boolean;
   };
 }

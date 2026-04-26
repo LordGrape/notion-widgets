@@ -105,7 +105,8 @@ function envelopeToResult(envelope: LearnTurnSuccessEnvelope): LearnTurnResult {
 export async function runLearnTurn(
   session: LearnSessionState,
   userInput: string,
-  userName = ''
+  userName = '',
+  opts: { segmentLimit?: 1 } = {}
 ): Promise<LearnTurnResult> {
   const segment = session.plan.segments[session.index];
   if (!segment) throw new LearnTurnClientError('No active learn segment.', 'unknown');
@@ -119,7 +120,8 @@ export async function runLearnTurn(
         mechanism: segment.mechanism,
         segment,
         userInput,
-        userName
+        userName,
+        ...(opts.segmentLimit === 1 ? { segmentLimit: 1 } : {})
       })
     });
   } catch (err) {

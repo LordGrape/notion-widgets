@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { applyLearnHandoff, buildSessionQueue, computeSessionCalibration, evaluateRelearningTriggers, recordJol } from './session-flow';
+import { applyLearnHandoff, buildSessionQueue, computeSessionCalibration, enqueueQuickFire, evaluateRelearningTriggers, recordJol } from './session-flow';
 
 const nowTs = Date.UTC(2026, 0, 1, 0, 0, 0);
 
@@ -151,5 +151,27 @@ describe('run-1 JOL calibration', () => {
       { id: 'b', jolHistory: [{ ts: new Date(nowTs + 2000).toISOString(), predicted: 80, actual: 33, delta: 47, cardId: 'b' }] }
     ];
     expect(computeSessionCalibration(items as any)).toBe(32);
+  });
+});
+
+
+describe('run-2 additions', () => {
+  it('evaluateRelearningTriggers writes relearning battery when feature enabled', () => {
+    installBridge({});
+    const card: any = {
+      fsrs: { state: 'review', stability: 2.5, due: new Date(nowTs).toISOString(), reps: 1, lapses: 0, lastReview: new Date(nowTs).toISOString() },
+      reviewLog: []
+    };
+    expect(evaluateRelearningTriggers(card, nowTs)).toBe(true);
+    expect(card.relearningBattery?.plannedBursts?.length).toBe(3);
+  });
+
+  it('enqueueQuickFire respects run2 feature flag', () => {
+    const a: any = { id: 'a', subDeck: 's1' };
+    const b: any = { id: 'b', subDeck: 's1' };
+    const c: any = { id: 'c', subDeck: 's2' };
+    installBridge({});
+    (globalThis as any).__studyEngineSessionFlow.state.studyEngineFeatures = { run2Generative: false };
+    expect(enqueueQuickFire([a, b, c])).toEqual([a, b, c]);
   });
 });

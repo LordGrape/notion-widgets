@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { applyLearnStatusMigration, classifyComplexCards, deriveLifecycleStage, pickProbeCard, substringVerified } from './learn-mode';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { applyLearnStatusMigration, classifyComplexCards, deriveLifecycleStage, pickProbeCard, runRelearningBurst, substringVerified } from './learn-mode';
 
 describe('substringVerified', () => {
   it('keeps segments with valid grounding snippets', () => {
@@ -140,5 +140,42 @@ describe('applyLearnStatusMigration', () => {
     applyLearnStatusMigration(items);
     const secondHash = JSON.stringify(items);
     expect(secondHash).toBe(firstHash);
+  });
+});
+
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+describe('runRelearningBurst', () => {
+  it('calls learn-turn exactly once with segmentLimit: 1', async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({
+        ok: true,
+        verdict: 'deep',
+        understandingScore: 95,
+        copyRatio: 0.1,
+        missingConcepts: [],
+        feedback: 'Great',
+        followUp: null,
+        advance: true
+      })
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    await runRelearningBurst({
+      id: 'c1',
+      prompt: 'Q?',
+      modelAnswer: 'A',
+      created: new Date().toISOString(),
+      fsrs: { difficulty: 0, stability: 0, due: new Date().toISOString(), reps: 0, lapses: 0, lastReview: null, state: 'new' }
+    } as any);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const calls = (fetchMock.mock.calls as any[]);
+    const requestInit = calls[0][1] as any;
+    const payload = JSON.parse(requestInit.body);
+    expect(payload.segmentLimit).toBe(1);
   });
 });

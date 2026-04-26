@@ -418,6 +418,7 @@ export interface LearnTurnRequest {
   segment: LearnPlanSegment;
   userInput?: string;
   userName?: string;
+  segmentLimit?: 1;
 }
 
 export type LearnTurnVerdict = "surface" | "partial" | "deep";

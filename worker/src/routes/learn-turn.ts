@@ -75,7 +75,7 @@ const LEARN_TURN_USER_STATIC_PREFIX = [
 ].join("\n");
 
 function buildPrompts(body: LearnTurnRequest): { system: string; user: string } {
-  const system = [
+  const systemLines = [
     "You are grading a first-exposure Learn mode response during encoding.",
     "The teach block remains visible for novice support, but copying it must not pass.",
     "Ground your judgement in the learner text, teach block, and expected answer.",
@@ -88,7 +88,11 @@ function buildPrompts(body: LearnTurnRequest): { system: string; user: string } 
     "When advance=false, followUp must be exactly one specific Socratic question targeting the gap. Not generic. Not multi-part.",
     "feedback must reference something the learner actually wrote.",
     "Use concise Canadian English."
-  ].join("\n");
+  ];
+  if (body.segmentLimit === 1) {
+    systemLines.push("Emit exactly one teach segment and one check. Do not emit a multi-segment plan.");
+  }
+  const system = systemLines.join("\n");
 
   const dynamic = [
     `MECHANISM: ${body.mechanism}`,
