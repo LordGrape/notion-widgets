@@ -8,6 +8,8 @@ import type {
   TierId
 } from './types';
 import { deriveLifecycleStage, setLifecycleStage } from './learn-mode';
+import { interleaveQuickFireQueue } from './interleave';
+import { startRelearningBattery } from './relearning-battery';
 
 type Rating = 1 | 2 | 3 | 4;
 type SessionRuntime = SessionState & Record<string, any>;
@@ -96,6 +98,7 @@ interface SessionFlowBridge {
   launchConfetti: () => void;
   SyncEngine: { set: (ns: string, key: string, value: any) => void };
   el: (id: string) => HTMLElement | null;
+  onReviewSessionComplete?: (payload: { ratings: Array<Record<string, unknown>>; reviewed: number }) => void;
 }
 
 const bridge = new Proxy(
@@ -349,6 +352,12 @@ function interleaveQueue(queue: StudyItem[]): StudyItem[] {
   return out;
 }
 
+
+export function enqueueQuickFire(items: StudyItem[]): StudyItem[] {
+  if (bridge.state?.studyEngineFeatures?.run2Generative === false) return items;
+  return interleaveQuickFireQueue(items);
+}
+
 export function buildSessionQueue(): StudyItem[] {
   const state = bridge.state;
   const settings = bridge.settings;
@@ -499,7 +508,9 @@ export function buildSessionQueue(): StudyItem[] {
     queue = interleavedQueue;
   }
 
-  queue = interleaveQueue(queue);
+  queue = bridge.state?.studyEngineFeatures?.run2Generative === false
+    ? queue
+    : enqueueQuickFire(interleaveQueue(queue));
 
   // Phase 3 successive relearning: hoist cards flagged forceNextQF to the front
   // of the Quick Fire queue for the matching course. These cards may not be
@@ -595,7 +606,8 @@ function scheduleRatingAndAdvance(
   if (!session) return;
 
   if (mappedRating < 2) {
-    evaluateRelearningTriggers(it, nowTs);
+    const triggered = evaluateRelearningTriggers(it, nowTs);
+    if (triggered && bridge.state?.studyEngineFeatures?.run2Generative !== false) startRelearningBattery(it, nowTs);
     advanceItem();
     return;
   }
@@ -854,10 +866,12 @@ export function rateCurrent(rating: Rating): void {
   session.ratingN += 1;
   session.sessionRatingsLog = session.sessionRatingsLog || [];
   session.sessionRatingsLog.push({
+    cardId: it.id,
     prompt: (it.prompt || '').substring(0, 100),
     topic: it.topic || '',
     rating: mappedRating,
-    course: it.course || ''
+    course: it.course || '',
+    ts: nowTs
   });
   if (session._reconstructionPending) {
     if (mappedRating >= 3 && session.tutorStats) (session.tutorStats as any).reconstructionSuccesses++;
@@ -1146,6 +1160,15 @@ export function completeSession(): void {
   });
   bridge.el('doneBreakdown')!.innerHTML = bd;
 
+  if (typeof (bridge as any).onReviewSessionComplete === 'function') {
+    try {
+      (bridge as any).onReviewSessionComplete({
+        ratings: session.sessionRatingsLog ? session.sessionRatingsLog.slice() : [],
+        reviewed
+      });
+    } catch (e) {}
+  }
+
   setSession(null);
   bridge.showView('viewDone');
 
@@ -1414,6 +1437,7 @@ function markForRelearning(item: StudyItem, nowTs: number, reason: string): void
   item.fsrs.due = new Date(nowTs).toISOString();
   setLifecycleStage(item, 'relearning');
   appendReviewLogEvent(item, { ts: new Date(nowTs).toISOString(), rating: 1, reason: `relearn:${reason}` });
+  if (bridge.state?.studyEngineFeatures?.run2Generative !== false) startRelearningBattery(item, nowTs);
 }
 
 export function evaluateRelearningTriggers(
@@ -1450,4 +1474,5 @@ export function evaluateRelearningTriggers(
   g.__studyEngineSessionFlow.evaluateRelearningTriggers = evaluateRelearningTriggers;
   g.__studyEngineSessionFlow.recordJol = recordJol;
   g.__studyEngineSessionFlow.computeSessionCalibration = computeSessionCalibration;
+  g.__studyEngineSessionFlow.enqueueQuickFire = enqueueQuickFire;
 })();

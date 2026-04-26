@@ -10384,6 +10384,8 @@ input[type="range"]::-moz-range-thumb{
     import { getLevelInfo, didLevelUp } from './src/xp-level-system';
     import { drawRetentionCurve, drawSparkline, drawTierRing, drawActivityHeatmap, wireRetentionInteractivity, hideCanvasTooltip, getCanvasCtx, getAccentRGB, getTextSecondary, getTextColor } from './src/charts';
     import { buildSessionQueue, startSession, rateCurrent, advanceItem, completeSession, calcRestudyDuration, preloadQuickfireInsight, evaluateRelearningTriggers } from './src/session-flow';
+    import { detectGenerativeCandidates, createSiblingCard } from './src/generative-cards';
+    import { getNextBurstTs } from './src/relearning-battery';
     import { recordJol, computeSessionCalibration } from './src/session-flow';
     import { createJolWidget } from './src/jol-ui';
     import { startStudySession } from './src/study-flow';
@@ -12382,6 +12384,15 @@ input[type="range"]::-moz-range-thumb{
           '<div class="sr-control">' +
             '<label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="s_run1Pedagogy"' + (isRun1PedagogyEnabled() ? ' checked' : '') + '> Enable</label>' +
           '</div>' +
+        '</div>' +
+        '<div class="setting-row">' +
+          '<div class="sr-left">' +
+            '<div class="sr-label">Experimental</div>' +
+            '<div class="sr-desc">Run 2 generative + interleaving.</div>' +
+          '</div>' +
+          '<div class="sr-control">' +
+            '<label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="s_run2Generative"' + (isRun2GenerativeEnabled() ? ' checked' : '') + '> Enable</label>' +
+          '</div>' +
         '</div>';
         if (topicEmpty) topicEmpty.style.display = 'block';
         return;
@@ -13050,8 +13061,25 @@ input[type="range"]::-moz-range-thumb{
         return aStab - bStab;
       });
 
-      var h = '<div class="ctx-card-list">';
+      var groups = {};
       cards.forEach(function(card) {
+        var rootId = card.parentCardId || card.id;
+        if (!groups[rootId]) groups[rootId] = [];
+        groups[rootId].push(card);
+      });
+      var h = '<div class="ctx-card-list">';
+      Object.keys(groups).forEach(function(rootId) {
+        var family = groups[rootId];
+        if (!family || !family.length) return;
+        family.sort(function(a, b) { return (a.id || '').localeCompare(b.id || ''); });
+        var rootCard = family.find(function(c) { return c.id === rootId; }) || family[0];
+        if (family.length > 1) {
+          h += '<details class="ctx-card-family"><summary class="ctx-card-family-summary">' +
+            '<span class="cr-prompt">' + esc((rootCard.prompt || '').substring(0, 120)) + '</span>' +
+            '<span class="cr-meta">' + family.length + ' cards in family</span>' +
+            '</summary>';
+        }
+        family.forEach(function(card) {
         var tier = card.tier || 'quickfire';
         var tColor = tierColour(tier);
         var prompt = (card.prompt || '').substring(0, 120);
@@ -13059,14 +13087,19 @@ input[type="range"]::-moz-range-thumb{
         var isSuspended = card.suspended === true;
         var stability = (card.fsrs && card.fsrs.stability) ? (Math.round(card.fsrs.stability) + 'd') : 'new';
         var reps = (card.fsrs && card.fsrs.reps) || 0;
+        var battery = card.relearningBattery || null;
+        var batteryBadge = battery ? ('<span class="cr-due-badge" style="background:rgba(251,191,36,0.18);color:#d97706;border-color:rgba(251,191,36,0.35);">Relearning: ' + ((battery.completedBursts || []).length) + '/' + ((battery.plannedBursts || []).length) + '</span>') : '';
 
         h += '<div class="ctx-card-row' + (isSuspended ? ' is-suspended' : '') + '" data-card-id="' + esc(card.id || '') + '">';
         h += '<span class="cr-tier" style="background:' + tColor + '22;color:' + tColor + ';">' + esc(String(tierLabel(tier) || '').substring(0, 2).toUpperCase()) + '</span>';
         h += '<span class="cr-prompt">' + esc(prompt) + '</span>';
         h += '<span class="cr-meta">' + esc(stability) + ' · ' + reps + ' reps</span>';
         if (due) h += '<span class="cr-due-badge">DUE</span>';
+        if (batteryBadge) h += batteryBadge;
         if (isSuspended) h += '<span class="cr-suspended-badge">Suspended</span>';
         h += '</div>';
+        });
+        if (family.length > 1) h += '</details>';
       });
       h += '</div>';
       return h;
@@ -14516,6 +14549,10 @@ input[type="range"]::-moz-range-thumb{
       addStudyTime: function(durationMs) {
         ensureExtendedStats();
         state.stats.totalStudyTimeMs = (state.stats.totalStudyTimeMs || 0) + Math.max(0, durationMs || 0);
+      },
+      onReviewSessionComplete: function(payload) {
+        if (!payload || !payload.ratings) return;
+        openGenerativeInvitationModal(payload.ratings);
       }
     };
 
@@ -14701,6 +14738,18 @@ input[type="range"]::-moz-range-thumb{
         lfBadge.title = 'This card was not covered by a Learn session yet.';
         lfBadge.textContent = 'Learn first';
         metaEl.appendChild(lfBadge);
+      }
+      var existingBatteryBadge = document.getElementById('metaRelearningBattery');
+      if (existingBatteryBadge) existingBatteryBadge.remove();
+      if (metaEl && it.relearningBattery) {
+        var rb = document.createElement('span');
+        rb.id = 'metaRelearningBattery';
+        rb.className = 'tag';
+        rb.style.background = 'rgba(251,191,36,0.18)';
+        rb.style.borderColor = 'rgba(251,191,36,0.35)';
+        rb.style.color = '#d97706';
+        rb.textContent = 'Relearning: ' + ((it.relearningBattery.completedBursts || []).length) + '/' + ((it.relearningBattery.plannedBursts || []).length);
+        metaEl.appendChild(rb);
       }
       el('metaTopic').textContent = it.topic || '—';
       el('courseHint').textContent = (selectedCourse === 'All') ? (it.course || '—') : selectedCourse;
@@ -20703,6 +20752,14 @@ input[type="range"]::-moz-range-thumb{
           saveState();
         });
       }
+      var run2Toggle = el('s_run2Generative');
+      if (run2Toggle) {
+        run2Toggle.addEventListener('change', function() {
+          state.studyEngineFeatures = state.studyEngineFeatures || {};
+          state.studyEngineFeatures.run2Generative = !!run2Toggle.checked;
+          saveState();
+        });
+      }
 
       if (window.gsap) {
         var rows = body.querySelectorAll('.setting-row');
@@ -25858,6 +25915,67 @@ input[type="range"]::-moz-range-thumb{
     function isRun1PedagogyEnabled() {
       if (!state.studyEngineFeatures || typeof state.studyEngineFeatures.run1Pedagogy === 'undefined') return true;
       return !!state.studyEngineFeatures.run1Pedagogy;
+    }
+
+    function isRun2GenerativeEnabled() {
+      if (!state.studyEngineFeatures || typeof state.studyEngineFeatures.run2Generative === 'undefined') return true;
+      return !!state.studyEngineFeatures.run2Generative;
+    }
+
+    function openGenerativeInvitationModal(sessionRatings) {
+      if (!isRun2GenerativeEnabled()) return;
+      var candidates = detectGenerativeCandidates((sessionRatings || []).map(function(entry) {
+        return { cardId: entry.cardId, rating: entry.rating, ts: entry.ts || Date.now() };
+      }), state.items || {}, Date.now());
+      if (!candidates.length) return;
+      var capped = candidates.slice(0, 5);
+      var ov = document.createElement('div');
+      ov.className = 'confirm-overlay show';
+      var body = '<div class="modal" style="max-width:760px;">' +
+        '<h3 style="margin:0 0 6px;">These cards keep tripping you up — write your own version?</h3>' +
+        '<p style="margin:0 0 12px;color:var(--text-secondary);font-size:12px;">Create sibling cards in your own words.</p>';
+      capped.forEach(function(card, idx) {
+        body += '<div style="border:1px solid var(--border-subtle);border-radius:12px;padding:10px;margin:8px 0;">' +
+          '<div style="font-weight:600;margin-bottom:6px;">' + esc((card.prompt || '').slice(0, 160)) + '</div>' +
+          '<label style="display:block;font-size:11px;margin-bottom:4px;">Mode</label>' +
+          '<select data-gen-mode="' + idx + '" class="se-input" style="width:100%;margin-bottom:8px;">' +
+            '<option value="rephrase">Rephrase prompt/answer</option>' +
+            '<option value="mnemonic">Add mnemonic hook</option>' +
+            '<option value="worked_example_link">Link worked example</option>' +
+          '</select>' +
+          '<input data-gen-prompt="' + idx + '" class="se-input" placeholder="Your prompt" style="width:100%;margin-bottom:8px;" />' +
+          '<textarea data-gen-answer="' + idx + '" class="se-input" placeholder="Your model answer" style="width:100%;min-height:80px;"></textarea>' +
+        '</div>';
+      });
+      body += '<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">' +
+        '<button type="button" class="ghost-btn" id="genSkipBtn">Skip</button>' +
+        '<button type="button" class="big-btn" id="genCreateBtn">Create sibling cards</button>' +
+      '</div></div>';
+      ov.innerHTML = body;
+      document.body.appendChild(ov);
+      ov.addEventListener('click', function(e) { if (e.target === ov) ov.remove(); });
+      var skipBtn = ov.querySelector('#genSkipBtn');
+      if (skipBtn) skipBtn.addEventListener('click', function() { ov.remove(); });
+      var createBtn = ov.querySelector('#genCreateBtn');
+      if (createBtn) createBtn.addEventListener('click', function() {
+        capped.forEach(function(card, idx) {
+          var modeEl = ov.querySelector('[data-gen-mode="' + idx + '"]');
+          var promptEl = ov.querySelector('[data-gen-prompt="' + idx + '"]');
+          var answerEl = ov.querySelector('[data-gen-answer="' + idx + '"]');
+          var prompt = (promptEl && promptEl.value ? String(promptEl.value).trim() : '');
+          var modelAnswer = (answerEl && answerEl.value ? String(answerEl.value).trim() : '');
+          if (!prompt || !modelAnswer) return;
+          createSiblingCard({
+            sourceCardId: card.id,
+            mode: (modeEl && modeEl.value) || 'rephrase',
+            prompt: prompt,
+            modelAnswer: modelAnswer
+          }, state, Date.now());
+        });
+        saveState();
+        ov.remove();
+        toast('Created sibling cards.');
+      });
     }
 
     function revealConsolAnswer() {
