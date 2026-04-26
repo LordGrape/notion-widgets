@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyLearnStatusMigration, deriveLifecycleStage, substringVerified } from './learn-mode';
+import { applyLearnStatusMigration, classifyComplexCards, deriveLifecycleStage, pickProbeCard, substringVerified } from './learn-mode';
 
 describe('substringVerified', () => {
   it('keeps segments with valid grounding snippets', () => {
@@ -42,6 +42,35 @@ describe('substringVerified', () => {
 
     const verified = substringVerified(segments, items as any);
     expect(verified).toHaveLength(0);
+  });
+});
+
+describe('run-1 helper selection', () => {
+  it('pickProbeCard uses median model-answer length and null for <= 5 cards', () => {
+    const tiny = Array.from({ length: 5 }).map((_, i) => ({ id: `t-${i}`, prompt: 'p', modelAnswer: 'one two' }));
+    expect(pickProbeCard(tiny as any)).toBeNull();
+
+    const cards = [
+      { id: 'a', prompt: 'p', modelAnswer: '1 2 3 4 5 6 7 8 9 10' },
+      { id: 'b', prompt: 'p', modelAnswer: '1 2 3' },
+      { id: 'c', prompt: 'p', modelAnswer: '1 2 3 4 5 6' },
+      { id: 'd', prompt: 'p', modelAnswer: '1 2 3 4' },
+      { id: 'e', prompt: 'p', modelAnswer: '1 2 3 4 5' },
+      { id: 'f', prompt: 'p', modelAnswer: '1 2' }
+    ];
+    expect(pickProbeCard(cards as any)?.id).toBe('e');
+  });
+
+  it('classifyComplexCards supports word-count and source metadata depth', () => {
+    const fiftyWords = Array.from({ length: 50 }).map((_, i) => `w${i}`).join(' ');
+    const fiftyOneWords = `${fiftyWords} extra`;
+    const ids = classifyComplexCards([
+      { id: 'a', prompt: 'p', modelAnswer: fiftyWords },
+      { id: 'b', prompt: 'p', modelAnswer: fiftyOneWords },
+      { id: 'c', prompt: 'p', modelAnswer: 'short', sourceMeta: { qec: { eDepth: 3 } } as any },
+      { id: 'd', prompt: 'p', modelAnswer: 'short' }
+    ] as any);
+    expect(ids).toEqual(['b', 'c']);
   });
 });
 

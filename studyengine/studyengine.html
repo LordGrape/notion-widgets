@@ -9939,6 +9939,7 @@ input[type="range"]::-moz-range-thumb{
                       <button type="button" class="learn-consol-reveal-btn" id="learnConsolReveal">Show answer</button>
                       <div class="learn-consol-answer" id="learnConsolAnswer" hidden></div>
                       <div class="learn-consol-rate" id="learnConsolRate" hidden>
+                        <div id="learnConsolJol" hidden></div>
                         <div class="learn-consol-rate-label">How well did you know that?</div>
                         <div class="learn-consol-rate-row">
                           <button type="button" class="consol-rate-again" data-rating="1">Again</button>
@@ -10383,6 +10384,8 @@ input[type="range"]::-moz-range-thumb{
     import { getLevelInfo, didLevelUp } from './src/xp-level-system';
     import { drawRetentionCurve, drawSparkline, drawTierRing, drawActivityHeatmap, wireRetentionInteractivity, hideCanvasTooltip, getCanvasCtx, getAccentRGB, getTextSecondary, getTextColor } from './src/charts';
     import { buildSessionQueue, startSession, rateCurrent, advanceItem, completeSession, calcRestudyDuration, preloadQuickfireInsight, evaluateRelearningTriggers } from './src/session-flow';
+    import { recordJol, computeSessionCalibration } from './src/session-flow';
+    import { createJolWidget } from './src/jol-ui';
     import { startStudySession } from './src/study-flow';
     import { loadSubDecks, saveSubDecks, createSubDeck, renameSubDeck, deleteSubDeck, reorderSubDecks, getCardsInSubDeck, getCardsInScope, getSubDeckStats, getSubDeckTree, getDescendantSubDeckKeys, getAncestorSubDeckKeys, moveSubDeck, archiveSubDeck, unarchiveSubDeck, migrateSubDecks } from './src/sub-decks';
     import { maybeReclassify, resolveTierTargetDistribution } from './src/tier-classifier';
@@ -12368,6 +12371,17 @@ input[type="range"]::-moz-range-thumb{
           '<div class="empty-icon"><svg width="36" height="36" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7"><path d="M2 12.5V3a1.5 1.5 0 011.5-1.5h9A1.5 1.5 0 0114 3v9.5"/><path d="M2 12.5A1.5 1.5 0 013.5 11h9a1.5 1.5 0 011.5 1.5v0a1.5 1.5 0 01-1.5 1.5h-9A1.5 1.5 0 012 12.5z"/></svg></div>' +
           '<div class="empty-title">No courses yet</div>' +
           '<div class="empty-desc">Add a course to organise your study items and track per-course retention.</div>' +
+        '</div>';
+
+      body.innerHTML +=
+        '<div class="setting-row">' +
+          '<div class="sr-left">' +
+            '<div class="sr-label">Experimental</div>' +
+            '<div class="sr-desc">Run 1 pedagogical features.</div>' +
+          '</div>' +
+          '<div class="sr-control">' +
+            '<label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="s_run1Pedagogy"' + (isRun1PedagogyEnabled() ? ' checked' : '') + '> Enable</label>' +
+          '</div>' +
         '</div>';
         if (topicEmpty) topicEmpty.style.display = 'block';
         return;
@@ -20681,6 +20695,14 @@ input[type="range"]::-moz-range-thumb{
           limDisplay.textContent = this.value + ' cards';
         });
       }
+      var run1Toggle = el('s_run1Pedagogy');
+      if (run1Toggle) {
+        run1Toggle.addEventListener('change', function() {
+          state.studyEngineFeatures = state.studyEngineFeatures || {};
+          state.studyEngineFeatures.run1Pedagogy = !!run1Toggle.checked;
+          saveState();
+        });
+      }
 
       if (window.gsap) {
         var rows = body.querySelectorAll('.setting-row');
@@ -25214,6 +25236,7 @@ input[type="range"]::-moz-range-thumb{
       var answerEl = el('learnConsolAnswer');
       var revealBtn = el('learnConsolReveal');
       var rateBox = el('learnConsolRate');
+      var jolHost = el('learnConsolJol');
       if (questionEl) questionEl.innerHTML = renderLearnMarkdownSafe(q.question || '');
       if (answerEl) {
         answerEl.innerHTML = renderLearnMarkdownSafe(q.answer || '');
@@ -25224,6 +25247,9 @@ input[type="range"]::-moz-range-thumb{
         revealBtn.textContent = 'Show answer';
       }
       if (rateBox) rateBox.hidden = true;
+      if (jolHost) jolHost.hidden = true;
+      pendingJolPrediction = null;
+      jolWidget.unmount();
     }
 
     function renderSummaryPane() {
@@ -25236,7 +25262,10 @@ input[type="range"]::-moz-range-thumb{
       }
       if (subEl) {
         var ready = learnSummaryState.consolidated + learnSummaryState.taught;
-        subEl.textContent = ready + ' card' + (ready === 1 ? '' : 's') + ' ready for review.';
+        var base = ready + ' card' + (ready === 1 ? '' : 's') + ' ready for review.';
+        var cal = computeSessionCalibration(Object.values(state.items || {}));
+        if (cal == null) subEl.textContent = base;
+        else subEl.textContent = base + ' Calibration error: ' + Math.round(cal) + '%.';
       }
       /* Phase C: forward-looking FSRS projection. Reads directly from the
          in-memory flow via the handoff plan so the buckets exactly match
@@ -25824,14 +25853,35 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* Consolidation: reveal answer, rate question, advance battery. */
+    var jolWidget = createJolWidget();
+    var pendingJolPrediction = null;
+    function isRun1PedagogyEnabled() {
+      if (!state.studyEngineFeatures || typeof state.studyEngineFeatures.run1Pedagogy === 'undefined') return true;
+      return !!state.studyEngineFeatures.run1Pedagogy;
+    }
+
     function revealConsolAnswer() {
       var answerEl = el('learnConsolAnswer');
       var revealBtn = el('learnConsolReveal');
       var rateBox = el('learnConsolRate');
+      var rateRow = document.querySelector('.learn-consol-rate-row');
+      var jolHost = el('learnConsolJol');
       if (!answerEl || !rateBox) return;
       answerEl.hidden = false;
       if (revealBtn) revealBtn.hidden = true;
       rateBox.hidden = false;
+      pendingJolPrediction = null;
+      if (isRun1PedagogyEnabled() && jolHost && rateRow) {
+        jolHost.hidden = false;
+        rateRow.hidden = true;
+        jolWidget.mount(jolHost, function(predicted) {
+          pendingJolPrediction = predicted;
+          rateRow.hidden = false;
+        });
+      } else if (jolHost) {
+        jolHost.hidden = true;
+        jolWidget.unmount();
+      }
       if (!prefersReducedMotion() && window.gsap) {
         try {
           gsap.fromTo(answerEl, { opacity: 0, y: -6 }, { opacity: 1, y: 0, duration: 0.22, ease: 'power2.out' });
@@ -25846,6 +25896,12 @@ input[type="range"]::-moz-range-thumb{
       if (!flowBridge) return;
       if (activeLearnSession.flow.phase !== 'consolidating') return;
       var idx = activeLearnSession.flow.consolidationIdx || 0;
+      if (isRun1PedagogyEnabled() && pendingJolPrediction != null) {
+        var q = (activeLearnSession.flow.consolidationQuestions || [])[idx];
+        var cardId = q && q.linkedCardIds && q.linkedCardIds[0];
+        var item = cardId ? state.items[cardId] : null;
+        if (item) recordJol(item, Number(pendingJolPrediction), rating, Date.now());
+      }
       activeLearnSession.flow = flowBridge.submitConsolidationRating(activeLearnSession.flow, idx, rating);
       try { playClick(); } catch(e) {}
 

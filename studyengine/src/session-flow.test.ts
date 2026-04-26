@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { applyLearnHandoff, buildSessionQueue, evaluateRelearningTriggers } from './session-flow';
+import { applyLearnHandoff, buildSessionQueue, computeSessionCalibration, evaluateRelearningTriggers, recordJol } from './session-flow';
 
 const nowTs = Date.UTC(2026, 0, 1, 0, 0, 0);
 
@@ -123,5 +123,33 @@ describe('evaluateRelearningTriggers', () => {
     };
     expect(evaluateRelearningTriggers(lowStability, nowTs)).toBe(true);
     expect(lowStability.fsrs.state).toBe('relearning');
+  });
+});
+
+describe('run-1 JOL calibration', () => {
+  it('maps ratings to actual scale and caps history at 20 FIFO', () => {
+    const item: any = { id: 'j1', jolHistory: [] };
+    for (let i = 0; i < 22; i++) {
+      const rating = ((i % 4) + 1) as 1 | 2 | 3 | 4;
+      recordJol(item, 50, rating, nowTs + i);
+    }
+    expect(item.jolHistory).toHaveLength(20);
+    expect(item.jolHistory[0].actual).toBe(67);
+    expect(item.jolHistory[item.jolHistory.length - 1].actual).toBe(33);
+  });
+
+  it('computes mean absolute delta for current session only', () => {
+    (globalThis as any).__studyEngineSessionFlow = {
+      ...(globalThis as any).__studyEngineSessionFlow,
+      getSession: () => ({ startedAt: nowTs })
+    };
+    const items: any[] = [
+      { id: 'a', jolHistory: [
+        { ts: new Date(nowTs - 1000).toISOString(), predicted: 50, actual: 0, delta: 50, cardId: 'a' },
+        { ts: new Date(nowTs + 1000).toISOString(), predicted: 50, actual: 67, delta: -17, cardId: 'a' }
+      ] },
+      { id: 'b', jolHistory: [{ ts: new Date(nowTs + 2000).toISOString(), predicted: 80, actual: 33, delta: 47, cardId: 'b' }] }
+    ];
+    expect(computeSessionCalibration(items as any)).toBe(32);
   });
 });
