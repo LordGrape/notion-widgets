@@ -120,6 +120,37 @@ function setSession(session: SessionRuntime | null): void {
   bridge.setSession(session);
 }
 
+function ratingToActual(r: 1 | 2 | 3 | 4): number {
+  return ({ 1: 0, 2: 33, 3: 67, 4: 100 })[r];
+}
+
+export function recordJol(item: StudyItem, predicted: number, rating: 1 | 2 | 3 | 4, nowTs: number): void {
+  const actual = ratingToActual(rating);
+  const entry = {
+    ts: new Date(nowTs).toISOString(),
+    predicted,
+    actual,
+    delta: predicted - actual,
+    cardId: item.id
+  };
+  item.jolHistory = [...(item.jolHistory ?? []), entry].slice(-20);
+}
+
+export function computeSessionCalibration(items: StudyItem[]): number | null {
+  const session = getSession() as any;
+  const sessionStartTs = Number(session?.startedAt || session?.startTs || 0);
+  const deltas: number[] = [];
+  (items || []).forEach((item) => {
+    (item.jolHistory || []).forEach((entry) => {
+      const ts = new Date(entry.ts).getTime();
+      if (Number.isFinite(sessionStartTs) && sessionStartTs > 0 && ts <= sessionStartTs) return;
+      deltas.push(Math.abs(Number(entry.delta || 0)));
+    });
+  });
+  if (!deltas.length) return null;
+  return deltas.reduce((sum, value) => sum + value, 0) / deltas.length;
+}
+
 function normalizeTier(tier: unknown): string {
   return String(tier || '').toLowerCase().replace(/[\s_-]+/g, '');
 }
@@ -1417,4 +1448,6 @@ export function evaluateRelearningTriggers(
   g.__studyEngineSessionFlow.writeLearnSessionRecord = writeLearnSessionRecord;
   g.__studyEngineSessionFlow.writeLearnProgress = writeLearnProgress;
   g.__studyEngineSessionFlow.evaluateRelearningTriggers = evaluateRelearningTriggers;
+  g.__studyEngineSessionFlow.recordJol = recordJol;
+  g.__studyEngineSessionFlow.computeSessionCalibration = computeSessionCalibration;
 })();

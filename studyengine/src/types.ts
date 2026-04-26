@@ -155,6 +155,13 @@ export interface StudyItem {
   subDeck?: string | null;
   learnStatus?: 'unlearned' | 'taught' | 'consolidated' | null;
   lifecycleStage?: 'new' | 'encoding' | 'consolidating' | 'maintaining' | 'relearning' | 'retired';
+  jolHistory?: Array<{
+    ts: string;
+    predicted: number;
+    actual: number;
+    delta: number;
+    cardId: string;
+  }>;
   learnedAt?: number;
   consolidationRating?: 1 | 2 | 3 | 4 | null;
   /**
@@ -388,12 +395,16 @@ export interface LearnPlanSegment {
   id: string;
   title: string;
   mechanism: 'worked_example' | 'elaborative_interrogation' | 'self_explanation' | 'predictive_question' | 'test_closure';
+  checkType?: 'elaborative' | 'predictive' | 'self_explain' | 'prior_knowledge_probe' | 'worked_example' | 'transfer_question';
   objective: string;
   teach?: string;
   tutorPrompt: string;
   expectedAnswer: string;
   linkedCardIds: string[];
   groundingSnippets: LearnPlanGroundingSnippet[];
+  fadeLevel?: 1 | 2 | 3;
+  workedExampleId?: string;
+  isProbe?: boolean;
 }
 
 /**
@@ -454,4 +465,7 @@ export interface AppState {
   /** Capped at last 30 completed Learn sessions (Phase 3). */
   learnSessions?: LearnSessionRecord[];
   learnPlans?: Record<string, Record<string, CachedLearnPlan>>;
+  studyEngineFeatures?: {
+    run1Pedagogy?: boolean;
+  };
 }

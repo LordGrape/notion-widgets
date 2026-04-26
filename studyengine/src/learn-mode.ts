@@ -31,7 +31,12 @@ export interface LearnSegment {
   linkedCardIds: string[];
   groundingSnippets: GroundingSnippet[];
   groundingSource?: 'gemini' | 'fallback';
+  checkType?: 'elaborative' | 'predictive' | 'self_explain' | 'prior_knowledge_probe' | 'worked_example' | 'transfer_question';
+  fadeLevel?: 1 | 2 | 3;
+  workedExampleId?: string;
+  isProbe?: boolean;
 }
+export interface StudyCardInput { id: string; prompt: string; modelAnswer: string; sourceMeta?: Record<string, unknown>; }
 
 export interface ConsolidationQuestion {
   question: string;
@@ -300,6 +305,41 @@ export interface StreamLearnPlanHandlers {
   onConsolidationQuestions?: (questions: ConsolidationQuestion[]) => void;
   onComplete?: (meta: { segmentCount: number; consolidationCount: number; planMode?: string; warning?: string; subDeckFingerprint?: string }) => void;
   onError?: (message: string, opts?: { hasSegments: boolean }) => void;
+  onPriorKnowledgeProbe?: (card: StudyCardInput) => Promise<'surface' | 'partial' | 'deep'>;
+  getDeepVerdictCount?: () => number;
+}
+
+export function pickProbeCard(cards: StudyCardInput[]): StudyCardInput | null {
+  if (!Array.isArray(cards) || cards.length <= 5) return null;
+  const sorted = cards.slice().sort((a, b) => {
+    const aw = String(a.modelAnswer || '').trim().split(/\s+/).filter(Boolean).length;
+    const bw = String(b.modelAnswer || '').trim().split(/\s+/).filter(Boolean).length;
+    if (aw !== bw) return aw - bw;
+    return String(a.id || '').localeCompare(String(b.id || ''));
+  });
+  return sorted[Math.floor(sorted.length / 2)] || null;
+}
+
+export function classifyComplexCards(cards: StudyCardInput[]): string[] {
+  return (cards || []).filter((card) => {
+    const wordCount = String(card.modelAnswer || '').trim().split(/\s+/).filter(Boolean).length;
+    const depth = Number((card as any)?.sourceMeta?.qec?.eDepth ?? (card as any)?.sourceMeta?.eDepth ?? 0);
+    return wordCount > 50 || depth > 2;
+  }).map((card) => card.id);
+}
+
+export async function runPriorKnowledgeProbe(
+  cards: StudyCardInput[],
+  _course: string,
+  _subDeck: string,
+  handlers?: StreamLearnPlanHandlers
+): Promise<'high' | 'mixed' | 'low'> {
+  const probeCard = pickProbeCard(cards);
+  if (!probeCard || !handlers?.onPriorKnowledgeProbe) return 'mixed';
+  const verdict = await handlers.onPriorKnowledgeProbe(probeCard);
+  if (verdict === 'deep') return 'high';
+  if (verdict === 'surface') return 'low';
+  return 'mixed';
 }
 
 export async function streamLearnPlan(
@@ -318,7 +358,14 @@ export async function streamLearnPlan(
     subDeck,
     cards: subDeckCards.map((item) => ({ id: item.id, prompt: item.prompt, modelAnswer: item.modelAnswer })),
     userName,
-    learnerContext
+    learnerContext,
+    priorKnowledge: await runPriorKnowledgeProbe(
+      subDeckCards.map((item) => ({ id: item.id, prompt: item.prompt, modelAnswer: item.modelAnswer })),
+      course,
+      subDeck,
+      handlers
+    ),
+    appendTransferQuestion: (handlers.getDeepVerdictCount?.() || 0) >= 3
   };
 
   let emittedCount = 0;
@@ -487,14 +534,21 @@ export async function streamCourseLearnPlan(
     subDeck: COURSE_ROOT_SUBDECK_KEY,
     cards: courseCards.map((item) => ({ id: item.id, prompt: item.prompt, modelAnswer: item.modelAnswer })),
     userName,
-    learnerContext
+    learnerContext,
+    priorKnowledge: await runPriorKnowledgeProbe(
+      courseCards.map((item) => ({ id: item.id, prompt: item.prompt, modelAnswer: item.modelAnswer })),
+      course,
+      COURSE_ROOT_SUBDECK_KEY,
+      handlers
+    ),
+    appendTransferQuestion: (handlers.getDeepVerdictCount?.() || 0) >= 3
   };
 
   return streamLearnPlanInternal(payload, courseCards, subDeckFingerprint, handlers, signal);
 }
 
 async function streamLearnPlanInternal(
-  payload: { course: string; subDeck: string; cards: Array<{ id: string; prompt: string; modelAnswer: string }>; userName: string; learnerContext: string; },
+  payload: { course: string; subDeck: string; cards: Array<{ id: string; prompt: string; modelAnswer: string }>; userName: string; learnerContext: string; priorKnowledge?: 'high' | 'mixed' | 'low'; appendTransferQuestion?: boolean; },
   sourceCards: StudyItem[],
   subDeckFingerprint: string,
   handlers: StreamLearnPlanHandlers = {},
@@ -823,5 +877,8 @@ export function createDefaultSubDeckForCourse(course: CourseLike | string, state
   fingerprintLearnInputs,
   fingerprintSubDeckCards,
   getCourseSubDeckEntries,
-  COURSE_ROOT_SUBDECK_KEY
+  COURSE_ROOT_SUBDECK_KEY,
+  pickProbeCard,
+  classifyComplexCards,
+  runPriorKnowledgeProbe
 };

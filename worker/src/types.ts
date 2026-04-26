@@ -359,6 +359,8 @@ export interface LearnPlanRequest {
   cards: StudyCardInput[];
   userName?: string;
   learnerContext?: string;
+  priorKnowledge?: "high" | "mixed" | "low";
+  appendTransferQuestion?: boolean;
 }
 
 export type LearnMechanism =
@@ -373,7 +375,7 @@ export interface GroundingSnippet {
   quote: string;
 }
 
-export type LearnCheckType = "elaborative" | "predictive" | "self_explain";
+export type LearnCheckType = "elaborative" | "predictive" | "self_explain" | "prior_knowledge_probe" | "worked_example" | "transfer_question";
 
 export interface LearnPlanSegment {
   id: string;
@@ -392,6 +394,9 @@ export interface LearnPlanSegment {
   expectedAnswer: string;
   linkedCardIds: string[];
   groundingSnippets: GroundingSnippet[];
+  fadeLevel?: 1 | 2 | 3;
+  workedExampleId?: string;
+  isProbe?: boolean;
   questionQualityWarning?: "answer_copyable_from_teach";
 }
 

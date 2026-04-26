@@ -12,7 +12,7 @@ const LEARN_PLAN_CORS_HEADERS = {
 const PLAN_PRIMARY_MODEL = "gemini-2.5-flash";
 const PLAN_ESCALATION_MODEL = "gemini-2.5-pro";
 
-const PLAN_CACHE_VERSION = "v1";
+const PLAN_CACHE_VERSION = "v2";
 const PLAN_CACHE_TTL_SECONDS = 86400;
 const PLAN_CACHE_KEY_PREFIX = `learn-plan:${PLAN_CACHE_VERSION}:`;
 
@@ -20,7 +20,7 @@ interface PlanCachedResponse extends LearnPlanResponse {
   cachedAt: string;
 }
 
-const LEARN_CHECK_TYPES: readonly LearnCheckType[] = ["elaborative", "predictive", "self_explain"] as const;
+const LEARN_CHECK_TYPES: readonly LearnCheckType[] = ["elaborative", "predictive", "self_explain", "prior_knowledge_probe", "worked_example", "transfer_question"] as const;
 
 function logPlanUsage(tag: string, model: string, response: unknown): void {
   const usage = (response && typeof response === "object")
@@ -113,6 +113,13 @@ function collectCardCorpus(cards: StudyCardInput[]): Record<string, string> {
   return map;
 }
 
+function segmentTeachFloor(segment: LearnPlanSegment): number {
+  if (segment.checkType === "worked_example" || segment.checkType === "transfer_question" || segment.checkType === "prior_knowledge_probe") {
+    return 0.4;
+  }
+  return GROUNDING_TEACH_OVERLAP_FLOOR;
+}
+
 function verifySegmentGrounding(segment: LearnPlanSegment, corpus: Record<string, string>): boolean {
   if (!Array.isArray(segment.groundingSnippets) || segment.groundingSnippets.length === 0) return false;
   const teach = String(segment.teach || "");
@@ -134,7 +141,7 @@ function verifySegmentGrounding(segment: LearnPlanSegment, corpus: Record<string
     // segment as a whole still has to draw substantively from the card.
     const teachRatio = computeTokenOverlapRatio(teach, source);
     const tutorRatio = computeTokenOverlapRatio(tutorPrompt, source);
-    const overlapAccepts = teachRatio >= GROUNDING_TEACH_OVERLAP_FLOOR && tutorRatio >= GROUNDING_TUTOR_OVERLAP_FLOOR;
+    const overlapAccepts = teachRatio >= segmentTeachFloor(segment) && tutorRatio >= GROUNDING_TUTOR_OVERLAP_FLOOR;
 
     if (overlapAccepts) {
       console.info(
@@ -433,8 +440,11 @@ async function planCacheKey(body: LearnPlanRequest): Promise<string> {
     }))
     .sort((a, b) => a.id.localeCompare(b.id));
 
+  // Plan cache fingerprint v2: adds priorKnowledge + appendTransferQuestion.
   const payload = JSON.stringify({
     v: PLAN_CACHE_VERSION,
+    priorKnowledge: body.priorKnowledge || "mixed",
+    appendTransferQuestion: Boolean(body.appendTransferQuestion),
     course: body.course,
     subDeck: body.subDeck,
     cards: sortedCards
@@ -481,7 +491,32 @@ function validateRequest(body: LearnPlanRequest): string | null {
   return null;
 }
 
-function buildSystemPrompt(): string {
+function buildSystemPrompt(body: LearnPlanRequest): string {
+  const priorKnowledge = body.priorKnowledge || "mixed";
+  const complexCards = body.cards.filter((card) => String(card.modelAnswer || "").trim().split(/\s+/).filter(Boolean).length > 50);
+  const appendices: string[] = [];
+  if (priorKnowledge === "high") {
+    appendices.push(
+      "PRIOR-KNOWLEDGE ADAPTATION (HIGH): keep each teach block concise (60-80 words), and prefer predictive_question checks where pedagogically valid."
+    );
+  } else if (priorKnowledge === "low") {
+    appendices.push(
+      "PRIOR-KNOWLEDGE ADAPTATION (LOW): keep normal plan, then append one extra elaborative_interrogation segment at the end."
+    );
+  }
+  if (complexCards.length > 0) {
+    appendices.push(
+      "WORKED-EXAMPLE FADING (MANDATORY FOR COMPLEX CARDS): for each complex card, emit a three-segment sequence with checkType='worked_example', shared workedExampleId, and fadeLevel 1 then 2 then 3."
+    );
+    appendices.push(
+      "Fade level 1 = fully worked solution panel. Fade level 2 = partially worked with 1-2 blanks using ___ markers. Fade level 3 = full retrieval prompt with no scaffolding."
+    );
+  }
+  if (body.appendTransferQuestion) {
+    appendices.push(
+      "TRANSFER QUESTION (MANDATORY FINAL SEGMENT): append one final segment with checkType='transfer_question'. It must apply the concept in a novel context not present in source cards; teach should be short (40-60 words)."
+    );
+  }
   return [
     "You generate a grounded first-exposure learning plan for one sub-deck.",
     "Return JSON only.",
@@ -524,6 +559,10 @@ function buildSystemPrompt(): string {
     "Each consolidation question must list linkedCardIds referencing which cards the answer draws from.",
     "No markdown.",
     "IMPORTANT STREAM HINT: emit the JSON in source order so each \"segments\" object is complete before the next begins, and emit \"consolidationQuestions\" after all segments."
+    ,
+    "",
+    "RUN 1 APPENDICES:",
+    ...appendices
   ].join("\n");
 }
 
@@ -565,6 +604,8 @@ MODEL_ANSWER: ${String(card.modelAnswer || "")}`;
   return [
     `COURSE: ${body.course}`,
     `SUB_DECK: ${body.subDeck}`,
+    `PRIOR_KNOWLEDGE: ${body.priorKnowledge || "mixed"}`,
+    `APPEND_TRANSFER_QUESTION: ${Boolean(body.appendTransferQuestion)}`,
     `USER_NAME: ${body.userName || "student"}`,
     `LEARNER_CONTEXT: ${body.learnerContext || ""}`,
     "",
@@ -594,7 +635,7 @@ function buildGenerationConfig(): Record<string, unknown> {
             objective: { type: "string" },
             teach: { type: "string" },
             tutorPrompt: { type: "string" },
-            checkType: { type: "string", enum: ["elaborative", "predictive", "self_explain"] },
+            checkType: { type: "string", enum: ["elaborative", "predictive", "self_explain", "prior_knowledge_probe", "worked_example", "transfer_question"] },
             expectedAnswer: { type: "string" },
             linkedCardIds: { type: "array", items: { type: "string" } },
             groundingSnippets: {
@@ -836,7 +877,7 @@ function makeSSEResponse(run: (emit: StreamEmitter, signal: AbortSignal) => Prom
 async function requestPlanOneShot(model: string, body: LearnPlanRequest, env: Env): Promise<LearnPlanResponse | null> {
   const geminiData = await callGemini(
     model,
-    buildSystemPrompt(),
+    buildSystemPrompt(body),
     buildUserPrompt(body),
     buildGenerationConfig() as Parameters<typeof callGemini>[3],
     env
@@ -870,7 +911,7 @@ async function regenerateRejectedSegment(
 
   const geminiData = await callGemini(
     model,
-    buildSystemPrompt(),
+    buildSystemPrompt(body),
     regenUserPrompt,
     buildGenerationConfig() as Parameters<typeof callGemini>[3],
     env
@@ -967,7 +1008,7 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
     try {
       for await (const chunk of streamGemini(
         PLAN_PRIMARY_MODEL,
-        buildSystemPrompt(),
+        buildSystemPrompt(body),
         buildUserPrompt(body),
         buildGenerationConfig() as Parameters<typeof streamGemini>[3],
         env,
