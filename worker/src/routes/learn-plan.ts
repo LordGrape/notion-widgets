@@ -12,7 +12,7 @@ const LEARN_PLAN_CORS_HEADERS = {
 const PLAN_PRIMARY_MODEL = "gemini-2.5-flash";
 const PLAN_ESCALATION_MODEL = "gemini-2.5-pro";
 
-const PLAN_CACHE_VERSION = "v2";
+const PLAN_CACHE_VERSION = "v3";
 const PLAN_CACHE_TTL_SECONDS = 86400;
 const PLAN_CACHE_KEY_PREFIX = `learn-plan:${PLAN_CACHE_VERSION}:`;
 
@@ -21,6 +21,27 @@ interface PlanCachedResponse extends LearnPlanResponse {
 }
 
 const LEARN_CHECK_TYPES: readonly LearnCheckType[] = ["elaborative", "predictive", "self_explain", "prior_knowledge_probe", "worked_example", "transfer_question"] as const;
+const FACTUAL_PROFILE_APPENDIX = [
+  "This is a FACTUAL profile session. Prioritize:",
+  "- Short teach blocks, ~60 words maximum.",
+  "- predictive_question check type as the primary mechanism.",
+  "- worked_example check type for mnemonic-style anchoring (concrete name/date/figure linked to a memorable cue).",
+  "- Avoid long elaborative interrogation chains; one quick prompt per fact.",
+  "- Spaced retrieval emphasis: same fact may appear in multiple short segments within the session."
+].join("\n");
+const PROCEDURAL_PROFILE_APPENDIX = [
+  "This is a PROCEDURAL profile session. Prioritize:",
+  "- Teach blocks describe steps explicitly, numbered or bulleted.",
+  "- Skill decomposition: break compound procedures into named sub-steps before integration.",
+  "- Part-task → whole-task progression: early segments cover individual steps; later segments require the learner to chain them.",
+  "- self_explain check type for justifying step ordering.",
+  "- transfer_question check type for novel-context application of the procedure.",
+  "- Worked examples appropriate when the procedure has a canonical demonstration."
+].join("\n");
+
+function normalizePlanProfile(value: unknown): "theory" | "factual" | "procedural" {
+  return value === "factual" || value === "procedural" ? value : "theory";
+}
 
 function logPlanUsage(tag: string, model: string, response: unknown): void {
   const usage = (response && typeof response === "object")
@@ -440,11 +461,12 @@ async function planCacheKey(body: LearnPlanRequest): Promise<string> {
     }))
     .sort((a, b) => a.id.localeCompare(b.id));
 
-  // Plan cache fingerprint v2: adds priorKnowledge + appendTransferQuestion.
+  const planProfile = normalizePlanProfile(body.planProfile);
   const payload = JSON.stringify({
     v: PLAN_CACHE_VERSION,
     priorKnowledge: body.priorKnowledge || "mixed",
     appendTransferQuestion: Boolean(body.appendTransferQuestion),
+    planProfile,
     course: body.course,
     subDeck: body.subDeck,
     cards: sortedCards
@@ -492,6 +514,7 @@ function validateRequest(body: LearnPlanRequest): string | null {
 }
 
 function buildSystemPrompt(body: LearnPlanRequest): string {
+  const planProfile = normalizePlanProfile(body.planProfile);
   const priorKnowledge = body.priorKnowledge || "mixed";
   const complexCards = body.cards.filter((card) => String(card.modelAnswer || "").trim().split(/\s+/).filter(Boolean).length > 50);
   const appendices: string[] = [];
@@ -517,6 +540,8 @@ function buildSystemPrompt(body: LearnPlanRequest): string {
       "TRANSFER QUESTION (MANDATORY FINAL SEGMENT): append one final segment with checkType='transfer_question'. It must apply the concept in a novel context not present in source cards; teach should be short (40-60 words)."
     );
   }
+  if (planProfile === "factual") appendices.push(FACTUAL_PROFILE_APPENDIX);
+  if (planProfile === "procedural") appendices.push(PROCEDURAL_PROFILE_APPENDIX);
   return [
     "You generate a grounded first-exposure learning plan for one sub-deck.",
     "Return JSON only.",
@@ -604,6 +629,7 @@ MODEL_ANSWER: ${String(card.modelAnswer || "")}`;
   return [
     `COURSE: ${body.course}`,
     `SUB_DECK: ${body.subDeck}`,
+    `PLAN_PROFILE: ${normalizePlanProfile(body.planProfile)}`,
     `PRIOR_KNOWLEDGE: ${body.priorKnowledge || "mixed"}`,
     `APPEND_TRANSFER_QUESTION: ${Boolean(body.appendTransferQuestion)}`,
     `USER_NAME: ${body.userName || "student"}`,

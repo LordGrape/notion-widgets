@@ -353,10 +353,13 @@ export interface StudyCardInput {
   modelAnswer?: string;
 }
 
+export type PlanProfile = "theory" | "factual" | "procedural";
+
 export interface LearnPlanRequest {
   course: string;
   subDeck: string;
   cards: StudyCardInput[];
+  planProfile?: PlanProfile;
   userName?: string;
   learnerContext?: string;
   priorKnowledge?: "high" | "mixed" | "low";

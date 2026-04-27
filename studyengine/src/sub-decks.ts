@@ -481,10 +481,14 @@ export function migrateSubDecks(state: AppState): void {
       const rawParent = (rawMeta as SubDeckMeta).parentSubDeck;
       const normalizedParent = typeof rawParent === 'string' && rawParent.trim() ? rawParent.trim() : undefined;
       const archived = (rawMeta as SubDeckMeta).archived === true ? true : undefined;
+      const normalizedPlanProfile = ((rawMeta as SubDeckMeta).planProfile === 'factual' || (rawMeta as SubDeckMeta).planProfile === 'procedural' || (rawMeta as SubDeckMeta).planProfile === 'theory')
+        ? (rawMeta as SubDeckMeta).planProfile
+        : undefined;
       nextCourseMap[key] = {
         name: cleanName,
         order: Number.isFinite((rawMeta as SubDeckMeta).order) ? Number((rawMeta as SubDeckMeta).order) : 0,
         created: Number.isFinite((rawMeta as SubDeckMeta).created) ? Number((rawMeta as SubDeckMeta).created) : Date.now(),
+        ...(normalizedPlanProfile ? { planProfile: normalizedPlanProfile } : {}),
         color: typeof (rawMeta as SubDeckMeta).color === 'string' ? (rawMeta as SubDeckMeta).color : undefined,
         icon: typeof (rawMeta as SubDeckMeta).icon === 'string' ? (rawMeta as SubDeckMeta).icon : undefined,
         parentSubDeck: normalizedParent,

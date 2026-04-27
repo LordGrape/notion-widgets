@@ -12427,6 +12427,15 @@ input[type="range"]::-moz-range-thumb{
           '<div class="sr-control">' +
             '<label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="s_run2Generative"' + (isRun2GenerativeEnabled() ? ' checked' : '') + '> Enable</label>' +
           '</div>' +
+        '</div>' +
+        '<div class="setting-row">' +
+          '<div class="sr-left">' +
+            '<div class="sr-label">Experimental</div>' +
+            '<div class="sr-desc">Run 3 plan profiles.</div>' +
+          '</div>' +
+          '<div class="sr-control">' +
+            '<label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="s_run3Profiles"' + (isRun3ProfilesEnabled() ? ' checked' : '') + '> Enable</label>' +
+          '</div>' +
         '</div>';
         if (topicEmpty) topicEmpty.style.display = 'block';
         return;
@@ -13435,6 +13444,7 @@ input[type="range"]::-moz-range-thumb{
         if (el('m_topic')) el('m_topic').value = it.topic || '';
         renderSubDeckSelectForModal();
         if (el('m_subDeck')) el('m_subDeck').value = it.subDeck || '';
+        if (el('m_planProfile')) el('m_planProfile').value = it.planProfile || '';
         if (el('m_priority')) el('m_priority').value = it.priority || 'medium';
         if (el('m_scenario')) el('m_scenario').value = it.scenario || '';
         if (el('m_task')) el('m_task').value = it.task || '';
@@ -19769,6 +19779,7 @@ input[type="range"]::-moz-range-thumb{
 
       var topic = (el('m_topic').value || '').trim();
       var subDeck = (el('m_subDeck') && el('m_subDeck').value && el('m_subDeck').value !== '__create__') ? el('m_subDeck').value : null;
+      var planProfile = (el('m_planProfile') && el('m_planProfile').value) ? String(el('m_planProfile').value).trim() : '';
       var prompt = (el('m_prompt').value || '').trim();
       var answer = (el('m_answer').value || '').trim();
 
@@ -19786,6 +19797,8 @@ input[type="range"]::-moz-range-thumb{
         editItem.topic = topic;
         editItem.course = course;
         editItem.subDeck = subDeck;
+        if (planProfile === 'theory' || planProfile === 'factual' || planProfile === 'procedural') editItem.planProfile = planProfile;
+        else delete editItem.planProfile;
         editItem.tier = editTier;
         editItem.priority = (el('m_priority') && el('m_priority').value) || editItem.priority || 'medium';
 
@@ -19819,6 +19832,7 @@ input[type="range"]::-moz-range-thumb{
         course: course,
         topic: topic,
         subDeck: subDeck,
+        planProfile: (planProfile === 'theory' || planProfile === 'factual' || planProfile === 'procedural') ? planProfile : undefined,
         created: isoNow(),
         fsrs: { stability: 0, difficulty: 0, due: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), lastReview: null, reps: 0, lapses: 0, state: 'new' },
         variants: {}
@@ -20794,6 +20808,14 @@ input[type="range"]::-moz-range-thumb{
           saveState();
         });
       }
+      var run3Toggle = el('s_run3Profiles');
+      if (run3Toggle) {
+        run3Toggle.addEventListener('change', function() {
+          state.studyEngineFeatures = state.studyEngineFeatures || {};
+          state.studyEngineFeatures.run3Profiles = !!run3Toggle.checked;
+          saveState();
+        });
+      }
 
       if (window.gsap) {
         var rows = body.querySelectorAll('.setting-row');
@@ -21592,6 +21614,11 @@ input[type="range"]::-moz-range-thumb{
           inner += '<option value="recall"' + ((c.subjectType || 'mixed') === 'recall' ? ' selected' : '') + '>Recall (STEM, language, fact-based)</option>';
           inner += '<option value="reasoning"' + ((c.subjectType || 'mixed') === 'reasoning' ? ' selected' : '') + '>Reasoning (law, political science, philosophy)</option>';
           inner += '</select><div class="help" style="margin-top:6px;line-height:1.5;"><div title="One right answer. Graded strictly against the model answer."><strong>Recall:</strong> One right answer. Graded strictly against the model answer.</div><div title="Multiple defensible framings. Graded on argument quality and conceptual engagement."><strong>Reasoning:</strong> Multiple defensible framings. Graded on argument quality and conceptual engagement.</div><div title="AI classifies each question and picks the right rubric. Recommended default."><strong>Mixed:</strong> AI classifies each question and picks the right rubric. Recommended default.</div></div></div>';
+          inner += '<div class="field"><label>Default plan profile</label><select id="cm_planProfile" class="input">';
+          inner += '<option value="theory"' + ((c.planProfile || 'theory') === 'theory' ? ' selected' : '') + '>Theory</option>';
+          inner += '<option value="factual"' + ((c.planProfile || 'theory') === 'factual' ? ' selected' : '') + '>Factual</option>';
+          inner += '<option value="procedural"' + ((c.planProfile || 'theory') === 'procedural' ? ' selected' : '') + '>Procedural</option>';
+          inner += '</select></div>';
           inner += '<div class="field"><label>Exam Weight (%)</label><input id="cm_examWeight" type="number" min="0" max="100" step="1" class="input" value="' + esc(c.examWeight != null ? String(c.examWeight) : '') + '" /></div>';
           inner += '<div style="display:flex;justify-content:flex-end;margin-top:12px;"><button class="cm-save-btn" id="cmSaveDetails" type="button">Save Details</button></div>';
         } else if (activeTab === 'syllabus') {
@@ -21703,6 +21730,12 @@ input[type="range"]::-moz-range-thumb{
               inner += '<div class="structure-module-card">';
               inner += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">';
               inner += '<input class="input" data-overlay-subdeck-name="' + esc(sd.key) + '" value="' + esc(sd.meta.name || sd.key) + '" style="flex:1;">';
+              inner += '<select class="input" data-overlay-subdeck-plan-profile="' + esc(sd.key) + '" style="max-width:190px;">'
+                + '<option value="">Use course default</option>'
+                + '<option value="theory"' + (sd.meta.planProfile === 'theory' ? ' selected' : '') + '>Theory</option>'
+                + '<option value="factual"' + (sd.meta.planProfile === 'factual' ? ' selected' : '') + '>Factual</option>'
+                + '<option value="procedural"' + (sd.meta.planProfile === 'procedural' ? ' selected' : '') + '>Procedural</option>'
+                + '</select>';
               inner += '<button class="ghost-btn" type="button" data-overlay-subdeck-up="' + esc(sd.key) + '"' + (idx === 0 ? ' disabled' : '') + ' style="min-width:0;padding:6px 10px;">↑</button>';
               inner += '<button class="ghost-btn" type="button" data-overlay-subdeck-down="' + esc(sd.key) + '"' + (idx === overlaySubDecks.length - 1 ? ' disabled' : '') + ' style="min-width:0;padding:6px 10px;">↓</button>';
               inner += '<button class="ghost-btn" type="button" data-overlay-subdeck-save="' + esc(sd.key) + '" style="min-width:0;padding:6px 10px;">Save</button>';
@@ -21805,6 +21838,8 @@ input[type="range"]::-moz-range-thumb{
             c.examType = (el('cm_examType').value || 'mixed');
             c.examDate = (el('cm_examDate').value || '').trim() || null;
             c.subjectType = normalizeSubjectTypeValue((el('cm_subjectType') && el('cm_subjectType').value) || 'mixed');
+            var nextCoursePlanProfile = (el('cm_planProfile') && el('cm_planProfile').value) ? String(el('cm_planProfile').value) : 'theory';
+            c.planProfile = (nextCoursePlanProfile === 'factual' || nextCoursePlanProfile === 'procedural') ? nextCoursePlanProfile : 'theory';
             var ew = (el('cm_examWeight').value || '').trim();
             c.examWeight = ew ? Math.max(0, Math.min(100, Math.round(Number(ew) || 0))) : null;
             if (newName !== oldName) {
@@ -22688,10 +22723,16 @@ input[type="range"]::-moz-range-thumb{
             btn.onclick = function() {
               var key = btn.getAttribute('data-overlay-subdeck-save');
               var nameInput = courseModalBody.querySelector('[data-overlay-subdeck-name=\"' + key + '\"]');
+              var profileInput = courseModalBody.querySelector('[data-overlay-subdeck-plan-profile=\"' + key + '\"]');
               var nextName = nameInput ? String(nameInput.value || '').trim() : '';
+              var nextProfile = profileInput ? String(profileInput.value || '').trim() : '';
               if (!nextName) { toast('Name cannot be empty'); return; }
               try {
                 globalThis.__studyEngineSubDecks.renameSubDeck(courseName, key, nextName);
+                if (state.subDecks && state.subDecks[courseName] && state.subDecks[courseName][key]) {
+                  if (nextProfile === 'theory' || nextProfile === 'factual' || nextProfile === 'procedural') state.subDecks[courseName][key].planProfile = nextProfile;
+                  else delete state.subDecks[courseName][key].planProfile;
+                }
                 subDecksDirty = true;
                 saveState();
                 renderCourseModalEditor(courseName, 'structure');
@@ -25623,6 +25664,10 @@ input[type="range"]::-moz-range-thumb{
         } else if (curCheckType === 'worked_example' && (curFadeLevel === 1 || curFadeLevel === 2 || curFadeLevel === 3)) {
           labelPill = '<div class="segment-label-pill">Worked example · Step ' + curFadeLevel + '/3</div>';
         }
+        var sessionProfile = activeLearnSession && activeLearnSession.planProfile ? String(activeLearnSession.planProfile) : 'theory';
+        if (!labelPill && flow.segmentIndex === 0 && (sessionProfile === 'factual' || sessionProfile === 'procedural')) {
+          labelPill = '<div class="segment-label-pill">' + (sessionProfile === 'factual' ? 'Factual mode' : 'Procedural mode') + '</div>';
+        }
         var workedPanel = '';
         if (curCheckType === 'worked_example' && (curFadeLevel === 1 || curFadeLevel === 2)) {
           var modelSolution = '';
@@ -25982,6 +26027,11 @@ input[type="range"]::-moz-range-thumb{
       return !!state.studyEngineFeatures.run2Generative;
     }
 
+    function isRun3ProfilesEnabled() {
+      if (!state.studyEngineFeatures || typeof state.studyEngineFeatures.run3Profiles === 'undefined') return true;
+      return !!state.studyEngineFeatures.run3Profiles;
+    }
+
     function openGenerativeInvitationModal(sessionRatings) {
       if (!isRun2GenerativeEnabled()) return;
       var candidates = detectGenerativeCandidates((sessionRatings || []).map(function(entry) {
@@ -26232,6 +26282,7 @@ input[type="range"]::-moz-range-thumb{
         planVersion: nextPlanVersion,
         planFingerprint: currentFingerprint,
         planCourseContextHash: fingerprintMeta.courseContextHash,
+        planProfile: 'theory',
         streamCompleted: false
       };
       /* Legacy state.learnSession is populated on mount so other code paths
@@ -26249,8 +26300,11 @@ input[type="range"]::-moz-range-thumb{
           completedSegmentIds: [],
           subDeck: subDeckKey,
           course: courseName,
-          startedAt: activeLearnSession.flow.startedAt
+          startedAt: activeLearnSession.flow.startedAt,
+          planProfile: activeLearnSession.planProfile || 'theory'
         };
+        state.currentSession = state.currentSession || {};
+        state.currentSession.planProfile = activeLearnSession.planProfile || 'theory';
         var ov = el('learnSessionOv');
         if (!ov) return;
         ov.hidden = false;
@@ -26274,6 +26328,13 @@ input[type="range"]::-moz-range-thumb{
          always initializes into read mode for a concrete segment. */
 
       var handlers = {
+        onPlanProfileResolved: function(profile) {
+          var normalized = (profile === 'factual' || profile === 'procedural') ? profile : 'theory';
+          if (activeLearnSession) activeLearnSession.planProfile = normalized;
+          state.currentSession = state.currentSession || {};
+          state.currentSession.planProfile = normalized;
+          if (state.learnSession) state.learnSession.planProfile = normalized;
+        },
         onPriorKnowledgeProbe: async function(probeCard) {
           if (!activeLearnSession) return 'partial';
           var featureOn = !state.studyEngineFeatures || state.studyEngineFeatures.run1Pedagogy !== false;
@@ -26422,7 +26483,7 @@ input[type="range"]::-moz-range-thumb{
             handlers, streamController.signal
           )
         : modeBridge.streamLearnPlan(
-            courseName, subDeckKey, allItems, userName || '', learnerContext || '',
+            courseName, subDeckKey, allItems, state, userName || '', learnerContext || '',
             handlers, streamController.signal
           );
       streamPromise.catch(function(err) {

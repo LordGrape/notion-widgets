@@ -1,6 +1,7 @@
-import type { AppState, CourseContext, StudyItem, SubDeckMeta } from './types';
+import type { AppState, CourseContext, PlanProfile, StudyItem, SubDeckMeta } from './types';
 import { createSubDeck, getCardsInScope, getCardsInSubDeck, loadSubDecks } from './sub-decks';
 import { runLearnTurn, LearnTurnClientError } from './learn-turn-client';
+import { resolveSessionPlanProfile } from './plan-profiles';
 
 // Re-export for callers that previously imported from `./learn-mode`.
 export { runLearnTurn, LearnTurnClientError };
@@ -194,12 +195,14 @@ export function substringVerified(segments: LearnSegment[], items: StudyItem[]):
   });
 }
 
-export async function generateLearnPlan(course: string, subDeck: string, items: StudyItem[], userName = '', learnerContext = ''): Promise<LearnPlan> {
-  const cards = getCardsInSubDeck(course, subDeck, items).map((item) => ({
+export async function generateLearnPlan(course: string, subDeck: string, items: StudyItem[], state?: AppState, userName = '', learnerContext = ''): Promise<LearnPlan> {
+  const subDeckCards = getCardsInSubDeck(course, subDeck, items);
+  const cards = subDeckCards.map((item) => ({
     id: item.id,
     prompt: item.prompt,
     modelAnswer: item.modelAnswer
   }));
+  const planProfile = resolveLearnPlanProfile(subDeckCards, state);
 
   const response = await fetch(LEARN_PLAN_ENDPOINT, {
     method: 'POST',
@@ -208,6 +211,7 @@ export async function generateLearnPlan(course: string, subDeck: string, items: 
       course,
       subDeck,
       cards,
+      planProfile,
       userName,
       learnerContext
     })
@@ -219,7 +223,6 @@ export async function generateLearnPlan(course: string, subDeck: string, items: 
   }
 
   const data = (await response.json()) as LearnPlan;
-  const subDeckCards = getCardsInSubDeck(course, subDeck, items);
   const verifiedSegments = substringVerified(data.segments || [], subDeckCards);
   if (verifiedSegments.length < 2) {
     throw new Error('Learn plan grounding verification failed: fewer than 2 verified segments.');
@@ -251,6 +254,7 @@ export async function generateCourseLearnPlan(
       course,
       subDeck: COURSE_ROOT_SUBDECK_KEY,
       cards,
+      planProfile: resolveLearnPlanProfile(courseCards, state),
       userName,
       learnerContext
     })
@@ -307,6 +311,29 @@ export interface StreamLearnPlanHandlers {
   onError?: (message: string, opts?: { hasSegments: boolean }) => void;
   onPriorKnowledgeProbe?: (card: StudyCardInput) => Promise<'surface' | 'partial' | 'deep'>;
   getDeepVerdictCount?: () => number;
+  onPlanProfileResolved?: (profile: PlanProfile) => void;
+}
+
+function getSubDeckMetaForCard(card: StudyItem, state?: AppState): SubDeckMeta | null {
+  const courseName = card?.course ? String(card.course) : '';
+  const subDeckKey = card?.subDeck ? String(card.subDeck) : '';
+  if (!state || !courseName || !subDeckKey) return null;
+  return state.subDecks?.[courseName]?.[subDeckKey] ?? null;
+}
+
+function getCourseForCard(card: StudyItem, state?: AppState): AppState['courses'][string] | null {
+  const courseName = card?.course ? String(card.course) : '';
+  if (!state || !courseName) return null;
+  return state.courses?.[courseName] ?? null;
+}
+
+function resolveLearnPlanProfile(cards: StudyItem[], state?: AppState): PlanProfile {
+  if (state?.studyEngineFeatures?.run3Profiles === false) return 'theory';
+  return resolveSessionPlanProfile(
+    cards,
+    (card) => getSubDeckMetaForCard(card, state),
+    (card) => getCourseForCard(card, state)
+  );
 }
 
 export function pickProbeCard(cards: StudyCardInput[]): StudyCardInput | null {
@@ -346,6 +373,7 @@ export async function streamLearnPlan(
   course: string,
   subDeck: string,
   items: StudyItem[],
+  state: AppState | undefined,
   userName = '',
   learnerContext = '',
   handlers: StreamLearnPlanHandlers = {},
@@ -353,12 +381,15 @@ export async function streamLearnPlan(
 ): Promise<void> {
   const subDeckCards = getCardsInSubDeck(course, subDeck, items);
   const subDeckFingerprint = fingerprintSubDeckCards(subDeckCards);
+  const planProfile = resolveLearnPlanProfile(subDeckCards, state);
+  handlers.onPlanProfileResolved?.(planProfile);
   const payload = {
     course,
     subDeck,
     cards: subDeckCards.map((item) => ({ id: item.id, prompt: item.prompt, modelAnswer: item.modelAnswer })),
     userName,
     learnerContext,
+    planProfile,
     priorKnowledge: await runPriorKnowledgeProbe(
       subDeckCards.map((item) => ({ id: item.id, prompt: item.prompt, modelAnswer: item.modelAnswer })),
       course,
@@ -529,12 +560,15 @@ export async function streamCourseLearnPlan(
 ): Promise<void> {
   const courseCards = getCardsInScope(course, null, items, state, { includeArchivedSubDecks: false });
   const subDeckFingerprint = fingerprintSubDeckCards(courseCards);
+  const planProfile = resolveLearnPlanProfile(courseCards, state);
+  handlers.onPlanProfileResolved?.(planProfile);
   const payload = {
     course,
     subDeck: COURSE_ROOT_SUBDECK_KEY,
     cards: courseCards.map((item) => ({ id: item.id, prompt: item.prompt, modelAnswer: item.modelAnswer })),
     userName,
     learnerContext,
+    planProfile,
     priorKnowledge: await runPriorKnowledgeProbe(
       courseCards.map((item) => ({ id: item.id, prompt: item.prompt, modelAnswer: item.modelAnswer })),
       course,
@@ -548,7 +582,7 @@ export async function streamCourseLearnPlan(
 }
 
 async function streamLearnPlanInternal(
-  payload: { course: string; subDeck: string; cards: Array<{ id: string; prompt: string; modelAnswer: string }>; userName: string; learnerContext: string; priorKnowledge?: 'high' | 'mixed' | 'low'; appendTransferQuestion?: boolean; },
+  payload: { course: string; subDeck: string; cards: Array<{ id: string; prompt: string; modelAnswer: string }>; userName: string; learnerContext: string; planProfile: PlanProfile; priorKnowledge?: 'high' | 'mixed' | 'low'; appendTransferQuestion?: boolean; },
   sourceCards: StudyItem[],
   subDeckFingerprint: string,
   handlers: StreamLearnPlanHandlers = {},
@@ -903,5 +937,6 @@ export function createDefaultSubDeckForCourse(course: CourseLike | string, state
   COURSE_ROOT_SUBDECK_KEY,
   pickProbeCard,
   classifyComplexCards,
-  runPriorKnowledgeProbe
+  runPriorKnowledgeProbe,
+  resolveSessionPlanProfile
 };
