@@ -481,14 +481,21 @@ export function migrateSubDecks(state: AppState): void {
       const rawParent = (rawMeta as SubDeckMeta).parentSubDeck;
       const normalizedParent = typeof rawParent === 'string' && rawParent.trim() ? rawParent.trim() : undefined;
       const archived = (rawMeta as SubDeckMeta).archived === true ? true : undefined;
-      const normalizedPlanProfile = ((rawMeta as SubDeckMeta).planProfile === 'factual' || (rawMeta as SubDeckMeta).planProfile === 'procedural' || (rawMeta as SubDeckMeta).planProfile === 'theory')
+      const normalizedPlanProfile = ((rawMeta as SubDeckMeta).planProfile === 'factual' || (rawMeta as SubDeckMeta).planProfile === 'procedural' || (rawMeta as SubDeckMeta).planProfile === 'theory' || (rawMeta as SubDeckMeta).planProfile === 'language')
         ? (rawMeta as SubDeckMeta).planProfile
+        : undefined;
+      const normalizedLanguageLevel = Number.isFinite((rawMeta as SubDeckMeta).languageLevel)
+        && Number((rawMeta as SubDeckMeta).languageLevel) >= 1
+        && Number((rawMeta as SubDeckMeta).languageLevel) <= 6
+        ? (Number((rawMeta as SubDeckMeta).languageLevel) as 1 | 2 | 3 | 4 | 5 | 6)
         : undefined;
       nextCourseMap[key] = {
         name: cleanName,
         order: Number.isFinite((rawMeta as SubDeckMeta).order) ? Number((rawMeta as SubDeckMeta).order) : 0,
         created: Number.isFinite((rawMeta as SubDeckMeta).created) ? Number((rawMeta as SubDeckMeta).created) : Date.now(),
         ...(normalizedPlanProfile ? { planProfile: normalizedPlanProfile } : {}),
+        targetLanguage: typeof (rawMeta as SubDeckMeta).targetLanguage === 'string' ? (rawMeta as SubDeckMeta).targetLanguage : undefined,
+        languageLevel: normalizedLanguageLevel,
         color: typeof (rawMeta as SubDeckMeta).color === 'string' ? (rawMeta as SubDeckMeta).color : undefined,
         icon: typeof (rawMeta as SubDeckMeta).icon === 'string' ? (rawMeta as SubDeckMeta).icon : undefined,
         parentSubDeck: normalizedParent,

@@ -9063,6 +9063,23 @@ input[type="range"]::-moz-range-thumb{
       border-radius: 8px;
       padding: 12px;
     }
+    .cloze-segment {
+      border: 1px solid color-mix(in srgb, #60a5fa 45%, transparent);
+      border-radius: 8px;
+      padding: 10px;
+    }
+    .cloze-blank {
+      display: inline-flex;
+      min-width: 120px;
+      max-width: 240px;
+      margin: 0 4px;
+      padding: 4px 9px;
+      border: 1px solid color-mix(in srgb, #60a5fa 55%, var(--border-default, #D6D3D1));
+      border-radius: 999px;
+      background: color-mix(in srgb, #60a5fa 14%, var(--surface-1));
+      color: var(--text-primary);
+      font: inherit;
+    }
     #learnSessionOv.learn-segment--read .learn-card-block.learn-yourturn,
     #learnSessionOv.learn-segment--read #learnSessionSubmit{ display: none; }
     #learnSessionOv.learn-segment--read .learn-read-continue-btn{ display: inline-flex; }
@@ -9962,7 +9979,13 @@ input[type="range"]::-moz-range-thumb{
                       </div>
                       <div class="learn-card-block learn-yourturn">
                         <div class="learn-card-block-label">Your Turn</div>
+                        <div id="learnLanguageModePill" class="segment-label-pill" hidden></div>
                         <div class="learn-yourturn-prompt" id="learnTutorPrompt"></div>
+                        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px;">
+                          <button type="button" class="ghost-btn" id="learnListenBtn" hidden>🔊 Listen</button>
+                          <button type="button" class="ghost-btn" id="learnPronounceBtn" hidden>Hear correct pronunciation</button>
+                          <span id="learnTtsWarningChip" class="segment-label-pill transfer" hidden>Audio unavailable</span>
+                        </div>
                         <div class="learn-assisted-badge" id="learnAssistedBadge" hidden>Assisted: teach was reopened. Verdict will cap one tier lower.</div>
                         <textarea class="learn-input" id="learnSessionInput" rows="3" placeholder="Type your response…" aria-label="Your response"></textarea>
                         <div class="learn-feedback" id="learnFeedbackBlock" hidden></div>
@@ -12470,6 +12493,15 @@ input[type="range"]::-moz-range-thumb{
           '<div class="sr-control">' +
             '<label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="s_run45Freeform"' + (isRun45FreeformEnabled() ? ' checked' : '') + '> Enable</label>' +
           '</div>' +
+        '</div>' +
+        '<div class="setting-row">' +
+          '<div class="sr-left">' +
+            '<div class="sr-label">Experimental</div>' +
+            '<div class="sr-desc">Run 5 language acquisition mode.</div>' +
+          '</div>' +
+          '<div class="sr-control">' +
+            '<label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="s_run5Language"' + (isRun5LanguageEnabled() ? ' checked' : '') + '> Enable</label>' +
+          '</div>' +
         '</div>';
         if (topicEmpty) topicEmpty.style.display = 'block';
         return;
@@ -13479,6 +13511,9 @@ input[type="range"]::-moz-range-thumb{
         renderSubDeckSelectForModal();
         if (el('m_subDeck')) el('m_subDeck').value = it.subDeck || '';
         if (el('m_planProfile')) el('m_planProfile').value = it.planProfile || '';
+        if (el('m_targetLanguage')) el('m_targetLanguage').value = it.targetLanguage || '';
+        if (el('m_targetLanguageOther')) el('m_targetLanguageOther').value = '';
+        if (el('m_languageLevel')) el('m_languageLevel').value = it.languageLevel != null ? String(it.languageLevel) : '';
         if (el('m_priority')) el('m_priority').value = it.priority || 'medium';
         if (el('m_scenario')) el('m_scenario').value = it.scenario || '';
         if (el('m_task')) el('m_task').value = it.task || '';
@@ -19831,8 +19866,14 @@ input[type="range"]::-moz-range-thumb{
         editItem.topic = topic;
         editItem.course = course;
         editItem.subDeck = subDeck;
-        if (planProfile === 'theory' || planProfile === 'factual' || planProfile === 'procedural') editItem.planProfile = planProfile;
+        if (planProfile === 'theory' || planProfile === 'factual' || planProfile === 'procedural' || (isRun5LanguageEnabled() && planProfile === 'language')) editItem.planProfile = planProfile;
         else delete editItem.planProfile;
+        var targetLanguage = (el('m_targetLanguage') && el('m_targetLanguage').value) ? String(el('m_targetLanguage').value).trim() : '';
+        var targetLanguageOther = (el('m_targetLanguageOther') && el('m_targetLanguageOther').value) ? String(el('m_targetLanguageOther').value).trim() : '';
+        var languageLevel = (el('m_languageLevel') && el('m_languageLevel').value) ? parseInt(el('m_languageLevel').value, 10) : 0;
+        if (targetLanguage === '__other__') targetLanguage = targetLanguageOther;
+        if (targetLanguage) editItem.targetLanguage = targetLanguage; else delete editItem.targetLanguage;
+        if (languageLevel >= 1 && languageLevel <= 6) editItem.languageLevel = languageLevel; else delete editItem.languageLevel;
         editItem.tier = editTier;
         editItem.priority = (el('m_priority') && el('m_priority').value) || editItem.priority || 'medium';
 
@@ -19866,7 +19907,7 @@ input[type="range"]::-moz-range-thumb{
         course: course,
         topic: topic,
         subDeck: subDeck,
-        planProfile: (planProfile === 'theory' || planProfile === 'factual' || planProfile === 'procedural') ? planProfile : undefined,
+        planProfile: (planProfile === 'theory' || planProfile === 'factual' || planProfile === 'procedural' || (isRun5LanguageEnabled() && planProfile === 'language')) ? planProfile : undefined,
         created: isoNow(),
         fsrs: { stability: 0, difficulty: 0, due: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), lastReview: null, reps: 0, lapses: 0, state: 'new' },
         variants: {}
@@ -19878,8 +19919,14 @@ input[type="range"]::-moz-range-thumb{
       var conceptA = (el('m_conceptA') && el('m_conceptA').value || '').trim();
       var conceptB = (el('m_conceptB') && el('m_conceptB').value || '').trim();
       var timeVal = el('m_time') ? parseInt(el('m_time').value, 10) : 0;
+      var targetLanguage = (el('m_targetLanguage') && el('m_targetLanguage').value) ? String(el('m_targetLanguage').value).trim() : '';
+      var targetLanguageOther = (el('m_targetLanguageOther') && el('m_targetLanguageOther').value) ? String(el('m_targetLanguageOther').value).trim() : '';
+      var languageLevel = (el('m_languageLevel') && el('m_languageLevel').value) ? parseInt(el('m_languageLevel').value, 10) : 0;
+      if (targetLanguage === '__other__') targetLanguage = targetLanguageOther;
       var priority = (el('m_priority') && el('m_priority').value) || 'medium';
       it.priority = priority;
+      if (targetLanguage) it.targetLanguage = targetLanguage;
+      if (languageLevel >= 1 && languageLevel <= 6) it.languageLevel = languageLevel;
 
       if (scenario) it.scenario = scenario;
       if (task) it.task = task;
@@ -20877,6 +20924,14 @@ input[type="range"]::-moz-range-thumb{
           saveState();
         });
       }
+      var run5Toggle = el('s_run5Language');
+      if (run5Toggle) {
+        run5Toggle.addEventListener('change', function() {
+          state.studyEngineFeatures = state.studyEngineFeatures || {};
+          state.studyEngineFeatures.run5Language = !!run5Toggle.checked;
+          saveState();
+        });
+      }
 
       if (window.gsap) {
         var rows = body.querySelectorAll('.setting-row');
@@ -21678,8 +21733,12 @@ input[type="range"]::-moz-range-thumb{
           inner += '<div class="field"><label>Default plan profile</label><select id="cm_planProfile" class="input">';
           inner += '<option value="theory"' + ((c.planProfile || 'theory') === 'theory' ? ' selected' : '') + '>Theory</option>';
           inner += '<option value="factual"' + ((c.planProfile || 'theory') === 'factual' ? ' selected' : '') + '>Factual</option>';
+          if (isRun5LanguageEnabled()) inner += '<option value="language"' + ((c.planProfile || 'theory') === 'language' ? ' selected' : '') + '>Language</option>';
           inner += '<option value="procedural"' + ((c.planProfile || 'theory') === 'procedural' ? ' selected' : '') + '>Procedural</option>';
           inner += '</select></div>';
+          inner += '<div class="field"><label>Default target language (BCP-47)</label><select id="cm_targetLanguage" class="input">';
+          inner += '<option value="">None</option><option value="es-ES"' + (c.targetLanguage === 'es-ES' ? ' selected' : '') + '>Spanish (es-ES)</option><option value="fr-FR"' + (c.targetLanguage === 'fr-FR' ? ' selected' : '') + '>French (fr-FR)</option><option value="de-DE"' + (c.targetLanguage === 'de-DE' ? ' selected' : '') + '>German (de-DE)</option><option value="ja-JP"' + (c.targetLanguage === 'ja-JP' ? ' selected' : '') + '>Japanese (ja-JP)</option><option value="zh-CN"' + (c.targetLanguage === 'zh-CN' ? ' selected' : '') + '>Chinese (zh-CN)</option><option value="__other__">Other (manual)</option></select><input id="cm_targetLanguageOther" class="input" placeholder="e.g. it-IT" style="margin-top:6px;" /></div>';
+          inner += '<div class="field"><label>Default language level</label><select id="cm_languageLevel" class="input"><option value=\"\">None</option><option value=\"1\"' + (c.languageLevel === 1 ? ' selected' : '') + '>1</option><option value=\"2\"' + (c.languageLevel === 2 ? ' selected' : '') + '>2</option><option value=\"3\"' + (c.languageLevel === 3 ? ' selected' : '') + '>3</option><option value=\"4\"' + (c.languageLevel === 4 ? ' selected' : '') + '>4</option><option value=\"5\"' + (c.languageLevel === 5 ? ' selected' : '') + '>5</option><option value=\"6\"' + (c.languageLevel === 6 ? ' selected' : '') + '>6</option></select></div>';
           inner += '<div class="field"><label>Exam Weight (%)</label><input id="cm_examWeight" type="number" min="0" max="100" step="1" class="input" value="' + esc(c.examWeight != null ? String(c.examWeight) : '') + '" /></div>';
           inner += '<div style="display:flex;justify-content:flex-end;margin-top:12px;"><button class="cm-save-btn" id="cmSaveDetails" type="button">Save Details</button></div>';
         } else if (activeTab === 'syllabus') {
@@ -21795,8 +21854,12 @@ input[type="range"]::-moz-range-thumb{
                 + '<option value="">Use course default</option>'
                 + '<option value="theory"' + (sd.meta.planProfile === 'theory' ? ' selected' : '') + '>Theory</option>'
                 + '<option value="factual"' + (sd.meta.planProfile === 'factual' ? ' selected' : '') + '>Factual</option>'
+                + (isRun5LanguageEnabled() ? ('<option value="language"' + (sd.meta.planProfile === 'language' ? ' selected' : '') + '>Language</option>') : '')
                 + '<option value="procedural"' + (sd.meta.planProfile === 'procedural' ? ' selected' : '') + '>Procedural</option>'
                 + '</select>';
+              inner += '<select class="input" data-overlay-subdeck-target-language="' + esc(sd.key) + '" style="max-width:160px;"><option value=\"\">Use course lang</option><option value=\"es-ES\"' + (sd.meta.targetLanguage === 'es-ES' ? ' selected' : '') + '>es-ES</option><option value=\"fr-FR\"' + (sd.meta.targetLanguage === 'fr-FR' ? ' selected' : '') + '>fr-FR</option><option value=\"de-DE\"' + (sd.meta.targetLanguage === 'de-DE' ? ' selected' : '') + '>de-DE</option><option value=\"ja-JP\"' + (sd.meta.targetLanguage === 'ja-JP' ? ' selected' : '') + '>ja-JP</option><option value=\"zh-CN\"' + (sd.meta.targetLanguage === 'zh-CN' ? ' selected' : '') + '>zh-CN</option><option value=\"__other__\">Other</option></select>';
+              inner += '<input class=\"input\" data-overlay-subdeck-target-language-other=\"' + esc(sd.key) + '\" placeholder=\"other tag\" style=\"max-width:120px;\">';
+              inner += '<select class=\"input\" data-overlay-subdeck-language-level=\"' + esc(sd.key) + '\" style=\"max-width:90px;\"><option value=\"\">L</option><option value=\"1\"' + (sd.meta.languageLevel === 1 ? ' selected' : '') + '>1</option><option value=\"2\"' + (sd.meta.languageLevel === 2 ? ' selected' : '') + '>2</option><option value=\"3\"' + (sd.meta.languageLevel === 3 ? ' selected' : '') + '>3</option><option value=\"4\"' + (sd.meta.languageLevel === 4 ? ' selected' : '') + '>4</option><option value=\"5\"' + (sd.meta.languageLevel === 5 ? ' selected' : '') + '>5</option><option value=\"6\"' + (sd.meta.languageLevel === 6 ? ' selected' : '') + '>6</option></select>';
               inner += '<button class="ghost-btn" type="button" data-overlay-subdeck-up="' + esc(sd.key) + '"' + (idx === 0 ? ' disabled' : '') + ' style="min-width:0;padding:6px 10px;">↑</button>';
               inner += '<button class="ghost-btn" type="button" data-overlay-subdeck-down="' + esc(sd.key) + '"' + (idx === overlaySubDecks.length - 1 ? ' disabled' : '') + ' style="min-width:0;padding:6px 10px;">↓</button>';
               inner += '<button class="ghost-btn" type="button" data-overlay-subdeck-save="' + esc(sd.key) + '" style="min-width:0;padding:6px 10px;">Save</button>';
@@ -21900,7 +21963,13 @@ input[type="range"]::-moz-range-thumb{
             c.examDate = (el('cm_examDate').value || '').trim() || null;
             c.subjectType = normalizeSubjectTypeValue((el('cm_subjectType') && el('cm_subjectType').value) || 'mixed');
             var nextCoursePlanProfile = (el('cm_planProfile') && el('cm_planProfile').value) ? String(el('cm_planProfile').value) : 'theory';
-            c.planProfile = (nextCoursePlanProfile === 'factual' || nextCoursePlanProfile === 'procedural') ? nextCoursePlanProfile : 'theory';
+            c.planProfile = (nextCoursePlanProfile === 'factual' || nextCoursePlanProfile === 'procedural' || (isRun5LanguageEnabled() && nextCoursePlanProfile === 'language')) ? nextCoursePlanProfile : 'theory';
+            var nextCourseTargetLanguage = (el('cm_targetLanguage') && el('cm_targetLanguage').value) ? String(el('cm_targetLanguage').value).trim() : '';
+            var nextCourseTargetLanguageOther = (el('cm_targetLanguageOther') && el('cm_targetLanguageOther').value) ? String(el('cm_targetLanguageOther').value).trim() : '';
+            if (nextCourseTargetLanguage === '__other__') nextCourseTargetLanguage = nextCourseTargetLanguageOther;
+            if (nextCourseTargetLanguage) c.targetLanguage = nextCourseTargetLanguage; else delete c.targetLanguage;
+            var nextCourseLanguageLevel = (el('cm_languageLevel') && el('cm_languageLevel').value) ? parseInt(el('cm_languageLevel').value, 10) : 0;
+            if (nextCourseLanguageLevel >= 1 && nextCourseLanguageLevel <= 6) c.languageLevel = nextCourseLanguageLevel; else delete c.languageLevel;
             var ew = (el('cm_examWeight').value || '').trim();
             c.examWeight = ew ? Math.max(0, Math.min(100, Math.round(Number(ew) || 0))) : null;
             if (newName !== oldName) {
@@ -22785,14 +22854,24 @@ input[type="range"]::-moz-range-thumb{
               var key = btn.getAttribute('data-overlay-subdeck-save');
               var nameInput = courseModalBody.querySelector('[data-overlay-subdeck-name=\"' + key + '\"]');
               var profileInput = courseModalBody.querySelector('[data-overlay-subdeck-plan-profile=\"' + key + '\"]');
+              var targetLanguageInput = courseModalBody.querySelector('[data-overlay-subdeck-target-language=\"' + key + '\"]');
+              var targetLanguageOtherInput = courseModalBody.querySelector('[data-overlay-subdeck-target-language-other=\"' + key + '\"]');
+              var languageLevelInput = courseModalBody.querySelector('[data-overlay-subdeck-language-level=\"' + key + '\"]');
               var nextName = nameInput ? String(nameInput.value || '').trim() : '';
               var nextProfile = profileInput ? String(profileInput.value || '').trim() : '';
+              var nextTargetLanguage = targetLanguageInput ? String(targetLanguageInput.value || '').trim() : '';
+              if (nextTargetLanguage === '__other__') nextTargetLanguage = targetLanguageOtherInput ? String(targetLanguageOtherInput.value || '').trim() : '';
+              var nextLanguageLevel = languageLevelInput ? parseInt(languageLevelInput.value || '0', 10) : 0;
               if (!nextName) { toast('Name cannot be empty'); return; }
               try {
                 globalThis.__studyEngineSubDecks.renameSubDeck(courseName, key, nextName);
                 if (state.subDecks && state.subDecks[courseName] && state.subDecks[courseName][key]) {
-                  if (nextProfile === 'theory' || nextProfile === 'factual' || nextProfile === 'procedural') state.subDecks[courseName][key].planProfile = nextProfile;
+                  if (nextProfile === 'theory' || nextProfile === 'factual' || nextProfile === 'procedural' || (isRun5LanguageEnabled() && nextProfile === 'language')) state.subDecks[courseName][key].planProfile = nextProfile;
                   else delete state.subDecks[courseName][key].planProfile;
+                  if (nextTargetLanguage) state.subDecks[courseName][key].targetLanguage = nextTargetLanguage;
+                  else delete state.subDecks[courseName][key].targetLanguage;
+                  if (nextLanguageLevel >= 1 && nextLanguageLevel <= 6) state.subDecks[courseName][key].languageLevel = nextLanguageLevel;
+                  else delete state.subDecks[courseName][key].languageLevel;
                 }
                 subDecksDirty = true;
                 saveState();
@@ -25637,6 +25716,9 @@ input[type="range"]::-moz-range-thumb{
       var submitLabelEl = el('learnSessionSubmitLabel');
       var readContinueBtn = el('learnReadContinueBtn');
       var assistedBadge = el('learnAssistedBadge');
+      var listenBtn = el('learnListenBtn');
+      var pronounceBtn = el('learnPronounceBtn');
+      var languagePill = el('learnLanguageModePill');
       var feedbackHost = el('learnFeedbackBlock');
       var tutorPane = el('learnTutorPane');
       var staleNote = ensureLearnPlanStaleNoteNode();
@@ -25708,7 +25790,9 @@ input[type="range"]::-moz-range-thumb{
       var curCheckType = curSeg && curSeg.checkType ? String(curSeg.checkType) : '';
       var curFadeLevel = curSeg && curSeg.fadeLevel != null ? Number(curSeg.fadeLevel) : null;
       var isTransferSegment = curCheckType === 'transfer_question';
+      var isClozeSegment = curCheckType === 'cloze';
       if (tutorPane) tutorPane.classList.toggle('transfer-segment', isTransferSegment);
+      if (tutorPane) tutorPane.classList.toggle('cloze-segment', isClozeSegment && isRun5LanguageEnabled());
 
       /* Tutor body (Teach block) */
       if (tutor) {
@@ -25728,6 +25812,17 @@ input[type="range"]::-moz-range-thumb{
         var sessionProfile = activeLearnSession && activeLearnSession.planProfile ? String(activeLearnSession.planProfile) : 'theory';
         if (!labelPill && flow.segmentIndex === 0 && (sessionProfile === 'factual' || sessionProfile === 'procedural')) {
           labelPill = '<div class="segment-label-pill">' + (sessionProfile === 'factual' ? 'Factual mode' : 'Procedural mode') + '</div>';
+        }
+        if (languagePill) {
+          if (isRun5LanguageEnabled() && sessionProfile === 'language') {
+            var resolvedLang = activeLearnSession.targetLanguage || resolveSessionTargetLanguageFromFlow(flow) || 'en-US';
+            var level = Number(activeLearnSession.languageLevel || resolveSessionLanguageLevelFromFlow(flow) || 1);
+            languagePill.textContent = 'Language mode · target: ' + resolvedLang + ' · level i+1 ≈ ' + (level + 1);
+            languagePill.hidden = false;
+          } else {
+            languagePill.hidden = true;
+            languagePill.textContent = '';
+          }
         }
         var workedPanel = '';
         if (curCheckType === 'worked_example' && (curFadeLevel === 1 || curFadeLevel === 2)) {
@@ -25776,7 +25871,56 @@ input[type="range"]::-moz-range-thumb{
       var yourTurnPromptEl = el('learnTutorPrompt');
       if (yourTurnPromptEl) {
         var curPrompt = (curSeg && curSeg.tutorPrompt) ? String(curSeg.tutorPrompt).trim() : '';
-        yourTurnPromptEl.innerHTML = curPrompt ? renderLearnMarkdownSafe(curPrompt) : '';
+        if (isRun5LanguageEnabled() && curCheckType === 'cloze') {
+          var clozeHtml = esc(curPrompt).replace(/\[___\]/g, '<input id="learnClozeInput" class="cloze-blank" type="text" placeholder="fill in" />');
+          yourTurnPromptEl.innerHTML = curPrompt ? clozeHtml : '';
+          var clozeInput = el('learnClozeInput');
+          if (clozeInput) {
+            if (flow.currentSubPhase === 'answer') setTimeout(function(){ try { clozeInput.focus(); } catch (e) {} }, 0);
+            clozeInput.addEventListener('keydown', function(ev) {
+              if (ev.key === 'Enter') {
+                ev.preventDefault();
+                var submitBtn = el('learnSessionSubmit');
+                if (submitBtn && !submitBtn.disabled) submitBtn.click();
+              }
+            });
+          }
+        } else {
+          yourTurnPromptEl.innerHTML = curPrompt ? renderLearnMarkdownSafe(curPrompt) : '';
+        }
+      }
+      if (input && isRun5LanguageEnabled() && curCheckType === 'cloze') {
+        var cInput = el('learnClozeInput');
+        input.value = cInput ? String(cInput.value || '') : String(input.value || '');
+      }
+      var sessionProfileNow = activeLearnSession && activeLearnSession.planProfile ? String(activeLearnSession.planProfile) : 'theory';
+      var isLanguageMode = isRun5LanguageEnabled() && sessionProfileNow === 'language';
+      var isRecognition = isLanguageMode && (flow.segmentIndex % 2 === 0);
+      var resolvedLanguage = activeLearnSession.targetLanguage || resolveSessionTargetLanguageFromFlow(flow) || 'en-US';
+      if (listenBtn) {
+        listenBtn.hidden = !isRecognition;
+        listenBtn.disabled = !isRecognition;
+        if (isRecognition && curSeg && curSeg.teach) {
+          listenBtn.onclick = function() {
+            playLearnSegmentAudio({ text: String(curSeg.teach || ''), languageCode: resolvedLanguage });
+          };
+        } else {
+          listenBtn.onclick = null;
+        }
+      }
+      if (pronounceBtn) {
+        var turnResAudio = getCurrentLearnTurnResult(flow);
+        var verdictAudio = turnResAudio ? String(turnResAudio.verdict || '') : '';
+        var allowPronounce = isLanguageMode && !isRecognition && (verdictAudio === 'partial' || verdictAudio === 'deep');
+        pronounceBtn.hidden = !allowPronounce;
+        pronounceBtn.disabled = !allowPronounce;
+        pronounceBtn.onclick = allowPronounce ? function() {
+          playLearnSegmentAudio({ text: String((curSeg && curSeg.expectedAnswer) || ''), languageCode: resolvedLanguage });
+        } : null;
+      }
+      if (isLanguageMode && isRecognition) {
+        var nextSeg = (flow.plan && flow.plan.segments) ? flow.plan.segments[flow.segmentIndex + 2] : null;
+        if (nextSeg && nextSeg.teach) prefetchAudio({ text: String(nextSeg.teach || ''), languageCode: resolvedLanguage });
       }
       if (assistedBadge) {
         var isAssisted = !!(flowBridge && flowBridge.wasAssisted && flowBridge.wasAssisted(flow));
@@ -25999,6 +26143,8 @@ input[type="range"]::-moz-range-thumb{
       }
       var input = el('learnSessionInput');
       var userInput = input ? String(input.value || '').trim() : '';
+      var clozeInput = el('learnClozeInput');
+      if (isRun5LanguageEnabled() && clozeInput) userInput = String(clozeInput.value || '').trim();
       if (!userInput) return;
 
       var pendingSegment = flowBridge.currentSegment(activeLearnSession.flow);
@@ -26101,6 +26247,123 @@ input[type="range"]::-moz-range-thumb{
     function isRun45FreeformEnabled() {
       if (!state.studyEngineFeatures || typeof state.studyEngineFeatures.run45Freeform === 'undefined') return true;
       return !!state.studyEngineFeatures.run45Freeform;
+    }
+
+    function isRun5LanguageEnabled() {
+      if (!state.studyEngineFeatures || typeof state.studyEngineFeatures.run5Language === 'undefined') return true;
+      return !!state.studyEngineFeatures.run5Language;
+    }
+
+    function normalizeLanguageTag(tag) {
+      var t = String(tag || '').trim();
+      return t ? t : '';
+    }
+
+    function resolveCardTargetLanguage(card) {
+      if (!card) return '';
+      var courseName = card.course;
+      var subDeckKey = card.subDeck || card.subdeck || '';
+      var subDeckMeta = (state.subDecks && state.subDecks[courseName] && state.subDecks[courseName][subDeckKey]) ? state.subDecks[courseName][subDeckKey] : null;
+      var course = state.courses && courseName ? state.courses[courseName] : null;
+      return normalizeLanguageTag(card.targetLanguage) || normalizeLanguageTag(subDeckMeta && subDeckMeta.targetLanguage) || normalizeLanguageTag(course && course.targetLanguage) || '';
+    }
+
+    function resolveSessionTargetLanguageFromFlow(flow) {
+      var segs = (flow && flow.plan && flow.plan.segments) || [];
+      var tally = {};
+      segs.forEach(function(seg) {
+        var ids = (seg && seg.linkedCardIds) || [];
+        ids.forEach(function(id) {
+          var card = state.items && state.items[id];
+          var lang = resolveCardTargetLanguage(card);
+          if (!lang) return;
+          tally[lang] = (tally[lang] || 0) + 1;
+        });
+      });
+      var tags = Object.keys(tally).sort(function(a, b) {
+        if (tally[b] !== tally[a]) return tally[b] - tally[a];
+        return a.localeCompare(b);
+      });
+      return tags[0] || '';
+    }
+    function resolveSessionLanguageLevelFromFlow(flow) {
+      var segs = (flow && flow.plan && flow.plan.segments) || [];
+      var tally = {};
+      segs.forEach(function(seg) {
+        var ids = (seg && seg.linkedCardIds) || [];
+        ids.forEach(function(id) {
+          var card = state.items && state.items[id];
+          var courseName = card && card.course;
+          var subDeckKey = (card && (card.subDeck || card.subdeck)) || '';
+          var sd = (state.subDecks && state.subDecks[courseName] && state.subDecks[courseName][subDeckKey]) ? state.subDecks[courseName][subDeckKey] : null;
+          var course = state.courses && courseName ? state.courses[courseName] : null;
+          var level = Number((card && card.languageLevel) || (sd && sd.languageLevel) || (course && course.languageLevel) || 0);
+          if (!level || level < 1 || level > 6) return;
+          tally[level] = (tally[level] || 0) + 1;
+        });
+      });
+      var keys = Object.keys(tally).map(function(k){ return Number(k); }).sort(function(a,b){
+        if (tally[b] !== tally[a]) return tally[b] - tally[a];
+        return a - b;
+      });
+      return keys[0] || 1;
+    }
+
+    var learnTtsAudioCache = new Map();
+    function mapLanguageVoice(languageCode) {
+      var lc = String(languageCode || '').toLowerCase();
+      if (lc.indexOf('en-us') === 0) return 'en-US-Studio-O';
+      if (lc.indexOf('es-es') === 0) return 'es-ES-Studio-F';
+      if (lc.indexOf('fr-fr') === 0) return 'fr-FR-Studio-D';
+      if (lc.indexOf('de-de') === 0) return 'de-DE-Studio-B';
+      if (lc.indexOf('ja-jp') === 0) return 'ja-JP-Standard-A';
+      if (lc.indexOf('zh-cn') === 0) return 'cmn-CN-Standard-A';
+      return '';
+    }
+    function __studyEngineReportTtsWarning(msg) {
+      var chip = el('learnTtsWarningChip');
+      if (!chip) return;
+      chip.textContent = String(msg || 'Audio unavailable');
+      chip.hidden = false;
+    }
+    async function fetchTtsBlobUrl(args) {
+      var text = String((args && args.text) || '').trim();
+      var languageCode = String((args && args.languageCode) || '').trim() || 'en-US';
+      if (!text) return '';
+      var voiceName = (args && args.voiceName) || mapLanguageVoice(languageCode) || undefined;
+      var key = languageCode + '::' + (voiceName || '') + '::' + text;
+      if (learnTtsAudioCache.has(key)) return learnTtsAudioCache.get(key);
+      var res = await fetch('https://widget-sync.lordgrape-widgets.workers.dev/studyengine/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: text, languageCode: languageCode, voiceName: voiceName })
+      });
+      if (!res.ok) throw new Error('tts_http_' + res.status);
+      var body = await res.json();
+      if (!body || !body.audioContent) throw new Error('tts_empty');
+      var bin = atob(body.audioContent);
+      var bytes = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      var url = URL.createObjectURL(new Blob([bytes], { type: 'audio/mpeg' }));
+      learnTtsAudioCache.set(key, url);
+      if (learnTtsAudioCache.size > 50) {
+        var firstKey = learnTtsAudioCache.keys().next().value;
+        if (firstKey) { URL.revokeObjectURL(learnTtsAudioCache.get(firstKey)); learnTtsAudioCache.delete(firstKey); }
+      }
+      return url;
+    }
+    async function prefetchAudio(args) {
+      try { await fetchTtsBlobUrl(args); } catch (e) { __studyEngineReportTtsWarning('Audio unavailable'); }
+    }
+    async function playLearnSegmentAudio(args) {
+      try {
+        var url = await fetchTtsBlobUrl(args);
+        if (!url) return;
+        var audio = new Audio(url);
+        await audio.play();
+      } catch (e) {
+        __studyEngineReportTtsWarning('Audio unavailable');
+      }
     }
 
     var ingestUiState = {
@@ -26658,7 +26921,8 @@ input[type="range"]::-moz-range-thumb{
 
       var handlers = {
         onPlanProfileResolved: function(profile) {
-          var normalized = (profile === 'factual' || profile === 'procedural') ? profile : 'theory';
+          var normalized = (profile === 'factual' || profile === 'procedural' || profile === 'language') ? profile : 'theory';
+          if (!isRun5LanguageEnabled() && normalized === 'language') normalized = 'theory';
           if (activeLearnSession) activeLearnSession.planProfile = normalized;
           state.currentSession = state.currentSession || {};
           state.currentSession.planProfile = normalized;
@@ -26725,6 +26989,8 @@ input[type="range"]::-moz-range-thumb{
               ? meta.groundingSource
               : undefined;
           }
+          if (!activeLearnSession.targetLanguage) activeLearnSession.targetLanguage = resolveSessionTargetLanguageFromFlow(activeLearnSession.flow) || '';
+          if (!activeLearnSession.languageLevel) activeLearnSession.languageLevel = resolveSessionLanguageLevelFromFlow(activeLearnSession.flow) || 1;
           /* First-segment race guard: mount after appendStreamedSegment so the flow
              state the modal renders is consistent. appendStreamedSegment silently
              no-ops if activeLearnSession was cleared in the same tick (user escaped

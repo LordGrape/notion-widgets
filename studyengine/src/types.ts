@@ -126,13 +126,15 @@ export interface ReviewEvent {
   rating: 1 | 2 | 3 | 4;
 }
 
-export type PlanProfile = 'theory' | 'factual' | 'procedural';
+export type PlanProfile = 'theory' | 'factual' | 'procedural' | 'language';
 
 export interface SubDeckMeta {
   name: string;
   order: number;
   created: number;
   planProfile?: PlanProfile;
+  targetLanguage?: string;
+  languageLevel?: 1 | 2 | 3 | 4 | 5 | 6;
   color?: string;
   icon?: string;
   parentSubDeck?: string | null;
@@ -154,6 +156,8 @@ export interface StudyItem {
   course?: string;
   topic?: string;
   planProfile?: PlanProfile;
+  targetLanguage?: string;
+  languageLevel?: 1 | 2 | 3 | 4 | 5 | 6;
   subdeck?: string;
   subDeck?: string | null;
   parentCardId?: string;
@@ -213,6 +217,8 @@ export interface SubDeck {
   id: string;
   name: string;
   planProfile?: PlanProfile;
+  targetLanguage?: string;
+  languageLevel?: 1 | 2 | 3 | 4 | 5 | 6;
   topics: string[];
   items: string[];
 }
@@ -221,6 +227,8 @@ export interface Course {
   id: string;
   name: string;
   planProfile?: PlanProfile;
+  targetLanguage?: string;
+  languageLevel?: 1 | 2 | 3 | 4 | 5 | 6;
   color: string;
   examType: ExamType;
   examDate: string | null;
@@ -409,7 +417,7 @@ export interface LearnPlanSegment {
   id: string;
   title: string;
   mechanism: 'worked_example' | 'elaborative_interrogation' | 'self_explanation' | 'predictive_question' | 'test_closure';
-  checkType?: 'elaborative' | 'predictive' | 'self_explain' | 'prior_knowledge_probe' | 'worked_example' | 'transfer_question';
+  checkType?: 'elaborative' | 'predictive' | 'self_explain' | 'prior_knowledge_probe' | 'worked_example' | 'transfer_question' | 'cloze';
   objective: string;
   teach?: string;
   tutorPrompt: string;
@@ -487,5 +495,7 @@ export interface AppState {
     run2Generative?: boolean;
     run3Profiles?: boolean;
     run4Ingest?: boolean;
+    run45Freeform?: boolean;
+    run5Language?: boolean;
   };
 }
