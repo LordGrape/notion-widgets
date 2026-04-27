@@ -324,6 +324,7 @@ export async function handleLearnTurn(request: Request, env: Env): Promise<Respo
     }
 
     const response: LearnTurnResponse = successEnvelope(payload);
+    if ((body.turnIndex ?? 0) >= 30) await emitTier2Event(env, { route: "turn_soft_cap_hit", model: TURN_MODEL, ts: Date.now() });
     await emitTier2Event(env, { route: "learn-turn", model: TURN_MODEL, ts: Date.now() });
     return jsonResponse(response, 200);
   } catch (error) {

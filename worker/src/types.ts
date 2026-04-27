@@ -450,6 +450,10 @@ export interface LearnPlanResponse {
   consolidationQuestions?: ConsolidationQuestion[];
   planMode?: "verified" | "retry_verified" | "card_density_fallback";
   warning?: string;
+  budgetDegraded?: {
+    reason: "pro_exhausted";
+    resetAt: string;
+  };
 }
 
 export interface LearnTurnRequest {
@@ -458,6 +462,7 @@ export interface LearnTurnRequest {
   userInput?: string;
   userName?: string;
   segmentLimit?: 1;
+  turnIndex?: number;
 }
 
 export type LearnTurnVerdict = "surface" | "partial" | "deep";

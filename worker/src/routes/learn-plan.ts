@@ -15,6 +15,36 @@ const PLAN_ESCALATION_MODEL = "gemini-2.5-pro";
 const PLAN_CACHE_VERSION = "v4";
 const PLAN_CACHE_TTL_SECONDS = 86400;
 const PLAN_CACHE_KEY_PREFIX = `learn-plan:${PLAN_CACHE_VERSION}:`;
+const PRO_DAILY_CAP = 5;
+
+function dayKey(ts: number): string {
+  return new Date(ts).toISOString().slice(0, 10);
+}
+
+function nextUtcMidnightIso(ts: number): string {
+  const d = new Date(ts);
+  const next = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1, 0, 0, 0, 0);
+  return new Date(next).toISOString();
+}
+
+function resetAtTtlSeconds(ts: number): number {
+  const d = new Date(ts);
+  const next = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1, 0, 0, 0, 0);
+  return Math.max(1, Math.ceil((next - ts) / 1000));
+}
+
+function toCount(raw: string | null): number {
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+}
+
+async function incrementCeilingCounter(env: Env, day: string, field: "plan_pro_exhausted" | "turn_soft_cap_hit", ttl: number): Promise<void> {
+  const key = `tier2:ceilings:${day}`;
+  const existing = await env.WIDGET_KV.get(key, "json") as Record<string, number> | null;
+  const next = { ...(existing || {}) };
+  next[field] = (Number(next[field]) || 0) + 1;
+  await env.WIDGET_KV.put(key, JSON.stringify(next), { expirationTtl: ttl });
+}
 
 interface PlanCachedResponse extends LearnPlanResponse {
   cachedAt: string;
@@ -1148,9 +1178,26 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
     }
 
     let secondAttempt: LearnPlanResponse | null = null;
+    let budgetDegraded: LearnPlanResponse["budgetDegraded"];
     if (!skipOneShot) {
       try {
-        secondAttempt = await requestPlanOneShot(PLAN_ESCALATION_MODEL, body, env);
+        const now = Date.now();
+        const day = dayKey(now);
+        const ttl = resetAtTtlSeconds(now);
+        const planKey = `tier2:plan-pro:${day}`;
+        const ingestKey = `tier2:ingest:${day}`;
+        const [planCountRaw, ingestCountRaw] = await Promise.all([
+          env.WIDGET_KV.get(planKey),
+          env.WIDGET_KV.get(ingestKey)
+        ]);
+        const combinedCount = toCount(planCountRaw) + toCount(ingestCountRaw);
+        if (combinedCount >= PRO_DAILY_CAP) {
+          budgetDegraded = { reason: "pro_exhausted", resetAt: nextUtcMidnightIso(now) };
+          await incrementCeilingCounter(env, day, "plan_pro_exhausted", ttl);
+        } else {
+          secondAttempt = await requestPlanOneShot(PLAN_ESCALATION_MODEL, body, env);
+          await env.WIDGET_KV.put(planKey, String(toCount(planCountRaw) + 1), { expirationTtl: ttl });
+        }
       } catch (err) {
         console.warn("[learn-plan] one-shot fallback threw", err);
       }
@@ -1183,7 +1230,8 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
         segmentCount: emittedSegments.length,
         consolidationCount: verifiedSecondQs.length,
         planMode: "retry_verified",
-        warning: verifiedSecondQs.length < 2 ? "Fewer than 2 consolidation questions verified." : undefined
+        warning: verifiedSecondQs.length < 2 ? "Fewer than 2 consolidation questions verified." : undefined,
+        budgetDegraded
       });
       await writePlanCache(cacheKey, env, verifiedSecond, verifiedSecondQs);
       await emitTier2Event(env, { route: "learn-plan", model: PLAN_ESCALATION_MODEL, ts: Date.now() });
