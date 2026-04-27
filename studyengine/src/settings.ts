@@ -194,6 +194,46 @@ export function setupSettingsModule(ctx: SettingsModuleContext): {
       };
     }
 
+    // L1a: dev-only French sample importer. Replays a JSON file through the
+    // existing m_import → doImport → commitImport path. Remove / upgrade in L1b.
+    const l1aSection = el<HTMLElement>('l1aFrenchSampleSection');
+    const l1aBtn = el<HTMLButtonElement>('l1aFrenchSampleBtn');
+    const l1aFile = el<HTMLInputElement>('l1aFrenchSampleFile');
+    const l1aStatus = el<HTMLElement>('l1aFrenchSampleStatus');
+    if (l1aSection) {
+      let dev = false;
+      try { dev = window.localStorage?.getItem('studyEngineDevMode') === '1'; } catch {}
+      if (!dev) {
+        try { dev = new URLSearchParams(window.location.search).get('dev') === '1'; } catch {}
+      }
+      l1aSection.style.display = dev ? 'block' : 'none';
+    }
+    if (l1aBtn && l1aFile) {
+      l1aBtn.onclick = () => { l1aFile.value = ''; l1aFile.click(); };
+      l1aFile.onchange = () => {
+        const file = l1aFile.files && l1aFile.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          const text = String(reader.result || '').trim();
+          if (!text) { if (l1aStatus) l1aStatus.textContent = 'File is empty.'; return; }
+          const importBtn = document.getElementById('importBtn') as HTMLButtonElement | null;
+          if (!importBtn) { if (l1aStatus) l1aStatus.textContent = 'Import path not available.'; return; }
+          importBtn.click();
+          window.setTimeout(() => {
+            const ta = document.getElementById('m_import') as HTMLTextAreaElement | null;
+            const next = document.getElementById('addNextBtn') as HTMLButtonElement | null;
+            if (!ta || !next) { if (l1aStatus) l1aStatus.textContent = 'Import modal did not open.'; return; }
+            ta.value = text;
+            next.click();
+            if (l1aStatus) l1aStatus.textContent = 'Sample loaded — confirm in the import preview.';
+          }, 80);
+        };
+        reader.onerror = () => { if (l1aStatus) l1aStatus.textContent = 'Could not read file.'; };
+        reader.readAsText(file);
+      };
+    }
+
     const restoreBtn = el<HTMLButtonElement>('restoreDataBtn');
     if (restoreBtn) {
       restoreBtn.onclick = () => {

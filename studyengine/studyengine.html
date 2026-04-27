@@ -10250,6 +10250,14 @@ input[type="range"]::-moz-range-thumb{
             <button type="button" id="regenOverrideAll" class="big-btn" style="width:100%;margin-top:8px;background:linear-gradient(135deg,rgba(239,68,68,0.85),rgba(239,68,68,0.55));border:none">🔄 Override all visuals</button>
             <span id="overrideStatus" style="display:block;margin-top:6px;font-size:9px;color:var(--text-secondary);letter-spacing:0.8px;text-align:center"></span>
           </div>
+          <!-- L1a: dev-only French sample importer; gated in settings.ts. -->
+          <div id="l1aFrenchSampleSection" style="display:none;margin-top:20px;padding-top:16px;border-top:1px dashed rgba(var(--accent-rgb),0.25)">
+            <div style="font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px">🇫🇷 L1a French sample <span style="opacity:0.6;font-weight:500">(dev)</span></div>
+            <div style="font-size:9px;color:var(--text-tertiary);margin-bottom:8px;line-height:1.4">Pick <code>studyengine/data/french-core-50-sample.json</code>.</div>
+            <input type="file" id="l1aFrenchSampleFile" accept="application/json,.json" style="display:none">
+            <button type="button" id="l1aFrenchSampleBtn" class="ghost-btn" style="width:100%;min-width:auto">📥 Import L1a French sample…</button>
+            <div id="l1aFrenchSampleStatus" style="font-size:9px;color:var(--text-tertiary);margin-top:6px;line-height:1.35" aria-live="polite"></div>
+          </div>
         </div>
       </div>
       <div class="modal-actions">

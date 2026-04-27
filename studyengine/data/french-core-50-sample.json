@@ -1,0 +1,752 @@
+[
+  {
+    "prompt": "de",
+    "modelAnswer": "`/d@/`\n\n*of, from*\n\n> Il est de Paris.\n> *He is from Paris.*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "la",
+    "modelAnswer": "`/la/`\n\n*the (fem.); her, it*\n\n> La maison est grande.\n> *The house is big.*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "le",
+    "modelAnswer": "`/l@/`\n\n*the (masc.); him, it*\n\n> Le chat dort.\n> *The cat is sleeping.*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "être",
+    "modelAnswer": "`/EtR/`\n\n*to be*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "et",
+    "modelAnswer": "`/e/`\n\n*and*\n\n> Toi et moi.\n> *You and me.*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "à",
+    "modelAnswer": "`/a/`\n\n*to, at, in*\n\n> Il va à Paris.\n> *He is going to Paris.*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "il",
+    "modelAnswer": "`/il/`\n\n*he, it*\n\n> Il parle bien.\n> *He speaks well.*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "avoir",
+    "modelAnswer": "`/avwaR/`\n\n*to have*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "ne",
+    "modelAnswer": "`/n@/`\n\n*not (negation marker, paired with pas/jamais/etc.)*\n\n> Je ne sais pas.\n> *I don’t know.*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "je",
+    "modelAnswer": "`/Z@/`\n\n*I*\n\n> Je suis fatigué.\n> *I am tired.*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "son",
+    "modelAnswer": "`/s§/`\n\n*his, her, its (masc. sing.)*\n\n> C’est son livre.\n> *That is his book.*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "que",
+    "modelAnswer": "`/k@/`\n\n*that, which; what; than*\n\n> Que veux-tu ?\n> *What do you want?*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "se",
+    "modelAnswer": "`/s@/`\n\n*oneself, himself, herself (reflexive)*\n\n> Il se lave.\n> *He is washing himself.*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "qui",
+    "modelAnswer": "`/ki/`\n\n*who, which*\n\n> Qui est-ce ?\n> *Who is it?*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "ce",
+    "modelAnswer": "`/s@/`\n\n*this, that; it*\n\n> Ce livre est bon.\n> *This book is good.*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "dans",
+    "modelAnswer": "`/d@~/`\n\n*in, into*\n\n> Il est dans la voiture.\n> *He is in the car.*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "en",
+    "modelAnswer": "`/@~/`\n\n*in, of it, some (pronoun and preposition)*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "un",
+    "modelAnswer": "`/9~/`\n\n*a, an, one*\n\n> J’ai un chien.\n> *I have a dog.*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "tu",
+    "modelAnswer": "`/ty/`\n\n*you (singular, informal)*\n\n> Tu es là ?\n> *Are you there?*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "pas",
+    "modelAnswer": "`/pA/`\n\n*not (negation)*\n\n> Il ne vient pas.\n> *He is not coming.*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "vouloir",
+    "modelAnswer": "`/vulwaR/`\n\n*to want*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "pour",
+    "modelAnswer": "`/puR/`\n\n*for, in order to*\n\n> C’est pour toi.\n> *This is for you.*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "faire",
+    "modelAnswer": "`/fER/`\n\n*to do, to make*\n\n> Que veux-tu faire ?\n> *What do you want to do?*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "me",
+    "modelAnswer": "`/m@/`\n\n*me, myself*\n\n> Tu me vois ?\n> *Do you see me?*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "plus",
+    "modelAnswer": "`/plys/`\n\n*more; no longer (when negated)*\n\n> J’en veux plus.\n> *I want more.*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "dire",
+    "modelAnswer": "`/diR/`\n\n*to say, to tell*\n\n> Que veux-tu dire ?\n> *What do you mean?*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "pouvoir",
+    "modelAnswer": "`/puvwaR/`\n\n*to be able to, can*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "mais",
+    "modelAnswer": "`/mE/`\n\n*but*\n\n> Il est petit mais fort.\n> *He is small but strong.*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "y",
+    "modelAnswer": "`/i/`\n\n*there; of it / about it (pronoun)*\n\n> Nous y allons.\n> *We are going there.*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "on",
+    "modelAnswer": "`/§/`\n\n*one, we, people (impersonal subject)*\n\n> On y va !\n> *Let’s go!*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "nous",
+    "modelAnswer": "`/nu/`\n\n*we, us*\n\n> Nous sommes amis.\n> *We are friends.*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "tout",
+    "modelAnswer": "`/tu/`\n\n*all, every, everything*\n\n> C’est tout.\n> *That’s all.*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "te",
+    "modelAnswer": "`/t@/`\n\n*you, yourself (informal singular object)*\n\n> Je te vois.\n> *I see you.*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "aller",
+    "modelAnswer": "`/ale/`\n\n*to go*\n\n> Je vais y aller.\n> *I’ll go there.*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "votre",
+    "modelAnswer": "`/vOtR/`\n\n*your (formal or plural)*\n\n> C’est votre tour.\n> *It is your turn.*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "avec",
+    "modelAnswer": "`/avEk/`\n\n*with*\n\n> Je viens avec toi.\n> *I’m coming with you.*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "au",
+    "modelAnswer": "`/o/`\n\n*to the, at the (à + le)*\n\n> Il va au marché.\n> *He is going to the market.*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "comme",
+    "modelAnswer": "`/kOm/`\n\n*like, as; how*\n\n> Doux comme un agneau.\n> *Gentle as a lamb.*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "ça",
+    "modelAnswer": "`/sa/`\n\n*that, it (informal)*\n\n> Ça va ?\n> *How are you?*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "moi",
+    "modelAnswer": "`/mwa/`\n\n*me (stressed pronoun)*\n\n> C’est pour moi.\n> *This is for me.*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "autre",
+    "modelAnswer": "`/otR/`\n\n*other, another*\n\n> J’en veux un autre.\n> *I want another one.*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "lui",
+    "modelAnswer": "`/l4i/`\n\n*him, her (indirect object); to him/her*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "très",
+    "modelAnswer": "`/tRE/`\n\n*very*\n\n> C’est très bon.\n> *It is very good.*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "là",
+    "modelAnswer": "`/la/`\n\n*there*\n\n> Elle est là.\n> *She is there.*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "vous",
+    "modelAnswer": "`/vu/`\n\n*you (formal or plural)*\n\n> Vous êtes prêts ?\n> *Are you ready?*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "ou",
+    "modelAnswer": "`/u/`\n\n*or*\n\n> Thé ou café ?\n> *Tea or coffee?*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "sur",
+    "modelAnswer": "`/syR/`\n\n*on, on top of, about*\n\n> Il est sur la table.\n> *It is on the table.*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "quoi",
+    "modelAnswer": "`/kwa/`\n\n*what (interrogative / relative)*\n\n> Quoi de neuf ?\n> *What’s new?*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "si",
+    "modelAnswer": "`/si/`\n\n*if; so; yes (in response to a negative)*\n\n> Si tu veux.\n> *If you want.*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  },
+  {
+    "prompt": "mon",
+    "modelAnswer": "`/m§/`\n\n*my (masc. sing.)*\n\n> C’est mon ami.\n> *He is my friend.*",
+    "course": "French",
+    "subDeck": "Core 2000",
+    "topic": "A1",
+    "tier": "quickfire",
+    "targetLanguage": "fr-CA",
+    "languageLevel": 1,
+    "planProfile": "language",
+    "tags": [
+      "french-core-2000",
+      "l1a"
+    ]
+  }
+]

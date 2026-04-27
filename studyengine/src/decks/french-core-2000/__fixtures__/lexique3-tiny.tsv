@@ -1,0 +1,12 @@
+ortho	phon	lemme	cgram	genre	nombre	freqlemfilms2	freqfilms2
+de	d@	de	PRE		s	38967.30	38967.30
+la	la	la	DET:ART	f	s	19234.10	12000.00
+le	l@	le	DET:ART	m	s	19234.10	7000.00
+les	le	le	DET:ART		p	19234.10	234.10
+être	EtR	être	VER			5500.00	1200.00
+est	E	être	VER			5500.00	2300.00
+sont	s§	être	VER			5500.00	900.00
+chien	SjE~	chien	NOM	m	s	120.55	100.00
+chiens	SjE~	chien	NOM	m	p	120.55	20.55
+maison	mEz§	maison	NOM	f	s	95.00	95.00
+phrase_unicodée	fRaz	phrase_unicodée	NOM	f	s	1.0	1.0

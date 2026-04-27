@@ -1,0 +1,9 @@
+# Lexique 3 + Tatoeba corpus dumps are fetched on demand by
+# `studyengine/scripts/fetch-*.ts` and verified by SHA256. They are not
+# committed (~55 MB combined). Re-fetch reproducibly with the pinned URLs.
+lexique3/
+tatoeba/
+
+# Allow the produced sample JSON (small, deterministic, matches what
+# `npm run build:french-sample` regenerates from the inline curated subset).
+!french-core-50-sample.json
