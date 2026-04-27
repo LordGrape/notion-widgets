@@ -221,4 +221,51 @@ describe('plan profile request wiring', () => {
   it('exposes resolveSessionPlanProfile on the bridge', () => {
     expect(typeof (globalThis as any).__studyEngineLearnMode.resolveSessionPlanProfile).toBe('function');
   });
+
+  it('sends learner model hint when run6Adaptive is enabled', async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      headers: { get: () => 'application/json' },
+      body: null,
+      text: async () => JSON.stringify({
+        segments: [
+          { id: 's1', title: 'T1', mechanism: 'worked_example', objective: 'o', teach: 'teach text one', tutorPrompt: 'tp', expectedAnswer: 'ea', linkedCardIds: ['c1'], groundingSnippets: [{ cardId: 'c1', quote: 'alpha beta gamma delta epsilon zeta eta theta iota kappa' }] },
+          { id: 's2', title: 'T2', mechanism: 'worked_example', objective: 'o', teach: 'teach text two', tutorPrompt: 'tp', expectedAnswer: 'ea', linkedCardIds: ['c1'], groundingSnippets: [{ cardId: 'c1', quote: 'alpha beta gamma delta epsilon zeta eta theta iota kappa' }] }
+        ],
+        consolidationQuestions: []
+      })
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('localStorage', { getItem: () => null, setItem: () => null });
+    const baseItem: any = { id: 'c1', prompt: 'P', modelAnswer: 'alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu', course: 'History', subDeck: 'sd-1', created: new Date().toISOString(), fsrs: { difficulty: 0, stability: 0, due: new Date().toISOString(), reps: 0, lapses: 0, lastReview: null, state: 'new' } };
+    const enabledState: any = { courses: { History: { name: 'History' } }, subDecks: { History: { 'sd-1': { name: 'SD', order: 0, created: Date.now() } } }, studyEngineFeatures: { run3Profiles: true, run6Adaptive: true } };
+    await streamLearnPlan('History', 'sd-1', [baseItem], enabledState, '', '', {}, undefined);
+    const reqBody = JSON.parse((fetchMock.mock.calls[0] as any)[1].body);
+    expect(reqBody.learnerModelHint).toBeTruthy();
+    expect(reqBody.learnerModelFingerprint).toBeTruthy();
+  });
+
+  it('omits learner model hint when run6Adaptive is disabled', async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      headers: { get: () => 'application/json' },
+      body: null,
+      text: async () => JSON.stringify({
+        segments: [
+          { id: 's1', title: 'T1', mechanism: 'worked_example', objective: 'o', teach: 'teach text one', tutorPrompt: 'tp', expectedAnswer: 'ea', linkedCardIds: ['c1'], groundingSnippets: [{ cardId: 'c1', quote: 'alpha beta gamma delta epsilon zeta eta theta iota kappa' }] },
+          { id: 's2', title: 'T2', mechanism: 'worked_example', objective: 'o', teach: 'teach text two', tutorPrompt: 'tp', expectedAnswer: 'ea', linkedCardIds: ['c1'], groundingSnippets: [{ cardId: 'c1', quote: 'alpha beta gamma delta epsilon zeta eta theta iota kappa' }] }
+        ],
+        consolidationQuestions: []
+      })
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    const baseItem: any = { id: 'c1', prompt: 'P', modelAnswer: 'alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu', course: 'History', subDeck: 'sd-1', created: new Date().toISOString(), fsrs: { difficulty: 0, stability: 0, due: new Date().toISOString(), reps: 0, lapses: 0, lastReview: null, state: 'new' } };
+    const disabledState: any = { courses: { History: { name: 'History' } }, subDecks: { History: { 'sd-1': { name: 'SD', order: 0, created: Date.now() } } }, studyEngineFeatures: { run3Profiles: true, run6Adaptive: false } };
+    await streamLearnPlan('History', 'sd-1', [baseItem], disabledState, '', '', {}, undefined);
+    const reqBody = JSON.parse((fetchMock.mock.calls[0] as any)[1].body);
+    expect(reqBody.learnerModelHint).toBeUndefined();
+    expect(reqBody.learnerModelFingerprint).toBeUndefined();
+  });
 });

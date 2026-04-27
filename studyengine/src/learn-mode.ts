@@ -2,6 +2,7 @@ import type { AppState, CourseContext, PlanProfile, StudyItem, SubDeckMeta } fro
 import { createSubDeck, getCardsInScope, getCardsInSubDeck, loadSubDecks } from './sub-decks';
 import { runLearnTurn, LearnTurnClientError } from './learn-turn-client';
 import { resolveSessionPlanProfile, resolveSessionTargetLanguage } from './plan-profiles';
+import { composeLearnerModelFingerprint, computeRecommendedSegmentMix, loadLearnerModel, recordSessionOutcome, saveLearnerModel } from './learner-model/learner-model';
 
 // Re-export for callers that previously imported from `./learn-mode`.
 export { runLearnTurn, LearnTurnClientError };
@@ -431,6 +432,7 @@ export async function streamLearnPlan(
     ),
     appendTransferQuestion: (handlers.getDeepVerdictCount?.() || 0) >= 3
   };
+  attachLearnerModelPayload(payload as Record<string, unknown>, state);
 
   let emittedCount = 0;
 
@@ -614,12 +616,13 @@ export async function streamCourseLearnPlan(
     ),
     appendTransferQuestion: (handlers.getDeepVerdictCount?.() || 0) >= 3
   };
+  attachLearnerModelPayload(payload as Record<string, unknown>, state);
 
   return streamLearnPlanInternal(payload, courseCards, subDeckFingerprint, handlers, signal);
 }
 
 async function streamLearnPlanInternal(
-  payload: { course: string; subDeck: string; cards: Array<{ id: string; prompt: string; modelAnswer: string }>; userName: string; learnerContext: string; planProfile: PlanProfile; targetLanguage?: string; languageLevel?: number; priorKnowledge?: 'high' | 'mixed' | 'low'; appendTransferQuestion?: boolean; },
+  payload: { course: string; subDeck: string; cards: Array<{ id: string; prompt: string; modelAnswer: string }>; userName: string; learnerContext: string; planProfile: PlanProfile; targetLanguage?: string; languageLevel?: number; priorKnowledge?: 'high' | 'mixed' | 'low'; appendTransferQuestion?: boolean; learnerModelFingerprint?: string; learnerModelHint?: { recommendedSegmentMix: Record<string, number>; overconfidenceBias: number; profileDeepRate: Record<string, number>; sourceTypeLapseRate: Record<string, number>; }; },
   sourceCards: StudyItem[],
   subDeckFingerprint: string,
   handlers: StreamLearnPlanHandlers = {},
@@ -949,6 +952,28 @@ export function createDefaultSubDeckForCourse(course: CourseLike | string, state
   return createdKey;
 }
 
+function attachLearnerModelPayload(payload: Record<string, unknown>, state?: AppState): void {
+  if (state?.studyEngineFeatures?.run6Adaptive === false) return;
+  const model = loadLearnerModel();
+  const mix = computeRecommendedSegmentMix(model);
+  payload.learnerModelFingerprint = composeLearnerModelFingerprint(model);
+  payload.learnerModelHint = {
+    recommendedSegmentMix: mix,
+    overconfidenceBias: Number(model.calibration?.overconfidenceBias || 0),
+    profileDeepRate: Object.keys(model.profileSuccess || {}).reduce((acc, key) => {
+      const deep = Number((model.profileSuccess as Record<string, { deepRate?: number }>)[key]?.deepRate || 0);
+      acc[key] = deep;
+      return acc;
+    }, {} as Record<string, number>),
+    sourceTypeLapseRate: { ...(model.sourceTypeLapseRate as Record<string, number> || {}) }
+  };
+}
+
+export function recordLearnSessionOutcome(summary: Parameters<typeof recordSessionOutcome>[1]): void {
+  const next = recordSessionOutcome(loadLearnerModel(), summary);
+  saveLearnerModel(next);
+}
+
 (globalThis as typeof globalThis & { __studyEngineLearnMode?: Record<string, unknown> }).__studyEngineLearnMode = {
   generateLearnPlan,
   generateCourseLearnPlan,
@@ -975,5 +1000,13 @@ export function createDefaultSubDeckForCourse(course: CourseLike | string, state
   pickProbeCard,
   classifyComplexCards,
   runPriorKnowledgeProbe,
-  resolveSessionPlanProfile
+  resolveSessionPlanProfile,
+  recordLearnSessionOutcome
+};
+
+(globalThis as typeof globalThis & { __studyEngineLearnerModel?: Record<string, unknown> }).__studyEngineLearnerModel = {
+  load: loadLearnerModel,
+  save: saveLearnerModel,
+  recordSessionOutcome,
+  computeRecommendedSegmentMix
 };

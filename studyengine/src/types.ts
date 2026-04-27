@@ -497,5 +497,6 @@ export interface AppState {
     run4Ingest?: boolean;
     run45Freeform?: boolean;
     run5Language?: boolean;
+    run6Adaptive?: boolean;
   };
 }
