@@ -467,6 +467,16 @@ export interface CachedLearnPlan {
   subDeckFingerprint?: string;
 }
 
+export interface StudyEngineFeatures {
+  run1Pedagogy?: boolean;
+  run2Generative?: boolean;
+  run3Profiles?: boolean;
+  run4Ingest?: boolean;
+  run45Freeform?: boolean;
+  run5Language?: boolean;
+  run6Adaptive?: boolean;
+}
+
 export interface AppState {
   items: Record<string, StudyItem>;
   courses: Record<string, Course>;
@@ -490,13 +500,5 @@ export interface AppState {
   currentSession?: {
     planProfile?: PlanProfile;
   };
-  studyEngineFeatures?: {
-    run1Pedagogy?: boolean;
-    run2Generative?: boolean;
-    run3Profiles?: boolean;
-    run4Ingest?: boolean;
-    run45Freeform?: boolean;
-    run5Language?: boolean;
-    run6Adaptive?: boolean;
-  };
+  studyEngineFeatures?: StudyEngineFeatures;
 }
