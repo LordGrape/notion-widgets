@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { applyLearnStatusMigration, classifyComplexCards, deriveLifecycleStage, pickProbeCard, runRelearningBurst, substringVerified } from './learn-mode';
+import { applyLearnStatusMigration, classifyComplexCards, deriveLifecycleStage, pickProbeCard, runRelearningBurst, streamLearnPlan, substringVerified } from './learn-mode';
 
 describe('substringVerified', () => {
   it('keeps segments with valid grounding snippets', () => {
@@ -177,5 +177,48 @@ describe('runRelearningBurst', () => {
     const requestInit = calls[0][1] as any;
     const payload = JSON.parse(requestInit.body);
     expect(payload.segmentLimit).toBe(1);
+  });
+});
+
+describe('plan profile request wiring', () => {
+  it('sends theory by default and factual when sub-deck default is set', async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      headers: { get: () => 'application/json' },
+      body: null,
+      text: async () => JSON.stringify({
+        segments: [
+          { id: 's1', title: 'T1', mechanism: 'worked_example', objective: 'o', teach: 'teach text one', tutorPrompt: 'tp', expectedAnswer: 'ea', linkedCardIds: ['c1'], groundingSnippets: [{ cardId: 'c1', quote: 'alpha beta gamma delta epsilon zeta eta theta iota kappa' }] },
+          { id: 's2', title: 'T2', mechanism: 'worked_example', objective: 'o', teach: 'teach text two', tutorPrompt: 'tp', expectedAnswer: 'ea', linkedCardIds: ['c1'], groundingSnippets: [{ cardId: 'c1', quote: 'alpha beta gamma delta epsilon zeta eta theta iota kappa' }] }
+        ],
+        consolidationQuestions: []
+      })
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const baseItem: any = {
+      id: 'c1',
+      prompt: 'P',
+      modelAnswer: 'alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu',
+      course: 'History',
+      subDeck: 'sd-1',
+      created: new Date().toISOString(),
+      fsrs: { difficulty: 0, stability: 0, due: new Date().toISOString(), reps: 0, lapses: 0, lastReview: null, state: 'new' }
+    };
+    const stateDefault: any = { courses: { History: { name: 'History' } }, subDecks: { History: { 'sd-1': { name: 'SD', order: 0, created: Date.now() } } }, studyEngineFeatures: { run3Profiles: true } };
+    await streamLearnPlan('History', 'sd-1', [baseItem], stateDefault, '', '', {}, undefined);
+    let reqBody = JSON.parse((fetchMock.mock.calls[0] as any)[1].body);
+    expect(reqBody.planProfile).toBe('theory');
+
+    fetchMock.mockClear();
+    const stateFactual: any = { courses: { History: { name: 'History' } }, subDecks: { History: { 'sd-1': { name: 'SD', order: 0, created: Date.now(), planProfile: 'factual' } } }, studyEngineFeatures: { run3Profiles: true } };
+    await streamLearnPlan('History', 'sd-1', [baseItem], stateFactual, '', '', {}, undefined);
+    reqBody = JSON.parse((fetchMock.mock.calls[0] as any)[1].body);
+    expect(reqBody.planProfile).toBe('factual');
+  });
+
+  it('exposes resolveSessionPlanProfile on the bridge', () => {
+    expect(typeof (globalThis as any).__studyEngineLearnMode.resolveSessionPlanProfile).toBe('function');
   });
 });

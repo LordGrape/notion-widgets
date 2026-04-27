@@ -55,7 +55,16 @@ export function setupModalSystem(bridge: ModalBridge): ModalSystem {
   let toastTimer: Nullable<number> = null;
 
   function tailFields(): string {
-    return '';
+    return '' +
+      '<div class="field">' +
+      '<label>Plan profile</label>' +
+      '<select id="m_planProfile" class="input">' +
+      '<option value="">Use sub-deck default</option>' +
+      '<option value="theory">Theory</option>' +
+      '<option value="factual">Factual</option>' +
+      '<option value="procedural">Procedural</option>' +
+      '</select>' +
+      '</div>';
   }
 
   function textField(label: string, id: string, ph: string): string {

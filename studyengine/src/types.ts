@@ -125,12 +125,13 @@ export interface ReviewEvent {
   rating: 1 | 2 | 3 | 4;
 }
 
-
+export type PlanProfile = 'theory' | 'factual' | 'procedural';
 
 export interface SubDeckMeta {
   name: string;
   order: number;
   created: number;
+  planProfile?: PlanProfile;
   color?: string;
   icon?: string;
   parentSubDeck?: string | null;
@@ -151,6 +152,7 @@ export interface StudyItem {
   lastTier?: TierId;
   course?: string;
   topic?: string;
+  planProfile?: PlanProfile;
   subdeck?: string;
   subDeck?: string | null;
   parentCardId?: string;
@@ -213,6 +215,7 @@ export interface StudyItem {
 export interface SubDeck {
   id: string;
   name: string;
+  planProfile?: PlanProfile;
   topics: string[];
   items: string[];
 }
@@ -220,6 +223,7 @@ export interface SubDeck {
 export interface Course {
   id: string;
   name: string;
+  planProfile?: PlanProfile;
   color: string;
   examType: ExamType;
   examDate: string | null;
@@ -372,6 +376,7 @@ export interface LearnSession {
   course?: string | null;
   startedAt?: string;
   completedAt?: string;
+  planProfile?: PlanProfile;
 }
 
 export interface LearnProgressMeta {
@@ -477,8 +482,12 @@ export interface AppState {
   /** Capped at last 30 completed Learn sessions (Phase 3). */
   learnSessions?: LearnSessionRecord[];
   learnPlans?: Record<string, Record<string, CachedLearnPlan>>;
+  currentSession?: {
+    planProfile?: PlanProfile;
+  };
   studyEngineFeatures?: {
     run1Pedagogy?: boolean;
     run2Generative?: boolean;
+    run3Profiles?: boolean;
   };
 }
