@@ -1169,6 +1169,22 @@ export function completeSession(): void {
     } catch (e) {}
   }
 
+  try {
+    const learnModeBridge = (globalThis as any).__studyEngineLearnMode;
+    if (learnModeBridge && typeof learnModeBridge.recordLearnSessionOutcome === 'function') {
+      const verdictMap = { 1: 'surface', 2: 'surface', 3: 'partial', 4: 'deep' } as Record<number, 'surface' | 'partial' | 'deep'>;
+      const checkTypeVerdicts = (session.sessionRatingsLog || []).map((entry: any) => ({
+        checkType: entry && entry.checkType ? String(entry.checkType) : 'elaborative',
+        verdict: verdictMap[Number(entry?.rating || 2)] || 'surface'
+      }));
+      learnModeBridge.recordLearnSessionOutcome({
+        profile: (bridge.state.currentSession?.planProfile || 'theory'),
+        checkTypeVerdicts,
+        jolCalibrationDelta: Number(session?.calBefore != null && calAfter != null ? session.calBefore - calAfter : 0)
+      });
+    }
+  } catch (e) {}
+
   setSession(null);
   bridge.showView('viewDone');
 

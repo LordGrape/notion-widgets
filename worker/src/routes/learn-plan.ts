@@ -12,7 +12,7 @@ const LEARN_PLAN_CORS_HEADERS = {
 const PLAN_PRIMARY_MODEL = "gemini-2.5-flash";
 const PLAN_ESCALATION_MODEL = "gemini-2.5-pro";
 
-const PLAN_CACHE_VERSION = "v3";
+const PLAN_CACHE_VERSION = "v4";
 const PLAN_CACHE_TTL_SECONDS = 86400;
 const PLAN_CACHE_KEY_PREFIX = `learn-plan:${PLAN_CACHE_VERSION}:`;
 
@@ -474,7 +474,9 @@ async function planCacheKey(body: LearnPlanRequest): Promise<string> {
     v: PLAN_CACHE_VERSION,
     priorKnowledge: body.priorKnowledge || "mixed",
     appendTransferQuestion: Boolean(body.appendTransferQuestion),
+    segmentLimit: Number.isFinite(Number(body.segmentLimit)) ? Number(body.segmentLimit) : undefined,
     planProfile,
+    learnerModelFingerprint: String(body.learnerModelFingerprint || '').trim() || undefined,
     targetLanguage: String(body.targetLanguage || "").trim() || undefined,
     languageLevel: Number.isFinite(Number(body.languageLevel)) ? Number(body.languageLevel) : undefined,
     course: body.course,
@@ -553,6 +555,11 @@ function buildSystemPrompt(body: LearnPlanRequest): string {
   if (planProfile === "factual") appendices.push(FACTUAL_PROFILE_APPENDIX);
   if (planProfile === "procedural") appendices.push(PROCEDURAL_PROFILE_APPENDIX);
   if (planProfile === "language") appendices.push(LANGUAGE_PROFILE_APPENDIX);
+  if (body.learnerModelHint) {
+    appendices.push(
+      "Learner adaptation: if learnerModelHint provided, weight segment generation toward the provided recommendedSegmentMix proportions, and adjust difficulty for overconfidenceBias (positive → harder; negative → gentler scaffolding)."
+    );
+  }
   return [
     "You generate a grounded first-exposure learning plan for one sub-deck.",
     "Return JSON only.",
@@ -646,6 +653,9 @@ MODEL_ANSWER: ${String(card.modelAnswer || "")}`;
     `LANGUAGE_LEVEL: ${Number.isFinite(Number(body.languageLevel)) ? Number(body.languageLevel) : "unspecified"}`,
     `PRIOR_KNOWLEDGE: ${body.priorKnowledge || "mixed"}`,
     `APPEND_TRANSFER_QUESTION: ${Boolean(body.appendTransferQuestion)}`,
+    `SEGMENT_LIMIT: ${Number.isFinite(Number(body.segmentLimit)) ? Number(body.segmentLimit) : "unspecified"}`,
+    `LEARNER_MODEL_FINGERPRINT: ${String(body.learnerModelFingerprint || '').trim() || 'none'}`,
+    `LEARNER_MODEL_HINT: ${body.learnerModelHint ? JSON.stringify(body.learnerModelHint) : 'none'}`,
     `USER_NAME: ${body.userName || "student"}`,
     `LEARNER_CONTEXT: ${body.learnerContext || ""}`,
     "",

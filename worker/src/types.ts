@@ -392,6 +392,14 @@ export interface LearnPlanRequest {
   learnerContext?: string;
   priorKnowledge?: "high" | "mixed" | "low";
   appendTransferQuestion?: boolean;
+  segmentLimit?: number;
+  learnerModelHint?: {
+    recommendedSegmentMix: Record<LearnCheckType, number>;
+    overconfidenceBias: number;
+    profileDeepRate: Partial<Record<PlanProfile, number>>;
+    sourceTypeLapseRate: Record<string, number>;
+  };
+  learnerModelFingerprint?: string;
 }
 
 export type LearnMechanism =
