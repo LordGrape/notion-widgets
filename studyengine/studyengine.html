@@ -9908,8 +9908,9 @@ input[type="range"]::-moz-range-thumb{
               <section class="learn-hero" id="learnHero" aria-label="Learn session start">
                 <div class="learn-hero-main">
                   <div class="learn-hero-actions">
+                    <!-- U1: Study is the primary action (review-first dispatcher); Learn and Sub-deck picker are secondary ghost buttons. -->
                     <button type="button" class="big-btn" id="cdStudyCourseBtn">Study</button>
-                    <button type="button" class="big-btn learn-hero-start-btn" id="cdLearnCourseBtn">Start Learn Session</button>
+                    <button type="button" class="ghost-btn learn-hero-start-btn" id="cdLearnCourseBtn">Start Learn Session</button>
                     <button type="button" class="ghost-btn learn-hero-subdeck-btn" id="learnHeroSubDeckBtn" aria-controls="learnSubDeckRail" aria-expanded="false">Sub-deck picker</button>
                   </div>
                   <p class="learn-hero-copy">Choose a sub-deck, then start a focused Learn session.</p>
@@ -10473,7 +10474,7 @@ input[type="range"]::-moz-range-thumb{
     import './src/learn-stats';
     import './src/learn-rail';
     import { deriveLearnDisplayMode } from './src/learn-display-mode';
-    import { LEARN_EMPTY_HEADING, LEARN_EMPTY_BODY, LEARN_EMPTY_CTA, LEARN_EMPTY_LABEL_ENCODING, LEARN_EMPTY_LABEL_RETRIEVAL, LEARN_LANDING_STATUS_UNLEARNED, LEARN_LANDING_STATUS_TAUGHT, LEARN_LANDING_STATUS_CONSOLIDATED, LEARN_LANDING_CACHE_HIT, LEARN_LANDING_CACHE_MISS, LEARN_LANDING_START, LEARN_LANDING_REGEN, LEARN_REGEN_CONFIRM, LEARN_INTRO_TEXT, LEARN_INTRO_DISMISS, formatRelativeTime } from './src/learn-copy';
+    import { LEARN_EMPTY_HEADING, LEARN_EMPTY_BODY, LEARN_EMPTY_CTA, LEARN_EMPTY_LABEL_ENCODING, LEARN_EMPTY_LABEL_RETRIEVAL, LEARN_LANDING_STATUS_UNLEARNED, LEARN_LANDING_STATUS_TAUGHT, LEARN_LANDING_STATUS_CONSOLIDATED, LEARN_LANDING_CACHE_HIT, LEARN_LANDING_CACHE_MISS, LEARN_LANDING_REGEN, LEARN_REGEN_CONFIRM, LEARN_INTRO_TEXT, LEARN_INTRO_DISMISS, formatRelativeTime } from './src/learn-copy'; // U1: LEARN_LANDING_START removed (duplicate in-card button gone)
     import { visibleCourseDetailsFields } from './src/courses/visibility';
     import { resolveActiveHomeCourse } from './src/home/active-course';
     import { homeHeroStats, homeTutorStatsLabels } from './src/home/widgets';
@@ -25125,22 +25126,20 @@ input[type="range"]::-moz-range-thumb{
       var cacheLine = hasCache
         ? LEARN_LANDING_CACHE_HIT(formatRelativeTime(Number(cache.generatedAt || 0)))
         : LEARN_LANDING_CACHE_MISS;
+      // U1: removed duplicate #learnLandingStartBtn — top #cdLearnCourseBtn covers this exact action with the same args.
+      // The `.learn-subdeck-actions` wrapper is suppressed entirely when there is no Regenerate button (no cache).
       emptyState.innerHTML = ''
         + '<div class="learn-subdeck-landing">'
         + '<h3>' + escapeLearnText(subDeckName) + '</h3>'
         + '<p class="learn-subdeck-status">' + Number(counts.unlearned || 0) + ' ' + escapeLearnText(LEARN_LANDING_STATUS_UNLEARNED) + ' · ' + Number(counts.taught || 0) + ' ' + escapeLearnText(LEARN_LANDING_STATUS_TAUGHT) + ' · ' + Number(counts.consolidated || 0) + ' ' + escapeLearnText(LEARN_LANDING_STATUS_CONSOLIDATED) + '</p>'
         + '<p class="learn-subdeck-cache-status">' + escapeLearnText(cacheLine) + '</p>'
-        + '<div class="learn-subdeck-actions">'
-        + '<button type="button" class="learn-start-btn primary" id="learnLandingStartBtn">' + escapeLearnText(LEARN_LANDING_START) + '</button>'
-        + (hasCache ? '<button type="button" class="learn-regen-btn secondary" id="learnLandingRegenBtn">' + escapeLearnText(LEARN_LANDING_REGEN) + '</button>' : '')
-        + '</div>'
+        + (hasCache
+            ? ('<div class="learn-subdeck-actions">'
+                 + '<button type="button" class="learn-regen-btn secondary" id="learnLandingRegenBtn">' + escapeLearnText(LEARN_LANDING_REGEN) + '</button>'
+               + '</div>')
+            : '')
         + '</div>';
       emptyState.hidden = false;
-      var startBtn = el('learnLandingStartBtn');
-      if (startBtn) startBtn.onclick = function() {
-        var args = getLearnStreamArgsForSubDeck(courseName, subDeckKey, {});
-        startLearnPlanStreaming(args.courseName, args.subDeckKey, args.allItems, args.userName, args.learnerContext, args.opts);
-      };
       var regenBtn = el('learnLandingRegenBtn');
       if (regenBtn) regenBtn.onclick = function() {
         triggerLearnPlanRegeneration(getLearnStreamArgsForSubDeck(courseName, subDeckKey, {}));
