@@ -3,6 +3,7 @@ import { getCorsHeaders, withCorsHeaders } from "./cors";
 import { handleDistill } from "./routes/distill";
 import { handleFetchLecture } from "./routes/fetchLecture";
 import { handleGrade } from "./routes/grade";
+import { handleIngestExtract } from "./routes/ingest-extract";
 import { handleLectureContext } from "./routes/lectureContext";
 import { handleLearnPlan } from "./routes/learn-plan";
 import { handleLearnTurn } from "./routes/learn-turn";
@@ -142,6 +143,11 @@ export default {
       if (url.pathname === "/studyengine/learn-turn") {
         if (request.method !== "POST") return methodNotAllowed();
         return withCorsHeaders(await handleLearnTurn(request, env));
+      }
+
+      if (url.pathname === "/studyengine/ingest-extract") {
+        if (request.method !== "POST") return methodNotAllowed();
+        return withCorsHeaders(await handleIngestExtract(request, env));
       }
 
       if (url.pathname === "/studyengine/exam-triage" || url.pathname === "/studyengine/triage") {
