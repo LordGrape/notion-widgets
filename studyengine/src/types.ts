@@ -484,6 +484,10 @@ export interface AppState {
     activeCourseTab?: Record<string, 'review' | 'learn' | 'cards' | 'analytics' | 'settings'>;
     seenLearnIntro?: boolean;
     learnSelectedSubDeck?: Record<string, string>;
+    /** L0.5b: stores Course.id of the most recently engaged course. Drives
+     * dual-mode Home rendering. Cleared by deletion of the referenced course
+     * or remains as a stale id (resolver returns theory mode if missing). */
+    lastOpenedCourseId?: string;
   };
   subDecks?: SubDecksState;
   calibration: CalibrationData;

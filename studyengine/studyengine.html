@@ -10474,6 +10474,20 @@ input[type="range"]::-moz-range-thumb{
     import './src/learn-rail';
     import { deriveLearnDisplayMode } from './src/learn-display-mode';
     import { LEARN_EMPTY_HEADING, LEARN_EMPTY_BODY, LEARN_EMPTY_CTA, LEARN_EMPTY_LABEL_ENCODING, LEARN_EMPTY_LABEL_RETRIEVAL, LEARN_LANDING_STATUS_UNLEARNED, LEARN_LANDING_STATUS_TAUGHT, LEARN_LANDING_STATUS_CONSOLIDATED, LEARN_LANDING_CACHE_HIT, LEARN_LANDING_CACHE_MISS, LEARN_LANDING_START, LEARN_LANDING_REGEN, LEARN_REGEN_CONFIRM, LEARN_INTRO_TEXT, LEARN_INTRO_DISMISS, formatRelativeTime } from './src/learn-copy';
+    import { visibleCourseDetailsFields } from './src/courses/visibility';
+    import { resolveActiveHomeCourse } from './src/home/active-course';
+    import { homeHeroStats, homeTutorStatsLabels } from './src/home/widgets';
+
+    globalThis.__studyEngineCourseVisibility = {
+      visibleCourseDetailsFields: visibleCourseDetailsFields
+    };
+
+    // L0.5b: dual-mode Home bridge. Pure functions only; monolith owns DOM writes.
+    globalThis.__studyEngineHome = {
+      resolveActiveHomeCourse: resolveActiveHomeCourse,
+      homeHeroStats: homeHeroStats,
+      homeTutorStatsLabels: homeTutorStatsLabels
+    };
 
     globalThis.__studyEngineSubDecks = {
       loadSubDecks: loadSubDecks,
@@ -12323,11 +12337,21 @@ input[type="range"]::-moz-range-thumb{
       emptyEl.style.display = 'none';
       heroEl.style.display = 'block';
 
-      /* Hero due count with counter animation */
-      animateCounter(el('statDue'), due.total);
-      el('heroCourseHint').textContent = 'Across all tiers';
+      /* L0.5b: resolve dual-mode Home before writing hero stats. Theory mode
+         preserves the prior animation paths byte-for-byte; language mode
+         writes direct textContent and emits placeholders. */
+      var homeMode = { mode: 'theory' };
+      try {
+        if (globalThis.__studyEngineHome && globalThis.__studyEngineHome.resolveActiveHomeCourse) {
+          homeMode = globalThis.__studyEngineHome.resolveActiveHomeCourse({
+            state: { courses: state.courses, ui: state.ui },
+            featureFlags: { run5Language: isRun5LanguageEnabled() }
+          });
+        }
+      } catch (_homeModeErr) { homeMode = { mode: 'theory' }; }
 
-      /* Secondary stats — animated counters */
+      /* Existing aggregate computations (always run; cheap, and theory mode
+         feeds them straight back into the widget output). */
       var masteredCount = 0;
       for (var sid in state.items) {
         if (!state.items.hasOwnProperty(sid)) continue;
@@ -12336,23 +12360,85 @@ input[type="range"]::-moz-range-thumb{
         if (sit.course && state.courses[sit.course] && state.courses[sit.course].archived) continue;
         if ((sit.fsrs.stability || 0) > 30 && (sit.fsrs.lapses || 0) === 0) masteredCount++;
       }
-      animateCounter(el('statStreak'), masteredCount);
       var ar = avgRetention(state.items);
-      if (ar == null) {
-        el('statRet').textContent = '—';
-      } else {
-        var retTarget = Math.round(ar * 100);
-        var retEl = el('statRet');
-        if (window.gsap) {
-          var retObj = { val: 0 };
-          gsap.to(retObj, {
-            val: retTarget,
-            duration: 0.6,
-            ease: 'power2.out',
-            onUpdate: function() { retEl.textContent = Math.round(retObj.val) + '%'; }
+      var theoryAvgRetPct = (ar == null) ? null : Math.round(ar * 100);
+
+      /* L0.5b: ask the widget bridge for slot data. */
+      var heroStats = null;
+      try {
+        if (globalThis.__studyEngineHome && globalThis.__studyEngineHome.homeHeroStats) {
+          heroStats = globalThis.__studyEngineHome.homeHeroStats({
+            mode: homeMode,
+            items: Object.keys(state.items).map(function(k){ return state.items[k]; }),
+            theoryDueCount: due.total,
+            theoryMasteredCount: masteredCount,
+            theoryAvgRetentionPct: theoryAvgRetPct
           });
+        }
+      } catch (_heroErr) { heroStats = null; }
+
+      /* L0.5b: write labels and subtitles. In theory mode these are the
+         existing strings, so no visible change. The #statRet `.k` contains
+         an info-tooltip span; cache its original innerHTML once and restore
+         in theory mode (language mode replaces with plain textContent since
+         the tooltip describes FSRS retrievability and would be misleading). */
+      function _writeHomeSlot(valueId, valueText, label, subtitle) {
+        var vEl = el(valueId);
+        if (!vEl) return;
+        var statEl = vEl.closest ? vEl.closest('.stat') || vEl.closest('.hero-stat') : null;
+        if (!statEl) return;
+        var labelSel = statEl.classList.contains('hero-stat') ? '.hero-label' : '.k';
+        var subSel = statEl.classList.contains('hero-stat') ? '.hero-sub' : '.s';
+        var labelEl = statEl.querySelector(labelSel);
+        var subEl = statEl.querySelector(subSel);
+        if (labelEl) {
+          if (valueId === 'statRet') {
+            if (renderDashboard._statRetKOrig == null) renderDashboard._statRetKOrig = labelEl.innerHTML;
+            if (homeMode.mode === 'language') {
+              labelEl.textContent = label;
+            } else {
+              labelEl.innerHTML = renderDashboard._statRetKOrig;
+            }
+          } else {
+            labelEl.textContent = label;
+          }
+        }
+        if (subEl && subtitle != null) subEl.textContent = subtitle;
+      }
+      if (heroStats) {
+        _writeHomeSlot('statDue', heroStats.hero.value, heroStats.hero.label, heroStats.hero.subtitle);
+        _writeHomeSlot('statStreak', heroStats.secondary1.value, heroStats.secondary1.label, heroStats.secondary1.subtitle);
+        _writeHomeSlot('statRet', heroStats.secondary2.value, heroStats.secondary2.label, heroStats.secondary2.subtitle);
+      }
+      el('heroCourseHint').textContent = heroStats ? heroStats.courseHint : 'Across all tiers';
+
+      /* Hero + secondary VALUE writes. Theory mode keeps animations; language
+         mode skips animation and writes the placeholder/computed value direct. */
+      if (homeMode.mode === 'language') {
+        if (heroStats) {
+          el('statDue').textContent = heroStats.hero.value;
+          el('statStreak').textContent = heroStats.secondary1.value;
+          el('statRet').textContent = heroStats.secondary2.value;
+        }
+      } else {
+        animateCounter(el('statDue'), due.total);
+        animateCounter(el('statStreak'), masteredCount);
+        if (ar == null) {
+          el('statRet').textContent = '\u2014';
         } else {
-          retEl.textContent = retTarget + '%';
+          var retTarget = theoryAvgRetPct;
+          var retEl = el('statRet');
+          if (window.gsap) {
+            var retObj = { val: 0 };
+            gsap.to(retObj, {
+              val: retTarget,
+              duration: 0.6,
+              ease: 'power2.out',
+              onUpdate: function() { retEl.textContent = Math.round(retObj.val) + '%'; }
+            });
+          } else {
+            retEl.textContent = retTarget + '%';
+          }
         }
       }
 
@@ -12416,6 +12502,31 @@ input[type="range"]::-moz-range-thumb{
 
       renderTutorAnalyticsDashboard();
 
+      /* L0.5b: tutor stats label/value override. renderTutorAnalyticsDashboard
+         only writes value + .s nodes, leaving .k labels static, so this
+         post-call override does not flicker. Theory mode is a no-op. */
+      try {
+        if (globalThis.__studyEngineHome && globalThis.__studyEngineHome.homeTutorStatsLabels) {
+          var tutorLabels = globalThis.__studyEngineHome.homeTutorStatsLabels(homeMode);
+          var _tutorSlots = [
+            { id: 'tutorStatAvgTurns', label: tutorLabels.slot1Label, value: tutorLabels.slot1Value, sub: tutorLabels.slot1Sub },
+            { id: 'tutorStatRecon',    label: tutorLabels.slot2Label, value: tutorLabels.slot2Value, sub: tutorLabels.slot2Sub },
+            { id: 'tutorStatModel',    label: tutorLabels.slot3Label, value: tutorLabels.slot3Value, sub: tutorLabels.slot3Sub }
+          ];
+          _tutorSlots.forEach(function(s) {
+            var vEl = el(s.id);
+            if (!vEl) return;
+            var statEl = vEl.closest ? vEl.closest('.stat') : null;
+            if (!statEl) return;
+            var kEl = statEl.querySelector('.k');
+            var sEl = statEl.querySelector('.s');
+            if (kEl) kEl.textContent = s.label;
+            if (s.value !== undefined) vEl.textContent = s.value;
+            if (sEl && s.sub !== undefined) sEl.textContent = s.sub;
+          });
+        }
+      } catch (_tutorLblErr) {}
+
       /* Staggered entry animation */
       if (window.gsap) {
         var targets = viewDash.querySelectorAll('.hero-stat, .stats-row, .tutor-stats-row, .gauge, .dash-details, .breakdown, .big-btn, .chips, .mini-actions');
@@ -12425,6 +12536,7 @@ input[type="range"]::-moz-range-thumb{
         );
       }
       /* Render analytics graphs */
+      // L0.5b: retention chart + heatmap mode-swap deferred to L0.5c. They render in theory mode regardless of homeMode.
       setTimeout(function() {
         drawActivityHeatmap._viewYear = new Date().getFullYear();
         drawActivityHeatmap._viewMonth = new Date().getMonth();
@@ -21713,6 +21825,7 @@ input[type="range"]::-moz-range-thumb{
       }
       courseModalState.mode = 'editor';
       courseModalState.course = courseName;
+      courseModalState.pendingPlanProfile = null;
       var resolvedTab = tab || courseModalState.tab || 'details';
       if (resolvedTab === 'subdecks') resolvedTab = 'structure';
       courseModalState.tab = resolvedTab;
@@ -21752,6 +21865,15 @@ input[type="range"]::-moz-range-thumb{
         var activeTab = courseModalState.tab || 'details';
         var inner = '';
         if (activeTab === 'details') {
+          /* L0: Phase L0 progressive disclosure. effectivePlanProfile is the
+             unsaved view of c.planProfile, mutated by the cm_planProfile
+             change handler so that toggling the dropdown re-renders the tab
+             with the right field set. Falls back to courseModalState.pendingPlanProfile
+             across re-renders within the same editor open. */
+          var effectivePlanProfile = courseModalState.pendingPlanProfile || c.planProfile || 'theory';
+          var visBridge = (globalThis.__studyEngineCourseVisibility && globalThis.__studyEngineCourseVisibility.visibleCourseDetailsFields) || null;
+          var vis = visBridge ? visBridge({ planProfile: effectivePlanProfile }) : null;
+          function _vis(field) { return !vis || vis.has(field); }
           inner += '<div class="field"><label>Course name</label><input id="cm_name" class="input" value="' + esc(c.name) + '" /></div>';
           inner += '<div class="field"><label>Colour</label><div class="color-picker" id="cm_colorPicker">';
           COURSE_COLORS.forEach(function(cc) {
@@ -21759,28 +21881,36 @@ input[type="range"]::-moz-range-thumb{
             inner += '<div class="color-swatch' + (isAct ? ' active' : '') + '" data-color="' + cc.value + '" style="background:' + cc.value + '" title="' + esc(cc.name) + '"></div>';
           });
           inner += '</div></div>';
-          inner += '<div class="course-form-row"><div class="field"><label>Exam type</label><select id="cm_examType" class="input">';
-          inner += '<option value="mc"' + (c.examType === 'mc' ? ' selected' : '') + '>Multiple Choice</option>';
-          inner += '<option value="short_answer"' + (c.examType === 'short_answer' ? ' selected' : '') + '>Short Answer</option>';
-          inner += '<option value="essay"' + (c.examType === 'essay' ? ' selected' : '') + '>Essay</option>';
-          inner += '<option value="mixed"' + (c.examType === 'mixed' ? ' selected' : '') + '>Mixed</option>';
-          inner += '</select></div>';
-          inner += '<div class="field"><label>Exam date</label><input id="cm_examDate" type="date" class="input" value="' + esc(c.examDate || '') + '" /></div></div>';
+          if (_vis('examType')) {
+            inner += '<div class="course-form-row"><div class="field"><label>Exam type</label><select id="cm_examType" class="input">';
+            inner += '<option value="mc"' + (c.examType === 'mc' ? ' selected' : '') + '>Multiple Choice</option>';
+            inner += '<option value="short_answer"' + (c.examType === 'short_answer' ? ' selected' : '') + '>Short Answer</option>';
+            inner += '<option value="essay"' + (c.examType === 'essay' ? ' selected' : '') + '>Essay</option>';
+            inner += '<option value="mixed"' + (c.examType === 'mixed' ? ' selected' : '') + '>Mixed</option>';
+            inner += '</select></div>';
+            inner += '<div class="field"><label>Exam date</label><input id="cm_examDate" type="date" class="input" value="' + esc(c.examDate || '') + '" /></div></div>';
+          }
           inner += '<div class="field"><label>Grading style</label><select id="cm_subjectType" class="input">';
           inner += '<option value="mixed"' + ((c.subjectType || 'mixed') === 'mixed' ? ' selected' : '') + '>Mixed — let AI adapt per question</option>';
           inner += '<option value="recall"' + ((c.subjectType || 'mixed') === 'recall' ? ' selected' : '') + '>Recall (STEM, language, fact-based)</option>';
           inner += '<option value="reasoning"' + ((c.subjectType || 'mixed') === 'reasoning' ? ' selected' : '') + '>Reasoning (law, political science, philosophy)</option>';
           inner += '</select><div class="help" style="margin-top:6px;line-height:1.5;"><div title="One right answer. Graded strictly against the model answer."><strong>Recall:</strong> One right answer. Graded strictly against the model answer.</div><div title="Multiple defensible framings. Graded on argument quality and conceptual engagement."><strong>Reasoning:</strong> Multiple defensible framings. Graded on argument quality and conceptual engagement.</div><div title="AI classifies each question and picks the right rubric. Recommended default."><strong>Mixed:</strong> AI classifies each question and picks the right rubric. Recommended default.</div></div></div>';
           inner += '<div class="field"><label>Default plan profile</label><select id="cm_planProfile" class="input">';
-          inner += '<option value="theory"' + ((c.planProfile || 'theory') === 'theory' ? ' selected' : '') + '>Theory</option>';
-          inner += '<option value="factual"' + ((c.planProfile || 'theory') === 'factual' ? ' selected' : '') + '>Factual</option>';
-          if (isRun5LanguageEnabled()) inner += '<option value="language"' + ((c.planProfile || 'theory') === 'language' ? ' selected' : '') + '>Language</option>';
-          inner += '<option value="procedural"' + ((c.planProfile || 'theory') === 'procedural' ? ' selected' : '') + '>Procedural</option>';
+          inner += '<option value="theory"' + (effectivePlanProfile === 'theory' ? ' selected' : '') + '>Theory</option>';
+          inner += '<option value="factual"' + (effectivePlanProfile === 'factual' ? ' selected' : '') + '>Factual</option>';
+          if (isRun5LanguageEnabled()) inner += '<option value="language"' + (effectivePlanProfile === 'language' ? ' selected' : '') + '>Language</option>';
+          inner += '<option value="procedural"' + (effectivePlanProfile === 'procedural' ? ' selected' : '') + '>Procedural</option>';
           inner += '</select></div>';
-          inner += '<div class="field"><label>Default target language (BCP-47)</label><select id="cm_targetLanguage" class="input">';
-          inner += '<option value="">None</option><option value="es-ES"' + (c.targetLanguage === 'es-ES' ? ' selected' : '') + '>Spanish (es-ES)</option><option value="fr-FR"' + (c.targetLanguage === 'fr-FR' ? ' selected' : '') + '>French (fr-FR)</option><option value="de-DE"' + (c.targetLanguage === 'de-DE' ? ' selected' : '') + '>German (de-DE)</option><option value="ja-JP"' + (c.targetLanguage === 'ja-JP' ? ' selected' : '') + '>Japanese (ja-JP)</option><option value="zh-CN"' + (c.targetLanguage === 'zh-CN' ? ' selected' : '') + '>Chinese (zh-CN)</option><option value="__other__">Other (manual)</option></select><input id="cm_targetLanguageOther" class="input" placeholder="e.g. it-IT" style="margin-top:6px;" /></div>';
-          inner += '<div class="field"><label>Default language level</label><select id="cm_languageLevel" class="input"><option value=\"\">None</option><option value=\"1\"' + (c.languageLevel === 1 ? ' selected' : '') + '>1</option><option value=\"2\"' + (c.languageLevel === 2 ? ' selected' : '') + '>2</option><option value=\"3\"' + (c.languageLevel === 3 ? ' selected' : '') + '>3</option><option value=\"4\"' + (c.languageLevel === 4 ? ' selected' : '') + '>4</option><option value=\"5\"' + (c.languageLevel === 5 ? ' selected' : '') + '>5</option><option value=\"6\"' + (c.languageLevel === 6 ? ' selected' : '') + '>6</option></select></div>';
-          inner += '<div class="field"><label>Exam Weight (%)</label><input id="cm_examWeight" type="number" min="0" max="100" step="1" class="input" value="' + esc(c.examWeight != null ? String(c.examWeight) : '') + '" /></div>';
+          if (_vis('targetLanguage')) {
+            inner += '<div class="field"><label>Default target language (BCP-47)</label><select id="cm_targetLanguage" class="input">';
+            inner += '<option value="">None</option><option value="es-ES"' + (c.targetLanguage === 'es-ES' ? ' selected' : '') + '>Spanish (es-ES)</option><option value="fr-FR"' + (c.targetLanguage === 'fr-FR' ? ' selected' : '') + '>French (fr-FR)</option><option value="de-DE"' + (c.targetLanguage === 'de-DE' ? ' selected' : '') + '>German (de-DE)</option><option value="ja-JP"' + (c.targetLanguage === 'ja-JP' ? ' selected' : '') + '>Japanese (ja-JP)</option><option value="zh-CN"' + (c.targetLanguage === 'zh-CN' ? ' selected' : '') + '>Chinese (zh-CN)</option><option value="__other__">Other (manual)</option></select><input id="cm_targetLanguageOther" class="input" placeholder="e.g. it-IT" style="margin-top:6px;" /></div>';
+          }
+          if (_vis('languageLevel')) {
+            inner += '<div class="field"><label>Default language level</label><select id="cm_languageLevel" class="input"><option value=\"\">None</option><option value=\"1\"' + (c.languageLevel === 1 ? ' selected' : '') + '>1</option><option value=\"2\"' + (c.languageLevel === 2 ? ' selected' : '') + '>2</option><option value=\"3\"' + (c.languageLevel === 3 ? ' selected' : '') + '>3</option><option value=\"4\"' + (c.languageLevel === 4 ? ' selected' : '') + '>4</option><option value=\"5\"' + (c.languageLevel === 5 ? ' selected' : '') + '>5</option><option value=\"6\"' + (c.languageLevel === 6 ? ' selected' : '') + '>6</option></select></div>';
+          }
+          if (_vis('examWeight')) {
+            inner += '<div class="field"><label>Exam Weight (%)</label><input id="cm_examWeight" type="number" min="0" max="100" step="1" class="input" value="' + esc(c.examWeight != null ? String(c.examWeight) : '') + '" /></div>';
+          }
           inner += '<div style="display:flex;justify-content:flex-end;margin-top:12px;"><button class="cm-save-btn" id="cmSaveDetails" type="button">Save Details</button></div>';
         } else if (activeTab === 'syllabus') {
           inner += '<div class="cm-results-card" style="margin-bottom:10px;"><div class="cm-results-body">';
@@ -21992,6 +22122,17 @@ input[type="range"]::-moz-range-thumb{
               sw.classList.add('active');
             };
           });
+          /* L0: Re-render Details tab on Plan Profile change so language/exam
+             fields swap in/out without closing the modal. Stores the unsaved
+             choice on courseModalState.pendingPlanProfile; cleared by
+             renderCourseModalEditor on next open and by the Save handler. */
+          var planProfileSel = el('cm_planProfile');
+          if (planProfileSel) planProfileSel.onchange = function() {
+            var next = String(planProfileSel.value || 'theory');
+            if (!(next === 'theory' || next === 'factual' || next === 'procedural' || (isRun5LanguageEnabled() && next === 'language'))) next = 'theory';
+            courseModalState.pendingPlanProfile = next;
+            renderTabContent();
+          };
           var saveDetails = el('cmSaveDetails');
           if (saveDetails) saveDetails.onclick = function() {
             var oldName = c.name;
@@ -22000,19 +22141,28 @@ input[type="range"]::-moz-range-thumb{
             if (newName !== oldName && state.courses[newName]) { toast('Course name already exists'); return; }
             var activeSwatch = cp ? cp.querySelector('.color-swatch.active') : null;
             c.color = activeSwatch ? activeSwatch.getAttribute('data-color') : (c.color || '#8b5cf6');
-            c.examType = (el('cm_examType').value || 'mixed');
-            c.examDate = (el('cm_examDate').value || '').trim() || null;
+            /* L0: exam fields are gated by visibility — only persist when their
+               DOM is present. Preserve existing values otherwise. */
+            if (el('cm_examType')) c.examType = (el('cm_examType').value || 'mixed');
+            if (el('cm_examDate')) c.examDate = (el('cm_examDate').value || '').trim() || null;
             c.subjectType = normalizeSubjectTypeValue((el('cm_subjectType') && el('cm_subjectType').value) || 'mixed');
             var nextCoursePlanProfile = (el('cm_planProfile') && el('cm_planProfile').value) ? String(el('cm_planProfile').value) : 'theory';
             c.planProfile = (nextCoursePlanProfile === 'factual' || nextCoursePlanProfile === 'procedural' || (isRun5LanguageEnabled() && nextCoursePlanProfile === 'language')) ? nextCoursePlanProfile : 'theory';
-            var nextCourseTargetLanguage = (el('cm_targetLanguage') && el('cm_targetLanguage').value) ? String(el('cm_targetLanguage').value).trim() : '';
-            var nextCourseTargetLanguageOther = (el('cm_targetLanguageOther') && el('cm_targetLanguageOther').value) ? String(el('cm_targetLanguageOther').value).trim() : '';
-            if (nextCourseTargetLanguage === '__other__') nextCourseTargetLanguage = nextCourseTargetLanguageOther;
-            if (nextCourseTargetLanguage) c.targetLanguage = nextCourseTargetLanguage; else delete c.targetLanguage;
-            var nextCourseLanguageLevel = (el('cm_languageLevel') && el('cm_languageLevel').value) ? parseInt(el('cm_languageLevel').value, 10) : 0;
-            if (nextCourseLanguageLevel >= 1 && nextCourseLanguageLevel <= 6) c.languageLevel = nextCourseLanguageLevel; else delete c.languageLevel;
-            var ew = (el('cm_examWeight').value || '').trim();
-            c.examWeight = ew ? Math.max(0, Math.min(100, Math.round(Number(ew) || 0))) : null;
+            if (el('cm_targetLanguage')) {
+              var nextCourseTargetLanguage = el('cm_targetLanguage').value ? String(el('cm_targetLanguage').value).trim() : '';
+              var nextCourseTargetLanguageOther = (el('cm_targetLanguageOther') && el('cm_targetLanguageOther').value) ? String(el('cm_targetLanguageOther').value).trim() : '';
+              if (nextCourseTargetLanguage === '__other__') nextCourseTargetLanguage = nextCourseTargetLanguageOther;
+              if (nextCourseTargetLanguage) c.targetLanguage = nextCourseTargetLanguage; else delete c.targetLanguage;
+            }
+            if (el('cm_languageLevel')) {
+              var nextCourseLanguageLevel = el('cm_languageLevel').value ? parseInt(el('cm_languageLevel').value, 10) : 0;
+              if (nextCourseLanguageLevel >= 1 && nextCourseLanguageLevel <= 6) c.languageLevel = nextCourseLanguageLevel; else delete c.languageLevel;
+            }
+            if (el('cm_examWeight')) {
+              var ew = (el('cm_examWeight').value || '').trim();
+              c.examWeight = ew ? Math.max(0, Math.min(100, Math.round(Number(ew) || 0))) : null;
+            }
+            courseModalState.pendingPlanProfile = null;
             if (newName !== oldName) {
               renameCourse(oldName, newName);
               c = getCourse(newName);
@@ -27797,6 +27947,17 @@ input[type="range"]::-moz-range-thumb{
       if (activeLearnSession && activeLearnSession.courseName && activeLearnSession.courseName !== courseName) {
         closeLearnSessionImmediate();
       }
+      // L0.5b: record this course as the most recently engaged. Drives dual-mode Home.
+      // Session-start writer deferred — multiple session-launch sites; openCourseDetail is the canonical engagement signal for L0.5b.
+      try {
+        if (c && c.id) {
+          if (!state.ui || typeof state.ui !== 'object') state.ui = {};
+          if (state.ui.lastOpenedCourseId !== c.id) {
+            state.ui.lastOpenedCourseId = c.id;
+            saveState();
+          }
+        }
+      } catch (_l05bWriterErr) {}
 
       var gearBtn = el('gearBtn');
       if (gearBtn) gearBtn.style.display = 'none';
