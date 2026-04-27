@@ -10869,6 +10869,7 @@ input[type="range"]::-moz-range-thumb{
       items: {},
       courses: {},
       ui: { activeCourseTab: {} },
+      studyEngineFeatures: {},
       calibration: { totalSelfRatings: 0, totalActualCorrect: 0, history: [] },
       stats: {
         totalReviews: 0,
@@ -11069,7 +11070,7 @@ input[type="range"]::-moz-range-thumb{
       };
     }
 
-    var state = null;
+    var state = deepClone(DEFAULT_STATE);
     var settings = null;
     var subDecksDirty = false;
 
