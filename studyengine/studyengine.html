@@ -20644,6 +20644,7 @@ input[type="range"]::-moz-range-thumb{
     function renderSettings() {
       var body = el('settingsTabGeneral');
       var retPct = Math.round(settings.desiredRetention * 100);
+      var adaptiveInsightsHtml = buildAdaptiveInsightsHtml();
 
       /* ═══ SECTION: Info Icon | Functions: infoIcon ═══ */
       function infoIcon(text) {
@@ -20852,7 +20853,7 @@ input[type="range"]::-moz-range-thumb{
         '<div class="setting-row">' +
           '<div class="sr-left">' +
             '<div class="sr-label">Adaptive insights</div>' +
-            '<div class="sr-desc" id="s_adaptiveInsights">' + (isRun6AdaptiveEnabled() ? 'Your learner profile updates after each learn session.' : 'Adaptive learning is off.') + '</div>' +
+            '<div class="sr-desc" id="s_adaptiveInsights">' + adaptiveInsightsHtml + '</div>' +
           '</div>' +
           '<div class="sr-control"></div>' +
         '</div>' +
@@ -20955,7 +20956,7 @@ input[type="range"]::-moz-range-thumb{
           state.studyEngineFeatures = state.studyEngineFeatures || {};
           state.studyEngineFeatures.run6Adaptive = !!run6Toggle.checked;
           var insights = el('s_adaptiveInsights');
-          if (insights) insights.textContent = run6Toggle.checked ? 'Your learner profile updates after each learn session.' : 'Adaptive learning is off.';
+          if (insights) insights.innerHTML = buildAdaptiveInsightsHtml();
           saveState();
         });
       }
@@ -23415,6 +23416,14 @@ input[type="range"]::-moz-range-thumb{
       if (orphanBd) orphanBd.remove();
 
       var formId = 'ef_' + Date.now();
+      var resolvedEditProfile = resolveCardPlanProfileForUi(it);
+      var learnerModelForEdit = getLearnerModelSnapshot();
+      var proceduralStats = (learnerModelForEdit && learnerModelForEdit.profileSuccess && learnerModelForEdit.profileSuccess.procedural) || null;
+      var shouldSuggestDiagram = resolvedEditProfile === 'procedural'
+        && !String(it.visual || '').trim()
+        && proceduralStats
+        && Number(proceduralStats.deepRate || 0) > 0.6
+        && Number(proceduralStats.sessions || 0) >= 5;
       var optionalHTML = '';
       if (it.scenario) {
         optionalHTML += '<div><label>Scenario</label><textarea id="' + formId + '_scenario" rows="3">' + esc(it.scenario || '') + '</textarea></div>';
@@ -23443,6 +23452,14 @@ input[type="range"]::-moz-range-thumb{
         '<div class="ef-header"><span class="ef-title">Edit Card</span><button type="button" class="ef-close" aria-label="Close">✕</button></div>' +
         '<div><label>Prompt</label><textarea id="' + formId + '_prompt" rows="3">' + esc(it.prompt || '') + '</textarea></div>' +
         '<div><label>Model Answer</label><textarea id="' + formId + '_answer" rows="4">' + esc(it.modelAnswer || '') + '</textarea></div>' +
+        '<div style="display:flex;flex-direction:column;gap:8px;">' +
+          (shouldSuggestDiagram ? '<button type="button" class="ghost-btn" id="' + formId + '_diagramSuggest" style="width:100%;min-width:0;text-align:left;">💡 Suggested: add a diagram</button>' : '') +
+          '<button type="button" class="ghost-btn" id="' + formId + '_toggleVisual" style="width:100%;min-width:0;text-align:left;">' + (String(it.visual || '').trim() ? 'Edit Mermaid diagram' : 'Add Mermaid diagram') + '</button>' +
+          '<div id="' + formId + '_visualWrap" style="display:none;">' +
+            '<label>Mermaid diagram</label>' +
+            '<textarea id="' + formId + '_visual" rows="6" placeholder="graph TD&#10;Start --> Step1&#10;Step1 --> Step2&#10;Step2 --> End">' + esc(it.visual || '') + '</textarea>' +
+          '</div>' +
+        '</div>' +
         '<div class="ef-row">' +
           '<div><label>Topic</label><input type="text" id="' + formId + '_topic" value="' + esc(it.topic || '') + '" placeholder="Topic tag" /></div>' +
           '<div><label>Priority</label><select id="' + formId + '_priority">' +
@@ -23478,6 +23495,21 @@ input[type="range"]::-moz-range-thumb{
         gsap.fromTo(backdrop, { opacity: 0 }, { opacity: 1, duration: 0.25 });
         gsap.fromTo(form, { y: '100%' }, { y: 0, duration: 0.35, ease: 'power3.out' });
       }
+      var visualWrap = el(formId + '_visualWrap');
+      var visualInput = el(formId + '_visual');
+      var toggleVisualBtn = el(formId + '_toggleVisual');
+      if (toggleVisualBtn) toggleVisualBtn.addEventListener('click', function() {
+        if (!visualWrap) return;
+        var open = visualWrap.style.display !== 'none';
+        visualWrap.style.display = open ? 'none' : 'block';
+      });
+      var diagramSuggestBtn = el(formId + '_diagramSuggest');
+      if (diagramSuggestBtn) diagramSuggestBtn.addEventListener('click', function() {
+        var skeleton = 'graph TD\n\nStart --> Step1\n\nStep1 --> Step2\n\nStep2 --> End';
+        if (visualWrap) visualWrap.style.display = 'block';
+        if (visualInput && !String(visualInput.value || '').trim()) visualInput.value = skeleton;
+        diagramSuggestBtn.style.display = 'none';
+      });
 
       el(formId + '_save').addEventListener('click', function() {
         var newPrompt = (el(formId + '_prompt').value || '').trim();
@@ -23509,14 +23541,20 @@ input[type="range"]::-moz-range-thumb{
           var newConceptB = (conceptBField.value || '').trim();
           if (newConceptB) it.conceptB = newConceptB; else delete it.conceptB;
         }
-
-        it.visual = null;
+        if (visualInput) {
+          var visualCode = (visualInput.value || '').trim();
+          if (visualCode) it.visual = visualCode;
+          else delete it.visual;
+        } else {
+          it.visual = null;
+        }
         state.items[id] = it;
         saveState();
-
-        generateVisual(it).then(function(visual) {
-          if (visual) { it.visual = visual; state.items[id] = it; saveState(); }
-        }).catch(function() {});
+        if (!visualInput) {
+          generateVisual(it).then(function(visual) {
+            if (visual) { it.visual = visual; state.items[id] = it; saveState(); }
+          }).catch(function() {});
+        }
 
         toast('Card updated');
         try { playPresetSelect(); } catch (e3) {}
@@ -26307,6 +26345,143 @@ input[type="range"]::-moz-range-thumb{
       return !!state.studyEngineFeatures.run6Adaptive;
     }
 
+    function getLearnerModelSnapshot() {
+      try {
+        var modelApi = globalThis.__studyEngineLearnerModel;
+        if (!modelApi || typeof modelApi.load !== 'function') return null;
+        return modelApi.load();
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function adaptiveCheckTypeLabel(key) {
+      var labels = {
+        elaborative: 'elaborative interrogation',
+        predictive: 'predictive question',
+        self_explain: 'self-explanation',
+        prior_knowledge_probe: 'prior knowledge probe',
+        worked_example: 'worked example',
+        transfer_question: 'transfer question',
+        cloze: 'cloze'
+      };
+      return labels[key] || String(key || '').replace(/_/g, ' ');
+    }
+
+    function profileLabel(profile) {
+      if (profile === 'theory') return 'Theory';
+      if (profile === 'factual') return 'Factual';
+      if (profile === 'procedural') return 'Procedural';
+      if (profile === 'language') return 'Language';
+      return String(profile || 'Unknown');
+    }
+
+    function toPct(n) {
+      var v = Number(n);
+      if (!isFinite(v)) return 0;
+      return Math.round(v * 100);
+    }
+
+    function buildAdaptiveInsightsHtml() {
+      if (!isRun6AdaptiveEnabled()) return 'Adaptive learning is off. Toggle on to see your learner profile.';
+      var model = getLearnerModelSnapshot();
+      if (!model) return 'Your learner profile updates after each learn session.';
+      var parts = [];
+      var strengths = Object.keys(model.checkTypeStrengths || {}).map(function(key) {
+        return { key: key, value: Number(model.checkTypeStrengths[key] || 0) };
+      }).sort(function(a, b) {
+        if (b.value !== a.value) return b.value - a.value;
+        return String(a.key).localeCompare(String(b.key));
+      }).slice(0, 3);
+      if (strengths.length) {
+        parts.push('<div>You retrieve best from: ' + strengths.map(function(entry) { return adaptiveCheckTypeLabel(entry.key); }).join(', ') + '.</div>');
+      }
+
+      var calibration = model.calibration || {};
+      var sampleSize = Number(calibration.sampleSize || 0);
+      var bias = Number(calibration.overconfidenceBias || 0);
+      if (sampleSize < 5) {
+        parts.push('<div>Not enough self-rating data yet (need 5+ JOL ratings).</div>');
+      } else if (bias > 0.1) {
+        parts.push('<div>You tend to overestimate yourself by ~' + Math.round(bias * 100) + '%.</div>');
+      } else if (bias < -0.1) {
+        parts.push('<div>You tend to underestimate yourself by ~' + Math.round(Math.abs(bias) * 100) + '%.</div>');
+      } else {
+        parts.push('<div>Your self-assessment is well-calibrated.</div>');
+      }
+
+      if (model.consolidationHalfLifeDays != null && isFinite(Number(model.consolidationHalfLifeDays))) {
+        parts.push('<div>Your typical card consolidates in ~' + Number(model.consolidationHalfLifeDays).toFixed(1) + ' days.</div>');
+      } else {
+        parts.push('<div>Half-life will appear after 5 cards complete consolidation.</div>');
+      }
+
+      var profileSuccess = model.profileSuccess || {};
+      var profileKeys = Object.keys(profileSuccess);
+      if (profileKeys.length) {
+        var rows = '';
+        var moreData = [];
+        profileKeys.forEach(function(profile) {
+          var m = profileSuccess[profile] || {};
+          var sessions = Number(m.sessions || 0);
+          if (sessions >= 3) {
+            rows += '<tr><td>' + esc(profileLabel(profile)) + '</td><td>' + sessions + '</td><td>' + toPct(m.deepRate) + '%</td><td>' + toPct(m.partialRate) + '%</td><td>' + toPct(m.surfaceRate) + '%</td></tr>';
+          } else {
+            moreData.push('<div>More data needed for ' + esc(profileLabel(profile)) + '.</div>');
+          }
+        });
+        if (rows) {
+          parts.push('<div style="margin-top:6px;"><table style="width:100%;font-size:10px;border-collapse:collapse;"><thead><tr><th style="text-align:left;">Profile</th><th style="text-align:right;">Sessions</th><th style="text-align:right;">Deep %</th><th style="text-align:right;">Partial %</th><th style="text-align:right;">Surface %</th></tr></thead><tbody>' + rows + '</tbody></table></div>');
+        }
+        parts = parts.concat(moreData);
+      }
+
+      var sourceRates = Object.keys(model.sourceTypeLapseRate || {}).map(function(sourceType) {
+        return { sourceType: sourceType, rate: Number(model.sourceTypeLapseRate[sourceType] || 0) };
+      }).sort(function(a, b) {
+        if (b.rate !== a.rate) return b.rate - a.rate;
+        return String(a.sourceType).localeCompare(String(b.sourceType));
+      });
+      if (sourceRates.length) {
+        parts.push('<div style="margin-top:6px;">' + sourceRates.map(function(entry) {
+          return esc(entry.sourceType) + ': ' + Math.round(entry.rate * 100) + '% lapse rate';
+        }).join(' · ') + '</div>');
+      }
+
+      return parts.join('');
+    }
+
+    function getSuggestedProfileFromModel(model) {
+      var tieOrder = { theory: 0, factual: 1, procedural: 2, language: 3 };
+      var best = null;
+      Object.keys((model && model.profileSuccess) || {}).forEach(function(profile) {
+        var entry = model.profileSuccess[profile];
+        if (!entry) return;
+        var sessions = Number(entry.sessions || 0);
+        var deepRate = Number(entry.deepRate || 0);
+        if (sessions < 5) return;
+        var rank = tieOrder.hasOwnProperty(profile) ? tieOrder[profile] : 99;
+        if (!best || deepRate > best.deepRate || (deepRate === best.deepRate && rank < best.rank)) {
+          best = { profile: profile, deepRate: deepRate, rank: rank };
+        }
+      });
+      return best ? best.profile : '';
+    }
+
+    function shouldShowSubDeckProfileSuggestion(courseName, subDeckKey, selectedCards) {
+      if (!courseName || !subDeckKey || !selectedCards || !selectedCards.length) return null;
+      var subDeckMeta = state.subDecks && state.subDecks[courseName] && state.subDecks[courseName][subDeckKey];
+      if (!subDeckMeta || typeof subDeckMeta.planProfile !== 'undefined') return null;
+      try {
+        if (localStorage.getItem('studyengine.profileSuggestion.dismissed.' + subDeckKey) === 'true') return null;
+      } catch (e) {}
+      var model = getLearnerModelSnapshot();
+      if (!model || Number(model.sessionCount || 0) < 10) return null;
+      var suggestedProfile = getSuggestedProfileFromModel(model);
+      if (!suggestedProfile) return null;
+      return suggestedProfile;
+    }
+
     function normalizeLanguageTag(tag) {
       var t = String(tag || '').trim();
       return t ? t : '';
@@ -26319,6 +26494,23 @@ input[type="range"]::-moz-range-thumb{
       var subDeckMeta = (state.subDecks && state.subDecks[courseName] && state.subDecks[courseName][subDeckKey]) ? state.subDecks[courseName][subDeckKey] : null;
       var course = state.courses && courseName ? state.courses[courseName] : null;
       return normalizeLanguageTag(card.targetLanguage) || normalizeLanguageTag(subDeckMeta && subDeckMeta.targetLanguage) || normalizeLanguageTag(course && course.targetLanguage) || '';
+    }
+
+    function resolveCardPlanProfileForUi(card) {
+      if (!card) return 'theory';
+      var cardProfile = String(card.planProfile || '').trim();
+      if (cardProfile === 'theory' || cardProfile === 'factual' || cardProfile === 'procedural' || cardProfile === 'language') {
+        return (cardProfile === 'language' && !isRun5LanguageEnabled()) ? 'theory' : cardProfile;
+      }
+      var courseName = card.course;
+      var subDeckKey = card.subDeck || card.subdeck || '';
+      var subDeckMeta = (state.subDecks && state.subDecks[courseName] && state.subDecks[courseName][subDeckKey]) ? state.subDecks[courseName][subDeckKey] : null;
+      var subDeckProfile = subDeckMeta && subDeckMeta.planProfile;
+      if (subDeckProfile === 'theory' || subDeckProfile === 'factual' || subDeckProfile === 'procedural' || (isRun5LanguageEnabled() && subDeckProfile === 'language')) return subDeckProfile;
+      var course = state.courses && courseName ? state.courses[courseName] : null;
+      var courseProfile = course && course.planProfile;
+      if (courseProfile === 'theory' || courseProfile === 'factual' || courseProfile === 'procedural' || (isRun5LanguageEnabled() && courseProfile === 'language')) return courseProfile;
+      return 'theory';
     }
 
     function resolveSessionTargetLanguageFromFlow(flow) {
@@ -27777,7 +27969,8 @@ input[type="range"]::-moz-range-thumb{
 	          if (cdSubDeckAction) {
 	            if (selectedSubDeck) {
 	              var selectedCards = getCardsInSubDeck(courseName, selectedSubDeck, Object.keys(allCourseItems).map(function(itemId){ return allCourseItems[itemId]; })).filter(function(item){ return item && !item.archived; });
-                var scopedTotalCards = getCardsForScope(courseName, selectedSubDeck, Object.keys(allCourseItems).map(function(itemId){ return allCourseItems[itemId]; }), false).length;
+                var profileSuggestion = shouldShowSubDeckProfileSuggestion(courseName, selectedSubDeck, selectedCards);
+	              var scopedTotalCards = getCardsForScope(courseName, selectedSubDeck, Object.keys(allCourseItems).map(function(itemId){ return allCourseItems[itemId]; }), false).length;
                 var nestedCount = Math.max(0, scopedTotalCards - selectedCards.length);
 	              var coverage = globalThis.__studyEngineLearnMode && typeof globalThis.__studyEngineLearnMode.getCoverageStats === 'function'
 	                ? globalThis.__studyEngineLearnMode.getCoverageStats(courseName, selectedSubDeck, selectedCards)
@@ -27788,6 +27981,13 @@ input[type="range"]::-moz-range-thumb{
 	              cdSubDeckAction.style.display = 'block';
 	              cdSubDeckAction.innerHTML = ''
 	                + '<div style=\"display:flex;flex-direction:column;gap:10px;\">'
+                  + (profileSuggestion ? (
+                    '<div id=\"profileSuggestionBanner\" style=\"padding:10px 12px;border-radius:12px;border:1px solid rgba(var(--accent-rgb),0.24);background:rgba(var(--accent-rgb),0.08);font-size:10px;color:var(--text-primary);line-height:1.5;\">'
+                    + '💡 Based on your retrieval patterns, this deck looks like it should be <strong>' + esc(profileLabel(profileSuggestion)) + '</strong>. '
+                    + '<button type=\"button\" class=\"ghost-btn\" id=\"profileSuggestionApply\" style=\"min-width:auto;padding:4px 8px;margin-left:6px;\">Apply</button>'
+                    + '<button type=\"button\" class=\"ghost-btn\" id=\"profileSuggestionDismiss\" style=\"min-width:auto;padding:4px 8px;margin-left:6px;opacity:0.85;\">Dismiss</button>'
+                    + '</div>'
+                  ) : '')
 	                + '<div style=\"padding:10px 12px;border-radius:12px;border:1px solid rgba(var(--accent-rgb),0.16);background:rgba(var(--accent-rgb),0.06);\">'
 	                + '<div style=\"display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:10px;color:var(--text-secondary);margin-bottom:6px;\">'
 	                + '<span>Coverage</span><strong style=\"color:var(--text-primary);\">' + consolidatedCount + '/' + totalCoverage + ' consolidated</strong>'
@@ -27805,6 +28005,22 @@ input[type="range"]::-moz-range-thumb{
 	                + '</div>'
 	                + '</div>';
 	              var reviewSubDeckBtn = el('cdReviewSubDeck');
+                var suggestionApplyBtn = el('profileSuggestionApply');
+                if (suggestionApplyBtn && profileSuggestion) suggestionApplyBtn.onclick = function() {
+                  if (state.subDecks && state.subDecks[courseName] && state.subDecks[courseName][selectedSubDeck]) {
+                    state.subDecks[courseName][selectedSubDeck].planProfile = profileSuggestion;
+                    subDecksDirty = true;
+                    saveState();
+                    toast('Profile set to ' + profileSuggestion + '.');
+                    openCourseDetail(courseName);
+                  }
+                };
+                var suggestionDismissBtn = el('profileSuggestionDismiss');
+                if (suggestionDismissBtn) suggestionDismissBtn.onclick = function() {
+                  try { localStorage.setItem('studyengine.profileSuggestion.dismissed.' + selectedSubDeck, 'true'); } catch (eDismiss) {}
+                  var banner = el('profileSuggestionBanner');
+                  if (banner) banner.style.display = 'none';
+                };
 	              if (reviewSubDeckBtn) reviewSubDeckBtn.onclick = function() {
 	                var directMap = new Set(getCardsInSubDeck(courseName, selectedSubDeck, Object.keys(allCourseItems).map(function(itemId){ return allCourseItems[itemId]; })).filter(function(item){ return item && !item.archived; }).map(function(item){ return item.id; }));
 	                var q = buildSessionQueue().filter(function(item) {
