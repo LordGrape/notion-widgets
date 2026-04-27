@@ -11071,6 +11071,7 @@ input[type="range"]::-moz-range-thumb{
     }
 
     var state = deepClone(DEFAULT_STATE);
+    var booted = false;
     var settings = null;
     var subDecksDirty = false;
 
@@ -11146,6 +11147,7 @@ input[type="range"]::-moz-range-thumb{
       var ui = SyncEngine.get(NS, 'ui') || null;
       var calibration = SyncEngine.get(NS, 'calibration') || null;
       var stats = SyncEngine.get(NS, 'stats') || null;
+      var studyEngineFeatures = SyncEngine.get(NS, 'studyEngineFeatures') || null;
       state = deepClone(DEFAULT_STATE);
       if (items && typeof items === 'object') state.items = items;
       if (courses && typeof courses === 'object') state.courses = courses;
@@ -11156,6 +11158,7 @@ input[type="range"]::-moz-range-thumb{
       if (!state.ui.activeCourseTab || typeof state.ui.activeCourseTab !== 'object') state.ui.activeCourseTab = {};
       if (calibration && typeof calibration === 'object') state.calibration = calibration;
       if (stats && typeof stats === 'object') state.stats = stats;
+      if (studyEngineFeatures && typeof studyEngineFeatures === 'object' && !Array.isArray(studyEngineFeatures)) state.studyEngineFeatures = studyEngineFeatures;
       migrateItems();
       migrateCoursesPhase6();
       globalThis.__studyEngineSubDecks.loadSubDecks(state);
@@ -11213,6 +11216,7 @@ input[type="range"]::-moz-range-thumb{
       }
       SyncEngine.set(NS, 'calibration', state.calibration || deepClone(DEFAULT_STATE.calibration));
       SyncEngine.set(NS, 'stats', state.stats || deepClone(DEFAULT_STATE.stats));
+      SyncEngine.set(NS, 'studyEngineFeatures', state.studyEngineFeatures || deepClone(DEFAULT_STATE.studyEngineFeatures));
       SyncEngine.set(NS, 'settings', settings || deepClone(DEFAULT_SETTINGS));
     }
 
@@ -28502,6 +28506,7 @@ input[type="range"]::-moz-range-thumb{
     var focusResyncBound = false;
     /* ═══ SECTION: Boot | Functions: boot ═══ */
     function boot() {
+      booted = true;
       loadState();
       /* Re-sync from SyncEngine when a remote device writes new state.
          Core.js polls KV every 60s; this listener reloads local state
@@ -28743,7 +28748,7 @@ input[type="range"]::-moz-range-thumb{
 
     /* Safety: render even if onReady is slow/offline */
     setTimeout(function() {
-      if (!state) boot();
+      if (!booted) boot();
     }, 3000);
   </script>
   <div class="anno-tip" id="annoTip"><div class="at-tag"></div><div class="at-note"></div></div>
