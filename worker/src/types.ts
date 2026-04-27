@@ -379,13 +379,15 @@ export interface StudyCardInput {
   modelAnswer?: string;
 }
 
-export type PlanProfile = "theory" | "factual" | "procedural";
+export type PlanProfile = "theory" | "factual" | "procedural" | "language";
 
 export interface LearnPlanRequest {
   course: string;
   subDeck: string;
   cards: StudyCardInput[];
   planProfile?: PlanProfile;
+  targetLanguage?: string;
+  languageLevel?: number;
   userName?: string;
   learnerContext?: string;
   priorKnowledge?: "high" | "mixed" | "low";
@@ -404,7 +406,7 @@ export interface GroundingSnippet {
   quote: string;
 }
 
-export type LearnCheckType = "elaborative" | "predictive" | "self_explain" | "prior_knowledge_probe" | "worked_example" | "transfer_question";
+export type LearnCheckType = "elaborative" | "predictive" | "self_explain" | "prior_knowledge_probe" | "worked_example" | "transfer_question" | "cloze";
 
 export interface LearnPlanSegment {
   id: string;

@@ -62,7 +62,28 @@ export function setupModalSystem(bridge: ModalBridge): ModalSystem {
       '<option value="">Use sub-deck default</option>' +
       '<option value="theory">Theory</option>' +
       '<option value="factual">Factual</option>' +
+      '<option value="language">Language</option>' +
       '<option value="procedural">Procedural</option>' +
+      '</select>' +
+      '</div>' +
+      '<div class="field">' +
+      '<label>Target language</label>' +
+      '<select id="m_targetLanguage" class="input">' +
+      '<option value="">Use parent default</option>' +
+      '<option value="es-ES">Spanish (es-ES)</option>' +
+      '<option value="fr-FR">French (fr-FR)</option>' +
+      '<option value="de-DE">German (de-DE)</option>' +
+      '<option value="ja-JP">Japanese (ja-JP)</option>' +
+      '<option value="zh-CN">Chinese (zh-CN)</option>' +
+      '<option value="__other__">Other (manual)</option>' +
+      '</select>' +
+      '<input id="m_targetLanguageOther" class="input" placeholder="e.g. it-IT" style="margin-top:6px;" />' +
+      '</div>' +
+      '<div class="field">' +
+      '<label>Language level</label>' +
+      '<select id="m_languageLevel" class="input">' +
+      '<option value=\"\">Use parent default</option>' +
+      '<option value=\"1\">1</option><option value=\"2\">2</option><option value=\"3\">3</option><option value=\"4\">4</option><option value=\"5\">5</option><option value=\"6\">6</option>' +
       '</select>' +
       '</div>';
   }

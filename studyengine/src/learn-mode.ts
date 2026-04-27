@@ -1,7 +1,7 @@
 import type { AppState, CourseContext, PlanProfile, StudyItem, SubDeckMeta } from './types';
 import { createSubDeck, getCardsInScope, getCardsInSubDeck, loadSubDecks } from './sub-decks';
 import { runLearnTurn, LearnTurnClientError } from './learn-turn-client';
-import { resolveSessionPlanProfile } from './plan-profiles';
+import { resolveSessionPlanProfile, resolveSessionTargetLanguage } from './plan-profiles';
 
 // Re-export for callers that previously imported from `./learn-mode`.
 export { runLearnTurn, LearnTurnClientError };
@@ -32,7 +32,7 @@ export interface LearnSegment {
   linkedCardIds: string[];
   groundingSnippets: GroundingSnippet[];
   groundingSource?: 'gemini' | 'fallback';
-  checkType?: 'elaborative' | 'predictive' | 'self_explain' | 'prior_knowledge_probe' | 'worked_example' | 'transfer_question';
+  checkType?: 'elaborative' | 'predictive' | 'self_explain' | 'prior_knowledge_probe' | 'worked_example' | 'transfer_question' | 'cloze';
   fadeLevel?: 1 | 2 | 3;
   workedExampleId?: string;
   isProbe?: boolean;
@@ -203,6 +203,8 @@ export async function generateLearnPlan(course: string, subDeck: string, items: 
     modelAnswer: item.modelAnswer
   }));
   const planProfile = resolveLearnPlanProfile(subDeckCards, state);
+  const targetLanguage = resolveSessionLanguageTarget(subDeckCards, state);
+  const languageLevel = resolveSessionLanguageLevel(subDeckCards, state);
 
   const response = await fetch(LEARN_PLAN_ENDPOINT, {
     method: 'POST',
@@ -212,6 +214,8 @@ export async function generateLearnPlan(course: string, subDeck: string, items: 
       subDeck,
       cards,
       planProfile,
+      targetLanguage,
+      languageLevel,
       userName,
       learnerContext
     })
@@ -329,11 +333,36 @@ function getCourseForCard(card: StudyItem, state?: AppState): AppState['courses'
 
 function resolveLearnPlanProfile(cards: StudyItem[], state?: AppState): PlanProfile {
   if (state?.studyEngineFeatures?.run3Profiles === false) return 'theory';
-  return resolveSessionPlanProfile(
+  const resolved = resolveSessionPlanProfile(
     cards,
     (card) => getSubDeckMetaForCard(card, state),
     (card) => getCourseForCard(card, state)
   );
+  if (state?.studyEngineFeatures?.run5Language === false && resolved === 'language') return 'theory';
+  return resolved;
+}
+
+function resolveSessionLanguageTarget(cards: StudyItem[], state?: AppState): string | undefined {
+  if (state?.studyEngineFeatures?.run5Language === false) return undefined;
+  return resolveSessionTargetLanguage(
+    cards,
+    (card) => getSubDeckMetaForCard(card, state),
+    (card) => getCourseForCard(card, state)
+  );
+}
+
+function resolveSessionLanguageLevel(cards: StudyItem[], state?: AppState): number | undefined {
+  if (state?.studyEngineFeatures?.run5Language === false) return undefined;
+  const tally: Record<number, number> = {};
+  cards.forEach((card) => {
+    const sd = getSubDeckMetaForCard(card, state);
+    const course = getCourseForCard(card, state) as any;
+    const level = Number((card as any).languageLevel ?? (sd as any)?.languageLevel ?? course?.languageLevel ?? 0);
+    if (!Number.isFinite(level) || level < 1 || level > 6) return;
+    tally[level] = (tally[level] || 0) + 1;
+  });
+  const levels = Object.keys(tally).map(Number).sort((a, b) => (tally[b] - tally[a]) || (a - b));
+  return levels[0];
 }
 
 export function pickProbeCard(cards: StudyCardInput[]): StudyCardInput | null {
@@ -382,6 +411,8 @@ export async function streamLearnPlan(
   const subDeckCards = getCardsInSubDeck(course, subDeck, items);
   const subDeckFingerprint = fingerprintSubDeckCards(subDeckCards);
   const planProfile = resolveLearnPlanProfile(subDeckCards, state);
+  const targetLanguage = resolveSessionLanguageTarget(subDeckCards, state);
+  const languageLevel = resolveSessionLanguageLevel(subDeckCards, state);
   handlers.onPlanProfileResolved?.(planProfile);
   const payload = {
     course,
@@ -390,6 +421,8 @@ export async function streamLearnPlan(
     userName,
     learnerContext,
     planProfile,
+    targetLanguage,
+    languageLevel,
     priorKnowledge: await runPriorKnowledgeProbe(
       subDeckCards.map((item) => ({ id: item.id, prompt: item.prompt, modelAnswer: item.modelAnswer })),
       course,
@@ -561,6 +594,8 @@ export async function streamCourseLearnPlan(
   const courseCards = getCardsInScope(course, null, items, state, { includeArchivedSubDecks: false });
   const subDeckFingerprint = fingerprintSubDeckCards(courseCards);
   const planProfile = resolveLearnPlanProfile(courseCards, state);
+  const targetLanguage = resolveSessionLanguageTarget(courseCards, state);
+  const languageLevel = resolveSessionLanguageLevel(courseCards, state);
   handlers.onPlanProfileResolved?.(planProfile);
   const payload = {
     course,
@@ -569,6 +604,8 @@ export async function streamCourseLearnPlan(
     userName,
     learnerContext,
     planProfile,
+    targetLanguage,
+    languageLevel,
     priorKnowledge: await runPriorKnowledgeProbe(
       courseCards.map((item) => ({ id: item.id, prompt: item.prompt, modelAnswer: item.modelAnswer })),
       course,
@@ -582,7 +619,7 @@ export async function streamCourseLearnPlan(
 }
 
 async function streamLearnPlanInternal(
-  payload: { course: string; subDeck: string; cards: Array<{ id: string; prompt: string; modelAnswer: string }>; userName: string; learnerContext: string; planProfile: PlanProfile; priorKnowledge?: 'high' | 'mixed' | 'low'; appendTransferQuestion?: boolean; },
+  payload: { course: string; subDeck: string; cards: Array<{ id: string; prompt: string; modelAnswer: string }>; userName: string; learnerContext: string; planProfile: PlanProfile; targetLanguage?: string; languageLevel?: number; priorKnowledge?: 'high' | 'mixed' | 'low'; appendTransferQuestion?: boolean; },
   sourceCards: StudyItem[],
   subDeckFingerprint: string,
   handlers: StreamLearnPlanHandlers = {},

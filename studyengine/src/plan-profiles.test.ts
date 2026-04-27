@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { resolveCardPlanProfile, resolveSessionPlanProfile } from './plan-profiles';
+import {
+  resolveCardPlanProfile,
+  resolveSessionPlanProfile,
+  resolveSessionTargetLanguage,
+  resolveTargetLanguage
+} from './plan-profiles';
 
 function mkCard(id: string, overrides: Record<string, unknown> = {}): any {
   return {
@@ -16,9 +21,9 @@ function mkCard(id: string, overrides: Record<string, unknown> = {}): any {
 
 describe('resolveCardPlanProfile', () => {
   it('prefers card override over sub-deck and course defaults', () => {
-    const card = mkCard('c1', { planProfile: 'procedural' });
+    const card = mkCard('c1', { planProfile: 'language' });
     const result = resolveCardPlanProfile(card, { planProfile: 'factual' } as any, { planProfile: 'theory' } as any);
-    expect(result).toBe('procedural');
+    expect(result).toBe('language');
   });
 
   it('prefers sub-deck default over course default', () => {
@@ -66,5 +71,62 @@ describe('resolveSessionPlanProfile', () => {
       mkCard('p4', { planProfile: 'procedural' })
     ];
     expect(resolveSessionPlanProfile(factualVsProcedural, () => null, () => null)).toBe('factual');
+  });
+
+  it('counts language profile in plurality resolution', () => {
+    const cards = [
+      mkCard('l1', { planProfile: 'language' }),
+      mkCard('l2', { planProfile: 'language' }),
+      mkCard('t1', { planProfile: 'theory' })
+    ];
+    expect(resolveSessionPlanProfile(cards, () => null, () => null)).toBe('language');
+  });
+});
+
+describe('target language resolution', () => {
+  it('uses precedence card > sub-deck > course > undefined', () => {
+    const cardOverride = mkCard('tl1', { targetLanguage: 'fr-FR' });
+    expect(resolveTargetLanguage(cardOverride, { targetLanguage: 'es-ES' } as any, { targetLanguage: 'de-DE' } as any)).toBe('fr-FR');
+
+    const subDeckDefault = mkCard('tl2');
+    expect(resolveTargetLanguage(subDeckDefault, { targetLanguage: 'es-ES' } as any, { targetLanguage: 'de-DE' } as any)).toBe('es-ES');
+
+    const courseDefault = mkCard('tl3');
+    expect(resolveTargetLanguage(courseDefault, null, { targetLanguage: 'de-DE' } as any)).toBe('de-DE');
+    expect(resolveTargetLanguage(courseDefault, null, null)).toBeUndefined();
+  });
+
+  it('resolves plurality across a session', () => {
+    const cards = [
+      mkCard('s1', { targetLanguage: 'es-ES' }),
+      mkCard('s2', { targetLanguage: 'es-ES' }),
+      mkCard('s3', { targetLanguage: 'fr-FR' })
+    ];
+    expect(resolveSessionTargetLanguage(cards, () => null, () => null)).toBe('es-ES');
+  });
+
+  it('uses alphabetical tie-break for equal plurality', () => {
+    const cards = [
+      mkCard('tie1', { targetLanguage: 'ja-JP' }),
+      mkCard('tie2', { targetLanguage: 'fr-FR' })
+    ];
+    expect(resolveSessionTargetLanguage(cards, () => null, () => null)).toBe('fr-FR');
+  });
+
+  it('supports fallback from sub-deck and course in plurality tally', () => {
+    const cards = [mkCard('f1'), mkCard('f2'), mkCard('f3')];
+    const subDeckById: Record<string, any> = {
+      f1: { targetLanguage: 'de-DE' },
+      f2: { targetLanguage: 'de-DE' }
+    };
+    const courseById: Record<string, any> = {
+      f3: { targetLanguage: 'es-ES' }
+    };
+    const resolved = resolveSessionTargetLanguage(
+      cards,
+      (card) => subDeckById[card.id] || null,
+      (card) => courseById[card.id] || null
+    );
+    expect(resolved).toBe('de-DE');
   });
 });

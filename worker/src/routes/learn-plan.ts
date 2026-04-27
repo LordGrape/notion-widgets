@@ -20,7 +20,7 @@ interface PlanCachedResponse extends LearnPlanResponse {
   cachedAt: string;
 }
 
-const LEARN_CHECK_TYPES: readonly LearnCheckType[] = ["elaborative", "predictive", "self_explain", "prior_knowledge_probe", "worked_example", "transfer_question"] as const;
+const LEARN_CHECK_TYPES: readonly LearnCheckType[] = ["elaborative", "predictive", "self_explain", "prior_knowledge_probe", "worked_example", "transfer_question", "cloze"] as const;
 const FACTUAL_PROFILE_APPENDIX = [
   "This is a FACTUAL profile session. Prioritize:",
   "- Short teach blocks, ~60 words maximum.",
@@ -38,9 +38,17 @@ const PROCEDURAL_PROFILE_APPENDIX = [
   "- transfer_question check type for novel-context application of the procedure.",
   "- Worked examples appropriate when the procedure has a canonical demonstration."
 ].join("\n");
+const LANGUAGE_PROFILE_APPENDIX = [
+  "This is a LANGUAGE profile session. Prioritize:",
+  "- Emit segment pairs in order: first RECOGNITION (L2→L1, include audioCue metadata with targetLanguage), then PRODUCTION (L1→L2).",
+  "- Aim for i+1 difficulty where i = languageLevel; target one level above current learner level.",
+  "- For grammar/sentence-pattern cards, use checkType='cloze' and include exactly one [___] blank in tutorPrompt.",
+  "- Keep teach blocks concise: 50 words maximum.",
+  "- Include targetLanguage (BCP-47) in any audio-cue metadata for client-side TTS playback."
+].join("\n");
 
-function normalizePlanProfile(value: unknown): "theory" | "factual" | "procedural" {
-  return value === "factual" || value === "procedural" ? value : "theory";
+function normalizePlanProfile(value: unknown): "theory" | "factual" | "procedural" | "language" {
+  return value === "factual" || value === "procedural" || value === "language" ? value : "theory";
 }
 
 function logPlanUsage(tag: string, model: string, response: unknown): void {
@@ -467,6 +475,8 @@ async function planCacheKey(body: LearnPlanRequest): Promise<string> {
     priorKnowledge: body.priorKnowledge || "mixed",
     appendTransferQuestion: Boolean(body.appendTransferQuestion),
     planProfile,
+    targetLanguage: String(body.targetLanguage || "").trim() || undefined,
+    languageLevel: Number.isFinite(Number(body.languageLevel)) ? Number(body.languageLevel) : undefined,
     course: body.course,
     subDeck: body.subDeck,
     cards: sortedCards
@@ -542,6 +552,7 @@ function buildSystemPrompt(body: LearnPlanRequest): string {
   }
   if (planProfile === "factual") appendices.push(FACTUAL_PROFILE_APPENDIX);
   if (planProfile === "procedural") appendices.push(PROCEDURAL_PROFILE_APPENDIX);
+  if (planProfile === "language") appendices.push(LANGUAGE_PROFILE_APPENDIX);
   return [
     "You generate a grounded first-exposure learning plan for one sub-deck.",
     "Return JSON only.",
@@ -568,6 +579,7 @@ function buildSystemPrompt(body: LearnPlanRequest): string {
     "  - elaborative: 'In your own words, why does [concept] matter / work / apply?' or 'How does [concept] connect to [prior segment]?' — forces causal reasoning.",
     "  - predictive: 'Before the next segment: what would happen if [varied scenario]?' — builds anticipatory schema.",
     "  - self_explain: 'Explain [concept] as if teaching someone who has not read the segment.' — forces recoding in own words.",
+    "  - cloze: use exactly one [___] blank for sentence/grammar pattern completion.",
     "- Never:",
     "  - Ask questions whose answer is a literal string from the teach (dates, names, places, numbers, titles, proper nouns).",
     "  - Ask 'When / who / where / which / what is' questions that target a fact stated in the teach.",
@@ -630,6 +642,8 @@ MODEL_ANSWER: ${String(card.modelAnswer || "")}`;
     `COURSE: ${body.course}`,
     `SUB_DECK: ${body.subDeck}`,
     `PLAN_PROFILE: ${normalizePlanProfile(body.planProfile)}`,
+    `TARGET_LANGUAGE: ${String(body.targetLanguage || "").trim() || "unspecified"}`,
+    `LANGUAGE_LEVEL: ${Number.isFinite(Number(body.languageLevel)) ? Number(body.languageLevel) : "unspecified"}`,
     `PRIOR_KNOWLEDGE: ${body.priorKnowledge || "mixed"}`,
     `APPEND_TRANSFER_QUESTION: ${Boolean(body.appendTransferQuestion)}`,
     `USER_NAME: ${body.userName || "student"}`,
@@ -661,7 +675,7 @@ function buildGenerationConfig(): Record<string, unknown> {
             objective: { type: "string" },
             teach: { type: "string" },
             tutorPrompt: { type: "string" },
-            checkType: { type: "string", enum: ["elaborative", "predictive", "self_explain", "prior_knowledge_probe", "worked_example", "transfer_question"] },
+            checkType: { type: "string", enum: ["elaborative", "predictive", "self_explain", "prior_knowledge_probe", "worked_example", "transfer_question", "cloze"] },
             expectedAnswer: { type: "string" },
             linkedCardIds: { type: "array", items: { type: "string" } },
             groundingSnippets: {

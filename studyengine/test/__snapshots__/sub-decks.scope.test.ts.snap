@@ -9,9 +9,11 @@ exports[`sub-deck scope > migrateSubDecks snapshot emits optional metadata only 
       "color": undefined,
       "created": 1,
       "icon": undefined,
+      "languageLevel": undefined,
       "name": "Base",
       "order": 0,
       "parentSubDeck": undefined,
+      "targetLanguage": undefined,
     },
     "child": {
       "archived": true,
@@ -19,9 +21,11 @@ exports[`sub-deck scope > migrateSubDecks snapshot emits optional metadata only 
       "color": undefined,
       "created": 2,
       "icon": undefined,
+      "languageLevel": undefined,
       "name": "Child",
       "order": 1,
       "parentSubDeck": "base",
+      "targetLanguage": undefined,
     },
   },
 }
