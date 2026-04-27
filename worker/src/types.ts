@@ -347,6 +347,32 @@ export interface DistillResponse {
   totalChunksStored: number;
 }
 
+export interface IngestExtractRequest {
+  markdown: string;
+  subDeckId?: string;
+  courseId?: string;
+  originDocUrl?: string;
+  lectureAttended: boolean;
+  chunkIndex: number;
+  chunkCount: number;
+  requestId: string;
+}
+
+export interface ExtractedDraft {
+  prompt: string;
+  modelAnswer: string;
+  sourceParagraphSnippet: string;
+  sourceLineRange: { start: number; end: number };
+  confidence: "high" | "medium" | "low";
+}
+
+export interface IngestExtractResponse {
+  drafts: ExtractedDraft[];
+  warnings: Array<{ severity: "info" | "warn"; message: string }>;
+  chunksRemaining: number;
+  budgetState: { proCallsRemainingToday: number };
+}
+
 export interface StudyCardInput {
   id?: string;
   prompt?: string;

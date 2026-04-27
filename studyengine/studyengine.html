@@ -10442,6 +10442,7 @@ input[type="range"]::-moz-range-thumb{
     import { setupSettingsModule } from './src/settings';
     import { setupModalSystem } from './src/modals';
     import { harvestFromNotionMarkdown } from './src/ingest/ingest-orchestrator';
+    import { extractFreeformDrafts } from './src/ingest/freeform-client';
     import { initPageAnimations, animateEmptyStateEntrance } from './src/animations.js';
     import { computePopoverData, getTimeBucket } from './src/xp-popover';
     import './src/learn-mode';
@@ -12459,6 +12460,15 @@ input[type="range"]::-moz-range-thumb{
           '</div>' +
           '<div class="sr-control">' +
             '<label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="s_run4Ingest"' + (isRun4IngestEnabled() ? ' checked' : '') + '> Enable</label>' +
+          '</div>' +
+        '</div>' +
+        '<div class="setting-row">' +
+          '<div class="sr-left">' +
+            '<div class="sr-label">Experimental</div>' +
+            '<div class="sr-desc">Run 4.5 free-form ingest extraction.</div>' +
+          '</div>' +
+          '<div class="sr-control">' +
+            '<label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="s_run45Freeform"' + (isRun45FreeformEnabled() ? ' checked' : '') + '> Enable</label>' +
           '</div>' +
         '</div>';
         if (topicEmpty) topicEmpty.style.display = 'block';
@@ -20856,6 +20866,18 @@ input[type="range"]::-moz-range-thumb{
         });
       }
 
+      var run45Toggle = el('s_run45Freeform');
+      if (run45Toggle) {
+        run45Toggle.addEventListener('change', function() {
+          state.studyEngineFeatures = state.studyEngineFeatures || {};
+          state.studyEngineFeatures.run45Freeform = !!run45Toggle.checked;
+          if (!state.studyEngineFeatures.run45Freeform && ingestUiState.mode === 'freeform') {
+            ingestUiState.mode = 'detect';
+          }
+          saveState();
+        });
+      }
+
       if (window.gsap) {
         var rows = body.querySelectorAll('.setting-row');
         gsap.fromTo(rows, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.25, stagger: 0.05, ease: 'power2.out' });
@@ -26076,10 +26098,16 @@ input[type="range"]::-moz-range-thumb{
       return !!state.studyEngineFeatures.run4Ingest;
     }
 
+    function isRun45FreeformEnabled() {
+      if (!state.studyEngineFeatures || typeof state.studyEngineFeatures.run45Freeform === 'undefined') return true;
+      return !!state.studyEngineFeatures.run45Freeform;
+    }
+
     var ingestUiState = {
       markdown: '',
       originDocUrl: '',
       lectureAttended: true,
+      mode: 'detect',
       qecSubCards: false,
       sectionsEnabled: {
         'key-concepts': true,
@@ -26092,7 +26120,9 @@ input[type="range"]::-moz-range-thumb{
       selectedCourse: '',
       selectedSubDeck: '',
       drafts: [],
-      warnings: []
+      warnings: [],
+      extractionProgress: '',
+      budgetRemainingToday: null
     };
 
     function updateIngestButtonVisibility() {
@@ -26150,12 +26180,30 @@ input[type="range"]::-moz-range-thumb{
           subDeckOptions += '<option value="' + esc(entry.key) + '">' + esc(entry.meta.name || entry.key) + '</option>';
         });
       }
+      var freeformEnabled = isRun45FreeformEnabled();
+      var isFreeformMode = freeformEnabled && ingestUiState.mode === 'freeform';
+      var modeHtml = '<div class="field"><label>Ingest mode</label>' +
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;font-size:11px;">' +
+          '<label><input type="radio" name="ingestMode" value="detect"' + (!isFreeformMode ? ' checked' : '') + '> Detect Q/E/C + Summaries</label>' +
+          (freeformEnabled ? '<label><input type="radio" name="ingestMode" value="freeform"' + (isFreeformMode ? ' checked' : '') + '> Free-form lecture paste</label>' : '') +
+        '</div></div>';
+      var freeformHint = isFreeformMode
+        ? '<div class="field"><div style="font-size:11px;color:var(--text-secondary);">Uses 1 Pro call per ~12k characters. ' +
+            (ingestUiState.budgetRemainingToday === null
+              ? 'Budget remaining will appear after extraction starts.'
+              : (String(ingestUiState.budgetRemainingToday) + ' of 5 Pro calls remaining today.')) +
+          '</div></div>'
+        : '';
+      var progressHtml = ingestUiState.extractionProgress
+        ? '<div class="field"><div data-freeform-progress style="font-size:11px;color:var(--text-secondary);">' + esc(ingestUiState.extractionProgress) + '</div></div>'
+        : '';
       body.innerHTML =
+        modeHtml +
         '<div class="field"><label>Paste Notion page content (markdown)</label><textarea id="ingestMarkdown" class="input" rows="9" placeholder="Paste Q/E/C blocks and/or Notion AI reading summaries">' + esc(ingestUiState.markdown) + '</textarea></div>' +
         '<div class="field"><label>Original page URL (optional)</label><input id="ingestUrl" class="input" value="' + esc(ingestUiState.originDocUrl || '') + '" /></div>' +
         '<div class="field"><label><input type="checkbox" id="ingestLecture"' + (ingestUiState.lectureAttended ? ' checked' : '') + '> Lecture attended? (Q/E/C cards default to Rapid Consolidation when checked.)</label></div>' +
-        '<div class="field"><label><input type="checkbox" id="ingestSubCards"' + (ingestUiState.qecSubCards ? ' checked' : '') + '> Also create a sub-card per top-level E branch?</label></div>' +
-        '<div class="field"><label>Summary sections</label>' +
+        (isFreeformMode ? '' : '<div class="field"><label><input type="checkbox" id="ingestSubCards"' + (ingestUiState.qecSubCards ? ' checked' : '') + '> Also create a sub-card per top-level E branch?</label></div>') +
+        (isFreeformMode ? '' : '<div class="field"><label>Summary sections</label>' +
           '<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;font-size:11px;">' +
             '<label><input type="checkbox" data-ingest-section="key-concepts"' + (ingestUiState.sectionsEnabled['key-concepts'] ? ' checked' : '') + '> Key Concepts</label>' +
             '<label><input type="checkbox" data-ingest-section="important-arguments"' + (ingestUiState.sectionsEnabled['important-arguments'] ? ' checked' : '') + '> Important Arguments</label>' +
@@ -26163,7 +26211,9 @@ input[type="range"]::-moz-range-thumb{
             '<label><input type="checkbox" data-ingest-section="essay-hooks"' + (ingestUiState.sectionsEnabled['essay-hooks'] ? ' checked' : '') + '> Essay Hooks</label>' +
             '<label><input type="checkbox" data-ingest-section="key-quotes"' + (ingestUiState.sectionsEnabled['key-quotes'] ? ' checked' : '') + '> Key Quotes</label>' +
             '<label><input type="checkbox" data-ingest-section="memory-anchor"' + (ingestUiState.sectionsEnabled['memory-anchor'] ? ' checked' : '') + '> Memory Anchor</label>' +
-          '</div></div>' +
+          '</div></div>') +
+        freeformHint +
+        progressHtml +
         '<div class="field"><label>Target course</label><select id="ingestCourse" class="input">' + courseOptions + '</select></div>' +
         '<div class="field"><label>Target sub-deck</label><select id="ingestSubDeck" class="input">' + subDeckOptions + '</select></div>';
 
@@ -26173,23 +26223,63 @@ input[type="range"]::-moz-range-thumb{
 
       el('ingestCancel').onclick = closeIngestModal;
       el('ingestCourse').onchange = function(){ ingestUiState.selectedCourse = this.value || ''; ingestUiState.selectedSubDeck = ''; renderIngestPasteView(); };
-      el('ingestDetect').onclick = function() {
+      body.querySelectorAll('input[name=\"ingestMode\"]').forEach(function(node){
+        node.onchange = function() {
+          ingestUiState.mode = this.value === 'freeform' ? 'freeform' : 'detect';
+          ingestUiState.extractionProgress = '';
+          renderIngestPasteView();
+        };
+      });
+      el('ingestDetect').onclick = async function() {
         ingestUiState.markdown = (el('ingestMarkdown').value || '').trim();
         ingestUiState.originDocUrl = (el('ingestUrl').value || '').trim();
         ingestUiState.lectureAttended = !!el('ingestLecture').checked;
-        ingestUiState.qecSubCards = !!el('ingestSubCards').checked;
+        ingestUiState.qecSubCards = !!(el('ingestSubCards') && el('ingestSubCards').checked);
         ingestUiState.selectedCourse = (el('ingestCourse').value || '').trim();
         ingestUiState.selectedSubDeck = (el('ingestSubDeck').value || '').trim();
         body.querySelectorAll('[data-ingest-section]').forEach(function(node){ ingestUiState.sectionsEnabled[node.getAttribute('data-ingest-section')] = !!node.checked; });
-        var batch = harvestFromNotionMarkdown(ingestUiState.markdown, {
-          originDocUrl: ingestUiState.originDocUrl || undefined,
-          lectureAttended: ingestUiState.lectureAttended,
-          qecSubCards: ingestUiState.qecSubCards,
-          sectionsEnabled: ingestUiState.sectionsEnabled
-        });
-        ingestUiState.drafts = batch.drafts.map(function(d){ return Object.assign({ include: true, expanded: false }, d); });
-        ingestUiState.warnings = batch.warnings || [];
-        renderIngestReviewView();
+        try {
+          var batch;
+          if (ingestUiState.mode === 'freeform' && isRun45FreeformEnabled()) {
+            ingestUiState.extractionProgress = 'Starting extraction…';
+            renderIngestPasteView();
+            batch = await extractFreeformDrafts({
+              markdown: ingestUiState.markdown,
+              originDocUrl: ingestUiState.originDocUrl || undefined,
+              lectureAttended: ingestUiState.lectureAttended,
+              subDeckId: ingestUiState.selectedSubDeck || undefined,
+              courseId: ingestUiState.selectedCourse || undefined,
+              onProgress: function(chunkIndex, chunkCount) {
+                ingestUiState.extractionProgress = 'Extracting chunk ' + chunkIndex + ' of ' + chunkCount + '…';
+                var progressNode = el('ingestBody');
+                if (progressNode) {
+                  var hint = progressNode.querySelector('[data-freeform-progress]');
+                  if (hint) hint.textContent = ingestUiState.extractionProgress;
+                }
+              }
+            });
+          } else {
+            batch = harvestFromNotionMarkdown(ingestUiState.markdown, {
+              originDocUrl: ingestUiState.originDocUrl || undefined,
+              lectureAttended: ingestUiState.lectureAttended,
+              qecSubCards: ingestUiState.qecSubCards,
+              sectionsEnabled: ingestUiState.sectionsEnabled
+            });
+          }
+          ingestUiState.drafts = batch.drafts.map(function(d){ return Object.assign({ include: true, expanded: false }, d); });
+          ingestUiState.warnings = batch.warnings || [];
+          var budgetWarning = ingestUiState.warnings.find(function(w){ return w && w.message && w.message.indexOf('Pro budget remaining today:') === 0; });
+          if (budgetWarning) {
+            var match = String(budgetWarning.message).match(/Pro budget remaining today:\\s*(\\d+)/i);
+            if (match) ingestUiState.budgetRemainingToday = parseInt(match[1], 10);
+          }
+          ingestUiState.extractionProgress = '';
+          renderIngestReviewView();
+        } catch (err) {
+          ingestUiState.extractionProgress = '';
+          toast(err && err.message ? err.message : 'Ingest extraction failed.');
+          renderIngestPasteView();
+        }
       };
     }
 
