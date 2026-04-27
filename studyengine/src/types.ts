@@ -1,3 +1,4 @@
+import type { IngestSource } from './ingest/types';
 /**
  * Study Engine type definitions extracted from studyengine/studyengine.html.
  * Type-only metadata (no runtime impact).
@@ -183,11 +184,7 @@ export interface StudyItem {
   fsrs: FSRSState;
   reviewLog?: ReviewEvent[];
   tags?: string[];
-  source?: {
-    type: string;
-    authoredFromCardId?: string;
-    mode?: string;
-  };
+  source?: IngestSource;
   notes?: string;
   created: string;
   modified?: string;
@@ -489,5 +486,6 @@ export interface AppState {
     run1Pedagogy?: boolean;
     run2Generative?: boolean;
     run3Profiles?: boolean;
+    run4Ingest?: boolean;
   };
 }
