@@ -21,6 +21,13 @@ import { handleTriage } from "./routes/triage";
 import { handleTts } from "./routes/tts";
 import { handleTutor } from "./routes/tutor";
 import { handleVisual } from "./routes/visual";
+
+import { handleBuildAssemble } from "./routes/build/assemble";
+import { handleDeckFrenchCore2000 } from "./routes/build/decks-french-core-2000";
+import { handleBuildGlossBatch } from "./routes/build/gloss-batch";
+import { handleBuildLexique3Prepare } from "./routes/build/lexique3-prepare";
+import { handleBuildStatus } from "./routes/build/status";
+import { handleBuildTatoebaPrepare } from "./routes/build/tatoeba-prepare";
 import type { Env } from "./types";
 
 function json(body: unknown, status = 200): Response {
@@ -124,6 +131,37 @@ export default {
       if (url.pathname === "/studyengine/gloss") {
         if (request.method !== "POST") return methodNotAllowed();
         return withCorsHeaders(await handleGloss(request, env));
+      }
+
+
+      if (url.pathname === "/studyengine/build/lexique3-prepare") {
+        if (request.method !== "POST") return methodNotAllowed();
+        return withCorsHeaders(await handleBuildLexique3Prepare(request, env));
+      }
+
+      if (url.pathname === "/studyengine/build/tatoeba-prepare") {
+        if (request.method !== "POST") return methodNotAllowed();
+        return withCorsHeaders(await handleBuildTatoebaPrepare(request, env));
+      }
+
+      if (url.pathname === "/studyengine/build/gloss-batch") {
+        if (request.method !== "POST") return methodNotAllowed();
+        return withCorsHeaders(await handleBuildGlossBatch(request, env));
+      }
+
+      if (url.pathname === "/studyengine/build/assemble") {
+        if (request.method !== "POST") return methodNotAllowed();
+        return withCorsHeaders(await handleBuildAssemble(request, env));
+      }
+
+      if (url.pathname === "/studyengine/build/status") {
+        if (request.method !== "GET") return methodNotAllowed();
+        return withCorsHeaders(await handleBuildStatus(request, env));
+      }
+
+      if (url.pathname === "/studyengine/decks/french-core-2000") {
+        if (request.method !== "GET") return methodNotAllowed();
+        return withCorsHeaders(await handleDeckFrenchCore2000(request, env));
       }
 
       if (url.pathname === "/studyengine/visual") {
