@@ -1,3 +1,5 @@
+import { profileLabel } from './courses/visibility';
+
 type Nullable<T> = T | null;
 
 declare const Core: any;
@@ -36,12 +38,13 @@ export function isFeatureEnabled(features: Record<string, boolean | undefined> |
 }
 
 export function planProfileOptionsHtml(features: Record<string, boolean | undefined> | undefined): string {
+  // A1: profile display labels come from the Course Details visibility helper.
   const options = [
     '<option value="">Use sub-deck default</option>',
-    '<option value="theory">Theory</option>',
-    '<option value="factual">Factual</option>',
-    isFeatureEnabled(features, 'run5Language') ? '<option value="language">Language</option>' : '',
-    '<option value="procedural">Procedural</option>',
+    `<option value="theory">${profileLabel('theory')}</option>`,
+    `<option value="factual">${profileLabel('factual')}</option>`,
+    isFeatureEnabled(features, 'run5Language') ? `<option value="language">${profileLabel('language')}</option>` : '',
+    `<option value="procedural">${profileLabel('procedural')}</option>`,
   ];
   return options.filter(Boolean).join('');
 }

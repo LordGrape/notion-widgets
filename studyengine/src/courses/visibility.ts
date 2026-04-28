@@ -1,20 +1,16 @@
-import type { Course } from '../types';
+import type { Course, CourseGoal, PlanProfile } from '../types';
 
 /**
- * Phase L0 — Course Details progressive disclosure.
+ * Phase A1: Course Details adaptive settings hierarchy.
  *
  * Single source of truth for which fields render in the Course Details tab
  * of the Manage Courses modal (`renderCourseModalEditor`). Pure logic only;
  * the monolith owns the DOM and gates each `inner +=` line on the returned
  * set.
  *
- * Scope is deliberately narrow:
- *   - Hide language-only fields when the course is not a language course.
- *   - Hide exam-only fields when the course is a language course.
- *
- * Aspirational fields (`gradingStyle`, `learnerL1`, `speakingPractice`,
- * `readingIngest`, `defaultPlanProfile`) are intentionally absent — they
- * are not on the `Course` type yet and adding them is out of scope for L0.
+ * A1 keeps the axes orthogonal:
+ *   - `planProfile` controls pedagogy.
+ *   - `courseGoal` controls learning context and assessment pressure.
  */
 
 export type CourseDetailsFieldId =
@@ -22,6 +18,7 @@ export type CourseDetailsFieldId =
   | 'color'
   | 'subjectType'
   | 'planProfile'
+  | 'courseGoal'
   | 'targetLanguage'
   | 'targetLanguageOther'
   | 'languageLevel'
@@ -35,6 +32,7 @@ const ALWAYS: CourseDetailsFieldId[] = [
   'color',
   'subjectType',
   'planProfile',
+  'courseGoal',
 ];
 
 const LANGUAGE_ONLY: CourseDetailsFieldId[] = [
@@ -50,6 +48,42 @@ const EXAM_ONLY: CourseDetailsFieldId[] = [
   'examWeight',
 ];
 
+type CourseDetailsVisibilityCourse = Pick<
+  Course,
+  'planProfile' | 'courseGoal' | 'examType' | 'examDate' | 'examFormat' | 'examWeight'
+>;
+
+function isCourseGoal(value: unknown): value is CourseGoal {
+  return value === 'daily_practice'
+    || value === 'exam_prep'
+    || value === 'professional_skill'
+    || value === 'project';
+}
+
+function hasLegacyExamField(course: Partial<CourseDetailsVisibilityCourse>): boolean {
+  return Boolean(
+    course.examType
+      || course.examDate
+      || course.examFormat
+      || course.examWeight != null,
+  );
+}
+
+// A1: resolve display behaviour at read time, without mutating course state.
+export function resolveCourseGoal(course: Partial<CourseDetailsVisibilityCourse>): CourseGoal {
+  if (isCourseGoal(course.courseGoal)) return course.courseGoal;
+  if (course.planProfile !== 'language' && hasLegacyExamField(course)) return 'exam_prep';
+  return 'daily_practice';
+}
+
+// A1: one display mapping for persisted plan-profile enum values.
+export function profileLabel(profile: PlanProfile): string {
+  if (profile === 'theory') return 'Conceptual';
+  if (profile === 'factual') return 'Factual';
+  if (profile === 'language') return 'Language';
+  return 'Procedural';
+}
+
 /**
  * Returns the set of Course Details fields that should render for the given
  * course. The argument is a minimal `Pick` so callers (and tests) do not
@@ -57,12 +91,13 @@ const EXAM_ONLY: CourseDetailsFieldId[] = [
  * fields that influence visibility should be added to the Pick explicitly.
  */
 export function visibleCourseDetailsFields(
-  course: Pick<Course, 'planProfile'>,
+  course: Partial<CourseDetailsVisibilityCourse>,
 ): Set<CourseDetailsFieldId> {
   const out = new Set<CourseDetailsFieldId>(ALWAYS);
   if (course.planProfile === 'language') {
     LANGUAGE_ONLY.forEach((f) => out.add(f));
-  } else {
+  }
+  if (resolveCourseGoal(course) === 'exam_prep') {
     EXAM_ONLY.forEach((f) => out.add(f));
   }
   return out;

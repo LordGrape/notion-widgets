@@ -10490,12 +10490,15 @@ input[type="range"]::-moz-range-thumb{
     import './src/learn-rail';
     import { deriveLearnDisplayMode } from './src/learn-display-mode';
     import { LEARN_EMPTY_HEADING, LEARN_EMPTY_BODY, LEARN_EMPTY_CTA, LEARN_EMPTY_LABEL_ENCODING, LEARN_EMPTY_LABEL_RETRIEVAL, LEARN_LANDING_STATUS_UNLEARNED, LEARN_LANDING_STATUS_TAUGHT, LEARN_LANDING_STATUS_CONSOLIDATED, LEARN_LANDING_CACHE_HIT, LEARN_LANDING_CACHE_MISS, LEARN_LANDING_REGEN, LEARN_REGEN_CONFIRM, LEARN_INTRO_TEXT, LEARN_INTRO_DISMISS, formatRelativeTime } from './src/learn-copy'; // U1: LEARN_LANDING_START removed (duplicate in-card button gone)
-    import { visibleCourseDetailsFields } from './src/courses/visibility';
+    import { profileLabel as courseProfileLabel, resolveCourseGoal, visibleCourseDetailsFields } from './src/courses/visibility';
     import { resolveActiveHomeCourse } from './src/home/active-course';
     import { homeHeroStats, homeTutorStatsLabels } from './src/home/widgets';
     import { shouldAutoGenerateVisual } from './src/visual/should-generate';
 
+    // A1: Course Details hierarchy helpers exposed to the monolith.
     globalThis.__studyEngineCourseVisibility = {
+      profileLabel: courseProfileLabel,
+      resolveCourseGoal: resolveCourseGoal,
       visibleCourseDetailsFields: visibleCourseDetailsFields
     };
 
@@ -21941,6 +21944,7 @@ input[type="range"]::-moz-range-thumb{
       courseModalState.mode = 'editor';
       courseModalState.course = courseName;
       courseModalState.pendingPlanProfile = null;
+      courseModalState.pendingCourseGoal = null;
       var resolvedTab = tab || courseModalState.tab || 'details';
       if (resolvedTab === 'subdecks') resolvedTab = 'structure';
       courseModalState.tab = resolvedTab;
@@ -21980,14 +21984,14 @@ input[type="range"]::-moz-range-thumb{
         var activeTab = courseModalState.tab || 'details';
         var inner = '';
         if (activeTab === 'details') {
-          /* L0: Phase L0 progressive disclosure. effectivePlanProfile is the
-             unsaved view of c.planProfile, mutated by the cm_planProfile
-             change handler so that toggling the dropdown re-renders the tab
-             with the right field set. Falls back to courseModalState.pendingPlanProfile
-             across re-renders within the same editor open. */
+          /* A1: Course Details progressive disclosure. effectivePlanProfile
+             and effectiveCourseGoal are the unsaved views used to re-render
+             the tab when the hierarchy controls change. */
           var effectivePlanProfile = courseModalState.pendingPlanProfile || c.planProfile || 'theory';
+          var goalBridge = (globalThis.__studyEngineCourseVisibility && globalThis.__studyEngineCourseVisibility.resolveCourseGoal) || null;
+          var effectiveCourseGoal = courseModalState.pendingCourseGoal || c.courseGoal || (goalBridge ? goalBridge(Object.assign({}, c, { planProfile: effectivePlanProfile })) : 'daily_practice');
           var visBridge = (globalThis.__studyEngineCourseVisibility && globalThis.__studyEngineCourseVisibility.visibleCourseDetailsFields) || null;
-          var vis = visBridge ? visBridge({ planProfile: effectivePlanProfile }) : null;
+          var vis = visBridge ? visBridge(Object.assign({}, c, { planProfile: effectivePlanProfile, courseGoal: effectiveCourseGoal })) : null;
           function _vis(field) { return !vis || vis.has(field); }
           inner += '<div class="field"><label>Course name</label><input id="cm_name" class="input" value="' + esc(c.name) + '" /></div>';
           inner += '<div class="field"><label>Colour</label><div class="color-picker" id="cm_colorPicker">';
@@ -21996,32 +22000,41 @@ input[type="range"]::-moz-range-thumb{
             inner += '<div class="color-swatch' + (isAct ? ' active' : '') + '" data-color="' + cc.value + '" style="background:' + cc.value + '" title="' + esc(cc.name) + '"></div>';
           });
           inner += '</div></div>';
-          if (_vis('examType')) {
-            inner += '<div class="course-form-row"><div class="field"><label>Exam type</label><select id="cm_examType" class="input">';
-            inner += '<option value="mc"' + (c.examType === 'mc' ? ' selected' : '') + '>Multiple Choice</option>';
-            inner += '<option value="short_answer"' + (c.examType === 'short_answer' ? ' selected' : '') + '>Short Answer</option>';
-            inner += '<option value="essay"' + (c.examType === 'essay' ? ' selected' : '') + '>Essay</option>';
-            inner += '<option value="mixed"' + (c.examType === 'mixed' ? ' selected' : '') + '>Mixed</option>';
-            inner += '</select></div>';
-            inner += '<div class="field"><label>Exam date</label><input id="cm_examDate" type="date" class="input" value="' + esc(c.examDate || '') + '" /></div></div>';
-          }
           inner += '<div class="field"><label>Grading style</label><select id="cm_subjectType" class="input">';
           inner += '<option value="mixed"' + ((c.subjectType || 'mixed') === 'mixed' ? ' selected' : '') + '>Mixed — let AI adapt per question</option>';
           inner += '<option value="recall"' + ((c.subjectType || 'mixed') === 'recall' ? ' selected' : '') + '>Recall (STEM, language, fact-based)</option>';
           inner += '<option value="reasoning"' + ((c.subjectType || 'mixed') === 'reasoning' ? ' selected' : '') + '>Reasoning (law, political science, philosophy)</option>';
           inner += '</select><div class="help" style="margin-top:6px;line-height:1.5;"><div title="One right answer. Graded strictly against the model answer."><strong>Recall:</strong> One right answer. Graded strictly against the model answer.</div><div title="Multiple defensible framings. Graded on argument quality and conceptual engagement."><strong>Reasoning:</strong> Multiple defensible framings. Graded on argument quality and conceptual engagement.</div><div title="AI classifies each question and picks the right rubric. Recommended default."><strong>Mixed:</strong> AI classifies each question and picks the right rubric. Recommended default.</div></div></div>';
-          inner += '<div class="field"><label>Default plan profile</label><select id="cm_planProfile" class="input">';
-          inner += '<option value="theory"' + (effectivePlanProfile === 'theory' ? ' selected' : '') + '>Theory</option>';
+          inner += '<div class="field"><label>Learning Profile' + renderEditorInfoIcon('Learning Profile', 'Controls how Study Engine teaches this course: concepts, facts, procedures, or language practice.') + '</label><select id="cm_planProfile" class="input">';
+          inner += '<option value="theory"' + (effectivePlanProfile === 'theory' ? ' selected' : '') + '>Conceptual</option>';
           inner += '<option value="factual"' + (effectivePlanProfile === 'factual' ? ' selected' : '') + '>Factual</option>';
           if (isRun5LanguageEnabled()) inner += '<option value="language"' + (effectivePlanProfile === 'language' ? ' selected' : '') + '>Language</option>';
           inner += '<option value="procedural"' + (effectivePlanProfile === 'procedural' ? ' selected' : '') + '>Procedural</option>';
-          inner += '</select></div>';
+          inner += '</select><div class="help" style="margin-top:6px;line-height:1.5;"><div><strong>Conceptual:</strong> For theory, philosophy, law doctrine, arguments, and explanations.</div><div><strong>Factual:</strong> For definitions, dates, cases, terms, and fast recall.</div><div><strong>Language:</strong> For vocabulary, chunks, conversation, listening, and production.</div><div><strong>Procedural:</strong> For methods, workflows, calculations, and step-by-step skills.</div></div></div>';
+          inner += '<div class="field"><label>Course Goal' + renderEditorInfoIcon('Course Goal', 'Controls the context around learning, such as daily practice or exam preparation.') + '</label><select id="cm_courseGoal" class="input">';
+          inner += '<option value="daily_practice"' + (effectiveCourseGoal === 'daily_practice' ? ' selected' : '') + '>Daily practice</option>';
+          inner += '<option value="exam_prep"' + (effectiveCourseGoal === 'exam_prep' ? ' selected' : '') + '>Exam prep</option>';
+          inner += '<option value="professional_skill"' + (effectiveCourseGoal === 'professional_skill' ? ' selected' : '') + '>Professional skill</option>';
+          inner += '<option value="project"' + (effectiveCourseGoal === 'project' ? ' selected' : '') + '>Project</option>';
+          inner += '</select><div class="help" style="margin-top:6px;line-height:1.5;"><div><strong>Daily practice:</strong> Ongoing learning without a specific assessment.</div><div><strong>Exam prep:</strong> Shows assessment fields like date, format, and weight.</div><div><strong>Professional skill:</strong> Practice aimed at work or career use.</div><div><strong>Project:</strong> Learning toward a concrete deliverable.</div></div></div>';
+          if (_vis('examType')) {
+            inner += '<div class="course-form-row"><div class="field"><label>Assessment Context' + renderEditorInfoIcon('Assessment Context', 'Only used for exam prep. It helps the tutor choose the right grading style.') + '</label><select id="cm_examType" class="input">';
+            inner += '<option value="mc"' + (c.examType === 'mc' ? ' selected' : '') + '>Multiple Choice</option>';
+            inner += '<option value="short_answer"' + (c.examType === 'short_answer' ? ' selected' : '') + '>Short Answer</option>';
+            inner += '<option value="essay"' + (c.examType === 'essay' ? ' selected' : '') + '>Essay</option>';
+            inner += '<option value="mixed"' + (c.examType === 'mixed' ? ' selected' : '') + '>Mixed</option>';
+            inner += '</select></div>';
+            inner += '<div class="field"><label>Exam Date</label><input id="cm_examDate" type="date" class="input" value="' + esc(c.examDate || '') + '" /></div></div>';
+          }
+          if (_vis('examFormat')) {
+            inner += '<div class="field"><label>Exam Format</label><input id="cm_examFormat" class="input" value="' + esc(c.examFormat || '') + '" placeholder="e.g. essay, oral, mixed sections" /></div>';
+          }
           if (_vis('targetLanguage')) {
-            inner += '<div class="field"><label>Default target language (BCP-47)</label><select id="cm_targetLanguage" class="input">';
+            inner += '<div class="field"><label>Target Language' + renderEditorInfoIcon('Target Language', 'The language this course teaches or practises, such as fr-CA for Canadian French.') + '</label><select id="cm_targetLanguage" class="input">';
             inner += '<option value="">None</option><option value="es-ES"' + (c.targetLanguage === 'es-ES' ? ' selected' : '') + '>Spanish (es-ES)</option><option value="fr-FR"' + (c.targetLanguage === 'fr-FR' ? ' selected' : '') + '>French (fr-FR)</option><option value="de-DE"' + (c.targetLanguage === 'de-DE' ? ' selected' : '') + '>German (de-DE)</option><option value="ja-JP"' + (c.targetLanguage === 'ja-JP' ? ' selected' : '') + '>Japanese (ja-JP)</option><option value="zh-CN"' + (c.targetLanguage === 'zh-CN' ? ' selected' : '') + '>Chinese (zh-CN)</option><option value="__other__">Other (manual)</option></select><input id="cm_targetLanguageOther" class="input" placeholder="e.g. it-IT" style="margin-top:6px;" /></div>';
           }
           if (_vis('languageLevel')) {
-            inner += '<div class="field"><label>Default language level</label><select id="cm_languageLevel" class="input"><option value=\"\">None</option><option value=\"1\"' + (c.languageLevel === 1 ? ' selected' : '') + '>1</option><option value=\"2\"' + (c.languageLevel === 2 ? ' selected' : '') + '>2</option><option value=\"3\"' + (c.languageLevel === 3 ? ' selected' : '') + '>3</option><option value=\"4\"' + (c.languageLevel === 4 ? ' selected' : '') + '>4</option><option value=\"5\"' + (c.languageLevel === 5 ? ' selected' : '') + '>5</option><option value=\"6\"' + (c.languageLevel === 6 ? ' selected' : '') + '>6</option></select></div>';
+            inner += '<div class="field"><label>CEFR Level' + renderEditorInfoIcon('CEFR Level', 'Approximate language level from A1 to C2. Used to control tutor complexity, not as a certified score.') + '</label><select id="cm_languageLevel" class="input"><option value=\"\">None</option><option value=\"1\"' + (c.languageLevel === 1 ? ' selected' : '') + '>A1</option><option value=\"2\"' + (c.languageLevel === 2 ? ' selected' : '') + '>A2</option><option value=\"3\"' + (c.languageLevel === 3 ? ' selected' : '') + '>B1</option><option value=\"4\"' + (c.languageLevel === 4 ? ' selected' : '') + '>B2</option><option value=\"5\"' + (c.languageLevel === 5 ? ' selected' : '') + '>C1</option><option value=\"6\"' + (c.languageLevel === 6 ? ' selected' : '') + '>C2</option></select></div>';
           }
           if (_vis('examWeight')) {
             inner += '<div class="field"><label>Exam Weight (%)</label><input id="cm_examWeight" type="number" min="0" max="100" step="1" class="input" value="' + esc(c.examWeight != null ? String(c.examWeight) : '') + '" /></div>';
@@ -22138,7 +22151,8 @@ input[type="range"]::-moz-range-thumb{
               inner += '<input class="input" data-overlay-subdeck-name="' + esc(sd.key) + '" value="' + esc(sd.meta.name || sd.key) + '" style="flex:1;">';
               inner += '<select class="input" data-overlay-subdeck-plan-profile="' + esc(sd.key) + '" style="max-width:190px;">'
                 + '<option value="">Use course default</option>'
-                + '<option value="theory"' + (sd.meta.planProfile === 'theory' ? ' selected' : '') + '>Theory</option>'
+                // A1: keep sub-deck profile labels aligned with course profile labels.
+                + '<option value="theory"' + (sd.meta.planProfile === 'theory' ? ' selected' : '') + '>Conceptual</option>'
                 + '<option value="factual"' + (sd.meta.planProfile === 'factual' ? ' selected' : '') + '>Factual</option>'
                 + (isRun5LanguageEnabled() ? ('<option value="language"' + (sd.meta.planProfile === 'language' ? ' selected' : '') + '>Language</option>') : '')
                 + '<option value="procedural"' + (sd.meta.planProfile === 'procedural' ? ' selected' : '') + '>Procedural</option>'
@@ -22237,7 +22251,7 @@ input[type="range"]::-moz-range-thumb{
               sw.classList.add('active');
             };
           });
-          /* L0: Re-render Details tab on Plan Profile change so language/exam
+          /* A1: Re-render Details tab on Learning Profile change so gated
              fields swap in/out without closing the modal. Stores the unsaved
              choice on courseModalState.pendingPlanProfile; cleared by
              renderCourseModalEditor on next open and by the Save handler. */
@@ -22248,6 +22262,14 @@ input[type="range"]::-moz-range-thumb{
             courseModalState.pendingPlanProfile = next;
             renderTabContent();
           };
+          var courseGoalSel = el('cm_courseGoal');
+          // A1: inherits L0 limitation: re-rendering can revert unsaved input in non-gated fields.
+          if (courseGoalSel) courseGoalSel.onchange = function() {
+            var nextGoal = String(courseGoalSel.value || 'daily_practice');
+            if (!(nextGoal === 'daily_practice' || nextGoal === 'exam_prep' || nextGoal === 'professional_skill' || nextGoal === 'project')) nextGoal = 'daily_practice';
+            courseModalState.pendingCourseGoal = nextGoal;
+            renderTabContent();
+          };
           var saveDetails = el('cmSaveDetails');
           if (saveDetails) saveDetails.onclick = function() {
             var oldName = c.name;
@@ -22256,13 +22278,16 @@ input[type="range"]::-moz-range-thumb{
             if (newName !== oldName && state.courses[newName]) { toast('Course name already exists'); return; }
             var activeSwatch = cp ? cp.querySelector('.color-swatch.active') : null;
             c.color = activeSwatch ? activeSwatch.getAttribute('data-color') : (c.color || '#8b5cf6');
-            /* L0: exam fields are gated by visibility — only persist when their
+            /* A1: gated fields only persist when their
                DOM is present. Preserve existing values otherwise. */
             if (el('cm_examType')) c.examType = (el('cm_examType').value || 'mixed');
             if (el('cm_examDate')) c.examDate = (el('cm_examDate').value || '').trim() || null;
+            if (el('cm_examFormat')) c.examFormat = (el('cm_examFormat').value || '').trim() || null;
             c.subjectType = normalizeSubjectTypeValue((el('cm_subjectType') && el('cm_subjectType').value) || 'mixed');
             var nextCoursePlanProfile = (el('cm_planProfile') && el('cm_planProfile').value) ? String(el('cm_planProfile').value) : 'theory';
             c.planProfile = (nextCoursePlanProfile === 'factual' || nextCoursePlanProfile === 'procedural' || (isRun5LanguageEnabled() && nextCoursePlanProfile === 'language')) ? nextCoursePlanProfile : 'theory';
+            var nextCourseGoal = (el('cm_courseGoal') && el('cm_courseGoal').value) ? String(el('cm_courseGoal').value) : 'daily_practice';
+            c.courseGoal = (nextCourseGoal === 'exam_prep' || nextCourseGoal === 'professional_skill' || nextCourseGoal === 'project') ? nextCourseGoal : 'daily_practice';
             if (el('cm_targetLanguage')) {
               var nextCourseTargetLanguage = el('cm_targetLanguage').value ? String(el('cm_targetLanguage').value).trim() : '';
               var nextCourseTargetLanguageOther = (el('cm_targetLanguageOther') && el('cm_targetLanguageOther').value) ? String(el('cm_targetLanguageOther').value).trim() : '';
@@ -22278,6 +22303,7 @@ input[type="range"]::-moz-range-thumb{
               c.examWeight = ew ? Math.max(0, Math.min(100, Math.round(Number(ew) || 0))) : null;
             }
             courseModalState.pendingPlanProfile = null;
+            courseModalState.pendingCourseGoal = null;
             if (newName !== oldName) {
               renameCourse(oldName, newName);
               c = getCourse(newName);
@@ -26645,7 +26671,10 @@ input[type="range"]::-moz-range-thumb{
     }
 
     function profileLabel(profile) {
-      if (profile === 'theory') return 'Theory';
+      // A1: use the typed profile display helper when the module bridge is available.
+      var labelBridge = (globalThis.__studyEngineCourseVisibility && globalThis.__studyEngineCourseVisibility.profileLabel) || null;
+      if (labelBridge && (profile === 'theory' || profile === 'factual' || profile === 'procedural' || profile === 'language')) return labelBridge(profile);
+      if (profile === 'theory') return 'Conceptual';
       if (profile === 'factual') return 'Factual';
       if (profile === 'procedural') return 'Procedural';
       if (profile === 'language') return 'Language';

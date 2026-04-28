@@ -1,31 +1,34 @@
 import { describe, it, expect } from 'vitest';
-import { visibleCourseDetailsFields } from './visibility';
+import { resolveCourseGoal, visibleCourseDetailsFields } from './visibility';
 
-describe('visibleCourseDetailsFields (Phase L0)', () => {
-  it('always shows name, color, subjectType, planProfile', () => {
-    const fields = visibleCourseDetailsFields({ planProfile: 'theory' });
+describe('visibleCourseDetailsFields (Phase A1)', () => {
+  it('always shows name, color, subjectType, planProfile, and courseGoal', () => {
+    const fields = visibleCourseDetailsFields({ planProfile: 'theory', courseGoal: 'daily_practice' });
     expect(fields.has('name')).toBe(true);
     expect(fields.has('color')).toBe(true);
     expect(fields.has('subjectType')).toBe(true);
     expect(fields.has('planProfile')).toBe(true);
+    expect(fields.has('courseGoal')).toBe(true);
   });
 
-  it.each(['theory', 'factual', 'procedural', undefined] as const)(
-    'shows exam fields and hides language fields when planProfile=%s',
-    (profile) => {
-      const fields = visibleCourseDetailsFields({ planProfile: profile });
-      expect(fields.has('examType')).toBe(true);
-      expect(fields.has('examDate')).toBe(true);
-      expect(fields.has('examFormat')).toBe(true);
-      expect(fields.has('examWeight')).toBe(true);
-      expect(fields.has('targetLanguage')).toBe(false);
-      expect(fields.has('targetLanguageOther')).toBe(false);
-      expect(fields.has('languageLevel')).toBe(false);
-    },
-  );
+  it('hides assessment fields for a daily-practice conceptual course', () => {
+    const fields = visibleCourseDetailsFields({ planProfile: 'theory', courseGoal: 'daily_practice' });
+    expect(fields.has('examType')).toBe(false);
+    expect(fields.has('examDate')).toBe(false);
+    expect(fields.has('examFormat')).toBe(false);
+    expect(fields.has('examWeight')).toBe(false);
+  });
 
-  it('shows language fields and hides exam fields when planProfile=language', () => {
-    const fields = visibleCourseDetailsFields({ planProfile: 'language' });
+  it('shows assessment fields for an exam-prep conceptual course', () => {
+    const fields = visibleCourseDetailsFields({ planProfile: 'theory', courseGoal: 'exam_prep' });
+    expect(fields.has('examType')).toBe(true);
+    expect(fields.has('examDate')).toBe(true);
+    expect(fields.has('examFormat')).toBe(true);
+    expect(fields.has('examWeight')).toBe(true);
+  });
+
+  it('shows language fields and hides assessment fields for language daily practice', () => {
+    const fields = visibleCourseDetailsFields({ planProfile: 'language', courseGoal: 'daily_practice' });
     expect(fields.has('targetLanguage')).toBe(true);
     expect(fields.has('targetLanguageOther')).toBe(true);
     expect(fields.has('languageLevel')).toBe(true);
@@ -33,5 +36,49 @@ describe('visibleCourseDetailsFields (Phase L0)', () => {
     expect(fields.has('examDate')).toBe(false);
     expect(fields.has('examFormat')).toBe(false);
     expect(fields.has('examWeight')).toBe(false);
+  });
+
+  it('shows language and assessment fields for language exam prep', () => {
+    const fields = visibleCourseDetailsFields({ planProfile: 'language', courseGoal: 'exam_prep' });
+    expect(fields.has('targetLanguage')).toBe(true);
+    expect(fields.has('languageLevel')).toBe(true);
+    expect(fields.has('examType')).toBe(true);
+    expect(fields.has('examDate')).toBe(true);
+    expect(fields.has('examFormat')).toBe(true);
+    expect(fields.has('examWeight')).toBe(true);
+  });
+
+  it('treats an existing non-language course with exam fields and no courseGoal as exam prep', () => {
+    const fields = visibleCourseDetailsFields({ planProfile: 'factual', examDate: '2026-12-01' });
+    expect(fields.has('examType')).toBe(true);
+    expect(fields.has('examDate')).toBe(true);
+    expect(fields.has('targetLanguage')).toBe(false);
+  });
+
+  it('defaults an existing course with no courseGoal and no exam fields to daily practice', () => {
+    const fields = visibleCourseDetailsFields({ planProfile: 'procedural' });
+    expect(fields.has('examType')).toBe(false);
+    expect(fields.has('examDate')).toBe(false);
+    expect(fields.has('examFormat')).toBe(false);
+    expect(fields.has('examWeight')).toBe(false);
+  });
+});
+
+describe('resolveCourseGoal (Phase A1)', () => {
+  it('returns exam_prep for a legacy exam type without courseGoal', () => {
+    expect(resolveCourseGoal({ planProfile: 'theory', examType: 'essay' })).toBe('exam_prep');
+  });
+
+  it('returns daily_practice without courseGoal or exam fields', () => {
+    expect(resolveCourseGoal({ planProfile: 'theory' })).toBe('daily_practice');
+  });
+
+  it('lets explicit courseGoal win over legacy exam fields', () => {
+    expect(resolveCourseGoal({
+      planProfile: 'theory',
+      courseGoal: 'project',
+      examType: 'essay',
+      examDate: '2026-12-01',
+    })).toBe('project');
   });
 });

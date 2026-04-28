@@ -127,6 +127,7 @@ export interface ReviewEvent {
 }
 
 export type PlanProfile = 'theory' | 'factual' | 'procedural' | 'language';
+export type CourseGoal = 'daily_practice' | 'exam_prep' | 'professional_skill' | 'project';
 
 export interface SubDeckMeta {
   name: string;
@@ -227,6 +228,8 @@ export interface Course {
   id: string;
   name: string;
   planProfile?: PlanProfile;
+  // A1: optional read-time course goal, resolved without migration writes.
+  courseGoal?: CourseGoal;
   targetLanguage?: string;
   languageLevel?: 1 | 2 | 3 | 4 | 5 | 6;
   color: string;
