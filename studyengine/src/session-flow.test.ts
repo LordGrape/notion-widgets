@@ -71,6 +71,10 @@ describe('applyLearnHandoff seeding', () => {
 });
 
 describe('buildSessionQueue', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('excludes retired cards', () => {
     installBridge({
       kept: {
@@ -93,6 +97,57 @@ describe('buildSessionQueue', () => {
     });
     const q = buildSessionQueue();
     expect(q.map((item) => item.id)).toEqual(['kept']);
+  });
+
+  it('logs one B1 summary for filtered vocabulary-style cards', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const items: Record<string, any> = {};
+    for (let i = 0; i < 50; i++) {
+      items[`v-${i}`] = {
+        id: `v-${i}`,
+        prompt: `Prompt ${i}`,
+        modelAnswer: `Answer ${i}`,
+        course: 'Biology',
+        created: new Date(nowTs).toISOString(),
+        fsrs: { stability: 0, difficulty: 0, due: new Date(nowTs - 1000).toISOString(), reps: 0, lapses: 0, lastReview: null, state: 'new' }
+      };
+    }
+    installBridge(items);
+    (globalThis as any).__studyEngineSessionFlow.detectSupportedTiers = () => ['quickfire', 'apply', 'distinguish', 'worked'];
+
+    buildSessionQueue();
+
+    // B4-4: one summary line instead of per-tier-per-item spam.
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    const msg = String(warnSpy.mock.calls[0][0] || '');
+    expect(msg).toContain('[StudyEngine][B1] Filtered 150');
+  });
+
+  it('emits no B1 logs when all tier content requirements are satisfied', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const items: Record<string, any> = {};
+    for (let i = 0; i < 50; i++) {
+      items[`t-${i}`] = {
+        id: `t-${i}`,
+        prompt: `Prompt ${i}`,
+        modelAnswer: `Answer ${i}`,
+        task: 'Solve',
+        scenario: 'Scenario',
+        conceptA: 'A',
+        conceptB: 'B',
+        workedScaffold: 'Scaffold',
+        course: 'Biology',
+        created: new Date(nowTs).toISOString(),
+        fsrs: { stability: 0, difficulty: 0, due: new Date(nowTs - 1000).toISOString(), reps: 0, lapses: 0, lastReview: null, state: 'new' }
+      };
+    }
+    installBridge(items);
+    (globalThis as any).__studyEngineSessionFlow.detectSupportedTiers = () => ['quickfire', 'apply', 'distinguish', 'worked'];
+
+    buildSessionQueue();
+
+    // B4-4: if nothing is filtered, do not emit summary noise.
+    expect(warnSpy).not.toHaveBeenCalled();
   });
 });
 

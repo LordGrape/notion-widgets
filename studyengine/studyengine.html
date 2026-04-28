@@ -9985,7 +9985,7 @@ input[type="range"]::-moz-range-thumb{
                         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px;">
                           <button type="button" class="ghost-btn" id="learnListenBtn" hidden>🔊 Listen</button>
                           <button type="button" class="ghost-btn" id="learnPronounceBtn" hidden>Hear correct pronunciation</button>
-                          <span id="learnTtsWarningChip" class="segment-label-pill transfer" hidden>Audio unavailable</span>
+                          <span id="learnTtsWarningChip" class="segment-label-pill transfer" hidden></span>
                         </div>
                         <div class="learn-assisted-badge" id="learnAssistedBadge" hidden>Assisted: teach was reopened. Verdict will cap one tier lower.</div>
                         <textarea class="learn-input" id="learnSessionInput" rows="3" placeholder="Type your response…" aria-label="Your response"></textarea>
@@ -26244,10 +26244,18 @@ input[type="range"]::-moz-range-thumb{
       var isLanguageMode = isRun5LanguageEnabled() && sessionProfileNow === 'language';
       var isRecognition = isLanguageMode && (flow.segmentIndex % 2 === 0);
       var resolvedLanguage = activeLearnSession.targetLanguage || resolveSessionTargetLanguageFromFlow(flow) || 'en-US';
+      // B4-3: render LISTEN only when a bound audio field exists on linked cards.
+      var hasAudioBinding = !!(curSeg && Array.isArray(curSeg.linkedCardIds) && curSeg.linkedCardIds.some(function(cardId) {
+        var card = state.items && state.items[cardId];
+        if (!card) return false;
+        var bound = card.audioUrl != null ? card.audioUrl : card.audio;
+        return !!String(bound || '').trim();
+      }));
+      var canRenderListen = isRecognition && hasAudioBinding;
       if (listenBtn) {
-        listenBtn.hidden = !isRecognition;
-        listenBtn.disabled = !isRecognition;
-        if (isRecognition && curSeg && curSeg.teach) {
+        listenBtn.hidden = !canRenderListen;
+        listenBtn.disabled = !canRenderListen;
+        if (canRenderListen && curSeg && curSeg.teach) {
           listenBtn.onclick = function() {
             playLearnSegmentAudio({ text: String(curSeg.teach || ''), languageCode: resolvedLanguage });
           };
@@ -26265,7 +26273,7 @@ input[type="range"]::-moz-range-thumb{
           playLearnSegmentAudio({ text: String((curSeg && curSeg.expectedAnswer) || ''), languageCode: resolvedLanguage });
         } : null;
       }
-      if (isLanguageMode && isRecognition) {
+      if (isLanguageMode && canRenderListen) {
         var nextSeg = (flow.plan && flow.plan.segments) ? flow.plan.segments[flow.segmentIndex + 2] : null;
         if (nextSeg && nextSeg.teach) prefetchAudio({ text: String(nextSeg.teach || ''), languageCode: resolvedLanguage });
       }
@@ -26829,8 +26837,9 @@ input[type="range"]::-moz-range-thumb{
     function __studyEngineReportTtsWarning(msg) {
       var chip = el('learnTtsWarningChip');
       if (!chip) return;
-      chip.textContent = String(msg || 'Audio unavailable');
-      chip.hidden = false;
+      // B4-3: warning pill removed from runtime UX.
+      chip.textContent = String(msg || '');
+      chip.hidden = true;
     }
     async function fetchTtsBlobUrl(args) {
       var text = String((args && args.text) || '').trim();
@@ -26859,7 +26868,7 @@ input[type="range"]::-moz-range-thumb{
       return url;
     }
     async function prefetchAudio(args) {
-      try { await fetchTtsBlobUrl(args); } catch (e) { __studyEngineReportTtsWarning('Audio unavailable'); }
+      try { await fetchTtsBlobUrl(args); } catch (e) { __studyEngineReportTtsWarning('Audio playback unavailable'); }
     }
     async function playLearnSegmentAudio(args) {
       try {
@@ -26868,7 +26877,7 @@ input[type="range"]::-moz-range-thumb{
         var audio = new Audio(url);
         await audio.play();
       } catch (e) {
-        __studyEngineReportTtsWarning('Audio unavailable');
+        __studyEngineReportTtsWarning('Audio playback unavailable');
       }
     }
 
@@ -27555,6 +27564,8 @@ input[type="range"]::-moz-range-thumb{
           if (!activeLearnSession) return;
           setLearnRegenLoadingActive(false);
           var hasSegments = !!(opts && opts.hasSegments);
+          // B4-2: timeout fallback should be surfaced immediately as non-modal feedback.
+          if (String(message || '').toLowerCase().indexOf('timed out') >= 0) toast(message || 'Plan generation timed out — using default order');
           if (!hasSegments) {
             /* No segments yet — clean abort of the whole session. */
             if (activeLearnSession.modalMounted) {
