@@ -6,15 +6,6 @@ gitignored corpus dumps with pinned-URL fetchers. L1b scales to 2000 + audio
 
 ## Shared-path edits (do these in one coherent phase)
 
-- **Forward `planProfile` / `targetLanguage` / `languageLevel` from item to
-  sub-deck meta in `commitImport`** so Learn-mode language affordances (cloze
-  blanks, listen / pronounce buttons gated by `isRun5LanguageEnabled() &&
-  planProfile === 'language'`) activate without a manual post-import patch.
-  Today `studyengine/src/sub-decks.ts:103-138` `createSubDeck` accepts only
-  `name`; a one-line additive change in `commitImport` (around
-  `studyengine.html:20422-20438`) plus a small extension to `createSubDeck`
-  is the cleanest fix. Deferred from L1a to keep that phase strictly
-  data-only and concentrate shared-path risk in one phase.
 - **Audio URL attachment** in `commitImport` and on the `CardJson` shape
   (currently no `audioUrl` field on `StudyItem`). Card chrome will need a
   play button — that's a §3.4 cohesion change with its own scoped phase.

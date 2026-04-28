@@ -89,6 +89,18 @@ function calculateRetention(card: StudyItem, nowTs: number): number | null {
   return Number.isFinite(val) ? val : null;
 }
 
+// B3: shared helper for import-time language metadata forwarding.
+export function fillMissingSubDeckLanguageMeta(
+  current: SubDeckMeta,
+  incoming?: Pick<SubDeckMeta, 'planProfile' | 'targetLanguage' | 'languageLevel'>
+): SubDeckMeta {
+  if (!incoming) return current;
+  if (!current.planProfile && incoming.planProfile) current.planProfile = incoming.planProfile;
+  if (!current.targetLanguage && incoming.targetLanguage) current.targetLanguage = String(incoming.targetLanguage).trim();
+  if (!current.languageLevel && incoming.languageLevel) current.languageLevel = incoming.languageLevel;
+  return current;
+}
+
 export function loadSubDecks(state: AppState): SubDecksState {
   runtimeState = state;
   migrateSubDecks(state);
@@ -100,7 +112,11 @@ export function saveSubDecks(state: AppState, subDecks: SubDecksState): void {
   state.subDecks = subDecks;
 }
 
-export function createSubDeck(course: string, name: string): SubDeckMeta {
+export function createSubDeck(
+  course: string,
+  name: string,
+  metaOverrides?: Pick<SubDeckMeta, 'planProfile' | 'targetLanguage' | 'languageLevel'>
+): SubDeckMeta {
   const state = ensureRuntimeState();
   const subDecks = ensureSubDeckMap(state);
   const courseMap = ensureCourseMap(subDecks, course);
@@ -132,7 +148,12 @@ export function createSubDeck(course: string, name: string): SubDeckMeta {
     name: cleanName,
     order,
     created: Date.now(),
+    // B3: allow import path to forward language/session defaults into sub-deck meta.
+    ...(metaOverrides?.planProfile ? { planProfile: metaOverrides.planProfile } : {}),
+    ...(metaOverrides?.targetLanguage ? { targetLanguage: String(metaOverrides.targetLanguage).trim() } : {}),
+    ...(metaOverrides?.languageLevel ? { languageLevel: metaOverrides.languageLevel } : {}),
   };
+  fillMissingSubDeckLanguageMeta(meta, metaOverrides);
 
   courseMap[key] = meta;
   return meta;

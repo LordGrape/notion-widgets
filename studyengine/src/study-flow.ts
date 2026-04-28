@@ -10,7 +10,7 @@ type StudyFlowBridge = {
   state?: Record<string, any>;
   startReviewSession?: (scope: Scope, onComplete?: () => void) => void;
   startLearnSessionForScope?: (scope: Scope, resolution: ReturnType<typeof resolveCourseLearnEntry>) => void;
-  showAllCaughtUp?: () => void;
+  showAllCaughtUp?: (message?: string) => void;
 };
 
 function getBridge(): StudyFlowBridge {
@@ -19,6 +19,28 @@ function getBridge(): StudyFlowBridge {
 
 function hasLearnableCards(cards: StudyItem[]): boolean {
   return cards.some((item) => item.learnStatus === 'unlearned');
+}
+
+function formatApproxDuration(ms: number): string {
+  const hours = Math.max(1, Math.round(ms / (60 * 60 * 1000)));
+  if (hours < 48) return `~${hours}h`;
+  const days = Math.max(1, Math.round(hours / 24));
+  return `~${days}d`;
+}
+
+// B3: clearer copy when everything has been reviewed and is scheduled out.
+export function summarizeAllCaughtUp(cards: StudyItem[], nowTs = Date.now()): string {
+  const total = (cards || []).length;
+  if (!total) return 'All caught up';
+  const reviewed = cards.filter((card) => !!card?.fsrs?.lastReview);
+  if (reviewed.length !== total) return 'All caught up';
+  const dueTimes = reviewed
+    .map((card) => new Date(card.fsrs.due).getTime())
+    .filter((ts) => Number.isFinite(ts));
+  if (!dueTimes.length) return `All ${total} cards reviewed.`;
+  const nearestDue = Math.min(...dueTimes);
+  if (nearestDue <= nowTs) return `All ${total} cards reviewed.`;
+  return `All ${total} cards reviewed. Next due in ${formatApproxDuration(nearestDue - nowTs)}.`;
 }
 
 export async function startStudySession(scope: Scope): Promise<void> {
@@ -78,5 +100,5 @@ export async function startStudySession(scope: Scope): Promise<void> {
     return;
   }
 
-  bridge.showAllCaughtUp?.();
+  bridge.showAllCaughtUp?.(summarizeAllCaughtUp(scopedCards));
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { migrateSubDecks } from './sub-decks';
+import { createSubDeck, fillMissingSubDeckLanguageMeta, loadSubDecks, migrateSubDecks } from './sub-decks';
 import type { AppState } from './types';
 
 function baseState(): AppState {
@@ -80,5 +80,42 @@ describe('migrateSubDecks', () => {
     const once = JSON.parse(JSON.stringify(state));
     migrateSubDecks(state);
     expect(state).toEqual(once);
+  });
+});
+
+describe('createSubDeck', () => {
+  it('stores forwarded language metadata when provided', () => {
+    const state = baseState();
+    loadSubDecks(state);
+
+    const created = createSubDeck('FR 101', 'Core 2000', {
+      // B3: deferred L1a forwarding path.
+      planProfile: 'language',
+      targetLanguage: 'fr-CA',
+      languageLevel: 2
+    });
+
+    expect(created.planProfile).toBe('language');
+    expect(created.targetLanguage).toBe('fr-CA');
+    expect(created.languageLevel).toBe(2);
+  });
+
+  it('fills missing language metadata without overwriting existing values', () => {
+    const base = {
+      name: 'Core',
+      order: 0,
+      created: 1,
+      targetLanguage: 'fr-CA'
+    } as any;
+    const merged = fillMissingSubDeckLanguageMeta(base, {
+      planProfile: 'language',
+      targetLanguage: 'es-ES',
+      languageLevel: 1
+    });
+
+    // B3: mirrors commitImport re-import behavior.
+    expect(merged.planProfile).toBe('language');
+    expect(merged.targetLanguage).toBe('fr-CA');
+    expect(merged.languageLevel).toBe(1);
   });
 });
