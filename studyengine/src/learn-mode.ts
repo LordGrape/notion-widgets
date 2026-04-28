@@ -137,12 +137,15 @@ function shortDjb2Hash(value: string): string {
 
 export function fingerprintLearnInputs(args: {
   cardIds: string[];
+  cardFingerprint?: string;
   courseContext?: CourseContext;
 }): string {
   const cardIds = Array.isArray(args.cardIds)
     ? args.cardIds.map((id) => String(id || ''))
     : [];
-  const cardHash = shortDjb2Hash(cardIds.join('|'));
+  const cardHash = args.cardFingerprint
+    ? String(args.cardFingerprint)
+    : shortDjb2Hash(cardIds.join('|'));
   if (!args.courseContext) return cardHash;
   const contextHash = shortDjb2Hash(JSON.stringify(args.courseContext));
   return `${cardHash}:${contextHash}`;
@@ -320,6 +323,10 @@ export interface StreamLearnPlanHandlers {
   onPlanProfileResolved?: (profile: PlanProfile) => void;
 }
 
+export interface StreamLearnPlanOptions {
+  forceFresh?: boolean;
+}
+
 function getSubDeckMetaForCard(card: StudyItem, state?: AppState): SubDeckMeta | null {
   const courseName = card?.course ? String(card.course) : '';
   const subDeckKey = card?.subDeck ? String(card.subDeck) : '';
@@ -408,7 +415,8 @@ export async function streamLearnPlan(
   userName = '',
   learnerContext = '',
   handlers: StreamLearnPlanHandlers = {},
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  options: StreamLearnPlanOptions = {}
 ): Promise<void> {
   const subDeckCards = getCardsInSubDeck(course, subDeck, items);
   const subDeckFingerprint = fingerprintSubDeckCards(subDeckCards);
@@ -431,7 +439,8 @@ export async function streamLearnPlan(
       subDeck,
       handlers
     ),
-    appendTransferQuestion: (handlers.getDeepVerdictCount?.() || 0) >= 3
+    appendTransferQuestion: (handlers.getDeepVerdictCount?.() || 0) >= 3,
+    forceFresh: options.forceFresh === true ? true : undefined
   };
   attachLearnerModelPayload(payload as Record<string, unknown>, state);
 
@@ -607,7 +616,8 @@ export async function streamCourseLearnPlan(
   userName = '',
   learnerContext = '',
   handlers: StreamLearnPlanHandlers = {},
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  options: StreamLearnPlanOptions = {}
 ): Promise<void> {
   const courseCards = getCardsInScope(course, null, items, state, { includeArchivedSubDecks: false });
   const subDeckFingerprint = fingerprintSubDeckCards(courseCards);
@@ -630,7 +640,8 @@ export async function streamCourseLearnPlan(
       COURSE_ROOT_SUBDECK_KEY,
       handlers
     ),
-    appendTransferQuestion: (handlers.getDeepVerdictCount?.() || 0) >= 3
+    appendTransferQuestion: (handlers.getDeepVerdictCount?.() || 0) >= 3,
+    forceFresh: options.forceFresh === true ? true : undefined
   };
   attachLearnerModelPayload(payload as Record<string, unknown>, state);
 
@@ -638,7 +649,7 @@ export async function streamCourseLearnPlan(
 }
 
 async function streamLearnPlanInternal(
-  payload: { course: string; subDeck: string; cards: Array<{ id: string; prompt: string; modelAnswer: string }>; userName: string; learnerContext: string; planProfile: PlanProfile; targetLanguage?: string; languageLevel?: number; priorKnowledge?: 'high' | 'mixed' | 'low'; appendTransferQuestion?: boolean; learnerModelFingerprint?: string; learnerModelHint?: { recommendedSegmentMix: Record<string, number>; overconfidenceBias: number; profileDeepRate: Record<string, number>; sourceTypeLapseRate: Record<string, number>; }; },
+  payload: { course: string; subDeck: string; cards: Array<{ id: string; prompt: string; modelAnswer: string }>; userName: string; learnerContext: string; planProfile: PlanProfile; targetLanguage?: string; languageLevel?: number; priorKnowledge?: 'high' | 'mixed' | 'low'; appendTransferQuestion?: boolean; forceFresh?: boolean; learnerModelFingerprint?: string; learnerModelHint?: { recommendedSegmentMix: Record<string, number>; overconfidenceBias: number; profileDeepRate: Record<string, number>; sourceTypeLapseRate: Record<string, number>; }; },
   sourceCards: StudyItem[],
   subDeckFingerprint: string,
   handlers: StreamLearnPlanHandlers = {},

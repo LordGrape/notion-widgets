@@ -467,6 +467,7 @@ export interface CachedLearnPlan {
   generatedAt: number;
   planVersion: number;
   courseContextHash?: string;
+  cardFingerprint?: string;
   subDeckFingerprint?: string;
 }
 

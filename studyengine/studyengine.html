@@ -25623,25 +25623,55 @@ input[type="range"]::-moz-range-thumb{
     }
 
     function getCurrentLearnCardIds(courseName, subDeckKey, allItems) {
-      var cards = subDeckKey === '__course_root__'
-        ? getCardsForScope(courseName, null, allItems || [], false)
-        : getCardsInSubDeck(courseName, subDeckKey, allItems || []);
-      return cards
+      return getCurrentLearnCards(courseName, subDeckKey, allItems)
         .filter(function(card){ return card && card.id && card.learnStatus !== 'consolidated'; })
         .map(function(card){ return String(card.id); });
     }
 
+    function getCurrentLearnCards(courseName, subDeckKey, allItems) {
+      var cards = subDeckKey === '__course_root__'
+        ? getCardsForScope(courseName, null, allItems || [], false)
+        : getCardsInSubDeck(courseName, subDeckKey, allItems || []);
+      return cards.filter(function(card){ return card && card.id && card.learnStatus !== 'consolidated'; });
+    }
+
+    function hashLearnFingerprintString(value) {
+      var hash = 5381;
+      var text = String(value || '');
+      for (var i = 0; i < text.length; i++) hash = (hash * 33) ^ text.charCodeAt(i);
+      return ((hash >>> 0).toString(16).padStart(8, '0')).slice(-8);
+    }
+
+    function fallbackLearnCardFingerprint(cards) {
+      var fingerprintInput = (cards || [])
+        .slice()
+        .sort(function(a, b){ return String((a && a.id) || '').localeCompare(String((b && b.id) || '')); })
+        .map(function(card){
+          return String((card && card.id) || '') + '|'
+            + String((card && card.prompt) || '').trim() + '|'
+            + String((card && card.modelAnswer) || '').trim();
+        })
+        .join('\n');
+      return hashLearnFingerprintString(fingerprintInput);
+    }
+
     function buildLearnPlanFingerprint(courseName, subDeckKey, allItems) {
       var modeBridge = globalThis.__studyEngineLearnMode;
-      var cardIds = getCurrentLearnCardIds(courseName, subDeckKey, allItems || []);
+      var currentCards = getCurrentLearnCards(courseName, subDeckKey, allItems || []);
+      var cardIds = currentCards.map(function(card){ return String(card.id); });
       var courseContext = getCourseContextForLearn(courseName);
-      var fallback = cardIds.join('|');
+      var cardFingerprint = (modeBridge && typeof modeBridge.fingerprintSubDeckCards === 'function')
+        ? modeBridge.fingerprintSubDeckCards(currentCards)
+        : fallbackLearnCardFingerprint(currentCards);
+      var contextHash = courseContext ? hashLearnFingerprintString(JSON.stringify(courseContext)) : '';
+      var fallback = contextHash ? (cardFingerprint + ':' + contextHash) : cardFingerprint;
       var fingerprint = (modeBridge && typeof modeBridge.fingerprintLearnInputs === 'function')
-        ? modeBridge.fingerprintLearnInputs({ cardIds: cardIds, courseContext: courseContext })
+        ? modeBridge.fingerprintLearnInputs({ cardIds: cardIds, cardFingerprint: cardFingerprint, courseContext: courseContext })
         : fallback;
       return {
         cardIds: cardIds,
         fingerprint: String(fingerprint || fallback),
+        cardFingerprint: String(cardFingerprint || ''),
         courseContextHash: extractContextHashFromFingerprint(fingerprint)
       };
     }
@@ -25687,6 +25717,61 @@ input[type="range"]::-moz-range-thumb{
       return true;
     }
 
+    function collectPlanLinkedCardIds(plan) {
+      var savedSet = new Set();
+      (Array.isArray(plan) ? plan : []).forEach(function(seg) {
+        var linked = Array.isArray(seg && seg.linkedCardIds) ? seg.linkedCardIds : [];
+        linked.forEach(function(id){ savedSet.add(String(id)); });
+      });
+      return savedSet;
+    }
+
+    function getAdditiveLearnPlanReuse(cacheEntry, currentCards, currentCourseContextHash) {
+      if (!cacheEntry || !Array.isArray(cacheEntry.plan) || !cacheEntry.cardFingerprint) return null;
+      var savedContextHash = cacheEntry.courseContextHash || extractContextHashFromFingerprint(cacheEntry.fingerprint);
+      if ((savedContextHash || '') !== (currentCourseContextHash || '')) return null;
+      var savedSet = collectPlanLinkedCardIds(cacheEntry.plan);
+      if (savedSet.size === 0) return null;
+      var currentById = new Map();
+      (currentCards || []).forEach(function(card){
+        if (card && card.id) currentById.set(String(card.id), card);
+      });
+      var currentIds = Array.from(currentById.keys());
+      if (currentIds.length <= savedSet.size) return null;
+      var oldCards = [];
+      var missingSavedCard = false;
+      savedSet.forEach(function(savedId) {
+        if (!currentById.has(savedId)) {
+          missingSavedCard = true;
+          return;
+        }
+        oldCards.push(currentById.get(savedId));
+      });
+      if (missingSavedCard) return null;
+      var modeBridge = globalThis.__studyEngineLearnMode;
+      var oldFingerprint = (modeBridge && typeof modeBridge.fingerprintSubDeckCards === 'function')
+        ? modeBridge.fingerprintSubDeckCards(oldCards)
+        : fallbackLearnCardFingerprint(oldCards);
+      if (String(oldFingerprint || '') !== String(cacheEntry.cardFingerprint || '')) return null;
+      var addedCards = currentIds
+        .filter(function(id){ return !savedSet.has(id); })
+        .map(function(id){ return currentById.get(id); })
+        .filter(Boolean);
+      return addedCards.length ? { addedCards: addedCards, basePlan: cacheEntry.plan.slice() } : null;
+    }
+
+    function mergeLearnPlanSegments(basePlan, newPlan) {
+      var merged = [];
+      var seen = new Set();
+      (Array.isArray(basePlan) ? basePlan : []).concat(Array.isArray(newPlan) ? newPlan : []).forEach(function(seg) {
+        var id = String((seg && seg.id) || '');
+        if (id && seen.has(id)) return;
+        if (id) seen.add(id);
+        if (seg) merged.push(seg);
+      });
+      return merged;
+    }
+
     function sliceCachedPlanToCards(cacheEntry, currentCardIds) {
       var currentSet = new Set((currentCardIds || []).map(function(id){ return String(id); }));
       var segments = (cacheEntry && Array.isArray(cacheEntry.plan)) ? cacheEntry.plan.filter(function(seg) {
@@ -25705,6 +25790,7 @@ input[type="range"]::-moz-range-thumb{
         plan: Array.isArray(payload.plan) ? payload.plan.slice() : [],
         generatedAt: Number(payload.generatedAt || Date.now()),
         planVersion: Math.max(1, Number(payload.planVersion || 1)),
+        cardFingerprint: payload.cardFingerprint ? String(payload.cardFingerprint) : undefined,
         courseContextHash: payload.courseContextHash ? String(payload.courseContextHash) : undefined
       };
       if (payload.subDeckFingerprint) entry.subDeckFingerprint = String(payload.subDeckFingerprint);
@@ -27590,6 +27676,8 @@ input[type="range"]::-moz-range-thumb{
       var currentCardIds = fingerprintMeta.cardIds;
       var existingCache = getCourseLearnPlanEntry(courseName, subDeckKey);
       var nextPlanVersion = existingCache ? Math.max(1, Number(existingCache.planVersion || 1) + 1) : 1;
+      var streamItems = allItems;
+      var additiveReuse = null;
 
       var openCachedPlan = function(planObj, cacheEntry, isOutdated) {
         if (!planObj || !Array.isArray(planObj.segments) || !planObj.segments.length) return false;
@@ -27625,11 +27713,18 @@ input[type="range"]::-moz-range-thumb{
       }
 
       if (!forceRegenerate && existingCache && existingCache.fingerprint !== currentFingerprint) {
+        var currentLearnCards = getCurrentLearnCards(courseName, subDeckKey, allItems || []);
+        additiveReuse = getAdditiveLearnPlanReuse(existingCache, currentLearnCards, fingerprintMeta.courseContextHash);
+        if (additiveReuse) {
+          streamItems = additiveReuse.addedCards;
+          toast('Generating Learn plan for new cards only.');
+        } else {
         /* TODO: replace with project-wide non-blocking confirm primitive when available. */
         var shouldRegenerate = window.confirm('This sub-deck has changed since the last plan was generated. Regenerate the learning plan? (uses API tokens)');
         if (!shouldRegenerate) {
           if (openCachedPlan({ segments: existingCache.plan.slice(), consolidationQuestions: [] }, existingCache, true)) return;
           toast('Cached plan is empty. Regenerating…');
+        }
         }
       }
 
@@ -27650,7 +27745,7 @@ input[type="range"]::-moz-range-thumb{
          streaming strip (with percentage) is visible from the moment the user
          clicks Learn, not after the first segment arrives ~5–15s later. */
       var streamController = new AbortController();
-      var estTotal = estimateLearnSegmentTotal((allItems || []).length);
+      var estTotal = estimateLearnSegmentTotal((streamItems || []).length);
       activeLearnSession = {
         flow: flowBridge.createStreamingLearnFlow(courseName, subDeckKey),
         courseName: courseName,
@@ -27822,13 +27917,22 @@ input[type="range"]::-moz-range-thumb{
             if (streamSubDeckFingerprint) activeLearnSession.flow.plan.subDeckFingerprint = String(streamSubDeckFingerprint);
           }
           if (activeLearnSession.streamCompleted) {
+            var streamedPlan = (activeLearnSession.flow.plan && activeLearnSession.flow.plan.segments) ? activeLearnSession.flow.plan.segments : [];
+            var cachePlan = additiveReuse ? mergeLearnPlanSegments(additiveReuse.basePlan, streamedPlan) : streamedPlan;
+            var fullSubDeckFingerprint = additiveReuse
+              ? computeCurrentLearnSubDeckFingerprint(courseName, subDeckKey, allItems || [])
+              : null;
+            if (additiveReuse && fullSubDeckFingerprint && activeLearnSession.flow && activeLearnSession.flow.plan) {
+              activeLearnSession.flow.plan.subDeckFingerprint = fullSubDeckFingerprint;
+            }
             persistLearnPlanCache(courseName, subDeckKey, {
               fingerprint: currentFingerprint,
-              plan: (activeLearnSession.flow.plan && activeLearnSession.flow.plan.segments) ? activeLearnSession.flow.plan.segments : [],
+              plan: cachePlan,
               generatedAt: Date.now(),
               planVersion: activeLearnSession.planVersion || 1,
+              cardFingerprint: fingerprintMeta.cardFingerprint,
               courseContextHash: fingerprintMeta.courseContextHash,
-              subDeckFingerprint: streamSubDeckFingerprint
+              subDeckFingerprint: fullSubDeckFingerprint || streamSubDeckFingerprint
             });
           }
           if (meta && meta.warning) toast(meta.warning);
@@ -27868,12 +27972,12 @@ input[type="range"]::-moz-range-thumb{
       }
       var streamPromise = (subDeckKey === '__course_root__' && typeof modeBridge.streamCourseLearnPlan === 'function')
         ? modeBridge.streamCourseLearnPlan(
-            courseName, allItems, state, userName || '', learnerContext || '',
-            handlers, streamController.signal
+            courseName, streamItems, state, userName || '', learnerContext || '',
+            handlers, streamController.signal, { forceFresh: forceRegenerate }
           )
         : modeBridge.streamLearnPlan(
-            courseName, subDeckKey, allItems, state, userName || '', learnerContext || '',
-            handlers, streamController.signal
+            courseName, subDeckKey, streamItems, state, userName || '', learnerContext || '',
+            handlers, streamController.signal, { forceFresh: forceRegenerate }
           );
       streamPromise.catch(function(err) {
         if (err && err.name === 'AbortError') return;

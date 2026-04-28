@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AppState, StudyItem } from '../src/types';
-import { fingerprintSubDeckCards } from '../src/learn-mode';
+import { fingerprintLearnInputs, fingerprintSubDeckCards } from '../src/learn-mode';
 import { getCardsInScope, getCardsInSubDeck } from '../src/sub-decks';
 
 function makeState(): { state: AppState; items: StudyItem[] } {
@@ -95,6 +95,26 @@ describe('learn fingerprint scope split', () => {
 
     expect(parentAfter).toBe(parentBefore);
     expect(rootAfter).not.toBe(rootBefore);
+  });
+
+  it('card content edits invalidate Learn input fingerprints even when IDs do not change', () => {
+    const { items } = makeState();
+    const beforeCards = getCardsInSubDeck('Math', 'parent', items);
+    const beforeCardFingerprint = fingerprintSubDeckCards(beforeCards);
+    const before = fingerprintLearnInputs({
+      cardIds: beforeCards.map((card) => card.id),
+      cardFingerprint: beforeCardFingerprint
+    });
+
+    beforeCards[0].modelAnswer = 'edited answer with the same card id';
+    const afterCardFingerprint = fingerprintSubDeckCards(beforeCards);
+    const after = fingerprintLearnInputs({
+      cardIds: beforeCards.map((card) => card.id),
+      cardFingerprint: afterCardFingerprint
+    });
+
+    expect(afterCardFingerprint).not.toBe(beforeCardFingerprint);
+    expect(after).not.toBe(before);
   });
 
   it('persist/open cache round-trip preserves fingerprints for __course_root__ and regular sub-deck', () => {

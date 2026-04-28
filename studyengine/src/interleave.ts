@@ -33,6 +33,6 @@ export function interleaveQuickFireQueue(items: StudyItem[]): StudyItem[] {
     last = candidate;
     if (validOrder(candidate)) return candidate;
   }
-  console.debug?.('[StudyEngine] Quick Fire interleave constraints unsatisfied; using plain shuffle fallback.');
+  console.warn('[StudyEngine] Quick Fire interleave constraints unsatisfied; using plain shuffle fallback.');
   return last;
 }

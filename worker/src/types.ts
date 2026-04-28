@@ -395,6 +395,7 @@ export interface LearnPlanRequest {
   priorKnowledge?: "high" | "mixed" | "low";
   appendTransferQuestion?: boolean;
   segmentLimit?: number;
+  forceFresh?: boolean;
   learnerModelHint?: {
     recommendedSegmentMix: Record<LearnCheckType, number>;
     overconfidenceBias: number;

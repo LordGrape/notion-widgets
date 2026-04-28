@@ -546,6 +546,10 @@ function isCacheEnabled(env: Env): boolean {
   return String((env as unknown as { LEARN_PLAN_CACHE_ENABLED?: string }).LEARN_PLAN_CACHE_ENABLED || "") !== "false";
 }
 
+function shouldBypassPlanCache(body: LearnPlanRequest): boolean {
+  return body.forceFresh === true;
+}
+
 async function writePlanCache(
   cacheKey: string | null,
   env: Env,
@@ -1078,9 +1082,10 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
 
   const cardCorpus = collectCardCorpus(body.cards);
   const cacheEnabled = isCacheEnabled(env);
+  const bypassCache = shouldBypassPlanCache(body);
   const cacheKey = cacheEnabled ? await planCacheKey(body) : null;
 
-  if (cacheKey) {
+  if (cacheKey && !bypassCache) {
     try {
       const cached = await env.WIDGET_KV.get(cacheKey, { type: "json" });
       if (isValidCachedPlan(cached)) {
@@ -1099,6 +1104,8 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
     } catch (err) {
       console.warn("[learn-plan] cache read failed", err);
     }
+  } else if (cacheKey && bypassCache) {
+    console.info(`[learn-plan] cache bypass key=${cacheKey.slice(0, 32)}`);
   }
 
   return makeSSEResponse(async (emit, signal) => {
