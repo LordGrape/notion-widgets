@@ -3507,6 +3507,24 @@ body.standalone .answer.restudy-active{
       margin-top: 4px;
     }
     .adv-fields.show{ display: block; }
+    .add-card-option-section{
+      border:1px solid rgba(var(--accent-rgb),0.10);
+      border-radius:12px;
+      padding:10px;
+      background:rgba(var(--accent-rgb),0.025);
+      margin-top:8px;
+    }
+    .add-card-option-title{
+      color:var(--text-tertiary);
+      font-size:8px;
+      font-weight:800;
+      letter-spacing:1.2px;
+      text-transform:uppercase;
+      margin-bottom:8px;
+    }
+    .add-card-option-section .field:last-child{
+      margin-bottom:0;
+    }
 
     /* ── CSS SECTION: Course Modal ── */
     /* ── Course Modal ── */
@@ -13787,6 +13805,11 @@ input[type="range"]::-moz-range-thumb{
           }
         }
         if (el('m_tier')) el('m_tier').value = it.tier || 'quickfire';
+        var advToggle = el('advToggle');
+        var advFields = el('advFields');
+        if (advToggle && advFields && !advFields.classList.contains('show')) {
+          advToggle.click();
+        }
         if (el('doneBtn')) el('doneBtn').textContent = 'Save Card';
         if (el('addNextBtn')) el('addNextBtn').style.display = 'none';
       }, 20);

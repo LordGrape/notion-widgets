@@ -74,16 +74,30 @@ export function setupModalSystem(bridge: ModalBridge): ModalSystem {
   let toastEl: Nullable<HTMLDivElement> = null;
   let toastTimer: Nullable<number> = null;
 
+  function infoIcon(text: string): string {
+    return '<span class="info-icon" tabindex="0" role="button" aria-label="Info">ⓘ<span class="info-tooltip">' +
+      bridge.esc(text) +
+      '<span class="tip-arrow"></span></span></span>';
+  }
+
+  function fieldLabel(label: string, help?: string, optional = false): string {
+    return '<label>' +
+      bridge.esc(label) +
+      (optional ? ' <span style="font-weight:500;letter-spacing:0.5px;text-transform:lowercase;opacity:0.7">(optional)</span>' : '') +
+      (help ? ' ' + infoIcon(help) : '') +
+      '</label>';
+  }
+
   function tailFields(): string {
     return '' +
       '<div class="field">' +
-      '<label>Plan profile</label>' +
+      fieldLabel('Plan profile', 'Overrides the course or sub-deck profile for this one card. Use only when this card needs a different learning style than the rest of the course.') +
       '<select id="m_planProfile" class="input">' +
       planProfileOptionsHtml((bridge as any).state?.studyEngineFeatures) +
       '</select>' +
       '</div>' +
       '<div class="field">' +
-      '<label>Target language</label>' +
+      fieldLabel('Target language', 'Only needed for language-learning cards. Leave this as the parent default for normal history, theory, factual, or exam-prep cards.') +
       '<select id="m_targetLanguage" class="input">' +
       '<option value="">Use parent default</option>' +
       '<option value="es-ES">Spanish (es-ES)</option>' +
@@ -96,7 +110,7 @@ export function setupModalSystem(bridge: ModalBridge): ModalSystem {
       '<input id="m_targetLanguageOther" class="input" placeholder="e.g. it-IT" style="margin-top:6px;" />' +
       '</div>' +
       '<div class="field">' +
-      '<label>Language level</label>' +
+      fieldLabel('Language level', 'A 1-6 difficulty level for language cards. It helps Learn choose appropriate examples and explanations.') +
       '<select id="m_languageLevel" class="input">' +
       '<option value=\"\">Use parent default</option>' +
       '<option value=\"1\">1</option><option value=\"2\">2</option><option value=\"3\">3</option><option value=\"4\">4</option><option value=\"5\">5</option><option value=\"6\">6</option>' +
@@ -107,26 +121,79 @@ export function setupModalSystem(bridge: ModalBridge): ModalSystem {
   function textField(label: string, id: string, ph: string): string {
     return '' +
       '<div class="field">' +
-        '<label>' + bridge.esc(label) + '</label>' +
+        fieldLabel(label) +
         '<input class="input" id="' + bridge.esc(id) + '" placeholder="' + bridge.esc(ph) + '" />' +
       '</div>';
   }
 
-  function areaField(label: string, id: string, ph: string): string {
+  function areaField(label: string, id: string, ph: string, help?: string): string {
     return '' +
       '<div class="field">' +
-        '<label>' + bridge.esc(label) + '</label>' +
-        '<textarea id="' + bridge.esc(id) + '" rows="4" placeholder="' + bridge.esc(ph) + '"></textarea>' +
+        fieldLabel(label, help) +
+        '<textarea id="' + bridge.esc(id) + '" rows="3" placeholder="' + bridge.esc(ph) + '"></textarea>' +
       '</div>';
   }
 
-  function selectField(label: string, id: string, opts: SelectOption[], defV: string): string {
-    let h = '<div class="field"><label>' + bridge.esc(label) + '</label><select id="' + bridge.esc(id) + '">';
+  function selectField(label: string, id: string, opts: SelectOption[], defV: string, help?: string): string {
+    let h = '<div class="field">' + fieldLabel(label, help) + '<select id="' + bridge.esc(id) + '">';
     opts.forEach((o) => {
       h += '<option value="' + bridge.esc(o.v) + '"' + (String(o.v) === String(defV) ? ' selected' : '') + '>' + bridge.esc(o.t) + '</option>';
     });
     h += '</select></div>';
     return h;
+  }
+
+  function reframeAddCardForm(): void {
+    const adv = bridge.el('advFields');
+    if (!adv) return;
+    const advText = modalForm.querySelector('.adv-text');
+    if (advText) advText.textContent = 'Options';
+
+    const labelInfo = (id: string, text: string): void => {
+      const node = document.getElementById(id);
+      const field = node ? node.closest('.field') : null;
+      const label = field ? field.querySelector('label') : null;
+      if (!label || label.querySelector('.info-icon')) return;
+      label.insertAdjacentHTML('beforeend', ' ' + infoIcon(text));
+    };
+
+    labelInfo('m_answer', 'This is the answer Study Engine and the tutor compare against. Keep it accurate, not necessarily long.');
+    labelInfo('m_priority', 'Use this only when the item should be weighted differently inside cram or exam-prep flows. Medium is right for most cards.');
+    labelInfo('m_scenario', 'Adding a scenario lets this card appear in Apply It style reviews.');
+    labelInfo('m_time', 'Setting a timer lets this card appear in Mock Exam reviews.');
+
+    const section = (title: string): HTMLDivElement => {
+      const wrap = document.createElement('div');
+      wrap.className = 'add-card-option-section';
+      const head = document.createElement('div');
+      head.className = 'add-card-option-title';
+      head.textContent = title;
+      wrap.appendChild(head);
+      return wrap;
+    };
+
+    const originalTierNodes = Array.from(adv.childNodes);
+    const org = section('Organisation');
+    const learning = section('Learning behaviour');
+    const tiers = section('Advanced review tiers');
+
+    const appendField = (host: HTMLElement, id: string): void => {
+      const node = document.getElementById(id);
+      const field = node ? node.closest('.field') : null;
+      if (field) host.appendChild(field);
+    };
+
+    appendField(org, 'm_topic');
+    appendField(org, 'm_priority');
+    appendField(learning, 'm_planProfile');
+    appendField(learning, 'm_targetLanguage');
+    appendField(learning, 'm_languageLevel');
+    originalTierNodes.forEach((node) => tiers.appendChild(node));
+
+    adv.innerHTML = '';
+    adv.appendChild(org);
+    adv.appendChild(learning);
+    adv.appendChild(tiers);
   }
 
   function openModal(tab?: string, courseName?: string): void {
@@ -273,6 +340,7 @@ export function setupModalSystem(bridge: ModalBridge): ModalSystem {
         '<div id="tierBadgeArea"></div>';
 
       setTimeout(() => {
+        reframeAddCardForm();
         const tog = bridge.el('advToggle');
         if (tog) {
           tog.addEventListener('click', () => {
