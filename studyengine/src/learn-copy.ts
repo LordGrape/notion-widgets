@@ -1,6 +1,6 @@
-export const LEARN_EMPTY_HEADING = 'Learn is first exposure';
-export const LEARN_EMPTY_BODY = "Before spaced review can schedule retrieval effectively, your brain needs an initial trace of the material. Learn walks you through the content segment by segment, with brief teaching passages and open-ended prompts that surface what you already understand and what you do not yet. When a sub-deck is consolidated here, Review becomes dramatically more efficient, because you are strengthening an existing memory instead of building one cold.";
-export const LEARN_EMPTY_CTA = 'Pick a sub-deck from the rail to begin.';
+export const LEARN_EMPTY_HEADING = 'Build the first memory trace';
+export const LEARN_EMPTY_BODY = 'Learn is the guided first pass before spaced review. Each segment gives a compact model, asks you to produce something in your own words, then uses feedback to tighten the trace before scheduling takes over.';
+export const LEARN_EMPTY_CTA = 'Choose a sub-deck to begin.';
 
 export const LEARN_EMPTY_LABEL_ENCODING = 'Encoding';
 export const LEARN_EMPTY_LABEL_RETRIEVAL = 'Retrieval';
@@ -9,7 +9,7 @@ export const LEARN_LANDING_STATUS_UNLEARNED = 'unlearned';
 export const LEARN_LANDING_STATUS_TAUGHT = 'taught';
 export const LEARN_LANDING_STATUS_CONSOLIDATED = 'consolidated';
 export const LEARN_LANDING_CACHE_HIT = (relative: string): string => `Plan loaded from cache, generated ${relative}.`;
-export const LEARN_LANDING_CACHE_MISS = 'Creating a plan the first time you click Start will use the Gemini API.';
+export const LEARN_LANDING_CACHE_MISS = 'First start creates a fresh plan with Gemini.';
 export const LEARN_LANDING_START = 'Start Learn session';
 export const LEARN_LANDING_REGEN = 'Regenerate plan';
 export const LEARN_REGEN_CONFIRM = 'Regenerate the learning plan for this sub-deck? (uses API tokens)';

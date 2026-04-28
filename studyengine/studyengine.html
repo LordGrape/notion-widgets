@@ -10021,13 +10021,12 @@ input[type="range"]::-moz-range-thumb{
               <section class="learn-hero" id="learnHero" aria-label="Learn session start">
                 <div class="learn-hero-main">
                   <div class="learn-hero-actions">
-                    <!-- U1: Study is the primary action (review-first dispatcher); Learn and Sub-deck picker are secondary ghost buttons. -->
-                    <button type="button" class="big-btn" id="cdStudyCourseBtn">Study</button>
-                    <button type="button" class="ghost-btn learn-hero-start-btn" id="cdLearnCourseBtn">Start Learn Session</button>
+                    <button type="button" class="big-btn learn-hero-start-btn" id="cdLearnCourseBtn">Start Learn Session</button>
+                    <button type="button" class="ghost-btn learn-hero-study-btn" id="cdStudyCourseBtn">Study Queue</button>
                     <button type="button" class="ghost-btn learn-hero-subdeck-btn" id="learnHeroSubDeckBtn" aria-controls="learnSubDeckRail" aria-expanded="false">Sub-deck picker</button>
                   </div>
-                  <p class="learn-hero-copy">Choose a sub-deck, then start a focused Learn session.</p>
-                  <p class="learn-hero-empty-helper">Start your first Learn session to build a foundation, then insights will appear here.</p>
+                  <p class="learn-hero-copy">Guided encoding before spaced review.</p>
+                  <p class="learn-hero-empty-helper">Choose a sub-deck to build its first memory trace.</p>
                 </div>
                 <div class="learn-hero-coverage" id="learnHeroCoverage" aria-live="polite"></div>
               </section>
@@ -10066,11 +10065,29 @@ input[type="range"]::-moz-range-thumb{
                       <span class="learn-progress-bar-label" id="learnSessionProgressLabel">0 / 0</span>
                     </div>
                     <span class="learn-course-coverage-chip" id="learnCourseCoverageChip" hidden>Course: 0 / 0 · 0%</span>
-                    <span class="learn-mastery-chip" id="learnMasteryChip" aria-live="polite" hidden>
-                      <span class="learn-mastery-chip-dot" aria-hidden="true"></span>
-                      <span id="learnMasteryChipText">Mastery 0%</span>
+                      <span class="learn-mastery-chip" id="learnMasteryChip" aria-live="polite" hidden>
+                        <span class="learn-mastery-chip-dot" aria-hidden="true"></span>
+                        <span id="learnMasteryChipText">Mastery 0%</span>
+                      </span>
+                      <button type="button" class="ghost-btn" id="learnSessionRegen" style="min-width:auto;padding:6px 10px;font-size:9px;letter-spacing:0.6px;text-transform:uppercase;"></button>
+                    </div>
+                  <div class="learn-session-map" id="learnSessionMap" aria-label="Learn session steps">
+                    <span class="learn-session-map-step" data-learn-session-step="read">
+                      <span class="learn-session-map-index">1</span>
+                      <span class="learn-session-map-label">Model</span>
                     </span>
-                    <button type="button" class="ghost-btn" id="learnSessionRegen" style="min-width:auto;padding:6px 10px;font-size:9px;letter-spacing:0.6px;text-transform:uppercase;"></button>
+                    <span class="learn-session-map-step" data-learn-session-step="answer">
+                      <span class="learn-session-map-index">2</span>
+                      <span class="learn-session-map-label">Your Turn</span>
+                    </span>
+                    <span class="learn-session-map-step" data-learn-session-step="feedback">
+                      <span class="learn-session-map-index">3</span>
+                      <span class="learn-session-map-label">Feedback</span>
+                    </span>
+                    <span class="learn-session-map-step" data-learn-session-step="consolidation">
+                      <span class="learn-session-map-index">4</span>
+                      <span class="learn-session-map-label">Calibrate</span>
+                    </span>
                   </div>
                   <div class="learn-stream-strip" id="learnSessionStreamStrip" role="status" aria-live="polite" hidden>
                     <span class="learn-stream-strip-dot" aria-hidden="true"></span>
@@ -10081,15 +10098,15 @@ input[type="range"]::-moz-range-thumb{
                   <div class="learn-session-body" id="learnSessionBody">
                     <div class="learn-tutor-pane" id="learnTutorPane">
                       <div class="learn-card-block learn-teach">
-                        <div class="learn-card-block-label">Teach</div>
-                        <button type="button" class="learn-teach-toggle" id="learnTeachToggle">Show teach (counts as assisted)</button>
+                        <div class="learn-card-block-label">Model</div>
+                        <button type="button" class="learn-teach-toggle" id="learnTeachToggle">Review model (assisted)</button>
                         <div class="learn-plan-stale-note" id="learnPlanStaleNote" hidden>
                           <span aria-hidden="true">⚠</span>
                           <span>Deck changed since this plan was generated.</span>
                           <button type="button" class="learn-plan-stale-note-dismiss" id="learnPlanStaleDismissBtn" aria-label="Dismiss deck changed note">×</button>
                         </div>
                         <div class="learn-tutor" id="learnTeachBlock" aria-live="polite"></div>
-                        <button type="button" class="learn-submit-btn learn-read-continue-btn" id="learnReadContinueBtn">I have read this, continue</button>
+                        <button type="button" class="learn-submit-btn learn-read-continue-btn" id="learnReadContinueBtn">Continue to Your Turn</button>
                       </div>
                       <div class="learn-card-block learn-yourturn">
                         <div class="learn-card-block-label">Your Turn</div>
@@ -10600,8 +10617,11 @@ input[type="range"]::-moz-range-thumb{
     import './src/learn-flow';
     import './src/learn-stats';
     import './src/learn-rail';
+    import './src/learn-ui/learn-ui.css';
     import { deriveLearnDisplayMode } from './src/learn-display-mode';
-    import { LEARN_EMPTY_HEADING, LEARN_EMPTY_BODY, LEARN_EMPTY_CTA, LEARN_EMPTY_LABEL_ENCODING, LEARN_EMPTY_LABEL_RETRIEVAL, LEARN_LANDING_STATUS_UNLEARNED, LEARN_LANDING_STATUS_TAUGHT, LEARN_LANDING_STATUS_CONSOLIDATED, LEARN_LANDING_CACHE_HIT, LEARN_LANDING_CACHE_MISS, LEARN_LANDING_REGEN, LEARN_REGEN_CONFIRM, LEARN_INTRO_TEXT, LEARN_INTRO_DISMISS, formatRelativeTime } from './src/learn-copy'; // U1: LEARN_LANDING_START removed (duplicate in-card button gone)
+    import { LEARN_EMPTY_HEADING, LEARN_EMPTY_BODY, LEARN_EMPTY_CTA, LEARN_EMPTY_LABEL_ENCODING, LEARN_EMPTY_LABEL_RETRIEVAL, LEARN_LANDING_STATUS_UNLEARNED, LEARN_LANDING_STATUS_TAUGHT, LEARN_LANDING_STATUS_CONSOLIDATED, LEARN_LANDING_CACHE_HIT, LEARN_LANDING_CACHE_MISS, LEARN_LANDING_START, LEARN_LANDING_REGEN, LEARN_REGEN_CONFIRM, LEARN_INTRO_TEXT, LEARN_INTRO_DISMISS, formatRelativeTime } from './src/learn-copy';
+    import { renderLearnEmptyStateHtml, renderLearnSubDeckLandingHtml } from './src/learn-ui/landing';
+    import { updateLearnSessionMap as updateLearnSessionMapUi } from './src/learn-ui/session-map';
     import { profileLabel as courseProfileLabel, resolveCourseGoal, visibleCourseDetailsFields } from './src/courses/visibility';
     import { resolveActiveHomeCourse } from './src/home/active-course';
     import { homeHeroStats, homeTutorStatsLabels } from './src/home/widgets';
@@ -25353,19 +25373,13 @@ input[type="range"]::-moz-range-thumb{
     function renderLearnEmptyState() {
       var emptyState = el('learnTabEmptyState');
       if (!emptyState) return;
-      emptyState.innerHTML = ''
-        + '<div class="learn-empty-pedagogy">'
-        + '<svg class="learn-empty-illustration" viewBox="0 0 360 160" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
-        + '<circle cx="138" cy="78" r="54" fill="none" stroke="currentColor" stroke-width="2"></circle>'
-        + '<circle cx="222" cy="78" r="54" fill="none" stroke="currentColor" stroke-width="2"></circle>'
-        + '<path d="M180 24a54 54 0 0 0 0 108a54 54 0 0 0 0-108Z" fill="var(--accent-primary)" fill-opacity="0.2" stroke="none"></path>'
-        + '<text x="96" y="150" text-anchor="middle" fill="currentColor" font-size="14" font-weight="600">' + escapeLearnText(LEARN_EMPTY_LABEL_ENCODING) + '</text>'
-        + '<text x="264" y="150" text-anchor="middle" fill="currentColor" font-size="14" font-weight="600">' + escapeLearnText(LEARN_EMPTY_LABEL_RETRIEVAL) + '</text>'
-        + '</svg>'
-        + '<h2>' + escapeLearnText(LEARN_EMPTY_HEADING) + '</h2>'
-        + '<p class="learn-empty-body">' + escapeLearnText(LEARN_EMPTY_BODY) + '</p>'
-        + '<p class="learn-empty-cta">' + escapeLearnText(LEARN_EMPTY_CTA) + '</p>'
-        + '</div>';
+      emptyState.innerHTML = renderLearnEmptyStateHtml({
+        heading: LEARN_EMPTY_HEADING,
+        body: LEARN_EMPTY_BODY,
+        cta: LEARN_EMPTY_CTA,
+        encodingLabel: LEARN_EMPTY_LABEL_ENCODING,
+        retrievalLabel: LEARN_EMPTY_LABEL_RETRIEVAL
+      });
       emptyState.hidden = false;
     }
 
@@ -25391,20 +25405,41 @@ input[type="range"]::-moz-range-thumb{
       var cacheLine = hasCache
         ? LEARN_LANDING_CACHE_HIT(formatRelativeTime(Number(cache.generatedAt || 0)))
         : LEARN_LANDING_CACHE_MISS;
-      // U1: removed duplicate #learnLandingStartBtn — top #cdLearnCourseBtn covers this exact action with the same args.
-      // The `.learn-subdeck-actions` wrapper is suppressed entirely when there is no Regenerate button (no cache).
-      emptyState.innerHTML = ''
-        + '<div class="learn-subdeck-landing">'
-        + '<h3>' + escapeLearnText(subDeckName) + '</h3>'
-        + '<p class="learn-subdeck-status">' + Number(counts.unlearned || 0) + ' ' + escapeLearnText(LEARN_LANDING_STATUS_UNLEARNED) + ' · ' + Number(counts.taught || 0) + ' ' + escapeLearnText(LEARN_LANDING_STATUS_TAUGHT) + ' · ' + Number(counts.consolidated || 0) + ' ' + escapeLearnText(LEARN_LANDING_STATUS_CONSOLIDATED) + '</p>'
-        + '<p class="learn-subdeck-cache-status">' + escapeLearnText(cacheLine) + '</p>'
-        + (hasCache
-            ? ('<div class="learn-subdeck-actions">'
-                 + '<button type="button" class="learn-regen-btn secondary" id="learnLandingRegenBtn">' + escapeLearnText(LEARN_LANDING_REGEN) + '</button>'
-               + '</div>')
-            : '')
-        + '</div>';
+      var total = Number(counts.total || 0);
+      var consolidated = Number(counts.consolidated || 0);
+      var taught = Number(counts.taught || 0);
+      var unlearned = Number(counts.unlearned || 0);
+      emptyState.innerHTML = renderLearnSubDeckLandingHtml({
+        subDeckName: subDeckName,
+        counts: {
+          consolidated: consolidated,
+          taught: taught,
+          unlearned: unlearned,
+          total: total
+        },
+        cacheLine: cacheLine,
+        labels: {
+          unlearned: LEARN_LANDING_STATUS_UNLEARNED,
+          taught: LEARN_LANDING_STATUS_TAUGHT,
+          consolidated: LEARN_LANDING_STATUS_CONSOLIDATED
+        },
+        startLabel: LEARN_LANDING_START,
+        regenerateLabel: LEARN_LANDING_REGEN,
+        hasCache: hasCache
+      });
       emptyState.hidden = false;
+      var startBtn = el('learnLandingStartBtn');
+      if (startBtn) startBtn.onclick = function() {
+        var args = getLearnStreamArgsForSubDeck(courseName, subDeckKey, {});
+        if (!args.allItems || !args.allItems.length) {
+          toast('Add cards to this sub-deck first.');
+          return;
+        }
+        startLearnPlanStreaming(
+          args.courseName, args.subDeckKey, args.allItems,
+          args.userName, args.learnerContext, args.opts
+        );
+      };
       var regenBtn = el('learnLandingRegenBtn');
       if (regenBtn) regenBtn.onclick = function() {
         triggerLearnPlanRegeneration(getLearnStreamArgsForSubDeck(courseName, subDeckKey, {}));
@@ -26168,6 +26203,10 @@ input[type="range"]::-moz-range-thumb{
       return null;
     }
 
+    function updateLearnSessionMap(flow) {
+      updateLearnSessionMapUi(el('learnSessionMap'), flow);
+    }
+
     function updateLearnSubPhaseUI(flow) {
       var ov = el('learnSessionOv');
       var flowBridge = globalThis.__studyEngineLearnFlow;
@@ -26286,6 +26325,7 @@ input[type="range"]::-moz-range-thumb{
       }
 
       updateLearnSubPhaseUI(flow);
+      updateLearnSessionMap(flow);
 
       var flowBridgeLocal = globalThis.__studyEngineLearnFlow;
       var curSeg = null;
@@ -26364,7 +26404,7 @@ input[type="range"]::-moz-range-thumb{
       if (readContinueBtn) {
         if (curCheckType === 'worked_example' && curFadeLevel === 1) readContinueBtn.textContent = 'I see how that works';
         else if (curCheckType === 'worked_example' && curFadeLevel === 2) readContinueBtn.textContent = 'Check my fills';
-        else readContinueBtn.textContent = 'I have read this, continue';
+        else readContinueBtn.textContent = 'Continue to Your Turn';
       }
       beginTeachReadTimerForCurrentSegment();
 
