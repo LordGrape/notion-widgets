@@ -10096,6 +10096,10 @@ input[type="range"]::-moz-range-thumb{
                     <div class="learn-stream-strip-bar" aria-hidden="true"><div class="learn-stream-strip-bar-fill" id="learnSessionStreamStripFill"></div></div>
                   </div>
                   <div class="learn-session-body" id="learnSessionBody">
+                    <div class="learn-focus-card" id="learnFocusCard" hidden>
+                      <div class="learn-focus-eyebrow" id="learnFocusEyebrow">New</div>
+                      <div class="learn-focus-question" id="learnFocusQuestion"></div>
+                    </div>
                     <div class="learn-tutor-pane" id="learnTutorPane">
                       <div class="learn-card-block learn-teach">
                         <div class="learn-card-block-label">Model</div>
@@ -25341,6 +25345,18 @@ input[type="range"]::-moz-range-thumb{
         .replace(/'/g, '&#39;');
     }
 
+    function getLearnFocusPrompt(segment) {
+      if (!segment) return '';
+      var linkedIds = Array.isArray(segment.linkedCardIds) ? segment.linkedCardIds : [];
+      for (var i = 0; i < linkedIds.length; i += 1) {
+        var cardId = String(linkedIds[i] || '');
+        var card = state.items && state.items[cardId];
+        var prompt = card && card.prompt != null ? String(card.prompt || '').trim() : '';
+        if (prompt) return prompt;
+      }
+      return String(segment.title || '').trim();
+    }
+
     function ensureLearnPlanStaleNoteNode() {
       var existing = el('learnPlanStaleNote');
       if (existing) return existing;
@@ -26273,6 +26289,9 @@ input[type="range"]::-moz-range-thumb{
       var languagePill = el('learnLanguageModePill');
       var feedbackHost = el('learnFeedbackBlock');
       var tutorPane = el('learnTutorPane');
+      var focusCard = el('learnFocusCard');
+      var focusEyebrow = el('learnFocusEyebrow');
+      var focusQuestion = el('learnFocusQuestion');
       var staleNote = ensureLearnPlanStaleNoteNode();
       var staleDismissBtn = el('learnPlanStaleDismissBtn');
       var coverageChip = el('learnCourseCoverageChip');
@@ -26318,9 +26337,7 @@ input[type="range"]::-moz-range-thumb{
         if (title) title.textContent = 'Learn complete';
       } else {
         if (kicker) kicker.textContent = 'Learn';
-        var seg = (flow.plan.segments || [])[flow.segmentIndex];
         var stepIdx = Math.min(flow.segmentIndex + 1, total);
-        var segTitle = seg ? String(seg.title || 'Segment') : '';
         var segsLoaded = (flow.plan.segments || []).length;
         if (flow.phase === 'streaming' && segsLoaded === 0) {
           /* Pre-segment streaming state: no segment loaded yet, so a
@@ -26328,7 +26345,7 @@ input[type="range"]::-moz-range-thumb{
              instead. The stream strip below the header carries the percentage. */
           if (title) title.textContent = 'Generating your learning plan…';
         } else if (title) {
-          title.textContent = 'Step ' + stepIdx + ' of ' + total + (segTitle ? (' · ' + segTitle) : '');
+          title.textContent = 'Step ' + stepIdx + ' of ' + total;
         }
       }
 
@@ -26344,6 +26361,21 @@ input[type="range"]::-moz-range-thumb{
       var curFadeLevel = curSeg && curSeg.fadeLevel != null ? Number(curSeg.fadeLevel) : null;
       var isTransferSegment = curCheckType === 'transfer_question';
       var isClozeSegment = curCheckType === 'cloze';
+      if (focusCard && focusQuestion) {
+        var focusPrompt = getLearnFocusPrompt(curSeg);
+        var showFocus = !!focusPrompt && flow.phase !== 'consolidating' && flow.phase !== 'done';
+        focusCard.hidden = !showFocus;
+        if (showFocus) {
+          focusQuestion.innerHTML = renderLearnMarkdownSafe(focusPrompt);
+          if (focusEyebrow) {
+            if (flow.currentSubPhase === 'answer') focusEyebrow.textContent = 'Your Turn';
+            else if (flow.currentSubPhase === 'feedback') focusEyebrow.textContent = 'Feedback';
+            else focusEyebrow.textContent = 'New';
+          }
+        } else {
+          focusQuestion.innerHTML = '';
+        }
+      }
       if (tutorPane) tutorPane.classList.toggle('transfer-segment', isTransferSegment);
       if (tutorPane) tutorPane.classList.toggle('cloze-segment', isClozeSegment && isRun5LanguageEnabled());
 

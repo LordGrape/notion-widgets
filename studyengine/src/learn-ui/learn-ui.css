@@ -244,44 +244,58 @@
   border-radius: 8px;
 }
 .learn-session-host.learn-session-host--active{
-  max-width: 980px;
-  margin: 18px auto;
-  padding: 0 16px;
+  max-width: 1080px;
+  margin: 20px auto 28px;
+  padding: 0 18px;
+}
+body.learn-session-active #courseTabs,
+body.learn-session-active #learn-tab-panel .learn-main-top{
+  display: none !important;
+}
+body.learn-session-active #learn-tab-panel{
+  margin-top: 0;
+}
+body.learn-session-active #courseDetail .cd-header{
+  margin-bottom: 16px;
 }
 .learn-inline-surface .modal{
-  max-width: 940px;
+  max-width: 1040px;
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid var(--learn-border);
-  background: color-mix(in srgb, var(--learn-surface) 94%, transparent);
+  background: color-mix(in srgb, var(--learn-surface-raised) 96%, transparent);
   box-shadow: var(--shadow-soft);
 }
 .learn-inline-surface .modal-head{
-  padding: 14px 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 220px) auto auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 16px 18px;
   border-bottom: 1px solid var(--learn-border);
   background: color-mix(in srgb, var(--learn-surface-raised) 82%, transparent);
-  flex-wrap: wrap;
-  align-items: flex-start;
 }
 .learn-head-copy{
   gap: 6px;
+  min-width: 0;
 }
 .learn-head-title{
-  max-width: 64ch;
-  font-size: 17px;
-  line-height: 1.35;
+  max-width: none;
+  font-size: 19px;
+  line-height: 1.25;
   white-space: normal;
   overflow: visible;
   text-overflow: clip;
 }
 .learn-progress-bar{
-  margin-top: 10px;
+  margin-top: 0;
+  min-width: 150px;
 }
 .learn-session-map{
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
-  padding: 10px 16px;
+  padding: 10px 18px;
   border-bottom: 1px solid var(--learn-border);
   background: color-mix(in srgb, var(--learn-surface-soft) 58%, transparent);
 }
@@ -333,10 +347,52 @@
   background: color-mix(in srgb, var(--rate-good) 14%, var(--learn-surface-raised));
   color: var(--learn-text);
 }
-.learn-session-body{ padding: 16px; }
-.learn-tutor-pane{
+.learn-session-body{
+  padding: 22px 26px 18px;
+}
+.learn-focus-card{
   display: grid;
   gap: 14px;
+  margin: 0 0 18px;
+  padding: 28px 32px;
+  border-radius: 8px;
+  border: 2px solid color-mix(in srgb, var(--accent-primary) 58%, var(--learn-border));
+  background: var(--learn-surface-raised);
+  box-shadow: 0 18px 42px -34px color-mix(in srgb, var(--accent-primary) 52%, transparent);
+}
+.learn-focus-card[hidden]{
+  display: none !important;
+}
+.learn-focus-eyebrow{
+  display: inline-flex;
+  width: max-content;
+  align-items: center;
+  gap: 6px;
+  color: var(--rate-good);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+}
+.learn-focus-eyebrow::before{
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--rate-good) 12%, transparent);
+}
+.learn-focus-question{
+  color: var(--learn-text);
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.28;
+}
+.learn-focus-question p{
+  margin: 0;
+}
+.learn-tutor-pane{
+  display: grid;
+  gap: 16px;
 }
 .learn-card-block{
   margin-bottom: 0;
@@ -368,12 +424,19 @@
   border-color: color-mix(in srgb, var(--accent-primary) 34%, var(--learn-border));
 }
 #learnSessionOv.learn-segment--read #learnTeachBlock{
-  max-width: 72ch;
-  padding: 24px;
+  max-width: 76ch;
+  padding: 26px 30px;
   border: none;
   background: transparent;
-  font-size: 16px;
-  line-height: 1.7;
+  font-size: 17px;
+  line-height: 1.72;
+}
+.learn-yourturn-prompt{
+  font-size: 20px;
+  line-height: 1.35;
+  font-weight: 800;
+  color: var(--learn-text);
+  margin-bottom: 16px;
 }
 .learn-teach-toggle,
 .learn-read-continue-btn,
@@ -387,9 +450,16 @@
 .learn-input{
   border-color: var(--learn-border-strong);
   background: var(--learn-surface-raised);
+  min-height: 128px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.learn-read-continue-btn,
+.learn-submit-btn{
+  min-height: 52px;
 }
 .learn-actions{
-  padding: 12px 16px 16px;
+  padding: 14px 18px 18px;
   border-top: 1px solid var(--learn-border);
   background: color-mix(in srgb, var(--learn-surface-raised) 72%, transparent);
 }
@@ -428,9 +498,12 @@
 }
 .learn-mastery-chip.tier-shaky .learn-mastery-chip-dot{ background: var(--rate-hard); }
 body:not(.standalone) .learn-session-host.learn-session-host--active{
-  max-width: 100%;
+  max-width: min(100%, 1040px);
   padding: 0;
   margin: 12px auto;
+}
+body:not(.standalone) .learn-session-body{
+  padding: 18px;
 }
 @media (max-width: 999px){
   #learn-tab-panel .learn-body{ grid-template-columns: minmax(0,1fr); }
@@ -440,6 +513,13 @@ body:not(.standalone) .learn-session-host.learn-session-host--active{
   .learn-empty-pedagogy,
   .learn-venn-teaching .learn-empty-pedagogy{ grid-template-columns: 1fr; }
   .learn-empty-stage{ min-height: 0; }
+  .learn-inline-surface .modal-head{
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+  }
+  .learn-progress-bar{
+    min-width: 0;
+  }
 }
 @media (max-width: 700px){
   .learn-main-empty{ padding: 18px; }
@@ -450,6 +530,10 @@ body:not(.standalone) .learn-session-host.learn-session-host--active{
     padding: 8px;
   }
   .learn-session-map-step{ padding: 7px; }
-  .learn-inline-surface .modal-head{ align-items: flex-start; }
+  .learn-inline-surface .modal-head{ align-items: stretch; }
+  .learn-session-body{ padding: 14px; }
+  .learn-focus-card{ padding: 18px; }
+  .learn-focus-question{ font-size: 19px; }
+  .learn-yourturn-prompt{ font-size: 17px; }
   #learnSessionOv.learn-segment--read #learnTeachBlock{ padding: 12px 0; }
 }

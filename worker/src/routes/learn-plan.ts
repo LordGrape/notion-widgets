@@ -12,7 +12,7 @@ const LEARN_PLAN_CORS_HEADERS = {
 const PLAN_PRIMARY_MODEL = "gemini-2.5-flash";
 const PLAN_ESCALATION_MODEL = "gemini-2.5-pro";
 
-const PLAN_CACHE_VERSION = "v4";
+const PLAN_CACHE_VERSION = "v5";
 const PLAN_CACHE_TTL_SECONDS = 86400;
 const PLAN_CACHE_KEY_PREFIX = `learn-plan:${PLAN_CACHE_VERSION}:`;
 const PRO_DAILY_CAP = 5;
@@ -53,10 +53,11 @@ interface PlanCachedResponse extends LearnPlanResponse {
 const LEARN_CHECK_TYPES: readonly LearnCheckType[] = ["elaborative", "predictive", "self_explain", "prior_knowledge_probe", "worked_example", "transfer_question", "cloze"] as const;
 const FACTUAL_PROFILE_APPENDIX = [
   "This is a FACTUAL profile session. Prioritize:",
-  "- Short teach blocks, ~60 words maximum.",
-  "- predictive_question check type as the primary mechanism.",
+  "- Teach blocks of 80-110 words that turn facts into meaningful relationships, not answer-key fragments.",
+  "- Start with a complete sentence naming what the fact means. Do not open with a bare date, name, number, or source fragment.",
+  "- predictive_question check type as the primary mechanism when the learner can infer a consequence or contrast.",
   "- worked_example check type for mnemonic-style anchoring (concrete name/date/figure linked to a memorable cue).",
-  "- Avoid long elaborative interrogation chains; one quick prompt per fact.",
+  "- Avoid long elaborative interrogation chains; one focused production prompt per fact.",
   "- Spaced retrieval emphasis: same fact may appear in multiple short segments within the session."
 ].join("\n");
 const PROCEDURAL_PROFILE_APPENDIX = [
@@ -239,6 +240,8 @@ function verifySegmentGrounding(segment: LearnPlanSegment, corpus: Record<string
  * ──────────────────────────────────────────────────────────────────────── */
 const BANNED_TEACH_OPENERS_RE =
   /^\s*(let['\u2019]?s|can you|what (is|are|do|does|was|were|did)\b|how (do|does|can|should) you|think about|consider|imagine|picture|recall|tell me|describe|explain to)\b/i;
+const BARE_FACT_FRAGMENT_OPENERS_RE =
+  /^\s*(?:\d{1,2}\s+[a-z]+(?:\s+\d{4})?|\d{4}|[a-z]+\s+\d{1,2},\s+\d{4})\s*,\s+(?:as|when|with|the|a|an)\b/i;
 
 /**
  * Phase A1: banned meta-phrases inside a teach block.
@@ -290,6 +293,7 @@ function verifySegmentTeach(seg: LearnPlanSegment): boolean {
   // list markers, backticks) before applying the opener regex.
   const stripped = teach.replace(/^[\s>#*_\-`]+/, '');
   if (BANNED_TEACH_OPENERS_RE.test(stripped)) return false;
+  if (BARE_FACT_FRAGMENT_OPENERS_RE.test(stripped)) return false;
   // Phase A1: reject meta-instructional teach bodies (see constant above).
   if (containsBannedTeachMetaPhrase(teach)) return false;
   return true;
@@ -411,26 +415,50 @@ function filterVerifiedConsolidationQuestions(
   return (questions || []).filter((q) => verifyConsolidationQuestion(q, corpus));
 }
 
-/**
- * Build a card-specific tutor prompt for the density fallback. The goal is
- * to produce a concrete retrieval question tied to the actual card front,
- * not a meta-summary. Behaviour:
- *   - If the front already ends in `?`, use it verbatim.
- *   - Otherwise, strip a trailing period and wrap it so the learner is
- *     prompted to answer from memory: "Using only what you have just read,
- *     ${front}?"
- * The result is guaranteed to end in `?` and avoids every banned phrase
- * in BANNED_TUTOR_PROMPT_PHRASES.
- */
-function buildFallbackTutorPrompt(front: string): string {
-  const trimmed = String(front || '').trim();
-  if (!trimmed) return 'Using only what you have just read, what fact did the card state?';
-  if (/\?\s*$/.test(trimmed)) return trimmed;
-  const withoutTrailingPunct = trimmed.replace(/[\s.!,;:]+$/, '');
-  return `Using only what you have just read, ${withoutTrailingPunct}?`;
+function ensureSentence(text: string): string {
+  const trimmed = String(text || "").trim();
+  if (!trimmed) return "";
+  return /[.!?]\s*$/.test(trimmed) ? trimmed : `${trimmed}.`;
 }
 
-function buildDensityFallback(cards: StudyCardInput[]): LearnPlanResponse {
+function stripQuestionMark(text: string): string {
+  return String(text || "").trim().replace(/\?\s*$/, "").trim();
+}
+
+function buildFallbackTutorPrompt(front: string): string {
+  const trimmed = String(front || '').trim();
+  if (!trimmed) return "What relationship does this card establish, and how do the answer details support it?";
+  return "What relationship does this card establish, and how would you explain why the answer details belong together?";
+}
+
+function buildDensityFallbackTeach(prompt: string, answer: string): string {
+  const promptFocus = stripQuestionMark(prompt);
+  const answerSentence = ensureSentence(answer || prompt);
+  const focusSentence = promptFocus
+    ? `The learning focus is this question: ${ensureSentence(promptFocus)}`
+    : "This card gives one grounded fact to encode before retrieval.";
+  const groundedSentence = answer
+    ? `The grounded answer is: ${answerSentence}`
+    : `The grounded content is: ${answerSentence}`;
+  return [
+    focusSentence,
+    groundedSentence,
+    "Learn it as a relationship rather than a phrase to copy. Connect the wording of the question to the named details in the answer, then check what each detail contributes to the idea. A useful response should explain the link, not just repeat the surface wording."
+  ].join(" ");
+}
+
+function buildFallbackSegmentTitle(prompt: string, idx: number): string {
+  const focus = stripQuestionMark(prompt)
+    .replace(/^(when|who|what|where|which|why|how)\b\s*/i, "")
+    .replace(/^(was|were|is|are|did|does|do)\b\s*/i, "")
+    .replace(/^the\s+/i, "")
+    .replace(/\s+/g, " ");
+  if (!focus) return `Card ${idx + 1}`;
+  const words = focus.split(" ").filter(Boolean).slice(0, 6).join(" ").replace(/[,:;.\s]+$/, "");
+  return words ? `${words.charAt(0).toUpperCase()}${words.slice(1)}` : `Card ${idx + 1}`;
+}
+
+export function buildDensityFallback(cards: StudyCardInput[]): LearnPlanResponse {
   const maxCards = cards.slice(0, 5);
   const consolidationQuestions: ConsolidationQuestion[] = maxCards.slice(0, 3).map((card) => {
     const id = String(card.id || "");
@@ -448,19 +476,10 @@ function buildDensityFallback(cards: StudyCardInput[]): LearnPlanResponse {
   const segments = maxCards.map((card, idx) => {
     const prompt = String(card.prompt || "").trim();
     const answer = String(card.modelAnswer || "").trim();
-    // Density-fallback teach (Turn 4): surface the card's own modelAnswer
-    // unchanged. The prior scaffold ("This segment presents the card
-    // titled \"${prompt}\"...") pretended to be narrative teach and leaked
-    // to learners when grounding verification legitimately failed. This
-    // form degrades gracefully: the learner sees the card's actual content,
-    // not meta-prose about there being a card. If `answer` is empty,
-    // `prompt` alone is degenerate but not misleading. Schema unchanged
-    // (string in/out); fallback segments still bypass the >=60-word teach
-    // validator because they are locally constructed, not Gemini output.
-    const teachBody = answer ? answer : prompt;
+    const teachBody = buildDensityFallbackTeach(prompt, answer);
     return {
       id: `fallback-${idx + 1}`,
-      title: prompt ? prompt.slice(0, 80) : `Card ${idx + 1}`,
+      title: buildFallbackSegmentTitle(prompt, idx),
       mechanism: "worked_example",
       objective: "Ground first exposure using this card's core content.",
       teach: teachBody,
@@ -597,10 +616,13 @@ function buildSystemPrompt(body: LearnPlanRequest): string {
     "Each segment must include groundingSnippets with exact substrings copied from card prompt/modelAnswer.",
     "Use mechanisms from: worked_example, elaborative_interrogation, self_explanation, predictive_question, test_closure.",
     "At least 2 segments unless card count is 1.",
+    "Segment titles must be compact lesson labels (3-8 words), not full card prompts, and must never be truncated mid-word.",
     "",
     "TEACH-BLOCK RULES (each segment's `teach` field):",
     "- Minimum 80 words of declarative instruction.",
     "- Must contain at least one concrete fact drawn from the grounding card set (date, name, event, mechanism, or relationship).",
+    "- For factual cards, turn the fact into a learning explanation: define what the date/name/number marks, why the details belong together, and what common confusion it prevents.",
+    "- Do NOT start with an isolated answer fragment such as '12 June 1885, as...' or '1945, when...'. Start with a complete sentence that names the relationship being learned.",
     "- Must NOT be a question. Must NOT end with a question mark.",
     "- Must NOT open with 'Let's', 'Can you', 'What is/are/was/were/do/does/did', 'How do/does/can/should you', 'Think about', 'Consider', 'Imagine', 'Picture', 'Recall', 'Tell me', 'Describe', 'Explain to', or any second-person imperative or interrogative at the start.",
     "- Must teach BEFORE retrieval: state the facts clearly, then let the `tutorPrompt` field carry the Socratic question that asks the learner to reconstruct them.",
@@ -612,6 +634,7 @@ function buildSystemPrompt(body: LearnPlanRequest): string {
     "- This is the Socratic question the learner answers AFTER reading `teach`.",
     "- Keep it brief (one or two sentences).",
     "- It is the only field that may end with a question mark.",
+    "- Prefer meaning-making prompts: ask the learner to explain the relationship, causal link, contrast, consequence, or reason the details belong together.",
     "- You must choose exactly one checkType for each segment:",
     "  - elaborative: 'In your own words, why does [concept] matter / work / apply?' or 'How does [concept] connect to [prior segment]?' — forces causal reasoning.",
     "  - predictive: 'Before the next segment: what would happen if [varied scenario]?' — builds anticipatory schema.",
@@ -646,7 +669,7 @@ const STATIC_USER_SCHEMA_PREFIX = [
   "  \"segments\": [",
   "    {",
   "      \"id\": \"seg-1\",",
-  "      \"title\": \"...\",",
+  "      \"title\": \"compact 3-8 word lesson label\",",
   "      \"mechanism\": \"worked_example\",",
   "      \"objective\": \"...\",",
   "      \"teach\": \"80+ words of declarative instruction with concrete facts; no questions; no banned openers.\",",

@@ -425,7 +425,7 @@ export interface LearnPlanSegment {
    * Declarative pre-retrieval teaching block. Must be grounded in the card
    * corpus, must not be a question, and is validated post-emission
    * (see verifySegmentTeach in routes/learn-plan.ts). Minimum 60 words to pass
-   * validation; Gemini is instructed to target >=80 words.
+   * validation; Gemini is instructed to target 80+ word micro-lessons.
    */
   teach: string;
   tutorPrompt: string;
