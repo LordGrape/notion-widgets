@@ -31,13 +31,13 @@ export const BUILD_KEYS = {
 } as const;
 
 export const LEXIQUE_URL =
-  'https://raw.githubusercontent.com/chrplr/openlexicon/master/datasets-info/Lexique383/Lexique383.tsv';
+  'http://www.lexique.org/databases/Lexique383/Lexique383.tsv';
 export const LEXIQUE_SHA256 = '';
 
 export const TATOEBA_URLS = {
-  fra: 'https://raw.githubusercontent.com/LordGrape/notion-widgets/main/studyengine/src/decks/french-core-2000/fixtures/fra_sentences.tsv',
-  eng: 'https://raw.githubusercontent.com/LordGrape/notion-widgets/main/studyengine/src/decks/french-core-2000/fixtures/eng_sentences.tsv',
-  links: 'https://raw.githubusercontent.com/LordGrape/notion-widgets/main/studyengine/src/decks/french-core-2000/fixtures/links.csv',
+  fra: 'https://raw.githubusercontent.com/LordGrape/notion-widgets/main/studyengine/src/decks/french-core-2000/__fixtures__/tatoeba-fra.tsv',
+  eng: 'https://raw.githubusercontent.com/LordGrape/notion-widgets/main/studyengine/src/decks/french-core-2000/__fixtures__/tatoeba-eng.tsv',
+  links: 'https://raw.githubusercontent.com/LordGrape/notion-widgets/main/studyengine/src/decks/french-core-2000/__fixtures__/tatoeba-links.csv',
 };
 export const TATOEBA_SHA256 = '';
 
