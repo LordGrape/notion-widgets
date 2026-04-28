@@ -259,6 +259,9 @@ const BARE_FACT_FRAGMENT_OPENERS_RE =
  * three-tier fallback as the banned-opener check.
  */
 const BANNED_TEACH_META_PHRASES: string[] = [
+  'learning focus is',
+  'grounded answer is',
+  'grounded content is',
   'tutor prompt',
   'prompt below',
   'question below',
@@ -283,10 +286,11 @@ function countWords(s: string): number {
   return m ? m.length : 0;
 }
 
-function verifySegmentTeach(seg: LearnPlanSegment): boolean {
+export function verifySegmentTeach(seg: LearnPlanSegment): boolean {
   const teach = String(seg?.teach || '').trim();
   if (!teach) return false;
-  if (countWords(teach) < 60) return false;
+  const teachWordCount = countWords(teach);
+  if (teachWordCount < 60) return false;
   // Trailing question mark after trimming trailing whitespace/punctuation-safe
   // check: if the last non-whitespace char is '?', reject.
   if (/\?\s*$/.test(teach)) return false;
@@ -297,6 +301,9 @@ function verifySegmentTeach(seg: LearnPlanSegment): boolean {
   if (BARE_FACT_FRAGMENT_OPENERS_RE.test(stripped)) return false;
   // Phase A1: reject meta-instructional teach bodies (see constant above).
   if (containsBannedTeachMetaPhrase(teach)) return false;
+  const expectedAnswer = String(seg?.expectedAnswer || '').trim();
+  const answerCopyRatio = expectedAnswer ? computeTokenOverlapRatio(teach, expectedAnswer) : 0;
+  if (expectedAnswer && answerCopyRatio >= 0.82 && teachWordCount < 90) return false;
   return true;
 }
 
@@ -436,15 +443,15 @@ function buildDensityFallbackTeach(prompt: string, answer: string): string {
   const promptFocus = stripQuestionMark(prompt);
   const answerSentence = ensureSentence(answer || prompt);
   const focusSentence = promptFocus
-    ? `The learning focus is this question: ${ensureSentence(promptFocus)}`
-    : "This card gives one grounded fact to encode before retrieval.";
+    ? `This card establishes the relationship behind the question: ${ensureSentence(promptFocus)}`
+    : "This card establishes one grounded relationship to encode before retrieval.";
   const groundedSentence = answer
-    ? `The grounded answer is: ${answerSentence}`
-    : `The grounded content is: ${answerSentence}`;
+    ? `The source fact is that ${answerSentence.charAt(0).toLowerCase()}${answerSentence.slice(1)}`
+    : `The source content is that ${answerSentence.charAt(0).toLowerCase()}${answerSentence.slice(1)}`;
   return [
     focusSentence,
     groundedSentence,
-    "Learn it as a relationship rather than a phrase to copy. Connect the wording of the question to the named details in the answer, then check what each detail contributes to the idea. A useful response should explain the link, not just repeat the surface wording."
+    "Treat the answer details as a connected memory, not as a loose phrase to copy. The date, name, place, event, or mechanism in the answer each plays a role: one detail usually marks the origin, one identifies the thing being discussed, and one explains why the fact matters. A useful explanation should show how those details fit together and what confusion the card is trying to prevent."
   ].join(" ");
 }
 

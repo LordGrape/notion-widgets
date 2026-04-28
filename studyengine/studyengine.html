@@ -25751,6 +25751,14 @@ input[type="range"]::-moz-range-thumb{
     function isLearnPlanStale(session) {
       if (!session || !session.flow || !session.flow.plan) return false;
       if (session.planOutOfDate) return true;
+      if (session.planFingerprint) {
+        var currentMeta = buildLearnPlanFingerprint(
+          session.courseName,
+          session.subDeckKey,
+          Object.keys(state.items || {}).map(function(id){ return state.items[id]; })
+        );
+        return String(currentMeta.fingerprint || '') !== String(session.planFingerprint || '');
+      }
       var current = computeCurrentLearnSubDeckFingerprint(session.courseName, session.subDeckKey);
       if (!current) return false;
       if (session.openedSubDeckFingerprint) {
@@ -27759,7 +27767,8 @@ input[type="range"]::-moz-range-thumb{
           openLearnSession(planObj, courseName, subDeckKey, {
             planVersion: cacheEntry && cacheEntry.planVersion ? cacheEntry.planVersion : 1,
             outOfDate: !!isOutdated,
-            fromCache: true
+            fromCache: true,
+            planFingerprint: cacheEntry && cacheEntry.fingerprint ? cacheEntry.fingerprint : null
           });
         });
         return true;
@@ -28038,7 +28047,8 @@ input[type="range"]::-moz-range-thumb{
         openedSubDeckFingerprint: computeCurrentLearnSubDeckFingerprint(courseName, subDeckKey),
         planOutOfDate: !!opts.outOfDate,
         planVersion: Math.max(1, Number(opts.planVersion || 1)),
-        fromCache: !!opts.fromCache
+        fromCache: !!opts.fromCache,
+        planFingerprint: opts.planFingerprint || null
       };
       if (activeLearnSession.flow && activeLearnSession.flow.plan && !activeLearnSession.flow.plan.subDeckFingerprint) {
         var modeBridge = globalThis.__studyEngineLearnMode;
