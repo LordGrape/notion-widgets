@@ -15,6 +15,20 @@ export interface ReclassifyOptions {
   respectExplicitTier?: boolean;
 }
 
+function hasText(value: unknown): boolean {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+// B1: profile-neutral content availability requirements by tier.
+export const tierContentRequirements: Record<TierId, (item: StudyItem) => boolean> = {
+  quickfire: (item) => hasText(item.prompt) && hasText(item.modelAnswer),
+  explain: (item) => hasText(item.prompt) && hasText(item.modelAnswer),
+  apply: (item) => hasText(item.task),
+  distinguish: (item) => hasText(item.conceptA) && hasText(item.conceptB),
+  mock: (item) => hasText(item.scenario) || (typeof item.timeLimitMins === 'number' && item.timeLimitMins > 0),
+  worked: (item) => hasText(item.workedScaffold)
+};
+
 const PROMPT_DISTINGUISH_RE = /(distinguish|compare|contrast)\s+between/i;
 const PROMPT_DIFFERENCE_RE = /difference[s]?\s+between\s+\w+\s+and\s+\w+/i;
 const PROMPT_APPLY_RE = /^(apply)\b/i;

@@ -10,6 +10,7 @@ import type {
 import { deriveLifecycleStage, setLifecycleStage } from './learn-mode';
 import { interleaveQuickFireQueue } from './interleave';
 import { startRelearningBattery } from './relearning-battery';
+import { tierContentRequirements } from './tier-classifier';
 
 type Rating = 1 | 2 | 3 | 4;
 type SessionRuntime = SessionState & Record<string, any>;
@@ -427,12 +428,29 @@ export function buildSessionQueue(): StudyItem[] {
     }
     const supported = bridge.detectSupportedTiers(it);
     supported.forEach((t) => {
-      if (tierBuckets[t]) tierBuckets[t].push(it);
+      if (!tierBuckets[t]) return;
+      const hasTierContent = tierContentRequirements[t] ? tierContentRequirements[t](it) : false;
+      if (!hasTierContent) {
+        // B1: enforce profile-neutral tier content gating during queue construction.
+        console.info('[StudyEngine][B1] Skipping tier for item due to missing tier content', {
+          itemId: it.id,
+          tier: t,
+          promptPreview: String(it.prompt || '').slice(0, 60)
+        });
+        return;
+      }
+      tierBuckets[t].push(it);
     });
   });
 
   const tierOrder: TierId[] = ['quickfire', 'explain', 'apply', 'distinguish', 'mock', 'worked'];
   tierOrder.forEach((t) => shuffle(tierBuckets[t]));
+  tierOrder.forEach((t) => {
+    if ((tierBuckets[t] || []).length === 0) {
+      // B1: smoke-verification log when a tier has no renderable cards.
+      console.info('[StudyEngine][B1] No items ready in this tier', { tier: t });
+    }
+  });
 
   let limit = parseInt(settings.sessionLimit || 12, 10);
   if (!limit || limit < 1) limit = 12;

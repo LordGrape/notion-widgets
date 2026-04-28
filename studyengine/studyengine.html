@@ -11279,15 +11279,32 @@ input[type="range"]::-moz-range-thumb{
     }
 
     /* ── Supported Tiers Detection ── */
+    // B1: profile-neutral tier content requirements shared by routing + badges.
+    var tierContentRequirements = {
+      quickfire: function(item) { return !!(item && item.prompt && item.modelAnswer); },
+      explain: function(item) { return !!(item && item.prompt && item.modelAnswer); },
+      apply: function(item) { return !!(item && item.task); },
+      distinguish: function(item) { return !!(item && item.conceptA && item.conceptB); },
+      mock: function(item) { return !!(item && (item.scenario || (typeof item.timeLimitMins === 'number' && item.timeLimitMins > 0))); },
+      worked: function(item) { return !!(item && item.workedScaffold); }
+    };
     /* ═══ SECTION: Detect Supported Tiers | Functions: detectSupportedTiers ═══ */
     function detectSupportedTiers(item) {
-      if (!item || !item.prompt || !item.modelAnswer) return [];
-      var tiers = ['quickfire', 'explain'];
-      if (item.task || item.scenario) tiers.push('apply');
-      if (item.conceptA && item.conceptB) tiers.push('distinguish');
-      /* Mock: any item can be presented under time pressure */
-      tiers.push('mock');
-      if ((item.modelAnswer || '').split('\n\n').filter(function(s) { return String(s).trim(); }).length >= 2) tiers.push('worked');
+      if (!item) return [];
+      var order = ['quickfire', 'explain', 'apply', 'distinguish', 'mock', 'worked'];
+      var tiers = [];
+      order.forEach(function(tierId) {
+        var check = tierContentRequirements[tierId];
+        if (check && check(item)) {
+          tiers.push(tierId);
+        } else {
+          console.info('[StudyEngine][B1] Skipping tier for item due to missing tier content', {
+            itemId: item.id || null,
+            tier: tierId,
+            promptPreview: String(item.prompt || '').slice(0, 60)
+          });
+        }
+      });
       return tiers;
     }
 
@@ -12482,7 +12499,7 @@ input[type="range"]::-moz-range-thumb{
         apply: 'Read a scenario and apply a concept to it. Tests transfer to new contexts (Apply/Analyse). Builds essay and short-answer exam skills.',
         distinguish: 'Two similar concepts side by side — decide which applies to a given scenario. Tests discrimination (Analyse/Evaluate). Prevents confusing related ideas under pressure.',
         mock: 'Full synthesis under a countdown timer. Tests everything at once (Evaluate/Create). Builds exam stamina and time management.',
-        worked: 'Partial model analysis with one section blank — you complete the missing reasoning (e.g. IRAC steps). Bridges worked examples and active retrieval.'
+        worked: 'Partial model answer with one section blank — you complete the missing step. Bridges worked examples and active retrieval.' // B1: profile-neutral copy
       };
       var bd = '';
       tiers.forEach(function(t) {
@@ -14300,6 +14317,8 @@ input[type="range"]::-moz-range-thumb{
         var rawCode = elm.getAttribute('data-mermaid');
         if (!rawCode || elm.querySelector('svg')) return;
         var code = sanitizeMermaidCode(rawCode);
+        // B1: unwrap escaped Mermaid payloads before parsing/rendering.
+        code = code.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
         if (!code) {
           if (attemptRecoverTruncatedMermaid(elm, rawCode)) return;
           elm.innerHTML = '<pre class="mermaid-fallback">' + esc(rawCode) + '</pre>';
@@ -15242,7 +15261,7 @@ input[type="range"]::-moz-range-thumb{
         '<div style="font-size:9px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#10b981;">Your Turn — Fill In This Section</div></div>' +
         '<div class="panel">' +
           '<div class="p-h">Your response</div>' +
-          '<textarea id="userText" rows="4" placeholder="Complete the missing analysis (e.g. the blank IRAC step)..."></textarea>' +
+          '<textarea id="userText" rows="4" placeholder="Fill in the missing step of the answer..."></textarea>' + // B1: profile-neutral copy
           '<div style="display:flex;gap:10px;margin-top:6px">' +
           '<button class="qa-btn" id="checkBtn" style="flex:1;min-width:0">Check (Space)</button>' +
           '<button type="button" class="ghost-btn" id="dontKnowBtn" style="flex:0 0 auto;padding:10px 12px;font-size:10px;white-space:nowrap">🤷 Don\u2019t know</button>' +
@@ -16257,6 +16276,33 @@ input[type="range"]::-moz-range-thumb{
       return 'quick';
     }
 
+    // B1: shared timeout wrapper for insight-related tutor calls.
+    function fetchJsonWithTimeout(url, options, timeoutMs) {
+      var controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+      var timer = null;
+      if (controller) {
+        options = options || {};
+        options.signal = controller.signal;
+        timer = setTimeout(function() { controller.abort(); }, timeoutMs);
+      }
+      return fetch(url, options)
+        .then(function(res) {
+          return res.text().then(function(rawText) {
+            var data;
+            try {
+              data = JSON.parse(rawText);
+            } catch (parseError) {
+              console.error('[Tutor] JSON parse error:', parseError);
+              data = { error: 'Failed to parse tutor response', raw: rawText.slice(0, 200), status: res.status };
+            }
+            return { res: res, data: data, rawText: rawText };
+          });
+        })
+        .finally(function() {
+          if (timer) clearTimeout(timer);
+        });
+    }
+
     /* ═══ SECTION: Call Tutor | Functions: callTutor ═══ */
     function callTutor(mode, model, item, userResponse, conversation, context) {
       var modelEff = model || 'flash';
@@ -16304,40 +16350,33 @@ input[type="range"]::-moz-range-thumb{
           payload.lectureContext.topicChunk = ctxData.topicChunk.content;
         }
 
-        return fetch(TUTOR_ENDPOINT, {
+        return fetchJsonWithTimeout(TUTOR_ENDPOINT, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'X-Widget-Key': getWidgetKey()
           },
           body: JSON.stringify(payload)
-        }).then(function(res) {
-          return res.text().then(function(rawText) {
-            // Log response details for debugging
-            console.log('[Tutor] Response status:', res.status, 'Content-Type:', res.headers.get('content-type'));
-            console.log('[Tutor] Raw response (first 200 chars):', rawText.slice(0, 200));
-            
-            // Try to parse JSON, with fallback for malformed responses
-            var data;
-            try {
-              data = JSON.parse(rawText);
-            } catch (parseError) {
-              console.error('[Tutor] JSON parse error:', parseError);
-              data = { 
-                error: 'Failed to parse tutor response', 
-                raw: rawText.slice(0, 200), // First 200 chars for debugging
-                status: res.status 
-              };
-            }
-            
-            if (res.ok && data && !data.error) {
-              recordTutorApiSuccess(mode, modelEff);
-            }
-            if (!res.ok && data && !data.error) {
-              data = { error: 'Request failed', detail: String(res.status) };
-            }
+        }, 10000).then(function(result) {
+          var res = result.res;
+          var data = result.data;
+          var rawText = result.rawText;
+          // B1: keep smoke-test diagnostics while adding timeout fallback.
+          console.log('[Tutor] Response status:', res.status, 'Content-Type:', res.headers.get('content-type'));
+          console.log('[Tutor] Raw response (first 200 chars):', rawText.slice(0, 200));
+          if (res.ok && data && !data.error) {
+            recordTutorApiSuccess(mode, modelEff);
             return data;
-          });
+          }
+          if (!res.ok && data && !data.error) {
+            return { error: 'Request failed', detail: String(res.status), status: res.status };
+          }
+          return data;
+        }).catch(function(err) {
+          if (err && err.name === 'AbortError') {
+            return { error: 'insight_timeout', detail: 'Insight unavailable — rate without it.' };
+          }
+          return { error: 'insight_unavailable', detail: 'Insight unavailable — rate without it.' };
         });
       });
     }
@@ -18267,7 +18306,16 @@ input[type="range"]::-moz-range-thumb{
       if (!nodes) return;
       if (opts.failed) {
         if (root.getAttribute('data-has-rich-insight') === 'true') return;
-        if (nodes.panel && nodes.panel.parentNode) nodes.panel.parentNode.removeChild(nodes.panel);
+        // B1: insight timeout/error fallback must not block rating/session progression.
+        nodes.panel.open = true;
+        nodes.summary.textContent = 'Insight unavailable';
+        nodes.body.innerHTML = 'Insight unavailable — rate without it. <button type="button" class="ghost-btn" id="dismissInsightFallback" style="margin-left:8px;padding:2px 8px;font-size:9px;">Dismiss</button>';
+        var dismissBtn = nodes.body.querySelector('#dismissInsightFallback');
+        if (dismissBtn) {
+          dismissBtn.addEventListener('click', function() {
+            if (nodes.panel && nodes.panel.parentNode) nodes.panel.parentNode.removeChild(nodes.panel);
+          });
+        }
         root.setAttribute('data-has-rich-insight', 'false');
         root.setAttribute('data-insight-loading', 'false');
         return;
