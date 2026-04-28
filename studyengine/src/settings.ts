@@ -39,18 +39,6 @@ function isDevModeEnabled(): boolean {
   return dev;
 }
 
-function resolveWidgetKeyMaybe(): string {
-  try {
-    const fromWindow = (window as unknown as { getWidgetKey?: () => string }).getWidgetKey?.();
-    if (fromWindow) return String(fromWindow).trim();
-  } catch {}
-  try {
-    const raw = window.localStorage?.getItem('widgetKey');
-    if (raw) return String(raw).trim();
-  } catch {}
-  return '';
-}
-
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   return new Promise((resolve, reject) => {
     const id = window.setTimeout(() => reject(new Error(`${label} timed out`)), ms);
@@ -120,6 +108,8 @@ type CuratedDeckEntry =
   | { id: string; label: string; source: 'worker'; workerEndpoint: string; courseHint?: string };
 
 const WORKER_BASE = 'https://widget-sync.lordgrape-widgets.workers.dev';
+// POST-L1b-α-2: hardcoded worker auth header — single-user widget, value is already pseudo-public in the deployed bundle.
+const WIDGET_KEY = 'G7$mXv!pL3@kR9wNz#Qe2YdF8bJhT6cA';
 
 const CURATED_DECKS: ReadonlyArray<CuratedDeckEntry> = [
   {
@@ -271,11 +261,6 @@ export function setupSettingsModule(ctx: SettingsModuleContext): {
     }
 
     async function runWorkerOrchestrator(deck: Extract<CuratedDeckEntry, { source: 'worker' }>): Promise<void> {
-      const widgetKey = resolveWidgetKeyMaybe();
-      if (!widgetKey) {
-        if (curatedStatus) curatedStatus.textContent = 'Build requires WIDGET_SECRET — set it in dev settings first.';
-        return;
-      }
       const overlay = document.createElement('div');
       overlay.style.cssText = 'position:fixed;inset:0;z-index:12000;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px;';
       overlay.innerHTML = '<div style="width:min(720px,100%);background:var(--card-bg);border:1px solid var(--card-border);border-radius:16px;padding:16px">'
@@ -292,7 +277,7 @@ export function setupSettingsModule(ctx: SettingsModuleContext): {
       const closeEl = overlay.querySelector('#hotfixClose') as HTMLButtonElement;
       closeEl.onclick = () => overlay.remove();
 
-      const headers = { 'Content-Type': 'application/json', 'X-Widget-Key': widgetKey };
+      const headers = { 'Content-Type': 'application/json', 'X-Widget-Key': WIDGET_KEY };
       const req = async (path: string, method: 'GET' | 'POST', body?: unknown, timeoutMs = 15000): Promise<any> => {
         const url = `${WORKER_BASE}${path}`;
         const res = await withTimeout(fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined }), timeoutMs, path);
