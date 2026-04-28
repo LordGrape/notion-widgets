@@ -27768,7 +27768,9 @@ input[type="range"]::-moz-range-thumb{
             planVersion: cacheEntry && cacheEntry.planVersion ? cacheEntry.planVersion : 1,
             outOfDate: !!isOutdated,
             fromCache: true,
-            planFingerprint: cacheEntry && cacheEntry.fingerprint ? cacheEntry.fingerprint : null
+            planFingerprint: isOutdated
+              ? (cacheEntry && cacheEntry.fingerprint ? cacheEntry.fingerprint : null)
+              : currentFingerprint
           });
         });
         return true;
@@ -27954,16 +27956,23 @@ input[type="range"]::-moz-range-thumb{
             var fullSubDeckFingerprint = additiveReuse
               ? computeCurrentLearnSubDeckFingerprint(courseName, subDeckKey, allItems || [])
               : null;
+            var completedFingerprintMeta = buildLearnPlanFingerprint(
+              courseName,
+              subDeckKey,
+              Object.keys(state.items || {}).map(function(id){ return state.items[id]; })
+            );
+            activeLearnSession.planFingerprint = completedFingerprintMeta.fingerprint;
+            activeLearnSession.planCourseContextHash = completedFingerprintMeta.courseContextHash;
             if (additiveReuse && fullSubDeckFingerprint && activeLearnSession.flow && activeLearnSession.flow.plan) {
               activeLearnSession.flow.plan.subDeckFingerprint = fullSubDeckFingerprint;
             }
             persistLearnPlanCache(courseName, subDeckKey, {
-              fingerprint: currentFingerprint,
+              fingerprint: completedFingerprintMeta.fingerprint,
               plan: cachePlan,
               generatedAt: Date.now(),
               planVersion: activeLearnSession.planVersion || 1,
-              cardFingerprint: fingerprintMeta.cardFingerprint,
-              courseContextHash: fingerprintMeta.courseContextHash,
+              cardFingerprint: completedFingerprintMeta.cardFingerprint,
+              courseContextHash: completedFingerprintMeta.courseContextHash,
               subDeckFingerprint: fullSubDeckFingerprint || streamSubDeckFingerprint
             });
           }
