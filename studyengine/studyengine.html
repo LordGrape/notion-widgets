@@ -25630,18 +25630,26 @@ input[type="range"]::-moz-range-thumb{
       };
     }
 
+    function computeCurrentLearnSubDeckFingerprint(courseName, subDeckKey, allItems) {
+      var modeBridge = globalThis.__studyEngineLearnMode;
+      if (!modeBridge || typeof modeBridge.fingerprintSubDeckCards !== 'function') return null;
+      var sourceItems = Array.isArray(allItems) ? allItems : Object.values(state.items || {});
+      var cards = subDeckKey === '__course_root__'
+        ? getCardsForScope(courseName, null, sourceItems, false)
+        : getCardsInSubDeck(courseName, subDeckKey, sourceItems);
+      return modeBridge.fingerprintSubDeckCards(cards);
+    }
+
     function isLearnPlanStale(session) {
       if (!session || !session.flow || !session.flow.plan) return false;
+      if (session.planOutOfDate) return true;
+      var current = computeCurrentLearnSubDeckFingerprint(session.courseName, session.subDeckKey);
+      if (!current) return false;
+      if (session.openedSubDeckFingerprint) {
+        return String(current) !== String(session.openedSubDeckFingerprint);
+      }
       var stored = session.flow.plan.subDeckFingerprint;
       if (!stored) return false;
-      var cards = session.subDeckKey === '__course_root__'
-        ? getCardsForScope(session.courseName, null, Object.values(state.items || {}), false)
-        : getCardsInSubDeck(session.courseName, session.subDeckKey, Object.values(state.items || {}));
-      var modeBridge = globalThis.__studyEngineLearnMode;
-      var current = (modeBridge && typeof modeBridge.fingerprintSubDeckCards === 'function')
-        ? modeBridge.fingerprintSubDeckCards(cards)
-        : null;
-      if (!current) return false;
       return String(current) !== String(stored);
     }
 
@@ -27616,6 +27624,7 @@ input[type="range"]::-moz-range-thumb{
         courseName: courseName,
         subDeckKey: subDeckKey,
         courseCoverageSnapshot: getCourseCoverageSnapshot(courseName),
+        openedSubDeckFingerprint: computeCurrentLearnSubDeckFingerprint(courseName, subDeckKey, allItems || []),
         streamController: streamController,
         pendingTurnResult: null,
         modalMounted: false,
@@ -27867,6 +27876,7 @@ input[type="range"]::-moz-range-thumb{
         courseName: courseName,
         subDeckKey: subDeckKey,
         courseCoverageSnapshot: getCourseCoverageSnapshot(courseName),
+        openedSubDeckFingerprint: computeCurrentLearnSubDeckFingerprint(courseName, subDeckKey),
         planOutOfDate: !!opts.outOfDate,
         planVersion: Math.max(1, Number(opts.planVersion || 1)),
         fromCache: !!opts.fromCache
