@@ -3,6 +3,8 @@ export interface Env {
   WIDGET_SECRET: string;
   GEMINI_API_KEY: string;
   GOOGLE_TTS_KEY: string;
+  GEMINI_UTILITY_MODEL?: string;
+  LEARN_TURN_MODEL?: string;
   NOTION_TOKEN?: string;
   NOTION_DB_ID?: string;
 }

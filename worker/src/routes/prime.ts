@@ -1,5 +1,6 @@
 import { getCorsHeaders } from "../cors";
 import { extractGeminiText } from "../gemini";
+import { resolveUtilityModel } from "../ai-models";
 import type { Env, PrimeRequest, PrimeResponse } from "../types";
 import { parseJsonResponse } from "../utils/json";
 
@@ -56,8 +57,9 @@ export async function handlePrime(request: Request, env: Env): Promise<Response>
       `  ]\n` +
       `}`;
 
+    const model = resolveUtilityModel(env);
     const primeRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

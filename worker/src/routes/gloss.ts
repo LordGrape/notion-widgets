@@ -1,4 +1,5 @@
 import { callGemini, extractGeminiText } from '../gemini';
+import { resolveUtilityModel } from '../ai-models';
 import { buildGlossPrompt } from '../lib/french-core';
 import { parseLlmJson } from '../llm/parse';
 import type { Env } from '../types';
@@ -55,7 +56,7 @@ export async function handleGloss(request: Request, env: Env): Promise<Response>
     const userPrompt = buildGlossPrompt(normalized);
 
     const geminiData = await callGemini(
-      'gemini-2.5-flash',
+      resolveUtilityModel(env),
       systemPrompt,
       userPrompt,
       {

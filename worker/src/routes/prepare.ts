@@ -1,5 +1,6 @@
 import { getCorsHeaders } from "../cors";
 import { extractGeminiText } from "../gemini";
+import { resolveUtilityModel } from "../ai-models";
 import { parseLlmJson } from "../llm/parse";
 import type { Env, PrepareRequest } from "../types";
 
@@ -54,7 +55,7 @@ export async function handlePrepare(request: Request, env: Env): Promise<Respons
       `Analyse this batch and produce:\n` +
       `1. If no existing syllabusContext: infer a 2-3 sentence course scope summary from the card topics and prompts.\n` +
       `2. Identify the key topics/themes present in this batch.\n` +
-      `3. Generate 1-2 initial learner observations useful for an AI tutor (e.g., "This batch is heavily weighted toward application questions" or "Cards span 6 topics — initial sessions should reveal weak areas").\n` +
+      `3. Generate 1-2 initial learner observations useful for an AI tutor (e.g., "This batch is heavily weighted toward application questions" or "Cards span 6 topics, initial sessions should reveal weak areas").\n` +
       `4. A one-line summary for the user.\n\n` +
       `Respond in EXACT JSON:\n` +
       `{\n` +
@@ -66,8 +67,9 @@ export async function handlePrepare(request: Request, env: Env): Promise<Respons
       `  "userSummary": "Imported X cards across Y topics. Key themes: ..."\n` +
       `}\n`;
 
+    const model = resolveUtilityModel(env);
     const prepRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

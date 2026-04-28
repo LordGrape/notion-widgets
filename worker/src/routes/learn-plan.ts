@@ -1,5 +1,6 @@
 import { getCorsHeaders } from "../cors";
 import { callGemini, extractGeminiText, streamGemini } from "../gemini";
+import { GEMINI_2_5_FLASH, GEMINI_2_5_PRO } from "../ai-models";
 import { emitTier2Event } from "../lib/tier2";
 import type { ConsolidationQuestion, Env, LearnCheckType, LearnPlanRequest, LearnPlanResponse, LearnPlanSegment, StudyCardInput } from "../types";
 import { parseJsonResponse } from "../utils/json";
@@ -9,8 +10,8 @@ const LEARN_PLAN_CORS_HEADERS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS"
 };
 
-const PLAN_PRIMARY_MODEL = "gemini-2.5-flash";
-const PLAN_ESCALATION_MODEL = "gemini-2.5-pro";
+const PLAN_PRIMARY_MODEL = GEMINI_2_5_FLASH;
+const PLAN_ESCALATION_MODEL = GEMINI_2_5_PRO;
 
 const PLAN_CACHE_VERSION = "v5";
 const PLAN_CACHE_TTL_SECONDS = 86400;

@@ -1,5 +1,6 @@
 import { getCorsHeaders } from "../cors";
 import { extractGeminiText } from "../gemini";
+import { resolveUtilityModel } from "../ai-models";
 import type { Env, SummaryRequest } from "../types";
 
 const SUMMARY_CORS_HEADERS = {
@@ -83,8 +84,9 @@ export async function handleSummary(request: Request, env: Env): Promise<Respons
       "Keep it concise and direct. No fluff. Address the student by name once.\n\n" +
       "Respond as plain text (NOT JSON). Just the summary paragraph.";
 
+    const model = resolveUtilityModel(env);
     const sumRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

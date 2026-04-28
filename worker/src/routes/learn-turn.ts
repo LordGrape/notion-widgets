@@ -1,5 +1,6 @@
 import { getCorsHeaders } from "../cors";
 import { callGemini, extractGeminiText, type GeminiGenerationConfig } from "../gemini";
+import { resolveLearnTurnModel } from "../ai-models";
 import { emitTier2Event } from "../lib/tier2";
 import { parseJsonResponse } from "../utils/json";
 import type {
@@ -15,8 +16,6 @@ const LEARN_TURN_CORS_HEADERS = {
   ...getCorsHeaders(),
   "Access-Control-Allow-Methods": "POST, OPTIONS"
 };
-
-const TURN_MODEL = "gemini-2.5-flash";
 
 const LEARN_GATE_STOPWORDS = new Set([
   "a", "an", "the", "and", "or", "but", "is", "are", "was", "were", "be", "been", "being",
@@ -219,6 +218,7 @@ function buildGenerationConfig(maxOutputTokens: number): GeminiGenerationConfig 
  * errorCode.
  */
 async function tryGradeTurn(
+  model: string,
   system: string,
   user: string,
   maxOutputTokens: number,
@@ -231,13 +231,13 @@ async function tryGradeTurn(
 > {
   let geminiData;
   try {
-    geminiData = await callGemini(TURN_MODEL, system, user, buildGenerationConfig(maxOutputTokens), env);
+    geminiData = await callGemini(model, system, user, buildGenerationConfig(maxOutputTokens), env);
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err);
     console.warn(`[learn-turn] upstream attempt=${attempt} maxTokens=${maxOutputTokens} failed: ${detail}`);
     return { outcome: "upstream_failed", detail };
   }
-  logUsage("learn-turn", TURN_MODEL, geminiData as unknown as Record<string, unknown>);
+  logUsage("learn-turn", model, geminiData as unknown as Record<string, unknown>);
 
   const raw = extractGeminiText(geminiData);
   const parsed = parseJsonResponse<LearnTurnPayload>(raw);
@@ -258,19 +258,20 @@ export async function handleLearnTurn(request: Request, env: Env): Promise<Respo
     if (validationError) return jsonResponse({ error: validationError }, 400);
 
     const { system, user } = buildPrompts(body);
+    const turnModel = resolveLearnTurnModel(env);
 
     // First attempt at the historical token budget. On schema_invalid the most
     // frequent root cause is the 1024-token cap truncating the JSON mid-value
     // for long learner responses, so the retry doubles the budget. Upstream
     // throws also get one retry (Gemini transient 5xx / network blips).
-    let attempt1 = await tryGradeTurn(system, user, 1024, env, 1);
+    let attempt1 = await tryGradeTurn(turnModel, system, user, 1024, env, 1);
     let payload: LearnTurnPayload | null = attempt1.outcome === "ok" ? attempt1.payload : null;
     let lastFailure: "upstream_failed" | "schema_invalid" | null =
       attempt1.outcome === "ok" ? null : attempt1.outcome;
 
     if (!payload) {
       const retryMaxTokens = attempt1.outcome === "schema_invalid" ? 2048 : 1024;
-      const attempt2 = await tryGradeTurn(system, user, retryMaxTokens, env, 2);
+      const attempt2 = await tryGradeTurn(turnModel, system, user, retryMaxTokens, env, 2);
       if (attempt2.outcome === "ok") {
         payload = attempt2.payload;
         lastFailure = null;
@@ -324,8 +325,8 @@ export async function handleLearnTurn(request: Request, env: Env): Promise<Respo
     }
 
     const response: LearnTurnResponse = successEnvelope(payload);
-    if ((body.turnIndex ?? 0) >= 30) await emitTier2Event(env, { route: "turn_soft_cap_hit", model: TURN_MODEL, ts: Date.now() });
-    await emitTier2Event(env, { route: "learn-turn", model: TURN_MODEL, ts: Date.now() });
+    if ((body.turnIndex ?? 0) >= 30) await emitTier2Event(env, { route: "turn_soft_cap_hit", model: turnModel, ts: Date.now() });
+    await emitTier2Event(env, { route: "learn-turn", model: turnModel, ts: Date.now() });
     return jsonResponse(response, 200);
   } catch (error) {
     console.error("[learn-turn] internal error", error);
