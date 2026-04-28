@@ -51,6 +51,46 @@ interface PlanCachedResponse extends LearnPlanResponse {
   cachedAt: string;
 }
 
+interface ProBudgetReservation {
+  allowed: boolean;
+  budgetDegraded?: LearnPlanResponse["budgetDegraded"];
+  day: string;
+  ttl: number;
+  planKey: string;
+  planCount: number;
+}
+
+async function reservePlanProBudget(env: Env): Promise<ProBudgetReservation> {
+  const now = Date.now();
+  const day = dayKey(now);
+  const ttl = resetAtTtlSeconds(now);
+  const planKey = `tier2:plan-pro:${day}`;
+  const ingestKey = `tier2:ingest:${day}`;
+  const [planCountRaw, ingestCountRaw] = await Promise.all([
+    env.WIDGET_KV.get(planKey),
+    env.WIDGET_KV.get(ingestKey)
+  ]);
+  const planCount = toCount(planCountRaw);
+  const combinedCount = planCount + toCount(ingestCountRaw);
+  if (combinedCount >= PRO_DAILY_CAP) {
+    await incrementCeilingCounter(env, day, "plan_pro_exhausted", ttl);
+    return {
+      allowed: false,
+      budgetDegraded: { reason: "pro_exhausted", resetAt: nextUtcMidnightIso(now) },
+      day,
+      ttl,
+      planKey,
+      planCount
+    };
+  }
+  return { allowed: true, day, ttl, planKey, planCount };
+}
+
+async function commitPlanProBudget(env: Env, reservation: ProBudgetReservation): Promise<void> {
+  if (!reservation.allowed) return;
+  await env.WIDGET_KV.put(reservation.planKey, String(reservation.planCount + 1), { expirationTtl: reservation.ttl });
+}
+
 const LEARN_CHECK_TYPES: readonly LearnCheckType[] = ["elaborative", "predictive", "self_explain", "prior_knowledge_probe", "worked_example", "transfer_question", "cloze"] as const;
 const FACTUAL_PROFILE_APPENDIX = [
   "This is a FACTUAL profile session. Prioritize:",
@@ -389,6 +429,20 @@ function filterVerifiedSegments(segments: LearnPlanSegment[], corpus: Record<str
     && verifySegmentTutorPrompt(String(seg?.tutorPrompt || '')).ok
     && verifySegmentCheckType(seg)
   ));
+}
+
+function verifySegmentQuality(seg: LearnPlanSegment): { ok: boolean; reason?: string } {
+  if (!verifySegmentTeach(seg)) return { ok: false, reason: "teach_quality" };
+  const tutorCheck = verifySegmentTutorPrompt(String(seg?.tutorPrompt || ""));
+  if (!tutorCheck.ok) return { ok: false, reason: tutorCheck.reason || "tutor_prompt_quality" };
+  if (!verifySegmentCheckType(seg)) return { ok: false, reason: "check_type_quality" };
+  return { ok: true };
+}
+
+function targetLearnSegmentCount(body: LearnPlanRequest): number {
+  const explicit = Number(body.segmentLimit);
+  if (Number.isFinite(explicit) && explicit > 0) return Math.max(1, Math.min(10, Math.floor(explicit)));
+  return Math.max(1, Math.min(5, body.cards.length || 1));
 }
 
 function verifyConsolidationQuestion(
@@ -1008,16 +1062,20 @@ async function regenerateRejectedSegment(
   currentPlan: LearnPlanResponse,
   segmentId: string,
   answerInTeachRatio: number,
-  env: Env
+  env: Env,
+  rejectionReason = "answer_copyable_from_teach"
 ): Promise<LearnPlanSegment | null> {
   const regenerationInstruction =
-    `Segment ${segmentId} was rejected. Its expected answer is copyable from its teach (overlap ${answerInTeachRatio.toFixed(3)}). ` +
-    `Regenerate ONLY segment ${segmentId}. The new expectedAnswer must require inference, mechanism construction, prediction, or transfer that is NOT stated verbatim in the teach. Keep all other segments unchanged.`;
+    `Segment ${segmentId} was rejected by the ${rejectionReason} quality gate. ` +
+    `Its expected answer overlap with teach was ${answerInTeachRatio.toFixed(3)}. ` +
+    `Regenerate ONLY segment ${segmentId}. The teach block must be a real micro-lesson, not an answer-key fragment or meta-instruction. ` +
+    `The tutorPrompt must require explanation, relationship-building, prediction, or transfer rather than recall of a literal date, name, place, or phrase. Keep all other segments unchanged.`;
   const regenUserPrompt = [
     buildUserPrompt(body),
     "",
     `REJECTED_SEGMENT_ID: ${segmentId}`,
     `REJECTED_SEGMENT_EXPECTED_ANSWER: ${String(currentPlan.segments.find((segment) => String(segment.id) === segmentId)?.expectedAnswer ?? "")}`,
+    `REJECTED_SEGMENT_REASON: ${rejectionReason}`,
     `REJECTED_SEGMENT_TEACH_OVERLAP_RATIO: ${answerInTeachRatio.toFixed(3)}`,
     "",
     regenerationInstruction,
@@ -1075,6 +1133,34 @@ async function enforceUncopyableSegment(
   return workingSegment;
 }
 
+async function escalateRejectedSegmentIfAllowed(
+  segment: LearnPlanSegment,
+  currentPlan: LearnPlanResponse,
+  body: LearnPlanRequest,
+  corpus: Record<string, string>,
+  env: Env,
+  rejectionReason: string
+): Promise<{ segment: LearnPlanSegment | null; budgetDegraded?: LearnPlanResponse["budgetDegraded"] }> {
+  const reservation = await reservePlanProBudget(env);
+  if (!reservation.allowed) return { segment: null, budgetDegraded: reservation.budgetDegraded };
+  const regenerated = await regenerateRejectedSegment(
+    PLAN_ESCALATION_MODEL,
+    body,
+    currentPlan,
+    String(segment.id || ""),
+    computeTokenOverlapRatio(segment.expectedAnswer, segment.teach),
+    env,
+    rejectionReason
+  );
+  if (!regenerated) return { segment: null };
+  if (!verifySegmentGrounding(regenerated, corpus)) return { segment: null };
+  const quality = verifySegmentQuality(regenerated);
+  if (!quality.ok) return { segment: null };
+  if (computeTokenOverlapRatio(regenerated.expectedAnswer, regenerated.teach) > 0.6) return { segment: null };
+  await commitPlanProBudget(env, reservation);
+  return { segment: regenerated };
+}
+
 export async function handleLearnPlan(request: Request, env: Env): Promise<Response> {
   if (request.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
 
@@ -1121,6 +1207,7 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
     let fullBuffer = "";
     const emittedSegments: LearnPlanSegment[] = [];
     const emittedSegmentIds = new Set<string>();
+    const qualityRejectedSegments = new Map<string, { segment: LearnPlanSegment; reason: string }>();
 
     let streamFailed = false;
     try {
@@ -1138,9 +1225,11 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
           const seg = parseJsonResponse<LearnPlanSegment>(slice);
           if (!seg || typeof seg !== "object") continue;
           if (!verifySegmentGrounding(seg, cardCorpus)) continue;
-          if (!verifySegmentTeach(seg)) continue;
-          if (!verifySegmentTutorPrompt(String(seg.tutorPrompt || "")).ok) continue;
-          if (!verifySegmentCheckType(seg)) continue;
+          const quality = verifySegmentQuality(seg);
+          if (!quality.ok) {
+            qualityRejectedSegments.set(String(seg.id || qualityRejectedSegments.size), { segment: seg, reason: quality.reason || "quality" });
+            continue;
+          }
           const copyCheckedSegment = await enforceUncopyableSegment(
             seg,
             { segments: [seg], consolidationQuestions: [] },
@@ -1169,9 +1258,11 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
         if (!seg || typeof seg !== "object") continue;
         if (emittedSegmentIds.has(String(seg.id))) continue;
         if (!verifySegmentGrounding(seg, cardCorpus)) continue;
-        if (!verifySegmentTeach(seg)) continue;
-        if (!verifySegmentTutorPrompt(String(seg.tutorPrompt || "")).ok) continue;
-        if (!verifySegmentCheckType(seg)) continue;
+        const quality = verifySegmentQuality(seg);
+        if (!quality.ok) {
+          qualityRejectedSegments.set(String(seg.id || qualityRejectedSegments.size), { segment: seg, reason: quality.reason || "quality" });
+          continue;
+        }
         const copyCheckedSegment = await enforceUncopyableSegment(seg, fullParsed, body, PLAN_PRIMARY_MODEL, env);
         emittedSegmentIds.add(String(copyCheckedSegment.id));
         emittedSegments.push(copyCheckedSegment);
@@ -1184,13 +1275,40 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
       verifiedQs = filterVerifiedConsolidationQuestions(fullParsed.consolidationQuestions, cardCorpus);
     }
 
+    let budgetDegraded: LearnPlanResponse["budgetDegraded"];
+    const targetSegmentCount = targetLearnSegmentCount(body);
+    if (qualityRejectedSegments.size > 0) {
+      for (const rejected of qualityRejectedSegments.values()) {
+        if (emittedSegments.length >= targetSegmentCount) break;
+        try {
+          const escalated = await escalateRejectedSegmentIfAllowed(
+            rejected.segment,
+            fullParsed || { segments: [rejected.segment], consolidationQuestions: [] },
+            body,
+            cardCorpus,
+            env,
+            rejected.reason
+          );
+          if (escalated.budgetDegraded) budgetDegraded = escalated.budgetDegraded;
+          if (!escalated.segment) continue;
+          if (emittedSegmentIds.has(String(escalated.segment.id))) continue;
+          emittedSegmentIds.add(String(escalated.segment.id));
+          emittedSegments.push(escalated.segment);
+          await emit.event("segment", escalated.segment);
+        } catch (err) {
+          console.warn("[learn-plan] segment escalation failed", err);
+        }
+      }
+    }
+
     if (emittedSegments.length >= 2) {
       await emit.event("consolidationQuestions", { questions: verifiedQs });
       await emit.event("complete", {
         segmentCount: emittedSegments.length,
         consolidationCount: verifiedQs.length,
         planMode: streamFailed ? "retry_verified" : "verified",
-        warning: verifiedQs.length < 2 ? "Fewer than 2 consolidation questions verified." : undefined
+        warning: verifiedQs.length < 2 ? "Fewer than 2 consolidation questions verified." : undefined,
+        budgetDegraded
       });
       await writePlanCache(cacheKey, env, emittedSegments, verifiedQs);
       await emitTier2Event(env, { route: "learn-plan", model: PLAN_PRIMARY_MODEL, ts: Date.now() });
@@ -1216,25 +1334,14 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
     }
 
     let secondAttempt: LearnPlanResponse | null = null;
-    let budgetDegraded: LearnPlanResponse["budgetDegraded"];
     if (!skipOneShot) {
       try {
-        const now = Date.now();
-        const day = dayKey(now);
-        const ttl = resetAtTtlSeconds(now);
-        const planKey = `tier2:plan-pro:${day}`;
-        const ingestKey = `tier2:ingest:${day}`;
-        const [planCountRaw, ingestCountRaw] = await Promise.all([
-          env.WIDGET_KV.get(planKey),
-          env.WIDGET_KV.get(ingestKey)
-        ]);
-        const combinedCount = toCount(planCountRaw) + toCount(ingestCountRaw);
-        if (combinedCount >= PRO_DAILY_CAP) {
-          budgetDegraded = { reason: "pro_exhausted", resetAt: nextUtcMidnightIso(now) };
-          await incrementCeilingCounter(env, day, "plan_pro_exhausted", ttl);
+        const reservation = await reservePlanProBudget(env);
+        if (!reservation.allowed) {
+          budgetDegraded = reservation.budgetDegraded;
         } else {
           secondAttempt = await requestPlanOneShot(PLAN_ESCALATION_MODEL, body, env);
-          await env.WIDGET_KV.put(planKey, String(toCount(planCountRaw) + 1), { expirationTtl: ttl });
+          await commitPlanProBudget(env, reservation);
         }
       } catch (err) {
         console.warn("[learn-plan] one-shot fallback threw", err);
