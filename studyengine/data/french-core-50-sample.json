@@ -1,7 +1,7 @@
 [
   {
     "prompt": "de",
-    "modelAnswer": "`/d@/`\n\n*of, from*\n\n> Il est de Paris.\n> *He is from Paris.*",
+    "modelAnswer": "`/də/`\n\n*of, from*\n\n> Il est de Paris.\n> *He is from Paris.*",
     "course": "French",
     "subDeck": "Core 2000",
     "topic": "A1",
@@ -10,8 +10,9 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
@@ -25,13 +26,14 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
     "prompt": "le",
-    "modelAnswer": "`/l@/`\n\n*the (masc.); him, it*\n\n> Le chat dort.\n> *The cat is sleeping.*",
+    "modelAnswer": "`/lə/`\n\n*the (masc.); him, it*\n\n> Le chat dort.\n> *The cat is sleeping.*",
     "course": "French",
     "subDeck": "Core 2000",
     "topic": "A1",
@@ -40,13 +42,14 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
     "prompt": "être",
-    "modelAnswer": "`/EtR/`\n\n*to be*",
+    "modelAnswer": "`/ɛtʁ/`\n\n*to be*",
     "course": "French",
     "subDeck": "Core 2000",
     "topic": "A1",
@@ -55,8 +58,9 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
@@ -70,8 +74,9 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
@@ -85,8 +90,9 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
@@ -100,13 +106,14 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
     "prompt": "avoir",
-    "modelAnswer": "`/avwaR/`\n\n*to have*",
+    "modelAnswer": "`/avwaʁ/`\n\n*to have*",
     "course": "French",
     "subDeck": "Core 2000",
     "topic": "A1",
@@ -115,13 +122,14 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
     "prompt": "ne",
-    "modelAnswer": "`/n@/`\n\n*not (negation marker, paired with pas/jamais/etc.)*\n\n> Je ne sais pas.\n> *I don’t know.*",
+    "modelAnswer": "`/nə/`\n\n*not (negation marker, paired with pas/jamais/etc.)*\n\n> Je ne sais pas.\n> *I don’t know.*",
     "course": "French",
     "subDeck": "Core 2000",
     "topic": "A1",
@@ -130,13 +138,14 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
     "prompt": "je",
-    "modelAnswer": "`/Z@/`\n\n*I*\n\n> Je suis fatigué.\n> *I am tired.*",
+    "modelAnswer": "`/ʒə/`\n\n*I*\n\n> Je suis fatigué.\n> *I am tired.*",
     "course": "French",
     "subDeck": "Core 2000",
     "topic": "A1",
@@ -145,8 +154,9 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
@@ -160,13 +170,14 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
     "prompt": "que",
-    "modelAnswer": "`/k@/`\n\n*that, which; what; than*\n\n> Que veux-tu ?\n> *What do you want?*",
+    "modelAnswer": "`/kə/`\n\n*that, which; what; than*\n\n> Que veux-tu ?\n> *What do you want?*",
     "course": "French",
     "subDeck": "Core 2000",
     "topic": "A1",
@@ -175,13 +186,14 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
     "prompt": "se",
-    "modelAnswer": "`/s@/`\n\n*oneself, himself, herself (reflexive)*\n\n> Il se lave.\n> *He is washing himself.*",
+    "modelAnswer": "`/sə/`\n\n*oneself, himself, herself (reflexive)*\n\n> Il se lave.\n> *He is washing himself.*",
     "course": "French",
     "subDeck": "Core 2000",
     "topic": "A1",
@@ -190,8 +202,9 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
@@ -205,13 +218,14 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
     "prompt": "ce",
-    "modelAnswer": "`/s@/`\n\n*this, that; it*\n\n> Ce livre est bon.\n> *This book is good.*",
+    "modelAnswer": "`/sə/`\n\n*this, that; it*\n\n> Ce livre est bon.\n> *This book is good.*",
     "course": "French",
     "subDeck": "Core 2000",
     "topic": "A1",
@@ -220,13 +234,14 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
     "prompt": "dans",
-    "modelAnswer": "`/d@~/`\n\n*in, into*\n\n> Il est dans la voiture.\n> *He is in the car.*",
+    "modelAnswer": "`/də̃/`\n\n*in, into*\n\n> Il est dans la voiture.\n> *He is in the car.*",
     "course": "French",
     "subDeck": "Core 2000",
     "topic": "A1",
@@ -235,13 +250,14 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
     "prompt": "en",
-    "modelAnswer": "`/@~/`\n\n*in, of it, some (pronoun and preposition)*",
+    "modelAnswer": "`/ə̃/`\n\n*in, of it, some (pronoun and preposition)*",
     "course": "French",
     "subDeck": "Core 2000",
     "topic": "A1",
@@ -250,13 +266,14 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
     "prompt": "un",
-    "modelAnswer": "`/9~/`\n\n*a, an, one*\n\n> J’ai un chien.\n> *I have a dog.*",
+    "modelAnswer": "`/œ̃/`\n\n*a, an, one*\n\n> J’ai un chien.\n> *I have a dog.*",
     "course": "French",
     "subDeck": "Core 2000",
     "topic": "A1",
@@ -265,8 +282,9 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
@@ -280,13 +298,14 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
     "prompt": "pas",
-    "modelAnswer": "`/pA/`\n\n*not (negation)*\n\n> Il ne vient pas.\n> *He is not coming.*",
+    "modelAnswer": "`/pɑ/`\n\n*not (negation)*\n\n> Il ne vient pas.\n> *He is not coming.*",
     "course": "French",
     "subDeck": "Core 2000",
     "topic": "A1",
@@ -295,13 +314,14 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
     "prompt": "vouloir",
-    "modelAnswer": "`/vulwaR/`\n\n*to want*",
+    "modelAnswer": "`/vulwaʁ/`\n\n*to want*",
     "course": "French",
     "subDeck": "Core 2000",
     "topic": "A1",
@@ -310,13 +330,14 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
     "prompt": "pour",
-    "modelAnswer": "`/puR/`\n\n*for, in order to*\n\n> C’est pour toi.\n> *This is for you.*",
+    "modelAnswer": "`/puʁ/`\n\n*for, in order to*\n\n> C’est pour toi.\n> *This is for you.*",
     "course": "French",
     "subDeck": "Core 2000",
     "topic": "A1",
@@ -325,13 +346,14 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
     "prompt": "faire",
-    "modelAnswer": "`/fER/`\n\n*to do, to make*\n\n> Que veux-tu faire ?\n> *What do you want to do?*",
+    "modelAnswer": "`/fɛʁ/`\n\n*to do, to make*\n\n> Que veux-tu faire ?\n> *What do you want to do?*",
     "course": "French",
     "subDeck": "Core 2000",
     "topic": "A1",
@@ -340,13 +362,14 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
     "prompt": "me",
-    "modelAnswer": "`/m@/`\n\n*me, myself*\n\n> Tu me vois ?\n> *Do you see me?*",
+    "modelAnswer": "`/mə/`\n\n*me, myself*\n\n> Tu me vois ?\n> *Do you see me?*",
     "course": "French",
     "subDeck": "Core 2000",
     "topic": "A1",
@@ -355,8 +378,9 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
@@ -370,13 +394,14 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
     "prompt": "dire",
-    "modelAnswer": "`/diR/`\n\n*to say, to tell*\n\n> Que veux-tu dire ?\n> *What do you mean?*",
+    "modelAnswer": "`/diʁ/`\n\n*to say, to tell*\n\n> Que veux-tu dire ?\n> *What do you mean?*",
     "course": "French",
     "subDeck": "Core 2000",
     "topic": "A1",
@@ -385,13 +410,14 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
     "prompt": "pouvoir",
-    "modelAnswer": "`/puvwaR/`\n\n*to be able to, can*",
+    "modelAnswer": "`/puvwaʁ/`\n\n*to be able to, can*",
     "course": "French",
     "subDeck": "Core 2000",
     "topic": "A1",
@@ -400,13 +426,14 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
     "prompt": "mais",
-    "modelAnswer": "`/mE/`\n\n*but*\n\n> Il est petit mais fort.\n> *He is small but strong.*",
+    "modelAnswer": "`/mɛ/`\n\n*but*\n\n> Il est petit mais fort.\n> *He is small but strong.*",
     "course": "French",
     "subDeck": "Core 2000",
     "topic": "A1",
@@ -415,8 +442,9 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
@@ -430,8 +458,9 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
@@ -445,8 +474,9 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
@@ -460,8 +490,9 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
@@ -475,13 +506,14 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
     "prompt": "te",
-    "modelAnswer": "`/t@/`\n\n*you, yourself (informal singular object)*\n\n> Je te vois.\n> *I see you.*",
+    "modelAnswer": "`/tə/`\n\n*you, yourself (informal singular object)*\n\n> Je te vois.\n> *I see you.*",
     "course": "French",
     "subDeck": "Core 2000",
     "topic": "A1",
@@ -490,8 +522,9 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
@@ -505,13 +538,14 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
     "prompt": "votre",
-    "modelAnswer": "`/vOtR/`\n\n*your (formal or plural)*\n\n> C’est votre tour.\n> *It is your turn.*",
+    "modelAnswer": "`/vɔtʁ/`\n\n*your (formal or plural)*\n\n> C’est votre tour.\n> *It is your turn.*",
     "course": "French",
     "subDeck": "Core 2000",
     "topic": "A1",
@@ -520,13 +554,14 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
     "prompt": "avec",
-    "modelAnswer": "`/avEk/`\n\n*with*\n\n> Je viens avec toi.\n> *I’m coming with you.*",
+    "modelAnswer": "`/avɛk/`\n\n*with*\n\n> Je viens avec toi.\n> *I’m coming with you.*",
     "course": "French",
     "subDeck": "Core 2000",
     "topic": "A1",
@@ -535,8 +570,9 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
@@ -550,13 +586,14 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
     "prompt": "comme",
-    "modelAnswer": "`/kOm/`\n\n*like, as; how*\n\n> Doux comme un agneau.\n> *Gentle as a lamb.*",
+    "modelAnswer": "`/kɔm/`\n\n*like, as; how*\n\n> Doux comme un agneau.\n> *Gentle as a lamb.*",
     "course": "French",
     "subDeck": "Core 2000",
     "topic": "A1",
@@ -565,8 +602,9 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
@@ -580,8 +618,9 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
@@ -595,13 +634,14 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
     "prompt": "autre",
-    "modelAnswer": "`/otR/`\n\n*other, another*\n\n> J’en veux un autre.\n> *I want another one.*",
+    "modelAnswer": "`/otʁ/`\n\n*other, another*\n\n> J’en veux un autre.\n> *I want another one.*",
     "course": "French",
     "subDeck": "Core 2000",
     "topic": "A1",
@@ -610,8 +650,9 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
@@ -625,13 +666,14 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
     "prompt": "très",
-    "modelAnswer": "`/tRE/`\n\n*very*\n\n> C’est très bon.\n> *It is very good.*",
+    "modelAnswer": "`/tʁɛ/`\n\n*very*\n\n> C’est très bon.\n> *It is very good.*",
     "course": "French",
     "subDeck": "Core 2000",
     "topic": "A1",
@@ -640,8 +682,9 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
@@ -655,8 +698,9 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
@@ -670,8 +714,9 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
@@ -685,13 +730,14 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
     "prompt": "sur",
-    "modelAnswer": "`/syR/`\n\n*on, on top of, about*\n\n> Il est sur la table.\n> *It is on the table.*",
+    "modelAnswer": "`/syʁ/`\n\n*on, on top of, about*\n\n> Il est sur la table.\n> *It is on the table.*",
     "course": "French",
     "subDeck": "Core 2000",
     "topic": "A1",
@@ -700,8 +746,9 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
@@ -715,8 +762,9 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
@@ -730,8 +778,9 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   },
   {
@@ -745,8 +794,9 @@
     "languageLevel": 1,
     "planProfile": "language",
     "tags": [
+      "cefr:A1",
       "french-core-2000",
-      "l1a"
+      "l1b-alpha"
     ]
   }
 ]

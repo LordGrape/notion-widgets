@@ -7,7 +7,9 @@
     "test": "vitest run",
     "fetch:lexique3": "tsx scripts/fetch-lexique3.ts",
     "fetch:tatoeba": "tsx scripts/fetch-tatoeba.ts",
-    "build:french-sample": "tsx scripts/build-french-core-sample.ts"
+    "build:french-sample": "tsx scripts/build-french-core-sample.ts",
+    "build:french-glosses": "tsx scripts/build-french-core-glosses.ts",
+    "build:french-2000": "npm run build:french-glosses && tsx scripts/build-french-core-2000.ts"
   },
   "devDependencies": {
     "jsdom": "^29.0.2",

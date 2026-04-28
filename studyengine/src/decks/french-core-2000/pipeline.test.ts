@@ -193,7 +193,7 @@ describe('buildCardJson', () => {
     });
     expect(card.prompt).toBe('chien');
     expect(card.modelAnswer).toContain('**masc.**');
-    expect(card.modelAnswer).toContain('/SjE~/');
+    expect(card.modelAnswer).toContain('/ʃjɛ̃/');
     expect(card.modelAnswer).toContain('*dog*');
     expect(card.modelAnswer).toContain('> Le chien dort.');
     expect(card.modelAnswer).toContain('> *The dog is sleeping.*');
@@ -212,7 +212,7 @@ describe('buildCardJson', () => {
     });
     expect(card.modelAnswer).not.toContain('masc');
     expect(card.modelAnswer).not.toContain('fem');
-    expect(card.modelAnswer).toContain('/EtR/');
+    expect(card.modelAnswer).toContain('/ɛtʁ/');
   });
 
   it('emits the locked import-shape fields and omits fsrs', () => {
@@ -224,9 +224,18 @@ describe('buildCardJson', () => {
     expect(card.targetLanguage).toBe('fr-CA');
     expect(card.languageLevel).toBe(1);
     expect(card.planProfile).toBe('language');
-    expect(card.tags).toEqual(['french-core-2000', 'l1a']);
+    expect(card.tags).toEqual(['cefr:A1', 'french-core-2000', 'l1b-alpha']);
     // fsrs intentionally omitted so commitImport seeds it (state: 'new', due ≈ 24h).
     expect((card as Record<string, unknown>).fsrs).toBeUndefined();
+  });
+
+  it('assigns CEFR bands from rank buckets', () => {
+    const a2 = buildCardJson({ lemma: lemma(), gloss: 'dog', rank: 700 });
+    const b1 = buildCardJson({ lemma: lemma(), gloss: 'dog', rank: 1700 });
+    expect(a2.topic).toBe('A2');
+    expect(a2.tags[0]).toBe('cefr:A2');
+    expect(b1.topic).toBe('B1');
+    expect(b1.tags[0]).toBe('cefr:B1');
   });
 
   it('ignores audioUrl in L1a (no audio chrome slot)', () => {

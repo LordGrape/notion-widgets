@@ -81,6 +81,23 @@ function applySettingsFromDom(ctx: SettingsModuleContext): void {
   settings.tutorVoice = tv === 'supportive' ? 'supportive' : 'rigorous';
 }
 
+type CuratedDeckEntry = {
+  id: string;
+  label: string;
+  dataPath: string;
+  courseHint?: string;
+};
+
+const CURATED_DECKS: ReadonlyArray<CuratedDeckEntry> = [
+  {
+    // L1b-alpha: first-class curated deck registry entry.
+    id: 'french-core-2000',
+    label: 'Import French Core 2000',
+    dataPath: './data/french-core-2000.json',
+    courseHint: 'French',
+  },
+];
+
 export function setupSettingsModule(ctx: SettingsModuleContext): {
   openSettings: () => void;
   closeSettings: () => void;
@@ -194,8 +211,47 @@ export function setupSettingsModule(ctx: SettingsModuleContext): {
       };
     }
 
-    // L1a: dev-only French sample importer. Replays a JSON file through the
-    // existing m_import → doImport → commitImport path. Remove / upgrade in L1b.
+    // L1b-alpha: first-class curated import surface in Settings (profile-neutral).
+    const curatedMount = el<HTMLElement>('curatedDecksSection');
+    const curatedStatus = el<HTMLElement>('curatedDecksStatus');
+    if (curatedMount) {
+      curatedMount.innerHTML = CURATED_DECKS.map(
+        (deck) =>
+          `<button type="button" class="ghost-btn curated-deck-btn" data-curated-deck-id="${deck.id}" style="width:100%;min-width:auto;margin-top:8px">${deck.label}</button>`,
+      ).join('');
+
+      curatedMount.querySelectorAll<HTMLButtonElement>('.curated-deck-btn').forEach((btn) => {
+        btn.onclick = async () => {
+          const deck = CURATED_DECKS.find((entry) => entry.id === btn.dataset.curatedDeckId);
+          if (!deck) return;
+          try {
+            const res = await fetch(deck.dataPath, { cache: 'no-store' });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const text = String(await res.text()).trim();
+            if (!text) throw new Error('Deck file is empty');
+            const importBtn = document.getElementById('importBtn') as HTMLButtonElement | null;
+            if (!importBtn) throw new Error('Import path not available');
+            importBtn.click();
+            window.setTimeout(() => {
+              const ta = document.getElementById('m_import') as HTMLTextAreaElement | null;
+              const next = document.getElementById('addNextBtn') as HTMLButtonElement | null;
+              if (!ta || !next) {
+                if (curatedStatus) curatedStatus.textContent = 'Import modal did not open.';
+                return;
+              }
+              ta.value = text;
+              next.click();
+              if (curatedStatus) curatedStatus.textContent = `${deck.label} loaded. Confirm in import preview.`;
+            }, 80);
+          } catch (err) {
+            if (curatedStatus) {
+              curatedStatus.textContent = `Could not load deck (${err instanceof Error ? err.message : String(err)}).`;
+            }
+          }
+        };
+      });
+    }
+
     const l1aSection = el<HTMLElement>('l1aFrenchSampleSection');
     const l1aBtn = el<HTMLButtonElement>('l1aFrenchSampleBtn');
     const l1aFile = el<HTMLInputElement>('l1aFrenchSampleFile');
