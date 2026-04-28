@@ -1,6 +1,6 @@
 import { getCorsHeaders } from "../cors";
 import { callGemini, extractGeminiText, getFinishReason } from "../gemini";
-import { TutorJsonParseError, extractJsonFromModelOutput } from "../json-extract";
+import { parseLlmJson } from "../llm/parse";
 import type { GeminiJsonValue } from "../gemini";
 import type { Env, FieldConfidence, ParseSyllabusRequest, ParseSyllabusResponse, ParsedSyllabus } from "../types";
 
@@ -460,7 +460,7 @@ async function requestParsedSyllabus(
   if (rawText === "") {
     return { parsed: null, finishReason, rawText };
   }
-  const parsed = extractJsonFromModelOutput(rawText);
+  const parsed = parseLlmJson(rawText);
   return { parsed, finishReason, rawText };
 }
 
@@ -497,9 +497,6 @@ export async function handleParseSyllabus(request: Request, env: Env): Promise<R
       }
       parsed = first.parsed;
     } catch (error) {
-      if (!(error instanceof TutorJsonParseError)) {
-        throw error;
-      }
       const retryPrompt = `${userPrompt}\n\nReturn ONLY a JSON object. No prose. No code fences.`;
       try {
         const retry = await requestParsedSyllabus(retryPrompt, env);
@@ -509,11 +506,8 @@ export async function handleParseSyllabus(request: Request, env: Env): Promise<R
           return jsonResponse({ error: "syllabus_parse_failed", finishReason, rawPreview: rawText.slice(0, 500) }, 502);
         }
         parsed = retry.parsed;
-      } catch (retryError) {
-        if (retryError instanceof TutorJsonParseError) {
-          return jsonResponse({ error: "syllabus_parse_failed", finishReason, rawPreview: rawText.slice(0, 500) }, 502);
-        }
-        throw retryError;
+      } catch {
+        return jsonResponse({ error: "syllabus_parse_failed", finishReason, rawPreview: rawText.slice(0, 500) }, 502);
       }
     }
 

@@ -1,6 +1,6 @@
 import { getCorsHeaders } from "../cors";
 import { callGemini, extractGeminiText, getFinishReason } from "../gemini";
-import { TutorJsonParseError, extractJsonFromModelOutput } from "../json-extract";
+import { parseLlmJson } from "../llm/parse";
 import type { GeminiJsonValue } from "../gemini";
 import type { Env, TutorMode, TutorRequest } from "../types";
 import { daysUntilExam } from "../utils/helpers";
@@ -764,11 +764,9 @@ export async function handleTutor(request: Request, env: Env): Promise<Response>
     let parsed: unknown;
 
     try {
-      parsed = extractJsonFromModelOutput(rawText);
-    } catch (firstError) {
-      if (!(firstError instanceof TutorJsonParseError)) {
-        throw firstError;
-      }
+      // B1: tolerant parse on first pass too.
+      parsed = parseLlmJson(rawText);
+    } catch {
       const retryPrompt =
         `${dynamicPrompt}\n\n` +
         "Return ONLY a JSON object. No prose. No code fences. Keep each field value to at most 2 sentences." +
@@ -781,9 +779,10 @@ export async function handleTutor(request: Request, env: Env): Promise<Response>
         return jsonResponse({ error: "tutor_empty_response", finishReason }, 502);
       }
       try {
-        parsed = extractJsonFromModelOutput(rawText);
+        // B1: tolerate fenced/prose-wrapped/mildly malformed JSON in tutor output.
+        parsed = parseLlmJson(rawText);
       } catch (retryError) {
-        if (retryError instanceof TutorJsonParseError) {
+        if (retryError instanceof Error) {
           return jsonResponse({ error: "tutor_parse_failed", rawPreview: rawText.slice(0, 500), finishReason }, 502);
         }
         throw retryError;

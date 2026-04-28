@@ -1,7 +1,7 @@
 import { getCorsHeaders } from "../cors";
 import { extractGeminiText } from "../gemini";
+import { parseLlmJson } from "../llm/parse";
 import type { Env, PrepareRequest } from "../types";
-import { parseJsonResponse } from "../utils/json";
 
 const PREPARE_CORS_HEADERS = {
   ...getCorsHeaders(),
@@ -96,7 +96,8 @@ export async function handlePrepare(request: Request, env: Env): Promise<Respons
 
     const prepData = (await prepRes.json()) as import("../gemini").GeminiResponse;
     const prepRaw = extractGeminiText(prepData);
-    const parsedPrep = parseJsonResponse<Record<string, unknown>>(prepRaw);
+    // B1: tolerate fenced/prose-wrapped/mildly malformed JSON in prepare output.
+    const parsedPrep = parseLlmJson(prepRaw) as Record<string, unknown>;
 
     if (!parsedPrep || typeof parsedPrep !== "object") {
       return jsonResponse({ error: "Failed to parse prepare response" }, 500);
