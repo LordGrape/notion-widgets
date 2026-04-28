@@ -11422,12 +11422,6 @@ input[type="range"]::-moz-range-thumb{
         var check = tierContentRequirements[tierId];
         if (check && check(item)) {
           tiers.push(tierId);
-        } else {
-          console.info('[StudyEngine][B1] Skipping tier for item due to missing tier content', {
-            itemId: item.id || null,
-            tier: tierId,
-            promptPreview: String(item.prompt || '').slice(0, 60)
-          });
         }
       });
       return tiers;
