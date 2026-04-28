@@ -9896,7 +9896,6 @@ input[type="range"]::-moz-range-thumb{
               <div class="cd-course-actions">
                 <button class="big-btn" id="cdStartSession">Study this course</button>
               </div>
-              <button type="button" class="ghost-btn" id="cdPrimeModeBtn" style="margin-top:8px;">🧠 Prime Mode — Pre-study Questions</button>
               <section class="cd-insights" aria-label="Review insights">
                 <div class="cda-section-header">Review insights</div>
                 <div class="cd-tier-stats" id="cdTierStats"></div>
@@ -10658,8 +10657,6 @@ input[type="range"]::-moz-range-thumb{
        - shuffle: Handles shuffle workflow and state updates.
        - reweightProfile: Handles reweight profile workflow and state updates.
        - interleaveQueue: Handles interleave queue workflow and state updates.
-       - startPrimeMode: Handles start prime mode workflow and state updates.
-       - showPrimeOverlay: Handles show prime overlay workflow and state updates.
        - startSession: Handles start session workflow and state updates.
        - clearTimers: Handles clear timers workflow and state updates.
        - autoGrowTextarea: Handles auto grow textarea workflow and state updates.
@@ -14712,85 +14709,6 @@ input[type="range"]::-moz-range-thumb{
 
     /* ── Session construction ── */
     /* ── Intelligent Session Builder ── */
-    var PRIME_WORKER_URL = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/prime';
-
-    /* ═══ SECTION: Start Prime Mode | Functions: startPrimeMode ═══ */
-    function startPrimeMode(courseName) {
-      var course = getCourse(courseName);
-      if (!course) { toast('Course not found'); return; }
-
-      var existingCards = [];
-      for (var id in state.items) {
-        if (!state.items.hasOwnProperty(id)) continue;
-        var it = state.items[id];
-        if (it && it.course === courseName && !it.archived) {
-          existingCards.push({ prompt: it.prompt });
-        }
-      }
-
-      toast('Generating prequestions...');
-
-      fetch(PRIME_WORKER_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          courseName: courseName,
-          topicName: '',
-          syllabusContext: course.syllabusContext || '',
-          existingCards: existingCards.slice(0, 20)
-        })
-      })
-        .then(function(res) { return res.json(); })
-        .then(function(data) {
-          if (!data.prequestions || !data.prequestions.length) {
-            toast('No prequestions generated');
-            return;
-          }
-          showPrimeOverlay(data.prequestions, courseName);
-        })
-        .catch(function(err) {
-          toast('Prime mode failed: ' + (err && err.message ? err.message : String(err)));
-        });
-    }
-
-    /* ═══ SECTION: Show Prime Overlay | Functions: showPrimeOverlay ═══ */
-    function showPrimeOverlay(questions, courseName) {
-      var overlay = document.createElement('div');
-      overlay.className = 'overlay show';
-      overlay.style.zIndex = '60';
-
-      var h = '<div class="modal" style="max-width:560px;">';
-      h += '<div class="modal-head"><span style="font-size:10px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;">🧠 Prime Mode — ' + esc(courseName) + '</span>';
-      h += '<button type="button" class="icon-btn" data-prime-close>✕</button></div>';
-      h += '<div class="modal-body">';
-      h += '<div style="font-size:10px;color:var(--text-secondary);line-height:1.6;margin-bottom:14px;">Try to answer these questions <strong>before</strong> studying the material. Struggling to answer primes your brain to encode the answers more deeply when you read them. (Carpenter & Toftness, 2017)</div>';
-
-      questions.forEach(function(q, i) {
-        var typeCol = q.type === 'factual' ? 'var(--tier-qf)' : q.type === 'conceptual' ? 'var(--tier-ex)' : 'var(--tier-ap)';
-        h += '<div style="padding:14px;border-radius:16px;border:1px solid rgba(var(--accent-rgb),0.14);background:rgba(var(--accent-rgb),0.03);margin-bottom:10px;">';
-        h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">';
-        h += '<span style="font-size:8px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;padding:3px 8px;border-radius:999px;background:rgba(var(--accent-rgb),0.10);color:' + typeCol + ';">' + esc(q.type || 'question') + '</span>';
-        h += '<span style="font-size:8px;color:var(--text-tertiary);">#' + (i + 1) + '</span>';
-        h += '</div>';
-        h += '<div style="font-size:13px;font-weight:600;color:var(--text);line-height:1.5;">' + esc(q.question) + '</div>';
-        h += '<textarea style="margin-top:8px;width:100%;min-height:60px;" placeholder="Your attempt (optional)..."></textarea>';
-        h += '</div>';
-      });
-
-      h += '<div style="text-align:center;margin-top:12px;font-size:9px;color:var(--text-tertiary);letter-spacing:0.5px;">Now go read the material. When you come back to create cards, your encoding will be stronger.</div>';
-      h += '</div>';
-      h += '<div class="modal-actions"><button type="button" class="big-btn" data-prime-done>Done — Ready to Study</button></div>';
-      h += '</div>';
-
-      overlay.innerHTML = h;
-      overlay.querySelector('[data-prime-close]').addEventListener('click', function() { overlay.remove(); });
-      overlay.querySelector('[data-prime-done]').addEventListener('click', function() { overlay.remove(); });
-      overlay.addEventListener('click', function(e) {
-        if (e.target === overlay) overlay.remove();
-      });
-      document.body.appendChild(overlay);
-    }
-
     /* ── Tier rendering ── */
     var tierArea = el('tierArea');
     var modelAnswerEl = el('modelAnswer');
@@ -28483,11 +28401,6 @@ input[type="range"]::-moz-range-thumb{
         } else {
           promoHost.innerHTML = '';
         }
-      }
-
-      var primeBtn = el('cdPrimeModeBtn');
-      if (primeBtn) {
-        primeBtn.onclick = function() { startPrimeMode(courseName); };
       }
 
       var tnHost = el('cdTutorNotesHost');
