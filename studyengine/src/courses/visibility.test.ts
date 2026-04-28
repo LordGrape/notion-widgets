@@ -62,6 +62,14 @@ describe('visibleCourseDetailsFields (Phase A1)', () => {
     expect(fields.has('examFormat')).toBe(false);
     expect(fields.has('examWeight')).toBe(false);
   });
+
+  it('does not treat the default mixed assessment context as exam prep by itself', () => {
+    const fields = visibleCourseDetailsFields({ planProfile: 'theory', examType: 'mixed' });
+    expect(fields.has('examType')).toBe(false);
+    expect(fields.has('examDate')).toBe(false);
+    expect(fields.has('examFormat')).toBe(false);
+    expect(fields.has('examWeight')).toBe(false);
+  });
 });
 
 describe('resolveCourseGoal (Phase A1)', () => {
@@ -71,6 +79,10 @@ describe('resolveCourseGoal (Phase A1)', () => {
 
   it('returns daily_practice without courseGoal or exam fields', () => {
     expect(resolveCourseGoal({ planProfile: 'theory' })).toBe('daily_practice');
+  });
+
+  it('returns daily_practice for the default mixed assessment context alone', () => {
+    expect(resolveCourseGoal({ planProfile: 'theory', examType: 'mixed' })).toBe('daily_practice');
   });
 
   it('lets explicit courseGoal win over legacy exam fields', () => {

@@ -21420,8 +21420,10 @@ input[type="range"]::-moz-range-thumb{
 
       courses.forEach(function(c) {
         var ck = courseKey(c.name);
-        var examLabel = EXAM_TYPE_LABELS[c.examType] || c.examType;
-        var objLabel = c.examDate ? (getCramState(c.name).active ? '🔥 Cram' : '📅 Exam set') : '🧠 Long-term';
+        var resolvedGoal = resolveCourseGoalForDisplay(c);
+        var profileBadge = profileLabel(c.planProfile || 'theory');
+        var objLabel = courseGoalLabel(resolvedGoal);
+        if (resolvedGoal === 'exam_prep' && c.examDate) objLabel = getCramState(c.name).active ? 'Cram active' : 'Exam scheduled';
         var examDate = c.examDate ? '<span class="cc-date">Exam: ' + c.examDate + '</span>' : '';
         var itemCount = 0;
         var archivedCount = 0;
@@ -21436,7 +21438,7 @@ input[type="range"]::-moz-range-thumb{
           '<div style="flex:1;min-width:0;">' +
             '<div class="cli-name">' + esc(c.name) + '</div>' +
             '<div style="display:flex;gap:6px;margin-top:4px;align-items:center;flex-wrap:wrap;">' +
-              '<span class="cc-exam-type">' + esc(examLabel) + '</span>' +
+              '<span class="cc-exam-type">' + esc(profileBadge) + '</span>' +
               '<span class="cc-exam-type">' + esc(objLabel) + '</span>' +
               '<span class="cc-exam-type">' + itemCount + ' card' + (itemCount !== 1 ? 's' : '') + (archivedCount > 0 ? ' · ' + archivedCount + ' archived' : '') + '</span>' +
               examDate +
@@ -21474,7 +21476,7 @@ input[type="range"]::-moz-range-thumb{
       h += '</div></div>' +
         '<div class="course-form-row">' +
           '<div class="field">' +
-            '<label>Exam format</label>' +
+            '<label>Assessment context</label>' +
             '<select id="nc_examType" class="input">' +
               '<option value="mc">Multiple Choice</option>' +
               '<option value="short_answer">Short Answer</option>' +
@@ -21502,6 +21504,7 @@ input[type="range"]::-moz-range-thumb{
             '<div id="nc_examDateDesc" class="help" style="line-height:1.5;"><span class="info-icon" tabindex="0">ⓘ</span> When set, the engine activates cram mode as the date approaches — reviews intensify, session sizes increase, and your weakest cards are prioritised automatically. When left empty, FSRS schedules reviews for long-term retention at your configured desired retention rate.</div>' +
           '</div>' +
         '</div>' +
+        '<div class="help" style="margin-top:4px;line-height:1.5;">New courses start as daily practice. Add exam details later in Course Details only when you are preparing for a specific assessment.</div>' +
         '<button class="big-btn" id="courseAddBtn" type="button" style="margin-top:12px;width:100%;">Add Course</button>' +
       '</div>';
 
@@ -21618,6 +21621,7 @@ input[type="range"]::-moz-range-thumb{
             name: name,
             examType: examType,
             examDate: examDate,
+            courseGoal: examDate ? 'exam_prep' : 'daily_practice',
             subjectType: normalizeSubjectTypeValue((el('nc_subjectType') && el('nc_subjectType').value) || 'mixed'),
             color: selectedColor,
             manualMode: false,
@@ -21958,7 +21962,8 @@ input[type="range"]::-moz-range-thumb{
       ];
       var cards = getCardsForCourse(courseName);
       var cram = getCramState(courseName);
-      var subtitle = (EXAM_TYPE_LABELS[c.examType] || c.examType) + (cram.active ? ' 🔥 Cram' : '') + ' · ' + cards.length + ' cards' + (c.examDate ? ' · Exam: ' + c.examDate : '');
+      var editorGoal = resolveCourseGoalForDisplay(c);
+      var subtitle = profileLabel(c.planProfile || 'theory') + ' · ' + courseGoalLabel(editorGoal) + ' · ' + cards.length + ' cards' + (editorGoal === 'exam_prep' && c.examDate ? ' · Exam: ' + c.examDate : '') + (cram.active ? ' · Cram active' : '');
       function renderEditorInfoIcon(fieldName, text) {
         return '<button type="button" class="info-icon tooltip-help-btn" aria-label="Help: ' + esc(fieldName) + '">' +
           'ⓘ<span class="info-tooltip">' + esc(text) + '<span class="tip-arrow"></span></span></button>';
@@ -23425,18 +23430,22 @@ input[type="range"]::-moz-range-thumb{
       var host = el('cdSettingsTabContent');
       if (!host) return;
       var course = getCourse(courseName) || {};
+      var courseGoal = resolveCourseGoalForDisplay(course);
       var examDate = course.examDate ? esc(course.examDate) : 'Not set';
       var examType = esc(EXAM_TYPE_LABELS[course.examType] || course.examType || 'Mixed');
       var subjectTypeLabels = (typeof SUBJECT_TYPE_LABELS !== 'undefined' && SUBJECT_TYPE_LABELS) ? SUBJECT_TYPE_LABELS : null;
       var subjectType = esc((subjectTypeLabels && subjectTypeLabels[course.subjectType]) || course.subjectType || 'Mixed');
+      var learningProfile = esc(profileLabel(course.planProfile || 'theory'));
       var retentionTarget = Number(course.retentionTarget || settings.retentionTarget || 0.9);
       var retentionPct = Math.round(clamp(retentionTarget, 0.5, 0.99) * 100);
       host.innerHTML =
         '<div class="course-settings-panel">'
           + '<div class="course-settings-summary">'
             + '<div style="font-size:9px;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:var(--text-tertiary);margin-bottom:8px;">Course Settings</div>'
-            + '<div><strong>Exam date:</strong> ' + examDate + '</div>'
-            + '<div><strong>Exam format:</strong> ' + examType + '</div>'
+            + '<div><strong>Learning profile:</strong> ' + learningProfile + '</div>'
+            + '<div><strong>Course goal:</strong> ' + esc(courseGoalLabel(courseGoal)) + '</div>'
+            + (courseGoal === 'exam_prep' ? '<div><strong>Exam date:</strong> ' + examDate + '</div>' : '')
+            + (courseGoal === 'exam_prep' ? '<div><strong>Assessment context:</strong> ' + examType + '</div>' : '')
             + '<div><strong>Subject type:</strong> ' + subjectType + '</div>'
             + '<div><strong>Retention target:</strong> ' + retentionPct + '%</div>'
           + '</div>'
@@ -23480,22 +23489,26 @@ input[type="range"]::-moz-range-thumb{
       var cards = getCardsForCourse(courseName);
       var color = courseData.color || '#8b5cf6';
       var cram = (typeof getCramState === 'function') ? getCramState(courseName) : { active: false };
+      var courseGoal = resolveCourseGoalForDisplay(courseData);
       var modules = courseData.modules || [];
       var daysLeft = (typeof getCramState === 'function') ? getCramState(courseName).daysUntil : null;
       var examLine = courseData.examDate
         ? ((daysLeft != null ? daysLeft + ' day' + (daysLeft === 1 ? '' : 's') + ' until exam' : 'Exam scheduled') + ' · ' + courseData.examDate)
         : 'No exam date set · Long-term retention mode';
       var examTypeLabel = EXAM_TYPE_LABELS[courseData.examType] || courseData.examType || 'Recall';
+      var goalBadge = courseGoalLabel(courseGoal);
 
       var h = '';
       h += '<div class="ctx-header">';
       h += '<div class="ctx-color-dot" style="background:' + color + ';"></div>';
       h += '<div>';
       h += '<div class="ctx-title">' + esc(courseName) + '</div>';
-      h += '<div class="ctx-subtitle">' + esc(stats.total + ' cards' + (stats.due > 0 ? ' · ' + stats.due + ' due' : '') + (courseData.examDate ? ' · Exam: ' + courseData.examDate : '')) + '</div>';
+      h += '<div class="ctx-subtitle">' + esc(stats.total + ' cards' + (stats.due > 0 ? ' · ' + stats.due + ' due' : '') + (courseGoal === 'exam_prep' && courseData.examDate ? ' · Exam: ' + courseData.examDate : '')) + '</div>';
       h += '</div>';
       if (cram && cram.active) h += '<span class="tree-cram-badge">🔥 CRAM MODE ACTIVE</span>';
-      h += '<span class="cd-badge">' + esc(examTypeLabel) + '</span>';
+      h += '<span class="cd-badge">' + esc(profileLabel(courseData.planProfile || 'theory')) + '</span>';
+      h += '<span class="cd-badge">' + esc(goalBadge) + '</span>';
+      if (courseGoal === 'exam_prep') h += '<span class="cd-badge">' + esc(examTypeLabel) + '</span>';
       h += '<div class="ctx-header-actions"><button class="icon-btn ctx-kebab" id="ctxCourseActions" type="button" title="Course actions" aria-label="Course actions">⋮</button></div>';
       h += '</div>';
 
@@ -26681,6 +26694,20 @@ input[type="range"]::-moz-range-thumb{
       return String(profile || 'Unknown');
     }
 
+    function resolveCourseGoalForDisplay(course) {
+      // A1: resolve legacy course goal for display without mutating state.
+      var goalBridge = (globalThis.__studyEngineCourseVisibility && globalThis.__studyEngineCourseVisibility.resolveCourseGoal) || null;
+      if (goalBridge) return goalBridge(course || {});
+      return (course && course.courseGoal) || 'daily_practice';
+    }
+
+    function courseGoalLabel(goal) {
+      if (goal === 'exam_prep') return 'Exam prep';
+      if (goal === 'professional_skill') return 'Professional skill';
+      if (goal === 'project') return 'Project';
+      return 'Daily practice';
+    }
+
     function toPct(n) {
       var v = Number(n);
       if (!isFinite(v)) return 0;
@@ -28162,10 +28189,12 @@ input[type="range"]::-moz-range-thumb{
       }
 
       /* Badges */
-      var examStatus = c.examDate ? (getCramState(c.name).active ? '🔥 Cram Mode Active' : '📅 Exam Date Set') : '🧠 Long-Term Retention';
-      var examBadgeClass = c.examDate ? (getCramState(c.name).active ? 'objective-exam' : 'objective-exam') : 'objective-retention';
+      var detailGoal = resolveCourseGoalForDisplay(c);
+      var examStatus = detailGoal === 'exam_prep' && c.examDate ? (getCramState(c.name).active ? 'Cram mode active' : 'Exam date set') : courseGoalLabel(detailGoal);
+      var examBadgeClass = detailGoal === 'exam_prep' && c.examDate ? (getCramState(c.name).active ? 'objective-exam' : 'objective-exam') : 'objective-retention';
       var badges = '<span class="cd-badge ' + examBadgeClass + '">' + examStatus + '</span>';
-      badges += '<span class="cd-badge">' + esc(EXAM_TYPE_LABELS[c.examType] || c.examType) + '</span>';
+      badges += '<span class="cd-badge">' + esc(profileLabel(c.planProfile || 'theory')) + '</span>';
+      if (detailGoal === 'exam_prep') badges += '<span class="cd-badge">' + esc(EXAM_TYPE_LABELS[c.examType] || c.examType) + '</span>';
       if (c.manualMode) badges += '<span class="cd-badge" style="border-color:rgba(245,158,11,0.3);color:#f59e0b;">Manual</span>';
       el('cdBadges').innerHTML = badges;
 

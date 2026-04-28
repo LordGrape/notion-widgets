@@ -61,8 +61,9 @@ function isCourseGoal(value: unknown): value is CourseGoal {
 }
 
 function hasLegacyExamField(course: Partial<CourseDetailsVisibilityCourse>): boolean {
+  const hasExplicitAssessmentContext = Boolean(course.examType && course.examType !== 'mixed');
   return Boolean(
-    course.examType
+    hasExplicitAssessmentContext
       || course.examDate
       || course.examFormat
       || course.examWeight != null,
