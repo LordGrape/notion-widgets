@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createSubDeck, fillMissingSubDeckLanguageMeta, loadSubDecks, migrateSubDecks } from './sub-decks';
 import type { AppState } from './types';
 
@@ -84,6 +84,18 @@ describe('migrateSubDecks', () => {
 });
 
 describe('createSubDeck', () => {
+  beforeEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('defaults targetLanguage to undefined when not provided', () => {
+    const state = baseState();
+    loadSubDecks(state);
+    const created = createSubDeck('BIO 101', 'Core');
+    // B4-1: sub-deck metadata should not serialize a hardcoded language default.
+    expect(created.targetLanguage).toBeUndefined();
+  });
+
   it('stores forwarded language metadata when provided', () => {
     const state = baseState();
     loadSubDecks(state);
@@ -117,5 +129,61 @@ describe('createSubDeck', () => {
     expect(merged.planProfile).toBe('language');
     expect(merged.targetLanguage).toBe('fr-CA');
     expect(merged.languageLevel).toBe(1);
+  });
+
+  it('overwrites legacy en-US with imported target language', () => {
+    const base = {
+      name: 'Core',
+      order: 0,
+      created: 1,
+      targetLanguage: 'en-US'
+    } as any;
+    const merged = fillMissingSubDeckLanguageMeta(base, {
+      planProfile: 'language',
+      targetLanguage: 'fr-CA',
+      languageLevel: 1
+    });
+
+    // B4-1: treat en-US as legacy default that can be replaced by explicit import value.
+    expect(merged.targetLanguage).toBe('fr-CA');
+  });
+
+  it('keeps explicit non-default target language on conflict', () => {
+    const base = {
+      name: 'Core',
+      order: 0,
+      created: 1,
+      targetLanguage: 'fr-FR'
+    } as any;
+    const merged = fillMissingSubDeckLanguageMeta(base, {
+      planProfile: 'language',
+      targetLanguage: 'fr-CA',
+      languageLevel: 1
+    });
+
+    // B4-1: preserve real conflicts.
+    expect(merged.targetLanguage).toBe('fr-FR');
+  });
+
+  it('migration sweep skips non-language courses', () => {
+    const storage = {
+      getItem: vi.fn(() => null),
+      setItem: vi.fn()
+    };
+    vi.stubGlobal('localStorage', storage as any);
+    const state = baseState();
+    state.courses = {
+      Theory101: { id: 'Theory101', name: 'Theory101', planProfile: 'theory', targetLanguage: 'fr-CA' } as any
+    };
+    state.subDecks = {
+      Theory101: {
+        core: { name: 'Core', order: 0, created: 1, targetLanguage: 'en-US' }
+      }
+    } as any;
+
+    migrateSubDecks(state);
+
+    // B4-1: sweep is intentionally constrained to language profile courses only.
+    expect(state.subDecks?.Theory101?.core?.targetLanguage).toBe('en-US');
   });
 });

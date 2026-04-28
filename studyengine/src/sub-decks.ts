@@ -96,7 +96,13 @@ export function fillMissingSubDeckLanguageMeta(
 ): SubDeckMeta {
   if (!incoming) return current;
   if (!current.planProfile && incoming.planProfile) current.planProfile = incoming.planProfile;
-  if (!current.targetLanguage && incoming.targetLanguage) current.targetLanguage = String(incoming.targetLanguage).trim();
+  // B4-1: preserve no-overwrite semantics except when existing value is the legacy default.
+  const incomingTargetLanguage = incoming.targetLanguage ? String(incoming.targetLanguage).trim() : '';
+  const currentTargetLanguage = current.targetLanguage ? String(current.targetLanguage).trim() : '';
+  if (incomingTargetLanguage) {
+    if (!currentTargetLanguage) current.targetLanguage = incomingTargetLanguage;
+    else if (currentTargetLanguage === 'en-US' && incomingTargetLanguage !== currentTargetLanguage) current.targetLanguage = incomingTargetLanguage;
+  }
   if (!current.languageLevel && incoming.languageLevel) current.languageLevel = incoming.languageLevel;
   return current;
 }
@@ -150,6 +156,7 @@ export function createSubDeck(
     created: Date.now(),
     // B3: allow import path to forward language/session defaults into sub-deck meta.
     ...(metaOverrides?.planProfile ? { planProfile: metaOverrides.planProfile } : {}),
+    // B4-1: omit targetLanguage when none is explicitly provided.
     ...(metaOverrides?.targetLanguage ? { targetLanguage: String(metaOverrides.targetLanguage).trim() } : {}),
     ...(metaOverrides?.languageLevel ? { languageLevel: metaOverrides.languageLevel } : {}),
   };
@@ -549,5 +556,29 @@ export function migrateSubDecks(state: AppState): void {
 
     const trimmed = item.subDeck.trim();
     item.subDeck = trimmed || null;
+  }
+
+  // B4-1: one-shot sweep for legacy language sub-decks pinned to workspace default.
+  try {
+    const storage = globalThis.localStorage;
+    const sweepKey = 'studyEngineSubDeckLangSwept_v1';
+    if (storage && storage.getItem(sweepKey) !== 'true') {
+      for (const courseName of Object.keys(state.subDecks || {})) {
+        const course = state.courses?.[courseName] as (AppState['courses'][string] & { targetLanguage?: string; planProfile?: string }) | undefined;
+        if (!course || course.planProfile !== 'language') continue;
+        const courseTarget = typeof course.targetLanguage === 'string' ? course.targetLanguage.trim() : '';
+        if (!courseTarget || courseTarget === 'en-US') continue;
+        const courseMap = state.subDecks?.[courseName] || {};
+        for (const subDeckKey of Object.keys(courseMap)) {
+          const meta = courseMap[subDeckKey];
+          if (!meta) continue;
+          if (String(meta.targetLanguage || '').trim() !== 'en-US') continue;
+          meta.targetLanguage = courseTarget;
+        }
+      }
+      storage.setItem(sweepKey, 'true');
+    }
+  } catch {
+    // no-op: localStorage may be unavailable in test/runtime edge cases.
   }
 }

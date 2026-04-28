@@ -421,6 +421,9 @@ export function buildSessionQueue(): StudyItem[] {
   const isManual = false;
 
   const tierBuckets: Record<TierId, StudyItem[]> = { quickfire: [], explain: [], apply: [], distinguish: [], mock: [], worked: [] };
+  // B4-4: session-build-scoped accumulator for filtered (item, tier) pairs.
+  let filteredPairs = 0;
+  const filteredItemIds = new Set<string>();
   dueItems.forEach((it) => {
     if (isManual && it.tier && tierBuckets[it.tier]) {
       tierBuckets[it.tier].push(it);
@@ -431,12 +434,9 @@ export function buildSessionQueue(): StudyItem[] {
       if (!tierBuckets[t]) return;
       const hasTierContent = tierContentRequirements[t] ? tierContentRequirements[t](it) : false;
       if (!hasTierContent) {
-        // B1: enforce profile-neutral tier content gating during queue construction.
-        console.info('[StudyEngine][B1] Skipping tier for item due to missing tier content', {
-          itemId: it.id,
-          tier: t,
-          promptPreview: String(it.prompt || '').slice(0, 60)
-        });
+        // B4-4: aggregate skipped pairs instead of per-pair log spam.
+        filteredPairs += 1;
+        if (it.id) filteredItemIds.add(String(it.id));
         return;
       }
       tierBuckets[t].push(it);
@@ -445,12 +445,11 @@ export function buildSessionQueue(): StudyItem[] {
 
   const tierOrder: TierId[] = ['quickfire', 'explain', 'apply', 'distinguish', 'mock', 'worked'];
   tierOrder.forEach((t) => shuffle(tierBuckets[t]));
-  tierOrder.forEach((t) => {
-    if ((tierBuckets[t] || []).length === 0) {
-      // B1: smoke-verification log when a tier has no renderable cards.
-      console.info('[StudyEngine][B1] No items ready in this tier', { tier: t });
-    }
-  });
+  if (filteredPairs > 0) {
+    console.warn(
+      `[StudyEngine][B1] Filtered ${filteredPairs} (item, tier) pairs from ${filteredItemIds.size} items across ${tierOrder.length} tiers — content fields missing.`
+    );
+  }
 
   let limit = parseInt(settings.sessionLimit || 12, 10);
   if (!limit || limit < 1) limit = 12;

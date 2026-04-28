@@ -120,6 +120,7 @@ interface CourseLike {
 
 const LEARN_PLAN_ENDPOINT = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/learn-plan';
 export const COURSE_ROOT_SUBDECK_KEY = '__course_root__';
+const LEARN_PLAN_STREAM_TIMEOUT_MS = 15_000;
 // LEARN_TURN_ENDPOINT moved to `./learn-turn-client.ts` along with `runLearnTurn`.
 
 function normalize(value: string): string {
@@ -509,6 +510,18 @@ export async function streamLearnPlan(
   const decoder = new TextDecoder();
   let buffer = '';
   let sawFatalError = false;
+  // B4-2: timeout stalled streams so UI can continue with partial/default plan.
+  let streamTimedOut = false;
+  let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+  const resetStreamTimeout = () => {
+    if (timeoutHandle) clearTimeout(timeoutHandle);
+    timeoutHandle = setTimeout(async () => {
+      streamTimedOut = true;
+      try { await reader.cancel(); } catch { /* noop */ }
+      handlers.onError?.('Plan generation timed out — using default order', { hasSegments: emittedCount > 0 });
+    }, LEARN_PLAN_STREAM_TIMEOUT_MS);
+  };
+  resetStreamTimeout();
 
   const handleSSEEvent = (rawEvent: string): void => {
     let eventName = 'message';
@@ -551,6 +564,7 @@ export async function streamLearnPlan(
     for (;;) {
       const { value, done } = await reader.read();
       if (done) break;
+      resetStreamTimeout();
       buffer += decoder.decode(value, { stream: true });
       // Partial-chunk buffering: split on blank-line separators, keep remainder.
       let sep: number;
@@ -573,13 +587,15 @@ export async function streamLearnPlan(
     if (tail) {
       try { handleSSEEvent(tail); } catch { /* noop */ }
     }
-    if (!sawFatalError && emittedCount === 0) {
+    if (!streamTimedOut && !sawFatalError && emittedCount === 0) {
       handlers.onError?.('Learn plan stream ended without any segments.', { hasSegments: false });
     }
   } catch (err) {
+    if (streamTimedOut) return;
     if ((err as { name?: string }).name === 'AbortError') return;
     handlers.onError?.(`Learn plan stream failed: ${(err as Error).message || String(err)}`, { hasSegments: emittedCount > 0 });
   } finally {
+    if (timeoutHandle) clearTimeout(timeoutHandle);
     try { reader.releaseLock(); } catch { /* noop */ }
   }
 }
@@ -692,6 +708,18 @@ async function streamLearnPlanInternal(
   const decoder = new TextDecoder();
   let buffer = '';
   let sawFatalError = false;
+  // B4-2: timeout stalled streams so UI can continue with partial/default plan.
+  let streamTimedOut = false;
+  let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+  const resetStreamTimeout = () => {
+    if (timeoutHandle) clearTimeout(timeoutHandle);
+    timeoutHandle = setTimeout(async () => {
+      streamTimedOut = true;
+      try { await reader.cancel(); } catch { /* noop */ }
+      handlers.onError?.('Plan generation timed out — using default order', { hasSegments: emittedCount > 0 });
+    }, LEARN_PLAN_STREAM_TIMEOUT_MS);
+  };
+  resetStreamTimeout();
   const handleSSEEvent = (rawEvent: string): void => {
     let eventName = 'message';
     const dataLines: string[] = [];
@@ -722,6 +750,7 @@ async function streamLearnPlanInternal(
     for (;;) {
       const { value, done } = await reader.read();
       if (done) break;
+      resetStreamTimeout();
       buffer += decoder.decode(value, { stream: true });
       let sep: number;
       while ((sep = buffer.indexOf('\n\n')) >= 0) {
@@ -740,13 +769,15 @@ async function streamLearnPlanInternal(
     if (tail) {
       try { handleSSEEvent(tail); } catch { /* noop */ }
     }
-    if (!sawFatalError && emittedCount === 0) {
+    if (!streamTimedOut && !sawFatalError && emittedCount === 0) {
       handlers.onError?.('Learn plan stream ended without any segments.', { hasSegments: false });
     }
   } catch (err) {
+    if (streamTimedOut) return;
     if ((err as { name?: string }).name === 'AbortError') return;
     handlers.onError?.(`Learn plan stream failed: ${(err as Error).message || String(err)}`, { hasSegments: emittedCount > 0 });
   } finally {
+    if (timeoutHandle) clearTimeout(timeoutHandle);
     try { reader.releaseLock(); } catch { /* noop */ }
   }
 }

@@ -268,4 +268,55 @@ describe('plan profile request wiring', () => {
     expect(reqBody.learnerModelHint).toBeUndefined();
     expect(reqBody.learnerModelFingerprint).toBeUndefined();
   });
+
+  it('times out stalled streaming generation and reports fallback', async () => {
+    vi.useFakeTimers();
+    let canceled = false;
+    let resolveRead: ((v: { done: boolean; value?: Uint8Array }) => void) | null = null;
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      headers: { get: () => 'text/event-stream' },
+      body: {
+        getReader: () => ({
+          read: () => new Promise((resolve) => { resolveRead = resolve; }),
+          cancel: async () => {
+            canceled = true;
+            if (resolveRead) resolveRead({ done: true });
+          },
+          releaseLock: () => undefined
+        })
+      }
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const errors: Array<{ message: string; hasSegments: boolean }> = [];
+    const baseItem: any = {
+      id: 'c1',
+      prompt: 'P',
+      modelAnswer: 'alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu',
+      course: 'History',
+      subDeck: 'sd-1',
+      created: new Date().toISOString(),
+      fsrs: { difficulty: 0, stability: 0, due: new Date().toISOString(), reps: 0, lapses: 0, lastReview: null, state: 'new' }
+    };
+    const stateDefault: any = {
+      courses: { History: { name: 'History' } },
+      subDecks: { History: { 'sd-1': { name: 'SD', order: 0, created: Date.now() } } },
+      studyEngineFeatures: { run3Profiles: true }
+    };
+
+    const promise = streamLearnPlan('History', 'sd-1', [baseItem], stateDefault, '', '', {
+      onError: (message, opts) => errors.push({ message, hasSegments: !!opts?.hasSegments })
+    }, undefined);
+    await vi.advanceTimersByTimeAsync(15_100);
+    await promise;
+
+    // B4-2: stalled streams should timeout and unblock the UI path.
+    expect(canceled).toBe(true);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toContain('timed out');
+    expect(errors[0].hasSegments).toBe(false);
+    vi.useRealTimers();
+  });
 });
