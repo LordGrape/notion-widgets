@@ -604,12 +604,25 @@
             <textarea id="showDataText" readonly style="width:100%;min-height:140px;max-height:240px;padding:10px;border-radius:10px;border:1px solid var(--card-border);background:rgba(var(--accent-rgb),0.03);color:var(--text);font-size:9px;font-family:JetBrains Mono,ui-monospace,monospace;resize:vertical;box-sizing:border-box;line-height:1.4" aria-label="Exported backup JSON for manual copy"></textarea>
             <div style="font-size:9px;color:var(--text-tertiary);margin-top:4px">Click the box → Ctrl+A → Ctrl+C to copy all</div>
           </div>
+          <!-- L1b-alpha: first-class curated deck import surface -->
           <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--card-border)">
             <div style="font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px">📥 Restore full backup</div>
             <div style="font-size:9px;color:var(--text-tertiary);margin-bottom:8px;line-height:1.4">Paste a full data export below to restore items, courses, stats, and settings. Existing data is merged (not overwritten).</div>
             <textarea id="pasteDataText" placeholder="Paste exported data here..." style="width:100%;min-height:100px;max-height:180px;padding:10px;border-radius:10px;border:1px solid var(--card-border);background:rgba(var(--accent-rgb),0.03);color:var(--text);font-size:9px;font-family:JetBrains Mono,ui-monospace,monospace;resize:vertical;box-sizing:border-box" aria-label="Paste backup JSON"></textarea>
             <button type="button" id="restoreDataBtn" class="ghost-btn" style="width:100%;min-width:auto;margin-top:8px">📥 Restore from pasted data</button>
             <div id="restoreStatus" style="font-size:9px;color:var(--text-tertiary);margin-top:6px;line-height:1.35" aria-live="polite"></div>
+          </div>
+          <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--card-border)">
+            <div style="font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px">📚 Import deck</div>
+            <div style="font-size:9px;color:var(--text-tertiary);margin-bottom:8px;line-height:1.4">Load curated decks into the standard import preview flow.</div>
+            <div id="curatedDecksSection"></div>
+            <div id="curatedDecksStatus" style="font-size:9px;color:var(--text-tertiary);margin-top:6px;line-height:1.35" aria-live="polite"></div>
+          </div>
+          <div id="l1aFrenchSampleSection" style="display:none;margin-top:20px;padding-top:16px;border-top:1px dashed rgba(var(--accent-rgb),0.25)">
+            <div style="font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px">🧪 Dev import (legacy)</div>
+            <input type="file" id="l1aFrenchSampleFile" accept="application/json,.json" style="display:none">
+            <button type="button" id="l1aFrenchSampleBtn" class="ghost-btn" style="width:100%;min-width:auto">📥 Import JSON from file…</button>
+            <div id="l1aFrenchSampleStatus" style="font-size:9px;color:var(--text-tertiary);margin-top:6px;line-height:1.35" aria-live="polite"></div>
           </div>
           <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--card-border)">
             <div style="font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px">📊 Dual coding visuals</div>

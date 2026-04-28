@@ -3,6 +3,7 @@ import { getCorsHeaders, withCorsHeaders } from "./cors";
 import { handleDistill } from "./routes/distill";
 import { handleFetchLecture } from "./routes/fetchLecture";
 import { handleGrade } from "./routes/grade";
+import { handleGloss } from "./routes/gloss";
 import { handleIngestExtract } from "./routes/ingest-extract";
 import { handleLectureContext } from "./routes/lectureContext";
 import { handleLearnPlan } from "./routes/learn-plan";
@@ -118,6 +119,11 @@ export default {
       if (url.pathname === "/studyengine/grade") {
         if (request.method !== "POST") return methodNotAllowed();
         return withCorsHeaders(await handleGrade(request, env));
+      }
+
+      if (url.pathname === "/studyengine/gloss") {
+        if (request.method !== "POST") return methodNotAllowed();
+        return withCorsHeaders(await handleGloss(request, env));
       }
 
       if (url.pathname === "/studyengine/visual") {

@@ -90,6 +90,9 @@ export interface CardJson {
   tags: string[];
 }
 
+// L1b-alpha: CEFR banding for French Core 2000 by frequency-rank bucket.
+export type CefrBand = 'A1' | 'A2' | 'B1';
+
 export interface BuildCardInput {
   lemma: Lexique3Entry;
   /** English gloss (hand-written for L1a, LLM-generated for L1b). */
@@ -101,4 +104,6 @@ export interface BuildCardInput {
    * L1b: Forvo URL or Google Cloud TTS fallback.
    */
   audioUrl?: string | null;
+  // L1b-alpha: 1-indexed rank within top-2000 used for CEFR tagging.
+  rank?: number;
 }

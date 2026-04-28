@@ -12,10 +12,12 @@
 import type {
   BuildCardInput,
   CardJson,
+  CefrBand,
   Lexique3Entry,
   ParseTatoebaInput,
   TatoebaPair,
 } from './types';
+import { sampaToIpa } from './sampa-to-ipa';
 
 /* ────────────────────────────────────────────────────────────────────────── */
 /* Lexique 3 parsing                                                          */
@@ -309,7 +311,10 @@ function escapeMarkdownLine(text: string): string {
 export function buildCardJson(input: BuildCardInput): CardJson {
   const { lemma, gloss, pair } = input;
   const gender = genderLabel(lemma.genre, lemma.cgram);
-  const ipa = lemma.phon ? `\`/${lemma.phon}/\`` : '';
+  // L1b-alpha: convert Lexique SAMPA transcription into IPA for card output.
+  const ipa = lemma.phon ? `\`/${sampaToIpa(lemma.phon)}/\`` : '';
+  const rank = Math.max(1, Math.floor(input.rank ?? 1));
+  const cefrBand: CefrBand = rank <= 500 ? 'A1' : rank <= 1500 ? 'A2' : 'B1';
 
   const headerParts = [gender, ipa].filter(Boolean);
   const header = headerParts.join(' · ');
@@ -331,11 +336,11 @@ export function buildCardJson(input: BuildCardInput): CardJson {
     modelAnswer: blocks.join('\n\n'),
     course: 'French',
     subDeck: 'Core 2000',
-    topic: 'A1',
+    topic: cefrBand,
     tier: 'quickfire',
     targetLanguage: 'fr-CA',
     languageLevel: 1,
     planProfile: 'language',
-    tags: ['french-core-2000', 'l1a'],
+    tags: [`cefr:${cefrBand}`, 'french-core-2000', 'l1b-alpha'],
   };
 }
