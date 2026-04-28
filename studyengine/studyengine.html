@@ -8571,23 +8571,104 @@ input[type="range"]::-moz-range-thumb{
     }
     .course-settings-panel{
       display:grid;
-      gap: 12px;
+      gap: 16px;
     }
-    .course-settings-summary{
-      border: 1px solid var(--border-subtle);
-      border-radius: 14px;
-      padding: 12px;
-      background: var(--surface-1);
-      color: var(--text-primary);
-      font-size: 11px;
-      line-height: 1.5;
-    }
-    .course-settings-actions{
+    .course-settings-overview{
       display:grid;
-      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 8px;
     }
+    .course-settings-metric{
+      min-width:0;
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 10px 11px;
+      background: var(--surface-1);
+    }
+    .course-settings-metric-label{
+      color: var(--text-tertiary);
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      line-height: 1.25;
+    }
+    .course-settings-metric-value{
+      color: var(--text-primary);
+      margin-top: 5px;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+      overflow-wrap:anywhere;
+    }
+    .course-settings-section{
+      display:grid;
+      gap: 8px;
+    }
+    .course-settings-section-title{
+      color: var(--text-tertiary);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 1.1px;
+      text-transform: uppercase;
+    }
+    .course-settings-action-grid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .course-settings-option{
+      appearance:none;
+      width:100%;
+      min-height:64px;
+      border:1px solid var(--border-subtle);
+      border-radius:8px;
+      background: var(--surface-1);
+      color: var(--text-primary);
+      cursor:pointer;
+      text-align:left;
+      padding:11px 12px;
+      display:grid;
+      grid-template-columns: 1fr auto;
+      align-items:center;
+      gap:10px;
+      transition:border-color .16s ease, background .16s ease, transform .16s ease;
+    }
+    .course-settings-option:hover{
+      border-color: var(--accent-primary);
+      background: var(--surface-2);
+      transform: translateY(-1px);
+    }
+    .course-settings-option-title{
+      display:block;
+      font-size:12px;
+      font-weight:850;
+      line-height:1.25;
+    }
+    .course-settings-option-meta{
+      display:block;
+      margin-top:4px;
+      color: var(--text-secondary);
+      font-size:10px;
+      font-weight:650;
+      line-height:1.3;
+    }
+    .course-settings-option-arrow{
+      color: var(--accent-primary);
+      font-size: 16px;
+      line-height: 1;
+    }
+    .course-settings-secondary-row{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap:8px;
+    }
     @media (max-width: 999px){
+      .course-settings-overview,
+      .course-settings-action-grid,
+      .course-settings-secondary-row{
+        grid-template-columns: 1fr;
+      }
       #learn-tab-panel .learn-body{
         grid-template-columns: minmax(0,1fr);
       }
@@ -23417,21 +23498,26 @@ input[type="range"]::-moz-range-thumb{
       var retentionPct = Math.round(clamp(retentionTarget, 0.5, 0.99) * 100);
       host.innerHTML =
         '<div class="course-settings-panel">'
-          + '<div class="course-settings-summary">'
-            + '<div style="font-size:9px;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:var(--text-tertiary);margin-bottom:8px;">Course Settings</div>'
-            + '<div><strong>Learning profile:</strong> ' + learningProfile + '</div>'
-            + '<div><strong>Course goal:</strong> ' + esc(courseGoalLabel(courseGoal)) + '</div>'
-            + (courseGoal === 'exam_prep' ? '<div><strong>Exam date:</strong> ' + examDate + '</div>' : '')
-            + (courseGoal === 'exam_prep' ? '<div><strong>Assessment context:</strong> ' + examType + '</div>' : '')
-            + '<div><strong>Subject type:</strong> ' + subjectType + '</div>'
-            + '<div><strong>Retention target:</strong> ' + retentionPct + '%</div>'
+          + '<div class="course-settings-overview" aria-label="Course option summary">'
+            + '<div class="course-settings-metric"><div class="course-settings-metric-label">Profile</div><div class="course-settings-metric-value">' + learningProfile + '</div></div>'
+            + '<div class="course-settings-metric"><div class="course-settings-metric-label">Goal</div><div class="course-settings-metric-value">' + esc(courseGoalLabel(courseGoal)) + '</div></div>'
+            + '<div class="course-settings-metric"><div class="course-settings-metric-label">' + (courseGoal === 'exam_prep' ? 'Exam' : 'Subject') + '</div><div class="course-settings-metric-value">' + (courseGoal === 'exam_prep' ? examDate : subjectType) + '</div></div>'
+            + '<div class="course-settings-metric"><div class="course-settings-metric-label">Retention</div><div class="course-settings-metric-value">' + retentionPct + '%</div></div>'
           + '</div>'
-          + '<div class="course-settings-actions">'
-            + '<button type="button" class="ghost-btn" id="cdSettingsOpenDetails">Edit course details</button>'
-            + '<button type="button" class="ghost-btn" id="cdSettingsOpenSyllabus">Context & sources</button>'
-            + '<button type="button" class="ghost-btn" id="cdSettingsOpenStructure">Modules & topics</button>'
-            + '<button type="button" class="ghost-btn" id="cdSettingsOpenNotes">Tutor notes</button>'
-            + '<button type="button" class="ghost-btn" id="cdSettingsContextMenu">More actions</button>'
+          + '<div class="course-settings-section">'
+            + '<div class="course-settings-section-title">Course setup</div>'
+            + '<div class="course-settings-action-grid">'
+              + '<button type="button" class="course-settings-option" id="cdSettingsOpenDetails"><span><span class="course-settings-option-title">Details</span><span class="course-settings-option-meta">' + esc(courseGoalLabel(courseGoal)) + ' · ' + learningProfile + '</span></span><span class="course-settings-option-arrow">›</span></button>'
+              + '<button type="button" class="course-settings-option" id="cdSettingsOpenSyllabus"><span><span class="course-settings-option-title">Context & sources</span><span class="course-settings-option-meta">' + (course.rawSyllabusText || course.syllabusContext ? 'Context saved' : 'No source context') + '</span></span><span class="course-settings-option-arrow">›</span></button>'
+              + '<button type="button" class="course-settings-option" id="cdSettingsOpenStructure"><span><span class="course-settings-option-title">Modules & topics</span><span class="course-settings-option-meta">' + subjectType + '</span></span><span class="course-settings-option-arrow">›</span></button>'
+              + '<button type="button" class="course-settings-option" id="cdSettingsOpenNotes"><span><span class="course-settings-option-title">Tutor notes</span><span class="course-settings-option-meta">Memory and grading context</span></span><span class="course-settings-option-arrow">›</span></button>'
+            + '</div>'
+          + '</div>'
+          + '<div class="course-settings-section">'
+            + '<div class="course-settings-section-title">Course actions</div>'
+            + '<div class="course-settings-secondary-row">'
+              + '<button type="button" class="course-settings-option" id="cdSettingsContextMenu"><span><span class="course-settings-option-title">More actions</span><span class="course-settings-option-meta">' + esc(examType) + '</span></span><span class="course-settings-option-arrow">›</span></button>'
+            + '</div>'
           + '</div>'
         + '</div>';
 
