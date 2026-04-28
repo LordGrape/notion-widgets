@@ -21,6 +21,15 @@ function hasLearnableCards(cards: StudyItem[]): boolean {
   return cards.some((item) => item.learnStatus === 'unlearned');
 }
 
+function shouldStartWithLearn(cards: StudyItem[]): boolean {
+  const activeCards = (cards || []).filter((item) => item && item.lifecycleStage !== 'retired');
+  if (!activeCards.length) return false;
+  const unlearned = activeCards.filter((item) => item.learnStatus === 'unlearned').length;
+  if (!unlearned) return false;
+  const reviewed = activeCards.filter((item) => !!item.fsrs?.lastReview).length;
+  return reviewed === 0 || unlearned / activeCards.length >= 0.5;
+}
+
 function formatApproxDuration(ms: number): string {
   const hours = Math.max(1, Math.round(ms / (60 * 60 * 1000)));
   if (hours < 48) return `~${hours}h`;
@@ -84,6 +93,11 @@ export async function startStudySession(scope: Scope): Promise<void> {
     if (!learnAvailable) return;
     bridge.startLearnSessionForScope?.(scope, learnResolution);
   };
+
+  if (learnAvailable && shouldStartWithLearn(scopedCards)) {
+    startLearn();
+    return;
+  }
 
   if (reviewQueue.length > 0) {
     if (bridge.startReviewSession) {

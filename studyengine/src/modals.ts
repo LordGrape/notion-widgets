@@ -303,6 +303,15 @@ export function setupModalSystem(bridge: ModalBridge): ModalSystem {
         '<label>Paste JSON array</label>' +
         '<textarea class="input" id="m_import" rows="6" placeholder=\'[{"prompt":"...","modelAnswer":"..."}]\'></textarea>' +
         '<p class="help">Each object needs at minimum: <b>prompt</b>, <b>modelAnswer</b>. Optional: topic, task, scenario, conceptA, conceptB, timeLimitMins. The course is set automatically to <b>' + bridge.esc(modalCourse) + '</b>.</p>' +
+        '</div>' +
+        '<div class="field import-exposure-field">' +
+        '<label>Prior exposure</label>' +
+        '<select class="input" id="m_importExposure">' +
+        '<option value="not_yet" selected>Not yet studied - start in Learn</option>' +
+        '<option value="somewhat">Somewhat familiar - diagnostic Review</option>' +
+        '<option value="yes">Already studied - Review first</option>' +
+        '</select>' +
+        '<p class="help">This only sets the Learn handoff state for newly imported cards. FSRS scheduling still starts from the first Review rating.</p>' +
         '</div>';
     }
 

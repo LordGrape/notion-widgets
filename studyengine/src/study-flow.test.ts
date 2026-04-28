@@ -65,7 +65,8 @@ describe('startStudySession', () => {
 
   it('runs review before learn when both are available', async () => {
     mockGetCardsInScope.mockReturnValue([
-      { id: 'r1', lifecycleStage: 'maintaining' },
+      { id: 'r1', lifecycleStage: 'maintaining', fsrs: { lastReview: new Date().toISOString() } },
+      { id: 'r1b', lifecycleStage: 'maintaining', fsrs: { lastReview: new Date().toISOString() } },
       { id: 'l1', learnStatus: 'unlearned', lifecycleStage: 'encoding' }
     ]);
     mockBuildSessionQueue.mockReturnValue([{ id: 'r1', lifecycleStage: 'maintaining' }]);
@@ -76,6 +77,21 @@ describe('startStudySession', () => {
     const reviewCallOrder = (globalThis as any).__studyEngineStudyFlow.startReviewSession.mock.invocationCallOrder[0];
     const learnCallOrder = (globalThis as any).__studyEngineStudyFlow.startLearnSessionForScope.mock.invocationCallOrder[0];
     expect(reviewCallOrder).toBeLessThan(learnCallOrder);
+  });
+
+  it('starts with learn when the scoped course is mostly unlearned', async () => {
+    mockGetCardsInScope.mockReturnValue([
+      { id: 'r1', lifecycleStage: 'maintaining', fsrs: { lastReview: new Date().toISOString() } },
+      { id: 'l1', learnStatus: 'unlearned', lifecycleStage: 'encoding' },
+      { id: 'l2', learnStatus: 'unlearned', lifecycleStage: 'encoding' }
+    ]);
+    mockBuildSessionQueue.mockReturnValue([{ id: 'r1', lifecycleStage: 'maintaining' }]);
+    mockResolveCourseLearnEntry.mockReturnValue({ kind: 'single', subDeckKey: 'sd-1' });
+
+    await startStudySession({ course: 'Bio' });
+
+    expect((globalThis as any).__studyEngineStudyFlow.startLearnSessionForScope).toHaveBeenCalledOnce();
+    expect((globalThis as any).__studyEngineStudyFlow.startReviewSession).not.toHaveBeenCalled();
   });
 
   it('shows all caught up for empty scope', async () => {

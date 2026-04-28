@@ -9865,7 +9865,6 @@ input[type="range"]::-moz-range-thumb{
             <div class="cd-header">
               <button class="cd-back" id="cdBack"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px"><line x1="13" y1="8" x2="3" y2="8"/><polyline points="7,4 3,8 7,12"/></svg>Back</button>
               <div class="cd-title" id="cdTitle">—</div>
-              <button class="cd-settings-btn" id="cdSettingsBtn" title="Course settings"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.5"/><path d="M8 1.5v1.2M8 13.3v1.2M1.5 8h1.2M13.3 8h1.2M3.4 3.4l.85.85M11.75 11.75l.85.85M3.4 12.6l.85-.85M11.75 4.25l.85-.85"/></svg></button>
             </div>
             <nav class="course-tabs" role="tablist" aria-label="Course sections" id="courseTabs">
               <button type="button" class="course-tab" role="tab" aria-selected="true" aria-controls="review-tab-panel" id="review-tab" tabindex="0" data-course-tab-target="review">Review</button>
@@ -9894,7 +9893,7 @@ input[type="range"]::-moz-range-thumb{
                 </div>
               </div>
               <div class="cd-course-actions">
-                <button class="big-btn" id="cdStartSession">Study this course</button>
+                <button class="big-btn" id="cdStartSession">Review this course</button>
               </div>
               <section class="cd-insights" aria-label="Review insights">
                 <div class="cda-section-header">Review insights</div>
@@ -19643,7 +19642,7 @@ input[type="range"]::-moz-range-thumb{
     });
 
     /* ── Modal: Add items / Import JSON ── */
-    var pendingImport = null; /* { valid: [], skipped: [], duplicates: [], skipDuplicates: false } */
+    var pendingImport = null; /* { valid: [], skipped: [], duplicates: [], skipDuplicates: false, exposure: 'not_yet'|'somewhat'|'yes' } */
     var modalSystem = setupModalSystem({
       el: el,
       listCourses: listCourses,
@@ -20090,6 +20089,31 @@ input[type="range"]::-moz-range-thumb{
 
     /* ── Import: Parse → Preview → Commit (3-phase) ── */
     /* ═══ SECTION: Do Import | Functions: doImport ═══ */
+    function normalizeImportExposure(value) {
+      var v = String(value || '').trim();
+      if (v === 'somewhat' || v === 'yes') return v;
+      return 'not_yet';
+    }
+
+    function getImportExposureChoice() {
+      var sel = el('m_importExposure');
+      return normalizeImportExposure(sel ? sel.value : 'not_yet');
+    }
+
+    function importExposureLabel(exposure) {
+      var v = normalizeImportExposure(exposure);
+      if (v === 'yes') return 'Already studied - Review first';
+      if (v === 'somewhat') return 'Somewhat familiar - diagnostic Review';
+      return 'Not yet studied - Learn first';
+    }
+
+    function importLearnStatusForExposure(exposure) {
+      var v = normalizeImportExposure(exposure);
+      if (v === 'yes') return 'consolidated';
+      if (v === 'somewhat') return 'taught';
+      return 'unlearned';
+    }
+
     function doImport() {
       var raw = normalizeImportText((el('m_import').value || '').trim());
       if (!raw) { try { playError(); } catch(e) {} toast('Paste JSON first'); return; }
@@ -20212,7 +20236,8 @@ input[type="range"]::-moz-range-thumb{
         valid: valid,
         skipped: skipped,
         duplicates: duplicates,
-        skipDuplicates: false
+        skipDuplicates: false,
+        exposure: getImportExposureChoice()
       };
 
       renderImportPreview();
@@ -20246,6 +20271,7 @@ input[type="range"]::-moz-range-thumb{
       h += '<span class="ip-title">Preview</span>';
       h += '<span class="ip-count">' + importCount + ' item' + (importCount !== 1 ? 's' : '') + ' to import</span>';
       h += '</div>';
+      h += '<div class="import-summary is-clean" style="margin-bottom:10px;">Prior exposure: ' + esc(importExposureLabel(pendingImport.exposure)) + '</div>';
       h += '<div class="ip-list">';
 
       /* Show valid items */
@@ -20324,6 +20350,8 @@ input[type="range"]::-moz-range-thumb{
       /* Hide the textarea and original import help text */
       var ta = el('m_import');
       if (ta) ta.style.display = 'none';
+      var exposureSelect = el('m_importExposure');
+      if (exposureSelect) exposureSelect.style.display = 'none';
       var helpEls = modalSystem.getModalFormEl().querySelectorAll('.help');
       helpEls.forEach(function(he) { he.style.display = 'none'; });
       var labelEls = modalSystem.getModalFormEl().querySelectorAll('.field label');
@@ -20360,10 +20388,13 @@ input[type="range"]::-moz-range-thumb{
       if (!pendingImport) return;
       var valid = pendingImport.valid;
       var skipDups = pendingImport.skipDuplicates;
+      var importExposure = normalizeImportExposure(pendingImport.exposure);
+      var importLearnStatus = importLearnStatusForExposure(importExposure);
 
       var toImport = skipDups ? valid.filter(function(v) { return !v.isDuplicate; }) : valid;
       var n = 0;
       var importedIds = [];
+      var importedCourseNames = {};
       var autoCreatedSubDeckNames = {};
       var autoClassifiedNonQf = 0;
       var batchTierDist = { quickfire: 0, explain: 0, apply: 0, distinguish: 0, mock: 0, worked: 0 };
@@ -20406,6 +20437,8 @@ input[type="range"]::-moz-range-thumb{
         if (!obj.created) obj.created = isoNow();
         if (!obj.fsrs) obj.fsrs = { stability: 0, difficulty: 0, due: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), lastReview: null, reps: 0, lapses: 0, state: 'new' };
         if (!obj.variants) obj.variants = {};
+        obj.learnStatus = importLearnStatus;
+        if (typeof obj.consolidationRating === 'undefined') obj.consolidationRating = null;
 
         /* Normalize modelAnswer aliases */
         if (!obj.modelAnswer && obj.model_answer) obj.modelAnswer = obj.model_answer;
@@ -20417,6 +20450,11 @@ input[type="range"]::-moz-range-thumb{
         var reclassify = maybeReclassify(obj, { isEssayMode: isEssayMode }, { respectExplicitTier: true });
         if (reclassify && reclassify.changed && reclassify.tier !== 'quickfire') autoClassifiedNonQf++;
         obj.tier = (reclassify && reclassify.tier) ? reclassify.tier : (obj.tier || 'quickfire');
+        if (globalThis.__studyEngineLearnMode && typeof globalThis.__studyEngineLearnMode.deriveLifecycleStage === 'function') {
+          obj.lifecycleStage = globalThis.__studyEngineLearnMode.deriveLifecycleStage(obj);
+        } else {
+          obj.lifecycleStage = importLearnStatus === 'unlearned' ? 'encoding' : (importLearnStatus === 'taught' ? 'consolidating' : 'new');
+        }
         if (batchTierDist.hasOwnProperty(obj.tier)) batchTierDist[obj.tier]++;
         else batchTierDist.quickfire++;
 
@@ -20474,7 +20512,14 @@ input[type="range"]::-moz-range-thumb{
 
         state.items[obj.id] = obj;
         importedIds.push(obj.id);
+        if (obj.course) importedCourseNames[obj.course] = true;
         n++;
+      });
+
+      if (!state.ui || typeof state.ui !== 'object') state.ui = {};
+      if (!state.ui.activeCourseTab || typeof state.ui.activeCourseTab !== 'object') state.ui.activeCourseTab = {};
+      Object.keys(importedCourseNames).forEach(function(courseName) {
+        state.ui.activeCourseTab[courseName] = importExposure === 'not_yet' ? 'learn' : 'review';
       });
 
       saveState();
@@ -23455,7 +23500,7 @@ input[type="range"]::-moz-range-thumb{
       h += '<div class="ctx-hero-label">Cards due</div>';
       h += '<div class="ctx-hero-exam">' + esc(examLine) + '</div>';
       h += '<div class="ctx-actions course-hero-actions">';
-      h += '<button class="ctx-study-btn" id="ctxStudyCourse" style="width:100%;max-width:480px;">▶ Study This Course' + (stats.due > 0 ? ' (' + stats.due + ' due)' : '') + '</button>';
+      h += '<button class="ctx-study-btn" id="ctxStudyCourse" style="width:100%;max-width:480px;">▶ Review This Course' + (stats.due > 0 ? ' (' + stats.due + ' due)' : '') + '</button>';
       h += '<button class="ctx-learn-btn" id="ctxLearnCourse" type="button">🧠 Learn</button>';
       h += '</div>';
       h += '</div>';
@@ -24795,7 +24840,24 @@ input[type="range"]::-moz-range-thumb{
       var ui = state && state.ui;
       var map = ui && ui.activeCourseTab;
       var saved = map && courseId ? map[courseId] : null;
-      return COURSE_TAB_IDS.indexOf(saved) >= 0 ? saved : 'review';
+      if (COURSE_TAB_IDS.indexOf(saved) >= 0) return saved;
+      return shouldDefaultCourseToLearn(courseId) ? 'learn' : 'review';
+    }
+
+    function shouldDefaultCourseToLearn(courseId) {
+      if (!courseId || !state || !state.items) return false;
+      var total = 0;
+      var unlearned = 0;
+      var reviewed = 0;
+      Object.keys(state.items).forEach(function(itemId) {
+        var item = state.items[itemId];
+        if (!item || item.course !== courseId || item.archived || item.lifecycleStage === 'retired') return;
+        total += 1;
+        if (item.learnStatus === 'unlearned') unlearned += 1;
+        if (item.fsrs && item.fsrs.lastReview) reviewed += 1;
+      });
+      if (!total || !unlearned) return false;
+      return reviewed === 0 || (unlearned / total) >= 0.5;
     }
 
     function setActiveCourseTab(courseId, tabId) {
@@ -27097,9 +27159,18 @@ input[type="range"]::-moz-range-thumb{
       el('ingestApprove').onclick = approveIngestDrafts;
     }
 
+    function learnStatusForIngestDraft(draft) {
+      var source = draft && draft.source ? draft.source : null;
+      if (source && (source.type === 'qec' || source.type === 'lecture-paste-freeform') && source.lectureAttended) {
+        return 'taught';
+      }
+      return 'unlearned';
+    }
+
     function approveIngestDrafts() {
       var body = el('ingestBody');
       var added = 0;
+      var addedUnlearned = 0;
       if (!ingestUiState.selectedCourse) { toast('Choose a target course.'); return; }
       if (!state.courses[ingestUiState.selectedCourse]) {
         saveCourse({ name: ingestUiState.selectedCourse, examType: 'mixed', examDate: null, manualMode: false, color: '#8b5cf6', created: isoNow() });
@@ -27112,6 +27183,7 @@ input[type="range"]::-moz-range-thumb{
         var prompt = (promptEl ? String(promptEl.value || '') : String(d.prompt || '')).trim();
         var modelAnswer = (answerEl ? String(answerEl.value || '') : String(d.modelAnswer || '')).trim();
         if (!prompt || !modelAnswer) return;
+        var learnStatus = learnStatusForIngestDraft(d);
         var it = {
           id: uid(),
           prompt: prompt,
@@ -27119,14 +27191,23 @@ input[type="range"]::-moz-range-thumb{
           course: ingestUiState.selectedCourse,
           subDeck: ingestUiState.selectedSubDeck || null,
           source: d.source,
-          lifecycleStage: 'new',
+          learnStatus: learnStatus,
+          consolidationRating: null,
+          lifecycleStage: learnStatus === 'unlearned' ? 'encoding' : 'consolidating',
           created: isoNow(),
           fsrs: { stability: 0, difficulty: 0, due: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), lastReview: null, reps: 0, lapses: 0, state: 'new' },
           variants: {}
         };
+        if (globalThis.__studyEngineLearnMode && typeof globalThis.__studyEngineLearnMode.deriveLifecycleStage === 'function') {
+          it.lifecycleStage = globalThis.__studyEngineLearnMode.deriveLifecycleStage(it);
+        }
         state.items[it.id] = it;
         added += 1;
+        if (learnStatus === 'unlearned') addedUnlearned += 1;
       });
+      if (!state.ui || typeof state.ui !== 'object') state.ui = {};
+      if (!state.ui.activeCourseTab || typeof state.ui.activeCourseTab !== 'object') state.ui.activeCourseTab = {};
+      state.ui.activeCourseTab[ingestUiState.selectedCourse] = addedUnlearned > 0 ? 'learn' : 'review';
       saveState();
       renderDashboard();
       closeIngestModal();
@@ -28661,15 +28742,6 @@ input[type="range"]::-moz-range-thumb{
 
       if (window.gsap) {
         gsap.fromTo(el('courseDetail'), { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' });
-      }
-
-      /* Wire course settings shortcut */
-      var cdSettingsBtn = el('cdSettingsBtn');
-      if (cdSettingsBtn) {
-        cdSettingsBtn.onclick = function() {
-          showCourseContextMenu(courseName, cdSettingsBtn);
-          try { playClick(); } catch(e) {}
-        };
       }
 
       var cdAddBtn = el('cdAddCardBtn');
