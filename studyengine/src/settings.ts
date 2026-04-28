@@ -253,10 +253,9 @@ export function setupSettingsModule(ctx: SettingsModuleContext): {
       };
     }
 
-    // L1b-alpha-hotfix: curated import surface with worker orchestration path.
+    // POST-L1b-α: dev-mode gate removed — single-user widget, no benefit to hiding worker decks.
     const curatedMount = el<HTMLElement>('curatedDecksSection');
     const curatedStatus = el<HTMLElement>('curatedDecksStatus');
-    const devMode = isDevModeEnabled();
 
     async function importDeckText(deckLabel: string, text: string): Promise<void> {
       const importBtn = document.getElementById('importBtn') as HTMLButtonElement | null;
@@ -352,7 +351,7 @@ export function setupSettingsModule(ctx: SettingsModuleContext): {
     }
 
     if (curatedMount) {
-      const visibleDecks = CURATED_DECKS.filter((deck) => deck.source === 'static' || devMode);
+      const visibleDecks = CURATED_DECKS.slice();
       curatedMount.innerHTML = visibleDecks.map(
         (deck) =>
           `<button type="button" class="ghost-btn curated-deck-btn" data-curated-deck-id="${deck.id}" style="width:100%;min-width:auto;margin-top:8px">${deck.label}</button>`,
