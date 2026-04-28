@@ -7859,6 +7859,21 @@ input[type="range"]::-moz-range-thumb{
       margin:0;
       padding:0 2px;
     }
+    .cards-header-actions{
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .cards-header-actions .ghost-btn{
+      flex:0 0 auto;
+      min-width:0;
+      padding:8px 10px;
+      border-radius:10px;
+      font-size:9px;
+      white-space:nowrap;
+    }
     .course-cards-delete-btn{
       border:1px solid rgba(239,68,68,0.24);
       background:rgba(239,68,68,0.06);
@@ -10122,13 +10137,13 @@ input[type="range"]::-moz-range-thumb{
             <section role="tabpanel" id="cards-tab-panel" aria-labelledby="cards-tab" hidden>
               <div class="cards-header-row">
                 <div class="section-header" id="cdCardsHeaderLabel">Cards (0)</div>
-                <button type="button" class="course-cards-delete-btn embed" id="cdDeleteCourseCardsBtn" title="Delete all cards in this course" aria-label="Delete all cards in this course" style="display:none;">🗑</button>
+                <div class="cards-header-actions">
+                  <button class="ghost-btn" id="cdAddCardBtn" type="button">＋ Add card</button>
+                  <button class="ghost-btn" id="cdImportBtn" type="button"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><line x1="8" y1="2" x2="8" y2="10.5"/><polyline points="4.5,7 8,10.5 11.5,7"/><path d="M2.5 12.5h11"/></svg>Import</button>
+                  <button type="button" class="course-cards-delete-btn embed" id="cdDeleteCourseCardsBtn" title="Delete all cards in this course" aria-label="Delete all cards in this course" style="display:none;">🗑</button>
+                </div>
               </div>
               <div id="cdCardList" style="max-height:420px;overflow-y:auto;margin-bottom:14px;scrollbar-width:thin;"></div>
-              <div class="mini-actions">
-                <button class="ghost-btn" id="cdAddCardBtn">＋ Add Card</button>
-                <button class="ghost-btn" id="cdImportBtn"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><line x1="8" y1="2" x2="8" y2="10.5"/><polyline points="4.5,7 8,10.5 11.5,7"/><path d="M2.5 12.5h11"/></svg>Import JSON</button>
-              </div>
             </section>
             <section role="tabpanel" id="settings-tab-panel" aria-labelledby="settings-tab" hidden>
               <div id="cdSettingsTabContent"></div>
