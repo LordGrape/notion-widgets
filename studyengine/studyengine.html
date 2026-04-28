@@ -21956,7 +21956,7 @@ input[type="range"]::-moz-range-thumb{
 
       var tabs = [
         { id: 'details', label: 'Details' },
-        { id: 'syllabus', label: 'Syllabus & AI' },
+        { id: 'syllabus', label: 'Context & Sources' },
         { id: 'structure', label: 'Structure' },
         { id: 'notes', label: 'Tutor Notes' }
       ];
@@ -22044,32 +22044,36 @@ input[type="range"]::-moz-range-thumb{
           if (_vis('examWeight')) {
             inner += '<div class="field"><label>Exam Weight (%)</label><input id="cm_examWeight" type="number" min="0" max="100" step="1" class="input" value="' + esc(c.examWeight != null ? String(c.examWeight) : '') + '" /></div>';
           }
+          inner += '<div class="field"><label>Cards</label><div style="display:flex;gap:8px;flex-wrap:wrap;">';
+          inner += '<button type="button" class="ghost-btn" id="cmAddCardFromDetails">Add Card</button>';
+          inner += '<button type="button" class="ghost-btn" id="cmImportJsonFromDetails">Import JSON</button>';
+          inner += '</div><div class="help" style="margin-top:6px;line-height:1.5;">Add individual retrieval cards or import a JSON batch directly into this course.</div></div>';
           inner += '<div style="display:flex;justify-content:flex-end;margin-top:12px;"><button class="cm-save-btn" id="cmSaveDetails" type="button">Save Details</button></div>';
         } else if (activeTab === 'syllabus') {
           inner += '<div class="cm-results-card" style="margin-bottom:10px;"><div class="cm-results-body">';
           inner += '<button type="button" class="cm-preview-success-chip" id="cm_previewSuccessChip" style="display:none;">✓ <span id="cm_previewSuccessCount">0 fields extracted</span> · Review →</button>';
           inner += '<div class="help" id="cm_previewHelperText" style="margin-top:8px;">Extracted course context appears in a review modal after processing.</div>';
           inner += '<div class="cm-syllabus-saved-card" id="cm_savedSyllabusCard" style="display:none;">';
-          inner += '<div class="cm-syllabus-saved-head"><span class="cm-syllabus-saved-check">✓</span><span>Syllabus on file</span></div>';
+          inner += '<div class="cm-syllabus-saved-head"><span class="cm-syllabus-saved-check">✓</span><span>Context on file</span></div>';
           inner += '<p class="cm-syllabus-saved-meta"><span id="cm_savedSyllabusCount">0</span> fields · parsed <span id="cm_savedSyllabusAgo">just now</span></p>';
-          inner += '<div class="cm-syllabus-saved-actions"><button type="button" class="ghost-btn" id="cm_reviewSyllabusBtn">Review</button><button type="button" class="ghost-btn" id="cm_changeSyllabusBtn">Change syllabus</button></div>';
+          inner += '<div class="cm-syllabus-saved-actions"><button type="button" class="ghost-btn" id="cm_reviewSyllabusBtn">Review</button><button type="button" class="ghost-btn" id="cm_changeSyllabusBtn">Change context</button></div>';
           inner += '</div>';
           inner += '</div></div>';
           inner += '<div id="cm_syllabusPasteWrap">';
-          inner += '<div class="field"><label>Syllabus / Exam Info' + renderEditorInfoIcon('Syllabus / Exam Info', "Paste the raw syllabus or any official exam instructions here. The AI uses this as the ground truth for what your course covers and how it's assessed. It does not auto-generate cards from this — use 'Process syllabus with AI' for that.") + '</label>';
+          inner += '<div class="field"><label>Course Context' + renderEditorInfoIcon('Course Context', 'Paste source notes, readings, official course material, or background that helps the tutor understand this course. This can be a syllabus, but it does not need to be exam-related.') + '</label>';
           inner += '<div class="cm-syllabus-zone" id="cm_syllabusZone">';
-          inner += '<div class="cm-syllabus-empty" id="cm_syllabusEmpty"><span class="doc">📄</span><span>Paste your syllabus or drop a PDF here</span></div>';
-          inner += '<div class="cm-syllabus-chip" id="cm_syllabusChip" style="display:none;"><span id="cm_syllabusChipText"></span><button type="button" aria-label="Clear syllabus text" id="cm_clearSyllabusChip">×</button></div>';
-          inner += '<textarea class="input cm-syllabus-text" id="cm_courseContextText" rows="7" placeholder="Paste syllabus text, exam instructions, or course outline...">' + esc(c.rawSyllabusText || '') + '</textarea>';
-          inner += '<div class="help" id="cm_replaceContextWarning" style="display:none;margin-top:6px;">Processing a new syllabus will replace the current course context on save.</div>';
+          inner += '<div class="cm-syllabus-empty" id="cm_syllabusEmpty"><span class="doc">📄</span><span>Paste source material or drop a PDF here</span></div>';
+          inner += '<div class="cm-syllabus-chip" id="cm_syllabusChip" style="display:none;"><span id="cm_syllabusChipText"></span><button type="button" aria-label="Clear source text" id="cm_clearSyllabusChip">×</button></div>';
+          inner += '<textarea class="input cm-syllabus-text" id="cm_courseContextText" rows="7" placeholder="Paste course notes, readings, syllabus text, unit outline, doctrine, terminology, or background context...">' + esc(c.rawSyllabusText || '') + '</textarea>';
+          inner += '<div class="help" id="cm_replaceContextWarning" style="display:none;margin-top:6px;">Processing new source material will replace the current course context on save.</div>';
           inner += '<div class="cm-syllabus-actions"><a href="#" id="cm_pdfBtn" class="cm-upload-link">📄 Or upload PDF</a></div>';
           inner += '<input type="file" accept="application/pdf,.pdf" id="cm_pdfFile" style="display:none">';
           inner += '</div></div>';
           inner += '<div class="cm-process-row">';
-          inner += '<button type="button" class="big-btn tooltip-host" id="cm_processSyllabus">Process with AI' +
-            '<span class="info-tooltip">Runs your syllabus through the tutor to extract modules, topics, and suggested study priorities. Non-destructive — nothing is saved until you confirm.<span class="tip-arrow"></span></span></button>';
+          inner += '<button type="button" class="big-btn tooltip-host" id="cm_processSyllabus">Extract Context' +
+            '<span class="info-tooltip">Runs this source material through the tutor to extract course context, topics, and useful study signals. Non-destructive — nothing is saved until you confirm.<span class="tip-arrow"></span></span></button>';
           inner += '<button type="button" class="ghost-btn tooltip-host cm-rerun-btn" id="cm_reprocessSyllabus" style="display:none;">↻ Re-run' +
-            '<span class="info-tooltip">Re-runs AI extraction if you\'ve edited the syllabus or the first pass missed content. Replaces the previous AI-suggested structure.<span class="tip-arrow"></span></span></button>';
+            '<span class="info-tooltip">Re-runs AI extraction if you have edited the source material or the first pass missed content. Replaces the previous AI-suggested context.<span class="tip-arrow"></span></span></button>';
           inner += '</div>';
           inner += '</div>';
           inner += '<div class="syllabus-status" id="cm_contextStatus"></div>';
@@ -22078,12 +22082,12 @@ input[type="range"]::-moz-range-thumb{
           inner += '<details class="cm-additional-context" id="cm_additionalContext"><summary>Additional context (optional)</summary><div class="cm-additional-body">';
           inner += '<div class="field"><label>Professor values' + renderEditorInfoIcon('Professor values', "Things your professor explicitly emphasizes (e.g. 'cites primary sources', 'engages counter-arguments', 'uses theoretical framing'). Feeds into AI grading so your responses are judged by what your professor actually rewards — not generic rubrics.") + '</label><textarea class="input" id="cm_professorValues" rows="3">' + esc(c.professorValues || '') + '</textarea></div>';
           inner += '<div class="field"><label>Allowed materials' + renderEditorInfoIcon('Allowed materials', "What you're allowed to reference during the exam (e.g. 'open notes', 'one-page cheat sheet', 'closed book'). Shapes how the AI calibrates difficulty and whether it expects memorized recall vs reasoning.") + '</label><input type="text" class="input" id="cm_allowedMaterials" value="' + esc(c.allowedMaterials || '') + '"></div>';
-          inner += '<div class="field"><label>Lecture materials' + renderEditorInfoIcon('Lecture Materials (URL)', 'Link to a published Notion page, article, or lecture transcript. The AI pulls context from this when generating cards and grading responses. Must be publicly accessible.') + renderEditorInfoIcon('Lecture Materials (PDF import)', 'Upload a lecture PDF. Text is extracted and used as context for card generation and grading. Stored locally; not sent anywhere except the tutor call.') + '</label>';
+          inner += '<div class="field"><label>Source materials' + renderEditorInfoIcon('Source Materials (URL)', 'Link to a published Notion page, article, source packet, or lecture transcript. The AI pulls context from this when generating cards and grading responses. Must be publicly accessible.') + renderEditorInfoIcon('Source Materials (PDF import)', 'Upload a PDF. Text is extracted and used as context for card generation and grading. Stored locally; not sent anywhere except the tutor call.') + '</label>';
           inner += '<div class="cm-lecture-source-row"><input type="text" class="input" id="cm_lectureSourceInput" placeholder="Paste lecture URL"><button type="button" class="ghost-btn" id="cm_addLectureSource">Add source</button><a href="#" id="cm_importLecturePdfBtn" class="cm-upload-link">📄 Upload PDF</a><input type="file" accept="application/pdf,.pdf" id="cm_importLecturePdf" style="display:none"></div>';
           inner += '<div class="syllabus-status" id="cm_lectureImportStatus" style="min-height:0;"></div>';
           inner += '<div id="cm_lectureManifestDisplay" style="margin-top:8px;"></div><div id="cm_lectureSourceList" class="cm-lecture-source-list"></div>';
           inner += '</div></div></details>';
-          inner += '<div style="display:flex;justify-content:flex-end;margin-top:12px;"><button class="cm-save-btn" id="cmSaveSyllabus" type="button">Save Syllabus & AI</button></div>';
+          inner += '<div style="display:flex;justify-content:flex-end;margin-top:12px;"><button class="cm-save-btn" id="cmSaveSyllabus" type="button">Save Context</button></div>';
         } else if (activeTab === 'structure') {
           ensureCourseModules(courseName);
           var modules = c.modules || [];
@@ -22275,6 +22279,16 @@ input[type="range"]::-moz-range-thumb{
             courseModalState.pendingCourseGoal = nextGoal;
             renderTabContent();
           };
+          var addFromDetails = el('cmAddCardFromDetails');
+          if (addFromDetails) addFromDetails.onclick = function() {
+            closeCourseModal();
+            openModal('add', courseName);
+          };
+          var importFromDetails = el('cmImportJsonFromDetails');
+          if (importFromDetails) importFromDetails.onclick = function() {
+            closeCourseModal();
+            openModal('import', courseName);
+          };
           var saveDetails = el('cmSaveDetails');
           if (saveDetails) saveDetails.onclick = function() {
             var oldName = c.name;
@@ -22333,7 +22347,7 @@ input[type="range"]::-moz-range-thumb{
             return new Promise(function(resolve) {
               var ov = document.createElement('div');
               ov.className = 'confirm-overlay show';
-              ov.innerHTML = '<div class="confirm-box"><div class="cb-icon">📄</div><div class="cb-title">Replace syllabus text?</div><div class="cb-desc">' + esc(message || 'Replace existing syllabus text?') + '</div><div class="cb-actions"><button type="button" class="cb-stay">Keep current</button><button type="button" class="cb-leave">Replace</button></div></div>';
+              ov.innerHTML = '<div class="confirm-box"><div class="cb-icon">📄</div><div class="cb-title">Replace source material?</div><div class="cb-desc">' + esc(message || 'Replace existing source material?') + '</div><div class="cb-actions"><button type="button" class="cb-stay">Keep current</button><button type="button" class="cb-leave">Replace</button></div></div>';
               document.body.appendChild(ov);
               var stay = ov.querySelector('.cb-stay');
               var leave = ov.querySelector('.cb-leave');
@@ -22546,7 +22560,7 @@ input[type="range"]::-moz-range-thumb{
             });
             if (mode === 'preview') syllabusPreviewStateByCourse[courseKey] = { sourceText: sourceText, parsed: parsed, rows: rows, decisions: decisions, edits: edits, initialDecisions: initialDecisions };
             successChip.style.display = '';
-            successCount.textContent = mode === 'saved' ? ('Syllabus on file · ' + rows.length + ' fields') : (rows.length + ' fields extracted');
+            successCount.textContent = mode === 'saved' ? ('Context on file · ' + rows.length + ' fields') : (rows.length + ' fields extracted');
             fieldCountChip.textContent = rows.length + ' fields extracted';
 
             function acceptedCount() { return rows.reduce(function(acc, row) { return acc + (decisions[row.key] === 'accept' ? 1 : 0); }, 0); }
@@ -22698,7 +22712,7 @@ input[type="range"]::-moz-range-thumb{
             };
 
             if (subtitle) subtitle.textContent = mode === 'saved' ? 'Saved course context' : 'Extracted course context';
-            if (subtitleText) subtitleText.textContent = mode === 'saved' ? 'Review saved syllabus fields' : 'Review each field before saving';
+            if (subtitleText) subtitleText.textContent = mode === 'saved' ? 'Review saved course context fields' : 'Review each field before saving';
             if (acceptAllBtn) acceptAllBtn.style.display = mode === 'saved' ? 'none' : '';
             if (rejectAllBtn) rejectAllBtn.style.display = mode === 'saved' ? 'none' : '';
             if (saveBtn) saveBtn.style.display = mode === 'saved' ? 'none' : '';
@@ -22739,7 +22753,7 @@ input[type="range"]::-moz-range-thumb{
               syllabusParseInFlightByCourse.delete(c.name);
               if (procBtn) {
                 procBtn.disabled = false;
-                procBtn.innerHTML = 'Process with AI<span class="info-tooltip">Runs your syllabus through the tutor to extract modules, topics, and suggested study priorities. Non-destructive — nothing is saved until you confirm.<span class="tip-arrow"></span></span>';
+                procBtn.innerHTML = 'Extract Context<span class="info-tooltip">Runs this source material through the tutor to extract course context, topics, and useful study signals. Non-destructive — nothing is saved until you confirm.<span class="tip-arrow"></span></span>';
               }
             });
           }
@@ -22754,7 +22768,7 @@ input[type="range"]::-moz-range-thumb{
               processBtn.innerHTML = '<span class="af-spinner"></span> Extracting...';
             }
             if (rerunBtn) rerunBtn.disabled = true;
-            setCtxStatus('<span class="af-spinner"></span> Processing syllabus...', '');
+            setCtxStatus('<span class="af-spinner"></span> Processing course context...', '');
             playCourseAudio('click');
             var examT = (el('cm_examType') && el('cm_examType').value) || c.examType || 'mixed';
             postSyllabusDistill(trimmed, c.name, examT).then(function(data) {
@@ -22775,7 +22789,7 @@ input[type="range"]::-moz-range-thumb{
               var profEl = el('cm_professorValues'); if (profEl) profEl.value = c.professorValues || '';
               var alEl = el('cm_allowedMaterials'); if (alEl) alEl.value = c.allowedMaterials || '';
               renderSuggestedTopics(c.syllabusKeyTopics);
-              setCtxStatus('✓ Syllabus processed', 'ok');
+              setCtxStatus('✓ Course context processed', 'ok');
               playCourseAudio('chime');
               if (rerunBtn) rerunBtn.style.display = '';
             }).catch(function() {
@@ -22784,7 +22798,7 @@ input[type="range"]::-moz-range-thumb{
             }).finally(function() {
               if (processBtn) {
                 processBtn.disabled = false;
-                processBtn.innerHTML = 'Process with AI<span class="info-tooltip">Runs your syllabus through the tutor to extract modules, topics, and suggested study priorities. Non-destructive — nothing is saved until you confirm.<span class="tip-arrow"></span></span>';
+                processBtn.innerHTML = 'Extract Context<span class="info-tooltip">Runs this source material through the tutor to extract course context, topics, and useful study signals. Non-destructive — nothing is saved until you confirm.<span class="tip-arrow"></span></span>';
               }
               if (rerunBtn) rerunBtn.disabled = false;
               if (opts && typeof opts.onDone === 'function') opts.onDone();
@@ -22871,11 +22885,11 @@ input[type="range"]::-moz-range-thumb{
             if (procBtn) {
               var disabled = !hasText;
               procBtn.disabled = disabled;
-              procBtn.title = disabled ? 'Add a syllabus first.' : '';
+              procBtn.title = disabled ? 'Add source material first.' : '';
             }
             if (reprocBtn) {
               reprocBtn.style.display = c.syllabusContext ? '' : 'none';
-              reprocBtn.title = 'Use this after changing syllabus text or importing a newer version.';
+              reprocBtn.title = 'Use this after changing source material or importing a newer version.';
             }
             updateSuggestionsCardVisibility();
           }
@@ -22888,7 +22902,7 @@ input[type="range"]::-moz-range-thumb{
           async function applySyllabusText(nextText, sourceLabel, fromPdf) {
             var existing = syllabusText ? String(syllabusText.value || '').trim() : '';
             if (fromPdf && existing && sourceLabel && sourceLabel !== 'Pasted text') {
-              var ok = await askSyllabusReplace('Replace pasted text with PDF contents?');
+              var ok = await askSyllabusReplace('Replace pasted source material with PDF contents?');
               if (!ok) return false;
             }
             if (syllabusText) syllabusText.value = nextText || '';
@@ -22937,7 +22951,7 @@ input[type="range"]::-moz-range-thumb{
               extractPdfText(f).then(function(text) {
                 return applySyllabusText(text || '', String(f.name || 'PDF'), true);
               }).then(function(applied) {
-                if (applied) setCtxStatus('✓ Syllabus PDF parsed', 'ok');
+                if (applied) setCtxStatus('✓ Source PDF parsed', 'ok');
                 pdfFile.value = '';
               }).catch(function(err) {
                 setCtxStatus(esc(err && err.message ? err.message : 'Could not read PDF'), '');
@@ -22968,7 +22982,7 @@ input[type="range"]::-moz-range-thumb{
               extractPdfText(file).then(function(text) {
                 return applySyllabusText(text || '', String(file.name || 'PDF'), true);
               }).then(function(applied) {
-                if (applied) setCtxStatus('✓ Syllabus PDF parsed', 'ok');
+                if (applied) setCtxStatus('✓ Source PDF parsed', 'ok');
               }).catch(function(err) {
                 setCtxStatus(esc(err && err.message ? err.message : 'Could not read PDF'), '');
                 playCourseAudio('error');
@@ -23090,7 +23104,7 @@ input[type="range"]::-moz-range-thumb{
             c.professorValues = (el('cm_professorValues') && el('cm_professorValues').value.trim()) ? el('cm_professorValues').value.trim().slice(0, 500) : null;
             c.allowedMaterials = (el('cm_allowedMaterials') && el('cm_allowedMaterials').value.trim()) ? el('cm_allowedMaterials').value.trim() : null;
             saveCourse(c);
-            toast('Syllabus settings saved');
+            toast('Course context saved');
           };
 
           updateSyllabusZoneState();
@@ -23451,7 +23465,7 @@ input[type="range"]::-moz-range-thumb{
           + '</div>'
           + '<div class="course-settings-actions">'
             + '<button type="button" class="ghost-btn" id="cdSettingsOpenDetails">Edit course details</button>'
-            + '<button type="button" class="ghost-btn" id="cdSettingsOpenSyllabus">Lecture materials</button>'
+            + '<button type="button" class="ghost-btn" id="cdSettingsOpenSyllabus">Context & sources</button>'
             + '<button type="button" class="ghost-btn" id="cdSettingsOpenStructure">Modules & topics</button>'
             + '<button type="button" class="ghost-btn" id="cdSettingsOpenNotes">Tutor notes</button>'
             + '<button type="button" class="ghost-btn" id="cdSettingsContextMenu">More actions</button>'
