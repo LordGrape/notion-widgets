@@ -27884,55 +27884,10 @@ input[type="range"]::-moz-range-thumb{
           if (state.learnSession) state.learnSession.planProfile = normalized;
         },
         onPriorKnowledgeProbe: async function(probeCard) {
-          if (!activeLearnSession) return 'partial';
-          var featureOn = !state.studyEngineFeatures || state.studyEngineFeatures.run1Pedagogy !== false;
-          var scopeCount = Array.isArray(allItems) ? allItems.length : 0;
-          if (!featureOn || scopeCount <= 5) return 'partial';
-          ensureModalMounted();
-          var tutorHost = el('learnTeachBlock');
-          var promptHost = el('learnTutorPrompt');
-          var answerHost = el('learnSessionInput');
-          var submitBtn = el('learnSessionSubmit');
-          if (!tutorHost || !promptHost || !answerHost || !submitBtn) return 'partial';
-          tutorHost.innerHTML = '<div class="segment-label-pill">Quick check before we begin</div>' + renderLearnMarkdownSafe(String((probeCard && probeCard.prompt) || 'What do you already know about this topic?'));
-          promptHost.innerHTML = '<p>Answer briefly in your own words.</p>';
-          answerHost.value = '';
-          answerHost.placeholder = 'Type your quick check response…';
-          var verdict = await new Promise(function(resolve) {
-            var keyHandler = null;
-            var onSubmit = async function(ev) {
-              if (ev) {
-                ev.preventDefault();
-                if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
-              }
-              var userInput = String(answerHost.value || '').trim();
-              if (!userInput) return;
-              submitBtn.removeEventListener('click', onSubmit, true);
-              if (keyHandler) answerHost.removeEventListener('keydown', keyHandler, true);
-              var probeSnapshot = {
-                plan: { segments: [{ id: 'prior-probe', checkType: 'prior_knowledge_probe', teach: probeCard && probeCard.prompt ? String(probeCard.prompt) : '' }] },
-                index: 0,
-                currentMechanism: 'elaborative_interrogation',
-                completedSegmentIds: []
-              };
-              try {
-                var probeResult = await modeBridge.runLearnTurn(probeSnapshot, userInput, settings.userName || '');
-                resolve((probeResult && probeResult.verdict) ? String(probeResult.verdict) : 'partial');
-              } catch (err) {
-                resolve('partial');
-              }
-            };
-            keyHandler = function(e) {
-              if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-                e.preventDefault();
-                onSubmit(e);
-              }
-            };
-            submitBtn.addEventListener('click', onSubmit, true);
-            answerHost.addEventListener('keydown', keyHandler, true);
-            setTimeout(function() { try { answerHost.focus(); } catch (e) {} }, 0);
-          });
-          return verdict === 'deep' ? 'deep' : (verdict === 'surface' ? 'surface' : 'partial');
+          /* Do not mount the Learn modal for a pre-plan probe. The stream has
+             no generated segment yet, so showing a question here makes the UI
+             look interactive while the worker is still drafting the plan. */
+          return 'partial';
         },
         onSegment: function(segment, meta) {
           if (!activeLearnSession) return;
