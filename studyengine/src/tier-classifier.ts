@@ -15,6 +15,24 @@ export interface ReclassifyOptions {
   respectExplicitTier?: boolean;
 }
 
+// B3: classification-based tier counting for headline/dashboard displays.
+export function countItemsByClassifiedTier(items: Array<Pick<StudyItem, 'tier'>>): Record<TierId, number> {
+  const counts: Record<TierId, number> = {
+    quickfire: 0,
+    explain: 0,
+    apply: 0,
+    distinguish: 0,
+    mock: 0,
+    worked: 0
+  };
+  (items || []).forEach((item) => {
+    const tier = item?.tier || 'quickfire';
+    if (tier in counts) counts[tier as TierId] += 1;
+    else counts.quickfire += 1;
+  });
+  return counts;
+}
+
 function hasText(value: unknown): boolean {
   return typeof value === 'string' && value.trim().length > 0;
 }

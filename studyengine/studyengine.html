@@ -10468,8 +10468,8 @@ input[type="range"]::-moz-range-thumb{
     import { recordJol, computeSessionCalibration } from './src/session-flow';
     import { createJolWidget } from './src/jol-ui';
     import { startStudySession } from './src/study-flow';
-    import { loadSubDecks, saveSubDecks, createSubDeck, renameSubDeck, deleteSubDeck, reorderSubDecks, getCardsInSubDeck, getCardsInScope, getSubDeckStats, getSubDeckTree, getDescendantSubDeckKeys, getAncestorSubDeckKeys, moveSubDeck, archiveSubDeck, unarchiveSubDeck, migrateSubDecks } from './src/sub-decks';
-    import { maybeReclassify, resolveTierTargetDistribution } from './src/tier-classifier';
+    import { loadSubDecks, saveSubDecks, createSubDeck, renameSubDeck, deleteSubDeck, reorderSubDecks, getCardsInSubDeck, getCardsInScope, getSubDeckStats, getSubDeckTree, getDescendantSubDeckKeys, getAncestorSubDeckKeys, moveSubDeck, archiveSubDeck, unarchiveSubDeck, migrateSubDecks, fillMissingSubDeckLanguageMeta } from './src/sub-decks';
+    import { maybeReclassify, resolveTierTargetDistribution, countItemsByClassifiedTier } from './src/tier-classifier';
     import { callParseSyllabus, validateEvidenceQuotes, buildCourseContext, SyllabusParseError } from './src/syllabus-parser';
     import { setupSettingsModule } from './src/settings';
     import { setupModalSystem } from './src/modals';
@@ -19220,8 +19220,9 @@ input[type="range"]::-moz-range-thumb{
       startLearnSessionForScope: function(scope) {
         startLearnForScope(scope);
       },
-      showAllCaughtUp: function() {
-        toast('All caught up');
+      showAllCaughtUp: function(message) {
+        // B3: support explicit empty-state copy from scoped study-flow diagnostics.
+        toast(message || 'All caught up');
       }
     };
 
@@ -20431,6 +20432,38 @@ input[type="range"]::-moz-range-thumb{
       var autoCreatedSubDeckNames = {};
       var autoClassifiedNonQf = 0;
       var batchTierDist = { quickfire: 0, explain: 0, apply: 0, distinguish: 0, mock: 0, worked: 0 };
+      // B3: first-non-empty language/session defaults keyed by course + sub-deck label.
+      var importMetaByScope = {};
+
+      function scopeMetaKey(courseName, subDeckName) {
+        return String(courseName || '') + '::' + String(subDeckName || '').toLowerCase();
+      }
+
+      toImport.forEach(function(entryMeta) {
+        var metaObj = entryMeta && entryMeta.obj ? entryMeta.obj : null;
+        if (!metaObj || !entryMeta.course || !entryMeta.subDeck) return;
+        var k = scopeMetaKey(entryMeta.course, entryMeta.subDeck);
+        if (!importMetaByScope[k]) importMetaByScope[k] = {};
+        var bucket = importMetaByScope[k];
+
+        var nextPlanProfile = String(metaObj.planProfile || '').trim();
+        if (nextPlanProfile) {
+          if (!bucket.planProfile) bucket.planProfile = nextPlanProfile;
+          else if (bucket.planProfile !== nextPlanProfile) console.warn('[StudyEngine][B3] Conflicting planProfile values in import; keeping first.', { course: entryMeta.course, subDeck: entryMeta.subDeck, kept: bucket.planProfile, ignored: nextPlanProfile });
+        }
+
+        var nextTargetLanguage = String(metaObj.targetLanguage || '').trim();
+        if (nextTargetLanguage) {
+          if (!bucket.targetLanguage) bucket.targetLanguage = nextTargetLanguage;
+          else if (bucket.targetLanguage !== nextTargetLanguage) console.warn('[StudyEngine][B3] Conflicting targetLanguage values in import; keeping first.', { course: entryMeta.course, subDeck: entryMeta.subDeck, kept: bucket.targetLanguage, ignored: nextTargetLanguage });
+        }
+
+        var nextLanguageLevel = parseInt(metaObj.languageLevel, 10);
+        if (nextLanguageLevel >= 1 && nextLanguageLevel <= 6) {
+          if (!bucket.languageLevel) bucket.languageLevel = nextLanguageLevel;
+          else if (bucket.languageLevel !== nextLanguageLevel) console.warn('[StudyEngine][B3] Conflicting languageLevel values in import; keeping first.', { course: entryMeta.course, subDeck: entryMeta.subDeck, kept: bucket.languageLevel, ignored: nextLanguageLevel });
+        }
+      });
 
       toImport.forEach(function(entry) {
         var obj = entry.obj;
@@ -20476,19 +20509,30 @@ input[type="range"]::-moz-range-thumb{
         }
 
         if (obj.course && obj.subDeck) {
+          var scopeKey = scopeMetaKey(obj.course, obj.subDeck);
+          var scopeMeta = importMetaByScope[scopeKey] || {};
           var existingSubDecks = getCourseSubDeckEntries(obj.course);
           var matchedSubDeck = existingSubDecks.find(function(sd) {
             return String(sd.meta.name || '').toLowerCase() === String(obj.subDeck || '').toLowerCase() || sd.key === obj.subDeck;
           });
           if (!matchedSubDeck) {
             try {
-              globalThis.__studyEngineSubDecks.createSubDeck(obj.course, obj.subDeck);
+              globalThis.__studyEngineSubDecks.createSubDeck(obj.course, obj.subDeck, {
+                // B3: forward language defaults when auto-creating sub-decks on import.
+                planProfile: scopeMeta.planProfile,
+                targetLanguage: scopeMeta.targetLanguage,
+                languageLevel: scopeMeta.languageLevel
+              });
               autoCreatedSubDeckNames[obj.subDeck] = true;
               subDecksDirty = true;
             } catch (eCreateImport) {}
             matchedSubDeck = getCourseSubDeckEntries(obj.course).find(function(sd2) {
               return String(sd2.meta.name || '').toLowerCase() === String(obj.subDeck || '').toLowerCase();
             });
+          }
+          // B3: re-import only fills missing fields; never overwrite existing sub-deck meta.
+          if (matchedSubDeck && matchedSubDeck.meta) {
+            fillMissingSubDeckLanguageMeta(matchedSubDeck.meta, scopeMeta);
           }
           obj.subDeck = matchedSubDeck ? matchedSubDeck.key : null;
         }
@@ -28300,13 +28344,11 @@ input[type="range"]::-moz-range-thumb{
       /* Per-tier stats */
       var tierOrder = ['quickfire', 'explain', 'apply', 'distinguish', 'mock', 'worked'];
       var tierNames = { quickfire: 'Quick Fire', explain: 'Explain', apply: 'Apply', distinguish: 'Distinguish', mock: 'Mock', worked: 'Worked Ex.' };
+      // B3: use item.tier classification for headline counts (single count per card).
+      var tierCounts = countItemsByClassifiedTier(Object.keys(courseItems).map(function(id2) { return courseItems[id2]; }));
       var tierStats = '';
       tierOrder.forEach(function(t) {
-        var count = 0;
-        for (var id2 in courseItems) {
-          var supported = detectSupportedTiers(courseItems[id2]);
-          if (supported.indexOf(t) >= 0) count++;
-        }
+        var count = tierCounts[t] || 0;
         var col = tierColour(t);
         tierStats += '<div class="cd-tier-stat"><div class="cts-count" style="color:' + col + ';">' + count + '</div><div class="cts-label">' + tierNames[t] + '</div></div>';
       });

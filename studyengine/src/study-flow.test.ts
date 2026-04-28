@@ -25,7 +25,7 @@ vi.mock('./learn-mode', () => ({
   resolveCourseLearnEntry: mockResolveCourseLearnEntry
 }));
 
-import { startStudySession } from './study-flow';
+import { startStudySession, summarizeAllCaughtUp } from './study-flow';
 
 describe('startStudySession', () => {
   beforeEach(() => {
@@ -86,5 +86,18 @@ describe('startStudySession', () => {
     await startStudySession({ course: 'Bio' });
 
     expect((globalThis as any).__studyEngineStudyFlow.showAllCaughtUp).toHaveBeenCalledOnce();
+  });
+});
+
+describe('summarizeAllCaughtUp', () => {
+  it('reports next due time when all cards are already reviewed', () => {
+    const now = Date.UTC(2026, 0, 1, 0, 0, 0);
+    const msg = summarizeAllCaughtUp([
+      { id: 'a', fsrs: { lastReview: new Date(now - 1000).toISOString(), due: new Date(now + 24 * 60 * 60 * 1000).toISOString() } },
+      { id: 'b', fsrs: { lastReview: new Date(now - 1000).toISOString(), due: new Date(now + 36 * 60 * 60 * 1000).toISOString() } }
+    ] as any, now);
+
+    // B3: avoid ambiguous "All caught up" on newly-rated decks.
+    expect(msg).toBe('All 2 cards reviewed. Next due in ~24h.');
   });
 });
