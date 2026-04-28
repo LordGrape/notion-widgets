@@ -10110,7 +10110,7 @@ input[type="range"]::-moz-range-thumb{
               <button class="rate hard" data-rate="2">Hard (2)</button>
               <button class="rate good" data-rate="3">Good (3)</button>
               <button class="rate easy" data-rate="4">Easy (4)</button>
-              <button class="rate" data-rate="relearn">Relearn</button>
+              <!-- B2: removed inline Relearn rating button (Case A) because it was a non-rating manual action in the rating row. -->
             </div>
           </div>
         </div>
@@ -10486,6 +10486,7 @@ input[type="range"]::-moz-range-thumb{
     import { visibleCourseDetailsFields } from './src/courses/visibility';
     import { resolveActiveHomeCourse } from './src/home/active-course';
     import { homeHeroStats, homeTutorStatsLabels } from './src/home/widgets';
+    import { shouldAutoGenerateVisual } from './src/visual/should-generate';
 
     globalThis.__studyEngineCourseVisibility = {
       visibleCourseDetailsFields: visibleCourseDetailsFields
@@ -10496,6 +10497,10 @@ input[type="range"]::-moz-range-thumb{
       resolveActiveHomeCourse: resolveActiveHomeCourse,
       homeHeroStats: homeHeroStats,
       homeTutorStatsLabels: homeTutorStatsLabels
+    };
+
+    globalThis.__studyEngineVisual = {
+      shouldAutoGenerateVisual: shouldAutoGenerateVisual
     };
 
     globalThis.__studyEngineSubDecks = {
@@ -14351,7 +14356,17 @@ input[type="range"]::-moz-range-thumb{
 
     /* ═══ SECTION: Ensure Answer Visual | Functions: ensureAnswerVisual ═══ */
     function ensureAnswerVisual(it, revealTier) {
+      /*
+       * B2 read-pass findings:
+       * - This function is the shared auto-generation path used by revealAnswer() for quickfire and generative tiers.
+       * - A second trigger exists in renderQuickfireTier() that pre-generates visuals before reveal to keep reveal responsive.
+       * - A third generateVisual() call exists in edit-card save flow for cache refresh when no visual is supplied manually.
+       * - Recovery flow in attemptRecoverTruncatedMermaid() regenerates only when an existing Mermaid payload is malformed.
+       * - Inputs consumed by generation are StudyItem prompt/modelAnswer/tier/visualHint via shouldAutoGenerateVisual(), then generateVisual(it).
+       */
       if (!it || !it.id || it.visual || visualGenerationPending[it.id]) return;
+      // B2: skip auto-Mermaid when card lacks structural source material.
+      if (!globalThis.__studyEngineVisual || !globalThis.__studyEngineVisual.shouldAutoGenerateVisual || !globalThis.__studyEngineVisual.shouldAutoGenerateVisual(it)) return;
       visualGenerationPending[it.id] = true;
       generateVisual(it).then(function(visual) {
         visualGenerationPending[it.id] = false;
@@ -15072,7 +15087,8 @@ input[type="range"]::-moz-range-thumb{
         revealAnswer();
       });
       /* Visual deferred to revealAnswer() — answer-side only. Background-generate so reveal stays snappy. */
-      if (!it.visual && it.prompt && it.modelAnswer && !visualGenerationPending[it.id]) {
+      // B2: keep quickfire prefetch profile-neutral by requiring structural complexity first.
+      if (!it.visual && it.prompt && it.modelAnswer && !visualGenerationPending[it.id] && globalThis.__studyEngineVisual && globalThis.__studyEngineVisual.shouldAutoGenerateVisual && globalThis.__studyEngineVisual.shouldAutoGenerateVisual(it)) {
         visualGenerationPending[it.id] = true;
         generateVisual(it).then(function(v) {
           visualGenerationPending[it.id] = false;
@@ -17033,17 +17049,8 @@ input[type="range"]::-moz-range-thumb{
 
     function handleSessionRatingButtonClick(btn) {
       if (!btn || !session) return;
+      // B2: Case A keeps this handler rating-only after removing the non-rating Relearn control.
       var raw = btn.getAttribute('data-rate');
-      if (raw === 'relearn') {
-        var item = session.queue && session.queue[session.idx];
-        if (!item) return;
-        var fired = evaluateRelearningTriggers(item, Date.now(), { manual: true });
-        if (fired) {
-          saveState();
-          toast('Marked for relearning');
-        }
-        return;
-      }
       var parsed = parseInt(raw, 10);
       if (parsed >= 1 && parsed <= 4) {
         rateCurrent(parsed);
