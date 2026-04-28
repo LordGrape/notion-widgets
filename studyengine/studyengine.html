@@ -9626,6 +9626,7 @@ input[type="range"]::-moz-range-thumb{
       <div class="sb-footer">
         <button class="sb-footer-btn" id="sbAddCard" type="button"><span class="sb-footer-icon" aria-hidden="true">＋</span><span>Add Card</span></button>
         <button class="sb-footer-btn" id="sbImport" type="button"><span class="sb-footer-icon" aria-hidden="true">📥</span><span>Import</span></button>
+        <button class="sb-footer-btn" id="sbIngest" type="button"><span class="sb-footer-icon" aria-hidden="true">⇪</span><span>Ingest</span></button>
         <button class="sb-footer-btn" id="sbSettings" type="button"><span class="sb-footer-icon" aria-hidden="true">⚙</span><span>Settings</span></button>
         <button class="sb-footer-btn" id="sbArchivedBtn" type="button" style="display:none"><span class="sb-footer-icon" aria-hidden="true">📦</span><span>Archived (<span id="sbArchivedCount">0</span>)</span></button>
         <div class="sb-sync-status" id="sbSyncStatus">● Synced</div>
@@ -26913,8 +26914,10 @@ input[type="range"]::-moz-range-thumb{
       var visible = isRun4IngestEnabled();
       var ingestBtn = el('ingestBtn');
       var mainIngestBtn = el('mainIngestBtn');
+      var sbIngestBtn = el('sbIngest');
       if (ingestBtn) ingestBtn.style.display = visible ? '' : 'none';
       if (mainIngestBtn) mainIngestBtn.style.display = visible ? '' : 'none';
+      if (sbIngestBtn) sbIngestBtn.style.display = visible ? '' : 'none';
     }
 
     function sectionBadgeLabel(source) {
@@ -28882,6 +28885,10 @@ input[type="range"]::-moz-range-thumb{
         if (sbImport) sbImport.addEventListener('click', function() {
           var b = el('importBtn');
           if (b) b.click();
+        });
+        var sbIngest = document.getElementById('sbIngest');
+        if (sbIngest) sbIngest.addEventListener('click', function() {
+          openIngestModal();
         });
         var sbSettings = document.getElementById('sbSettings');
         if (sbSettings) sbSettings.addEventListener('click', function() {
