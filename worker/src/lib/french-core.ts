@@ -1,4 +1,5 @@
 // L1b-alpha-hotfix: shared French Core 2000 worker build pipeline primitives.
+import type { Env } from '../types';
 
 
 export interface Lexique3Entry {
@@ -25,6 +26,8 @@ export const BUILD_KEYS = {
   tatoeba: 'studyengine:build:french-core-2000:tatoeba-index',
   tatoebaMeta: 'studyengine:build:french-core-2000:tatoeba-meta',
   glosses: 'studyengine:build:french-core-2000:glosses',
+  // L1b-β: deterministic Wiktionary gloss cache prepared from studyengine/data.
+  wiktionaryGlosses: 'studyengine:build:french-core-2000:wiktionary-glosses',
   tokenBudget: 'studyengine:build:french-core-2000:token-budget',
   deck: 'studyengine:decks:french-core-2000',
   deckMeta: 'studyengine:decks:french-core-2000:meta',
@@ -55,6 +58,13 @@ export const SAMPLE_GLOSSES: Record<string, string> = {
   très: 'very', là: 'there', vous: 'you (formal or plural)', ou: 'or', sur: 'on, on top of, about',
   quoi: 'what (interrogative / relative)', si: 'if; so; yes (in response to a negative)', mon: 'my (masc. sing.)',
 };
+
+type WiktionaryGlossRecord = {
+  gloss?: unknown;
+  source?: unknown;
+};
+
+const wiktionaryGlossMemo = new WeakMap<KVNamespace, Promise<Map<string, string>>>();
 
 const REQUIRED_COLUMNS = ['ortho', 'phon', 'lemme', 'cgram', 'genre', 'nombre', 'freqlemfilms2', 'freqfilms2'] as const;
 const FRENCH_TOKEN_RE = /[\p{L}'’-]+/gu;
@@ -178,4 +188,39 @@ export function buildCardJson(input: { lemma: Lexique3Entry; gloss: string; pair
 
 export async function kvGetJson<T>(kv: KVNamespace, key: string): Promise<T | null> {
   return (await kv.get(key, 'json')) as T | null;
+}
+
+export async function loadWiktionaryGlosses(env: Env): Promise<Map<string, string>> {
+  // L1b-β: memoize the deterministic gloss map per Worker instance.
+  let memo = wiktionaryGlossMemo.get(env.WIDGET_KV);
+  if (!memo) {
+    memo = (async () => {
+      const raw = await kvGetJson<Record<string, WiktionaryGlossRecord>>(env.WIDGET_KV, BUILD_KEYS.wiktionaryGlosses);
+      const map = new Map<string, string>();
+      for (const [key, value] of Object.entries(raw || {})) {
+        const gloss = typeof value?.gloss === 'string' ? value.gloss.trim() : '';
+        if (gloss) map.set(key, gloss);
+      }
+      return map;
+    })();
+    wiktionaryGlossMemo.set(env.WIDGET_KV, memo);
+  }
+  return memo;
+}
+
+export function clearWiktionaryGlossesMemo(env: Env): void {
+  // L1b-β: prepare route can refresh KV without waiting for a new Worker instance.
+  wiktionaryGlossMemo.delete(env.WIDGET_KV);
+}
+
+export function buildGlossPrompt(lemmas: Array<{ lemma: string; pos: string }>): string {
+  // L1b-β: shared prompt for build-time residual fallback and the runtime gloss route.
+  return (
+    `For each French lemma below, return:\n` +
+    `- gloss: 3 to 8 words in plain Canadian English\n` +
+    `- exampleHint: optional one-sentence usage cue in Canadian English\n\n` +
+    `Input rows:\n${JSON.stringify(lemmas)}\n\n` +
+    `Return JSON as:\n` +
+    `{"glosses":[{"lemma":"...","pos":"...","gloss":"...","exampleHint":"..."}]}`
+  );
 }

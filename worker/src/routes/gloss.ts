@@ -1,4 +1,5 @@
 import { callGemini, extractGeminiText } from '../gemini';
+import { buildGlossPrompt } from '../lib/french-core';
 import { parseLlmJson } from '../llm/parse';
 import type { Env } from '../types';
 
@@ -50,13 +51,8 @@ export async function handleGloss(request: Request, env: Env): Promise<Response>
 
     const systemPrompt =
       'You generate concise Canadian English glosses for French lemmas. Return strict JSON only.';
-    const userPrompt =
-      `For each French lemma below, return:\n` +
-      `- gloss: 3 to 8 words in plain Canadian English\n` +
-      `- exampleHint: optional one-sentence usage cue in Canadian English\n\n` +
-      `Input rows:\n${JSON.stringify(normalized)}\n\n` +
-      `Return JSON as:\n` +
-      `{"glosses":[{"lemma":"...","pos":"...","gloss":"...","exampleHint":"..."}]}`;
+    // L1b-β: keep runtime and build-time fallback prompts aligned.
+    const userPrompt = buildGlossPrompt(normalized);
 
     const geminiData = await callGemini(
       'gemini-2.5-flash',

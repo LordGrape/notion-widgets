@@ -28,6 +28,7 @@ import { handleBuildGlossBatch } from "./routes/build/gloss-batch";
 import { handleBuildLexique3Prepare } from "./routes/build/lexique3-prepare";
 import { handleBuildStatus } from "./routes/build/status";
 import { handleBuildTatoebaPrepare } from "./routes/build/tatoeba-prepare";
+import { handleBuildWiktionaryPrepare } from "./routes/build/wiktionary-prepare";
 import type { Env } from "./types";
 
 function json(body: unknown, status = 200): Response {
@@ -142,6 +143,12 @@ export default {
       if (url.pathname === "/studyengine/build/tatoeba-prepare") {
         if (request.method !== "POST") return methodNotAllowed();
         return withCorsHeaders(await handleBuildTatoebaPrepare(request, env));
+      }
+
+      if (url.pathname === "/studyengine/build/wiktionary-prepare") {
+        // L1b-β: upload deterministic Wiktionary gloss cache before LLM fallback.
+        if (request.method !== "POST") return methodNotAllowed();
+        return withCorsHeaders(await handleBuildWiktionaryPrepare(request, env));
       }
 
       if (url.pathname === "/studyengine/build/gloss-batch") {

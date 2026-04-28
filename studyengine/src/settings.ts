@@ -115,6 +115,8 @@ type FrenchCoreImportSnapshot = {
 
 type WorkerBuildStatus = {
   lexique3?: { ready?: boolean; count?: number; sha256?: string };
+  // L1b-β: deterministic Wiktionary cache stage sits before LLM fallback.
+  wiktionary?: { ready?: boolean; count?: number };
   tatoeba?: { ready?: boolean; lemmasWithExamples?: number };
   glosses?: {
     totalGlossed?: number;
@@ -412,21 +414,23 @@ export function setupSettingsModule(ctx: SettingsModuleContext): {
         const pct = status.assembled?.ready
           ? 100
           : status.tatoeba?.ready
-            ? (totalGlosses ? 20 + Math.floor((glossed / Math.max(1, totalGlosses)) * 70) : 20)
-            : status.lexique3?.ready ? 10 : 4;
+            ? (totalGlosses ? 30 + Math.floor((glossed / Math.max(1, totalGlosses)) * 60) : 30)
+            : status.wiktionary?.ready ? 20 : status.lexique3?.ready ? 10 : 4;
         const phase = status.assembled?.ready
           ? 'Deck assembled'
           : !status.lexique3?.ready
             ? 'Preparing Lexique 3'
+            : !status.wiktionary?.ready
+              ? 'Preparing Wiktionary glosses'
             : !status.tatoeba?.ready
               ? 'Indexing example sentences'
               : glossed < totalGlosses
-                ? 'Writing concise glosses'
+                ? 'Running LLM fallback'
                 : 'Assembling import deck';
         progressEl.textContent = `${phase}. Progress ${pct}%.`;
         pctEl.textContent = `${pct}%`;
         glossMetricEl.textContent = `${glossed}/${totalGlosses}`;
-        tokenMetricEl.textContent = String(status.glosses?.cumulativeTokens || 0);
+        tokenMetricEl.textContent = status.tatoeba?.ready ? String(status.glosses?.cumulativeTokens || 0) : '0';
         stageMetricEl.textContent = phase;
         ringEl.style.background = `conic-gradient(var(--accent-primary) ${pct * 3.6}deg, rgba(var(--accent-rgb),0.12) 0deg)`;
         if (window.gsap) {
@@ -437,9 +441,10 @@ export function setupSettingsModule(ctx: SettingsModuleContext): {
 
         const stages = [
           { label: 'Lexique 3', detail: status.lexique3?.ready ? `${status.lexique3.count || 0} lemmas` : 'Pending', done: !!status.lexique3?.ready, active: !status.lexique3?.ready },
-          { label: 'Tatoeba examples', detail: status.tatoeba?.ready ? `${status.tatoeba.lemmasWithExamples || 0} matched` : 'Pending', done: !!status.tatoeba?.ready, active: !!status.lexique3?.ready && !status.tatoeba?.ready },
-          { label: 'Gloss generation', detail: `${glossed}/${totalGlosses} (${status.glosses?.budgetState || 'ok'})`, done: totalGlosses > 0 && glossed >= totalGlosses, active: !!status.tatoeba?.ready && glossed < totalGlosses },
-          { label: 'Import deck assembly', detail: status.assembled?.ready ? 'Ready' : 'Pending', done: !!status.assembled?.ready, active: totalGlosses > 0 && glossed >= totalGlosses && !status.assembled?.ready },
+          { label: 'Wiktionary glosses', detail: status.wiktionary?.ready ? `${status.wiktionary.count || 0} cached` : 'Pending', done: !!status.wiktionary?.ready, active: !!status.lexique3?.ready && !status.wiktionary?.ready },
+          { label: 'Tatoeba', detail: status.tatoeba?.ready ? `${status.tatoeba.lemmasWithExamples || 0} matched` : 'Pending', done: !!status.tatoeba?.ready, active: !!status.wiktionary?.ready && !status.tatoeba?.ready },
+          { label: 'LLM fallback', detail: `${glossed}/${totalGlosses} (${status.glosses?.budgetState || 'ok'})`, done: totalGlosses > 0 && glossed >= totalGlosses, active: !!status.tatoeba?.ready && glossed < totalGlosses },
+          { label: 'Assemble', detail: status.assembled?.ready ? 'Ready' : 'Pending', done: !!status.assembled?.ready, active: totalGlosses > 0 && glossed >= totalGlosses && !status.assembled?.ready },
         ];
         stagesEl.innerHTML = stages.map((stage, index) => {
           const className = `fc-stage${stage.done ? ' is-done' : ''}${stage.active ? ' is-active' : ''}`;
@@ -459,6 +464,15 @@ export function setupSettingsModule(ctx: SettingsModuleContext): {
           let status = await req<WorkerBuildStatus>('/studyengine/build/status', 'GET', undefined, 30000);
           render(status);
           if (!status.lexique3?.ready) { await req<unknown>('/studyengine/build/lexique3-prepare', 'POST', {}, 30000); status = await req<WorkerBuildStatus>('/studyengine/build/status', 'GET'); render(status); }
+          if (!status.wiktionary?.ready) {
+            // L1b-β: upload generated deterministic gloss cache before token-spending fallback.
+            const wiktionaryFile = await fetch('./data/french-core-glosses-wiktionary.json', { cache: 'no-store' });
+            if (!wiktionaryFile.ok) throw new Error(`Wiktionary gloss cache missing (${wiktionaryFile.status})`);
+            const glosses = await wiktionaryFile.json() as unknown;
+            await req<unknown>('/studyengine/build/wiktionary-prepare', 'POST', { glosses }, 30000);
+            status = await req<WorkerBuildStatus>('/studyengine/build/status', 'GET');
+            render(status);
+          }
           if (!status.tatoeba?.ready) { await req<unknown>('/studyengine/build/tatoeba-prepare', 'POST', {}, 30000); status = await req<WorkerBuildStatus>('/studyengine/build/status', 'GET'); render(status); }
           while (!status.assembled?.ready && Number(status.glosses?.totalGlossed || 0) < Number(status.glosses?.totalLemmas || 0)) {
             const glossRes = await req<WorkerGlossResponse>('/studyengine/build/gloss-batch', 'POST', {}, 15000);
