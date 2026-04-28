@@ -2022,6 +2022,22 @@
       transition: background var(--transition), transform var(--transition);
     }
     .confirm-box .cb-stay:hover{ background: rgba(var(--accent-rgb),0.14); transform: translateY(-1px); }
+    .confirm-box .cb-primary{
+      flex: 1;
+      padding: 10px;
+      border-radius: 14px;
+      border: 1px solid rgba(var(--accent-rgb),0.34);
+      background: linear-gradient(135deg, rgba(var(--accent-rgb),0.94), rgba(var(--accent-rgb),0.70));
+      color: white;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 12px 28px rgba(var(--accent-rgb),0.22);
+      transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+    }
+    .confirm-box .cb-primary:hover{ transform: translateY(-1px); box-shadow: 0 16px 34px rgba(var(--accent-rgb),0.28); }
     .confirm-box .cb-leave{
       flex: 1;
       padding: 10px;
@@ -10464,6 +10480,18 @@ input[type="range"]::-moz-range-thumb{
   </div>
 
   <!-- Confirm exit overlay for mid-consolidation abandon -->
+  <div class="confirm-overlay" id="confirmLearnRegenOv">
+    <div class="confirm-box">
+      <div class="cb-icon"><svg width="28" height="28" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.5a5.5 5.5 0 0 1 9.4-3.9"/><path d="M12.5 2.5v3.2H9.3"/><path d="M13.5 7.5a5.5 5.5 0 0 1-9.4 3.9"/><path d="M3.5 13.5v-3.2h3.2"/></svg></div>
+      <div class="cb-title">Learning plan changed</div>
+      <div class="cb-desc">This sub-deck has changed since the last plan was generated. Regenerating will use API tokens, but keeps Learn aligned to the current cards.</div>
+      <div class="cb-actions">
+        <button class="cb-stay" id="confirmLearnRegenCached">Use saved plan</button>
+        <button class="cb-primary" id="confirmLearnRegenFresh">Regenerate</button>
+      </div>
+    </div>
+  </div>
+
   <div class="confirm-overlay" id="confirmLearnExitOv">
     <div class="confirm-box">
       <div class="cb-icon"><svg width="28" height="28" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.5L1.5 13.5h13z"/><line x1="8" y1="6.5" x2="8" y2="9.5"/><circle cx="8" cy="11.5" r="0.5" fill="currentColor" stroke="none"/></svg></div>
@@ -10623,7 +10651,7 @@ input[type="range"]::-moz-range-thumb{
     import './src/learn-rail';
     import './src/learn-ui/learn-ui.css';
     import { deriveLearnDisplayMode } from './src/learn-display-mode';
-    import { LEARN_EMPTY_HEADING, LEARN_EMPTY_BODY, LEARN_EMPTY_CTA, LEARN_EMPTY_LABEL_ENCODING, LEARN_EMPTY_LABEL_RETRIEVAL, LEARN_LANDING_STATUS_UNLEARNED, LEARN_LANDING_STATUS_TAUGHT, LEARN_LANDING_STATUS_CONSOLIDATED, LEARN_LANDING_CACHE_HIT, LEARN_LANDING_CACHE_MISS, LEARN_LANDING_START, LEARN_LANDING_REGEN, LEARN_REGEN_CONFIRM, LEARN_INTRO_TEXT, LEARN_INTRO_DISMISS, formatRelativeTime } from './src/learn-copy';
+    import { LEARN_EMPTY_HEADING, LEARN_EMPTY_BODY, LEARN_EMPTY_CTA, LEARN_EMPTY_LABEL_ENCODING, LEARN_EMPTY_LABEL_RETRIEVAL, LEARN_LANDING_STATUS_UNLEARNED, LEARN_LANDING_STATUS_TAUGHT, LEARN_LANDING_STATUS_CONSOLIDATED, LEARN_LANDING_CACHE_HIT, LEARN_LANDING_CACHE_MISS, LEARN_LANDING_START, LEARN_LANDING_REGEN, LEARN_INTRO_TEXT, LEARN_INTRO_DISMISS, formatRelativeTime } from './src/learn-copy';
     import { renderLearnEmptyStateHtml, renderLearnSubDeckLandingHtml } from './src/learn-ui/landing';
     import { updateLearnSessionMap as updateLearnSessionMapUi } from './src/learn-ui/session-map';
     import { profileLabel as courseProfileLabel, resolveCourseGoal, visibleCourseDetailsFields } from './src/courses/visibility';
@@ -19301,9 +19329,10 @@ input[type="range"]::-moz-range-thumb{
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') {
         /* Close modals first */
-        var hadModal = modalSystem.getModalOvEl().classList.contains('show') || settingsOv.classList.contains('show') || courseOv.classList.contains('show') || el('confirmExitOv').classList.contains('show') || el('confirmDeleteCourseOv').classList.contains('show') || el('confirmDeleteCourseCardsOv').classList.contains('show') || el('resumeChoiceOv').classList.contains('show') || el('startSessionPickerOv').classList.contains('show');
+        var hadModal = modalSystem.getModalOvEl().classList.contains('show') || settingsOv.classList.contains('show') || courseOv.classList.contains('show') || el('confirmExitOv').classList.contains('show') || el('confirmLearnRegenOv').classList.contains('show') || el('confirmDeleteCourseOv').classList.contains('show') || el('confirmDeleteCourseCardsOv').classList.contains('show') || el('resumeChoiceOv').classList.contains('show') || el('startSessionPickerOv').classList.contains('show');
         closeModals();
         el('confirmExitOv').classList.remove('show');
+        el('confirmLearnRegenOv').classList.remove('show');
         el('confirmDeleteCourseOv').classList.remove('show');
         el('confirmDeleteCourseCardsOv').classList.remove('show');
         closeResumeChoiceModal();
@@ -19747,6 +19776,9 @@ input[type="range"]::-moz-range-thumb{
       if (e.target === el('confirmExitOv')) {
         el('confirmExitOv').classList.remove('show');
       }
+    });
+    if (el('confirmLearnRegenOv')) el('confirmLearnRegenOv').addEventListener('click', function(e) {
+      if (e.target === el('confirmLearnRegenOv')) closeLearnPlanChangedPrompt();
     });
     if (el('confirmDeleteCourseCancel')) el('confirmDeleteCourseCancel').addEventListener('click', closeDeleteCoursePrompt);
     if (el('confirmDeleteCourseConfirm')) el('confirmDeleteCourseConfirm').addEventListener('click', confirmDeleteCoursePrompt);
@@ -25479,13 +25511,43 @@ input[type="range"]::-moz-range-thumb{
 
     function triggerLearnPlanRegeneration(args) {
       if (!args) return;
-      var ok = window.confirm(LEARN_REGEN_CONFIRM);
-      if (!ok) return;
-      setLearnRegenLoadingActive(true, 'regenerating');
-      closeLearnSessionImmediate();
-      startLearnPlanStreaming(args.courseName, args.subDeckKey, args.allItems, args.userName, args.learnerContext, {
-        forceRegenerate: true
+      openLearnPlanChangedPrompt(null, function() {
+        setLearnRegenLoadingActive(true, 'regenerating');
+        closeLearnSessionImmediate();
+        startLearnPlanStreaming(args.courseName, args.subDeckKey, args.allItems, args.userName, args.learnerContext, {
+          forceRegenerate: true
+        });
       });
+    }
+
+    function closeLearnPlanChangedPrompt() {
+      var ov = el('confirmLearnRegenOv');
+      if (ov) ov.classList.remove('show');
+      var cachedBtn = el('confirmLearnRegenCached');
+      var freshBtn = el('confirmLearnRegenFresh');
+      if (cachedBtn) cachedBtn.onclick = null;
+      if (freshBtn) freshBtn.onclick = null;
+    }
+
+    function openLearnPlanChangedPrompt(onUseCached, onRegenerate) {
+      var ov = el('confirmLearnRegenOv');
+      var cachedBtn = el('confirmLearnRegenCached');
+      var freshBtn = el('confirmLearnRegenFresh');
+      if (!ov || !cachedBtn || !freshBtn) {
+        if (typeof onUseCached === 'function') onUseCached();
+        else if (typeof onRegenerate === 'function') onRegenerate();
+        return;
+      }
+      cachedBtn.onclick = function() {
+        closeLearnPlanChangedPrompt();
+        if (typeof onUseCached === 'function') onUseCached();
+      };
+      freshBtn.onclick = function() {
+        closeLearnPlanChangedPrompt();
+        if (typeof onRegenerate === 'function') onRegenerate();
+      };
+      ov.classList.add('show');
+      setTimeout(function(){ try { freshBtn.focus(); } catch (e) {} }, 30);
     }
 
     function setLearnSessionSurfaceActive(isActive) {
@@ -27719,12 +27781,18 @@ input[type="range"]::-moz-range-thumb{
           streamItems = additiveReuse.addedCards;
           toast('Generating Learn plan for new cards only.');
         } else {
-        /* TODO: replace with project-wide non-blocking confirm primitive when available. */
-        var shouldRegenerate = window.confirm('This sub-deck has changed since the last plan was generated. Regenerate the learning plan? (uses API tokens)');
-        if (!shouldRegenerate) {
-          if (openCachedPlan({ segments: existingCache.plan.slice(), consolidationQuestions: [] }, existingCache, true)) return;
-          toast('Cached plan is empty. Regenerating…');
-        }
+        openLearnPlanChangedPrompt(
+          function() {
+            if (!openCachedPlan({ segments: existingCache.plan.slice(), consolidationQuestions: [] }, existingCache, true)) {
+              toast('Cached plan is empty. Regenerating...');
+              startLearnPlanStreaming(courseName, subDeckKey, allItems, userName, learnerContext, { forceRegenerate: true });
+            }
+          },
+          function() {
+            startLearnPlanStreaming(courseName, subDeckKey, allItems, userName, learnerContext, { forceRegenerate: true });
+          }
+        );
+        return;
         }
       }
 
