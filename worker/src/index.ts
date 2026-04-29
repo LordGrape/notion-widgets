@@ -21,6 +21,7 @@ import { handleTriage } from "./routes/triage";
 import { handleTts } from "./routes/tts";
 import { handleTutor } from "./routes/tutor";
 import { handleVisual } from "./routes/visual";
+import { handleAiUsage } from "./routes/ai-usage";
 
 import { handleBuildAssemble } from "./routes/build/assemble";
 import { handleDeckFrenchCore2000 } from "./routes/build/decks-french-core-2000";
@@ -77,6 +78,11 @@ export default {
       if (url.pathname === "/studyengine/tutor") {
         if (request.method !== "POST") return methodNotAllowed();
         return withCorsHeaders(await handleTutor(request, env));
+      }
+
+      if (url.pathname === "/studyengine/ai-usage") {
+        if (request.method !== "GET") return methodNotAllowed();
+        return withCorsHeaders(await handleAiUsage(request, env));
       }
 
       if (url.pathname === "/studyengine/syllabus") {

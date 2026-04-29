@@ -1,5 +1,5 @@
 import { getCorsHeaders } from "../cors";
-import { extractGeminiText } from "../gemini";
+import { extractGeminiText, recordGeminiUsage } from "../gemini";
 import { resolveUtilityModel } from "../ai-models";
 import type { Env, MemoryRequest } from "../types";
 import { parseJsonResponse } from "../utils/json";
@@ -138,6 +138,7 @@ export async function handleMemory(request: Request, env: Env): Promise<Response
     }
 
     const memData = (await memRes.json()) as import("../gemini").GeminiResponse;
+    await recordGeminiUsage(env, model, memData.usageMetadata);
     const memRaw = extractGeminiText(memData);
     const parsedMem = parseJsonResponse<ParsedMemoryResponse>(memRaw);
 

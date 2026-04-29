@@ -1,5 +1,5 @@
 import { getCorsHeaders } from "../cors";
-import { extractGeminiText } from "../gemini";
+import { extractGeminiText, recordGeminiUsage } from "../gemini";
 import { resolveUtilityModel } from "../ai-models";
 import type { Env, ReformulateRequest } from "../types";
 import { parseJsonResponse } from "../utils/json";
@@ -126,6 +126,7 @@ export async function handleReformulate(request: Request, env: Env): Promise<Res
     }
 
     const refData = (await refRes.json()) as import("../gemini").GeminiResponse;
+    await recordGeminiUsage(env, model, refData.usageMetadata);
     const refRaw = extractGeminiText(refData);
     const parsedRef = parseJsonResponse<ReformulateResponse>(refRaw);
 

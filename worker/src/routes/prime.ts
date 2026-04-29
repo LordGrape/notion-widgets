@@ -1,5 +1,5 @@
 import { getCorsHeaders } from "../cors";
-import { extractGeminiText } from "../gemini";
+import { extractGeminiText, recordGeminiUsage } from "../gemini";
 import { resolveUtilityModel } from "../ai-models";
 import type { Env, PrimeRequest, PrimeResponse } from "../types";
 import { parseJsonResponse } from "../utils/json";
@@ -87,6 +87,7 @@ export async function handlePrime(request: Request, env: Env): Promise<Response>
     }
 
     const primeData = (await primeRes.json()) as import("../gemini").GeminiResponse;
+    await recordGeminiUsage(env, model, primeData.usageMetadata);
     const primeRaw = extractGeminiText(primeData);
     const parsed = parseJsonResponse<PrimeResponse>(primeRaw);
 

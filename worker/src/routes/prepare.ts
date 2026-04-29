@@ -1,5 +1,5 @@
 import { getCorsHeaders } from "../cors";
-import { extractGeminiText } from "../gemini";
+import { extractGeminiText, recordGeminiUsage } from "../gemini";
 import { resolveUtilityModel } from "../ai-models";
 import { parseLlmJson } from "../llm/parse";
 import type { Env, PrepareRequest } from "../types";
@@ -97,6 +97,7 @@ export async function handlePrepare(request: Request, env: Env): Promise<Respons
     }
 
     const prepData = (await prepRes.json()) as import("../gemini").GeminiResponse;
+    await recordGeminiUsage(env, model, prepData.usageMetadata);
     const prepRaw = extractGeminiText(prepData);
     // B1: tolerate fenced/prose-wrapped/mildly malformed JSON in prepare output.
     const parsedPrep = parseLlmJson(prepRaw) as Record<string, unknown>;

@@ -1,5 +1,5 @@
 import { getCorsHeaders } from "../cors";
-import { extractGeminiText } from "../gemini";
+import { extractGeminiText, recordGeminiUsage } from "../gemini";
 import type { DistillRequest, DistillResponse, Env } from "../types";
 import { parseJsonResponse } from "../utils/json";
 import { hashString } from "../utils/helpers";
@@ -103,6 +103,7 @@ export async function handleDistill(request: Request, env: Env): Promise<Respons
     }
 
     const distillData = (await distillRes.json()) as import("../gemini").GeminiResponse;
+    await recordGeminiUsage(env, "gemini-2.5-flash", distillData.usageMetadata);
     const distillRaw = extractGeminiText(distillData);
     const parsed = parseJsonResponse<DistillRawResponse>(distillRaw);
 

@@ -1,5 +1,5 @@
 import { getCorsHeaders } from "../cors";
-import { extractGeminiText } from "../gemini";
+import { extractGeminiText, recordGeminiUsage } from "../gemini";
 import { resolveUtilityModel } from "../ai-models";
 import type { Env, SyllabusRequest } from "../types";
 import { parseJsonResponse } from "../utils/json";
@@ -79,6 +79,7 @@ export async function handleSyllabus(request: Request, env: Env): Promise<Respon
     }
 
     const sylData = (await sylRes.json()) as import("../gemini").GeminiResponse;
+    await recordGeminiUsage(env, model, sylData.usageMetadata);
     const sylRaw = extractGeminiText(sylData);
     const parsedSyl = parseJsonResponse<Record<string, unknown>>(sylRaw);
 

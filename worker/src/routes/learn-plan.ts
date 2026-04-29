@@ -16,7 +16,7 @@ const PLAN_ESCALATION_MODEL = GEMINI_2_5_PRO;
 const PLAN_CACHE_VERSION = "v6";
 const PLAN_CACHE_TTL_SECONDS = 86400;
 const PLAN_CACHE_KEY_PREFIX = `learn-plan:${PLAN_CACHE_VERSION}:`;
-const PRO_DAILY_CAP = 5;
+const PRO_DAILY_CAP = 30;
 
 function dayKey(ts: number): string {
   return new Date(ts).toISOString().slice(0, 10);

@@ -15515,8 +15515,11 @@ input[type="range"]::-moz-range-thumb{
     var FETCH_LECTURE_ENDPOINT = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/fetch-lecture';
     var DISTILL_ENDPOINT = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/distill';
     var LECTURE_CTX_ENDPOINT = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/lecture-context';
+    var AI_USAGE_ENDPOINT = 'https://widget-sync.lordgrape-widgets.workers.dev/studyengine/ai-usage';
     var syllabusParseInFlightByCourse = new Set();
     var syllabusPreviewStateByCourse = {};
+    var latestAiUsageStats = null;
+    var aiUsageRefreshInFlight = false;
 
     /* ═══ SECTION: Default Tutor Stats | Functions: defaultTutorStats ═══ */
     function defaultTutorStats() {
@@ -15703,8 +15706,23 @@ input[type="range"]::-moz-range-thumb{
         modelEl.textContent = '—';
         return;
       }
+      fetchAiUsageStats();
       var a = SyncEngine.get(NS, 'tutorAnalytics');
       if (!a || !a.totalSessions) {
+        if (latestAiUsageStats && latestAiUsageStats.byFamily) {
+          var lf = Number((latestAiUsageStats.byFamily.flash && latestAiUsageStats.byFamily.flash.calls) || 0)
+            + Number((latestAiUsageStats.byFamily['flash-lite'] && latestAiUsageStats.byFamily['flash-lite'].calls) || 0);
+          var lp = Number((latestAiUsageStats.byFamily.pro && latestAiUsageStats.byFamily.pro.calls) || 0);
+          var ltot = lf + lp;
+          var lsub = modelEl.closest('.stat') ? modelEl.closest('.stat').querySelector('.s') : null;
+          if (ltot > 0) {
+            modelEl.innerHTML = 'Flash ' + Math.round((lf / ltot) * 100) + '% / Pro ' + Math.round((lp / ltot) * 100) + '%';
+            if (lsub) lsub.textContent = 'All Gemini calls';
+            avgEl.textContent = 'â€”';
+            reconEl.textContent = 'â€”';
+            return;
+          }
+        }
         avgEl.textContent = '—';
         reconEl.textContent = '—';
         modelEl.textContent = '—';
@@ -15718,6 +15736,11 @@ input[type="range"]::-moz-range-thumb{
       if (reconSubEl) reconSubEl.textContent = a.totalReconstructions > 0 ? 'success after re-study' : 'needs generative reviews';
       var f = a.totalFlashCalls || 0;
       var p = a.totalProCalls || 0;
+      if (latestAiUsageStats && latestAiUsageStats.byFamily) {
+        f = Number((latestAiUsageStats.byFamily.flash && latestAiUsageStats.byFamily.flash.calls) || 0)
+          + Number((latestAiUsageStats.byFamily['flash-lite'] && latestAiUsageStats.byFamily['flash-lite'].calls) || 0);
+        p = Number((latestAiUsageStats.byFamily.pro && latestAiUsageStats.byFamily.pro.calls) || 0);
+      }
       var tot = f + p;
       if (tot <= 0) modelEl.textContent = '—';
       else {
@@ -15727,15 +15750,53 @@ input[type="range"]::-moz-range-thumb{
       }
       var modelSubEl = modelEl.closest('.stat') ? modelEl.closest('.stat').querySelector('.s') : null;
       if (modelSubEl) {
-        if (f > 0 && p === 0) modelSubEl.textContent = 'Pro activates on harder cards';
+        if (latestAiUsageStats) modelSubEl.textContent = 'All Gemini calls';
+        else if (f > 0 && p === 0) modelSubEl.textContent = 'Pro activates on harder cards';
         else modelSubEl.textContent = 'Flash / Pro calls';
       }
     }
 
     /* ═══ SECTION: Refresh Cost Estimate In Settings | Functions: refreshCostEstimateInSettings ═══ */
+    function formatUsdEstimate(value) {
+      var n = Number(value || 0);
+      if (n > 0 && n < 0.01) return '<$0.01';
+      return '$' + n.toFixed(2);
+    }
+
+    function fetchAiUsageStats() {
+      if (aiUsageRefreshInFlight) return;
+      aiUsageRefreshInFlight = true;
+      fetch(AI_USAGE_ENDPOINT + '?days=31', {
+        method: 'GET',
+        headers: { 'X-Widget-Key': getWidgetKey() }
+      })
+        .then(function(res) { return res.ok ? res.json() : null; })
+        .then(function(data) {
+          if (data && data.ok) {
+            latestAiUsageStats = data;
+            try { renderTutorAnalyticsDashboard(); } catch(e) {}
+            try { refreshCostEstimateInSettings(); } catch(e) {}
+          }
+        })
+        .catch(function() {})
+        .finally(function() {
+          aiUsageRefreshInFlight = false;
+        });
+    }
+
     function refreshCostEstimateInSettings() {
       var box = el('s_costEstimate');
       if (!box || typeof SyncEngine === 'undefined' || !SyncEngine.get) return;
+      fetchAiUsageStats();
+      if (latestAiUsageStats && latestAiUsageStats.month) {
+        var fam = latestAiUsageStats.byFamily || {};
+        var flashCalls = Number((fam.flash && fam.flash.calls) || 0) + Number((fam['flash-lite'] && fam['flash-lite'].calls) || 0);
+        var proCalls = Number((fam.pro && fam.pro.calls) || 0);
+        var totalTokens = Number(latestAiUsageStats.month.totalTokens || 0);
+        box.textContent = 'This month: ' + flashCalls + ' Flash / ' + proCalls + ' Pro calls Â· '
+          + totalTokens.toLocaleString() + ' tokens Â· Estimated cost: ~' + formatUsdEstimate(latestAiUsageStats.month.costUsd);
+        return;
+      }
       var analytics = SyncEngine.get(NS, 'tutorAnalytics');
       if (!analytics || !analytics.sessionHistory || !analytics.sessionHistory.length) {
         box.textContent = 'This month: 0 Flash / 0 Pro calls · Estimated cost: ~$0.00';
@@ -15755,8 +15816,7 @@ input[type="range"]::-moz-range-thumb{
         }
       });
       var cost = flashM * 0.0003 + proM * 0.002;
-      var costStr = cost < 0.01 && cost > 0 ? '<$0.01' : '$' + cost.toFixed(2);
-      box.textContent = 'This month: ' + flashM + ' Flash / ' + proM + ' Pro calls · Estimated cost: ~' + costStr;
+      box.textContent = 'This month: ' + flashM + ' Flash / ' + proM + ' Pro calls · Estimated cost: ~' + formatUsdEstimate(cost);
     }
 
     /* ═══ SECTION: Request Session Ai Summary | Functions: requestSessionAiSummary ═══ */
@@ -26006,13 +26066,11 @@ input[type="range"]::-moz-range-thumb{
       return est;
     }
 
-    /* Compute the streaming percentage. Uses the higher of:
-       - segment-based fill: `loaded / estimated * 85` (reserves the last 15%
-         for consolidationQuestions + complete).
-       - time-based ease: asymptotic approach toward 85% over ~28s so the user
-         sees continuous motion while Gemini is still drafting the first
-         segment (no segments have arrived yet).
-       Jumps to 100% the moment streaming completes. */
+    /* Compute the streaming percentage from real client-visible milestones.
+       Gemini streaming does not expose total-token or percent-complete
+       telemetry, so this deliberately avoids a timer pretending to be
+       progress. The bar advances when the client actually receives segments,
+       consolidation questions, or the complete event. */
     function computeLearnStreamPct(flow) {
       if (!flow) return 0;
       var flowBridge = globalThis.__studyEngineLearnFlow;
@@ -26021,17 +26079,10 @@ input[type="range"]::-moz-range-thumb{
       }
       var loaded = (flowBridge && flowBridge.getLoadedSegmentCount) ? flowBridge.getLoadedSegmentCount(flow) : 0;
       var est = (activeLearnSession && activeLearnSession.estimatedSegmentTotal) ? activeLearnSession.estimatedSegmentTotal : 3;
-      var segPct = Math.min(85, Math.floor((loaded / est) * 85));
-
-      var startedAt = (activeLearnSession && activeLearnSession.streamStartedAt) ? activeLearnSession.streamStartedAt : Date.now();
-      var elapsedMs = Math.max(0, Date.now() - startedAt);
-      /* Asymptotic ease: pct = 85 * (1 - exp(-t / 10s)). Reaches ~63% at 10s,
-         ~85% at 28s, and never crosses 85% so the segment-based path always
-         wins once segments start arriving. */
-      var timePct = Math.floor(85 * (1 - Math.exp(-elapsedMs / 10000)));
-
-      var pct = Math.max(segPct, timePct);
-      if (pct < 3) pct = 3; /* Show at least a sliver immediately so the bar is visible. */
+      var pct = loaded > 0 ? Math.floor((loaded / Math.max(1, est)) * 80) : 8;
+      if (activeLearnSession && activeLearnSession.consolidationReceived) pct = Math.max(pct, 90);
+      if (activeLearnSession && activeLearnSession.pendingTurnResult) pct = Math.max(pct, 82);
+      if (pct < 8) pct = 8;
       if (pct > 95) pct = 95;
       return pct;
     }
@@ -27850,6 +27901,7 @@ input[type="range"]::-moz-range-thumb{
         modalMounted: false,
         streamStartedAt: Date.now(),
         estimatedSegmentTotal: estTotal,
+        consolidationReceived: false,
         planOutOfDate: false,
         planVersion: nextPlanVersion,
         planFingerprint: currentFingerprint,
@@ -27944,6 +27996,7 @@ input[type="range"]::-moz-range-thumb{
         },
         onConsolidationQuestions: function(questions) {
           if (!activeLearnSession) return;
+          activeLearnSession.consolidationReceived = true;
           activeLearnSession.flow = flowBridge.attachStreamedConsolidationQuestions(activeLearnSession.flow, questions || []);
           if (activeLearnSession.modalMounted) renderLearnSessionUI();
         },

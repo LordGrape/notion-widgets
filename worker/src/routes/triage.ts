@@ -1,5 +1,5 @@
 import { getCorsHeaders } from "../cors";
-import { extractGeminiText } from "../gemini";
+import { extractGeminiText, recordGeminiUsage } from "../gemini";
 import type { Env, ExamTriageRequest } from "../types";
 import { parseJsonResponse } from "../utils/json";
 
@@ -139,6 +139,7 @@ Return JSON:
   }
 
   const geminiData = (await geminiRes.json()) as import("../gemini").GeminiResponse;
+  await recordGeminiUsage(env, "gemini-2.5-flash", geminiData.usageMetadata);
   const rawText = extractGeminiText(geminiData);
   const parsed = parseJsonResponse<Record<string, unknown>>(rawText);
 

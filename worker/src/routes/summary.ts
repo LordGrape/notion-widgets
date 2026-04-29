@@ -1,5 +1,5 @@
 import { getCorsHeaders } from "../cors";
-import { extractGeminiText } from "../gemini";
+import { extractGeminiText, recordGeminiUsage } from "../gemini";
 import { resolveUtilityModel } from "../ai-models";
 import type { Env, SummaryRequest } from "../types";
 
@@ -110,6 +110,7 @@ export async function handleSummary(request: Request, env: Env): Promise<Respons
     }
 
     const sumData = (await sumRes.json()) as import("../gemini").GeminiResponse;
+    await recordGeminiUsage(env, model, sumData.usageMetadata);
     const summaryText = String(extractGeminiText(sumData) || "").trim();
     if (!summaryText) {
       return jsonResponse({ error: "Empty summary" }, 500);
