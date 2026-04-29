@@ -3,7 +3,7 @@ import { GEMINI_2_5_FLASH } from "../ai-models";
 import { callGemini, extractGeminiText } from "../gemini";
 import type { Env, LearnPlanSegment } from "../types";
 
-const LEARN_CONTEXT_CACHE_VERSION = "v1";
+const LEARN_CONTEXT_CACHE_VERSION = "v2";
 const LEARN_CONTEXT_CACHE_TTL_SECONDS = 60 * 60 * 24 * 45;
 
 const LEARN_CONTEXT_CORS_HEADERS = {
@@ -62,6 +62,27 @@ function normalizeHistory(history: LearnContextMessage[] | undefined): LearnCont
     .map((msg) => ({ role: msg.role, text: String(msg.text || "").trim().slice(0, 700) }));
 }
 
+function sourceHost(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "").toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+function isBlockedSource(url: string): boolean {
+  const host = sourceHost(url);
+  return host === "grokipedia.com" || host.endsWith(".grokipedia.com");
+}
+
+function sourcePriority(source: LearnContextSource): number {
+  const host = sourceHost(source.url);
+  if (host.endsWith("canada.ca") || host.endsWith("forces.gc.ca") || host.endsWith("gc.ca")) return 0;
+  if (host.endsWith("wikipedia.org")) return 1;
+  if (host.endsWith(".edu") || host.endsWith(".ac.uk") || host.endsWith(".ca")) return 2;
+  return 3;
+}
+
 function extractGroundingSources(data: unknown): LearnContextSource[] {
   const candidate = data && typeof data === "object"
     ? (data as { candidates?: Array<{ groundingMetadata?: Record<string, unknown> }> }).candidates?.[0]
@@ -73,15 +94,16 @@ function extractGroundingSources(data: unknown): LearnContextSource[] {
   for (const chunk of chunks) {
     const web = chunk && typeof chunk === "object" ? (chunk as { web?: { uri?: unknown; title?: unknown } }).web : null;
     const url = String(web?.uri || "").trim();
-    if (!url || seen.has(url)) continue;
+    if (!url || seen.has(url) || isBlockedSource(url)) continue;
     seen.add(url);
     out.push({
       title: String(web?.title || "Source").trim() || "Source",
       url
     });
-    if (out.length >= 4) break;
   }
-  return out;
+  return out
+    .sort((a, b) => sourcePriority(a) - sourcePriority(b))
+    .slice(0, 4);
 }
 
 function getPreviewQuestion(): string {
@@ -99,6 +121,7 @@ function buildPrompts(body: LearnContextRequest): { system: string; user: string
   const system = [
     "You are a context tutor inside a Learn session.",
     "Use the highlighted claim, the card-grounded teach block, and Google Search grounding when broader context would help.",
+    "Prefer official, academic, museum, government, and Wikipedia sources. Avoid AI encyclopedia clones or low-quality mirrors.",
     "Do not invent unsupported context. If a detail is only from the card, say so plainly.",
     isPreview
       ? "For preview mode, answer with 2-3 compact sentences. Include context, not a quiz question."
