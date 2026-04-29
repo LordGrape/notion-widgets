@@ -6,6 +6,7 @@ import {
   minimumVerifiedSegmentCountForTest,
   verifySegmentGroundingForTest,
   verifySegmentTeach,
+  verifySegmentTitle,
   verifySegmentTutorPrompt
 } from '../src/routes/learn-plan';
 import type { LearnPlanSegment } from '../src/types';
@@ -20,7 +21,8 @@ describe('learn-plan quality safeguards', () => {
     ]);
 
     const segment = plan.segments[0];
-    expect(segment.title).toBe('Regiment that became the Essex Scottish');
+    expect(segment.title).toBe('What makes this origin story more than a loose fact?');
+    expect(verifySegmentTitle(segment).ok).toBe(true);
     expect(segment.teach).not.toBe(answer);
     expect(segment.teach).toContain('origin story');
     expect(segment.teach).toContain('The anchor is');
@@ -32,6 +34,22 @@ describe('learn-plan quality safeguards', () => {
     expect(verifySegmentTeach(segment)).toBe(true);
     expect(segment.tutorPrompt).toContain('origin story');
     expect(verifySegmentTutorPrompt(segment).ok).toBe(true);
+  });
+
+  it('allows exactly one cloze blank to reuse taught wording', () => {
+    const teach = [
+      "The Essex Scottish lineage begins with a founding militia identity in Windsor, Ontario.",
+      "The key anchor is 12 June 1885, when the unit was created as the 21st Essex Battalion of Infantry.",
+      "That date matters because the regiment treats it as the start of continuous service to Canada, so the date, original battalion name, and Windsor headquarters belong together as one origin story rather than three separate facts."
+    ].join(' ');
+
+    const result = verifySegmentTutorPrompt({
+      teach,
+      checkType: 'cloze',
+      tutorPrompt: "The key anchor is [___], when the unit was created as the 21st Essex Battalion of Infantry. What belongs in the blank?"
+    });
+
+    expect(result).toEqual({ ok: true });
   });
 
   it('rejects answer-display teach blocks for factual cards', () => {

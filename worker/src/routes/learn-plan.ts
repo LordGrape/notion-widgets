@@ -13,7 +13,7 @@ const LEARN_PLAN_CORS_HEADERS = {
 const PLAN_PRIMARY_MODEL = GEMINI_2_5_FLASH;
 const PLAN_ESCALATION_MODEL = GEMINI_2_5_PRO;
 
-const PLAN_CACHE_VERSION = "v10";
+const PLAN_CACHE_VERSION = "v11";
 const PLAN_CACHE_TTL_SECONDS = 86400;
 const PLAN_CACHE_KEY_PREFIX = `learn-plan:${PLAN_CACHE_VERSION}:`;
 const PRO_DAILY_CAP = 30;
@@ -488,7 +488,12 @@ export function verifySegmentTitle(seg: {
   return { ok: true };
 }
 
-export function verifySegmentTutorPrompt(seg: { tutorPrompt: string; teach?: string }): { ok: boolean; reason?: string } {
+function hasExactlyOneClozeBlank(prompt: string): boolean {
+  const matches = String(prompt || '').match(/\[___\]/g);
+  return (matches || []).length === 1;
+}
+
+export function verifySegmentTutorPrompt(seg: { tutorPrompt: string; teach?: string; checkType?: LearnCheckType | string }): { ok: boolean; reason?: string } {
   const trimmed = String(seg?.tutorPrompt || '').trim();
   if (trimmed.length < 15) return { ok: false, reason: 'too_short' };
   if (!/\?\s*$/.test(trimmed)) return { ok: false, reason: 'no_question_mark' };
@@ -506,7 +511,8 @@ export function verifySegmentTutorPrompt(seg: { tutorPrompt: string; teach?: str
     String(seg?.teach || ''),
     String(seg?.tutorPrompt || '')
   );
-  if (restatementRatio > TUTOR_VS_TEACH_RESTATEMENT_CEILING) {
+  const isSingleBlankCloze = seg?.checkType === "cloze" && hasExactlyOneClozeBlank(trimmed);
+  if (!isSingleBlankCloze && restatementRatio > TUTOR_VS_TEACH_RESTATEMENT_CEILING) {
     return { ok: false, reason: `restates_teach:${restatementRatio.toFixed(2)}` };
   }
   return { ok: true };
@@ -658,9 +664,8 @@ function buildFallbackSegmentTitle(prompt: string, idx: number): string {
     .replace(/^(was|were|is|are|did|does|do)\b\s*/i, "")
     .replace(/^the\s+/i, "")
     .replace(/\s+/g, " ");
-  if (!focus) return `Card ${idx + 1}`;
-  const words = focus.split(" ").filter(Boolean).slice(0, 6).join(" ").replace(/[,:;.\s]+$/, "");
-  return words ? `${words.charAt(0).toUpperCase()}${words.slice(1)}` : `Card ${idx + 1}`;
+  if (!focus) return `What makes card ${idx + 1} easier to learn as a connected sequence?`;
+  return "What makes this origin story more than a loose fact?";
 }
 
 export function buildDensityFallback(cards: StudyCardInput[]): LearnPlanResponse {
