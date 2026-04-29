@@ -13,7 +13,7 @@ const LEARN_PLAN_CORS_HEADERS = {
 const PLAN_PRIMARY_MODEL = GEMINI_2_5_FLASH;
 const PLAN_ESCALATION_MODEL = GEMINI_2_5_PRO;
 
-const PLAN_CACHE_VERSION = "v8";
+const PLAN_CACHE_VERSION = "v10";
 const PLAN_CACHE_TTL_SECONDS = 86400;
 const PLAN_CACHE_KEY_PREFIX = `learn-plan:${PLAN_CACHE_VERSION}:`;
 const PRO_DAILY_CAP = 30;
@@ -122,7 +122,7 @@ const LANGUAGE_PROFILE_APPENDIX = [
   "This is a LANGUAGE profile session. Prioritize:",
   "- Emit segment pairs in order: first RECOGNITION (L2→L1, include audioCue metadata with targetLanguage), then PRODUCTION (L1→L2).",
   "- Aim for i+1 difficulty where i = languageLevel; target one level above current learner level.",
-  "- For grammar/sentence-pattern cards, use checkType='cloze' and include exactly one [___] blank in tutorPrompt.",
+  "- For grammar/sentence-pattern cards, use checkType='cloze' and include exactly one [___] blank in tutorPrompt. Cloze is also permitted outside the LANGUAGE profile for one-card factual sessions when body.cards.length === 1 and planProfile === 'factual'.",
   "- Keep teach blocks concise: 50 words maximum.",
   "- Include targetLanguage (BCP-47) in any audio-cue metadata for client-side TTS playback."
 ].join("\n");
@@ -205,6 +205,16 @@ function computeTokenOverlapRatio(sourceText: string, targetText: string): numbe
  * ──────────────────────────────────────────────────────────────────── */
 export const GROUNDING_TEACH_OVERLAP_FLOOR = 0.55;
 export const GROUNDING_TUTOR_OVERLAP_FLOOR = 0.15;
+export const TUTOR_VS_TEACH_RESTATEMENT_CEILING = 0.55;
+
+/**
+ * Title and tutorPrompt must cue disjoint named-entity subsets of the teach
+ * so the verdict on tutorPrompt measures integration, not attentional
+ * priming from the title. Higher overlap means the measurement event tests
+ * what was already cued, contaminating suggestedStatus and the downstream
+ * FSRS handoff. Permit small overlap from incidental shared entities.
+ */
+export const TITLE_VS_TUTOR_ENTITY_OVERLAP_CEILING = 0.40;
 
 function textHasAnchor(cardText: string, anchor: string): boolean {
   const hay = normalizeText(cardText);
@@ -408,9 +418,12 @@ const BANNED_TUTOR_PROMPT_PHRASES: string[] = [
  * markdown. Segments whose tutorPrompt matches any of these patterns are
  * dropped and routed through the existing three-tier fallback.
  *
- * Also duplicated in worker/src/routes/learn-turn.ts (BANNED_TUTOR_PROMPT_RECALL_PATTERNS)
- * where the same regex array conditions the copyRatio backstop.
- * Keep the two arrays in sync.
+ * The recall-opening patterns are duplicated in worker/src/routes/learn-turn.ts
+ * where they condition the copyRatio backstop. The plan-only tautology closer
+ * patterns below are intentionally not duplicated there because learn-turn
+ * does not call the planner validator.
+ * Title-side recall patterns live in BANNED_SEGMENT_TITLE_RECALL_PATTERNS and
+ * are likewise planner-only.
  */
 export const BANNED_TUTOR_PROMPT_RECALL_PATTERNS: readonly RegExp[] = [
   /^(on\s+)?what\s+(date|year|month|day)\b/i,
@@ -423,11 +436,60 @@ export const BANNED_TUTOR_PROMPT_RECALL_PATTERNS: readonly RegExp[] = [
   /^how\s+many\b/i,
   /^name\s+(the|a|an|one|two|three|all)\b/i,
   /^list\s+(the|a|an|one|two|three|all)\b/i,
-  /^identify\s+(the|a|an|one|two|three|all)\b/i
+  /^identify\s+(the|a|an|one|two|three|all)\b/i,
+  // Tautological "establish/show/demonstrate" closers after a
+  // restated premise. Anchored anywhere in the prompt because the
+  // restatement appears before the closer.
+  //
+  // Contract: "How do A, B, and C fit together as one origin story?"
+  // remains valid. The negative lookahead rejects bare "fit together?"
+  // closers only when "into" or "as" does not appear within 80 chars
+  // before the question mark.
+  /\bhow do these (details|facts|points|elements|pieces) (establish|show|demonstrate|illustrate|reveal)\b/i,
+  /\bhow do these (details|facts|points|elements|pieces) fit together\b(?![^?]{0,80}\b(into|as)\b)/i
 ] as const;
 
-export function verifySegmentTutorPrompt(tp: string): { ok: boolean; reason?: string } {
-  const trimmed = String(tp || '').trim();
+export const BANNED_SEGMENT_TITLE_RECALL_PATTERNS: readonly RegExp[] = [
+  /^(on\s+)?what\s+(date|year|month|day|name)\b/i,
+  /^which\s+(year|month|day|date|name)\b/i,
+  /^when\s+(was|were|is|are|did|will)\b/i,
+  /^who\s+(was|is|were|are|founded|created|established|signed)\b/i,
+  /^where\s+(was|is|were|are|did)\b/i,
+  /^how\s+long\b/i,
+  /^how\s+many\b/i,
+  /^name\s+(the|a|an|one|two|three|all)\b/i,
+  /^list\s+(the|a|an|one|two|three|all)\b/i,
+  /^identify\s+(the|a|an|one|two|three|all)\b/i,
+  /^under\s+what\s+(name|title|designation)\b/i,
+  /\b(when|where|who|what date|what year|what name|what month)\b[^?]{0,80},\s*and\s+(under what|by what|by whom|in what)\b/i
+] as const;
+
+export function verifySegmentTitle(seg: {
+  title: string;
+  teach?: string;
+  tutorPrompt?: string;
+  mechanism?: string;
+}): { ok: boolean; reason?: string } {
+  const trimmed = String(seg?.title || '').trim();
+  if (trimmed.length < 10) return { ok: false, reason: 'too_short' };
+  if (trimmed.length > 140) return { ok: false, reason: 'too_long' };
+  if (!/\?\s*$/.test(trimmed)) return { ok: false, reason: 'no_question_mark' };
+  const stripped = trimmed.replace(/^[\s>#*_\-`]+/, '');
+  for (const pattern of BANNED_SEGMENT_TITLE_RECALL_PATTERNS) {
+    if (pattern.test(stripped)) return { ok: false, reason: `banned_title_recall_pattern:${pattern.source}` };
+  }
+  const tutorPrompt = String(seg?.tutorPrompt || '').trim();
+  if (tutorPrompt) {
+    const entityOverlap = computeTokenOverlapRatio(trimmed, tutorPrompt);
+    if (entityOverlap > TITLE_VS_TUTOR_ENTITY_OVERLAP_CEILING) {
+      return { ok: false, reason: `title_tutor_overlap:${entityOverlap.toFixed(2)}` };
+    }
+  }
+  return { ok: true };
+}
+
+export function verifySegmentTutorPrompt(seg: { tutorPrompt: string; teach?: string }): { ok: boolean; reason?: string } {
+  const trimmed = String(seg?.tutorPrompt || '').trim();
   if (trimmed.length < 15) return { ok: false, reason: 'too_short' };
   if (!/\?\s*$/.test(trimmed)) return { ok: false, reason: 'no_question_mark' };
   // Strip leading markdown / quote / whitespace noise so a planner emitting
@@ -440,6 +502,13 @@ export function verifySegmentTutorPrompt(tp: string): { ok: boolean; reason?: st
   for (const phrase of BANNED_TUTOR_PROMPT_PHRASES) {
     if (lower.indexOf(phrase) >= 0) return { ok: false, reason: `banned_phrase:${phrase}` };
   }
+  const restatementRatio = computeTokenOverlapRatio(
+    String(seg?.teach || ''),
+    String(seg?.tutorPrompt || '')
+  );
+  if (restatementRatio > TUTOR_VS_TEACH_RESTATEMENT_CEILING) {
+    return { ok: false, reason: `restates_teach:${restatementRatio.toFixed(2)}` };
+  }
   return { ok: true };
 }
 
@@ -447,14 +516,17 @@ function filterVerifiedSegments(segments: LearnPlanSegment[], corpus: Record<str
   return (segments || []).filter((seg) => (
     verifySegmentGrounding(seg, corpus)
     && verifySegmentTeach(seg)
-    && verifySegmentTutorPrompt(String(seg?.tutorPrompt || '')).ok
+    && verifySegmentTitle(seg).ok
+    && verifySegmentTutorPrompt(seg).ok
     && verifySegmentCheckType(seg)
   ));
 }
 
 function verifySegmentQuality(seg: LearnPlanSegment): { ok: boolean; reason?: string } {
   if (!verifySegmentTeach(seg)) return { ok: false, reason: "teach_quality" };
-  const tutorCheck = verifySegmentTutorPrompt(String(seg?.tutorPrompt || ""));
+  const titleCheck = verifySegmentTitle(seg);
+  if (!titleCheck.ok) return { ok: false, reason: titleCheck.reason || "title_quality" };
+  const tutorCheck = verifySegmentTutorPrompt(seg);
   if (!tutorCheck.ok) return { ok: false, reason: tutorCheck.reason || "tutor_prompt_quality" };
   if (!verifySegmentCheckType(seg)) return { ok: false, reason: "check_type_quality" };
   return { ok: true };
@@ -754,7 +826,15 @@ function buildSystemPrompt(body: LearnPlanRequest): string {
     "Each segment must include groundingSnippets with exact substrings copied from card prompt/modelAnswer.",
     "Use mechanisms from: worked_example, elaborative_interrogation, self_explanation, predictive_question, test_closure.",
     "At least 2 segments unless card count is 1.",
-    "Segment titles must be compact lesson labels (3-8 words), not full card prompts, and must never be truncated mid-word.",
+    "",
+    "TITLE FIELD RULES (first-exposure curiosity prompt, NOT a measurement):",
+    "- The title is first, before teach. It is a curiosity-orienting question that opens an information gap the teach will close. It is NOT a memory test and NOT the segment's measurement event.",
+    "- The MEASUREMENT event is segment.tutorPrompt, answered AFTER teach. Its verdict propagates to FSRS handoff status (taught / consolidated). The title must not preempt that measurement.",
+    "- Prefer PREDICTIVE or CAUSAL shapes: \"Why might [observable premise] have led to [general outcome]?\", \"What would explain [phenomenon] given [prior context]?\", \"If [setup], what would you expect?\"",
+    "- Banned title shapes: \"When was X ...?\", \"Who founded X?\", \"Where was X ...?\", \"Under what name was X ...?\", and conjunctive \"When X, and under what name?\" forms.",
+    "- The title and tutorPrompt MUST cue different named entities. If title primes date + name, tutorPrompt must integrate trigger + actor + location, and vice versa. Validator rejects overlap above 0.40.",
+    "- Negative example (DO NOT emit): \"When was the regiment that became the Essex Scottish founded, and under what name?\" If tutorPrompt asks the same facts, a high verdict measures priming, not learning.",
+    "- Positive example: title \"What political event in 1880s Canada might have driven the founding of a new local militia regiment in Windsor?\" paired with tutorPrompt \"How do the founding date, the original battalion name, and the founding commander fit together as evidence of that political response?\"",
     "",
     "TEACH-BLOCK RULES (each segment's `teach` field):",
     "- Minimum 70 words of declarative instruction.",
@@ -775,7 +855,9 @@ function buildSystemPrompt(body: LearnPlanRequest): string {
     "- It is the only field that may end with a question mark.",
     "- Prefer meaning-making prompts: ask the learner to explain the relationship, causal link, contrast, consequence, or reason the details belong together.",
     "- The tutorPrompt must be answerable from the teach block alone. Do not ask about a significance, cause, consequence, or reason unless the teach block explicitly taught that significance, cause, consequence, or reason.",
-    "- For one-card factual sessions, prefer 'How do [taught detail A], [taught detail B], and [taught detail C] fit together?' over 'Why was [new detail] significant?'",
+    "- The tutorPrompt premise must NOT verbatim restate the teach. If you reference taught detail in the premise, name it specifically as \"[detail A], [detail B], and [detail C]\" and keep the premise under 25 words. Long restated premises will be rejected.",
+    "- Negative example (DO NOT emit): \"The regiment was founded on 12 June 1885 as the 21st Essex Battalion in Windsor. How do these details establish the regiment's identity and location?\" - this is a tautological closer where the answer is the restated premise.",
+    "- For one-card factual sessions, prefer checkType=\"cloze\" with exactly one [___] blank that hides one taught detail. If cloze is structurally unsuitable for the card, fall back to checkType=\"self_explain\" with 'How do [taught detail A], [taught detail B], and [taught detail C] fit together as one [origin story | mechanism | sequence]?' Avoid 'Why was [new detail] significant?' for one-card sessions.",
     "- You must choose exactly one checkType for each segment:",
     "  - elaborative: 'In your own words, why does [concept] matter / work / apply?' or 'How does [concept] connect to [prior segment]?' — forces causal reasoning.",
     "  - predictive: 'Before the next segment: what would happen if [varied scenario]?' — builds anticipatory schema.",
@@ -810,7 +892,7 @@ const STATIC_USER_SCHEMA_PREFIX = [
   "  \"segments\": [",
   "    {",
   "      \"id\": \"seg-1\",",
-  "      \"title\": \"compact 3-8 word lesson label\",",
+  "      \"title\": \"first-exposure curiosity question ending with ?\",",
   "      \"mechanism\": \"worked_example\",",
   "      \"objective\": \"...\",",
   "      \"teach\": \"80+ words of declarative instruction with concrete facts; no questions; no banned openers.\",",
