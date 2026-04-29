@@ -3,7 +3,7 @@ import { GEMINI_2_5_FLASH } from "../ai-models";
 import { callGemini, extractGeminiText } from "../gemini";
 import type { Env, LearnPlanSegment } from "../types";
 
-const LEARN_CONTEXT_CACHE_VERSION = "v2";
+const LEARN_CONTEXT_CACHE_VERSION = "v3";
 const LEARN_CONTEXT_CACHE_TTL_SECONDS = 60 * 60 * 24 * 45;
 
 const LEARN_CONTEXT_CORS_HEADERS = {
@@ -70,14 +70,22 @@ function sourceHost(url: string): string {
   }
 }
 
-function isBlockedSource(url: string): boolean {
-  const host = sourceHost(url);
+function sourceHostHint(source: LearnContextSource): string {
+  const fromUrl = sourceHost(source.url);
+  const title = String(source.title || "").trim().toLowerCase();
+  if (/^[a-z0-9.-]+\.[a-z]{2,}$/.test(title)) return title.replace(/^www\./, "");
+  return fromUrl;
+}
+
+function isBlockedSource(source: LearnContextSource): boolean {
+  const host = sourceHostHint(source);
   return host === "grokipedia.com" || host.endsWith(".grokipedia.com");
 }
 
 function sourcePriority(source: LearnContextSource): number {
-  const host = sourceHost(source.url);
+  const host = sourceHostHint(source);
   if (host.endsWith("canada.ca") || host.endsWith("forces.gc.ca") || host.endsWith("gc.ca")) return 0;
+  if (host.endsWith("ekscot.org")) return 1;
   if (host.endsWith("wikipedia.org")) return 1;
   if (host.endsWith(".edu") || host.endsWith(".ac.uk") || host.endsWith(".ca")) return 2;
   return 3;
@@ -94,12 +102,14 @@ function extractGroundingSources(data: unknown): LearnContextSource[] {
   for (const chunk of chunks) {
     const web = chunk && typeof chunk === "object" ? (chunk as { web?: { uri?: unknown; title?: unknown } }).web : null;
     const url = String(web?.uri || "").trim();
-    if (!url || seen.has(url) || isBlockedSource(url)) continue;
-    seen.add(url);
-    out.push({
+    if (!url || seen.has(url)) continue;
+    const source = {
       title: String(web?.title || "Source").trim() || "Source",
       url
-    });
+    };
+    if (isBlockedSource(source)) continue;
+    seen.add(url);
+    out.push(source);
   }
   return out
     .sort((a, b) => sourcePriority(a) - sourcePriority(b))
