@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { buildDensityFallback, verifySegmentGroundingForTest, verifySegmentTeach, verifySegmentTutorPrompt } from '../src/routes/learn-plan';
+import {
+  buildDensityFallback,
+  learnFallbackWarningForTest,
+  minimumVerifiedSegmentCountForTest,
+  verifySegmentGroundingForTest,
+  verifySegmentTeach,
+  verifySegmentTutorPrompt
+} from '../src/routes/learn-plan';
+import type { LearnPlanSegment } from '../src/types';
 
 describe('learn-plan quality safeguards', () => {
   it('turns density fallback answers into learning micro-lessons', () => {
@@ -41,7 +49,7 @@ describe('learn-plan quality safeguards', () => {
 
   it('accepts grounded micro-lessons that add explanatory language', () => {
     const answer = "12 June 1885, as the 21st 'Essex' Battalion of Infantry, headquartered in Windsor, Ontario. The regiment celebrates continuous service to Canada from this date.";
-    const segment = {
+    const segment: LearnPlanSegment = {
       id: 's2',
       title: 'Essex Scottish origin',
       mechanism: 'worked_example',
@@ -53,6 +61,29 @@ describe('learn-plan quality safeguards', () => {
       linkedCardIds: ['card-1'],
       groundingSnippets: [{ cardId: 'card-1', quote: 'the regiment began under an Essex battalion name in Windsor' }]
     };
-    expect(verifySegmentGroundingForTest(segment as any, { 'card-1': `PROMPT: When was the regiment founded?\nANSWER: ${answer}` })).toBe(true);
+    expect(verifySegmentGroundingForTest(segment, { 'card-1': `PROMPT: When was the regiment founded?\nANSWER: ${answer}` })).toBe(true);
+  });
+
+  it('requires only one verified segment for one-segment Learn sessions', () => {
+    expect(minimumVerifiedSegmentCountForTest(1)).toBe(1);
+    expect(minimumVerifiedSegmentCountForTest(2)).toBe(2);
+    expect(minimumVerifiedSegmentCountForTest(5)).toBe(2);
+  });
+
+  it('keeps Learn fallback warnings tied to the actual failure class', () => {
+    const baseStats = {
+      budgetReason: undefined,
+      parsedSegmentCount: 0,
+      groundingRejectedCount: 0,
+      qualityRejectedCount: 0,
+      secondParsedSegmentCount: 0,
+      secondGroundingRejectedCount: 0,
+      secondQualityRejectedCount: 0
+    };
+
+    expect(learnFallbackWarningForTest(baseStats)).toContain('did not return parseable lesson segments');
+    expect(learnFallbackWarningForTest({ ...baseStats, groundingRejectedCount: 1 })).toContain('could not be verified against the deck');
+    expect(learnFallbackWarningForTest({ ...baseStats, groundingRejectedCount: 1, secondQualityRejectedCount: 1 })).toContain('teaching-quality checks');
+    expect(learnFallbackWarningForTest({ ...baseStats, budgetReason: 'pro_exhausted' })).toContain('Pro retry budget was exhausted');
   });
 });
