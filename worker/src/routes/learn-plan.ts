@@ -1210,6 +1210,11 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
     const emittedSegments: LearnPlanSegment[] = [];
     const emittedSegmentIds = new Set<string>();
     const qualityRejectedSegments = new Map<string, { segment: LearnPlanSegment; reason: string }>();
+    let groundingRejectedCount = 0;
+    let parsedSegmentCount = 0;
+    let secondParsedSegmentCount = 0;
+    let secondGroundingRejectedCount = 0;
+    let secondQualityRejectedCount = 0;
 
     let streamFailed = false;
     try {
@@ -1226,7 +1231,11 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
         for (const slice of completed) {
           const seg = parseJsonResponse<LearnPlanSegment>(slice);
           if (!seg || typeof seg !== "object") continue;
-          if (!verifySegmentGrounding(seg, cardCorpus)) continue;
+          parsedSegmentCount += 1;
+          if (!verifySegmentGrounding(seg, cardCorpus)) {
+            groundingRejectedCount += 1;
+            continue;
+          }
           const quality = verifySegmentQuality(seg);
           if (!quality.ok) {
             qualityRejectedSegments.set(String(seg.id || qualityRejectedSegments.size), { segment: seg, reason: quality.reason || "quality" });
@@ -1258,8 +1267,12 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
       // Backstop: any verified segments not yet emitted (e.g. parser drift).
       for (const seg of fullParsed.segments) {
         if (!seg || typeof seg !== "object") continue;
+        parsedSegmentCount += 1;
         if (emittedSegmentIds.has(String(seg.id))) continue;
-        if (!verifySegmentGrounding(seg, cardCorpus)) continue;
+        if (!verifySegmentGrounding(seg, cardCorpus)) {
+          groundingRejectedCount += 1;
+          continue;
+        }
         const quality = verifySegmentQuality(seg);
         if (!quality.ok) {
           qualityRejectedSegments.set(String(seg.id || qualityRejectedSegments.size), { segment: seg, reason: quality.reason || "quality" });
@@ -1279,6 +1292,7 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
 
     let budgetDegraded: LearnPlanResponse["budgetDegraded"];
     const targetSegmentCount = targetLearnSegmentCount(body);
+    const minimumVerifiedSegments = Math.min(2, targetSegmentCount);
     if (qualityRejectedSegments.size > 0) {
       for (const rejected of qualityRejectedSegments.values()) {
         if (emittedSegments.length >= targetSegmentCount) break;
@@ -1303,13 +1317,13 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
       }
     }
 
-    if (emittedSegments.length >= 2) {
+    if (emittedSegments.length >= minimumVerifiedSegments) {
       await emit.event("consolidationQuestions", { questions: verifiedQs });
       await emit.event("complete", {
         segmentCount: emittedSegments.length,
         consolidationCount: verifiedQs.length,
         planMode: streamFailed ? "retry_verified" : "verified",
-        warning: verifiedQs.length < 2 ? "Fewer than 2 consolidation questions verified." : undefined,
+        warning: emittedSegments.length < 2 ? "Only one verified lesson segment was generated." : (verifiedQs.length < 2 ? "Fewer than 2 consolidation questions verified." : undefined),
         budgetDegraded
       });
       await writePlanCache(cacheKey, env, emittedSegments, verifiedQs);
@@ -1328,8 +1342,9 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
         bufferLength: fullBuffer.length
       });
     } else {
-      console.warn("[learn-plan] streaming produced < 2 verified segments; falling back to one-shot.", {
+      console.warn("[learn-plan] streaming produced fewer verified segments than required; falling back to one-shot.", {
         emittedSegments: emittedSegments.length,
+        minimumVerifiedSegments,
         bufferLength: fullBuffer.length,
         streamFailed
       });
@@ -1350,7 +1365,21 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
       }
     }
 
-    const verifiedSecondBase = filterVerifiedSegments(secondAttempt?.segments || [], cardCorpus);
+    const verifiedSecondBase: LearnPlanSegment[] = [];
+    for (const segment of secondAttempt?.segments || []) {
+      if (!segment || typeof segment !== "object") continue;
+      secondParsedSegmentCount += 1;
+      if (!verifySegmentGrounding(segment, cardCorpus)) {
+        secondGroundingRejectedCount += 1;
+        continue;
+      }
+      const quality = verifySegmentQuality(segment);
+      if (!quality.ok) {
+        secondQualityRejectedCount += 1;
+        continue;
+      }
+      verifiedSecondBase.push(segment);
+    }
     const secondAttemptPlan: LearnPlanResponse = secondAttempt || { segments: verifiedSecondBase, consolidationQuestions: [] };
     const verifiedSecond: LearnPlanSegment[] = [];
     for (const segment of verifiedSecondBase) {
@@ -1365,7 +1394,7 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
     }
     const verifiedSecondQs = filterVerifiedConsolidationQuestions(secondAttempt?.consolidationQuestions || [], cardCorpus);
 
-    if (verifiedSecond.length >= 2) {
+    if (verifiedSecond.length >= minimumVerifiedSegments) {
       for (const seg of verifiedSecond) {
         if (emittedSegmentIds.has(String(seg.id))) continue;
         emittedSegmentIds.add(String(seg.id));
@@ -1377,7 +1406,7 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
         segmentCount: emittedSegments.length,
         consolidationCount: verifiedSecondQs.length,
         planMode: "retry_verified",
-        warning: verifiedSecondQs.length < 2 ? "Fewer than 2 consolidation questions verified." : undefined,
+        warning: verifiedSecond.length < 2 ? "Only one verified lesson segment was generated." : (verifiedSecondQs.length < 2 ? "Fewer than 2 consolidation questions verified." : undefined),
         budgetDegraded
       });
       await writePlanCache(cacheKey, env, verifiedSecond, verifiedSecondQs);
@@ -1387,8 +1416,25 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
 
     // ── Attempt 3: density fallback.
     console.warn("[learn-plan] fallback failed, using card-density fallback", {
-      verifiedSecond: verifiedSecond.length
+      verifiedSecond: verifiedSecond.length,
+      emittedSegments: emittedSegments.length,
+      parsedSegmentCount,
+      groundingRejectedCount,
+      qualityRejectedCount: qualityRejectedSegments.size,
+      secondParsedSegmentCount,
+      secondGroundingRejectedCount,
+      secondQualityRejectedCount,
+      budgetDegraded
     });
+    const fallbackWarning = budgetDegraded?.reason === "pro_exhausted"
+      ? "Learn used the fallback plan because the Pro retry budget was exhausted."
+      : (qualityRejectedSegments.size + secondQualityRejectedCount) > 0
+        ? "Learn used the fallback plan because generated segments failed the teaching-quality checks."
+        : (groundingRejectedCount + secondGroundingRejectedCount) > 0
+          ? "Learn used the fallback plan because generated segments could not be verified against the deck."
+          : (parsedSegmentCount + secondParsedSegmentCount) === 0
+            ? "Learn used the fallback plan because Gemini did not return parseable lesson segments."
+            : "Learn could not produce a verified generated plan. Used the local fallback.";
     const fallback = buildDensityFallback(body.cards);
     for (const seg of fallback.segments) {
       await emit.event("segment", seg);
@@ -1398,7 +1444,7 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
       segmentCount: fallback.segments.length,
       consolidationCount: (fallback.consolidationQuestions || []).length,
       planMode: "card_density_fallback",
-      warning: "Grounding verification failed. Used card-density fallback.",
+      warning: fallbackWarning,
       budgetDegraded
     });
   });
