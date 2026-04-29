@@ -13,7 +13,7 @@ const LEARN_PLAN_CORS_HEADERS = {
 const PLAN_PRIMARY_MODEL = GEMINI_2_5_FLASH;
 const PLAN_ESCALATION_MODEL = GEMINI_2_5_PRO;
 
-const PLAN_CACHE_VERSION = "v6";
+const PLAN_CACHE_VERSION = "v7";
 const PLAN_CACHE_TTL_SECONDS = 86400;
 const PLAN_CACHE_KEY_PREFIX = `learn-plan:${PLAN_CACHE_VERSION}:`;
 const PRO_DAILY_CAP = 30;
@@ -92,10 +92,18 @@ async function commitPlanProBudget(env: Env, reservation: ProBudgetReservation):
 }
 
 const LEARN_CHECK_TYPES: readonly LearnCheckType[] = ["elaborative", "predictive", "self_explain", "prior_knowledge_probe", "worked_example", "transfer_question", "cloze"] as const;
+const HUMAN_TUTOR_STYLE_APPENDIX = [
+  "HUMAN-TUTOR STYLE (mandatory):",
+  "- Sound like a calm expert tutor speaking to one learner, not like a system explaining its own teaching design.",
+  "- Use a short worked example first, then one guided question. Balance assistance and withholding: give enough context to understand, but leave the learner something meaningful to produce.",
+  "- Prefer concrete anchors, contrast, cause/effect, and why-it-matters phrasing over generic learning-scaffold language.",
+  "- Do not use meta-teaching labels such as 'this card establishes', 'source fact', 'answer details', 'connected memory', 'retrieval', 'encode', 'scaffold', 'grounded', or 'the learner'.",
+  "- For factual history, tell the story in a natural order: identity, date/place, why the detail matters, then a small memory hook."
+].join("\n");
 const FACTUAL_PROFILE_APPENDIX = [
   "This is a FACTUAL profile session. Prioritize:",
-  "- Teach blocks of 80-110 words that turn facts into meaningful relationships, not answer-key fragments.",
-  "- Start with a complete sentence naming what the fact means. Do not open with a bare date, name, number, or source fragment.",
+  "- Teach blocks of 70-100 words that make the fact feel situated: who/what it is, where it sits in the story, and why the exact wording matters.",
+  "- Start with the person, unit, place, event, or institution being learned. Do not open with a bare date, name, number, source fragment, or meta-learning phrase.",
   "- predictive_question check type as the primary mechanism when the learner can infer a consequence or contrast.",
   "- worked_example check type for mnemonic-style anchoring (concrete name/date/figure linked to a memorable cue).",
   "- Avoid long elaborative interrogation chains; one focused production prompt per fact.",
@@ -300,8 +308,13 @@ const BARE_FACT_FRAGMENT_OPENERS_RE =
  */
 const BANNED_TEACH_META_PHRASES: string[] = [
   'learning focus is',
+  'this card establishes',
   'grounded answer is',
   'grounded content is',
+  'source fact is',
+  'answer details',
+  'connected memory',
+  'loose phrase',
   'tutor prompt',
   'prompt below',
   'question below',
@@ -525,23 +538,27 @@ function stripQuestionMark(text: string): string {
 
 function buildFallbackTutorPrompt(front: string): string {
   const trimmed = String(front || '').trim();
-  if (!trimmed) return "What relationship does this card establish, and how do the answer details support it?";
-  return "What relationship does this card establish, and how would you explain why the answer details belong together?";
+  if (!trimmed) return "How would you connect the key details into one clear explanation?";
+  return "How would you connect the date, original identity, and place into one clear origin story?";
 }
 
 function buildDensityFallbackTeach(prompt: string, answer: string): string {
   const promptFocus = stripQuestionMark(prompt);
   const answerSentence = ensureSentence(answer || prompt);
-  const focusSentence = promptFocus
-    ? `This card establishes the relationship behind the question: ${ensureSentence(promptFocus)}`
-    : "This card establishes one grounded relationship to encode before retrieval.";
-  const groundedSentence = answer
-    ? `The source fact is that ${answerSentence.charAt(0).toLowerCase()}${answerSentence.slice(1)}`
-    : `The source content is that ${answerSentence.charAt(0).toLowerCase()}${answerSentence.slice(1)}`;
+  let subject = promptFocus
+    .replace(/^(when|who|what|where|which|why|how)\b\s*/i, "")
+    .replace(/^(was|were|is|are|did|does|do)\b\s*/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  subject = subject ? subject.charAt(0).toUpperCase() + subject.slice(1) : "This topic";
+  const opening = `${subject} is easiest to remember as an origin story rather than as a loose fact.`;
+  const sourceSentence = answer
+    ? `The anchor is ${answerSentence.charAt(0).toLowerCase()}${answerSentence.slice(1)}`
+    : `The anchor is ${answerSentence.charAt(0).toLowerCase()}${answerSentence.slice(1)}`;
   return [
-    focusSentence,
-    groundedSentence,
-    "Treat the answer details as a connected memory, not as a loose phrase to copy. The date, name, place, event, or mechanism in the answer each plays a role: one detail usually marks the origin, one identifies the thing being discussed, and one explains why the fact matters. A useful explanation should show how those details fit together and what confusion the card is trying to prevent."
+    opening,
+    sourceSentence,
+    "Keep the pieces in order: first the moment it began, then the name it used at the time, then the place or purpose that gives the fact its shape. When you explain it back, aim for a small story with a beginning and an identity, not a copied sentence."
   ].join(" ");
 }
 
@@ -711,6 +728,7 @@ function buildSystemPrompt(body: LearnPlanRequest): string {
       "Learner adaptation: if learnerModelHint provided, weight segment generation toward the provided recommendedSegmentMix proportions, and adjust difficulty for overconfidenceBias (positive → harder; negative → gentler scaffolding)."
     );
   }
+  appendices.push(HUMAN_TUTOR_STYLE_APPENDIX);
   return [
     "You generate a grounded first-exposure learning plan for one sub-deck.",
     "Return JSON only.",
@@ -721,14 +739,14 @@ function buildSystemPrompt(body: LearnPlanRequest): string {
     "Segment titles must be compact lesson labels (3-8 words), not full card prompts, and must never be truncated mid-word.",
     "",
     "TEACH-BLOCK RULES (each segment's `teach` field):",
-    "- Minimum 80 words of declarative instruction.",
+    "- Minimum 70 words of declarative instruction.",
     "- Must contain at least one concrete fact drawn from the grounding card set (date, name, event, mechanism, or relationship).",
-    "- For factual cards, turn the fact into a learning explanation: define what the date/name/number marks, why the details belong together, and what common confusion it prevents.",
+    "- For factual cards, turn the fact into a short human explanation: name the subject, place it in context, explain why the date/name/number matters, and give one memory hook.",
     "- Do NOT start with an isolated answer fragment such as '12 June 1885, as...' or '1945, when...'. Start with a complete sentence that names the relationship being learned.",
     "- Must NOT be a question. Must NOT end with a question mark.",
     "- Must NOT open with 'Let's', 'Can you', 'What is/are/was/were/do/does/did', 'How do/does/can/should you', 'Think about', 'Consider', 'Imagine', 'Picture', 'Recall', 'Tell me', 'Describe', 'Explain to', or any second-person imperative or interrogative at the start.",
     "- Must teach BEFORE retrieval: state the facts clearly, then let the `tutorPrompt` field carry the Socratic question that asks the learner to reconstruct them.",
-    "- The teach block must teach the content directly. Do NOT describe the upcoming retrieval step, the tutor prompt, or the pedagogical structure. Do NOT use meta-phrases like 'read carefully', 'attempt retrieval', 'reconstruct from memory', 'in your own words', 'the tutor prompt below', 'you will be asked'. The learner will see your teach block and then a separate retrieval question. They do not need to be told this is about to happen.",
+    "- The teach block must teach the content directly. Do NOT describe the upcoming retrieval step, the tutor prompt, or the pedagogical structure. Do NOT use meta-phrases like 'read carefully', 'attempt retrieval', 'reconstruct from memory', 'in your own words', 'the tutor prompt below', 'you will be asked', 'this card establishes', 'source fact', 'answer details', 'connected memory', 'grounded content', or 'learning focus'.",
     "- Positive example: 'The United Nations was founded on 24 October 1945 when fifty signatory states ratified its Charter in San Francisco. The organisation emerged from the wartime alliance against the Axis powers and replaced the League of Nations, which had collapsed in the 1930s. Its founding structure, the Security Council with five permanent veto-holding members, reflected the strategic balance of power at the end of the Second World War and was intended to prevent the paralysis that had disabled the League.',",
     "- Negative example (DO NOT emit): 'Let's encode this card from first principles. What is the core claim?'",
     "",

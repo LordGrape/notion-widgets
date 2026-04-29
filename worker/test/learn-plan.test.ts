@@ -21,13 +21,15 @@ describe('learn-plan quality safeguards', () => {
     const segment = plan.segments[0];
     expect(segment.title).toBe('Regiment that became the Essex Scottish');
     expect(segment.teach).not.toBe(answer);
-    expect(segment.teach).toContain('This card establishes the relationship');
-    expect(segment.teach).toContain('The source fact is');
+    expect(segment.teach).toContain('origin story');
+    expect(segment.teach).toContain('The anchor is');
     expect(segment.teach).not.toContain('The learning focus is this question');
     expect(segment.teach).not.toContain('The grounded answer is');
+    expect(segment.teach).not.toContain('This card establishes');
+    expect(segment.teach).not.toContain('The source fact is');
     expect(segment.teach.match(/\S+/g)?.length ?? 0).toBeGreaterThanOrEqual(60);
     expect(verifySegmentTeach(segment)).toBe(true);
-    expect(segment.tutorPrompt).toContain('relationship');
+    expect(segment.tutorPrompt).toContain('origin story');
     expect(verifySegmentTutorPrompt(segment.tutorPrompt).ok).toBe(true);
   });
 

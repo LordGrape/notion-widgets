@@ -25784,7 +25784,7 @@ input[type="range"]::-moz-range-thumb{
       return (byCourse && byCourse[subDeckKey]) ? byCourse[subDeckKey] : null;
     }
 
-    var LEARN_PLAN_PEDAGOGY_VERSION = 2;
+    var LEARN_PLAN_PEDAGOGY_VERSION = 3;
 
     function isCardDensityFallbackPlan(plan) {
       if (!Array.isArray(plan) || !plan.length) return false;
@@ -25883,26 +25883,8 @@ input[type="range"]::-moz-range-thumb{
 
     function isLearnPlanStale(session) {
       if (!session || !session.flow || !session.flow.plan) return false;
-      var current = computeCurrentLearnSubDeckFingerprint(session.courseName, session.subDeckKey);
-      var stored = session.flow.plan.subDeckFingerprint;
-      if (session.planOutOfDate) {
-        if (current && stored) return String(current) !== String(stored);
-        return false;
-      }
-      if (session.planFingerprint) {
-        var currentMeta = buildLearnPlanFingerprint(
-          session.courseName,
-          session.subDeckKey,
-          Object.keys(state.items || {}).map(function(id){ return state.items[id]; })
-        );
-        return String(currentMeta.fingerprint || '') !== String(session.planFingerprint || '');
-      }
-      if (!current) return false;
-      if (session.openedSubDeckFingerprint) {
-        return String(current) !== String(session.openedSubDeckFingerprint);
-      }
-      if (!stored) return false;
-      return String(current) !== String(stored);
+      if (!session.fromCache || !session.planOutOfDate) return false;
+      return true;
     }
 
     function isStrictSubsetCacheHit(cacheEntry, currentCardIds, currentCourseContextHash) {
