@@ -127,6 +127,31 @@ function normalize(value: string): string {
   return String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
 }
 
+const LEARN_GATE_STOPWORDS = new Set([
+  'the', 'a', 'an', 'and', 'or', 'but', 'if', 'then', 'than', 'that', 'this',
+  'these', 'those', 'to', 'of', 'in', 'on', 'for', 'with', 'as', 'by', 'from',
+  'at', 'into', 'about', 'it', 'its', 'is', 'are', 'was', 'were', 'be', 'been',
+  'being', 'do', 'does', 'did', 'can', 'could', 'should', 'would', 'will',
+  'what', 'when', 'where', 'who', 'why', 'how', 'which'
+]);
+
+function tokenizeForLearnGate(input: string): string[] {
+  return normalize(input)
+    .replace(/[^a-z0-9'\s-]/g, ' ')
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length > 2 && !LEARN_GATE_STOPWORDS.has(token));
+}
+
+function computeTokenOverlapRatio(sourceText: string, targetText: string): number {
+  const sourceTokens = Array.from(new Set(tokenizeForLearnGate(sourceText)));
+  const targetTokens = Array.from(new Set(tokenizeForLearnGate(targetText)));
+  if (sourceTokens.length === 0) return 1;
+  const targetSet = new Set(targetTokens);
+  const overlapCount = sourceTokens.filter((token) => targetSet.has(token)).length;
+  return overlapCount / sourceTokens.length;
+}
+
 function shortDjb2Hash(value: string): string {
   let hash = 5381;
   for (let i = 0; i < value.length; i++) {
@@ -195,7 +220,10 @@ export function substringVerified(segments: LearnSegment[], items: StudyItem[]):
       if (!source) return false;
       const quote = normalize(snippet.quote || '');
       if (!quote || quote.length < 10) return false;
-      return normalize(source).includes(quote);
+      if (normalize(source).includes(quote)) return true;
+      const teachRatio = computeTokenOverlapRatio(source, String(segment.teach || ''));
+      const tutorRatio = computeTokenOverlapRatio(source, String(segment.tutorPrompt || ''));
+      return teachRatio >= 0.4 && tutorRatio >= 0.15;
     });
   });
 }

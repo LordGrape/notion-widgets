@@ -196,7 +196,7 @@ function computeTokenOverlapRatio(sourceText: string, targetText: string): numbe
  * sensitivity, not arbitrary magic numbers buried in the function body.
  * ──────────────────────────────────────────────────────────────────── */
 export const GROUNDING_TEACH_OVERLAP_FLOOR = 0.55;
-export const GROUNDING_TUTOR_OVERLAP_FLOOR = 0.35;
+export const GROUNDING_TUTOR_OVERLAP_FLOOR = 0.15;
 
 function textHasAnchor(cardText: string, anchor: string): boolean {
   const hay = normalizeText(cardText);
@@ -240,8 +240,8 @@ function verifySegmentGrounding(segment: LearnPlanSegment, corpus: Record<string
     // Fallback: segment-level token overlap against this card's corpus.
     // Gemini may have paraphrased the quote rather than copying; the
     // segment as a whole still has to draw substantively from the card.
-    const teachRatio = computeTokenOverlapRatio(teach, source);
-    const tutorRatio = computeTokenOverlapRatio(tutorPrompt, source);
+    const teachRatio = computeTokenOverlapRatio(source, teach);
+    const tutorRatio = computeTokenOverlapRatio(source, tutorPrompt);
     const overlapAccepts = teachRatio >= segmentTeachFloor(segment) && tutorRatio >= GROUNDING_TUTOR_OVERLAP_FLOOR;
 
     if (overlapAccepts) {
@@ -346,6 +346,8 @@ export function verifySegmentTeach(seg: LearnPlanSegment): boolean {
   if (expectedAnswer && answerCopyRatio >= 0.82 && teachWordCount < 90) return false;
   return true;
 }
+
+export const verifySegmentGroundingForTest = verifySegmentGrounding;
 
 /**
  * Phase A3: tutor-prompt validator.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildDensityFallback, verifySegmentTeach, verifySegmentTutorPrompt } from '../src/routes/learn-plan';
+import { buildDensityFallback, verifySegmentGroundingForTest, verifySegmentTeach, verifySegmentTutorPrompt } from '../src/routes/learn-plan';
 
 describe('learn-plan quality safeguards', () => {
   it('turns density fallback answers into learning micro-lessons', () => {
@@ -37,5 +37,22 @@ describe('learn-plan quality safeguards', () => {
       linkedCardIds: ['card-1'],
       groundingSnippets: [{ cardId: 'card-1', quote: '12 June 1885' }]
     })).toBe(false);
+  });
+
+  it('accepts grounded micro-lessons that add explanatory language', () => {
+    const answer = "12 June 1885, as the 21st 'Essex' Battalion of Infantry, headquartered in Windsor, Ontario. The regiment celebrates continuous service to Canada from this date.";
+    const segment = {
+      id: 's2',
+      title: 'Essex Scottish origin',
+      mechanism: 'worked_example',
+      objective: 'Teach the founding lineage.',
+      teach: "The Essex Scottish lineage begins with a founding militia identity in Windsor, Ontario. The key anchor is 12 June 1885, when the unit was created as the 21st 'Essex' Battalion of Infantry. That date matters because the regiment treats it as the start of continuous service to Canada, so the date, original battalion name, and Windsor headquarters belong together as one origin story rather than three separate facts.",
+      tutorPrompt: 'How do the founding date, original battalion name, and Windsor location fit together as the regiment origin?',
+      checkType: 'elaborative',
+      expectedAnswer: answer,
+      linkedCardIds: ['card-1'],
+      groundingSnippets: [{ cardId: 'card-1', quote: 'the regiment began under an Essex battalion name in Windsor' }]
+    };
+    expect(verifySegmentGroundingForTest(segment as any, { 'card-1': `PROMPT: When was the regiment founded?\nANSWER: ${answer}` })).toBe(true);
   });
 });
