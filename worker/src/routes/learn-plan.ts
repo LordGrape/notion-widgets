@@ -13,7 +13,7 @@ const LEARN_PLAN_CORS_HEADERS = {
 const PLAN_PRIMARY_MODEL = GEMINI_2_5_FLASH;
 const PLAN_ESCALATION_MODEL = GEMINI_2_5_PRO;
 
-const PLAN_CACHE_VERSION = "v7";
+const PLAN_CACHE_VERSION = "v8";
 const PLAN_CACHE_TTL_SECONDS = 86400;
 const PLAN_CACHE_KEY_PREFIX = `learn-plan:${PLAN_CACHE_VERSION}:`;
 const PRO_DAILY_CAP = 30;
@@ -390,7 +390,13 @@ const BANNED_TUTOR_PROMPT_PHRASES: string[] = [
   'what is the card about',
   'describe this card',
   'explain this card',
-  'what does this card teach'
+  'what does this card teach',
+  'why was the specific location',
+  'why was the location',
+  'why was windsor',
+  'significant for its establishment',
+  'significant for the establishment',
+  'significance of its location'
 ];
 
 /**
@@ -754,6 +760,7 @@ function buildSystemPrompt(body: LearnPlanRequest): string {
     "- Minimum 70 words of declarative instruction.",
     "- Must contain at least one concrete fact drawn from the grounding card set (date, name, event, mechanism, or relationship).",
     "- For factual cards, turn the fact into a short human explanation: name the subject, place it in context, explain why the date/name/number matters, and give one memory hook.",
+    "- Do NOT add outside historical context, causes, campaigns, rebellions, political consequences, or local significance unless those facts appear in the supplied card prompt/modelAnswer.",
     "- Do NOT start with an isolated answer fragment such as '12 June 1885, as...' or '1945, when...'. Start with a complete sentence that names the relationship being learned.",
     "- Must NOT be a question. Must NOT end with a question mark.",
     "- Must NOT open with 'Let's', 'Can you', 'What is/are/was/were/do/does/did', 'How do/does/can/should you', 'Think about', 'Consider', 'Imagine', 'Picture', 'Recall', 'Tell me', 'Describe', 'Explain to', or any second-person imperative or interrogative at the start.",
@@ -767,6 +774,8 @@ function buildSystemPrompt(body: LearnPlanRequest): string {
     "- Keep it brief (one or two sentences).",
     "- It is the only field that may end with a question mark.",
     "- Prefer meaning-making prompts: ask the learner to explain the relationship, causal link, contrast, consequence, or reason the details belong together.",
+    "- The tutorPrompt must be answerable from the teach block alone. Do not ask about a significance, cause, consequence, or reason unless the teach block explicitly taught that significance, cause, consequence, or reason.",
+    "- For one-card factual sessions, prefer 'How do [taught detail A], [taught detail B], and [taught detail C] fit together?' over 'Why was [new detail] significant?'",
     "- You must choose exactly one checkType for each segment:",
     "  - elaborative: 'In your own words, why does [concept] matter / work / apply?' or 'How does [concept] connect to [prior segment]?' — forces causal reasoning.",
     "  - predictive: 'Before the next segment: what would happen if [varied scenario]?' — builds anticipatory schema.",
