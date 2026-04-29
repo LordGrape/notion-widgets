@@ -1,5 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { verifySegmentTutorPrompt } from '../learn-plan';
+import { verifySegmentTitle, verifySegmentTutorPrompt } from '../learn-plan';
+
+const ESSEX_INTEGRATION_TEACH = [
+  "The Essex Scottish origin story sits inside the Canadian militia expansion of the 1880s.",
+  "The North-West Rebellion had sharpened concern about local defence capacity, so a Windsor-based unit gave Essex County a permanent militia identity.",
+  "Its formal creation on 12 June 1885, its original designation as the 21st Essex Battalion of Infantry, and its early commander are best understood as evidence of that political response.",
+  "Those details are not separate trivia; they show how a local regiment connected national pressure, regional identity, and organised military structure."
+].join(' ');
+
+const ESSEX_INTEGRATION_TUTOR_PROMPT =
+  "How do the founding date, the original battalion name, and the founding commander fit together as evidence of that political response?";
+
+const ESSEX_PREDICTIVE_TITLE =
+  "What political event in 1880s Canada might have driven the founding of a new local militia regiment in Windsor?";
 
 describe('learn-plan tutor prompt restatement safeguards', () => {
   it('rejects tutor prompts whose premise restates the teach block', () => {
@@ -40,5 +53,59 @@ describe('learn-plan tutor prompt restatement safeguards', () => {
     });
 
     expect(result).toEqual({ ok: true });
+  });
+
+  it('keeps Essex Scottish integration prompts valid against a full teach block', () => {
+    expect(verifySegmentTutorPrompt({
+      teach: ESSEX_INTEGRATION_TEACH,
+      tutorPrompt: ESSEX_INTEGRATION_TUTOR_PROMPT
+    })).toEqual({ ok: true });
+  });
+});
+
+describe('learn-plan title safeguards (first-exposure)', () => {
+  it('rejects bare Essex Scottish conjunctive recall titles', () => {
+    const result = verifySegmentTitle({
+      title: "When was the regiment that became the Essex Scottish founded, and under what name?"
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.reason).toMatch(/^banned_title_recall_pattern:/);
+  });
+
+  it('rejects who-founded title stems', () => {
+    const result = verifySegmentTitle({
+      title: "Who founded the Essex Scottish?"
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.reason).toMatch(/^banned_title_recall_pattern:/);
+  });
+
+  it('rejects title and tutorPrompt entity overlap above the ceiling', () => {
+    const result = verifySegmentTitle({
+      title: "Why might Windsor Essex Battalion founding show local militia identity?",
+      tutorPrompt: "How do Windsor Essex Battalion founding details fit together as local militia identity?"
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.reason).toMatch(/^title_tutor_overlap:0\.[4-9]\d$/);
+  });
+
+  it('accepts predictive Essex Scottish titles without a tutorPrompt', () => {
+    expect(verifySegmentTitle({
+      title: ESSEX_PREDICTIVE_TITLE
+    })).toEqual({ ok: true });
+  });
+
+  it('accepts predictive titles paired with disjoint integration tutorPrompts', () => {
+    expect(verifySegmentTitle({
+      title: ESSEX_PREDICTIVE_TITLE,
+      tutorPrompt: ESSEX_INTEGRATION_TUTOR_PROMPT
+    })).toEqual({ ok: true });
+    expect(verifySegmentTutorPrompt({
+      teach: ESSEX_INTEGRATION_TEACH,
+      tutorPrompt: ESSEX_INTEGRATION_TUTOR_PROMPT
+    })).toEqual({ ok: true });
   });
 });
