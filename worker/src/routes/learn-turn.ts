@@ -204,9 +204,12 @@ function buildGenerationConfig(maxOutputTokens: number): GeminiGenerationConfig 
     temperature: 0.25,
     maxOutputTokens,
     responseMimeType: "application/json",
-    responseSchema: LEARN_TURN_RESPONSE_SCHEMA as unknown as GeminiGenerationConfig["responseSchema"]
+    responseSchema: LEARN_TURN_RESPONSE_SCHEMA as unknown as GeminiGenerationConfig["responseSchema"],
+    thinkingConfig: { thinkingBudget: 0 }
   };
 }
+
+export const buildLearnTurnGenerationConfigForTest = buildGenerationConfig;
 
 /**
  * Call Gemini once and attempt to parse a valid LearnTurnPayload. Returns null
