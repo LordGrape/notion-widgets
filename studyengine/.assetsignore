@@ -1,0 +1,9 @@
+node_modules/
+.npm-cache/
+scripts/
+src/
+test/
+package.json
+package-lock.json
+tsconfig.json
+vite.config.ts
