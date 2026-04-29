@@ -25626,11 +25626,66 @@ input[type="range"]::-moz-range-thumb{
       return score;
     }
 
+    var LEARN_CONTEXT_STOPWORDS = new Set([
+      'the','a','an','and','or','but','if','then','than','that','this','these','those','to','of','in','on','for','with','as','by','from',
+      'at','into','about','it','its','is','are','was','were','be','been','being','do','does','did','can','could','should','would','will',
+      'what','when','where','who','why','how','which','under','over','their','there','here','has','have','had','not','you','your','they',
+      'them','his','her','our','out','also','unit','regiment'
+    ]);
+
+    function tokenizeLearnContextClaim(text) {
+      return String(text || '').toLowerCase()
+        .replace(/[^a-z0-9'\s-]/g, ' ')
+        .split(/\s+/)
+        .map(function(token){ return token.trim(); })
+        .filter(function(token){ return token.length > 2 && !LEARN_CONTEXT_STOPWORDS.has(token); });
+    }
+
+    function learnContextTokenSet(text) {
+      return new Set(tokenizeLearnContextClaim(text));
+    }
+
+    function learnContextTokenOverlapRatio(a, b) {
+      var aSet = learnContextTokenSet(a);
+      if (!aSet.size) return 0;
+      var bSet = learnContextTokenSet(b);
+      var overlap = 0;
+      aSet.forEach(function(token) {
+        if (bSet.has(token)) overlap += 1;
+      });
+      return overlap / aSet.size;
+    }
+
+    function getLearnClaimKnownText(segment) {
+      if (!segment) return '';
+      var snippets = Array.isArray(segment.groundingSnippets) ? segment.groundingSnippets : [];
+      return [
+        segment.tutorPrompt || '',
+        segment.expectedAnswer || '',
+        getLearnClaimLinkedPrompt(segment),
+        snippets.map(function(snippet){ return snippet && snippet.quote ? snippet.quote : ''; }).join(' ')
+      ].join(' ');
+    }
+
+    function learnClaimAddsContext(claim, segment) {
+      var claimTokens = tokenizeLearnContextClaim(claim);
+      if (claimTokens.length < 4) return false;
+      var knownSet = learnContextTokenSet(getLearnClaimKnownText(segment));
+      if (!knownSet.size) return true;
+      var newCount = 0;
+      claimTokens.forEach(function(token) {
+        if (!knownSet.has(token)) newCount += 1;
+      });
+      var noveltyRatio = newCount / claimTokens.length;
+      if (noveltyRatio >= 0.35) return true;
+      return /\b(?:because|therefore|influenced|important|significant|broader|context|response|rebellion|movement|period|system|defence|defense|readiness|community|identity)\b/i.test(String(claim || ''));
+    }
+
     function selectLearnContextClaims(claims, segment) {
       var scored = (claims || []).map(function(claim, idx) {
-        return { idx: idx, score: scoreLearnTeachClaim(claim, segment) };
+        return { idx: idx, claim: claim, score: scoreLearnTeachClaim(claim, segment) };
       }).filter(function(item) {
-        return item.score >= 3;
+        return item.score >= 3 && learnClaimAddsContext(item.claim, segment);
       });
       scored.sort(function(a, b) {
         if (b.score !== a.score) return b.score - a.score;
@@ -25638,7 +25693,15 @@ input[type="range"]::-moz-range-thumb{
       });
       var maxClaims = claims.length >= 6 ? 3 : 2;
       var selected = {};
-      scored.slice(0, maxClaims).forEach(function(item) {
+      var accepted = [];
+      scored.forEach(function(item) {
+        if (accepted.length >= maxClaims) return;
+        var isDuplicate = accepted.some(function(prev) {
+          return learnContextTokenOverlapRatio(item.claim, prev.claim) >= 0.55
+            || learnContextTokenOverlapRatio(prev.claim, item.claim) >= 0.55;
+        });
+        if (isDuplicate) return;
+        accepted.push(item);
         selected[item.idx] = true;
       });
       return selected;
@@ -26832,7 +26895,15 @@ input[type="range"]::-moz-range-thumb{
     function isLearnPlanStale(session) {
       if (!session || !session.flow || !session.flow.plan) return false;
       if (!session.fromCache || !session.planOutOfDate) return false;
-      return true;
+      var savedFingerprint = session.flow.plan.subDeckFingerprint
+        ? String(session.flow.plan.subDeckFingerprint)
+        : '';
+      if (!savedFingerprint) return false;
+      var currentFingerprint = computeCurrentLearnSubDeckFingerprint(
+        session.courseName || '',
+        session.subDeckKey || ''
+      );
+      return !!(currentFingerprint && savedFingerprint !== String(currentFingerprint));
     }
 
     function isStrictSubsetCacheHit(cacheEntry, currentCardIds, currentCourseContextHash) {

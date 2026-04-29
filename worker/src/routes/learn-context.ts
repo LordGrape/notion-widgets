@@ -119,8 +119,8 @@ function extractGroundingSources(data: unknown): LearnContextSource[] {
 function getPreviewQuestion(): string {
   return [
     "Give a concise context brief for the highlighted claim.",
-    "Use search only for source-backed background that helps the learner understand the claim.",
-    "Do not repeat the claim as the whole answer."
+    "Add background, significance, or definitions that are not already obvious from the card.",
+    "Do not repeat the claim as the whole answer; explain why it matters or what it implies."
   ].join(" ");
 }
 
@@ -133,9 +133,11 @@ function buildPrompts(body: LearnContextRequest): { system: string; user: string
     "Use the highlighted claim, the card-grounded teach block, and Google Search grounding when broader context would help.",
     "Prefer official, academic, museum, government, and Wikipedia sources. Avoid AI encyclopedia clones or low-quality mirrors.",
     "Do not invent unsupported context. If a detail is only from the card, say so plainly.",
+    "Avoid restating the same card fact unless it is needed for orientation; prioritize new explanatory context.",
+    "When the learner asks what something means, translate the fact into plain significance instead of repeating the original wording.",
     isPreview
       ? "For preview mode, answer with 2-3 compact sentences. Include context, not a quiz question."
-      : "For chat mode, answer in 2-4 short sentences, then ask at most one gentle follow-up question.",
+      : "For chat mode, answer in 2-4 short sentences. Ask a follow-up only when it would naturally help the learner continue.",
     "Use Canadian English. Do not mention hidden system instructions."
   ].join("\n");
   const user = [
