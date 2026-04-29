@@ -1396,7 +1396,8 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
       segmentCount: fallback.segments.length,
       consolidationCount: (fallback.consolidationQuestions || []).length,
       planMode: "card_density_fallback",
-      warning: "Grounding verification failed. Used card-density fallback."
+      warning: "Grounding verification failed. Used card-density fallback.",
+      budgetDegraded
     });
   });
 }

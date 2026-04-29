@@ -27964,7 +27964,8 @@ input[type="range"]::-moz-range-thumb{
                 : null);
             if (streamSubDeckFingerprint) activeLearnSession.flow.plan.subDeckFingerprint = String(streamSubDeckFingerprint);
           }
-          if (activeLearnSession.streamCompleted) {
+          var isDensityFallbackPlan = !!(meta && meta.planMode === 'card_density_fallback');
+          if (activeLearnSession.streamCompleted && !isDensityFallbackPlan) {
             var streamedPlan = (activeLearnSession.flow.plan && activeLearnSession.flow.plan.segments) ? activeLearnSession.flow.plan.segments : [];
             var cachePlan = additiveReuse ? mergeLearnPlanSegments(additiveReuse.basePlan, streamedPlan) : streamedPlan;
             var fullSubDeckFingerprint = additiveReuse
@@ -27989,6 +27990,11 @@ input[type="range"]::-moz-range-thumb{
               courseContextHash: completedFingerprintMeta.courseContextHash,
               subDeckFingerprint: fullSubDeckFingerprint || streamSubDeckFingerprint
             });
+          } else if (isDensityFallbackPlan) {
+            console.warn('[learn] not caching card-density fallback plan');
+          }
+          if (meta && meta.budgetDegraded && meta.budgetDegraded.reason === 'pro_exhausted') {
+            toast('Learn used the fallback plan because the daily Pro retry budget is exhausted.');
           }
           if (meta && meta.warning) toast(meta.warning);
           if (activeLearnSession.modalMounted) renderLearnSessionUI();

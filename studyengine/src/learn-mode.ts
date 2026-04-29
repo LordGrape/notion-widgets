@@ -316,7 +316,7 @@ export function startLearnSession(plan: LearnPlan): LearnSessionState {
 export interface StreamLearnPlanHandlers {
   onSegment?: (segment: LearnSegment, meta?: { groundingSource?: 'gemini' | 'fallback' }) => void;
   onConsolidationQuestions?: (questions: ConsolidationQuestion[]) => void;
-  onComplete?: (meta: { segmentCount: number; consolidationCount: number; planMode?: string; warning?: string; subDeckFingerprint?: string }) => void;
+  onComplete?: (meta: { segmentCount: number; consolidationCount: number; planMode?: string; warning?: string; subDeckFingerprint?: string; budgetDegraded?: { reason?: string; resetAt?: string } }) => void;
   onError?: (message: string, opts?: { hasSegments: boolean }) => void;
   onPriorKnowledgeProbe?: (card: StudyCardInput) => Promise<'surface' | 'partial' | 'deep'>;
   getDeepVerdictCount?: () => number;
@@ -560,7 +560,7 @@ export async function streamLearnPlan(
       const qs = (data as { questions?: ConsolidationQuestion[] }).questions;
       if (Array.isArray(qs)) emitQuestions(qs);
     } else if (eventName === 'complete' && data && typeof data === 'object') {
-      const completeMeta = data as { segmentCount: number; consolidationCount: number; planMode?: string; warning?: string };
+      const completeMeta = data as { segmentCount: number; consolidationCount: number; planMode?: string; warning?: string; budgetDegraded?: { reason?: string; resetAt?: string } };
       handlers.onComplete?.({ ...completeMeta, subDeckFingerprint });
     } else if (eventName === 'error' && data && typeof data === 'object') {
       sawFatalError = true;
@@ -749,7 +749,7 @@ async function streamLearnPlanInternal(
       const qs = (data as { questions?: ConsolidationQuestion[] }).questions;
       if (Array.isArray(qs)) emitQuestions(qs);
     } else if (eventName === 'complete' && data && typeof data === 'object') {
-      const completeMeta = data as { segmentCount: number; consolidationCount: number; planMode?: string; warning?: string };
+      const completeMeta = data as { segmentCount: number; consolidationCount: number; planMode?: string; warning?: string; budgetDegraded?: { reason?: string; resetAt?: string } };
       handlers.onComplete?.({ ...completeMeta, subDeckFingerprint });
     } else if (eventName === 'error' && data && typeof data === 'object') {
       sawFatalError = true;
