@@ -13,7 +13,7 @@ const LEARN_PLAN_CORS_HEADERS = {
 const PLAN_PRIMARY_MODEL = GEMINI_2_5_FLASH;
 const PLAN_ESCALATION_MODEL = GEMINI_2_5_PRO;
 
-const PLAN_CACHE_VERSION = "v8";
+const PLAN_CACHE_VERSION = "v9";
 const PLAN_CACHE_TTL_SECONDS = 86400;
 const PLAN_CACHE_KEY_PREFIX = `learn-plan:${PLAN_CACHE_VERSION}:`;
 const PRO_DAILY_CAP = 30;
@@ -122,7 +122,7 @@ const LANGUAGE_PROFILE_APPENDIX = [
   "This is a LANGUAGE profile session. Prioritize:",
   "- Emit segment pairs in order: first RECOGNITION (L2→L1, include audioCue metadata with targetLanguage), then PRODUCTION (L1→L2).",
   "- Aim for i+1 difficulty where i = languageLevel; target one level above current learner level.",
-  "- For grammar/sentence-pattern cards, use checkType='cloze' and include exactly one [___] blank in tutorPrompt.",
+  "- For grammar/sentence-pattern cards, use checkType='cloze' and include exactly one [___] blank in tutorPrompt. Cloze is also permitted outside the LANGUAGE profile for one-card factual sessions when body.cards.length === 1 and planProfile === 'factual'.",
   "- Keep teach blocks concise: 50 words maximum.",
   "- Include targetLanguage (BCP-47) in any audio-cue metadata for client-side TTS playback."
 ].join("\n");
@@ -205,6 +205,7 @@ function computeTokenOverlapRatio(sourceText: string, targetText: string): numbe
  * ──────────────────────────────────────────────────────────────────── */
 export const GROUNDING_TEACH_OVERLAP_FLOOR = 0.55;
 export const GROUNDING_TUTOR_OVERLAP_FLOOR = 0.15;
+export const TUTOR_VS_TEACH_RESTATEMENT_CEILING = 0.55;
 
 function textHasAnchor(cardText: string, anchor: string): boolean {
   const hay = normalizeText(cardText);
@@ -408,9 +409,10 @@ const BANNED_TUTOR_PROMPT_PHRASES: string[] = [
  * markdown. Segments whose tutorPrompt matches any of these patterns are
  * dropped and routed through the existing three-tier fallback.
  *
- * Also duplicated in worker/src/routes/learn-turn.ts (BANNED_TUTOR_PROMPT_RECALL_PATTERNS)
- * where the same regex array conditions the copyRatio backstop.
- * Keep the two arrays in sync.
+ * The recall-opening patterns are duplicated in worker/src/routes/learn-turn.ts
+ * where they condition the copyRatio backstop. The plan-only tautology closer
+ * patterns below are intentionally not duplicated there because learn-turn
+ * does not call the planner validator.
  */
 export const BANNED_TUTOR_PROMPT_RECALL_PATTERNS: readonly RegExp[] = [
   /^(on\s+)?what\s+(date|year|month|day)\b/i,
@@ -423,11 +425,21 @@ export const BANNED_TUTOR_PROMPT_RECALL_PATTERNS: readonly RegExp[] = [
   /^how\s+many\b/i,
   /^name\s+(the|a|an|one|two|three|all)\b/i,
   /^list\s+(the|a|an|one|two|three|all)\b/i,
-  /^identify\s+(the|a|an|one|two|three|all)\b/i
+  /^identify\s+(the|a|an|one|two|three|all)\b/i,
+  // Tautological "establish/show/demonstrate" closers after a
+  // restated premise. Anchored anywhere in the prompt because the
+  // restatement appears before the closer.
+  //
+  // Contract: "How do A, B, and C fit together as one origin story?"
+  // remains valid. The negative lookahead rejects bare "fit together?"
+  // closers only when "into" or "as" does not appear within 80 chars
+  // before the question mark.
+  /\bhow do these (details|facts|points|elements|pieces) (establish|show|demonstrate|illustrate|reveal)\b/i,
+  /\bhow do these (details|facts|points|elements|pieces) fit together\b(?![^?]{0,80}\b(into|as)\b)/i
 ] as const;
 
-export function verifySegmentTutorPrompt(tp: string): { ok: boolean; reason?: string } {
-  const trimmed = String(tp || '').trim();
+export function verifySegmentTutorPrompt(seg: { tutorPrompt: string; teach?: string }): { ok: boolean; reason?: string } {
+  const trimmed = String(seg?.tutorPrompt || '').trim();
   if (trimmed.length < 15) return { ok: false, reason: 'too_short' };
   if (!/\?\s*$/.test(trimmed)) return { ok: false, reason: 'no_question_mark' };
   // Strip leading markdown / quote / whitespace noise so a planner emitting
@@ -440,6 +452,13 @@ export function verifySegmentTutorPrompt(tp: string): { ok: boolean; reason?: st
   for (const phrase of BANNED_TUTOR_PROMPT_PHRASES) {
     if (lower.indexOf(phrase) >= 0) return { ok: false, reason: `banned_phrase:${phrase}` };
   }
+  const restatementRatio = computeTokenOverlapRatio(
+    String(seg?.teach || ''),
+    String(seg?.tutorPrompt || '')
+  );
+  if (restatementRatio > TUTOR_VS_TEACH_RESTATEMENT_CEILING) {
+    return { ok: false, reason: `restates_teach:${restatementRatio.toFixed(2)}` };
+  }
   return { ok: true };
 }
 
@@ -447,14 +466,14 @@ function filterVerifiedSegments(segments: LearnPlanSegment[], corpus: Record<str
   return (segments || []).filter((seg) => (
     verifySegmentGrounding(seg, corpus)
     && verifySegmentTeach(seg)
-    && verifySegmentTutorPrompt(String(seg?.tutorPrompt || '')).ok
+    && verifySegmentTutorPrompt(seg).ok
     && verifySegmentCheckType(seg)
   ));
 }
 
 function verifySegmentQuality(seg: LearnPlanSegment): { ok: boolean; reason?: string } {
   if (!verifySegmentTeach(seg)) return { ok: false, reason: "teach_quality" };
-  const tutorCheck = verifySegmentTutorPrompt(String(seg?.tutorPrompt || ""));
+  const tutorCheck = verifySegmentTutorPrompt(seg);
   if (!tutorCheck.ok) return { ok: false, reason: tutorCheck.reason || "tutor_prompt_quality" };
   if (!verifySegmentCheckType(seg)) return { ok: false, reason: "check_type_quality" };
   return { ok: true };
@@ -775,6 +794,9 @@ function buildSystemPrompt(body: LearnPlanRequest): string {
     "- It is the only field that may end with a question mark.",
     "- Prefer meaning-making prompts: ask the learner to explain the relationship, causal link, contrast, consequence, or reason the details belong together.",
     "- The tutorPrompt must be answerable from the teach block alone. Do not ask about a significance, cause, consequence, or reason unless the teach block explicitly taught that significance, cause, consequence, or reason.",
+    "- The tutorPrompt premise must NOT verbatim restate the teach. If you reference taught detail in the premise, name it specifically as \"[detail A], [detail B], and [detail C]\" and keep the premise under 25 words. Long restated premises will be rejected.",
+    "- Negative example (DO NOT emit): \"The regiment was founded on 12 June 1885 as the 21st Essex Battalion in Windsor. How do these details establish the regiment's identity and location?\" - this is a tautological closer where the answer is the restated premise.",
+    "- For one-card factual sessions, prefer checkType=\"cloze\" with exactly one [___] blank over self_explain or elaborative. Cloze is permitted outside the LANGUAGE profile when body.cards.length === 1 and planProfile === \"factual\".",
     "- For one-card factual sessions, prefer 'How do [taught detail A], [taught detail B], and [taught detail C] fit together?' over 'Why was [new detail] significant?'",
     "- You must choose exactly one checkType for each segment:",
     "  - elaborative: 'In your own words, why does [concept] matter / work / apply?' or 'How does [concept] connect to [prior segment]?' — forces causal reasoning.",

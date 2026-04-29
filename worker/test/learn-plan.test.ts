@@ -31,7 +31,7 @@ describe('learn-plan quality safeguards', () => {
     expect(segment.teach.match(/\S+/g)?.length ?? 0).toBeGreaterThanOrEqual(60);
     expect(verifySegmentTeach(segment)).toBe(true);
     expect(segment.tutorPrompt).toContain('origin story');
-    expect(verifySegmentTutorPrompt(segment.tutorPrompt).ok).toBe(true);
+    expect(verifySegmentTutorPrompt(segment).ok).toBe(true);
   });
 
   it('rejects answer-display teach blocks for factual cards', () => {
@@ -98,6 +98,6 @@ describe('learn-plan quality safeguards', () => {
 
   it('rejects tutor prompts that ask for untaught location significance', () => {
     const prompt = 'The 21st Essex Battalion of Infantry was founded in 1885. Why was the specific location of Windsor, Ontario, significant for its establishment?';
-    expect(verifySegmentTutorPrompt(prompt).ok).toBe(false);
+    expect(verifySegmentTutorPrompt({ tutorPrompt: prompt }).ok).toBe(false);
   });
 });

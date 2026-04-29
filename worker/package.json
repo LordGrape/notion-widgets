@@ -2,6 +2,7 @@
   "name": "notion-widgets-worker",
   "private": true,
   "scripts": {
+    "test": "vitest run",
     "deploy": "wrangler deploy",
     "dev": "wrangler dev"
   },
