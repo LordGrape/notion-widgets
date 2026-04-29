@@ -469,6 +469,7 @@ export interface CachedLearnPlan {
   courseContextHash?: string;
   cardFingerprint?: string;
   subDeckFingerprint?: string;
+  pedagogyVersion?: number;
 }
 
 export interface StudyEngineFeatures {
