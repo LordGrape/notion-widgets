@@ -10062,7 +10062,7 @@ input[type="range"]::-moz-range-thumb{
                       <span class="af-spinner" aria-hidden="true"></span>
                       <div class="learn-regen-loading-copy">
                         <p class="learn-regen-loading-status" id="learnRegenLoadingStatus">Regenerating your plan…</p>
-                        <p class="learn-regen-loading-caption">This usually takes under ten seconds.</p>
+                        <p class="learn-regen-loading-caption" id="learnRegenLoadingCaption">This usually takes under ten seconds.</p>
                       </div>
                     </div>
                   </div>
@@ -25197,6 +25197,8 @@ input[type="range"]::-moz-range-thumb{
     var learnRegenLoadingShownAt = 0;
     var learnRegenLoadingPhase = null;
     var learnRegenLoadingToken = 0;
+    var learnFirstSegmentWatchdog = null;
+    var learnLoadingCaptionTimer = null;
 
     function getLearnRegenLoadingCopy(phase) {
       if (phase === 'cache_hit_mounting') return 'Loading your plan…';
@@ -25209,9 +25211,32 @@ input[type="range"]::-moz-range-thumb{
       return !!(host && !host.hidden);
     }
 
+    function getLearnRegenLoadingCaption(phase) {
+      if (phase === 'cache_hit_mounting') return 'Opening the saved plan.';
+      if (phase === 'streaming_connected') return 'Waiting for the first verified segment from Gemini.';
+      return 'Generating a fresh learning plan.';
+    }
+
+    function clearLearnFirstSegmentWatchdog() {
+      if (learnFirstSegmentWatchdog) {
+        clearTimeout(learnFirstSegmentWatchdog);
+        learnFirstSegmentWatchdog = null;
+      }
+      if (learnLoadingCaptionTimer) {
+        clearTimeout(learnLoadingCaptionTimer);
+        learnLoadingCaptionTimer = null;
+      }
+    }
+
+    function updateLearnLoadingCaption(text) {
+      var caption = el('learnRegenLoadingCaption');
+      if (caption) caption.textContent = text;
+    }
+
     function setLearnRegenLoadingActive(isActive, phase) {
       var host = el('learnRegenLoading');
       var status = el('learnRegenLoadingStatus');
+      var caption = el('learnRegenLoadingCaption');
       var active = !!isActive;
       if (!host) return;
       if (active) {
@@ -25221,11 +25246,13 @@ input[type="range"]::-moz-range-thumb{
         host.hidden = false;
         host.classList.add('is-active');
         if (status) status.textContent = getLearnRegenLoadingCopy(learnRegenLoadingPhase);
+        if (caption) caption.textContent = getLearnRegenLoadingCaption(learnRegenLoadingPhase);
         setLearnSessionSurfaceActive(true);
       } else {
         learnRegenLoadingToken += 1;
         learnRegenLoadingShownAt = 0;
         learnRegenLoadingPhase = null;
+        clearLearnFirstSegmentWatchdog();
         host.hidden = true;
         host.classList.remove('is-active');
         if (!activeLearnSession) setLearnSessionSurfaceActive(false);
@@ -25246,6 +25273,27 @@ input[type="range"]::-moz-range-thumb{
         setLearnRegenLoadingActive(false);
         if (typeof onDone === 'function') onDone();
       }, wait);
+    }
+
+    function startLearnFirstSegmentWatchdog(courseName) {
+      clearLearnFirstSegmentWatchdog();
+      learnLoadingCaptionTimer = setTimeout(function() {
+        if (!activeLearnSession || activeLearnSession.modalMounted || activeLearnSession.streamCompleted) return;
+        updateLearnLoadingCaption('Still waiting for Gemini. This can happen when the worker is cold or the plan needs a retry.');
+      }, 12000);
+      learnFirstSegmentWatchdog = setTimeout(function() {
+        if (!activeLearnSession || activeLearnSession.modalMounted || activeLearnSession.streamCompleted) return;
+        try {
+          if (activeLearnSession.streamController) activeLearnSession.streamController.abort();
+        } catch(e) {}
+        setLearnRegenLoadingActive(false);
+        learnTeachReadTimer = { segmentId: null, startedAt: 0, recorded: false };
+        setLearnSessionSurfaceActive(false);
+        var restoreCourse = courseName || activeLearnSession.courseName || '';
+        activeLearnSession = null;
+        toast('Learn plan is taking too long. Please try regenerating again.');
+        if (restoreCourse) renderLearnMainSurface(restoreCourse);
+      }, 45000);
     }
 
     function ensureLearnTeachingBlockPlacement() {
@@ -25738,8 +25786,27 @@ input[type="range"]::-moz-range-thumb{
 
     var LEARN_PLAN_PEDAGOGY_VERSION = 2;
 
+    function isCardDensityFallbackPlan(plan) {
+      if (!Array.isArray(plan) || !plan.length) return false;
+      return plan.some(function(seg) {
+        var id = String((seg && seg.id) || '');
+        var objective = String((seg && seg.objective) || '');
+        return id.indexOf('fallback-') === 0
+          || objective.indexOf('Ground first exposure using this card') >= 0;
+      });
+    }
+
     function isLearnPlanCachePedagogyFresh(cacheEntry) {
-      return !!(cacheEntry && Number(cacheEntry.pedagogyVersion || 0) >= LEARN_PLAN_PEDAGOGY_VERSION);
+      return !!(cacheEntry
+        && Number(cacheEntry.pedagogyVersion || 0) >= LEARN_PLAN_PEDAGOGY_VERSION
+        && cacheEntry.planMode !== 'card_density_fallback'
+        && !isCardDensityFallbackPlan(cacheEntry.plan));
+    }
+
+    function forgetCourseLearnPlanEntry(courseName, subDeckKey) {
+      if (!state || !state.learnPlans || !state.learnPlans[courseName]) return;
+      delete state.learnPlans[courseName][subDeckKey];
+      saveState();
     }
 
     function extractContextHashFromFingerprint(fingerprint) {
@@ -25930,6 +25997,7 @@ input[type="range"]::-moz-range-thumb{
         generatedAt: Number(payload.generatedAt || Date.now()),
         planVersion: Math.max(1, Number(payload.planVersion || 1)),
         pedagogyVersion: LEARN_PLAN_PEDAGOGY_VERSION,
+        planMode: payload.planMode ? String(payload.planMode) : undefined,
         cardFingerprint: payload.cardFingerprint ? String(payload.cardFingerprint) : undefined,
         courseContextHash: payload.courseContextHash ? String(payload.courseContextHash) : undefined
       };
@@ -27838,6 +27906,7 @@ input[type="range"]::-moz-range-thumb{
       };
 
       if (!forceRegenerate && existingCache && !isLearnPlanCachePedagogyFresh(existingCache)) {
+        forgetCourseLearnPlanEntry(courseName, subDeckKey);
         existingCache = null;
       }
 
@@ -28039,6 +28108,7 @@ input[type="range"]::-moz-range-thumb{
               plan: cachePlan,
               generatedAt: Date.now(),
               planVersion: activeLearnSession.planVersion || 1,
+              planMode: meta && meta.planMode ? meta.planMode : 'verified',
               cardFingerprint: completedFingerprintMeta.cardFingerprint,
               courseContextHash: completedFingerprintMeta.courseContextHash,
               subDeckFingerprint: fullSubDeckFingerprint || streamSubDeckFingerprint
@@ -28081,9 +28151,8 @@ input[type="range"]::-moz-range-thumb{
         }
       };
 
-      if (isLearnRegenLoadingVisible()) {
-        setLearnRegenLoadingActive(true, 'streaming_connected');
-      }
+      setLearnRegenLoadingActive(true, 'streaming_connected');
+      startLearnFirstSegmentWatchdog(courseName);
       var streamPromise = (subDeckKey === '__course_root__' && typeof modeBridge.streamCourseLearnPlan === 'function')
         ? modeBridge.streamCourseLearnPlan(
             courseName, streamItems, state, userName || '', learnerContext || '',
