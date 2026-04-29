@@ -6,6 +6,7 @@ import { handleGrade } from "./routes/grade";
 import { handleGloss } from "./routes/gloss";
 import { handleIngestExtract } from "./routes/ingest-extract";
 import { handleLectureContext } from "./routes/lectureContext";
+import { handleLearnContext } from "./routes/learn-context";
 import { handleLearnPlan } from "./routes/learn-plan";
 import { handleLearnTurn } from "./routes/learn-turn";
 import { handleMemory } from "./routes/memory";
@@ -195,6 +196,11 @@ export default {
       if (url.pathname === "/studyengine/learn-plan") {
         if (request.method !== "POST") return methodNotAllowed();
         return withCorsHeaders(await handleLearnPlan(request, env));
+      }
+
+      if (url.pathname === "/studyengine/learn-context") {
+        if (request.method !== "POST") return methodNotAllowed();
+        return withCorsHeaders(await handleLearnContext(request, env));
       }
 
       if (url.pathname === "/studyengine/learn-turn") {

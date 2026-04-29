@@ -33,6 +33,7 @@ export interface GeminiResponse {
       parts?: GeminiPart[];
     };
     finishReason?: string;
+    groundingMetadata?: Record<string, unknown>;
   }>;
   usageMetadata?: Record<string, unknown>;
   [key: string]: unknown;
@@ -41,6 +42,7 @@ export interface GeminiResponse {
 export interface GeminiCallOptions {
   serviceTier?: "default" | "flex";
   cachedContent?: string;
+  tools?: GeminiJsonObject[];
 }
 
 export interface GeminiUsageEvent {
@@ -189,6 +191,7 @@ export async function callGemini(
       systemInstruction: { parts: [{ text: systemPrompt }] },
       contents: [{ role: "user", parts: [{ text: userPrompt }] }],
       generationConfig,
+      ...(options?.tools ? { tools: options.tools } : {}),
       ...(options?.cachedContent ? { cachedContent: options.cachedContent } : {}),
       // Flex inference docs show REST body field `service_tier`.
       // https://ai.google.dev/gemini-api/docs/flex-inference

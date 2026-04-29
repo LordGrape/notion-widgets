@@ -3,6 +3,7 @@ import { getCorsHeaders } from "./cors";
 
 const PUBLIC_STUDYENGINE_ROUTES = new Set([
   "/studyengine/learn-plan",
+  "/studyengine/learn-context",
   "/studyengine/learn-turn",
   "/studyengine/learn-check",
   "/studyengine/ingest-extract"
