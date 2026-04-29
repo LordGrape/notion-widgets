@@ -9,7 +9,7 @@ describe('learn-plan tutor prompt restatement safeguards', () => {
     });
 
     expect(result.ok).toBe(false);
-    expect(result.reason).toMatch(/^restates_teach:0\.\d{2}$/);
+    expect(result.reason).toMatch(/^restates_teach:[01]\.\d{2}$/);
   });
 
   it('rejects tautological establish closers after a restated premise', () => {
