@@ -8967,6 +8967,108 @@ input[type="range"]::-moz-range-thumb{
       letter-spacing: 0.9px;
       text-transform: uppercase;
     }
+    .learn-context-brief{
+      margin-bottom: 12px;
+      border: 1px solid color-mix(in srgb, var(--accent-primary) 24%, var(--border-subtle));
+      border-radius: 10px;
+      background:
+        linear-gradient(180deg, color-mix(in srgb, var(--accent-primary) 8%, var(--surface-1)), var(--surface-1));
+      padding: 12px;
+    }
+    .learn-context-brief-head{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .learn-context-brief-title{
+      color: var(--text-primary);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+    }
+    .learn-context-brief-chip{
+      display: inline-flex;
+      align-items: center;
+      min-height: 20px;
+      padding: 1px 7px;
+      border: 1px solid var(--border-subtle);
+      border-radius: 999px;
+      background: var(--surface-2);
+      color: var(--text-tertiary);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.45px;
+      text-transform: uppercase;
+    }
+    .learn-context-brief-text{
+      color: var(--text-primary);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .learn-context-brief-empty{
+      color: var(--text-tertiary);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .learn-context-brief.loading .learn-context-brief-empty::before{
+      content: "";
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      margin-right: 7px;
+      border-radius: 999px;
+      background: var(--accent-primary);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-primary) 14%, transparent);
+      animation: learn-pulse 1.15s ease-in-out infinite;
+    }
+    @keyframes learn-pulse{
+      0%, 100%{ opacity: 0.45; transform: scale(0.88); }
+      50%{ opacity: 1; transform: scale(1); }
+    }
+    .learn-context-source-list{
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      margin-top: 10px;
+    }
+    .learn-context-source-card{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      min-height: 34px;
+      padding: 7px 9px;
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      background: color-mix(in srgb, var(--surface-2) 72%, transparent);
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color var(--transition), border-color var(--transition), background var(--transition);
+    }
+    .learn-context-source-card:hover{
+      color: var(--text-primary);
+      border-color: color-mix(in srgb, var(--accent-primary) 42%, var(--border-subtle));
+      background: color-mix(in srgb, var(--accent-primary) 10%, var(--surface-2));
+    }
+    .learn-context-source-name{
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .learn-context-source-open{
+      flex: 0 0 auto;
+      color: var(--text-tertiary);
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 0.55px;
+      text-transform: uppercase;
+    }
     .learn-claim-links{
       display: flex;
       align-items: center;
@@ -25577,29 +25679,96 @@ input[type="range"]::-moz-range-thumb{
       }).filter(Boolean).slice(0, 4);
     }
 
+    function getLearnClaimContextBriefState(stateObj) {
+      if (!stateObj || typeof stateObj !== 'object') return null;
+      return stateObj.brief && typeof stateObj.brief === 'object' ? stateObj.brief : null;
+    }
+
     function getLearnClaimLinkedPrompt(segment) {
       var linked = segment && Array.isArray(segment.linkedCardIds) ? segment.linkedCardIds : [];
       var linkedCard = linked.length && state.items ? state.items[String(linked[0] || '')] : null;
       return linkedCard && linkedCard.prompt ? String(linkedCard.prompt || '').trim() : '';
     }
 
+    function uniqueLearnSearchTerms(terms) {
+      var seen = {};
+      var out = [];
+      (terms || []).forEach(function(term) {
+        var clean = String(term || '').replace(/[^\w' -]/g, ' ').replace(/\s+/g, ' ').trim();
+        if (!clean || clean.length < 3) return;
+        var key = clean.toLowerCase();
+        if (seen[key]) return;
+        seen[key] = true;
+        out.push(clean);
+      });
+      return out;
+    }
+
+    function extractLearnSearchTerms(text) {
+      var src = String(text || '');
+      var terms = [];
+      var yearMatches = src.match(/\b(?:1[5-9]\d{2}|20\d{2})\b/g) || [];
+      terms = terms.concat(yearMatches);
+      var quotedMatches = src.match(/'[^']{3,}'|"[^"]{3,}"/g) || [];
+      quotedMatches.forEach(function(match) {
+        terms.push(match.replace(/^['"]|['"]$/g, ''));
+      });
+      var properMatches = src.match(/\b[A-Z][A-Za-z']+(?:\s+[A-Z][A-Za-z']+){0,4}\b/g) || [];
+      properMatches.forEach(function(match) {
+        if (/^(The|This|When|What|Why|How|New|Model|Context)$/i.test(match)) return;
+        terms.push(match);
+      });
+      var lower = src.toLowerCase();
+      ['essex scottish', 'essex battalion', 'battalion of infantry', 'windsor ontario', 'north-west rebellion'].forEach(function(phrase) {
+        if (lower.indexOf(phrase) >= 0) terms.push(phrase);
+      });
+      return uniqueLearnSearchTerms(terms);
+    }
+
     function buildLearnClaimSearchQuery(segment, claimText) {
-      var parts = [
-        activeLearnSession && activeLearnSession.courseName ? activeLearnSession.courseName : '',
-        getLearnClaimLinkedPrompt(segment),
-        claimText
-      ].filter(function(part) { return String(part || '').trim(); });
-      return parts.join(' ').replace(/\s+/g, ' ').trim().slice(0, 240);
+      var terms = extractLearnSearchTerms([
+        claimText,
+        segment && segment.expectedAnswer ? segment.expectedAnswer : '',
+        segment && segment.title ? segment.title : ''
+      ].join(' '));
+      if (!terms.length) terms = extractLearnSearchTerms(getLearnClaimLinkedPrompt(segment));
+      return terms.slice(0, 9).join(' ').replace(/\s+/g, ' ').trim().slice(0, 160);
+    }
+
+    function buildLearnWikipediaSearchQuery(segment, claimText) {
+      var text = [
+        claimText,
+        segment && segment.expectedAnswer ? segment.expectedAnswer : '',
+        getLearnClaimLinkedPrompt(segment)
+      ].join(' ');
+      if (/essex scottish/i.test(text)) return 'Essex Scottish';
+      if (/21st[^.]{0,40}essex[^.]{0,40}battalion/i.test(text)) return '21st Essex Battalion Infantry';
+      var terms = extractLearnSearchTerms(text).filter(function(term) {
+        return !/^\d{4}$/.test(term);
+      });
+      return (terms.slice(0, 4).join(' ') || buildLearnClaimSearchQuery(segment, claimText)).slice(0, 120);
     }
 
     function renderLearnClaimLinks(segment, claimText) {
       var query = buildLearnClaimSearchQuery(segment, claimText) || String(claimText || '').slice(0, 180);
+      var wikiQuery = buildLearnWikipediaSearchQuery(segment, claimText) || query;
       var googleUrl = 'https://www.google.com/search?q=' + encodeURIComponent(query);
-      var wikiUrl = 'https://en.wikipedia.org/w/index.php?search=' + encodeURIComponent(query);
+      var wikiUrl = 'https://en.wikipedia.org/w/index.php?search=' + encodeURIComponent(wikiQuery);
       return '<div class="learn-claim-links">'
         + '<a class="learn-claim-link" href="' + esc(googleUrl) + '" target="_blank" rel="noopener noreferrer">Google</a>'
         + '<a class="learn-claim-link" href="' + esc(wikiUrl) + '" target="_blank" rel="noopener noreferrer">Wikipedia</a>'
         + '</div>';
+    }
+
+    function renderLearnContextSources(sources) {
+      var normalized = normalizeLearnClaimSources(sources);
+      if (!normalized.length) return '';
+      return '<div class="learn-context-source-list">' + normalized.map(function(src) {
+        return '<a class="learn-context-source-card" href="' + esc(src.url) + '" target="_blank" rel="noopener noreferrer">'
+          + '<span class="learn-context-source-name">' + esc(String(src.title || 'Source').slice(0, 70)) + '</span>'
+          + '<span class="learn-context-source-open">Open</span>'
+          + '</a>';
+      }).join('') + '</div>';
     }
 
     function renderLearnClaimMessageSources(sources) {
@@ -25623,6 +25792,42 @@ input[type="range"]::-moz-range-thumb{
       });
       html += '</div>';
       return html;
+    }
+
+    function renderLearnContextBriefHtml(stateObj) {
+      var brief = getLearnClaimContextBriefState(stateObj);
+      var pending = !!(stateObj && stateObj.briefPending);
+      var error = stateObj && stateObj.briefError ? String(stateObj.briefError || '') : '';
+      if (pending) {
+        return '<div class="learn-context-brief loading">'
+          + '<div class="learn-context-brief-head">'
+          + '<div class="learn-context-brief-title">Grounded Brief</div>'
+          + '<span class="learn-context-brief-chip">Searching</span>'
+          + '</div>'
+          + '<div class="learn-context-brief-empty">Finding a source-backed explanation...</div>'
+          + '</div>';
+      }
+      if (brief && String(brief.text || '').trim()) {
+        var cached = brief.cached ? 'Cached' : 'Fresh';
+        return '<div class="learn-context-brief">'
+          + '<div class="learn-context-brief-head">'
+          + '<div class="learn-context-brief-title">Grounded Brief</div>'
+          + '<span class="learn-context-brief-chip">' + cached + '</span>'
+          + '</div>'
+          + '<div class="learn-context-brief-text">' + esc(brief.text || '').replace(/\n/g, '<br>') + '</div>'
+          + renderLearnContextSources(brief.sources)
+          + '</div>';
+      }
+      if (error) {
+        return '<div class="learn-context-brief">'
+          + '<div class="learn-context-brief-head"><div class="learn-context-brief-title">Grounded Brief</div></div>'
+          + '<div class="learn-context-brief-empty">' + esc(error) + '</div>'
+          + '</div>';
+      }
+      return '<div class="learn-context-brief">'
+        + '<div class="learn-context-brief-head"><div class="learn-context-brief-title">Grounded Brief</div></div>'
+        + '<div class="learn-context-brief-empty">Open this note to load a source-backed explanation.</div>'
+        + '</div>';
     }
 
     function sanitizeLearnContextSegmentForRequest(segment) {
@@ -25658,8 +25863,9 @@ input[type="range"]::-moz-range-thumb{
         + '</div>'
         + '<div class="learn-context-scroll">'
         + '<div class="learn-context-claim">' + esc(context.claimText || '') + '</div>'
+        + renderLearnContextBriefHtml(stateObj)
         + '<div class="learn-context-source-row">'
-        + '<div class="learn-context-source-title">Sources</div>'
+        + '<div class="learn-context-source-title">Fallback search</div>'
         + renderLearnClaimLinks(context.segment, context.claimText)
         + '</div>'
         + renderLearnClaimChatLog(stateObj)
@@ -25786,6 +25992,7 @@ input[type="range"]::-moz-range-thumb{
       };
       if (activeLearnSession) activeLearnSession._activeClaimContext = context;
       updateLearnContextPanel(context, { focusInput: true, animate: true });
+      loadLearnClaimContextBrief(context);
     }
 
     function learnClaimContextHistoryForRequest(messages) {
@@ -25794,6 +26001,47 @@ input[type="range"]::-moz-range-thumb{
       }).slice(-6).map(function(msg) {
         return { role: msg.role, text: String(msg.text || '').slice(0, 700) };
       });
+    }
+
+    async function loadLearnClaimContextBrief(context) {
+      if (!context || !context.key) return;
+      var stateObj = getLearnClaimContextState(context.key);
+      if (stateObj.briefPending || getLearnClaimContextBriefState(stateObj)) return;
+      stateObj.briefPending = true;
+      stateObj.briefError = '';
+      updateLearnContextPanel(context);
+      var headers = { 'Content-Type': 'application/json' };
+      var widgetKey = getWidgetKey();
+      if (widgetKey) headers['X-Widget-Key'] = widgetKey;
+      try {
+        var response = await fetch(LEARN_CONTEXT_ENDPOINT, {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify({
+            mode: 'preview',
+            course: activeLearnSession && activeLearnSession.courseName ? activeLearnSession.courseName : '',
+            subDeck: activeLearnSession && activeLearnSession.subDeckKey ? activeLearnSession.subDeckKey : '',
+            claim: context.claimText || '',
+            segment: sanitizeLearnContextSegmentForRequest(context.segment || currentLearnSegmentRef())
+          })
+        });
+        var data = {};
+        try { data = await response.json(); } catch (jsonErr) { data = {}; }
+        if (!response.ok || !data || data.ok === false) {
+          throw new Error(data && data.error ? data.error : 'Could not load grounded context.');
+        }
+        stateObj.brief = {
+          text: String(data.answer || '').trim(),
+          sources: normalizeLearnClaimSources(data.sources),
+          cached: !!data.cached
+        };
+        if (!stateObj.brief.text) stateObj.briefError = 'No grounded context was returned for this note yet.';
+      } catch (err) {
+        stateObj.briefError = err && err.message ? String(err.message) : 'Could not load grounded context.';
+      } finally {
+        stateObj.briefPending = false;
+        refreshLearnClaimContextIfActive(context.key);
+      }
     }
 
     async function submitLearnClaimContextMessage() {

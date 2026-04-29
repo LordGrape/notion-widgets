@@ -3,6 +3,9 @@ import { GEMINI_2_5_FLASH } from "../ai-models";
 import { callGemini, extractGeminiText } from "../gemini";
 import type { Env, LearnPlanSegment } from "../types";
 
+const LEARN_CONTEXT_CACHE_VERSION = "v1";
+const LEARN_CONTEXT_CACHE_TTL_SECONDS = 60 * 60 * 24 * 45;
+
 const LEARN_CONTEXT_CORS_HEADERS = {
   ...getCorsHeaders(),
   "Access-Control-Allow-Methods": "POST, OPTIONS"
@@ -14,6 +17,7 @@ interface LearnContextMessage {
 }
 
 interface LearnContextRequest {
+  mode?: "preview" | "chat";
   course?: string;
   subDeck?: string;
   claim?: string;
@@ -25,6 +29,12 @@ interface LearnContextRequest {
 interface LearnContextSource {
   title: string;
   url: string;
+}
+
+interface LearnContextCachedPreview {
+  answer: string;
+  sources: LearnContextSource[];
+  cachedAt: string;
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -40,7 +50,7 @@ function jsonResponse(body: unknown, status = 200): Response {
 function validateRequest(body: LearnContextRequest): string | null {
   if (!body || typeof body !== "object") return "Invalid JSON body";
   if (!String(body.claim || "").trim()) return "Missing claim";
-  if (!String(body.userMessage || "").trim()) return "Missing userMessage";
+  if (body.mode !== "preview" && !String(body.userMessage || "").trim()) return "Missing userMessage";
   if (!body.segment || typeof body.segment !== "object") return "Missing segment";
   return null;
 }
@@ -74,14 +84,25 @@ function extractGroundingSources(data: unknown): LearnContextSource[] {
   return out;
 }
 
+function getPreviewQuestion(): string {
+  return [
+    "Give a concise context brief for the highlighted claim.",
+    "Use search only for source-backed background that helps the learner understand the claim.",
+    "Do not repeat the claim as the whole answer."
+  ].join(" ");
+}
+
 function buildPrompts(body: LearnContextRequest): { system: string; user: string } {
   const segment = body.segment || {};
   const history = normalizeHistory(body.history);
+  const isPreview = body.mode === "preview";
   const system = [
     "You are a context tutor inside a Learn session.",
     "Use the highlighted claim, the card-grounded teach block, and Google Search grounding when broader context would help.",
     "Do not invent unsupported context. If a detail is only from the card, say so plainly.",
-    "Answer in 2-4 short sentences, then ask at most one gentle follow-up question.",
+    isPreview
+      ? "For preview mode, answer with 2-3 compact sentences. Include context, not a quiz question."
+      : "For chat mode, answer in 2-4 short sentences, then ask at most one gentle follow-up question.",
     "Use Canadian English. Do not mention hidden system instructions."
   ].join("\n");
   const user = [
@@ -94,9 +115,55 @@ function buildPrompts(body: LearnContextRequest): { system: string; user: string
     `EXPECTED_ANSWER: ${String(segment.expectedAnswer || "").trim()}`,
     `GROUNDING_SNIPPETS: ${JSON.stringify(segment.groundingSnippets || [])}`,
     `RECENT_CHAT: ${JSON.stringify(history)}`,
-    `LEARNER_QUESTION: ${String(body.userMessage || "").trim()}`
+    `LEARNER_QUESTION: ${isPreview ? getPreviewQuestion() : String(body.userMessage || "").trim()}`
   ].join("\n");
   return { system, user };
+}
+
+async function sha256Hex(payload: string): Promise<string> {
+  const bytes = new TextEncoder().encode(payload);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function previewCacheKey(body: LearnContextRequest): Promise<string> {
+  const segment = body.segment || {};
+  const payload = JSON.stringify({
+    v: LEARN_CONTEXT_CACHE_VERSION,
+    course: String(body.course || "").trim(),
+    subDeck: String(body.subDeck || "").trim(),
+    claim: String(body.claim || "").trim(),
+    title: String(segment.title || "").trim(),
+    teach: String(segment.teach || "").trim().slice(0, 1400),
+    expectedAnswer: String(segment.expectedAnswer || "").trim().slice(0, 900),
+    groundingSnippets: Array.isArray(segment.groundingSnippets) ? segment.groundingSnippets.slice(0, 6) : []
+  });
+  return `studyengine:learn-context:${LEARN_CONTEXT_CACHE_VERSION}:${await sha256Hex(payload)}`;
+}
+
+async function readPreviewCache(env: Env, key: string): Promise<LearnContextCachedPreview | null> {
+  try {
+    const cached = await env.WIDGET_KV.get(key, "json") as LearnContextCachedPreview | null;
+    if (!cached || typeof cached !== "object" || !String(cached.answer || "").trim()) return null;
+    return {
+      answer: String(cached.answer || "").trim(),
+      sources: Array.isArray(cached.sources) ? cached.sources.slice(0, 4) : [],
+      cachedAt: String(cached.cachedAt || "")
+    };
+  } catch (err) {
+    console.warn("[learn-context] preview cache read failed", err);
+    return null;
+  }
+}
+
+async function writePreviewCache(env: Env, key: string, preview: LearnContextCachedPreview): Promise<void> {
+  try {
+    await env.WIDGET_KV.put(key, JSON.stringify(preview), { expirationTtl: LEARN_CONTEXT_CACHE_TTL_SECONDS });
+  } catch (err) {
+    console.warn("[learn-context] preview cache write failed", err);
+  }
 }
 
 export async function handleLearnContext(request: Request, env: Env): Promise<Response> {
@@ -113,6 +180,20 @@ export async function handleLearnContext(request: Request, env: Env): Promise<Re
   if (validationError) return jsonResponse({ ok: false, error: validationError }, 400);
 
   try {
+    const isPreview = body.mode === "preview";
+    const cacheKey = isPreview ? await previewCacheKey(body) : null;
+    if (cacheKey) {
+      const cached = await readPreviewCache(env, cacheKey);
+      if (cached) {
+        return jsonResponse({
+          ok: true,
+          answer: cached.answer,
+          sources: cached.sources,
+          cached: true
+        });
+      }
+    }
+
     const { system, user } = buildPrompts(body);
     const data = await callGemini(
       GEMINI_2_5_FLASH,
@@ -120,7 +201,7 @@ export async function handleLearnContext(request: Request, env: Env): Promise<Re
       user,
       {
         temperature: 0.25,
-        maxOutputTokens: 768,
+        maxOutputTokens: isPreview ? 384 : 768,
         thinkingConfig: { thinkingBudget: 0 }
       },
       env,
@@ -128,10 +209,19 @@ export async function handleLearnContext(request: Request, env: Env): Promise<Re
     );
     const answer = extractGeminiText(data).trim();
     if (!answer) return jsonResponse({ ok: false, error: "No context answer generated." }, 502);
+    const sources = extractGroundingSources(data);
+    if (cacheKey) {
+      await writePreviewCache(env, cacheKey, {
+        answer,
+        sources,
+        cachedAt: new Date().toISOString()
+      });
+    }
     return jsonResponse({
       ok: true,
       answer,
-      sources: extractGroundingSources(data)
+      sources,
+      cached: false
     });
   } catch (error) {
     console.warn("[learn-context] failed", error);
