@@ -8323,6 +8323,12 @@ input[type="range"]::-moz-range-thumb{
       position: relative;
       z-index: 1;
     }
+    .learn-session-host.learn-context-open{
+      max-width: 1180px;
+    }
+    .learn-session-host.learn-context-open .modal{
+      max-width: 100%;
+    }
     .learn-regen-loading{
       width: 100%;
       box-sizing: border-box;
@@ -8788,64 +8794,177 @@ input[type="range"]::-moz-range-thumb{
     .learn-claim-sentence{
       display: inline;
     }
-    .learn-claim-more{
+    .learn-claim-cite{
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-height: 20px;
-      margin: 0 2px;
-      padding: 1px 7px;
+      width: 19px;
+      height: 19px;
+      margin: 0 3px 0 4px;
+      padding: 0;
       appearance: none;
-      border: 1px solid color-mix(in srgb, var(--accent-primary) 38%, var(--border-subtle));
-      background: color-mix(in srgb, var(--accent-primary) 10%, var(--surface-1));
+      border: 1px solid color-mix(in srgb, var(--accent-primary) 46%, var(--border-subtle));
+      background: color-mix(in srgb, var(--accent-primary) 11%, var(--surface-1));
       color: var(--accent-primary);
-      border-radius: 7px;
+      border-radius: 999px;
       font-size: 10px;
-      font-weight: 800;
-      line-height: 1.2;
-      letter-spacing: 0.45px;
-      text-transform: uppercase;
+      font-weight: 900;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
       cursor: pointer;
-      vertical-align: baseline;
-      transform: translateY(-1px);
-      transition: background var(--transition), border-color var(--transition), color var(--transition);
+      vertical-align: super;
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-primary) 0%, transparent);
+      transition: background var(--transition), border-color var(--transition), color var(--transition), box-shadow var(--transition), transform var(--transition);
     }
-    .learn-claim-more:hover,
-    .learn-claim-more.is-active{
-      background: color-mix(in srgb, var(--accent-primary) 18%, var(--surface-1));
+    .learn-claim-cite:hover,
+    .learn-claim-cite.is-active{
+      background: color-mix(in srgb, var(--accent-primary) 20%, var(--surface-1));
       border-color: color-mix(in srgb, var(--accent-primary) 64%, var(--border-subtle));
       color: var(--text-primary);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-primary) 12%, transparent);
+      transform: translateY(-1px);
     }
-    .learn-claim-more:focus-visible,
+    .learn-claim-cite:focus-visible,
+    .learn-context-close:focus-visible,
     .learn-claim-chat-send:focus-visible,
     .learn-claim-link:focus-visible{
       outline: 2px solid color-mix(in srgb, var(--accent-primary) 72%, transparent);
       outline-offset: 3px;
     }
-    .learn-claim-detail{
-      margin-top: 14px;
-      border: 1px solid color-mix(in srgb, var(--accent-primary) 28%, var(--border-subtle));
-      background: color-mix(in srgb, var(--surface-2) 88%, transparent);
-      border-radius: 8px;
-      padding: 12px;
-      font-size: 12px;
-      line-height: 1.55;
+    .learn-tutor-pane.learn-context-open{
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(286px, 360px);
+      gap: 14px;
+      align-items: start;
+    }
+    .learn-tutor-pane.learn-context-open .learn-card-block{
+      min-width: 0;
+    }
+    .learn-context-panel{
+      position: sticky;
+      top: 0;
+      grid-column: 2;
+      grid-row: 1 / span 2;
+      overflow: hidden;
+      border: 1px solid color-mix(in srgb, var(--accent-primary) 32%, var(--border-subtle));
+      border-radius: 12px;
+      background:
+        linear-gradient(180deg, color-mix(in srgb, var(--surface-2) 96%, transparent), color-mix(in srgb, var(--surface-1) 96%, transparent));
+      box-shadow: var(--shadow-soft);
       color: var(--text-secondary);
     }
-    .learn-claim-detail[hidden]{ display: none; }
-    .learn-claim-context-head{
+    .learn-context-panel[hidden]{
+      display: none;
+    }
+    .learn-context-inner{
+      display: flex;
+      flex-direction: column;
+      min-height: 420px;
+      max-height: min(68vh, 620px);
+    }
+    .learn-context-head{
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 12px;
+      border-bottom: 1px solid var(--border-subtle);
+      background: color-mix(in srgb, var(--surface-3) 62%, transparent);
+    }
+    .learn-context-badge{
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      border: 1px solid color-mix(in srgb, var(--accent-primary) 44%, var(--border-subtle));
+      background: color-mix(in srgb, var(--accent-primary) 12%, var(--surface-1));
+      color: var(--text-primary);
+      font-size: 12px;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+    }
+    .learn-context-title-wrap{
+      min-width: 0;
+    }
+    .learn-context-kicker{
+      display: block;
+      margin-bottom: 2px;
+      color: var(--accent-primary);
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .learn-context-title{
+      margin: 0;
+      overflow: hidden;
+      color: var(--text-primary);
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1.25;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .learn-context-close{
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      appearance: none;
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      background: var(--surface-1);
+      color: var(--text-tertiary);
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+      transition: color var(--transition), border-color var(--transition), background var(--transition);
+    }
+    .learn-context-close:hover{
+      color: var(--text-primary);
+      border-color: color-mix(in srgb, var(--accent-primary) 44%, var(--border-subtle));
+      background: color-mix(in srgb, var(--accent-primary) 10%, var(--surface-1));
+    }
+    .learn-context-scroll{
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: auto;
+      padding: 12px;
+    }
+    .learn-context-claim{
+      position: relative;
+      margin-bottom: 12px;
+      padding: 12px 12px 12px 14px;
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      background: color-mix(in srgb, var(--surface-1) 86%, transparent);
+      color: var(--text-primary);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .learn-context-claim::before{
+      content: "";
+      position: absolute;
+      inset: 10px auto 10px 0;
+      width: 3px;
+      border-radius: 999px;
+      background: var(--accent-primary);
+    }
+    .learn-context-source-row{
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 10px;
-      flex-wrap: wrap;
       margin-bottom: 10px;
     }
-    .learn-claim-detail-title{
-      color: var(--text-primary);
-      font-weight: 800;
-      font-size: 10px;
-      letter-spacing: 0.7px;
+    .learn-context-source-title{
+      color: var(--text-tertiary);
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 0.9px;
       text-transform: uppercase;
     }
     .learn-claim-links{
@@ -8880,10 +8999,10 @@ input[type="range"]::-moz-range-thumb{
       display: flex;
       flex-direction: column;
       gap: 8px;
-      margin: 8px 0 10px;
+      margin: 10px 0 0;
     }
     .learn-claim-chat-msg{
-      max-width: min(92%, 760px);
+      max-width: 92%;
       border: 1px solid var(--border-subtle);
       border-radius: 8px;
       padding: 8px 10px;
@@ -8908,6 +9027,11 @@ input[type="range"]::-moz-range-thumb{
       flex-wrap: wrap;
       gap: 6px;
       margin-top: 8px;
+    }
+    .learn-context-foot{
+      padding: 10px 12px 12px;
+      border-top: 1px solid var(--border-subtle);
+      background: color-mix(in srgb, var(--surface-3) 48%, transparent);
     }
     .learn-claim-chat-row{
       display: grid;
@@ -8952,7 +9076,26 @@ input[type="range"]::-moz-range-thumb{
       font-size: 10px;
       letter-spacing: 0.2px;
     }
+    @media (max-width: 1040px){
+      .learn-tutor-pane.learn-context-open{
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .learn-context-panel{
+        position: relative;
+        top: auto;
+        grid-column: 1;
+        grid-row: auto;
+      }
+      .learn-context-inner{
+        min-height: 360px;
+        max-height: none;
+      }
+    }
     @media (max-width: 640px){
+      .learn-claim-cite{
+        width: 18px;
+        height: 18px;
+      }
       .learn-claim-chat-row{
         grid-template-columns: 1fr;
       }
@@ -10306,6 +10449,7 @@ input[type="range"]::-moz-range-thumb{
                         <div class="learn-tutor" id="learnTeachBlock" aria-live="polite"></div>
                         <button type="button" class="learn-submit-btn learn-read-continue-btn" id="learnReadContinueBtn">Continue to Your Turn</button>
                       </div>
+                      <aside class="learn-context-panel" id="learnContextPanel" aria-live="polite" hidden></aside>
                       <div class="learn-card-block learn-yourturn">
                         <div class="learn-card-block-label">Your Turn</div>
                         <div id="learnLanguageModePill" class="segment-label-pill" hidden></div>
@@ -25500,74 +25644,148 @@ input[type="range"]::-moz-range-thumb{
       };
     }
 
-    function renderLearnClaimDetailHtml(segment, claimText, claimIndex) {
-      var key = learnClaimContextKey(segment, claimIndex);
-      var stateObj = getLearnClaimContextState(key);
+    function renderLearnContextPanelHtml(context) {
+      var stateObj = getLearnClaimContextState(context.key);
       var pending = !!(stateObj && stateObj.pending);
-      return '<div class="learn-claim-context-head">'
-        + '<div class="learn-claim-detail-title">Context</div>'
-        + renderLearnClaimLinks(segment, claimText)
+      return '<div class="learn-context-inner">'
+        + '<div class="learn-context-head">'
+        + '<div class="learn-context-badge">' + esc(context.citationNumber || 1) + '</div>'
+        + '<div class="learn-context-title-wrap">'
+        + '<span class="learn-context-kicker">Context</span>'
+        + '<h3 class="learn-context-title">' + esc(context.title || 'Source note') + '</h3>'
+        + '</div>'
+        + '<button type="button" class="learn-context-close" aria-label="Close context">&times;</button>'
+        + '</div>'
+        + '<div class="learn-context-scroll">'
+        + '<div class="learn-context-claim">' + esc(context.claimText || '') + '</div>'
+        + '<div class="learn-context-source-row">'
+        + '<div class="learn-context-source-title">Sources</div>'
+        + renderLearnClaimLinks(context.segment, context.claimText)
         + '</div>'
         + renderLearnClaimChatLog(stateObj)
+        + '</div>'
+        + '<div class="learn-context-foot">'
         + '<div class="learn-claim-chat-row">'
         + '<input class="learn-claim-chat-input" type="text" placeholder="Ask a follow-up..." value="" ' + (pending ? 'disabled' : '') + '>'
         + '<button type="button" class="learn-claim-chat-send" ' + (pending ? 'disabled' : '') + '>Ask</button>'
         + '</div>'
-        + '<div class="learn-claim-status">' + (pending ? 'Checking sources...' : '') + '</div>';
+        + '<div class="learn-claim-status">' + (pending ? 'Checking sources...' : '') + '</div>'
+        + '</div>'
+        + '</div>';
     }
 
-    function updateLearnClaimDetail(detail, segment, claimText, claimIndex) {
-      if (!detail) return;
-      var key = learnClaimContextKey(segment, claimIndex);
-      detail.setAttribute('data-claim-key', key);
-      detail.setAttribute('data-claim-index', String(Number(claimIndex || 0)));
-      detail.setAttribute('data-claim-text', String(claimText || ''));
-      detail.innerHTML = renderLearnClaimDetailHtml(segment, claimText, claimIndex);
-      detail.hidden = false;
+    function setLearnContextPanelOpen(open) {
+      var pane = el('learnTutorPane');
+      var body = el('learnSessionBody');
+      var host = el('learnSessionOv');
+      if (pane) pane.classList.toggle('learn-context-open', !!open);
+      if (body) body.classList.toggle('learn-context-open', !!open);
+      if (host) host.classList.toggle('learn-context-open', !!open);
     }
 
-    function refreshLearnClaimContextIfActive(host, key) {
-      var detail = host && host.querySelector ? host.querySelector('.learn-claim-detail') : null;
-      if (!detail || detail.hidden || detail.getAttribute('data-claim-key') !== key) return;
-      var idx = Number(detail.getAttribute('data-claim-index') || 0);
-      var claimText = detail.getAttribute('data-claim-text') || '';
-      updateLearnClaimDetail(detail, currentLearnSegmentRef(), claimText, idx);
+    function updateLearnClaimCitationState() {
+      var active = activeLearnSession && activeLearnSession._activeClaimContext ? activeLearnSession._activeClaimContext : null;
+      var pane = el('learnTutorPane');
+      if (!pane) return;
+      pane.querySelectorAll('.learn-claim-cite').forEach(function(node) {
+        var isActive = !!(active && node.getAttribute('data-claim-key') === active.key);
+        node.classList.toggle('is-active', isActive);
+        node.setAttribute('aria-expanded', isActive ? 'true' : 'false');
+      });
+    }
+
+    function updateLearnContextPanel(context, opts) {
+      var panel = el('learnContextPanel');
+      if (!panel) return;
+      if (!context) {
+        panel.hidden = true;
+        panel.innerHTML = '';
+        panel.removeAttribute('data-claim-key');
+        setLearnContextPanelOpen(false);
+        updateLearnClaimCitationState();
+        return;
+      }
+      panel.setAttribute('data-claim-key', context.key);
+      panel.setAttribute('data-claim-index', String(Number(context.claimIndex || 0)));
+      panel.innerHTML = renderLearnContextPanelHtml(context);
+      panel.hidden = false;
+      setLearnContextPanelOpen(true);
+      updateLearnClaimCitationState();
+      if (opts && opts.focusInput) {
+        var input = panel.querySelector('.learn-claim-chat-input');
+        if (input) setTimeout(function() { try { input.focus(); } catch(e) {} }, 20);
+      }
+      if (opts && opts.animate && window.gsap && !prefersReducedMotion()) {
+        try { gsap.fromTo(panel, { opacity: 0, x: 10 }, { opacity: 1, x: 0, duration: 0.24, ease: 'power2.out', overwrite: 'auto' }); } catch(e) {}
+      }
+    }
+
+    function closeLearnClaimContext() {
+      if (activeLearnSession) activeLearnSession._activeClaimContext = null;
+      updateLearnContextPanel(null);
+    }
+
+    function syncLearnContextPanelToCurrentSegment() {
+      var active = activeLearnSession && activeLearnSession._activeClaimContext ? activeLearnSession._activeClaimContext : null;
+      if (!active) {
+        updateLearnContextPanel(null);
+        return;
+      }
+      var segment = currentLearnSegmentRef();
+      if (!segment || getLearnClaimSegmentId(segment) !== active.segmentId) {
+        closeLearnClaimContext();
+        return;
+      }
+      active.segment = segment;
+      updateLearnContextPanel(active);
+    }
+
+    function refreshLearnClaimContextIfActive(key) {
+      var active = activeLearnSession && activeLearnSession._activeClaimContext ? activeLearnSession._activeClaimContext : null;
+      if (!active || active.key !== key) return;
+      active.segment = currentLearnSegmentRef();
+      updateLearnContextPanel(active);
     }
 
     function renderLearnTeachClaims(src, segment) {
       var claims = splitLearnTeachClaims(src);
       if (!claims.length) return '<p></p>';
       var selected = selectLearnContextClaims(claims, segment);
+      var citationNumber = 0;
       var body = claims.map(function(claim, idx) {
-        var more = selected[idx]
-          ? ' <button type="button" class="learn-claim-more" data-claim-index="' + idx + '" data-claim-text="' + esc(claim) + '" aria-expanded="false">Context</button>'
-          : '';
-        return '<span class="learn-claim-sentence" data-claim-index="' + idx + '">' + esc(claim) + more + '</span>';
+        var cite = '';
+        if (selected[idx]) {
+          citationNumber += 1;
+          var key = learnClaimContextKey(segment, idx);
+          cite = '<button type="button" class="learn-claim-cite" data-claim-index="' + idx + '" data-claim-key="' + esc(key) + '" data-claim-citation="' + citationNumber + '" data-claim-text="' + esc(claim) + '" aria-expanded="false" aria-label="Open context note ' + citationNumber + '">' + citationNumber + '</button>';
+        }
+        return '<span class="learn-claim-sentence" data-claim-index="' + idx + '">' + esc(claim) + cite + '</span>';
       }).join(' ');
-      return '<p class="learn-claim-text">' + body + '</p><div class="learn-claim-detail" id="learnClaimDetail" hidden></div>';
+      return '<p class="learn-claim-text">' + body + '</p>';
     }
 
     function openLearnClaimContext(host, btn) {
-      var detail = host.querySelector('.learn-claim-detail');
-      if (!detail) return;
-      var wasActive = btn.classList.contains('is-active');
-      host.querySelectorAll('.learn-claim-more.is-active').forEach(function(node) {
-        node.classList.remove('is-active');
-        node.setAttribute('aria-expanded', 'false');
-      });
-      if (wasActive) {
-        detail.hidden = true;
-        detail.innerHTML = '';
-        detail.removeAttribute('data-claim-key');
+      var key = btn.getAttribute('data-claim-key') || '';
+      var active = activeLearnSession && activeLearnSession._activeClaimContext ? activeLearnSession._activeClaimContext : null;
+      if (active && active.key === key) {
+        closeLearnClaimContext();
         return;
       }
-      btn.classList.add('is-active');
-      btn.setAttribute('aria-expanded', 'true');
+      var segment = currentLearnSegmentRef();
       var idx = Number(btn.getAttribute('data-claim-index') || 0);
       var claimText = btn.getAttribute('data-claim-text') || '';
-      updateLearnClaimDetail(detail, currentLearnSegmentRef(), claimText, idx);
-      var input = detail.querySelector('.learn-claim-chat-input');
-      if (input) setTimeout(function() { try { input.focus(); } catch(e) {} }, 20);
+      var citationNumber = Number(btn.getAttribute('data-claim-citation') || 1);
+      var context = {
+        key: key || learnClaimContextKey(segment, idx),
+        segmentId: getLearnClaimSegmentId(segment),
+        segment: segment,
+        claimIndex: idx,
+        citationNumber: citationNumber,
+        claimText: claimText,
+        title: segment && segment.title ? String(segment.title || '') : 'Source note'
+      };
+      if (activeLearnSession) activeLearnSession._activeClaimContext = context;
+      updateLearnContextPanel(context, { focusInput: true, animate: true });
     }
 
     function learnClaimContextHistoryForRequest(messages) {
@@ -25578,22 +25796,25 @@ input[type="range"]::-moz-range-thumb{
       });
     }
 
-    async function submitLearnClaimContextMessage(host) {
-      var detail = host && host.querySelector ? host.querySelector('.learn-claim-detail') : null;
-      if (!detail || detail.hidden) return;
-      var input = detail.querySelector('.learn-claim-chat-input');
+    async function submitLearnClaimContextMessage() {
+      var active = activeLearnSession && activeLearnSession._activeClaimContext ? activeLearnSession._activeClaimContext : null;
+      if (!active) return;
+      var panel = el('learnContextPanel');
+      if (!panel || panel.hidden) return;
+      var input = panel.querySelector('.learn-claim-chat-input');
       if (!input) return;
       var message = String(input.value || '').trim();
       if (!message) return;
       var segment = currentLearnSegmentRef();
-      var idx = Number(detail.getAttribute('data-claim-index') || 0);
-      var claimText = detail.getAttribute('data-claim-text') || '';
-      var key = learnClaimContextKey(segment, idx);
+      var idx = Number(active.claimIndex || 0);
+      var claimText = active.claimText || '';
+      var key = active.key || learnClaimContextKey(segment, idx);
       var stateObj = getLearnClaimContextState(key);
       stateObj.messages = Array.isArray(stateObj.messages) ? stateObj.messages : [];
       stateObj.messages.push({ role: 'user', text: message });
       stateObj.pending = true;
-      updateLearnClaimDetail(detail, segment, claimText, idx);
+      active.segment = segment;
+      updateLearnContextPanel(active);
       var headers = { 'Content-Type': 'application/json' };
       var widgetKey = getWidgetKey();
       if (widgetKey) headers['X-Widget-Key'] = widgetKey;
@@ -25627,7 +25848,7 @@ input[type="range"]::-moz-range-thumb{
         });
       } finally {
         stateObj.pending = false;
-        refreshLearnClaimContextIfActive(host, key);
+        refreshLearnClaimContextIfActive(key);
       }
     }
 
@@ -25635,14 +25856,19 @@ input[type="range"]::-moz-range-thumb{
       if (!host || host.__learnClaimWired) return;
       host.addEventListener('click', function(evt) {
         var target = evt && evt.target;
-        var btn = target && target.closest ? target.closest('.learn-claim-more') : null;
+        var btn = target && target.closest ? target.closest('.learn-claim-cite') : null;
         if (btn && host.contains(btn)) {
           openLearnClaimContext(host, btn);
           return;
         }
+        var close = target && target.closest ? target.closest('.learn-context-close') : null;
+        if (close && host.contains(close)) {
+          closeLearnClaimContext();
+          return;
+        }
         var send = target && target.closest ? target.closest('.learn-claim-chat-send') : null;
         if (send && host.contains(send)) {
-          submitLearnClaimContextMessage(host);
+          submitLearnClaimContextMessage();
         }
       });
       host.addEventListener('keydown', function(evt) {
@@ -25650,7 +25876,7 @@ input[type="range"]::-moz-range-thumb{
         if (!target || !target.classList || !target.classList.contains('learn-claim-chat-input')) return;
         if (evt.key === 'Enter') {
           evt.preventDefault();
-          submitLearnClaimContextMessage(host);
+          submitLearnClaimContextMessage();
         }
       });
       host.__learnClaimWired = true;
@@ -27180,7 +27406,8 @@ input[type="range"]::-moz-range-thumb{
           tutor.innerHTML = renderedTeach;
           activeLearnSession._teachChunkCount = 0;
         }
-        wireLearnTeachClaimButtons(tutor);
+        wireLearnTeachClaimButtons(tutorPane || tutor);
+        syncLearnContextPanelToCurrentSegment();
         activeLearnSession._lastTutorBody = nextTutorBody;
       }
       if (readContinueBtn) {
