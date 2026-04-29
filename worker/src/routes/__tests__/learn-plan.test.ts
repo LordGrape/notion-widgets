@@ -89,7 +89,16 @@ describe('learn-plan title safeguards (first-exposure)', () => {
     });
 
     expect(result.ok).toBe(false);
-    expect(result.reason).toMatch(/^title_tutor_overlap:0\.[4-9]\d$/);
+    expect(result.reason).toMatch(/^title_tutor_overlap:[01]\.\d{2}$/);
+  });
+
+  it('does not reject title and tutorPrompt for shared generic learning vocabulary', () => {
+    const result = verifySegmentTitle({
+      title: "What makes this founding story easier to understand as one origin?",
+      tutorPrompt: "How do the founding date, original name, and Windsor base fit together as one origin story?"
+    });
+
+    expect(result).toEqual({ ok: true });
   });
 
   it('accepts predictive Essex Scottish titles without a tutorPrompt', () => {

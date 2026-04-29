@@ -13,7 +13,7 @@ const LEARN_PLAN_CORS_HEADERS = {
 const PLAN_PRIMARY_MODEL = GEMINI_2_5_FLASH;
 const PLAN_ESCALATION_MODEL = GEMINI_2_5_PRO;
 
-const PLAN_CACHE_VERSION = "v11";
+const PLAN_CACHE_VERSION = "v12";
 const PLAN_CACHE_TTL_SECONDS = 86400;
 const PLAN_CACHE_KEY_PREFIX = `learn-plan:${PLAN_CACHE_VERSION}:`;
 const PRO_DAILY_CAP = 30;
@@ -179,6 +179,27 @@ function computeTokenOverlapRatio(sourceText: string, targetText: string): numbe
   const sourceTokens = Array.from(new Set(tokenizeForLearnGate(sourceText)));
   const targetTokens = Array.from(new Set(tokenizeForLearnGate(targetText)));
   if (sourceTokens.length === 0) return 1;
+  const targetSet = new Set(targetTokens);
+  const overlapCount = sourceTokens.filter((token) => targetSet.has(token)).length;
+  return overlapCount / sourceTokens.length;
+}
+
+const TITLE_TUTOR_ENTITY_GATE_STOPWORDS = new Set([
+  "A", "An", "And", "As", "At", "Before", "By", "For", "From", "Given", "How", "If", "In", "Into", "Of", "On", "Or", "The", "These", "This", "To", "What", "When", "Where", "Which", "Who", "Why",
+  "Battalion", "Card", "Date", "Detail", "Details", "Evidence", "Fact", "Facts", "Founding", "Identity", "Location", "Mechanism", "Name", "Origin", "Place", "Point", "Points", "Regiment", "Response", "Sequence", "Story", "Unit"
+]);
+
+function tokenizeForTitleTutorEntityGate(input: string): string[] {
+  const matches = String(input || '').match(/\b(?:[A-Z][\p{L}\p{M}'-]{2,}|\d{3,4}s?|\d{1,2})\b/gu) || [];
+  return matches
+    .map((token) => token.replace(/^['-]+|['-]+$/g, ''))
+    .filter((token) => token.length > 0 && !TITLE_TUTOR_ENTITY_GATE_STOPWORDS.has(token));
+}
+
+function computeTitleTutorEntityOverlapRatio(title: string, tutorPrompt: string): number {
+  const sourceTokens = Array.from(new Set(tokenizeForTitleTutorEntityGate(title).map((token) => token.toLowerCase())));
+  const targetTokens = Array.from(new Set(tokenizeForTitleTutorEntityGate(tutorPrompt).map((token) => token.toLowerCase())));
+  if (sourceTokens.length === 0) return 0;
   const targetSet = new Set(targetTokens);
   const overlapCount = sourceTokens.filter((token) => targetSet.has(token)).length;
   return overlapCount / sourceTokens.length;
@@ -480,7 +501,7 @@ export function verifySegmentTitle(seg: {
   }
   const tutorPrompt = String(seg?.tutorPrompt || '').trim();
   if (tutorPrompt) {
-    const entityOverlap = computeTokenOverlapRatio(trimmed, tutorPrompt);
+    const entityOverlap = computeTitleTutorEntityOverlapRatio(trimmed, tutorPrompt);
     if (entityOverlap > TITLE_VS_TUTOR_ENTITY_OVERLAP_CEILING) {
       return { ok: false, reason: `title_tutor_overlap:${entityOverlap.toFixed(2)}` };
     }
