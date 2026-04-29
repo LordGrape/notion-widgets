@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildDensityFallback,
+  learnCompletionWarningForTest,
   learnFallbackWarningForTest,
   minimumVerifiedSegmentCountForTest,
   verifySegmentGroundingForTest,
@@ -87,5 +88,11 @@ describe('learn-plan quality safeguards', () => {
     expect(learnFallbackWarningForTest({ ...baseStats, groundingRejectedCount: 1 })).toContain('could not be verified against the deck');
     expect(learnFallbackWarningForTest({ ...baseStats, groundingRejectedCount: 1, secondQualityRejectedCount: 1 })).toContain('teaching-quality checks');
     expect(learnFallbackWarningForTest({ ...baseStats, budgetReason: 'pro_exhausted' })).toContain('Pro retry budget was exhausted');
+  });
+
+  it('does not warn when a one-card Learn session generates one verified segment', () => {
+    expect(learnCompletionWarningForTest(1, 1, 1)).toBeUndefined();
+    expect(learnCompletionWarningForTest(2, 1, 1)).toContain('Only one verified lesson segment');
+    expect(learnCompletionWarningForTest(2, 2, 1)).toContain('Fewer than 2 consolidation questions');
   });
 });

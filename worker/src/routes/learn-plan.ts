@@ -494,6 +494,18 @@ function learnFallbackWarning(stats: LearnFallbackStats): string {
 
 export const learnFallbackWarningForTest = learnFallbackWarning;
 
+function learnCompletionWarning(
+  targetSegmentCount: number,
+  emittedSegmentCount: number,
+  verifiedQuestionCount: number
+): string | undefined {
+  if (targetSegmentCount > 1 && emittedSegmentCount < 2) return "Only one verified lesson segment was generated.";
+  if (targetSegmentCount > 1 && verifiedQuestionCount < 2) return "Fewer than 2 consolidation questions verified.";
+  return undefined;
+}
+
+export const learnCompletionWarningForTest = learnCompletionWarning;
+
 function verifyConsolidationQuestion(
   question: ConsolidationQuestion,
   corpus: Record<string, string>
@@ -1375,7 +1387,7 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
         segmentCount: emittedSegments.length,
         consolidationCount: verifiedQs.length,
         planMode: streamFailed ? "retry_verified" : "verified",
-        warning: emittedSegments.length < 2 ? "Only one verified lesson segment was generated." : (verifiedQs.length < 2 ? "Fewer than 2 consolidation questions verified." : undefined),
+        warning: learnCompletionWarning(targetSegmentCount, emittedSegments.length, verifiedQs.length),
         budgetDegraded
       });
       await writePlanCache(cacheKey, env, emittedSegments, verifiedQs);
@@ -1384,37 +1396,25 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
     }
 
     // ── Attempt 2: one-shot fallback (non-streaming).
-    const streamProducedNothing = emittedSegments.length === 0;
-    const streamFinishedCleanly = !streamFailed;
-    const deckTooSmall = body.cards.length <= 1;
-    const skipOneShot = streamFinishedCleanly && streamProducedNothing && deckTooSmall;
-    if (skipOneShot) {
-      console.info("[learn-plan] one-shot skipped: small-deck structural rejection", {
-        cardCount: body.cards.length,
-        bufferLength: fullBuffer.length
-      });
-    } else {
-      console.warn("[learn-plan] streaming produced fewer verified segments than required; falling back to one-shot.", {
-        emittedSegments: emittedSegments.length,
-        minimumVerifiedSegments,
-        bufferLength: fullBuffer.length,
-        streamFailed
-      });
-    }
+    console.warn("[learn-plan] streaming produced fewer verified segments than required; falling back to one-shot.", {
+      emittedSegments: emittedSegments.length,
+      minimumVerifiedSegments,
+      cardCount: body.cards.length,
+      bufferLength: fullBuffer.length,
+      streamFailed
+    });
 
     let secondAttempt: LearnPlanResponse | null = null;
-    if (!skipOneShot) {
-      try {
-        const reservation = await reservePlanProBudget(env);
-        if (!reservation.allowed) {
-          budgetDegraded = reservation.budgetDegraded;
-        } else {
-          secondAttempt = await requestPlanOneShot(PLAN_ESCALATION_MODEL, body, env);
-          await commitPlanProBudget(env, reservation);
-        }
-      } catch (err) {
-        console.warn("[learn-plan] one-shot fallback threw", err);
+    try {
+      const reservation = await reservePlanProBudget(env);
+      if (!reservation.allowed) {
+        budgetDegraded = reservation.budgetDegraded;
+      } else {
+        secondAttempt = await requestPlanOneShot(PLAN_ESCALATION_MODEL, body, env);
+        await commitPlanProBudget(env, reservation);
       }
+    } catch (err) {
+      console.warn("[learn-plan] one-shot fallback threw", err);
     }
 
     const verifiedSecondBase: LearnPlanSegment[] = [];
@@ -1460,7 +1460,7 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
         segmentCount: emittedSegments.length,
         consolidationCount: verifiedSecondQs.length,
         planMode: "retry_verified",
-        warning: emittedSegments.length < 2 ? "Only one verified lesson segment was generated." : (verifiedSecondQs.length < 2 ? "Fewer than 2 consolidation questions verified." : undefined),
+        warning: learnCompletionWarning(targetSegmentCount, emittedSegments.length, verifiedSecondQs.length),
         budgetDegraded
       });
       await writePlanCache(cacheKey, env, emittedSegments, verifiedSecondQs);

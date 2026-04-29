@@ -70,6 +70,16 @@ export interface GeminiUsageDay extends UsageTotals {
   events: GeminiUsageEvent[];
 }
 
+function findSseEventSeparator(buffer: string): { index: number; length: number } | null {
+  const lf = buffer.indexOf("\n\n");
+  const crlf = buffer.indexOf("\r\n\r\n");
+  if (lf < 0 && crlf < 0) return null;
+  if (lf >= 0 && (crlf < 0 || lf < crlf)) return { index: lf, length: 2 };
+  return { index: crlf, length: 4 };
+}
+
+export const findSseEventSeparatorForTest = findSseEventSeparator;
+
 function emptyUsageTotals(): UsageTotals {
   return { calls: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0, cachedTokens: 0, costUsd: 0 };
 }
@@ -273,11 +283,11 @@ export async function* streamGemini(
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
 
-      // SSE events separated by blank line.
-      let sep: number;
-      while ((sep = buffer.indexOf("\n\n")) >= 0) {
-        const rawEvent = buffer.slice(0, sep);
-        buffer = buffer.slice(sep + 2);
+      // SSE events are separated by a blank line. Upstream may use LF or CRLF.
+      let separator: { index: number; length: number } | null;
+      while ((separator = findSseEventSeparator(buffer)) !== null) {
+        const rawEvent = buffer.slice(0, separator.index);
+        buffer = buffer.slice(separator.index + separator.length);
         // Collect all `data: ...` lines (may be multi-line for one event).
         const dataLines: string[] = [];
         for (const line of rawEvent.split(/\r?\n/)) {
