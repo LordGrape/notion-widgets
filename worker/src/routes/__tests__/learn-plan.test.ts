@@ -12,7 +12,7 @@ const ESSEX_INTEGRATION_TUTOR_PROMPT =
   "How do the founding date, the original battalion name, and the Windsor headquarters fit together as evidence of that political response?";
 
 const ESSEX_PREDICTIVE_TITLE =
-  "What political event in 1880s Canada might have driven the founding of a new local militia regiment in Windsor?";
+  "Why is this easier to remember as an origin story than as a loose fact?";
 
 describe('learn-plan tutor prompt restatement safeguards', () => {
   it('rejects tutor prompts whose premise restates the teach block', () => {
@@ -142,5 +142,14 @@ describe('learn-plan title safeguards (first-exposure)', () => {
       teach: ESSEX_INTEGRATION_TEACH,
       tutorPrompt: ESSEX_INTEGRATION_TUTOR_PROMPT
     })).toEqual({ ok: true });
+  });
+
+  it('rejects unsupported political-cause title lures', () => {
+    const result = verifySegmentTitle({
+      title: "What political event in 1880s Canada might have driven the founding of a new local militia regiment in Windsor?"
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.reason).toMatch(/^banned_ungrounded_title_phrase:/);
   });
 });

@@ -118,4 +118,14 @@ describe('learn-plan quality safeguards', () => {
     const prompt = 'The 21st Essex Battalion of Infantry was founded in 1885. Why was the specific location of Windsor, Ontario, significant for its establishment?';
     expect(verifySegmentTutorPrompt({ tutorPrompt: prompt }).ok).toBe(false);
   });
+
+  it('rejects titles that lure the learner toward unsupported political causes', () => {
+    const result = verifySegmentTitle({
+      title: 'What political event in 1885 might have driven the founding of a new local militia regiment in Windsor?',
+      tutorPrompt: 'How do the founding date, original battalion name, and Windsor headquarters fit together as one origin story?'
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.reason).toContain('banned_ungrounded_title_phrase');
+  });
 });

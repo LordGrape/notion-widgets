@@ -485,6 +485,14 @@ export const BANNED_SEGMENT_TITLE_RECALL_PATTERNS: readonly RegExp[] = [
   /\b(when|where|who|what date|what year|what name|what month)\b[^?]{0,80},\s*and\s+(under what|by what|by whom|in what)\b/i
 ] as const;
 
+const BANNED_UNGROUNDED_TITLE_PHRASES: string[] = [
+  'what political event',
+  'which political event',
+  'might have driven',
+  'might have prompted',
+  'might have caused'
+];
+
 export function verifySegmentTitle(seg: {
   title: string;
   teach?: string;
@@ -498,6 +506,10 @@ export function verifySegmentTitle(seg: {
   const stripped = trimmed.replace(/^[\s>#*_\-`]+/, '');
   for (const pattern of BANNED_SEGMENT_TITLE_RECALL_PATTERNS) {
     if (pattern.test(stripped)) return { ok: false, reason: `banned_title_recall_pattern:${pattern.source}` };
+  }
+  const lower = trimmed.toLowerCase();
+  for (const phrase of BANNED_UNGROUNDED_TITLE_PHRASES) {
+    if (lower.indexOf(phrase) >= 0) return { ok: false, reason: `banned_ungrounded_title_phrase:${phrase}` };
   }
   const tutorPrompt = String(seg?.tutorPrompt || '').trim();
   if (tutorPrompt) {
@@ -911,11 +923,11 @@ function buildSystemPrompt(body: LearnPlanRequest): string {
     "TITLE FIELD RULES (first-exposure curiosity prompt, NOT a measurement):",
     "- The title is first, before teach. It is a curiosity-orienting question that opens an information gap the teach will close. It is NOT a memory test and NOT the segment's measurement event.",
     "- The MEASUREMENT event is segment.tutorPrompt, answered AFTER teach. Its verdict propagates to FSRS handoff status (taught / consolidated). The title must not preempt that measurement.",
-    "- Prefer PREDICTIVE or CAUSAL shapes: \"Why might [observable premise] have led to [general outcome]?\", \"What would explain [phenomenon] given [prior context]?\", \"If [setup], what would you expect?\"",
+    "- Prefer PREDICTIVE or CAUSAL shapes only when the premise, cause, and expected outcome are present in the supplied cards. For sparse factual cards, prefer curiosity about why the taught details belong together.",
     "- Banned title shapes: \"When was X ...?\", \"Who founded X?\", \"Where was X ...?\", \"Under what name was X ...?\", and conjunctive \"When X, and under what name?\" forms.",
     "- The title and tutorPrompt MUST cue different named entities. If title primes date + name, tutorPrompt must integrate trigger + actor + location, and vice versa. Validator rejects overlap above 0.40.",
     "- Negative example (DO NOT emit): \"When was the regiment that became the Essex Scottish founded, and under what name?\" If tutorPrompt asks the same facts, a high verdict measures priming, not learning.",
-    "- Positive example: title \"What political event in 1880s Canada might have driven the founding of a new local militia regiment in Windsor?\" paired with tutorPrompt \"How do the founding date, the original battalion name, and the Windsor headquarters fit together as evidence of that political response?\"",
+    "- Positive example: title \"Why is this easier to remember as an origin story than as a loose fact?\" paired with tutorPrompt \"How do the founding date, the original battalion name, and the Windsor headquarters fit together as the regiment origin?\"",
     "",
     "TEACH-BLOCK RULES (each segment's `teach` field):",
     "- Minimum 70 words of declarative instruction.",
