@@ -177,3 +177,121 @@ export function shouldShowLearnPlanStaleNote(input: LearnStaleNoteInput): boolea
   if (!saved || !current) return false;
   return saved !== current;
 }
+
+export interface InteractionShape {
+  kind: 'freeform' | 'predict_reveal' | 'structural_self_explain' | 'inline_cloze' | 'worked_reveal_justify';
+  placeholderHint: string;
+  primaryButtonCopy: string;
+  secondaryAction?: { label: string; intent: 'reveal' | 'skip_to_teach' };
+}
+
+export function getInteractionShape(
+  checkType: string,
+  fadeLevel: number | undefined,
+  isProbe: boolean | undefined
+): InteractionShape {
+  if (checkType === 'predictive') {
+    return {
+      kind: 'predict_reveal',
+      placeholderHint: 'Predict before reading further. Then commit to see the actual outcome.',
+      primaryButtonCopy: 'Commit prediction',
+      secondaryAction: { label: 'Reveal expected outcome', intent: 'reveal' }
+    };
+  }
+  if (checkType === 'self_explain') {
+    return {
+      kind: 'structural_self_explain',
+      placeholderHint: "Explain in the form: 'Because... therefore...'",
+      primaryButtonCopy: 'Submit explanation'
+    };
+  }
+  if (checkType === 'cloze') {
+    return {
+      kind: 'inline_cloze',
+      placeholderHint: 'Fill the blank.',
+      primaryButtonCopy: 'Submit'
+    };
+  }
+  if (checkType === 'worked_example' && fadeLevel === 1) {
+    return {
+      kind: 'worked_reveal_justify',
+      placeholderHint: 'Read the worked example, then justify why each step follows.',
+      primaryButtonCopy: 'Submit justification',
+      secondaryAction: { label: 'Show worked steps', intent: 'reveal' }
+    };
+  }
+  if (checkType === 'worked_example' && fadeLevel === 2) {
+    return {
+      kind: 'freeform',
+      placeholderHint: 'Fill the missing steps.',
+      primaryButtonCopy: 'Submit fills'
+    };
+  }
+  if (checkType === 'worked_example' && fadeLevel === 3) {
+    return {
+      kind: 'freeform',
+      placeholderHint: 'Try the full problem, then explain your reasoning.',
+      primaryButtonCopy: 'Submit attempt'
+    };
+  }
+  if (checkType === 'transfer_question') {
+    return {
+      kind: 'freeform',
+      placeholderHint: 'Apply the idea to the new case.',
+      primaryButtonCopy: 'Submit transfer'
+    };
+  }
+  if (checkType === 'elaborative') {
+    return {
+      kind: 'freeform',
+      placeholderHint: 'Explain why this matters or how the pieces connect.',
+      primaryButtonCopy: 'Submit explanation'
+    };
+  }
+  if (checkType === 'prior_knowledge_probe' || isProbe === true) {
+    return {
+      kind: 'freeform',
+      placeholderHint: 'Try what you already know. A partial answer is useful.',
+      primaryButtonCopy: 'Submit check'
+    };
+  }
+  return {
+    kind: 'freeform',
+    placeholderHint: 'Type your response in your own words.',
+    primaryButtonCopy: 'Submit response'
+  };
+}
+
+export function nextFadeIndex(
+  plannerSegments: Array<{ workedExampleId?: string; fadeLevel?: number }>,
+  currentIndex: number,
+  lastVerdict: 'surface' | 'partial' | 'deep' | null
+): number {
+  const current = plannerSegments[currentIndex];
+  const next = plannerSegments[currentIndex + 1];
+  if (!current || !current.workedExampleId) {
+    return currentIndex + 1;
+  }
+  const currentFade = Number(current.fadeLevel || 0);
+  if (lastVerdict === 'surface' && currentFade >= 2) {
+    for (let i = currentIndex - 1; i >= 0; i -= 1) {
+      const candidate = plannerSegments[i];
+      if (candidate?.workedExampleId !== current.workedExampleId) break;
+      if (candidate.fadeLevel === 1) return i;
+    }
+    return currentIndex + 1;
+  }
+  if (!next || next.workedExampleId !== current.workedExampleId) {
+    return currentIndex + 1;
+  }
+  if (lastVerdict === 'deep') {
+    const target = currentFade + 2;
+    for (let i = currentIndex + 1; i < plannerSegments.length; i += 1) {
+      const candidate = plannerSegments[i];
+      if (candidate?.workedExampleId !== current.workedExampleId) break;
+      if (Number(candidate.fadeLevel || 0) >= target) return i;
+    }
+    return currentIndex + 1;
+  }
+  return currentIndex + 1;
+}

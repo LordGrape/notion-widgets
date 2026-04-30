@@ -1,4 +1,5 @@
 import type { AppState, CourseContext, PlanProfile, StudyItem, SubDeckMeta } from './types';
+import type { PrequestionState } from './learn-prequestion';
 import { createSubDeck, getCardsInScope, getCardsInSubDeck, loadSubDecks } from './sub-decks';
 import { runLearnTurn, LearnTurnClientError } from './learn-turn-client';
 import { resolveSessionPlanProfile, resolveSessionTargetLanguage } from './plan-profiles';
@@ -37,6 +38,8 @@ export interface LearnSegment {
   fadeLevel?: 1 | 2 | 3;
   workedExampleId?: string;
   isProbe?: boolean;
+  prequestion?: PrequestionState;
+  learnerStuck?: boolean;
 }
 export interface StudyCardInput { id: string; prompt: string; modelAnswer: string; sourceMeta?: Record<string, unknown>; }
 

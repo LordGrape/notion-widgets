@@ -19,6 +19,7 @@
  */
 
 import type { ConsolidationQuestion, LearnPlan, LearnSegment, LearnTurnResult } from './learn-mode';
+import { shouldShowPrequestion } from './learn-prequestion';
 
 /**
  * Phases:
@@ -32,7 +33,7 @@ import type { ConsolidationQuestion, LearnPlan, LearnSegment, LearnTurnResult } 
  *   - 'done'          : session complete.
  */
 export type LearnFlowPhase = 'streaming' | 'tutor' | 'loading' | 'error' | 'consolidating' | 'done';
-export type LearnSegmentSubPhase = 'read' | 'answer' | 'feedback';
+export type LearnSegmentSubPhase = 'prequestion' | 'read' | 'answer' | 'scaffold' | 'feedback';
 
 export type ConsolidationRating = 1 | 2 | 3 | 4;
 
@@ -127,6 +128,7 @@ export interface LearnFlowState {
 export function createLearnFlow(plan: LearnPlan, course: string, subDeck: string): LearnFlowState {
   const first = (plan && plan.segments && plan.segments[0]) || null;
   const tutorBody = first ? buildInitialTutorBody(first) : 'No learn segments generated.';
+  const firstSubPhase = first && segmentNeedsPrequestion(first) ? 'prequestion' : 'read';
   return {
     course: String(course || ''),
     subDeck: String(subDeck || ''),
@@ -134,7 +136,7 @@ export function createLearnFlow(plan: LearnPlan, course: string, subDeck: string
     segmentIndex: 0,
     tutorBody,
     phase: first ? 'tutor' : 'done',
-    currentSubPhase: 'read',
+    currentSubPhase: first ? firstSubPhase : 'read',
     currentAssisted: false,
     errorMessage: null,
     turns: [],
@@ -264,6 +266,16 @@ export function markReadComplete(flow: LearnFlowState): LearnFlowState {
   return { ...flow, currentSubPhase: 'answer' };
 }
 
+export function markPrequestionComplete(flow: LearnFlowState): LearnFlowState {
+  if (!flow || flow.currentSubPhase !== 'prequestion') return flow;
+  return { ...flow, currentSubPhase: 'read' };
+}
+
+export function markScaffold(flow: LearnFlowState): LearnFlowState {
+  if (!flow || flow.currentSubPhase !== 'answer') return flow;
+  return { ...flow, currentSubPhase: 'scaffold' };
+}
+
 export function markAssisted(flow: LearnFlowState): LearnFlowState {
   if (!flow || flow.currentAssisted) return flow;
   return { ...flow, currentAssisted: true };
@@ -292,7 +304,7 @@ export function continueToNextSegment(flow: LearnFlowState): LearnFlowState {
     ...flow,
     segmentIndex: nextIndex,
     phase: 'tutor',
-    currentSubPhase: 'read',
+    currentSubPhase: segmentNeedsPrequestion(nextSeg) ? 'prequestion' : 'read',
     currentAssisted: false,
     errorMessage: null,
     tutorBody: buildInitialTutorBody(nextSeg)
@@ -303,8 +315,31 @@ export function isReadPhase(flow: LearnFlowState): boolean {
   return !!flow && flow.currentSubPhase === 'read';
 }
 
+export function jumpToSegment(flow: LearnFlowState, nextIndex: number): LearnFlowState {
+  if (!flow || !flow.plan || !Array.isArray(flow.plan.segments)) return flow;
+  if (nextIndex < 0 || nextIndex >= flow.plan.segments.length) return flow;
+  const nextSeg = flow.plan.segments[nextIndex];
+  return {
+    ...flow,
+    segmentIndex: nextIndex,
+    phase: 'tutor',
+    currentSubPhase: segmentNeedsPrequestion(nextSeg) ? 'prequestion' : 'read',
+    currentAssisted: false,
+    errorMessage: null,
+    tutorBody: buildInitialTutorBody(nextSeg)
+  };
+}
+
+export function isPrequestionPhase(flow: LearnFlowState): boolean {
+  return !!flow && flow.currentSubPhase === 'prequestion';
+}
+
 export function isAnswerPhase(flow: LearnFlowState): boolean {
-  return !!flow && flow.currentSubPhase === 'answer';
+  return !!flow && (flow.currentSubPhase === 'answer' || flow.currentSubPhase === 'scaffold');
+}
+
+export function isScaffoldPhase(flow: LearnFlowState): boolean {
+  return !!flow && flow.currentSubPhase === 'scaffold';
 }
 
 export function isFeedbackPhase(flow: LearnFlowState): boolean {
@@ -497,7 +532,7 @@ export function appendStreamedSegment(flow: LearnFlowState, segment: LearnSegmen
       plan: nextPlan,
       segmentIndex: 0,
       phase: 'tutor',
-      currentSubPhase: 'read',
+      currentSubPhase: segmentNeedsPrequestion(segment) ? 'prequestion' : 'read',
       currentAssisted: false,
       errorMessage: null,
       tutorBody: buildInitialTutorBody(segment)
@@ -829,6 +864,16 @@ function segmentTeachBody(segment: LearnSegment): string {
   return String(segment?.tutorPrompt || '').trim();
 }
 
+function segmentNeedsPrequestion(segment: LearnSegment | undefined): boolean {
+  if (!segment) return false;
+  if (!segment.checkType) return false;
+  return shouldShowPrequestion(
+    String(segment.checkType || ''),
+    segment.fadeLevel,
+    segment.isProbe
+  );
+}
+
 function buildInitialTutorBody(segment: LearnSegment): string {
   const title = String(segment.title || '').trim();
   const body = segmentTeachBody(segment);
@@ -871,10 +916,15 @@ function buildClosingTutorBody(feedback: string): string {
   markError,
   applyTurnResult,
   markReadComplete,
+  markPrequestionComplete,
+  markScaffold,
   markAssisted,
   continueToNextSegment,
+  jumpToSegment,
   isReadPhase,
+  isPrequestionPhase,
   isAnswerPhase,
+  isScaffoldPhase,
   isFeedbackPhase,
   wasAssisted,
   linkedCardIdsForSegment,

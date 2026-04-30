@@ -9550,6 +9550,49 @@ input[type="range"]::-moz-range-thumb{
     }
     .learn-read-continue-btn{ display: none; width: 100%; margin-top: 12px; min-height: 44px; }
     .learn-assisted-badge{ font-size: 10px; line-height: 1.4; color: var(--accent-secondary); margin: 0 0 8px; }
+    .learn-prequestion-title{
+      font-size: 18px;
+      line-height: 1.45;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+    .learn-prequestion-help{
+      margin: 0 0 10px;
+      color: var(--text-secondary);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .learn-prequestion-actions,
+    .learn-self-explain-chips{
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 8px 0;
+    }
+    .learn-reveal-panel{
+      border: 1px solid var(--border-subtle);
+      background: var(--surface-0);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin: 8px 0 10px;
+      color: var(--text-primary);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .learn-reveal-panel-title{
+      margin-bottom: 6px;
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+    }
+    .learn-stuck-btn{
+      width: 100%;
+      margin-top: 8px;
+    }
     .learn-feedback{
       font-size: 12px;
       line-height: 1.6;
@@ -9671,6 +9714,10 @@ input[type="range"]::-moz-range-thumb{
     }
     #learnSessionOv.learn-segment--read .learn-card-block.learn-yourturn,
     #learnSessionOv.learn-segment--read #learnSessionSubmit{ display: none; }
+    #learnSessionOv.learn-segment--prequestion .learn-card-block.learn-teach,
+    #learnSessionOv.learn-segment--prequestion .learn-card-block.learn-yourturn,
+    #learnSessionOv.learn-segment--prequestion #learnSessionSubmit{ display: none; }
+    #learnSessionOv:not(.learn-segment--prequestion) .learn-card-block.learn-prequestion{ display: none; }
     #learnSessionOv.learn-segment--read .learn-read-continue-btn{ display: inline-flex; }
     /* Larger teach during read sub-phase: reduces decoding load (Mayer 2009 coherence), redirects capacity to meaning (Craik & Lockhart 1972 levels of processing). */
     #learnSessionOv.learn-segment--read #learnTeachBlock{
@@ -9682,6 +9729,8 @@ input[type="range"]::-moz-range-thumb{
     }
     #learnSessionOv.learn-segment--answer .learn-read-continue-btn{ display: none; }
     #learnSessionOv.learn-segment--answer .learn-teach-toggle{ display: block; }
+    #learnSessionOv.learn-segment--scaffold .learn-read-continue-btn,
+    #learnSessionOv.learn-segment--scaffold .learn-teach-toggle{ display: none; }
     #learnSessionOv.learn-segment--feedback .learn-read-continue-btn,
     #learnSessionOv.learn-segment--feedback .learn-teach-toggle{ display: none; }
     #learnSessionOv.learn-segment--answer .learn-teach .learn-tutor{
@@ -9696,6 +9745,13 @@ input[type="range"]::-moz-range-thumb{
     #learnSessionOv.learn-segment--answer.teach-open .learn-teach .learn-tutor{
       max-height: 480px;
       opacity: 1;
+      padding-top: 16px;
+      padding-bottom: 16px;
+    }
+    #learnSessionOv.learn-segment--scaffold .learn-teach .learn-tutor{
+      max-height: none;
+      opacity: 1;
+      overflow: visible;
       padding-top: 16px;
       padding-bottom: 16px;
     }
@@ -10577,6 +10633,16 @@ input[type="range"]::-moz-range-thumb{
                       <div class="learn-focus-question" id="learnFocusQuestion"></div>
                     </div>
                     <div class="learn-tutor-pane" id="learnTutorPane">
+                      <div class="learn-card-block learn-prequestion" id="learnPrequestionBlock" hidden>
+                        <div class="learn-card-block-label">Best Guess</div>
+                        <div class="learn-prequestion-title" id="learnPrequestionTitle"></div>
+                        <p class="learn-prequestion-help">Take your best guess. You will not be graded. If you have no idea, say so — that is also useful.</p>
+                        <textarea class="learn-input" id="learnPrequestionInput" rows="3" placeholder="Take a low-stakes guess..." aria-label="Your best guess"></textarea>
+                        <div class="learn-prequestion-actions">
+                          <button type="button" class="learn-submit-btn" id="learnPrequestionCommit">Commit guess</button>
+                          <button type="button" class="ghost-btn" id="learnPrequestionDecline">I don't know</button>
+                        </div>
+                      </div>
                       <div class="learn-card-block learn-teach">
                         <div class="learn-card-block-label">Model</div>
                         <button type="button" class="learn-teach-toggle" id="learnTeachToggle">Review model (assisted)</button>
@@ -10593,6 +10659,12 @@ input[type="range"]::-moz-range-thumb{
                         <div class="learn-card-block-label">Your Turn</div>
                         <div id="learnLanguageModePill" class="segment-label-pill" hidden></div>
                         <div class="learn-yourturn-prompt" id="learnTutorPrompt"></div>
+                        <button type="button" class="ghost-btn" id="learnShapeRevealBtn" hidden>Reveal expected outcome</button>
+                        <div class="learn-reveal-panel" id="learnExpectedReveal" hidden></div>
+                        <div class="learn-self-explain-chips" id="learnSelfExplainChips" hidden>
+                          <button type="button" class="ghost-btn learn-prefix-chip" data-prefix="Because ">Because…</button>
+                          <button type="button" class="ghost-btn learn-prefix-chip" data-prefix="Therefore ">Therefore…</button>
+                        </div>
                         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px;">
                           <button type="button" class="ghost-btn" id="learnListenBtn" hidden>🔊 Listen</button>
                           <button type="button" class="ghost-btn" id="learnPronounceBtn" hidden>Hear correct pronunciation</button>
@@ -10600,6 +10672,7 @@ input[type="range"]::-moz-range-thumb{
                         </div>
                         <div class="learn-assisted-badge" id="learnAssistedBadge" hidden>Assisted: teach was reopened. Verdict will cap one tier lower.</div>
                         <textarea class="learn-input" id="learnSessionInput" rows="3" placeholder="Type your response…" aria-label="Your response"></textarea>
+                        <button type="button" class="ghost-btn learn-stuck-btn" id="learnStuckBtn">I'm stuck — show me how this connects</button>
                         <div class="learn-feedback" id="learnFeedbackBlock" hidden></div>
                         <div class="learn-kbd-hint"><kbd>⌘/Ctrl</kbd> + <kbd>Enter</kbd> to continue/submit · <kbd>Esc</kbd> to exit</div>
                         <div class="learn-caption" id="learnSessionCaption"></div>
@@ -11115,7 +11188,8 @@ input[type="range"]::-moz-range-thumb{
     import { LEARN_EMPTY_HEADING, LEARN_EMPTY_BODY, LEARN_EMPTY_CTA, LEARN_EMPTY_LABEL_ENCODING, LEARN_EMPTY_LABEL_RETRIEVAL, LEARN_LANDING_STATUS_UNLEARNED, LEARN_LANDING_STATUS_TAUGHT, LEARN_LANDING_STATUS_CONSOLIDATED, LEARN_LANDING_CACHE_HIT, LEARN_LANDING_CACHE_MISS, LEARN_LANDING_START, LEARN_LANDING_REGEN, LEARN_INTRO_TEXT, LEARN_INTRO_DISMISS, formatRelativeTime } from './src/learn-copy';
     import { renderLearnEmptyStateHtml, renderLearnSubDeckLandingHtml } from './src/learn-ui/landing';
     import { updateLearnSessionMap as updateLearnSessionMapUi } from './src/learn-ui/session-map';
-    import { deriveLearnInteractionCopy, shouldShowLearnPlanStaleNote } from './src/learn-interactions';
+    import { deriveLearnInteractionCopy, getInteractionShape, nextFadeIndex, shouldShowLearnPlanStaleNote } from './src/learn-interactions';
+    import { emptyPrequestionState, recordDecline, recordGuess } from './src/learn-prequestion';
     import { profileLabel as courseProfileLabel, resolveCourseGoal, visibleCourseDetailsFields } from './src/courses/visibility';
     import { resolveActiveHomeCourse } from './src/home/active-course';
     import { homeHeroStats, homeTutorStatsLabels } from './src/home/widgets';
@@ -26951,6 +27025,88 @@ input[type="range"]::-moz-range-thumb{
       return getLearnInteractionCopy(segment, profile);
     }
 
+    function updateCurrentLearnSegment(mutator) {
+      if (!activeLearnSession || !activeLearnSession.flow || !activeLearnSession.flow.plan) return null;
+      var flow = activeLearnSession.flow;
+      var idx = Number(flow.segmentIndex || 0);
+      var segments = (flow.plan.segments || []).slice();
+      var segment = segments[idx];
+      if (!segment) return null;
+      var nextSegment = mutator(Object.assign({}, segment)) || segment;
+      segments[idx] = nextSegment;
+      activeLearnSession.flow = Object.assign({}, flow, {
+        plan: Object.assign({}, flow.plan, { segments: segments })
+      });
+      if (state.learnSession) state.learnSession.segments = segments.slice();
+      return nextSegment;
+    }
+
+    function renderLearnExpectedReveal(title, body, open) {
+      var reveal = el('learnExpectedReveal');
+      if (!reveal) return;
+      var text = String(body || '').trim();
+      if (!text) {
+        reveal.hidden = true;
+        reveal.innerHTML = '';
+        return;
+      }
+      reveal.hidden = !open;
+      reveal.innerHTML = '<div class="learn-reveal-panel-title">' + esc(title || 'Expected outcome') + '</div>'
+        + '<div>' + renderLearnMarkdownSafe(text) + '</div>';
+    }
+
+    function insertLearnPrefix(prefix) {
+      var input = el('learnSessionInput');
+      if (!input) return;
+      var start = typeof input.selectionStart === 'number' ? input.selectionStart : String(input.value || '').length;
+      var end = typeof input.selectionEnd === 'number' ? input.selectionEnd : start;
+      var value = String(input.value || '');
+      input.value = value.slice(0, start) + prefix + value.slice(end);
+      var nextPos = start + String(prefix || '').length;
+      try { input.setSelectionRange(nextPos, nextPos); } catch (eSel) {}
+      input.focus();
+      autogrowLearnInput();
+      updateLearnSubmitState();
+    }
+
+    function completeLearnPrequestion(raw, declined) {
+      if (!activeLearnSession) return;
+      var flowBridge = globalThis.__studyEngineLearnFlow;
+      var current = null;
+      try { current = flowBridge && flowBridge.currentSegment ? flowBridge.currentSegment(activeLearnSession.flow) : null; } catch (eCur) {}
+      var previous = current && current.prequestion ? current.prequestion : emptyPrequestionState();
+      var nextState = declined ? recordDecline(previous) : recordGuess(previous, raw || '');
+      updateCurrentLearnSegment(function(segment) {
+        segment.prequestion = nextState;
+        return segment;
+      });
+      if (flowBridge && typeof flowBridge.markPrequestionComplete === 'function') {
+        activeLearnSession.flow = flowBridge.markPrequestionComplete(activeLearnSession.flow);
+      } else {
+        activeLearnSession.flow = Object.assign({}, activeLearnSession.flow, { currentSubPhase: 'read' });
+      }
+      saveState();
+      renderLearnSessionUI();
+    }
+
+    function startLearnStuckBranch() {
+      if (!activeLearnSession) return;
+      var flowBridge = globalThis.__studyEngineLearnFlow;
+      updateCurrentLearnSegment(function(segment) {
+        segment.learnerStuck = true;
+        return segment;
+      });
+      if (flowBridge && typeof flowBridge.markScaffold === 'function') {
+        activeLearnSession.flow = flowBridge.markScaffold(activeLearnSession.flow);
+      } else {
+        activeLearnSession.flow = Object.assign({}, activeLearnSession.flow, { currentSubPhase: 'scaffold' });
+      }
+      saveState();
+      renderLearnSessionUI();
+      var input = el('learnSessionInput');
+      if (input) input.focus();
+    }
+
     function isStrictSubsetCacheHit(cacheEntry, currentCardIds, currentCourseContextHash) {
       if (!cacheEntry || !Array.isArray(cacheEntry.plan) || !currentCardIds || !currentCardIds.length) return false;
       var savedContextHash = cacheEntry.courseContextHash || extractContextHashFromFingerprint(cacheEntry.fingerprint);
@@ -27075,7 +27231,7 @@ input[type="range"]::-moz-range-thumb{
         stopLearnTurnBreathing();
         return;
       }
-      if (activeLearnSession.flow.currentSubPhase && activeLearnSession.flow.currentSubPhase !== 'answer') {
+      if (activeLearnSession.flow.currentSubPhase && activeLearnSession.flow.currentSubPhase !== 'answer' && activeLearnSession.flow.currentSubPhase !== 'scaffold') {
         stopLearnTurnBreathing();
         return;
       }
@@ -27112,6 +27268,13 @@ input[type="range"]::-moz-range-thumb{
       var flowBridge = globalThis.__studyEngineLearnFlow;
       var flow = activeLearnSession.flow;
       var interactionCopy = getActiveLearnInteractionCopy();
+      var currentForShape = null;
+      try { currentForShape = flowBridge && flowBridge.currentSegment ? flowBridge.currentSegment(flow) : null; } catch (eShape) {}
+      var shapeForSubmit = getInteractionShape(
+        currentForShape && currentForShape.checkType ? String(currentForShape.checkType) : '',
+        currentForShape && currentForShape.fadeLevel != null ? Number(currentForShape.fadeLevel) : undefined,
+        !!(currentForShape && currentForShape.isProbe)
+      );
       var subPhase = String(flow.currentSubPhase || 'read');
       /* Phase 4: awaiting-next — a pending turn result has already completed the
          last loaded segment but more segments are still streaming in. */
@@ -27136,12 +27299,12 @@ input[type="range"]::-moz-range-thumb{
          lands so the user cannot type a response to nothing. */
       var segsLoaded = ((flow.plan && flow.plan.segments) || []).length;
       var preSegmentStreaming = (phase === 'streaming' && segsLoaded === 0);
-      var needsInput = subPhase === 'answer';
+      var needsInput = subPhase === 'answer' || subPhase === 'scaffold';
       var disabled = (phase === 'loading') || preSegmentStreaming || (needsInput && !String((input && input.value) || '').trim());
       submit.disabled = disabled;
       submit.classList.toggle('loading', phase === 'loading');
       if (input) {
-        input.disabled = (phase === 'loading') || preSegmentStreaming || subPhase !== 'answer';
+        input.disabled = (phase === 'loading') || preSegmentStreaming || (subPhase !== 'answer' && subPhase !== 'scaffold');
         if (preSegmentStreaming && !input.getAttribute('data-stream-placeholder')) {
           input.setAttribute('data-stream-placeholder', input.getAttribute('placeholder') || '');
           input.setAttribute('placeholder', 'Drafting your first segment…');
@@ -27160,7 +27323,7 @@ input[type="range"]::-moz-range-thumb{
           var latest = getCurrentLearnTurnResult(flow);
           label.textContent = (latest && latest.isSegmentComplete) ? 'Continue to next segment' : (interactionCopy.answerAgainLabel || 'Answer again');
         } else if (subPhase === 'read') label.textContent = 'Continue';
-        else label.textContent = interactionCopy.submitButtonLabel || 'Submit';
+        else label.textContent = subPhase === 'scaffold' ? 'Submit paraphrase' : (shapeForSubmit.primaryButtonCopy || interactionCopy.submitButtonLabel || 'Submit');
       }
       if (exit) exit.textContent = 'Back to sub-decks';
     }
@@ -27567,13 +27730,17 @@ input[type="range"]::-moz-range-thumb{
       var ov = el('learnSessionOv');
       var flowBridge = globalThis.__studyEngineLearnFlow;
       if (!ov || !flowBridge) return;
+      var isPrequestion = !!(flowBridge.isPrequestionPhase && flowBridge.isPrequestionPhase(flow));
       var isRead = !!(flowBridge.isReadPhase && flowBridge.isReadPhase(flow));
       var isAnswer = !!(flowBridge.isAnswerPhase && flowBridge.isAnswerPhase(flow));
+      var isScaffold = !!(flowBridge.isScaffoldPhase && flowBridge.isScaffoldPhase(flow));
       var isFeedback = !!(flowBridge.isFeedbackPhase && flowBridge.isFeedbackPhase(flow));
+      ov.classList.toggle('learn-segment--prequestion', isPrequestion);
       ov.classList.toggle('learn-segment--read', isRead);
       ov.classList.toggle('learn-segment--answer', isAnswer);
+      ov.classList.toggle('learn-segment--scaffold', isScaffold);
       ov.classList.toggle('learn-segment--feedback', isFeedback);
-      if (!isAnswer) ov.classList.remove('teach-open');
+      if (!isAnswer || isScaffold) ov.classList.remove('teach-open');
       if (!prefersReducedMotion() && window.gsap) {
         try { gsap.fromTo('#learnSessionBody', { opacity: 0.92 }, { opacity: 1, duration: 0.18, ease: 'power1.out' }); } catch (ePhase) {}
       }
@@ -27622,6 +27789,12 @@ input[type="range"]::-moz-range-thumb{
       var feedbackHost = el('learnFeedbackBlock');
       var tutorPane = el('learnTutorPane');
       var yourTurnLabel = document.querySelector('#learnSessionOv .learn-card-block.learn-yourturn .learn-card-block-label');
+      var prequestionBlock = el('learnPrequestionBlock');
+      var prequestionTitle = el('learnPrequestionTitle');
+      var prequestionInput = el('learnPrequestionInput');
+      var selfExplainChips = el('learnSelfExplainChips');
+      var stuckBtn = el('learnStuckBtn');
+      var shapeRevealBtn = el('learnShapeRevealBtn');
       var focusCard = el('learnFocusCard');
       var focusEyebrow = el('learnFocusEyebrow');
       var focusQuestion = el('learnFocusQuestion');
@@ -27703,9 +27876,16 @@ input[type="range"]::-moz-range-thumb{
       var curCheckType = curSeg && curSeg.checkType ? String(curSeg.checkType) : '';
       var curFadeLevel = curSeg && curSeg.fadeLevel != null ? Number(curSeg.fadeLevel) : null;
       var interactionCopy = getLearnInteractionCopy(curSeg, activeLearnSession && activeLearnSession.planProfile ? String(activeLearnSession.planProfile) : 'theory');
+      var interactionShape = getInteractionShape(curCheckType, curFadeLevel == null ? undefined : curFadeLevel, !!(curSeg && curSeg.isProbe));
       var isTransferSegment = curCheckType === 'transfer_question';
       var isClozeSegment = curCheckType === 'cloze';
       if (yourTurnLabel) yourTurnLabel.textContent = interactionCopy.interactionLabel || 'Your Turn';
+      if (prequestionBlock) prequestionBlock.hidden = flow.currentSubPhase !== 'prequestion';
+      if (prequestionTitle) prequestionTitle.innerHTML = curSeg && curSeg.title ? renderLearnMarkdownSafe(String(curSeg.title)) : '';
+      if (prequestionInput && flow.currentSubPhase === 'prequestion') {
+        var savedGuess = curSeg && curSeg.prequestion && curSeg.prequestion.guess ? String(curSeg.prequestion.guess) : '';
+        if (prequestionInput.value !== savedGuess) prequestionInput.value = savedGuess;
+      }
       if (focusCard && focusQuestion) {
         var focusPrompt = getLearnFocusPrompt(curSeg);
         var showFocus = !!focusPrompt && flow.phase !== 'consolidating' && flow.phase !== 'done';
@@ -27730,6 +27910,11 @@ input[type="range"]::-moz-range-thumb{
         var nextTutorBody = (segForTeach && segForTeach.teach)
           ? String(segForTeach.teach || '').trim()
           : String(flow.tutorBody || '');
+        if (flow.currentSubPhase === 'scaffold' && segForTeach) {
+          nextTutorBody = '### Scaffolded re-teach\n\n' + String(segForTeach.teach || '').trim()
+            + '\n\n**How this fits together**\n\n' + String(segForTeach.expectedAnswer || '').trim()
+            + '\n\nNow, in your own words, paraphrase the expected answer. This is for encoding, not a test.';
+        }
         var prevTutorBody = String(activeLearnSession._lastTutorBody || '');
         var labelPill = '';
         if ((segForTeach && segForTeach.isProbe) || curCheckType === 'prior_knowledge_probe') {
@@ -27801,7 +27986,9 @@ input[type="range"]::-moz-range-thumb{
       var yourTurnPromptEl = el('learnTutorPrompt');
       if (yourTurnPromptEl) {
         var curPrompt = (curSeg && curSeg.tutorPrompt) ? String(curSeg.tutorPrompt).trim() : '';
-        if (isRun5LanguageEnabled() && curCheckType === 'cloze') {
+        if (flow.currentSubPhase === 'scaffold') {
+          yourTurnPromptEl.innerHTML = renderLearnMarkdownSafe('Now, in your own words, paraphrase the expected answer. This is for encoding, not a test.');
+        } else if (interactionShape.kind === 'inline_cloze') {
           var clozeHtml = esc(curPrompt).replace(/\[___\]/g, '<input id="learnClozeInput" class="cloze-blank" type="text" placeholder="fill in" />');
           yourTurnPromptEl.innerHTML = curPrompt ? clozeHtml : '';
           var clozeInput = el('learnClozeInput');
@@ -27819,7 +28006,17 @@ input[type="range"]::-moz-range-thumb{
           yourTurnPromptEl.innerHTML = curPrompt ? renderLearnMarkdownSafe(curPrompt) : '';
         }
       }
-      if (input && isRun5LanguageEnabled() && curCheckType === 'cloze') {
+      if (selfExplainChips) selfExplainChips.hidden = interactionShape.kind !== 'structural_self_explain' || flow.currentSubPhase !== 'answer';
+      var revealOpen = !!(activeLearnSession && activeLearnSession.revealedExpectedAnswerBySegment && curSeg && activeLearnSession.revealedExpectedAnswerBySegment[curSeg.id]);
+      if (shapeRevealBtn) {
+        var hasRevealAction = !!(interactionShape.secondaryAction && interactionShape.secondaryAction.intent === 'reveal');
+        shapeRevealBtn.hidden = !hasRevealAction || flow.currentSubPhase !== 'answer';
+        shapeRevealBtn.textContent = interactionShape.secondaryAction ? interactionShape.secondaryAction.label : 'Reveal expected outcome';
+      }
+      if (interactionShape.kind === 'predict_reveal') renderLearnExpectedReveal('Expected outcome', curSeg && curSeg.expectedAnswer, revealOpen);
+      else if (interactionShape.kind === 'worked_reveal_justify') renderLearnExpectedReveal('Worked steps', curSeg && curSeg.expectedAnswer, revealOpen);
+      else renderLearnExpectedReveal('', '', false);
+      if (input && interactionShape.kind === 'inline_cloze') {
         var cInput = el('learnClozeInput');
         input.value = cInput ? String(cInput.value || '') : String(input.value || '');
       }
@@ -27911,7 +28108,9 @@ input[type="range"]::-moz-range-thumb{
       }
 
       if (input && input.getAttribute('data-stream-placeholder') === null) {
-        input.placeholder = interactionCopy.placeholder || 'Type your response...';
+        input.placeholder = flow.currentSubPhase === 'scaffold'
+          ? 'Submit a paraphrase in your own words...'
+          : (interactionShape.placeholderHint || interactionCopy.placeholder || 'Type your response...');
       }
       renderLearnStatsForCourse(activeLearnSession.courseName || activeLearnSession.flow.course || '');
 
@@ -28058,7 +28257,12 @@ input[type="range"]::-moz-range-thumb{
         var canAdvance = !!(latestTurn && latestTurn.isSegmentComplete);
         if (canAdvance) {
           var prevIdxFb = flow.segmentIndex;
-          activeLearnSession.flow = flowBridge.continueToNextSegment ? flowBridge.continueToNextSegment(flow) : flow;
+          var adaptiveNextIdx = nextFadeIndex((flow.plan && flow.plan.segments) || [], prevIdxFb, latestTurn && latestTurn.verdict ? latestTurn.verdict : null);
+          if (adaptiveNextIdx !== prevIdxFb + 1 && flowBridge.jumpToSegment) {
+            activeLearnSession.flow = flowBridge.jumpToSegment(flow, adaptiveNextIdx);
+          } else {
+            activeLearnSession.flow = flowBridge.continueToNextSegment ? flowBridge.continueToNextSegment(flow) : flow;
+          }
           if (activeLearnSession.flow.segmentIndex !== prevIdxFb && activeLearnSession.flow.phase === 'tutor') {
             var paneFb = el('learnTutorPane');
             animateLearnPaneSwap(paneFb, paneFb, 'forward');
@@ -28095,7 +28299,7 @@ input[type="range"]::-moz-range-thumb{
       var input = el('learnSessionInput');
       var userInput = input ? String(input.value || '').trim() : '';
       var clozeInput = el('learnClozeInput');
-      if (isRun5LanguageEnabled() && clozeInput) userInput = String(clozeInput.value || '').trim();
+      if (clozeInput) userInput = String(clozeInput.value || '').trim();
       if (!userInput) return;
 
       var pendingSegment = flowBridge.currentSegment(activeLearnSession.flow);
@@ -29344,7 +29548,7 @@ input[type="range"]::-moz-range-thumb{
       try { stopLearnStreamTicker(); } catch (eT) {}
       if (ov) {
         ov.hidden = true;
-        ov.classList.remove('teach-open', 'learn-segment--read', 'learn-segment--answer', 'learn-segment--feedback');
+        ov.classList.remove('teach-open', 'learn-segment--prequestion', 'learn-segment--read', 'learn-segment--answer', 'learn-segment--scaffold', 'learn-segment--feedback');
       }
       var _emptyState = el('learnTabEmptyState');
       if (_emptyState) _emptyState.hidden = false;
@@ -29358,6 +29562,11 @@ input[type="range"]::-moz-range-thumb{
       var _yourTurnPrompt = el('learnTutorPrompt');
       var _assistBadge = el('learnAssistedBadge');
       var _feedbackBlock = el('learnFeedbackBlock');
+      var _preqTitle = el('learnPrequestionTitle');
+      var _preqInput = el('learnPrequestionInput');
+      var _shapeReveal = el('learnExpectedReveal');
+      var _shapeRevealBtn = el('learnShapeRevealBtn');
+      var _chips = el('learnSelfExplainChips');
       var _consolQ = el('learnConsolQuestion');
       var _consolA = el('learnConsolAnswer');
       var _consolReveal = el('learnConsolReveal');
@@ -29369,6 +29578,11 @@ input[type="range"]::-moz-range-thumb{
       var _summaryPane = el('learnSummaryPane');
       if (_tutorBody) _tutorBody.innerHTML = '';
       if (_yourTurnPrompt) _yourTurnPrompt.innerHTML = '';
+      if (_preqTitle) _preqTitle.innerHTML = '';
+      if (_preqInput) _preqInput.value = '';
+      if (_shapeReveal) { _shapeReveal.innerHTML = ''; _shapeReveal.hidden = true; }
+      if (_shapeRevealBtn) _shapeRevealBtn.hidden = true;
+      if (_chips) _chips.hidden = true;
       if (_assistBadge) _assistBadge.hidden = true;
       if (_feedbackBlock) { _feedbackBlock.innerHTML = ''; _feedbackBlock.hidden = true; }
       if (_consolQ) _consolQ.innerHTML = '';
@@ -29499,6 +29713,13 @@ input[type="range"]::-moz-range-thumb{
       var rail = el('learnSubDeckRail');
       var railToggle = el('learnRailToggle');
       var heroSubDeckBtn = el('learnHeroSubDeckBtn');
+      var preqCommit = el('learnPrequestionCommit');
+      var preqDecline = el('learnPrequestionDecline');
+      var preqInput = el('learnPrequestionInput');
+      var stuckBtn = el('learnStuckBtn');
+      var expectedReveal = el('learnExpectedReveal');
+      var shapeRevealBtn = el('learnShapeRevealBtn');
+      var selfExplainChips = el('learnSelfExplainChips');
 
       if (railToggle) {
         railToggle.addEventListener('click', function() {
@@ -29535,6 +29756,35 @@ input[type="range"]::-moz-range-thumb{
       }
 
       if (submit) submit.addEventListener('click', function(){ submitLearnTurn(); });
+      if (preqCommit) preqCommit.addEventListener('click', function() {
+        completeLearnPrequestion(preqInput ? preqInput.value : '', false);
+      });
+      if (preqDecline) preqDecline.addEventListener('click', function() {
+        completeLearnPrequestion('', true);
+      });
+      if (preqInput) preqInput.addEventListener('keydown', function(e) {
+        if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+          e.preventDefault();
+          completeLearnPrequestion(preqInput.value, false);
+        }
+      });
+      if (stuckBtn) stuckBtn.addEventListener('click', function(){ startLearnStuckBranch(); });
+      if (shapeRevealBtn) shapeRevealBtn.addEventListener('click', function() {
+        if (!activeLearnSession) return;
+        var flowBridge = globalThis.__studyEngineLearnFlow;
+        var seg = flowBridge && flowBridge.currentSegment ? flowBridge.currentSegment(activeLearnSession.flow) : null;
+        if (!seg || !seg.id) return;
+        activeLearnSession.revealedExpectedAnswerBySegment = activeLearnSession.revealedExpectedAnswerBySegment || {};
+        activeLearnSession.revealedExpectedAnswerBySegment[seg.id] = !activeLearnSession.revealedExpectedAnswerBySegment[seg.id];
+        renderLearnSessionUI();
+      });
+      if (selfExplainChips) selfExplainChips.addEventListener('click', function(e) {
+        var target = e.target;
+        if (!(target instanceof Element)) return;
+        var btn = target.closest('[data-prefix]');
+        if (!btn) return;
+        insertLearnPrefix(btn.getAttribute('data-prefix') || '');
+      });
       if (readContinueBtn) readContinueBtn.addEventListener('click', function() {
         if (!activeLearnSession) return;
         var flowBridge = globalThis.__studyEngineLearnFlow;

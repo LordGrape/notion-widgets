@@ -1,4 +1,5 @@
 import type { IngestSource } from './ingest/types';
+import type { PrequestionState } from './learn-prequestion';
 /**
  * Study Engine type definitions extracted from studyengine/studyengine.html.
  * Type-only metadata (no runtime impact).
@@ -127,6 +128,7 @@ export interface ReviewEvent {
 }
 
 export type PlanProfile = 'theory' | 'factual' | 'procedural' | 'language';
+export type { PrequestionState } from './learn-prequestion';
 export type CourseGoal = 'daily_practice' | 'exam_prep' | 'professional_skill' | 'project';
 
 export interface SubDeckMeta {
@@ -430,6 +432,8 @@ export interface LearnPlanSegment {
   fadeLevel?: 1 | 2 | 3;
   workedExampleId?: string;
   isProbe?: boolean;
+  prequestion?: PrequestionState;
+  learnerStuck?: boolean;
 }
 
 /**
