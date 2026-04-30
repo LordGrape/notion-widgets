@@ -4,12 +4,12 @@ import { verifySegmentTitle, verifySegmentTutorPrompt } from '../learn-plan';
 const ESSEX_INTEGRATION_TEACH = [
   "The Essex Scottish origin story sits inside the Canadian militia expansion of the 1880s.",
   "The North-West Rebellion had sharpened concern about local defence capacity, so a Windsor-based unit gave Essex County a permanent militia identity.",
-  "Its formal creation on 12 June 1885, its original designation as the 21st Essex Battalion of Infantry, and its early commander are best understood as evidence of that political response.",
+  "Its formal creation on 12 June 1885, its original designation as the 21st Essex Battalion of Infantry, and its Windsor headquarters are best understood as evidence of that political response.",
   "Those details are not separate trivia; they show how a local regiment connected national pressure, regional identity, and organised military structure."
 ].join(' ');
 
 const ESSEX_INTEGRATION_TUTOR_PROMPT =
-  "How do the founding date, the original battalion name, and the founding commander fit together as evidence of that political response?";
+  "How do the founding date, the original battalion name, and the Windsor headquarters fit together as evidence of that political response?";
 
 const ESSEX_PREDICTIVE_TITLE =
   "What political event in 1880s Canada might have driven the founding of a new local militia regiment in Windsor?";
@@ -60,6 +60,19 @@ describe('learn-plan tutor prompt restatement safeguards', () => {
       teach: ESSEX_INTEGRATION_TEACH,
       tutorPrompt: ESSEX_INTEGRATION_TUTOR_PROMPT
     })).toEqual({ ok: true });
+  });
+
+  it('rejects tutor prompts that ask for an untaught founding commander', () => {
+    const result = verifySegmentTutorPrompt({
+      teach: [
+        "The Essex Scottish origin story sits inside the Canadian militia expansion of the 1880s.",
+        "The North-West Rebellion had sharpened concern about local defence capacity, so a Windsor-based unit gave Essex County a permanent militia identity.",
+        "Its formal creation on 12 June 1885, original designation as the 21st Essex Battalion of Infantry, and Windsor headquarters are the taught anchors."
+      ].join(' '),
+      tutorPrompt: "How do the founding date, the original battalion name, and the founding commander fit together as evidence of that political response?"
+    });
+
+    expect(result).toEqual({ ok: false, reason: "untaught_tutor_detail:commander" });
   });
 });
 

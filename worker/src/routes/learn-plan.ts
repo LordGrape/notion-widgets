@@ -13,7 +13,7 @@ const LEARN_PLAN_CORS_HEADERS = {
 const PLAN_PRIMARY_MODEL = GEMINI_2_5_FLASH;
 const PLAN_ESCALATION_MODEL = GEMINI_2_5_PRO;
 
-const PLAN_CACHE_VERSION = "v12";
+const PLAN_CACHE_VERSION = "v13";
 const PLAN_CACHE_TTL_SECONDS = 86400;
 const PLAN_CACHE_KEY_PREFIX = `learn-plan:${PLAN_CACHE_VERSION}:`;
 const PRO_DAILY_CAP = 30;
@@ -514,6 +514,15 @@ function hasExactlyOneClozeBlank(prompt: string): boolean {
   return (matches || []).length === 1;
 }
 
+function hasUntaughtTutorDetail(tutorPrompt: string, teach: string): string | null {
+  const prompt = tutorPrompt.toLowerCase();
+  const taught = teach.toLowerCase();
+  if (/\bcommander\b/.test(prompt) && !/\b(command(?:er|ed|ing)?|leader|led by)\b/.test(taught)) {
+    return "commander";
+  }
+  return null;
+}
+
 export function verifySegmentTutorPrompt(seg: { tutorPrompt: string; teach?: string; checkType?: LearnCheckType | string }): { ok: boolean; reason?: string } {
   const trimmed = String(seg?.tutorPrompt || '').trim();
   if (trimmed.length < 15) return { ok: false, reason: 'too_short' };
@@ -528,6 +537,8 @@ export function verifySegmentTutorPrompt(seg: { tutorPrompt: string; teach?: str
   for (const phrase of BANNED_TUTOR_PROMPT_PHRASES) {
     if (lower.indexOf(phrase) >= 0) return { ok: false, reason: `banned_phrase:${phrase}` };
   }
+  const untaughtDetail = hasUntaughtTutorDetail(trimmed, String(seg?.teach || ''));
+  if (untaughtDetail) return { ok: false, reason: `untaught_tutor_detail:${untaughtDetail}` };
   const restatementRatio = computeTokenOverlapRatio(
     String(seg?.teach || ''),
     String(seg?.tutorPrompt || '')
@@ -860,7 +871,7 @@ function buildSystemPrompt(body: LearnPlanRequest): string {
     "- Banned title shapes: \"When was X ...?\", \"Who founded X?\", \"Where was X ...?\", \"Under what name was X ...?\", and conjunctive \"When X, and under what name?\" forms.",
     "- The title and tutorPrompt MUST cue different named entities. If title primes date + name, tutorPrompt must integrate trigger + actor + location, and vice versa. Validator rejects overlap above 0.40.",
     "- Negative example (DO NOT emit): \"When was the regiment that became the Essex Scottish founded, and under what name?\" If tutorPrompt asks the same facts, a high verdict measures priming, not learning.",
-    "- Positive example: title \"What political event in 1880s Canada might have driven the founding of a new local militia regiment in Windsor?\" paired with tutorPrompt \"How do the founding date, the original battalion name, and the founding commander fit together as evidence of that political response?\"",
+    "- Positive example: title \"What political event in 1880s Canada might have driven the founding of a new local militia regiment in Windsor?\" paired with tutorPrompt \"How do the founding date, the original battalion name, and the Windsor headquarters fit together as evidence of that political response?\"",
     "",
     "TEACH-BLOCK RULES (each segment's `teach` field):",
     "- Minimum 70 words of declarative instruction.",
