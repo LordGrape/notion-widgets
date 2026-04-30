@@ -9582,6 +9582,42 @@ input[type="range"]::-moz-range-thumb{
       border: 1px solid var(--border-subtle);
       color: var(--text-secondary);
     }
+    .learn-feedback-head{
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .learn-feedback-grid{
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .learn-feedback-section{
+      min-width: 0;
+      padding: 9px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border-subtle);
+      background: var(--surface-0);
+    }
+    .learn-feedback-section-title{
+      margin-bottom: 5px;
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      font-family: "Space Grotesk", Inter, system-ui, sans-serif;
+    }
+    .learn-feedback-section-body{
+      color: var(--text-primary);
+    }
+    .learn-feedback-section-body ul{
+      margin: 0;
+      padding-left: 16px;
+    }
+    .learn-feedback-section-body li + li{ margin-top: 4px; }
     .segment-label-pill {
       display: inline-block;
       padding: 2px 10px;
@@ -9676,6 +9712,7 @@ input[type="range"]::-moz-range-thumb{
         max-width: none;
         padding: 16px 20px;
       }
+      .learn-feedback-grid{ grid-template-columns: 1fr; }
     }
     .learn-step-title,
     .learn-summary-title,
@@ -11078,6 +11115,7 @@ input[type="range"]::-moz-range-thumb{
     import { LEARN_EMPTY_HEADING, LEARN_EMPTY_BODY, LEARN_EMPTY_CTA, LEARN_EMPTY_LABEL_ENCODING, LEARN_EMPTY_LABEL_RETRIEVAL, LEARN_LANDING_STATUS_UNLEARNED, LEARN_LANDING_STATUS_TAUGHT, LEARN_LANDING_STATUS_CONSOLIDATED, LEARN_LANDING_CACHE_HIT, LEARN_LANDING_CACHE_MISS, LEARN_LANDING_START, LEARN_LANDING_REGEN, LEARN_INTRO_TEXT, LEARN_INTRO_DISMISS, formatRelativeTime } from './src/learn-copy';
     import { renderLearnEmptyStateHtml, renderLearnSubDeckLandingHtml } from './src/learn-ui/landing';
     import { updateLearnSessionMap as updateLearnSessionMapUi } from './src/learn-ui/session-map';
+    import { deriveLearnInteractionCopy, shouldShowLearnPlanStaleNote } from './src/learn-interactions';
     import { profileLabel as courseProfileLabel, resolveCourseGoal, visibleCourseDetailsFields } from './src/courses/visibility';
     import { resolveActiveHomeCourse } from './src/home/active-course';
     import { homeHeroStats, homeTutorStatsLabels } from './src/home/widgets';
@@ -26892,18 +26930,25 @@ input[type="range"]::-moz-range-thumb{
       return modeBridge.fingerprintSubDeckCards(cards);
     }
 
-    function isLearnPlanStale(session) {
-      if (!session || !session.flow || !session.flow.plan) return false;
-      if (!session.fromCache || !session.planOutOfDate) return false;
-      var savedFingerprint = session.flow.plan.subDeckFingerprint
-        ? String(session.flow.plan.subDeckFingerprint)
-        : '';
-      if (!savedFingerprint) return false;
-      var currentFingerprint = computeCurrentLearnSubDeckFingerprint(
-        session.courseName || '',
-        session.subDeckKey || ''
-      );
-      return !!(currentFingerprint && savedFingerprint !== String(currentFingerprint));
+    function getLearnInteractionCopy(segment, planProfile) {
+      return deriveLearnInteractionCopy({
+        checkType: segment && segment.checkType ? segment.checkType : undefined,
+        fadeLevel: segment && segment.fadeLevel != null ? segment.fadeLevel : undefined,
+        planProfile: planProfile || 'theory',
+        isProbe: !!(segment && segment.isProbe)
+      });
+    }
+
+    function getActiveLearnInteractionCopy() {
+      var flowBridge = globalThis.__studyEngineLearnFlow;
+      var segment = null;
+      try {
+        segment = (activeLearnSession && flowBridge && flowBridge.currentSegment)
+          ? flowBridge.currentSegment(activeLearnSession.flow)
+          : null;
+      } catch (eCopy) { segment = null; }
+      var profile = activeLearnSession && activeLearnSession.planProfile ? String(activeLearnSession.planProfile) : 'theory';
+      return getLearnInteractionCopy(segment, profile);
     }
 
     function isStrictSubsetCacheHit(cacheEntry, currentCardIds, currentCourseContextHash) {
@@ -27066,6 +27111,7 @@ input[type="range"]::-moz-range-thumb{
 
       var flowBridge = globalThis.__studyEngineLearnFlow;
       var flow = activeLearnSession.flow;
+      var interactionCopy = getActiveLearnInteractionCopy();
       var subPhase = String(flow.currentSubPhase || 'read');
       /* Phase 4: awaiting-next — a pending turn result has already completed the
          last loaded segment but more segments are still streaming in. */
@@ -27112,9 +27158,9 @@ input[type="range"]::-moz-range-thumb{
         else if (preSegmentStreaming) label.textContent = 'Generating…';
         else if (subPhase === 'feedback') {
           var latest = getCurrentLearnTurnResult(flow);
-          label.textContent = (latest && latest.isSegmentComplete) ? 'Continue to next segment' : 'Answer again';
+          label.textContent = (latest && latest.isSegmentComplete) ? 'Continue to next segment' : (interactionCopy.answerAgainLabel || 'Answer again');
         } else if (subPhase === 'read') label.textContent = 'Continue';
-        else label.textContent = 'Submit';
+        else label.textContent = interactionCopy.submitButtonLabel || 'Submit';
       }
       if (exit) exit.textContent = 'Back to sub-decks';
     }
@@ -27575,6 +27621,7 @@ input[type="range"]::-moz-range-thumb{
       var languagePill = el('learnLanguageModePill');
       var feedbackHost = el('learnFeedbackBlock');
       var tutorPane = el('learnTutorPane');
+      var yourTurnLabel = document.querySelector('#learnSessionOv .learn-card-block.learn-yourturn .learn-card-block-label');
       var focusCard = el('learnFocusCard');
       var focusEyebrow = el('learnFocusEyebrow');
       var focusQuestion = el('learnFocusQuestion');
@@ -27591,7 +27638,6 @@ input[type="range"]::-moz-range-thumb{
         input.__learnReadTimerWired = true;
       }
 
-      var planIsStale = isLearnPlanStale(activeLearnSession);
       if (coverageChip) {
         var snapshot = activeLearnSession.courseCoverageSnapshot || { consolidated: 0, total: 0, pct: 0 };
         var pctRounded = Math.round(Number(snapshot.pct || 0));
@@ -27599,7 +27645,18 @@ input[type="range"]::-moz-range-thumb{
         coverageChip.hidden = false;
       }
       if (staleNote) {
-        var showStaleNote = planIsStale && flow.currentSubPhase === 'read' && !activeLearnSession.dismissedPlanStaleNote;
+        var savedStaleFingerprint = flow && flow.plan && flow.plan.subDeckFingerprint ? String(flow.plan.subDeckFingerprint) : '';
+        var currentStaleFingerprint = (activeLearnSession.fromCache && activeLearnSession.planOutOfDate)
+          ? computeCurrentLearnSubDeckFingerprint(activeLearnSession.courseName || '', activeLearnSession.subDeckKey || '')
+          : '';
+        var showStaleNote = shouldShowLearnPlanStaleNote({
+          fromCache: !!activeLearnSession.fromCache,
+          planOutOfDate: !!activeLearnSession.planOutOfDate,
+          savedSubDeckFingerprint: savedStaleFingerprint,
+          currentSubDeckFingerprint: currentStaleFingerprint,
+          currentSubPhase: flow.currentSubPhase,
+          dismissedPlanStaleNote: !!activeLearnSession.dismissedPlanStaleNote
+        });
         staleNote.hidden = !showStaleNote;
       }
       if (staleDismissBtn && !staleDismissBtn.__learnDismissWired) {
@@ -27645,8 +27702,10 @@ input[type="range"]::-moz-range-thumb{
       } catch (eCurSeg) { curSeg = null; }
       var curCheckType = curSeg && curSeg.checkType ? String(curSeg.checkType) : '';
       var curFadeLevel = curSeg && curSeg.fadeLevel != null ? Number(curSeg.fadeLevel) : null;
+      var interactionCopy = getLearnInteractionCopy(curSeg, activeLearnSession && activeLearnSession.planProfile ? String(activeLearnSession.planProfile) : 'theory');
       var isTransferSegment = curCheckType === 'transfer_question';
       var isClozeSegment = curCheckType === 'cloze';
+      if (yourTurnLabel) yourTurnLabel.textContent = interactionCopy.interactionLabel || 'Your Turn';
       if (focusCard && focusQuestion) {
         var focusPrompt = getLearnFocusPrompt(curSeg);
         var showFocus = !!focusPrompt && flow.phase !== 'consolidating' && flow.phase !== 'done';
@@ -27730,9 +27789,7 @@ input[type="range"]::-moz-range-thumb{
         activeLearnSession._lastTutorBody = nextTutorBody;
       }
       if (readContinueBtn) {
-        if (curCheckType === 'worked_example' && curFadeLevel === 1) readContinueBtn.textContent = 'I see how that works';
-        else if (curCheckType === 'worked_example' && curFadeLevel === 2) readContinueBtn.textContent = 'Check my fills';
-        else readContinueBtn.textContent = 'Continue to Your Turn';
+        readContinueBtn.textContent = interactionCopy.readButtonLabel || 'Continue to Your Turn';
       }
       beginTeachReadTimerForCurrentSegment();
 
@@ -27812,11 +27869,22 @@ input[type="range"]::-moz-range-thumb{
         if (flow.currentSubPhase === 'feedback' && turnResult) {
           var verdict = String(turnResult.verdict || '').trim() || 'surface';
           var score = (typeof turnResult.understandingScore === 'number') ? String(turnResult.understandingScore) : '—';
+          var missingConcepts = Array.isArray(turnResult.missingConcepts) ? turnResult.missingConcepts : [];
+          var repairHtml = missingConcepts.length
+            ? '<ul>' + missingConcepts.map(function(item){ return '<li>' + esc(item) + '</li>'; }).join('') + '</ul>'
+            : '<span>' + esc('No specific repair flagged.') + '</span>';
+          var nextPromptText = String(turnResult.nextPrompt || turnResult.followUp || '').trim();
           var fbHtml = ''
-            + '<div><span class="learn-feedback-verdict">' + esc(verdict) + '</span>'
-            + '<span class="learn-feedback-score">Score ' + esc(score) + '</span></div>';
-          if (turnResult.feedback) fbHtml += '<p>' + renderLearnMarkdownSafe(String(turnResult.feedback)) + '</p>';
-          if (turnResult.nextPrompt) fbHtml += '<p>' + renderLearnMarkdownSafe(String(turnResult.nextPrompt)) + '</p>';
+            + '<div class="learn-feedback-head"><span class="learn-feedback-verdict">' + esc(verdict) + '</span>'
+            + '<span class="learn-feedback-score">Score ' + esc(score) + '</span></div>'
+            + '<div class="learn-feedback-grid">'
+            + '<section class="learn-feedback-section"><div class="learn-feedback-section-title">' + esc(interactionCopy.feedbackLandedLabel) + '</div>'
+            + '<div class="learn-feedback-section-body">' + (turnResult.feedback ? renderLearnMarkdownSafe(String(turnResult.feedback)) : esc('Response received.')) + '</div></section>'
+            + '<section class="learn-feedback-section"><div class="learn-feedback-section-title">' + esc(interactionCopy.feedbackRepairLabel) + '</div>'
+            + '<div class="learn-feedback-section-body">' + repairHtml + '</div></section>'
+            + '<section class="learn-feedback-section"><div class="learn-feedback-section-title">' + esc(interactionCopy.feedbackNextLabel) + '</div>'
+            + '<div class="learn-feedback-section-body">' + (nextPromptText ? renderLearnMarkdownSafe(nextPromptText) : esc('Ready for the next segment.')) + '</div></section>'
+            + '</div>';
           feedbackHost.innerHTML = fbHtml;
           feedbackHost.hidden = false;
         } else {
@@ -27842,7 +27910,9 @@ input[type="range"]::-moz-range-thumb{
         }
       }
 
-      if (input) input.placeholder = 'Type your response…';
+      if (input && input.getAttribute('data-stream-placeholder') === null) {
+        input.placeholder = interactionCopy.placeholder || 'Type your response...';
+      }
       renderLearnStatsForCourse(activeLearnSession.courseName || activeLearnSession.flow.course || '');
 
       /* Pane switching */
@@ -27863,7 +27933,7 @@ input[type="range"]::-moz-range-thumb{
       updateLearnTurnBreathing();
       if (submitLabelEl && flow.currentSubPhase === 'feedback') {
         var tRes = getCurrentLearnTurnResult(flow);
-        submitLabelEl.textContent = (tRes && tRes.isSegmentComplete) ? 'Continue to next segment' : 'Answer again';
+        submitLabelEl.textContent = (tRes && tRes.isSegmentComplete) ? 'Continue to next segment' : (interactionCopy.answerAgainLabel || 'Answer again');
       }
     }
 
