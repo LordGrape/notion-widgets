@@ -3,6 +3,7 @@ import {
   buildDensityFallback,
   learnCompletionWarningForTest,
   learnFallbackWarningForTest,
+  learnChunkMetaForTest,
   minimumVerifiedSegmentCountForTest,
   verifySegmentGroundingForTest,
   verifySegmentTeach,
@@ -127,5 +128,20 @@ describe('learn-plan quality safeguards', () => {
 
     expect(result.ok).toBe(false);
     expect(result.reason).toContain('banned_ungrounded_title_phrase');
+  });
+
+  it('reports chunk cursors so the client can lazy-load the next section', () => {
+    expect(learnChunkMetaForTest({
+      course: 'EK Scot',
+      subDeck: 'origin',
+      cards: [
+        { id: 'card-1', prompt: 'A?', modelAnswer: 'A.' },
+        { id: 'card-2', prompt: 'B?', modelAnswer: 'B.' }
+      ],
+      chunked: true,
+      chunkCursor: 2,
+      chunkTotal: 5,
+      segmentLimit: 2
+    })).toEqual({ cursor: 2, nextCursor: 4, hasMore: true });
   });
 });

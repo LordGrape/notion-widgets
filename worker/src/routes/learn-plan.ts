@@ -17,6 +17,7 @@ const PLAN_CACHE_VERSION = "v14";
 const PLAN_CACHE_TTL_SECONDS = 86400;
 const PLAN_CACHE_KEY_PREFIX = `learn-plan:${PLAN_CACHE_VERSION}:`;
 const PRO_DAILY_CAP = 30;
+const CHUNK_DEFAULT_SIZE = 2;
 
 function dayKey(ts: number): string {
   return new Date(ts).toISOString().slice(0, 10);
@@ -844,16 +845,52 @@ function isCacheEnabled(env: Env): boolean {
 }
 
 function shouldBypassPlanCache(body: LearnPlanRequest): boolean {
-  return body.forceFresh === true;
+  return body.forceFresh === true || body.chunked === true;
+}
+
+function learnChunkSize(body: LearnPlanRequest): number {
+  const explicit = Number(body.segmentLimit);
+  if (Number.isFinite(explicit) && explicit > 0) return Math.max(1, Math.min(3, Math.floor(explicit)));
+  return Math.min(CHUNK_DEFAULT_SIZE, Math.max(1, body.cards.length || 1));
+}
+
+function learnChunkCursor(body: LearnPlanRequest): number {
+  const raw = Number(body.chunkCursor);
+  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 0;
+}
+
+function learnChunkTotal(body: LearnPlanRequest): number {
+  const raw = Number(body.chunkTotal);
+  if (Number.isFinite(raw) && raw > 0) return Math.floor(raw);
+  return body.cards.length || 0;
+}
+
+function learnChunkMeta(body: LearnPlanRequest): { cursor: number; nextCursor: number; hasMore: boolean } | undefined {
+  if (body.chunked !== true) return undefined;
+  const cursor = learnChunkCursor(body);
+  const nextCursor = Math.min(learnChunkTotal(body), cursor + Math.max(1, body.cards.length || learnChunkSize(body)));
+  return {
+    cursor,
+    nextCursor,
+    hasMore: nextCursor < learnChunkTotal(body)
+  };
+}
+
+export const learnChunkMetaForTest = learnChunkMeta;
+
+function shouldGenerateConsolidation(body: LearnPlanRequest): boolean {
+  return body.chunked !== true || body.includeConsolidation === true;
 }
 
 async function writePlanCache(
   cacheKey: string | null,
   env: Env,
   segments: LearnPlanSegment[],
-  consolidationQuestions: ConsolidationQuestion[]
+  consolidationQuestions: ConsolidationQuestion[],
+  body?: LearnPlanRequest
 ): Promise<void> {
   if (!cacheKey) return;
+  if (body?.chunked === true) return;
   try {
     const payload: PlanCachedResponse = {
       segments,
@@ -918,7 +955,9 @@ function buildSystemPrompt(body: LearnPlanRequest): string {
     "Use only content from provided cards.",
     "Each segment must include groundingSnippets with exact substrings copied from card prompt/modelAnswer.",
     "Use mechanisms from: worked_example, elaborative_interrogation, self_explanation, predictive_question, test_closure.",
-    "At least 2 segments unless card count is 1.",
+    body.chunked === true
+      ? `Emit exactly ${learnChunkSize(body)} segment${learnChunkSize(body) === 1 ? "" : "s"} unless fewer supplied cards make that impossible. Do not plan beyond the supplied chunk.`
+      : "At least 2 segments unless card count is 1.",
     "",
     "TITLE FIELD RULES (first-exposure curiosity prompt, NOT a measurement):",
     "- The title is first, before teach. It is a curiosity-orienting question that opens an information gap the teach will close. It is NOT a memory test and NOT the segment's measurement event.",
@@ -967,9 +1006,15 @@ function buildSystemPrompt(body: LearnPlanRequest): string {
     "  - GOOD: 'The UN was founded in 1945 in San Francisco. Why might a post-war American city have been chosen as the ratification venue, and what would change if the ratification had happened in Geneva instead?'",
     "- Every segment MUST include `checkType` alongside `tutorPrompt`.",
     "",
-    "Also generate 3-5 consolidationQuestions that span ALL segments taught. Each question tests recall OR conceptual connection between segments.",
-    "Each consolidation answer MUST be grounded: copy a verbatim substring from a supplied card modelAnswer or prompt. Unverifiable answers will be dropped.",
-    "Each consolidation question must list linkedCardIds referencing which cards the answer draws from.",
+    shouldGenerateConsolidation(body)
+      ? "Also generate 3-5 consolidationQuestions that span ALL segments taught. Each question tests recall OR conceptual connection between segments."
+      : "Set consolidationQuestions to [] for this chunk. Consolidation will be generated only near the end of the session.",
+    shouldGenerateConsolidation(body)
+      ? "Each consolidation answer MUST be grounded: copy a verbatim substring from a supplied card modelAnswer or prompt. Unverifiable answers will be dropped."
+      : "Do not spend tokens on consolidation questions for this chunk.",
+    shouldGenerateConsolidation(body)
+      ? "Each consolidation question must list linkedCardIds referencing which cards the answer draws from."
+      : "Keep the response focused on the requested segment chunk.",
     "No markdown.",
     "IMPORTANT STREAM HINT: emit the JSON in source order so each \"segments\" object is complete before the next begins, and emit \"consolidationQuestions\" after all segments."
     ,
@@ -1023,6 +1068,10 @@ MODEL_ANSWER: ${String(card.modelAnswer || "")}`;
     `PRIOR_KNOWLEDGE: ${body.priorKnowledge || "mixed"}`,
     `APPEND_TRANSFER_QUESTION: ${Boolean(body.appendTransferQuestion)}`,
     `SEGMENT_LIMIT: ${Number.isFinite(Number(body.segmentLimit)) ? Number(body.segmentLimit) : "unspecified"}`,
+    `CHUNKED: ${body.chunked === true}`,
+    `CHUNK_CURSOR: ${body.chunked === true ? learnChunkCursor(body) : "none"}`,
+    `CHUNK_TOTAL: ${body.chunked === true ? learnChunkTotal(body) : "none"}`,
+    `INCLUDE_CONSOLIDATION: ${shouldGenerateConsolidation(body)}`,
     `LEARNER_MODEL_FINGERPRINT: ${String(body.learnerModelFingerprint || '').trim() || 'none'}`,
     `LEARNER_MODEL_HINT: ${body.learnerModelHint ? JSON.stringify(body.learnerModelHint) : 'none'}`,
     `USER_NAME: ${body.userName || "student"}`,
@@ -1039,7 +1088,7 @@ function buildUserPrompt(body: LearnPlanRequest): string {
 ${buildDynamicUserSuffix(body)}`;
 }
 
-function buildGenerationConfig(): Record<string, unknown> {
+function buildGenerationConfig(body?: LearnPlanRequest): Record<string, unknown> {
   const responseSchema = {
     type: "object",
     properties: {
@@ -1089,7 +1138,7 @@ function buildGenerationConfig(): Record<string, unknown> {
   };
   return {
     temperature: 0.3,
-    maxOutputTokens: 2048,
+    maxOutputTokens: body?.chunked === true ? 1400 : 2048,
     responseMimeType: "application/json",
     responseSchema,
     thinkingConfig: { thinkingBudget: 0 }
@@ -1298,7 +1347,7 @@ async function requestPlanOneShot(model: string, body: LearnPlanRequest, env: En
     model,
     buildSystemPrompt(body),
     buildUserPrompt(body),
-    buildGenerationConfig() as Parameters<typeof callGemini>[3],
+    buildGenerationConfig(body) as Parameters<typeof callGemini>[3],
     env
   );
   logPlanUsage("oneshot", model, geminiData);
@@ -1336,7 +1385,7 @@ async function regenerateRejectedSegment(
     model,
     buildSystemPrompt(body),
     regenUserPrompt,
-    buildGenerationConfig() as Parameters<typeof callGemini>[3],
+    buildGenerationConfig(body) as Parameters<typeof callGemini>[3],
     env
   );
   logPlanUsage("regenerate", model, geminiData);
@@ -1452,6 +1501,7 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
   }
 
   return makeSSEResponse(async (emit, signal) => {
+    const chunkMeta = learnChunkMeta(body);
     // ── Attempt 1: stream.
     const parser = createSegmentParser();
     let fullBuffer = "";
@@ -1470,7 +1520,7 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
         PLAN_PRIMARY_MODEL,
         buildSystemPrompt(body),
         buildUserPrompt(body),
-        buildGenerationConfig() as Parameters<typeof streamGemini>[3],
+        buildGenerationConfig(body) as Parameters<typeof streamGemini>[3],
         env,
         signal
       )) {
@@ -1570,11 +1620,12 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
       await emit.event("complete", {
         segmentCount: emittedSegments.length,
         consolidationCount: verifiedQs.length,
-        planMode: streamFailed ? "retry_verified" : "verified",
+        planMode: body.chunked === true ? (streamFailed ? "chunk_retry_verified" : "chunk_verified") : (streamFailed ? "retry_verified" : "verified"),
         warning: learnCompletionWarning(targetSegmentCount, emittedSegments.length, verifiedQs.length),
-        budgetDegraded
+        budgetDegraded,
+        chunk: chunkMeta
       });
-      await writePlanCache(cacheKey, env, emittedSegments, verifiedQs);
+      await writePlanCache(cacheKey, env, emittedSegments, verifiedQs, body);
       await emitTier2Event(env, { route: "learn-plan", model: PLAN_PRIMARY_MODEL, ts: Date.now() });
       return;
     }
@@ -1643,11 +1694,12 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
       await emit.event("complete", {
         segmentCount: emittedSegments.length,
         consolidationCount: verifiedSecondQs.length,
-        planMode: "retry_verified",
+        planMode: body.chunked === true ? "chunk_retry_verified" : "retry_verified",
         warning: learnCompletionWarning(targetSegmentCount, emittedSegments.length, verifiedSecondQs.length),
-        budgetDegraded
+        budgetDegraded,
+        chunk: chunkMeta
       });
-      await writePlanCache(cacheKey, env, emittedSegments, verifiedSecondQs);
+      await writePlanCache(cacheKey, env, emittedSegments, verifiedSecondQs, body);
       await emitTier2Event(env, { route: "learn-plan", model: PLAN_ESCALATION_MODEL, ts: Date.now() });
       return;
     }
@@ -1683,7 +1735,8 @@ export async function handleLearnPlan(request: Request, env: Env): Promise<Respo
       consolidationCount: (fallback.consolidationQuestions || []).length,
       planMode: "card_density_fallback",
       warning: fallbackWarning,
-      budgetDegraded
+      budgetDegraded,
+      chunk: chunkMeta
     });
   });
 }

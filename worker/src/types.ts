@@ -395,6 +395,10 @@ export interface LearnPlanRequest {
   priorKnowledge?: "high" | "mixed" | "low";
   appendTransferQuestion?: boolean;
   segmentLimit?: number;
+  chunked?: boolean;
+  chunkCursor?: number;
+  chunkTotal?: number;
+  includeConsolidation?: boolean;
   forceFresh?: boolean;
   learnerModelHint?: {
     recommendedSegmentMix: Record<LearnCheckType, number>;
@@ -451,8 +455,13 @@ export interface ConsolidationQuestion {
 export interface LearnPlanResponse {
   segments: LearnPlanSegment[];
   consolidationQuestions?: ConsolidationQuestion[];
-  planMode?: "verified" | "retry_verified" | "card_density_fallback";
+  planMode?: "verified" | "retry_verified" | "chunk_verified" | "chunk_retry_verified" | "card_density_fallback";
   warning?: string;
+  chunk?: {
+    cursor: number;
+    nextCursor: number;
+    hasMore: boolean;
+  };
   budgetDegraded?: {
     reason: "pro_exhausted";
     resetAt: string;

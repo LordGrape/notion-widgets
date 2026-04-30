@@ -52,8 +52,9 @@ export interface ConsolidationQuestion {
 export interface LearnPlan {
   segments: LearnSegment[];
   consolidationQuestions?: ConsolidationQuestion[];
-  planMode?: 'verified' | 'retry_verified' | 'card_density_fallback';
+  planMode?: 'verified' | 'retry_verified' | 'chunk_verified' | 'chunk_retry_verified' | 'card_density_fallback';
   warning?: string;
+  chunk?: { cursor: number; nextCursor: number; hasMore: boolean };
   /** djb2 hash of the sub-deck's card set (id + prompt + modelAnswer) at plan-generation time. Used by the UI to detect whether the active plan is stale vs. the current deck. Optional for legacy plans. */
   subDeckFingerprint?: string;
 }
@@ -347,7 +348,7 @@ export function startLearnSession(plan: LearnPlan): LearnSessionState {
 export interface StreamLearnPlanHandlers {
   onSegment?: (segment: LearnSegment, meta?: { groundingSource?: 'gemini' | 'fallback' }) => void;
   onConsolidationQuestions?: (questions: ConsolidationQuestion[]) => void;
-  onComplete?: (meta: { segmentCount: number; consolidationCount: number; planMode?: string; warning?: string; subDeckFingerprint?: string; budgetDegraded?: { reason?: string; resetAt?: string } }) => void;
+  onComplete?: (meta: { segmentCount: number; consolidationCount: number; planMode?: string; warning?: string; subDeckFingerprint?: string; budgetDegraded?: { reason?: string; resetAt?: string }; chunk?: { cursor: number; nextCursor: number; hasMore: boolean } }) => void;
   onError?: (message: string, opts?: { hasSegments: boolean }) => void;
   onPriorKnowledgeProbe?: (card: StudyCardInput) => Promise<'surface' | 'partial' | 'deep'>;
   getDeepVerdictCount?: () => number;
@@ -356,6 +357,11 @@ export interface StreamLearnPlanHandlers {
 
 export interface StreamLearnPlanOptions {
   forceFresh?: boolean;
+  segmentLimit?: number;
+  chunked?: boolean;
+  chunkCursor?: number;
+  chunkTotal?: number;
+  includeConsolidation?: boolean;
 }
 
 function getSubDeckMetaForCard(card: StudyItem, state?: AppState): SubDeckMeta | null {
@@ -471,6 +477,11 @@ export async function streamLearnPlan(
       handlers
     ),
     appendTransferQuestion: (handlers.getDeepVerdictCount?.() || 0) >= 3,
+    segmentLimit: Number.isFinite(Number(options.segmentLimit)) ? Math.max(1, Math.floor(Number(options.segmentLimit))) : undefined,
+    chunked: options.chunked === true ? true : undefined,
+    chunkCursor: Number.isFinite(Number(options.chunkCursor)) ? Math.max(0, Math.floor(Number(options.chunkCursor))) : undefined,
+    chunkTotal: Number.isFinite(Number(options.chunkTotal)) ? Math.max(0, Math.floor(Number(options.chunkTotal))) : undefined,
+    includeConsolidation: options.includeConsolidation === true ? true : undefined,
     forceFresh: options.forceFresh === true ? true : undefined
   };
   attachLearnerModelPayload(payload as Record<string, unknown>, state);
@@ -591,7 +602,7 @@ export async function streamLearnPlan(
       const qs = (data as { questions?: ConsolidationQuestion[] }).questions;
       if (Array.isArray(qs)) emitQuestions(qs);
     } else if (eventName === 'complete' && data && typeof data === 'object') {
-      const completeMeta = data as { segmentCount: number; consolidationCount: number; planMode?: string; warning?: string; budgetDegraded?: { reason?: string; resetAt?: string } };
+      const completeMeta = data as { segmentCount: number; consolidationCount: number; planMode?: string; warning?: string; budgetDegraded?: { reason?: string; resetAt?: string }; chunk?: { cursor: number; nextCursor: number; hasMore: boolean } };
       handlers.onComplete?.({ ...completeMeta, subDeckFingerprint });
     } else if (eventName === 'error' && data && typeof data === 'object') {
       sawFatalError = true;
@@ -672,6 +683,11 @@ export async function streamCourseLearnPlan(
       handlers
     ),
     appendTransferQuestion: (handlers.getDeepVerdictCount?.() || 0) >= 3,
+    segmentLimit: Number.isFinite(Number(options.segmentLimit)) ? Math.max(1, Math.floor(Number(options.segmentLimit))) : undefined,
+    chunked: options.chunked === true ? true : undefined,
+    chunkCursor: Number.isFinite(Number(options.chunkCursor)) ? Math.max(0, Math.floor(Number(options.chunkCursor))) : undefined,
+    chunkTotal: Number.isFinite(Number(options.chunkTotal)) ? Math.max(0, Math.floor(Number(options.chunkTotal))) : undefined,
+    includeConsolidation: options.includeConsolidation === true ? true : undefined,
     forceFresh: options.forceFresh === true ? true : undefined
   };
   attachLearnerModelPayload(payload as Record<string, unknown>, state);
@@ -680,7 +696,7 @@ export async function streamCourseLearnPlan(
 }
 
 async function streamLearnPlanInternal(
-  payload: { course: string; subDeck: string; cards: Array<{ id: string; prompt: string; modelAnswer: string }>; userName: string; learnerContext: string; planProfile: PlanProfile; targetLanguage?: string; languageLevel?: number; priorKnowledge?: 'high' | 'mixed' | 'low'; appendTransferQuestion?: boolean; forceFresh?: boolean; learnerModelFingerprint?: string; learnerModelHint?: { recommendedSegmentMix: Record<string, number>; overconfidenceBias: number; profileDeepRate: Record<string, number>; sourceTypeLapseRate: Record<string, number>; }; },
+  payload: { course: string; subDeck: string; cards: Array<{ id: string; prompt: string; modelAnswer: string }>; userName: string; learnerContext: string; planProfile: PlanProfile; targetLanguage?: string; languageLevel?: number; priorKnowledge?: 'high' | 'mixed' | 'low'; appendTransferQuestion?: boolean; segmentLimit?: number; chunked?: boolean; chunkCursor?: number; chunkTotal?: number; includeConsolidation?: boolean; forceFresh?: boolean; learnerModelFingerprint?: string; learnerModelHint?: { recommendedSegmentMix: Record<string, number>; overconfidenceBias: number; profileDeepRate: Record<string, number>; sourceTypeLapseRate: Record<string, number>; }; },
   sourceCards: StudyItem[],
   subDeckFingerprint: string,
   handlers: StreamLearnPlanHandlers = {},
@@ -780,7 +796,7 @@ async function streamLearnPlanInternal(
       const qs = (data as { questions?: ConsolidationQuestion[] }).questions;
       if (Array.isArray(qs)) emitQuestions(qs);
     } else if (eventName === 'complete' && data && typeof data === 'object') {
-      const completeMeta = data as { segmentCount: number; consolidationCount: number; planMode?: string; warning?: string; budgetDegraded?: { reason?: string; resetAt?: string } };
+      const completeMeta = data as { segmentCount: number; consolidationCount: number; planMode?: string; warning?: string; budgetDegraded?: { reason?: string; resetAt?: string }; chunk?: { cursor: number; nextCursor: number; hasMore: boolean } };
       handlers.onComplete?.({ ...completeMeta, subDeckFingerprint });
     } else if (eventName === 'error' && data && typeof data === 'object') {
       sawFatalError = true;

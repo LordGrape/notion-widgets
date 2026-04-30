@@ -26994,6 +26994,15 @@ input[type="range"]::-moz-range-thumb{
       };
     }
 
+    var LEARN_CHUNK_SIZE = 2;
+
+    function sliceLearnChunkItems(items, cursor, size) {
+      var list = Array.isArray(items) ? items : [];
+      var start = Math.max(0, Number(cursor) || 0);
+      var count = Math.max(1, Number(size) || LEARN_CHUNK_SIZE);
+      return list.slice(start, start + count);
+    }
+
     function computeCurrentLearnSubDeckFingerprint(courseName, subDeckKey, allItems) {
       var modeBridge = globalThis.__studyEngineLearnMode;
       if (!modeBridge || typeof modeBridge.fingerprintSubDeckCards !== 'function') return null;
@@ -27750,6 +27759,9 @@ input[type="range"]::-moz-range-thumb{
       if (!activeLearnSession) return;
       var flow = activeLearnSession.flow;
       var flowBridge = globalThis.__studyEngineLearnFlow;
+      if (typeof activeLearnSession.maybePrefetchLearnChunk === 'function') {
+        activeLearnSession.maybePrefetchLearnChunk();
+      }
       /* Phase B telemetry: record first-entry into the current segment.
          Gated on a phase that actually presents a tutor turn and on having
          a concrete segment at the current index, so the pre-segment
@@ -28284,6 +28296,9 @@ input[type="range"]::-moz-range-thumb{
           } else {
             saveState();
           }
+          if (activeLearnSession && typeof activeLearnSession.maybePrefetchLearnChunk === 'function') {
+            activeLearnSession.maybePrefetchLearnChunk();
+          }
           renderLearnSessionUI();
           var _continueBtn = el('learnReadContinueBtn');
           if (_continueBtn) _continueBtn.focus();
@@ -28345,6 +28360,9 @@ input[type="range"]::-moz-range-thumb{
             && flowBridge.canAdvanceToNextSegment
             && !flowBridge.canAdvanceToNextSegment(activeLearnSession.flow)) {
           activeLearnSession.pendingTurnResult = { userInput: userInput, result: result, pendingSegment: pendingSegment };
+          if (typeof activeLearnSession.requestNextLearnChunk === 'function') {
+            activeLearnSession.requestNextLearnChunk();
+          }
           activeLearnSession.flow = Object.assign({}, activeLearnSession.flow, { phase: 'tutor', errorMessage: null, currentSubPhase: 'feedback' });
           if (input) input.value = '';
           try { playClick(); } catch(e) {}
@@ -29157,6 +29175,10 @@ input[type="range"]::-moz-range-thumb{
       var nextPlanVersion = existingCache ? Math.max(1, Number(existingCache.planVersion || 1) + 1) : 1;
       var streamItems = allItems;
       var additiveReuse = null;
+      var fullLearnItems = Array.isArray(allItems) ? allItems.slice() : [];
+      var lazyChunkEnabled = !additiveReuse && fullLearnItems.length > LEARN_CHUNK_SIZE;
+      var chunkSize = lazyChunkEnabled ? LEARN_CHUNK_SIZE : Math.max(1, estimateLearnSegmentTotal((streamItems || []).length));
+      var initialChunkCursor = 0;
 
       var openCachedPlan = function(planObj, cacheEntry, isOutdated) {
         if (!planObj || !Array.isArray(planObj.segments) || !planObj.segments.length) return false;
@@ -29204,6 +29226,8 @@ input[type="range"]::-moz-range-thumb{
         additiveReuse = getAdditiveLearnPlanReuse(existingCache, currentLearnCards, fingerprintMeta.courseContextHash);
         if (additiveReuse) {
           streamItems = additiveReuse.addedCards;
+          lazyChunkEnabled = false;
+          chunkSize = Math.max(1, estimateLearnSegmentTotal((streamItems || []).length));
           toast('Generating Learn plan for new cards only.');
         } else {
         openLearnPlanChangedPrompt(
@@ -29238,7 +29262,10 @@ input[type="range"]::-moz-range-thumb{
          streaming strip (with percentage) is visible from the moment the user
          clicks Learn, not after the first segment arrives ~5–15s later. */
       var streamController = new AbortController();
-      var estTotal = estimateLearnSegmentTotal((streamItems || []).length);
+      var initialStreamItems = lazyChunkEnabled
+        ? sliceLearnChunkItems(fullLearnItems, initialChunkCursor, chunkSize)
+        : streamItems;
+      var estTotal = estimateLearnSegmentTotal((fullLearnItems || streamItems || []).length);
       activeLearnSession = {
         flow: flowBridge.createStreamingLearnFlow(courseName, subDeckKey),
         courseName: courseName,
@@ -29246,6 +29273,13 @@ input[type="range"]::-moz-range-thumb{
         courseCoverageSnapshot: getCourseCoverageSnapshot(courseName),
         openedSubDeckFingerprint: computeCurrentLearnSubDeckFingerprint(courseName, subDeckKey, allItems || []),
         streamController: streamController,
+        fullLearnItems: fullLearnItems,
+        lazyChunkEnabled: lazyChunkEnabled,
+        chunkSize: chunkSize,
+        nextChunkCursor: lazyChunkEnabled ? initialStreamItems.length : 0,
+        chunkTotal: lazyChunkEnabled ? fullLearnItems.length : initialStreamItems.length,
+        chunkLoading: true,
+        chunkHasMore: lazyChunkEnabled && initialStreamItems.length < fullLearnItems.length,
         pendingTurnResult: null,
         modalMounted: false,
         streamStartedAt: Date.now(),
@@ -29300,6 +29334,64 @@ input[type="range"]::-moz-range-thumb{
       /* Mount only when the first segment arrives so tutor sub-phase state
          always initializes into read mode for a concrete segment. */
 
+      var requestNextLearnChunk = function() {
+        if (!activeLearnSession || !activeLearnSession.lazyChunkEnabled) return;
+        if (activeLearnSession.chunkLoading) return;
+        if (!activeLearnSession.chunkHasMore) return;
+        var cursor = Math.max(0, Number(activeLearnSession.nextChunkCursor || 0));
+        var total = Math.max(0, Number(activeLearnSession.chunkTotal || 0));
+        var size = Math.max(1, Number(activeLearnSession.chunkSize || LEARN_CHUNK_SIZE));
+        var chunkItems = sliceLearnChunkItems(activeLearnSession.fullLearnItems || [], cursor, size);
+        if (!chunkItems.length) {
+          activeLearnSession.chunkHasMore = false;
+          activeLearnSession.flow = flowBridge.markStreamingComplete(activeLearnSession.flow);
+          applyPendingTurnIfReady();
+          renderLearnSessionUI();
+          return;
+        }
+        activeLearnSession.chunkLoading = true;
+        activeLearnSession.streamCompleted = false;
+        var nextController = new AbortController();
+        activeLearnSession.streamController = nextController;
+        var includeConsolidation = (cursor + chunkItems.length) >= total;
+        var chunkOptions = {
+          forceFresh: true,
+          chunked: true,
+          segmentLimit: Math.min(size, chunkItems.length),
+          chunkCursor: cursor,
+          chunkTotal: total,
+          includeConsolidation: includeConsolidation
+        };
+        var nextPromise = (subDeckKey === '__course_root__' && typeof modeBridge.streamCourseLearnPlan === 'function')
+          ? modeBridge.streamCourseLearnPlan(
+              courseName, chunkItems, state, userName || '', learnerContext || '',
+              handlers, nextController.signal, chunkOptions
+            )
+          : modeBridge.streamLearnPlan(
+              courseName, subDeckKey, chunkItems, state, userName || '', learnerContext || '',
+              handlers, nextController.signal, chunkOptions
+            );
+        nextPromise.catch(function(err) {
+          if (err && err.name === 'AbortError') return;
+          if (!activeLearnSession) return;
+          activeLearnSession.chunkLoading = false;
+          console.warn('[Learn] next chunk stream threw', err);
+          toast('Could not prepare the next Learn segment. Retrying when needed.');
+        });
+      };
+
+      var maybePrefetchLearnChunk = function() {
+        if (!activeLearnSession || !activeLearnSession.lazyChunkEnabled) return;
+        if (!activeLearnSession.chunkHasMore || activeLearnSession.chunkLoading) return;
+        var loaded = (activeLearnSession.flow && activeLearnSession.flow.plan && activeLearnSession.flow.plan.segments)
+          ? activeLearnSession.flow.plan.segments.length
+          : 0;
+        var idx = Number(activeLearnSession.flow && activeLearnSession.flow.segmentIndex || 0);
+        if ((loaded - idx) <= 1) requestNextLearnChunk();
+      };
+      activeLearnSession.requestNextLearnChunk = requestNextLearnChunk;
+      activeLearnSession.maybePrefetchLearnChunk = maybePrefetchLearnChunk;
+
       var handlers = {
         onPlanProfileResolved: function(profile) {
           var normalized = (profile === 'factual' || profile === 'procedural' || profile === 'language') ? profile : 'theory';
@@ -29341,6 +29433,7 @@ input[type="range"]::-moz-range-thumb{
           if (state.learnSession) {
             state.learnSession.segments = activeLearnSession.flow.plan.segments.slice();
           }
+          maybePrefetchLearnChunk();
           applyPendingTurnIfReady();
         },
         onConsolidationQuestions: function(questions) {
@@ -29351,8 +29444,16 @@ input[type="range"]::-moz-range-thumb{
         },
         onComplete: function(meta) {
           if (!activeLearnSession) return;
-          activeLearnSession.streamCompleted = true;
-          activeLearnSession.flow = flowBridge.markStreamingComplete(activeLearnSession.flow);
+          activeLearnSession.chunkLoading = false;
+          var chunkMeta = meta && meta.chunk ? meta.chunk : null;
+          if (chunkMeta && activeLearnSession.lazyChunkEnabled) {
+            activeLearnSession.nextChunkCursor = Math.max(Number(activeLearnSession.nextChunkCursor || 0), Number(chunkMeta.nextCursor || 0));
+            activeLearnSession.chunkHasMore = !!chunkMeta.hasMore;
+          }
+          activeLearnSession.streamCompleted = !(activeLearnSession.lazyChunkEnabled && activeLearnSession.chunkHasMore);
+          if (activeLearnSession.streamCompleted) {
+            activeLearnSession.flow = flowBridge.markStreamingComplete(activeLearnSession.flow);
+          }
           var streamSubDeckFingerprint = null;
           if (activeLearnSession.flow && activeLearnSession.flow.plan) {
             streamSubDeckFingerprint = (meta && meta.subDeckFingerprint)
@@ -29400,6 +29501,7 @@ input[type="range"]::-moz-range-thumb{
             toast('Learn used the fallback plan because the daily Pro retry budget is exhausted.');
           }
           if (meta && meta.warning) toast(meta.warning);
+          maybePrefetchLearnChunk();
           if (activeLearnSession.modalMounted) renderLearnSessionUI();
           /* If a parked turn result was waiting on streaming completion, apply it
              now. Synchronous — no frame delay for the Submit button re-enable. */
@@ -29407,8 +29509,12 @@ input[type="range"]::-moz-range-thumb{
         },
         onError: function(message, opts) {
           if (!activeLearnSession) return;
+          activeLearnSession.chunkLoading = false;
           setLearnRegenLoadingActive(false);
-          var hasSegments = !!(opts && opts.hasSegments);
+          var loadedSegments = activeLearnSession.flow && activeLearnSession.flow.plan && Array.isArray(activeLearnSession.flow.plan.segments)
+            ? activeLearnSession.flow.plan.segments.length
+            : 0;
+          var hasSegments = !!(opts && opts.hasSegments) || loadedSegments > 0;
           // B4-2: timeout fallback should be surfaced immediately as non-modal feedback.
           if (String(message || '').toLowerCase().indexOf('timed out') >= 0) toast(message || 'Plan generation timed out — using default order');
           if (!hasSegments) {
@@ -29433,14 +29539,22 @@ input[type="range"]::-moz-range-thumb{
 
       setLearnRegenLoadingActive(true, 'streaming_connected');
       startLearnFirstSegmentWatchdog(courseName);
+      var initialChunkOptions = lazyChunkEnabled ? {
+        forceFresh: true,
+        chunked: true,
+        segmentLimit: Math.min(chunkSize, initialStreamItems.length),
+        chunkCursor: initialChunkCursor,
+        chunkTotal: fullLearnItems.length,
+        includeConsolidation: initialStreamItems.length >= fullLearnItems.length
+      } : { forceFresh: forceRegenerate };
       var streamPromise = (subDeckKey === '__course_root__' && typeof modeBridge.streamCourseLearnPlan === 'function')
         ? modeBridge.streamCourseLearnPlan(
-            courseName, streamItems, state, userName || '', learnerContext || '',
-            handlers, streamController.signal, { forceFresh: forceRegenerate }
+            courseName, initialStreamItems, state, userName || '', learnerContext || '',
+            handlers, streamController.signal, initialChunkOptions
           )
         : modeBridge.streamLearnPlan(
-            courseName, subDeckKey, streamItems, state, userName || '', learnerContext || '',
-            handlers, streamController.signal, { forceFresh: forceRegenerate }
+            courseName, subDeckKey, initialStreamItems, state, userName || '', learnerContext || '',
+            handlers, streamController.signal, initialChunkOptions
           );
       streamPromise.catch(function(err) {
         if (err && err.name === 'AbortError') return;
