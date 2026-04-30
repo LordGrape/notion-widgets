@@ -62,7 +62,7 @@ describe('learn-plan tutor prompt restatement safeguards', () => {
     })).toEqual({ ok: true });
   });
 
-  it('rejects tutor prompts that ask for an untaught founding commander', () => {
+  it('rejects fit-together tutor prompts that ask for any untaught detail slot', () => {
     const result = verifySegmentTutorPrompt({
       teach: [
         "The Essex Scottish origin story sits inside the Canadian militia expansion of the 1880s.",
@@ -72,7 +72,20 @@ describe('learn-plan tutor prompt restatement safeguards', () => {
       tutorPrompt: "How do the founding date, the original battalion name, and the founding commander fit together as evidence of that political response?"
     });
 
-    expect(result).toEqual({ ok: false, reason: "untaught_tutor_detail:commander" });
+    expect(result).toEqual({ ok: false, reason: "untaught_tutor_detail:founding_commander" });
+  });
+
+  it('rejects fit-together tutor prompts with unsupported named details on non-Essex cards', () => {
+    const result = verifySegmentTutorPrompt({
+      teach: [
+        "The United Nations was founded on 24 October 1945 when fifty signatory states ratified its Charter in San Francisco.",
+        "The organisation emerged from the wartime alliance against the Axis powers and replaced the League of Nations.",
+        "Its founding structure reflected the strategic balance of power at the end of the Second World War."
+      ].join(' '),
+      tutorPrompt: "How do the founding date, the Charter ratification, and the Paris headquarters fit together as one origin story?"
+    });
+
+    expect(result).toEqual({ ok: false, reason: "untaught_tutor_detail:paris_headquarters" });
   });
 });
 

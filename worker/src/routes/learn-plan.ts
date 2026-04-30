@@ -13,7 +13,7 @@ const LEARN_PLAN_CORS_HEADERS = {
 const PLAN_PRIMARY_MODEL = GEMINI_2_5_FLASH;
 const PLAN_ESCALATION_MODEL = GEMINI_2_5_PRO;
 
-const PLAN_CACHE_VERSION = "v13";
+const PLAN_CACHE_VERSION = "v14";
 const PLAN_CACHE_TTL_SECONDS = 86400;
 const PLAN_CACHE_KEY_PREFIX = `learn-plan:${PLAN_CACHE_VERSION}:`;
 const PRO_DAILY_CAP = 30;
@@ -514,11 +514,55 @@ function hasExactlyOneClozeBlank(prompt: string): boolean {
   return (matches || []).length === 1;
 }
 
-function hasUntaughtTutorDetail(tutorPrompt: string, teach: string): string | null {
-  const prompt = tutorPrompt.toLowerCase();
-  const taught = teach.toLowerCase();
-  if (/\bcommander\b/.test(prompt) && !/\b(command(?:er|ed|ing)?|leader|led by)\b/.test(taught)) {
-    return "commander";
+const FIT_TOGETHER_DETAIL_STOPWORDS = new Set([
+  "a", "an", "and", "as", "detail", "details", "early", "evidence", "fact", "facts", "founding", "key", "original", "specific", "taught", "the"
+]);
+
+function tutorDetailReason(detail: string): string {
+  return normalizeText(detail).replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "detail";
+}
+
+function detailTokens(detail: string): string[] {
+  return tokenizeForLearnGate(detail)
+    .filter((token) => token.length > 1 && !FIT_TOGETHER_DETAIL_STOPWORDS.has(token));
+}
+
+function teachSupportsDetailCategory(detail: string, teach: string): boolean | null {
+  const d = normalizeText(detail);
+  const t = normalizeText(teach);
+  if (/\b(date|year|month|day)\b/.test(d)) {
+    return /\b(\d{1,4}|january|february|march|april|may|june|july|august|september|october|november|december|date|year|month|day)\b/.test(t);
+  }
+  if (/\b(name|designation|title)\b/.test(d)) {
+    return /\b(name|designat(?:ed|ion)|title|called|known|battalion|charter|treaty|act)\b/.test(t);
+  }
+  if (/\b(commander|leader|founder|actor)\b/.test(d)) {
+    return /\b(command(?:er|ed|ing)?|leader|led by|founder|founded by|actor)\b/.test(t);
+  }
+  if (/\b(headquarters|location|place|base)\b/.test(d)) {
+    return /\b(headquarters|located|location|place|base|city|town|county|province|state)\b/.test(t);
+  }
+  return null;
+}
+
+function unsupportedFitTogetherDetail(tutorPrompt: string, teach: string): string | null {
+  const match = String(tutorPrompt || '').match(/\bhow do\s+(.+?)\s+fit together\b/i);
+  if (!match) return null;
+  const rawDetails = match[1]
+    .replace(/\([^)]*\)/g, " ")
+    .split(/,\s*|\s+and\s+/i)
+    .map((part) => part.trim().replace(/^and\s+/i, "").replace(/^(the|a|an)\s+/i, ""))
+    .filter(Boolean);
+  const teachTokenSet = new Set(tokenizeForLearnGate(teach));
+  for (const detail of rawDetails) {
+    if (/^[A-Z]$/i.test(detail) || /^\[?detail\s+[A-Z]\]?$/i.test(detail)) continue;
+    const categorySupported = teachSupportsDetailCategory(detail, teach);
+    if (categorySupported === true) continue;
+    if (categorySupported === false) return tutorDetailReason(detail);
+    const tokens = detailTokens(detail);
+    if (tokens.length > 0 && !tokens.some((token) => teachTokenSet.has(token))) {
+      return tutorDetailReason(detail);
+    }
   }
   return null;
 }
@@ -537,7 +581,7 @@ export function verifySegmentTutorPrompt(seg: { tutorPrompt: string; teach?: str
   for (const phrase of BANNED_TUTOR_PROMPT_PHRASES) {
     if (lower.indexOf(phrase) >= 0) return { ok: false, reason: `banned_phrase:${phrase}` };
   }
-  const untaughtDetail = hasUntaughtTutorDetail(trimmed, String(seg?.teach || ''));
+  const untaughtDetail = unsupportedFitTogetherDetail(trimmed, String(seg?.teach || ''));
   if (untaughtDetail) return { ok: false, reason: `untaught_tutor_detail:${untaughtDetail}` };
   const restatementRatio = computeTokenOverlapRatio(
     String(seg?.teach || ''),
@@ -894,7 +938,7 @@ function buildSystemPrompt(body: LearnPlanRequest): string {
     "- The tutorPrompt must be answerable from the teach block alone. Do not ask about a significance, cause, consequence, or reason unless the teach block explicitly taught that significance, cause, consequence, or reason.",
     "- The tutorPrompt premise must NOT verbatim restate the teach. If you reference taught detail in the premise, name it specifically as \"[detail A], [detail B], and [detail C]\" and keep the premise under 25 words. Long restated premises will be rejected.",
     "- Negative example (DO NOT emit): \"The regiment was founded on 12 June 1885 as the 21st Essex Battalion in Windsor. How do these details establish the regiment's identity and location?\" - this is a tautological closer where the answer is the restated premise.",
-    "- For one-card factual sessions, prefer checkType=\"cloze\" with exactly one [___] blank that hides one taught detail. If cloze is structurally unsuitable for the card, fall back to checkType=\"self_explain\" with 'How do [taught detail A], [taught detail B], and [taught detail C] fit together as one [origin story | mechanism | sequence]?' Avoid 'Why was [new detail] significant?' for one-card sessions.",
+    "- For one-card factual sessions, prefer checkType=\"cloze\" with exactly one [___] blank that hides one taught detail. If cloze is structurally unsuitable for the card, fall back to checkType=\"self_explain\" with 'How do [taught detail A], [taught detail B], and [taught detail C] fit together as one [origin story | mechanism | sequence]?' Every named detail in a fit-together prompt must appear in teach. Avoid 'Why was [new detail] significant?' for one-card sessions.",
     "- You must choose exactly one checkType for each segment:",
     "  - elaborative: 'In your own words, why does [concept] matter / work / apply?' or 'How does [concept] connect to [prior segment]?' — forces causal reasoning.",
     "  - predictive: 'Before the next segment: what would happen if [varied scenario]?' — builds anticipatory schema.",
