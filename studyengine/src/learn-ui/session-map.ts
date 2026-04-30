@@ -27,7 +27,9 @@ export function updateLearnSessionMap(root: Element | null, flow: LearnSessionMa
 function activeStepForPhase(phase: string, subPhase: string): LearnSessionMapStep | '' {
   if (phase === 'consolidating') return 'consolidation';
   if (phase === 'done') return '';
-  if (subPhase === 'answer' || subPhase === 'feedback') return subPhase;
+  if (subPhase === 'answer' || subPhase === 'scaffold' || subPhase === 'feedback') {
+    return subPhase === 'feedback' ? 'feedback' : 'answer';
+  }
   return 'read';
 }
 
@@ -36,7 +38,7 @@ function completedStepsForPhase(
   subPhase: string
 ): Record<LearnSessionMapStep, boolean> {
   return {
-    read: phase === 'consolidating' || phase === 'done' || subPhase === 'answer' || subPhase === 'feedback',
+    read: phase === 'consolidating' || phase === 'done' || subPhase === 'answer' || subPhase === 'scaffold' || subPhase === 'feedback',
     answer: phase === 'consolidating' || phase === 'done' || subPhase === 'feedback',
     feedback: phase === 'consolidating' || phase === 'done',
     consolidation: phase === 'done'

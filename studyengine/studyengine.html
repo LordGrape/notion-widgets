@@ -27894,6 +27894,7 @@ input[type="range"]::-moz-range-thumb{
           focusQuestion.innerHTML = renderLearnMarkdownSafe(focusPrompt);
           if (focusEyebrow) {
             if (flow.currentSubPhase === 'answer') focusEyebrow.textContent = 'Your Turn';
+            else if (flow.currentSubPhase === 'scaffold') focusEyebrow.textContent = 'Scaffold';
             else if (flow.currentSubPhase === 'feedback') focusEyebrow.textContent = 'Feedback';
             else focusEyebrow.textContent = 'New';
           }
@@ -28007,13 +28008,15 @@ input[type="range"]::-moz-range-thumb{
         }
       }
       if (selfExplainChips) selfExplainChips.hidden = interactionShape.kind !== 'structural_self_explain' || flow.currentSubPhase !== 'answer';
+      if (stuckBtn) stuckBtn.hidden = flow.currentSubPhase !== 'answer';
       var revealOpen = !!(activeLearnSession && activeLearnSession.revealedExpectedAnswerBySegment && curSeg && activeLearnSession.revealedExpectedAnswerBySegment[curSeg.id]);
       if (shapeRevealBtn) {
         var hasRevealAction = !!(interactionShape.secondaryAction && interactionShape.secondaryAction.intent === 'reveal');
         shapeRevealBtn.hidden = !hasRevealAction || flow.currentSubPhase !== 'answer';
         shapeRevealBtn.textContent = interactionShape.secondaryAction ? interactionShape.secondaryAction.label : 'Reveal expected outcome';
       }
-      if (interactionShape.kind === 'predict_reveal') renderLearnExpectedReveal('Expected outcome', curSeg && curSeg.expectedAnswer, revealOpen);
+      if (flow.currentSubPhase !== 'answer') renderLearnExpectedReveal('', '', false);
+      else if (interactionShape.kind === 'predict_reveal') renderLearnExpectedReveal('Expected outcome', curSeg && curSeg.expectedAnswer, revealOpen);
       else if (interactionShape.kind === 'worked_reveal_justify') renderLearnExpectedReveal('Worked steps', curSeg && curSeg.expectedAnswer, revealOpen);
       else renderLearnExpectedReveal('', '', false);
       if (input && interactionShape.kind === 'inline_cloze') {
@@ -29717,7 +29720,6 @@ input[type="range"]::-moz-range-thumb{
       var preqDecline = el('learnPrequestionDecline');
       var preqInput = el('learnPrequestionInput');
       var stuckBtn = el('learnStuckBtn');
-      var expectedReveal = el('learnExpectedReveal');
       var shapeRevealBtn = el('learnShapeRevealBtn');
       var selfExplainChips = el('learnSelfExplainChips');
 
