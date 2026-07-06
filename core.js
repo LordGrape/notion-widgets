@@ -1248,6 +1248,7 @@ Core.tooltip = (function() {
     tip.setAttribute('role', 'tooltip');
     tip.style.cssText =
       'position:fixed;z-index:9999;pointer-events:none;opacity:0;transform:translateY(4px);' +
+      'max-width:min(260px, calc(100vw - 16px));white-space:pre-wrap;word-break:break-word;line-height:1.4;' +
       'background:var(--surface-3);border:1px solid var(--border-default);border-radius:var(--radius-sm);' +
       'color:var(--text-primary);font-size:0.75rem;padding:4px 10px;box-shadow:var(--shadow-sm);' +
       'transition:opacity 150ms ease,transform 150ms ease;';
@@ -1264,10 +1265,30 @@ Core.tooltip = (function() {
     if (!tip || !el) return;
     let r = el.getBoundingClientRect();
     let tr = tip.getBoundingClientRect();
-    let top = Math.max(8, r.top - tr.height - 10);
-    let left = Math.min(window.innerWidth - tr.width - 8, Math.max(8, r.left + (r.width - tr.width) / 2));
-    tip.style.top = top + 'px';
+    let vw = window.innerWidth, vh = window.innerHeight;
+    let left = Math.min(vw - tr.width - 8, Math.max(8, r.left + (r.width - tr.width) / 2));
+    /* Flip below when there is not enough room above, and clamp within the
+       viewport so the tooltip is never clipped inside a short embed/iframe. */
+    let above = r.top >= tr.height + 12;
+    if (!above && (r.bottom + 10 + tr.height) > (vh - 8) && r.top > 40) above = true;
+    let top = above ? Math.max(8, r.top - tr.height - 10) : Math.min(vh - tr.height - 8, r.bottom + 10);
     tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+    if (arrow) {
+      let ax = Math.min(tr.width - 10, Math.max(10, (r.left + r.width / 2) - left));
+      arrow.style.left = ax + 'px';
+      if (above) {
+        arrow.style.top = 'auto'; arrow.style.bottom = '-5px';
+        arrow.style.borderTop = '0'; arrow.style.borderLeft = '0';
+        arrow.style.borderRight = '1px solid var(--border-default)';
+        arrow.style.borderBottom = '1px solid var(--border-default)';
+      } else {
+        arrow.style.bottom = 'auto'; arrow.style.top = '-5px';
+        arrow.style.borderRight = '0'; arrow.style.borderBottom = '0';
+        arrow.style.borderLeft = '1px solid var(--border-default)';
+        arrow.style.borderTop = '1px solid var(--border-default)';
+      }
+    }
   }
   function show(el, text) {
     if (!el || !text) return;
@@ -1286,18 +1307,21 @@ Core.tooltip = (function() {
   }
   return {
     init: function() { ensure(); },
-    attach: function(el, text) {
+    attach: function(el, text, opts) {
       if (!el) return;
+      opts = opts || {};
+      let delay = typeof opts.delay === 'number' ? opts.delay : 300;
       let getText = function() { return typeof text === 'function' ? text() : text; };
       let enter = function() {
         clearTimeout(showTimer);
-        showTimer = setTimeout(function() { show(el, getText()); }, 300);
+        showTimer = setTimeout(function() { show(el, getText()); }, delay);
       };
       let leave = function() { clearTimeout(showTimer); hide(); };
       el.addEventListener('mouseenter', enter);
       el.addEventListener('focus', enter);
       el.addEventListener('mouseleave', leave);
       el.addEventListener('blur', leave);
+      window.addEventListener('scroll', leave, true);
     }
   };
 })();
