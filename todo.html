@@ -489,9 +489,9 @@ body{
     var r = anchor.getBoundingClientRect();
     var vw = window.innerWidth, vh = window.innerHeight;
     var left = Math.min(vw - pr.width - 8, Math.max(8, r.left + (r.width - pr.width) / 2));
-    var above = r.top >= pr.height + 12;
-    if (!above && (r.bottom + 8 + pr.height) > (vh - 8) && r.top > 40) above = true;
-    var top = above ? Math.max(8, r.top - pr.height - 8) : (r.bottom + 8);
+    var above = r.top >= pr.height + 10;
+    if (!above && (r.bottom + 6 + pr.height) > (vh - 8) && r.top > 40) above = true;
+    var top = above ? Math.max(8, r.top - pr.height - 6) : (r.bottom + 6);
     p.classList.toggle("above", above);
     p.classList.toggle("below", !above);
     var arrowX = Math.min(pr.width - 14, Math.max(14, (r.left + r.width / 2) - left));
@@ -574,13 +574,11 @@ body{
       noteChip.setAttribute("aria-label", "View or edit note");
       noteChip.addEventListener("click", function (e) { e.stopPropagation(); toggleManage(t.id); });
       noteChip.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleManage(t.id); } });
-      noteChip.addEventListener("focus", function () { showNote(el, t.notes || ""); });
+      /* Preview shows only when hovering/focusing the Note chip, anchored just above the chip. */
+      noteChip.addEventListener("mouseenter", function () { scheduleNote(noteChip, t.notes || ""); });
+      noteChip.addEventListener("mouseleave", hideNote);
+      noteChip.addEventListener("focus", function () { showNote(noteChip, t.notes || ""); });
       noteChip.addEventListener("blur", hideNote);
-    }
-    if (t.notes && t.notes.trim() && !isEditing) {
-      el.addEventListener("mouseenter", function () { scheduleNote(el, t.notes); });
-      el.addEventListener("mouseleave", hideNote);
-      el.addEventListener("dragstart", hideNote);
     }
 
     if (!t.done && !isEditing) {
