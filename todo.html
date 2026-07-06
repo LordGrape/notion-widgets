@@ -116,7 +116,9 @@ body{
 .tag.today{color:#fff;background:var(--accent-primary);border-color:transparent}
 .tag.tmrw{color:var(--text-secondary)}
 .tag.overdue{color:#fff;background:var(--danger);border-color:transparent}
-.tag.note{display:inline-flex;align-items:center;gap:4px;color:var(--text-secondary)}
+.tag.note{display:inline-flex;align-items:center;gap:4px;color:var(--text-secondary);cursor:pointer}
+.tag.note:hover{color:var(--accent-primary);border-color:var(--border-accent)}
+.tag.note:focus-visible{outline:2px solid var(--accent-primary);outline-offset:2px}
 .tag.note svg{width:11px;height:11px}
 
 /* Item action buttons */
@@ -170,6 +172,9 @@ body{
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
 .toast button{border:0;background:transparent;color:var(--accent-primary);font:inherit;font-weight:700;cursor:pointer;font-size:0.82rem;padding:3px 6px;border-radius:6px}
 .toast button:hover{background:var(--accent-glow)}
+
+/* Note preview bubble (core.js tooltip, restyled multi-line) */
+#core-tooltip{max-width:min(260px, calc(100vw - 24px))!important;white-space:pre-wrap!important;word-break:break-word!important;text-align:left!important;line-height:1.45!important;font-size:0.78rem!important;font-weight:500!important;padding:9px 12px!important;border-radius:var(--radius-md)!important;box-shadow:var(--shadow-md)!important}
 
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
@@ -263,7 +268,7 @@ body{
   var tab = "today";
   var comp = { pri: 0, time: 0, due: 0 };
   var lastRaw = "";
-  var undoBuf = null, undoTimer = null;
+  var undoAction = null, undoTimer = null;
   var editingId = null;
 
   function $(id) { return document.getElementById(id); }
@@ -357,8 +362,12 @@ body{
     t.done = !t.done;
     t.doneAt = t.done ? Date.now() : null;
     if (t.done && editingId === id) editingId = null;
-    if (t.done) { snd("playChime"); announce("Completed: " + t.text); }
-    else { snd("playClick"); }
+    if (t.done) {
+      snd("playChime"); announce("Completed: " + t.text);
+      showUndo("Task completed", function () { t.done = false; t.doneAt = null; });
+    } else {
+      snd("playClick"); hideUndo();
+    }
     save();
     if (t.done) {
       var openCount = tasks.filter(function (x) { return isToday(x); }).length;
@@ -372,7 +381,7 @@ body{
     if (!t) return;
     if (editingId === id) editingId = null;
     tasks.splice(idx, 1);
-    showUndo([{ task: t, index: idx }], "Task deleted");
+    showUndo("Task deleted", function () { tasks.splice(Math.min(idx, tasks.length), 0, t); });
     snd("playClick");
     save();
   }
@@ -381,29 +390,31 @@ body{
     for (var i = 0; i < tasks.length; i++) { if (tasks[i].done) removed.push({ task: tasks[i], index: i }); }
     if (!removed.length) return;
     tasks = tasks.filter(function (x) { return !x.done; });
-    showUndo(removed, removed.length + (removed.length === 1 ? " task cleared" : " tasks cleared"));
+    showUndo(removed.length + (removed.length === 1 ? " task cleared" : " tasks cleared"), function () {
+      removed.slice().sort(function (a, c) { return a.index - c.index; }).forEach(function (e) { tasks.splice(Math.min(e.index, tasks.length), 0, e.task); });
+    });
     snd("playClick");
     save();
   }
 
-  function showUndo(batch, label) {
-    undoBuf = batch;
+  function showUndo(label, action) {
+    undoAction = action;
     $("toastMsg").textContent = label;
     $("toast").classList.add("show");
     announce(label);
     if (undoTimer) clearTimeout(undoTimer);
-    undoTimer = setTimeout(hideUndo, 5000);
+    undoTimer = setTimeout(hideUndo, 6000);
   }
   function hideUndo() {
     $("toast").classList.remove("show");
-    undoBuf = null;
+    undoAction = null;
     if (undoTimer) { clearTimeout(undoTimer); undoTimer = null; }
   }
   function doUndo() {
-    if (!undoBuf) return;
-    var b = undoBuf.slice().sort(function (a, c) { return a.index - c.index; });
-    b.forEach(function (e) { var i = Math.min(e.index, tasks.length); tasks.splice(i, 0, e.task); });
+    if (!undoAction) return;
+    var act = undoAction;
     hideUndo();
+    act();
     snd("playClick");
     announce("Restored");
     save();
@@ -516,6 +527,16 @@ body{
     var txt = el.querySelector(".txt");
     txt.addEventListener("click", function () { if (!t.done) editStart(t.id, this); });
     txt.addEventListener("keydown", function (e) { if ((e.key === "Enter" || e.key === " ") && !t.done) { e.preventDefault(); editStart(t.id, this); } });
+
+    var noteChip = el.querySelector(".tag.note");
+    if (noteChip) {
+      noteChip.setAttribute("tabindex", "0");
+      noteChip.setAttribute("role", "button");
+      noteChip.setAttribute("aria-label", "View note");
+      noteChip.addEventListener("click", function () { toggleManage(t.id); });
+      noteChip.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleManage(t.id); } });
+      try { if (window.Core && Core.tooltip && Core.tooltip.attach) Core.tooltip.attach(noteChip, function () { return t.notes || ""; }); } catch (e2) {}
+    }
 
     if (!t.done && !isEditing) {
       el.setAttribute("draggable", "true");
