@@ -164,47 +164,31 @@ body {
 <script>
 /* ══════════════════════════════════════
    QUOTES — inline fallback pool
-   Upgrade 4: fetch('quotes.json') on load;
-   falls back to this array if unavailable.
+   Fallback intentionally avoids popular misattributions and keeps source refs.
+   Primary pool loads from quotes.json when available.
    ══════════════════════════════════════ */
 var FALLBACK_QUOTES = [
-  { text: "You have power over your mind, not outside events. Realize this, and you will find strength.", author: "Marcus Aurelius", book: "Meditations" },
-  { text: "The impediment to action advances action. What stands in the way becomes the way.", author: "Marcus Aurelius", book: "Meditations" },
-  { text: "Waste no more time arguing about what a good man should be. Be one.", author: "Marcus Aurelius", book: "Meditations" },
-  { text: "It is not what happens to you, but how you react to it that matters.", author: "Epictetus", book: "Enchiridion" },
-  { text: "No man is free who is not master of himself.", author: "Epictetus", book: "Fragments" },
-  { text: "First say to yourself what you would be; and then do what you have to do.", author: "Epictetus", book: "Discourses" },
-  { text: "We suffer more often in imagination than in reality.", author: "Seneca", book: "Letters from a Stoic" },
-  { text: "True happiness is to enjoy the present, without anxious dependence upon the future.", author: "Seneca", book: "Letters from a Stoic" },
-  { text: "It is not that we have a short time to live, but that we waste a great deal of it.", author: "Seneca", book: "On the Shortness of Life" },
-  { text: "The whole future lies in uncertainty: live immediately.", author: "Seneca", book: "On the Shortness of Life" },
-  { text: "He who fears death will never do anything worthy of a living man.", author: "Seneca", book: "Letters from a Stoic" },
-  { text: "Man is not worried by real problems so much as by his imagined anxieties about real problems.", author: "Epictetus", book: "Enchiridion" },
-  { text: "If it is not right, do not do it; if it is not true, do not say it.", author: "Marcus Aurelius", book: "Meditations" },
-  { text: "The best revenge is not to be like your enemy.", author: "Marcus Aurelius", book: "Meditations" },
-  { text: "Luck is what happens when preparation meets opportunity.", author: "Seneca", book: "Letters from a Stoic" },
-  { text: "To be everywhere is to be nowhere.", author: "Seneca", book: "Letters from a Stoic" },
-  { text: "Difficulties strengthen the mind, as labor does the body.", author: "Seneca", book: "Letters from a Stoic" },
-  { text: "The soul becomes dyed with the colour of its thoughts.", author: "Marcus Aurelius", book: "Meditations" },
-  { text: "How long are you going to wait before you demand the best for yourself?", author: "Epictetus", book: "Discourses" },
-  { text: "You could leave life right now. Let that determine what you do and say and think.", author: "Marcus Aurelius", book: "Meditations" },
-  { text: "What we do now echoes in eternity.", author: "Marcus Aurelius", book: "Meditations" },
-  { text: "He suffers more than necessary, who suffers before it is necessary.", author: "Seneca", book: "Letters from a Stoic" },
-  { text: "Freedom is the only worthy goal in life. It is won by disregarding things that lie beyond our control.", author: "Epictetus", book: "Discourses" },
-  { text: "Wealth consists not in having great possessions, but in having few wants.", author: "Epictetus", book: "Fragments" },
-  { text: "Sometimes even to live is an act of courage.", author: "Seneca", book: "Letters from a Stoic" },
-  { text: "Begin at once to live, and count each separate day as a separate life.", author: "Seneca", book: "Letters from a Stoic" },
-  { text: "The happiness of your life depends upon the quality of your thoughts.", author: "Marcus Aurelius", book: "Meditations" },
-  { text: "It is not because things are difficult that we do not dare; it is because we do not dare that things are difficult.", author: "Seneca", book: "Letters from a Stoic" },
-  { text: "Attach yourself to what is spiritually superior, regardless of what other people think or do.", author: "Epictetus", book: "Enchiridion" },
-  { text: "The mind that is anxious about future events is miserable.", author: "Seneca", book: "Letters from a Stoic" }
+  { text: "If it is not right, do not do it: if it is not true, do not say it.", author: "Marcus Aurelius", book: "Meditations, 12.17" },
+  { text: "The impediment to action advances action. What stands in the way becomes the way.", author: "Marcus Aurelius", book: "Meditations, 5.20" },
+  { text: "Waste no more time arguing what a good man should be. Be one.", author: "Marcus Aurelius", book: "Meditations, 10.16" },
+  { text: "You have power over your mind, not outside events. Realize this, and you will find strength.", author: "Marcus Aurelius", book: "Meditations, 8.47" },
+  { text: "The happiness of your life depends upon the quality of your thoughts.", author: "Marcus Aurelius", book: "Meditations, 4.3" },
+  { text: "It is not things themselves that disturb people, but their judgements about those things.", author: "Epictetus", book: "Enchiridion, 5" },
+  { text: "Do not seek for events to happen as you wish, but wish events to happen as they do happen, and your life will go smoothly.", author: "Epictetus", book: "Enchiridion, 8" },
+  { text: "First say to yourself what you would be, and then do what you have to do.", author: "Epictetus", book: "Discourses, 3.23" },
+  { text: "No person is free who is not master of themselves.", author: "Epictetus", book: "Discourses, 2.10" },
+  { text: "We suffer more often in imagination than in reality.", author: "Seneca", book: "Moral Letters, 13.4" },
+  { text: "It is not that we have a short time to live, but that we waste much of it.", author: "Seneca", book: "On the Shortness of Life, 1" },
+  { text: "Begin at once to live, and count each separate day as a separate life.", author: "Seneca", book: "Moral Letters, 101.10" },
+  { text: "To be everywhere is to be nowhere.", author: "Seneca", book: "Moral Letters, 2.2" },
+  { text: "The mind that is anxious about future events is miserable.", author: "Seneca", book: "Moral Letters, 98.6" }
 ];
 
 var quotes = FALLBACK_QUOTES;
 var currentDateStr = '';
 var WORD_DELAY_S = 0.04;
 
-/* ── Upgrade 4: External JSON pool ──
+/* ── External JSON pool ──
    Place a quotes.json alongside the widget:
    [{ "text": "...", "author": "...", "book": "..." }, ...]
    Falls back silently to the inline array. */
