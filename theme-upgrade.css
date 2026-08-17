@@ -1,0 +1,201 @@
+/* notion-widgets theme-upgrade.css
+   Royal violet, Notion-native, calm glass design layer.
+   Import into legacy widgets after local styles, or inline selectively.
+*/
+:root {
+  --lg-canvas: #fbfaf8;
+  --lg-surface: rgba(255, 255, 255, 0.78);
+  --lg-surface-raised: rgba(255, 255, 255, 0.9);
+  --lg-surface-soft: rgba(246, 242, 255, 0.64);
+  --lg-ink: #292431;
+  --lg-ink-muted: rgba(41, 36, 49, 0.66);
+  --lg-ink-faint: rgba(41, 36, 49, 0.42);
+  --lg-violet: #7c3aed;
+  --lg-violet-2: #8b5cf6;
+  --lg-lavender: #c4b5fd;
+  --lg-border: rgba(124, 58, 237, 0.14);
+  --lg-border-strong: rgba(124, 58, 237, 0.28);
+  --lg-glow: rgba(124, 58, 237, 0.12);
+  --lg-shadow: 0 10px 34px rgba(37, 28, 55, 0.09);
+  --lg-shadow-hover: 0 16px 48px rgba(37, 28, 55, 0.13);
+  --lg-radius: 18px;
+  --lg-radius-sm: 12px;
+  --lg-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --lg-canvas: #111014;
+    --lg-surface: rgba(28, 25, 36, 0.78);
+    --lg-surface-raised: rgba(35, 31, 46, 0.88);
+    --lg-surface-soft: rgba(139, 92, 246, 0.10);
+    --lg-ink: rgba(255, 255, 255, 0.92);
+    --lg-ink-muted: rgba(255, 255, 255, 0.66);
+    --lg-ink-faint: rgba(255, 255, 255, 0.42);
+    --lg-violet: #a78bfa;
+    --lg-violet-2: #8b5cf6;
+    --lg-lavender: #ddd6fe;
+    --lg-border: rgba(167, 139, 250, 0.18);
+    --lg-border-strong: rgba(167, 139, 250, 0.34);
+    --lg-glow: rgba(167, 139, 250, 0.14);
+    --lg-shadow: 0 14px 44px rgba(0, 0, 0, 0.34);
+    --lg-shadow-hover: 0 18px 60px rgba(0, 0, 0, 0.44);
+  }
+}
+
+body {
+  background:
+    radial-gradient(90% 70% at 85% 0%, rgba(139, 92, 246, 0.10), transparent 58%),
+    radial-gradient(70% 60% at 10% 100%, rgba(196, 181, 253, 0.10), transparent 55%),
+    var(--lg-canvas) !important;
+}
+
+.container,
+.card,
+.settings-card,
+.week-detail-card,
+.confirm-card,
+.blip-card,
+.ms-form {
+  background: linear-gradient(180deg, var(--lg-surface-raised), var(--lg-surface)) !important;
+  border-color: var(--lg-border) !important;
+  border-radius: var(--lg-radius) !important;
+  box-shadow: var(--lg-shadow), 0 0 0 1px rgba(255, 255, 255, 0.04) inset !important;
+  backdrop-filter: blur(24px) saturate(1.35) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(1.35) !important;
+}
+
+.container::before,
+.card::before,
+.settings-card::before,
+.week-detail-card::before,
+.confirm-card::before,
+.blip-card::before,
+.ms-form::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.055;
+  mix-blend-mode: overlay;
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(255,255,255,.9) 0 1px, transparent 1px),
+    radial-gradient(circle at 70% 60%, rgba(124,58,237,.85) 0 1px, transparent 1px);
+  background-size: 17px 17px, 23px 23px;
+}
+
+.container:hover,
+.card:hover {
+  border-color: var(--lg-border-strong) !important;
+  box-shadow: var(--lg-shadow-hover), 0 0 34px var(--lg-glow) !important;
+}
+
+.label,
+.greeting,
+.panel-label,
+.settings-sub,
+.footer-text,
+.book,
+.meta,
+.class-meta,
+.status,
+.date,
+.clock-countdown,
+.focus-stats,
+.presence-stat {
+  color: var(--lg-ink-faint) !important;
+  letter-spacing: 0.13em;
+}
+
+.title,
+.time-display,
+.session-time,
+.quote .word,
+.forecast-now-temp,
+.break-timer-display {
+  background: linear-gradient(135deg, var(--lg-ink) 0%, var(--lg-violet) 46%, var(--lg-lavender) 62%, var(--lg-ink) 100%) !important;
+  background-size: 220% 220% !important;
+}
+
+.author,
+.class-name,
+.stats-num,
+.txt,
+.panel-title,
+.week-detail-name,
+.forecast-now-cond {
+  color: var(--lg-ink) !important;
+}
+
+button,
+.tab,
+.chip,
+.mode-btn,
+.view-btn,
+.ctrl-btn,
+.preset-chip,
+.s-btn,
+.form-btn,
+.add button {
+  transition: transform 180ms var(--lg-ease), background 180ms var(--lg-ease), border-color 180ms var(--lg-ease), box-shadow 180ms var(--lg-ease), color 180ms var(--lg-ease) !important;
+}
+
+button:hover,
+.tab:hover,
+.chip:hover,
+.mode-btn:hover,
+.view-btn:hover,
+.ctrl-btn:hover,
+.preset-chip:hover,
+.s-btn:hover,
+.form-btn:hover,
+.add button:hover {
+  transform: translateY(-1px);
+}
+
+.item,
+.class-block,
+.ev,
+.stats,
+.forecast-now,
+.s-item,
+.week-track,
+.tabs,
+.composer .chip,
+.add input,
+.form-input,
+.s-input {
+  background: var(--lg-surface-soft) !important;
+  border-color: var(--lg-border) !important;
+  border-radius: var(--lg-radius-sm) !important;
+}
+
+.item:hover,
+.class-block:hover,
+.ev:hover {
+  border-color: var(--lg-border-strong) !important;
+  box-shadow: 0 8px 24px rgba(124, 58, 237, 0.08) !important;
+}
+
+.tab.on,
+.mode-btn.active,
+.view-btn.active,
+.chip.set,
+.ctrl-primary,
+.form-btn-primary,
+.add button,
+.day-dot.active,
+.preset-chip.active {
+  background: linear-gradient(135deg, var(--lg-violet), var(--lg-violet-2)) !important;
+  color: #fff !important;
+  box-shadow: 0 8px 22px var(--lg-glow) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behaviour: auto !important;
+    transition-duration: 0.001ms !important;
+  }
+}
