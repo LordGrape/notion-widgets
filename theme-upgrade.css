@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=JetBrains+Mono:wght@500;600;700&display=swap');
+
 /* notion-widgets theme-upgrade.css
    Royal violet, Notion-native, calm glass design layer.
    Import into legacy widgets after local styles, or inline selectively.
@@ -305,3 +307,73 @@ button:hover, .item:hover, .class-block:hover, .week-pill:hover, .chip:hover, .t
   .class-block.active { animation-duration: 4.8s !important; }
 }
 
+/* ════════════════════════════════════════════════════
+   TYPOGRAPHY LAYER — readability + editorial elegance
+   Research basis:
+   - Inter for UI text: high x-height, screen-optimized,
+     the standard legible interface face (NN/g, 2024-25)
+   - Cormorant Garamond for display moments only: editorial
+     serif reserved for large sizes where hairlines hold up
+   - JetBrains Mono tabular numerals for times and stats
+   - Micro-label floor raised from 8px to >=9.5px
+     (glanceable-reading research: bigger, non-condensed)
+   - Reading text at 1.5x line-height (WCAG 1.4.12)
+   ════════════════════════════════════════════════════ */
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+body, input, textarea, select, button {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+  font-feature-settings: 'cv11' 1, 'ss01' 1;
+}
+
+/* Editorial serif, display only */
+.title, #title, .panel-title, .settings-title, .confirm-title,
+.week-detail-name, .quote .word, .author {
+  font-family: 'Cormorant Garamond', 'EB Garamond', Georgia, serif !important;
+}
+.title, #title, .panel-title, .settings-title {
+  font-weight: 600 !important;
+  letter-spacing: 0.002em !important;
+}
+.title, #title { font-size: 21px !important; }
+.quote .word {
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.36 !important;
+}
+.author {
+  font-style: italic !important;
+  font-weight: 500 !important;
+  font-size: 15px !important;
+  letter-spacing: 0.02em !important;
+}
+
+/* Reading text gets humane line-height */
+.txt, .class-name, .name, .ev-name, .sub, .meta, .class-meta,
+.detail-text, .week-detail-text, .hint, .empty p, .e-notes {
+  line-height: 1.55 !important;
+}
+
+/* Micro-label floors: 8px text is below glanceable thresholds */
+.label, .settings-sub, .footer-text, .panel-label, .day-group-label {
+  font-size: 9.5px !important;
+  letter-spacing: 0.17em !important;
+  font-weight: 600 !important;
+}
+.class-meta, .meta, .ev-meta, .stats-label, .sub, .tag, .chip,
+.status, .sync, .week-detail-text, .detail-text {
+  font-size: 10.5px !important;
+}
+
+/* Numerals and times stay tabular */
+.time-display, .session-time, .break-timer-display,
+.time strong, .time span, .stat b, .stats-num,
+.ring-pct, .ev-val, .clock-countdown {
+  font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+}
+.time strong { font-size: 11.5px !important; }
+.time span { font-size: 9.5px !important; }
