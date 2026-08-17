@@ -1,22 +1,35 @@
 # notion-widgets
 
-A collection of self-hosted widgets for embedding in Notion.
+Self-hosted widgets for embedding in Notion.
 
 ## Repo map
-- `apps/` — individual widgets (one folder per widget)
-- `packages/` — shared code used across widgets
-- `core.js` — legacy shared runtime used by existing HTML widgets
-- `wrangler.jsonc` — Cloudflare Workers/Pages config (current deployment)
+- `apps/` — app map and wrapper entry files for each widget
+- `packages/` — shared-package destinations and docs
+- `core.js` — current shared runtime used by legacy widgets
+- `worker/` — Cloudflare Worker / sync backend
+- `studyengine/` — existing Vite/TypeScript study app
+- `wrangler.jsonc` — current Cloudflare deployment config
+- `MIGRATION.md` — migration plan and AI editing workflow
 
-## How to change one widget (AI-friendly)
-1. Identify the widget folder (under `apps/`) or the legacy single-file widget at repo root.
-2. Change only that widget plus any necessary shared code in `packages/`.
-3. Run formatting: `pnpm format`.
+## Widgets
+| Widget | Current source | App folder |
+| --- | --- | --- |
+| Clock | `clock.html` | `apps/clock/` |
+| Quotes | `quotes.html` | `apps/quotes/` |
+| To-do | `todo.html` | `apps/todo/` |
+| Timetable | `timetable.html` | `apps/timetable/` |
+| Study Engine | `studyengine/` | `apps/studyengine/` |
+
+## How to change one widget
+1. Open the matching folder under `apps/`.
+2. Read its `README.md`.
+3. Edit the current production source listed there.
+4. Avoid unrelated files.
 
 ## Development
-- Preview locally: `pnpm preview`
+- Preview: `pnpm preview`
 - Deploy: `pnpm deploy`
+- Format: `pnpm format`
 
 ## Migration status
-This repo is being migrated from legacy single-file widgets at the repo root to a structured monorepo layout.
-The legacy widgets remain supported during the transition.
+The repo is now structured as a monorepo map while preserving legacy production paths. This avoids breaking existing Notion embeds while making the project easier for AI agents to navigate.
