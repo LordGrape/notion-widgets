@@ -1,0 +1,32 @@
+name: Apply theme upgrade
+
+on:
+  push:
+    paths:
+      - tools/apply-theme-upgrade.mjs
+      - .github/workflows/apply-theme-upgrade.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node tools/apply-theme-upgrade.mjs
+      - name: Commit patched widgets
+        run: |
+          if [[ -n "$(git status --porcelain)" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add clock.html todo.html timetable.html quotes.html theme-upgrade.css
+            git commit -m "Apply royal violet theme to all widgets"
+            git push
+          else
+            echo "No changes to commit"
+          fi
