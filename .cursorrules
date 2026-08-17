@@ -158,7 +158,7 @@
 - Fields: name, description (was prof), location (was room), color, days[]
 - v2 flat format auto-migrates on boot via getBlocks()
 - Milestones removed from timetable embed — will be re-added later
-- "Block" = universal schedule item (class, shift, parade, gym, etc.)
+- "Block" = universal schedule item (class, shift, workout, study session, etc.)
 - Settings list: pencil (✎) opens add form in edit mode (pre-filled). `editBlock(id, data)` updates the block in SyncEngine; `showAddForm(existingBlock?)` covers add vs Save.
 
 # Horizon milestone system (v2)
