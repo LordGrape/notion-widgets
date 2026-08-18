@@ -22,6 +22,7 @@ jobs:
           cache-dependency-path: studyengine/package-lock.json
       - run: npm ci
       - run: npm run typecheck
+      - run: node scripts/verify-domain-extraction.mjs
       - run: npm test
 
   worker:

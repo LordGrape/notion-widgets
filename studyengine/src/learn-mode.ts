@@ -4,9 +4,14 @@ import { createSubDeck, getCardsInScope, getCardsInSubDeck, loadSubDecks } from 
 import { runLearnTurn, LearnTurnClientError } from './learn-turn-client';
 import { resolveSessionPlanProfile, resolveSessionTargetLanguage } from './plan-profiles';
 import { composeLearnerModelFingerprint, computeRecommendedSegmentMix, loadLearnerModel, recordSessionOutcome, saveLearnerModel } from './learner-model/learner-model';
+import { applyLearnStatusMigration, deriveLifecycleStage, setLifecycleStage } from './domain/lifecycle';
 
 // Re-export for callers that previously imported from `./learn-mode`.
 export { runLearnTurn, LearnTurnClientError };
+// Lifecycle domain moved to ./domain/lifecycle in Phase V1a (ADR-0001). The
+// re-export preserves existing import sites and the bridge registrations at
+// the bottom of this file.
+export { applyLearnStatusMigration, deriveLifecycleStage, setLifecycleStage } from './domain/lifecycle';
 
 export type LearnStatus = 'unlearned' | 'taught' | 'consolidated' | null;
 export type LearnMechanism = 'worked_example' | 'elaborative_interrogation' | 'self_explanation' | 'predictive_question' | 'test_closure';
@@ -911,39 +916,6 @@ export function maybeDemoteOnAgain(item: StudyItem, rating: 1 | 2 | 3 | 4): bool
     return true;
   }
   return false;
-}
-
-export function deriveLifecycleStage(item: StudyItem): StudyItem['lifecycleStage'] {
-  if (item.suspended === true && item.archived === true) return 'retired';
-  if (item.fsrs?.state === 'relearning') return 'relearning';
-  if (item.learnStatus === 'consolidated' && item.fsrs?.state === 'review') return 'maintaining';
-  if (item.learnStatus === 'taught') return 'consolidating';
-  if (item.learnStatus === 'unlearned') return 'encoding';
-  if (item.learnStatus == null && !item.fsrs?.lastReview) return 'new';
-  if (item.fsrs?.lastReview) return 'maintaining';
-  return 'new';
-}
-
-export function setLifecycleStage(item: StudyItem, stage: StudyItem['lifecycleStage']): void {
-  item.lifecycleStage = stage;
-}
-
-export function applyLearnStatusMigration(items: Record<string, StudyItem>): void {
-  Object.keys(items || {}).forEach((itemId) => {
-    const item = items[itemId];
-    if (!item) return;
-    if (typeof item.learnStatus === 'undefined') {
-      item.learnStatus = null;
-    }
-    if (typeof item.consolidationRating === 'undefined') {
-      item.consolidationRating = null;
-    }
-  });
-  Object.keys(items || {}).forEach((itemId) => {
-    const item = items[itemId];
-    if (!item) return;
-    setLifecycleStage(item, deriveLifecycleStage(item));
-  });
 }
 
 function getCourseName(course: CourseLike | string): string {
