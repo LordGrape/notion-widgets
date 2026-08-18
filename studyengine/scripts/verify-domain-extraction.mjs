@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
- * Phase V1 verification gate (ADR-0001, ADR-0002).
+ * Phase V1/V2 verification gate (ADR-0001, ADR-0002).
  *
  * Run from the studyengine/ directory:
  *   node scripts/verify-domain-extraction.mjs
  *
  * Checks:
- *   1. Every moved identifier is defined exactly once, inside src/domain/.
+ *   1. Every moved identifier is defined exactly once, at its expected path.
  *   2. Domain purity: no SyncEngine, fetch, document, window, or gsap
  *      references inside src/domain/ (tests excluded).
  *   3. No explicit `any` inside src/domain/.
@@ -54,14 +54,25 @@ function definitionCount(name) {
   return { count, locations };
 }
 
-// 1. Moved identifiers are defined exactly once, inside src/domain/.
-const MOVED = ['deriveLifecycleStage', 'setLifecycleStage', 'applyLearnStatusMigration'];
-const DOMAIN_LIFECYCLE = join('src', 'domain', 'lifecycle.ts');
-for (const name of MOVED) {
+// 1. Moved identifiers are defined exactly once, at their expected paths.
+const MOVED = [
+  ['deriveLifecycleStage', join('src', 'domain', 'lifecycle.ts')],
+  ['setLifecycleStage', join('src', 'domain', 'lifecycle.ts')],
+  ['applyLearnStatusMigration', join('src', 'domain', 'lifecycle.ts')],
+  ['fingerprintLearnInputs', join('src', 'application', 'learn', 'fingerprints.ts')],
+  ['fingerprintSubDeckCards', join('src', 'application', 'learn', 'fingerprints.ts')],
+  ['verifyConsolidationQuestions', join('src', 'application', 'learn', 'grounding.ts')],
+  ['substringVerified', join('src', 'application', 'learn', 'grounding.ts')],
+  ['getCoverageStats', join('src', 'application', 'learn', 'coverage.ts')],
+  ['getCourseSubDeckEntries', join('src', 'application', 'learn', 'coverage.ts')],
+  ['resolveCourseLearnEntry', join('src', 'application', 'learn', 'coverage.ts')],
+  ['createDefaultSubDeckForCourse', join('src', 'application', 'learn', 'coverage.ts')],
+];
+for (const [name, expected] of MOVED) {
   const { count, locations } = definitionCount(name);
-  if (count !== 1 || locations[0] !== DOMAIN_LIFECYCLE) {
+  if (count !== 1 || locations[0] !== expected) {
     failures.push(
-      `${name}: expected exactly one definition in ${DOMAIN_LIFECYCLE}, found ${count} in ${locations.join(', ') || 'nowhere'}`
+      `${name}: expected exactly one definition in ${expected}, found ${count} in ${locations.join(', ') || 'nowhere'}`
     );
   }
 }
@@ -100,4 +111,4 @@ if (failures.length) {
   for (const failure of failures) console.error(` - ${failure}`);
   process.exit(1);
 }
-console.log(`verify-domain-extraction PASS (${domainFiles.length} domain files checked)`);
+console.log(`verify-domain-extraction PASS (${MOVED.length} moved identifiers, ${domainFiles.length} domain files checked)`);
