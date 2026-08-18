@@ -12,6 +12,18 @@ table on the Phase V1 prompt page where they disagree.
 | `TIER_PROFILES` | Monolith-resident (confirmed by elimination: GitHub code search cannot index the 1.36 MB file, and no src module defines it). | V1b |
 | `deriveLifecycleStage`, `setLifecycleStage`, `applyLearnStatusMigration` | Were in `learn-mode.ts`. Moved to `src/domain/lifecycle.ts` in V1a; `learn-mode.ts` re-exports them so import sites and the `__studyEngineLearnMode` bridge resolve unchanged. | Done (V1a) |
 
+## V2a note (2026-08-18)
+
+`learn-mode.ts` was split into `src/application/learn/` (types, constants,
+fingerprints, grounding, coverage) with `learn-mode.ts` retained as the
+facade holding plan generation, streaming, and the bridge registrations,
+re-exporting everything it previously exported. This deviated from the
+ADR-0003 split order (session-flow.ts first) because `session-flow.ts`
+(58 KB) truncates when read through chat-based tooling, making a faithful
+full-file rewrite impossible from chat. `learn-mode.ts` (45 KB) was fully
+readable. `session-flow.ts`, `settings.ts`, and `learn-flow.ts` move via
+the local runbook below unless a complete read becomes possible.
+
 ## Why V1b cannot run from chat-based tooling
 
 The monolith can only be edited by full-file replacement through the GitHub

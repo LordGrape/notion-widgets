@@ -32,6 +32,7 @@ phase gate.
 |---|---|---|---|---|---|
 | V0 (baseline) | 2026-08-18 | 1,357,736 | 58,314 | 78,826 | CI + ADRs land |
 | V1a | 2026-08-18 | 1,357,736 | 58,314 | 78,826 | src/domain/lifecycle.ts established (moved from learn-mode.ts); verification gate added. Monolith untouched: FSRS, tiers, and XP are monolith-resident and bridge-injected, so they moved to the V1b runbook (docs/extraction-map.md). |
+| V2a | 2026-08-18 | 1,357,736 | 58,314 | 78,826 | learn-mode.ts split into application/learn/{types,constants,fingerprints,grounding,coverage}.ts; facade re-exports preserve every import site and bridge. Order deviation from ADR-0003 (documented): session-flow.ts truncates when read through chat tooling, so the fully readable learn-mode.ts went first. |
 
 ## Location corrections (2026-08-18)
 
