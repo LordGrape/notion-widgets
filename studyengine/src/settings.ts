@@ -1,182 +1,28 @@
 import type { AppState, Settings } from './types';
+import type {
+  CuratedDeckEntry,
+  FrenchCoreImportSnapshot,
+  SettingsModuleContext,
+  WorkerBuildStatus,
+  WorkerDeckPayload,
+  WorkerGlossResponse,
+} from './application/settings/types';
+import { CURATED_DECKS, getFrenchCoreImportSnapshot } from './application/settings/curation';
+import { withTimeout } from './shared/with-timeout';
+import { isDevModeEnabled } from './ui/views/settings/dev-mode';
+import { applySettingsFromDom } from './ui/views/settings/apply-from-dom';
 
-type ElFn = <T extends HTMLElement = HTMLElement>(id: string) => T;
-
-type SettingsModuleContext = {
-  el: ElFn;
-  settingsOv: HTMLElement;
-  getState: () => AppState;
-  getSettings: () => Settings;
-  saveState: () => void;
-  renderDashboard: () => void;
-  renderSettings: () => void;
-  refreshCostEstimateInSettings: () => void;
-  migrateItems: () => void;
-  toast: (message: string) => void;
-  clamp: (n: number, min: number, max: number) => number;
-  reinitFsrsWithRetention: (retention: number) => void;
-  playPresetSelect?: () => void;
-  playOpen?: () => void;
-  playClose?: () => void;
-};
-
-declare global {
-  interface Window {
-    Core?: {
-      a11y?: {
-        trap?: (target: HTMLElement) => void;
-      };
-    };
-  }
-}
-
-function isDevModeEnabled(): boolean {
-  let dev = false;
-  try { dev = window.localStorage?.getItem('studyEngineDevMode') === '1'; } catch {}
-  if (!dev) {
-    try { dev = new URLSearchParams(window.location.search).get('dev') === '1'; } catch {}
-  }
-  return dev;
-}
-
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const id = window.setTimeout(() => reject(new Error(`${label} timed out`)), ms);
-    promise.then((value) => {
-      window.clearTimeout(id);
-      resolve(value);
-    }).catch((err) => {
-      window.clearTimeout(id);
-      reject(err);
-    });
-  });
-}
-
-function getActiveModeValue(selector: string, fallback: string): string {
-  const group = document.querySelector(selector);
-  const active = group ? group.querySelector('.mode-btn.active') : null;
-  return active ? String(active.getAttribute('data-val') || fallback) : fallback;
-}
-
-function applySettingsFromDom(ctx: SettingsModuleContext): void {
-  const { el, getSettings, clamp, reinitFsrsWithRetention } = ctx;
-  const settings = getSettings();
-
-  const r = parseFloat((el<HTMLInputElement>('s_ret')?.value as string) || '0.9');
-  const lim = parseInt((el<HTMLInputElement>('s_lim')?.value as string) || '12', 10);
-  const mm = parseInt(getActiveModeValue('.mode-toggle[data-setting="s_mock"]', '10'), 10);
-  const at = getActiveModeValue('.mode-toggle[data-setting="s_apply"]', '1') === '1';
-  const revealMode = getActiveModeValue('.mode-toggle[data-setting="s_revealMode"]', 'auto');
-
-  settings.desiredRetention = clamp(Number.isFinite(r) ? r : 0.9, 0.8, 0.95);
-  reinitFsrsWithRetention(settings.desiredRetention);
-
-  settings.sessionLimit = clamp(Number.isFinite(lim) ? lim : 12, 5, 60);
-  settings.mockDefaultMins = [5, 10, 15, 30].includes(mm) ? mm : 10;
-  settings.showApplyTimer = !!at;
-  settings.revealMode = (['auto', 'manual', 'visual', 'audio', 'both'] as const).includes(
-    revealMode as Settings['revealMode']
-  )
-    ? (revealMode as Settings['revealMode'])
-    : 'auto';
-
-  settings.ttsVoice = el<HTMLSelectElement>('tts-voice')?.value || 'en-US-Studio-O';
-  settings.breakReminders = el<HTMLSelectElement>('s_breakReminders')?.value === 'true';
-  settings.breakIntervalMins = parseInt(el<HTMLSelectElement>('s_breakInterval')?.value || '25', 10);
-  settings.performanceBreaks = el<HTMLSelectElement>('s_perfBreaks')?.value === 'true';
-
-  const fm = el<HTMLSelectElement>('s_feedbackMode')?.value || 'adaptive';
-  settings.feedbackMode = (['adaptive', 'always_socratic', 'always_quick', 'self_rate'] as const).includes(
-    fm as Settings['feedbackMode']
-  )
-    ? (fm as Settings['feedbackMode'])
-    : 'adaptive';
-
-  const mo = el<HTMLSelectElement>('s_modelOverride')?.value || 'adaptive';
-  settings.modelOverride = (['adaptive', 'pro', 'flash'] as const).includes(mo as Settings['modelOverride'])
-    ? (mo as Settings['modelOverride'])
-    : 'adaptive';
-
-  settings.userName = String(el<HTMLInputElement>('s_userName')?.value || '').trim();
-
-  const tv = el<HTMLSelectElement>('s_tutorVoice')?.value || 'rigorous';
-  settings.tutorVoice = tv === 'supportive' ? 'supportive' : 'rigorous';
-}
-
-type CuratedDeckEntry =
-  | { id: string; label: string; source: 'static'; dataPath: string; courseHint?: string }
-  | { id: string; label: string; source: 'worker'; workerEndpoint: string; courseHint?: string };
-
-type FrenchCoreImportSnapshot = {
-  activeCount: number;
-  archivedCount: number;
-  totalCount: number;
-};
-
-type WorkerBuildStatus = {
-  lexique3?: { ready?: boolean; count?: number; sha256?: string };
-  // L1b-β: deterministic Wiktionary cache stage sits before LLM fallback.
-  wiktionary?: { ready?: boolean; count?: number };
-  tatoeba?: { ready?: boolean; lemmasWithExamples?: number };
-  glosses?: {
-    totalGlossed?: number;
-    totalLemmas?: number;
-    cumulativeTokens?: number;
-    budgetState?: string;
-  };
-  assembled?: { ready?: boolean; lemmaCount?: number; generatedAt?: string };
-};
-
-type WorkerGlossResponse = {
-  status?: string;
-};
-
-type WorkerDeckPayload = {
-  cards?: unknown[];
-};
+// --- Phase V2b-i facade -----------------------------------------------------
+// Module-level types, the curated-deck catalog, and the standalone helpers
+// moved verbatim to application/settings/, ui/views/settings/, and shared/
+// (2026-08-18). This facade retains the settings modal orchestration
+// (setupSettingsModule and its closures). Closures that capture openSettings
+// locals need parameter threading and move in V2b-ii. The legacy
+// runWorkerOrchestrator has no call sites and is a deletion candidate.
 
 const WORKER_BASE = 'https://widget-sync.lordgrape-widgets.workers.dev';
 // POST-L1b-α-2: hardcoded worker auth header — single-user widget, value is already pseudo-public in the deployed bundle.
 const WIDGET_KEY = 'G7$mXv!pL3@kR9wNz#Qe2YdF8bJhT6cA';
-
-const CURATED_DECKS: ReadonlyArray<CuratedDeckEntry> = [
-  {
-    // L1b-alpha-hotfix: static curated deck path remains unchanged.
-    id: 'french-core-50-sample',
-    label: 'Import French Core 50 (sample)',
-    source: 'static',
-    dataPath: './data/french-core-50-sample.json',
-    courseHint: 'French',
-  },
-  {
-    // L1b-alpha-hotfix: worker-built curated deck entry (dev-mode orchestrated).
-    id: 'french-core-2000',
-    label: 'French — Core 2000 (built server-side)',
-    source: 'worker',
-    workerEndpoint: '/studyengine/decks/french-core-2000',
-    courseHint: 'French',
-  },
-];
-
-function getFrenchCoreImportSnapshot(state: AppState): FrenchCoreImportSnapshot {
-  let activeCount = 0;
-  let archivedCount = 0;
-  const items = state.items || {};
-  for (const id in items) {
-    if (!Object.prototype.hasOwnProperty.call(items, id)) continue;
-    const item = items[id];
-    if (!item) continue;
-    const tags = Array.isArray(item.tags) ? item.tags : [];
-    const subDeck = String(item.subDeck || item.subdeck || '');
-    const isFrenchCore =
-      tags.includes('french-core-2000') ||
-      (item.course === 'French' && subDeck === 'Core 2000' && String(item.targetLanguage || '').startsWith('fr'));
-    if (!isFrenchCore) continue;
-    if (item.archived) archivedCount += 1;
-    else activeCount += 1;
-  }
-  return { activeCount, archivedCount, totalCount: activeCount + archivedCount };
-}
 
 export function setupSettingsModule(ctx: SettingsModuleContext): {
   openSettings: () => void;

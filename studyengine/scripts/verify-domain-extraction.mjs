@@ -79,6 +79,11 @@ const MOVED = [
   ['getCourseSubDeckEntries', join('src', 'application', 'learn', 'coverage.ts')],
   ['resolveCourseLearnEntry', join('src', 'application', 'learn', 'coverage.ts')],
   ['createDefaultSubDeckForCourse', join('src', 'application', 'learn', 'coverage.ts')],
+  ['getFrenchCoreImportSnapshot', join('src', 'application', 'settings', 'curation.ts')],
+  ['applySettingsFromDom', join('src', 'ui', 'views', 'settings', 'apply-from-dom.ts')],
+  ['isDevModeEnabled', join('src', 'ui', 'views', 'settings', 'dev-mode.ts')],
+  ['getActiveModeValue', join('src', 'ui', 'views', 'settings', 'dom-helpers.ts')],
+  ['withTimeout', join('src', 'shared', 'with-timeout.ts')],
 ];
 for (const [name, expected] of MOVED) {
   const { count, locations } = definitionCount(name);
