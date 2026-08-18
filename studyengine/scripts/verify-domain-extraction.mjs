@@ -101,6 +101,10 @@ const MOVED = [
   ['isDevModeEnabled', join('src', 'ui', 'views', 'settings', 'dev-mode.ts')],
   ['getActiveModeValue', join('src', 'ui', 'views', 'settings', 'dom-helpers.ts')],
   ['withTimeout', join('src', 'shared', 'with-timeout.ts')],
+  ['importDeckText', join('src', 'ui', 'views', 'settings', 'import-deck-text.ts')],
+  ['confirmCuratedReimport', join('src', 'ui', 'views', 'settings', 'curated-reimport-modal.ts')],
+  ['runWorkerOrchestratorDynamic', join('src', 'ui', 'views', 'settings', 'french-core-build-modal.ts')],
+  ['runWorkerOrchestrator', join('src', 'ui', 'views', 'settings', 'french-core-build-modal.ts')],
 ];
 for (const [name, expected] of MOVED) {
   const { count, locations } = definitionCount(name);
