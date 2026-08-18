@@ -1,0 +1,42 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  studyengine:
+    name: studyengine (typecheck + test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: studyengine
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: studyengine/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
+  worker:
+    name: worker (typecheck + test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm test -- --passWithNoTests
