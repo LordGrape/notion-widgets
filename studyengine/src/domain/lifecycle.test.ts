@@ -77,8 +77,11 @@ describe('setLifecycleStage', () => {
 describe('applyLearnStatusMigration', () => {
   it('defaults missing learnStatus and consolidationRating to null and derives stages', () => {
     const fresh = makeCard();
-    delete (fresh as Record<string, unknown>).learnStatus;
-    delete (fresh as Record<string, unknown>).consolidationRating;
+    // Both fields are optional on StudyItem, so delete them directly. The
+    // previous `as Record<string, unknown>` cast fails typecheck (TS2352:
+    // insufficient overlap with an interface lacking an index signature).
+    delete fresh.learnStatus;
+    delete fresh.consolidationRating;
     const taught = makeCard({ learnStatus: 'taught' });
 
     const items: Record<string, StudyItem> = { a: fresh, b: taught };
