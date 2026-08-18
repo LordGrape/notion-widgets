@@ -14,8 +14,8 @@ import type { LearnPlanSegment } from '../src/types';
 
 describe('learn-plan quality safeguards', () => {
   it('turns density fallback answers into learning micro-lessons', () => {
-    const prompt = 'When was the regiment that became the Essex Scottish founded, and under what name?';
-    const answer = "12 June 1885, as the 21st 'Essex' Battalion of Infantry, headquartered in Windsor, Ontario. The regiment celebrates continuous service to Canada from this date.";
+    const prompt = 'When was the organisation that became the United Nations founded, and under what name?';
+    const answer = "24 October 1945, as the United Nations, established in San Francisco. The organisation traces continuous service to member states from this date.";
 
     const plan = buildDensityFallback([
       { id: 'card-1', prompt, modelAnswer: answer }
@@ -39,25 +39,25 @@ describe('learn-plan quality safeguards', () => {
 
   it('allows exactly one cloze blank to reuse taught wording', () => {
     const teach = [
-      "The Essex Scottish lineage begins with a founding militia identity in Windsor, Ontario.",
-      "The key anchor is 12 June 1885, when the unit was created as the 21st Essex Battalion of Infantry.",
-      "That date matters because the regiment treats it as the start of continuous service to Canada, so the date, original battalion name, and Windsor headquarters belong together as one origin story rather than three separate facts."
+      "The United Nations lineage begins with a post-war identity in San Francisco.",
+      "The key anchor is 24 October 1945, when the organisation was established as the United Nations.",
+      "That date matters because the organisation treats it as the start of continuous service to member states, so the date, original name, and San Francisco venue belong together as one origin story rather than three separate facts."
     ].join(' ');
 
     const result = verifySegmentTutorPrompt({
       teach,
       checkType: 'cloze',
-      tutorPrompt: "The key anchor is [___], when the unit was created as the 21st Essex Battalion of Infantry. What belongs in the blank?"
+      tutorPrompt: "The key anchor is [___], when the organisation was established as the United Nations. What belongs in the blank?"
     });
 
     expect(result).toEqual({ ok: true });
   });
 
   it('rejects answer-display teach blocks for factual cards', () => {
-    const answer = "12 June 1885, as the 21st 'Essex' Battalion of Infantry, headquartered in Windsor, Ontario. The regiment celebrates continuous service to Canada from this date.";
+    const answer = "24 October 1945, as the United Nations, established in San Francisco. The organisation traces continuous service to member states from this date.";
     expect(verifySegmentTeach({
       id: 's1',
-      title: 'Essex Scottish origin',
+      title: 'United Nations origin',
       mechanism: 'worked_example',
       objective: 'Teach the founding lineage.',
       teach: answer,
@@ -65,25 +65,25 @@ describe('learn-plan quality safeguards', () => {
       checkType: 'elaborative',
       expectedAnswer: answer,
       linkedCardIds: ['card-1'],
-      groundingSnippets: [{ cardId: 'card-1', quote: '12 June 1885' }]
+      groundingSnippets: [{ cardId: 'card-1', quote: '24 October 1945' }]
     })).toBe(false);
   });
 
   it('accepts grounded micro-lessons that add explanatory language', () => {
-    const answer = "12 June 1885, as the 21st 'Essex' Battalion of Infantry, headquartered in Windsor, Ontario. The regiment celebrates continuous service to Canada from this date.";
+    const answer = "24 October 1945, as the United Nations, established in San Francisco. The organisation traces continuous service to member states from this date.";
     const segment: LearnPlanSegment = {
       id: 's2',
-      title: 'Essex Scottish origin',
+      title: 'United Nations origin',
       mechanism: 'worked_example',
       objective: 'Teach the founding lineage.',
-      teach: "The Essex Scottish lineage begins with a founding militia identity in Windsor, Ontario. The key anchor is 12 June 1885, when the unit was created as the 21st 'Essex' Battalion of Infantry. That date matters because the regiment treats it as the start of continuous service to Canada, so the date, original battalion name, and Windsor headquarters belong together as one origin story rather than three separate facts.",
-      tutorPrompt: 'How do the founding date, original battalion name, and Windsor location fit together as the regiment origin?',
+      teach: "The United Nations lineage begins with a post-war identity in San Francisco. The key anchor is 24 October 1945, when the organisation was established as the United Nations. That date matters because the organisation treats it as the start of continuous service to member states, so the date, original name, and San Francisco venue belong together as one origin story rather than three separate facts.",
+      tutorPrompt: 'How do the founding date, original name, and San Francisco location fit together as the organisation origin?',
       checkType: 'elaborative',
       expectedAnswer: answer,
       linkedCardIds: ['card-1'],
-      groundingSnippets: [{ cardId: 'card-1', quote: 'the regiment began under an Essex battalion name in Windsor' }]
+      groundingSnippets: [{ cardId: 'card-1', quote: 'the organisation began under a new name in San Francisco' }]
     };
-    expect(verifySegmentGroundingForTest(segment, { 'card-1': `PROMPT: When was the regiment founded?\nANSWER: ${answer}` })).toBe(true);
+    expect(verifySegmentGroundingForTest(segment, { 'card-1': `PROMPT: When was the organisation founded?\nANSWER: ${answer}` })).toBe(true);
   });
 
   it('requires only one verified segment for one-segment Learn sessions', () => {
@@ -116,14 +116,14 @@ describe('learn-plan quality safeguards', () => {
   });
 
   it('rejects tutor prompts that ask for untaught location significance', () => {
-    const prompt = 'The 21st Essex Battalion of Infantry was founded in 1885. Why was the specific location of Windsor, Ontario, significant for its establishment?';
+    const prompt = 'The United Nations was founded in 1945. Why was the specific location of San Francisco significant for its establishment?';
     expect(verifySegmentTutorPrompt({ tutorPrompt: prompt }).ok).toBe(false);
   });
 
   it('rejects titles that lure the learner toward unsupported political causes', () => {
     const result = verifySegmentTitle({
-      title: 'What political event in 1885 might have driven the founding of a new local militia regiment in Windsor?',
-      tutorPrompt: 'How do the founding date, original battalion name, and Windsor headquarters fit together as one origin story?'
+      title: 'What political event in 1945 might have driven the founding of a new international organisation in San Francisco?',
+      tutorPrompt: 'How do the founding date, original name, and host city fit together as one origin story?'
     });
 
     expect(result.ok).toBe(false);
@@ -132,7 +132,7 @@ describe('learn-plan quality safeguards', () => {
 
   it('reports chunk cursors so the client can lazy-load the next section', () => {
     expect(learnChunkMetaForTest({
-      course: 'EK Scot',
+      course: 'HIST 101',
       subDeck: 'origin',
       cards: [
         { id: 'card-1', prompt: 'A?', modelAnswer: 'A.' },

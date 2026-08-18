@@ -84,10 +84,9 @@ function isBlockedSource(source: LearnContextSource): boolean {
 
 function sourcePriority(source: LearnContextSource): number {
   const host = sourceHostHint(source);
-  if (host.endsWith("canada.ca") || host.endsWith("forces.gc.ca") || host.endsWith("gc.ca")) return 0;
-  if (host.endsWith("ekscot.org")) return 1;
+  if (host.endsWith(".gov") || host.endsWith(".gov.uk") || host.endsWith(".gov.au") || host.endsWith(".gc.ca")) return 0;
   if (host.endsWith("wikipedia.org")) return 1;
-  if (host.endsWith(".edu") || host.endsWith(".ac.uk") || host.endsWith(".ca")) return 2;
+  if (host.endsWith(".edu") || host.endsWith(".ac.uk")) return 2;
   return 3;
 }
 

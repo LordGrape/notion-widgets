@@ -19,6 +19,9 @@ dist/studyengine.html
 worker/dist/
 worker/.wrangler/
 
+# Local npm caches
+**/.npm-cache/
+
 # OS and editor files
 .DS_Store
 *.swp
