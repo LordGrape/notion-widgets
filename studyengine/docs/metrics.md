@@ -14,7 +14,7 @@ phase gate.
 | Largest worker file | worker/src/routes/learn-plan.ts, 78,826 bytes |
 | Other oversized worker files | tutor.ts 47,529; grade.ts 32,776; parse-syllabus.ts 19,147 |
 | Tests | colocated *.test.ts plus test/ scope tests |
-| CI | none before this branch |
+| CI | none before Phase V0 |
 
 ## Targets after V2
 
@@ -31,3 +31,11 @@ phase gate.
 | Phase | Date | Monolith bytes | Largest client file | Largest worker file | Notes |
 |---|---|---|---|---|---|
 | V0 (baseline) | 2026-08-18 | 1,357,736 | 58,314 | 78,826 | CI + ADRs land |
+| V1a | 2026-08-18 | 1,357,736 | 58,314 | 78,826 | src/domain/lifecycle.ts established (moved from learn-mode.ts); verification gate added. Monolith untouched: FSRS, tiers, and XP are monolith-resident and bridge-injected, so they moved to the V1b runbook (docs/extraction-map.md). |
+
+## Location corrections (2026-08-18)
+
+Direct source reads corrected two assumptions from the V1 prompt:
+`computeXP` and `scheduleFsrs` are defined in the monolith and injected
+into modules through the `__studyEngineSessionFlow` bridge; they are not
+defined in session-flow.ts. See docs/extraction-map.md.
