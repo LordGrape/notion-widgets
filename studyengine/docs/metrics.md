@@ -8,7 +8,7 @@ phase gate.
 | Metric | Value |
 |---|---|
 | studyengine.html | 1,357,736 bytes (about 21K lines) |
-| studyengine/index.html | 53,497 bytes (not the Vite build input; exact role tracked in the V2 spec open questions) |
+| studyengine/index.html | 53,497 bytes (resolved 2026-08-18: legacy duplicate app shell — full pre-Vite standalone UI copy with onboarding, dashboard, session surfaces, settings, SyncEngine init, and Mermaid config; not the Vite build input; referenced by no code, only docs; deletion candidate pending owner approval) |
 | Largest client module | src/session-flow.ts, 58,314 bytes |
 | Other oversized client modules | learn-mode.ts 45,093; settings.ts 42,200; learn-flow.ts 36,829; charts.ts 28,184 |
 | Largest worker file | worker/src/routes/learn-plan.ts, 78,826 bytes |
@@ -33,6 +33,7 @@ phase gate.
 | V0 (baseline) | 2026-08-18 | 1,357,736 | 58,314 | 78,826 | CI + ADRs land |
 | V1a | 2026-08-18 | 1,357,736 | 58,314 | 78,826 | src/domain/lifecycle.ts established (moved from learn-mode.ts); verification gate added. Monolith untouched: FSRS, tiers, and XP are monolith-resident and bridge-injected, so they moved to the V1b runbook (docs/extraction-map.md). |
 | V2a | 2026-08-18 | 1,357,736 | 58,314 | 78,826 | learn-mode.ts split into application/learn/{types,constants,fingerprints,grounding,coverage}.ts; facade re-exports preserve every import site and bridge. Order deviation from ADR-0003 (documented): session-flow.ts truncates when read through chat tooling, so the fully readable learn-mode.ts went first. |
+| V1a hotfix | 2026-08-18 | 1,357,736 | 58,314 | 78,826 | CI repair. V1a and V2a merged with the studyengine job red: tsc exit 2 on TS2352 x2 in src/domain/lifecycle.test.ts lines 80-81 (StudyItem to Record<string,unknown> cast on delete operands). The verify gate and npm test had never actually run in CI; this branch is their first real execution. Root-caused via PR check-run annotations. |
 
 ## Location corrections (2026-08-18)
 
