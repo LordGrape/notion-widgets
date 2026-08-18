@@ -13,6 +13,18 @@
  *   4. Domain modules stay within the 600-line cap (ADR-0002).
  *
  * Exits non-zero on any failure. Runs in CI (see .github/workflows/ci.yml).
+ *
+ * Scope note (2026-08-18): the moved-identifier scan covers src/ only. The
+ * monolith (studyengine.html) is a frozen legacy surface that still holds
+ * pre-extraction duplicate definitions by design (V2 audit finding #1: the
+ * monolith never shrank); those copies are cut in Phase V1b per
+ * docs/extraction-map.md. Including the monolith here kept the gate
+ * permanently red until V1b completes, without protecting anything the
+ * module layer controls. Bridge registrations, not this gate, own the
+ * monolith's runtime contract during the transition.
+ *
+ * Failures also emit GitHub Actions ::error workflow commands so the PR
+ * annotations name the exact culprit instead of a bare exit code.
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -31,8 +43,8 @@ function walk(dir, out = []) {
   return out;
 }
 
-const srcFiles = walk(join(root, 'src'));
-const allFiles = [...srcFiles, join(root, 'studyengine.html')];
+// src/ only. See the scope note in the header.
+const allFiles = walk(join(root, 'src'));
 
 function definitionCount(name) {
   const pattern = new RegExp(`function ${name}\\b`, 'g');
@@ -108,7 +120,14 @@ for (const file of domainFiles) {
 
 if (failures.length) {
   console.error('verify-domain-extraction FAILED');
-  for (const failure of failures) console.error(` - ${failure}`);
+  for (const failure of failures) {
+    console.error(` - ${failure}`);
+    const annotation = String(failure)
+      .replace(/%/g, '%25')
+      .replace(/\r/g, '%0D')
+      .replace(/\n/g, '%0A');
+    console.log(`::error title=verify-domain-extraction::${annotation}`);
+  }
   process.exit(1);
 }
 console.log(`verify-domain-extraction PASS (${MOVED.length} moved identifiers, ${domainFiles.length} domain files checked)`);
