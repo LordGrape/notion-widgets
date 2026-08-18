@@ -23,6 +23,11 @@
  * module layer controls. Bridge registrations, not this gate, own the
  * monolith's runtime contract during the transition.
  *
+ * Comment handling (2026-08-18): all pattern checks run on comment-stripped
+ * text. The first annotated run failed on doc-comment prose in lifecycle.ts
+ * ("no SyncEngine", "that document"), not on real imports. Comments are not
+ * usage; strip them before matching.
+ *
  * Failures also emit GitHub Actions ::error workflow commands so the PR
  * annotations name the exact culprit instead of a bare exit code.
  */
@@ -43,6 +48,18 @@ function walk(dir, out = []) {
   return out;
 }
 
+/**
+ * Remove block and line comments so pattern checks match code usage, not
+ * prose. The trailing-comment rule requires the character before `//` to not
+ * be a colon or quote, which keeps URL strings like 'https://...' intact.
+ */
+function stripComments(text) {
+  return text
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/^[ \t]*\/\/.*$/gm, '')
+    .replace(/([^:'"`])\/\/.*$/gm, '$1');
+}
+
 // src/ only. See the scope note in the header.
 const allFiles = walk(join(root, 'src'));
 
@@ -53,7 +70,7 @@ function definitionCount(name) {
   for (const file of allFiles) {
     let text;
     try {
-      text = readFileSync(file, 'utf8');
+      text = stripComments(readFileSync(file, 'utf8'));
     } catch {
       continue;
     }
@@ -99,7 +116,7 @@ const domainFiles = walk(join(root, 'src', 'domain')).filter((f) => f.endsWith('
 // 2. Domain purity (tests excluded: they may reference test harness globals).
 const BANNED = [/\bSyncEngine\b/, /\bfetch\s*\(/, /\bdocument\b/, /\bwindow\b/, /\bgsap\b/];
 for (const file of domainFiles.filter((f) => !f.endsWith('.test.ts'))) {
-  const text = readFileSync(file, 'utf8');
+  const text = stripComments(readFileSync(file, 'utf8'));
   for (const pattern of BANNED) {
     if (pattern.test(text)) {
       failures.push(`${relative(root, file)}: domain purity violated by ${pattern}`);
@@ -109,13 +126,13 @@ for (const file of domainFiles.filter((f) => !f.endsWith('.test.ts'))) {
 
 // 3. No explicit any in src/domain/.
 for (const file of domainFiles) {
-  const text = readFileSync(file, 'utf8');
+  const text = stripComments(readFileSync(file, 'utf8'));
   if (/:\s*any\b|\bas any\b/.test(text)) {
     failures.push(`${relative(root, file)}: explicit any found in domain layer`);
   }
 }
 
-// 4. File budget: domain modules within the 600-line cap.
+// 4. File budget: domain modules within the 600-line cap (raw line count).
 for (const file of domainFiles) {
   const lines = readFileSync(file, 'utf8').split('\n').length;
   if (lines > 600) {
