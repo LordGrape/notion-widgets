@@ -2,6 +2,8 @@
  * Application layer (L2): Learn types.
  * Split verbatim from src/learn-mode.ts in Phase V2a (2026-08-18).
  * Type-only module: no runtime impact.
+ * Phase V2c (2026-08-18): learn-flow types appended verbatim from
+ * src/learn-flow.ts (see the marked section below).
  */
 import type { PlanProfile } from '../../types';
 import type { PrequestionState } from '../../learn-prequestion';
@@ -108,4 +110,144 @@ export interface StreamLearnPlanOptions {
   chunkCursor?: number;
   chunkTotal?: number;
   includeConsolidation?: boolean;
+}
+
+// --- Phase V2c: Learn flow types (split verbatim from src/learn-flow.ts) ---
+
+/**
+ * Phases:
+ *   - 'streaming'     : plan is still being generated; no segments received yet.
+ *                       Modal should not be open in this phase (will open on
+ *                       first appendStreamedSegment).
+ *   - 'tutor'         : tutor is awaiting user input for current segment.
+ *   - 'loading'       : /learn-turn request in flight.
+ *   - 'error'         : last /learn-turn errored; show retry.
+ *   - 'consolidating' : battery of consolidation questions.
+ *   - 'done'          : session complete.
+ */
+export type LearnFlowPhase = 'streaming' | 'tutor' | 'loading' | 'error' | 'consolidating' | 'done';
+export type LearnSegmentSubPhase = 'prequestion' | 'read' | 'answer' | 'scaffold' | 'feedback';
+
+export type ConsolidationRating = 1 | 2 | 3 | 4;
+
+export type LearnHandoffStatus = 'consolidated' | 'taught' | 'unlearned';
+
+export interface LearnHandoffEntry {
+  status: LearnHandoffStatus;
+  consolidationRating?: ConsolidationRating;
+}
+
+export interface LearnFlowTurn {
+  segmentId: string;
+  userInput: string;
+  feedback: string;
+  nextPrompt: string;
+  isSegmentComplete: boolean;
+  verdict?: 'surface' | 'partial' | 'deep';
+  understandingScore?: number;
+  missingConcepts?: string[];
+  followUp?: string | null;
+  advance?: boolean;
+  suggestedStatus?: string | null;
+}
+
+/**
+ * Phase B telemetry: one entry per user turn submission within a segment.
+ * Captured as a side-channel and not consumed by FSRS. Retained on the flow
+ * so the monolith can compute aggregate time-to-submit and turn counts at
+ * session-end (see getLearnTelemetrySummary when added in Phase C).
+ */
+export interface LearnFlowTurnTiming {
+  segmentId: string;
+  /** Zero-based ordinal of this turn within its segment. */
+  turnIndex: number;
+  /** Timestamp (ms) when the segment turn was entered (opened for input). */
+  enteredAt: number;
+  /** Timestamp (ms) when the user hit Submit. Unset while turn is still open. */
+  submittedAt?: number;
+  /** Length in characters of the user's response, recorded on submit. */
+  turnResponseCharCount?: number;
+}
+
+/**
+ * Phase B: if the user abandons before the session reaches `'done'`,
+ * `closeLearnSessionImmediate` records which pane they bailed from.
+ * The three values collapse the richer LearnFlowPhase set:
+ *   - 'streaming'     → closed while the plan was still generating (no segments yet).
+ *   - 'tutor'         → closed during any tutor-turn pane (includes 'loading' and 'error').
+ *   - 'consolidating' → closed during the consolidation battery.
+ */
+export type LearnAbandonmentPhase = 'streaming' | 'tutor' | 'consolidating';
+
+export interface LearnFlowState {
+  course: string;
+  subDeck: string;
+  plan: LearnPlan;
+  segmentIndex: number;
+  /** Markdown source the UI should render as the current tutor message. */
+  tutorBody: string;
+  phase: LearnFlowPhase;
+  currentSubPhase: LearnSegmentSubPhase;
+  currentAssisted: boolean;
+  errorMessage: string | null;
+  turns: LearnFlowTurn[];
+  /** Segment ids the user has fully completed (isSegmentComplete=true). */
+  completedSegmentIds: string[];
+  /** ISO string. Pre-dates Phase B telemetry so kept as-is; use `Date.parse`
+      when combining with the millisecond-valued timestamps below. */
+  startedAt: string;
+  /** Phase 3: consolidation battery. */
+  consolidationQuestions: ConsolidationQuestion[];
+  consolidationIdx: number;
+  /** Keyed by question index as string. */
+  consolidationRatings: Record<string, ConsolidationRating>;
+  /** True once the battery finished (either all rated or explicitly skipped). */
+  consolidationFinished: boolean;
+  /** Streaming: true once the server has emitted 'complete'. */
+  streamingComplete: boolean;
+  /** Phase B telemetry (all side-channel — NEVER fed into FSRS). */
+  /** Timestamp (ms) set on transition into `'done'`. Unset if the session was abandoned. */
+  completedAt?: number;
+  /** Ordered list of turn timings across all segments, newest at the end. */
+  turnTimings: LearnFlowTurnTiming[];
+  /** First-entry timestamp (ms) per segment id. Only written once per segment. */
+  segmentEnteredAt: Record<string, number>;
+  /** Count of submitted turns per segment id. */
+  totalTurnsPerSegment: Record<string, number>;
+  /** Set only when the user closed the modal before reaching `'done'`. */
+  abandonmentPhase?: LearnAbandonmentPhase;
+}
+
+export interface LearnMasteryProjection {
+  /** Total cards linked to at least one completed segment. */
+  coveredCards: number;
+  /** Subset of covered cards that received a consolidation rating. */
+  consolidatedCards: number;
+  /** Subset of covered cards without a consolidation rating. */
+  taughtCards: number;
+  /** Count of consolidated cards per rating bucket (1..4). */
+  ratingsBreakdown: { 1: number; 2: number; 3: number; 4: number };
+  /** 0..1. Weighted mean per-card mastery; 0 when coveredCards === 0. */
+  masteryScore: number;
+}
+
+export interface LearnTelemetrySummary {
+  /** Total segments that exist in the plan at time of read. */
+  totalSegments: number;
+  /** Completed segments (isSegmentComplete=true). */
+  completedSegments: number;
+  /** Sum of `totalTurnsPerSegment` values. */
+  totalTurns: number;
+  /** Mean turns per completed segment, or null when none are completed. */
+  avgTurnsPerCompletedSegment: number | null;
+  /** Mean (submittedAt - enteredAt) over all closed turns, or null when no turn closed. */
+  avgTimePerTurnMs: number | null;
+  /** startedAt as ms; null when startedAt is unparseable. */
+  startedAt: number | null;
+  /** Wall-clock end of the session (completion or abandonment), or null while active. */
+  completedAt: number | null;
+  /** completedAt - startedAt when both known, or now - startedAt when active and `now` given. */
+  elapsedMs: number | null;
+  /** Set only on abandonment; mirrors `flow.abandonmentPhase`. */
+  abandonmentPhase: LearnAbandonmentPhase | null;
 }
