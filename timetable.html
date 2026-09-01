@@ -396,8 +396,11 @@ var editingId=null,selDays={},selColor=COLORS[0],confirmId=null;
 function $(id){return document.getElementById(id)}
 function esc(s){return String(s==null?'':s).replace(/[&<>'"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]})}
 function genId(){return 'b_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
-/* Guarded Core.audio call: a sound failure must never break UI logic */
-function sfx(name){try{var a=window.Core&&Core.audio;if(a&&typeof a[name]==='function')a[name]()}catch(e){}}
+/* Guarded Core.audio call: a sound failure must never break UI logic.
+   core.js declares Core with `let`, so it is a script-scoped lexical global,
+   NOT a window property. `window.Core` is always undefined even when core.js
+   loads fine; gate on `typeof Core` instead or every sound silently no-ops. */
+function sfx(name){try{var a=(typeof Core!=='undefined')&&Core.audio;if(a&&typeof a[name]==='function')a[name]()}catch(e){}}
 function mins(t){var p=(t||'0:00').split(':');return (+p[0]||0)*60+(+p[1]||0)}
 function fmt(t){var p=(t||'0:00').split(':'),h=+p[0]||0,m=p[1]||'00',ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+m+' '+ap}
 function fmtShort(t){var p=(t||'0:00').split(':'),h=+p[0]||0;return(h%12||12)+(h>=12?'p':'a')}
