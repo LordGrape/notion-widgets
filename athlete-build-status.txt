@@ -1,25 +1,3 @@
-file:///home/runner/work/notion-widgets/notion-widgets/tools/build-athlete.mjs:100
-if (localAssetRef.test(html)) throw new Error('Generated athlete.html still references a local runtime asset.');
-                                    ^
-
-Error: Generated athlete.html still references a local runtime asset.
-    at file:///home/runner/work/notion-widgets/notion-widgets/tools/build-athlete.mjs:100:37
-
-Node.js v22.23.2
-file:///home/runner/work/notion-widgets/notion-widgets/tools/build-athlete.mjs:100
-if (localAssetRef.test(html)) throw new Error('Generated athlete.html still references a local runtime asset.');
-                                    ^
-
-Error: Generated athlete.html still references a local runtime asset.
-    at file:///home/runner/work/notion-widgets/notion-widgets/tools/build-athlete.mjs:100:37
-
-Node.js v22.23.2
-file:///home/runner/work/notion-widgets/notion-widgets/tools/verify-athlete.mjs:10
-  if (!condition) throw new Error(message);
-                        ^
-
-Error: athlete.html is unexpectedly small.
-    at assert (file:///home/runner/work/notion-widgets/notion-widgets/tools/verify-athlete.mjs:10:25)
-    at file:///home/runner/work/notion-widgets/notion-widgets/tools/verify-athlete.mjs:13:1
-
-Node.js v22.23.2
+Built athlete.html (180,775 bytes).
+athlete.html is current (180,775 bytes).
+Verified athlete.html: 5 scripts, 12 tests, 8 attributes, scoring and body map valid.
