@@ -33,18 +33,30 @@ jobs:
         with:
           node-version: 22
       - name: Assemble and verify the single-file widget
+        id: build
+        shell: bash
         run: |
-          node tools/build-athlete.mjs
-          node tools/build-athlete.mjs --check
-          node tools/verify-athlete.mjs
-      - name: Commit the generated widget
+          set +e
+          {
+            node tools/build-athlete.mjs
+            node tools/build-athlete.mjs --check
+            node tools/verify-athlete.mjs
+          } > athlete-build-status.txt 2>&1
+          status=$?
+          cat athlete-build-status.txt
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Commit generated output and diagnostics
         run: |
-          if git diff --quiet -- athlete.html; then
-            echo "athlete.html is already current"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add athlete.html athlete-build-status.txt
+          if git diff --cached --quiet; then
+            echo "No generated changes"
           else
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add athlete.html
             git commit -m "Build self-contained athlete widget"
             git push
           fi
+      - name: Report a failed build
+        if: steps.build.outputs.status != '0'
+        run: exit 1
