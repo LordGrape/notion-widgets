@@ -36,9 +36,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Provision Chrome
+        id: chrome
+        uses: browser-actions/setup-chrome@v1
       - name: Run local and production verification
         id: qa
         shell: bash
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
         run: |
           set +e
           (

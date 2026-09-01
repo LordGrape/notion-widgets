@@ -26,7 +26,8 @@ async function freePort() {
 }
 
 function findChrome() {
-  for (const name of ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser']) {
+  if (process.env.CHROME_PATH) return process.env.CHROME_PATH;
+  for (const name of ['chrome', 'google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser']) {
     const result = spawnSync('which', [name], { encoding: 'utf8' });
     if (result.status === 0 && result.stdout.trim()) return result.stdout.trim();
   }
@@ -49,25 +50,30 @@ const server = http.createServer((request, response) => {
 });
 await new Promise((resolveServer) => server.listen(webPort, '127.0.0.1', resolveServer));
 
-const chrome = spawn(findChrome(), [
+const chromePath = findChrome();
+const chrome = spawn(chromePath, [
   '--headless=new',
   '--no-sandbox',
   '--disable-gpu',
-  '--disable-background-networking',
+  '--disable-dev-shm-usage',
   '--disable-default-apps',
   '--disable-extensions',
   '--disable-sync',
   '--no-first-run',
+  '--remote-debugging-address=127.0.0.1',
   `--remote-debugging-port=${debugPort}`,
   `--user-data-dir=${profile}`,
   'about:blank',
-], { stdio: 'ignore' });
+], { stdio: ['ignore', 'pipe', 'pipe'] });
 
+let chromeLog = '';
+chrome.stdout.on('data', (chunk) => { chromeLog += chunk.toString(); });
+chrome.stderr.on('data', (chunk) => { chromeLog += chunk.toString(); });
 let browserSocket;
 let targetId;
 try {
   let version;
-  for (let attempt = 0; attempt < 80; attempt += 1) {
+  for (let attempt = 0; attempt < 150; attempt += 1) {
     try {
       const response = await fetch(`http://127.0.0.1:${debugPort}/json/version`);
       if (response.ok) {
@@ -75,9 +81,13 @@ try {
         break;
       }
     } catch {}
+    if (chrome.exitCode !== null) break;
     await sleep(100);
   }
-  assert(version?.webSocketDebuggerUrl, 'Chrome DevTools Protocol did not start.');
+  assert(
+    version?.webSocketDebuggerUrl,
+    `Chrome DevTools Protocol did not start. Path: ${chromePath}. Exit: ${chrome.exitCode}. ${chromeLog.slice(-2000)}`,
+  );
 
   browserSocket = new WebSocket(version.webSocketDebuggerUrl);
   await new Promise((resolveSocket, reject) => {
@@ -181,6 +191,7 @@ try {
   assert(initial.heroDirection === 'row', 'Desktop hero should use the side-by-side layout.');
   assert(initial.appLeft >= 0 && initial.appRight <= initial.viewport + 1, 'Desktop app overflows horizontally.');
 
+  await evaluate(`document.querySelector('[data-sync-prompt] button:last-child')?.click()`);
   await evaluate(`document.getElementById('logBtn').click()`);
   await sleep(100);
   assert(await evaluate(`document.querySelectorAll('[data-test]').length`) === 12, 'The log picker is incomplete.');
