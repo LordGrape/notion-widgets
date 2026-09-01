@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en-CA">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Athlete</title>
+<script src="core.js"></script>
+<link rel="stylesheet" href="athlete.css?v=3">
+<link rel="stylesheet" href="theme-upgrade.css?v=20260817-royal-violet">
+</head>
+<body>
+<canvas id="bg"></canvas>
+<canvas id="fx"></canvas>
+<main class="container card" id="app">
+ <div class="top">
+  <div class="label">Athlete Rating</div>
+  <div class="top-actions">
+   <span class="sync" id="syncState"></span>
+   <button class="icon-btn" id="settingsBtn" aria-label="Settings" data-snd>&#9881;</button>
+  </div>
+ </div>
+ <section class="hero">
+  <div class="hero-left">
+   <div class="ovr-row"><span class="ovr stats-num" id="ovrNum">&#8212;</span><span class="ovr-max">/ 99</span></div>
+   <div class="ovr-band" id="ovrBand"></div>
+   <div class="hero-name" id="heroName">ATHLETE</div>
+   <div class="hero-tally" id="heroTally">Log your first result to bring the body online.</div>
+   <div class="seg" role="tablist" aria-label="View">
+    <button id="tabBody" class="on" data-snd>Body</button>
+    <button id="tabRadar" data-snd>Radar</button>
+   </div>
+  </div>
+  <div class="hero-viz">
+   <div id="bodyWrap" class="bodymap" aria-label="Body map: hover a region for its tier"></div>
+   <canvas id="radar" class="radar view-off" aria-label="Attribute radar chart"></canvas>
+  </div>
+ </section>
+ <section id="attrList" class="attrs"></section>
+ <button class="form-btn form-btn-primary log-btn" id="logBtn" data-snd>+ Log result</button>
+ <footer class="foot">Bands &middot; Entry 60 &middot; Pro 75 &middot; Elite 90 &middot; Cap 99</footer>
+</main>
+
+<div class="tip" id="tip" hidden></div>
+
+<div class="overlay" id="logSheet" hidden>
+ <div class="card sheet" role="dialog" aria-modal="true" aria-label="Log result">
+  <div class="sheet-head"><div class="panel-title" id="logTitle">Log result</div><button class="icon-btn" data-close="logSheet" aria-label="Close">&times;</button></div>
+  <div id="logBody"></div>
+ </div>
+</div>
+
+<div class="overlay" id="detail" hidden>
+ <div class="card sheet" role="dialog" aria-modal="true" aria-label="Attribute detail">
+  <div class="sheet-head"><div class="panel-title" id="detailTitle">Detail</div><button class="icon-btn" data-close="detail" aria-label="Close">&times;</button></div>
+  <div id="detailBody"></div>
+ </div>
+</div>
+
+<div class="overlay" id="settings" hidden>
+ <div class="card sheet" role="dialog" aria-modal="true" aria-label="Settings">
+  <div class="sheet-head"><div class="panel-title">Settings</div><button class="icon-btn" data-close="settings" aria-label="Close">&times;</button></div>
+  <div class="fld"><label for="setBw">Bodyweight (kg) &middot; used for relative grip</label><input id="setBw" inputmode="decimal" placeholder="e.g. 77.1"></div>
+  <div class="fld"><label>Loaded march pace anchors (min/km, mm:ss)</label>
+   <div class="loadrow">
+    <input id="rkFloor" placeholder="Floor 14:00" style="width:84px" aria-label="Floor pace">
+    <input id="rkL1" placeholder="Entry 12:30" style="width:84px" aria-label="Entry pace">
+    <input id="rkL2" placeholder="Pro 11:40" style="width:84px" aria-label="Pro pace">
+    <input id="rkL3" placeholder="Elite 11:00" style="width:84px" aria-label="Elite pace">
+    <input id="rkCap" placeholder="Cap 9:30" style="width:84px" aria-label="Cap pace">
+   </div>
+   <div class="note">Custom standard. No published table ships with the widget; tune these five anchors to your own targets.</div>
+  </div>
+  <div class="err" id="setErr"></div>
+  <div class="sheet-actions">
+   <button class="form-btn form-btn-primary" id="setSave" data-snd>Save</button>
+   <button class="form-btn" id="setExport" data-snd>Export</button>
+   <button class="form-btn form-btn-danger" id="setReset">Reset</button>
+  </div>
+ </div>
+</div>
+
+<script src="athlete-body.js?v=3"></script>
+<script src="athlete-data.js?v=3"></script>
+<script src="athlete-render.js?v=3"></script>
+<script src="athlete-flow.js?v=3"></script>
+</body>
+</html>

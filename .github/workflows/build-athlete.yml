@@ -1,0 +1,68 @@
+name: Build and verify athlete widget
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - athlete.source.html
+      - athlete.css
+      - theme-upgrade.css
+      - core.js
+      - athlete-body.js
+      - athlete-data.js
+      - athlete-render.js
+      - athlete-flow.js
+      - tools/build-athlete.mjs
+      - tools/verify-athlete.mjs
+      - tools/qa-athlete.mjs
+      - .github/workflows/build-athlete.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-athlete-main
+  cancel-in-progress: false
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Assemble the single-file widget
+        run: node tools/build-athlete.mjs
+      - name: Verify generated source and scoring
+        run: |
+          node tools/build-athlete.mjs --check
+          node tools/verify-athlete.mjs
+      - name: Exercise the widget in Chrome
+        run: node tools/qa-athlete.mjs
+      - name: Commit the generated widget
+        run: |
+          if git diff --quiet -- athlete.html; then
+            echo "athlete.html is already current"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add athlete.html
+            git commit -m "Build self-contained athlete widget"
+            git push
+          fi
+      - name: Verify the production deployment
+        run: |
+          for attempt in $(seq 1 40); do
+            page="$(curl -fsSL --max-time 20 "https://notion-widgets-93r.pages.dev/athlete.html?athlete-build=${GITHUB_RUN_ID}-${attempt}" || true)"
+            if printf '%s' "$page" | grep -q '<meta name="athlete-build" content="single-file-v2.2">' \
+              && ! printf '%s' "$page" | grep -Eq '(src|href)="(core|athlete|theme-upgrade)'; then
+              echo "Production is serving the self-contained athlete widget"
+              exit 0
+            fi
+            echo "Waiting for Cloudflare Pages deployment (${attempt}/40)"
+            sleep 15
+          done
+          echo "Production did not serve the new athlete build within ten minutes" >&2
+          exit 1
