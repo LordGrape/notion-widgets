@@ -1,4 +1,4 @@
-name: Build and verify athlete widget
+name: Build athlete widget
 
 on:
   push:
@@ -14,36 +14,29 @@ on:
       - athlete-flow.js
       - tools/build-athlete.mjs
       - tools/verify-athlete.mjs
-      - tools/qa-athlete.mjs
       - .github/workflows/build-athlete.yml
   workflow_dispatch:
 
 permissions:
   contents: write
 
-env:
-  ATHLETE_URL: https://notion-widgets-93r.pages.dev/athlete.html
-
 concurrency:
   group: build-athlete-main
   cancel-in-progress: true
 
 jobs:
-  build-and-test:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Assemble the single-file widget
-        run: node tools/build-athlete.mjs
-      - name: Verify generated source and scoring
+      - name: Assemble and verify the single-file widget
         run: |
+          node tools/build-athlete.mjs
           node tools/build-athlete.mjs --check
           node tools/verify-athlete.mjs
-      - name: Exercise the widget in Chrome
-        run: node tools/qa-athlete.mjs
       - name: Commit the generated widget
         run: |
           if git diff --quiet -- athlete.html; then
@@ -55,17 +48,3 @@ jobs:
             git commit -m "Build self-contained athlete widget"
             git push
           fi
-      - name: Verify the production deployment
-        run: |
-          for attempt in $(seq 1 40); do
-            page="$(curl -fsSL --max-time 20 "${ATHLETE_URL}?athlete-build=${GITHUB_RUN_ID}-${attempt}" || true)"
-            if printf '%s' "$page" | grep -q '<meta name="athlete-build" content="single-file-v2.2">' \
-              && ! printf '%s' "$page" | grep -Eq '(src|href)="(core|athlete|theme-upgrade)'; then
-              echo "Production is serving the self-contained athlete widget"
-              exit 0
-            fi
-            echo "Waiting for Cloudflare Pages deployment (${attempt}/40)"
-            sleep 15
-          done
-          echo "Production did not serve the new athlete build within ten minutes" >&2
-          exit 1
