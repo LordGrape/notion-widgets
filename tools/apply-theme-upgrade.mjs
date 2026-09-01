@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 
-const widgets = ['clock.html', 'todo.html', 'timetable.html', 'quotes.html'];
+const widgets = ['clock.html', 'todo.html', 'timetable.html', 'quotes.html', 'athlete.html'];
 const link = '<link rel="stylesheet" href="theme-upgrade.css?v=20260817-royal-violet">';
 
 for (const file of widgets) {
