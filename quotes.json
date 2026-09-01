@@ -1,21 +1,33 @@
 [
   {
-    "text": "A man then must stand erect, not be kept erect by others.",
+    "text": "If thou art pained by any external thing, it is not this thing that disturbs thee, but thy own judgment about it. And it is in thy power to wipe out this judgment now.",
     "author": "Marcus Aurelius",
-    "book": "Meditations 3.5, trans. George Long",
-    "source": "https://lexundria.com/m_aur_med/3.5/lg"
+    "book": "Meditations 8.47, trans. George Long",
+    "source": "https://lexundria.com/m_aur_med/8.47/lg"
   },
   {
-    "text": "The universe is transformation: life is opinion.",
-    "author": "Marcus Aurelius",
-    "book": "Meditations 4.3, trans. George Long",
-    "source": "https://lexundria.com/m_aur_med/4.3/lg"
+    "text": "To fight and conquer in all your battles is not supreme excellence; supreme excellence consists in breaking the enemy's resistance without fighting.",
+    "author": "Sun Tzu",
+    "book": "The Art of War III.2, trans. Lionel Giles",
+    "source": "https://www.gutenberg.org/ebooks/17405"
   },
   {
-    "text": "Do not act as if thou wert going to live ten thousand years. Death hangs over thee. While thou livest, while it is in thy power, be good.",
-    "author": "Marcus Aurelius",
-    "book": "Meditations 4.17, trans. George Long",
-    "source": "https://lexundria.com/m_aur_med/4.17/lg"
+    "text": "I just wish people would realize that anything's possible if you try; dreams are made possible if you try.",
+    "author": "Terry Fox",
+    "book": "Marathon of Hope (1980)",
+    "source": "https://terryfox.org/terrys-story/"
+  },
+  {
+    "text": "Of things some are in our power, and others are not.",
+    "author": "Epictetus",
+    "book": "The Encheiridion 1, trans. George Long",
+    "source": "https://en.wikisource.org/wiki/The_Discourses_of_Epictetus;_with_the_Encheiridion_and_Fragments/The_Encheiridion_or_Manual"
+  },
+  {
+    "text": "You may trod me in the very dirt, but still, like dust, I'll rise.",
+    "author": "Maya Angelou",
+    "book": "Still I Rise, And Still I Rise (1978)",
+    "source": "https://www.poetryfoundation.org/poems/46446/still-i-rise"
   },
   {
     "text": "The mind converts and changes every hindrance to its activity into an aid; and so that which is a hindrance is made a furtherance to an act; and that which is an obstacle on the road helps us on this road.",
@@ -24,28 +36,70 @@
     "source": "https://lexundria.com/m_aur_med/5.20/lg"
   },
   {
-    "text": "Let it make no difference to thee whether thou art cold or warm, if thou art doing thy duty; and whether thou art drowsy or satisfied with sleep; and whether ill-spoken of or praised.",
-    "author": "Marcus Aurelius",
-    "book": "Meditations 6.2, trans. George Long",
-    "source": "https://lexundria.com/m_aur_med/6.2/lg"
+    "text": "We shall fight on the beaches, we shall fight on the landing grounds, we shall fight in the fields and in the streets, we shall fight in the hills; we shall never surrender.",
+    "author": "Winston Churchill",
+    "book": "Speech to the House of Commons, 4 June 1940",
+    "source": "https://en.wikisource.org/wiki/We_shall_fight_on_the_beaches"
   },
   {
-    "text": "Short is life. There is only one fruit of this terrene life, a pious disposition and social acts.",
-    "author": "Marcus Aurelius",
-    "book": "Meditations 6.30, trans. George Long",
-    "source": "https://lexundria.com/m_aur_med/6.30/lg"
+    "text": "Learning without thought is labour lost; thought without learning is perilous.",
+    "author": "Confucius",
+    "book": "The Analects 2.15, trans. James Legge",
+    "source": "https://ctext.org/analects/wei-zheng"
   },
   {
-    "text": "Everywhere and at all times it is in thy power piously to acquiesce in thy present condition, and to behave justly to those who are about thee, and to exert thy skill upon thy present thoughts, that nothing shall steal into them without being well examined.",
-    "author": "Marcus Aurelius",
-    "book": "Meditations 7.54, trans. George Long",
-    "source": "https://lexundria.com/m_aur_med/7.54/lg"
+    "text": "There is no charm equal to tenderness of heart.",
+    "author": "Jane Austen",
+    "book": "Emma (1815)",
+    "source": "https://www.gutenberg.org/ebooks/158"
   },
   {
-    "text": "If thou art pained by any external thing, it is not this thing that disturbs thee, but thy own judgment about it. And it is in thy power to wipe out this judgment now.",
+    "text": "Everyone approaches courageously a danger which he has prepared himself to meet long before, and withstands even hardships if he has previously practised how to meet them.",
+    "author": "Seneca",
+    "book": "Letter 107, trans. Richard M. Gummere",
+    "source": "https://en.wikisource.org/wiki/Moral_letters_to_Lucilius/Letter_107"
+  },
+  {
+    "text": "And so, my fellow Americans: ask not what your country can do for you—ask what you can do for your country.",
+    "author": "John F. Kennedy",
+    "book": "Inaugural Address, 20 January 1961",
+    "source": "https://www.jfklibrary.org/learn/about-jfk/historic-speeches/inaugural-address"
+  },
+  {
+    "text": "If it is not right, do not do it: if it is not true, do not say it.",
     "author": "Marcus Aurelius",
-    "book": "Meditations 8.47, trans. George Long",
-    "source": "https://lexundria.com/m_aur_med/8.47/lg"
+    "book": "Meditations 12.17, trans. George Long",
+    "source": "https://lexundria.com/m_aur_med/12.17/lg"
+  },
+  {
+    "text": "All that we are is the result of what we have thought: it is founded on our thoughts, it is made up of our thoughts.",
+    "author": "Dhammapada",
+    "book": "Dhammapada 1, trans. F. Max Müller",
+    "source": "https://en.wikisource.org/wiki/Dhammapada_(Muller)"
+  },
+  {
+    "text": "The first principle is that you must not fool yourself—and you are the easiest person to fool.",
+    "author": "Richard Feynman",
+    "book": "Cargo Cult Science, Caltech commencement address (1974)",
+    "source": "https://calteches.library.caltech.edu/51/2/CargoCult.htm"
+  },
+  {
+    "text": "I am no bird; and no net ensnares me: I am a free human being with an independent will.",
+    "author": "Charlotte Brontë",
+    "book": "Jane Eyre (1847), ch. 23",
+    "source": "https://www.gutenberg.org/ebooks/1260"
+  },
+  {
+    "text": "All warfare is based on deception.",
+    "author": "Sun Tzu",
+    "book": "The Art of War I.18, trans. Lionel Giles",
+    "source": "https://www.gutenberg.org/ebooks/17405"
+  },
+  {
+    "text": "Life is either a daring adventure or nothing.",
+    "author": "Helen Keller",
+    "book": "Let Us Have Faith (1940)",
+    "source": "https://en.wikiquote.org/wiki/Helen_Keller"
   },
   {
     "text": "No longer talk about the kind of man that a good man ought to be, but be such.",
@@ -54,9 +108,285 @@
     "source": "https://lexundria.com/m_aur_med/10.16/lg"
   },
   {
-    "text": "If it is not right, do not do it: if it is not true, do not say it.",
+    "text": "Difficulties break some men but make others. No axe is sharp enough to cut the soul of a sinner who keeps on trying, one armed with the hope that he will rise even in the end.",
+    "author": "Nelson Mandela",
+    "book": "Letter to Winnie Mandela, Robben Island, 1 February 1975",
+    "source": "https://www.nelsonmandela.org/selected-quotes"
+  },
+  {
+    "text": "I think, therefore I am.",
+    "author": "René Descartes",
+    "book": "Discourse on the Method (1637), Part IV",
+    "source": "https://www.gutenberg.org/ebooks/59"
+  },
+  {
+    "text": "There is nothing either good or bad, but thinking makes it so.",
+    "author": "William Shakespeare",
+    "book": "Hamlet, Act 2 Scene 2",
+    "source": "https://www.folger.edu/explore/shakespeares-works/hamlet/read/2/2/"
+  },
+  {
+    "text": "If there is no struggle, there is no progress. Those who profess to favor freedom, and yet deprecate agitation, are men who want crops without plowing up the ground.",
+    "author": "Frederick Douglass",
+    "book": "West India Emancipation speech, Canandaigua (1857)",
+    "source": "https://en.wikiquote.org/wiki/Frederick_Douglass"
+  },
+  {
+    "text": "A man then must stand erect, not be kept erect by others.",
     "author": "Marcus Aurelius",
-    "book": "Meditations 12.17, trans. George Long",
-    "source": "https://lexundria.com/m_aur_med/12.17/lg"
+    "book": "Meditations 3.5, trans. George Long",
+    "source": "https://lexundria.com/m_aur_med/3.5/lg"
+  },
+  {
+    "text": "The journey of a thousand li commenced with a single step.",
+    "author": "Laozi",
+    "book": "Tao Te Ching 64, trans. James Legge",
+    "source": "https://ctext.org/dao-de-jing"
+  },
+  {
+    "text": "No one can make you feel inferior without your consent.",
+    "author": "Eleanor Roosevelt",
+    "book": "This Is My Story (1937)",
+    "source": "https://en.wikiquote.org/wiki/Eleanor_Roosevelt"
+  },
+  {
+    "text": "The good fighters of old first put themselves beyond the possibility of defeat, and then waited for an opportunity of defeating the enemy.",
+    "author": "Sun Tzu",
+    "book": "The Art of War IV.1, trans. Lionel Giles",
+    "source": "https://www.gutenberg.org/ebooks/17405"
+  },
+  {
+    "text": "That which does not kill me, makes me stronger.",
+    "author": "Friedrich Nietzsche",
+    "book": "Twilight of the Idols, Maxims and Missiles 8, trans. Anthony M. Ludovici",
+    "source": "https://www.gutenberg.org/ebooks/52263"
+  },
+  {
+    "text": "How wonderful it is that nobody need wait a single moment before starting to improve the world.",
+    "author": "Anne Frank",
+    "book": "The Diary of a Young Girl, 26 March 1944",
+    "source": "https://en.wikiquote.org/wiki/Anne_Frank"
+  },
+  {
+    "text": "Do not act as if thou wert going to live ten thousand years. Death hangs over thee. While thou livest, while it is in thy power, be good.",
+    "author": "Marcus Aurelius",
+    "book": "Meditations 4.17, trans. George Long",
+    "source": "https://lexundria.com/m_aur_med/4.17/lg"
+  },
+  {
+    "text": "If you can fill the unforgiving minute with sixty seconds' worth of distance run, yours is the Earth and everything that's in it, and—which is more—you'll be a Man, my son!",
+    "author": "Rudyard Kipling",
+    "book": "If— (1910)",
+    "source": "https://en.wikisource.org/wiki/If%E2%80%94"
+  },
+  {
+    "text": "The important thing is not to stop questioning. Curiosity has its own reason for existence.",
+    "author": "Albert Einstein",
+    "book": "Statement to William Miller, LIFE magazine, 2 May 1955",
+    "source": "https://en.wikiquote.org/wiki/Albert_Einstein"
+  },
+  {
+    "text": "The fault, dear Brutus, is not in our stars, but in ourselves, that we are underlings.",
+    "author": "William Shakespeare",
+    "book": "Julius Caesar, Act 1 Scene 2",
+    "source": "https://www.folger.edu/explore/shakespeares-works/julius-caesar/read/1/2/"
+  },
+  {
+    "text": "Men are disturbed not by the things which happen, but by the opinions about the things.",
+    "author": "Epictetus",
+    "book": "The Encheiridion 5, trans. George Long",
+    "source": "https://en.wikisource.org/wiki/The_Discourses_of_Epictetus;_with_the_Encheiridion_and_Fragments/The_Encheiridion_or_Manual"
+  },
+  {
+    "text": "You miss 100% of the shots you don't take.",
+    "author": "Wayne Gretzky",
+    "book": "Interview quotation, via Wikiquote",
+    "source": "https://en.wikiquote.org/wiki/Wayne_Gretzky"
+  },
+  {
+    "text": "Let it make no difference to thee whether thou art cold or warm, if thou art doing thy duty; and whether thou art drowsy or satisfied with sleep; and whether ill-spoken of or praised.",
+    "author": "Marcus Aurelius",
+    "book": "Meditations 6.2, trans. George Long",
+    "source": "https://lexundria.com/m_aur_med/6.2/lg"
+  },
+  {
+    "text": "The secret of man's being is not only to live but to have something to live for.",
+    "author": "Fyodor Dostoevsky",
+    "book": "The Brothers Karamazov (1880), trans. Constance Garnett",
+    "source": "https://www.gutenberg.org/ebooks/28054"
+  },
+  {
+    "text": "One child, one teacher, one pen and one book can change the world.",
+    "author": "Malala Yousafzai",
+    "book": "Address to the UN Youth Assembly, 12 July 2013",
+    "source": "https://malala.org/news-and-voices/malala-un-speech"
+  },
+  {
+    "text": "It is not only the sword and the battle-line that prove the soul alert and unconquered by fear; a man can display bravery even when wrapped in his bed-clothes.",
+    "author": "Seneca",
+    "book": "Letter 78, trans. Richard M. Gummere",
+    "source": "https://en.wikisource.org/wiki/Moral_letters_to_Lucilius/Letter_78"
+  },
+  {
+    "text": "Do I contradict myself? Very well then I contradict myself, (I am large, I contain multitudes.)",
+    "author": "Walt Whitman",
+    "book": "Song of Myself 51, Leaves of Grass (1855)",
+    "source": "https://en.wikiquote.org/wiki/Walt_Whitman"
+  },
+  {
+    "text": "The universe is transformation: life is opinion.",
+    "author": "Marcus Aurelius",
+    "book": "Meditations 4.3, trans. George Long",
+    "source": "https://lexundria.com/m_aur_med/4.3/lg"
+  },
+  {
+    "text": "War is only a continuation of State policy by other means.",
+    "author": "Carl von Clausewitz",
+    "book": "On War (1832), Author's Preface, trans. J.J. Graham",
+    "source": "https://www.gutenberg.org/ebooks/1946"
+  },
+  {
+    "text": "To strive, to seek, to find, and not to yield.",
+    "author": "Alfred, Lord Tennyson",
+    "book": "Ulysses (1842)",
+    "source": "https://en.wikiquote.org/wiki/Alfred_Tennyson"
+  },
+  {
+    "text": "If you know the enemy and know yourself, you need not fear the result of a hundred battles.",
+    "author": "Sun Tzu",
+    "book": "The Art of War III.18, trans. Lionel Giles",
+    "source": "https://www.gutenberg.org/ebooks/17405"
+  },
+  {
+    "text": "The reasonable man adapts himself to the world: the unreasonable one persists in trying to adapt the world to himself. Therefore all progress depends on the unreasonable man.",
+    "author": "George Bernard Shaw",
+    "book": "Man and Superman (1903), Maxims for Revolutionists",
+    "source": "https://www.gutenberg.org/ebooks/3328"
+  },
+  {
+    "text": "Seek not that the things which happen should happen as you wish; but wish the things which happen to be as they are, and you will have a tranquil flow of life.",
+    "author": "Epictetus",
+    "book": "The Encheiridion 8, trans. George Long",
+    "source": "https://en.wikisource.org/wiki/The_Discourses_of_Epictetus;_with_the_Encheiridion_and_Fragments/The_Encheiridion_or_Manual"
+  },
+  {
+    "text": "Plans are worthless, but planning is everything.",
+    "author": "Dwight D. Eisenhower",
+    "book": "Remarks at the National Defense Executive Reserve Conference, 14 November 1957",
+    "source": "https://en.wikiquote.org/wiki/Dwight_D._Eisenhower"
+  },
+  {
+    "text": "A man's character is his fate.",
+    "author": "Heraclitus",
+    "book": "Fragment B119 (Diels-Kranz)",
+    "source": "https://en.wikiquote.org/wiki/Heraclitus"
+  },
+  {
+    "text": "We know what we are, but know not what we may be.",
+    "author": "William Shakespeare",
+    "book": "Hamlet, Act 4 Scene 5",
+    "source": "https://www.folger.edu/explore/shakespeares-works/hamlet/read/4/5/"
+  },
+  {
+    "text": "The strongest of all warriors are these two — Time and Patience.",
+    "author": "Leo Tolstoy",
+    "book": "War and Peace (1869), trans. Louise and Aylmer Maude",
+    "source": "https://www.gutenberg.org/ebooks/2600"
+  },
+  {
+    "text": "It is not the critic who counts; not the man who points out how the strong man stumbles, or where the doer of deeds could have done them better. The credit belongs to the man who is actually in the arena, whose face is marred by dust and sweat and blood; who strives valiantly… who at the best knows in the end the triumph of high achievement, and who at the worst, if he fails, at least fails while daring greatly.",
+    "author": "Theodore Roosevelt",
+    "book": "Citizenship in a Republic, Sorbonne, 23 April 1910",
+    "source": "https://en.wikisource.org/wiki/Citizenship_in_a_Republic"
+  },
+  {
+    "text": "The life which is unexamined is not worth living.",
+    "author": "Socrates, in Plato",
+    "book": "Apology 38a, trans. Benjamin Jowett",
+    "source": "https://www.gutenberg.org/ebooks/1656"
+  },
+  {
+    "text": "The best way out is always through.",
+    "author": "Robert Frost",
+    "book": "A Servant to Servants, North of Boston (1914)",
+    "source": "https://en.wikiquote.org/wiki/Robert_Frost"
+  },
+  {
+    "text": "If I have seen further it is by standing on the shoulders of giants.",
+    "author": "Isaac Newton",
+    "book": "Letter to Robert Hooke, 5 February 1676",
+    "source": "https://en.wikiquote.org/wiki/Isaac_Newton"
+  },
+  {
+    "text": "Cowards die many times before their deaths; the valiant never taste of death but once.",
+    "author": "William Shakespeare",
+    "book": "Julius Caesar, Act 2 Scene 2",
+    "source": "https://www.folger.edu/explore/shakespeares-works/julius-caesar/read/2/2/"
+  },
+  {
+    "text": "Darkness cannot drive out darkness; only light can do that. Hate cannot drive out hate; only love can do that.",
+    "author": "Martin Luther King Jr.",
+    "book": "Strength to Love (1963)",
+    "source": "https://en.wikiquote.org/wiki/Martin_Luther_King_Jr."
+  },
+  {
+    "text": "One swallow does not make a summer, nor does one day; and so too one day, or a short time, does not make a man blessed and happy.",
+    "author": "Aristotle",
+    "book": "Nicomachean Ethics I.7, trans. W.D. Ross",
+    "source": "https://classics.mit.edu/Aristotle/nicomachaen.1.i.html"
+  },
+  {
+    "text": "I have learned that success is to be measured not so much by the position that one has reached in life as by the obstacles which he has overcome while trying to succeed.",
+    "author": "Booker T. Washington",
+    "book": "Up from Slavery (1901)",
+    "source": "https://www.gutenberg.org/ebooks/2376"
+  },
+  {
+    "text": "I dare do all that may become a man; who dares do more is none.",
+    "author": "William Shakespeare",
+    "book": "Macbeth, Act 1 Scene 7",
+    "source": "https://www.folger.edu/explore/shakespeares-works/macbeth/read/1/7/"
+  },
+  {
+    "text": "All human wisdom is summed up in these two words: 'Wait and hope.'",
+    "author": "Alexandre Dumas",
+    "book": "The Count of Monte Cristo (1844), ch. 117",
+    "source": "https://www.gutenberg.org/ebooks/1184"
+  },
+  {
+    "text": "We are made of starstuff.",
+    "author": "Carl Sagan",
+    "book": "Cosmos (1980)",
+    "source": "https://en.wikiquote.org/wiki/Carl_Sagan"
+  },
+  {
+    "text": "Experience is the name every one gives to their mistakes.",
+    "author": "Oscar Wilde",
+    "book": "Lady Windermere's Fan (1892), Act III",
+    "source": "https://en.wikiquote.org/wiki/Oscar_Wilde"
+  },
+  {
+    "text": "For to fear death, my friends, is only to think ourselves wise without really being wise; for it is to think that we know what we do not know.",
+    "author": "Socrates, in Plato",
+    "book": "Apology 29a, trans. Benjamin Jowett",
+    "source": "https://www.gutenberg.org/ebooks/1656"
+  },
+  {
+    "text": "Hear me, my chiefs! I am tired. My heart is sick and sad. From where the sun now stands I will fight no more forever.",
+    "author": "Chief Joseph",
+    "book": "Surrender speech, Bear Paw Mountains, 5 October 1877",
+    "source": "https://en.wikiquote.org/wiki/Chief_Joseph"
+  },
+  {
+    "text": "Everything can be taken from a man but one thing: the last of the human freedoms—to choose one's attitude in any given set of circumstances, to choose one's own way.",
+    "author": "Viktor Frankl",
+    "book": "Man's Search for Meaning (1946)",
+    "source": "https://en.wikiquote.org/wiki/Viktor_Frankl"
+  },
+  {
+    "text": "The mass of men lead lives of quiet desperation.",
+    "author": "Henry David Thoreau",
+    "book": "Walden (1854), Economy",
+    "source": "https://www.gutenberg.org/ebooks/205"
   }
 ]

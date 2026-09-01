@@ -96,9 +96,16 @@ body{
     var d=date||new Date();
     return Math.floor(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/86400000);
   }
+  function pickStride(n){
+    var primes=[31,37,41,43,47,17,13,7,53,59,61];
+    for(var i=0;i<primes.length;i++){if(n%primes[i]!==0)return primes[i];}
+    return 1;
+  }
   function quoteIndex(date){
     if(!quotes.length)return 0;
-    return ((localDaySerial(date)%quotes.length)+quotes.length)%quotes.length;
+    var n=quotes.length;
+    var stride=pickStride(n);
+    return ((localDaySerial(date)*stride)%n+n)%n;
   }
   function isValidQuote(q){
     return q&&typeof q.text==='string'&&q.text.trim()&&typeof q.author==='string'&&q.author.trim()&&
@@ -129,7 +136,7 @@ body{
     midnightTimer=setTimeout(function(){checkDay();scheduleMidnight()},Math.max(1000,next.getTime()-now.getTime()));
   }
   function loadQuotes(){
-    return fetch('quotes.json?v=20260901',{cache:'no-store'})
+    return fetch('quotes.json?v=65',{cache:'no-store'})
       .then(function(response){if(!response.ok)throw new Error('HTTP '+response.status);return response.json()})
       .then(function(data){
         if(!Array.isArray(data)||data.length<2||!data.every(isValidQuote))throw new Error('Invalid quote catalogue');
