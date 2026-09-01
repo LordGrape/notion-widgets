@@ -1,0 +1,12 @@
+Built athlete.html (180,775 bytes).
+athlete.html is current (180,775 bytes).
+Verified athlete.html: 5 scripts, 12 tests, 8 attributes, scoring and body map valid.
+file:///home/runner/work/notion-widgets/notion-widgets/tools/qa-athlete.mjs:12
+  if (!condition) throw new Error(message);
+                        ^
+
+Error: Chrome DevTools Protocol did not start.
+    at assert (file:///home/runner/work/notion-widgets/notion-widgets/tools/qa-athlete.mjs:12:25)
+    at file:///home/runner/work/notion-widgets/notion-widgets/tools/qa-athlete.mjs:80:3
+
+Node.js v22.23.2
