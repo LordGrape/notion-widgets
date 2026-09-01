@@ -26,7 +26,7 @@ env:
 
 concurrency:
   group: build-athlete-main
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build-and-test:
