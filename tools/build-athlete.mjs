@@ -32,7 +32,7 @@ for (const name of [
 }
 
 const themeCss = loaded['theme-upgrade.css'].replace(
-  /^\s*@import\s+url\([^;]+\);\s*/i,
+  /^\s*@import[^\r\n]*(?:\r?\n)?/i,
   '',
 );
 if (/@import\b/i.test(themeCss)) {
