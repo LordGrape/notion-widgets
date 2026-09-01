@@ -1,4 +1,4 @@
-name: Build athlete widget
+name: Build and verify athlete widget
 
 on:
   push:
@@ -14,49 +14,72 @@ on:
       - athlete-flow.js
       - tools/build-athlete.mjs
       - tools/verify-athlete.mjs
+      - tools/qa-athlete.mjs
       - .github/workflows/build-athlete.yml
   workflow_dispatch:
 
 permissions:
   contents: write
 
+env:
+  ATHLETE_URL: https://notion-widgets-93r.pages.dev/athlete.html
+
 concurrency:
   group: build-athlete-main
   cancel-in-progress: true
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Assemble and verify the single-file widget
-        id: build
+      - name: Run local and production verification
+        id: qa
         shell: bash
         run: |
           set +e
-          {
+          (
+            set -e
             node tools/build-athlete.mjs
             node tools/build-athlete.mjs --check
             node tools/verify-athlete.mjs
-          } > athlete-build-status.txt 2>&1
+            node tools/qa-athlete.mjs
+
+            deployed=0
+            for attempt in $(seq 1 30); do
+              page="$(curl -fsSL --max-time 20 "${ATHLETE_URL}?athlete-build=${GITHUB_RUN_ID}-${attempt}" || true)"
+              bytes="$(printf '%s' "$page" | wc -c)"
+              if printf '%s' "$page" | grep -q '<meta name="athlete-build" content="single-file-v2.2">' \
+                && printf '%s' "$page" | grep -q 'data-athlete-inline="core.js"' \
+                && printf '%s' "$page" | grep -q 'data-athlete-inline="athlete-flow.js"' \
+                && [ "$bytes" -gt 100000 ]; then
+                echo "Production is serving the self-contained athlete widget (${bytes} bytes)."
+                deployed=1
+                break
+              fi
+              echo "Waiting for Cloudflare Pages deployment (${attempt}/30)."
+              sleep 10
+            done
+            [ "$deployed" -eq 1 ]
+          ) > athlete-qa-status.txt 2>&1
           status=$?
-          cat athlete-build-status.txt
+          cat athlete-qa-status.txt
           echo "status=$status" >> "$GITHUB_OUTPUT"
           exit 0
-      - name: Commit generated output and diagnostics
+      - name: Commit generated output and QA status
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add athlete.html athlete-build-status.txt
+          git add athlete.html athlete-qa-status.txt
           if git diff --cached --quiet; then
             echo "No generated changes"
           else
-            git commit -m "Build self-contained athlete widget"
+            git commit -m "Record athlete end-to-end QA"
             git push
           fi
-      - name: Report a failed build
-        if: steps.build.outputs.status != '0'
+      - name: Report a failed verification
+        if: steps.qa.outputs.status != '0'
         run: exit 1
