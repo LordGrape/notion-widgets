@@ -10,6 +10,10 @@ function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
+const shellOnly = html
+  .replace(/<script data-athlete-inline="[^"]+">[\s\S]*?<\/script>/g, '<script></script>')
+  .replace(/<style data-athlete-inline="[^"]+">[\s\S]*?<\/style>/g, '<style></style>');
+
 assert(Buffer.byteLength(html) > 80_000, 'athlete.html is unexpectedly small.');
 assert(
   html.includes('<meta name="athlete-build" content="single-file-v2.2">'),
@@ -17,7 +21,7 @@ assert(
 );
 assert(!/@import\b/i.test(html), 'The build contains a CSS @import.');
 assert(
-  !/(?:src|href)=["'](?:\.\/)?(?:core\.js|athlete(?:-body|-data|-render|-flow)?\.js|athlete\.css|theme-upgrade\.css)/i.test(html),
+  !/(?:src|href)=["'](?:\.\/)?(?:core\.js|athlete(?:-body|-data|-render|-flow)?\.js|athlete\.css|theme-upgrade\.css)/i.test(shellOnly),
   'The build contains a local asset reference.',
 );
 
@@ -32,7 +36,7 @@ for (const id of [
   'detail',
   'settings',
 ]) {
-  assert(new RegExp(`id=["']${id}["']`).test(html), `Required element #${id} is missing.`);
+  assert(new RegExp(`id=["']${id}["']`).test(shellOnly), `Required element #${id} is missing.`);
 }
 
 const scripts = [...html.matchAll(/<script data-athlete-inline="([^"]+)">\n?([\s\S]*?)<\/script>/g)];

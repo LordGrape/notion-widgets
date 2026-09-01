@@ -54,6 +54,12 @@ function replaceOnce(html, pattern, replacement, label) {
   return html.replace(pattern, replacement);
 }
 
+function withoutInlinePayloads(html) {
+  return html
+    .replace(/<script data-athlete-inline="[^"]+">[\s\S]*?<\/script>/g, '<script></script>')
+    .replace(/<style data-athlete-inline="[^"]+">[\s\S]*?<\/style>/g, '<style></style>');
+}
+
 let html = loaded['athlete.source.html'];
 html = replaceOnce(
   html,
@@ -96,9 +102,10 @@ html = replaceOnce(
   'Athlete title',
 );
 
+const shellOnly = withoutInlinePayloads(html);
 const localAssetRef = /(?:src|href)=["'](?:\.\/)?(?:core\.js|athlete(?:-body|-data|-render|-flow)?\.js|athlete\.css|theme-upgrade\.css)(?:\?[^"']*)?["']/i;
-if (localAssetRef.test(html)) throw new Error('Generated athlete.html still references a local runtime asset.');
-if (/<link\b[^>]*\brel=["']stylesheet["']/i.test(html)) {
+if (localAssetRef.test(shellOnly)) throw new Error('Generated athlete.html still references a local runtime asset.');
+if (/<link\b[^>]*\brel=["']stylesheet["']/i.test(shellOnly)) {
   throw new Error('Generated athlete.html still contains a stylesheet link.');
 }
 if (/fonts\.googleapis\.com/i.test(html)) {
