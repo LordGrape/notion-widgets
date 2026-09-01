@@ -1,17 +1,17 @@
-file:///home/runner/work/notion-widgets/notion-widgets/tools/build-athlete.mjs:39
-  throw new Error('theme-upgrade.css still contains an external @import.');
-        ^
+file:///home/runner/work/notion-widgets/notion-widgets/tools/build-athlete.mjs:100
+if (localAssetRef.test(html)) throw new Error('Generated athlete.html still references a local runtime asset.');
+                                    ^
 
-Error: theme-upgrade.css still contains an external @import.
-    at file:///home/runner/work/notion-widgets/notion-widgets/tools/build-athlete.mjs:39:9
+Error: Generated athlete.html still references a local runtime asset.
+    at file:///home/runner/work/notion-widgets/notion-widgets/tools/build-athlete.mjs:100:37
 
 Node.js v22.23.2
-file:///home/runner/work/notion-widgets/notion-widgets/tools/build-athlete.mjs:39
-  throw new Error('theme-upgrade.css still contains an external @import.');
-        ^
+file:///home/runner/work/notion-widgets/notion-widgets/tools/build-athlete.mjs:100
+if (localAssetRef.test(html)) throw new Error('Generated athlete.html still references a local runtime asset.');
+                                    ^
 
-Error: theme-upgrade.css still contains an external @import.
-    at file:///home/runner/work/notion-widgets/notion-widgets/tools/build-athlete.mjs:39:9
+Error: Generated athlete.html still references a local runtime asset.
+    at file:///home/runner/work/notion-widgets/notion-widgets/tools/build-athlete.mjs:100:37
 
 Node.js v22.23.2
 file:///home/runner/work/notion-widgets/notion-widgets/tools/verify-athlete.mjs:10
