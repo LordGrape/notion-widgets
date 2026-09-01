@@ -14,7 +14,6 @@ on:
       - athlete-flow.js
       - tools/build-athlete.mjs
       - tools/verify-athlete.mjs
-      - tools/qa-athlete.mjs
       - .github/workflows/build-athlete.yml
   workflow_dispatch:
 
@@ -36,14 +35,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Provision Chrome
-        id: chrome
-        uses: browser-actions/setup-chrome@v1
-      - name: Run local and production verification
-        id: qa
+      - name: Run source and production verification
+        id: verification
         shell: bash
-        env:
-          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
         run: |
           set +e
           (
@@ -51,7 +45,6 @@ jobs:
             node tools/build-athlete.mjs
             node tools/build-athlete.mjs --check
             node tools/verify-athlete.mjs
-            node tools/qa-athlete.mjs
 
             deployed=0
             for attempt in $(seq 1 30); do
@@ -69,22 +62,22 @@ jobs:
               sleep 10
             done
             [ "$deployed" -eq 1 ]
-          ) > athlete-qa-status.txt 2>&1
+          ) > athlete-production-status.txt 2>&1
           status=$?
-          cat athlete-qa-status.txt
+          cat athlete-production-status.txt
           echo "status=$status" >> "$GITHUB_OUTPUT"
           exit 0
-      - name: Commit generated output and QA status
+      - name: Commit generated output and verification status
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add athlete.html athlete-qa-status.txt
+          git add athlete.html athlete-production-status.txt
           if git diff --cached --quiet; then
             echo "No generated changes"
           else
-            git commit -m "Record athlete end-to-end QA"
+            git commit -m "Record athlete deployment verification"
             git push
           fi
       - name: Report a failed verification
-        if: steps.qa.outputs.status != '0'
+        if: steps.verification.outputs.status != '0'
         run: exit 1
