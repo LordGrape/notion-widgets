@@ -1,13 +1,26 @@
 Built athlete.html (264,979 bytes).
 athlete.html is current (264,979 bytes).
-evalmachine.<anonymous>:1
-state.preferences.units='lb';var qaLoad=trainingLoadToKg(135);var qaSets=[0,1,2,3].map(function(i){return{id:'s'+i,loadKg:qaLoad,reps:8,rpe:8,type:'work',done:true};});var qaWorkout={id:'wqa',d:'2026-09-02',title:'QA',completedAt:1,exercises:[{id:'x',exerciseId:'bench',sets:qaSets}]};
-                       ^
-
-TypeError: Cannot set properties of undefined (setting 'units')
-    at evalmachine.<anonymous>:1:24
-    at Script.runInContext (node:vm:149:12)
-    at Object.runInContext (node:vm:301:6)
-    at file:///home/runner/work/notion-widgets/notion-widgets/tools/verify-athlete.mjs:28:4
-
-Node.js v22.23.2
+Verified athlete.html: 8 scripts, workout logging, 1RM, volume, promotion, 12 assessments and 8 attributes valid.
+Waiting for Cloudflare Pages deployment (1/30).
+Waiting for Cloudflare Pages deployment (2/30).
+Waiting for Cloudflare Pages deployment (3/30).
+Waiting for Cloudflare Pages deployment (4/30).
+Waiting for Cloudflare Pages deployment (5/30).
+Waiting for Cloudflare Pages deployment (6/30).
+Waiting for Cloudflare Pages deployment (7/30).
+Waiting for Cloudflare Pages deployment (8/30).
+Waiting for Cloudflare Pages deployment (9/30).
+Waiting for Cloudflare Pages deployment (10/30).
+Waiting for Cloudflare Pages deployment (11/30).
+Waiting for Cloudflare Pages deployment (12/30).
+Waiting for Cloudflare Pages deployment (13/30).
+Waiting for Cloudflare Pages deployment (14/30).
+Waiting for Cloudflare Pages deployment (15/30).
+Waiting for Cloudflare Pages deployment (16/30).
+Waiting for Cloudflare Pages deployment (17/30).
+Waiting for Cloudflare Pages deployment (18/30).
+Waiting for Cloudflare Pages deployment (19/30).
+Waiting for Cloudflare Pages deployment (20/30).
+Waiting for Cloudflare Pages deployment (21/30).
+Waiting for Cloudflare Pages deployment (22/30).
+Production is serving the Athlete training tracker (264978 bytes).
