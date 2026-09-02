@@ -25,7 +25,7 @@ const invalidRegions=vm.runInContext(`Object.keys(BODY_DATA.regions).flatMap(fun
 assert(invalidRegions.length===0,`Invalid body regions: ${invalidRegions.join(', ')}`);
 assert(vm.runInContext('TESTS.length',context)===12,'The test catalogue should contain 12 tests.');assert(vm.runInContext('ATTRS.length',context)===8,'The athlete model should contain eight attributes.');assert(vm.runInContext("parsePace('12:30')",context)===750,'Pace parsing failed.');
 assert(vm.runInContext("scoreOf(testById('run2400'),500,{v:500})",context)===70,'2400 m scoring regression.');
-vm.runInContext(`state.preferences.units='lb';var qaLoad=trainingLoadToKg(135);var qaSets=[0,1,2,3].map(function(i){return{id:'s'+i,loadKg:qaLoad,reps:8,rpe:8,type:'work',done:true};});var qaWorkout={id:'wqa',d:'2026-09-02',title:'QA',completedAt:1,exercises:[{id:'x',exerciseId:'bench',sets:qaSets}]};`,context);
+vm.runInContext(`ensureTrainingState();state.preferences.units='lb';var qaLoad=trainingLoadToKg(135);var qaSets=[0,1,2,3].map(function(i){return{id:'s'+i,loadKg:qaLoad,reps:8,rpe:8,type:'work',done:true};});var qaWorkout={id:'wqa',d:'2026-09-02',title:'QA',completedAt:1,exercises:[{id:'x',exerciseId:'bench',sets:qaSets}]};`,context);
 assert(vm.runInContext('trainingRound(trainingKgToDisplay(qaLoad),1)',context)===135,'lb/kg conversion failed.');
 assert(vm.runInContext('trainingRound(trainingKgToDisplay(trainingEstimate1RMKg(qaSets[0])),0)',context)===171,'Estimated 1RM regression.');
 assert(vm.runInContext('trainingRound(trainingKgToDisplay(trainingWorkoutMetrics(qaWorkout).volumeKg),0)',context)===4320,'Workout volume regression.');
