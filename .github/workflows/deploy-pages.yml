@@ -54,15 +54,17 @@ jobs:
             exit 0
           fi
           project=$(node -e 'const d=require("/tmp/pages-projects.json"),h=process.argv[1],x=Array.isArray(d.result)?d.result:[],m=x.find(p=>p.subdomain===h||(p.domains||[]).includes(h))||x.find(p=>/notion.?widgets/i.test(p.name||""));process.stdout.write(m?.name||"")' 'notion-widgets-93r.pages.dev')
-          node -e 'const d=require("/tmp/pages-projects.json"),x=Array.isArray(d.result)?d.result:[];console.log(x.map(p=>`${p.name}\t${p.subdomain||""}`).join("\n"))' > /tmp/pages-project-safe.txt
+          production_branch=$(node -e 'const d=require("/tmp/pages-projects.json"),h=process.argv[1],x=Array.isArray(d.result)?d.result:[],m=x.find(p=>p.subdomain===h||(p.domains||[]).includes(h))||x.find(p=>/notion.?widgets/i.test(p.name||""));process.stdout.write(m?.production_branch||"production")' 'notion-widgets-93r.pages.dev')
+          node -e 'const d=require("/tmp/pages-projects.json"),x=Array.isArray(d.result)?d.result:[];console.log(x.map(p=>`${p.name}\t${p.subdomain||""}\t${p.production_branch||""}`).join("\n"))' > /tmp/pages-project-safe.txt
           echo "project=${project}" >> "$GITHUB_OUTPUT"
+          echo "production_branch=${production_branch}" >> "$GITHUB_OUTPUT"
           if [ -z "$project" ]; then
             echo 'No matching Pages project found.' | tee /tmp/pages-deploy.log
             echo 'code=2' >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          echo "Resolved Pages project: ${project}" > /tmp/pages-deploy.log
-          npx --yes wrangler@4.84.1 pages deploy site --project-name="$project" --branch=main 2>&1 | tee -a /tmp/pages-deploy.log
+          echo "Resolved Pages project: ${project}; production branch: ${production_branch}" > /tmp/pages-deploy.log
+          npx --yes wrangler@4.84.1 pages deploy site --project-name="$project" --branch="$production_branch" 2>&1 | tee -a /tmp/pages-deploy.log
           code=${PIPESTATUS[0]}
           preview=$(grep -Eo 'https:[/][/][A-Za-z0-9.-]+[.]pages[.]dev' /tmp/pages-deploy.log | tail -n 1)
           echo "deployment_url=${preview}" >> "$GITHUB_OUTPUT"
@@ -76,7 +78,7 @@ jobs:
           {
             echo "Pages deployment exit code: ${{ steps.pages.outputs.code }}"
             cat /tmp/pages-project-safe.txt 2>/dev/null || true
-            grep -Ei 'error|fail|permission|project|account|code|unauthor|forbidden|not found|resolved' /tmp/pages-deploy.log | tail -n 80 || true
+            grep -Ei 'error|fail|permission|project|account|code|unauthor|forbidden|not found|resolved|branch' /tmp/pages-deploy.log | tail -n 80 || true
           } | sed -E 's/[A-Fa-f0-9]{24,}/[redacted-hex]/g; s/[A-Za-z0-9_-]{40,}/[redacted-token]/g' > deployments/pages-last-error.txt
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
@@ -109,6 +111,7 @@ jobs:
             {
               echo 'Pages deployment succeeded but production verification failed.'
               echo 'Resolved project: ${{ steps.pages.outputs.project }}'
+              echo 'Production branch: ${{ steps.pages.outputs.production_branch }}'
               echo 'Preview deployment: ${{ steps.pages.outputs.deployment_url }}'
               echo 'Available projects:'
               cat /tmp/pages-project-safe.txt 2>/dev/null || true
