@@ -1,13 +1,18 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 
-const widgets = ['clock.html', 'todo.html', 'timetable.html', 'quotes.html', 'athlete.html'];
+const widgets = ['clock.html', 'todo.html', 'timetable.html', 'quotes.html', 'athlete.source.html'];
 const link = '<link rel="stylesheet" href="theme-upgrade.css?v=20260817-royal-violet">';
 
 for (const file of widgets) {
   if (!existsSync(file)) continue;
   let html = readFileSync(file, 'utf8');
   html = html.replace(/<link rel="stylesheet" href="theme-upgrade\.css[^>]*>\n?/g, '');
-  html = html.replace('</head>', `${link}\n</head>`);
+  const settingsLink = /<link rel="stylesheet" href="athlete-settings\.css[^>]*>/;
+  if (file === 'athlete.source.html' && settingsLink.test(html)) {
+    html = html.replace(settingsLink, `${link}\n$&`);
+  } else {
+    html = html.replace('</head>', `${link}\n</head>`);
+  }
   writeFileSync(file, html);
 }
 

@@ -50,51 +50,26 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add athlete.html
-            git commit -m "Build professional Athlete settings"
+            git commit -m "Build self-contained Athlete widget"
             git push
           fi
       - name: Verify production deployment
-        id: production
         shell: bash
         run: |
-          set +e
-          (
-            set -e
-            echo "Source build and verification passed."
-            deployed=0
-            for attempt in $(seq 1 30); do
-              page="$(curl -fsSL --max-time 20 "${ATHLETE_URL}?athlete-settings=${GITHUB_RUN_ID}-${attempt}" || true)"
-              bytes="$(printf '%s' "$page" | wc -c)"
-              if [[ "$page" == *'<meta name="athlete-build" content="single-file-v2.2">'* ]] \
-                && [[ "$page" == *'id="setImport"'* ]] \
-                && [[ "$page" == *'Loaded march scoring'* ]] \
-                && [[ "$page" == *'data-athlete-inline="athlete-settings.js"'* ]] \
-                && [ "$bytes" -gt 120000 ]; then
-                echo "Production is serving the professional settings build (${bytes} bytes)."
-                deployed=1
-                break
-              fi
-              echo "Waiting for Cloudflare Pages deployment (${attempt}/30)."
-              sleep 10
-            done
-            [ "$deployed" -eq 1 ]
-          ) > athlete-production-status.txt 2>&1
-          status=$?
-          cat athlete-production-status.txt
-          echo "status=$status" >> "$GITHUB_OUTPUT"
-          exit 0
-      - name: Record deployment verification
-        if: always()
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add athlete-production-status.txt
-          if git diff --cached --quiet; then
-            echo "Verification record is current"
-          else
-            git commit -m "Record Athlete settings deployment"
-            git push
-          fi
-      - name: Report a failed deployment
-        if: steps.production.outputs.status != '0'
-        run: exit 1
+          deployed=0
+          for attempt in $(seq 1 30); do
+            page="$(curl -fsSL --max-time 20 "${ATHLETE_URL}?athlete-settings=${GITHUB_RUN_ID}-${attempt}" || true)"
+            bytes="$(printf '%s' "$page" | wc -c)"
+            if [[ "$page" == *'<meta name="athlete-build" content="single-file-v2.2">'* ]] \
+              && [[ "$page" == *'id="setImport"'* ]] \
+              && [[ "$page" == *'Loaded march scoring'* ]] \
+              && [[ "$page" == *'data-athlete-inline="athlete-settings.js"'* ]] \
+              && [ "$bytes" -gt 120000 ]; then
+              echo "Production is serving the professional settings build (${bytes} bytes)."
+              deployed=1
+              break
+            fi
+            echo "Waiting for Cloudflare Pages deployment (${attempt}/30)."
+            sleep 10
+          done
+          [ "$deployed" -eq 1 ]
