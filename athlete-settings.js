@@ -1,182 +1,102 @@
 'use strict';
-/* ATHLETE settings v1 - professional profile, standards and backup controls.
-   Persistence remains the existing fitness/state object. */
+/* ATHLETE settings v2 - profile, training preferences, standards and backups. */
 (function(){
  var legacyOpenSettings = openSettings;
  var settingsStart = '';
  var paceIds = ['rkFloor','rkL1','rkL2','rkL3','rkCap'];
 
  function resultLabel(count){ return count + ' result' + (count === 1 ? '' : 's'); }
+ function workoutLabel(count){ return count + ' workout' + (count === 1 ? '' : 's'); }
  function valuesSignature(){
-  return ['setBw'].concat(paceIds).map(function(id){ return el(id).value.trim(); }).join('|');
+  return ['setBw'].concat(paceIds).map(function(id){ return el(id).value.trim(); }).concat([el('setUnits').value,el('setRpeEnabled').checked ? '1' : '0']).join('|');
  }
- function currentRuckFromFields(){
-  return {
-   floor:parsePace(el('rkFloor').value),
-   l1:parsePace(el('rkL1').value),
-   l2:parsePace(el('rkL2').value),
-   l3:parsePace(el('rkL3').value),
-   cap:parsePace(el('rkCap').value)
-  };
- }
- function isRecommendedRuck(r){
-  return !!r && r.floor === DEFAULT_RUCK.floor && r.l1 === DEFAULT_RUCK.l1 && r.l2 === DEFAULT_RUCK.l2 && r.l3 === DEFAULT_RUCK.l3 && r.cap === DEFAULT_RUCK.cap;
- }
- function setStatus(message, kind){
-  var node = el('setBackupStatus');
-  node.textContent = message || '';
-  node.className = 'settings-status' + (kind ? ' ' + kind : '');
- }
+ function currentRuckFromFields(){ return { floor:parsePace(el('rkFloor').value),l1:parsePace(el('rkL1').value),l2:parsePace(el('rkL2').value),l3:parsePace(el('rkL3').value),cap:parsePace(el('rkCap').value) }; }
+ function isRecommendedRuck(r){ return !!r && r.floor===DEFAULT_RUCK.floor && r.l1===DEFAULT_RUCK.l1 && r.l2===DEFAULT_RUCK.l2 && r.l3===DEFAULT_RUCK.l3 && r.cap===DEFAULT_RUCK.cap; }
+ function setStatus(message,kind){ var node=el('setBackupStatus'); node.textContent=message||''; node.className='settings-status'+(kind?' '+kind:''); }
  function updateSettingsSummary(){
-  var count = state.entries.length;
-  var sync = el('syncState').textContent || 'Local';
-  el('setSummaryCopy').textContent = resultLabel(count) + ' stored · ' + sync;
-  el('setDataCount').textContent = resultLabel(count);
-  el('setProfileState').textContent = state.bw ? 'Configured' : 'Optional';
-  el('setProfileState').classList.toggle('custom', !!state.bw);
+  ensureTrainingState();
+  var results=state.entries.length, workouts=state.workouts.length, sync=el('syncState').textContent||'Local';
+  el('setSummaryCopy').textContent=resultLabel(results)+' · '+workoutLabel(workouts)+' · '+sync;
+  el('setDataCount').textContent=(results+workouts)+' records';
+  el('setProfileState').textContent=state.bw?'Configured':'Optional';
+  el('setProfileState').classList.toggle('custom',!!state.bw);
  }
  function updateSettingsChrome(){
-  var dirty = settingsStart !== '' && valuesSignature() !== settingsStart;
-  el('setSave').disabled = !dirty;
-  el('setSaveState').textContent = dirty ? 'Unsaved' : 'Up to date';
-  el('setSaveState').classList.toggle('dirty', dirty);
-  var recommended = isRecommendedRuck(currentRuckFromFields());
-  el('setRuckMode').textContent = recommended ? 'Recommended' : 'Custom';
-  el('setRuckMode').classList.toggle('custom', !recommended);
-  if (el('setErr').textContent) el('setErr').textContent = '';
+  var dirty=settingsStart!==''&&valuesSignature()!==settingsStart;
+  el('setSave').disabled=!dirty;
+  el('setSaveState').textContent=dirty?'Unsaved':'Up to date';
+  el('setSaveState').classList.toggle('dirty',dirty);
+  var recommended=isRecommendedRuck(currentRuckFromFields());
+  el('setRuckMode').textContent=recommended?'Recommended':'Custom';
+  el('setRuckMode').classList.toggle('custom',!recommended);
+  if(el('setErr').textContent)el('setErr').textContent='';
  }
  function restoreRecommended(){
-  el('rkFloor').value = fmtMS(DEFAULT_RUCK.floor);
-  el('rkL1').value = fmtMS(DEFAULT_RUCK.l1);
-  el('rkL2').value = fmtMS(DEFAULT_RUCK.l2);
-  el('rkL3').value = fmtMS(DEFAULT_RUCK.l3);
-  el('rkCap').value = fmtMS(DEFAULT_RUCK.cap);
-  updateSettingsChrome();
-  setStatus('Recommended Loaded March standard restored. Save changes to apply it.', 'ok');
+  el('rkFloor').value=fmtMS(DEFAULT_RUCK.floor);el('rkL1').value=fmtMS(DEFAULT_RUCK.l1);el('rkL2').value=fmtMS(DEFAULT_RUCK.l2);el('rkL3').value=fmtMS(DEFAULT_RUCK.l3);el('rkCap').value=fmtMS(DEFAULT_RUCK.cap);
+  updateSettingsChrome();setStatus('Recommended Loaded March standard restored. Save changes to apply it.','ok');
  }
 
- openSettings = function(){
-  legacyOpenSettings();
-  el('ruckSettings').open = false;
-  el('resetConfirm').hidden = true;
-  el('setReset').hidden = false;
-  setStatus('', '');
-  settingsStart = valuesSignature();
-  updateSettingsSummary();
-  updateSettingsChrome();
+ var oldSave=el('setSave');
+ var saveButton=oldSave.cloneNode(true);
+ oldSave.parentNode.replaceChild(saveButton,oldSave);
+ function saveProfessionalSettings(){
+  var bw=parseFloat(el('setBw').value);
+  if(el('setBw').value.trim()!==''&&(!isFinite(bw)||bw<=0)){el('setErr').textContent='Bodyweight must be a positive number.';return;}
+  var r=currentRuckFromFields();
+  for(var key in r){if(r[key]===null||r[key]<=0){el('setErr').textContent='All five pace anchors are required in mm:ss per kilometre.';return;}}
+  if(!(r.floor>r.l1&&r.l1>r.l2&&r.l2>r.l3&&r.l3>r.cap)){el('setErr').textContent='Paces must run from the slowest baseline to the fastest cap.';return;}
+  ensureTrainingState();
+  state.bw=el('setBw').value.trim()===''?null:Math.round(bw*10)/10;
+  state.ruck=r;
+  state.preferences.units=el('setUnits').value==='kg'?'kg':'lb';
+  state.preferences.rpeEnabled=el('setRpeEnabled').checked;
+  save();closeModal('settings');renderAll();announce('Settings saved.');
+ }
+ saveButton.addEventListener('click',saveProfessionalSettings);
+
+ openSettings=function(){
+  ensureTrainingState();legacyOpenSettings();
+  el('setUnits').value=state.preferences.units;el('setRpeEnabled').checked=state.preferences.rpeEnabled;
+  el('ruckSettings').open=false;el('resetConfirm').hidden=true;el('setReset').hidden=false;setStatus('','');
+  settingsStart=valuesSignature();updateSettingsSummary();updateSettingsChrome();
  };
+ ['setBw'].concat(paceIds).forEach(function(id){el(id).addEventListener('input',updateSettingsChrome);});
+ el('setUnits').addEventListener('change',updateSettingsChrome);el('setRpeEnabled').addEventListener('change',updateSettingsChrome);
+ paceIds.forEach(function(id){el(id).addEventListener('blur',function(){var pace=parsePace(el(id).value);if(pace!==null&&pace>0)el(id).value=fmtMS(pace);updateSettingsChrome();});});
+ el('ruckDefaults').addEventListener('click',restoreRecommended);el('setCancel').addEventListener('click',function(){closeModal('settings');});
 
- ['setBw'].concat(paceIds).forEach(function(id){
-  el(id).addEventListener('input', updateSettingsChrome);
- });
- paceIds.forEach(function(id){
-  el(id).addEventListener('blur', function(){
-   var pace = parsePace(el(id).value);
-   if (pace !== null && pace > 0) el(id).value = fmtMS(pace);
-   updateSettingsChrome();
-  });
- });
- el('ruckDefaults').addEventListener('click', restoreRecommended);
- el('setCancel').addEventListener('click', function(){ closeModal('settings'); });
-
- /* Replace the legacy export button so its rich label stays intact. */
- var oldExport = el('setExport');
- var exportButton = oldExport.cloneNode(true);
- oldExport.parentNode.replaceChild(exportButton, oldExport);
- exportButton.addEventListener('click', function(){
-  var packet = {
-   app:'Athlete',
-   schema:1,
-   exportedAt:new Date().toISOString(),
-   data:state
-  };
-  var text = JSON.stringify(packet, null, 2);
-  function complete(){
-   setStatus('Backup copied to your clipboard.', 'ok');
-   announce('Athlete backup copied to clipboard.');
-  }
-  function fallback(){ fallbackCopy(text); complete(); }
-  if (navigator.clipboard && navigator.clipboard.writeText){
-   navigator.clipboard.writeText(text).then(complete, fallback);
-  } else fallback();
+ var oldExport=el('setExport');var exportButton=oldExport.cloneNode(true);oldExport.parentNode.replaceChild(exportButton,oldExport);
+ exportButton.addEventListener('click',function(){
+  var packet={app:'Athlete',schema:2,exportedAt:new Date().toISOString(),data:state};var text=JSON.stringify(packet,null,2);
+  function complete(){setStatus('Complete Athlete backup copied to your clipboard.','ok');announce('Athlete backup copied to clipboard.');}
+  function fallback(){fallbackCopy(text);complete();}
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(text).then(complete,fallback);else fallback();
  });
 
- function normaliseBackup(payload){
-  var source = payload && typeof payload === 'object' ? (payload.data || payload.state || payload) : null;
-  if (!source || !Array.isArray(source.entries)) throw new Error('This file is not a valid Athlete backup.');
-
-  var bw = source.bw === null || source.bw === undefined || source.bw === '' ? null : Number(source.bw);
-  if (bw !== null && (!isFinite(bw) || bw <= 0)) throw new Error('The backup contains an invalid bodyweight.');
-
-  var rr = source.ruck || DEFAULT_RUCK;
-  var ruck = { floor:Number(rr.floor), l1:Number(rr.l1), l2:Number(rr.l2), l3:Number(rr.l3), cap:Number(rr.cap) };
-  var validRuck = Object.keys(ruck).every(function(key){ return isFinite(ruck[key]) && ruck[key] > 0; });
-  if (!validRuck || !(ruck.floor > ruck.l1 && ruck.l1 > ruck.l2 && ruck.l2 > ruck.l3 && ruck.l3 > ruck.cap)){
-   throw new Error('The backup contains an invalid Loaded March standard.');
-  }
-
-  var entries = source.entries.map(function(entry, index){
-   if (!entry || !testById(entry.t) || !isFinite(Number(entry.v))) throw new Error('The backup contains an invalid result.');
-   return {
-    id:entry.id ? String(entry.id) : uid(),
-    t:String(entry.t),
-    d:entry.d ? String(entry.d) : todayStr(),
-    v:Number(entry.v),
-    load:entry.load === null || entry.load === undefined ? null : Number(entry.load),
-    dist:entry.dist === null || entry.dist === undefined ? null : Number(entry.dist),
-    raw:entry.raw === null || entry.raw === undefined ? String(entry.v) : String(entry.raw),
-    ts:isFinite(Number(entry.ts)) ? Number(entry.ts) : Date.now() + index
-   };
-  });
-  return { v:1, bw:bw === null ? null : Math.round(bw * 10) / 10, entries:entries, ruck:ruck };
+ function normaliseSet(set){
+  if(!set||!isFinite(Number(set.reps))||!isFinite(Number(set.loadKg)))throw new Error('The backup contains an invalid workout set.');
+  return{id:set.id?String(set.id):uid(),loadKg:Math.max(0,Number(set.loadKg)),reps:Math.max(0,Math.floor(Number(set.reps))),rpe:set.rpe===null||set.rpe===undefined||set.rpe===''?null:Number(set.rpe),type:['work','warmup','drop','failure'].indexOf(set.type)>=0?set.type:'work',done:set.done!==false};
  }
+ function normaliseWorkout(workout,index){
+  if(!workout||!Array.isArray(workout.exercises))throw new Error('The backup contains an invalid workout.');
+  return{id:workout.id?String(workout.id):'w'+uid(),d:workout.d?String(workout.d):todayStr(),title:workout.title?String(workout.title):'Training session',startedAt:isFinite(Number(workout.startedAt))?Number(workout.startedAt):Date.now()+index,completedAt:isFinite(Number(workout.completedAt))?Number(workout.completedAt):Date.now()+index,exercises:workout.exercises.map(function(exercise){if(!exercise||!exercise.exerciseId||!Array.isArray(exercise.sets))throw new Error('The backup contains an invalid exercise.');return{id:exercise.id?String(exercise.id):uid(),exerciseId:String(exercise.exerciseId),name:exercise.name?String(exercise.name):null,sets:exercise.sets.map(normaliseSet)};})};
+ }
+ function normaliseBackup(payload){
+  var source=payload&&typeof payload==='object'?(payload.data||payload.state||payload):null;
+  if(!source||!Array.isArray(source.entries))throw new Error('This file is not a valid Athlete backup.');
+  var bw=source.bw===null||source.bw===undefined||source.bw===''?null:Number(source.bw);if(bw!==null&&(!isFinite(bw)||bw<=0))throw new Error('The backup contains an invalid bodyweight.');
+  var rr=source.ruck||DEFAULT_RUCK;var ruck={floor:Number(rr.floor),l1:Number(rr.l1),l2:Number(rr.l2),l3:Number(rr.l3),cap:Number(rr.cap)};
+  var valid=Object.keys(ruck).every(function(k){return isFinite(ruck[k])&&ruck[k]>0;});if(!valid||!(ruck.floor>ruck.l1&&ruck.l1>ruck.l2&&ruck.l2>ruck.l3&&ruck.l3>ruck.cap))throw new Error('The backup contains an invalid Loaded March standard.');
+  var entries=source.entries.map(function(entry,index){if(!entry||!testById(entry.t)||!isFinite(Number(entry.v)))throw new Error('The backup contains an invalid assessment.');var out={id:entry.id?String(entry.id):uid(),t:String(entry.t),d:entry.d?String(entry.d):todayStr(),v:Number(entry.v),load:entry.load===null||entry.load===undefined?null:Number(entry.load),dist:entry.dist===null||entry.dist===undefined?null:Number(entry.dist),raw:entry.raw===null||entry.raw===undefined?String(entry.v):String(entry.raw),ts:isFinite(Number(entry.ts))?Number(entry.ts):Date.now()+index};if(entry.sourceWorkoutId)out.sourceWorkoutId=String(entry.sourceWorkoutId);return out;});
+  var custom=Array.isArray(source.customExercises)?source.customExercises.map(function(exercise,index){return{id:exercise.id?String(exercise.id):'custom-'+index,name:exercise.name?String(exercise.name):'Custom exercise',group:exercise.group?String(exercise.group):'Other',kind:exercise.kind==='bodyweight'?'bodyweight':'weighted',custom:true};}):[];
+  var prefs=source.preferences||{};
+  return{v:2,bw:bw===null?null:Math.round(bw*10)/10,entries:entries,ruck:ruck,workouts:Array.isArray(source.workouts)?source.workouts.map(normaliseWorkout):[],customExercises:custom,preferences:{units:prefs.units==='kg'?'kg':'lb',rpeEnabled:typeof prefs.rpeEnabled==='boolean'?prefs.rpeEnabled:true},activeWorkout:null};
+ }
+ var importInput=el('setImportFile');el('setImport').addEventListener('click',function(){importInput.value='';importInput.click();});
+ importInput.addEventListener('change',function(){var file=importInput.files&&importInput.files[0];if(!file)return;if(file.size>4*1024*1024){setStatus('That backup is larger than 4 MB and was not imported.','error');return;}setStatus('Checking backup…','');file.text().then(function(text){state=normaliseBackup(JSON.parse(text));save();renderAll();openSettings();setStatus('Backup imported successfully. '+resultLabel(state.entries.length)+' and '+workoutLabel(state.workouts.length)+' restored.','ok');announce('Athlete backup imported.');}).catch(function(error){setStatus(error&&error.message?error.message:'The backup could not be imported.','error');});});
 
- var importInput = el('setImportFile');
- el('setImport').addEventListener('click', function(){
-  importInput.value = '';
-  importInput.click();
- });
- importInput.addEventListener('change', function(){
-  var file = importInput.files && importInput.files[0];
-  if (!file) return;
-  if (file.size > 2 * 1024 * 1024){ setStatus('That backup is larger than 2 MB and was not imported.', 'error'); return; }
-  setStatus('Checking backup…', '');
-  file.text().then(function(text){
-   var next = normaliseBackup(JSON.parse(text));
-   state = next;
-   save();
-   renderAll();
-   openSettings();
-   setStatus('Backup imported successfully. ' + resultLabel(state.entries.length) + ' restored.', 'ok');
-   announce('Athlete backup imported.');
-  }).catch(function(error){
-   setStatus(error && error.message ? error.message : 'The backup could not be imported.', 'error');
-  });
- });
-
- /* Replace the old double-click reset with an explicit confirmation panel. */
- var oldReset = el('setReset');
- var resetButton = oldReset.cloneNode(true);
- oldReset.parentNode.replaceChild(resetButton, oldReset);
- resetButton.addEventListener('click', function(){
-  resetButton.hidden = true;
-  el('resetConfirm').hidden = false;
-  el('resetConfirm').focus();
- });
- el('resetCancel').addEventListener('click', function(){
-  el('resetConfirm').hidden = true;
-  resetButton.hidden = false;
- });
- el('resetConfirmBtn').addEventListener('click', function(){
-  state = {
-   v:1,
-   bw:null,
-   entries:[],
-   ruck:{ floor:DEFAULT_RUCK.floor, l1:DEFAULT_RUCK.l1, l2:DEFAULT_RUCK.l2, l3:DEFAULT_RUCK.l3, cap:DEFAULT_RUCK.cap }
-  };
-  save();
-  closeModal('settings');
-  renderAll();
-  announce('All athlete data cleared.');
- });
+ var oldReset=el('setReset');var resetButton=oldReset.cloneNode(true);oldReset.parentNode.replaceChild(resetButton,oldReset);
+ resetButton.addEventListener('click',function(){resetButton.hidden=true;el('resetConfirm').hidden=false;el('resetConfirm').focus();});
+ el('resetCancel').addEventListener('click',function(){el('resetConfirm').hidden=true;resetButton.hidden=false;});
+ el('resetConfirmBtn').addEventListener('click',function(){state={v:2,bw:null,entries:[],ruck:{floor:DEFAULT_RUCK.floor,l1:DEFAULT_RUCK.l1,l2:DEFAULT_RUCK.l2,l3:DEFAULT_RUCK.l3,cap:DEFAULT_RUCK.cap},workouts:[],customExercises:[],preferences:{units:'lb',rpeEnabled:true},activeWorkout:null};save();closeModal('settings');renderAll();announce('All athlete data cleared.');});
 })();

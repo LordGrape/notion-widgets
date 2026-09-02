@@ -2,137 +2,34 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
-
-const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const sourceNames = [
-  'athlete.source.html',
-  'athlete.css',
-  'theme-upgrade.css',
-  'athlete-settings.css',
-  'core.js',
-  'athlete-body.js',
-  'athlete-data.js',
-  'athlete-render.js',
-  'athlete-flow.js',
-  'athlete-settings.js',
-];
-
-const loaded = Object.fromEntries(
-  await Promise.all(
-    sourceNames.map(async (name) => [name, await readFile(join(root, name), 'utf8')]),
-  ),
-);
-
-for (const name of [
-  'core.js',
-  'athlete-body.js',
-  'athlete-data.js',
-  'athlete-render.js',
-  'athlete-flow.js',
-  'athlete-settings.js',
-]) {
-  new vm.Script(loaded[name], { filename: name });
+const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
+const sourceNames=['athlete.source.html','athlete.css','theme-upgrade.css','athlete-settings.css','athlete-training.css','core.js','athlete-body.js','athlete-data.js','athlete-training-data.js','athlete-render.js','athlete-flow.js','athlete-settings.js','athlete-training-ui.js'];
+const loaded=Object.fromEntries(await Promise.all(sourceNames.map(async name=>[name,await readFile(join(root,name),'utf8')])));
+const scriptNames=['core.js','athlete-body.js','athlete-data.js','athlete-training-data.js','athlete-render.js','athlete-flow.js','athlete-settings.js','athlete-training-ui.js'];
+for(const name of scriptNames)new vm.Script(loaded[name],{filename:name});
+const themeCss=loaded['theme-upgrade.css'].replace(/^\s*@import[^\r\n]*(?:\r?\n)?/i,'');
+if(/@import\b/i.test(themeCss))throw new Error('theme-upgrade.css still contains an external @import.');
+function inlineStyle(name,css){if(/<\/style/i.test(css))throw new Error(`${name} contains a closing style tag.`);return `<style data-athlete-inline="${name}">\n${css.trimEnd()}\n</style>`;}
+function inlineScript(name,source){const safe=source.trimEnd().replace(/<\/script/gi,'<\\/script');return `<script data-athlete-inline="${name}">\n${safe}\n</script>`;}
+function replaceOnce(html,pattern,replacement,label){if(!pattern.test(html))throw new Error(`Could not find ${label} in athlete.source.html.`);return html.replace(pattern,replacement);}
+function withoutInlinePayloads(html){return html.replace(/<script data-athlete-inline="[^"]+">[\s\S]*?<\/script>/g,'<script></script>').replace(/<style data-athlete-inline="[^"]+">[\s\S]*?<\/style>/g,'<style></style>');}
+let html=loaded['athlete.source.html'];
+html=replaceOnce(html,/<script\b[^>]*\bsrc=["']core\.js(?:\?[^"']*)?["'][^>]*><\/script>/i,inlineScript('core.js',loaded['core.js']),'core.js script');
+for(const name of ['athlete.css','theme-upgrade.css','athlete-settings.css','athlete-training.css']){
+ const escaped=name.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+ const css=name==='theme-upgrade.css'?themeCss:loaded[name];
+ html=replaceOnce(html,new RegExp(`<link\\b(?=[^>]*\\brel=["']stylesheet["'])(?=[^>]*\\bhref=["']${escaped}(?:\\?[^"']*)?["'])[^>]*>`,'i'),inlineStyle(name,css),`${name} link`);
 }
-
-const themeCss = loaded['theme-upgrade.css'].replace(
-  /^\s*@import[^\r\n]*(?:\r?\n)?/i,
-  '',
-);
-if (/@import\b/i.test(themeCss)) {
-  throw new Error('theme-upgrade.css still contains an external @import.');
+for(const name of scriptNames.slice(1)){
+ const escaped=name.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+ html=replaceOnce(html,new RegExp(`<script\\b[^>]*\\bsrc=["']${escaped}(?:\\?[^"']*)?["'][^>]*><\\/script>`,'i'),inlineScript(name,loaded[name]),`${name} script`);
 }
-
-function inlineStyle(name, css) {
-  if (/<\/style/i.test(css)) throw new Error(`${name} contains a closing style tag.`);
-  return `<style data-athlete-inline="${name}">\n${css.trimEnd()}\n</style>`;
-}
-
-function inlineScript(name, source) {
-  const safe = source.trimEnd().replace(/<\/script/gi, '<\\/script');
-  return `<script data-athlete-inline="${name}">\n${safe}\n</script>`;
-}
-
-function replaceOnce(html, pattern, replacement, label) {
-  if (!pattern.test(html)) throw new Error(`Could not find ${label} in athlete.source.html.`);
-  return html.replace(pattern, replacement);
-}
-
-function withoutInlinePayloads(html) {
-  return html
-    .replace(/<script data-athlete-inline="[^"]+">[\s\S]*?<\/script>/g, '<script></script>')
-    .replace(/<style data-athlete-inline="[^"]+">[\s\S]*?<\/style>/g, '<style></style>');
-}
-
-let html = loaded['athlete.source.html'];
-html = replaceOnce(
-  html,
-  /<script\b[^>]*\bsrc=["']core\.js(?:\?[^"']*)?["'][^>]*><\/script>/i,
-  inlineScript('core.js', loaded['core.js']),
-  'core.js script',
-);
-html = replaceOnce(
-  html,
-  /<link\b(?=[^>]*\brel=["']stylesheet["'])(?=[^>]*\bhref=["']athlete\.css(?:\?[^"']*)?["'])[^>]*>/i,
-  inlineStyle('athlete.css', loaded['athlete.css']),
-  'athlete.css link',
-);
-html = replaceOnce(
-  html,
-  /<link\b(?=[^>]*\brel=["']stylesheet["'])(?=[^>]*\bhref=["']theme-upgrade\.css(?:\?[^"']*)?["'])[^>]*>/i,
-  inlineStyle('theme-upgrade.css', themeCss),
-  'theme-upgrade.css link',
-);
-html = replaceOnce(
-  html,
-  /<link\b(?=[^>]*\brel=["']stylesheet["'])(?=[^>]*\bhref=["']athlete-settings\.css(?:\?[^"']*)?["'])[^>]*>/i,
-  inlineStyle('athlete-settings.css', loaded['athlete-settings.css']),
-  'athlete-settings.css link',
-);
-
-for (const name of [
-  'athlete-body.js',
-  'athlete-data.js',
-  'athlete-render.js',
-  'athlete-flow.js',
-  'athlete-settings.js',
-]) {
-  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  html = replaceOnce(
-    html,
-    new RegExp(`<script\\b[^>]*\\bsrc=["']${escaped}(?:\\?[^"']*)?["'][^>]*><\\/script>`, 'i'),
-    inlineScript(name, loaded[name]),
-    `${name} script`,
-  );
-}
-
-html = replaceOnce(
-  html,
-  /<title>Athlete<\/title>/i,
-  '<title>Athlete</title>\n<meta name="athlete-build" content="single-file-v2.2">',
-  'Athlete title',
-);
-
-const shellOnly = withoutInlinePayloads(html);
-const localAssetRef = /(?:src|href)=["'](?:\.\/)?(?:core\.js|athlete(?:-body|-data|-render|-flow|-settings)?\.js|athlete(?:-settings)?\.css|theme-upgrade\.css)(?:\?[^"']*)?["']/i;
-if (localAssetRef.test(shellOnly)) throw new Error('Generated athlete.html still references a local runtime asset.');
-if (/<link\b[^>]*\brel=["']stylesheet["']/i.test(shellOnly)) {
-  throw new Error('Generated athlete.html still contains a stylesheet link.');
-}
-if (/fonts\.googleapis\.com/i.test(html)) {
-  throw new Error('Generated athlete.html still depends on Google Fonts.');
-}
-
-const banner = '<!-- Generated by tools/build-athlete.mjs. Edit athlete.source.html or its source assets, not this file. -->\n';
-const output = banner + html.trimStart();
-const outputPath = join(root, 'athlete.html');
-
-if (process.argv.includes('--check')) {
-  const current = await readFile(outputPath, 'utf8');
-  if (current !== output) {
-    throw new Error('athlete.html is stale. Run node tools/build-athlete.mjs.');
-  }
-  console.log(`athlete.html is current (${Buffer.byteLength(output).toLocaleString()} bytes).`);
-} else {
-  await writeFile(outputPath, output, 'utf8');
-  console.log(`Built athlete.html (${Buffer.byteLength(output).toLocaleString()} bytes).`);
-}
+html=replaceOnce(html,/<title>Athlete<\/title>/i,'<title>Athlete</title>\n<meta name="athlete-build" content="single-file-v2.2">','Athlete title');
+const shellOnly=withoutInlinePayloads(html);
+const localAssetRef=/(?:src|href)=["'](?:\.\/)?(?:core\.js|athlete(?:-body|-data|-training-data|-render|-flow|-settings|-training-ui)?\.js|athlete(?:-settings|-training)?\.css|theme-upgrade\.css)(?:\?[^"']*)?["']/i;
+if(localAssetRef.test(shellOnly))throw new Error('Generated athlete.html still references a local runtime asset.');
+if(/<link\b[^>]*\brel=["']stylesheet["']/i.test(shellOnly))throw new Error('Generated athlete.html still contains a stylesheet link.');
+if(/fonts\.googleapis\.com/i.test(html))throw new Error('Generated athlete.html still depends on Google Fonts.');
+const banner='<!-- Generated by tools/build-athlete.mjs. Edit athlete.source.html or its source assets, not this file. -->\n';
+const output=banner+html.trimStart();const outputPath=join(root,'athlete.html');
+if(process.argv.includes('--check')){const current=await readFile(outputPath,'utf8');if(current!==output)throw new Error('athlete.html is stale. Run node tools/build-athlete.mjs.');console.log(`athlete.html is current (${Buffer.byteLength(output).toLocaleString()} bytes).`);}else{await writeFile(outputPath,output,'utf8');console.log(`Built athlete.html (${Buffer.byteLength(output).toLocaleString()} bytes).`);}

@@ -1,5 +1,4 @@
 name: Build and verify athlete widget
-
 on:
   push:
     branches: [main]
@@ -7,28 +6,27 @@ on:
       - athlete.source.html
       - athlete.css
       - athlete-settings.css
+      - athlete-training.css
       - theme-upgrade.css
       - core.js
       - athlete-body.js
       - athlete-data.js
+      - athlete-training-data.js
       - athlete-render.js
       - athlete-flow.js
       - athlete-settings.js
+      - athlete-training-ui.js
       - tools/build-athlete.mjs
       - tools/verify-athlete.mjs
       - .github/workflows/build-athlete.yml
   workflow_dispatch:
-
 permissions:
   contents: write
-
 env:
   ATHLETE_URL: https://notion-widgets-93r.pages.dev/athlete.html
-
 concurrency:
   group: build-athlete-main
   cancel-in-progress: true
-
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
@@ -37,12 +35,23 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Assemble and verify source
+      - name: Assemble and verify
+        id: verify
+        shell: bash
         run: |
-          node tools/build-athlete.mjs
-          node tools/build-athlete.mjs --check
-          node tools/verify-athlete.mjs
-      - name: Publish the generated widget
+          set +e
+          (
+            set -e
+            node tools/build-athlete.mjs
+            node tools/build-athlete.mjs --check
+            node tools/verify-athlete.mjs
+          ) > athlete-v3-status.txt 2>&1
+          status=$?
+          cat athlete-v3-status.txt
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Publish generated widget
+        if: steps.verify.outputs.status == '0'
         run: |
           if git diff --quiet -- athlete.html; then
             echo "athlete.html is already current"
@@ -50,26 +59,51 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add athlete.html
-            git commit -m "Build self-contained Athlete widget"
+            git commit -m "Build Athlete training tracker"
             git push
           fi
-      - name: Verify production deployment
+      - name: Verify production
+        if: steps.verify.outputs.status == '0'
+        id: production
         shell: bash
         run: |
-          deployed=0
-          for attempt in $(seq 1 30); do
-            page="$(curl -fsSL --max-time 20 "${ATHLETE_URL}?athlete-settings=${GITHUB_RUN_ID}-${attempt}" || true)"
-            bytes="$(printf '%s' "$page" | wc -c)"
-            if [[ "$page" == *'<meta name="athlete-build" content="single-file-v2.2">'* ]] \
-              && [[ "$page" == *'id="setImport"'* ]] \
-              && [[ "$page" == *'Loaded march scoring'* ]] \
-              && [[ "$page" == *'data-athlete-inline="athlete-settings.js"'* ]] \
-              && [ "$bytes" -gt 120000 ]; then
-              echo "Production is serving the professional settings build (${bytes} bytes)."
-              deployed=1
-              break
-            fi
-            echo "Waiting for Cloudflare Pages deployment (${attempt}/30)."
-            sleep 10
-          done
-          [ "$deployed" -eq 1 ]
+          set +e
+          (
+            set -e
+            deployed=0
+            for attempt in $(seq 1 30); do
+              page="$(curl -fsSL --max-time 20 "${ATHLETE_URL}?athlete-training=${GITHUB_RUN_ID}-${attempt}" || true)"
+              bytes="$(printf '%s' "$page" | wc -c)"
+              if [[ "$page" == *'id="trainView"'* ]] \
+                && [[ "$page" == *'id="workoutSheet"'* ]] \
+                && [[ "$page" == *'data-athlete-inline="athlete-training-ui.js"'* ]] \
+                && [[ "$page" == *'Estimated 1RM over time'* ]] \
+                && [ "$bytes" -gt 180000 ]; then
+                echo "Production is serving the Athlete training tracker (${bytes} bytes)."
+                deployed=1
+                break
+              fi
+              echo "Waiting for Cloudflare Pages deployment (${attempt}/30)."
+              sleep 10
+            done
+            [ "$deployed" -eq 1 ]
+          ) >> athlete-v3-status.txt 2>&1
+          status=$?
+          cat athlete-v3-status.txt
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Record verification
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add athlete-v3-status.txt
+          if git diff --cached --quiet; then
+            echo "Verification record is current"
+          else
+            git commit -m "Record Athlete training verification"
+            git push
+          fi
+      - name: Report failure
+        if: steps.verify.outputs.status != '0' || (steps.verify.outputs.status == '0' && steps.production.outputs.status != '0')
+        run: exit 1

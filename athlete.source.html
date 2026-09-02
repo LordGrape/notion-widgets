@@ -8,161 +8,99 @@
 <link rel="stylesheet" href="athlete.css?v=3">
 <link rel="stylesheet" href="theme-upgrade.css?v=20260817-royal-violet">
 <link rel="stylesheet" href="athlete-settings.css?v=1">
+<link rel="stylesheet" href="athlete-training.css?v=1">
 </head>
 <body>
 <canvas id="bg"></canvas>
 <canvas id="fx"></canvas>
 <main class="container card" id="app">
  <div class="top">
-  <div class="label">Athlete Rating</div>
-  <div class="top-actions">
-   <span class="sync" id="syncState"></span>
-   <button class="icon-btn" id="settingsBtn" aria-label="Settings" data-snd>&#9881;</button>
-  </div>
+  <div class="label">Athlete</div>
+  <div class="top-actions"><span class="sync" id="syncState"></span><button class="icon-btn" id="settingsBtn" aria-label="Settings" data-snd>&#9881;</button></div>
  </div>
- <section class="hero">
-  <div class="hero-left">
-   <div class="ovr-row"><span class="ovr stats-num" id="ovrNum">&#8212;</span><span class="ovr-max">/ 99</span></div>
-   <div class="ovr-band" id="ovrBand"></div>
-   <div class="hero-name" id="heroName">ATHLETE</div>
-   <div class="hero-tally" id="heroTally">Log your first result to bring the body online.</div>
-   <div class="seg" role="tablist" aria-label="View">
-    <button id="tabBody" class="on" data-snd>Body</button>
-    <button id="tabRadar" data-snd>Radar</button>
+ <nav class="app-nav" role="tablist" aria-label="Athlete sections">
+  <button class="on" data-app-view="profile" role="tab" aria-selected="true" data-snd>Profile</button>
+  <button data-app-view="train" role="tab" aria-selected="false" data-snd>Train</button>
+  <button data-app-view="progress" role="tab" aria-selected="false" data-snd>Progress</button>
+ </nav>
+
+ <section class="app-view" id="profileView">
+  <section class="hero">
+   <div class="hero-left">
+    <div class="ovr-row"><span class="ovr stats-num" id="ovrNum">&#8212;</span><span class="ovr-max">/ 99</span></div>
+    <div class="ovr-band" id="ovrBand"></div>
+    <div class="hero-name" id="heroName">ATHLETE</div>
+    <div class="hero-tally" id="heroTally">Log your first assessment to bring the body online.</div>
+    <div class="seg" role="tablist" aria-label="Performance view"><button id="tabBody" class="on" data-snd>Body</button><button id="tabRadar" data-snd>Radar</button></div>
    </div>
-  </div>
-  <div class="hero-viz">
-   <div id="bodyWrap" class="bodymap" aria-label="Body map: hover a region for its tier"></div>
-   <canvas id="radar" class="radar view-off" aria-label="Attribute radar chart"></canvas>
-  </div>
+   <div class="hero-viz"><div id="bodyWrap" class="bodymap" aria-label="Body map: hover a region for its tier"></div><canvas id="radar" class="radar view-off" aria-label="Attribute radar chart"></canvas></div>
+  </section>
+  <section id="attrList" class="attrs"></section>
+  <div class="profile-actions"><button class="form-btn form-btn-primary log-btn" id="profileStartWorkout" data-snd>Start workout</button><button class="form-btn assessment-btn" id="logBtn" data-snd>Log assessment</button></div>
+  <footer class="foot">Bands &middot; Entry 60 &middot; Pro 75 &middot; Elite 90 &middot; Cap 99</footer>
  </section>
- <section id="attrList" class="attrs"></section>
- <button class="form-btn form-btn-primary log-btn" id="logBtn" data-snd>+ Log result</button>
- <footer class="foot">Bands &middot; Entry 60 &middot; Pro 75 &middot; Elite 90 &middot; Cap 99</footer>
+
+ <section class="app-view" id="trainView" hidden>
+  <div class="view-intro"><div class="view-intro-copy"><div class="view-kicker">Daily training</div><h2>Training log</h2><p>Record working sets, repeat previous sessions and let Athlete calculate your progression.</p></div><button class="view-primary" id="startWorkoutBtn" data-snd>Start workout</button></div>
+  <div class="training-notice" id="trainingNotice" hidden></div>
+  <div class="active-workout" id="activeWorkoutBanner" hidden><span aria-hidden="true"></span><div><strong>Workout in progress</strong><small id="activeWorkoutText"></small></div><button id="resumeWorkoutBtn" data-snd>Resume</button></div>
+  <div class="training-stat-grid" aria-label="This week"><div class="training-stat"><span>Sessions</span><strong id="weekSessions">0</strong></div><div class="training-stat"><span>Work sets</span><strong id="weekSets">0</strong></div><div class="training-stat"><span>Volume</span><strong id="weekVolume">0 lb</strong></div><div class="training-stat"><span>Focus</span><strong id="weekFocus">None</strong></div></div>
+  <div class="training-section-head"><h3>Recent workouts</h3><span>This week and beyond</span></div>
+  <div id="recentWorkouts"></div>
+ </section>
+
+ <section class="app-view" id="progressView" hidden>
+  <div class="view-intro"><div class="view-intro-copy"><div class="view-kicker">Long-term signal</div><h2>Progress</h2><p>Follow estimated strength, rep records, workload and consistency without needing to max out.</p></div></div>
+  <div class="training-stat-grid"><div class="training-stat"><span>Workouts</span><strong id="progressSessions">0</strong></div><div class="training-stat"><span>Week sets</span><strong id="progressWeekSets">0</strong></div><div class="training-stat"><span>Week volume</span><strong id="progressWeekVolume">0 lb</strong></div><div class="training-stat"><span>Tracked lifts</span><strong id="progressTracked">0</strong></div></div>
+  <div class="progress-controls"><label for="progressExercise">Exercise</label><select id="progressExercise"></select></div>
+  <div class="progress-chart-card"><h3 id="progressChartTitle">Estimated 1RM over time</h3><div id="progressChart"></div></div>
+  <div class="progress-exercise-stats" id="progressExerciseStats"></div>
+  <div class="progress-history" id="progressHistory"></div>
+ </section>
 </main>
 
 <div class="tip" id="tip" hidden></div>
+<div class="overlay" id="logSheet" hidden><div class="card sheet" role="dialog" aria-modal="true" aria-label="Log assessment"><div class="sheet-head"><div class="panel-title" id="logTitle">Log assessment</div><button class="icon-btn" data-close="logSheet" aria-label="Close">&times;</button></div><div id="logBody"></div></div></div>
+<div class="overlay" id="detail" hidden><div class="card sheet" role="dialog" aria-modal="true" aria-label="Attribute detail"><div class="sheet-head"><div class="panel-title" id="detailTitle">Detail</div><button class="icon-btn" data-close="detail" aria-label="Close">&times;</button></div><div id="detailBody"></div></div></div>
 
-<div class="overlay" id="logSheet" hidden>
- <div class="card sheet" role="dialog" aria-modal="true" aria-label="Log result">
-  <div class="sheet-head"><div class="panel-title" id="logTitle">Log result</div><button class="icon-btn" data-close="logSheet" aria-label="Close">&times;</button></div>
-  <div id="logBody"></div>
+<div class="overlay" id="workoutSheet" hidden>
+ <div class="card sheet workout-sheet" role="dialog" aria-modal="true" aria-label="Workout editor">
+  <div class="sheet-head workout-head"><div class="workout-head-copy"><div class="workout-title-field"><label for="workoutTitleInput">Workout</label><input id="workoutTitleInput" autocomplete="off" value="Training session"></div><div class="workout-date-field"><label for="workoutDateInput">Date</label><input type="date" id="workoutDateInput"></div></div><button class="icon-btn" data-close="workoutSheet" aria-label="Close workout">&times;</button></div>
+  <div class="workout-scroll"><div class="workout-totals" id="workoutTotals"></div><div id="workoutExercises"></div><button class="add-exercise" id="addExerciseBtn" data-snd>+ Add exercise</button><div class="workout-err" id="workoutErr" role="alert"></div></div>
+  <div class="workout-footer"><button class="form-btn" id="workoutDiscardBtn">Discard</button><button class="form-btn form-btn-primary" id="workoutFinishBtn" data-snd>Finish workout</button></div>
  </div>
 </div>
 
-<div class="overlay" id="detail" hidden>
- <div class="card sheet" role="dialog" aria-modal="true" aria-label="Attribute detail">
-  <div class="sheet-head"><div class="panel-title" id="detailTitle">Detail</div><button class="icon-btn" data-close="detail" aria-label="Close">&times;</button></div>
-  <div id="detailBody"></div>
+<div class="overlay" id="exercisePicker" hidden>
+ <div class="card sheet exercise-picker-sheet" role="dialog" aria-modal="true" aria-label="Choose exercise">
+  <div class="sheet-head exercise-picker-head"><div><div class="panel-title">Add exercise</div><div class="settings-subtitle">Choose a lift or create your own.</div></div><button class="icon-btn" data-close="exercisePicker" aria-label="Close exercise picker">&times;</button></div>
+  <div class="exercise-picker-search"><input id="exerciseSearch" type="search" placeholder="Search exercises or muscle groups" autocomplete="off"></div>
+  <div class="exercise-picker-list" id="exercisePickerList"></div>
+  <div class="custom-exercise"><span>Custom exercise</span><div class="custom-exercise-row"><input id="customExerciseName" placeholder="Exercise name"><select id="customExerciseGroup"><option>Chest</option><option>Back</option><option>Shoulders</option><option>Arms</option><option>Legs</option><option>Posterior chain</option><option>Core</option><option selected>Other</option></select><button id="createExerciseBtn">Create</button></div><div class="exercise-picker-err" id="exercisePickerErr"></div></div>
  </div>
 </div>
 
 <div class="overlay" id="settings" hidden>
  <div class="card sheet settings-sheet" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
-  <div class="sheet-head settings-head">
-   <div>
-    <div class="settings-eyebrow">Athlete configuration</div>
-    <div class="panel-title" id="settingsTitle">Athlete settings</div>
-    <div class="settings-subtitle">Profile, scoring and backups in one place.</div>
-   </div>
-   <button class="icon-btn" data-close="settings" aria-label="Close settings">&times;</button>
-  </div>
-
+  <div class="sheet-head settings-head"><div><div class="settings-eyebrow">Athlete configuration</div><div class="panel-title" id="settingsTitle">Athlete settings</div><div class="settings-subtitle">Profile, training, scoring and backups in one place.</div></div><button class="icon-btn" data-close="settings" aria-label="Close settings">&times;</button></div>
   <div class="settings-scroll">
-   <div class="settings-profile-card">
-    <div class="settings-avatar" aria-hidden="true">A</div>
-    <div class="settings-profile-copy">
-     <strong>Your athlete profile</strong>
-     <span id="setSummaryCopy">No results logged yet</span>
-    </div>
-    <span class="settings-save-state" id="setSaveState">Up to date</span>
-   </div>
-
-   <section class="settings-section" aria-labelledby="profileSettingsTitle">
-    <div class="settings-section-head">
-     <div>
-      <h3 id="profileSettingsTitle">Profile</h3>
-      <p>One optional value for accurate relative grip scoring.</p>
-     </div>
-     <span class="settings-pill" id="setProfileState">Optional</span>
-    </div>
-    <div class="fld settings-field">
-     <label for="setBw">Bodyweight</label>
-     <div class="input-unit"><input id="setBw" inputmode="decimal" autocomplete="off" placeholder="77.1"><span>kg</span></div>
-     <div class="field-help">Used only to normalise grip strength. Leave blank if you do not log grip tests.</div>
-    </div>
-   </section>
-
-   <details class="settings-section settings-disclosure" id="ruckSettings">
-    <summary>
-     <span class="settings-chevron" aria-hidden="true">&#8250;</span>
-     <span class="settings-summary-label"><strong>Loaded march scoring</strong><small>Advanced personal pace standard</small></span>
-     <span class="settings-pill" id="setRuckMode">Recommended</span>
-    </summary>
-    <div class="settings-disclosure-body">
-     <div class="settings-callout"><strong>Only affects Loaded March</strong><span>Set five pace anchors from slowest to fastest. Every other test keeps its built-in scoring.</span></div>
-     <div class="pace-table" role="group" aria-label="Loaded march pace anchors">
-      <div class="pace-row pace-header" aria-hidden="true"><span>Standard</span><span>Score</span><span>Pace</span></div>
-      <div class="pace-row"><label for="rkFloor">Baseline</label><span class="pace-score">25</span><div class="pace-input"><input id="rkFloor" inputmode="decimal" placeholder="14:00" aria-label="Baseline pace"><span>/km</span></div></div>
-      <div class="pace-row"><label for="rkL1">Entry</label><span class="pace-score">60</span><div class="pace-input"><input id="rkL1" inputmode="decimal" placeholder="12:30" aria-label="Entry pace"><span>/km</span></div></div>
-      <div class="pace-row"><label for="rkL2">Pro</label><span class="pace-score">75</span><div class="pace-input"><input id="rkL2" inputmode="decimal" placeholder="11:40" aria-label="Pro pace"><span>/km</span></div></div>
-      <div class="pace-row"><label for="rkL3">Elite</label><span class="pace-score">90</span><div class="pace-input"><input id="rkL3" inputmode="decimal" placeholder="11:00" aria-label="Elite pace"><span>/km</span></div></div>
-      <div class="pace-row"><label for="rkCap">Cap</label><span class="pace-score">99</span><div class="pace-input"><input id="rkCap" inputmode="decimal" placeholder="9:30" aria-label="Cap pace"><span>/km</span></div></div>
-     </div>
-     <button type="button" class="settings-text-btn" id="ruckDefaults" data-snd>Restore recommended standard</button>
-    </div>
-   </details>
-
-   <section class="settings-section" aria-labelledby="dataSettingsTitle">
-    <div class="settings-section-head">
-     <div>
-      <h3 id="dataSettingsTitle">Data and backups</h3>
-      <p>Move or safeguard your profile without exposing it publicly.</p>
-     </div>
-     <span class="settings-pill" id="setDataCount">0 results</span>
-    </div>
-    <div class="settings-action-list">
-     <button type="button" class="settings-action" id="setExport" data-snd>
-      <span class="settings-action-icon" aria-hidden="true">&#8595;</span>
-      <span class="settings-action-copy"><strong>Copy backup</strong><small>Copy all settings and results as portable JSON.</small></span>
-      <span class="settings-action-meta">Copy</span>
-     </button>
-     <button type="button" class="settings-action" id="setImport" data-snd>
-      <span class="settings-action-icon" aria-hidden="true">&#8593;</span>
-      <span class="settings-action-copy"><strong>Import backup</strong><small>Restore a previously exported Athlete JSON file.</small></span>
-      <span class="settings-action-meta">Choose file</span>
-     </button>
-     <input type="file" id="setImportFile" accept="application/json,.json" hidden>
-    </div>
-    <div class="settings-status" id="setBackupStatus" role="status" aria-live="polite"></div>
-   </section>
-
-   <section class="settings-section settings-danger-zone" aria-labelledby="resetSettingsTitle">
-    <div class="settings-section-head">
-     <div>
-      <h3 id="resetSettingsTitle">Reset athlete data</h3>
-      <p>Delete every result and restore the recommended scoring standard.</p>
-     </div>
-    </div>
-    <button type="button" class="form-btn settings-reset-btn" id="setReset">Reset athlete data</button>
-    <div class="reset-confirm" id="resetConfirm" hidden tabindex="-1">
-     <div><strong>Delete everything?</strong><span>This action cannot be undone. Export a backup first if needed.</span></div>
-     <div class="reset-confirm-actions"><button type="button" class="form-btn" id="resetCancel">Cancel</button><button type="button" class="form-btn form-btn-danger" id="resetConfirmBtn">Delete everything</button></div>
-    </div>
-   </section>
+   <div class="settings-profile-card"><div class="settings-avatar" aria-hidden="true">A</div><div class="settings-profile-copy"><strong>Your athlete profile</strong><span id="setSummaryCopy">No records yet</span></div><span class="settings-save-state" id="setSaveState">Up to date</span></div>
+   <section class="settings-section" aria-labelledby="profileSettingsTitle"><div class="settings-section-head"><div><h3 id="profileSettingsTitle">Profile</h3><p>One optional value for accurate relative grip scoring.</p></div><span class="settings-pill" id="setProfileState">Optional</span></div><div class="fld settings-field"><label for="setBw">Bodyweight</label><div class="input-unit"><input id="setBw" inputmode="decimal" autocomplete="off" placeholder="77.1"><span>kg</span></div><div class="field-help">Used only to normalise grip strength. Leave blank if you do not log grip tests.</div></div></section>
+   <section class="settings-section" aria-labelledby="trainingSettingsTitle"><div class="settings-section-head"><div><h3 id="trainingSettingsTitle">Training preferences</h3><p>Keep logging fast and matched to the equipment you use.</p></div></div><div class="settings-choice"><label for="setUnits">Weight units<select id="setUnits"><option value="lb">Pounds (lb)</option><option value="kg">Kilograms (kg)</option></select></label><label class="settings-toggle" for="setRpeEnabled"><span>Show optional RPE fields</span><input type="checkbox" id="setRpeEnabled"></label></div></section>
+   <details class="settings-section settings-disclosure" id="ruckSettings"><summary><span class="settings-chevron" aria-hidden="true">&#8250;</span><span class="settings-summary-label"><strong>Loaded march scoring</strong><small>Advanced personal pace standard</small></span><span class="settings-pill" id="setRuckMode">Recommended</span></summary><div class="settings-disclosure-body"><div class="settings-callout"><strong>Only affects Loaded March</strong><span>Set five pace anchors from slowest to fastest. Every other test keeps its built-in scoring.</span></div><div class="pace-table" role="group" aria-label="Loaded march pace anchors"><div class="pace-row pace-header" aria-hidden="true"><span>Standard</span><span>Score</span><span>Pace</span></div><div class="pace-row"><label for="rkFloor">Baseline</label><span class="pace-score">25</span><div class="pace-input"><input id="rkFloor" inputmode="decimal" placeholder="14:00"><span>/km</span></div></div><div class="pace-row"><label for="rkL1">Entry</label><span class="pace-score">60</span><div class="pace-input"><input id="rkL1" inputmode="decimal" placeholder="12:30"><span>/km</span></div></div><div class="pace-row"><label for="rkL2">Pro</label><span class="pace-score">75</span><div class="pace-input"><input id="rkL2" inputmode="decimal" placeholder="11:40"><span>/km</span></div></div><div class="pace-row"><label for="rkL3">Elite</label><span class="pace-score">90</span><div class="pace-input"><input id="rkL3" inputmode="decimal" placeholder="11:00"><span>/km</span></div></div><div class="pace-row"><label for="rkCap">Cap</label><span class="pace-score">99</span><div class="pace-input"><input id="rkCap" inputmode="decimal" placeholder="9:30"><span>/km</span></div></div></div><button type="button" class="settings-text-btn" id="ruckDefaults" data-snd>Restore recommended standard</button></div></details>
+   <section class="settings-section" aria-labelledby="dataSettingsTitle"><div class="settings-section-head"><div><h3 id="dataSettingsTitle">Data and backups</h3><p>Move or safeguard your complete profile and workout history.</p></div><span class="settings-pill" id="setDataCount">0 records</span></div><div class="settings-action-list"><button type="button" class="settings-action" id="setExport" data-snd><span class="settings-action-icon" aria-hidden="true">&#8595;</span><span class="settings-action-copy"><strong>Copy backup</strong><small>Copy assessments, workouts and settings as JSON.</small></span><span class="settings-action-meta">Copy</span></button><button type="button" class="settings-action" id="setImport" data-snd><span class="settings-action-icon" aria-hidden="true">&#8593;</span><span class="settings-action-copy"><strong>Import backup</strong><small>Restore a previously exported Athlete JSON file.</small></span><span class="settings-action-meta">Choose file</span></button><input type="file" id="setImportFile" accept="application/json,.json" hidden></div><div class="settings-status" id="setBackupStatus" role="status" aria-live="polite"></div></section>
+   <section class="settings-section settings-danger-zone" aria-labelledby="resetSettingsTitle"><div class="settings-section-head"><div><h3 id="resetSettingsTitle">Reset athlete data</h3><p>Delete assessments, workouts and custom exercises, then restore defaults.</p></div></div><button type="button" class="form-btn settings-reset-btn" id="setReset">Reset athlete data</button><div class="reset-confirm" id="resetConfirm" hidden tabindex="-1"><div><strong>Delete everything?</strong><span>This action cannot be undone. Export a backup first if needed.</span></div><div class="reset-confirm-actions"><button type="button" class="form-btn" id="resetCancel">Cancel</button><button type="button" class="form-btn form-btn-danger" id="resetConfirmBtn">Delete everything</button></div></div></section>
   </div>
-
-  <div class="settings-footer">
-   <div class="err" id="setErr" role="alert"></div>
-   <div class="settings-footer-actions"><button class="form-btn" id="setCancel" data-snd>Cancel</button><button class="form-btn form-btn-primary" id="setSave" data-snd disabled>Save changes</button></div>
-  </div>
+  <div class="settings-footer"><div class="err" id="setErr" role="alert"></div><div class="settings-footer-actions"><button class="form-btn" id="setCancel" data-snd>Cancel</button><button class="form-btn form-btn-primary" id="setSave" data-snd disabled>Save changes</button></div></div>
  </div>
 </div>
 
 <script src="athlete-body.js?v=3"></script>
 <script src="athlete-data.js?v=3"></script>
+<script src="athlete-training-data.js?v=1"></script>
 <script src="athlete-render.js?v=3"></script>
 <script src="athlete-flow.js?v=3"></script>
-<script src="athlete-settings.js?v=1"></script>
+<script src="athlete-settings.js?v=2"></script>
+<script src="athlete-training-ui.js?v=1"></script>
 </body>
 </html>
