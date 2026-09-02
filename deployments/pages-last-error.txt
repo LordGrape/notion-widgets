@@ -1,5 +1,5 @@
-Pages deployment exit code: 1
-  If you would like to use this configuration file to deploy your project, please use "pages_build_output_dir" to specify the directory of static files to upload.
-  Ignoring configuration file for now, and proceeding with project deploy.
-[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mA request to the Cloudflare API (/accounts/[redacted-hex]/pages/projects/notion-widgets) failed.[0m
-  Project not found. The specified project name does not match any of your existing projects. [code: 8000007]
+Pages deployment succeeded but production verification failed.
+Resolved project: grape-widgets
+Preview deployment: https://4a7a677e.notion-widgets-93r.pages.dev
+Available projects:
+grape-widgets	notion-widgets-93r.pages.dev
