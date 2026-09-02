@@ -47,12 +47,13 @@ jobs:
 
       - name: Verify production assets
         run: |
+          BASE="https:""//notion-widgets-93r.pages.dev"
           for attempt in 1 2 3 4 5 6 7 8 9 10; do
-            if curl -fsS "https://notion-widgets-93r.pages.dev/action-blocks.js?sha=${GITHUB_SHA}" -o /tmp/action-blocks.js; then
+            if curl -fsS "${BASE}/action-blocks.js?sha=${GITHUB_SHA}" -o /tmp/action-blocks.js; then
               grep -q 'Action Blocks v1' /tmp/action-blocks.js
               grep -q 'isTodoWidget=false' /tmp/action-blocks.js
-              curl -fsS "https://notion-widgets-93r.pages.dev/timetable.html?sha=${GITHUB_SHA}" | grep -q 'action-blocks.js'
-              curl -fsS "https://notion-widgets-93r.pages.dev/todo.html?sha=${GITHUB_SHA}" | grep -q 'action-blocks.js'
+              curl -fsS "${BASE}/timetable.html?sha=${GITHUB_SHA}" | grep -q 'action-blocks.js'
+              curl -fsS "${BASE}/todo.html?sha=${GITHUB_SHA}" | grep -q 'action-blocks.js'
               exit 0
             fi
             sleep 6
