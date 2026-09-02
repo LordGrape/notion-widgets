@@ -36,22 +36,11 @@ jobs:
         with:
           node-version: 22
       - name: Assemble and verify
-        id: verify
-        shell: bash
         run: |
-          set +e
-          (
-            set -e
-            node tools/build-athlete.mjs
-            node tools/build-athlete.mjs --check
-            node tools/verify-athlete.mjs
-          ) > athlete-v3-status.txt 2>&1
-          status=$?
-          cat athlete-v3-status.txt
-          echo "status=$status" >> "$GITHUB_OUTPUT"
-          exit 0
+          node tools/build-athlete.mjs
+          node tools/build-athlete.mjs --check
+          node tools/verify-athlete.mjs
       - name: Publish generated widget
-        if: steps.verify.outputs.status == '0'
         run: |
           if git diff --quiet -- athlete.html; then
             echo "athlete.html is already current"
@@ -63,49 +52,24 @@ jobs:
             git push
           fi
       - name: Verify production
-        if: steps.verify.outputs.status == '0'
-        id: production
         shell: bash
         run: |
-          set +e
-          (
-            set -e
-            deployed=0
-            for attempt in $(seq 1 30); do
-              page="$(curl -fsSL --max-time 20 "${ATHLETE_URL}?athlete-training=${GITHUB_RUN_ID}-${attempt}" || true)"
-              bytes="$(printf '%s' "$page" | wc -c)"
-              if [[ "$page" == *'id="trainView"'* ]] \
-                && [[ "$page" == *'id="workoutSheet"'* ]] \
-                && [[ "$page" == *'data-athlete-inline="athlete-training-ui.js"'* ]] \
-                && [[ "$page" == *'Estimated 1RM over time'* ]] \
-                && [[ "$page" == *'global lexical bindings'* ]] \
-                && [[ "$page" == *'window.SyncEngine = SyncEngine'* ]] \
-                && [ "$bytes" -gt 265100 ]; then
-                echo "Production is serving the persisted Athlete training tracker (${bytes} bytes)."
-                deployed=1
-                break
-              fi
-              echo "Waiting for Cloudflare Pages deployment (${attempt}/30)."
-              sleep 10
-            done
-            [ "$deployed" -eq 1 ]
-          ) >> athlete-v3-status.txt 2>&1
-          status=$?
-          cat athlete-v3-status.txt
-          echo "status=$status" >> "$GITHUB_OUTPUT"
-          exit 0
-      - name: Record verification
-        if: always()
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add athlete-v3-status.txt
-          if git diff --cached --quiet; then
-            echo "Verification record is current"
-          else
-            git commit -m "Record Athlete training verification"
-            git push
-          fi
-      - name: Report failure
-        if: steps.verify.outputs.status != '0' || (steps.verify.outputs.status == '0' && steps.production.outputs.status != '0')
-        run: exit 1
+          deployed=0
+          for attempt in $(seq 1 30); do
+            page="$(curl -fsSL --max-time 20 "${ATHLETE_URL}?athlete-training=${GITHUB_RUN_ID}-${attempt}" || true)"
+            bytes="$(printf '%s' "$page" | wc -c)"
+            if [[ "$page" == *'id="trainView"'* ]] \
+              && [[ "$page" == *'id="workoutSheet"'* ]] \
+              && [[ "$page" == *'data-athlete-inline="athlete-training-ui.js"'* ]] \
+              && [[ "$page" == *'Estimated 1RM over time'* ]] \
+              && [[ "$page" == *'global lexical bindings'* ]] \
+              && [[ "$page" == *'window.SyncEngine = SyncEngine'* ]] \
+              && [ "$bytes" -gt 265100 ]; then
+              echo "Production is serving the persisted Athlete training tracker (${bytes} bytes)."
+              deployed=1
+              break
+            fi
+            echo "Waiting for Cloudflare Pages deployment (${attempt}/30)."
+            sleep 10
+          done
+          [ "$deployed" -eq 1 ]
