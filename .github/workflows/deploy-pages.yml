@@ -1,0 +1,70 @@
+name: Deploy Widgets
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '*.html'
+      - '*.js'
+      - '*.css'
+      - 'quotes.json'
+      - 'assets/**'
+      - 'studyengine/**'
+      - '.github/workflows/deploy-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: deploy-widgets-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Prepare static site
+        run: |
+          rm -rf site
+          mkdir site
+          find . -maxdepth 1 -type f \( -name '*.html' -o -name '*.js' -o -name '*.css' -o -name 'quotes.json' \) -exec cp '{}' site/ \;
+          cp -R assets site/assets
+          cp -R studyengine site/studyengine
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy site --project-name=notion-widgets-93r --branch=main
+
+      - name: Verify production assets
+        run: |
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            if curl -fsS "https://notion-widgets-93r.pages.dev/action-blocks.js?sha=${GITHUB_SHA}" -o /tmp/action-blocks.js; then
+              grep -q 'Action Blocks v1' /tmp/action-blocks.js
+              grep -q 'isTodoWidget=false' /tmp/action-blocks.js
+              curl -fsS "https://notion-widgets-93r.pages.dev/timetable.html?sha=${GITHUB_SHA}" | grep -q 'action-blocks.js'
+              curl -fsS "https://notion-widgets-93r.pages.dev/todo.html?sha=${GITHUB_SHA}" | grep -q 'action-blocks.js'
+              exit 0
+            fi
+            sleep 6
+          done
+          exit 1
+
+      - name: Record verified deployment
+        run: |
+          mkdir -p deployments
+          printf '%s\n' "${GITHUB_SHA}" > deployments/pages-main.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add deployments/pages-main.txt
+          git commit -m 'Record verified Pages deployment'
+          git push origin HEAD:main
