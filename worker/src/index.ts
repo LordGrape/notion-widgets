@@ -23,6 +23,7 @@ import { handleTriage } from "./routes/triage";
 import { handleTts } from "./routes/tts";
 import { handleTutor } from "./routes/tutor";
 import { handleVisual } from "./routes/visual";
+import { handleWidgetAsset } from "./routes/widgets";
 import { handleAiUsage } from "./routes/ai-usage";
 
 import { handleBuildAssemble } from "./routes/build/assemble";
@@ -65,6 +66,11 @@ export default {
       const segments = url.pathname.replace(/^\/+/, "").split("/");
       const route = segments[0] || "";
       const key = segments.slice(1).join("/");
+
+      if (route === "widgets") {
+        if (request.method !== "GET") return methodNotAllowed();
+        return withCorsHeaders(await handleWidgetAsset(request));
+      }
 
       if (route === "state" && key) {
         return withCorsHeaders(await handleState(request, env, key));

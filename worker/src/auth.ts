@@ -10,7 +10,8 @@ const PUBLIC_STUDYENGINE_ROUTES = new Set([
 ]);
 
 export function validateAuth(request: Request, env: Env, pathname?: string): Response | null {
-  const requiresWidgetKey = pathname ? !PUBLIC_STUDYENGINE_ROUTES.has(pathname) : true;
+  const isPublicWidgetAsset = pathname ? pathname.startsWith("/widgets/") : false;
+  const requiresWidgetKey = pathname ? !PUBLIC_STUDYENGINE_ROUTES.has(pathname) && !isPublicWidgetAsset : true;
   if (!requiresWidgetKey) return null;
 
   const passphrase = request.headers.get("X-Widget-Key");
