@@ -39,13 +39,36 @@ jobs:
           cp -R studyengine site/studyengine
 
       - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy site --project-name=notion-widgets-93r --branch=main
+        id: pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set +e
+          npx --yes wrangler@4.84.1 pages deploy site --project-name=notion-widgets-93r --branch=main 2>&1 | tee /tmp/pages-deploy.log
+          code=${PIPESTATUS[0]}
+          echo "code=${code}" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Record safe deployment diagnostic
+        if: steps.pages.outputs.code != '0'
+        run: |
+          mkdir -p deployments
+          {
+            echo "Pages deployment exit code: ${{ steps.pages.outputs.code }}"
+            grep -Ei 'error|fail|permission|project|account|code|unauthor|forbidden|not found' /tmp/pages-deploy.log | tail -n 80 || true
+          } | sed -E 's/[A-Fa-f0-9]{24,}/[redacted-hex]/g; s/[A-Za-z0-9_-]{40,}/[redacted-token]/g' > deployments/pages-last-error.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add deployments/pages-last-error.txt
+          if ! git diff --cached --quiet; then
+            git commit -m 'Record Pages deployment diagnostic'
+            git push origin HEAD:main
+          fi
+          exit 1
 
       - name: Verify production assets
+        if: steps.pages.outputs.code == '0'
         run: |
           BASE="https:""//notion-widgets-93r.pages.dev"
           for attempt in 1 2 3 4 5 6 7 8 9 10; do
@@ -61,11 +84,15 @@ jobs:
           exit 1
 
       - name: Record verified deployment
+        if: steps.pages.outputs.code == '0'
         run: |
           mkdir -p deployments
           printf '%s\n' "${GITHUB_SHA}" > deployments/pages-main.txt
+          rm -f deployments/pages-last-error.txt
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add deployments/pages-main.txt
-          git commit -m 'Record verified Pages deployment'
-          git push origin HEAD:main
+          git add -A deployments
+          if ! git diff --cached --quiet; then
+            git commit -m 'Record verified Pages deployment'
+            git push origin HEAD:main
+          fi
