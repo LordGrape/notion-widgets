@@ -3,6 +3,13 @@
    rows, radar. Requires core.js, athlete-body.js (BODY_DATA) and
    athlete-data.js loaded first. */
 
+/* core.js uses global lexical bindings. Expose them for Athlete's guarded
+   startup checks without changing either engine's public interface. */
+try {
+ if (typeof Core !== 'undefined') window.Core = Core;
+ if (typeof SyncEngine !== 'undefined') window.SyncEngine = SyncEngine;
+} catch(e) {}
+
 /* ── Tooltip ── */
 function showTip(e, html){
  var t = el('tip');
@@ -65,7 +72,7 @@ function regionTipHtml(code, model){
   if (model.ovr === null){
    html += '<div class="tip-sub">Untested</div>';
   } else {
-   html += '<div class="tip-score">' + model.ovr + ' <span>/ 99 \u00b7 ' + bandOf(model.ovr) + '</span></div>';
+   html += '<div class="tip-score">' + model.ovr + ' <span>/ 99 · ' + bandOf(model.ovr) + '</span></div>';
   }
   html += '<div class="tip-sub">Mean of ' + model.testedCount + ' tested attribute' + (model.testedCount === 1 ? '' : 's') + ' out of ' + ATTRS.length + '.</div>';
   return html;
@@ -74,7 +81,7 @@ function regionTipHtml(code, model){
  var a = attrModel(model, code);
  html = '<div class="tip-name">' + info.name + '</div>';
  if (a && a.tested){
-  html += '<div class="tip-score">' + a.score + ' <span>/ 99 \u00b7 ' + bandOf(a.score) + '</span></div>';
+  html += '<div class="tip-score">' + a.score + ' <span>/ 99 · ' + bandOf(a.score) + '</span></div>';
  } else {
   html += '<div class="tip-sub">Untested</div>';
  }
@@ -84,7 +91,7 @@ function regionTipHtml(code, model){
   var lat = latestEntryAmong(a.tests);
   if (lat){
    var t = testById(lat.t);
-   html += '<div class="tip-sub">Latest: ' + t.name + ' \u00b7 ' + lat.raw + ' \u00b7 ' + fmtDate(lat.d) + '</div>';
+   html += '<div class="tip-sub">Latest: ' + t.name + ' · ' + lat.raw + ' · ' + fmtDate(lat.d) + '</div>';
   }
  }
  html += '<div class="tip-hint">Click for history and logging</div>';
@@ -131,7 +138,7 @@ function buildBody(model){
 /* ── Hero ── */
 function renderHero(model){
  var o = el('ovrNum');
- if (model.ovr === null){ o.textContent = '\u2014'; }
+ if (model.ovr === null){ o.textContent = '—'; }
  else {
   var prev = parseInt(o.textContent, 10);
   if (window.Core && Core.smoothCounter && !Core.reducedMotion && isFinite(prev)){
@@ -154,7 +161,7 @@ function renderHero(model){
  if (untested) parts.push(untested + ' untested');
  var worst = null;
  model.attrs.forEach(function(a){ if (a.tested && (!worst || a.score < worst.score)) worst = a; });
- tally.innerHTML = parts.join(' \u00b7 ') + (worst ? '<br>Focus: <span class="limiter">' + BODY_DATA.info[worst.code].name + ' ' + worst.score + '</span>' : '');
+ tally.innerHTML = parts.join(' · ') + (worst ? '<br>Focus: <span class="limiter">' + BODY_DATA.info[worst.code].name + ' ' + worst.score + '</span>' : '');
 }
 
 /* ── Attribute rows ── */
@@ -169,12 +176,12 @@ function renderAttrs(model){
   row.setAttribute('role', 'button');
   row.setAttribute('tabindex', '0');
   var deltaHtml = '';
-  if (a.delta !== null) deltaHtml = '<div class="attr-delta ' + (a.delta > 0 ? 'up' : 'down') + '">' + (a.delta > 0 ? '\u25b2' : '\u25bc') + Math.abs(a.delta) + '</div>';
+  if (a.delta !== null) deltaHtml = '<div class="attr-delta ' + (a.delta > 0 ? 'up' : 'down') + '">' + (a.delta > 0 ? '▲' : '▼') + Math.abs(a.delta) + '</div>';
   else if (a.tested) deltaHtml = '<div class="attr-delta"></div>';
   else deltaHtml = '<div class="attr-delta">new</div>';
   row.innerHTML = '<div class="attr-code">' + info.short + '</div>' +
    '<div><div class="attr-name">' + info.name + '</div><div class="attr-bar"><i style="width:0%"></i></div></div>' +
-   '<div class="attr-score stats-num">' + (a.tested ? a.score : '\u2014') + '</div>' + deltaHtml;
+   '<div class="attr-score stats-num">' + (a.tested ? a.score : '—') + '</div>' + deltaHtml;
   row.addEventListener('click', function(){ openDetail(a.code); });
   row.addEventListener('keydown', function(ev){ if (ev.key === 'Enter' || ev.key === ' '){ ev.preventDefault(); openDetail(a.code); } });
   row.addEventListener('mouseenter', function(e){ showTip(e, regionTipHtml(a.code, model)); });
