@@ -50,9 +50,9 @@ jobs:
             for attempt in $(seq 1 30); do
               page="$(curl -fsSL --max-time 20 "${ATHLETE_URL}?athlete-build=${GITHUB_RUN_ID}-${attempt}" || true)"
               bytes="$(printf '%s' "$page" | wc -c)"
-              if printf '%s' "$page" | grep -q '<meta name="athlete-build" content="single-file-v2.2">' \
-                && printf '%s' "$page" | grep -q 'data-athlete-inline="core.js"' \
-                && printf '%s' "$page" | grep -q 'data-athlete-inline="athlete-flow.js"' \
+              if [[ "$page" == *'<meta name="athlete-build" content="single-file-v2.2">'* ]] \
+                && [[ "$page" == *'data-athlete-inline="core.js"'* ]] \
+                && [[ "$page" == *'data-athlete-inline="athlete-flow.js"'* ]] \
                 && [ "$bytes" -gt 100000 ]; then
                 echo "Production is serving the self-contained athlete widget (${bytes} bytes)."
                 deployed=1
