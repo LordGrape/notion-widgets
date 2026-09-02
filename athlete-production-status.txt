@@ -1,4 +1,11 @@
-Built athlete.html (180,775 bytes).
-athlete.html is current (180,775 bytes).
-Verified athlete.html: 5 scripts, 12 tests, 8 attributes, scoring and body map valid.
-Production is serving the self-contained athlete widget (180774 bytes).
+Source build and verification passed.
+Waiting for Cloudflare Pages deployment (1/30).
+Waiting for Cloudflare Pages deployment (2/30).
+Waiting for Cloudflare Pages deployment (3/30).
+Waiting for Cloudflare Pages deployment (4/30).
+Waiting for Cloudflare Pages deployment (5/30).
+Waiting for Cloudflare Pages deployment (6/30).
+Waiting for Cloudflare Pages deployment (7/30).
+Waiting for Cloudflare Pages deployment (8/30).
+Waiting for Cloudflare Pages deployment (9/30).
+Production is serving the professional settings build (202745 bytes).
