@@ -281,6 +281,7 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.8px;line-height:1.15;margin-t
   transition:border-color .2s,box-shadow .2s}
 .trow input:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent)}
 .trow .arrow{font-size:10px;color:var(--text-3);text-align:center}
+.trow .day-location{grid-column:2/-1;font-family:'Inter',system-ui,sans-serif}
 .swatches{display:flex;gap:7px;flex-wrap:wrap}
 .sw{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid transparent;
   transition:transform .25s var(--spring),border-color .2s,box-shadow .25s;position:relative}
@@ -380,8 +381,8 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.8px;line-height:1.15;margin-t
           <input class="f-input" id="fDesc" placeholder="Optional">
         </div>
         <div>
-          <label class="f-label">Location</label>
-          <input class="f-input" id="fLoc" placeholder="Optional">
+          <label class="f-label">Default location</label>
+          <input class="f-input" id="fLoc" placeholder="Fallback for every day">
         </div>
       </div>
       <div>
@@ -455,7 +456,7 @@ function loadBlocks(){
   }
   if(!Array.isArray(raw))raw=[];
   return raw.map(function(c){
-    if(c&&Array.isArray(c.days))return{id:c.id||genId(),name:c.name||'Untitled',description:clean(c.description),location:clean(c.location),color:c.color||COLORS[0],days:c.days.filter(function(d){return d&&d.start&&d.end}).map(function(d){return{day:+d.day||0,start:d.start,end:d.end}})};
+    if(c&&Array.isArray(c.days))return{id:c.id||genId(),name:c.name||'Untitled',description:clean(c.description),location:clean(c.location),color:c.color||COLORS[0],days:c.days.filter(function(d){return d&&d.start&&d.end}).map(function(d){return{day:+d.day||0,start:d.start,end:d.end,location:clean(d.location||c.location)}})};
     /* v2 flat migration */
     return{id:(c&&c.id)||genId(),name:(c&&c.name)||'Untitled',description:clean(c&&c.prof),location:clean(c&&c.room),color:(c&&c.color)||COLORS[0],days:[{day:+(c&&c.day)||0,start:(c&&c.start)||'09:00',end:(c&&c.end)||'10:00'}]};
   }).filter(function(b){return b.days.length});
@@ -470,13 +471,13 @@ function saveBlocks(arr){
 function flatFor(day){
   var out=[];
   schedule.forEach(function(b){b.days.forEach(function(d){
-    if(+d.day===day)out.push({id:b.id,name:b.name,description:b.description,location:b.location,color:b.color,day:+d.day,start:d.start,end:d.end});
+    if(+d.day===day)out.push({id:b.id,name:b.name,description:b.description,location:clean(d.location||b.location),color:b.color,day:+d.day,start:d.start,end:d.end});
   })});
   return out.sort(function(a,b){return mins(a.start)-mins(b.start)});
 }
 function allFlat(){
   var out=[];
-  schedule.forEach(function(b){b.days.forEach(function(d){out.push({id:b.id,name:b.name,description:b.description,location:b.location,color:b.color,day:+d.day,start:d.start,end:d.end})})});
+  schedule.forEach(function(b){b.days.forEach(function(d){out.push({id:b.id,name:b.name,description:b.description,location:clean(d.location||b.location),color:b.color,day:+d.day,start:d.start,end:d.end})})});
   return out;
 }
 function nowMins(){var n=new Date();return n.getHours()*60+n.getMinutes()}
@@ -644,7 +645,7 @@ function openPanel(editId){
     var b=schedule.find(function(x){return x.id===editId});
     if(b){
       editingId=editId;selColor=b.color||COLORS[0];
-      b.days.forEach(function(d){selDays[d.day]={start:d.start,end:d.end}});
+      b.days.forEach(function(d){selDays[d.day]={start:d.start,end:d.end,location:clean(d.location||b.location)}});
     }
   }
   $('overlay').classList.add('show');
@@ -693,7 +694,7 @@ function drawForm(){
       else{
         sfx('presetSelect');
         var keys=Object.keys(selDays);
-        selDays[d]=keys.length?{start:selDays[keys[0]].start,end:selDays[keys[0]].end}:{start:'09:00',end:'10:00'};
+        selDays[d]=keys.length?{start:selDays[keys[0]].start,end:selDays[keys[0]].end,location:selDays[keys[0]].location||''}:{start:'09:00',end:'10:00',location:''};
       }
       hideErr();drawFormInputs();drawChips();
     });
@@ -707,7 +708,8 @@ function drawForm(){
       return '<div class="trow"><span class="d">'+DAY_SHORT[d]+'</span>'
         +'<input type="time" value="'+selDays[d].start+'" data-d="'+d+'" data-f="start">'
         +'<span class="arrow">\u2192</span>'
-        +'<input type="time" value="'+selDays[d].end+'" data-d="'+d+'" data-f="end"></div>';
+        +'<input type="time" value="'+selDays[d].end+'" data-d="'+d+'" data-f="end">'
+        +'<input class="day-location" type="text" value="'+esc(selDays[d].location||'')+'" data-d="'+d+'" data-f="location" aria-label="'+DAY_NAMES[d]+' location" placeholder="'+DAY_NAMES[d]+' location"></div>';
     }).join('');
     tr.querySelectorAll('input').forEach(function(inp){
       inp.addEventListener('change',function(){selDays[+inp.dataset.d][inp.dataset.f]=inp.value;hideErr()});
@@ -736,7 +738,7 @@ $('fSave').addEventListener('click',function(){
   $('fName').classList.remove('err');
   var keys=Object.keys(selDays);
   if(!keys.length){showErr('Pick at least one repeat day.');return}
-  var days=keys.map(function(k){return{day:+k,start:selDays[k].start,end:selDays[k].end}});
+  var days=keys.map(function(k){return{day:+k,start:selDays[k].start,end:selDays[k].end,location:clean(selDays[k].location)||loc}});
   for(var i=0;i<days.length;i++){
     if(!days[i].start||!days[i].end||mins(days[i].end)<=mins(days[i].start)){showErr(DAY_SHORT[days[i].day]+' end time must be after the start time.');return}
   }
