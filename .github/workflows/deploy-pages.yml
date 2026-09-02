@@ -45,7 +45,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set +e
-          npx --yes wrangler@4.84.1 pages deploy site --project-name=notion-widgets-93r --branch=main 2>&1 | tee /tmp/pages-deploy.log
+          npx --yes wrangler@4.84.1 pages deploy site --project-name=notion-widgets --branch=main 2>&1 | tee /tmp/pages-deploy.log
           code=${PIPESTATUS[0]}
           echo "code=${code}" >> "$GITHUB_OUTPUT"
           exit 0
