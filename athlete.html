@@ -3302,154 +3302,222 @@ button:hover, .item:hover, .class-block:hover, .week-pill:hover, .chip:hover, .t
 }
 @media (prefers-reduced-motion:reduce){.settings-chevron{transition:none}}
 </style>
+<style data-athlete-inline="athlete-training.css">
+/* ATHLETE training v1 - daily workout logging and progression views. */
+.app-nav{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:14px;padding:4px;border:1px solid var(--lg-border);border-radius:13px;background:var(--lg-surface-soft)}
+.app-nav button{padding:8px 6px;border:0;border-radius:9px;background:transparent;color:var(--lg-ink-faint);font:700 9px inherit;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+.app-nav button.on{background:var(--lg-surface-raised);color:var(--lg-violet);box-shadow:0 5px 16px var(--lg-glow)}
+.app-view[hidden]{display:none}
+.profile-actions{display:grid;grid-template-columns:1.35fr 1fr;gap:8px;margin-top:14px}
+.profile-actions .log-btn{margin:0}
+.assessment-btn{padding:11px 8px;background:var(--lg-surface-soft);color:var(--lg-violet)}
+.view-intro{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-top:18px;padding-bottom:14px;border-bottom:1px solid var(--lg-border)}
+.view-intro-copy{min-width:0}
+.view-kicker{font-size:8.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--lg-violet)}
+.view-intro h2{font-size:22px;line-height:1.15;margin-top:4px;color:var(--lg-ink)}
+.view-intro p{font-size:10.5px;line-height:1.5;color:var(--lg-ink-faint);margin-top:5px;max-width:330px}
+.view-primary{flex:none;padding:10px 13px;border:0;border-radius:11px;background:linear-gradient(135deg,var(--lg-violet),var(--lg-violet-2));color:#fff;font:700 9px inherit;letter-spacing:.09em;text-transform:uppercase;cursor:pointer;box-shadow:0 8px 22px var(--lg-glow)}
+.training-notice{margin-top:12px;padding:10px 12px;border:1px solid var(--lg-border-strong);border-radius:12px;background:var(--lg-surface-soft);font-size:10px;font-weight:650;color:var(--lg-violet)}
+.active-workout{display:flex;align-items:center;gap:10px;margin-top:12px;padding:11px;border:1px solid var(--lg-border-strong);border-radius:13px;background:linear-gradient(135deg,color-mix(in srgb,var(--lg-violet) 10%,var(--lg-surface-soft)),var(--lg-surface-soft))}
+.active-workout span{width:8px;height:8px;border-radius:50%;background:var(--lg-violet);box-shadow:0 0 0 5px var(--lg-glow)}
+.active-workout div{flex:1;min-width:0}
+.active-workout strong{display:block;font-size:10.5px;color:var(--lg-ink)}
+.active-workout small{display:block;margin-top:3px;font-size:9px;color:var(--lg-ink-faint)}
+.active-workout button{padding:7px 10px;border:1px solid var(--lg-border);border-radius:9px;background:var(--lg-surface-raised);color:var(--lg-violet);font:700 8.5px inherit;text-transform:uppercase;cursor:pointer}
+.training-stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:12px}
+.training-stat{padding:10px 8px;border:1px solid var(--lg-border);border-radius:12px;background:var(--lg-surface-soft);min-width:0}
+.training-stat span{display:block;font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--lg-ink-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.training-stat strong{display:block;margin-top:5px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;color:var(--lg-ink);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.training-section-head{display:flex;align-items:center;justify-content:space-between;margin:17px 0 8px}
+.training-section-head h3{font-size:11px;color:var(--lg-ink)}
+.training-section-head span{font-size:8.5px;color:var(--lg-ink-faint);text-transform:uppercase;letter-spacing:.08em}
+.training-empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:5px;padding:25px 16px;border:1px dashed var(--lg-border-strong);border-radius:14px;background:var(--lg-surface-soft)}
+.training-empty.compact{padding:16px}
+.training-empty strong{font-size:11px;color:var(--lg-ink-muted)}
+.training-empty span{max-width:310px;font-size:9.5px;line-height:1.5;color:var(--lg-ink-faint)}
+.recent-workout{margin-top:8px;padding:12px;border:1px solid var(--lg-border);border-radius:14px;background:var(--lg-surface-soft)}
+.recent-workout-main{display:flex;gap:12px;justify-content:space-between}
+.recent-workout-main>div:first-child{min-width:0;display:flex;flex-direction:column;gap:3px}
+.recent-workout-main span{font-size:8.5px;color:var(--lg-violet);text-transform:uppercase;letter-spacing:.06em}
+.recent-workout-main strong{font-size:11.5px;color:var(--lg-ink)}
+.recent-workout-main small{font-size:9px;color:var(--lg-ink-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.recent-workout-metrics{flex:none;display:grid;grid-template-columns:auto auto;gap:2px 5px;align-items:baseline;text-align:right}
+.recent-workout-metrics strong{font:700 10px 'JetBrains Mono',ui-monospace,monospace;color:var(--lg-ink)}
+.recent-workout-metrics span{font-size:7.5px;color:var(--lg-ink-faint);text-transform:uppercase}
+.recent-workout-actions{display:flex;gap:7px;margin-top:9px;padding-top:8px;border-top:1px solid var(--lg-border)}
+.recent-workout-actions button,.promote-result{padding:6px 8px;border:1px solid var(--lg-border);border-radius:8px;background:var(--lg-surface-raised);color:var(--lg-ink-muted);font:700 8px inherit;text-transform:uppercase;letter-spacing:.06em;cursor:pointer}
+.recent-workout-actions button:first-child{color:var(--lg-violet)}
+.promote-result{width:100%;margin-top:9px;border-color:var(--lg-border-strong);color:var(--lg-violet)}
+.workout-sheet{max-width:650px;max-height:94vh;padding:0;overflow:hidden;display:flex;flex-direction:column}
+.workout-sheet>*{position:relative;z-index:1}
+.workout-head{padding:16px 18px 12px;margin:0;border-bottom:1px solid var(--lg-border);align-items:flex-start}
+.workout-head-copy{flex:1;display:grid;grid-template-columns:1fr 140px;gap:8px}
+.workout-title-field label,.workout-date-field label{display:block;font-size:7.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--lg-ink-faint);margin-bottom:4px}
+.workout-title-field input,.workout-date-field input{width:100%;padding:8px 10px;border:1px solid var(--lg-border)!important;border-radius:10px!important;background:var(--lg-surface-soft)!important;color:var(--lg-ink);font:600 11px inherit;outline:none}
+.workout-scroll{min-height:0;overflow-y:auto;padding:12px 18px 16px}
+.workout-totals{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
+.workout-totals span{padding:6px 8px;border:1px solid var(--lg-border);border-radius:9px;background:var(--lg-surface-soft);font-size:8.5px;color:var(--lg-ink-faint)}
+.workout-totals strong{color:var(--lg-ink);font-family:'JetBrains Mono',ui-monospace,monospace}
+.workout-exercise{margin-top:10px;border:1px solid var(--lg-border);border-radius:15px;background:var(--lg-surface-soft);overflow:hidden}
+.workout-exercise-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:12px}
+.workout-exercise-head>div{display:flex;flex-direction:column;gap:3px}
+.workout-exercise-head strong{font-size:12px;color:var(--lg-ink)}
+.workout-exercise-head span{font-size:8.5px;color:var(--lg-ink-faint);text-transform:uppercase;letter-spacing:.07em}
+.workout-exercise-head button{border:0;background:transparent;color:var(--lg-ink-faint);font:700 8px inherit;text-transform:uppercase;cursor:pointer}
+.previous-set{display:flex;align-items:center;gap:8px;padding:8px 12px;border-top:1px solid var(--lg-border);border-bottom:1px solid var(--lg-border);background:var(--lg-surface-raised)}
+.previous-set>span{font-size:7.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--lg-ink-faint)}
+.previous-set strong{flex:1;font-size:9px;color:var(--lg-ink-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.previous-set button{padding:4px 7px;border:1px solid var(--lg-border);border-radius:7px;background:var(--lg-surface-soft);color:var(--lg-violet);font:700 7.5px inherit;text-transform:uppercase;cursor:pointer}
+.quick-set{display:grid;grid-template-columns:1.15fr .7fr .55fr .55fr .8fr auto;gap:6px;align-items:end;padding:11px 12px}
+.quick-field label{display:block;margin-bottom:4px;font-size:7.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--lg-ink-faint)}
+.quick-field input,.quick-field select{width:100%;height:31px;padding:6px 8px;border:1px solid var(--lg-border)!important;border-radius:8px!important;background:var(--lg-surface-raised)!important;color:var(--lg-ink);font:600 9.5px inherit;outline:none}
+.quick-input{position:relative}
+.quick-input input{padding-right:30px}
+.quick-input span{position:absolute;right:7px;top:50%;transform:translateY(-50%);font-size:7.5px;color:var(--lg-ink-faint)}
+.quick-add{height:31px;padding:0 9px;border:0;border-radius:8px;background:linear-gradient(135deg,var(--lg-violet),var(--lg-violet-2));color:#fff;font:700 8px inherit;text-transform:uppercase;white-space:nowrap;cursor:pointer}
+.set-table-head,.workout-set-row{display:grid;grid-template-columns:26px 24px minmax(70px,1fr) 54px 48px 72px 24px;gap:5px;align-items:center;padding:5px 10px}
+.set-table-head{border-top:1px solid var(--lg-border);background:var(--lg-surface-raised);font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--lg-ink-faint)}
+.workout-set-row{border-top:1px solid var(--lg-border)}
+.workout-set-row.complete{background:color-mix(in srgb,var(--lg-violet) 5%,transparent)}
+.set-done,.set-remove{width:24px;height:24px;border:1px solid var(--lg-border);border-radius:7px;background:var(--lg-surface-raised);color:var(--lg-ink-faint);cursor:pointer}
+.workout-set-row.complete .set-done{color:var(--lg-violet);border-color:var(--lg-border-strong)}
+.set-number{font:700 9px 'JetBrains Mono',ui-monospace,monospace;color:var(--lg-ink-faint);text-align:center}
+.workout-set-row input,.workout-set-row select{width:100%;height:28px;padding:5px 6px;border:1px solid var(--lg-border)!important;border-radius:7px!important;background:var(--lg-surface-raised)!important;color:var(--lg-ink);font:600 9px inherit;outline:none}
+.set-input{position:relative}.set-input input{padding-right:24px}.set-input small{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:7px;color:var(--lg-ink-faint)}
+.set-reps,.set-rpe{text-align:center}
+.exercise-empty{padding:12px;border-top:1px solid var(--lg-border);font-size:9px;color:var(--lg-ink-faint);text-align:center}
+.add-exercise{width:100%;margin-top:10px;padding:10px;border:1px dashed var(--lg-border-strong);border-radius:11px;background:transparent;color:var(--lg-violet);font:700 8.5px inherit;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
+.workout-err{min-height:13px;margin-top:7px;font-size:9px;color:var(--lv3)}
+.workout-footer{display:flex;align-items:center;gap:8px;padding:11px 18px 14px;border-top:1px solid var(--lg-border);background:var(--lg-surface-raised)}
+.workout-footer .form-btn{flex:0 1 130px}.workout-footer .form-btn-primary{margin-left:auto}
+.exercise-picker-sheet{max-width:460px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;padding:0}
+.exercise-picker-head{padding:16px 18px 11px;margin:0;border-bottom:1px solid var(--lg-border)}
+.exercise-picker-search{padding:10px 18px;border-bottom:1px solid var(--lg-border)}
+.exercise-picker-search input{width:100%;padding:9px 11px;border:1px solid var(--lg-border)!important;border-radius:10px!important;background:var(--lg-surface-soft)!important;color:var(--lg-ink);font:500 10.5px inherit;outline:none}
+.exercise-picker-list{min-height:0;overflow-y:auto;padding:8px 18px}
+.exercise-group-label{margin:9px 2px 5px;font-size:7.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--lg-ink-faint)}
+.exercise-pick{width:100%;display:flex;align-items:center;justify-content:space-between;padding:9px 10px;margin-top:4px;border:1px solid var(--lg-border);border-radius:10px;background:var(--lg-surface-soft);color:var(--lg-ink);font:600 10px inherit;text-align:left;cursor:pointer}
+.exercise-pick small{font-size:7.5px;font-weight:500;color:var(--lg-ink-faint)}
+.custom-exercise{padding:11px 18px 16px;border-top:1px solid var(--lg-border)}
+.custom-exercise>span{display:block;margin-bottom:6px;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--lg-ink-faint)}
+.custom-exercise-row{display:grid;grid-template-columns:1fr 110px auto;gap:6px}
+.custom-exercise-row input,.custom-exercise-row select{min-width:0;padding:8px;border:1px solid var(--lg-border)!important;border-radius:9px!important;background:var(--lg-surface-soft)!important;color:var(--lg-ink);font:500 9.5px inherit}
+.custom-exercise-row button{padding:8px 10px;border:0;border-radius:9px;background:var(--lg-violet);color:#fff;font:700 8px inherit;text-transform:uppercase;cursor:pointer}
+.exercise-picker-err{min-height:12px;margin-top:5px;font-size:8.5px;color:var(--lv3)}
+.progress-controls{display:flex;align-items:end;justify-content:space-between;gap:10px;margin-top:14px}
+.progress-controls label{font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--lg-ink-faint)}
+.progress-controls select{min-width:190px;padding:8px 10px;border:1px solid var(--lg-border)!important;border-radius:10px!important;background:var(--lg-surface-soft)!important;color:var(--lg-ink);font:600 10px inherit}
+.progress-chart-card{margin-top:10px;padding:12px;border:1px solid var(--lg-border);border-radius:14px;background:var(--lg-surface-soft)}
+.progress-chart-card h3{font-size:10.5px;color:var(--lg-ink)}
+.progress-svg{display:block;width:100%;height:auto;margin-top:8px;overflow:visible}
+.progress-svg line{stroke:var(--lg-border);stroke-width:1}.progress-svg path{fill:none;stroke:var(--lg-violet);stroke-width:2}.progress-svg circle{fill:var(--lg-violet);stroke:var(--lg-surface-raised);stroke-width:2}
+.progress-exercise-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:10px}
+.progress-exercise-stats>div{padding:9px;border:1px solid var(--lg-border);border-radius:11px;background:var(--lg-surface-soft)}
+.progress-exercise-stats span{display:block;font-size:7.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--lg-ink-faint)}
+.progress-exercise-stats strong{display:block;margin-top:4px;font:700 10.5px 'JetBrains Mono',ui-monospace,monospace;color:var(--lg-ink)}
+.progress-history{margin-top:10px;border:1px solid var(--lg-border);border-radius:12px;overflow:hidden}
+.progress-history-row{display:grid;grid-template-columns:78px 1fr auto;gap:8px;padding:8px 10px;border-top:1px solid var(--lg-border);background:var(--lg-surface-soft);font-size:9px}
+.progress-history-row:first-child{border-top:0}.progress-history-row span{color:var(--lg-ink-faint)}.progress-history-row strong{color:var(--lg-ink)}.progress-history-row small{color:var(--lg-violet)}
+.settings-text-btn,.app-nav button,.view-primary,.active-workout button,.recent-workout-actions button,.promote-result,.workout-exercise-head button,.previous-set button,.quick-add,.add-exercise,.exercise-pick,.custom-exercise-row button{font-family:inherit}
+.settings-choice{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.settings-choice label{display:flex;flex-direction:column;gap:5px;font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--lg-ink-faint)}
+.settings-choice select{width:100%;padding:9px 10px;border:1px solid var(--lg-border)!important;border-radius:10px!important;background:var(--lg-surface-raised)!important;color:var(--lg-ink);font:600 10px inherit}
+.settings-toggle{display:flex!important;flex-direction:row!important;align-items:center;justify-content:space-between;padding:9px 10px;border:1px solid var(--lg-border);border-radius:10px;background:var(--lg-surface-raised);color:var(--lg-ink-muted)!important;text-transform:none!important;letter-spacing:0!important;font-size:10px!important}
+.settings-toggle input{width:17px!important;height:17px!important;accent-color:var(--lg-violet)}
+@media(max-width:520px){
+ .profile-actions{grid-template-columns:1fr}.view-intro{flex-direction:column}.view-primary{width:100%}
+ .training-stat-grid,.progress-exercise-stats{grid-template-columns:repeat(2,1fr)}
+ .workout-head-copy{grid-template-columns:1fr}.workout-scroll{padding-left:12px;padding-right:12px}
+ .quick-set{grid-template-columns:1fr 1fr 1fr}.quick-type{grid-column:1/2}.quick-add{grid-column:2/4}
+ .set-table-head{display:none}.workout-set-row{grid-template-columns:26px 22px minmax(62px,1fr) 46px 42px 24px}.set-type{grid-column:3/6}.set-remove{grid-column:6;grid-row:1}.set-rpe{display:block}
+ .custom-exercise-row{grid-template-columns:1fr 92px}.custom-exercise-row button{grid-column:1/-1}
+ .progress-controls{align-items:stretch;flex-direction:column}.progress-controls select{width:100%;min-width:0}
+ .settings-choice{grid-template-columns:1fr}
+}
+</style>
 </head>
 <body>
 <canvas id="bg"></canvas>
 <canvas id="fx"></canvas>
 <main class="container card" id="app">
  <div class="top">
-  <div class="label">Athlete Rating</div>
-  <div class="top-actions">
-   <span class="sync" id="syncState"></span>
-   <button class="icon-btn" id="settingsBtn" aria-label="Settings" data-snd>&#9881;</button>
-  </div>
+  <div class="label">Athlete</div>
+  <div class="top-actions"><span class="sync" id="syncState"></span><button class="icon-btn" id="settingsBtn" aria-label="Settings" data-snd>&#9881;</button></div>
  </div>
- <section class="hero">
-  <div class="hero-left">
-   <div class="ovr-row"><span class="ovr stats-num" id="ovrNum">&#8212;</span><span class="ovr-max">/ 99</span></div>
-   <div class="ovr-band" id="ovrBand"></div>
-   <div class="hero-name" id="heroName">ATHLETE</div>
-   <div class="hero-tally" id="heroTally">Log your first result to bring the body online.</div>
-   <div class="seg" role="tablist" aria-label="View">
-    <button id="tabBody" class="on" data-snd>Body</button>
-    <button id="tabRadar" data-snd>Radar</button>
+ <nav class="app-nav" role="tablist" aria-label="Athlete sections">
+  <button class="on" data-app-view="profile" role="tab" aria-selected="true" data-snd>Profile</button>
+  <button data-app-view="train" role="tab" aria-selected="false" data-snd>Train</button>
+  <button data-app-view="progress" role="tab" aria-selected="false" data-snd>Progress</button>
+ </nav>
+
+ <section class="app-view" id="profileView">
+  <section class="hero">
+   <div class="hero-left">
+    <div class="ovr-row"><span class="ovr stats-num" id="ovrNum">&#8212;</span><span class="ovr-max">/ 99</span></div>
+    <div class="ovr-band" id="ovrBand"></div>
+    <div class="hero-name" id="heroName">ATHLETE</div>
+    <div class="hero-tally" id="heroTally">Log your first assessment to bring the body online.</div>
+    <div class="seg" role="tablist" aria-label="Performance view"><button id="tabBody" class="on" data-snd>Body</button><button id="tabRadar" data-snd>Radar</button></div>
    </div>
-  </div>
-  <div class="hero-viz">
-   <div id="bodyWrap" class="bodymap" aria-label="Body map: hover a region for its tier"></div>
-   <canvas id="radar" class="radar view-off" aria-label="Attribute radar chart"></canvas>
-  </div>
+   <div class="hero-viz"><div id="bodyWrap" class="bodymap" aria-label="Body map: hover a region for its tier"></div><canvas id="radar" class="radar view-off" aria-label="Attribute radar chart"></canvas></div>
+  </section>
+  <section id="attrList" class="attrs"></section>
+  <div class="profile-actions"><button class="form-btn form-btn-primary log-btn" id="profileStartWorkout" data-snd>Start workout</button><button class="form-btn assessment-btn" id="logBtn" data-snd>Log assessment</button></div>
+  <footer class="foot">Bands &middot; Entry 60 &middot; Pro 75 &middot; Elite 90 &middot; Cap 99</footer>
  </section>
- <section id="attrList" class="attrs"></section>
- <button class="form-btn form-btn-primary log-btn" id="logBtn" data-snd>+ Log result</button>
- <footer class="foot">Bands &middot; Entry 60 &middot; Pro 75 &middot; Elite 90 &middot; Cap 99</footer>
+
+ <section class="app-view" id="trainView" hidden>
+  <div class="view-intro"><div class="view-intro-copy"><div class="view-kicker">Daily training</div><h2>Training log</h2><p>Record working sets, repeat previous sessions and let Athlete calculate your progression.</p></div><button class="view-primary" id="startWorkoutBtn" data-snd>Start workout</button></div>
+  <div class="training-notice" id="trainingNotice" hidden></div>
+  <div class="active-workout" id="activeWorkoutBanner" hidden><span aria-hidden="true"></span><div><strong>Workout in progress</strong><small id="activeWorkoutText"></small></div><button id="resumeWorkoutBtn" data-snd>Resume</button></div>
+  <div class="training-stat-grid" aria-label="This week"><div class="training-stat"><span>Sessions</span><strong id="weekSessions">0</strong></div><div class="training-stat"><span>Work sets</span><strong id="weekSets">0</strong></div><div class="training-stat"><span>Volume</span><strong id="weekVolume">0 lb</strong></div><div class="training-stat"><span>Focus</span><strong id="weekFocus">None</strong></div></div>
+  <div class="training-section-head"><h3>Recent workouts</h3><span>This week and beyond</span></div>
+  <div id="recentWorkouts"></div>
+ </section>
+
+ <section class="app-view" id="progressView" hidden>
+  <div class="view-intro"><div class="view-intro-copy"><div class="view-kicker">Long-term signal</div><h2>Progress</h2><p>Follow estimated strength, rep records, workload and consistency without needing to max out.</p></div></div>
+  <div class="training-stat-grid"><div class="training-stat"><span>Workouts</span><strong id="progressSessions">0</strong></div><div class="training-stat"><span>Week sets</span><strong id="progressWeekSets">0</strong></div><div class="training-stat"><span>Week volume</span><strong id="progressWeekVolume">0 lb</strong></div><div class="training-stat"><span>Tracked lifts</span><strong id="progressTracked">0</strong></div></div>
+  <div class="progress-controls"><label for="progressExercise">Exercise</label><select id="progressExercise"></select></div>
+  <div class="progress-chart-card"><h3 id="progressChartTitle">Estimated 1RM over time</h3><div id="progressChart"></div></div>
+  <div class="progress-exercise-stats" id="progressExerciseStats"></div>
+  <div class="progress-history" id="progressHistory"></div>
+ </section>
 </main>
 
 <div class="tip" id="tip" hidden></div>
+<div class="overlay" id="logSheet" hidden><div class="card sheet" role="dialog" aria-modal="true" aria-label="Log assessment"><div class="sheet-head"><div class="panel-title" id="logTitle">Log assessment</div><button class="icon-btn" data-close="logSheet" aria-label="Close">&times;</button></div><div id="logBody"></div></div></div>
+<div class="overlay" id="detail" hidden><div class="card sheet" role="dialog" aria-modal="true" aria-label="Attribute detail"><div class="sheet-head"><div class="panel-title" id="detailTitle">Detail</div><button class="icon-btn" data-close="detail" aria-label="Close">&times;</button></div><div id="detailBody"></div></div></div>
 
-<div class="overlay" id="logSheet" hidden>
- <div class="card sheet" role="dialog" aria-modal="true" aria-label="Log result">
-  <div class="sheet-head"><div class="panel-title" id="logTitle">Log result</div><button class="icon-btn" data-close="logSheet" aria-label="Close">&times;</button></div>
-  <div id="logBody"></div>
+<div class="overlay" id="workoutSheet" hidden>
+ <div class="card sheet workout-sheet" role="dialog" aria-modal="true" aria-label="Workout editor">
+  <div class="sheet-head workout-head"><div class="workout-head-copy"><div class="workout-title-field"><label for="workoutTitleInput">Workout</label><input id="workoutTitleInput" autocomplete="off" value="Training session"></div><div class="workout-date-field"><label for="workoutDateInput">Date</label><input type="date" id="workoutDateInput"></div></div><button class="icon-btn" data-close="workoutSheet" aria-label="Close workout">&times;</button></div>
+  <div class="workout-scroll"><div class="workout-totals" id="workoutTotals"></div><div id="workoutExercises"></div><button class="add-exercise" id="addExerciseBtn" data-snd>+ Add exercise</button><div class="workout-err" id="workoutErr" role="alert"></div></div>
+  <div class="workout-footer"><button class="form-btn" id="workoutDiscardBtn">Discard</button><button class="form-btn form-btn-primary" id="workoutFinishBtn" data-snd>Finish workout</button></div>
  </div>
 </div>
 
-<div class="overlay" id="detail" hidden>
- <div class="card sheet" role="dialog" aria-modal="true" aria-label="Attribute detail">
-  <div class="sheet-head"><div class="panel-title" id="detailTitle">Detail</div><button class="icon-btn" data-close="detail" aria-label="Close">&times;</button></div>
-  <div id="detailBody"></div>
+<div class="overlay" id="exercisePicker" hidden>
+ <div class="card sheet exercise-picker-sheet" role="dialog" aria-modal="true" aria-label="Choose exercise">
+  <div class="sheet-head exercise-picker-head"><div><div class="panel-title">Add exercise</div><div class="settings-subtitle">Choose a lift or create your own.</div></div><button class="icon-btn" data-close="exercisePicker" aria-label="Close exercise picker">&times;</button></div>
+  <div class="exercise-picker-search"><input id="exerciseSearch" type="search" placeholder="Search exercises or muscle groups" autocomplete="off"></div>
+  <div class="exercise-picker-list" id="exercisePickerList"></div>
+  <div class="custom-exercise"><span>Custom exercise</span><div class="custom-exercise-row"><input id="customExerciseName" placeholder="Exercise name"><select id="customExerciseGroup"><option>Chest</option><option>Back</option><option>Shoulders</option><option>Arms</option><option>Legs</option><option>Posterior chain</option><option>Core</option><option selected>Other</option></select><button id="createExerciseBtn">Create</button></div><div class="exercise-picker-err" id="exercisePickerErr"></div></div>
  </div>
 </div>
 
 <div class="overlay" id="settings" hidden>
  <div class="card sheet settings-sheet" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
-  <div class="sheet-head settings-head">
-   <div>
-    <div class="settings-eyebrow">Athlete configuration</div>
-    <div class="panel-title" id="settingsTitle">Athlete settings</div>
-    <div class="settings-subtitle">Profile, scoring and backups in one place.</div>
-   </div>
-   <button class="icon-btn" data-close="settings" aria-label="Close settings">&times;</button>
-  </div>
-
+  <div class="sheet-head settings-head"><div><div class="settings-eyebrow">Athlete configuration</div><div class="panel-title" id="settingsTitle">Athlete settings</div><div class="settings-subtitle">Profile, training, scoring and backups in one place.</div></div><button class="icon-btn" data-close="settings" aria-label="Close settings">&times;</button></div>
   <div class="settings-scroll">
-   <div class="settings-profile-card">
-    <div class="settings-avatar" aria-hidden="true">A</div>
-    <div class="settings-profile-copy">
-     <strong>Your athlete profile</strong>
-     <span id="setSummaryCopy">No results logged yet</span>
-    </div>
-    <span class="settings-save-state" id="setSaveState">Up to date</span>
-   </div>
-
-   <section class="settings-section" aria-labelledby="profileSettingsTitle">
-    <div class="settings-section-head">
-     <div>
-      <h3 id="profileSettingsTitle">Profile</h3>
-      <p>One optional value for accurate relative grip scoring.</p>
-     </div>
-     <span class="settings-pill" id="setProfileState">Optional</span>
-    </div>
-    <div class="fld settings-field">
-     <label for="setBw">Bodyweight</label>
-     <div class="input-unit"><input id="setBw" inputmode="decimal" autocomplete="off" placeholder="77.1"><span>kg</span></div>
-     <div class="field-help">Used only to normalise grip strength. Leave blank if you do not log grip tests.</div>
-    </div>
-   </section>
-
-   <details class="settings-section settings-disclosure" id="ruckSettings">
-    <summary>
-     <span class="settings-chevron" aria-hidden="true">&#8250;</span>
-     <span class="settings-summary-label"><strong>Loaded march scoring</strong><small>Advanced personal pace standard</small></span>
-     <span class="settings-pill" id="setRuckMode">Recommended</span>
-    </summary>
-    <div class="settings-disclosure-body">
-     <div class="settings-callout"><strong>Only affects Loaded March</strong><span>Set five pace anchors from slowest to fastest. Every other test keeps its built-in scoring.</span></div>
-     <div class="pace-table" role="group" aria-label="Loaded march pace anchors">
-      <div class="pace-row pace-header" aria-hidden="true"><span>Standard</span><span>Score</span><span>Pace</span></div>
-      <div class="pace-row"><label for="rkFloor">Baseline</label><span class="pace-score">25</span><div class="pace-input"><input id="rkFloor" inputmode="decimal" placeholder="14:00" aria-label="Baseline pace"><span>/km</span></div></div>
-      <div class="pace-row"><label for="rkL1">Entry</label><span class="pace-score">60</span><div class="pace-input"><input id="rkL1" inputmode="decimal" placeholder="12:30" aria-label="Entry pace"><span>/km</span></div></div>
-      <div class="pace-row"><label for="rkL2">Pro</label><span class="pace-score">75</span><div class="pace-input"><input id="rkL2" inputmode="decimal" placeholder="11:40" aria-label="Pro pace"><span>/km</span></div></div>
-      <div class="pace-row"><label for="rkL3">Elite</label><span class="pace-score">90</span><div class="pace-input"><input id="rkL3" inputmode="decimal" placeholder="11:00" aria-label="Elite pace"><span>/km</span></div></div>
-      <div class="pace-row"><label for="rkCap">Cap</label><span class="pace-score">99</span><div class="pace-input"><input id="rkCap" inputmode="decimal" placeholder="9:30" aria-label="Cap pace"><span>/km</span></div></div>
-     </div>
-     <button type="button" class="settings-text-btn" id="ruckDefaults" data-snd>Restore recommended standard</button>
-    </div>
-   </details>
-
-   <section class="settings-section" aria-labelledby="dataSettingsTitle">
-    <div class="settings-section-head">
-     <div>
-      <h3 id="dataSettingsTitle">Data and backups</h3>
-      <p>Move or safeguard your profile without exposing it publicly.</p>
-     </div>
-     <span class="settings-pill" id="setDataCount">0 results</span>
-    </div>
-    <div class="settings-action-list">
-     <button type="button" class="settings-action" id="setExport" data-snd>
-      <span class="settings-action-icon" aria-hidden="true">&#8595;</span>
-      <span class="settings-action-copy"><strong>Copy backup</strong><small>Copy all settings and results as portable JSON.</small></span>
-      <span class="settings-action-meta">Copy</span>
-     </button>
-     <button type="button" class="settings-action" id="setImport" data-snd>
-      <span class="settings-action-icon" aria-hidden="true">&#8593;</span>
-      <span class="settings-action-copy"><strong>Import backup</strong><small>Restore a previously exported Athlete JSON file.</small></span>
-      <span class="settings-action-meta">Choose file</span>
-     </button>
-     <input type="file" id="setImportFile" accept="application/json,.json" hidden>
-    </div>
-    <div class="settings-status" id="setBackupStatus" role="status" aria-live="polite"></div>
-   </section>
-
-   <section class="settings-section settings-danger-zone" aria-labelledby="resetSettingsTitle">
-    <div class="settings-section-head">
-     <div>
-      <h3 id="resetSettingsTitle">Reset athlete data</h3>
-      <p>Delete every result and restore the recommended scoring standard.</p>
-     </div>
-    </div>
-    <button type="button" class="form-btn settings-reset-btn" id="setReset">Reset athlete data</button>
-    <div class="reset-confirm" id="resetConfirm" hidden tabindex="-1">
-     <div><strong>Delete everything?</strong><span>This action cannot be undone. Export a backup first if needed.</span></div>
-     <div class="reset-confirm-actions"><button type="button" class="form-btn" id="resetCancel">Cancel</button><button type="button" class="form-btn form-btn-danger" id="resetConfirmBtn">Delete everything</button></div>
-    </div>
-   </section>
+   <div class="settings-profile-card"><div class="settings-avatar" aria-hidden="true">A</div><div class="settings-profile-copy"><strong>Your athlete profile</strong><span id="setSummaryCopy">No records yet</span></div><span class="settings-save-state" id="setSaveState">Up to date</span></div>
+   <section class="settings-section" aria-labelledby="profileSettingsTitle"><div class="settings-section-head"><div><h3 id="profileSettingsTitle">Profile</h3><p>One optional value for accurate relative grip scoring.</p></div><span class="settings-pill" id="setProfileState">Optional</span></div><div class="fld settings-field"><label for="setBw">Bodyweight</label><div class="input-unit"><input id="setBw" inputmode="decimal" autocomplete="off" placeholder="77.1"><span>kg</span></div><div class="field-help">Used only to normalise grip strength. Leave blank if you do not log grip tests.</div></div></section>
+   <section class="settings-section" aria-labelledby="trainingSettingsTitle"><div class="settings-section-head"><div><h3 id="trainingSettingsTitle">Training preferences</h3><p>Keep logging fast and matched to the equipment you use.</p></div></div><div class="settings-choice"><label for="setUnits">Weight units<select id="setUnits"><option value="lb">Pounds (lb)</option><option value="kg">Kilograms (kg)</option></select></label><label class="settings-toggle" for="setRpeEnabled"><span>Show optional RPE fields</span><input type="checkbox" id="setRpeEnabled"></label></div></section>
+   <details class="settings-section settings-disclosure" id="ruckSettings"><summary><span class="settings-chevron" aria-hidden="true">&#8250;</span><span class="settings-summary-label"><strong>Loaded march scoring</strong><small>Advanced personal pace standard</small></span><span class="settings-pill" id="setRuckMode">Recommended</span></summary><div class="settings-disclosure-body"><div class="settings-callout"><strong>Only affects Loaded March</strong><span>Set five pace anchors from slowest to fastest. Every other test keeps its built-in scoring.</span></div><div class="pace-table" role="group" aria-label="Loaded march pace anchors"><div class="pace-row pace-header" aria-hidden="true"><span>Standard</span><span>Score</span><span>Pace</span></div><div class="pace-row"><label for="rkFloor">Baseline</label><span class="pace-score">25</span><div class="pace-input"><input id="rkFloor" inputmode="decimal" placeholder="14:00"><span>/km</span></div></div><div class="pace-row"><label for="rkL1">Entry</label><span class="pace-score">60</span><div class="pace-input"><input id="rkL1" inputmode="decimal" placeholder="12:30"><span>/km</span></div></div><div class="pace-row"><label for="rkL2">Pro</label><span class="pace-score">75</span><div class="pace-input"><input id="rkL2" inputmode="decimal" placeholder="11:40"><span>/km</span></div></div><div class="pace-row"><label for="rkL3">Elite</label><span class="pace-score">90</span><div class="pace-input"><input id="rkL3" inputmode="decimal" placeholder="11:00"><span>/km</span></div></div><div class="pace-row"><label for="rkCap">Cap</label><span class="pace-score">99</span><div class="pace-input"><input id="rkCap" inputmode="decimal" placeholder="9:30"><span>/km</span></div></div></div><button type="button" class="settings-text-btn" id="ruckDefaults" data-snd>Restore recommended standard</button></div></details>
+   <section class="settings-section" aria-labelledby="dataSettingsTitle"><div class="settings-section-head"><div><h3 id="dataSettingsTitle">Data and backups</h3><p>Move or safeguard your complete profile and workout history.</p></div><span class="settings-pill" id="setDataCount">0 records</span></div><div class="settings-action-list"><button type="button" class="settings-action" id="setExport" data-snd><span class="settings-action-icon" aria-hidden="true">&#8595;</span><span class="settings-action-copy"><strong>Copy backup</strong><small>Copy assessments, workouts and settings as JSON.</small></span><span class="settings-action-meta">Copy</span></button><button type="button" class="settings-action" id="setImport" data-snd><span class="settings-action-icon" aria-hidden="true">&#8593;</span><span class="settings-action-copy"><strong>Import backup</strong><small>Restore a previously exported Athlete JSON file.</small></span><span class="settings-action-meta">Choose file</span></button><input type="file" id="setImportFile" accept="application/json,.json" hidden></div><div class="settings-status" id="setBackupStatus" role="status" aria-live="polite"></div></section>
+   <section class="settings-section settings-danger-zone" aria-labelledby="resetSettingsTitle"><div class="settings-section-head"><div><h3 id="resetSettingsTitle">Reset athlete data</h3><p>Delete assessments, workouts and custom exercises, then restore defaults.</p></div></div><button type="button" class="form-btn settings-reset-btn" id="setReset">Reset athlete data</button><div class="reset-confirm" id="resetConfirm" hidden tabindex="-1"><div><strong>Delete everything?</strong><span>This action cannot be undone. Export a backup first if needed.</span></div><div class="reset-confirm-actions"><button type="button" class="form-btn" id="resetCancel">Cancel</button><button type="button" class="form-btn form-btn-danger" id="resetConfirmBtn">Delete everything</button></div></div></section>
   </div>
-
-  <div class="settings-footer">
-   <div class="err" id="setErr" role="alert"></div>
-   <div class="settings-footer-actions"><button class="form-btn" id="setCancel" data-snd>Cancel</button><button class="form-btn form-btn-primary" id="setSave" data-snd disabled>Save changes</button></div>
-  </div>
+  <div class="settings-footer"><div class="err" id="setErr" role="alert"></div><div class="settings-footer-actions"><button class="form-btn" id="setCancel" data-snd>Cancel</button><button class="form-btn form-btn-primary" id="setSave" data-snd disabled>Save changes</button></div></div>
  </div>
 </div>
 
@@ -3767,6 +3835,268 @@ function parsePace(str){
  var n = parseFloat(str);
  if (!isFinite(n)) return null;
  return n < 30 ? n * 60 : n;
+}
+</script>
+<script data-athlete-inline="athlete-training-data.js">
+'use strict';
+/* ATHLETE training v1 - backward-compatible workout state and analytics.
+   Loads after athlete-data.js and keeps the existing fitness/state SyncEngine key. */
+
+var TRAINING_KG_PER_LB = 0.45359237;
+var TRAINING_EXERCISES = [
+ { id:'bench', name:'Bench Press', group:'Chest', kind:'weighted', attr:'UPS' },
+ { id:'squat', name:'Back Squat', group:'Legs', kind:'weighted', attr:'LWS' },
+ { id:'deadlift', name:'Deadlift', group:'Posterior chain', kind:'weighted', attr:'LWS' },
+ { id:'ohp', name:'Overhead Press', group:'Shoulders', kind:'weighted', attr:'UPS' },
+ { id:'row', name:'Barbell Row', group:'Back', kind:'weighted', attr:'UPS' },
+ { id:'rdl', name:'Romanian Deadlift', group:'Posterior chain', kind:'weighted', attr:'LWS' },
+ { id:'dbbench', name:'Dumbbell Bench Press', group:'Chest', kind:'weighted', attr:'UPS' },
+ { id:'legpress', name:'Leg Press', group:'Legs', kind:'weighted', attr:'LWS' },
+ { id:'latpulldown', name:'Lat Pulldown', group:'Back', kind:'weighted', attr:'UPS' },
+ { id:'pullup', name:'Pull-up', group:'Back', kind:'bodyweight', attr:'UPS' },
+ { id:'pushup', name:'Push-up', group:'Chest', kind:'bodyweight', attr:'UPS' },
+ { id:'dip', name:'Dip', group:'Chest', kind:'bodyweight', attr:'UPS' },
+ { id:'split-squat', name:'Bulgarian Split Squat', group:'Legs', kind:'weighted', attr:'LWS' },
+ { id:'curl', name:'Biceps Curl', group:'Arms', kind:'weighted', attr:'UPS' },
+ { id:'triceps', name:'Triceps Extension', group:'Arms', kind:'weighted', attr:'UPS' },
+ { id:'lateral-raise', name:'Lateral Raise', group:'Shoulders', kind:'weighted', attr:'UPS' },
+ { id:'calf-raise', name:'Calf Raise', group:'Legs', kind:'weighted', attr:'LWS' },
+ { id:'plank', name:'Plank', group:'Core', kind:'bodyweight', attr:'COR' }
+];
+
+function ensureTrainingState(){
+ if (!state || typeof state !== 'object') state = { v:1, bw:null, entries:[], ruck:DEFAULT_RUCK };
+ if (!Array.isArray(state.workouts)) state.workouts = [];
+ if (!Array.isArray(state.customExercises)) state.customExercises = [];
+ if (!state.preferences || typeof state.preferences !== 'object') state.preferences = {};
+ if (state.preferences.units !== 'kg' && state.preferences.units !== 'lb') state.preferences.units = 'lb';
+ if (typeof state.preferences.rpeEnabled !== 'boolean') state.preferences.rpeEnabled = true;
+ if (state.activeWorkout && typeof state.activeWorkout !== 'object') state.activeWorkout = null;
+ state.v = Math.max(Number(state.v) || 1, 2);
+ return state;
+}
+
+var athleteBaseLoadState = loadState;
+loadState = function(){ athleteBaseLoadState(); ensureTrainingState(); };
+var athleteBaseSave = save;
+save = function(){ ensureTrainingState(); athleteBaseSave(); };
+
+function trainingUnit(){ ensureTrainingState(); return state.preferences.units; }
+function trainingLoadToKg(value){
+ var n = Number(value);
+ if (!isFinite(n)) return null;
+ return trainingUnit() === 'lb' ? n * TRAINING_KG_PER_LB : n;
+}
+function trainingKgToDisplay(valueKg){
+ var n = Number(valueKg);
+ if (!isFinite(n)) return null;
+ return trainingUnit() === 'lb' ? n / TRAINING_KG_PER_LB : n;
+}
+function trainingRound(value, decimals){
+ var power = Math.pow(10, decimals === undefined ? 1 : decimals);
+ return Math.round(value * power) / power;
+}
+function trainingFormatNumber(value){
+ if (!isFinite(Number(value))) return '0';
+ var rounded = trainingRound(Number(value), 1);
+ return String(rounded).replace(/\.0$/, '');
+}
+function trainingFormatLoad(valueKg, bodyweightLabel){
+ var n = Number(valueKg);
+ if (!isFinite(n) || n <= 0) return bodyweightLabel || 'Bodyweight';
+ return trainingFormatNumber(trainingKgToDisplay(n)) + ' ' + trainingUnit();
+}
+function trainingFormatVolume(valueKg){
+ var shown = trainingKgToDisplay(Number(valueKg) || 0);
+ if (shown >= 1000) return trainingFormatNumber(shown / 1000) + 'k ' + trainingUnit();
+ return trainingFormatNumber(shown) + ' ' + trainingUnit();
+}
+
+function trainingExerciseById(id){
+ var all = TRAINING_EXERCISES.concat((state && state.customExercises) || []);
+ for (var i=0;i<all.length;i++) if (all[i].id === id) return all[i];
+ return null;
+}
+function trainingAllExercises(){
+ ensureTrainingState();
+ return TRAINING_EXERCISES.concat(state.customExercises).slice().sort(function(a,b){
+  if (a.group === b.group) return a.name.localeCompare(b.name);
+  return a.group.localeCompare(b.group);
+ });
+}
+function trainingExerciseName(item){
+ var def = trainingExerciseById(item.exerciseId || item.id);
+ return (item && item.name) || (def && def.name) || 'Exercise';
+}
+function trainingIsWorkingSet(set){ return !!set && set.done !== false && set.type !== 'warmup'; }
+function trainingEstimate1RMKg(set){
+ if (!trainingIsWorkingSet(set)) return null;
+ var load = Number(set.loadKg), reps = Number(set.reps);
+ if (!isFinite(load) || load <= 0 || !isFinite(reps) || reps < 1 || reps > 12) return null;
+ return load * (1 + reps / 30);
+}
+function trainingExerciseMetrics(exercise){
+ var out = { completedSets:0, workSets:0, reps:0, volumeKg:0, topSet:null, e1rmKg:null };
+ (exercise.sets || []).forEach(function(set){
+  if (set.done === false) return;
+  out.completedSets++;
+  var reps = Math.max(0, Number(set.reps) || 0);
+  if (trainingIsWorkingSet(set)){
+   out.workSets++;
+   out.reps += reps;
+   out.volumeKg += Math.max(0, Number(set.loadKg) || 0) * reps;
+   var e1 = trainingEstimate1RMKg(set);
+   if (e1 !== null && (out.e1rmKg === null || e1 > out.e1rmKg)){
+    out.e1rmKg = e1;
+    out.topSet = set;
+   } else if (!out.topSet || (Number(set.reps) || 0) > (Number(out.topSet.reps) || 0)){
+    out.topSet = set;
+   }
+  }
+ });
+ return out;
+}
+function trainingWorkoutMetrics(workout){
+ var out = { exercises:0, completedSets:0, workSets:0, reps:0, volumeKg:0 };
+ (workout && workout.exercises || []).forEach(function(exercise){
+  var m = trainingExerciseMetrics(exercise);
+  if (m.completedSets) out.exercises++;
+  out.completedSets += m.completedSets;
+  out.workSets += m.workSets;
+  out.reps += m.reps;
+  out.volumeKg += m.volumeKg;
+ });
+ return out;
+}
+function trainingCompletedWorkouts(list){
+ ensureTrainingState();
+ return (list || state.workouts).slice().sort(function(a,b){
+  var ad = a.d || '', bd = b.d || '';
+  if (ad === bd) return (Number(b.completedAt) || 0) - (Number(a.completedAt) || 0);
+  return ad < bd ? 1 : -1;
+ });
+}
+function trainingExerciseHistory(exerciseId, workouts){
+ var history = [];
+ trainingCompletedWorkouts(workouts).slice().reverse().forEach(function(workout){
+  (workout.exercises || []).forEach(function(exercise){
+   if (exercise.exerciseId !== exerciseId) return;
+   var metrics = trainingExerciseMetrics(exercise);
+   if (!metrics.workSets) return;
+   history.push({ workout:workout, exercise:exercise, metrics:metrics });
+  });
+ });
+ return history;
+}
+function trainingExerciseStats(exerciseId, workouts){
+ var stats = { sessions:0, workSets:0, volumeKg:0, bestE1rmKg:null, bestLoadKg:null, bestReps:0, bestSet:null, history:[] };
+ stats.history = trainingExerciseHistory(exerciseId, workouts);
+ stats.history.forEach(function(point){
+  stats.sessions++;
+  stats.workSets += point.metrics.workSets;
+  stats.volumeKg += point.metrics.volumeKg;
+  if (point.metrics.e1rmKg !== null && (stats.bestE1rmKg === null || point.metrics.e1rmKg > stats.bestE1rmKg)){
+   stats.bestE1rmKg = point.metrics.e1rmKg;
+   stats.bestSet = point.metrics.topSet;
+  }
+  (point.exercise.sets || []).forEach(function(set){
+   if (!trainingIsWorkingSet(set)) return;
+   var load = Number(set.loadKg) || 0, reps = Number(set.reps) || 0;
+   if (stats.bestLoadKg === null || load > stats.bestLoadKg) stats.bestLoadKg = load;
+   if (reps > stats.bestReps) stats.bestReps = reps;
+  });
+ });
+ return stats;
+}
+function trainingLatestExercise(exerciseId){
+ var history = trainingExerciseHistory(exerciseId);
+ return history.length ? history[history.length - 1] : null;
+}
+function trainingPreviousSets(exerciseId){
+ var latest = trainingLatestExercise(exerciseId);
+ if (!latest) return [];
+ return (latest.exercise.sets || []).filter(trainingIsWorkingSet).map(function(set){
+  return { id:uid(), loadKg:Number(set.loadKg) || 0, reps:Number(set.reps) || 0, rpe:set.rpe === null || set.rpe === undefined ? null : Number(set.rpe), type:set.type || 'work', done:true };
+ });
+}
+
+function trainingDateValue(text){
+ var d = new Date((text || todayStr()) + 'T12:00:00');
+ return isNaN(d.getTime()) ? new Date() : d;
+}
+function trainingWeekStart(date){
+ var d = new Date(date || Date.now());
+ d.setHours(0,0,0,0);
+ var day = d.getDay();
+ d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+ return d;
+}
+function trainingThisWeekMetrics(){
+ var start = trainingWeekStart();
+ var out = { sessions:0, workSets:0, reps:0, volumeKg:0, groups:{} };
+ trainingCompletedWorkouts().forEach(function(workout){
+  if (trainingDateValue(workout.d) < start) return;
+  var metrics = trainingWorkoutMetrics(workout);
+  out.sessions++;
+  out.workSets += metrics.workSets;
+  out.reps += metrics.reps;
+  out.volumeKg += metrics.volumeKg;
+  (workout.exercises || []).forEach(function(exercise){
+   var m = trainingExerciseMetrics(exercise);
+   if (!m.workSets) return;
+   var def = trainingExerciseById(exercise.exerciseId);
+   var group = (def && def.group) || 'Other';
+   out.groups[group] = (out.groups[group] || 0) + m.workSets;
+  });
+ });
+ return out;
+}
+function trainingNewPRs(workout, priorWorkouts){
+ var messages = [];
+ (workout.exercises || []).forEach(function(exercise){
+  var current = trainingExerciseMetrics(exercise);
+  if (!current.workSets) return;
+  var previous = trainingExerciseStats(exercise.exerciseId, priorWorkouts || []);
+  var name = trainingExerciseName(exercise);
+  if (current.e1rmKg !== null && (previous.bestE1rmKg === null || current.e1rmKg > previous.bestE1rmKg + 0.05)){
+   messages.push(name + ' estimated 1RM');
+   return;
+  }
+  if (current.topSet && (Number(current.topSet.reps) || 0) > previous.bestReps) messages.push(name + ' rep record');
+ });
+ return messages;
+}
+
+function trainingAssessmentCandidate(exercise){
+ var map = {
+  bench:{ testId:'bench', loads:[55,65,75] },
+  squat:{ testId:'squat', loads:[72,80,90] },
+  pullup:{ testId:'pullups', bodyweight:true },
+  pushup:{ testId:'pushups', bodyweight:true }
+ };
+ var config = map[exercise.exerciseId];
+ if (!config) return null;
+ var candidates = [];
+ (exercise.sets || []).forEach(function(set){
+  if (!trainingIsWorkingSet(set)) return;
+  var reps = Math.floor(Number(set.reps) || 0);
+  if (reps < 0) return;
+  if (config.bodyweight){ candidates.push({ set:set, reps:reps, load:null }); return; }
+  var loadKg = Number(set.loadKg) || 0;
+  config.loads.forEach(function(allowed){
+   if (Math.abs(loadKg - allowed) <= 0.6) candidates.push({ set:set, reps:reps, load:allowed });
+  });
+ });
+ if (!candidates.length) return null;
+ var test = testById(config.testId);
+ candidates.sort(function(a,b){ return scoreOf(test, b.reps, b) - scoreOf(test, a.reps, a); });
+ var best = candidates[0];
+ return {
+  testId:config.testId,
+  value:best.reps,
+  load:best.load,
+  raw:best.load === null ? best.reps + ' reps' : best.reps + ' × ' + best.load + ' kg'
+ };
 }
 </script>
 <script data-athlete-inline="athlete-render.js">
@@ -4483,187 +4813,510 @@ if (window.SyncEngine && typeof SyncEngine.init === 'function'){
 </script>
 <script data-athlete-inline="athlete-settings.js">
 'use strict';
-/* ATHLETE settings v1 - professional profile, standards and backup controls.
-   Persistence remains the existing fitness/state object. */
+/* ATHLETE settings v2 - profile, training preferences, standards and backups. */
 (function(){
  var legacyOpenSettings = openSettings;
  var settingsStart = '';
  var paceIds = ['rkFloor','rkL1','rkL2','rkL3','rkCap'];
 
  function resultLabel(count){ return count + ' result' + (count === 1 ? '' : 's'); }
+ function workoutLabel(count){ return count + ' workout' + (count === 1 ? '' : 's'); }
  function valuesSignature(){
-  return ['setBw'].concat(paceIds).map(function(id){ return el(id).value.trim(); }).join('|');
+  return ['setBw'].concat(paceIds).map(function(id){ return el(id).value.trim(); }).concat([el('setUnits').value,el('setRpeEnabled').checked ? '1' : '0']).join('|');
  }
- function currentRuckFromFields(){
-  return {
-   floor:parsePace(el('rkFloor').value),
-   l1:parsePace(el('rkL1').value),
-   l2:parsePace(el('rkL2').value),
-   l3:parsePace(el('rkL3').value),
-   cap:parsePace(el('rkCap').value)
-  };
- }
- function isRecommendedRuck(r){
-  return !!r && r.floor === DEFAULT_RUCK.floor && r.l1 === DEFAULT_RUCK.l1 && r.l2 === DEFAULT_RUCK.l2 && r.l3 === DEFAULT_RUCK.l3 && r.cap === DEFAULT_RUCK.cap;
- }
- function setStatus(message, kind){
-  var node = el('setBackupStatus');
-  node.textContent = message || '';
-  node.className = 'settings-status' + (kind ? ' ' + kind : '');
- }
+ function currentRuckFromFields(){ return { floor:parsePace(el('rkFloor').value),l1:parsePace(el('rkL1').value),l2:parsePace(el('rkL2').value),l3:parsePace(el('rkL3').value),cap:parsePace(el('rkCap').value) }; }
+ function isRecommendedRuck(r){ return !!r && r.floor===DEFAULT_RUCK.floor && r.l1===DEFAULT_RUCK.l1 && r.l2===DEFAULT_RUCK.l2 && r.l3===DEFAULT_RUCK.l3 && r.cap===DEFAULT_RUCK.cap; }
+ function setStatus(message,kind){ var node=el('setBackupStatus'); node.textContent=message||''; node.className='settings-status'+(kind?' '+kind:''); }
  function updateSettingsSummary(){
-  var count = state.entries.length;
-  var sync = el('syncState').textContent || 'Local';
-  el('setSummaryCopy').textContent = resultLabel(count) + ' stored · ' + sync;
-  el('setDataCount').textContent = resultLabel(count);
-  el('setProfileState').textContent = state.bw ? 'Configured' : 'Optional';
-  el('setProfileState').classList.toggle('custom', !!state.bw);
+  ensureTrainingState();
+  var results=state.entries.length, workouts=state.workouts.length, sync=el('syncState').textContent||'Local';
+  el('setSummaryCopy').textContent=resultLabel(results)+' · '+workoutLabel(workouts)+' · '+sync;
+  el('setDataCount').textContent=(results+workouts)+' records';
+  el('setProfileState').textContent=state.bw?'Configured':'Optional';
+  el('setProfileState').classList.toggle('custom',!!state.bw);
  }
  function updateSettingsChrome(){
-  var dirty = settingsStart !== '' && valuesSignature() !== settingsStart;
-  el('setSave').disabled = !dirty;
-  el('setSaveState').textContent = dirty ? 'Unsaved' : 'Up to date';
-  el('setSaveState').classList.toggle('dirty', dirty);
-  var recommended = isRecommendedRuck(currentRuckFromFields());
-  el('setRuckMode').textContent = recommended ? 'Recommended' : 'Custom';
-  el('setRuckMode').classList.toggle('custom', !recommended);
-  if (el('setErr').textContent) el('setErr').textContent = '';
+  var dirty=settingsStart!==''&&valuesSignature()!==settingsStart;
+  el('setSave').disabled=!dirty;
+  el('setSaveState').textContent=dirty?'Unsaved':'Up to date';
+  el('setSaveState').classList.toggle('dirty',dirty);
+  var recommended=isRecommendedRuck(currentRuckFromFields());
+  el('setRuckMode').textContent=recommended?'Recommended':'Custom';
+  el('setRuckMode').classList.toggle('custom',!recommended);
+  if(el('setErr').textContent)el('setErr').textContent='';
  }
  function restoreRecommended(){
-  el('rkFloor').value = fmtMS(DEFAULT_RUCK.floor);
-  el('rkL1').value = fmtMS(DEFAULT_RUCK.l1);
-  el('rkL2').value = fmtMS(DEFAULT_RUCK.l2);
-  el('rkL3').value = fmtMS(DEFAULT_RUCK.l3);
-  el('rkCap').value = fmtMS(DEFAULT_RUCK.cap);
-  updateSettingsChrome();
-  setStatus('Recommended Loaded March standard restored. Save changes to apply it.', 'ok');
+  el('rkFloor').value=fmtMS(DEFAULT_RUCK.floor);el('rkL1').value=fmtMS(DEFAULT_RUCK.l1);el('rkL2').value=fmtMS(DEFAULT_RUCK.l2);el('rkL3').value=fmtMS(DEFAULT_RUCK.l3);el('rkCap').value=fmtMS(DEFAULT_RUCK.cap);
+  updateSettingsChrome();setStatus('Recommended Loaded March standard restored. Save changes to apply it.','ok');
  }
 
- openSettings = function(){
-  legacyOpenSettings();
-  el('ruckSettings').open = false;
-  el('resetConfirm').hidden = true;
-  el('setReset').hidden = false;
-  setStatus('', '');
-  settingsStart = valuesSignature();
-  updateSettingsSummary();
-  updateSettingsChrome();
+ var oldSave=el('setSave');
+ var saveButton=oldSave.cloneNode(true);
+ oldSave.parentNode.replaceChild(saveButton,oldSave);
+ function saveProfessionalSettings(){
+  var bw=parseFloat(el('setBw').value);
+  if(el('setBw').value.trim()!==''&&(!isFinite(bw)||bw<=0)){el('setErr').textContent='Bodyweight must be a positive number.';return;}
+  var r=currentRuckFromFields();
+  for(var key in r){if(r[key]===null||r[key]<=0){el('setErr').textContent='All five pace anchors are required in mm:ss per kilometre.';return;}}
+  if(!(r.floor>r.l1&&r.l1>r.l2&&r.l2>r.l3&&r.l3>r.cap)){el('setErr').textContent='Paces must run from the slowest baseline to the fastest cap.';return;}
+  ensureTrainingState();
+  state.bw=el('setBw').value.trim()===''?null:Math.round(bw*10)/10;
+  state.ruck=r;
+  state.preferences.units=el('setUnits').value==='kg'?'kg':'lb';
+  state.preferences.rpeEnabled=el('setRpeEnabled').checked;
+  save();closeModal('settings');renderAll();announce('Settings saved.');
+ }
+ saveButton.addEventListener('click',saveProfessionalSettings);
+
+ openSettings=function(){
+  ensureTrainingState();legacyOpenSettings();
+  el('setUnits').value=state.preferences.units;el('setRpeEnabled').checked=state.preferences.rpeEnabled;
+  el('ruckSettings').open=false;el('resetConfirm').hidden=true;el('setReset').hidden=false;setStatus('','');
+  settingsStart=valuesSignature();updateSettingsSummary();updateSettingsChrome();
  };
+ ['setBw'].concat(paceIds).forEach(function(id){el(id).addEventListener('input',updateSettingsChrome);});
+ el('setUnits').addEventListener('change',updateSettingsChrome);el('setRpeEnabled').addEventListener('change',updateSettingsChrome);
+ paceIds.forEach(function(id){el(id).addEventListener('blur',function(){var pace=parsePace(el(id).value);if(pace!==null&&pace>0)el(id).value=fmtMS(pace);updateSettingsChrome();});});
+ el('ruckDefaults').addEventListener('click',restoreRecommended);el('setCancel').addEventListener('click',function(){closeModal('settings');});
 
- ['setBw'].concat(paceIds).forEach(function(id){
-  el(id).addEventListener('input', updateSettingsChrome);
- });
- paceIds.forEach(function(id){
-  el(id).addEventListener('blur', function(){
-   var pace = parsePace(el(id).value);
-   if (pace !== null && pace > 0) el(id).value = fmtMS(pace);
-   updateSettingsChrome();
-  });
- });
- el('ruckDefaults').addEventListener('click', restoreRecommended);
- el('setCancel').addEventListener('click', function(){ closeModal('settings'); });
-
- /* Replace the legacy export button so its rich label stays intact. */
- var oldExport = el('setExport');
- var exportButton = oldExport.cloneNode(true);
- oldExport.parentNode.replaceChild(exportButton, oldExport);
- exportButton.addEventListener('click', function(){
-  var packet = {
-   app:'Athlete',
-   schema:1,
-   exportedAt:new Date().toISOString(),
-   data:state
-  };
-  var text = JSON.stringify(packet, null, 2);
-  function complete(){
-   setStatus('Backup copied to your clipboard.', 'ok');
-   announce('Athlete backup copied to clipboard.');
-  }
-  function fallback(){ fallbackCopy(text); complete(); }
-  if (navigator.clipboard && navigator.clipboard.writeText){
-   navigator.clipboard.writeText(text).then(complete, fallback);
-  } else fallback();
+ var oldExport=el('setExport');var exportButton=oldExport.cloneNode(true);oldExport.parentNode.replaceChild(exportButton,oldExport);
+ exportButton.addEventListener('click',function(){
+  var packet={app:'Athlete',schema:2,exportedAt:new Date().toISOString(),data:state};var text=JSON.stringify(packet,null,2);
+  function complete(){setStatus('Complete Athlete backup copied to your clipboard.','ok');announce('Athlete backup copied to clipboard.');}
+  function fallback(){fallbackCopy(text);complete();}
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(text).then(complete,fallback);else fallback();
  });
 
- function normaliseBackup(payload){
-  var source = payload && typeof payload === 'object' ? (payload.data || payload.state || payload) : null;
-  if (!source || !Array.isArray(source.entries)) throw new Error('This file is not a valid Athlete backup.');
-
-  var bw = source.bw === null || source.bw === undefined || source.bw === '' ? null : Number(source.bw);
-  if (bw !== null && (!isFinite(bw) || bw <= 0)) throw new Error('The backup contains an invalid bodyweight.');
-
-  var rr = source.ruck || DEFAULT_RUCK;
-  var ruck = { floor:Number(rr.floor), l1:Number(rr.l1), l2:Number(rr.l2), l3:Number(rr.l3), cap:Number(rr.cap) };
-  var validRuck = Object.keys(ruck).every(function(key){ return isFinite(ruck[key]) && ruck[key] > 0; });
-  if (!validRuck || !(ruck.floor > ruck.l1 && ruck.l1 > ruck.l2 && ruck.l2 > ruck.l3 && ruck.l3 > ruck.cap)){
-   throw new Error('The backup contains an invalid Loaded March standard.');
-  }
-
-  var entries = source.entries.map(function(entry, index){
-   if (!entry || !testById(entry.t) || !isFinite(Number(entry.v))) throw new Error('The backup contains an invalid result.');
-   return {
-    id:entry.id ? String(entry.id) : uid(),
-    t:String(entry.t),
-    d:entry.d ? String(entry.d) : todayStr(),
-    v:Number(entry.v),
-    load:entry.load === null || entry.load === undefined ? null : Number(entry.load),
-    dist:entry.dist === null || entry.dist === undefined ? null : Number(entry.dist),
-    raw:entry.raw === null || entry.raw === undefined ? String(entry.v) : String(entry.raw),
-    ts:isFinite(Number(entry.ts)) ? Number(entry.ts) : Date.now() + index
-   };
-  });
-  return { v:1, bw:bw === null ? null : Math.round(bw * 10) / 10, entries:entries, ruck:ruck };
+ function normaliseSet(set){
+  if(!set||!isFinite(Number(set.reps))||!isFinite(Number(set.loadKg)))throw new Error('The backup contains an invalid workout set.');
+  return{id:set.id?String(set.id):uid(),loadKg:Math.max(0,Number(set.loadKg)),reps:Math.max(0,Math.floor(Number(set.reps))),rpe:set.rpe===null||set.rpe===undefined||set.rpe===''?null:Number(set.rpe),type:['work','warmup','drop','failure'].indexOf(set.type)>=0?set.type:'work',done:set.done!==false};
  }
+ function normaliseWorkout(workout,index){
+  if(!workout||!Array.isArray(workout.exercises))throw new Error('The backup contains an invalid workout.');
+  return{id:workout.id?String(workout.id):'w'+uid(),d:workout.d?String(workout.d):todayStr(),title:workout.title?String(workout.title):'Training session',startedAt:isFinite(Number(workout.startedAt))?Number(workout.startedAt):Date.now()+index,completedAt:isFinite(Number(workout.completedAt))?Number(workout.completedAt):Date.now()+index,exercises:workout.exercises.map(function(exercise){if(!exercise||!exercise.exerciseId||!Array.isArray(exercise.sets))throw new Error('The backup contains an invalid exercise.');return{id:exercise.id?String(exercise.id):uid(),exerciseId:String(exercise.exerciseId),name:exercise.name?String(exercise.name):null,sets:exercise.sets.map(normaliseSet)};})};
+ }
+ function normaliseBackup(payload){
+  var source=payload&&typeof payload==='object'?(payload.data||payload.state||payload):null;
+  if(!source||!Array.isArray(source.entries))throw new Error('This file is not a valid Athlete backup.');
+  var bw=source.bw===null||source.bw===undefined||source.bw===''?null:Number(source.bw);if(bw!==null&&(!isFinite(bw)||bw<=0))throw new Error('The backup contains an invalid bodyweight.');
+  var rr=source.ruck||DEFAULT_RUCK;var ruck={floor:Number(rr.floor),l1:Number(rr.l1),l2:Number(rr.l2),l3:Number(rr.l3),cap:Number(rr.cap)};
+  var valid=Object.keys(ruck).every(function(k){return isFinite(ruck[k])&&ruck[k]>0;});if(!valid||!(ruck.floor>ruck.l1&&ruck.l1>ruck.l2&&ruck.l2>ruck.l3&&ruck.l3>ruck.cap))throw new Error('The backup contains an invalid Loaded March standard.');
+  var entries=source.entries.map(function(entry,index){if(!entry||!testById(entry.t)||!isFinite(Number(entry.v)))throw new Error('The backup contains an invalid assessment.');var out={id:entry.id?String(entry.id):uid(),t:String(entry.t),d:entry.d?String(entry.d):todayStr(),v:Number(entry.v),load:entry.load===null||entry.load===undefined?null:Number(entry.load),dist:entry.dist===null||entry.dist===undefined?null:Number(entry.dist),raw:entry.raw===null||entry.raw===undefined?String(entry.v):String(entry.raw),ts:isFinite(Number(entry.ts))?Number(entry.ts):Date.now()+index};if(entry.sourceWorkoutId)out.sourceWorkoutId=String(entry.sourceWorkoutId);return out;});
+  var custom=Array.isArray(source.customExercises)?source.customExercises.map(function(exercise,index){return{id:exercise.id?String(exercise.id):'custom-'+index,name:exercise.name?String(exercise.name):'Custom exercise',group:exercise.group?String(exercise.group):'Other',kind:exercise.kind==='bodyweight'?'bodyweight':'weighted',custom:true};}):[];
+  var prefs=source.preferences||{};
+  return{v:2,bw:bw===null?null:Math.round(bw*10)/10,entries:entries,ruck:ruck,workouts:Array.isArray(source.workouts)?source.workouts.map(normaliseWorkout):[],customExercises:custom,preferences:{units:prefs.units==='kg'?'kg':'lb',rpeEnabled:typeof prefs.rpeEnabled==='boolean'?prefs.rpeEnabled:true},activeWorkout:null};
+ }
+ var importInput=el('setImportFile');el('setImport').addEventListener('click',function(){importInput.value='';importInput.click();});
+ importInput.addEventListener('change',function(){var file=importInput.files&&importInput.files[0];if(!file)return;if(file.size>4*1024*1024){setStatus('That backup is larger than 4 MB and was not imported.','error');return;}setStatus('Checking backup…','');file.text().then(function(text){state=normaliseBackup(JSON.parse(text));save();renderAll();openSettings();setStatus('Backup imported successfully. '+resultLabel(state.entries.length)+' and '+workoutLabel(state.workouts.length)+' restored.','ok');announce('Athlete backup imported.');}).catch(function(error){setStatus(error&&error.message?error.message:'The backup could not be imported.','error');});});
 
- var importInput = el('setImportFile');
- el('setImport').addEventListener('click', function(){
-  importInput.value = '';
-  importInput.click();
- });
- importInput.addEventListener('change', function(){
-  var file = importInput.files && importInput.files[0];
-  if (!file) return;
-  if (file.size > 2 * 1024 * 1024){ setStatus('That backup is larger than 2 MB and was not imported.', 'error'); return; }
-  setStatus('Checking backup…', '');
-  file.text().then(function(text){
-   var next = normaliseBackup(JSON.parse(text));
-   state = next;
-   save();
-   renderAll();
-   openSettings();
-   setStatus('Backup imported successfully. ' + resultLabel(state.entries.length) + ' restored.', 'ok');
-   announce('Athlete backup imported.');
-  }).catch(function(error){
-   setStatus(error && error.message ? error.message : 'The backup could not be imported.', 'error');
-  });
- });
-
- /* Replace the old double-click reset with an explicit confirmation panel. */
- var oldReset = el('setReset');
- var resetButton = oldReset.cloneNode(true);
- oldReset.parentNode.replaceChild(resetButton, oldReset);
- resetButton.addEventListener('click', function(){
-  resetButton.hidden = true;
-  el('resetConfirm').hidden = false;
-  el('resetConfirm').focus();
- });
- el('resetCancel').addEventListener('click', function(){
-  el('resetConfirm').hidden = true;
-  resetButton.hidden = false;
- });
- el('resetConfirmBtn').addEventListener('click', function(){
-  state = {
-   v:1,
-   bw:null,
-   entries:[],
-   ruck:{ floor:DEFAULT_RUCK.floor, l1:DEFAULT_RUCK.l1, l2:DEFAULT_RUCK.l2, l3:DEFAULT_RUCK.l3, cap:DEFAULT_RUCK.cap }
-  };
-  save();
-  closeModal('settings');
-  renderAll();
-  announce('All athlete data cleared.');
- });
+ var oldReset=el('setReset');var resetButton=oldReset.cloneNode(true);oldReset.parentNode.replaceChild(resetButton,oldReset);
+ resetButton.addEventListener('click',function(){resetButton.hidden=true;el('resetConfirm').hidden=false;el('resetConfirm').focus();});
+ el('resetCancel').addEventListener('click',function(){el('resetConfirm').hidden=true;resetButton.hidden=false;});
+ el('resetConfirmBtn').addEventListener('click',function(){state={v:2,bw:null,entries:[],ruck:{floor:DEFAULT_RUCK.floor,l1:DEFAULT_RUCK.l1,l2:DEFAULT_RUCK.l2,l3:DEFAULT_RUCK.l3,cap:DEFAULT_RUCK.cap},workouts:[],customExercises:[],preferences:{units:'lb',rpeEnabled:true},activeWorkout:null};save();closeModal('settings');renderAll();announce('All athlete data cleared.');});
 })();
+</script>
+<script data-athlete-inline="athlete-training-ui.js">
+'use strict';
+/* ATHLETE training v1 - Train, Progress, quick set logging and assessment promotion. */
+
+var athleteAppView = 'profile';
+var athleteProgressExercise = null;
+var athleteDraftSaveTimer = null;
+
+function trainingEscape(value){
+ return String(value === null || value === undefined ? '' : value)
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function trainingPlural(value, singular){ return value + ' ' + singular + (value === 1 ? '' : 's'); }
+function trainingPersistSoon(){
+ clearTimeout(athleteDraftSaveTimer);
+ athleteDraftSaveTimer = setTimeout(function(){ save(); }, 220);
+}
+function trainingSetView(view){
+ athleteAppView = view;
+ ['profile','train','progress'].forEach(function(name){
+  var panel = el(name + 'View');
+  var button = document.querySelector('[data-app-view="' + name + '"]');
+  if (panel) panel.hidden = name !== view;
+  if (button){
+   button.classList.toggle('on', name === view);
+   button.setAttribute('aria-selected', name === view ? 'true' : 'false');
+  }
+ });
+ if (view === 'train') renderTrainingDashboard();
+ if (view === 'progress') renderProgressDashboard();
+ hideTip();
+}
+
+function trainingNewWorkout(template){
+ var exercises = template ? (template.exercises || []).map(function(exercise){
+  return { id:uid(), exerciseId:exercise.exerciseId, name:exercise.name || null, sets:[] };
+ }) : [];
+ return {
+  id:'w' + uid(),
+  d:todayStr(),
+  title:template && template.title ? template.title : 'Training session',
+  startedAt:Date.now(),
+  completedAt:null,
+  exercises:exercises
+ };
+}
+function trainingStartWorkout(template){
+ ensureTrainingState();
+ if (!state.activeWorkout) state.activeWorkout = trainingNewWorkout(template || null);
+ save();
+ renderWorkoutEditor();
+ openModal('workoutSheet');
+}
+function trainingCurrentExercise(index){
+ var workout = state.activeWorkout;
+ return workout && workout.exercises ? workout.exercises[index] : null;
+}
+function trainingOpenPicker(){
+ el('exerciseSearch').value = '';
+ el('customExerciseName').value = '';
+ el('customExerciseGroup').value = 'Other';
+ el('exercisePickerErr').textContent = '';
+ renderExercisePicker('');
+ openModal('exercisePicker');
+ setTimeout(function(){ el('exerciseSearch').focus(); }, 60);
+}
+function renderExercisePicker(query){
+ var term = String(query || '').trim().toLowerCase();
+ var list = trainingAllExercises().filter(function(exercise){
+  return !term || exercise.name.toLowerCase().indexOf(term) >= 0 || exercise.group.toLowerCase().indexOf(term) >= 0;
+ });
+ var html = '';
+ var group = null;
+ list.forEach(function(exercise){
+  if (exercise.group !== group){ group = exercise.group; html += '<div class="exercise-group-label">' + trainingEscape(group) + '</div>'; }
+  html += '<button class="exercise-pick" data-exercise-id="' + trainingEscape(exercise.id) + '"><span>' + trainingEscape(exercise.name) + '</span><small>' + (exercise.kind === 'bodyweight' ? 'Bodyweight' : 'Weighted') + '</small></button>';
+ });
+ if (!html) html = '<div class="training-empty compact"><strong>No exercises found</strong><span>Create a custom exercise below.</span></div>';
+ el('exercisePickerList').innerHTML = html;
+}
+function trainingAddExercise(exerciseId){
+ var workout = state.activeWorkout;
+ var def = trainingExerciseById(exerciseId);
+ if (!workout || !def) return;
+ for (var i=0;i<workout.exercises.length;i++){
+  if (workout.exercises[i].exerciseId === exerciseId){
+   closeModal('exercisePicker');
+   renderWorkoutEditor();
+   return;
+  }
+ }
+ workout.exercises.push({ id:uid(), exerciseId:def.id, name:def.name, sets:[] });
+ save();
+ closeModal('exercisePicker');
+ renderWorkoutEditor();
+}
+
+function trainingPreviousText(exerciseId){
+ var previous = trainingLatestExercise(exerciseId);
+ if (!previous) return 'No previous session';
+ var top = previous.metrics.topSet;
+ if (!top) return 'No previous working sets';
+ return fmtDate(previous.workout.d) + ' · ' + trainingFormatLoad(top.loadKg) + ' × ' + top.reps + (top.rpe ? ' @ RPE ' + top.rpe : '');
+}
+function trainingSetRow(set, exerciseIndex, setIndex, kind){
+ var loadValue = set.loadKg > 0 ? trainingFormatNumber(trainingKgToDisplay(set.loadKg)) : '';
+ var rpeEnabled = state.preferences.rpeEnabled;
+ return '<div class="workout-set-row' + (set.done === false ? '' : ' complete') + '" data-set-index="' + setIndex + '">' +
+  '<button class="set-done" data-action="toggle-set" data-exercise-index="' + exerciseIndex + '" data-set-index="' + setIndex + '" aria-label="Toggle set complete">' + (set.done === false ? '○' : '✓') + '</button>' +
+  '<span class="set-number">' + (setIndex + 1) + '</span>' +
+  '<div class="set-input"><input data-set-field="load" data-exercise-index="' + exerciseIndex + '" data-set-index="' + setIndex + '" inputmode="decimal" value="' + trainingEscape(loadValue) + '" ' + (kind === 'bodyweight' ? 'placeholder="Added"' : 'placeholder="0"') + '><small>' + trainingUnit() + '</small></div>' +
+  '<input class="set-reps" data-set-field="reps" data-exercise-index="' + exerciseIndex + '" data-set-index="' + setIndex + '" inputmode="numeric" value="' + trainingEscape(set.reps) + '" aria-label="Repetitions">' +
+  (rpeEnabled ? '<input class="set-rpe" data-set-field="rpe" data-exercise-index="' + exerciseIndex + '" data-set-index="' + setIndex + '" inputmode="decimal" value="' + trainingEscape(set.rpe === null || set.rpe === undefined ? '' : set.rpe) + '" placeholder="—" aria-label="RPE">' : '') +
+  '<select class="set-type" data-set-field="type" data-exercise-index="' + exerciseIndex + '" data-set-index="' + setIndex + '" aria-label="Set type"><option value="work"' + (set.type === 'work' ? ' selected' : '') + '>Work</option><option value="warmup"' + (set.type === 'warmup' ? ' selected' : '') + '>Warm-up</option><option value="drop"' + (set.type === 'drop' ? ' selected' : '') + '>Drop</option><option value="failure"' + (set.type === 'failure' ? ' selected' : '') + '>Failure</option></select>' +
+  '<button class="set-remove" data-action="remove-set" data-exercise-index="' + exerciseIndex + '" data-set-index="' + setIndex + '" aria-label="Remove set">×</button>' +
+ '</div>';
+}
+function trainingExerciseCard(exercise, index){
+ var def = trainingExerciseById(exercise.exerciseId) || { kind:'weighted', group:'Other' };
+ var previousSets = trainingPreviousSets(exercise.exerciseId);
+ var quickLoad = previousSets.length && previousSets[0].loadKg > 0 ? trainingFormatNumber(trainingKgToDisplay(previousSets[0].loadKg)) : '';
+ var quickReps = previousSets.length ? previousSets[0].reps : '';
+ var html = '<article class="workout-exercise" data-exercise-index="' + index + '">';
+ html += '<div class="workout-exercise-head"><div><strong>' + trainingEscape(trainingExerciseName(exercise)) + '</strong><span>' + trainingEscape(def.group || 'Other') + '</span></div><button data-action="remove-exercise" data-exercise-index="' + index + '" aria-label="Remove exercise">Remove</button></div>';
+ html += '<div class="previous-set"><span>Previous</span><strong>' + trainingEscape(trainingPreviousText(exercise.exerciseId)) + '</strong>' + (previousSets.length ? '<button data-action="repeat-previous" data-exercise-index="' + index + '">Repeat</button>' : '') + '</div>';
+ html += '<div class="quick-set"><div class="quick-field"><label>' + (def.kind === 'bodyweight' ? 'Added load' : 'Weight') + '</label><div class="quick-input"><input data-quick="load" inputmode="decimal" value="' + trainingEscape(quickLoad) + '" placeholder="0"><span>' + trainingUnit() + '</span></div></div><div class="quick-field"><label>Reps</label><input data-quick="reps" inputmode="numeric" value="' + trainingEscape(quickReps) + '" placeholder="8"></div><div class="quick-field quick-count"><label>Sets</label><input data-quick="count" inputmode="numeric" value="1"></div>' + (state.preferences.rpeEnabled ? '<div class="quick-field quick-rpe"><label>RPE</label><input data-quick="rpe" inputmode="decimal" placeholder="8"></div>' : '') + '<div class="quick-field quick-type"><label>Type</label><select data-quick="type"><option value="work">Work</option><option value="warmup">Warm-up</option><option value="drop">Drop</option><option value="failure">Failure</option></select></div><button class="quick-add" data-action="add-sets" data-exercise-index="' + index + '">Add sets</button></div>';
+ if (exercise.sets.length){
+  html += '<div class="set-table-head"><span></span><span>Set</span><span>Load</span><span>Reps</span>' + (state.preferences.rpeEnabled ? '<span>RPE</span>' : '') + '<span>Type</span><span></span></div><div class="workout-sets">';
+  exercise.sets.forEach(function(set, setIndex){ html += trainingSetRow(set, index, setIndex, def.kind); });
+  html += '</div>';
+ } else html += '<div class="exercise-empty">Add a set group or repeat your previous working sets.</div>';
+ html += '</article>';
+ return html;
+}
+function renderWorkoutEditor(){
+ ensureTrainingState();
+ var workout = state.activeWorkout;
+ if (!workout) return;
+ el('workoutTitleInput').value = workout.title || 'Training session';
+ el('workoutDateInput').value = workout.d || todayStr();
+ var html = '';
+ (workout.exercises || []).forEach(function(exercise,index){ html += trainingExerciseCard(exercise,index); });
+ el('workoutExercises').innerHTML = html || '<div class="training-empty"><strong>Your workout is empty</strong><span>Add an exercise, then enter one set or a complete set group.</span></div>';
+ renderWorkoutTotals();
+}
+function renderWorkoutTotals(){
+ var metrics = trainingWorkoutMetrics(state.activeWorkout);
+ el('workoutTotals').innerHTML = '<span><strong>' + metrics.exercises + '</strong> exercises</span><span><strong>' + metrics.workSets + '</strong> work sets</span><span><strong>' + trainingFormatVolume(metrics.volumeKg) + '</strong> volume</span>';
+}
+
+function renderTrainingDashboard(){
+ ensureTrainingState();
+ var week = trainingThisWeekMetrics();
+ el('weekSessions').textContent = week.sessions;
+ el('weekSets').textContent = week.workSets;
+ el('weekVolume').textContent = trainingFormatVolume(week.volumeKg);
+ var groups = Object.keys(week.groups).sort(function(a,b){ return week.groups[b] - week.groups[a]; });
+ el('weekFocus').textContent = groups.length ? groups.slice(0,2).join(' + ') : 'No training yet';
+ var active = el('activeWorkoutBanner');
+ active.hidden = !state.activeWorkout;
+ if (state.activeWorkout){
+  var activeMetrics = trainingWorkoutMetrics(state.activeWorkout);
+  el('activeWorkoutText').textContent = (state.activeWorkout.title || 'Training session') + ' · ' + trainingPlural(activeMetrics.workSets,'work set');
+ }
+ var workouts = trainingCompletedWorkouts().slice(0,6);
+ var html = '';
+ workouts.forEach(function(workout){
+  var metrics = trainingWorkoutMetrics(workout);
+  var exerciseNames = (workout.exercises || []).filter(function(exercise){ return trainingExerciseMetrics(exercise).workSets; }).slice(0,3).map(trainingExerciseName);
+  var promotions = '';
+  (workout.exercises || []).forEach(function(exercise){
+   var candidate = trainingAssessmentCandidate(exercise);
+   if (!candidate) return;
+   var used = state.entries.some(function(entry){ return entry.sourceWorkoutId === workout.id && entry.t === candidate.testId; });
+   if (!used) promotions += '<button class="promote-result" data-action="promote" data-workout-id="' + trainingEscape(workout.id) + '" data-exercise-id="' + trainingEscape(exercise.exerciseId) + '">Use ' + trainingEscape(trainingExerciseName(exercise)) + ' for Athlete Rating</button>';
+  });
+  html += '<article class="recent-workout" data-workout-id="' + trainingEscape(workout.id) + '"><div class="recent-workout-main"><div><span>' + trainingEscape(fmtDate(workout.d)) + '</span><strong>' + trainingEscape(workout.title || 'Training session') + '</strong><small>' + trainingEscape(exerciseNames.join(' · ') || 'No exercises') + '</small></div><div class="recent-workout-metrics"><strong>' + metrics.workSets + '</strong><span>sets</span><strong>' + trainingFormatVolume(metrics.volumeKg) + '</strong><span>volume</span></div></div>' + promotions + '<div class="recent-workout-actions"><button data-action="repeat-workout" data-workout-id="' + trainingEscape(workout.id) + '">Repeat workout</button><button data-action="delete-workout" data-workout-id="' + trainingEscape(workout.id) + '">Delete</button></div></article>';
+ });
+ el('recentWorkouts').innerHTML = html || '<div class="training-empty"><strong>No completed workouts</strong><span>Your first session will appear here with volume and progression data.</span></div>';
+}
+
+function trainingChartSvg(history, bodyweight){
+ if (!history.length) return '<div class="training-empty compact"><strong>No trend yet</strong><span>Complete at least one working session for this exercise.</span></div>';
+ var values = history.map(function(point){ return bodyweight ? Number(point.metrics.topSet && point.metrics.topSet.reps) || 0 : trainingKgToDisplay(point.metrics.e1rmKg || 0); });
+ var min = Math.min.apply(null, values), max = Math.max.apply(null, values);
+ if (min === max){ min = Math.max(0,min - 1); max += 1; }
+ var width = 420, height = 150, px = 22, py = 18;
+ var points = values.map(function(value,index){
+  var x = values.length === 1 ? width / 2 : px + index * (width - px*2) / (values.length - 1);
+  var y = height - py - (value - min) / (max - min) * (height - py*2);
+  return [trainingRound(x,1),trainingRound(y,1)];
+ });
+ var path = points.map(function(point,index){ return (index ? 'L' : 'M') + point[0] + ' ' + point[1]; }).join(' ');
+ var circles = points.map(function(point,index){ return '<circle cx="' + point[0] + '" cy="' + point[1] + '" r="3"><title>' + trainingEscape(history[index].workout.d + ': ' + trainingFormatNumber(values[index])) + '</title></circle>'; }).join('');
+ return '<svg class="progress-svg" viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Exercise progress chart"><line x1="' + px + '" y1="' + (height-py) + '" x2="' + (width-px) + '" y2="' + (height-py) + '"></line><line x1="' + px + '" y1="' + (height/2) + '" x2="' + (width-px) + '" y2="' + (height/2) + '"></line><path d="' + path + '"></path>' + circles + '</svg>';
+}
+function renderProgressDashboard(){
+ ensureTrainingState();
+ var week = trainingThisWeekMetrics();
+ var workouts = trainingCompletedWorkouts();
+ var loggedIds = [];
+ workouts.forEach(function(workout){ (workout.exercises || []).forEach(function(exercise){ if (trainingExerciseMetrics(exercise).workSets && loggedIds.indexOf(exercise.exerciseId) < 0) loggedIds.push(exercise.exerciseId); }); });
+ el('progressSessions').textContent = workouts.length;
+ el('progressWeekSets').textContent = week.workSets;
+ el('progressWeekVolume').textContent = trainingFormatVolume(week.volumeKg);
+ el('progressTracked').textContent = loggedIds.length;
+ var select = el('progressExercise');
+ var options = loggedIds.map(function(id){ var def = trainingExerciseById(id); return '<option value="' + trainingEscape(id) + '">' + trainingEscape(def ? def.name : id) + '</option>'; }).join('');
+ select.innerHTML = options || '<option value="">No exercises yet</option>';
+ if (!athleteProgressExercise || loggedIds.indexOf(athleteProgressExercise) < 0) athleteProgressExercise = loggedIds[0] || null;
+ select.value = athleteProgressExercise || '';
+ if (!athleteProgressExercise){
+  el('progressChart').innerHTML = '<div class="training-empty"><strong>Progress begins with a workout</strong><span>Log working sets to unlock estimated 1RM, rep records, volume and exercise history.</span></div>';
+  el('progressExerciseStats').innerHTML = '';
+  el('progressHistory').innerHTML = '';
+  return;
+ }
+ var def = trainingExerciseById(athleteProgressExercise) || { name:'Exercise', kind:'weighted' };
+ var stats = trainingExerciseStats(athleteProgressExercise);
+ el('progressChartTitle').textContent = def.kind === 'bodyweight' ? 'Best reps over time' : 'Estimated 1RM over time';
+ el('progressChart').innerHTML = trainingChartSvg(stats.history, def.kind === 'bodyweight');
+ el('progressExerciseStats').innerHTML = '<div><span>Best e1RM</span><strong>' + (stats.bestE1rmKg === null ? '—' : trainingFormatLoad(stats.bestE1rmKg)) + '</strong></div><div><span>Heaviest set</span><strong>' + (stats.bestLoadKg === null ? '—' : trainingFormatLoad(stats.bestLoadKg)) + '</strong></div><div><span>Best reps</span><strong>' + (stats.bestReps || '—') + '</strong></div><div><span>Work sets</span><strong>' + stats.workSets + '</strong></div>';
+ var historyHtml = '';
+ stats.history.slice(-6).reverse().forEach(function(point){
+  var top = point.metrics.topSet;
+  historyHtml += '<div class="progress-history-row"><span>' + trainingEscape(fmtDate(point.workout.d)) + '</span><strong>' + (top ? trainingEscape(trainingFormatLoad(top.loadKg) + ' × ' + top.reps) : '—') + '</strong><small>' + trainingFormatVolume(point.metrics.volumeKg) + '</small></div>';
+ });
+ el('progressHistory').innerHTML = historyHtml;
+}
+
+function trainingFindWorkout(id){
+ for (var i=0;i<state.workouts.length;i++) if (state.workouts[i].id === id) return state.workouts[i];
+ return null;
+}
+function trainingFinishWorkout(){
+ var workout = state.activeWorkout;
+ if (!workout) return;
+ workout.title = el('workoutTitleInput').value.trim() || 'Training session';
+ workout.d = el('workoutDateInput').value || todayStr();
+ var metrics = trainingWorkoutMetrics(workout);
+ if (!metrics.workSets){ el('workoutErr').textContent = 'Complete at least one working set before finishing.'; return; }
+ var prior = state.workouts.slice();
+ workout.completedAt = Date.now();
+ var prs = trainingNewPRs(workout, prior);
+ state.workouts.push(workout);
+ state.activeWorkout = null;
+ save();
+ closeModal('workoutSheet');
+ trainingSetView('train');
+ renderAll();
+ announce('Workout saved. ' + trainingPlural(metrics.workSets,'working set') + '.');
+ if (prs.length){
+  try { if (window.Core && Core.confetti) Core.confetti.launch('fx'); } catch(e) {}
+  snd('chime');
+  el('trainingNotice').textContent = 'New record: ' + prs.join(' · ');
+  el('trainingNotice').hidden = false;
+  setTimeout(function(){ el('trainingNotice').hidden = true; }, 6000);
+ }
+}
+
+var athleteRenderAll = renderAll;
+renderAll = function(){
+ athleteRenderAll();
+ renderTrainingDashboard();
+ renderProgressDashboard();
+};
+
+Array.prototype.forEach.call(document.querySelectorAll('[data-app-view]'), function(button){
+ button.addEventListener('click', function(){ trainingSetView(button.getAttribute('data-app-view')); });
+});
+el('profileStartWorkout').addEventListener('click', function(){ trainingStartWorkout(); });
+el('startWorkoutBtn').addEventListener('click', function(){ trainingStartWorkout(); });
+el('resumeWorkoutBtn').addEventListener('click', function(){ trainingStartWorkout(); });
+el('addExerciseBtn').addEventListener('click', trainingOpenPicker);
+el('workoutFinishBtn').addEventListener('click', trainingFinishWorkout);
+el('workoutTitleInput').addEventListener('input', function(){ if (state.activeWorkout){ state.activeWorkout.title = this.value; trainingPersistSoon(); } });
+el('workoutDateInput').addEventListener('change', function(){ if (state.activeWorkout){ state.activeWorkout.d = this.value || todayStr(); save(); } });
+el('progressExercise').addEventListener('change', function(){ athleteProgressExercise = this.value || null; renderProgressDashboard(); });
+
+el('exerciseSearch').addEventListener('input', function(){ renderExercisePicker(this.value); });
+el('exercisePickerList').addEventListener('click', function(event){
+ var button = event.target.closest('[data-exercise-id]');
+ if (button) trainingAddExercise(button.getAttribute('data-exercise-id'));
+});
+el('createExerciseBtn').addEventListener('click', function(){
+ var name = el('customExerciseName').value.trim();
+ if (!name){ el('exercisePickerErr').textContent = 'Enter an exercise name.'; return; }
+ var id = 'custom-' + name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') + '-' + Date.now().toString(36).slice(-4);
+ state.customExercises.push({ id:id, name:name, group:el('customExerciseGroup').value || 'Other', kind:'weighted', custom:true });
+ save();
+ trainingAddExercise(id);
+});
+
+el('workoutExercises').addEventListener('click', function(event){
+ var button = event.target.closest('[data-action]');
+ if (!button || !state.activeWorkout) return;
+ var action = button.getAttribute('data-action');
+ var exerciseIndex = Number(button.getAttribute('data-exercise-index'));
+ var exercise = trainingCurrentExercise(exerciseIndex);
+ if (!exercise) return;
+ if (action === 'add-sets'){
+  var card = button.closest('.workout-exercise');
+  var def = trainingExerciseById(exercise.exerciseId) || { kind:'weighted' };
+  var loadText = card.querySelector('[data-quick="load"]').value;
+  var reps = Math.floor(Number(card.querySelector('[data-quick="reps"]').value));
+  var count = Math.floor(Number(card.querySelector('[data-quick="count"]').value));
+  var rpeNode = card.querySelector('[data-quick="rpe"]');
+  var rpe = rpeNode && rpeNode.value !== '' ? Number(rpeNode.value) : null;
+  var type = card.querySelector('[data-quick="type"]').value;
+  var loadKg = loadText === '' && def.kind === 'bodyweight' ? 0 : trainingLoadToKg(loadText);
+  if (loadKg === null || loadKg < 0 || (def.kind !== 'bodyweight' && loadKg <= 0)){ el('workoutErr').textContent = 'Enter a valid load.'; return; }
+  if (!isFinite(reps) || reps < 1 || reps > 100){ el('workoutErr').textContent = 'Repetitions must be between 1 and 100.'; return; }
+  if (!isFinite(count) || count < 1 || count > 12){ el('workoutErr').textContent = 'Sets must be between 1 and 12.'; return; }
+  if (rpe !== null && (!isFinite(rpe) || rpe < 1 || rpe > 10)){ el('workoutErr').textContent = 'RPE must be between 1 and 10.'; return; }
+  for (var i=0;i<count;i++) exercise.sets.push({ id:uid(), loadKg:trainingRound(loadKg,4), reps:reps, rpe:rpe, type:type, done:true });
+  el('workoutErr').textContent = '';
+  save(); renderWorkoutEditor();
+ } else if (action === 'repeat-previous'){
+  var copied = trainingPreviousSets(exercise.exerciseId);
+  exercise.sets = exercise.sets.concat(copied);
+  save(); renderWorkoutEditor();
+ } else if (action === 'toggle-set'){
+  var setIndex = Number(button.getAttribute('data-set-index'));
+  if (exercise.sets[setIndex]) exercise.sets[setIndex].done = exercise.sets[setIndex].done === false;
+  save(); renderWorkoutEditor();
+ } else if (action === 'remove-set'){
+  exercise.sets.splice(Number(button.getAttribute('data-set-index')),1);
+  save(); renderWorkoutEditor();
+ } else if (action === 'remove-exercise'){
+  if (button.getAttribute('data-armed') === '1'){
+   state.activeWorkout.exercises.splice(exerciseIndex,1); save(); renderWorkoutEditor();
+  } else {
+   button.setAttribute('data-armed','1'); button.textContent = 'Confirm';
+   setTimeout(function(){ if (button.isConnected){ button.removeAttribute('data-armed'); button.textContent = 'Remove'; } },2200);
+  }
+ }
+});
+function updateDraftSet(event){
+ var input = event.target.closest('[data-set-field]');
+ if (!input || !state.activeWorkout) return;
+ var exercise = trainingCurrentExercise(Number(input.getAttribute('data-exercise-index')));
+ var set = exercise && exercise.sets[Number(input.getAttribute('data-set-index'))];
+ if (!set) return;
+ var field = input.getAttribute('data-set-field');
+ if (field === 'load'){
+  var kg = trainingLoadToKg(input.value);
+  if (kg !== null && kg >= 0) set.loadKg = trainingRound(kg,4);
+ } else if (field === 'reps'){
+  var reps = Math.floor(Number(input.value)); if (isFinite(reps) && reps >= 0) set.reps = reps;
+ } else if (field === 'rpe'){
+  set.rpe = input.value === '' ? null : Number(input.value);
+ } else if (field === 'type') set.type = input.value;
+ trainingPersistSoon(); renderWorkoutTotals();
+}
+el('workoutExercises').addEventListener('input', updateDraftSet);
+el('workoutExercises').addEventListener('change', updateDraftSet);
+
+var discardButton = el('workoutDiscardBtn');
+discardButton.addEventListener('click', function(){
+ if (discardButton.getAttribute('data-armed') === '1'){
+  state.activeWorkout = null; save(); closeModal('workoutSheet'); renderAll(); discardButton.removeAttribute('data-armed'); discardButton.textContent = 'Discard';
+ } else {
+  discardButton.setAttribute('data-armed','1'); discardButton.textContent = 'Confirm discard';
+  setTimeout(function(){ discardButton.removeAttribute('data-armed'); discardButton.textContent = 'Discard'; },2600);
+ }
+});
+
+el('recentWorkouts').addEventListener('click', function(event){
+ var button = event.target.closest('[data-action]');
+ if (!button) return;
+ var action = button.getAttribute('data-action');
+ var workout = trainingFindWorkout(button.getAttribute('data-workout-id'));
+ if (!workout) return;
+ if (action === 'repeat-workout'){
+  if (state.activeWorkout){ trainingStartWorkout(); return; }
+  trainingStartWorkout(workout);
+ } else if (action === 'delete-workout'){
+  if (button.getAttribute('data-armed') === '1'){
+   state.workouts = state.workouts.filter(function(item){ return item.id !== workout.id; }); save(); renderAll();
+  } else {
+   button.setAttribute('data-armed','1'); button.textContent = 'Confirm delete';
+   setTimeout(function(){ if (button.isConnected){ button.removeAttribute('data-armed'); button.textContent = 'Delete'; } },2500);
+  }
+ } else if (action === 'promote'){
+  var exerciseId = button.getAttribute('data-exercise-id');
+  var exercise = (workout.exercises || []).filter(function(item){ return item.exerciseId === exerciseId; })[0];
+  var candidate = exercise && trainingAssessmentCandidate(exercise);
+  if (!candidate) return;
+  state.entries.push({ id:uid(), t:candidate.testId, d:workout.d, v:candidate.value, load:candidate.load, dist:null, raw:candidate.raw, ts:Number(workout.completedAt) || Date.now(), sourceWorkoutId:workout.id });
+  save(); renderAll(); announce('Workout result added to Athlete Rating.');
+ }
+});
+
+document.addEventListener('keydown', function(event){
+ if (event.key !== 'Escape') return;
+ if (!el('exercisePicker').hidden) closeModal('exercisePicker');
+ else if (!el('workoutSheet').hidden) closeModal('workoutSheet');
+});
+
+ensureTrainingState();
+trainingSetView('profile');
+setTimeout(function(){ renderTrainingDashboard(); renderProgressDashboard(); },0);
 </script>
 </body>
 </html>
