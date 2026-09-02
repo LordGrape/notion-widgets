@@ -1,0 +1,52 @@
+name: Restore timetable UI
+
+on:
+  push:
+    paths:
+      - tools/restore-timetable-ui.mjs
+      - tools/restore-timetable-ui.payload.*
+      - .github/workflows/restore-timetable-ui.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Restore UI and apply restrained improvements
+        run: node tools/restore-timetable-ui.mjs
+      - name: Validate timetable JavaScript
+        run: |
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          class Scripts(HTMLParser):
+              def __init__(self): super().__init__(); self.inline=False; self.parts=[]
+              def handle_starttag(self, tag, attrs):
+                  if tag=='script': self.inline=not dict(attrs).get('src')
+              def handle_endtag(self, tag):
+                  if tag=='script': self.inline=False
+              def handle_data(self, data):
+                  if self.inline: self.parts.append(data)
+          p=Scripts(); p.feed(Path('timetable.html').read_text()); Path('/tmp/timetable.js').write_text('\n'.join(p.parts))
+          PY
+          node --check /tmp/timetable.js
+      - name: Commit restored timetable
+        run: |
+          if [[ -n "$(git status --porcelain timetable.html)" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add timetable.html
+            git commit -m "Restore timetable UI and refine features"
+            git push
+          else
+            echo "Timetable already current"
+          fi
