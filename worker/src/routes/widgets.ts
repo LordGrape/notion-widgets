@@ -1,3 +1,4 @@
+// Stable public proxy for repository-backed widget assets.
 const RAW_ROOT = "https:" + "//raw.githubusercontent.com/LordGrape/notion-widgets/main/";
 const ROOT_FILE = /^[A-Za-z0-9][A-Za-z0-9._-]*\.(?:html|js|css|json)$/;
 const NESTED_FILE = /^(?:assets|studyengine)\/[A-Za-z0-9._/-]+$/;
