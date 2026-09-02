@@ -1,3 +1,0 @@
-Built athlete.html (180,775 bytes).
-athlete.html is current (180,775 bytes).
-Verified athlete.html: 5 scripts, 12 tests, 8 attributes, scoring and body map valid.
