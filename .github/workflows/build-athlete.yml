@@ -6,12 +6,14 @@ on:
     paths:
       - athlete.source.html
       - athlete.css
+      - athlete-settings.css
       - theme-upgrade.css
       - core.js
       - athlete-body.js
       - athlete-data.js
       - athlete-render.js
       - athlete-flow.js
+      - athlete-settings.js
       - tools/build-athlete.mjs
       - tools/verify-athlete.mjs
       - .github/workflows/build-athlete.yml
@@ -35,26 +37,40 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Run source and production verification
-        id: verification
+      - name: Assemble and verify source
+        run: |
+          node tools/build-athlete.mjs
+          node tools/build-athlete.mjs --check
+          node tools/verify-athlete.mjs
+      - name: Publish the generated widget
+        run: |
+          if git diff --quiet -- athlete.html; then
+            echo "athlete.html is already current"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add athlete.html
+            git commit -m "Build professional Athlete settings"
+            git push
+          fi
+      - name: Verify production deployment
+        id: production
         shell: bash
         run: |
           set +e
           (
             set -e
-            node tools/build-athlete.mjs
-            node tools/build-athlete.mjs --check
-            node tools/verify-athlete.mjs
-
+            echo "Source build and verification passed."
             deployed=0
             for attempt in $(seq 1 30); do
-              page="$(curl -fsSL --max-time 20 "${ATHLETE_URL}?athlete-build=${GITHUB_RUN_ID}-${attempt}" || true)"
+              page="$(curl -fsSL --max-time 20 "${ATHLETE_URL}?athlete-settings=${GITHUB_RUN_ID}-${attempt}" || true)"
               bytes="$(printf '%s' "$page" | wc -c)"
               if [[ "$page" == *'<meta name="athlete-build" content="single-file-v2.2">'* ]] \
-                && [[ "$page" == *'data-athlete-inline="core.js"'* ]] \
-                && [[ "$page" == *'data-athlete-inline="athlete-flow.js"'* ]] \
-                && [ "$bytes" -gt 100000 ]; then
-                echo "Production is serving the self-contained athlete widget (${bytes} bytes)."
+                && [[ "$page" == *'id="setImport"'* ]] \
+                && [[ "$page" == *'Loaded march scoring'* ]] \
+                && [[ "$page" == *'data-athlete-inline="athlete-settings.js"'* ]] \
+                && [ "$bytes" -gt 120000 ]; then
+                echo "Production is serving the professional settings build (${bytes} bytes)."
                 deployed=1
                 break
               fi
@@ -67,17 +83,18 @@ jobs:
           cat athlete-production-status.txt
           echo "status=$status" >> "$GITHUB_OUTPUT"
           exit 0
-      - name: Commit generated output and verification status
+      - name: Record deployment verification
+        if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add athlete.html athlete-production-status.txt
+          git add athlete-production-status.txt
           if git diff --cached --quiet; then
-            echo "No generated changes"
+            echo "Verification record is current"
           else
-            git commit -m "Record athlete deployment verification"
+            git commit -m "Record Athlete settings deployment"
             git push
           fi
-      - name: Report a failed verification
-        if: steps.verification.outputs.status != '0'
+      - name: Report a failed deployment
+        if: steps.production.outputs.status != '0'
         run: exit 1

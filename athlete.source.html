@@ -7,6 +7,7 @@
 <script src="core.js"></script>
 <link rel="stylesheet" href="athlete.css?v=3">
 <link rel="stylesheet" href="theme-upgrade.css?v=20260817-royal-violet">
+<link rel="stylesheet" href="athlete-settings.css?v=1">
 </head>
 <body>
 <canvas id="bg"></canvas>
@@ -57,24 +58,103 @@
 </div>
 
 <div class="overlay" id="settings" hidden>
- <div class="card sheet" role="dialog" aria-modal="true" aria-label="Settings">
-  <div class="sheet-head"><div class="panel-title">Settings</div><button class="icon-btn" data-close="settings" aria-label="Close">&times;</button></div>
-  <div class="fld"><label for="setBw">Bodyweight (kg) &middot; used for relative grip</label><input id="setBw" inputmode="decimal" placeholder="e.g. 77.1"></div>
-  <div class="fld"><label>Loaded march pace anchors (min/km, mm:ss)</label>
-   <div class="loadrow">
-    <input id="rkFloor" placeholder="Floor 14:00" style="width:84px" aria-label="Floor pace">
-    <input id="rkL1" placeholder="Entry 12:30" style="width:84px" aria-label="Entry pace">
-    <input id="rkL2" placeholder="Pro 11:40" style="width:84px" aria-label="Pro pace">
-    <input id="rkL3" placeholder="Elite 11:00" style="width:84px" aria-label="Elite pace">
-    <input id="rkCap" placeholder="Cap 9:30" style="width:84px" aria-label="Cap pace">
+ <div class="card sheet settings-sheet" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+  <div class="sheet-head settings-head">
+   <div>
+    <div class="settings-eyebrow">Athlete configuration</div>
+    <div class="panel-title" id="settingsTitle">Athlete settings</div>
+    <div class="settings-subtitle">Profile, scoring and backups in one place.</div>
    </div>
-   <div class="note">Custom standard. No published table ships with the widget; tune these five anchors to your own targets.</div>
+   <button class="icon-btn" data-close="settings" aria-label="Close settings">&times;</button>
   </div>
-  <div class="err" id="setErr"></div>
-  <div class="sheet-actions">
-   <button class="form-btn form-btn-primary" id="setSave" data-snd>Save</button>
-   <button class="form-btn" id="setExport" data-snd>Export</button>
-   <button class="form-btn form-btn-danger" id="setReset">Reset</button>
+
+  <div class="settings-scroll">
+   <div class="settings-profile-card">
+    <div class="settings-avatar" aria-hidden="true">A</div>
+    <div class="settings-profile-copy">
+     <strong>Your athlete profile</strong>
+     <span id="setSummaryCopy">No results logged yet</span>
+    </div>
+    <span class="settings-save-state" id="setSaveState">Up to date</span>
+   </div>
+
+   <section class="settings-section" aria-labelledby="profileSettingsTitle">
+    <div class="settings-section-head">
+     <div>
+      <h3 id="profileSettingsTitle">Profile</h3>
+      <p>One optional value for accurate relative grip scoring.</p>
+     </div>
+     <span class="settings-pill" id="setProfileState">Optional</span>
+    </div>
+    <div class="fld settings-field">
+     <label for="setBw">Bodyweight</label>
+     <div class="input-unit"><input id="setBw" inputmode="decimal" autocomplete="off" placeholder="77.1"><span>kg</span></div>
+     <div class="field-help">Used only to normalise grip strength. Leave blank if you do not log grip tests.</div>
+    </div>
+   </section>
+
+   <details class="settings-section settings-disclosure" id="ruckSettings">
+    <summary>
+     <span class="settings-chevron" aria-hidden="true">&#8250;</span>
+     <span class="settings-summary-label"><strong>Loaded march scoring</strong><small>Advanced personal pace standard</small></span>
+     <span class="settings-pill" id="setRuckMode">Recommended</span>
+    </summary>
+    <div class="settings-disclosure-body">
+     <div class="settings-callout"><strong>Only affects Loaded March</strong><span>Set five pace anchors from slowest to fastest. Every other test keeps its built-in scoring.</span></div>
+     <div class="pace-table" role="group" aria-label="Loaded march pace anchors">
+      <div class="pace-row pace-header" aria-hidden="true"><span>Standard</span><span>Score</span><span>Pace</span></div>
+      <div class="pace-row"><label for="rkFloor">Baseline</label><span class="pace-score">25</span><div class="pace-input"><input id="rkFloor" inputmode="decimal" placeholder="14:00" aria-label="Baseline pace"><span>/km</span></div></div>
+      <div class="pace-row"><label for="rkL1">Entry</label><span class="pace-score">60</span><div class="pace-input"><input id="rkL1" inputmode="decimal" placeholder="12:30" aria-label="Entry pace"><span>/km</span></div></div>
+      <div class="pace-row"><label for="rkL2">Pro</label><span class="pace-score">75</span><div class="pace-input"><input id="rkL2" inputmode="decimal" placeholder="11:40" aria-label="Pro pace"><span>/km</span></div></div>
+      <div class="pace-row"><label for="rkL3">Elite</label><span class="pace-score">90</span><div class="pace-input"><input id="rkL3" inputmode="decimal" placeholder="11:00" aria-label="Elite pace"><span>/km</span></div></div>
+      <div class="pace-row"><label for="rkCap">Cap</label><span class="pace-score">99</span><div class="pace-input"><input id="rkCap" inputmode="decimal" placeholder="9:30" aria-label="Cap pace"><span>/km</span></div></div>
+     </div>
+     <button type="button" class="settings-text-btn" id="ruckDefaults" data-snd>Restore recommended standard</button>
+    </div>
+   </details>
+
+   <section class="settings-section" aria-labelledby="dataSettingsTitle">
+    <div class="settings-section-head">
+     <div>
+      <h3 id="dataSettingsTitle">Data and backups</h3>
+      <p>Move or safeguard your profile without exposing it publicly.</p>
+     </div>
+     <span class="settings-pill" id="setDataCount">0 results</span>
+    </div>
+    <div class="settings-action-list">
+     <button type="button" class="settings-action" id="setExport" data-snd>
+      <span class="settings-action-icon" aria-hidden="true">&#8595;</span>
+      <span class="settings-action-copy"><strong>Copy backup</strong><small>Copy all settings and results as portable JSON.</small></span>
+      <span class="settings-action-meta">Copy</span>
+     </button>
+     <button type="button" class="settings-action" id="setImport" data-snd>
+      <span class="settings-action-icon" aria-hidden="true">&#8593;</span>
+      <span class="settings-action-copy"><strong>Import backup</strong><small>Restore a previously exported Athlete JSON file.</small></span>
+      <span class="settings-action-meta">Choose file</span>
+     </button>
+     <input type="file" id="setImportFile" accept="application/json,.json" hidden>
+    </div>
+    <div class="settings-status" id="setBackupStatus" role="status" aria-live="polite"></div>
+   </section>
+
+   <section class="settings-section settings-danger-zone" aria-labelledby="resetSettingsTitle">
+    <div class="settings-section-head">
+     <div>
+      <h3 id="resetSettingsTitle">Reset athlete data</h3>
+      <p>Delete every result and restore the recommended scoring standard.</p>
+     </div>
+    </div>
+    <button type="button" class="form-btn settings-reset-btn" id="setReset">Reset athlete data</button>
+    <div class="reset-confirm" id="resetConfirm" hidden tabindex="-1">
+     <div><strong>Delete everything?</strong><span>This action cannot be undone. Export a backup first if needed.</span></div>
+     <div class="reset-confirm-actions"><button type="button" class="form-btn" id="resetCancel">Cancel</button><button type="button" class="form-btn form-btn-danger" id="resetConfirmBtn">Delete everything</button></div>
+    </div>
+   </section>
+  </div>
+
+  <div class="settings-footer">
+   <div class="err" id="setErr" role="alert"></div>
+   <div class="settings-footer-actions"><button class="form-btn" id="setCancel" data-snd>Cancel</button><button class="form-btn form-btn-primary" id="setSave" data-snd disabled>Save changes</button></div>
   </div>
  </div>
 </div>
@@ -83,5 +163,6 @@
 <script src="athlete-data.js?v=3"></script>
 <script src="athlete-render.js?v=3"></script>
 <script src="athlete-flow.js?v=3"></script>
+<script src="athlete-settings.js?v=1"></script>
 </body>
 </html>

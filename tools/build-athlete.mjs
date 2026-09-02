@@ -8,11 +8,13 @@ const sourceNames = [
   'athlete.source.html',
   'athlete.css',
   'theme-upgrade.css',
+  'athlete-settings.css',
   'core.js',
   'athlete-body.js',
   'athlete-data.js',
   'athlete-render.js',
   'athlete-flow.js',
+  'athlete-settings.js',
 ];
 
 const loaded = Object.fromEntries(
@@ -27,6 +29,7 @@ for (const name of [
   'athlete-data.js',
   'athlete-render.js',
   'athlete-flow.js',
+  'athlete-settings.js',
 ]) {
   new vm.Script(loaded[name], { filename: name });
 }
@@ -79,12 +82,19 @@ html = replaceOnce(
   inlineStyle('theme-upgrade.css', themeCss),
   'theme-upgrade.css link',
 );
+html = replaceOnce(
+  html,
+  /<link\b(?=[^>]*\brel=["']stylesheet["'])(?=[^>]*\bhref=["']athlete-settings\.css(?:\?[^"']*)?["'])[^>]*>/i,
+  inlineStyle('athlete-settings.css', loaded['athlete-settings.css']),
+  'athlete-settings.css link',
+);
 
 for (const name of [
   'athlete-body.js',
   'athlete-data.js',
   'athlete-render.js',
   'athlete-flow.js',
+  'athlete-settings.js',
 ]) {
   const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   html = replaceOnce(
@@ -103,7 +113,7 @@ html = replaceOnce(
 );
 
 const shellOnly = withoutInlinePayloads(html);
-const localAssetRef = /(?:src|href)=["'](?:\.\/)?(?:core\.js|athlete(?:-body|-data|-render|-flow)?\.js|athlete\.css|theme-upgrade\.css)(?:\?[^"']*)?["']/i;
+const localAssetRef = /(?:src|href)=["'](?:\.\/)?(?:core\.js|athlete(?:-body|-data|-render|-flow|-settings)?\.js|athlete(?:-settings)?\.css|theme-upgrade\.css)(?:\?[^"']*)?["']/i;
 if (localAssetRef.test(shellOnly)) throw new Error('Generated athlete.html still references a local runtime asset.');
 if (/<link\b[^>]*\brel=["']stylesheet["']/i.test(shellOnly)) {
   throw new Error('Generated athlete.html still contains a stylesheet link.');

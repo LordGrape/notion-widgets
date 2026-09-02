@@ -21,7 +21,7 @@ assert(
 );
 assert(!/@import\b/i.test(html), 'The build contains a CSS @import.');
 assert(
-  !/(?:src|href)=["'](?:\.\/)?(?:core\.js|athlete(?:-body|-data|-render|-flow)?\.js|athlete\.css|theme-upgrade\.css)/i.test(shellOnly),
+  !/(?:src|href)=["'](?:\.\/)?(?:core\.js|athlete(?:-body|-data|-render|-flow|-settings)?\.js|athlete(?:-settings)?\.css|theme-upgrade\.css)/i.test(shellOnly),
   'The build contains a local asset reference.',
 );
 
@@ -35,9 +35,25 @@ for (const id of [
   'logSheet',
   'detail',
   'settings',
+  'setBw',
+  'ruckSettings',
+  'rkFloor',
+  'rkL1',
+  'rkL2',
+  'rkL3',
+  'rkCap',
+  'ruckDefaults',
+  'setExport',
+  'setImport',
+  'setImportFile',
+  'setReset',
+  'resetConfirm',
+  'setSave',
 ]) {
   assert(new RegExp(`id=["']${id}["']`).test(shellOnly), `Required element #${id} is missing.`);
 }
+assert(shellOnly.includes('Loaded march scoring'), 'The professional settings layout is missing.');
+assert(!shellOnly.includes('Loaded march pace anchors (min/km, mm:ss)'), 'The legacy settings copy is still present.');
 
 const scripts = [...html.matchAll(/<script data-athlete-inline="([^"]+)">\n?([\s\S]*?)<\/script>/g)];
 const expectedScripts = [
@@ -46,6 +62,7 @@ const expectedScripts = [
   'athlete-data.js',
   'athlete-render.js',
   'athlete-flow.js',
+  'athlete-settings.js',
 ];
 assert(scripts.length === expectedScripts.length, `Expected ${expectedScripts.length} inline scripts, found ${scripts.length}.`);
 for (let index = 0; index < expectedScripts.length; index += 1) {
@@ -91,4 +108,4 @@ vm.runInContext(
 const model = vm.runInContext('computeModel()', context);
 assert(model.ovr === 70 && model.testedCount === 1, 'The aggregate model failed its seeded-state check.');
 
-console.log(`Verified athlete.html: ${scripts.length} scripts, 12 tests, 8 attributes, scoring and body map valid.`);
+console.log(`Verified athlete.html: ${scripts.length} scripts, professional settings, 12 tests, 8 attributes, scoring and body map valid.`);
