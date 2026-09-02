@@ -1,0 +1,39 @@
+name: Apply SyncEngine v4 resilience layer
+
+on:
+  push:
+    paths:
+      - tools/apply-syncengine-v4.mjs
+      - tools/apply-timetable-v3.mjs
+      - tools/timetable-v3.payload.*
+      - .github/workflows/apply-syncengine-v4.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Apply timetable and shared sync upgrades
+        run: |
+          node tools/apply-timetable-v3.mjs
+          node tools/apply-syncengine-v4.mjs
+      - name: Validate JavaScript
+        run: node --check core.js
+      - name: Commit shared runtime upgrade
+        run: |
+          if [[ -n "$(git status --porcelain core.js timetable.html)" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add core.js timetable.html
+            git commit -m "Upgrade timetable and shared SyncEngine"
+            git push
+          else
+            echo "SyncEngine already current"
+          fi
