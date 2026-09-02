@@ -55,6 +55,7 @@ jobs:
           fi
           project=$(node -e 'const d=require("/tmp/pages-projects.json"),h=process.argv[1],x=Array.isArray(d.result)?d.result:[],m=x.find(p=>p.subdomain===h||(p.domains||[]).includes(h))||x.find(p=>/notion.?widgets/i.test(p.name||""));process.stdout.write(m?.name||"")' 'notion-widgets-93r.pages.dev')
           node -e 'const d=require("/tmp/pages-projects.json"),x=Array.isArray(d.result)?d.result:[];console.log(x.map(p=>`${p.name}\t${p.subdomain||""}`).join("\n"))' > /tmp/pages-project-safe.txt
+          echo "project=${project}" >> "$GITHUB_OUTPUT"
           if [ -z "$project" ]; then
             echo 'No matching Pages project found.' | tee /tmp/pages-deploy.log
             echo 'code=2' >> "$GITHUB_OUTPUT"
@@ -63,6 +64,8 @@ jobs:
           echo "Resolved Pages project: ${project}" > /tmp/pages-deploy.log
           npx --yes wrangler@4.84.1 pages deploy site --project-name="$project" --branch=main 2>&1 | tee -a /tmp/pages-deploy.log
           code=${PIPESTATUS[0]}
+          preview=$(grep -Eo 'https:[/][/][A-Za-z0-9.-]+[.]pages[.]dev' /tmp/pages-deploy.log | tail -n 1)
+          echo "deployment_url=${preview}" >> "$GITHUB_OUTPUT"
           echo "code=${code}" >> "$GITHUB_OUTPUT"
           exit 0
 
@@ -87,18 +90,38 @@ jobs:
       - name: Verify production assets
         if: steps.pages.outputs.code == '0'
         run: |
+          set +e
           BASE="https:""//notion-widgets-93r.pages.dev"
+          ok=0
           for attempt in 1 2 3 4 5 6 7 8 9 10; do
-            if curl -fsS "${BASE}/action-blocks.js?sha=${GITHUB_SHA}" -o /tmp/action-blocks.js; then
-              grep -q 'Action Blocks v1' /tmp/action-blocks.js
-              grep -q 'isTodoWidget=false' /tmp/action-blocks.js
-              curl -fsS "${BASE}/timetable.html?sha=${GITHUB_SHA}" | grep -q 'action-blocks.js'
-              curl -fsS "${BASE}/todo.html?sha=${GITHUB_SHA}" | grep -q 'action-blocks.js'
-              exit 0
+            curl -fsS "${BASE}/action-blocks.js?sha=${GITHUB_SHA}" -o /tmp/action-blocks.js
+            if grep -q 'Action Blocks v1' /tmp/action-blocks.js 2>/dev/null \
+              && grep -q 'isTodoWidget=false' /tmp/action-blocks.js 2>/dev/null \
+              && curl -fsS "${BASE}/timetable.html?sha=${GITHUB_SHA}" | grep -q 'action-blocks.js' \
+              && curl -fsS "${BASE}/todo.html?sha=${GITHUB_SHA}" | grep -q 'action-blocks.js'; then
+              ok=1
+              break
             fi
             sleep 6
           done
-          exit 1
+          if [ "$ok" -ne 1 ]; then
+            mkdir -p deployments
+            {
+              echo 'Pages deployment succeeded but production verification failed.'
+              echo 'Resolved project: ${{ steps.pages.outputs.project }}'
+              echo 'Preview deployment: ${{ steps.pages.outputs.deployment_url }}'
+              echo 'Available projects:'
+              cat /tmp/pages-project-safe.txt 2>/dev/null || true
+            } > deployments/pages-last-error.txt
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add deployments/pages-last-error.txt
+            if ! git diff --cached --quiet; then
+              git commit -m 'Record Pages verification diagnostic'
+              git push origin HEAD:main
+            fi
+            exit 1
+          fi
 
       - name: Record verified deployment
         if: steps.pages.outputs.code == '0'
