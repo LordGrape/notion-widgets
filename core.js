@@ -2635,6 +2635,31 @@ let SyncEngine = (function() {
     /** Check connectivity status. */
     isOnline: function() { return online; },
 
+    /** Upsert dated Action Blocks through the authenticated Worker. */
+    syncActionBlocks: function(items) {
+      if (!online || !passphrase) return Promise.resolve({ configured: false, items: [] });
+      return fetch(WORKER_URL + '/notion/action-blocks', {
+        method: 'POST',
+        headers: { 'X-Widget-Key': passphrase, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: Array.isArray(items) ? items : [] })
+      })
+      .then(function(r) { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
+      .catch(function() { return { configured: false, items: [] }; });
+    },
+
+    /** Pull Action Blocks changed in Notion for a bounded date window. */
+    fetchActionBlocks: function(from, to) {
+      if (!online || !passphrase) return Promise.resolve({ configured: false, items: [] });
+      let endpoint = WORKER_URL + '/notion/action-blocks';
+      let qs = [];
+      if (from) qs.push('from=' + encodeURIComponent(from));
+      if (to) qs.push('to=' + encodeURIComponent(to));
+      if (qs.length) endpoint += '?' + qs.join('&');
+      return fetch(endpoint, { method: 'GET', headers: { 'X-Widget-Key': passphrase } })
+      .then(function(r) { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
+      .catch(function() { return { configured: false, items: [] }; });
+    },
+
     /** Fetch milestones from the Notion bridge (phase 2).
      *  Database ID is stored server-side as NOTION_DB_ID secret.
      *  Optional dbId param overrides the server default. */
