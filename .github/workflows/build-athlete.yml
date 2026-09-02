@@ -78,8 +78,10 @@ jobs:
                 && [[ "$page" == *'id="workoutSheet"'* ]] \
                 && [[ "$page" == *'data-athlete-inline="athlete-training-ui.js"'* ]] \
                 && [[ "$page" == *'Estimated 1RM over time'* ]] \
-                && [ "$bytes" -gt 180000 ]; then
-                echo "Production is serving the Athlete training tracker (${bytes} bytes)."
+                && [[ "$page" == *'global lexical bindings'* ]] \
+                && [[ "$page" == *'window.SyncEngine = SyncEngine'* ]] \
+                && [ "$bytes" -gt 265100 ]; then
+                echo "Production is serving the persisted Athlete training tracker (${bytes} bytes)."
                 deployed=1
                 break
               fi
