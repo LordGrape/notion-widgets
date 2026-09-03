@@ -1,0 +1,107 @@
+name: Apply Upcoming Assignments v1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - upcoming-assignments.js
+      - worker/src/routes/upcoming-assignments.ts
+      - worker/src/routes/__tests__/upcoming-assignments.test.ts
+      - tools/apply-upcoming-assignments-v1.mjs
+      - tools/test-upcoming-assignments-v1.mjs
+      - .github/workflows/apply-upcoming-assignments-v1.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Apply upcoming assignment patch
+        id: patch
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          node tools/apply-upcoming-assignments-v1.mjs 2>&1 | tee /tmp/upcoming-assignment.log
+
+      - name: Check browser JavaScript syntax
+        id: syntax
+        if: steps.patch.outcome == 'success'
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          {
+            node --check core.js
+            node --check action-blocks.js
+            node --check upcoming-assignments.js
+            node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import vm from 'node:vm';
+          const html=fs.readFileSync('todo.html','utf8');
+          const blocks=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(m=>m[1]).filter(s=>s.trim());
+          blocks.forEach((source,index)=>new vm.Script(source,{filename:`todo.html:inline-${index+1}`}));
+          NODE
+          } 2>&1 | tee -a /tmp/upcoming-assignment.log
+
+      - name: Run assignment and existing regressions
+        id: tests
+        if: steps.syntax.outcome == 'success'
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          {
+            node tools/test-upcoming-assignments-v1.mjs
+            node tools/test-adaptive-weekly-targets-v1.mjs
+            node tools/test-clear-schedule-language-v1.mjs
+            node tools/test-seamless-planning-v1.mjs
+            node tools/test-action-blocks-editor-v2.mjs
+            node tools/test-timetable-persistence.mjs
+            node tools/test-distinct-timetable-colors.mjs
+            cd worker
+            npm ci
+            npx tsc --noEmit
+            npm test -- --passWithNoTests
+          } 2>&1 | tee -a /tmp/upcoming-assignment.log
+
+      - name: Publish failure diagnostic
+        if: steps.patch.outcome == 'failure' || steps.syntax.outcome == 'failure' || steps.tests.outcome == 'failure'
+        run: |
+          git restore .
+          mkdir -p deployments
+          cp /tmp/upcoming-assignment.log deployments/upcoming-assignment-debug.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add deployments/upcoming-assignment-debug.txt
+          git commit -m "Record upcoming assignment diagnostic"
+          git push
+
+      - name: Stop after failure
+        if: steps.patch.outcome == 'failure' || steps.syntax.outcome == 'failure' || steps.tests.outcome == 'failure'
+        run: exit 1
+
+      - name: Check patch formatting
+        run: git diff --check
+
+      - name: Commit production changes
+        run: |
+          if git diff --quiet; then
+            echo "No production changes needed"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add core.js action-blocks.js todo.html apps/todo/README.md
+          git add worker/src/index.ts worker/src/types.ts worker/src/routes/action-blocks.ts
+          git add -A deployments/upcoming-assignment-debug.txt
+          git commit -m "Add quiet upcoming assignment phases"
+          git push
