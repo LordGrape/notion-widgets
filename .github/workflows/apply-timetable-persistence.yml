@@ -1,0 +1,51 @@
+name: Apply Timetable Persistence
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - tools/apply-timetable-persistence.mjs
+      - tools/test-timetable-persistence.mjs
+      - .github/workflows/apply-timetable-persistence.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Apply asserted persistence patch
+        run: node tools/apply-timetable-persistence.mjs
+      - name: Check timetable inline JavaScript
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const html = fs.readFileSync('timetable.html', 'utf8');
+          const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
+          if (!scripts.length) throw new Error('No inline script found');
+          fs.writeFileSync('/tmp/timetable-inline.js', scripts.at(-1)[1]);
+          NODE
+          node --check /tmp/timetable-inline.js
+      - name: Run persistence regressions
+        run: node tools/test-timetable-persistence.mjs
+      - name: Check patch formatting
+        run: git diff --check
+      - name: Commit production fix
+        run: |
+          if git diff --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add timetable.html
+          git commit -m "Make timetable storage durable"
+          git push origin HEAD:main
