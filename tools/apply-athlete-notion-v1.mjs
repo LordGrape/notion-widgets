@@ -65,6 +65,13 @@ if(!build.includes("'athlete-notion.js'")){
  write('tools/build-athlete.mjs',build);
 }
 
+let verify=read('tools/verify-athlete.mjs');
+if(!verify.includes("'athlete-notion.js'")){
+ const expected="const expected=['core.js','athlete-body.js','athlete-data.js','athlete-training-data.js','athlete-render.js','athlete-flow.js','athlete-settings.js','athlete-training-ui.js'];";
+ verify=replaceOnce(verify,expected,expected.replace("'athlete-training-ui.js']","'athlete-training-ui.js','athlete-notion.js']"),'Athlete verifier script list');
+ write('tools/verify-athlete.mjs',verify);
+}
+
 let workerIndex=read('worker/src/index.ts');
 if(!workerIndex.includes('handleFitnessTests')){
  workerIndex=replaceOnce(workerIndex,'import { handleUpcomingAssignments } from "./routes/upcoming-assignments";','import { handleUpcomingAssignments } from "./routes/upcoming-assignments";\nimport { handleFitnessTests } from "./routes/fitness-tests";','Worker fitness import');
@@ -94,4 +101,5 @@ if(!apps.includes('`athlete/`')){
 }
 
 execFileSync(process.execPath,['tools/build-athlete.mjs'],{stdio:'inherit'});
+if(fs.existsSync('deployments/athlete-notion-debug.txt'))fs.unlinkSync('deployments/athlete-notion-debug.txt');
 console.log('Applied Athlete Notion bridge v1.');
