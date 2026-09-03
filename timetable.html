@@ -416,7 +416,7 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.8px;line-height:1.15;margin-t
 </div>
 
 <script src="core.js"></script>
-<script src="action-blocks.js?v=20260902-editor-v2&planning=20260903-v1"></script>
+<script src="action-blocks.js?v=20260902-editor-v2&planning=20260903-v1&copy=20260903-v2"></script>
 <script>
 (function(){
 'use strict';
@@ -425,6 +425,7 @@ var DAY_LETTERS=['S','M','T','W','T','F','S'];
 var DAY_NAMES=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 var DAY_SHORT=['SUN','MON','TUE','WED','THU','FRI','SAT'];
 /* SEAMLESS TIMETABLE PLANNING v1 */
+/* MONDAY-FIRST EDITOR ORDER v1 */
 /* DISTINCT TIMETABLE PALETTE v2: eleven evenly separated hues. */
 var COLORS=['#8b5cf6','#a21caf','#be123c','#991b1b','#c2410c','#a16207','#4d7c0f','#047857','#0e7490','#1d4ed8','#4338ca'];
 var COLOR_NAMES=['Violet','Fuchsia','Rose','Red','Orange','Gold','Olive','Emerald','Cyan','Blue','Indigo'];
@@ -447,6 +448,8 @@ function fmtShort(t){var p=(t||'0:00').split(':'),h=+p[0]||0;return(h%12||12)+(h
 function durStr(a,b){var d=mins(b)-mins(a),h=Math.floor(d/60),m=d%60;return h?(h+'h'+(m?' '+m+'m':'')):(m+'m')}
 function colourName(c){var i=COLORS.indexOf(c);return i>=0?COLOR_NAMES[i]:'Current colour'}
 function nextAvailableColor(){var use=COLORS.map(function(){return 0});schedule.forEach(function(block){var i=COLORS.indexOf(block&&block.color);if(i>=0)use[i]++});var least=Math.min.apply(null,use);return COLORS[use.indexOf(least)]}
+function orderedDays(){return prefs.mondayFirst?[1,2,3,4,5,6,0]:[0,1,2,3,4,5,6]}
+function dayRank(day){return orderedDays().indexOf(+day)}
 
 /* ── Storage ── */
 /* TIMETABLE DURABLE PERSISTENCE v1
@@ -551,7 +554,7 @@ function loadPrefs(){
 function savePrefs(){
   try{localStorage.setItem(TT_PREFS_KEY,JSON.stringify(prefs))}catch(e){}
   try{SyncEngine.set('timetable','preferences',prefs)}catch(e){}
-  drawSettings();render();
+  drawSettings();render();if($('overlay')&&$('overlay').classList.contains('show')){drawSaved();drawForm()}
 }
 function drawSettings(){
   if(!$('prefView'))return;
@@ -831,7 +834,7 @@ function drawSaved(){
   var el=$('saved');
   if(!schedule.length){el.innerHTML='';return}
   el.innerHTML=schedule.map(function(b){
-    var ds=b.days.slice().sort(function(x,y){return(x.day||7)-(y.day||7)}).map(function(d){return DAY_SHORT[d.day]+' '+fmt(d.start)+'\u2013'+fmt(d.end)}).join(' · ');
+    var ds=b.days.slice().sort(function(x,y){return dayRank(x.day)-dayRank(y.day)}).map(function(d){return DAY_SHORT[d.day]+' '+fmt(d.start)+'\u2013'+fmt(d.end)}).join(' · ');
     if(confirmId===b.id){
       return '<div class="s-item confirming" style="--c:'+esc(b.color)+'"><div class="bar"></div><div class="confirm-line"><span>Delete "'+esc(b.name)+'"?</span><span class="btns"><button class="no" data-cancel="'+b.id+'">Keep</button><button class="yes" data-yes="'+b.id+'">Delete</button></span></div></div>';
     }
@@ -852,7 +855,7 @@ function drawSaved(){
 function drawForm(){
   /* Day chips */
   var chips=$('fChips');
-  chips.innerHTML=DAY_SHORT.map(function(d,i){return '<button type="button" class="dchip'+(selDays[i]?' on':'')+'" data-d="'+i+'">'+d.slice(0,2)+'</button>'}).join('');
+  chips.innerHTML=orderedDays().map(function(i){var d=DAY_SHORT[i];return '<button type="button" class="dchip'+(selDays[i]?' on':'')+'" data-d="'+i+'">'+d.slice(0,2)+'</button>'}).join('');
   chips.querySelectorAll('.dchip').forEach(function(b){
     b.addEventListener('click',function(){
       var d=+b.dataset.d;
@@ -869,7 +872,7 @@ function drawForm(){
   function drawChips(){chips.querySelectorAll('.dchip').forEach(function(b){b.classList.toggle('on',!!selDays[+b.dataset.d])})}
   function drawFormInputs(){
     var tr=$('fTrows');
-    var keys=Object.keys(selDays).map(Number).sort(function(a,b){return(a||7)-(b||7)});
+    var keys=Object.keys(selDays).map(Number).sort(function(a,b){return dayRank(a)-dayRank(b)});
     tr.innerHTML=keys.map(function(d){
       return '<div class="trow"><span class="d">'+DAY_SHORT[d]+'</span>'
         +'<input type="time" value="'+selDays[d].start+'" data-d="'+d+'" data-f="start">'
@@ -953,7 +956,7 @@ function boot(){
         var next=normaliseBlocks(value);
         if(JSON.stringify(next)!==JSON.stringify(schedule)){schedule=writeLocalSnapshot(next,false);render();drawSaved()}
       });
-      SyncEngine.subscribe('timetable','preferences',function(value){if(value&&typeof value==='object'){prefs={defaultView:/^(today|week)$/.test(value.defaultView)?value.defaultView:'auto',sound:value.sound!==false,mondayFirst:!!value.mondayFirst,travelBuffer:[0,10,15,20,30].indexOf(+value.travelBuffer)>=0?+value.travelBuffer:10};drawSettings();render()}});
+      SyncEngine.subscribe('timetable','preferences',function(value){if(value&&typeof value==='object'){prefs={defaultView:/^(today|week)$/.test(value.defaultView)?value.defaultView:'auto',sound:value.sound!==false,mondayFirst:!!value.mondayFirst,travelBuffer:[0,10,15,20,30].indexOf(+value.travelBuffer)>=0?+value.travelBuffer:10};drawSettings();render();if($('overlay')&&$('overlay').classList.contains('show')){drawSaved();drawForm()}}});
     }
   }catch(e){}
   render();drawSettings();updateStorageStatus();setInterval(updateStorageStatus,12000);requestAnimationFrame(syncSeg);

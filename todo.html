@@ -351,9 +351,10 @@ body::before{
   </div>
 </div>
 <script src="core.js"></script>
-<script src="action-blocks.js?v=20260902-editor-v2&planning=20260903-v1"></script>
+<script src="action-blocks.js?v=20260902-editor-v2&planning=20260903-v1&copy=20260903-v2"></script>
 <script>
 /* SEAMLESS TODO PLANNING v1 */
+/* CLEAR FINISH LINE LANGUAGE v1 */
 /* todo.html — Task widget for LordGrape/notion-widgets.
    Vanilla JS, hand-authored. Uses the shared core.js engine:
    SyncEngine (cross-device state), canvas background, 3D tilt,
@@ -699,7 +700,7 @@ body::before{
   }
   function tboxHtml(t){var opts="",now=new Date(),nh=(now.getHours()+1)%24,defStart=("0"+nh).slice(-2)+":00";for(var i=0;i<7;i++){var d=new Date(now.getFullYear(),now.getMonth(),now.getDate()+i),key=d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2),lbl=i===0?"Today":i===1?"Tomorrow":d.toLocaleDateString("en-CA",{weekday:"short",month:"short",day:"numeric"});opts+='<option value="'+key+'">'+lbl+"</option>"}return'<div class="tbox"><select class="tbox-day" aria-label="Date">'+opts+'</select><input class="tbox-time" type="time" value="'+defStart+'" aria-label="Start time"><select class="tbox-repeat" aria-label="Repeat"><option value="once">This week only</option><option value="weekly">Repeat weekly</option></select><button class="tbox-go">Block '+(TIMEM[t.time]||60)+'m</button><span class="tbox-hint">One occurrence by default. Weekly repetition is always explicit.</span></div>'}
 
-  function editorHtml(t){var pri=[{v:"",l:"None"},{v:"must",l:"Must"},{v:"should",l:"Should"},{v:"could",l:"Could"}],time=[{v:"",l:"None"},{v:"quick",l:"Quick"},{v:"m30",l:"~30m"},{v:"m60",l:"~60m"},{v:"deep",l:"Deep"}],due=[{v:"",l:"None"},{v:"today",l:"Today"},{v:"tomorrow",l:"Tomorrow"}];return'<div class="editor"><input class="e-title e-title-main" aria-label="Task title" value="'+esc(t.text)+'"><input class="e-title e-outcome" aria-label="Outcome" placeholder="Outcome (optional)" value="'+esc(t.outcomeGoal||"")+'">'+eoptRow("Priority","pri",pri,t.pri)+(t.pri==="must"?'<input class="e-title e-plan" aria-label="Plan: when and where" placeholder="Plan: after ___ , at ___" value="'+esc(t.plan||"")+'">':"")+eoptRow("Time","time",time,t.time)+eoptRow("Due","due",due,t.due)+subsHtml(t)+'<textarea class="e-notes" placeholder="Notes (optional)" aria-label="Notes">'+esc(t.notes||"")+'</textarea><div class="eactions"><button class="emove" data-dir="-1" aria-label="Move up" title="Move up">↑</button><button class="emove" data-dir="1" aria-label="Move down" title="Move down">↓</button><button class="emove tbox-toggle" aria-label="Timebox into schedule" aria-expanded="false" title="Timebox into schedule">⏱</button><span class="espacer"></span><button class="edone">Done</button></div>'+tboxHtml(t)+"</div>"}
+  function editorHtml(t){var pri=[{v:"",l:"None"},{v:"must",l:"Must"},{v:"should",l:"Should"},{v:"could",l:"Could"}],time=[{v:"",l:"None"},{v:"quick",l:"Quick"},{v:"m30",l:"~30m"},{v:"m60",l:"~60m"},{v:"deep",l:"Deep"}],due=[{v:"",l:"None"},{v:"today",l:"Today"},{v:"tomorrow",l:"Tomorrow"}];return'<div class="editor"><input class="e-title e-title-main" aria-label="Task title" value="'+esc(t.text)+'"><input class="e-title e-outcome" aria-label=\"Finish line\" placeholder="Finish line (optional)" value="'+esc(t.outcomeGoal||"")+'">'+eoptRow("Priority","pri",pri,t.pri)+(t.pri==="must"?'<input class="e-title e-plan" aria-label="Plan: when and where" placeholder="Plan: after ___ , at ___" value="'+esc(t.plan||"")+'">':"")+eoptRow("Time","time",time,t.time)+eoptRow("Due","due",due,t.due)+subsHtml(t)+'<textarea class="e-notes" placeholder="Notes (optional)" aria-label="Notes">'+esc(t.notes||"")+'</textarea><div class="eactions"><button class="emove" data-dir="-1" aria-label="Move up" title="Move up">↑</button><button class="emove" data-dir="1" aria-label="Move down" title="Move down">↓</button><button class="emove tbox-toggle" aria-label="Timebox into schedule" aria-expanded="false" title="Timebox into schedule">⏱</button><span class="espacer"></span><button class="edone">Done</button></div>'+tboxHtml(t)+"</div>"}
 
   function itemNode(t) {
     var isEditing = (t.id === editingId) && !t.done;
@@ -709,7 +710,7 @@ body::before{
     el.setAttribute("data-id", t.id);
     var meta = tagHtml(t);
     var planHtml = "";
-    if (t.outcomeGoal && t.outcomeGoal.trim() && !t.done) planHtml = '<div class="plan-line"><span class="pl-k">Outcome</span><span>' + esc(t.outcomeGoal) + "</span></div>";
+    if (t.outcomeGoal && t.outcomeGoal.trim() && !t.done) planHtml = '<div class="plan-line"><span class="pl-k">Finish</span><span>' + esc(t.outcomeGoal) + "</span></div>";
     else if (t.plan && t.plan.trim() && !t.done) planHtml = '<div class="plan-line"><span class="pl-k">Plan</span><span>' + esc(t.plan) + "</span></div>";
     var acts = "";
     if (!t.done) acts += '<span class="grip" aria-hidden="true" title="Drag to reorder">' + GRIP + "</span>";
