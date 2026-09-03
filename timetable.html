@@ -417,9 +417,9 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.8px;line-height:1.15;margin-t
 var DAY_LETTERS=['S','M','T','W','T','F','S'];
 var DAY_NAMES=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 var DAY_SHORT=['SUN','MON','TUE','WED','THU','FRI','SAT'];
-/* DISTINCT TIMETABLE PALETTE v1: twelve balanced hues, no near-duplicate light variants. */
-var COLORS=['#8b5cf6','#c026d3','#db2777','#e11d48','#b91c1c','#ea580c','#b45309','#65a30d','#15803d','#0f766e','#0284c7','#4f46e5'];
-var COLOR_NAMES=['Violet','Fuchsia','Pink','Rose','Red','Orange','Amber','Lime','Green','Teal','Sky','Indigo'];
+/* DISTINCT TIMETABLE PALETTE v2: eleven evenly separated hues. */
+var COLORS=['#8b5cf6','#a21caf','#be123c','#991b1b','#c2410c','#a16207','#4d7c0f','#047857','#0e7490','#1d4ed8','#4338ca'];
+var COLOR_NAMES=['Violet','Fuchsia','Rose','Red','Orange','Gold','Olive','Emerald','Cyan','Blue','Indigo'];
 
 var schedule=[],today=new Date().getDay(),selectedDay=today,view='today';
 var editingId=null,selDays={},selColor=COLORS[0],confirmId=null;
@@ -850,7 +850,7 @@ function drawForm(){
   }
   function drawSwatches(){
     var sw=$('fSw'),palette=COLORS.slice();
-    if(selColor&&palette.indexOf(selColor)<0)palette.unshift(selColor);
+    if(selColor&&palette.indexOf(selColor)<0)palette[palette.length-1]=selColor;
     sw.innerHTML=palette.map(function(c){var label=colourName(c);return '<button type="button" class="sw'+(c===selColor?' on':'')+'" style="background:'+c+';--c:'+c+'" data-c="'+c+'" aria-label="'+esc(label)+'" title="'+esc(label)+'"></button>'}).join('');
     sw.querySelectorAll('.sw').forEach(function(b){b.addEventListener('click',function(){if(selColor!==b.dataset.c)sfx('presetSelect');selColor=b.dataset.c;drawSwatches()})});
   }
