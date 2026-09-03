@@ -1,0 +1,12 @@
+file:///home/runner/work/notion-widgets/notion-widgets/tools/apply-adaptive-weekly-targets-v1.mjs:7
+  if(count!==1)throw new Error(`${label}: expected one match, found ${count}`);
+                     ^
+
+Error: Default target placeholder: expected one match, found 0
+    at replaceOnce (file:///home/runner/work/notion-widgets/notion-widgets/tools/apply-adaptive-weekly-targets-v1.mjs:7:22)
+    at file:///home/runner/work/notion-widgets/notion-widgets/tools/apply-adaptive-weekly-targets-v1.mjs:26:10
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+Node.js v22.23.2
