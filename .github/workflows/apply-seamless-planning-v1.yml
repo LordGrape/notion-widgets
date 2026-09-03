@@ -1,0 +1,59 @@
+name: Apply Seamless Planning v1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - tools/apply-seamless-planning-v1.mjs
+      - tools/test-seamless-planning-v1.mjs
+      - .github/workflows/apply-seamless-planning-v1.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Apply asserted planning patch
+        run: node tools/apply-seamless-planning-v1.mjs
+      - name: Check JavaScript syntax
+        run: |
+          node --check action-blocks.js
+          node - <<'NODE'
+          const fs=require('fs');
+          for(const name of ['timetable','todo']){
+            const html=fs.readFileSync(name+'.html','utf8');
+            const scripts=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
+            if(!scripts.length)throw new Error('No inline script in '+name);
+            fs.writeFileSync('/tmp/'+name+'-inline.js',scripts.at(-1)[1]);
+          }
+          NODE
+          node --check /tmp/timetable-inline.js
+          node --check /tmp/todo-inline.js
+      - name: Run planning and existing regressions
+        run: |
+          node tools/test-seamless-planning-v1.mjs
+          node tools/test-action-blocks-editor-v2.mjs
+          node tools/test-timetable-persistence.mjs
+          node tools/test-distinct-timetable-colors.mjs
+      - name: Check patch formatting
+        run: git diff --check
+      - name: Commit production planning update
+        run: |
+          if git diff --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add action-blocks.js timetable.html todo.html
+          git commit -m "Add seamless planning controls"
+          git push origin HEAD:main
