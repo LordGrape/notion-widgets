@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - tools/apply-seamless-planning-v1.mjs
+      - tools/fix-planning-persistence-guard.mjs
       - tools/test-seamless-planning-v1.mjs
       - .github/workflows/apply-seamless-planning-v1.yml
   workflow_dispatch:
@@ -23,7 +24,9 @@ jobs:
         with:
           node-version: 20
       - name: Apply asserted planning patch
-        run: node tools/apply-seamless-planning-v1.mjs
+        run: |
+          node tools/apply-seamless-planning-v1.mjs
+          node tools/fix-planning-persistence-guard.mjs
       - name: Check JavaScript syntax
         run: |
           node --check action-blocks.js

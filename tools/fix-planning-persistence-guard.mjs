@@ -1,0 +1,10 @@
+import fs from 'node:fs';
+const path='timetable.html';
+let source=fs.readFileSync(path,'utf8');
+const oldStr='  setTimeout(updateStorageStatus,0);';
+const newStr="  try{if(typeof updateStorageStatus==='function'&&typeof setTimeout==='function')setTimeout(updateStorageStatus,0)}catch(e){}";
+const count=source.split(oldStr).length-1;
+if(count===1)source=source.replace(oldStr,newStr);
+else if(!source.includes(newStr))throw new Error(`Planning status guard: expected one match, found ${count}`);
+fs.writeFileSync(path,source);
+console.log('Guarded planning status refresh');
