@@ -409,7 +409,7 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.8px;line-height:1.15;margin-t
 </div>
 
 <script src="core.js"></script>
-<script src="action-blocks.js"></script>
+<script src="action-blocks.js?v=20260902-editor-v2"></script>
 <script>
 (function(){
 'use strict';
@@ -920,7 +920,7 @@ if(typeof SyncEngine!=='undefined'&&typeof SyncEngine.init==='function'){
   var raced=false;
   var t=setTimeout(function(){if(!raced){raced=true;boot()}},2600);
   try{
-    SyncEngine.init({worker:'https://widget-sync.lordgrape-widgets.workers.dev',namespaces:['timetable']})
+    SyncEngine.init({worker:'https://widget-sync.lordgrape-widgets.workers.dev',namespaces:['timetable','todo']})
       .then(function(){if(!raced){raced=true;clearTimeout(t);boot()}})
       .catch(function(){if(!raced){raced=true;clearTimeout(t);boot()}});
   }catch(e){clearTimeout(t);boot()}
