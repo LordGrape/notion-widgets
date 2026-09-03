@@ -417,7 +417,9 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.8px;line-height:1.15;margin-t
 var DAY_LETTERS=['S','M','T','W','T','F','S'];
 var DAY_NAMES=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 var DAY_SHORT=['SUN','MON','TUE','WED','THU','FRI','SAT'];
-var COLORS=['#8b5cf6','#a855f7','#6366f1','#0ea5e9','#10b981','#84cc16','#f59e0b','#ef4444','#ec4899','#c084fc'];
+/* DISTINCT TIMETABLE PALETTE v1: twelve balanced hues, no near-duplicate light variants. */
+var COLORS=['#8b5cf6','#c026d3','#db2777','#e11d48','#b91c1c','#ea580c','#b45309','#65a30d','#15803d','#0f766e','#0284c7','#4f46e5'];
+var COLOR_NAMES=['Violet','Fuchsia','Pink','Rose','Red','Orange','Amber','Lime','Green','Teal','Sky','Indigo'];
 
 var schedule=[],today=new Date().getDay(),selectedDay=today,view='today';
 var editingId=null,selDays={},selColor=COLORS[0],confirmId=null;
@@ -435,6 +437,8 @@ function mins(t){var p=(t||'0:00').split(':');return (+p[0]||0)*60+(+p[1]||0)}
 function fmt(t){var p=(t||'0:00').split(':'),h=+p[0]||0,m=p[1]||'00',ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+m+' '+ap}
 function fmtShort(t){var p=(t||'0:00').split(':'),h=+p[0]||0;return(h%12||12)+(h>=12?'p':'a')}
 function durStr(a,b){var d=mins(b)-mins(a),h=Math.floor(d/60),m=d%60;return h?(h+'h'+(m?' '+m+'m':'')):(m+'m')}
+function colourName(c){var i=COLORS.indexOf(c);return i>=0?COLOR_NAMES[i]:'Current colour'}
+function nextAvailableColor(){var use=COLORS.map(function(){return 0});schedule.forEach(function(block){var i=COLORS.indexOf(block&&block.color);if(i>=0)use[i]++});var least=Math.min.apply(null,use);return COLORS[use.indexOf(least)]}
 
 /* ── Storage ── */
 /* TIMETABLE DURABLE PERSISTENCE v1
@@ -769,7 +773,7 @@ document.querySelectorAll('.seg button').forEach(function(b){
 function openPanel(editId){
   hideWeekTip();
   if(!$('overlay').classList.contains('show'))sfx('open');
-  editingId=null;selDays={};selColor=COLORS[0];confirmId=null;
+  editingId=null;selDays={};selColor=nextAvailableColor();confirmId=null;
   if(editId){
     var b=schedule.find(function(x){return x.id===editId});
     if(b){
@@ -845,8 +849,9 @@ function drawForm(){
     });
   }
   function drawSwatches(){
-    var sw=$('fSw');
-    sw.innerHTML=COLORS.map(function(c){return '<button type="button" class="sw'+(c===selColor?' on':'')+'" style="background:'+c+';--c:'+c+'" data-c="'+c+'" aria-label="Colour '+c+'"></button>'}).join('');
+    var sw=$('fSw'),palette=COLORS.slice();
+    if(selColor&&palette.indexOf(selColor)<0)palette.unshift(selColor);
+    sw.innerHTML=palette.map(function(c){var label=colourName(c);return '<button type="button" class="sw'+(c===selColor?' on':'')+'" style="background:'+c+';--c:'+c+'" data-c="'+c+'" aria-label="'+esc(label)+'" title="'+esc(label)+'"></button>'}).join('');
     sw.querySelectorAll('.sw').forEach(function(b){b.addEventListener('click',function(){if(selColor!==b.dataset.c)sfx('presetSelect');selColor=b.dataset.c;drawSwatches()})});
   }
 }
@@ -856,7 +861,7 @@ function hideErr(){$('fErr').classList.remove('show')}
 
 $('fClear').addEventListener('click',function(){
   sfx('reset');
-  editingId=null;selDays={};selColor=COLORS[0];
+  editingId=null;selDays={};selColor=nextAvailableColor();
   $('fName').value='';$('fDesc').value='';$('fLoc').value='';
   $('fSave').textContent='Save block';hideErr();drawForm();
 });
@@ -875,7 +880,7 @@ $('fSave').addEventListener('click',function(){
   if(editingId)saveBlocks(schedule.map(function(b){return b.id===editingId?block:b}));
   else saveBlocks(schedule.concat(block));
   sfx('start');
-  editingId=null;selDays={};selColor=COLORS[0];
+  editingId=null;selDays={};selColor=nextAvailableColor();
   $('fName').value='';$('fDesc').value='';$('fLoc').value='';
   $('fSave').textContent='Save block';hideErr();
   drawSaved();drawForm();render();
