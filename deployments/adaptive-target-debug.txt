@@ -1,9 +1,0 @@
-/home/runner/work/notion-widgets/notion-widgets/action-blocks.js:97
- var planning=document.createElement('details');planning.className='ab-planning';planning.id='fPlanning';planning.innerHTML='<summary>Planning details</summary><div class="ab-planning-body"><div class="ab-plan-field"><label class="f-label">Default target</label><input class="f-input" id="fOutcome" placeholder="Optional fallback"><div class="ab-plan-help" id="fOutcomeHelp">Leave blank if it changes. Set each session under This week's targets.</div></div><div class="ab-term-row"><div class="ab-plan-field"><label class="f-label">Starts</label><input class="f-input" id="fStartDate" type="date"></div><div class="ab-plan-field"><label class="f-label">Ends</label><input class="f-input" id="fEndDate" type="date"></div></div><div class="ab-plan-help">Leave blank to repeat indefinitely. One-week changes are handled from the schedule card.</div></div>';row.insertAdjacentElement('afterend',planning);
-                                                                                                                                                                                                                                                                                                                                                                                                                                                   ^
-
-SyntaxError: Unexpected identifier 's'
-    at wrapSafe (node:internal/modules/cjs/loader:1713:18)
-    at checkSyntax (node:internal/main/check_syntax:78:3)
-
-Node.js v22.23.2

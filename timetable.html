@@ -311,6 +311,10 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.8px;line-height:1.15;margin-t
 
 .f-warning{display:none;padding:8px 10px;border:1px solid var(--line-strong);border-radius:10px;background:var(--surface-3);font-size:8.5px;font-weight:600;line-height:1.4;color:var(--text-2)}.f-warning.show{display:block}.pref-status{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:10px;border-top:1px solid var(--line);font-size:8.5px;font-weight:600;color:var(--text-3)}.pref-status button{border:1px solid var(--line);border-radius:8px;background:var(--surface-3);color:var(--accent);padding:6px 8px;font:700 8px 'Inter';cursor:pointer}.pref-status button:disabled{opacity:.45;cursor:default}.d-occurrence{margin-left:0}.occ-overlay{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(15,8,30,.35);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}.occ-card{width:min(94vw,390px);padding:18px;border-radius:20px;background:linear-gradient(160deg,var(--surface),var(--surface-2));border:1px solid var(--line-strong);box-shadow:var(--shadow-lift),inset 0 1px 0 var(--highlight)}.occ-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px}.occ-head b{font-size:14px}.occ-head span{display:block;margin-top:3px;font-size:9px;color:var(--text-3)}.occ-grid{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:7px}.occ-location{margin-top:8px}.occ-warning{min-height:16px;margin-top:7px;font-size:8.5px;line-height:1.4;color:var(--text-2)}.occ-actions{display:flex;gap:6px;margin-top:10px}.occ-actions button{flex:1;border:1px solid var(--line);border-radius:10px;background:var(--surface-3);color:var(--text-2);padding:8px 5px;font:700 8px 'Inter';cursor:pointer}.occ-actions .primary{border:0;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff}@media(max-width:370px){.occ-grid{grid-template-columns:1fr 1fr}.occ-grid>div:first-child{grid-column:1/-1}}
 
+.occ-target{margin-top:8px}.occ-help{margin-top:4px;font-size:8px;line-height:1.35;color:var(--text-3)}
+.week-target-body{display:flex;flex-direction:column;gap:7px;padding:0 10px 10px;border-top:1px solid var(--line)}.week-target-intro{padding:9px 2px 1px;font-size:8.5px;line-height:1.45;color:var(--text-3)}.week-target-row{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:8px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:11px;background:color-mix(in srgb,var(--bg) 45%,transparent)}.week-target-copy{min-width:0}.week-target-copy b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}.week-target-copy small{display:block;margin-top:2px;font-size:7.8px;color:var(--text-3)}.week-target-row input{padding:8px 9px;font-size:10px}.week-target-empty{padding:11px 2px 2px;font-size:8.5px;color:var(--text-3)}
+@media(max-width:370px){.week-target-row{grid-template-columns:1fr}}
+
 @media (max-width:400px){
   .shell{padding:16px 14px;border-radius:22px}
   h1{font-size:20px}
@@ -380,6 +384,10 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.8px;line-height:1.15;margin-t
         <div class="pref-status"><span id="storageStatus">Saved locally</span><button id="restoreSchedule" type="button">Restore previous</button></div>
       </div>
     </details>
+    <details class="preferences week-targets" id="weekTargets">
+      <summary>This week's targets</summary>
+      <div class="week-target-body" id="weekTargetList"></div>
+    </details>
     <div class="saved" id="saved"></div>
     <div class="form">
       <div>
@@ -416,7 +424,7 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.8px;line-height:1.15;margin-t
 </div>
 
 <script src="core.js"></script>
-<script src="action-blocks.js?v=20260902-editor-v2&planning=20260903-v1&copy=20260903-v2"></script>
+<script src="action-blocks.js?v=20260902-editor-v2&planning=20260903-v1&copy=20260903-v2&targets=20260903-v1"></script>
 <script>
 (function(){
 'use strict';
@@ -426,6 +434,7 @@ var DAY_NAMES=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Satu
 var DAY_SHORT=['SUN','MON','TUE','WED','THU','FRI','SAT'];
 /* SEAMLESS TIMETABLE PLANNING v1 */
 /* MONDAY-FIRST EDITOR ORDER v1 */
+/* ADAPTIVE WEEKLY TARGETS v1 */
 /* DISTINCT TIMETABLE PALETTE v2: eleven evenly separated hues. */
 var COLORS=['#8b5cf6','#a21caf','#be123c','#991b1b','#c2410c','#a16207','#4d7c0f','#047857','#0e7490','#1d4ed8','#4338ca'];
 var COLOR_NAMES=['Violet','Fuchsia','Rose','Red','Orange','Gold','Olive','Emerald','Cyan','Blue','Indigo'];
@@ -472,7 +481,7 @@ function decorateBlock(block,source){
   if(/^\d{4}-\d{2}-\d{2}$/.test(String(source&&source.startDate||'')))block.startDate=String(source.startDate);
   if(/^\d{4}-\d{2}-\d{2}$/.test(String(source&&source.endDate||'')))block.endDate=String(source.endDate);
   if(hasOwn(source,'outcomeGoal'))block.outcomeGoal=String(source.outcomeGoal||'');
-  if(Array.isArray(source&&source.overrides))block.overrides=source.overrides.filter(function(o){return o&&/^\d{4}-\d{2}-\d{2}$/.test(String(o.sourceDate||''))}).map(function(o){return{sourceDate:String(o.sourceDate),date:/^\d{4}-\d{2}-\d{2}$/.test(String(o.date||''))?String(o.date):String(o.sourceDate),start:o.start||'',end:o.end||'',location:hasOwn(o,'location')?clean(o.location):'',skipped:!!o.skipped}});
+  if(Array.isArray(source&&source.overrides))block.overrides=source.overrides.filter(function(o){return o&&/^\d{4}-\d{2}-\d{2}$/.test(String(o.sourceDate||''))}).map(function(o){var item={sourceDate:String(o.sourceDate),date:/^\d{4}-\d{2}-\d{2}$/.test(String(o.date||''))?String(o.date):String(o.sourceDate),skipped:!!o.skipped};if(o.start)item.start=String(o.start);if(o.end)item.end=String(o.end);if(hasOwn(o,'location'))item.location=clean(o.location);if(hasOwn(o,'outcomeGoal'))item.outcomeGoal=String(o.outcomeGoal||'').trim();return item});
   return block
 }
 
@@ -554,7 +563,7 @@ function loadPrefs(){
 function savePrefs(){
   try{localStorage.setItem(TT_PREFS_KEY,JSON.stringify(prefs))}catch(e){}
   try{SyncEngine.set('timetable','preferences',prefs)}catch(e){}
-  drawSettings();render();if($('overlay')&&$('overlay').classList.contains('show')){drawSaved();drawForm()}
+  drawSettings();render();if($('overlay')&&$('overlay').classList.contains('show')){drawSaved();drawForm();drawWeeklyTargets()}
 }
 function drawSettings(){
   if(!$('prefView'))return;
@@ -588,7 +597,7 @@ function scheduleDateKey(date){return date.getFullYear()+'-'+String(date.getMont
 function parseScheduleDate(key){var p=String(key||'').split('-').map(Number);return new Date(p[0]||1970,(p[1]||1)-1,p[2]||1,12,0,0,0)}
 function currentWeekDate(day){var now=new Date(),start=new Date(now),offset=prefs.mondayFirst?(now.getDay()+6)%7:now.getDay(),index=prefs.mondayFirst?(day+6)%7:day;start.setHours(12,0,0,0);start.setDate(now.getDate()-offset+index);return start}
 function activeInTerm(block,key){return(!block.startDate||key>=block.startDate)&&(!block.endDate||key<=block.endDate)}
-function makeOccurrence(block,entry,key,sourceKey,override){return{id:block.id,name:block.name,description:block.description,location:override&&hasOwn(override,'location')?clean(override.location):clean(entry.location||block.location),color:block.color,day:parseScheduleDate(key).getDay(),start:override&&override.start||entry.start,end:override&&override.end||entry.end,dateKey:key,sourceDate:sourceKey}}
+function makeOccurrence(block,entry,key,sourceKey,override){var target=override&&hasOwn(override,'outcomeGoal')?String(override.outcomeGoal||''):String(block.outcomeGoal||'');return{id:block.id,name:block.name,description:block.description,location:override&&hasOwn(override,'location')?clean(override.location):clean(entry.location||block.location),color:block.color,category:block.category||'',trackCompletion:!!block.trackCompletion,outcomeGoal:target,day:parseScheduleDate(key).getDay(),start:override&&override.start||entry.start,end:override&&override.end||entry.end,dateKey:key,sourceDate:sourceKey}}
 function occurrencesForDate(target){
   var key=scheduleDateKey(target),day=target.getDay(),out=[];
   schedule.forEach(function(block){
@@ -619,7 +628,7 @@ function hideWeekTip(){clearTimeout(tipTimer);var tip=$('smartTip');if(!tip)retu
 function showWeekTip(el,temporary){
   var day=+el.dataset.day,item=flatFor(day).find(function(x){return x.id===el.dataset.id}),tip=$('smartTip');if(!item||!tip)return;
   clearTimeout(tipTimer);tip.style.setProperty('--tip-c',item.color||COLORS[0]);
-  tip.innerHTML='<div class="tip-head"><i class="tip-dot"></i><div class="tip-name">'+esc(item.name)+'</div></div><div class="tip-time">'+DAY_SHORT[day]+' · '+fmt(item.start)+'–'+fmt(item.end)+'</div>'+(item.location?'<div class="tip-detail">'+esc(item.location)+'</div>':'')+(item.description?'<div class="tip-detail">'+esc(item.description)+'</div>':'');
+  tip.innerHTML='<div class="tip-head"><i class="tip-dot"></i><div class="tip-name">'+esc(item.name)+'</div></div><div class="tip-time">'+DAY_SHORT[day]+' · '+fmt(item.start)+'–'+fmt(item.end)+'</div>'+(item.location?'<div class="tip-detail">'+esc(item.location)+'</div>':'')+(item.outcomeGoal?'<div class="tip-detail"><b>Target</b> · '+esc(item.outcomeGoal)+'</div>':'')+(item.description?'<div class="tip-detail">'+esc(item.description)+'</div>':'');
   tip.classList.add('show');tip.setAttribute('aria-hidden','false');
   requestAnimationFrame(function(){var r=el.getBoundingClientRect(),tr=tip.getBoundingClientRect(),left=Math.max(12,Math.min(innerWidth-tr.width-12,r.left+r.width/2-tr.width/2)),top=r.top-tr.height-9;if(top<12)top=Math.min(innerHeight-tr.height-12,r.bottom+9);tip.style.left=left+'px';tip.style.top=top+'px'});
   if(temporary)tipTimer=setTimeout(hideWeekTip,2800);
@@ -704,6 +713,7 @@ function renderToday(){
       +'<div class="details"><div class="details-inner">'
       +'<span class="d-item">Duration <b>'+durStr(c.start,c.end)+'</b></span>'
       +(c.location?'<span class="d-item">\uD83D\uDCCD <b>'+esc(c.location)+'</b></span>':'')
+      +(c.outcomeGoal?'<span class="d-item">Target <b>'+esc(c.outcomeGoal)+'</b></span>':'')
       +(c.description?'<span class="d-item">'+esc(c.description)+'</span>':'')
       +'<button class="d-edit d-occurrence" data-occurrence="'+c.id+'" data-source-date="'+esc(c.sourceDate)+'">This week</button>'
       +'<button class="d-edit" data-edit="'+c.id+'">Edit all</button>'
@@ -802,7 +812,7 @@ function openPanel(editId){
     }
   }
   $('overlay').classList.add('show');
-  drawSaved();drawForm();drawSettings();
+  drawSaved();drawForm();drawSettings();drawWeeklyTargets();
   if(editingId){
     var blk=schedule.find(function(x){return x.id===editingId});
     if(blk){$('fName').value=blk.name;$('fDesc').value=blk.description;$('fLoc').value=blk.location;updateWarnings()}
@@ -816,19 +826,27 @@ function closePanel(){sfx('close');$('overlay').classList.remove('show');editing
 function placeDiffers(a,b){return!!String(a||'').trim()&&!!String(b||'').trim()&&String(a).trim().toLowerCase()!==String(b).trim().toLowerCase()}
 function slotWarning(items,start,end,location,ignoreId,ignoreSource){var sm=mins(start),em=mins(end),messages=[];items.forEach(function(item){if(item.id===ignoreId&&item.sourceDate===ignoreSource)return;var os=mins(item.start),oe=mins(item.end);if(sm<oe&&em>os)messages.push('Overlaps '+item.name+'.');else if(placeDiffers(location,item.location)){var gap=em<=os?os-em:(oe<=sm?sm-oe:9999);if(gap<prefs.travelBuffer)messages.push('Only '+gap+'m between different locations and '+item.name+'.')}});return messages[0]||''}
 function updateWarnings(){var el=$('fWarn');if(!el)return;var messages=[],baseLoc=$('fLoc').value.trim();Object.keys(selDays).map(Number).forEach(function(day){var draft=selDays[day],loc=clean(draft.location)||baseLoc,items=[];schedule.forEach(function(block){if(block.id===editingId)return;block.days.filter(function(entry){return+entry.day===day}).forEach(function(entry){items.push({id:block.id,name:block.name,start:entry.start,end:entry.end,location:clean(entry.location||block.location)})})});var warning=slotWarning(items,draft.start,draft.end,loc,null,null);if(warning)messages.push(DAY_NAMES[day]+': '+warning)});el.textContent=messages.slice(0,2).join(' ');el.classList.toggle('show',!!messages.length)}
-function writeOccurrenceOverride(block,sourceDate,value){block.overrides=(Array.isArray(block.overrides)?block.overrides:[]).filter(function(o){return o.sourceDate!==sourceDate});if(value)block.overrides.push(value);saveBlocks(schedule.slice());render();drawSaved()}
+function writeOccurrenceOverride(block,sourceDate,value){block.overrides=(Array.isArray(block.overrides)?block.overrides:[]).filter(function(o){return o.sourceDate!==sourceDate});if(value)block.overrides.push(value);saveBlocks(schedule.slice());render();drawSaved();drawWeeklyTargets()}
+function actionableOccurrence(item){return !!(item&&item.trackCompletion&&item.category!=='class')}
+function setOccurrenceTarget(id,sourceDate,value){var block=schedule.find(function(x){return x.id===id});if(!block)return;var current=(block.overrides||[]).find(function(o){return o.sourceDate===sourceDate}),next=current?Object.assign({},current):{sourceDate:sourceDate,date:sourceDate,skipped:false};next.sourceDate=sourceDate;if(!next.date)next.date=sourceDate;next.skipped=false;next.outcomeGoal=String(value||'').trim();writeOccurrenceOverride(block,sourceDate,next)}
+function drawWeeklyTargets(){
+  var host=$('weekTargetList');if(!host)return;var items=allFlat().filter(actionableOccurrence);
+  if(!items.length){host.innerHTML='<div class="week-target-empty">No study or training tasks are scheduled this week.</div>';return}
+  host.innerHTML='<div class="week-target-intro">The activity repeats. Only the target for each dated session changes.</div>'+items.map(function(item){var label=parseScheduleDate(item.dateKey).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});return'<label class="week-target-row"><span class="week-target-copy"><b>'+esc(item.name)+'</b><small>'+esc(label)+' · '+fmt(item.start)+'</small></span><input class="f-input" data-target-id="'+esc(item.id)+'" data-target-source="'+esc(item.sourceDate)+'" value="'+esc(item.outcomeGoal||'')+'" placeholder="What should be finished?" aria-label="Target for '+esc(item.name)+' on '+esc(label)+'"></label>'}).join('');
+  host.querySelectorAll('[data-target-id]').forEach(function(input){input.addEventListener('change',function(){setOccurrenceTarget(input.dataset.targetId,input.dataset.targetSource,input.value)})})
+}
 function openOccurrence(id,sourceDate){
   var block=schedule.find(function(x){return x.id===id});if(!block)return;var source=parseScheduleDate(sourceDate),entry=block.days.find(function(x){return+x.day===source.getDay()});if(!entry)return;
-  var current=(block.overrides||[]).find(function(o){return o.sourceDate===sourceDate}),date=current&&!current.skipped?current.date:sourceDate,start=current&&!current.skipped&&current.start||entry.start,end=current&&!current.skipped&&current.end||entry.end,location=current&&!current.skipped&&hasOwn(current,'location')?current.location:clean(entry.location||block.location);
-  var overlay=document.createElement('div');overlay.className='occ-overlay';overlay.innerHTML='<div class="occ-card"><div class="occ-head"><div><b>'+esc(block.name)+'</b><span>Change only this occurrence</span></div><button class="p-close" data-occ-close aria-label="Close">×</button></div><div class="occ-grid"><div><label class="f-label">Date</label><input class="f-input" id="occDate" type="date" value="'+esc(date)+'"></div><div><label class="f-label">Starts</label><input class="f-input" id="occStart" type="time" value="'+esc(start)+'"></div><div><label class="f-label">Ends</label><input class="f-input" id="occEnd" type="time" value="'+esc(end)+'"></div></div><div class="occ-location"><label class="f-label">Location</label><input class="f-input" id="occLocation" value="'+esc(location)+'" placeholder="Optional"></div><div class="occ-warning" id="occWarning"></div><div class="occ-actions"><button data-occ-reset>Reset</button><button data-occ-skip>Skip this week</button><button class="primary" data-occ-save>Save change</button></div></div>';
-  document.body.appendChild(overlay);var dateI=overlay.querySelector('#occDate'),startI=overlay.querySelector('#occStart'),endI=overlay.querySelector('#occEnd'),locI=overlay.querySelector('#occLocation'),warning=overlay.querySelector('#occWarning');
-  function close(){overlay.remove()}function check(){var target=parseScheduleDate(dateI.value),items=occurrencesForDate(target),message=slotWarning(items,startI.value,endI.value,locI.value,id,sourceDate);warning.textContent=message}overlay.querySelector('[data-occ-close]').addEventListener('click',close);overlay.addEventListener('click',function(e){if(e.target===overlay)close()});[dateI,startI,endI,locI].forEach(function(input){input.addEventListener('input',check)});check();
-  overlay.querySelector('[data-occ-reset]').addEventListener('click',function(){writeOccurrenceOverride(block,sourceDate,null);close()});overlay.querySelector('[data-occ-skip]').addEventListener('click',function(){writeOccurrenceOverride(block,sourceDate,{sourceDate:sourceDate,date:sourceDate,skipped:true});close()});overlay.querySelector('[data-occ-save]').addEventListener('click',function(){if(!dateI.value||!startI.value||!endI.value||mins(endI.value)<=mins(startI.value)){warning.textContent='Choose a valid date and time range.';return}writeOccurrenceOverride(block,sourceDate,{sourceDate:sourceDate,date:dateI.value,start:startI.value,end:endI.value,location:locI.value.trim(),skipped:false});close()})
+  var current=(block.overrides||[]).find(function(o){return o.sourceDate===sourceDate}),date=current&&!current.skipped?current.date:sourceDate,start=current&&!current.skipped&&current.start||entry.start,end=current&&!current.skipped&&current.end||entry.end,location=current&&!current.skipped&&hasOwn(current,'location')?current.location:clean(entry.location||block.location),target=current&&hasOwn(current,'outcomeGoal')?current.outcomeGoal:String(block.outcomeGoal||''),actionable=!!(block.trackCompletion&&block.category!=='class');
+  var overlay=document.createElement('div');overlay.className='occ-overlay';overlay.innerHTML='<div class="occ-card"><div class="occ-head"><div><b>'+esc(block.name)+'</b><span>Change only this occurrence</span></div><button class="p-close" data-occ-close aria-label="Close">×</button></div><div class="occ-grid"><div><label class="f-label">Date</label><input class="f-input" id="occDate" type="date" value="'+esc(date)+'"></div><div><label class="f-label">Starts</label><input class="f-input" id="occStart" type="time" value="'+esc(start)+'"></div><div><label class="f-label">Ends</label><input class="f-input" id="occEnd" type="time" value="'+esc(end)+'"></div></div><div class="occ-location"><label class="f-label">Location</label><input class="f-input" id="occLocation" value="'+esc(location)+'" placeholder="Optional"></div>'+(actionable?'<div class="occ-target"><label class="f-label">Session target</label><input class="f-input" id="occTarget" value="'+esc(target)+'" placeholder="e.g. Brief cases 4–6"><div class="occ-help">Only this dated task changes. The weekly activity stays the same.</div></div>':'')+'<div class="occ-warning" id="occWarning"></div><div class="occ-actions"><button data-occ-reset>Reset</button><button data-occ-skip>Skip this week</button><button class="primary" data-occ-save>Save change</button></div></div>';
+  document.body.appendChild(overlay);var dateI=overlay.querySelector('#occDate'),startI=overlay.querySelector('#occStart'),endI=overlay.querySelector('#occEnd'),locI=overlay.querySelector('#occLocation'),targetI=overlay.querySelector('#occTarget'),warning=overlay.querySelector('#occWarning');
+  function close(){overlay.remove()}function check(){var target=parseScheduleDate(dateI.value),items=occurrencesForDate(target),message=slotWarning(items,startI.value,endI.value,locI.value,id,sourceDate);warning.textContent=message}overlay.querySelector('[data-occ-close]').addEventListener('click',close);overlay.addEventListener('click',function(e){if(e.target===overlay)close()});[dateI,startI,endI,locI,targetI].filter(Boolean).forEach(function(input){input.addEventListener('input',check)});check();
+  overlay.querySelector('[data-occ-reset]').addEventListener('click',function(){writeOccurrenceOverride(block,sourceDate,null);close()});overlay.querySelector('[data-occ-skip]').addEventListener('click',function(){writeOccurrenceOverride(block,sourceDate,{sourceDate:sourceDate,date:sourceDate,skipped:true});close()});overlay.querySelector('[data-occ-save]').addEventListener('click',function(){if(!dateI.value||!startI.value||!endI.value||mins(endI.value)<=mins(startI.value)){warning.textContent='Choose a valid date and time range.';return}var next={sourceDate:sourceDate,date:dateI.value,start:startI.value,end:endI.value,location:locI.value.trim(),skipped:false};if(targetI)next.outcomeGoal=targetI.value.trim();else if(current&&hasOwn(current,'outcomeGoal'))next.outcomeGoal=current.outcomeGoal;writeOccurrenceOverride(block,sourceDate,next);close()})
 }
 var restoreArmed=false,restoreTimer=null;
 function previousScheduleCopy(){var vault=readVault();if(!vault)return null;var current=JSON.stringify(normaliseBlocks(schedule));for(var i=0;i<vault.backups.length;i++){var copy=normaliseBlocks(vault.backups[i]&&vault.backups[i].courses);if(copy.length&&JSON.stringify(copy)!==current)return copy}return null}
 function updateStorageStatus(){var status=$('storageStatus'),button=$('restoreSchedule');if(!status||!button)return;var online=false;try{online=!!(SyncEngine.isOnline&&SyncEngine.isOnline())}catch(e){}status.textContent='Saved locally · '+(online?'Cloud connected':'Offline');button.disabled=!previousScheduleCopy()}
-function restorePreviousSchedule(){var button=$('restoreSchedule'),copy=previousScheduleCopy();if(!copy){updateStorageStatus();return}if(!restoreArmed){restoreArmed=true;button.textContent='Confirm restore';clearTimeout(restoreTimer);restoreTimer=setTimeout(function(){restoreArmed=false;button.textContent='Restore previous'},4000);return}restoreArmed=false;clearTimeout(restoreTimer);button.textContent='Restore previous';saveBlocks(copy);render();drawSaved();sfx('start')}
+function restorePreviousSchedule(){var button=$('restoreSchedule'),copy=previousScheduleCopy();if(!copy){updateStorageStatus();return}if(!restoreArmed){restoreArmed=true;button.textContent='Confirm restore';clearTimeout(restoreTimer);restoreTimer=setTimeout(function(){restoreArmed=false;button.textContent='Restore previous'},4000);return}restoreArmed=false;clearTimeout(restoreTimer);button.textContent='Restore previous';saveBlocks(copy);render();drawSaved();drawWeeklyTargets();sfx('start')}
 
 function drawSaved(){
   var el=$('saved');
@@ -848,7 +866,7 @@ function drawSaved(){
     sfx('reset');
     saveBlocks(schedule.filter(function(x){return x.id!==b.dataset.yes}));
     confirmId=null;if(editingId===b.dataset.yes){editingId=null;drawForm();$('fName').value='';$('fDesc').value='';$('fLoc').value=''}
-    drawSaved();render();
+    drawSaved();drawWeeklyTargets();render();
   })});
 }
 
@@ -920,7 +938,7 @@ $('fSave').addEventListener('click',function(){
   editingId=null;selDays={};selColor=nextAvailableColor();
   $('fName').value='';$('fDesc').value='';$('fLoc').value='';
   $('fSave').textContent='Save block';hideErr();
-  drawSaved();drawForm();render();
+  drawSaved();drawForm();drawWeeklyTargets();render();
 });
 
 $('prefView').addEventListener('change',function(){prefs.defaultView=this.value;savePrefs()});
@@ -954,12 +972,12 @@ function boot(){
         if(!Array.isArray(value))return;
         if(!value.length&&schedule.length&&!intentionallyEmpty()){protectRemoteSchedule();return}
         var next=normaliseBlocks(value);
-        if(JSON.stringify(next)!==JSON.stringify(schedule)){schedule=writeLocalSnapshot(next,false);render();drawSaved()}
+        if(JSON.stringify(next)!==JSON.stringify(schedule)){schedule=writeLocalSnapshot(next,false);render();drawSaved();drawWeeklyTargets()}
       });
-      SyncEngine.subscribe('timetable','preferences',function(value){if(value&&typeof value==='object'){prefs={defaultView:/^(today|week)$/.test(value.defaultView)?value.defaultView:'auto',sound:value.sound!==false,mondayFirst:!!value.mondayFirst,travelBuffer:[0,10,15,20,30].indexOf(+value.travelBuffer)>=0?+value.travelBuffer:10};drawSettings();render();if($('overlay')&&$('overlay').classList.contains('show')){drawSaved();drawForm()}}});
+      SyncEngine.subscribe('timetable','preferences',function(value){if(value&&typeof value==='object'){prefs={defaultView:/^(today|week)$/.test(value.defaultView)?value.defaultView:'auto',sound:value.sound!==false,mondayFirst:!!value.mondayFirst,travelBuffer:[0,10,15,20,30].indexOf(+value.travelBuffer)>=0?+value.travelBuffer:10};drawSettings();render();if($('overlay')&&$('overlay').classList.contains('show')){drawSaved();drawForm();drawWeeklyTargets()}}});
     }
   }catch(e){}
-  render();drawSettings();updateStorageStatus();setInterval(updateStorageStatus,12000);requestAnimationFrame(syncSeg);
+  render();drawSettings();drawWeeklyTargets();updateStorageStatus();setInterval(updateStorageStatus,12000);requestAnimationFrame(syncSeg);
 }
 if(typeof SyncEngine!=='undefined'&&typeof SyncEngine.init==='function'){
   var raced=false;

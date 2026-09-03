@@ -31,3 +31,6 @@ type Task = {
 
 ## Migration status
 This app folder currently wraps the legacy widget without changing behaviour.
+
+## Scheduled targets
+Generated timetable tasks keep a stable task title while `outcomeGoal` stores the target for that dated occurrence. Editing a generated target writes it back to the matching timetable override, so future weeks remain independent.
