@@ -23,8 +23,27 @@ jobs:
         with:
           node-version: 22
       - name: Apply asserted adaptive-target patch
-        run: node tools/apply-adaptive-weekly-targets-v1.mjs
+        id: patch
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          node tools/apply-adaptive-weekly-targets-v1.mjs 2>&1 | tee /tmp/adaptive-target-patch.log
+      - name: Publish patch diagnostic
+        if: steps.patch.outcome == 'failure'
+        run: |
+          git restore .
+          mkdir -p deployments
+          cp /tmp/adaptive-target-patch.log deployments/adaptive-target-debug.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add deployments/adaptive-target-debug.txt
+          git commit -m "Record adaptive target patch diagnostic"
+          git push
+      - name: Stop after patch diagnostic
+        if: steps.patch.outcome == 'failure'
+        run: exit 1
       - name: Check JavaScript syntax
+        if: steps.patch.outcome == 'success'
         run: |
           node --check action-blocks.js
           node --input-type=module <<'NODE'
@@ -38,6 +57,7 @@ jobs:
           NODE
       - name: Run adaptive and existing regressions
         id: tests
+        if: steps.patch.outcome == 'success'
         continue-on-error: true
         run: |
           set -o pipefail
@@ -60,7 +80,7 @@ jobs:
           git add deployments/adaptive-target-debug.txt
           git commit -m "Record adaptive target test diagnostic"
           git push
-      - name: Stop after diagnostic
+      - name: Stop after test diagnostic
         if: steps.tests.outcome == 'failure'
         run: exit 1
       - name: Check patch formatting
