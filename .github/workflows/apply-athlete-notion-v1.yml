@@ -1,0 +1,103 @@
+name: Apply Athlete Notion Bridge v1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - athlete-notion.js
+      - apps/athlete/README.md
+      - worker/src/routes/fitness-tests.ts
+      - worker/src/routes/__tests__/fitness-tests.test.ts
+      - tools/apply-athlete-notion-v1.mjs
+      - tools/test-athlete-notion-v1.mjs
+      - .github/workflows/apply-athlete-notion-v1.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Apply Athlete Notion bridge
+        id: patch
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          node tools/apply-athlete-notion-v1.mjs 2>&1 | tee /tmp/athlete-notion.log
+
+      - name: Check browser JavaScript and generated build
+        id: syntax
+        if: steps.patch.outcome == 'success'
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          {
+            node --check core.js
+            node --check athlete-notion.js
+            node --check athlete-data.js
+            node --check athlete-flow.js
+            node --check athlete-training-data.js
+            node --check athlete-training-ui.js
+            node tools/build-athlete.mjs --check
+          } 2>&1 | tee -a /tmp/athlete-notion.log
+
+      - name: Run Athlete and Worker regressions
+        id: tests
+        if: steps.syntax.outcome == 'success'
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          {
+            node tools/test-athlete-notion-v1.mjs
+            node tools/verify-athlete.mjs
+            node tools/qa-athlete.mjs
+            node tools/test-upcoming-assignments-v1.mjs
+            node tools/test-action-blocks-editor-v2.mjs
+            cd worker
+            npm ci
+            npx tsc --noEmit
+            npm test -- --passWithNoTests
+          } 2>&1 | tee -a /tmp/athlete-notion.log
+
+      - name: Publish failure diagnostic
+        if: steps.patch.outcome == 'failure' || steps.syntax.outcome == 'failure' || steps.tests.outcome == 'failure'
+        run: |
+          git restore .
+          mkdir -p deployments
+          cp /tmp/athlete-notion.log deployments/athlete-notion-debug.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add deployments/athlete-notion-debug.txt
+          git commit -m "Record Athlete Notion diagnostic"
+          git push
+
+      - name: Stop after failure
+        if: steps.patch.outcome == 'failure' || steps.syntax.outcome == 'failure' || steps.tests.outcome == 'failure'
+        run: exit 1
+
+      - name: Check patch formatting
+        run: git diff --check
+
+      - name: Commit production changes
+        run: |
+          if git diff --quiet; then
+            echo "No production changes needed"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add core.js athlete.source.html athlete.html tools/build-athlete.mjs
+          git add apps/README.md worker/src/index.ts worker/src/types.ts
+          git add -A deployments/athlete-notion-debug.txt
+          git commit -m "Connect Athlete assessments to Notion"
+          git push
