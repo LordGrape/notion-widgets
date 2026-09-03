@@ -48,7 +48,7 @@ const phase = {
   status: "Scheduled",
   scheduledStart: "2026-09-08",
 };
-assert.deepEqual(U.phasePayload(assignment, phase), {
+assert.deepEqual(JSON.parse(JSON.stringify(U.phasePayload(assignment, phase))), {
   notionPageId: "phase-page",
   occurrenceId: "assignment:parent-1:draft",
   scheduleId: "assignment:parent-1",
