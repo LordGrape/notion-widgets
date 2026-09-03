@@ -11,25 +11,14 @@ function replaceOnce(source,oldStr,newStr,label){
 let action=read('action-blocks.js');
 if(!action.includes('CLEAR SCHEDULE LANGUAGE v1')){
   action=replaceOnce(action,'/* SEAMLESS PLANNING SYSTEM v1 */','/* SEAMLESS PLANNING SYSTEM v1 */\n/* CLEAR SCHEDULE LANGUAGE v1\n   Behaviour retained: Weekly to-do; Fresh task every scheduled day. */','Action copy marker');
-  action=replaceOnce(action,'white-space:nowrap}.ab-toggle.is-disabled','white-space:normal}.ab-toggle.is-disabled','Toggle helper wrapping');
-  action=replaceOnce(
-    action,
-    '<div class="ab-field"><label class="f-label">To-do</label><label class="ab-toggle" id="fTrackLabel" for="fTrack"><span class="ab-toggle-copy"><strong id="fTrackTitle">Weekly to-do</strong><small id="fTrackHint">Fresh task every scheduled day.</small></span>',
-    '<div class="ab-field"><label class="f-label">Task creation</label><label class="ab-toggle" id="fTrackLabel" for="fTrack"><span class="ab-toggle-copy"><strong id="fTrackTitle">Add to to-do</strong><small id="fTrackHint">Fresh task on every selected day.</small></span>',
-    'Task creation copy'
-  );
-  action=replaceOnce(
-    action,
-    '<label class="f-label">Outcome</label><input class="f-input" id="fOutcome" placeholder="Optional, e.g. brief cases 4–6"><div class="ab-plan-help">Shown on generated study or training tasks.</div>',
-    '<label class="f-label">Finish line</label><input class="f-input" id="fOutcome" placeholder="Optional, e.g. brief cases 4–6"><div class="ab-plan-help">The specific result you want finished. It appears on the to-do.</div>',
-    'Finish line explanation'
-  );
-  action=replaceOnce(
-    action,
-    "function paintTrack(){var locked=cat.value==='class';if(locked)track.checked=false;track.disabled=locked;trackLabel.classList.toggle('is-disabled',locked);trackLabel.setAttribute('aria-disabled',locked?'true':'false');trackTitle.textContent=locked?'Schedule only':'Weekly to-do';trackHint.textContent=locked?'Classes never create to-dos.':(track.checked?'Fresh task every scheduled day.':'Keep this on the schedule only.')}",
-    "function paintTrack(){var locked=cat.value==='class';if(locked)track.checked=false;track.disabled=locked;trackLabel.classList.toggle('is-disabled',locked);trackLabel.setAttribute('aria-disabled',locked?'true':'false');trackTitle.textContent=locked?'Schedule only':'Add to to-do';trackHint.textContent=locked?'Classes never create tasks.':(track.checked?'Fresh task on every selected day.':'No tasks are created.')}",
-    'Task state explanation'
-  );
+  action=replaceOnce(action,'white-space:nowrap}.ab-check','white-space:normal}.ab-check','Toggle helper wrapping');
+  action=replaceOnce(action,'>To-do</label><label','>Task creation</label><label','Task creation heading');
+  action=replaceOnce(action,'>Weekly to-do</strong>','>Add to to-do</strong>','Task creation title');
+  action=replaceOnce(action,'>Fresh task every scheduled day.</small>','>Fresh task on every selected day.</small>','Initial task helper');
+  action=replaceOnce(action,'>Outcome</label><input','>Finish line</label><input','Finish line heading');
+  action=replaceOnce(action,'Shown on generated study or training tasks.','The specific result you want finished. It appears on the to-do.','Finish line explanation');
+  action=replaceOnce(action,"trackTitle.textContent=locked?'Schedule only':'Weekly to-do'","trackTitle.textContent=locked?'Schedule only':'Add to to-do'",'Task state title');
+  action=replaceOnce(action,"trackHint.textContent=locked?'Classes never create to-dos.':(track.checked?'Fresh task every scheduled day.':'Keep this on the schedule only.')","trackHint.textContent=locked?'Classes never create tasks.':(track.checked?'Fresh task on every selected day.':'No tasks are created.')",'Task state explanation');
   action=replaceOnce(action,"t.outcomeGoal?('Outcome: '+t.outcomeGoal)","t.outcomeGoal?('Finish line: '+t.outcomeGoal)",'Notion finish-line label');
 }
 write('action-blocks.js',action);
@@ -43,36 +32,11 @@ if(!timetable.includes('MONDAY-FIRST EDITOR ORDER v1')){
     "function nextAvailableColor(){var use=COLORS.map(function(){return 0});schedule.forEach(function(block){var i=COLORS.indexOf(block&&block.color);if(i>=0)use[i]++});var least=Math.min.apply(null,use);return COLORS[use.indexOf(least)]}\nfunction orderedDays(){return prefs.mondayFirst?[1,2,3,4,5,6,0]:[0,1,2,3,4,5,6]}\nfunction dayRank(day){return orderedDays().indexOf(+day)}",
     'Shared day ordering'
   );
-  timetable=replaceOnce(
-    timetable,
-    "  drawSettings();render();\n}",
-    "  drawSettings();render();if($('overlay')&&$('overlay').classList.contains('show')){drawSaved();drawForm()}\n}",
-    'Live editor preference refresh'
-  );
-  timetable=replaceOnce(
-    timetable,
-    "var ds=b.days.slice().sort(function(x,y){return(x.day||7)-(y.day||7)}).map",
-    "var ds=b.days.slice().sort(function(x,y){return dayRank(x.day)-dayRank(y.day)}).map",
-    'Saved block day order'
-  );
-  timetable=replaceOnce(
-    timetable,
-    "chips.innerHTML=DAY_SHORT.map(function(d,i){return '<button type=\"button\" class=\"dchip'+(selDays[i]?' on':'')+'\" data-d=\"'+i+'\">'+d.slice(0,2)+'</button>'}).join('');",
-    "chips.innerHTML=orderedDays().map(function(i){var d=DAY_SHORT[i];return '<button type=\"button\" class=\"dchip'+(selDays[i]?' on':'')+'\" data-d=\"'+i+'\">'+d.slice(0,2)+'</button>'}).join('');",
-    'Repeat chip day order'
-  );
-  timetable=replaceOnce(
-    timetable,
-    "var keys=Object.keys(selDays).map(Number).sort(function(a,b){return(a||7)-(b||7)});",
-    "var keys=Object.keys(selDays).map(Number).sort(function(a,b){return dayRank(a)-dayRank(b)});",
-    'Day time row order'
-  );
-  timetable=replaceOnce(
-    timetable,
-    "drawSettings();render()}});",
-    "drawSettings();render();if($('overlay')&&$('overlay').classList.contains('show')){drawSaved();drawForm()}}});",
-    'Synced preference editor refresh'
-  );
+  timetable=replaceOnce(timetable,"  drawSettings();render();\n}","  drawSettings();render();if($('overlay')&&$('overlay').classList.contains('show')){drawSaved();drawForm()}\n}",'Live editor preference refresh');
+  timetable=replaceOnce(timetable,"var ds=b.days.slice().sort(function(x,y){return(x.day||7)-(y.day||7)}).map","var ds=b.days.slice().sort(function(x,y){return dayRank(x.day)-dayRank(y.day)}).map",'Saved block day order');
+  timetable=replaceOnce(timetable,'chips.innerHTML=DAY_SHORT.map(function(d,i){','chips.innerHTML=orderedDays().map(function(i){var d=DAY_SHORT[i];','Repeat chip day order');
+  timetable=replaceOnce(timetable,"var keys=Object.keys(selDays).map(Number).sort(function(a,b){return(a||7)-(b||7)});","var keys=Object.keys(selDays).map(Number).sort(function(a,b){return dayRank(a)-dayRank(b)});",'Day time row order');
+  timetable=replaceOnce(timetable,"drawSettings();render()}});","drawSettings();render();if($('overlay')&&$('overlay').classList.contains('show')){drawSaved();drawForm()}}});",'Synced preference editor refresh');
 }
 timetable=timetable.replaceAll('action-blocks.js?v=20260902-editor-v2&planning=20260903-v1','action-blocks.js?v=20260902-editor-v2&planning=20260903-v1&copy=20260903-v2');
 write('timetable.html',timetable);
@@ -80,8 +44,12 @@ write('timetable.html',timetable);
 let todo=read('todo.html');
 if(!todo.includes('CLEAR FINISH LINE LANGUAGE v1')){
   todo=replaceOnce(todo,'/* SEAMLESS TODO PLANNING v1 */','/* SEAMLESS TODO PLANNING v1 */\n/* CLEAR FINISH LINE LANGUAGE v1 */','To-do copy marker');
-  todo=replaceOnce(todo,'aria-label="Outcome" placeholder="Outcome (optional)"','aria-label="Finish line" placeholder="Finish line (optional)"','To-do finish-line field');
-  todo=replaceOnce(todo,'<span class="pl-k">Outcome</span>','<span class="pl-k">Finish</span>','To-do finish-line display');
+  todo=replaceOnce(todo,'Outcome (optional)','Finish line (optional)','To-do finish-line placeholder');
+  const aria=/aria-label=\\?"Outcome\\?"/g;
+  const matches=todo.match(aria)||[];
+  if(matches.length!==1)throw new Error(`To-do finish-line aria label: expected one match, found ${matches.length}`);
+  todo=todo.replace(aria,'aria-label=\\"Finish line\\"');
+  todo=replaceOnce(todo,'>Outcome</span>','>Finish</span>','To-do finish-line display');
 }
 todo=todo.replaceAll('action-blocks.js?v=20260902-editor-v2&planning=20260903-v1','action-blocks.js?v=20260902-editor-v2&planning=20260903-v1&copy=20260903-v2');
 write('todo.html',todo);
