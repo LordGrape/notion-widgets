@@ -189,6 +189,9 @@ body{
 .tbox-go:hover{transform:translateY(-1px)}
 .tbox-hint{width:100%;font-size:0.66rem;color:var(--text-tertiary)}
 
+/* Tomorrow preview and completion calibration */
+.tomorrow{margin-top:14px;border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--surface-2);overflow:hidden}.tomorrow summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;cursor:pointer;color:var(--text-secondary);font-size:.72rem;font-weight:750;letter-spacing:.06em;text-transform:uppercase}.tomorrow summary::-webkit-details-marker{display:none}.tomorrow summary:after{content:'+';font-size:1rem;color:var(--accent-primary);transition:transform var(--transition-fast)}.tomorrow[open] summary:after{transform:rotate(45deg)}.tomorrow-list{display:flex;flex-direction:column;gap:6px;padding:0 9px 9px;border-top:1px solid var(--border-subtle)}.tomorrow-row{display:grid;grid-template-columns:7px 1fr auto;gap:8px;align-items:center;padding:8px 4px;font-size:.79rem;color:var(--text-primary)}.tomorrow-row i{width:7px;height:7px;border-radius:50%;background:var(--accent-primary)}.tomorrow-row small{font-size:.68rem;color:var(--text-tertiary)}.calibration{position:fixed;z-index:10040;left:50%;bottom:72px;transform:translateX(-50%);width:min(390px,calc(100vw - 24px));padding:13px;border:1px solid var(--border-default);border-radius:var(--radius-md);background:var(--surface-3);box-shadow:var(--shadow-md);backdrop-filter:var(--blur-glass);-webkit-backdrop-filter:var(--blur-glass)}.calibration b{display:block;font-size:.84rem}.calibration p{margin-top:3px;font-size:.72rem;color:var(--text-secondary)}.calibration-actions{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px}.calibration-actions button{flex:1;min-width:72px;border:1px solid var(--border-default);border-radius:999px;background:var(--surface-1);color:var(--text-secondary);padding:7px 8px;font:650 .68rem var(--font);cursor:pointer}.calibration-actions button:hover{border-color:var(--border-accent);color:var(--accent-primary)}.e-outcome{border-style:dashed;border-color:var(--border-accent)}
+
 /* Done section */
 .section{margin-top:18px}
 .section-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px}
@@ -331,6 +334,8 @@ body::before{
 
     <div class="list" id="list" role="list"></div>
 
+    <details class="tomorrow" id="tomorrowSec"><summary><span>Tomorrow · <span id="tomorrowN">0</span></span></summary><div class="tomorrow-list" id="tomorrowList"></div></details>
+
     <div class="section closed" id="doneSec">
       <div class="section-head">
         <h3 id="doneToggle" role="button" tabindex="0" aria-expanded="false"><span class="arw">&#9662;</span> Done (<span id="doneN">0</span>)</h3>
@@ -346,8 +351,9 @@ body::before{
   </div>
 </div>
 <script src="core.js"></script>
-<script src="action-blocks.js?v=20260902-editor-v2"></script>
+<script src="action-blocks.js?v=20260902-editor-v2&planning=20260903-v1"></script>
 <script>
+/* SEAMLESS TODO PLANNING v1 */
 /* todo.html — Task widget for LordGrape/notion-widgets.
    Vanilla JS, hand-authored. Uses the shared core.js engine:
    SyncEngine (cross-device state), canvas background, 3D tilt,
@@ -388,6 +394,7 @@ body::before{
   var undoAction = null, undoTimer = null;
   var editingId = null;
   var notePopEl = null, noteTimer = null;
+  var calibrationTimer = null;
 
   function $(id) { return document.getElementById(id); }
   function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
@@ -454,6 +461,7 @@ body::before{
     var on = SyncEngine.isOnline && SyncEngine.isOnline();
     el.className = "sync " + (on ? "ok" : "off");
     txt.textContent = on ? "Synced" : "Offline";
+    el.title = on ? "Saved locally · cloud connected" : "Saved locally · waiting for cloud";
   }
 
   function add() {
@@ -481,6 +489,7 @@ body::before{
     t.done = !t.done;
     t.doneAt = t.done ? Date.now() : null;
     if (t.done && editingId === id) editingId = null;
+    var calibrate = t.done && !!t.scheduledStart && !t.completionFit && scheduledMinutes(t) >= 45;
     if (t.done) {
       snd("playChime"); announce("Completed: " + t.text);
       showUndo("Task completed", function () { t.done = false; t.doneAt = null; });
@@ -488,6 +497,7 @@ body::before{
       snd("playClick"); hideUndo();
     }
     save();
+    if (calibrate) setTimeout(function () { showCalibration(t); }, 80);
     if (t.done) {
       var openCount = tasks.filter(function (x) { return isToday(x); }).length;
       if (openCount === 0 && window.launchConfetti) launchConfetti("bg");
@@ -549,23 +559,11 @@ body::before{
     save();
   }
 
-  /* Capacity line: sums time chips for today's open tasks against a ~5h cap. */
-  function plannedMins() {
-    return tasks.filter(function (t) { return isToday(t); })
-      .reduce(function (s, t) { return s + (TIMEM[t.time] || 30); }, 0);
-  }
-  function updateCapLine() {
-    var el = $("capLine");
-    if (!el) return;
-    if (tab !== "today") { el.textContent = ""; el.className = "stats-sub"; return; }
-    var m = plannedMins();
-    if (!m) { el.textContent = ""; el.className = "stats-sub"; return; }
-    var h = Math.floor(m / 60), r = m % 60;
-    var label = (h ? h + "h" : "") + (r ? (h ? " " : "") + r + "m" : (h ? "" : "0m"));
-    if (m > DAY_CAP_MIN) { el.textContent = label + " planned · over the ~5h daily cap"; el.className = "stats-sub show over"; }
-    else if (m > DAY_CAP_MIN - 60) { el.textContent = label + " planned · nearing the ~5h cap"; el.className = "stats-sub show warn"; }
-    else { el.textContent = label + " planned today"; el.className = "stats-sub show"; }
-  }
+  /* Deterministic workload: schedule duration plus user-estimated flexible tasks. */
+  function scheduledMinutes(t){if(!t.scheduledStart||!t.scheduledEnd)return 0;var value=Math.round((Date.parse(t.scheduledEnd)-Date.parse(t.scheduledStart))/60000);return Math.max(0,value||0)}
+  function workload(){var result={scheduled:0,flexible:0,unestimated:0};tasks.filter(function(t){return isToday(t)}).forEach(function(t){var fixed=scheduledMinutes(t);if(fixed)result.scheduled+=fixed;else if(TIMEM[t.time])result.flexible+=TIMEM[t.time];else result.unestimated++});result.total=result.scheduled+result.flexible;return result}
+  function durationLabel(m){var h=Math.floor(m/60),r=m%60;return(h?h+'h':'')+(r?(h?' ':'')+r+'m':(!h?'0m':''))}
+  function updateCapLine(){var el=$("capLine");if(!el)return;if(tab!=="today"){el.textContent="";el.className="stats-sub";return}var w=workload();if(!w.total&&!w.unestimated){el.textContent="";el.className="stats-sub";return}var parts=[];if(w.scheduled)parts.push(durationLabel(w.scheduled)+" scheduled");if(w.flexible)parts.push(durationLabel(w.flexible)+" flexible");if(w.unestimated)parts.push(w.unestimated+" unestimated");el.textContent=(w.total?durationLabel(w.total)+" planned · ":"")+parts.join(" + ");el.className="stats-sub show";if(w.total>DAY_CAP_MIN)el.className+=" over";else if(w.total>DAY_CAP_MIN-60)el.className+=" warn"}
 
   /* 1·3·5 soft cap: a single gentle toast, never a block. */
   function capCheck() {
@@ -615,29 +613,14 @@ body::before{
     save();
   }
 
-  /* Timebox bridge: write this task into the timetable widget's namespace
-     as a weekly block on the chosen weekday. */
-  function timeboxTask(t, day, start) {
-    var dur = TIMEM[t.time] || 60;
-    var p = String(start || "14:00").split(":");
-    var sm = (+p[0] || 0) * 60 + (+p[1] || 0);
-    var em = Math.min(1439, sm + dur);
-    var end = ("0" + Math.floor(em / 60)).slice(-2) + ":" + ("0" + (em % 60)).slice(-2);
-    var courses = [];
-    try {
-      courses = SyncEngine.get("timetable", "courses") || [];
-      if (typeof courses === "string") courses = JSON.parse(courses);
-      if (!Array.isArray(courses)) courses = [];
-    } catch (e) { courses = []; }
-    courses.push({
-      id: uid(), name: t.text, description: "Timebox", location: "",
-      color: "#8b5cf6", days: [{ day: day, start: start, end: end }]
-    });
-    try { SyncEngine.set("timetable", "courses", courses); } catch (e) {}
-    try { localStorage.setItem("timetable_courses", JSON.stringify(courses)); } catch (e) {}
-    showToast("Timeboxed into your schedule.");
-    snd("playChime");
-    announce("Timeboxed into schedule: " + t.text);
+  /* Timebox bridge defaults to one occurrence. Weekly repetition must be explicit. */
+  function localIsoFor(key,time){var p=String(key).split('-').map(Number),t=String(time||'00:00').split(':').map(Number);return new Date(p[0],p[1]-1,p[2],t[0]||0,t[1]||0,0,0).toISOString()}
+  function timeboxTask(t,dateKeyValue,start,repeat){
+    var dateParts=String(dateKeyValue).split('-').map(Number),date=new Date(dateParts[0],dateParts[1]-1,dateParts[2],12),day=date.getDay(),dur=TIMEM[t.time]||60,p=String(start||"14:00").split(":"),sm=(+p[0]||0)*60+(+p[1]||0),em=Math.min(1439,sm+dur),end=("0"+Math.floor(em/60)).slice(-2)+":"+("0"+(em%60)).slice(-2),courses=[];
+    try{courses=SyncEngine.get("timetable","courses")||[];if(typeof courses==="string")courses=JSON.parse(courses);if(!Array.isArray(courses))courses=[]}catch(e){courses=[]}
+    var block={id:uid(),name:t.text,description:repeat==="weekly"?"Weekly timebox":"One-off timebox",location:"",color:"#8b5cf6",days:[{day:day,start:start,end:end,location:""}],category:"personal",trackCompletion:false,outcomeGoal:t.outcomeGoal||""};if(repeat!=="weekly"){block.startDate=dateKeyValue;block.endDate=dateKeyValue}
+    courses.push(block);try{SyncEngine.set("timetable","courses",courses)}catch(e){}
+    t.scheduledStart=localIsoFor(dateKeyValue,start);t.scheduledEnd=localIsoFor(dateKeyValue,end);t.dueKey=dateKeyValue;t.due=keyNum(dateKeyValue)===keyNum(todayKey())?"today":(keyNum(dateKeyValue)===keyNum(tmrwKey())?"tomorrow":null);t.timeboxed=true;t.updatedAt=Date.now();save();showToast(repeat==="weekly"?"Added as a weekly schedule block.":"Added to this week only.");snd("playChime");announce("Timeboxed into schedule: "+t.text)
   }
 
   var CHECK = '<svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"></polyline></svg>';
@@ -714,43 +697,9 @@ body::before{
     h += '<input class="sub-add" placeholder="Add a step and press Enter" aria-label="Add a step">';
     return h + "</div>";
   }
-  function tboxHtml(t) {
-    var opts = "";
-    var now = new Date();
-    var nh = (now.getHours() + 1) % 24;
-    var defStart = ("0" + nh).slice(-2) + ":00";
-    for (var i = 0; i < 7; i++) {
-      var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
-      var lbl = i === 0 ? "Today" : i === 1 ? "Tomorrow" : d.toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" });
-      opts += '<option value="' + d.getDay() + '">' + lbl + "</option>";
-    }
-    return '<div class="tbox"><select class="tbox-day" aria-label="Day">' + opts + "</select>" +
-      '<input class="tbox-time" type="time" value="' + defStart + '" aria-label="Start time">' +
-      '<button class="tbox-go">Block ' + (TIMEM[t.time] || 60) + "m</button>" +
-      '<span class="tbox-hint">Adds a weekly block to your Schedule widget.</span></div>';
-  }
-  function editorHtml(t) {
-    var pri = [{ v: "", l: "None" }, { v: "must", l: "Must" }, { v: "should", l: "Should" }, { v: "could", l: "Could" }];
-    var time = [{ v: "", l: "None" }, { v: "quick", l: "Quick" }, { v: "m30", l: "~30m" }, { v: "m60", l: "~60m" }, { v: "deep", l: "Deep" }];
-    var due = [{ v: "", l: "None" }, { v: "today", l: "Today" }, { v: "tomorrow", l: "Tomorrow" }];
-    return '<div class="editor">' +
-      '<input class="e-title" aria-label="Task title" value="' + esc(t.text) + '">' +
-      eoptRow("Priority", "pri", pri, t.pri) +
-      (t.pri === "must" ? '<input class="e-title e-plan" aria-label="Plan: when and where" placeholder="Plan: after ___ , at ___" value="' + esc(t.plan || "") + '">' : "") +
-      eoptRow("Time", "time", time, t.time) +
-      eoptRow("Due", "due", due, t.due) +
-      subsHtml(t) +
-      '<textarea class="e-notes" placeholder="Notes (optional)" aria-label="Notes">' + esc(t.notes || "") + "</textarea>" +
-      '<div class="eactions">' +
-        '<button class="emove" data-dir="-1" aria-label="Move up" title="Move up">\u2191</button>' +
-        '<button class="emove" data-dir="1" aria-label="Move down" title="Move down">\u2193</button>' +
-        '<button class="emove tbox-toggle" aria-label="Timebox into schedule" aria-expanded="false" title="Timebox into schedule">\u23F1</button>' +
-        '<span class="espacer"></span>' +
-        '<button class="edone">Done</button>' +
-      "</div>" +
-      tboxHtml(t) +
-      "</div>";
-  }
+  function tboxHtml(t){var opts="",now=new Date(),nh=(now.getHours()+1)%24,defStart=("0"+nh).slice(-2)+":00";for(var i=0;i<7;i++){var d=new Date(now.getFullYear(),now.getMonth(),now.getDate()+i),key=d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2),lbl=i===0?"Today":i===1?"Tomorrow":d.toLocaleDateString("en-CA",{weekday:"short",month:"short",day:"numeric"});opts+='<option value="'+key+'">'+lbl+"</option>"}return'<div class="tbox"><select class="tbox-day" aria-label="Date">'+opts+'</select><input class="tbox-time" type="time" value="'+defStart+'" aria-label="Start time"><select class="tbox-repeat" aria-label="Repeat"><option value="once">This week only</option><option value="weekly">Repeat weekly</option></select><button class="tbox-go">Block '+(TIMEM[t.time]||60)+'m</button><span class="tbox-hint">One occurrence by default. Weekly repetition is always explicit.</span></div>'}
+
+  function editorHtml(t){var pri=[{v:"",l:"None"},{v:"must",l:"Must"},{v:"should",l:"Should"},{v:"could",l:"Could"}],time=[{v:"",l:"None"},{v:"quick",l:"Quick"},{v:"m30",l:"~30m"},{v:"m60",l:"~60m"},{v:"deep",l:"Deep"}],due=[{v:"",l:"None"},{v:"today",l:"Today"},{v:"tomorrow",l:"Tomorrow"}];return'<div class="editor"><input class="e-title e-title-main" aria-label="Task title" value="'+esc(t.text)+'"><input class="e-title e-outcome" aria-label="Outcome" placeholder="Outcome (optional)" value="'+esc(t.outcomeGoal||"")+'">'+eoptRow("Priority","pri",pri,t.pri)+(t.pri==="must"?'<input class="e-title e-plan" aria-label="Plan: when and where" placeholder="Plan: after ___ , at ___" value="'+esc(t.plan||"")+'">':"")+eoptRow("Time","time",time,t.time)+eoptRow("Due","due",due,t.due)+subsHtml(t)+'<textarea class="e-notes" placeholder="Notes (optional)" aria-label="Notes">'+esc(t.notes||"")+'</textarea><div class="eactions"><button class="emove" data-dir="-1" aria-label="Move up" title="Move up">↑</button><button class="emove" data-dir="1" aria-label="Move down" title="Move down">↓</button><button class="emove tbox-toggle" aria-label="Timebox into schedule" aria-expanded="false" title="Timebox into schedule">⏱</button><span class="espacer"></span><button class="edone">Done</button></div>'+tboxHtml(t)+"</div>"}
 
   function itemNode(t) {
     var isEditing = (t.id === editingId) && !t.done;
@@ -760,7 +709,8 @@ body::before{
     el.setAttribute("data-id", t.id);
     var meta = tagHtml(t);
     var planHtml = "";
-    if (t.plan && t.plan.trim() && !t.done) planHtml = '<div class="plan-line"><span class="pl-k">Plan</span><span>' + esc(t.plan) + "</span></div>";
+    if (t.outcomeGoal && t.outcomeGoal.trim() && !t.done) planHtml = '<div class="plan-line"><span class="pl-k">Outcome</span><span>' + esc(t.outcomeGoal) + "</span></div>";
+    else if (t.plan && t.plan.trim() && !t.done) planHtml = '<div class="plan-line"><span class="pl-k">Plan</span><span>' + esc(t.plan) + "</span></div>";
     var acts = "";
     if (!t.done) acts += '<span class="grip" aria-hidden="true" title="Drag to reorder">' + GRIP + "</span>";
     acts += '<button class="manage" aria-label="Edit task" aria-expanded="' + (isEditing ? "true" : "false") + '" title="Edit">' + PENCIL + "</button>";
@@ -808,10 +758,12 @@ body::before{
     }
 
     if (isEditing) {
-      var titleI = el.querySelector(".e-title");
+      var titleI = el.querySelector(".e-title-main");
       titleI.addEventListener("input", function () { t.text = this.value; });
       titleI.addEventListener("blur", function () { t.text = this.value.trim() || t.text; save(); });
       titleI.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); this.blur(); } });
+      var outcomeI = el.querySelector(".e-outcome");
+      if (outcomeI) { outcomeI.addEventListener("input", function () { t.outcomeGoal = this.value; }); outcomeI.addEventListener("blur", function () { t.outcomeGoal = this.value.trim(); save(); }); outcomeI.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); this.blur(); } }); }
       var planI = el.querySelector(".e-plan");
       if (planI) {
         planI.addEventListener("input", function () { t.plan = this.value; });
@@ -867,7 +819,8 @@ body::before{
       if (tbGo) tbGo.addEventListener("click", function () {
         var daySel = el.querySelector(".tbox-day");
         var timeI = el.querySelector(".tbox-time");
-        timeboxTask(t, parseInt(daySel.value, 10), timeI.value || "14:00");
+        var repeatSel = el.querySelector(".tbox-repeat");
+        timeboxTask(t, daySel.value, timeI.value || "14:00", repeatSel ? repeatSel.value : "once");
       });
       el.querySelector(".edone").addEventListener("click", function () { editingId = null; snd("playClose"); save(); });
     }
@@ -901,6 +854,10 @@ body::before{
     snd("playClick");
     save();
   }
+
+  function tomorrowTasks(){return tasks.filter(function(t){return!t.done&&(t.due==="tomorrow"||keyNum(t.dueKey)===keyNum(tmrwKey()))}).sort(function(a,b){return Date.parse(a.scheduledStart||0)-Date.parse(b.scheduledStart||0)||orderOf(a)-orderOf(b)})}
+  function renderTomorrow(){var section=$("tomorrowSec"),list=$("tomorrowList"),items=tomorrowTasks();if(!section||!list)return;section.style.display=tab==="today"&&items.length?"":"none";$("tomorrowN").textContent=items.length;list.innerHTML=items.map(function(t){var time=t.scheduledStart?new Date(t.scheduledStart).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):(t.time?TIMEL[t.time]:"Flexible");return'<div class="tomorrow-row"><i></i><span>'+esc(t.text)+'</span><small>'+esc(time)+'</small></div>'}).join("")}
+  function showCalibration(task){var old=document.querySelector(".calibration");if(old)old.remove();clearTimeout(calibrationTimer);var panel=document.createElement("div");panel.className="calibration";panel.setAttribute("role","dialog");panel.innerHTML='<b>How did the block go?</b><p>'+esc(task.text)+'</p><div class="calibration-actions"><button data-fit="as-planned">As planned</button><button data-fit="shorter">Shorter</button><button data-fit="longer">Longer</button><button data-fit="partial">Partial</button></div>';panel.addEventListener("click",function(e){var fit=e.target&&e.target.getAttribute("data-fit");if(!fit)return;var current=byId(task.id);if(current){current.completionFit=fit;if(fit==="as-planned")current.actualMinutes=scheduledMinutes(current);current.updatedAt=Date.now();save()}panel.remove();showToast("Completion feedback saved.")});document.body.appendChild(panel);calibrationTimer=setTimeout(function(){if(panel.parentNode)panel.remove()},12000)}
 
   function emptyHtml(which) {
     var icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>';
@@ -950,6 +907,7 @@ body::before{
       $("statsLabel").textContent = done.length + " completed";
     }
     updateCapLine();
+    renderTomorrow();
   }
 
   function syncComposer() {
