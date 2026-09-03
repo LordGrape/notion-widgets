@@ -16,6 +16,7 @@ function replaceCall(variable,label,oldStr,newStr){
 }
 
 replaceCall('action','Default target placeholder','Optional, e.g. brief cases 4–6','Optional fallback');
+replaceCall('action','Default target explanation','The specific result you want finished. It appears on the to-do.','Leave blank if it changes. Set each session under This week’s targets.');
 replaceCall('action','Default target helper id','class="ab-plan-help">Leave blank if it changes.','class="ab-plan-help" id="fOutcomeHelp">Leave blank if it changes.');
 replaceCall('timetable','Week tooltip target',
   "+(item.description?'<div class=\"tip-detail\">'+esc(item.description)+'</div>':'');",
@@ -28,6 +29,10 @@ replaceCall('timetable','Day card target',
 replaceCall('timetable','Session target field',
   'placeholder="Optional"></div><div class="occ-warning" id="occWarning">',
   'placeholder="Optional"></div>\'+(actionable?\'<div class="occ-target"><label class="f-label">Session target</label><input class="f-input" id="occTarget" value="\'+esc(target)+\'" placeholder="e.g. Brief cases 4–6"><div class="occ-help">Only this dated task changes. The weekly activity stays the same.</div></div>\':\'\')+\'<div class="occ-warning" id="occWarning">'
+);
+replaceCall('clearTest','Clear test target explanation',
+  "assert.ok(action.includes('The specific result you want finished. It appears on the to-do.'),'finish line should be explained in place');",
+  "assert.ok(action.includes('Leave blank if it changes. Set each session under This week’s targets.'),'adaptive target terminology should be explained in place');"
 );
 
 fs.writeFileSync(path,source);
