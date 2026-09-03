@@ -13,6 +13,7 @@ import { handleMemory } from "./routes/memory";
 import { handleNotionMilestones } from "./routes/notion";
 import { handleActionBlocks } from "./routes/action-blocks";
 import { handleUpcomingAssignments } from "./routes/upcoming-assignments";
+import { handleFitnessTests } from "./routes/fitness-tests";
 import { handlePrepare } from "./routes/prepare";
 import { handlePrime } from "./routes/prime";
 import { handleParseSyllabus } from "./routes/parse-syllabus";
@@ -86,6 +87,12 @@ export default {
         }
         if (key === "upcoming" && request.method === "GET") {
           return withCorsHeaders(await handleUpcomingAssignments(request, env));
+        }
+        if (
+          key === "fitness-tests" &&
+          (request.method === "GET" || request.method === "POST" || request.method === "DELETE")
+        ) {
+          return withCorsHeaders(await handleFitnessTests(request, env));
         }
         return json({ error: "Unknown Notion resource" }, 404);
       }

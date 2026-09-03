@@ -9,6 +9,7 @@ Each widget has a folder under `apps/`. During migration, app folders may wrap l
 | `quotes/` | `../quotes.html` | Daily quote widget |
 | `todo/` | `../todo.html` | Task widget with SyncEngine state |
 | `timetable/` | `../timetable.html` | Schedule, week view, milestone radar |
+| `athlete/` | `../athlete.html` | Assessments and training, with important test results mirrored to Notion |
 | `studyengine/` | `../studyengine/` | Existing Vite/TypeScript app |
 
 ## Migration rules

@@ -9,6 +9,7 @@ export interface Env {
   NOTION_DB_ID?: string;
   ACTION_BLOCKS_DB_ID?: string;
   UPCOMING_DB_ID?: string;
+  FITNESS_TEST_DB_ID?: string;
 }
 
 export type TutorMode = "socratic" | "quick" | "teach" | "insight" | "acknowledge" | "freeform";

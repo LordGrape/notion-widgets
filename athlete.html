@@ -2644,6 +2644,77 @@ let SyncEngine = (function() {
     /** Check connectivity status. */
     isOnline: function() { return online; },
 
+    /** Upsert dated Action Blocks through the authenticated Worker. */
+    syncActionBlocks: function(items) {
+      if (!online || !passphrase) return Promise.resolve({ configured: false, items: [] });
+      return fetch(WORKER_URL + '/notion/action-blocks', {
+        method: 'POST',
+        headers: { 'X-Widget-Key': passphrase, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: Array.isArray(items) ? items : [] })
+      })
+      .then(function(r) { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
+      .catch(function() { return { configured: false, items: [] }; });
+    },
+
+    /** Pull Action Blocks changed in Notion for a bounded date window. */
+    fetchActionBlocks: function(from, to) {
+      if (!online || !passphrase) return Promise.resolve({ configured: false, items: [] });
+      let endpoint = WORKER_URL + '/notion/action-blocks';
+      let qs = [];
+      if (from) qs.push('from=' + encodeURIComponent(from));
+      if (to) qs.push('to=' + encodeURIComponent(to));
+      if (qs.length) endpoint += '?' + qs.join('&');
+      return fetch(endpoint, { method: 'GET', headers: { 'X-Widget-Key': passphrase } })
+      .then(function(r) { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
+      .catch(function() { return { configured: false, items: [] }; });
+    },
+
+    /** Pull the next 14 days of assignment deadlines and their user-authored phases. */
+    fetchUpcomingAssignments: function(from, to) {
+      if (!online || !passphrase) return Promise.resolve({ configured: false, assignments: [] });
+      let endpoint = WORKER_URL + '/notion/upcoming';
+      let qs = [];
+      if (from) qs.push('from=' + encodeURIComponent(from));
+      if (to) qs.push('to=' + encodeURIComponent(to));
+      if (qs.length) endpoint += '?' + qs.join('&');
+      return fetch(endpoint, { method: 'GET', headers: { 'X-Widget-Key': passphrase } })
+        .then(function(r) { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
+        .catch(function() { return { configured: false, assignments: [] }; });
+    },
+
+    /** ATHLETE NOTION BRIDGE v1: assessment records through the authenticated Worker. */
+    syncFitnessTests: function(items) {
+      if (!online || !passphrase) return Promise.resolve({ configured: false, items: [] });
+      return fetch(WORKER_URL + '/notion/fitness-tests', {
+        method: 'POST',
+        headers: { 'X-Widget-Key': passphrase, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: Array.isArray(items) ? items : [] })
+      })
+      .then(function(r) { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
+      .catch(function() { return { configured: false, items: [] }; });
+    },
+
+    fetchFitnessTests: function() {
+      if (!online || !passphrase) return Promise.resolve({ configured: false, items: [] });
+      return fetch(WORKER_URL + '/notion/fitness-tests', {
+        method: 'GET',
+        headers: { 'X-Widget-Key': passphrase }
+      })
+      .then(function(r) { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
+      .catch(function() { return { configured: false, items: [] }; });
+    },
+
+    removeFitnessTests: function(ids) {
+      if (!online || !passphrase) return Promise.resolve({ configured: false, removed: [] });
+      return fetch(WORKER_URL + '/notion/fitness-tests', {
+        method: 'DELETE',
+        headers: { 'X-Widget-Key': passphrase, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: Array.isArray(ids) ? ids : [] })
+      })
+      .then(function(r) { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
+      .catch(function() { return { configured: false, removed: [] }; });
+    },
+
     /** Fetch milestones from the Notion bridge (phase 2).
      *  Database ID is stored server-side as NOTION_DB_ID secret.
      *  Optional dbId param overrides the server default. */
@@ -2740,6 +2811,31 @@ let SyncEngine = (function() {
       collapse();
     }
   });
+})();
+
+
+/* SYNCENGINE RESILIENCE LAYER v4
+   Non-breaking reactive subscriptions, lifecycle flushing and reconnect recovery. */
+(function enhanceSyncEngineV4(){
+ if(typeof SyncEngine==='undefined'||SyncEngine.__resilienceV4)return;
+ var listeners=[],snapshots=Object.create(null),rawSet=SyncEngine.set,rawMany=SyncEngine.setMany,rawRemove=SyncEngine.remove,rawPull=SyncEngine.pull;
+ function id(ns,key){return ns+'::'+(key==null?'*':key)}
+ function serialise(value){try{return JSON.stringify(value)}catch(e){return String(value)}}
+ function emit(ns,key,value,source){
+  snapshots[id(ns,key)]=serialise(value);
+  listeners.slice().forEach(function(l){if(l.ns===ns&&(l.key==null||l.key===key))try{l.callback(value,{namespace:ns,key:key,source:source||'local'})}catch(e){}});
+  if(typeof Core!=='undefined'&&Core.emit)Core.emit('sync-change',{namespace:ns,key:key,value:value,source:source||'local'});
+ }
+ function inspect(){listeners.forEach(function(l){if(l.key==null)return;var value=SyncEngine.get(l.ns,l.key),token=serialise(value),k=id(l.ns,l.key);if(!(k in snapshots))snapshots[k]=token;else if(snapshots[k]!==token)emit(l.ns,l.key,value,'remote')})}
+ function reconnect(){var spaces=[];listeners.forEach(function(l){if(spaces.indexOf(l.ns)<0)spaces.push(l.ns)});Promise.all(spaces.map(function(ns){return rawPull?rawPull.call(SyncEngine,ns):Promise.resolve()})).then(function(){inspect();SyncEngine.flush()}).catch(function(){})}
+ SyncEngine.set=function(ns,key,value){var result=rawSet.apply(SyncEngine,arguments);emit(ns,key,value,'local');return result};
+ SyncEngine.setMany=function(ns,values){var result=rawMany.apply(SyncEngine,arguments);Object.keys(values||{}).forEach(function(key){emit(ns,key,values[key],'local')});return result};
+ SyncEngine.remove=function(ns,key){var result=rawRemove.apply(SyncEngine,arguments);emit(ns,key,null,'local');return result};
+ SyncEngine.pull=function(ns){return rawPull.apply(SyncEngine,arguments).then(function(result){inspect();return result})};
+ SyncEngine.subscribe=function(ns,key,callback){if(typeof key==='function'){callback=key;key=null}if(typeof callback!=='function')return function(){};var l={ns:ns,key:key,callback:callback};listeners.push(l);if(key!=null)snapshots[id(ns,key)]=serialise(SyncEngine.get(ns,key));return function(){listeners=listeners.filter(function(x){return x!==l})}};
+ SyncEngine.__resilienceV4=true;
+ window.addEventListener('online',reconnect);window.addEventListener('focus',inspect);window.addEventListener('pagehide',function(){try{SyncEngine.flush()}catch(e){}});
+ document.addEventListener('visibilitychange',function(){if(document.hidden)try{SyncEngine.flush()}catch(e){}else reconnect()});setInterval(inspect,2500);
 })();
 </script>
 <style data-athlete-inline="athlete.css">
@@ -5324,6 +5420,173 @@ document.addEventListener('keydown', function(event){
 ensureTrainingState();
 trainingSetView('profile');
 setTimeout(function(){ renderTrainingDashboard(); renderProgressDashboard(); },0);
+</script>
+<script data-athlete-inline="athlete-notion.js">
+'use strict';
+/* ATHLETE NOTION BRIDGE v1
+   Assessments mirror into the existing JTF2 Test Log through the authenticated
+   Worker. Workouts and settings stay in SyncEngine to avoid Notion clutter. */
+(function initAthleteNotionBridge(){
+ if(typeof window==='undefined'||typeof SyncEngine==='undefined'||typeof state==='undefined'||typeof save!=='function')return;
+ if(window.AthleteNotionBridge&&window.AthleteNotionBridge.ready)return;
+
+ var baseSave=save;
+ var baseLoadState=typeof loadState==='function'?loadState:null;
+ var known=Object.create(null);
+ var queue=Promise.resolve();
+ var reconciling=false;
+ var lastReconcile=0;
+ var api={ready:true};
+
+ function entries(){return Array.isArray(state.entries)?state.entries:[]}
+ function ensureBridgeState(){
+  if(!Array.isArray(state.entries))state.entries=[];
+  if(!Array.isArray(state.notionTombstones))state.notionTombstones=[];
+ }
+ function numberKey(value){return value==null?'':Number(value).toFixed(4)}
+ function fingerprint(entry){return [entry.t||'',entry.d||'',numberKey(entry.v),numberKey(entry.load),numberKey(entry.dist)].join('|')}
+ function signature(entry){
+  return fingerprint(entry)+'|'+String(entry.raw||'')+'|'+String(entry.ts||0)+'|'+String(entry.sourceWorkoutId||'');
+ }
+ function snapshot(list){
+  var out=Object.create(null);
+  (list||[]).forEach(function(entry){if(entry&&entry.id)out[entry.id]=signature(entry)});
+  return out;
+ }
+ function uniqueStrings(list){
+  var seen=Object.create(null),out=[];
+  (list||[]).forEach(function(value){value=String(value||'');if(value&&!seen[value]){seen[value]=1;out.push(value)}});
+  return out;
+ }
+ function stateEntry(item){
+  var out={id:String(item.id),t:String(item.t),d:String(item.d),v:Number(item.v),load:item.load==null?null:Number(item.load),dist:item.dist==null?null:Number(item.dist),raw:String(item.raw||''),ts:Number(item.ts)||Date.now()};
+  if(item.sourceWorkoutId)out.sourceWorkoutId=String(item.sourceWorkoutId);
+  return out;
+ }
+ function payload(entry){
+  var test=typeof testById==='function'?testById(entry.t):null;
+  if(!test)return null;
+  var level=typeof levelOf==='function'?levelOf(test,entry.v,entry):0;
+  var score=typeof scoreOf==='function'?scoreOf(test,entry.v,entry):10;
+  return {
+   id:String(entry.id),t:String(entry.t),d:String(entry.d),v:Number(entry.v),
+   load:entry.load==null?null:Number(entry.load),dist:entry.dist==null?null:Number(entry.dist),
+   raw:String(entry.raw||''),ts:Number(entry.ts)||Date.now(),score:Number(score),
+   level:level>0?'L'+level:'Below L1',
+   sourceWorkoutId:entry.sourceWorkoutId?String(entry.sourceWorkoutId):undefined
+  };
+ }
+ function mergeEntries(localList,remoteList,tombstones){
+  var blocked=Object.create(null),localById=Object.create(null),localByPrint=Object.create(null),remoteIds=Object.create(null);
+  uniqueStrings(tombstones).forEach(function(id){blocked[id]=1});
+  var merged=[];
+  (localList||[]).forEach(function(entry){
+   if(!entry||!entry.id||blocked[entry.id])return;
+   var clean=stateEntry(entry);
+   localById[clean.id]=clean;
+   if(!localByPrint[fingerprint(clean)])localByPrint[fingerprint(clean)]=clean;
+   merged.push(clean);
+  });
+  (remoteList||[]).forEach(function(item){
+   if(!item||!item.id||blocked[item.id])return;
+   var remote=stateEntry(item);
+   remoteIds[remote.id]=1;
+   if(localById[remote.id]){
+    for(var i=0;i<merged.length;i++)if(merged[i].id===remote.id){merged[i]=remote;break}
+    localById[remote.id]=remote;
+    localByPrint[fingerprint(remote)]=remote;
+    return;
+   }
+   if(localByPrint[fingerprint(remote)])return;
+   merged.push(remote);
+   localById[remote.id]=remote;
+   localByPrint[fingerprint(remote)]=remote;
+  });
+  var backfill=merged.filter(function(entry){return !remoteIds[entry.id]&&!blocked[entry.id]});
+  return {entries:merged,backfill:backfill};
+ }
+ function setStatus(label){try{if(typeof setSync==='function')setSync(label)}catch(e){}}
+ function remember(){known=snapshot(entries())}
+ function persistBridgeState(){try{baseSave()}catch(e){}}
+ function chunked(list,size){var out=[];for(var i=0;i<list.length;i+=size)out.push(list.slice(i,i+size));return out}
+ function enqueue(work){
+  queue=queue.then(work,work).catch(function(){setStatus('Local')});
+  return queue;
+ }
+ function syncEntries(list){
+  var batches=chunked((list||[]).map(payload).filter(Boolean),25);
+  if(!batches.length||typeof SyncEngine.syncFitnessTests!=='function')return Promise.resolve({configured:false});
+  var configured=false;
+  return batches.reduce(function(chain,batch){
+   return chain.then(function(){return SyncEngine.syncFitnessTests(batch)}).then(function(result){configured=configured||!!(result&&result.configured)});
+  },Promise.resolve()).then(function(){setStatus(configured?'Synced':'Local');return {configured:configured}});
+ }
+ function removeEntries(ids){
+  ids=uniqueStrings(ids);
+  if(!ids.length||typeof SyncEngine.removeFitnessTests!=='function')return Promise.resolve({configured:false,removed:[]});
+  return SyncEngine.removeFitnessTests(ids).then(function(result){
+   if(result&&result.configured){
+    var removed=Object.create(null);(result.removed||ids).forEach(function(id){removed[id]=1});
+    state.notionTombstones=uniqueStrings(state.notionTombstones).filter(function(id){return !removed[id]});
+    persistBridgeState();remember();setStatus('Synced');
+   }else setStatus('Local');
+   return result;
+  });
+ }
+
+ save=function(){
+  ensureBridgeState();
+  var before=known;
+  var result=baseSave.apply(this,arguments);
+  var after=snapshot(entries()),changed=[],removed=[];
+  entries().forEach(function(entry){if(entry&&entry.id&&before[entry.id]!==after[entry.id])changed.push(entry)});
+  Object.keys(before).forEach(function(id){if(!after[id])removed.push(id)});
+  if(changed.length){
+   var revived=Object.create(null);changed.forEach(function(entry){revived[entry.id]=1});
+   state.notionTombstones=uniqueStrings(state.notionTombstones).filter(function(id){return !revived[id]});
+  }
+  if(removed.length)state.notionTombstones=uniqueStrings(state.notionTombstones.concat(removed));
+  if(changed.length||removed.length)persistBridgeState();
+  remember();
+  if(changed.length||removed.length){
+   setStatus('Saving');
+   enqueue(function(){return removeEntries(removed).then(function(){return syncEntries(changed)})});
+  }
+  return result;
+ };
+
+ if(baseLoadState){
+  loadState=function(){var result=baseLoadState.apply(this,arguments);ensureBridgeState();remember();return result};
+ }
+
+ function reconcile(force){
+  ensureBridgeState();
+  var now=Date.now();
+  if(reconciling||(!force&&now-lastReconcile<60000))return Promise.resolve();
+  if(!SyncEngine.isOnline||!SyncEngine.isOnline()||typeof SyncEngine.fetchFitnessTests!=='function')return Promise.resolve();
+  reconciling=true;lastReconcile=now;setStatus('Syncing');
+  var pending=uniqueStrings(state.notionTombstones);
+  return removeEntries(pending).then(function(){
+   return SyncEngine.fetchFitnessTests();
+  }).then(function(result){
+   if(!result||!result.configured){setStatus('Local');return}
+   var merged=mergeEntries(entries(),result.items||[],state.notionTombstones);
+   state.entries=merged.entries;
+   persistBridgeState();remember();
+   try{if(typeof renderAll==='function')renderAll()}catch(e){}
+   return syncEntries(merged.backfill);
+  }).then(function(){setStatus('Synced')}).catch(function(){setStatus('Local')}).then(function(){reconciling=false},function(){reconciling=false});
+ }
+
+ api.fingerprint=fingerprint;
+ api.payload=payload;
+ api.mergeEntries=mergeEntries;
+ api.reconcile=reconcile;
+ window.AthleteNotionBridge=api;
+ ensureBridgeState();remember();
+ try{SyncEngine.onReady(function(){reconcile(true)})}catch(e){}
+ document.addEventListener('visibilitychange',function(){if(!document.hidden)setTimeout(function(){reconcile(false)},350)});
+})();
 </script>
 </body>
 </html>

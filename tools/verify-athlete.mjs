@@ -13,7 +13,7 @@ assert(!/(?:src|href)=["'](?:\.\/)?(?:core\.js|athlete(?:-body|-data|-training-d
 for(const id of ['app','profileView','trainView','progressView','ovrNum','bodyWrap','radar','attrList','logBtn','profileStartWorkout','startWorkoutBtn','recentWorkouts','progressExercise','progressChart','workoutSheet','workoutTitleInput','workoutExercises','addExerciseBtn','workoutFinishBtn','exercisePicker','exerciseSearch','setBw','setUnits','setRpeEnabled','ruckSettings','setExport','setImport','setReset','setSave'])assert(new RegExp(`id=["']${id}["']`).test(shellOnly),`Required element #${id} is missing.`);
 assert(shellOnly.includes('Training log')&&shellOnly.includes('Estimated 1RM over time'),'Training and progress views are missing.');
 const scripts=[...html.matchAll(/<script data-athlete-inline="([^"]+)">\n?([\s\S]*?)<\/script>/g)];
-const expected=['core.js','athlete-body.js','athlete-data.js','athlete-training-data.js','athlete-render.js','athlete-flow.js','athlete-settings.js','athlete-training-ui.js'];
+const expected=['core.js','athlete-body.js','athlete-data.js','athlete-training-data.js','athlete-render.js','athlete-flow.js','athlete-settings.js','athlete-training-ui.js','athlete-notion.js'];
 assert(scripts.length===expected.length,`Expected ${expected.length} inline scripts, found ${scripts.length}.`);
 for(let i=0;i<expected.length;i++){assert(scripts[i][1]===expected[i],`Script order mismatch at ${expected[i]}.`);new vm.Script(scripts[i][2],{filename:`inline:${scripts[i][1]}`});}
 const bodySource=await readFile(join(root,'athlete-body.js'),'utf8');

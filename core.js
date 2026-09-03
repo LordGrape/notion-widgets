@@ -2673,6 +2673,39 @@ let SyncEngine = (function() {
         .catch(function() { return { configured: false, assignments: [] }; });
     },
 
+    /** ATHLETE NOTION BRIDGE v1: assessment records through the authenticated Worker. */
+    syncFitnessTests: function(items) {
+      if (!online || !passphrase) return Promise.resolve({ configured: false, items: [] });
+      return fetch(WORKER_URL + '/notion/fitness-tests', {
+        method: 'POST',
+        headers: { 'X-Widget-Key': passphrase, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: Array.isArray(items) ? items : [] })
+      })
+      .then(function(r) { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
+      .catch(function() { return { configured: false, items: [] }; });
+    },
+
+    fetchFitnessTests: function() {
+      if (!online || !passphrase) return Promise.resolve({ configured: false, items: [] });
+      return fetch(WORKER_URL + '/notion/fitness-tests', {
+        method: 'GET',
+        headers: { 'X-Widget-Key': passphrase }
+      })
+      .then(function(r) { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
+      .catch(function() { return { configured: false, items: [] }; });
+    },
+
+    removeFitnessTests: function(ids) {
+      if (!online || !passphrase) return Promise.resolve({ configured: false, removed: [] });
+      return fetch(WORKER_URL + '/notion/fitness-tests', {
+        method: 'DELETE',
+        headers: { 'X-Widget-Key': passphrase, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: Array.isArray(ids) ? ids : [] })
+      })
+      .then(function(r) { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
+      .catch(function() { return { configured: false, removed: [] }; });
+    },
+
     /** Fetch milestones from the Notion bridge (phase 2).
      *  Database ID is stored server-side as NOTION_DB_ID secret.
      *  Optional dbId param overrides the server default. */
