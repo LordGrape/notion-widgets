@@ -1,0 +1,9 @@
+Upcoming assignments and assignment phases v1
+Production commit: 7c048c147d2636b5b3f65c4aa402bd4271eb890d
+Deployed: 2026-09-03
+
+- Quiet, collapsed 14-day assignment preview
+- Editable phases linked to their parent assignment
+- Unscheduled phases remain quiet
+- Dated phases can enter Today or Tomorrow as all-day tasks
+- Parent assignment completion remains user-controlled
