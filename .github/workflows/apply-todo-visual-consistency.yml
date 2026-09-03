@@ -1,0 +1,51 @@
+name: Apply To-do Visual Consistency
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - tools/apply-todo-visual-consistency.mjs
+      - .github/workflows/apply-todo-visual-consistency.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Apply asserted visual patch
+        run: node tools/apply-todo-visual-consistency.mjs
+      - name: Check to-do inline JavaScript
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const html = fs.readFileSync('todo.html', 'utf8');
+          const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
+          if (!scripts.length) throw new Error('No inline script found');
+          fs.writeFileSync('/tmp/todo-inline.js', scripts.at(-1)[1]);
+          if (!html.includes('TODO SCHEDULE-MATCHED GLASS v1')) throw new Error('Visual marker missing');
+          if (!html.includes('#card::before,#card::after')) throw new Error('Texture removal missing');
+          if (html.includes('initBackground("bg"')) throw new Error('Animated texture remains enabled');
+          NODE
+          node --check /tmp/todo-inline.js
+      - name: Check patch formatting
+        run: git diff --check
+      - name: Commit production fix
+        run: |
+          if git diff --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add todo.html
+          git commit -m "Match to-do styling to timetable"
+          git push origin HEAD:main
