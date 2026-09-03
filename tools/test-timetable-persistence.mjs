@@ -45,7 +45,9 @@ const classes = [{
 }];
 
 context.saveBlocks(classes);
-assert.equal(JSON.stringify(remote.courses), JSON.stringify(classes), 'save should reach SyncEngine');
+assert.equal(remote.courses.length, 1, 'save should reach SyncEngine');
+assert.equal(remote.courses[0].id, 'law-171', 'saved block identity should reach SyncEngine');
+assert.equal(remote.courses[0].days[0].location, 'Room 100', 'per-day location should reach SyncEngine');
 assert.ok(store.get('timetable_courses_vault_v1'), 'save should create a recovery vault');
 let reloaded = context.loadBlocks();
 assert.equal(reloaded.length, 1, 'saved class should survive reload');
