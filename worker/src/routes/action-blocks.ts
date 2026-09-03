@@ -13,8 +13,9 @@ export interface ActionBlockInput {
   action: string;
   category: "Study" | "Training" | "Personal";
   status: ActionStatus;
-  scheduledStart: string;
+  scheduledStart?: string | null;
   scheduledEnd?: string | null;
+  contextPageId?: string | null;
   plannedMinutes?: number | null;
   actualMinutes?: number | null;
   priority?: "Must" | "Should" | "Could" | null;
@@ -41,7 +42,7 @@ export function toNotionProperties(item: ActionBlockInput): Record<string, unkno
     Action: { title: richText(item.action) },
     Status: { status: { name: item.status } },
     Category: { select: { name: item.category } },
-    Scheduled: { date: { start: item.scheduledStart, end: item.scheduledEnd || null } },
+    Scheduled: item.scheduledStart ? { date: { start: item.scheduledStart, end: item.scheduledEnd || null } } : { date: null },
     "Planned minutes": { number: item.plannedMinutes ?? null },
     "Actual minutes": { number: item.actualMinutes ?? null },
     Source: { select: { name: item.source || "Schedule" } },
@@ -49,6 +50,9 @@ export function toNotionProperties(item: ActionBlockInput): Record<string, unkno
     "Schedule ID": { rich_text: richText(item.scheduleId || "") },
     Notes: { rich_text: richText(item.notes || "") }
   };
+  if (item.contextPageId !== undefined) {
+    properties.Context = { relation: item.contextPageId ? [{ id: item.contextPageId }] : [] };
+  }
   if (item.priority) properties.Priority = { select: { name: item.priority } };
   return properties;
 }
@@ -64,6 +68,7 @@ export function fromNotionPage(page: NotionPage) {
     notionPageId: page.id,
     occurrenceId: text(p["Occurrence ID"]) || `notion:${page.id}`,
     scheduleId: text(p["Schedule ID"]) || null,
+    contextPageId: p.Context?.relation?.[0]?.id || null,
     action: text(p.Action),
     category: p.Category?.select?.name || "Personal",
     status: p.Status?.status?.name || "Scheduled",
@@ -138,7 +143,8 @@ export async function handleActionBlocks(request: Request, env: Env): Promise<Re
       const incoming = Array.isArray(body.items) ? body.items.slice(0, 50) : [];
       const synced = [];
       for (const item of incoming) {
-        if (!item?.occurrenceId || !item?.action || !item?.scheduledStart) continue;
+        if (!item?.occurrenceId || !item?.action) continue;
+        if (!item.scheduledStart && !item.contextPageId) continue;
         const page = await upsert(env, dbId, item);
         synced.push(fromNotionPage(page));
       }

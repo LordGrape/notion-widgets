@@ -12,6 +12,7 @@ import { handleLearnTurn } from "./routes/learn-turn";
 import { handleMemory } from "./routes/memory";
 import { handleNotionMilestones } from "./routes/notion";
 import { handleActionBlocks } from "./routes/action-blocks";
+import { handleUpcomingAssignments } from "./routes/upcoming-assignments";
 import { handlePrepare } from "./routes/prepare";
 import { handlePrime } from "./routes/prime";
 import { handleParseSyllabus } from "./routes/parse-syllabus";
@@ -82,6 +83,9 @@ export default {
         }
         if (key === "action-blocks" && (request.method === "GET" || request.method === "POST")) {
           return withCorsHeaders(await handleActionBlocks(request, env));
+        }
+        if (key === "upcoming" && request.method === "GET") {
+          return withCorsHeaders(await handleUpcomingAssignments(request, env));
         }
         return json({ error: "Unknown Notion resource" }, 404);
       }

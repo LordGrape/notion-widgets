@@ -34,3 +34,9 @@ This app folder currently wraps the legacy widget without changing behaviour.
 
 ## Scheduled targets
 Generated timetable tasks keep a stable task title while `outcomeGoal` stores the target for that dated occurrence. Editing a generated target writes it back to the matching timetable override, so future weeks remain independent.
+
+## Upcoming assignments
+- A quiet section reads up to five incomplete records tagged `assignment 📑` from the next 14 calendar days in Domains and HQ.
+- The section is collapsed by default and does not affect daily workload, completion, or notifications.
+- The assignment remains the overall outcome. User-authored phases are stored as linked Action Blocks through the existing `Context` relation.
+- A phase enters Today or Tomorrow only after the user assigns that phase a date. Date-only phases remain flexible and do not trigger timed reminders.

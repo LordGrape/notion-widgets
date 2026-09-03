@@ -2660,6 +2660,19 @@ let SyncEngine = (function() {
       .catch(function() { return { configured: false, items: [] }; });
     },
 
+    /** Pull the next 14 days of assignment deadlines and their user-authored phases. */
+    fetchUpcomingAssignments: function(from, to) {
+      if (!online || !passphrase) return Promise.resolve({ configured: false, assignments: [] });
+      let endpoint = WORKER_URL + '/notion/upcoming';
+      let qs = [];
+      if (from) qs.push('from=' + encodeURIComponent(from));
+      if (to) qs.push('to=' + encodeURIComponent(to));
+      if (qs.length) endpoint += '?' + qs.join('&');
+      return fetch(endpoint, { method: 'GET', headers: { 'X-Widget-Key': passphrase } })
+        .then(function(r) { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
+        .catch(function() { return { configured: false, assignments: [] }; });
+    },
+
     /** Fetch milestones from the Notion bridge (phase 2).
      *  Database ID is stored server-side as NOTION_DB_ID secret.
      *  Optional dbId param overrides the server default. */
