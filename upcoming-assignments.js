@@ -65,3 +65,10 @@ function boot(){if(!root.SyncEngine||!root.SyncEngine.onReady)return;root.SyncEn
 root.UpcomingAssignments={apiDateKey:apiDateKey,daysBetween:daysBetween,dateOnly:dateOnly,dueLabel:dueLabel,phasePayload:phasePayload,taskFromPhase:taskFromPhase,load:loadUpcoming};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 })(typeof window!=='undefined'?window:globalThis);
+
+/* TODO NOTION APP REMINDERS loader */
+(function(document){
+ if(document.getElementById('todoRemindersScript'))return;
+ var script=document.createElement('script');script.id='todoRemindersScript';script.src='todo-reminders.js?v=20260904-v1';
+ (document.head||document.documentElement).appendChild(script)
+})(document);
