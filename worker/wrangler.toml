@@ -1,6 +1,9 @@
 name = "widget-sync"
-main = "src/index.ts"
+main = "src/index-with-reminders.ts"
 compatibility_date = "2024-01-01"
+
+[triggers]
+crons = ["* * * * *"]
 
 [[kv_namespaces]]
 binding = "WIDGET_KV"
