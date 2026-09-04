@@ -4,6 +4,8 @@ const DEFAULT_ACTION_BLOCKS_DB_ID = "67fdab55-eb09-4a59-a54d-0503ba4efeda";
 const NOTION_VERSION = "2022-06-28";
 const RETRY_AFTER_MS = 4 * 60 * 1000;
 const SENT_TTL_SECONDS = 60 * 60 * 24 * 30;
+const HEALTH_KEY = "todo-reminder-health";
+const HEALTH_WRITE_INTERVAL_MS = 5 * 60 * 1000;
 
 type ReminderEnv = Env & {
   ACTION_BLOCKS_DB_ID?: string;
@@ -13,6 +15,7 @@ type ReminderEnv = Env & {
 
 type StateEntry = { value?: unknown; _ts?: number };
 type TodoState = Record<string, StateEntry | unknown>;
+type DeliveryMethod = "comment" | "page_mention";
 
 export interface ReminderTask {
   id?: string;
@@ -33,6 +36,7 @@ export interface ReminderTask {
   reminderSentFor?: string;
   reminderLastAttemptAt?: number;
   reminderLastError?: string;
+  reminderDeliveryMethod?: DeliveryMethod;
   updatedAt?: number;
   startNudgedAt?: number;
 }
@@ -40,7 +44,28 @@ export interface ReminderTask {
 interface NotionUser {
   id: string;
   type?: string;
+  name?: string;
   person?: { email?: string };
+  bot?: { owner?: { type?: string; user?: { id?: string } } };
+}
+
+interface ReminderCounts {
+  taskCount: number;
+  activeReminderCount: number;
+  dueReminderCount: number;
+  scheduledCount: number;
+  sentCount: number;
+  errorCount: number;
+  errorCodes: string[];
+}
+
+interface StoredHealth extends ReminderCounts {
+  version: 2;
+  lastRunAt: number;
+  configured: boolean;
+  stateFound: boolean;
+  sentLastRun: number;
+  failedLastRun: number;
 }
 
 function richText(value: string) {
@@ -83,6 +108,89 @@ function unwrapTasks(state: TodoState | null): ReminderTask[] {
 
 function writeTasks(state: TodoState, tasks: ReminderTask[], timestamp: number) {
   state.tasks = { value: JSON.stringify(tasks), _ts: timestamp };
+}
+
+function classifyError(message?: string): string {
+  const value = String(message || "").toLowerCase();
+  if (!value) return "unknown";
+  if (value.includes("multiple people") || value.includes("reminder user") || value.includes("recipient")) return "recipient_not_resolved";
+  if (value.includes("notion 401") || value.includes("unauthorized")) return "notion_auth";
+  if (value.includes("notion 403") || value.includes("restricted_resource") || value.includes("permission")) return "notion_permission";
+  if (value.includes("object_not_found") || value.includes("database")) return "action_database_access";
+  if (value.includes("comment")) return "comment_delivery";
+  return "notion_delivery";
+}
+
+function rawDue(task: ReminderTask, nowMs: number) {
+  if (!task || task.done || !task.reminderAt || task.reminderSentFor === task.reminderAt) return false;
+  const due = Date.parse(task.reminderAt);
+  return Number.isFinite(due) && due <= nowMs;
+}
+
+function countReminders(tasks: ReminderTask[], nowMs: number): ReminderCounts {
+  const active = tasks.filter((task) => task && !task.done && !!task.reminderAt);
+  const codes = Array.from(new Set(active
+    .filter((task) => task.reminderState === "error" || task.reminderLastError)
+    .map((task) => classifyError(task.reminderLastError))));
+  return {
+    taskCount: tasks.length,
+    activeReminderCount: active.length,
+    dueReminderCount: active.filter((task) => rawDue(task, nowMs)).length,
+    scheduledCount: active.filter((task) => task.reminderSentFor !== task.reminderAt && task.reminderState !== "error").length,
+    sentCount: active.filter((task) => task.reminderSentFor === task.reminderAt).length,
+    errorCount: active.filter((task) => task.reminderState === "error" || !!task.reminderLastError).length,
+    errorCodes: codes,
+  };
+}
+
+async function persistHealth(env: Env, health: StoredHealth, force = false) {
+  const previous = await env.WIDGET_KV.get(HEALTH_KEY, "json") as StoredHealth | null;
+  const changed = !previous
+    || previous.configured !== health.configured
+    || previous.stateFound !== health.stateFound
+    || previous.activeReminderCount !== health.activeReminderCount
+    || previous.dueReminderCount !== health.dueReminderCount
+    || previous.sentCount !== health.sentCount
+    || previous.errorCount !== health.errorCount
+    || (previous.errorCodes || []).join("|") !== health.errorCodes.join("|");
+  if (force || changed || !previous || health.lastRunAt - previous.lastRunAt >= HEALTH_WRITE_INTERVAL_MS) {
+    await env.WIDGET_KV.put(HEALTH_KEY, JSON.stringify(health));
+  }
+}
+
+function makeHealth(configured: boolean, stateFound: boolean, tasks: ReminderTask[], nowMs: number, sent = 0, failed = 0): StoredHealth {
+  return {
+    version: 2,
+    lastRunAt: nowMs,
+    configured,
+    stateFound,
+    sentLastRun: sent,
+    failedLastRun: failed,
+    ...countReminders(tasks, nowMs),
+  };
+}
+
+export async function getReminderHealth(env: Env, nowMs = Date.now()) {
+  const stored = await env.WIDGET_KV.get(HEALTH_KEY, "json") as StoredHealth | null;
+  const state = await env.WIDGET_KV.get("todo", "json") as TodoState | null;
+  const tasks = unwrapTasks(state);
+  const current = makeHealth(Boolean(env.NOTION_TOKEN), Boolean(state && typeof state === "object"), tasks, nowMs);
+  return {
+    ok: true,
+    version: 2,
+    lastRunAt: stored?.lastRunAt || null,
+    configured: current.configured,
+    stateFound: current.stateFound,
+    taskCount: current.taskCount,
+    activeReminderCount: current.activeReminderCount,
+    dueReminderCount: current.dueReminderCount,
+    scheduledCount: current.scheduledCount,
+    sentCount: current.sentCount,
+    errorCount: current.errorCount,
+    errorCodes: current.errorCodes,
+    sentLastRun: stored?.sentLastRun || 0,
+    failedLastRun: stored?.failedLastRun || 0,
+  };
 }
 
 export function reminderFingerprint(task: ReminderTask): string {
@@ -154,8 +262,43 @@ async function ensureActionPage(env: ReminderEnv, task: ReminderTask): Promise<s
   return page.id as string;
 }
 
-async function resolveReminderUser(env: ReminderEnv): Promise<string> {
-  if (env.NOTION_REMINDER_USER_ID) return env.NOTION_REMINDER_USER_ID;
+function candidateId(value: unknown): string | null {
+  if (!value || typeof value !== "object") return null;
+  const id = (value as { id?: unknown }).id;
+  return typeof id === "string" && id ? id : null;
+}
+
+async function ownerCandidateIds(env: ReminderEnv): Promise<string[]> {
+  const dbId = env.ACTION_BLOCKS_DB_ID || DEFAULT_ACTION_BLOCKS_DB_ID;
+  const database = await notionFetch(env, `/databases/${dbId}`);
+  const ids: string[] = [];
+  const parentPageId = database.parent?.type === "page_id" ? database.parent.page_id : null;
+  if (parentPageId) {
+    try {
+      const parent = await notionFetch(env, `/pages/${parentPageId}`);
+      const creator = candidateId(parent.created_by);
+      const editor = candidateId(parent.last_edited_by);
+      if (creator) ids.push(creator);
+      if (editor) ids.push(editor);
+    } catch {
+      // A directly shared database can hide its parent. Database ownership is still useful below.
+    }
+  }
+  const creator = candidateId(database.created_by);
+  const editor = candidateId(database.last_edited_by);
+  if (creator) ids.push(creator);
+  if (editor) ids.push(editor);
+  try {
+    const me = await notionFetch(env, "/users/me");
+    const ownerId = me.bot?.owner?.type === "user" ? me.bot.owner.user?.id : null;
+    if (ownerId) ids.unshift(ownerId);
+  } catch {
+    // Older tokens may not expose the bot owner.
+  }
+  return Array.from(new Set(ids));
+}
+
+async function listPeople(env: ReminderEnv): Promise<NotionUser[]> {
   const people: NotionUser[] = [];
   let cursor: string | undefined;
   do {
@@ -164,35 +307,61 @@ async function resolveReminderUser(env: ReminderEnv): Promise<string> {
     people.push(...(data.results || []).filter((user: NotionUser) => user.type === "person"));
     cursor = data.has_more ? data.next_cursor : undefined;
   } while (cursor && people.length < 300);
+  return people;
+}
+
+export async function resolveReminderUser(env: ReminderEnv): Promise<string> {
+  if (env.NOTION_REMINDER_USER_ID) return env.NOTION_REMINDER_USER_ID;
+  const [ownerIds, people] = await Promise.all([
+    ownerCandidateIds(env).catch(() => [] as string[]),
+    listPeople(env),
+  ]);
   if (env.NOTION_REMINDER_USER_EMAIL) {
     const target = env.NOTION_REMINDER_USER_EMAIL.toLowerCase();
     const matched = people.find((user) => user.person?.email?.toLowerCase() === target);
     if (matched) return matched.id;
-    throw new Error("Configured Notion reminder user was not found");
+  }
+  for (const id of ownerIds) {
+    if (people.some((person) => person.id === id)) return id;
   }
   if (people.length === 1) return people[0].id;
-  throw new Error("Set NOTION_REMINDER_USER_ID when the integration can see multiple people");
+  if (ownerIds.length) return ownerIds[0];
+  throw new Error("Reminder recipient could not be resolved from the Action Blocks owner");
 }
 
-async function sendMention(env: ReminderEnv, pageId: string, userId: string, task: ReminderTask) {
-  await notionFetch(env, "/comments", {
-    method: "POST",
-    body: JSON.stringify({
-      parent: { page_id: pageId },
-      rich_text: [
-        { type: "mention", mention: { type: "user", user: { id: userId } } },
-        { type: "text", text: { content: ` Reminder: ${(task.text || "To-do item").slice(0, 1700)}` } },
-      ],
-    }),
-  });
+async function sendMention(env: ReminderEnv, pageId: string, userId: string, task: ReminderTask): Promise<DeliveryMethod> {
+  const mention = [
+    { type: "mention", mention: { type: "user", user: { id: userId } } },
+    { type: "text", text: { content: ` Reminder: ${(task.text || "To-do item").slice(0, 1700)}` } },
+  ];
+  try {
+    await notionFetch(env, "/comments", {
+      method: "POST",
+      body: JSON.stringify({ parent: { page_id: pageId }, rich_text: mention }),
+    });
+    return "comment";
+  } catch (commentError) {
+    try {
+      await notionFetch(env, `/blocks/${pageId}/children`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          children: [{
+            object: "block",
+            type: "paragraph",
+            paragraph: { rich_text: mention, color: "default" },
+          }],
+        }),
+      });
+      return "page_mention";
+    } catch (blockError) {
+      throw new Error(`${(commentError as Error).message}; mention fallback: ${(blockError as Error).message}`);
+    }
+  }
 }
 
 export function dueReminderTasks(tasks: ReminderTask[], nowMs: number): ReminderTask[] {
   return tasks.filter((task) => {
-    if (!task || task.done || !task.reminderAt) return false;
-    if (task.reminderSentFor === task.reminderAt) return false;
-    const due = Date.parse(task.reminderAt);
-    if (!Number.isFinite(due) || due > nowMs) return false;
+    if (!rawDue(task, nowMs)) return false;
     const attempted = Number(task.reminderLastAttemptAt) || 0;
     return !attempted || nowMs - attempted >= RETRY_AFTER_MS;
   });
@@ -201,15 +370,20 @@ export function dueReminderTasks(tasks: ReminderTask[], nowMs: number): Reminder
 export async function processDueReminders(env: Env, nowMs = Date.now()) {
   const reminderEnv = env as ReminderEnv;
   if (!reminderEnv.NOTION_TOKEN) {
+    await persistHealth(env, makeHealth(false, false, [], nowMs), true);
     return { configured: false, sent: 0, failed: 0, due: 0 };
   }
   const state = await env.WIDGET_KV.get("todo", "json") as TodoState | null;
   if (!state || typeof state !== "object") {
+    await persistHealth(env, makeHealth(true, false, [], nowMs));
     return { configured: true, sent: 0, failed: 0, due: 0 };
   }
   const tasks = unwrapTasks(state);
   const due = dueReminderTasks(tasks, nowMs);
-  if (!due.length) return { configured: true, sent: 0, failed: 0, due: 0 };
+  if (!due.length) {
+    await persistHealth(env, makeHealth(true, true, tasks, nowMs));
+    return { configured: true, sent: 0, failed: 0, due: 0 };
+  }
 
   let sent = 0;
   let failed = 0;
@@ -232,20 +406,21 @@ export async function processDueReminders(env: Env, nowMs = Date.now()) {
     task.reminderState = "sending";
     changed = true;
     try {
-      if (!userId) userId = await resolveReminderUser(reminderEnv);
       const pageId = await ensureActionPage(reminderEnv, task);
-      await sendMention(reminderEnv, pageId, userId, task);
+      if (!userId) userId = await resolveReminderUser(reminderEnv);
+      const deliveryMethod = await sendMention(reminderEnv, pageId, userId, task);
       task.notionPageId = pageId;
       task.reminderSentFor = task.reminderAt || undefined;
       task.reminderSentAt = nowMs;
       task.reminderState = "sent";
+      task.reminderDeliveryMethod = deliveryMethod;
       task.startNudgedAt = task.startNudgedAt || nowMs;
       delete task.reminderLastError;
       await env.WIDGET_KV.put(markerKey, String(nowMs), { expirationTtl: SENT_TTL_SECONDS });
       sent += 1;
     } catch (error) {
       task.reminderState = "error";
-      task.reminderLastError = (error as Error).message.slice(0, 300);
+      task.reminderLastError = (error as Error).message.slice(0, 500);
       failed += 1;
     }
   }
@@ -254,5 +429,6 @@ export async function processDueReminders(env: Env, nowMs = Date.now()) {
     writeTasks(state, tasks, nowMs);
     await env.WIDGET_KV.put("todo", JSON.stringify(state));
   }
+  await persistHealth(env, makeHealth(true, true, tasks, nowMs, sent, failed), true);
   return { configured: true, sent, failed, due: due.length };
 }
