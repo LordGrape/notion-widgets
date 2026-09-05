@@ -88,7 +88,7 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.8px;line-height:1.15;margin-t
   background:linear-gradient(120deg,var(--text) 20%,var(--accent) 75%);
   -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .sub{font-size:10.5px;font-weight:500;color:var(--text-2);margin-top:5px;letter-spacing:.1px}
-.head-right{display:flex;align-items:center;gap:8px;padding-top:2px}
+.head-right{display:flex;align-items:center;gap:7px;padding-top:2px}.head-tools{display:flex;align-items:center;gap:5px}
 
 /* Segmented toggle with sliding thumb */
 .seg{position:relative;display:flex;padding:3px;border-radius:999px;
@@ -113,6 +113,7 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.8px;line-height:1.15;margin-t
   box-shadow:inset 0 1px 0 var(--highlight);
   transition:transform .3s var(--spring),box-shadow .3s var(--ease),background .3s var(--ease)}
 .fab:hover{transform:translateY(-1px) rotate(90deg);background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;box-shadow:0 10px 24px rgba(124,58,237,.3)}
+.fab.utility{font-size:0}.fab.utility svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}.fab.utility:hover{transform:translateY(-1px) rotate(0deg)}.fab.utility[aria-expanded="true"]{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;box-shadow:0 8px 20px rgba(124,58,237,.28)}
 
 /* ── Day selector ──────────────────────── */
 .days{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:14px;animation:fadeUp .5s var(--ease) .12s both}
@@ -315,6 +316,34 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.8px;line-height:1.15;margin-t
 .week-target-body{display:flex;flex-direction:column;gap:7px;padding:0 10px 10px;border-top:1px solid var(--line)}.week-target-intro{padding:9px 2px 1px;font-size:8.5px;line-height:1.45;color:var(--text-3)}.week-target-row{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:8px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:11px;background:color-mix(in srgb,var(--bg) 45%,transparent)}.week-target-copy{min-width:0}.week-target-copy b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}.week-target-copy small{display:block;margin-top:2px;font-size:7.8px;color:var(--text-3)}.week-target-row input{padding:8px 9px;font-size:10px}.week-target-empty{padding:11px 2px 2px;font-size:8.5px;color:var(--text-3)}
 @media(max-width:370px){.week-target-row{grid-template-columns:1fr}}
 
+
+/* TIMETABLE EXPERIENCE V2: streamlined editor, detached utilities, and wide calendar. */
+body.wide-calendar .shell{width:min(97vw,960px)}
+.utility-panel{width:min(94vw,390px)}
+.utility-surface{overflow:hidden;border:1px solid var(--line);border-radius:16px;background:var(--surface-3);box-shadow:inset 0 1px 0 var(--highlight)}
+.utility-surface .pref-body{padding:2px 13px 13px;border-top:0}
+.utility-surface .week-target-body{border-top:0;padding:4px 10px 10px}
+.utility-note{padding:0 2px 12px;font-size:9px;line-height:1.5;color:var(--text-3)}
+.existing-blocks{margin:12px 0 0}
+.existing-blocks .saved{margin:0;padding:8px;border-top:1px solid var(--line)}
+.existing-blocks .saved:empty{display:none}
+.calendar-scroll{max-height:calc(92vh - 190px);overflow:auto;padding:1px 1px 8px;scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent}
+.calendar-board{min-width:780px;border:1px solid var(--line);border-radius:18px;overflow:hidden;background:var(--surface-3);box-shadow:inset 0 1px 0 var(--highlight)}
+.cal-heads{position:sticky;top:0;z-index:5;display:grid;grid-template-columns:50px repeat(7,minmax(96px,1fr));background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}
+.cal-corner{border-right:1px solid var(--line)}
+.cal-day-head{padding:9px 5px;text-align:center;border-right:1px solid var(--line);font-size:8px;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:var(--text-3)}
+.cal-day-head:last-child{border-right:0}.cal-day-head.today{color:var(--accent);background:var(--accent-soft)}
+.cal-body{display:grid;grid-template-columns:50px repeat(7,minmax(96px,1fr));height:var(--cal-height)}
+.cal-time-axis{position:relative;border-right:1px solid var(--line);background:color-mix(in srgb,var(--bg) 30%,transparent)}
+.cal-time-axis span{position:absolute;right:7px;transform:translateY(-50%);font:600 7.5px 'JetBrains Mono';color:var(--text-3)}
+.cal-day-col{position:relative;border-right:1px solid var(--line);background:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--cal-hour) - 1px),var(--line) calc(var(--cal-hour) - 1px),var(--line) var(--cal-hour))}
+.cal-day-col:last-child{border-right:0}.cal-day-col.today{background:linear-gradient(var(--accent-soft),var(--accent-soft)),repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--cal-hour) - 1px),var(--line) calc(var(--cal-hour) - 1px),var(--line) var(--cal-hour))}
+.cal-event{position:absolute;left:4px;right:4px;z-index:2;min-height:24px;overflow:hidden;padding:5px 6px;border:1px solid color-mix(in srgb,var(--c) 34%,var(--line));border-left:3px solid var(--c);border-radius:8px;background:color-mix(in srgb,var(--c) 16%,var(--surface));box-shadow:0 3px 10px color-mix(in srgb,var(--c) 13%,transparent);color:var(--text);cursor:pointer;text-align:left;transition:transform .22s var(--spring),box-shadow .22s var(--ease),filter .22s}
+.cal-event:hover,.cal-event:focus-visible{z-index:4;transform:translateY(-1px);filter:brightness(1.04);box-shadow:0 8px 20px color-mix(in srgb,var(--c) 24%,transparent);outline:none}
+.cal-event.live{box-shadow:0 0 0 1px color-mix(in srgb,var(--c) 35%,transparent),0 8px 22px color-mix(in srgb,var(--c) 24%,transparent)}
+.cal-event b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px;line-height:1.2}.cal-event span{display:block;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 7.5px 'JetBrains Mono';color:var(--text-2)}
+@media(max-width:560px){.head-tools{gap:3px}.fab.utility{width:30px;height:30px}.calendar-scroll{max-height:calc(92vh - 176px)}}
+
 @media (max-width:400px){
   .shell{padding:16px 14px;border-radius:22px}
   h1{font-size:20px}
@@ -340,7 +369,11 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.8px;line-height:1.15;margin-t
         <button data-view="today" class="active">Today</button>
         <button data-view="week">Week</button>
       </div>
-      <button class="fab" id="manageBtn" aria-label="Manage weekly blocks">+</button>
+      <div class="head-tools">
+        <button class="fab utility" id="targetsBtn" aria-label="This week's targets" aria-expanded="false" title="This week's targets"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M22 12h-3M12 22v-3M2 12h3"></path></svg></button>
+        <button class="fab utility" id="settingsBtn" aria-label="Widget settings" aria-expanded="false" title="Widget settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.12 2.12-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.55V20h-3v-.09A1.7 1.7 0 0 0 10.65 18.36a1.7 1.7 0 0 0-1.88.34l-.06.06-2.12-2.12.06-.06A1.7 1.7 0 0 0 7 14.7a1.7 1.7 0 0 0-1.55-1.03H5v-3h.09A1.7 1.7 0 0 0 6.64 9.65a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.12-2.12.06.06A1.7 1.7 0 0 0 10.3 6a1.7 1.7 0 0 0 1.03-1.55V4h3v.09A1.7 1.7 0 0 0 15.35 5.64a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.12 2.12-.06.06A1.7 1.7 0 0 0 19 9.3a1.7 1.7 0 0 0 1.55 1.03H21v3h-.09A1.7 1.7 0 0 0 19.4 15Z"></path></svg></button>
+        <button class="fab" id="manageBtn" aria-label="Add weekly block" title="Add weekly block">+</button>
+      </div>
     </div>
   </header>
 
@@ -357,42 +390,19 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.8px;line-height:1.15;margin-t
 
 <div class="smart-tip" id="smartTip" role="tooltip" aria-hidden="true"></div>
 
-<div class="overlay" id="overlay">
-  <div class="panel">
+<div class="overlay" id="overlay" aria-hidden="true">
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="panelTitle">
     <div class="p-head">
       <div>
-        <h2>Weekly consistencies</h2>
-        <div class="hint">Add something once, like a class every Thursday, and it shows up every week.</div>
+        <h2 id="panelTitle">Add weekly block</h2>
+        <div class="hint" id="panelHint">Create it once. It repeats on the days you choose.</div>
       </div>
       <button class="p-close" id="pClose" aria-label="Close">×</button>
     </div>
-    <details class="preferences" id="preferences">
-      <summary>Widget settings</summary>
-      <div class="pref-body">
-        <label class="pref-row">Default view
-          <select class="pref-select" id="prefView">
-            <option value="auto">Automatic</option>
-            <option value="today">Today</option>
-            <option value="week">Week</option>
-          </select>
-        </label>
-        <label class="pref-row">Interface sounds <span class="switch"><input type="checkbox" id="prefSound"><i></i></span></label>
-        <label class="pref-row">Start week on Monday <span class="switch"><input type="checkbox" id="prefMonday"><i></i></span></label>
-        <label class="pref-row">Transition buffer
-          <select class="pref-select" id="prefBuffer"><option value="0">None</option><option value="10">10 minutes</option><option value="15">15 minutes</option><option value="20">20 minutes</option><option value="30">30 minutes</option></select>
-        </label>
-        <div class="pref-status"><span id="storageStatus">Saved locally</span><button id="restoreSchedule" type="button">Restore previous</button></div>
-      </div>
-    </details>
-    <details class="preferences week-targets" id="weekTargets">
-      <summary>This week's targets</summary>
-      <div class="week-target-body" id="weekTargetList"></div>
-    </details>
-    <div class="saved" id="saved"></div>
     <div class="form">
       <div>
         <label class="f-label">Block name</label>
-        <input class="f-input" id="fName" placeholder="Morning workout, Team meeting, Study block">
+        <input class="f-input" id="fName" placeholder="Public Law, Morning workout, Study block">
       </div>
       <div class="f-row">
         <div>
@@ -400,8 +410,8 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.8px;line-height:1.15;margin-t
           <input class="f-input" id="fDesc" placeholder="Optional">
         </div>
         <div>
-          <label class="f-label">Default location</label>
-          <input class="f-input" id="fLoc" placeholder="Fallback for every day">
+          <label class="f-label">Usual location</label>
+          <input class="f-input" id="fLoc" placeholder="Used unless a day differs">
         </div>
       </div>
       <div>
@@ -420,6 +430,53 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.8px;line-height:1.15;margin-t
         <button class="f-btn primary" id="fSave">Save block</button>
       </div>
     </div>
+    <details class="preferences existing-blocks" id="existingBlocks">
+      <summary>Manage existing (<span id="savedCount">0</span>)</summary>
+      <div class="saved" id="saved"></div>
+    </details>
+  </div>
+</div>
+
+<div class="overlay" id="settingsOverlay" aria-hidden="true">
+  <div class="panel utility-panel" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="p-head">
+      <div><h2 id="settingsTitle">Widget settings</h2><div class="hint">Display, sound, and schedule protection.</div></div>
+      <button class="p-close" id="settingsClose" aria-label="Close settings">×</button>
+    </div>
+    <div class="utility-surface">
+      <div class="pref-body">
+        <label class="pref-row">Default view
+          <select class="pref-select" id="prefView">
+            <option value="auto">Automatic</option>
+            <option value="today">Today</option>
+            <option value="week">Week</option>
+          </select>
+        </label>
+        <label class="pref-row">Week layout
+          <select class="pref-select" id="prefLayout">
+            <option value="compact">Current compact view</option>
+            <option value="calendar">Wide calendar view</option>
+          </select>
+        </label>
+        <label class="pref-row">Interface sounds <span class="switch"><input type="checkbox" id="prefSound"><i></i></span></label>
+        <label class="pref-row">Start week on Monday <span class="switch"><input type="checkbox" id="prefMonday"><i></i></span></label>
+        <label class="pref-row">Transition buffer
+          <select class="pref-select" id="prefBuffer"><option value="0">None</option><option value="10">10 minutes</option><option value="15">15 minutes</option><option value="20">20 minutes</option><option value="30">30 minutes</option></select>
+        </label>
+        <div class="pref-status"><span id="storageStatus">Protected locally</span><button id="restoreSchedule" type="button">Restore previous</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="targetsOverlay" aria-hidden="true">
+  <div class="panel utility-panel" role="dialog" aria-modal="true" aria-labelledby="targetsTitle">
+    <div class="p-head">
+      <div><h2 id="targetsTitle">This week's targets</h2><div class="hint">Set the finish line for each dated study or training session.</div></div>
+      <button class="p-close" id="targetsClose" aria-label="Close targets">×</button>
+    </div>
+    <div class="utility-note">Weekly blocks stay the same. These targets apply only to this week's occurrences.</div>
+    <div class="utility-surface"><div class="week-target-body" id="weekTargetList"></div></div>
   </div>
 </div>
 
@@ -432,6 +489,7 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.8px;line-height:1.15;margin-t
 var DAY_LETTERS=['S','M','T','W','T','F','S'];
 var DAY_NAMES=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 var DAY_SHORT=['SUN','MON','TUE','WED','THU','FRI','SAT'];
+/* TIMETABLE EXPERIENCE V2 */
 /* SEAMLESS TIMETABLE PLANNING v1 */
 /* MONDAY-FIRST EDITOR ORDER v1 */
 /* ADAPTIVE WEEKLY TARGETS v1 */
@@ -441,7 +499,7 @@ var COLOR_NAMES=['Violet','Fuchsia','Rose','Red','Orange','Gold','Olive','Emeral
 
 var schedule=[],today=new Date().getDay(),selectedDay=today,view='today';
 var editingId=null,selDays={},selColor=COLORS[0],confirmId=null;
-var prefs={defaultView:'auto',sound:true,mondayFirst:false,travelBuffer:10};
+var prefs={defaultView:'auto',weekLayout:'compact',sound:true,mondayFirst:false,travelBuffer:10};
 
 function $(id){return document.getElementById(id)}
 function esc(s){return String(s==null?'':s).replace(/[&<>'"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]})}
@@ -468,6 +526,7 @@ var TT_PREFS_KEY='timetable_preferences';
 var TT_VAULT_KEY='timetable_courses_vault_v1';
 var TT_EMPTY_KEY='timetable_courses_intentionally_empty_v1';
 var TT_MAX_BACKUPS=6;
+var TT_CLOUD_RECOVERY_KEY='coursesRecoveryV2';
 var ttPersistenceRequested=false;
 
 function readStoredJson(key,fallback){
@@ -507,8 +566,19 @@ function readVault(){
   if(!Array.isArray(vault.backups))vault.backups=[];
   return vault;
 }
-function intentionallyEmpty(){
-  try{return localStorage.getItem(TT_EMPTY_KEY)==='1'}catch(e){return false}
+function intentionallyEmptyAt(){
+  try{var raw=localStorage.getItem(TT_EMPTY_KEY);if(raw==='1')return 1;return Math.max(0,parseInt(raw||'0',10)||0)}catch(e){return 0}
+}
+function intentionallyEmpty(){return intentionallyEmptyAt()>0}
+function readCloudRecovery(){
+  var value=null;try{value=SyncEngine.get('timetable',TT_CLOUD_RECOVERY_KEY)}catch(e){}
+  if(!value||typeof value!=='object'||!Array.isArray(value.current))return null;
+  return{version:2,savedAt:+value.savedAt||0,current:normaliseBlocks(value.current)};
+}
+function writeCloudRecovery(arr){
+  var safe=normaliseBlocks(arr);if(!safe.length)return;var current=readCloudRecovery();
+  if(current&&JSON.stringify(current.current)===JSON.stringify(safe))return;
+  try{SyncEngine.set('timetable',TT_CLOUD_RECOVERY_KEY,{version:2,savedAt:Date.now(),current:safe})}catch(e){}
 }
 function requestPersistentStorage(){
   if(ttPersistenceRequested)return;
@@ -532,24 +602,17 @@ function writeLocalSnapshot(arr,markIntentionalEmpty){
   try{localStorage.setItem(TT_VAULT_KEY,JSON.stringify({version:1,savedAt:now,current:safe,backups:backups}))}catch(e){}
   try{
     if(safe.length)localStorage.removeItem(TT_EMPTY_KEY);
-    else if(markIntentionalEmpty)localStorage.setItem(TT_EMPTY_KEY,'1');
+    else if(markIntentionalEmpty)localStorage.setItem(TT_EMPTY_KEY,String(now));
   }catch(e){}
   requestPersistentStorage();
   return safe;
 }
 function readLocalBlocks(){
-  var direct=readStoredJson(TT_LOCAL_KEY,null),vault=readVault(),empty=intentionallyEmpty();
-  if(Array.isArray(direct)){
-    if(direct.length)return direct;
-    if(empty)return[];
-    if(vault&&Array.isArray(vault.current)&&vault.current.length)return vault.current;
-    return[];
-  }
-  if(vault&&Array.isArray(vault.current)){
-    if(vault.current.length||empty)return vault.current;
-  }
-  if(!empty&&vault&&vault.backups.length){
-    for(var i=0;i<vault.backups.length;i++)if(Array.isArray(vault.backups[i].courses)&&vault.backups[i].courses.length)return vault.backups[i].courses;
+  var direct=readStoredJson(TT_LOCAL_KEY,null),vault=readVault(),emptyAt=intentionallyEmptyAt();
+  if(Array.isArray(direct)&&direct.length)return direct;
+  if(vault&&Array.isArray(vault.current)&&vault.current.length&&(+vault.savedAt||0)>emptyAt)return vault.current;
+  if(vault&&vault.backups.length){
+    for(var i=0;i<vault.backups.length;i++){var entry=vault.backups[i];if(entry&&(+entry.savedAt||0)>emptyAt&&Array.isArray(entry.courses)&&entry.courses.length)return entry.courses}
   }
   return[];
 }
@@ -558,29 +621,31 @@ function loadPrefs(){
   try{p=SyncEngine.get('timetable','preferences')}catch(e){}
   if(!p)p=readStoredJson(TT_PREFS_KEY,null);
   if(!p||typeof p!=='object')p={};
-  return{defaultView:/^(today|week)$/.test(p.defaultView)?p.defaultView:'auto',sound:p.sound!==false,mondayFirst:!!p.mondayFirst,travelBuffer:[0,10,15,20,30].indexOf(+p.travelBuffer)>=0?+p.travelBuffer:10};
+  return{defaultView:/^(today|week)$/.test(p.defaultView)?p.defaultView:'auto',weekLayout:p.weekLayout==='calendar'?'calendar':'compact',sound:p.sound!==false,mondayFirst:!!p.mondayFirst,travelBuffer:[0,10,15,20,30].indexOf(+p.travelBuffer)>=0?+p.travelBuffer:10};
 }
 function savePrefs(){
   try{localStorage.setItem(TT_PREFS_KEY,JSON.stringify(prefs))}catch(e){}
   try{SyncEngine.set('timetable','preferences',prefs)}catch(e){}
-  drawSettings();render();if($('overlay')&&$('overlay').classList.contains('show')){drawSaved();drawForm();drawWeeklyTargets()}
+  drawSettings();render();if($('targetsOverlay')&&$('targetsOverlay').classList.contains('show'))drawWeeklyTargets();updateStorageStatus()
 }
 function drawSettings(){
   if(!$('prefView'))return;
-  $('prefView').value=prefs.defaultView;$('prefSound').checked=prefs.sound;$('prefMonday').checked=prefs.mondayFirst;$('prefBuffer').value=String(prefs.travelBuffer);
+  $('prefView').value=prefs.defaultView;$('prefLayout').value=prefs.weekLayout;$('prefSound').checked=prefs.sound;$('prefMonday').checked=prefs.mondayFirst;$('prefBuffer').value=String(prefs.travelBuffer);
 }
 function loadBlocks(){
   var synced=null;
   try{synced=SyncEngine.get('timetable','courses')}catch(e){}
   if(Array.isArray(synced)&&synced.length)return normaliseBlocks(synced);
   var local=readLocalBlocks();
-  if(local.length&&!intentionallyEmpty())return normaliseBlocks(local);
+  if(local.length)return normaliseBlocks(local);
+  var recovery=readCloudRecovery(),emptyAt=intentionallyEmptyAt();
+  if(recovery&&recovery.current.length&&recovery.savedAt>emptyAt)return recovery.current;
   if(Array.isArray(synced))return normaliseBlocks(synced);
-  return normaliseBlocks(local);
+  return[];
 }
 function saveBlocks(arr){
   schedule=writeLocalSnapshot(arr,true);
-  try{if(typeof SyncEngine!=='undefined'&&SyncEngine.set)SyncEngine.set('timetable','courses',schedule)}catch(e){}
+  try{if(typeof SyncEngine!=='undefined'&&SyncEngine.set){writeCloudRecovery(schedule);SyncEngine.set('timetable','courses',schedule)}}catch(e){}
   try{if(typeof updateStorageStatus==='function'&&typeof setTimeout==='function')setTimeout(updateStorageStatus,0)}catch(e){}
 }
 function protectRemoteSchedule(){
@@ -588,7 +653,7 @@ function protectRemoteSchedule(){
   var synced=null;
   try{synced=SyncEngine.get('timetable','courses')}catch(e){}
   if(synced===null||(Array.isArray(synced)&&!synced.length&&!intentionallyEmpty())){
-    try{SyncEngine.set('timetable','courses',schedule)}catch(e){}
+    try{writeCloudRecovery(schedule);SyncEngine.set('timetable','courses',schedule)}catch(e){}
   }
 }
 
@@ -734,7 +799,24 @@ function renderToday(){
 }
 
 /* ── Week view ── */
+
+function applyLayoutMode(){document.body.classList.toggle('wide-calendar',view==='week'&&prefs.weekLayout==='calendar')}
+function renderCalendarWeek(){
+  var main=$('main'),f=allFlat(),order=orderedDays();
+  $('title').textContent='This Week';$('sub').textContent='Your week in a regular calendar layout.';updateStats();
+  if(!f.length){main.innerHTML='<div class="empty"><div><div class="glyph">\uD83D\uDDD3\uFE0F</div><h2>No week set up yet</h2><p>Add weekly blocks and this becomes your calendar-style overview.</p><button class="cta" id="emptyAdd">Add a block</button></div></div>';$('emptyAdd').addEventListener('click',openPanel);return}
+  var first=Math.min.apply(null,f.map(function(x){return mins(x.start)})),last=Math.max.apply(null,f.map(function(x){return mins(x.end)})),start=Math.max(0,Math.floor(first/60)*60-60),end=Math.min(1440,Math.ceil(last/60)*60+60);
+  if(end-start<480){var centre=(start+end)/2;start=Math.max(0,Math.round((centre-240)/60)*60);end=Math.min(1440,start+480);start=Math.max(0,end-480)}
+  var span=end-start,height=Math.max(420,Math.round(span*.8)),hourPx=height/(span/60),now=nowMins();
+  var heads='<div class="cal-heads"><div class="cal-corner"></div>'+order.map(function(day){return'<div class="cal-day-head'+(day===today?' today':'')+'">'+DAY_SHORT[day]+'</div>'}).join('')+'</div>';
+  var labels='';for(var tick=Math.ceil(start/60)*60;tick<=end;tick+=60)labels+='<span style="top:'+((tick-start)/span*100)+'%">'+fmtShort(Math.floor(tick/60)+':00')+'</span>';
+  var columns=order.map(function(day){var events=flatFor(day).map(function(c){var top=(mins(c.start)-start)/span*100,size=Math.max(4,(mins(c.end)-mins(c.start))/span*100),live=day===today&&now>=mins(c.start)&&now<mins(c.end);return'<button class="cal-event'+(live?' live':'')+'" data-id="'+esc(c.id)+'" data-day="'+day+'" data-source-date="'+esc(c.sourceDate)+'" style="--c:'+esc(c.color)+';top:'+top.toFixed(3)+'%;height:'+size.toFixed(3)+'%" aria-label="'+esc(c.name+' '+fmt(c.start)+' to '+fmt(c.end))+'"><b>'+esc(compactLabel(c))+'</b><span>'+fmt(c.start)+'–'+fmt(c.end)+'</span></button>'}).join('');return'<div class="cal-day-col'+(day===today?' today':'')+'">'+events+'</div>'}).join('');
+  main.innerHTML='<div class="calendar-scroll"><div class="calendar-board" style="--cal-height:'+height+'px;--cal-hour:'+hourPx+'px">'+heads+'<div class="cal-body"><div class="cal-time-axis">'+labels+'</div>'+columns+'</div></div></div>';
+  main.querySelectorAll('.cal-event').forEach(function(event){event.addEventListener('mouseenter',function(){showWeekTip(event,false)});event.addEventListener('mouseleave',hideWeekTip);event.addEventListener('focus',function(){showWeekTip(event,false)});event.addEventListener('blur',hideWeekTip);event.addEventListener('click',function(){hideWeekTip();openOccurrence(event.dataset.id,event.dataset.sourceDate)})});
+}
+
 function renderWeek(){
+  if(prefs.weekLayout==='calendar'){renderCalendarWeek();return}
   var main=$('main'),f=allFlat();
   $('title').textContent='This Week';
   $('sub').textContent='Your recurring consistencies, mapped out.';
@@ -787,6 +869,7 @@ function syncViewButtons(){
   syncSeg();
 }
 function render(){
+  applyLayoutMode();
   buildDays();
   syncViewButtons();
   if(view==='week')renderWeek();else renderToday();
@@ -811,8 +894,11 @@ function openPanel(editId){
       b.days.forEach(function(d){selDays[d.day]={start:d.start,end:d.end,location:clean(d.location||b.location)}});
     }
   }
-  $('overlay').classList.add('show');
-  drawSaved();drawForm();drawSettings();drawWeeklyTargets();
+  $('overlay').classList.add('show');$('overlay').setAttribute('aria-hidden','false');
+  drawSaved();drawForm();
+  $('existingBlocks').open=!!editingId;
+  $('panelTitle').textContent=editingId?'Edit weekly block':'Add weekly block';
+  $('panelHint').textContent=editingId?'Update the repeating block and save your changes.':'Create it once. It repeats on the days you choose.';
   if(editingId){
     var blk=schedule.find(function(x){return x.id===editingId});
     if(blk){$('fName').value=blk.name;$('fDesc').value=blk.description;$('fLoc').value=blk.location;updateWarnings()}
@@ -822,7 +908,10 @@ function openPanel(editId){
   }
   setTimeout(function(){$('fName').focus()},320);
 }
-function closePanel(){sfx('close');$('overlay').classList.remove('show');editingId=null;confirmId=null;hideErr()}
+function closePanel(){sfx('close');$('overlay').classList.remove('show');$('overlay').setAttribute('aria-hidden','true');editingId=null;confirmId=null;hideErr()}
+function closeUtility(id,buttonId){var overlay=$(id);if(!overlay||!overlay.classList.contains('show'))return;overlay.classList.remove('show');overlay.setAttribute('aria-hidden','true');if($(buttonId))$(buttonId).setAttribute('aria-expanded','false');sfx('close')}
+function openUtility(id,buttonId){hideWeekTip();closePanelSilently();['settingsOverlay','targetsOverlay'].forEach(function(other){if(other!==id){$(other).classList.remove('show');$(other).setAttribute('aria-hidden','true')}});var overlay=$(id);overlay.classList.add('show');overlay.setAttribute('aria-hidden','false');$(buttonId).setAttribute('aria-expanded','true');if(id==='settingsOverlay'){drawSettings();updateStorageStatus()}else drawWeeklyTargets();sfx('open');setTimeout(function(){var close=overlay.querySelector('.p-close');if(close)close.focus()},80)}
+function closePanelSilently(){if(!$('overlay').classList.contains('show'))return;$('overlay').classList.remove('show');$('overlay').setAttribute('aria-hidden','true');editingId=null;confirmId=null;hideErr()}
 function placeDiffers(a,b){return!!String(a||'').trim()&&!!String(b||'').trim()&&String(a).trim().toLowerCase()!==String(b).trim().toLowerCase()}
 function slotWarning(items,start,end,location,ignoreId,ignoreSource){var sm=mins(start),em=mins(end),messages=[];items.forEach(function(item){if(item.id===ignoreId&&item.sourceDate===ignoreSource)return;var os=mins(item.start),oe=mins(item.end);if(sm<oe&&em>os)messages.push('Overlaps '+item.name+'.');else if(placeDiffers(location,item.location)){var gap=em<=os?os-em:(oe<=sm?sm-oe:9999);if(gap<prefs.travelBuffer)messages.push('Only '+gap+'m between different locations and '+item.name+'.')}});return messages[0]||''}
 function updateWarnings(){var el=$('fWarn');if(!el)return;var messages=[],baseLoc=$('fLoc').value.trim();Object.keys(selDays).map(Number).forEach(function(day){var draft=selDays[day],loc=clean(draft.location)||baseLoc,items=[];schedule.forEach(function(block){if(block.id===editingId)return;block.days.filter(function(entry){return+entry.day===day}).forEach(function(entry){items.push({id:block.id,name:block.name,start:entry.start,end:entry.end,location:clean(entry.location||block.location)})})});var warning=slotWarning(items,draft.start,draft.end,loc,null,null);if(warning)messages.push(DAY_NAMES[day]+': '+warning)});el.textContent=messages.slice(0,2).join(' ');el.classList.toggle('show',!!messages.length)}
@@ -845,11 +934,12 @@ function openOccurrence(id,sourceDate){
 }
 var restoreArmed=false,restoreTimer=null;
 function previousScheduleCopy(){var vault=readVault();if(!vault)return null;var current=JSON.stringify(normaliseBlocks(schedule));for(var i=0;i<vault.backups.length;i++){var copy=normaliseBlocks(vault.backups[i]&&vault.backups[i].courses);if(copy.length&&JSON.stringify(copy)!==current)return copy}return null}
-function updateStorageStatus(){var status=$('storageStatus'),button=$('restoreSchedule');if(!status||!button)return;var online=false;try{online=!!(SyncEngine.isOnline&&SyncEngine.isOnline())}catch(e){}status.textContent='Saved locally · '+(online?'Cloud connected':'Offline');button.disabled=!previousScheduleCopy()}
+function updateStorageStatus(){var status=$('storageStatus'),button=$('restoreSchedule');if(!status||!button)return;var online=false;try{online=!!(SyncEngine.isOnline&&SyncEngine.isOnline())}catch(e){}status.textContent=online?'Protected locally + cloud':'Protected locally · cloud offline';button.disabled=!previousScheduleCopy()}
 function restorePreviousSchedule(){var button=$('restoreSchedule'),copy=previousScheduleCopy();if(!copy){updateStorageStatus();return}if(!restoreArmed){restoreArmed=true;button.textContent='Confirm restore';clearTimeout(restoreTimer);restoreTimer=setTimeout(function(){restoreArmed=false;button.textContent='Restore previous'},4000);return}restoreArmed=false;clearTimeout(restoreTimer);button.textContent='Restore previous';saveBlocks(copy);render();drawSaved();drawWeeklyTargets();sfx('start')}
 
 function drawSaved(){
-  var el=$('saved');
+  var el=$('saved'),count=$('savedCount'),group=$('existingBlocks');
+  if(count)count.textContent=String(schedule.length);if(group)group.style.display=schedule.length?'':'none';
   if(!schedule.length){el.innerHTML='';return}
   el.innerHTML=schedule.map(function(b){
     var ds=b.days.slice().sort(function(x,y){return dayRank(x.day)-dayRank(y.day)}).map(function(d){return DAY_SHORT[d.day]+' '+fmt(d.start)+'\u2013'+fmt(d.end)}).join(' · ');
@@ -942,15 +1032,22 @@ $('fSave').addEventListener('click',function(){
 });
 
 $('prefView').addEventListener('change',function(){prefs.defaultView=this.value;savePrefs()});
+$('prefLayout').addEventListener('change',function(){prefs.weekLayout=this.value==='calendar'?'calendar':'compact';savePrefs()});
 $('prefSound').addEventListener('change',function(){prefs.sound=this.checked;savePrefs()});
 $('prefMonday').addEventListener('change',function(){prefs.mondayFirst=this.checked;savePrefs()});
 $('prefBuffer').addEventListener('change',function(){prefs.travelBuffer=+this.value;savePrefs();updateWarnings()});
 $('restoreSchedule').addEventListener('click',restorePreviousSchedule);
 $('fLoc').addEventListener('input',updateWarnings);
 $('manageBtn').addEventListener('click',function(){openPanel(null)});
+$('targetsBtn').addEventListener('click',function(){openUtility('targetsOverlay','targetsBtn')});
+$('settingsBtn').addEventListener('click',function(){openUtility('settingsOverlay','settingsBtn')});
 $('pClose').addEventListener('click',closePanel);
+$('settingsClose').addEventListener('click',function(){closeUtility('settingsOverlay','settingsBtn')});
+$('targetsClose').addEventListener('click',function(){closeUtility('targetsOverlay','targetsBtn')});
 $('overlay').addEventListener('click',function(e){if(e.target===this)closePanel()});
-document.addEventListener('keydown',function(e){var tag=(e.target.tagName||'').toLowerCase(),typing=tag==='input'||tag==='select'||tag==='textarea'||e.target.isContentEditable;if(e.key==='Escape'&&$('overlay').classList.contains('show'))closePanel();if(typing||e.ctrlKey||e.metaKey||e.altKey)return;if((e.key==='n'||e.key==='N')){e.preventDefault();openPanel(null)}if((e.key==='t'||e.key==='T')){view='today';selectedDay=today;render()}if((e.key==='w'||e.key==='W')){view='week';render()}});
+$('settingsOverlay').addEventListener('click',function(e){if(e.target===this)closeUtility('settingsOverlay','settingsBtn')});
+$('targetsOverlay').addEventListener('click',function(e){if(e.target===this)closeUtility('targetsOverlay','targetsBtn')});
+document.addEventListener('keydown',function(e){var tag=(e.target.tagName||'').toLowerCase(),typing=tag==='input'||tag==='select'||tag==='textarea'||e.target.isContentEditable;if(e.key==='Escape'){if($('settingsOverlay').classList.contains('show')){closeUtility('settingsOverlay','settingsBtn');return}if($('targetsOverlay').classList.contains('show')){closeUtility('targetsOverlay','targetsBtn');return}if($('overlay').classList.contains('show')){closePanel();return}}if(typing||e.ctrlKey||e.metaKey||e.altKey)return;if((e.key==='n'||e.key==='N')){e.preventDefault();openPanel(null)}if((e.key==='t'||e.key==='T')){view='today';selectedDay=today;render()}if((e.key==='w'||e.key==='W')){view='week';render()}});
 
 /* ── Live refresh ── */
 setInterval(function(){if(view==='today'&&selectedDay===today&&!$('overlay').classList.contains('show'))renderToday()},30000);
@@ -974,7 +1071,8 @@ function boot(){
         var next=normaliseBlocks(value);
         if(JSON.stringify(next)!==JSON.stringify(schedule)){schedule=writeLocalSnapshot(next,false);render();drawSaved();drawWeeklyTargets()}
       });
-      SyncEngine.subscribe('timetable','preferences',function(value){if(value&&typeof value==='object'){prefs={defaultView:/^(today|week)$/.test(value.defaultView)?value.defaultView:'auto',sound:value.sound!==false,mondayFirst:!!value.mondayFirst,travelBuffer:[0,10,15,20,30].indexOf(+value.travelBuffer)>=0?+value.travelBuffer:10};drawSettings();render();if($('overlay')&&$('overlay').classList.contains('show')){drawSaved();drawForm();drawWeeklyTargets()}}});
+      SyncEngine.subscribe('timetable',TT_CLOUD_RECOVERY_KEY,function(value){if(schedule.length)return;var emptyAt=intentionallyEmptyAt();if(value&&Array.isArray(value.current)&&value.current.length&&(+value.savedAt||0)>emptyAt){schedule=writeLocalSnapshot(value.current,false);protectRemoteSchedule();render();drawSaved();drawWeeklyTargets()}});
+      SyncEngine.subscribe('timetable','preferences',function(value){if(value&&typeof value==='object'){prefs={defaultView:/^(today|week)$/.test(value.defaultView)?value.defaultView:'auto',weekLayout:value.weekLayout==='calendar'?'calendar':'compact',sound:value.sound!==false,mondayFirst:!!value.mondayFirst,travelBuffer:[0,10,15,20,30].indexOf(+value.travelBuffer)>=0?+value.travelBuffer:10};drawSettings();render();if($('targetsOverlay')&&$('targetsOverlay').classList.contains('show'))drawWeeklyTargets()}});
     }
   }catch(e){}
   render();drawSettings();drawWeeklyTargets();updateStorageStatus();setInterval(updateStorageStatus,12000);requestAnimationFrame(syncSeg);
