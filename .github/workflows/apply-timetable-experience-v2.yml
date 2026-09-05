@@ -7,6 +7,7 @@ on:
       - tools/timetable-experience-v2.payload.1
       - tools/timetable-experience-v2.payload.2
       - tools/timetable-experience-v2-test.payload
+      - tools/test-timetable-persistence.mjs
       - .github/workflows/apply-timetable-experience-v2.yml
   workflow_dispatch:
 

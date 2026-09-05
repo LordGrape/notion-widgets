@@ -68,7 +68,8 @@ assert.equal(reloaded.length, 1, 'vault should recover a missing primary local v
 
 context.saveBlocks([]);
 assert.equal(context.loadBlocks().length, 0, 'an intentional user deletion should remain empty');
-assert.equal(store.get('timetable_courses_intentionally_empty_v1'), '1', 'intentional empty state should be recorded');
+const intentionalEmptyAt = Number(store.get('timetable_courses_intentionally_empty_v1'));
+assert.ok(Number.isFinite(intentionalEmptyAt) && intentionalEmptyAt > 1, 'intentional empty state should be recorded with a timestamp');
 
 assert.ok(!html.includes('  saveBlocks(schedule);'), 'boot must not write an empty schedule');
 assert.ok(html.includes("if(typeof SyncEngine!=='undefined'&&typeof SyncEngine.init==='function')"), 'SyncEngine init should support lexical globals');
