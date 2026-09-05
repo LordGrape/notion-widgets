@@ -4,8 +4,9 @@ on:
   push:
     branches: [main]
     paths:
-      - tools/apply-timetable-experience-v2.mjs.gz.b64
-      - tools/test-timetable-experience-v2.mjs.gz.b64
+      - tools/timetable-experience-v2.payload.1
+      - tools/timetable-experience-v2.payload.2
+      - tools/timetable-experience-v2-test.payload
       - .github/workflows/apply-timetable-experience-v2.yml
   workflow_dispatch:
 
@@ -24,8 +25,8 @@ jobs:
           node-version: 22
       - name: Decode asserted patch and test
         run: |
-          base64 -d tools/apply-timetable-experience-v2.mjs.gz.b64 | gzip -d > /tmp/apply.mjs
-          base64 -d tools/test-timetable-experience-v2.mjs.gz.b64 | gzip -d > /tmp/test.mjs
+          cat tools/timetable-experience-v2.payload.1 tools/timetable-experience-v2.payload.2 | base64 -d | gzip -d > /tmp/apply.mjs
+          base64 -d tools/timetable-experience-v2-test.payload | gzip -d > /tmp/test.mjs
           node --check /tmp/apply.mjs
           node --check /tmp/test.mjs
       - name: Apply and verify upgrade
