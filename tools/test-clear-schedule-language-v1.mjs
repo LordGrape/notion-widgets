@@ -10,8 +10,9 @@ assert.ok(action.includes('Task creation'),'task toggle should have a plain-lang
 assert.ok(action.includes('Add to to-do'),'task toggle should describe the action');
 assert.ok(action.includes('Fresh task on every selected day.'),'enabled behaviour should be explicit');
 assert.ok(action.includes('No tasks are created.'),'disabled behaviour should be explicit');
-assert.ok(action.includes('Default target'),'planning field should distinguish the recurring fallback');
-assert.ok(action.includes('Leave blank if it changes. Set each session under This week’s targets.'),'adaptive target terminology should be explained in place');
+assert.ok(action.includes('Default task target'),'planning field should distinguish the recurring default');
+assert.ok(action.includes('Use this only when every session has the same finish line. Otherwise leave it blank and set a dated target from the target button.'),'adaptive target terminology should be explained in place');
+assert.ok(!action.includes('Optional fallback'),'unclear fallback terminology should be removed');
 assert.ok(!action.includes("trackTitle.textContent=locked?'Schedule only':'Weekly to-do'"),'old toggle title should not remain visible');
 assert.ok(todo.includes('Target for this task (optional)'),'to-do editor should use adaptive target terminology');
 assert.ok(todo.includes('<span class="pl-k">Target</span>'),'task card should label the current target clearly');
