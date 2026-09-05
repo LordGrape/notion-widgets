@@ -1,20 +1,30 @@
-# Apps (widgets)
+# Applications
 
-Each widget has a folder under `apps/`. During migration, app folders may wrap legacy production files instead of physically moving them. This keeps existing Notion embeds and deployment paths stable.
+Each focused widget has a folder under `apps/`. During migration, most folders document and wrap stable root-level production files. This preserves existing Notion embed URLs while giving humans and AI agents a reliable application map.
 
-## App map
-| App | Current production source | Notes |
+## Application map
+
+| Application | Production source | Data boundary |
 | --- | --- | --- |
-| `clock/` | `../clock.html` | Clock, stopwatch, timer, weather |
-| `quotes/` | `../quotes.html` | Daily quote widget |
-| `todo/` | `../todo.html` | Task widget with SyncEngine state |
-| `timetable/` | `../timetable.html` | Schedule, week view, milestone radar |
-| `athlete/` | `../athlete.html` | Assessments and training, with important test results mirrored to Notion |
-| `studyengine/` | `../studyengine/` | Existing Vite/TypeScript app |
+| `assistant/` | `apps/assistant/` | Reads existing namespaces without duplicating state |
+| `todo/` | `todo.html` / `todo-v2.html` | `todo` |
+| `timetable/` | `timetable.html` | `timetable`, `dragon`, `clock`, `user` |
+| `studyengine/` | `studyengine/` | Study Engine modules and existing SyncEngine contracts |
+| `athlete/` | `athlete.source.html` and `athlete-*` modules | Athlete state and bounded Notion Test Log bridge |
+| `clock/` | `clock.html` | `clock`, `user` |
+| `quotes/` | `quotes.html` | Quote presentation data |
 
-## Migration rules
-- Preserve working root-level embeds until replacement URLs are tested.
-- Add or update each app README before changing behaviour.
-- Keep app-specific changes inside that app source.
-- Put shared behaviour in `packages/` or the legacy `core.js` runtime.
-- Avoid large rewrites unless deployment and state migration are explicitly planned.
+## Choosing where to edit
+
+1. Read the target application's README.
+2. Edit the production source named there.
+3. Keep application-specific behaviour local.
+4. Move code into `packages/` only when it has a stable use in multiple applications.
+5. Preserve root production paths until replacement URLs have been deployed and verified.
+
+## Shared rules
+
+- Persistent application state uses SyncEngine unless a documented boundary says otherwise.
+- Static applications never contain private tokens or Notion credentials.
+- Protected network and Notion operations belong in `worker/`.
+- Generated files are rebuilt from source rather than edited directly.

@@ -7,7 +7,9 @@
     "deploy": "wrangler deploy",
     "lint": "eslint .",
     "format": "prettier -w .",
-    "typecheck": "tsc -p tsconfig.base.json --noEmit"
+    "typecheck": "tsc -p tsconfig.base.json --noEmit",
+    "check:assistant": "node tools/verify-assistant.mjs",
+    "check": "pnpm typecheck && pnpm check:assistant"
   },
   "devDependencies": {
     "prettier": "^3.3.3",
