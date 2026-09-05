@@ -1,0 +1,94 @@
+name: Fix timetable summary scope
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/fix-timetable-summary-scope.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Scope summary statistics to the active view
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('timetable.html')
+          text = path.read_text()
+          old = """function updateStats(){
+            var items=flatFor(selectedDay);
+            var total=items.reduce(function(s,c){return s+Math.max(0,mins(c.end)-mins(c.start))},0);
+            $('stBlocks').textContent=items.length;
+            $('stHours').textContent=(total/60).toFixed(total%60?1:0)+'h';
+            var next='Free';
+            if(selectedDay===today){
+              var nm=nowMins();
+              for(var i=0;i<items.length;i++){
+                if(mins(items[i].start)>nm){next=fmt(items[i].start);break}
+                if(nm>=mins(items[i].start)&&nm<mins(items[i].end)){next='Now';break}
+              }
+            }else if(items.length){next=fmt(items[0].start)}
+            $('stNext').textContent=next;
+          }"""
+          new = """function updateStats(){
+            var weekMode=view==='week',items=weekMode?allFlat():flatFor(selectedDay);
+            var total=items.reduce(function(s,c){return s+Math.max(0,mins(c.end)-mins(c.start))},0);
+            $('stBlocks').textContent=items.length;
+            $('stHours').textContent=(total/60).toFixed(total%60?1:0)+'h';
+            var next='Free',nm=nowMins();
+            if(weekMode){
+              var todayKey=scheduleDateKey(new Date()),candidate=null,candidateTime=Infinity;
+              for(var i=0;i<items.length;i++){
+                var item=items[i];
+                if(item.dateKey===todayKey&&nm>=mins(item.start)&&nm<mins(item.end)){next='Now';candidate=null;break}
+                if(item.dateKey<todayKey||(item.dateKey===todayKey&&mins(item.start)<=nm))continue;
+                var date=parseScheduleDate(item.dateKey),time=date.getTime()+mins(item.start)*60000;
+                if(time<candidateTime){candidate=item;candidateTime=time}
+              }
+              if(candidate)next=candidate.dateKey===todayKey?fmt(candidate.start):DAY_SHORT[candidate.day]+' '+fmt(candidate.start);
+            }else if(selectedDay===today){
+              for(var j=0;j<items.length;j++){
+                if(mins(items[j].start)>nm){next=fmt(items[j].start);break}
+                if(nm>=mins(items[j].start)&&nm<mins(items[j].end)){next='Now';break}
+              }
+            }else if(items.length){next=fmt(items[0].start)}
+            $('stNext').textContent=next;
+          }"""
+          if old not in text:
+              raise SystemExit('Expected updateStats implementation was not found')
+          if text.count(old) != 1:
+              raise SystemExit('Expected exactly one updateStats implementation')
+          path.write_text(text.replace(old, new))
+          PY
+      - name: Verify timetable JavaScript and regression guards
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const html=fs.readFileSync('timetable.html','utf8');
+          const scripts=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
+          if(!scripts.length) throw new Error('No inline timetable script found');
+          fs.writeFileSync('/tmp/timetable-inline.js',scripts.at(-1)[1]);
+          const stats=html.match(/function updateStats\(\)\{[\s\S]*?\n\}/)?.[0] || '';
+          if(!stats.includes("weekMode=view==='week'")) throw new Error('Week scope guard missing');
+          if(!stats.includes('weekMode?allFlat():flatFor(selectedDay)')) throw new Error('View-specific item selection missing');
+          if(!stats.includes("DAY_SHORT[candidate.day]+' '+fmt(candidate.start)")) throw new Error('Week next-up label missing');
+          NODE
+          node --check /tmp/timetable-inline.js
+          git diff --check
+      - name: Commit production fix
+        run: |
+          rm .github/workflows/fix-timetable-summary-scope.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add timetable.html .github/workflows/fix-timetable-summary-scope.yml
+          git commit -m "Scope timetable summaries to active view"
+          git push origin HEAD:main
