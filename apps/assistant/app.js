@@ -1,199 +1,29 @@
-const WORKER = 'https://widget-sync.lordgrape-widgets.workers.dev';
-const widgets = [
-  { id: 'todo', name: 'Tasks', symbol: '✓', description: 'Priorities, reminders, and action blocks', path: '../../todo-v2.html' },
-  { id: 'timetable', name: 'Timetable', symbol: '▦', description: 'Schedule, targets, and weekly planning', path: '../../timetable.html' },
-  { id: 'study', name: 'Study Engine', symbol: 'A', description: 'Active recall and review sessions', path: '../../studyengine/' },
-  { id: 'athlete', name: 'Athlete', symbol: '△', description: 'Training, assessments, and performance', path: '../../athlete.html' },
-  { id: 'clock', name: 'Clock', symbol: '◷', description: 'Time, focus, timer, and weather', path: '../../clock.html' },
-  { id: 'quotes', name: 'Quotes', symbol: '“', description: 'A quiet idea for the day', path: '../../quotes.html' }
-];
-
-const $ = selector => document.querySelector(selector);
-const $$ = selector => [...document.querySelectorAll(selector)];
-let tasks = [];
-let deferredInstall;
-
-function parseList(value) {
-  if (Array.isArray(value)) return value;
-  if (typeof value === 'string') {
-    try { const parsed = JSON.parse(value); return Array.isArray(parsed) ? parsed : []; } catch (_) { return []; }
-  }
-  return [];
-}
-
-function dayKey(date = new Date()) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-}
-
-function getTasks() {
-  try { return parseList(window.SyncEngine?.get('todo', 'tasks')); } catch (_) { return []; }
-}
-
-function isDueToday(task) {
-  return task.due === 'today' || task.dueKey === dayKey() || (!task.due && !task.dueKey);
-}
-
-function priorityRank(task) {
-  const rank = { must: 0, should: 1, could: 2 };
-  return rank[task.pri] ?? 3;
-}
-
-function activeTasks() {
-  return tasks.filter(task => !task.done).sort((a, b) => priorityRank(a) - priorityRank(b) || Number(a.order ?? 999) - Number(b.order ?? 999) || Number(a.created ?? 0) - Number(b.created ?? 0));
-}
-
-function renderTaskList() {
-  const list = $('#taskList');
-  const active = activeTasks().slice(0, 5);
-  if (!active.length) {
-    list.innerHTML = '<div class="empty-state">No active tasks found.</div>';
-    return;
-  }
-  list.innerHTML = active.map(task => {
-    const meta = [task.pri ? `<span class="priority">${escapeHtml(task.pri)}</span>` : '', task.dueKey ? `<span>${escapeHtml(task.dueKey)}</span>` : task.due ? `<span>${escapeHtml(task.due)}</span>` : '', task.time ? `<span>${escapeHtml(task.time)}</span>` : ''].filter(Boolean).join('');
-    return `<div class="task-row"><span class="task-check" aria-hidden="true"></span><div><div class="task-title">${escapeHtml(task.text || 'Untitled task')}</div><div class="task-meta">${meta}</div></div><span class="task-time">${task.notes ? 'Notes' : ''}</span></div>`;
-  }).join('');
-}
-
-function renderSummary() {
-  const active = activeTasks();
-  const today = active.filter(isDueToday);
-  const completedToday = tasks.filter(task => task.done && task.doneAt && new Date(task.doneAt).toDateString() === new Date().toDateString()).length;
-  let focusSeconds = 0;
-  try { focusSeconds = Number(window.SyncEngine?.get('clock', `focus_${dayKey()}`) || 0); } catch (_) {}
-  $('#openCount').textContent = today.length;
-  $('#openDetail').textContent = active.length ? `${active.length} active overall` : 'Queue is clear';
-  $('#doneCount').textContent = completedToday;
-  $('#focusMinutes').textContent = `${Math.floor(focusSeconds / 60)}m`;
-  const next = today[0] || active[0];
-  if (next) {
-    $('#focusTitle').textContent = next.text || 'Review the next task';
-    $('#focusReason').textContent = next.pri === 'must' ? 'This is the highest-priority unfinished item in your current queue.' : 'This is the strongest available next action based on your current task order.';
-  } else {
-    $('#focusTitle').textContent = 'Your action queue is clear';
-    $('#focusReason').textContent = 'Use the timetable or Study Engine to decide whether anything should be planned next.';
-  }
-}
-
-function refreshData() {
-  tasks = getTasks();
-  renderTaskList();
-  renderSummary();
-  $('#syncDot').classList.toggle('ready', Boolean(window.SyncEngine));
-  $('#syncLabel').textContent = window.SyncEngine ? 'Synchronized' : 'Local preview';
-}
-
-function generateBriefing() {
-  const active = activeTasks();
-  const today = active.filter(isDueToday);
-  const must = active.filter(task => task.pri === 'must');
-  if (!active.length) return 'Your task queue is clear. Check the timetable before adding work simply to fill the space.';
-  const lead = today[0] || active[0];
-  const parts = [`You have ${today.length} item${today.length === 1 ? '' : 's'} in today’s queue and ${active.length} active overall.`];
-  if (must.length) parts.push(`${must.length} ${must.length === 1 ? 'is' : 'are'} marked must-do.`);
-  parts.push(`Start with “${lead.text || 'Untitled task'}”.`);
-  parts.push('Reassess after completing it rather than planning the entire day in advance.');
-  return parts.join(' ');
-}
-
-function escapeHtml(value) {
-  return String(value).replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]);
-}
-
-function widgetCard(widget, expanded = false) {
-  return `<button class="widget-card" data-open-widget="${widget.id}"><span class="widget-symbol">${widget.symbol}</span><span><strong>${widget.name}</strong>${expanded ? `<small>${widget.description}</small>` : ''}</span></button>`;
-}
-
-function renderWidgets() {
-  $('#quickGrid').innerHTML = widgets.slice(0, 4).map(widget => widgetCard(widget)).join('');
-  $('#widgetGrid').innerHTML = widgets.map(widget => widgetCard(widget, true)).join('');
-  $$('[data-open-widget]').forEach(button => button.addEventListener('click', () => openWidget(button.dataset.openWidget)));
-}
-
-function openWidget(id) {
-  const widget = widgets.find(item => item.id === id);
-  if (!widget) return;
-  $('#widgetModalTitle').textContent = widget.name;
-  $('#widgetFrame').src = widget.path;
-  $('#widgetStandalone').href = widget.path;
-  $('#widgetOverlay').hidden = false;
-  document.body.style.overflow = 'hidden';
-}
-
-function closeWidget() {
-  $('#widgetOverlay').hidden = true;
-  $('#widgetFrame').src = 'about:blank';
-  document.body.style.overflow = '';
-}
-
-function setView(id) {
-  $$('.view').forEach(view => view.classList.toggle('active', view.id === id));
-  $$('.nav-item').forEach(item => item.classList.toggle('active', item.dataset.view === id));
-  $('.sidebar').classList.remove('open');
-  history.replaceState(null, '', `#${id}`);
-  window.scrollTo({ top: 0, behavior: 'instant' });
-}
-
-function openCommand(prefill = '') {
-  $('#commandOverlay').hidden = false;
-  $('#commandInput').value = prefill;
-  $('#commandInput').focus();
-}
-
-function closeCommand() { $('#commandOverlay').hidden = true; }
-
-function answerCommand(query) {
-  const normalized = query.trim().toLowerCase();
-  if (!normalized) return;
-  const widget = widgets.find(item => normalized.includes(item.id) || normalized.includes(item.name.toLowerCase()));
-  if (normalized.includes('brief') || normalized.includes('next') || normalized.includes('attention') || normalized.includes('priority')) {
-    $('#commandResponse').innerHTML = `<strong>Current briefing</strong><p>${escapeHtml(generateBriefing())}</p>`;
-  } else if (widget && (normalized.includes('open') || normalized === widget.id || normalized === widget.name.toLowerCase())) {
-    closeCommand(); openWidget(widget.id);
-  } else if (normalized.includes('widget')) {
-    closeCommand(); setView('widgets');
-  } else {
-    $('#commandResponse').innerHTML = '<strong>Not connected to an AI service yet</strong><p>This first version can navigate widgets and interpret synchronized task data. A secure conversational service belongs in the next phase.</p>';
-  }
-}
-
-function bindEvents() {
-  $$('.nav-item').forEach(item => item.addEventListener('click', event => { event.preventDefault(); setView(item.dataset.view); }));
-  $$('[data-view-link]').forEach(item => item.addEventListener('click', event => { event.preventDefault(); setView(item.dataset.viewLink); }));
-  $('#menuButton').addEventListener('click', () => $('.sidebar').classList.toggle('open'));
-  $('#commandButton').addEventListener('click', () => openCommand());
-  $('#closeCommand').addEventListener('click', closeCommand);
-  $('#commandOverlay').addEventListener('click', event => { if (event.target === $('#commandOverlay')) closeCommand(); });
-  $('#commandInput').addEventListener('keydown', event => { if (event.key === 'Enter') answerCommand(event.currentTarget.value); });
-  $('#closeWidget').addEventListener('click', closeWidget);
-  $('#widgetOverlay').addEventListener('click', event => { if (event.target === $('#widgetOverlay')) closeWidget(); });
-  $('#refreshButton').addEventListener('click', refreshData);
-  $('#briefingButton').addEventListener('click', () => { $('#briefing').textContent = generateBriefing(); });
-  document.addEventListener('keydown', event => {
-    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); openCommand(); }
-    if (event.key === 'Escape') { closeCommand(); if (!$('#widgetOverlay').hidden) closeWidget(); }
-  });
-  window.addEventListener('hashchange', () => setView(location.hash.slice(1) === 'widgets' ? 'widgets' : 'today'));
-  window.addEventListener('beforeinstallprompt', event => { event.preventDefault(); deferredInstall = event; $('#installButton').hidden = false; });
-  $('#installButton').addEventListener('click', async () => { if (!deferredInstall) return; deferredInstall.prompt(); await deferredInstall.userChoice; deferredInstall = null; $('#installButton').hidden = true; });
-}
-
-async function initSync() {
-  if (!window.SyncEngine?.init) return refreshData();
-  try {
-    await Promise.race([window.SyncEngine.init({ worker: WORKER, namespaces: ['todo', 'timetable', 'clock', 'user'] }), new Promise(resolve => setTimeout(resolve, 3500))]);
-    window.SyncEngine.subscribe?.('todo', 'tasks', refreshData);
-  } catch (error) { console.warn('[Command Centre] Sync initialization failed', error); }
-  refreshData();
-}
-
-function init() {
-  const now = new Date();
-  $('#dateLabel').textContent = new Intl.DateTimeFormat('en-CA', { weekday: 'long', month: 'long', day: 'numeric' }).format(now);
-  const hour = now.getHours();
-  $('#greeting').textContent = `${hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'}, Musbah`;
-  renderWidgets(); bindEvents(); setView(location.hash.slice(1) === 'widgets' ? 'widgets' : 'today'); initSync();
-  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('./sw.js').catch(error => console.warn('[Command Centre] Service worker unavailable', error));
-}
-
-init();
+const WORKER='https://widget-sync.lordgrape-widgets.workers.dev';
+const SESSION_KEY='command-centre-access-v1';
+const widgets=[{id:'todo',name:'Tasks',symbol:'✓',description:'Priorities, reminders, and action blocks',path:'../../todo-v2.html'},{id:'timetable',name:'Timetable',symbol:'▦',description:'Schedule, targets, and weekly planning',path:'../../timetable.html'},{id:'study',name:'Study Engine',symbol:'A',description:'Active recall and review sessions',path:'../../studyengine/'},{id:'athlete',name:'Athlete',symbol:'△',description:'Training, assessments, and performance',path:'../../athlete.html'},{id:'clock',name:'Clock',symbol:'◷',description:'Time, focus, timer, and weather',path:'../../clock.html'},{id:'quotes',name:'Quotes',symbol:'“',description:'A quiet idea for the day',path:'../../quotes.html'}];
+const courses=['Contracts','Property','Public Law','Criminal Law','Torts','Legal Skills','Law and Lawyers'];
+const lifeAreas=[{name:'Military',symbol:'M',match:/military|caf|parade|pat platoon|bmoq|infantry|regiment|pwor/i},{name:'Fitness',symbol:'△',match:/training|workout|ruck|run|gym|fitness|force test|jtf2/i},{name:'Administration',symbol:'□',match:/osap|bursary|application|email|appointment|bill|form|deadline/i},{name:'Personal',symbol:'○',match:null}];
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];let accessKey='',tasks=[],namespaceData={},deferredInstall;
+function parseList(v){if(Array.isArray(v))return v;if(typeof v==='string')try{const p=JSON.parse(v);return Array.isArray(p)?p:[]}catch(_){}return[]}
+function unwrapNamespace(v){if(!v||typeof v!=='object')return{};return Object.fromEntries(Object.entries(v).map(([k,e])=>[k,e&&typeof e==='object'&&Object.prototype.hasOwnProperty.call(e,'value')?e.value:e]))}
+function dayKey(d=new Date()){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+function escapeHtml(v){return String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'})[c])}
+async function fetchNamespace(name,key=accessKey){const r=await fetch(`${WORKER}/state/${encodeURIComponent(name)}`,{headers:{'X-Widget-Key':key},cache:'no-store'});if(r.status===401)throw new Error('unauthorized');if(!r.ok)throw new Error(`sync_${r.status}`);const p=await r.json();return unwrapNamespace(p.value)}
+async function authorize(key){const clean=key.trim();if(!clean)throw new Error('unauthorized');await fetchNamespace('user',clean);accessKey=clean;sessionStorage.setItem(SESSION_KEY,clean)}
+function lock(){accessKey='';tasks=[];namespaceData={};sessionStorage.removeItem(SESSION_KEY);$('#accessKey').value='';$('#lockScreen').hidden=false;$('#appShell').setAttribute('aria-hidden','true');document.body.classList.add('locked');setTimeout(()=>$('#accessKey').focus(),0)}
+function unlockShell(){$('#lockScreen').hidden=true;$('#appShell').setAttribute('aria-hidden','false');document.body.classList.remove('locked')}
+function isDueToday(t){return t.due==='today'||t.dueKey===dayKey()||(!t.due&&!t.dueKey)}function priorityRank(t){return({must:0,should:1,could:2})[t.pri]??3}
+function activeTasks(src=tasks){return src.filter(t=>!t.done).sort((a,b)=>priorityRank(a)-priorityRank(b)||Number(a.order??999)-Number(b.order??999)||Number(a.created??0)-Number(b.created??0))}
+function taskText(t){return`${t.text||''} ${t.notes||''} ${t.category||''}`}function isLawTask(t){return/law|contract|property|public law|criminal|tort|legal skill|lawyer|case|reading|lecture|exam|memo|brief|queen/i.test(taskText(t))}
+function taskRows(src,empty){const a=activeTasks(src).slice(0,6);if(!a.length)return`<div class="empty-state">${escapeHtml(empty)}</div>`;return a.map(t=>{const m=[t.pri?`<span class="priority">${escapeHtml(t.pri)}</span>`:'',t.dueKey?`<span>${escapeHtml(t.dueKey)}</span>`:t.due?`<span>${escapeHtml(t.due)}</span>`:'',t.time?`<span>${escapeHtml(t.time)}</span>`:''].filter(Boolean).join('');return`<div class="task-row"><span class="task-check" aria-hidden="true"></span><div><div class="task-title">${escapeHtml(t.text||'Untitled task')}</div><div class="task-meta">${m}</div></div><span class="task-time">${t.notes?'Notes':''}</span></div>`}).join('')}
+function renderTasks(){$('#taskList').innerHTML=taskRows(tasks,'No active tasks found.');$('#lawTaskList').innerHTML=taskRows(tasks.filter(isLawTask),'No law-related tasks found.');$('#lifeTaskList').innerHTML=taskRows(tasks.filter(t=>!isLawTask(t)),'No personal tasks found.')}
+function renderSummary(){const a=activeTasks(),today=a.filter(isDueToday),done=tasks.filter(t=>t.done&&t.doneAt&&new Date(t.doneAt).toDateString()===new Date().toDateString()).length,clock=namespaceData.clock||{},secs=Number(clock[`focus_${dayKey()}`]||clock[dayKey()]||0);$('#openCount').textContent=today.length;$('#openDetail').textContent=a.length?`${a.length} active overall`:'Queue is clear';$('#doneCount').textContent=done;$('#focusMinutes').textContent=`${Math.floor(secs/60)}m`;const next=today[0]||a[0];$('#focusTitle').textContent=next?.text||'Your action queue is clear';$('#focusReason').textContent=next?(next.pri==='must'?'This is the highest-priority unfinished item in your current queue.':'This is the strongest available next action based on your current task order.'):'Use the timetable or Study Engine to decide whether anything should be planned next.';const law=a.filter(isLawTask)[0];$('#lawFocus').textContent=law?.text||'No law-school priority identified yet';$('#lawReason').textContent=law?'This is the highest-ranked law-related item in the synchronized queue.':'Law-related tasks will appear here when they enter your task system.'}
+function renderDomains(){const a=activeTasks();$('#lawDomains').innerHTML=courses.map(c=>{const n=a.filter(t=>new RegExp(c.replace('Law and Lawyers','lawyer'),'i').test(taskText(t))).length;return`<article class="domain-card"><span class="domain-symbol">§</span><span><strong>${c}</strong><small>Active items</small></span><b>${n}</b></article>`}).join('');const non=a.filter(t=>!isLawTask(t));$('#lifeDomains').innerHTML=lifeAreas.map((area,i)=>{const n=i===lifeAreas.length-1?non.filter(t=>!lifeAreas.slice(0,-1).some(x=>x.match.test(taskText(t)))).length:non.filter(t=>area.match.test(taskText(t))).length;return`<article class="domain-card"><span class="domain-symbol">${area.symbol}</span><span><strong>${area.name}</strong><small>Active items</small></span><b>${n}</b></article>`}).join('')}
+function generateBriefing(){const a=activeTasks(),today=a.filter(isDueToday),must=a.filter(t=>t.pri==='must'),law=a.filter(isLawTask);if(!a.length)return'Your task queue is clear. Check the timetable before adding work simply to fill the space.';const lead=today[0]||a[0],parts=[`You have ${today.length} item${today.length===1?'':'s'} in today’s queue and ${a.length} active overall.`];if(must.length)parts.push(`${must.length} ${must.length===1?'is':'are'} marked must-do.`);if(law.length)parts.push(`${law.length} ${law.length===1?'is':'are'} connected to law school.`);parts.push(`Start with “${lead.text||'Untitled task'}”. Reassess after completing it.`);return parts.join(' ')}
+async function refreshData(){$('#syncLabel').textContent='Synchronizing';$('#syncDot').classList.remove('ready');try{const[todo,clock,timetable,user]=await Promise.all(['todo','clock','timetable','user'].map(n=>fetchNamespace(n)));namespaceData={todo,clock,timetable,user};tasks=parseList(todo.tasks);renderTasks();renderSummary();renderDomains();$('#syncLabel').textContent='Private and synchronized';$('#syncDot').classList.add('ready')}catch(e){if(e.message==='unauthorized')return lock();$('#syncLabel').textContent='Sync unavailable'}}
+function widgetCard(w,x=false){return`<button class="widget-card" data-open-widget="${w.id}"><span class="widget-symbol">${w.symbol}</span><span><strong>${w.name}</strong>${x?`<small>${w.description}</small>`:''}</span></button>`}function renderWidgets(){$('#quickGrid').innerHTML=widgets.slice(0,4).map(w=>widgetCard(w)).join('');$('#widgetGrid').innerHTML=widgets.map(w=>widgetCard(w,true)).join('');$$('[data-open-widget]').forEach(b=>b.addEventListener('click',()=>openWidget(b.dataset.openWidget)))}
+function openWidget(id){const w=widgets.find(x=>x.id===id);if(!w)return;$('#widgetModalTitle').textContent=w.name;$('#widgetFrame').src=w.path;$('#widgetStandalone').href=w.path;$('#widgetOverlay').hidden=false;document.body.style.overflow='hidden'}function closeWidget(){$('#widgetOverlay').hidden=true;$('#widgetFrame').src='about:blank';document.body.style.overflow=''}
+function setView(id){const v=['today','law','life','widgets'].includes(id)?id:'today';$$('.view').forEach(x=>x.classList.toggle('active',x.id===v));$$('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.view===v));$('.sidebar').classList.remove('open');history.replaceState(null,'',`#${v}`);window.scrollTo({top:0,behavior:'instant'})}function openCommand(){$('#commandOverlay').hidden=false;$('#commandInput').value='';$('#commandInput').focus()}function closeCommand(){$('#commandOverlay').hidden=true}
+function answerCommand(q){const n=q.trim().toLowerCase();if(!n)return;const w=widgets.find(x=>n.includes(x.id)||n.includes(x.name.toLowerCase()));if(n.includes('brief')||n.includes('next')||n.includes('attention')||n.includes('priority'))$('#commandResponse').innerHTML=`<strong>Current briefing</strong><p>${escapeHtml(generateBriefing())}</p>`;else if(n.includes('law')){closeCommand();setView('law')}else if(n.includes('life')||n.includes('military')||n.includes('fitness')){closeCommand();setView('life')}else if(w&&(n.includes('open')||n===w.id||n===w.name.toLowerCase())){closeCommand();openWidget(w.id)}else if(n.includes('widget')){closeCommand();setView('widgets')}else $('#commandResponse').innerHTML='<strong>Companion foundation</strong><p>I can currently navigate your system and interpret private synchronized task data. Secure conversational reasoning will be added through the Worker rather than exposed in the website.</p>'}
+function bindEvents(){$$('.nav-item').forEach(x=>x.addEventListener('click',e=>{e.preventDefault();setView(x.dataset.view)}));$$('[data-view-link]').forEach(x=>x.addEventListener('click',e=>{e.preventDefault();setView(x.dataset.viewLink)}));$('#menuButton').addEventListener('click',()=>$('.sidebar').classList.toggle('open'));$('#commandButton').addEventListener('click',openCommand);$('#closeCommand').addEventListener('click',closeCommand);$('#commandOverlay').addEventListener('click',e=>{if(e.target===$('#commandOverlay'))closeCommand()});$('#commandInput').addEventListener('keydown',e=>{if(e.key==='Enter')answerCommand(e.currentTarget.value)});$('#closeWidget').addEventListener('click',closeWidget);$('#widgetOverlay').addEventListener('click',e=>{if(e.target===$('#widgetOverlay'))closeWidget()});$('#refreshButton').addEventListener('click',refreshData);$('#briefingButton').addEventListener('click',()=>{$('#briefing').textContent=generateBriefing()});$('#lockButton').addEventListener('click',lock);$('#unlockForm').addEventListener('submit',async e=>{e.preventDefault();const s=$('#unlockStatus');s.classList.remove('error');s.textContent='Verifying private access…';try{await authorize($('#accessKey').value);unlockShell();await refreshData()}catch(_){s.classList.add('error');s.textContent='That key was not accepted. Nothing was loaded.'}});document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'&&!document.body.classList.contains('locked')){e.preventDefault();openCommand()}if(e.key==='Escape'){closeCommand();if(!$('#widgetOverlay').hidden)closeWidget()}});window.addEventListener('hashchange',()=>setView(location.hash.slice(1)));window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;$('#installButton').hidden=false});$('#installButton').addEventListener('click',async()=>{if(!deferredInstall)return;deferredInstall.prompt();await deferredInstall.userChoice;deferredInstall=null;$('#installButton').hidden=true})}
+async function init(){const now=new Date();$('#dateLabel').textContent=new Intl.DateTimeFormat('en-CA',{weekday:'long',month:'long',day:'numeric'}).format(now);const h=now.getHours();$('#greeting').textContent=`${h<12?'Good morning':h<18?'Good afternoon':'Good evening'}, Musbah`;renderWidgets();bindEvents();setView(location.hash.slice(1));const saved=sessionStorage.getItem(SESSION_KEY);if(saved)try{await authorize(saved);unlockShell();await refreshData()}catch(_){lock()}else lock();if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(e=>console.warn('[Command Centre] Service worker unavailable',e))}init();
