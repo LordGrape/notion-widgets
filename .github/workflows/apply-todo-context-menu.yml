@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - tools/apply-todo-context-menu.py
+      - .github/workflows/apply-todo-context-menu.yml
+  workflow_dispatch:
 
 permissions:
   contents: write
