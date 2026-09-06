@@ -93,7 +93,7 @@
     if(location.hostname!=="notion-widgets-93r.pages.dev")return;
     var sync=win.SyncEngine;
     if(!sync||sync.__pagesNotionBridge)return;
-    function widgetKey(){try{return win.localStorage.getItem("_sync_passphrase")||""}catch(error){return""}}
+    function widgetKey(){try{var hashKey=new URLSearchParams(location.hash.slice(1)).get("key");if(hashKey)return hashKey;return win.localStorage.getItem("_sync_passphrase")||""}catch(error){return""}}
     function request(method,items,from,to){
       var key=widgetKey();
       if(!key)return Promise.resolve({configured:false,items:[]});
