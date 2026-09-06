@@ -14,8 +14,12 @@ if (!todo.includes(hashBridge)) {
   todo = todo.replace(shellMarker, shellMarker + hashBridge);
 }
 todo = todo.replace('todo-v2.html?source=20260906-stable-loader-v2', 'todo-v2.html?source=20260906-encrypted-feed-v3');
-if (!todo.includes('todo-v2.html?source=20260906-encrypted-feed-v3')) throw new Error('Encrypted feed cache key missing');
 fs.writeFileSync(todoPath, todo);
+
+const importerSource = fs.readFileSync('todo-action-import.js', 'utf8');
+const importerV2 = importerSource.replace('/action-blocks-feed.enc.json?cache=20260906-v1', 'https://cdn.jsdelivr.net/gh/LordGrape/notion-widgets@a06d8b3df72b612a8b2f428ec16e920fc33b6188/action-blocks-feed.enc.json');
+if (importerV2 === importerSource) throw new Error('Encrypted feed marker missing');
+fs.writeFileSync('todo-action-import-v2.js', importerV2);
 
 const appPath = 'todo.html';
 let app = fs.readFileSync(appPath, 'utf8');
