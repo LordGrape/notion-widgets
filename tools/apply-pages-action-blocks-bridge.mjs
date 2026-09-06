@@ -9,7 +9,6 @@ if (!functionSource.includes(goodEndpoint)) throw new Error('Pages Notion endpoi
 fs.writeFileSync(functionPath, functionSource);
 
 const todoPath = 'todo-sync.html';
-let todo = fs.readFileSync(todoPath, 'utf8');
+const todo = fs.readFileSync(todoPath, 'utf8');
 if (!todo.includes('function installPagesNotionBridge(win)')) throw new Error('Pages bridge missing');
 if (!todo.includes('    installPagesNotionBridge(win);\n')) throw new Error('Pages bridge is not installed');
-fs.writeFileSync(todoPath, todo);
