@@ -9,7 +9,7 @@
 </style>
 </head>
 <body>
-<iframe id="todo" src="todo-v2.html?source=20260906-direct-widget-state-v9" title="To-Do widget"></iframe>
+<iframe id="todo" src="todo-v2.html?source=20260906-same-origin-feed-v11" title="To-Do widget"></iframe>
 <div class="bridge-status" id="bridgeStatus" role="status" aria-live="polite"></div>
 <script>
 (function(){
@@ -61,8 +61,8 @@
   }
   function bytes(value){var raw=atob(value),out=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)out[i]=raw.charCodeAt(i);return out}
   function loadEncryptedFallback(win){
-    var keyText=widgetKey(win),url="https://raw.githubusercontent.com/LordGrape/notion-widgets/a06d8b3df72b612a8b2f428ec16e920fc33b6188/action-blocks-feed.enc.json";if(!keyText)return Promise.reject(new Error("key"));
-    return fetch(url,{cache:"no-store"}).then(function(response){if(!response.ok)throw new Error(String(response.status));return response.json()}).then(function(payload){var encoder=new TextEncoder();return crypto.subtle.importKey("raw",encoder.encode(keyText),"PBKDF2",false,["deriveKey"]).then(function(material){return crypto.subtle.deriveKey({name:"PBKDF2",salt:bytes(payload.salt),iterations:payload.iterations||100000,hash:"SHA-256"},material,{name:"AES-GCM",length:256},false,["decrypt"])}).then(function(key){return crypto.subtle.decrypt({name:"AES-GCM",iv:bytes(payload.iv)},key,bytes(payload.ciphertext))})}).then(function(clear){var feed=JSON.parse(new TextDecoder().decode(clear));mergeRemote(win,feed.items||[]);return feed.items||[]})
+    var keyText=widgetKey(win);if(!keyText)return Promise.reject(new Error("key"));
+    return fetch("/widget-feed",{cache:"no-store"}).then(function(response){if(!response.ok)throw new Error(String(response.status));return response.json()}).then(function(payload){var encoder=new TextEncoder();return crypto.subtle.importKey("raw",encoder.encode(keyText),"PBKDF2",false,["deriveKey"]).then(function(material){return crypto.subtle.deriveKey({name:"PBKDF2",salt:bytes(payload.salt),iterations:payload.iterations||100000,hash:"SHA-256"},material,{name:"AES-GCM",length:256},false,["decrypt"])}).then(function(key){return crypto.subtle.decrypt({name:"AES-GCM",iv:bytes(payload.iv)},key,bytes(payload.ciphertext))})}).then(function(clear){var feed=JSON.parse(new TextDecoder().decode(clear));mergeRemote(win,feed.items||[]);return feed.items||[]})
   }
   function syncReadings(){
     var win=appWindow();if(!win||!win.SyncEngine){clearTimeout(retryTimer);retryTimer=setTimeout(syncReadings,500);return}installPagesBridge(win);var sync=win.SyncEngine;showStatus("Loading scheduled tasks...");
