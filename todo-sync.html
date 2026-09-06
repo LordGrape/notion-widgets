@@ -9,18 +9,13 @@
 </style>
 </head>
 <body>
-<iframe id="todo" src="todo-v2.html?source=20260906-encrypted-feed-v3" title="To-Do widget"></iframe>
+<iframe id="todo" src="todo-v2.html?source=20260906-direct-widget-state-v9" title="To-Do widget"></iframe>
 <div class="bridge-status" id="bridgeStatus" role="status" aria-live="polite"></div>
 <script>
 (function(){
   "use strict";
-  var shell=document.getElementById("todo");
-  var childHash=location.hash||"";
-  if(childHash&&shell.src.indexOf("#")<0)shell.src=shell.src+childHash;
-  var status=document.getElementById("bridgeStatus");
-  var retryTimer=null;
-  var pollTimer=null;
-
+  var shell=document.getElementById("todo"),status=document.getElementById("bridgeStatus"),retryTimer=null,pollTimer=null;
+  var childHash=location.hash||"";if(childHash&&shell.src.indexOf("#")<0)shell.src=shell.src+childHash;
   function pad(value){return String(value).padStart(2,"0")}
   function dateKey(date){date=date||new Date();return date.getFullYear()+"-"+pad(date.getMonth()+1)+"-"+pad(date.getDate())}
   function range(days){var date=new Date();date.setDate(date.getDate()+days);return dateKey(date)}
@@ -29,126 +24,52 @@
   function dueState(key){if(key===dateKey())return"today";if(key===range(1))return"tomorrow";return null}
   function timeBand(minutes){return minutes<=20?"quick":minutes<=45?"m30":minutes<=90?"m60":"deep"}
   function timestamp(value){var parsed=Date.parse(value||"");return Number.isFinite(parsed)?parsed:Date.now()}
-  function appWindow(){
-    try{
-      var shellDoc=shell.contentDocument;
-      var app=shellDoc&&shellDoc.getElementById("app");
-      return app&&app.contentWindow&&app.contentWindow.document?app.contentWindow:null;
-    }catch(error){return null}
-  }
+  function appWindow(){try{var shellDoc=shell.contentDocument,app=shellDoc&&shellDoc.getElementById("app");return app&&app.contentWindow&&app.contentWindow.document?app.contentWindow:null}catch(error){return null}}
   function setValue(task,key,value){if(task[key]!==value){task[key]=value;return true}return false}
+  function isoTime(date){return pad(date.getHours())+":"+pad(date.getMinutes())}
+  function stableToken(value){var hash=2166136261,text=String(value||"");for(var i=0;i<text.length;i++){hash^=text.charCodeAt(i);hash=Math.imul(hash,16777619)}return(hash>>>0).toString(36)}
+
+  function syncTimedToTimetable(sync,tasks){
+    var courses=parseList(sync.get("timetable","courses")),kept=courses.filter(function(block){return !block||block.source!=="todo-action-block"}),generated=[];
+    parseList(tasks).forEach(function(task){
+      if(!task||task.done||task.allDay||!task.scheduledStart||!task.scheduledEnd)return;
+      var start=new Date(task.scheduledStart),end=new Date(task.scheduledEnd);if(!Number.isFinite(start.getTime())||!Number.isFinite(end.getTime())||end<=start)return;
+      var key=dateKey(start),colours={must:"#be123c",should:"#c2410c",could:"#8b5cf6"};
+      generated.push({id:"todo_action_"+stableToken(task.occurrenceId||task.id),name:task.text||"To-Do task",description:task.notes||"Timed To-Do task",location:"",color:colours[task.pri]||"#8b5cf6",days:[{day:start.getDay(),start:isoTime(start),end:isoTime(end),location:""}],category:task.category||"study",trackCompletion:false,startDate:key,endDate:key,source:"todo-action-block",todoTaskId:task.id,occurrenceId:task.occurrenceId||task.id});
+    });
+    var next=kept.concat(generated);if(JSON.stringify(next)!==JSON.stringify(courses))sync.set("timetable","courses",next)
+  }
 
   function mergeRemote(win,remote){
-    var sync=win.SyncEngine;
-    var tasks=parseList(sync.get("todo","tasks"));
-    var changed=false;
+    var sync=win.SyncEngine,tasks=parseList(sync.get("todo","tasks")),changed=false;
     parseList(remote).forEach(function(item){
       if(!item||!item.scheduledStart)return;
-      var occurrence=item.occurrenceId||("notion:"+item.notionPageId);
-      var task=tasks.find(function(candidate){return candidate&&((candidate.occurrenceId&&candidate.occurrenceId===occurrence)||(candidate.notionPageId&&candidate.notionPageId===item.notionPageId))});
-      var dateOnly=/^\d{4}-\d{2}-\d{2}$/.test(String(item.scheduledStart));
-      var key=dateOnly?String(item.scheduledStart):dateKey(new Date(item.scheduledStart));
-      var planned=Math.max(1,Number(item.plannedMinutes)||30);
-      var completed=item.status==="Done"||item.status==="Skipped";
-      if(!task){
-        tasks.push({id:occurrence,text:item.action||"Notion action",pri:String(item.priority||"").toLowerCase()||null,time:timeBand(planned),due:dueState(key),dueKey:key,setKey:key,done:completed,doneAt:completed?Date.now():null,created:timestamp(item.scheduledStart),updatedAt:Date.now(),order:timestamp(item.scheduledStart),notes:item.notes||"",category:String(item.category||"Personal").toLowerCase(),source:"notion",occurrenceId:occurrence,notionPageId:item.notionPageId||null,scheduledStart:item.scheduledStart,scheduledEnd:item.scheduledEnd||null,allDay:dateOnly,contextPageId:item.contextPageId||null,plannedMinutes:planned,outcome:item.status==="Skipped"?"skipped":null});
-        changed=true;
-        return;
-      }
-      changed=setValue(task,"text",item.action||task.text)||changed;
-      changed=setValue(task,"pri",String(item.priority||"").toLowerCase()||null)||changed;
-      changed=setValue(task,"time",timeBand(planned))||changed;
-      changed=setValue(task,"plannedMinutes",planned)||changed;
-      changed=setValue(task,"dueKey",key)||changed;
-      changed=setValue(task,"due",dueState(key))||changed;
-      changed=setValue(task,"scheduledStart",item.scheduledStart)||changed;
-      changed=setValue(task,"scheduledEnd",item.scheduledEnd||null)||changed;
-      changed=setValue(task,"allDay",dateOnly)||changed;
-      changed=setValue(task,"notes",item.notes||"")||changed;
-      changed=setValue(task,"contextPageId",item.contextPageId||null)||changed;
-      changed=setValue(task,"notionPageId",item.notionPageId||task.notionPageId||null)||changed;
-      if(completed&&!task.done){task.done=true;task.doneAt=Date.now();task.outcome=item.status==="Skipped"?"skipped":null;changed=true}
-      if(changed)task.updatedAt=Date.now();
+      var occurrence=item.occurrenceId||("notion:"+item.notionPageId),task=tasks.find(function(candidate){return candidate&&((candidate.occurrenceId&&candidate.occurrenceId===occurrence)||(candidate.notionPageId&&candidate.notionPageId===item.notionPageId))});
+      var allDay=/^\d{4}-\d{2}-\d{2}$/.test(String(item.scheduledStart)),key=allDay?String(item.scheduledStart):dateKey(new Date(item.scheduledStart)),planned=Math.max(1,Number(item.plannedMinutes)||30),completed=item.status==="Done"||item.status==="Skipped";
+      if(!task){tasks.push({id:occurrence,text:item.action||"Notion action",pri:String(item.priority||"").toLowerCase()||null,time:timeBand(planned),due:dueState(key),dueKey:key,setKey:key,done:completed,doneAt:completed?Date.now():null,created:timestamp(item.scheduledStart),updatedAt:Date.now(),order:timestamp(item.scheduledStart),notes:item.notes||"",category:String(item.category||"Personal").toLowerCase(),source:"notion",occurrenceId:occurrence,notionPageId:item.notionPageId||null,scheduledStart:item.scheduledStart,scheduledEnd:item.scheduledEnd||null,allDay:allDay,contextPageId:item.contextPageId||null,plannedMinutes:planned,outcome:item.status==="Skipped"?"skipped":null});changed=true;return}
+      var next={text:item.action||task.text,pri:String(item.priority||"").toLowerCase()||null,time:timeBand(planned),plannedMinutes:planned,dueKey:key,due:dueState(key),scheduledStart:item.scheduledStart,scheduledEnd:item.scheduledEnd||null,allDay:allDay,notes:item.notes||"",contextPageId:item.contextPageId||null,notionPageId:item.notionPageId||task.notionPageId||null};
+      Object.keys(next).forEach(function(name){changed=setValue(task,name,next[name])||changed});if(completed&&!task.done){task.done=true;task.doneAt=Date.now();task.outcome=item.status==="Skipped"?"skipped":null;changed=true}if(changed)task.updatedAt=Date.now();
     });
-    if(changed)sync.set("todo","tasks",JSON.stringify(tasks));
-    return changed;
+    if(changed)sync.set("todo","tasks",JSON.stringify(tasks));syncTimedToTimetable(sync,tasks);return changed
   }
 
-  function installPayloadGuard(win){
-    var sync=win.SyncEngine;
-    if(!sync||sync.__readingPayloadGuard||typeof sync.syncActionBlocks!=="function")return;
-    var original=sync.syncActionBlocks.bind(sync);
-    sync.syncActionBlocks=function(items){
-      var tasks=parseList(sync.get("todo","tasks"));
-      var minutesByOccurrence={};
-      tasks.forEach(function(task){if(task&&task.occurrenceId&&task.plannedMinutes)minutesByOccurrence[task.occurrenceId]=task.plannedMinutes});
-      var corrected=(Array.isArray(items)?items:[]).map(function(item){
-        if(!item||!item.occurrenceId||!minutesByOccurrence[item.occurrenceId])return item;
-        return Object.assign({},item,{plannedMinutes:minutesByOccurrence[item.occurrenceId]});
-      });
-      return original(corrected);
-    };
-    sync.__readingPayloadGuard=true;
+  function widgetKey(win){try{return new URLSearchParams((location.hash||"").slice(1)).get("key")||win.localStorage.getItem("_sync_passphrase")||""}catch(error){return""}}
+  function installPagesBridge(win){
+    var sync=win.SyncEngine;if(!sync||sync.__pagesNotionBridge)return;
+    function request(method,items,from,to){var key=widgetKey(win);if(!key)return Promise.resolve({configured:false,items:[]});var endpoint="/notion/action-blocks",query=[];if(from)query.push("from="+encodeURIComponent(from));if(to)query.push("to="+encodeURIComponent(to));if(query.length)endpoint+="?"+query.join("&");var options={method:method,headers:{"X-Widget-Key":key}};if(method==="POST"){options.headers["Content-Type"]="application/json";options.body=JSON.stringify({items:Array.isArray(items)?items:[]})}return fetch(endpoint,options).then(function(response){if(!response.ok)throw new Error(String(response.status));return response.json()}).catch(function(){return{configured:false,items:[]}})}
+    sync.fetchActionBlocks=function(from,to){return request("GET",null,from,to)};sync.syncActionBlocks=function(items){return request("POST",items)};sync.__pagesNotionBridge=true
   }
-
-  function installPagesNotionBridge(win){
-    if(location.hostname!=="notion-widgets-93r.pages.dev")return;
-    var sync=win.SyncEngine;
-    if(!sync||sync.__pagesNotionBridge)return;
-    function widgetKey(){try{var hashKey=new URLSearchParams(location.hash.slice(1)).get("key");if(hashKey)return hashKey;return win.localStorage.getItem("_sync_passphrase")||""}catch(error){return""}}
-    function request(method,items,from,to){
-      var key=widgetKey();
-      if(!key)return Promise.resolve({configured:false,items:[]});
-      var endpoint="/notion/action-blocks",query=[];
-      if(from)query.push("from="+encodeURIComponent(from));
-      if(to)query.push("to="+encodeURIComponent(to));
-      if(query.length)endpoint+="?"+query.join("&");
-      var options={method:method,headers:{"X-Widget-Key":key}};
-      if(method==="POST"){
-        options.headers["Content-Type"]="application/json";
-        options.body=JSON.stringify({items:Array.isArray(items)?items:[]});
-      }
-      return fetch(endpoint,options).then(function(response){
-        if(!response.ok)throw new Error(String(response.status));
-        return response.json();
-      }).catch(function(){return{configured:false,items:[]}});
-    }
-    sync.fetchActionBlocks=function(from,to){return request("GET",null,from,to)};
-    sync.syncActionBlocks=function(items){return request("POST",items)};
-    sync.__pagesNotionBridge=true;
+  function bytes(value){var raw=atob(value),out=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)out[i]=raw.charCodeAt(i);return out}
+  function loadEncryptedFallback(win){
+    var keyText=widgetKey(win),url="https://raw.githubusercontent.com/LordGrape/notion-widgets/a06d8b3df72b612a8b2f428ec16e920fc33b6188/action-blocks-feed.enc.json";if(!keyText)return Promise.reject(new Error("key"));
+    return fetch(url,{cache:"no-store"}).then(function(response){if(!response.ok)throw new Error(String(response.status));return response.json()}).then(function(payload){var encoder=new TextEncoder();return crypto.subtle.importKey("raw",encoder.encode(keyText),"PBKDF2",false,["deriveKey"]).then(function(material){return crypto.subtle.deriveKey({name:"PBKDF2",salt:bytes(payload.salt),iterations:payload.iterations||100000,hash:"SHA-256"},material,{name:"AES-GCM",length:256},false,["decrypt"])}).then(function(key){return crypto.subtle.decrypt({name:"AES-GCM",iv:bytes(payload.iv)},key,bytes(payload.ciphertext))})}).then(function(clear){var feed=JSON.parse(new TextDecoder().decode(clear));mergeRemote(win,feed.items||[]);return feed.items||[]})
   }
-
   function syncReadings(){
-    var win=appWindow();
-    if(!win||!win.SyncEngine||typeof win.SyncEngine.fetchActionBlocks!=="function"){
-      clearTimeout(retryTimer);
-      retryTimer=setTimeout(syncReadings,500);
-      return;
-    }
-    installPayloadGuard(win);
-    installPagesNotionBridge(win);
-    var sync=win.SyncEngine;
-    showStatus("Loading scheduled tasks...");
-    sync.fetchActionBlocks(range(-1),range(14)).then(function(result){
-      if(!result||result.configured===false){
-        showStatus("Action Blocks are not connected to the Worker. Check the Worker Notion connection.");
-        return;
-      }
-      mergeRemote(win,result.items||[]);
-      showStatus("");
-    }).catch(function(){
-      showStatus("Action Blocks could not load. Check the Worker Notion connection.");
-    });
+    var win=appWindow();if(!win||!win.SyncEngine){clearTimeout(retryTimer);retryTimer=setTimeout(syncReadings,500);return}installPagesBridge(win);var sync=win.SyncEngine;showStatus("Loading scheduled tasks...");
+    sync.fetchActionBlocks(range(-1),range(14)).then(function(result){if(!result||result.configured===false||!Array.isArray(result.items)||!result.items.length)return loadEncryptedFallback(win);mergeRemote(win,result.items);return result.items}).then(function(){showStatus("")}).catch(function(){showStatus("Private task feed could not be unlocked.")})
   }
-
-  function boot(){
-    clearTimeout(retryTimer);
-    clearInterval(pollTimer);
-    retryTimer=setTimeout(syncReadings,800);
-    pollTimer=setInterval(syncReadings,15000);
-  }
-  shell.addEventListener("load",boot);
-  boot();
+  function boot(){clearTimeout(retryTimer);clearInterval(pollTimer);retryTimer=setTimeout(syncReadings,800);pollTimer=setInterval(syncReadings,15000)}
+  shell.addEventListener("load",boot);boot();
 })();
 </script>
 </body>
