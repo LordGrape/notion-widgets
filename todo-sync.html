@@ -89,6 +89,33 @@
     sync.__readingPayloadGuard=true;
   }
 
+  function installPagesNotionBridge(win){
+    if(location.hostname!=="notion-widgets-93r.pages.dev")return;
+    var sync=win.SyncEngine;
+    if(!sync||sync.__pagesNotionBridge)return;
+    function widgetKey(){try{return win.localStorage.getItem("_sync_passphrase")||""}catch(error){return""}}
+    function request(method,items,from,to){
+      var key=widgetKey();
+      if(!key)return Promise.resolve({configured:false,items:[]});
+      var endpoint="/notion/action-blocks",query=[];
+      if(from)query.push("from="+encodeURIComponent(from));
+      if(to)query.push("to="+encodeURIComponent(to));
+      if(query.length)endpoint+="?"+query.join("&");
+      var options={method:method,headers:{"X-Widget-Key":key}};
+      if(method==="POST"){
+        options.headers["Content-Type"]="application/json";
+        options.body=JSON.stringify({items:Array.isArray(items)?items:[]});
+      }
+      return fetch(endpoint,options).then(function(response){
+        if(!response.ok)throw new Error(String(response.status));
+        return response.json();
+      }).catch(function(){return{configured:false,items:[]}});
+    }
+    sync.fetchActionBlocks=function(from,to){return request("GET",null,from,to)};
+    sync.syncActionBlocks=function(items){return request("POST",items)};
+    sync.__pagesNotionBridge=true;
+  }
+
   function syncReadings(){
     var win=appWindow();
     if(!win||!win.SyncEngine||typeof win.SyncEngine.fetchActionBlocks!=="function"){
@@ -97,6 +124,7 @@
       return;
     }
     installPayloadGuard(win);
+    installPagesNotionBridge(win);
     var sync=win.SyncEngine;
     if(!sync.isOnline||!sync.isOnline()){
       showStatus("Waiting for widget sync before importing Action Blocks.");
