@@ -126,10 +126,7 @@
     installPayloadGuard(win);
     installPagesNotionBridge(win);
     var sync=win.SyncEngine;
-    if(!sync.isOnline||!sync.isOnline()){
-      showStatus("Waiting for widget sync before importing Action Blocks.");
-      return;
-    }
+    showStatus("Loading scheduled tasks...");
     sync.fetchActionBlocks(range(-1),range(14)).then(function(result){
       if(!result||result.configured===false){
         showStatus("Action Blocks are not connected to the Worker. Check the Worker Notion connection.");
@@ -146,7 +143,7 @@
     clearTimeout(retryTimer);
     clearInterval(pollTimer);
     retryTimer=setTimeout(syncReadings,800);
-    pollTimer=setInterval(syncReadings,60000);
+    pollTimer=setInterval(syncReadings,15000);
   }
   shell.addEventListener("load",boot);
   boot();
