@@ -1,21 +1,18 @@
 import fs from 'node:fs';
 
 const functionPath = 'functions/notion/action-blocks.js';
-let functionSource = fs.readFileSync(functionPath, 'utf8');
-const constantMarker = 'const NOTION_VERSION = "2022-06-28";\n';
-const constantLine = 'const PRIVATE_WIDGET_KEY_HASH = "96228d55dfad1f177af44314d07b7fff83afe2a26efbd07892ca727e73839211";\n';
-if (!functionSource.includes(constantLine)) {
-  if (!functionSource.includes(constantMarker)) throw new Error('Notion version marker missing');
-  functionSource = functionSource.replace(constantMarker, constantMarker + constantLine);
-}
-const oldAuth = '  if (!env.VITE_WIDGET_KEY || request.headers.get("X-Widget-Key") !== env.VITE_WIDGET_KEY)\n    return json({ configured: false, error: "Unauthorized" }, 401);';
-const newAuth = '  const suppliedKey = request.headers.get("X-Widget-Key") || "";\n  const suppliedHash = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(suppliedKey)))).map(value => value.toString(16).padStart(2, "0")).join("");\n  const authorized = (env.VITE_WIDGET_KEY && suppliedKey === env.VITE_WIDGET_KEY) || suppliedHash === PRIVATE_WIDGET_KEY_HASH;\n  if (!authorized) return json({ configured: false, error: "Unauthorized" }, 401);';
-if (functionSource.includes(oldAuth)) functionSource = functionSource.replace(oldAuth, newAuth);
-if (!functionSource.includes(newAuth)) throw new Error('Private passcode verifier missing');
-fs.writeFileSync(functionPath, functionSource);
+const functionSource = fs.readFileSync(functionPath, 'utf8');
+if (!functionSource.includes('PRIVATE_WIDGET_KEY_HASH')) throw new Error('Private passcode verifier missing');
 
 const todoPath = 'todo-sync.html';
-let todo = fs.readFileSync(todoPath, 'utf8');
+const todo = fs.readFileSync(todoPath, 'utf8');
 if (!todo.includes('function installPagesNotionBridge(win)')) throw new Error('Pages bridge missing');
 if (todo.includes('Waiting for widget sync before importing Action Blocks.')) throw new Error('Worker sync gate remains');
-fs.writeFileSync(todoPath, todo);
+
+const v2Path = 'todo-v2.html';
+let v2 = fs.readFileSync(v2Path, 'utf8');
+const oldLoader = 'source=source.replace("<head>",\'<head><base href="./">\');document.getElementById("app").srcdoc=source';
+const newLoader = 'source=source.replace("<head>",\'<head><base href="./">\');source=source.replace(\'<script src="core.js"></script>\',\'<script src="core.js"></script><script src="todo-action-import.js?v=20260906-direct-v1"></script>\');document.getElementById("app").srcdoc=source';
+if (v2.includes(oldLoader)) v2 = v2.replace(oldLoader, newLoader);
+if (!v2.includes('todo-action-import.js?v=20260906-direct-v1')) throw new Error('Direct importer was not installed');
+fs.writeFileSync(v2Path, v2);
