@@ -2,10 +2,12 @@ import fs from 'node:fs';
 
 const functionPath = 'functions/notion/action-blocks.js';
 let functionSource = fs.readFileSync(functionPath, 'utf8');
-functionSource = functionSource.replace(
-  'fetch(`{{https://api.notion.com/v1${path}}}`,',
-  'fetch(`https://api.notion.com/v1${path}`,',
-);
+const badEndpoint = 'fetch(`{{https://api.notion.com/v1${path}}}`,';
+const goodEndpoint = 'fetch(`https://api.notion.com/v1${path}`,';
+if (functionSource.includes(badEndpoint)) {
+  functionSource = functionSource.replace(badEndpoint, goodEndpoint);
+}
+if (!functionSource.includes(goodEndpoint)) throw new Error('Pages Notion endpoint marker missing');
 fs.writeFileSync(functionPath, functionSource);
 
 const todoPath = 'todo-sync.html';
