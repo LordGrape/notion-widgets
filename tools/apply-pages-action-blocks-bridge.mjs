@@ -7,9 +7,10 @@ if (!functionSource.includes(validEndpoint)) throw new Error('Valid Notion endpo
 
 const todoPath = 'todo-sync.html';
 let todo = fs.readFileSync(todoPath, 'utf8');
-const oldKeyReader = '    function widgetKey(){try{return win.localStorage.getItem("_sync_passphrase")||""}catch(error){return""}}';
-const newKeyReader = '    function widgetKey(){try{var hashKey=new URLSearchParams(location.hash.slice(1)).get("key");if(hashKey)return hashKey;return win.localStorage.getItem("_sync_passphrase")||""}catch(error){return""}}';
-if (todo.includes(oldKeyReader)) todo = todo.replace(oldKeyReader, newKeyReader);
-if (!todo.includes(newKeyReader)) throw new Error('Hash-aware widget key reader missing');
-if (!todo.includes('function installPagesNotionBridge(win)')) throw new Error('Pages bridge missing');
+const keyReader = '    function widgetKey(){try{var hashKey=new URLSearchParams(location.hash.slice(1)).get("key");if(hashKey)return hashKey;return win.localStorage.getItem("_sync_passphrase")||""}catch(error){return""}}';
+if (!todo.includes(keyReader)) throw new Error('Hash-aware widget key reader missing');
+const onlineGate = '    if(!sync.isOnline||!sync.isOnline()){\n      showStatus("Waiting for widget sync before importing Action Blocks.");\n      return;\n    }\n';
+if (todo.includes(onlineGate)) todo = todo.replace(onlineGate, '    showStatus("Loading scheduled tasks...");\n');
+if (todo.includes('Waiting for widget sync before importing Action Blocks.')) throw new Error('Worker sync gate remains');
+todo = todo.replace('pollTimer=setInterval(syncReadings,60000);', 'pollTimer=setInterval(syncReadings,15000);');
 fs.writeFileSync(todoPath, todo);
