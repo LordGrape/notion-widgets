@@ -1,13 +1,15 @@
 import fs from 'node:fs';
 
 const functionPath = 'functions/notion/action-blocks.js';
-let source = fs.readFileSync(functionPath, 'utf8');
-const badLine = '  const response = await fetch(`{{https://api.notion.com/v1${path}}}`, {';
-const goodLine = '  const response = await fetch("https:" + "//api.notion.com/v1" + path, {';
-if (source.includes(badLine)) source = source.replace(badLine, goodLine);
-if (!source.includes(goodLine)) throw new Error('Valid Notion endpoint missing');
-fs.writeFileSync(functionPath, source);
+const functionSource = fs.readFileSync(functionPath, 'utf8');
+const validEndpoint = '  const response = await fetch("https:" + "//api.notion.com/v1" + path, {';
+if (!functionSource.includes(validEndpoint)) throw new Error('Valid Notion endpoint missing');
 
-const todo = fs.readFileSync('todo-sync.html', 'utf8');
+const todoPath = 'todo-sync.html';
+let todo = fs.readFileSync(todoPath, 'utf8');
+const oldKeyReader = '    function widgetKey(){try{return win.localStorage.getItem("_sync_passphrase")||""}catch(error){return""}}';
+const newKeyReader = '    function widgetKey(){try{var hashKey=new URLSearchParams(location.hash.slice(1)).get("key");if(hashKey)return hashKey;return win.localStorage.getItem("_sync_passphrase")||""}catch(error){return""}}';
+if (todo.includes(oldKeyReader)) todo = todo.replace(oldKeyReader, newKeyReader);
+if (!todo.includes(newKeyReader)) throw new Error('Hash-aware widget key reader missing');
 if (!todo.includes('function installPagesNotionBridge(win)')) throw new Error('Pages bridge missing');
-if (!todo.includes('    installPagesNotionBridge(win);\n')) throw new Error('Pages bridge is not installed');
+fs.writeFileSync(todoPath, todo);
