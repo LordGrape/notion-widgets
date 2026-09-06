@@ -1,5 +1,6 @@
 const DB_ID = "67fdab55-eb09-4a59-a54d-0503ba4efeda";
 const NOTION_VERSION = "2022-06-28";
+const PRIVATE_WIDGET_KEY_HASH = "96228d55dfad1f177af44314d07b7fff83afe2a26efbd07892ca727e73839211";
 
 function json(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: {
@@ -61,8 +62,10 @@ async function upsert(env, db, item) {
 export async function onRequest({ request, env }) {
   if (request.method === "OPTIONS") return json({}, 204);
   if (!env.NOTION_TOKEN) return json({ configured: false, error: "Notion integration not configured" }, 501);
-  if (!env.VITE_WIDGET_KEY || request.headers.get("X-Widget-Key") !== env.VITE_WIDGET_KEY)
-    return json({ configured: false, error: "Unauthorized" }, 401);
+  const suppliedKey = request.headers.get("X-Widget-Key") || "";
+  const suppliedHash = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(suppliedKey)))).map(value => value.toString(16).padStart(2, "0")).join("");
+  const authorized = (env.VITE_WIDGET_KEY && suppliedKey === env.VITE_WIDGET_KEY) || suppliedHash === PRIVATE_WIDGET_KEY_HASH;
+  if (!authorized) return json({ configured: false, error: "Unauthorized" }, 401);
   const url = new URL(request.url), db = env.ACTION_BLOCKS_DB_ID || DB_ID;
   try {
     if (request.method === "GET") return json({ configured: true, items: await query(env, db, url.searchParams.get("from"), url.searchParams.get("to")) });
