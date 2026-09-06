@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>To-Do</title>
+<style>
+*{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden;background:transparent}iframe{display:block;width:100%;height:100%;border:0;background:transparent}.bridge-status{position:fixed;z-index:10;left:12px;right:12px;bottom:12px;display:none;padding:9px 12px;border:1px solid rgba(245,158,11,.38);border-radius:11px;background:rgba(24,20,38,.96);color:#f5f2ff;font:600 12px/1.4 system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.28);backdrop-filter:blur(16px)}.bridge-status.show{display:block}
+</style>
+</head>
+<body>
+<iframe id="todo" src="todo-v2.html?source=20260906-notion-reading-bridge" title="To-Do widget"></iframe>
+<div class="bridge-status" id="bridgeStatus" role="status" aria-live="polite"></div>
+<script>
+(function(){
+  "use strict";
+  var shell=document.getElementById("todo");
+  var status=document.getElementById("bridgeStatus");
+  var retryTimer=null;
+  var pollTimer=null;
+
+  function pad(value){return String(value).padStart(2,"0")}
+  function dateKey(date){date=date||new Date();return date.getFullYear()+"-"+pad(date.getMonth()+1)+"-"+pad(date.getDate())}
+  function range(days){var date=new Date();date.setDate(date.getDate()+days);return dateKey(date)}
+  function parseList(value){if(Array.isArray(value))return value;if(typeof value==="string")try{var parsed=JSON.parse(value);return Array.isArray(parsed)?parsed:[]}catch(error){}return[]}
+  function showStatus(message){status.textContent=message||"";status.classList.toggle("show",!!message)}
+  function dueState(key){if(key===dateKey())return"today";if(key===range(1))return"tomorrow";return null}
+  function timeBand(minutes){return minutes<=20?"quick":minutes<=45?"m30":minutes<=90?"m60":"deep"}
+  function timestamp(value){var parsed=Date.parse(value||"");return Number.isFinite(parsed)?parsed:Date.now()}
+  function appWindow(){
+    try{
+      var shellDoc=shell.contentDocument;
+      var app=shellDoc&&shellDoc.getElementById("app");
+      return app&&app.contentWindow&&app.contentWindow.document?app.contentWindow:null;
+    }catch(error){return null}
+  }
+  function setValue(task,key,value){if(task[key]!==value){task[key]=value;return true}return false}
+
+  function mergeRemote(win,remote){
+    var sync=win.SyncEngine;
+    var tasks=parseList(sync.get("todo","tasks"));
+    var changed=false;
+    parseList(remote).forEach(function(item){
+      if(!item||!item.scheduledStart)return;
+      var occurrence=item.occurrenceId||("notion:"+item.notionPageId);
+      var task=tasks.find(function(candidate){return candidate&&((candidate.occurrenceId&&candidate.occurrenceId===occurrence)||(candidate.notionPageId&&candidate.notionPageId===item.notionPageId))});
+      var dateOnly=/^\d{4}-\d{2}-\d{2}$/.test(String(item.scheduledStart));
+      var key=dateOnly?String(item.scheduledStart):dateKey(new Date(item.scheduledStart));
+      var planned=Math.max(1,Number(item.plannedMinutes)||30);
+      var completed=item.status==="Done"||item.status==="Skipped";
+      if(!task){
+        tasks.push({id:occurrence,text:item.action||"Notion action",pri:String(item.priority||"").toLowerCase()||null,time:timeBand(planned),due:dueState(key),dueKey:key,setKey:key,done:completed,doneAt:completed?Date.now():null,created:timestamp(item.scheduledStart),updatedAt:Date.now(),order:timestamp(item.scheduledStart),notes:item.notes||"",category:String(item.category||"Personal").toLowerCase(),source:"notion",occurrenceId:occurrence,notionPageId:item.notionPageId||null,scheduledStart:item.scheduledStart,scheduledEnd:item.scheduledEnd||null,allDay:dateOnly,contextPageId:item.contextPageId||null,plannedMinutes:planned,outcome:item.status==="Skipped"?"skipped":null});
+        changed=true;
+        return;
+      }
+      changed=setValue(task,"text",item.action||task.text)||changed;
+      changed=setValue(task,"pri",String(item.priority||"").toLowerCase()||null)||changed;
+      changed=setValue(task,"time",timeBand(planned))||changed;
+      changed=setValue(task,"plannedMinutes",planned)||changed;
+      changed=setValue(task,"dueKey",key)||changed;
+      changed=setValue(task,"due",dueState(key))||changed;
+      changed=setValue(task,"scheduledStart",item.scheduledStart)||changed;
+      changed=setValue(task,"scheduledEnd",item.scheduledEnd||null)||changed;
+      changed=setValue(task,"allDay",dateOnly)||changed;
+      changed=setValue(task,"notes",item.notes||"")||changed;
+      changed=setValue(task,"contextPageId",item.contextPageId||null)||changed;
+      changed=setValue(task,"notionPageId",item.notionPageId||task.notionPageId||null)||changed;
+      if(completed&&!task.done){task.done=true;task.doneAt=Date.now();task.outcome=item.status==="Skipped"?"skipped":null;changed=true}
+      if(changed)task.updatedAt=Date.now();
+    });
+    if(changed)sync.set("todo","tasks",JSON.stringify(tasks));
+    return changed;
+  }
+
+  function installPayloadGuard(win){
+    var sync=win.SyncEngine;
+    if(!sync||sync.__readingPayloadGuard||typeof sync.syncActionBlocks!=="function")return;
+    var original=sync.syncActionBlocks.bind(sync);
+    sync.syncActionBlocks=function(items){
+      var tasks=parseList(sync.get("todo","tasks"));
+      var minutesByOccurrence={};
+      tasks.forEach(function(task){if(task&&task.occurrenceId&&task.plannedMinutes)minutesByOccurrence[task.occurrenceId]=task.plannedMinutes});
+      var corrected=(Array.isArray(items)?items:[]).map(function(item){
+        if(!item||!item.occurrenceId||!minutesByOccurrence[item.occurrenceId])return item;
+        return Object.assign({},item,{plannedMinutes:minutesByOccurrence[item.occurrenceId]});
+      });
+      return original(corrected);
+    };
+    sync.__readingPayloadGuard=true;
+  }
+
+  function syncReadings(){
+    var win=appWindow();
+    if(!win||!win.SyncEngine||typeof win.SyncEngine.fetchActionBlocks!=="function"){
+      clearTimeout(retryTimer);
+      retryTimer=setTimeout(syncReadings,500);
+      return;
+    }
+    installPayloadGuard(win);
+    var sync=win.SyncEngine;
+    if(!sync.isOnline||!sync.isOnline()){
+      showStatus("Waiting for widget sync before importing Action Blocks.");
+      return;
+    }
+    sync.fetchActionBlocks(range(-1),range(14)).then(function(result){
+      if(!result||result.configured===false){
+        showStatus("Action Blocks are not connected to the Worker. Check the Worker Notion connection.");
+        return;
+      }
+      mergeRemote(win,result.items||[]);
+      showStatus("");
+    }).catch(function(){
+      showStatus("Action Blocks could not load. Check the Worker Notion connection.");
+    });
+  }
+
+  function boot(){
+    clearTimeout(retryTimer);
+    clearInterval(pollTimer);
+    retryTimer=setTimeout(syncReadings,800);
+    pollTimer=setInterval(syncReadings,60000);
+  }
+  shell.addEventListener("load",boot);
+  boot();
+})();
+</script>
+</body>
+</html>
