@@ -2,10 +2,10 @@ import fs from 'node:fs';
 
 const functionPath = 'functions/notion/action-blocks.js';
 let source = fs.readFileSync(functionPath, 'utf8');
-const bad = 'fetch(`{{https://api.notion.com/v1${path}}}`,';
-const good = 'fetch(`https://api.notion.com/v1${path}`,';
-if (source.includes(bad)) source = source.replace(bad, good);
-if (!source.includes(good)) throw new Error('Valid Notion endpoint missing');
+const badLine = '  const response = await fetch(`{{https://api.notion.com/v1${path}}}`, {';
+const goodLine = '  const response = await fetch("https:" + "//api.notion.com/v1" + path, {';
+if (source.includes(badLine)) source = source.replace(badLine, goodLine);
+if (!source.includes(goodLine)) throw new Error('Valid Notion endpoint missing');
 fs.writeFileSync(functionPath, source);
 
 const todo = fs.readFileSync('todo-sync.html', 'utf8');
