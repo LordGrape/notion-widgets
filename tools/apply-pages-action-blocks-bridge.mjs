@@ -5,8 +5,11 @@ const functionSource = fs.readFileSync(functionPath, 'utf8');
 if (!functionSource.includes('PRIVATE_WIDGET_KEY_HASH')) throw new Error('Private passcode verifier missing');
 
 const todoPath = 'todo-sync.html';
-const todo = fs.readFileSync(todoPath, 'utf8');
+let todo = fs.readFileSync(todoPath, 'utf8');
 if (!todo.includes('function installPagesNotionBridge(win)')) throw new Error('Pages bridge missing');
+todo = todo.replace('todo-v2.html?source=20260906-notion-reading-bridge', 'todo-v2.html?source=20260906-stable-loader-v2');
+if (!todo.includes('todo-v2.html?source=20260906-stable-loader-v2')) throw new Error('Stable loader cache key missing');
+fs.writeFileSync(todoPath, todo);
 
 const v2Path = 'todo-v2.html';
 let v2 = fs.readFileSync(v2Path, 'utf8');
