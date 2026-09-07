@@ -1,4 +1,3 @@
-# run
 name: Move widget sources
 on:
   push:
@@ -13,19 +12,19 @@ jobs:
       - name: Move related files together
         run: |
           set -e
-          mkdir -p apps/athlete/src/scripts apps/athlete/src/styles apps/quotes packages/theme
+          mkdir -p apps/athlete/src/scripts apps/athlete/src/styles apps/quotes/src packages/theme
           git mv athlete.source.html apps/athlete/src/index.html
           for f in athlete-body.js athlete-data.js athlete-flow.js athlete-notion.js athlete-render.js athlete-settings.js athlete-training-data.js athlete-training-ui.js; do git mv "$f" apps/athlete/src/scripts/; done
           for f in athlete.css athlete-settings.css athlete-training.css; do git mv "$f" apps/athlete/src/styles/; done
           git mv athlete.html apps/athlete/athlete.html
-          git mv quotes.html apps/quotes/index.html
-          git mv quotes.json apps/quotes/quotes.json
+          git mv quotes.html apps/quotes/src/index.html
+          git mv quotes.json apps/quotes/src/quotes.json
           git mv theme-upgrade.css packages/theme/theme-upgrade.css
           cat > athlete.html <<'EOF'
           <!doctype html><meta charset="utf-8"><script>location.replace('/apps/athlete/athlete.html'+location.search+location.hash)</script>
           EOF
           cat > quotes.html <<'EOF'
-          <!doctype html><meta charset="utf-8"><script>location.replace('/apps/quotes/index.html'+location.search+location.hash)</script>
+          <!doctype html><meta charset="utf-8"><script>location.replace('/apps/quotes/src/index.html'+location.search+location.hash)</script>
           EOF
           python3 - <<'PY'
           from pathlib import Path
@@ -36,7 +35,7 @@ jobs:
           for n in ['athlete-body.js','athlete-data.js','athlete-flow.js','athlete-notion.js','athlete-render.js','athlete-settings.js','athlete-training-data.js','athlete-training-ui.js']:
               s=s.replace(f'src="{n}',f'src="scripts/{n}')
           p.write_text(s)
-          q=Path('apps/quotes/index.html'); s=q.read_text().replace('theme-upgrade.css','../../packages/theme/theme-upgrade.css'); q.write_text(s)
+          q=Path('apps/quotes/src/index.html'); s=q.read_text().replace('theme-upgrade.css','../../../packages/theme/theme-upgrade.css'); q.write_text(s)
           for p in Path('.').glob('*.html'):
               if p.name in {'athlete.html','quotes.html'}: continue
               p.write_text(p.read_text().replace('theme-upgrade.css','packages/theme/theme-upgrade.css'))
