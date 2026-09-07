@@ -1,16 +1,22 @@
 # Study Engine
 
-## Purpose
-Larger study application/widget. This app already has its own Vite/TypeScript structure under `../../studyengine`.
+Study Engine is the law-school execution layer of the widget system.
 
-## Current source
-- App root: `../../studyengine/`
-- Entry files: `../../studyengine/index.html`, `../../studyengine/studyengine.html`
-- Source: `../../studyengine/src/`
-- Build config: `../../studyengine/vite.config.ts`
+## Canonical implementation
 
-## Migration status
-This folder documents Study Engine in the monorepo app map while preserving the existing source location. Move the implementation here only after deployment paths are updated and tested.
+- App: `../../studyengine/index.html`
+- Law-school planner: `../../studyengine/law-school-core.js`
+- Widget integration and session UI: `../../studyengine/law-school-app.js`
+- Styling: `../../studyengine/law-school.css`
+- Architecture decision: `../../studyengine/docs/adr/0007-law-school-orchestrator.md`
+- Preserved legacy build: `../../studyengine/studyengine.html`
 
-## Edit guidance
-Prefer editing the existing `studyengine/` project directly until the app is physically moved.
+## Shared system
+
+- Notion holds authoritative course material.
+- Notion AI creates source-grounded prompts and answer checklists.
+- Study Engine chooses the due learning phase and records performance.
+- To-do receives the daily study activities.
+- Timetable provides study windows and recurring commitments.
+
+The rebuild uses no paid generative-AI API. Atomic flashcards can later use the official FSRS implementation; legal application, distinction, integration, and timed performance remain separate practice phases.
