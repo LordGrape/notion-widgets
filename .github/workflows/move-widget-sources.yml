@@ -1,0 +1,48 @@
+name: Move widget sources
+on:
+  push:
+    paths: [.github/workflows/move-widget-sources.yml]
+permissions:
+  contents: write
+jobs:
+  move:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Move related files together
+        run: |
+          set -e
+          mkdir -p apps/athlete/src/scripts apps/athlete/src/styles apps/quotes packages/theme
+          git mv athlete.source.html apps/athlete/src/index.html
+          for f in athlete-body.js athlete-data.js athlete-flow.js athlete-notion.js athlete-render.js athlete-settings.js athlete-training-data.js athlete-training-ui.js; do git mv "$f" apps/athlete/src/scripts/; done
+          for f in athlete.css athlete-settings.css athlete-training.css; do git mv "$f" apps/athlete/src/styles/; done
+          git mv athlete.html apps/athlete/athlete.html
+          git mv quotes.html apps/quotes/index.html
+          git mv quotes.json apps/quotes/quotes.json
+          git mv theme-upgrade.css packages/theme/theme-upgrade.css
+          cat > athlete.html <<'EOF'
+          <!doctype html><meta charset="utf-8"><script>location.replace('/apps/athlete/athlete.html'+location.search+location.hash)</script>
+          EOF
+          cat > quotes.html <<'EOF'
+          <!doctype html><meta charset="utf-8"><script>location.replace('/apps/quotes/index.html'+location.search+location.hash)</script>
+          EOF
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('apps/athlete/src/index.html'); s=p.read_text()
+          s=s.replace('src="core.js"','src="../../../core.js"')
+          s=s.replace('href="athlete.css','href="styles/athlete.css').replace('href="athlete-settings.css','href="styles/athlete-settings.css').replace('href="athlete-training.css','href="styles/athlete-training.css')
+          s=s.replace('href="theme-upgrade.css','href="../../../packages/theme/theme-upgrade.css')
+          for n in ['athlete-body.js','athlete-data.js','athlete-flow.js','athlete-notion.js','athlete-render.js','athlete-settings.js','athlete-training-data.js','athlete-training-ui.js']:
+              s=s.replace(f'src="{n}',f'src="scripts/{n}')
+          p.write_text(s)
+          q=Path('apps/quotes/index.html'); s=q.read_text().replace('theme-upgrade.css','../../packages/theme/theme-upgrade.css'); q.write_text(s)
+          for p in Path('.').glob('*.html'):
+              if p.name in {'athlete.html','quotes.html'}: continue
+              p.write_text(p.read_text().replace('theme-upgrade.css','packages/theme/theme-upgrade.css'))
+          PY
+          rm .github/workflows/move-widget-sources.yml
+          git add -A
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git commit -m "Move widget sources into application folders"
+          git push
