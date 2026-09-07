@@ -1,34 +1,32 @@
 # Notion Widgets
 
-A personal suite of synchronized tools for planning, study, training, and focused execution inside and alongside Notion.
+A personal suite of synchronized tools for planning, focused work, learning, and training in Notion. Each widget remains independently embeddable while sharing one visual system, one synchronization boundary, and stable production URLs.
 
-## Applications
+## Product map
 
-| Application | Role | Production source |
-| --- | --- | --- |
-| Command Centre | Installable PWA and unified execution view | `apps/assistant/` |
-| To-do | Tasks, priorities, action blocks, and reminders | `todo.html` / `todo-v2.html` |
-| Timetable | Weekly schedule, targets, and milestone radar | `timetable.html` |
-| Study Engine | Active recall and review workflow | `studyengine/` |
-| Athlete | Training, assessments, and performance records | `athlete.source.html` and modules |
-| Clock | Clock, timer, focus tracking, and weather | `clock.html` |
-| Quotes | Daily quotation embed | `quotes.html` |
+| Application | Purpose | Source | Production path |
+| --- | --- | --- | --- |
+| Command Centre | Unified execution view | `apps/assistant/` | application-owned |
+| To-do | Priorities, action blocks, and reminders | documented in `apps/todo/` | `/todo*.html` |
+| Timetable | Weekly schedule and one-off timed work | `timetable.html` | `/timetable.html` |
+| Study Engine | Retrieval practice and adaptive tutoring | `studyengine/` | `/dist/studyengine.html` |
+| Athlete | Assessments, workouts, and progress | Athlete source modules | `/athlete.html` |
+| Clock | Time, timer, focus tracking, and weather | `clock.html` | `/clock.html` |
+| Quotes | Passive daily quotation | `quotes.html` and `quotes.json` | `/quotes.html` |
 
-Existing root-level production paths are intentionally preserved so embedded Notion widgets continue working during the monorepo migration.
-
-## Repository map
+## Repository structure
 
 ```text
-apps/          Application documentation, wrappers, and Command Centre
-packages/      Shared runtime and package boundaries
-studyengine/   Vite and TypeScript Study Engine source
+apps/          Application boundaries and local guidance
+packages/      Shared code with multiple consumers
+studyengine/   Vite and TypeScript Study Engine
 worker/        Cloudflare Worker and protected integrations
-tools/         Build, verification, and migration scripts
-docs/          Architecture and contributor guidance
-dist/          Generated artifacts
+tools/         Active build and verification scripts
+docs/          Durable architecture documentation
+dist/          Generated Study Engine output
 ```
 
-Start with [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for system boundaries. For a focused widget change, read [`apps/README.md`](apps/README.md) and then the target application's README.
+Root production paths stay stable for existing Notion embeds while source is consolidated application by application.
 
 ## Development
 
@@ -37,29 +35,15 @@ pnpm install
 pnpm check
 ```
 
-Common commands:
+Application-specific commands and contracts live in each app README. Start with [`apps/README.md`](apps/README.md), then read the target application's README and nearest `AGENTS.md`.
 
-- `pnpm preview` starts the Cloudflare development environment.
-- `pnpm format` formats supported files.
-- `pnpm typecheck` checks shared TypeScript configuration.
-- `pnpm check:assistant` validates the Command Centre PWA structure.
-- `pnpm check` runs repository-level static checks.
+## Principles
 
-Study Engine and Worker have their own package commands and continuous integration jobs.
+1. GitHub source and recent commits outrank stale planning notes.
+2. Preserve current behaviour, URLs, and data contracts unless the task requires a change.
+3. Keep code local until at least two applications need the same abstraction.
+4. Use SyncEngine for persistent state and the Worker for protected operations.
+5. Keep the interface minimal, responsive, accessible, and visually consistent.
+6. Rebuild generated files instead of editing them.
 
-## Deployment
-
-- GitHub is the source of truth.
-- Existing Notion embed URLs must remain stable.
-- Worker secrets remain in Cloudflare, never in static files.
-- Generated artifacts are rebuilt from source rather than edited directly.
-
-## Editing principles
-
-1. Preserve current behaviour unless a change explicitly requires otherwise.
-2. Keep persistent state behind `SyncEngine.get`, `SyncEngine.set`, and documented namespaces.
-3. Prefer small application-local changes over broad shared-runtime edits.
-4. Update the target application's README when its contract changes.
-5. Verify light, dark, mobile, standalone, and Notion embed contexts when relevant.
-
-See [`AGENTS.md`](AGENTS.md) for implementation guardrails.
+See [`AGENTS.md`](AGENTS.md) for agent guardrails and [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for system boundaries.

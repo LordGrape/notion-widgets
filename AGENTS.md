@@ -1,85 +1,57 @@
-# notion-widgets
+# Notion Widgets: agent guide
 
-Single-file widget suite embedded in Notion via `/embed` blocks.
-Live URL: https://notion-widgets-93r.pages.dev/
+## Mission
+Build one coherent personal execution system for planning, time, study, and training inside and alongside Notion. Widgets remain independently embeddable, but share a restrained purple visual language, stable synchronization boundaries, and dependable workflows. Prefer clarity and reliability over novelty.
 
-## Source and Context
-- GitHub is the source of truth. Fetch current source from `https://raw.githubusercontent.com/LordGrape/notion-widgets/main/<filename>` before editing tracked files.
-- Spec pages describe intent, not current code.
-- Never edit `dist/studyengine.html` directly. It is a build artifact.
+## Start here
+1. Read this file, then the nearest application README and nested `AGENTS.md`.
+2. Inspect current source and recent commits before planning. GitHub code is authoritative; documentation records durable intent and boundaries.
+3. Preserve production URLs, SyncEngine contracts, and user data unless the task explicitly changes them.
+4. Make the smallest coherent change. Run the narrowest relevant checks, then broader verification when warranted.
 
-## Architecture
-- All widgets load `core.js` as a shared dependency.
-- `core.js` provides SyncEngine, initBackground, playChime, launchConfetti, and GSAP loading.
-- All persistent state uses `SyncEngine.get/set`. Never use raw localStorage for app state unless the existing code already defines that storage boundary.
-- Cloudflare Worker source lives in `worker/`. Deploy with `npx wrangler deploy --config worker/wrangler.toml`.
-- All widgets except Study Engine may remain standalone `.html` files.
+## Repository map
+- `apps/`: application boundaries, local documentation, and gradually consolidated source.
+- `packages/`: shared code with at least two real consumers. Do not extract code here speculatively.
+- `studyengine/`: Vite and strict TypeScript Study Engine source.
+- `worker/`: Cloudflare Worker, protected integrations, and secrets boundary.
+- `tools/`: active build and verification scripts, not a historical patch archive.
+- Root HTML files: stable deployed entry points. Some remain source during migration; `athlete.html` and `dist/studyengine.html` are generated.
 
-## Study Engine Architecture
-- Study Engine is a Vite + TypeScript application whose entry shell is `studyengine/studyengine.html`.
-- `studyengine/studyengine.html` is not a dumping ground. Keep it focused on app shell markup, global tokens, sacred integration points, and minimal mount containers.
-- New feature UI should prefer typed modules under `studyengine/src/<feature>/`.
-- Pure logic, view models, render helpers, state transitions, DOM event wiring, and feature-local CSS may live outside the monolith.
-- Feature CSS may live beside the feature and be imported through Vite, as long as `vite-plugin-singlefile` still inlines the final build.
-- Keep large new UI surfaces out of `studyengine.html` unless they are truly app-shell concerns or extraction would make the integration riskier than the feature.
-- Do not introduce a new frontend framework without explicit approval. The default stack is Vite, TypeScript, vanilla DOM, CSS, and existing local helpers.
-- Build output is `dist/studyengine.html`; never edit it directly.
+## Product boundaries
+- `core.js` owns shared design tokens, accessibility helpers, animation services, and SyncEngine.
+- Persistent state goes through `SyncEngine.get/set`. Do not add raw `localStorage` state outside an existing documented compatibility boundary.
+- Static files contain no credentials or private data. Protected Notion and network operations belong in `worker/`.
+- Keep widgets independently embeddable. A command-centre surface may compose existing state but must not create a competing source of truth.
+- Preserve the established minimal purple glass interface. Improve function, settings, responsiveness, and smoothness without redesigning or adding clutter unless explicitly requested.
 
-## Sacred Constraints
-- Do not modify `scheduleFSRS` or FSRS scheduling parameters without explicit approval.
-- Do not change the SyncEngine contract: `get`/`set`/`init`/`flush` signatures and timestamp merge behaviour.
-- Do not change grading prompt structure in `worker/src/routes/tutor.ts` or `/studyengine/grade` without explicit approval.
-- Do not change tier progression logic, the 6-tier pedagogical backbone, without explicit approval.
-- XP must never influence FSRS scheduling.
+## Protected decisions
+Do not change without explicit approval:
+- `scheduleFSRS`, Free Spaced Repetition Scheduler parameters, or the six-tier Study Engine progression.
+- SyncEngine public methods or timestamp merge strategy.
+- Worker grading and tutoring prompt contracts.
+- The separation between experience points and scheduling decisions.
+- Existing public embed paths.
 
-## Code Rules
-- Never rename existing public functions without updating all callers.
-- Preserve existing functionality unless explicitly told to remove it.
-- Do not remove or rewrite code that was not mentioned in the task.
-- Pure logic belongs in typed `.ts` modules under `studyengine/src/`.
-- Avoid `any`. Prefer explicit interfaces and narrow types.
-- For Study Engine visual work, prefer feature-local CSS and typed render helpers; keep monolith edits to mount points and integration glue.
-- Return diffs or specific function replacements when asked. Do not provide full file rewrites unless the file is intentionally being replaced.
+## Engineering rules
+- Prefer application-local changes. Share code only after a real second consumer exists.
+- Preserve public function signatures and update every caller when a contract must change.
+- Use strict types in Study Engine code. Do not introduce `any` or a new framework.
+- Treat generated outputs as generated. Edit Athlete source files, not `athlete.html`; edit Study Engine source, not `dist/studyengine.html`.
+- Remove superseded instructions, abandoned migration notes, and one-off patch lore. Commit history is the change log.
+- Use Canadian English in user-facing strings.
+- Never commit secrets, passphrases, tokens, plaintext private tasks, or personal academic or military fixtures. Use synthetic public-domain test data.
 
-## Visual and Testing
-- Every visual change must work in both embed mode (`.topbar`, Notion iframe) and standalone mode (`body.standalone`, `.main-topbar` + sidebar).
-- Test both `prefers-color-scheme: light` and `dark`.
-- Use semantic tokens: `--surface-0` through `--surface-3`, `--border-subtle/default/accent`, `--text-primary/secondary/tertiary`, and `--accent-primary/secondary`.
-- Do not hardcode colours. Legacy aliases such as `--bg`, `--card-bg`, `--card-border`, `--accent`, and `--accent-rgb` still exist, but do not introduce new uses unless compatibility requires it.
-- Use GSAP for timeline-based or interactive animations. Use CSS `@keyframes` only for simple looping ambient effects such as shimmer or breathe.
+## Verification
+Run checks relevant to the changed files:
+- Repository: `pnpm check`
+- Athlete: `node tools/build-athlete.mjs --check && node tools/verify-athlete.mjs`
+- Study Engine: `cd studyengine && npm run typecheck && npm run test && npm run build`
+- Worker: use its package checks; deploy only when the task requires deployment.
 
-## Study Engine Module Map
-- `studyengine/studyengine.html` - Vite entry shell and legacy integration glue.
-- `studyengine/src/learn-flow.ts` - Learn session state transitions and telemetry.
-- `studyengine/src/learn-mode.ts` - Learn plan and turn client logic.
-- `studyengine/src/learn-ui/` - Learn-specific render helpers, DOM helpers, and feature CSS.
-- `studyengine/src/session-flow.ts` - review session queue, rating flow, Learn handoff.
-- `studyengine/src/sub-decks.ts` - sub-deck tree and card scope helpers.
-- `studyengine/src/settings.ts` - settings module setup.
-- `studyengine/src/ingest/` - ingest orchestration and parsers.
-- `studyengine/src/decks/` - built-in deck pipelines and fixtures.
-- `worker/src/routes/` - Worker API routes.
+For visual changes, verify light and dark themes, reduced motion, mobile, standalone, and Notion embed layouts. For state changes, verify a SyncEngine round trip and backward compatibility. Smoke tests must exercise the changed path, not merely return HTTP 200.
 
-## Commands
-- Study Engine dev server: `cd studyengine && npm exec vite -- --host 127.0.0.1 --port 5173`
-- Study Engine build: `cd studyengine && npm run build`
-- Study Engine typecheck: `cd studyengine && npm run typecheck`
-- Study Engine tests: `cd studyengine && npm run test`
-- Worker deploy: `npx wrangler deploy --config worker/wrangler.toml`
-
-## Git Workflow
-- Commit messages use a short imperative description of what changed.
-- Default to pushing directly to `origin/main` after committing unless the user asks for a branch or PR.
-- Do not revert user changes you did not make.
-
-## Language and Style
-- Use Canadian English in user-facing output: British-style `-our`, `-re`, `-ce`; American-style `-ize`, `-yze`.
-- Be explicit when unsure. Do not guess at implementation details that can be checked locally.
-
-## Done When
-- Relevant typecheck/tests pass, or any remaining failure is clearly identified as unrelated.
-- Visual changes are checked in embed and standalone layouts where practical.
-- Light and dark mode are considered.
-- No console errors are introduced.
-- SyncEngine round-trip still works if persistent state changed.
-- `dist/studyengine.html` remains untouched unless the user explicitly asks for a build artifact update.
+## Git workflow
+- Default to direct, focused commits on `main` unless the user requests a branch or pull request.
+- Use short imperative commit messages.
+- Never revert unrelated user changes.
+- Before finishing, inspect the diff, run relevant checks, and report verification that could not be performed.

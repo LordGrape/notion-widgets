@@ -1,21 +1,24 @@
-# Athlete widget
+# Athlete
 
-Production source remains at the repository root so existing embeds stay stable.
+A single-file production widget for physical assessments, workout logging, and long-term progress.
 
-## Durable data boundary
+## Current structure
 
-- Assessment results use SyncEngine for fast cross-device state and mirror to the existing Notion JTF2 **Test Log** through the authenticated Worker.
-- Compatible manual Test Log rows are imported. Test, date, value, and load are used to adopt an existing row rather than create a duplicate.
-- A stable `Widget Entry ID` keeps later saves idempotent. Deleting an assessment in Athlete archives its linked Notion row.
-- Completed workouts, individual sets, custom exercises, bodyweight, and scoring preferences remain in SyncEngine. Mirroring those records would duplicate specialised training systems and add administrative clutter.
-- The Notion token stays in Worker secrets. Static widget files contain only generic client logic.
+The source shell and modules currently remain at the repository root because the generated production path and build automation depend on them. `athlete.html` is generated and must not be edited directly. Consolidating these source files under this folder should be completed as one atomic migration that updates the build script, verifier, workflow triggers, and source references together.
 
-## Files
+## Data boundary
 
-- `athlete.source.html`: source shell
-- `athlete-*.js` and `athlete-*.css`: source modules
-- `athlete-notion.js`: bounded Test Log bridge
-- `athlete.html`: generated single-file build
-- `worker/src/routes/fitness-tests.ts`: authenticated Notion read, upsert, deduplication, and archive route
+- Assessments use the `fitness.state` SyncEngine record and may mirror to the existing Notion Test Log through the authenticated Worker.
+- Stable widget entry IDs make Notion writes idempotent; deleting a linked assessment archives the corresponding row.
+- Workouts, sets, custom exercises, bodyweight, and scoring preferences remain in SyncEngine to avoid duplicate systems and Notion clutter.
+- Credentials remain in Cloudflare Worker secrets.
 
-Build with `node tools/build-athlete.mjs` and verify with `node tools/verify-athlete.mjs`.
+## Build and verify
+
+```bash
+node tools/build-athlete.mjs
+node tools/build-athlete.mjs --check
+node tools/verify-athlete.mjs
+```
+
+Edit the source modules and rebuild. Never edit generated `athlete.html` directly.
