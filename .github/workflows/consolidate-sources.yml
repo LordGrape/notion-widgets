@@ -1,3 +1,4 @@
+# consolidation trigger
 name: Consolidate widget sources
 on:
   push:
