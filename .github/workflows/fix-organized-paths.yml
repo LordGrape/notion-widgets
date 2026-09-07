@@ -1,3 +1,4 @@
+# run
 name: Fix organized widget paths
 on:
   push:
