@@ -1,3 +1,4 @@
+# run
 name: Move widget sources
 on:
   push:
