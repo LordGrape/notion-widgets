@@ -58,3 +58,13 @@
   }
   boot();
 })(window);
+
+(function(root){
+  "use strict";
+  if(root.__todoSmartLoader)return;
+  root.__todoSmartLoader=true;
+  var script=root.document.createElement("script");
+  script.src="todo-smart.js?v=20260907-smart-add-v1";
+  script.async=true;
+  root.document.head.appendChild(script);
+})(window);
