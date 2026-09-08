@@ -1,0 +1,13 @@
+(function(root){
+  "use strict";
+  var blocks={};
+  function engine(){try{return typeof SyncEngine!=="undefined"?SyncEngine:root.SyncEngine}catch(error){return root.SyncEngine}}
+  function list(value){if(Array.isArray(value))return value;try{var parsed=JSON.parse(value||"[]");return Array.isArray(parsed)?parsed:[]}catch(error){return[]}}
+  function read(value){blocks={};list(value).forEach(function(block){if(block&&block.id)blocks[block.id]=block})}
+  function oneOff(block){return !!(block&&block.startDate&&block.endDate&&block.startDate===block.endDate)}
+  function improveSettings(){var planning=document.getElementById("fPlanning");if(!planning||planning.dataset.scopePolished)return;planning.dataset.scopePolished="true";var summary=planning.querySelector("summary"),body=planning.querySelector(".ab-planning-body"),dates=planning.querySelector(".ab-term-row");if(summary)summary.textContent="Schedule dates (optional)";if(body&&dates)body.insertBefore(dates,body.firstChild);if(body&&dates){var note=document.createElement("div");note.className="schedule-scope-note";note.textContent="Set a start and end date for a repeating schedule. Leave both blank to repeat without limits.";dates.insertAdjacentElement("afterend",note)}}
+  function styles(){if(document.getElementById("scheduleScopeStyles"))return;var style=document.createElement("style");style.id="scheduleScopeStyles";style.textContent='.schedule-scope-note{margin:-1px 0 1px;color:var(--text-3);font-size:8.5px;line-height:1.45}.card[data-one-off="true"] .d-occurrence{display:none!important}.card[data-one-off="true"] .d-edit{margin-left:auto}.card[data-one-off="true"] [data-edit]::before{content:""}.ab-planning[data-scope-polished="true"] summary{color:var(--text-2)}';document.head.appendChild(style)}
+  function scan(){improveSettings();document.querySelectorAll(".card[data-id]").forEach(function(card){var block=blocks[card.dataset.id],single=oneOff(block);card.dataset.oneOff=single?"true":"false";var occurrence=card.querySelector(".d-occurrence"),edit=card.querySelector(".d-edit[data-edit]");if(occurrence)occurrence.hidden=single;if(edit)edit.textContent=single?"Edit task":"Edit all"})}
+  function boot(){var sync=engine();if(!sync){setTimeout(boot,150);return}styles();read(sync.get("timetable","courses"));scan();if(sync.subscribe)sync.subscribe("timetable","courses",function(value){read(value);setTimeout(scan,0)});new MutationObserver(scan).observe(document.body,{childList:true,subtree:true});setInterval(function(){read(sync.get("timetable","courses"));scan()},1800)}
+  boot();
+})(window);
