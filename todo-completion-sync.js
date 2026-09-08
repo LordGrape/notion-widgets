@@ -1,0 +1,11 @@
+(function(root){
+  "use strict";
+  var installed=false,reconciling=false;
+  function engine(){try{return typeof SyncEngine!=="undefined"?SyncEngine:root.SyncEngine}catch(error){return root.SyncEngine}}
+  function list(value){if(Array.isArray(value))return value;try{var parsed=JSON.parse(value||"[]");return Array.isArray(parsed)?parsed:[]}catch(error){return[]}}
+  function taskFor(block,tasks){return tasks.find(function(task){return task&&((block.todoTaskId&&task.id===block.todoTaskId)||(block.occurrenceId&&task.occurrenceId===block.occurrenceId)||(block.todoTaskId&&task.occurrenceId===block.todoTaskId))})}
+  function reliableDecorate(courses,tasks,preserve){var changed=false,present={},next=list(courses).map(function(block){if(!block)return block;present[block.id]=true;if(block.source!=="todo-action-block"&&!block.todoTaskId)return block;var task=taskFor(block,tasks),done=!!(task&&task.done),doneAt=done?(task.doneAt||block.todoDoneAt||Date.now()):null;if(block.todoDone===done&&(!done||block.todoDoneAt===doneAt))return block;changed=true;return Object.assign({},block,{todoDone:done,todoDoneAt:doneAt})});if(preserve)list(preserve).forEach(function(block){if(!block||present[block.id]||!block.todoDone)return;var task=taskFor(block,tasks);if(task&&task.done){next.push(block);changed=true}});return{courses:next,changed:changed}}
+  function reconcile(tasks){if(reconciling)return;var sync=engine();if(!sync)return;tasks=list(tasks||sync.get("todo","tasks"));var current=list(sync.get("timetable","courses")),result=reliableDecorate(current,tasks,null);if(result.changed){reconciling=true;sync.set("timetable","courses",result.courses);reconciling=false}}
+  function install(){var sync=engine();if(installed||!sync||typeof sync.set!=="function"){if(!installed)setTimeout(install,120);return}installed=true;var rawSet=sync.set;sync.set=function(namespace,key,value){var tasks=list(sync.get("todo","tasks"));if(namespace==="timetable"&&key==="courses"&&!reconciling)value=reliableDecorate(value,tasks,sync.get("timetable","courses")).courses;var result=rawSet.call(sync,namespace,key,value);if(namespace==="todo"&&key==="tasks")setTimeout(function(){reconcile(value)},0);return result};sync.__todoCompletionBridge=true;if(sync.onReady)sync.onReady(function(){reconcile()});setTimeout(function(){reconcile()},400)}
+  install();
+})(window);
