@@ -1,0 +1,11 @@
+(function(root){
+  "use strict";
+  var doneIds={};
+  function engine(){try{return typeof SyncEngine!=="undefined"?SyncEngine:root.SyncEngine}catch(error){return root.SyncEngine}}
+  function list(value){if(Array.isArray(value))return value;try{var parsed=JSON.parse(value||"[]");return Array.isArray(parsed)?parsed:[]}catch(error){return[]}}
+  function read(value){doneIds={};list(value).forEach(function(block){if(block&&block.todoDone&&block.id)doneIds[block.id]=true})}
+  function styles(){if(document.getElementById("todoCompletionStyles"))return;var style=document.createElement("style");style.id="todoCompletionStyles";style.textContent='.todo-task-done{opacity:.58!important;filter:grayscale(.76) saturate(.15)!important;border-color:color-mix(in srgb,var(--text-3) 30%,var(--line))!important;box-shadow:none!important}.card.todo-task-done .name,.cal-event.todo-task-done b,.pill.todo-task-done{text-decoration:line-through;text-decoration-thickness:1.5px;text-decoration-color:currentColor}.todo-task-done::after{content:"✓";position:absolute;z-index:6;right:9px;top:8px;width:22px;height:22px;display:grid;place-items:center;border-radius:50%;border:1px solid color-mix(in srgb,var(--text-3) 40%,var(--line));background:color-mix(in srgb,var(--surface) 86%,var(--text-3) 14%);color:var(--text-2);font:800 12px Inter,system-ui}.pill.todo-task-done::after{position:static;width:auto;height:auto;border:0;background:none;margin-left:5px}.cal-event.todo-task-done::after{right:4px;top:4px;width:15px;height:15px;font-size:9px}@media(prefers-reduced-motion:no-preference){.todo-task-done{transition:opacity .3s ease,filter .3s ease,border-color .3s ease}}';document.head.appendChild(style)}
+  function scan(){document.querySelectorAll(".card[data-id],.pill[data-id],.cal-event[data-id]").forEach(function(element){element.classList.toggle("todo-task-done",!!doneIds[element.dataset.id])})}
+  function boot(){var sync=engine();if(!sync){setTimeout(boot,150);return}styles();read(sync.get("timetable","courses"));scan();if(sync.subscribe)sync.subscribe("timetable","courses",function(value){read(value);setTimeout(scan,0)});new MutationObserver(scan).observe(document.body,{childList:true,subtree:true});setInterval(function(){read(sync.get("timetable","courses"));scan()},2500)}
+  boot();
+})(window);
