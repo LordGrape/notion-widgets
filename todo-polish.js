@@ -13,7 +13,7 @@
     actions.insertBefore(button,actions.firstChild);button.addEventListener("click",function(){var open=item.classList.toggle("todo-advanced");button.textContent=open?"Fewer options":"More options";button.setAttribute("aria-expanded",open?"true":"false")});
   }
   function scan(){document.querySelectorAll(".item.editing").forEach(enhanceEditor)}
-  function customMenu(event){var chip=event.target.closest&&event.target.closest("#cTime,#cDue");if(!chip||!root.TodoCustom)return;event.preventDefault();event.stopPropagation();if(chip.id==="cTime")root.TodoCustom.openTime();else root.TodoCustom.openDue()}
+  function customMenu(event){var chip=event.target.closest&&event.target.closest("#cPri,#cTime,#cDue");if(!chip)return;event.preventDefault();event.stopPropagation();if(chip.id==="cPri"){chip.dispatchEvent(new MouseEvent("click",{bubbles:true,cancelable:true}));return}if(!root.TodoCustom)return;if(chip.id==="cTime")root.TodoCustom.openTime();else root.TodoCustom.openDue()}
   function boot(){injectStyles();scan();new MutationObserver(scan).observe(document.body,{childList:true,subtree:true});document.addEventListener("contextmenu",customMenu,true)}
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot);else boot();
 })(window);

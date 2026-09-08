@@ -16,7 +16,7 @@
   shell.src="todo-sync.html?source=20260907-smart-shell-v1"+(location.hash||"");
   function innerWindow(){try{var first=shell.contentDocument&&shell.contentDocument.getElementById("todo"),second=first&&first.contentDocument&&first.contentDocument.getElementById("app");return second&&second.contentWindow&&second.contentWindow.document?second.contentWindow:null}catch(error){return null}}
   function add(win,src){return new Promise(function(resolve,reject){if(win.document.querySelector('script[data-shell-src="'+src+'"]')){resolve();return}var script=win.document.createElement("script");script.src=src;script.dataset.shellSrc=src;script.onload=resolve;script.onerror=reject;win.document.head.appendChild(script)})}
-  function install(){var win=innerWindow();if(!win){if(++attempts<80)setTimeout(install,150);else document.getElementById("error").classList.add("show");return}add(win,"todo-smart.js?v=20260907-smart-shell-v2").then(function(){return add(win,"todo-custom.js?v=20260907-hold-custom-v2")}).then(function(){return add(win,"todo-polish.js?v=20260907-minimal-editor-v1")}).catch(function(){document.getElementById("error").classList.add("show")})}
+  function install(){var win=innerWindow();if(!win){if(++attempts<80)setTimeout(install,150);else document.getElementById("error").classList.add("show");return}add(win,"todo-smart.js?v=20260907-smart-shell-v2").then(function(){return add(win,"todo-custom.js?v=20260907-hold-custom-v2")}).then(function(){return add(win,"todo-polish.js?v=20260907-minimal-editor-v2")}).catch(function(){document.getElementById("error").classList.add("show")})}
   shell.addEventListener("load",function(){attempts=0;setTimeout(install,250)});install();
 })();
 </script>
