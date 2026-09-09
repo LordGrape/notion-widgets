@@ -1,0 +1,118 @@
+name: Remove exposed widget key
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/remove-exposed-widget-key.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: remove-exposed-widget-key
+  cancel-in-progress: false
+
+jobs:
+  sanitize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: studyengine/package-lock.json
+
+      - name: Remove client-side credential
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('studyengine/src/ui/views/settings/french-core-build-modal.ts')
+          text = path.read_text()
+          pattern = re.compile(
+              r"// POST-L1b-α-2: hardcoded worker auth header[^\n]*\n"
+              r"const WIDGET_KEY = '[^']+';"
+          )
+          replacement = """function nonEmptyString(value: unknown): string {
+            return typeof value === 'string' ? value.trim() : '';
+          }
+
+          function resolveWidgetKey(): string {
+            const syncEngine = (globalThis as {
+              SyncEngine?: { _key?: unknown; key?: unknown; passphrase?: unknown };
+            }).SyncEngine;
+            const syncKey = nonEmptyString(syncEngine?._key)
+              || nonEmptyString(syncEngine?.key)
+              || nonEmptyString(syncEngine?.passphrase);
+            if (syncKey) return syncKey;
+
+            try {
+              const fragment = new URLSearchParams(globalThis.location?.hash?.slice(1) || '');
+              const fragmentKey = nonEmptyString(fragment.get('key')) || nonEmptyString(fragment.get('passphrase'));
+              if (fragmentKey) return fragmentKey;
+            } catch {
+              // Ignore malformed or unavailable URL state.
+            }
+
+            try {
+              return nonEmptyString(globalThis.localStorage?.getItem('_sync_passphrase'));
+            } catch {
+              return '';
+            }
+          }
+
+          const WIDGET_KEY = resolveWidgetKey();"""
+          updated, count = pattern.subn(replacement, text)
+          if count != 1:
+              if 'function resolveWidgetKey()' not in text:
+                  raise SystemExit(f'Expected one hardcoded key assignment, found {count}')
+              updated = text
+          path.write_text(updated)
+          PY
+
+      - name: Install and verify Study Engine
+        working-directory: studyengine
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+          npm run build
+
+      - name: Scan tracked files for embedded widget credentials
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          blocked = []
+          assignment = re.compile(r"(?:WIDGET_KEY|WIDGET_SECRET|passphrase)\s*=\s*['\"][^'\"]{20,}['\"]", re.I)
+          for path in Path('.').rglob('*'):
+            if not path.is_file() or any(part in {'.git', 'node_modules', '.npm-cache'} for part in path.parts):
+              continue
+            try:
+              text = path.read_text(errors='ignore')
+            except OSError:
+              continue
+            if assignment.search(text):
+              blocked.append(str(path))
+          if blocked:
+            raise SystemExit('Embedded credential-like assignments remain: ' + ', '.join(blocked))
+          PY
+          git diff --check
+
+      - name: Commit sanitized source and build
+        run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add studyengine/src/ui/views/settings/french-core-build-modal.ts dist
+          git commit -m 'Remove exposed widget credential'
+          git push origin HEAD:main
