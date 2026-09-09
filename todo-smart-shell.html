@@ -1,27 +1,47 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>To-Do</title><style>*{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden;background:transparent}iframe{display:block;width:100%;height:100%;border:0;background:transparent}#error{padding:16px;color:var(--text-primary,#9379c7);font:14px/1.5 system-ui}#error[hidden]{display:none}</style></head>
-<body><iframe id="shell" title="To-Do widget"></iframe><p id="error" role="alert" hidden>To-Do could not load. Your saved tasks have not been changed. Refresh to retry.</p>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>To-Do</title><style>*{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden;background:transparent}iframe{display:block;width:100%;height:100%;border:0;background:transparent}#error{padding:16px;color:#9379c7;font:14px/1.5 system-ui}#error[hidden]{display:none}</style></head>
+<body><iframe id="shell" title="To-Do widget"></iframe><p id="error" role="alert" hidden>To-Do could not load safely. Your saved tasks have not been changed. Refresh to retry.</p>
 <script>
 (async function(){
   'use strict';
-  const frame=document.getElementById('shell'),revision='20260909-schedule-v4';
-  async function text(path){const response=await fetch(path,{cache:'no-store'});if(!response.ok)throw new Error('Widget asset unavailable');return response.text();}
-  function once(source,oldText,newText){if(source.split(oldText).length!==2)throw new Error('Widget compatibility check failed');return source.replace(oldText,newText);}
+  const frame=document.getElementById('shell'),revision='20260909-steady-v5';
+  const fallback='https://raw.githubusercontent.com/LordGrape/notion-widgets/main/';
+  async function text(path){
+    for(const url of [new URL(path+'?v='+revision,location.href).href,fallback+path]){
+      try{const response=await fetch(url,{cache:'no-store'});if(!response.ok)continue;const value=await response.text();if(path.endsWith('.js')&&/^\s*</.test(value))continue;return value;}catch(error){}
+    }
+    throw new Error('Required widget asset unavailable: '+path);
+  }
+  function once(source,oldText,newText){if(source.split(oldText).length!==2)throw new Error('Widget compatibility check failed');return source.replace(oldText,()=>newText);}
+  function inline(code){return '<script>'+code.replace(/<\/script/gi,'<\\/script')+'<'+'/script>';}
   try{
-    // Preserve the existing v2 upgrades without nesting three asynchronous iframes.
-    const [wrapper,original]=await Promise.all([text('todo-v2.html'),text('todo.html')]);
+    const [wrapper,original,importer]=await Promise.all([text('todo-v2.html'),text('todo.html'),text('todo-schedule-import.js')]);
+    if(!importer.includes('root.TodoSchedulePaste={version:4,'))throw new Error('Schedule handler version mismatch');
     const match=wrapper.match(/var payload=`([\s\S]*?)`/);
     if(!match)throw new Error('Upgrade payload unavailable');
     const bytes=Uint8Array.from(atob(match[1].replace(/\s/g,'')),c=>c.charCodeAt(0));
     const decoded=await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
-    const patches=JSON.parse(decoded);
     let source=original;
-    for(const pair of patches)source=once(source,pair[0],pair[1]);
+    for(const pair of JSON.parse(decoded))source=once(source,pair[0],pair[1]);
     source=once(source,'function poll() {',"window.addEventListener('schedule-paste:refresh', poll);\n  function poll() {");
+    // A second guard inside the real add() protects against handler runtime failures.
+    source=once(source,'if (!v) return;',`if (!v) return;
+    if (/"items"\\s*:|20\\d{2}-\\d{2}-\\d{2}\\s*\\|/.test(v)) {
+      var message=document.getElementById('schedulePasteStatus');
+      if(message)message.textContent='Schedule was not added. Reload the widget before retrying.';
+      return;
+    }`);
+    source=once(source,'if (window.initTilt) try { initTilt("#card", { maxDeg: 3 }); } catch (e) {}','/* Card tilt disabled: stable reading surface. */');
+    source=once(source,'try { if (window.Core && Core.magneticHover) Core.magneticHover($("addbtn"), { radius: 60, strength: 0.25 }); } catch (e) {}','/* Keep Add fixed under the pointer. */');
     const base=new URL('./',location.href).href;
     source=once(source,'<head>','<head><base href="'+base+'">');
-    const files=['todo-seamless-sync.js','todo-completion-sync.js','todo-multi-add.js','todo-auto.js','todo-single-time-smart.js','todo-smart.js','todo-schedule-import.js','todo-custom.js','todo-polish.js'];
-    const tags=files.map(file=>'<script src="'+file+'?v='+revision+'"><'+'/script>').join('\n');
+    const guard=inline(`window.addEventListener('DOMContentLoaded',function(){var input=document.getElementById('inp'),button=document.getElementById('addbtn');if(!window.TodoSchedulePaste){input.disabled=true;button.disabled=true;input.placeholder='Schedule handler unavailable. Reload to retry.';}});`);
+    source=once(source,'<script src="core.js">',guard+'<script src="core.js">');
+    const files=['todo-seamless-sync.js','todo-completion-sync.js','todo-multi-add.js','todo-auto.js','todo-single-time-smart.js','todo-smart.js','todo-custom.js','todo-polish.js'];
+    const enhancements=await Promise.all(files.map(text));
+    const css='<style id="todo-steady-v5">#card,#card:hover{transform:none!important;translate:none!important;rotate:none!important;scale:none!important;transform-style:flat!important}#addbtn,#addbtn:hover,#addbtn:active{transform:none!important;translate:none!important;rotate:none!important;scale:none!important;transition:filter .12s ease,background-color .12s ease!important}#addbtn:hover{filter:brightness(1.06)}.item{animation:none!important}html{scroll-behavior:auto!important}</style>';
+    // Inline fetched assets so a missing deployment file cannot silently drop the importer.
+    const tags=inline(importer)+enhancements.map(inline).join('\n')+css+inline(`window.addEventListener('DOMContentLoaded',function(){var input=document.getElementById('inp');if(window.TodoSchedulePaste){input.placeholder='Add a task or paste a schedule';input.dataset.scheduleVersion='5';}});`);
     source=once(source,'</body>',tags+'\n</body>');
     frame.srcdoc=source;
   }catch(error){frame.hidden=true;document.getElementById('error').hidden=false;}
