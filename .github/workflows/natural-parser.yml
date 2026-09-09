@@ -1,0 +1,21 @@
+name: Natural task parser
+on:
+  push:
+    paths: ['todo-natural-add.js', 'tools/test-natural-parser.cjs', '.github/workflows/natural-parser.yml']
+  pull_request:
+    paths: ['todo-natural-add.js', 'tools/test-natural-parser.cjs', '.github/workflows/natural-parser.yml']
+permissions:
+  contents: read
+jobs:
+  parser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --package-lock=false chrono-node@2.8.0
+      - run: node tools/test-natural-parser.cjs
+        env:
+          TEST_CHRONO: '1'

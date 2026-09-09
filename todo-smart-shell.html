@@ -4,7 +4,7 @@
 <script>
 (async function(){
   'use strict';
-  const frame=document.getElementById('shell'),revision='20260909-steady-v5';
+  const frame=document.getElementById('shell'),revision='20260909-natural-v6';
   const fallback='https://raw.githubusercontent.com/LordGrape/notion-widgets/main/';
   async function text(path){
     for(const url of [new URL(path+'?v='+revision,location.href).href,fallback+path]){
@@ -38,7 +38,7 @@
     source=once(source,'<head>','<head><base href="'+base+'">');
     const guard=inline(`window.addEventListener('DOMContentLoaded',function(){var input=document.getElementById('inp'),button=document.getElementById('addbtn');if(!window.TodoSchedulePaste){input.disabled=true;button.disabled=true;input.placeholder='Schedule handler unavailable. Reload to retry.';}});`);
     source=once(source,'<script src="core.js">',guard+'<script src="core.js">');
-    const files=['todo-seamless-sync.js','todo-completion-sync.js','todo-multi-add.js','todo-auto.js','todo-single-time-smart.js','todo-smart.js','todo-custom.js','todo-polish.js'];
+    const files=['todo-seamless-sync.js','todo-completion-sync.js','todo-natural-add.js','todo-custom.js','todo-polish.js'];
     const enhancements=await Promise.all(files.map(text));
     const css='<style id="todo-steady-v5">#card,#card:hover{transform:none!important;translate:none!important;rotate:none!important;scale:none!important;transform-style:flat!important}#addbtn,#addbtn:hover,#addbtn:active{transform:none!important;translate:none!important;rotate:none!important;scale:none!important;transition:filter .12s ease,background-color .12s ease!important}#addbtn:hover{filter:brightness(1.06)}.item{animation:none!important}html{scroll-behavior:auto!important}</style>';
     // Inline fetched assets so a missing deployment file cannot silently drop the importer.
