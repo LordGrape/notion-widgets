@@ -25,7 +25,8 @@
     for(const pair of JSON.parse(decoded))source=once(source,pair[0],pair[1]);
     source=once(source,'function poll() {',"window.addEventListener('schedule-paste:refresh', poll);\n  function poll() {");
     // A second guard inside the real add() protects against handler runtime failures.
-    source=once(source,'if (!v) return;',`if (!v) return;
+    source=once(source,'var v = inp.value.trim();\n    if (!v) return;',`var v = inp.value.trim();
+    if (!v) return;
     if (/"items"\\s*:|20\\d{2}-\\d{2}-\\d{2}\\s*\\|/.test(v)) {
       var message=document.getElementById('schedulePasteStatus');
       if(message)message.textContent='Schedule was not added. Reload the widget before retrying.';
