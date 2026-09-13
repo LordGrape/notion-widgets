@@ -20,14 +20,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
-      - name: Install root dependencies
-        run: npm ci
       - name: Deploy FIRAC Reader
         uses: cloudflare/wrangler-action@v3
         with:
