@@ -13,6 +13,7 @@ A personal suite of synchronized tools for planning, focused work, learning, and
 | Athlete | Assessments, workouts, and progress | Athlete source modules | `/athlete.html` |
 | Clock | Time, timer, focus tracking, and weather | `clock.html` | `/clock.html` |
 | Quotes | Passive daily quotation | `quotes.html` and `quotes.json` | `/quotes.html` |
+| Lineup | 7v7 roster, formations, and match-day rotation | `lineup.html` | `/lineup.html` |
 
 ## Repository structure
 
