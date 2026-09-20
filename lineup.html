@@ -95,10 +95,12 @@ input,select{font-family:inherit}
 .roster-row .num{width:28px;height:28px;border-radius:8px;background:var(--accent-soft);color:var(--accent-2);font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .roster-row .rname{font-weight:600;font-size:14px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pos-tag{font-size:10px;font-weight:700;padding:3px 7px;border-radius:6px;flex-shrink:0}
+
+:root{--c-GK:#d97706;--c-DEF:#2563eb;--c-MID:#7c3aed;--c-FWD:#db2777}
 .pos-GK{background:rgba(217,119,6,.14);color:#b45309}
 .pos-DEF{background:rgba(37,99,235,.14);color:#1d4ed8}
-.pos-MID{background:rgba(5,150,105,.14);color:#047857}
-.pos-FWD{background:rgba(147,51,234,.14);color:#7e22ce}
+.pos-MID{background:rgba(124,58,237,.14);color:#6d28d9}
+.pos-FWD{background:rgba(219,39,119,.14);color:#be185d}
 .pos-tag.sec{background:transparent;border:1px dashed currentColor;opacity:.75}
 .pos-tags{display:flex;gap:4px;flex-shrink:0}
 .pos-tags.clickable{cursor:pointer}
@@ -114,7 +116,6 @@ input,select{font-family:inherit}
 .marker.fit .disc{box-shadow:0 0 0 3px #38bdf8,0 2px 8px rgba(0,0,0,.28)}
 .bench-card.cover{border-color:#38bdf8;box-shadow:0 0 0 3px rgba(56,189,248,.26)}
 .bench-card .pos-tag{font-size:9px;padding:2px 5px;border-radius:5px}
-.warn-banner{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:var(--radius-sm);background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.45);color:#b45309;font-size:12px;font-weight:600;margin-bottom:11px}
 .row-actions{display:flex;gap:1px;flex-shrink:0}
 .empty-hint{color:var(--text-faint);font-size:13px;padding:18px 4px;text-align:center}
 
@@ -133,13 +134,14 @@ input,select{font-family:inherit}
 .pitch svg.markings{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .pitch.drop-active{outline:2px dashed rgba(255,255,255,.6);outline-offset:-6px}
 
-.marker{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:2px;cursor:grab;touch-action:none;width:60px}
-.marker .disc{width:38px;height:38px;border-radius:50%;background:#fff;color:#17171f;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.28);border:2px solid rgba(255,255,255,.9);transition:box-shadow .12s ease}
-.marker.gk .disc{background:#facc15}
+.marker{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:3px;cursor:grab;touch-action:none;width:74px}
+.marker .disc{position:relative;width:40px;height:40px;border-radius:50%;background:var(--accent);color:#fff;font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.3);border:2px solid rgba(255,255,255,.9);transition:box-shadow .12s ease}
+.marker .dot{position:absolute;top:-2px;right:-2px;width:11px;height:11px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 2px rgba(0,0,0,.3)}
 .marker.selected .disc{box-shadow:0 0 0 4px var(--accent-2),0 2px 10px rgba(0,0,0,.3)}
 .marker.swap-target .disc{box-shadow:0 0 0 4px #fff,0 0 0 7px var(--on)}
-.marker .mname{font-size:10px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.65);max-width:66px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.marker.empty .disc{background:transparent;border:2px dashed rgba(255,255,255,.55);color:rgba(255,255,255,.8);font-size:10px;box-shadow:none}
+.marker .mname{font-size:10px;font-weight:800;color:#17171f;background:#fff;border-radius:999px;padding:2px 8px;box-shadow:0 1px 4px rgba(0,0,0,.28);max-width:74px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.marker .mrole{font-size:9px;font-weight:800;color:#fff;letter-spacing:.04em;text-shadow:0 1px 3px rgba(0,0,0,.7)}
+.marker.empty .disc{background:rgba(255,255,255,.12);border:2px dashed rgba(255,255,255,.6);color:rgba(255,255,255,.85);font-size:10px;box-shadow:none}
 .marker.ghost{position:fixed;z-index:999;pointer-events:none;opacity:.92;transform:translate(-50%,-50%) scale(1.06)}
 
 .bench-panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;min-height:110px}
@@ -148,6 +150,14 @@ input,select{font-family:inherit}
 .bench-head h3{font-size:12px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em}
 .bench-count{font-size:11px;color:var(--text-faint);font-weight:700}
 .bench-list{display:flex;flex-wrap:wrap;gap:7px}
+.lineup-rows{display:flex;flex-direction:column;gap:6px}
+.lineup-row{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:10px;border:1px solid var(--border);background:var(--panel-2);cursor:pointer;transition:all .12s ease}
+.lineup-row:hover{border-color:var(--accent)}
+.lineup-row.selected{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.lineup-row.vacant{border-style:dashed;color:var(--text-faint)}
+.lineup-row .disc{width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 0 2px var(--panel-2),0 0 0 4px var(--ring,transparent)}
+.lineup-row.vacant .disc{background:transparent;border:1px dashed var(--border);color:var(--text-faint);font-size:10px}
+.lineup-row .lname{flex:1;min-width:0;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bench-card{display:flex;align-items:center;gap:7px;padding:6px 11px 6px 6px;border-radius:999px;background:var(--panel-2);border:1px solid var(--border);cursor:grab;transition:all .12s ease;touch-action:none}
 .bench-card:hover{border-color:var(--accent)}
 .bench-card.selected{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
@@ -218,7 +228,6 @@ input,select{font-family:inherit}
 
   <!-- LINEUP -->
   <div class="view active" id="view-lineup">
-    <div class="warn-banner" id="coverWarn" style="display:none"></div>
     <div class="lineup-toolbar">
       <div class="chip-group"><label>Formation</label><span id="formationChips"></span></div>
       <div style="display:flex;gap:7px">
@@ -231,7 +240,9 @@ input,select{font-family:inherit}
       <div class="pitch-wrap"><div class="pitch" id="pitch"></div></div>
       <div>
         <div class="bench-panel" id="benchPanel">
-          <div class="bench-head"><h3>Bench</h3><span class="bench-count" id="benchCount">0</span></div>
+          <div class="bench-head"><h3>Players</h3><span class="bench-count" id="onPitchCount">0 on pitch</span></div>
+          <div class="lineup-rows" id="onPitchList"></div>
+          <div class="bench-head" style="margin-top:15px"><h3>Substitutes</h3><span class="bench-count" id="benchCount">0</span></div>
           <div class="bench-list" id="benchList"></div>
           <div class="empty-hint" id="benchEmptyHint" style="display:none;padding:10px 4px">Add players in the Roster tab.</div>
         </div>
@@ -802,20 +813,59 @@ function renderPitch(){
     el.dataset.slotIndex=i;
     if(p) el.dataset.playerId=p.id;
     el.dataset.origin="pitch";
-    el.innerHTML='<div class="disc">'+(p?esc(discLabel(p)):esc(slot.role||""))+'</div>'+
-                 (p?'<div class="mname">'+esc(firstName(p.name))+'</div>':'');
+    var dot = p && posList(p).length ? '<span class="dot" style="background:var(--c-'+posList(p)[0]+')"></span>' : "";
+    el.innerHTML='<div class="disc">'+(p?esc(discLabel(p)):esc(slot.role||""))+dot+'</div>'+
+                 (p?'<div class="mname">'+esc(firstName(p.name))+'</div>':'')+
+                 (p&&slot.role?'<div class="mrole">'+esc(slot.role)+'</div>':'');
     pitch.appendChild(el);
   });
+  renderOnPitch();
   renderBench();
   renderSquads();
 }
+
+/* The side list mirrors the pitch, goalkeeper first, so you can read the
+   lineup without squinting at the markers. */
+function renderOnPitch(){
+  var list=document.getElementById("onPitchList");
+  list.innerHTML="";
+  var n=0;
+  state.slots.forEach(function(slot,i){
+    var p = slot.playerId ? byId(slot.playerId) : null;
+    if(p) n++;
+    var row=document.createElement("div");
+    row.className="lineup-row"+(p?"":" vacant")+((p&&selectedId===p.id)||(!p&&selectedSlot===i)?" selected":"");
+    row.dataset.slotIndex=i;
+    if(p) row.dataset.playerId=p.id;
+    var pos = p && posList(p).length ? posList(p)[0] : (slot.role||"");
+    if(pos) row.style.setProperty("--ring","var(--c-"+pos+")");
+    row.innerHTML='<span class="disc">'+(p?esc(discLabel(p)):esc(slot.role||"-"))+'</span>'+
+                  '<span class="lname">'+(p?esc(p.name):"Empty")+'</span>'+
+                  (pos?'<span class="pos-tag pos-'+pos+'">'+pos+'</span>':'');
+    list.appendChild(row);
+  });
+  document.getElementById("onPitchCount").textContent=n+" on pitch";
+}
+document.getElementById("onPitchList").addEventListener("click", function(e){
+  var row=e.target.closest(".lineup-row"); if(!row) return;
+  /* Re-rendering detaches this row, so stop the bubble now. Otherwise the
+     bench-panel handler sees an orphaned target and treats the click as
+     "drop the selected player back on the bench". */
+  e.stopPropagation();
+  var idx=Number(row.dataset.slotIndex), pid=row.dataset.playerId||null;
+  if(selectedId){ placeInSlot(selectedId, idx); selectedId=null; selectedSlot=null; }
+  else if(pid){ selectedId=(selectedId===pid)?null:pid; selectedSlot=null; }
+  else { selectedSlot=(selectedSlot===idx)?null:idx; }
+  renderPitch();
+});
 
 function renderBench(){
   var list=document.getElementById("benchList");
   list.innerHTML="";
   var bench=benchPlayers();
   document.getElementById("benchCount").textContent=bench.length;
-  document.getElementById("benchEmptyHint").style.display=state.players.length?"none":"block";
+  document.getElementById("benchEmptyHint").style.display=bench.length?"none":"block";
+  document.getElementById("benchEmptyHint").textContent=state.players.length?"Everyone available is on the pitch.":"Add players in the Roster tab.";
   var wantRole = (selectedSlot!==null && state.slots[selectedSlot]) ? state.slots[selectedSlot].role : "";
   bench.forEach(function(p){
     var c=document.createElement("div");
@@ -826,22 +876,8 @@ function renderBench(){
                 (posList(p).length?'<span class="pos-tags">'+posTagsHTML(p)+'</span>':'');
     list.appendChild(c);
   });
-  renderCoverWarn();
 }
 
-/* One slim line, only when something is actually wrong. Goalkeeper first,
-   because that is the gap that costs you goals. */
-function renderCoverWarn(){
-  var el=document.getElementById("coverWarn");
-  var msgs=[];
-  var gkSlot=state.slots[0];
-  if(!gkSlot || !gkSlot.playerId) msgs.push("No goalkeeper on the pitch.");
-  else if(offPosition(byId(gkSlot.playerId), "GK")) msgs.push(firstName((byId(gkSlot.playerId)||{}).name)+" is in goal but is not listed as a keeper.");
-  var off=state.slots.filter(function(s,i){ return i>0 && s.playerId && offPosition(byId(s.playerId), s.role); }).length;
-  if(off) msgs.push(off+" outfield "+(off===1?"player is":"players are")+" out of position.");
-  el.style.display = msgs.length ? "flex" : "none";
-  el.textContent = msgs.join("  ");
-}
 
 /* ─────────── Placement ─────────── */
 function placeInSlot(playerId, slotIndex){
@@ -895,7 +931,9 @@ document.getElementById("benchList").addEventListener("click", function(e){
   renderPitch();
 });
 document.getElementById("benchPanel").addEventListener("click", function(e){
-  if(justDragged||e.target.closest(".bench-card")) return;
+  /* The on-pitch list lives in this panel too, so do not treat its clicks
+     as "drop the selected player back on the bench". */
+  if(justDragged||e.target.closest(".bench-card")||e.target.closest("#onPitchList")) return;
   if(selectedId){ removeFromPitch(selectedId); selectedId=null; renderPitch(); }
 });
 
