@@ -16,7 +16,7 @@ single tap while the match clock keeps every player's minutes honest.
 | --- | --- |
 | Lineup | Pitch, bench, formation presets, saved squads, image export |
 | Match | Clock, swap reminder, next-squad preview, playing-time totals |
-| Roster | Add, edit, reorder, remove, and mark players away for the day |
+| Roster | Add, edit, reorder, remove, set positions, and mark players away for the day |
 | Team | Team name, counts, backup import and export |
 
 ## State
@@ -31,7 +31,8 @@ team = {
 }
 ```
 
-- `players[]`: `{ id, name, number, position, available }`
+- `players[]`: `{ id, name, number, positions[], available }`, where `positions[0]` is
+  the primary and the rest are secondary. An empty array means "no opinion".
 - `slots[7]`: `{ playerId, x, y, role }` where `x` and `y` are pitch percentages.
   Index `0` is the goalkeeper by convention. Free coordinates are what allow a
   formation to be nudged away from its preset.
@@ -52,6 +53,13 @@ device still holds v1 data.
 - **Only seven slots exist**, so the 7v7 limit is structural rather than validated.
 - **Dragging an empty slot is allowed**, which lets a coach shape a formation before
   anyone is assigned to it.
+- **Position checks are advisory, never enforcing.** Nothing stops a forward going in
+  goal. Out-of-position players get an amber ring and a one-line banner, because at
+  intramural level turnout decides the lineup more often than the depth chart does.
+  `covers()` deliberately returns `true` for a player with no positions recorded, so
+  an incomplete roster does not produce constant nagging.
+- **Tapping an empty slot highlights bench players who cover that role**, and tapping
+  a highlighted card places them. This is the fastest path to filling a gap mid-match.
 - **Blue and amber, never red and green**, for the coming-on and going-off preview, so
   the swap is readable for colour-blind users.
 - Tap-to-place is kept alongside pointer dragging because it is the reliable path on a
@@ -84,3 +92,9 @@ both a marker and a bench card, free repositioning, formation switching with a f
 pitch, squad save and load, the rotation swap preview, clock start/pause/reset, minute
 accrual, reload persistence, and the PNG export. Check light and dark themes and a
 narrow viewport, since the widget is embedded in a Notion column.
+
+## Position migration
+
+v2 stored a single `position` string per player. Load-time normalisation lifts it into
+`positions: [position]` and deletes the old field, so the migration is idempotent and
+needs no version flag.

@@ -99,6 +99,22 @@ input,select{font-family:inherit}
 .pos-DEF{background:rgba(37,99,235,.14);color:#1d4ed8}
 .pos-MID{background:rgba(5,150,105,.14);color:#047857}
 .pos-FWD{background:rgba(147,51,234,.14);color:#7e22ce}
+.pos-tag.sec{background:transparent;border:1px dashed currentColor;opacity:.75}
+.pos-tags{display:flex;gap:4px;flex-shrink:0}
+.pos-tags.clickable{cursor:pointer}
+.pos-tags .none{font-size:10px;font-weight:700;color:var(--text-faint);border:1px dashed var(--border);padding:3px 7px;border-radius:6px}
+.pos-chips{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+.pos-chip{font-size:11px;font-weight:800;padding:5px 10px;border-radius:999px;border:1px solid var(--border);background:var(--panel);color:var(--text-dim);transition:all .12s ease}
+.pos-chip:hover{border-color:var(--accent)}
+.pos-chip.sec{border-style:dashed;border-color:var(--accent);color:var(--accent-2);background:var(--accent-soft)}
+.pos-chip.pri{background:var(--accent);border-color:var(--accent);color:#fff;border-style:solid}
+.pos-editor{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 11px;border-radius:var(--radius-sm);border:1px dashed var(--accent);background:var(--panel-2)}
+.pos-editor .hint{font-size:11px;color:var(--text-faint);flex:1;min-width:120px}
+.marker.off-pos .disc{border-color:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,.6),0 2px 8px rgba(0,0,0,.28)}
+.marker.fit .disc{box-shadow:0 0 0 3px #38bdf8,0 2px 8px rgba(0,0,0,.28)}
+.bench-card.cover{border-color:#38bdf8;box-shadow:0 0 0 3px rgba(56,189,248,.26)}
+.bench-card .pos-tag{font-size:9px;padding:2px 5px;border-radius:5px}
+.warn-banner{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:var(--radius-sm);background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.45);color:#b45309;font-size:12px;font-weight:600;margin-bottom:11px}
 .row-actions{display:flex;gap:1px;flex-shrink:0}
 .empty-hint{color:var(--text-faint);font-size:13px;padding:18px 4px;text-align:center}
 
@@ -202,6 +218,7 @@ input,select{font-family:inherit}
 
   <!-- LINEUP -->
   <div class="view active" id="view-lineup">
+    <div class="warn-banner" id="coverWarn" style="display:none"></div>
     <div class="lineup-toolbar">
       <div class="chip-group"><label>Formation</label><span id="formationChips"></span></div>
       <div style="display:flex;gap:7px">
@@ -267,7 +284,7 @@ input,select{font-family:inherit}
       <div class="add-player-form">
         <div class="field-row"><label>Name</label><input id="newName" placeholder="Player name" maxlength="30"></div>
         <div class="field-row"><label>Number</label><input id="newNumber" placeholder="#" maxlength="3" inputmode="numeric"></div>
-        <div class="field-row"><label>Position</label><select id="newPosition"><option value="">None</option><option value="GK">Goalkeeper</option><option value="DEF">Defender</option><option value="MID">Midfielder</option><option value="FWD">Forward</option></select></div>
+        <div class="field-row"><label>Positions <span style="font-weight:500;color:var(--text-faint)">- tap all they can play, first one is primary</span></label><div class="pos-chips" id="newPositions"><button type="button" class="pos-chip" data-pos="GK">GK</button><button type="button" class="pos-chip" data-pos="DEF">DEF</button><button type="button" class="pos-chip" data-pos="MID">MID</button><button type="button" class="pos-chip" data-pos="FWD">FWD</button></div></div>
         <button class="btn btn-primary" id="addPlayerBtn">+ Add</button>
       </div>
     </div>
@@ -287,6 +304,7 @@ input,select{font-family:inherit}
         <div class="stat"><b id="statPlayers">0</b><span>Players</span></div>
         <div class="stat"><b id="statAvailable">0</b><span>Available</span></div>
         <div class="stat"><b id="statSquads">0</b><span>Squads</span></div>
+        <div class="stat"><b id="statKeepers">0</b><span>Can keep</span></div>
       </div>
     </div>
     <div class="card">
@@ -412,7 +430,13 @@ function loadState(){
   } else {
     migrateLegacy();
   }
-  state.players.forEach(function(p){ if(p.available === undefined) p.available = true; });
+  state.players.forEach(function(p){
+    if(p.available === undefined) p.available = true;
+    /* v2 stored a single `position` string. Lift it into the ordered list. */
+    if(!Array.isArray(p.positions)) p.positions = p.position ? [p.position] : [];
+    p.positions = p.positions.filter(function(x){ return POSITIONS.indexOf(x) > -1; });
+    delete p.position;
+  });
   state.squads.forEach(function(s){ s.slots = normaliseSlots(s.slots, s.formation || state.formation); });
 }
 
@@ -455,6 +479,47 @@ function firstName(n){ return (n||"").trim().split(/\s+/)[0]; }
 function discLabel(p){ return p.number ? p.number : initial(p.name); }
 function onPitchIds(){ return state.slots.map(function(s){ return s.playerId; }).filter(Boolean); }
 function availablePlayers(){ return state.players.filter(function(p){ return p.available !== false; }); }
+
+/* ─────────── Positions ───────────
+   A player carries an ordered list: positions[0] is their primary, the rest are
+   secondary. Everything here is advisory. Nothing blocks you from putting a
+   forward in goal, it just flags it, because intramural turnout decides more
+   than the depth chart does. */
+var POSITIONS = ["GK","DEF","MID","FWD"];
+function posList(p){ return (p && Array.isArray(p.positions)) ? p.positions : []; }
+/* Unknown role or unknown player positions means "no opinion", so stay quiet. */
+function covers(p, role){
+  if(!role) return true;
+  var list = posList(p);
+  return list.length === 0 || list.indexOf(role) > -1;
+}
+function offPosition(p, role){
+  if(!p || !role) return false;
+  var list = posList(p);
+  return list.length > 0 && list.indexOf(role) === -1;
+}
+function keeperCount(){
+  return availablePlayers().filter(function(p){ return posList(p).indexOf("GK") > -1; }).length;
+}
+function togglePos(list, pos){
+  var i = list.indexOf(pos);
+  if(i > -1) list.splice(i, 1); else list.push(pos);
+  return list;
+}
+function posTagsHTML(p){
+  var list = posList(p);
+  if(!list.length) return '<span class="none">+ pos</span>';
+  return list.map(function(pos, i){
+    return '<span class="pos-tag pos-'+pos+(i?' sec':'')+'">'+pos+'</span>';
+  }).join("");
+}
+function posChipsHTML(list){
+  return POSITIONS.map(function(pos){
+    var i = list.indexOf(pos);
+    var cls = i === 0 ? " pri" : (i > 0 ? " sec" : "");
+    return '<button type="button" class="pos-chip'+cls+'" data-pos="'+pos+'">'+pos+'</button>';
+  }).join("");
+}
 function benchPlayers(){
   var on = {}; onPitchIds().forEach(function(id){ on[id]=true; });
   return availablePlayers().filter(function(p){ return !on[p.id]; });
@@ -544,7 +609,7 @@ function renderRoster(){
       '<span class="drag-handle" data-act="grip" title="Drag to reorder">'+ICON.grip+'</span>'+
       '<button class="num" data-act="avail" title="'+(p.available===false?"Mark available":"Mark away")+'">'+(p.number?esc(p.number):initial(p.name))+'</button>'+
       '<span class="rname">'+esc(p.name)+(p.available===false?' <span style="font-weight:600;color:var(--text-faint);font-size:11px">away</span>':'')+'</span>'+
-      (p.position?'<span class="pos-tag pos-'+p.position+'">'+p.position+'</span>':'')+
+      '<span class="pos-tags clickable" data-act="pos" title="Edit positions">'+posTagsHTML(p)+'</span>'+
       '<span class="row-actions">'+
         '<button class="icon-btn" data-act="up" title="Move up">'+ICON.up+'</button>'+
         '<button class="icon-btn" data-act="down" title="Move down">'+ICON.down+'</button>'+
@@ -552,18 +617,38 @@ function renderRoster(){
         '<button class="icon-btn danger" data-act="del" title="Remove">'+ICON.trash+'</button>'+
       '</span>';
     list.appendChild(row);
+    if(posEditingId === p.id){
+      var ed=document.createElement("div");
+      ed.className="pos-editor"; ed.dataset.id=p.id;
+      ed.innerHTML='<div class="pos-chips" data-act="pos-edit">'+posChipsHTML(posList(p))+'</div>'+
+                   '<span class="hint">First tap sets the primary. Tap again to clear.</span>'+
+                   '<button class="btn btn-ghost btn-sm" data-act="pos-done">Done</button>';
+      list.appendChild(ed);
+    }
   });
   document.getElementById("statPlayers").textContent=state.players.length;
   document.getElementById("statAvailable").textContent=availablePlayers().length;
   document.getElementById("statSquads").textContent=state.squads.length;
+  document.getElementById("statKeepers").textContent=keeperCount();
 }
 
+var posEditingId = null;
+var newPosSel = [];
+function renderNewPosChips(){
+  document.getElementById("newPositions").innerHTML = posChipsHTML(newPosSel);
+}
+document.getElementById("newPositions").addEventListener("click", function(e){
+  var b=e.target.closest(".pos-chip"); if(!b) return;
+  togglePos(newPosSel, b.dataset.pos);
+  renderNewPosChips();
+});
+
 function addPlayer(){
-  var nameEl=document.getElementById("newName"), numEl=document.getElementById("newNumber"), posEl=document.getElementById("newPosition");
+  var nameEl=document.getElementById("newName"), numEl=document.getElementById("newNumber");
   var name=nameEl.value.trim();
   if(!name){ nameEl.focus(); return; }
-  state.players.push({ id:uid(), name:name, number:numEl.value.trim(), position:posEl.value, available:true });
-  nameEl.value=""; numEl.value=""; posEl.value=""; nameEl.focus();
+  state.players.push({ id:uid(), name:name, number:numEl.value.trim(), positions:newPosSel.slice(), available:true });
+  nameEl.value=""; numEl.value=""; newPosSel=[]; renderNewPosChips(); nameEl.focus();
   persist(); renderRoster(); renderPitch();
   toast("Added "+name);
 }
@@ -577,8 +662,19 @@ document.getElementById("rosterList").addEventListener("click", function(e){
   if(!btn) return;
   var act=btn.dataset.act;
   if(act==="grip") return;
+
+  if(act==="pos-edit"){
+    var chip=e.target.closest(".pos-chip"); if(!chip) return;
+    var ep=byId(e.target.closest(".pos-editor").dataset.id); if(!ep) return;
+    togglePos(ep.positions, chip.dataset.pos);
+    persist(); renderRoster(); renderPitch(); return;
+  }
+  if(act==="pos-done"){ posEditingId=null; renderRoster(); return; }
+
   var row=e.target.closest(".roster-row");
+  if(!row) return;
   var id=row.dataset.id;
+  if(act==="pos"){ posEditingId = (posEditingId===id ? null : id); renderRoster(); return; }
   var idx=state.players.findIndex(function(p){ return p.id===id; });
   if(idx<0) return;
 
@@ -688,7 +784,7 @@ function markingsSVG(){
   '</svg>';
 }
 
-var selectedId=null;
+var selectedId=null, selectedSlot=null;
 
 function renderPitch(){
   var pitch=document.getElementById("pitch");
@@ -697,7 +793,11 @@ function renderPitch(){
     var p = slot.playerId ? byId(slot.playerId) : null;
     if(slot.playerId && !p){ slot.playerId=null; }
     var el=document.createElement("div");
-    el.className="marker"+(i===0?" gk":"")+(p?"":" empty")+((p&&selectedId===p.id)?" selected":"");
+    var sel = selectedId ? byId(selectedId) : null;
+    el.className="marker"+(i===0?" gk":"")+(p?"":" empty")+((p&&selectedId===p.id)?" selected":"")
+      +(offPosition(p, slot.role)?" off-pos":"")
+      +((sel && sel.id!==slot.playerId && slot.role && posList(sel).indexOf(slot.role)>-1)?" fit":"")
+      +((selectedSlot===i)?" selected":"");
     el.style.left=slot.x+"%"; el.style.top=slot.y+"%";
     el.dataset.slotIndex=i;
     if(p) el.dataset.playerId=p.id;
@@ -716,13 +816,31 @@ function renderBench(){
   var bench=benchPlayers();
   document.getElementById("benchCount").textContent=bench.length;
   document.getElementById("benchEmptyHint").style.display=state.players.length?"none":"block";
+  var wantRole = (selectedSlot!==null && state.slots[selectedSlot]) ? state.slots[selectedSlot].role : "";
   bench.forEach(function(p){
     var c=document.createElement("div");
-    c.className="bench-card"+(selectedId===p.id?" selected":"");
+    c.className="bench-card"+(selectedId===p.id?" selected":"")
+      +((wantRole && posList(p).indexOf(wantRole)>-1)?" cover":"");
     c.dataset.playerId=p.id; c.dataset.origin="bench";
-    c.innerHTML='<span class="disc">'+esc(discLabel(p))+'</span><span>'+esc(p.name)+'</span>';
+    c.innerHTML='<span class="disc">'+esc(discLabel(p))+'</span><span>'+esc(p.name)+'</span>'+
+                (posList(p).length?'<span class="pos-tags">'+posTagsHTML(p)+'</span>':'');
     list.appendChild(c);
   });
+  renderCoverWarn();
+}
+
+/* One slim line, only when something is actually wrong. Goalkeeper first,
+   because that is the gap that costs you goals. */
+function renderCoverWarn(){
+  var el=document.getElementById("coverWarn");
+  var msgs=[];
+  var gkSlot=state.slots[0];
+  if(!gkSlot || !gkSlot.playerId) msgs.push("No goalkeeper on the pitch.");
+  else if(offPosition(byId(gkSlot.playerId), "GK")) msgs.push(firstName((byId(gkSlot.playerId)||{}).name)+" is in goal but is not listed as a keeper.");
+  var off=state.slots.filter(function(s,i){ return i>0 && s.playerId && offPosition(byId(s.playerId), s.role); }).length;
+  if(off) msgs.push(off+" outfield "+(off===1?"player is":"players are")+" out of position.");
+  el.style.display = msgs.length ? "flex" : "none";
+  el.textContent = msgs.join("  ");
 }
 
 /* ─────────── Placement ─────────── */
@@ -758,15 +876,21 @@ document.getElementById("pitch").addEventListener("click", function(e){
   var pid=marker.dataset.playerId||null;
   if(selectedId){
     placeInSlot(selectedId, idx);
-    selectedId=null; renderPitch();
+    selectedId=null; selectedSlot=null; renderPitch();
   } else if(pid){
-    selectedId=pid; renderPitch();
+    selectedId=pid; selectedSlot=null; renderPitch();
+  } else {
+    /* Empty slot: show me who on the bench can actually cover this role. */
+    selectedSlot=(selectedSlot===idx)?null:idx; renderPitch();
   }
 });
 document.getElementById("benchList").addEventListener("click", function(e){
   if(justDragged) return;
   var card=e.target.closest(".bench-card"); if(!card) return;
   var pid=card.dataset.playerId;
+  if(selectedSlot!==null && state.slots[selectedSlot] && !state.slots[selectedSlot].playerId){
+    placeInSlot(pid, selectedSlot); selectedSlot=null; selectedId=null; renderPitch(); return;
+  }
   selectedId=(selectedId===pid)?null:pid;
   renderPitch();
 });
