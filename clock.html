@@ -286,6 +286,18 @@ body {
 .focus-stats.capped .focus-val { color: #f59e0b; }
 .focus-cap-msg { font-size: 7px; color: #f59e0b; letter-spacing: 0.5px; opacity: 0.7; }
 
+/* Study Session */
+.tm-type-toggle { display: flex; gap: 6px; justify-content: center; margin-bottom: 8px; }
+.tm-type-btn { font-family: 'Inter', sans-serif; font-size: 8px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; padding: 6px 14px; border-radius: 12px; border: 1px solid var(--arc-track); background: transparent; color: var(--date-color); cursor: pointer; transition: all 0.25s ease; }
+.tm-type-btn:hover { border-color: var(--accent); color: var(--accent); }
+.tm-type-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: var(--dot-active-glow); }
+.study-config { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 8px 0 4px; }
+.study-field { display: flex; align-items: center; gap: 5px; font-size: 8px; letter-spacing: 0.4px; color: var(--meta-color); text-transform: uppercase; }
+.study-field label { white-space: nowrap; }
+.study-input { width: 46px; padding: 5px 6px; text-align: center; font-size: 11px; }
+.study-unit { font-size: 8px; color: var(--meta-color); }
+.study-cycle-indicator { text-align: center; font-size: 8px; letter-spacing: 1px; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; font-weight: 600; }
+
 /* ── Settings Panel ── */
 .settings-btn { position:absolute; top:10px; left:14px; font-size:14px; background:none; border:none; cursor:pointer; opacity:0; transform:translateY(6px) scale(0.95); transition:opacity 0.4s cubic-bezier(0.4,0,0.2,1),transform 0.4s cubic-bezier(0.4,0,0.2,1); pointer-events:none; z-index:10; color:var(--date-color); }
 .container:hover .settings-btn { opacity:0.5; transform:translateY(0) scale(1); pointer-events:auto; }
@@ -502,6 +514,10 @@ body {
 
   <!-- TIMER MODE -->
   <div class="mode" id="timerMode" role="tabpanel" aria-label="Timer panel">
+    <div class="tm-type-toggle" id="tmTypeToggle" role="tablist" aria-label="Timer type">
+      <button class="tm-type-btn active" id="tmTypeSingle" data-type="single" role="tab" aria-selected="true">Single</button>
+      <button class="tm-type-btn" id="tmTypeStudy" data-type="study" role="tab" aria-selected="false">Study Session</button>
+    </div>
     <div class="presets" id="presets"></div>
     <div class="preset-hint" id="presetHint">
       <div class="preset-hint-inner">
@@ -509,6 +525,13 @@ body {
         <div class="preset-hint-text" id="phText"></div>
       </div>
     </div>
+    <div class="study-config" id="studyConfig" hidden>
+      <div class="study-field"><label for="stFocus">Focus</label><input class="s-input study-input" id="stFocus" type="number" min="10" max="120" step="5" value="45"><span class="study-unit">min</span></div>
+      <div class="study-field"><label for="stBreak">Break</label><input class="s-input study-input" id="stBreak" type="number" min="3" max="30" step="1" value="10"><span class="study-unit">min</span></div>
+      <div class="study-field"><label for="stCycles">Long break every</label><input class="s-input study-input" id="stCycles" type="number" min="2" max="6" step="1" value="3"><span class="study-unit">cycles</span></div>
+      <div class="study-field"><label for="stLong">Long break</label><input class="s-input study-input" id="stLong" type="number" min="10" max="45" step="5" value="20"><span class="study-unit">min</span></div>
+    </div>
+    <div class="study-cycle-indicator" id="studyCycleIndicator" hidden></div>
     <div class="ring-wrap">
       <svg class="ring-svg" viewBox="0 0 180 180">
         <circle class="ring-track" cx="90" cy="90" r="82"/>
@@ -537,7 +560,7 @@ body {
   <!-- MICRO-BREAK OVERLAY -->
   <div class="break-overlay" id="breakOverlay">
     <div class="break-breathe"></div>
-    <div class="break-title">Micro-Break</div>
+    <div class="break-title" id="breakTitle">Micro-Break</div>
     <div class="break-timer-display" id="breakTimerDisplay">5:00</div>
     <div class="break-msg">Let your brain consolidate. Rest triggers rapid memory replay that strengthens what you just learned.</div>
     <button class="break-skip" id="breakSkip">Skip</button>
@@ -1130,21 +1153,147 @@ var PRESETS = [
   { label: '90m', secs: 5400, ttTitle: 'Ultradian Cycle', ttText: 'Full biological focus cycle. Deep work, strategic thinking, or dense study material.' }
 ];
 var CUSTOM_TOOLTIP = { ttTitle: 'Custom', ttText: 'Set your own duration to match your task.' };
+
+/* ── Study Session (cyclic focus/break) ── */
+var timerType = 'single'; /* 'single' | 'study' */
+var studyActive = false;
+var studyPhase = 'focus'; /* 'focus' | 'break' | 'longBreak' */
+var studyCycle = 0;
+var studyFocusSecs = 2700, studyBreakSecs = 600, studyLongSecs = 1200, studyCyclesUntilLong = 3;
+var breakOnComplete = null;
+
+var tmTypeSingle = document.getElementById('tmTypeSingle');
+var tmTypeStudy = document.getElementById('tmTypeStudy');
+var studyConfigEl = document.getElementById('studyConfig');
+var studyCycleIndicatorEl = document.getElementById('studyCycleIndicator');
+var stFocusEl = document.getElementById('stFocus');
+var stBreakEl = document.getElementById('stBreak');
+var stCyclesEl = document.getElementById('stCycles');
+var stLongEl = document.getElementById('stLong');
+
+function loadStudyPrefs() {
+  try {
+    var saved = SyncEngine.get('clock', 'study_prefs');
+    if (!saved) return;
+    var p = typeof saved === 'string' ? JSON.parse(saved) : saved;
+    if (p.focus) stFocusEl.value = p.focus;
+    if (p.brk) stBreakEl.value = p.brk;
+    if (p.cycles) stCyclesEl.value = p.cycles;
+    if (p.long) stLongEl.value = p.long;
+  } catch (e) {}
+}
+function saveStudyPrefs() {
+  SyncEngine.set('clock', 'study_prefs', JSON.stringify({
+    focus: parseInt(stFocusEl.value) || 45,
+    brk: parseInt(stBreakEl.value) || 10,
+    cycles: parseInt(stCyclesEl.value) || 3,
+    long: parseInt(stLongEl.value) || 20
+  }));
+}
+[stFocusEl, stBreakEl, stCyclesEl, stLongEl].forEach(function(el) {
+  el.addEventListener('change', function() { if (!studyActive) saveStudyPrefs(); });
+});
+loadStudyPrefs();
+
+function updateStudyIndicator() {
+  if (!studyActive) { studyCycleIndicatorEl.hidden = true; return; }
+  var phaseLabel = studyPhase === 'focus' ? 'Focus' : (studyPhase === 'longBreak' ? 'Long Break' : 'Break');
+  studyCycleIndicatorEl.hidden = false;
+  studyCycleIndicatorEl.textContent = 'Cycle ' + (studyCycle + 1) + ' \u00b7 ' + phaseLabel;
+}
+
+function setTimerType(type, force) {
+  if (studyActive && !force) return;
+  timerType = type;
+  tmTypeSingle.classList.toggle('active', type === 'single');
+  tmTypeSingle.setAttribute('aria-selected', type === 'single' ? 'true' : 'false');
+  tmTypeStudy.classList.toggle('active', type === 'study');
+  tmTypeStudy.setAttribute('aria-selected', type === 'study' ? 'true' : 'false');
+  presetsEl.style.display = type === 'single' ? '' : 'none';
+  studyConfigEl.hidden = type !== 'study';
+  if (!studyActive) studyCycleIndicatorEl.hidden = true;
+}
+tmTypeSingle.addEventListener('click', function() { setTimerType('single'); });
+tmTypeStudy.addEventListener('click', function() { setTimerType('study'); });
+
+function endStudySession() {
+  studyActive = false;
+  studyPhase = 'focus'; studyCycle = 0;
+  studyCycleIndicatorEl.hidden = true;
+  dismissBreak();
+}
+
+function startNextStudyPhase() {
+  studyPhase = 'focus';
+  tmDuration = studyFocusSecs; tmRemaining = studyFocusSecs;
+  updateStudyIndicator();
+  updateTMDisplay();
+  document.getElementById('tmRing').classList.remove('complete');
+  tmStartTime = Date.now(); tmStartRemaining = tmRemaining;
+  tmRunning = true; tmInterval = setInterval(tickTimer, 100);
+  document.getElementById('tmToggle').textContent = 'Pause';
+  document.getElementById('tmLabel').textContent = 'Focusing';
+  document.getElementById('tmLabel').className = 'session-label running';
+  saveTimerState();
+}
+
+function advanceStudySession() {
+  if (studyPhase === 'focus') {
+    addFocusSeconds(tmDuration); updateFocusStats();
+    playChime(); launchConfetti('confetti');
+    studyCycle++;
+    var goLong = (studyCycle % studyCyclesUntilLong) === 0;
+    studyPhase = goLong ? 'longBreak' : 'break';
+    tmDuration = goLong ? studyLongSecs : studyBreakSecs;
+    tmRemaining = tmDuration;
+    updateStudyIndicator();
+    updateTMDisplay();
+    document.getElementById('tmRing').classList.remove('complete');
+    document.getElementById('tmToggle').textContent = 'Start';
+    document.getElementById('tmLabel').textContent = goLong ? 'Long break' : 'Break';
+    document.getElementById('tmLabel').className = 'session-label';
+    startBreakOverlay(goLong ? 'Long Break' : 'Short Break', tmDuration, startNextStudyPhase);
+  } else {
+    playChime();
+    startNextStudyPhase();
+  }
+}
+
 var tmDuration = 1500, tmRemaining = 1500;
 var tmRunning = false, tmInterval = null, tmStartTime = 0, tmStartRemaining = 0;
 var selectedPreset = 0;
 var tmCustomSecs = 0;
+/* Declared here (before restoreTimerState() runs below) because a restored study-session
+   break resumes by calling startBreakOverlay() during that very call; if this initializer
+   ran later in the script it would clobber the just-restored countdown back to zero. */
+var breakInterval = null, breakRemaining = 0, breakStartTime = 0, breakPhaseDuration = 0;
 
 /* ── Timer State Persistence (SyncEngine) ── */
+function studySnapshot() {
+  return studyActive ? { phase: studyPhase, cycle: studyCycle, focusSecs: studyFocusSecs, breakSecs: studyBreakSecs, longSecs: studyLongSecs, cyclesUntilLong: studyCyclesUntilLong } : null;
+}
 function saveTimerState() {
-  if (tmRunning) {
+  if (studyActive && (studyPhase === 'break' || studyPhase === 'longBreak')) {
+    SyncEngine.set('clock', 'timer_state', JSON.stringify({
+      onBreak: true,
+      breakStartTime: breakStartTime,
+      breakDuration: breakPhaseDuration,
+      duration: tmDuration,
+      preset: selectedPreset,
+      customSecs: tmCustomSecs,
+      timerType: timerType,
+      study: studySnapshot()
+    }));
+  } else if (tmRunning) {
     SyncEngine.set('clock', 'timer_state', JSON.stringify({
       running: true,
       startTime: tmStartTime,
       startRemaining: tmStartRemaining,
       duration: tmDuration,
       preset: selectedPreset,
-      customSecs: tmCustomSecs
+      customSecs: tmCustomSecs,
+      timerType: timerType,
+      study: studySnapshot()
     }));
   } else if (tmRemaining < tmDuration && tmRemaining > 0) {
     SyncEngine.set('clock', 'timer_state', JSON.stringify({
@@ -1152,7 +1301,9 @@ function saveTimerState() {
       remaining: tmRemaining,
       duration: tmDuration,
       preset: selectedPreset,
-      customSecs: tmCustomSecs
+      customSecs: tmCustomSecs,
+      timerType: timerType,
+      study: studySnapshot()
     }));
   } else {
     SyncEngine.remove('clock', 'timer_state');
@@ -1168,12 +1319,46 @@ function restoreTimerState() {
     tmDuration = st.duration;
     tmCustomSecs = st.customSecs || 0;
     selectedPreset = st.preset != null ? st.preset : 0;
+    if (st.timerType === 'study' && st.study) {
+      studyActive = true;
+      studyPhase = st.study.phase || 'focus';
+      studyCycle = st.study.cycle || 0;
+      studyFocusSecs = st.study.focusSecs || 2700;
+      studyBreakSecs = st.study.breakSecs || 600;
+      studyLongSecs = st.study.longSecs || 1200;
+      studyCyclesUntilLong = st.study.cyclesUntilLong || 3;
+      setTimerType('study', true);
+      stFocusEl.value = Math.round(studyFocusSecs / 60);
+      stBreakEl.value = Math.round(studyBreakSecs / 60);
+      stLongEl.value = Math.round(studyLongSecs / 60);
+      stCyclesEl.value = studyCyclesUntilLong;
+      updateStudyIndicator();
+    }
+    if (st.onBreak && studyActive) {
+      var breakElapsed = (Date.now() - st.breakStartTime) / 1000;
+      var breakLeft = Math.max(0, Math.round((st.breakDuration || 0) - breakElapsed));
+      if (breakLeft <= 0) {
+        /* Break finished while we were away; move straight into the next focus block. */
+        SyncEngine.remove('clock', 'timer_state');
+        startNextStudyPhase();
+        return true;
+      }
+      document.getElementById('tmLabel').textContent = studyPhase === 'longBreak' ? 'Long break' : 'Break';
+      document.getElementById('tmLabel').className = 'session-label';
+      startBreakOverlay(studyPhase === 'longBreak' ? 'Long Break' : 'Short Break', breakLeft, startNextStudyPhase);
+      return true;
+    }
     if (st.running) {
       var elapsed = (Date.now() - st.startTime) / 1000;
       tmRemaining = Math.max(0, st.startRemaining - elapsed);
       if (tmRemaining <= 0) {
         /* Timer completed while we were away */
         SyncEngine.remove('clock', 'timer_state');
+        if (studyActive) {
+          tmRunning = false;
+          advanceStudySession();
+          return true;
+        }
         addFocusSeconds(st.duration); updateFocusStats();
         tmRemaining = tmDuration;
         updateTMDisplay();
@@ -1214,12 +1399,25 @@ function restoreTimerState() {
 }
 
 /* Save timer state on visibility change and before unload */
+function timerNeedsSave() {
+  return tmRunning || (tmRemaining < tmDuration && tmRemaining > 0) ||
+    (studyActive && (studyPhase === 'break' || studyPhase === 'longBreak'));
+}
 document.addEventListener('visibilitychange', function() {
-  if (document.hidden && tmRunning) saveTimerState();
+  if (document.hidden && timerNeedsSave()) saveTimerState();
 });
 window.addEventListener('beforeunload', function() {
-  if (tmRunning || (tmRemaining < tmDuration && tmRemaining > 0)) saveTimerState();
+  if (timerNeedsSave()) saveTimerState();
 });
+/* Notion embeds can be torn down (iframe removed from the DOM) without ever firing
+   beforeunload or visibilitychange, which previously dropped a running timer/session
+   with no save. Guard against that with pagehide plus a periodic autosave. This also
+   covers study-session breaks, which run on their own countdown (breakInterval) and
+   would otherwise never be persisted while tmRunning is false. */
+window.addEventListener('pagehide', function() {
+  if (timerNeedsSave()) saveTimerState();
+});
+setInterval(function() { if (timerNeedsSave()) saveTimerState(); }, 8000);
 
 var presetsEl = document.getElementById('presets');
 
@@ -1424,10 +1622,14 @@ function tickTimer() {
   if (tmRemaining <= 0) {
     tmRunning = false; clearInterval(tmInterval);
     SyncEngine.remove('clock', 'timer_state');
+    document.getElementById('tmRing').classList.add('complete');
+    if (studyActive) {
+      advanceStudySession();
+      return;
+    }
     document.getElementById('tmToggle').textContent = 'Start';
     document.getElementById('tmLabel').textContent = 'Complete!';
     document.getElementById('tmLabel').className = 'session-label done';
-    document.getElementById('tmRing').classList.add('complete');
     addFocusSeconds(tmDuration); updateFocusStats();
     playChime(); launchConfetti('confetti');
     var needsBreak = tmDuration >= 2700;
@@ -1443,6 +1645,16 @@ function tickTimer() {
 updateTMDisplay();
 
 document.getElementById('tmToggle').addEventListener('click', function() {
+  if (!tmRunning && !studyActive && timerType === 'study') {
+    studyFocusSecs = Math.max(60, (parseInt(stFocusEl.value) || 45) * 60);
+    studyBreakSecs = Math.max(60, (parseInt(stBreakEl.value) || 10) * 60);
+    studyLongSecs = Math.max(60, (parseInt(stLongEl.value) || 20) * 60);
+    studyCyclesUntilLong = Math.max(1, parseInt(stCyclesEl.value) || 3);
+    studyActive = true; studyPhase = 'focus'; studyCycle = 0;
+    tmDuration = studyFocusSecs; tmRemaining = studyFocusSecs;
+    saveStudyPrefs();
+    updateStudyIndicator();
+  }
   if (tmRunning) { playPause(); } else if (tmRemaining < tmDuration) { playResume(); } else { playStart(); }
   if (tmRunning) {
     tmRemaining = Math.max(0, tmStartRemaining - (Date.now() - tmStartTime) / 1000);
@@ -1470,9 +1682,13 @@ document.getElementById('tmReset').addEventListener('click', function() {
   playReset();
   if (tmRunning) {
     var focused = tmDuration - Math.max(0, tmStartRemaining - (Date.now() - tmStartTime) / 1000);
-    if (focused >= 1) { addFocusSeconds(focused); updateFocusStats(); }
+    if (focused >= 1 && (!studyActive || studyPhase === 'focus')) { addFocusSeconds(focused); updateFocusStats(); }
   }
   tmRunning = false; clearInterval(tmInterval);
+  if (studyActive) {
+    endStudySession();
+    tmDuration = studyFocusSecs;
+  }
   tmRemaining = tmDuration; updateTMDisplay();
   document.getElementById('tmToggle').textContent = 'Start';
   document.getElementById('tmLabel').textContent = 'Set duration';
@@ -1484,18 +1700,31 @@ document.getElementById('tmReset').addEventListener('click', function() {
 /* ══════════════════════════════════════
    MICRO-BREAK (after 45+ min sessions)
    ══════════════════════════════════════ */
-var breakInterval = null, breakRemaining = 0;
-function showMicroBreak() {
+function startBreakOverlay(title, secs, onComplete) {
+  document.getElementById('breakTitle').textContent = title || 'Micro-Break';
   playBreakAppear();
-  breakRemaining = 300;
+  breakRemaining = Math.max(1, Math.round(secs || 300));
+  breakStartTime = Date.now();
+  breakPhaseDuration = breakRemaining;
+  breakOnComplete = onComplete || null;
   document.getElementById('breakOverlay').classList.add('show');
   updateBreakTimer();
+  clearInterval(breakInterval);
   breakInterval = setInterval(function() {
     breakRemaining--;
-    if (breakRemaining <= 0) { dismissBreak(); return; }
+    if (breakRemaining <= 0) {
+      var cb = breakOnComplete; breakOnComplete = null;
+      dismissBreak();
+      if (cb) cb();
+      return;
+    }
     updateBreakTimer();
   }, 1000);
+  /* Study-session breaks must survive a reload/iframe teardown just like a running
+     focus block, since Notion can tear this down mid-break. */
+  saveTimerState();
 }
+function showMicroBreak() { startBreakOverlay('Micro-Break', 300, null); }
 function updateBreakTimer() {
   var m = Math.floor(breakRemaining / 60), s = breakRemaining % 60;
   document.getElementById('breakTimerDisplay').textContent = m + ':' + String(s).padStart(2, '0');
@@ -1504,7 +1733,12 @@ function dismissBreak() {
   clearInterval(breakInterval);
   document.getElementById('breakOverlay').classList.remove('show');
 }
-document.getElementById('breakSkip').addEventListener('click', function() { playBreakDismiss(); dismissBreak(); });
+document.getElementById('breakSkip').addEventListener('click', function() {
+  playBreakDismiss();
+  var cb = breakOnComplete; breakOnComplete = null;
+  dismissBreak();
+  if (cb) cb();
+});
 
 /* ══════════════════════════════════════
    SETTINGS PANEL
