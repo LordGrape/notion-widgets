@@ -299,6 +299,25 @@ body {
 .study-unit { font-size: 9px; font-weight: 500; color: var(--meta-color); text-transform: lowercase; }
 .study-cycle-indicator { display: inline-block; text-align: center; font-size: 9px; letter-spacing: 1.2px; text-transform: uppercase; color: #fff; background: var(--accent); padding: 5px 14px; border-radius: 999px; margin-bottom: 8px; font-weight: 700; box-shadow: var(--dot-active-glow); }
 
+/* ── Stats Mode: Mastery Level + Consistency Heatmap ── */
+.mastery-card { margin: 10px auto 22px; }
+.mastery-stage-name { font-size: 16px; font-weight: 700; color: var(--accent); letter-spacing: 0.3px; margin-bottom: 10px; }
+.mastery-bar-track { width: 100%; height: 8px; border-radius: 6px; background: var(--bar-bg); overflow: hidden; }
+.mastery-bar-fill { height: 100%; width: 0%; background: var(--bar-fill); border-radius: 6px; box-shadow: var(--bar-glow); transition: width 0.6s cubic-bezier(0.4,0,0.2,1); }
+.mastery-bar-caption { font-size: 8.5px; font-weight: 300; letter-spacing: 0.6px; text-transform: uppercase; color: var(--meta-color); margin-top: 9px; }
+.heatmap-card { margin-top: 6px; }
+.heatmap-title { font-size: 9.5px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--meta-color); margin-bottom: 10px; }
+.heatmap-grid { display: grid; grid-template-columns: repeat(13, 1fr); grid-template-rows: repeat(7, 1fr); gap: 2.5px; width: 100%; aspect-ratio: 13 / 7; }
+.hm-cell { display: block; width: 100%; height: 100%; border-radius: 2.5px; background: var(--dot-bg); }
+.hm-lvl-1 { background: rgba(var(--accent-rgb), 0.28); }
+.hm-lvl-2 { background: rgba(var(--accent-rgb), 0.5); }
+.hm-lvl-3 { background: rgba(var(--accent-rgb), 0.75); }
+.hm-lvl-4 { background: var(--accent); box-shadow: 0 0 4px rgba(var(--accent-rgb), 0.5); }
+.hm-empty { background: transparent; }
+.heatmap-legend { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 12px; font-size: 8px; font-weight: 300; letter-spacing: 0.8px; text-transform: uppercase; color: var(--meta-color); }
+.heatmap-legend-cells { display: flex; gap: 3px; }
+.heatmap-legend-cells .hm-cell { width: 9px; height: 9px; }
+
 /* ── Settings Panel ── */
 .settings-btn { position:absolute; top:10px; left:14px; font-size:14px; background:none; border:none; cursor:pointer; opacity:0; transform:translateY(6px) scale(0.95); transition:opacity 0.4s cubic-bezier(0.4,0,0.2,1),transform 0.4s cubic-bezier(0.4,0,0.2,1); pointer-events:none; z-index:10; color:var(--date-color); }
 .container:hover .settings-btn { opacity:0.5; transform:translateY(0) scale(1); pointer-events:auto; }
@@ -467,6 +486,7 @@ body {
     <button class="mode-btn active" data-mode="clock">Clock</button>
     <button class="mode-btn" data-mode="stopwatch">Stopwatch</button>
     <button class="mode-btn" data-mode="timer">Timer</button>
+    <button class="mode-btn" data-mode="stats">Stats</button>
     <span class="mode-indicator" aria-hidden="true"></span>
   </div>
 
@@ -549,6 +569,30 @@ body {
     </div>
     <div class="focus-stats" id="tmStats"></div>
   </div>
+
+  <!-- STATS MODE -->
+  <div class="mode" id="statsMode" role="tabpanel" aria-label="Stats panel">
+    <div class="mastery-card">
+      <div class="mastery-stage-name" id="masteryStageName">1L Novice</div>
+      <div class="mastery-bar-track"><div class="mastery-bar-fill" id="masteryBarFill"></div></div>
+      <div class="mastery-bar-caption" id="masteryBarCaption"></div>
+    </div>
+    <div class="heatmap-card">
+      <div class="heatmap-title">Focus Consistency</div>
+      <div class="heatmap-grid" id="heatmapGrid"></div>
+      <div class="heatmap-legend">
+        <span>Less</span>
+        <span class="heatmap-legend-cells">
+          <span class="hm-cell hm-lvl-0"></span>
+          <span class="hm-cell hm-lvl-1"></span>
+          <span class="hm-cell hm-lvl-2"></span>
+          <span class="hm-cell hm-lvl-3"></span>
+          <span class="hm-cell hm-lvl-4"></span>
+        </span>
+        <span>More</span>
+      </div>
+    </div>
+  </div>
   </div>
 
   <!-- SETTINGS -->
@@ -589,14 +633,15 @@ body {
 /* ══════════════════════════════════════
    MODE SWITCHING
    ══════════════════════════════════════ */
-var modes = ['clock', 'stopwatch', 'timer'];
-var modeEls = { clock: document.getElementById('clockMode'), stopwatch: document.getElementById('stopwatchMode'), timer: document.getElementById('timerMode') };
+var modes = ['clock', 'stopwatch', 'timer', 'stats'];
+var modeEls = { clock: document.getElementById('clockMode'), stopwatch: document.getElementById('stopwatchMode'), timer: document.getElementById('timerMode'), stats: document.getElementById('statsMode') };
 var modeBtns = document.querySelectorAll('.mode-btn');
 var currentMode = 'clock';
-var modeIndex = { clock: 0, stopwatch: 1, timer: 2 };
+var modeIndex = { clock: 0, stopwatch: 1, timer: 2, stats: 3 };
 
 function switchModeAnimated(mode) {
   if (mode === currentMode) return;
+  if (mode === 'stats') { renderMastery(); renderHeatmap(); }
   var from = modeIndex[currentMode], to = modeIndex[mode];
   var dir = to > from ? 'forward' : 'backward';
   var oldEl = modeEls[currentMode], newEl = modeEls[mode];
@@ -1059,6 +1104,77 @@ function updateFocusStats() {
 }
 updateFocusStats();
 
+/* Records a completed focus session: updates today's focus-time total
+   (existing per-day store) AND awards Dragon XP — a pre-existing,
+   dormant cross-widget mastery primitive in core.js (monotonic, daily-
+   capped, never punitive). 1 XP == 1 focused minute. Sub-minute
+   remainders are simply floored (same rounding core.js already uses
+   for focus-time itself) — negligible over a multi-year XP curve. */
+function recordFocusTime(secs) {
+  addFocusSeconds(secs);
+  addDragonXP(secs / 60);
+  updateFocusStats();
+  if (currentMode === 'stats') { renderMastery(); renderHeatmap(); }
+}
+
+/* ══════════════════════════════════════
+   STATS MODE — Mastery Level & Consistency Heatmap
+   ══════════════════════════════════════ */
+var MASTERY_STAGES = [
+  { name: '1L Novice',             xp: 0 },
+  { name: 'Case Briefer',          xp: 1000 },
+  { name: 'Moot Court Regular',    xp: 5000 },
+  { name: 'Law Review Contender',  xp: 20000 },
+  { name: "Dean's List",           xp: 60000 },
+  { name: 'Order of the Coif',     xp: 120000 }
+];
+
+function renderMastery() {
+  var nameEl = document.getElementById('masteryStageName');
+  if (!nameEl) return;
+  var fillEl = document.getElementById('masteryBarFill');
+  var capEl = document.getElementById('masteryBarCaption');
+  var xp = getDragonXP();
+  var stage = getDragonStage();
+  var cur = MASTERY_STAGES[stage];
+  var next = MASTERY_STAGES[stage + 1];
+  var totalFocused = formatFocusTime(xp * 60);
+  nameEl.textContent = cur.name;
+  if (next) {
+    var pct = Math.max(0, Math.min(100, ((xp - cur.xp) / (next.xp - cur.xp)) * 100));
+    fillEl.style.width = pct + '%';
+    capEl.textContent = totalFocused + ' focused lifetime · ' + (next.xp - xp) + ' XP to ' + next.name;
+  } else {
+    fillEl.style.width = '100%';
+    capEl.textContent = totalFocused + ' focused lifetime · highest tier reached';
+  }
+}
+
+function renderHeatmap() {
+  var grid = document.getElementById('heatmapGrid');
+  if (!grid) return;
+  var cols = 13, rows = 7;
+  var today = new Date(); today.setHours(0, 0, 0, 0);
+  var todayDow = today.getDay();
+  var html = '';
+  for (var r = 0; r < rows; r++) {
+    for (var c = 0; c < cols; c++) {
+      var offset = (cols - 1 - c) * 7 + (todayDow - r);
+      if (offset < 0) { html += '<span class="hm-cell hm-empty"></span>'; continue; }
+      var d = new Date(today.getTime() - offset * 86400000);
+      var key = 'focus_' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      var daySecs = SyncEngine.get('clock', key) || 0;
+      var mins = Math.floor(daySecs / 60);
+      var lvl = mins <= 0 ? 0 : mins < 25 ? 1 : mins < 50 ? 2 : mins < 90 ? 3 : 4;
+      var label = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ': ' + (mins > 0 ? formatFocusTime(daySecs) + ' focused' : 'No focus recorded');
+      html += '<span class="hm-cell hm-lvl-' + lvl + '" title="' + label + '"></span>';
+    }
+  }
+  grid.innerHTML = html;
+}
+renderMastery();
+renderHeatmap();
+
 /* ══════════════════════════════════════
    STOPWATCH
    ══════════════════════════════════════ */
@@ -1133,7 +1249,7 @@ document.getElementById('swReset').addEventListener('click', function() {
   playReset();
   if (swRunning) swAccum += Date.now() - swStartTime;
   var swSecs = swAccum / 1000;
-  if (swAccum >= 1000) { addFocusSeconds(swSecs); updateFocusStats(); }
+  if (swAccum >= 1000) { recordFocusTime(swSecs); }
   var triggerBreak = swSecs >= 2700;
   swRunning = false; clearInterval(swInterval); swAccum = 0; swElapsed = 0; swLapsArr = [];
   document.getElementById('swTime').innerHTML = formatSW(0);
@@ -1242,7 +1358,7 @@ function startNextStudyPhase() {
 
 function advanceStudySession() {
   if (studyPhase === 'focus') {
-    addFocusSeconds(tmDuration); updateFocusStats();
+    recordFocusTime(tmDuration);
     playChime(); launchConfetti('confetti');
     studyCycle++;
     var goLong = (studyCycle % studyCyclesUntilLong) === 0;
@@ -1362,7 +1478,7 @@ function restoreTimerState() {
           advanceStudySession();
           return true;
         }
-        addFocusSeconds(st.duration); updateFocusStats();
+        recordFocusTime(st.duration);
         tmRemaining = tmDuration;
         updateTMDisplay();
         /* Play completion feedback */
@@ -1633,7 +1749,7 @@ function tickTimer() {
     document.getElementById('tmToggle').textContent = 'Start';
     document.getElementById('tmLabel').textContent = 'Complete!';
     document.getElementById('tmLabel').className = 'session-label done';
-    addFocusSeconds(tmDuration); updateFocusStats();
+    recordFocusTime(tmDuration);
     playChime(); launchConfetti('confetti');
     var needsBreak = tmDuration >= 2700;
     setTimeout(function() {
@@ -1685,7 +1801,7 @@ document.getElementById('tmReset').addEventListener('click', function() {
   playReset();
   if (tmRunning) {
     var focused = tmDuration - Math.max(0, tmStartRemaining - (Date.now() - tmStartTime) / 1000);
-    if (focused >= 1 && (!studyActive || studyPhase === 'focus')) { addFocusSeconds(focused); updateFocusStats(); }
+    if (focused >= 1 && (!studyActive || studyPhase === 'focus')) { recordFocusTime(focused); }
   }
   tmRunning = false; clearInterval(tmInterval);
   if (studyActive) {
