@@ -135,6 +135,18 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.8px;line-height:1.15;margin-t
 
 /* ── Today list ────────────────────────── */
 .list{display:flex;flex-direction:column;gap:9px}
+/* ── Unified Today: plain To-Do tasks due today with no set time ── */
+.today-todo{margin-top:14px;display:flex;flex-direction:column;gap:7px;animation:fadeUp .45s var(--ease) both}
+.today-todo-label{font:800 8px 'Inter';letter-spacing:1.3px;text-transform:uppercase;color:var(--text-3);padding:0 2px}
+.today-todo-row{position:relative;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;cursor:pointer;
+  background:var(--surface-3);border:1px solid var(--line);transition:border-color .25s var(--ease),opacity .25s}
+.today-todo-row:hover{border-color:var(--line-strong)}
+.today-todo-row input[type="checkbox"]{width:15px;height:15px;flex:0 0 auto;accent-color:var(--accent);cursor:pointer}
+.today-todo-row .dot{width:7px;height:7px;border-radius:50%;flex:0 0 auto;background:var(--pri-c,var(--text-3))}
+.today-todo-row .text{flex:1;min-width:0;font-size:11.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.today-todo-row .band{flex:0 0 auto;font:700 8px 'JetBrains Mono';letter-spacing:.4px;text-transform:uppercase;color:var(--text-3)}
+.today-todo-row.done .text{text-decoration:line-through;color:var(--text-3)}
+.today-todo-row.done{opacity:.55}
 .card{position:relative;display:grid;grid-template-columns:3px 74px 1fr;gap:12px;align-items:stretch;
   padding:13px 14px 13px 13px;border-radius:18px;cursor:pointer;
   background:linear-gradient(150deg,color-mix(in srgb,var(--c) 7%,var(--surface)),var(--surface-2));
@@ -761,8 +773,10 @@ function renderToday(){
   updateStats();
 
   if(!items.length){
-    main.innerHTML='<div class="empty"><div><div class="glyph">\uD83D\uDCC5</div><h2>Nothing '+(isToday?'today':'on '+DAY_NAMES[selectedDay])+'</h2><p>Add a weekly consistency and it will appear here every week.</p><button class="cta" id="emptyAdd">Add a block</button></div></div>';
+    main.innerHTML='<div class="empty"><div><div class="glyph">\uD83D\uDCC5</div><h2>Nothing '+(isToday?'today':'on '+DAY_NAMES[selectedDay])+'</h2><p>Add a weekly consistency and it will appear here every week.</p><button class="cta" id="emptyAdd">Add a block</button></div></div>'
+      +(isToday?renderTodayTodoSection():'');
     $('emptyAdd').addEventListener('click',openPanel);
+    wireTodayTodoSection();
     return;
   }
 
@@ -794,7 +808,7 @@ function renderToday(){
       +'<button class="d-edit" data-edit="'+c.id+'">Edit all</button>'
       +'</div></div></article>';
   });
-  html+='</div>';
+  html+='</div>'+(isToday?renderTodayTodoSection():'');
   main.innerHTML=html;
 
   main.querySelectorAll('.card').forEach(function(card){
@@ -806,6 +820,7 @@ function renderToday(){
   });
   main.querySelectorAll('.d-occurrence').forEach(function(btn){btn.addEventListener('click',function(){openOccurrence(btn.dataset.occurrence,btn.dataset.sourceDate)})});
   main.querySelectorAll('.d-edit[data-edit]').forEach(function(btn){btn.addEventListener('click',function(){openPanel(btn.dataset.edit)})});
+  wireTodayTodoSection();
 }
 
 /* ── Week view ── */
@@ -936,6 +951,56 @@ function todoList(){
   if(typeof ActionBlocks!=='undefined'&&ActionBlocks.parseList)return ActionBlocks.parseList(raw);
   if(Array.isArray(raw))return raw;
   try{return JSON.parse(raw)||[]}catch(e){return[]}
+}
+/* ── Unified Today: surface plain To-Do tasks (no set time) due today ──
+   Read-only against To-Do's data except the completion checkbox, which
+   patches only done/doneAt on the matching task object and writes the
+   full array back untouched otherwise — the same safe pattern Clock's
+   Study Session checklist already uses. Tasks that already have their
+   own time (scheduledStart, e.g. from natural-language timeboxing) or
+   that are already mirrored into this widget's own schedule (a
+   todoTaskId block) are excluded so nothing is ever shown twice. */
+var TODO_PRI_COLOR={must:'#e5484d',should:'#c2410c',could:'#8b5cf6'};
+var TODO_BAND_LABEL={quick:'Quick',m30:'30m',m60:'60m',deep:'Deep'};
+function unscheduledTodayTasks(){
+  var tasks=todoList(),key=scheduleDateKey(new Date()),mirrored={};
+  /* normaliseBlocks() strips unknown fields like todoTaskId from the
+     internal `schedule` array, so check the raw synced value instead
+     (same source timetable-todo-completion.js reads for the same reason). */
+  var rawCourses=null;try{rawCourses=SyncEngine.get('timetable','courses')}catch(e){}
+  (Array.isArray(rawCourses)?rawCourses:[]).forEach(function(b){if(b&&b.todoTaskId)mirrored[b.todoTaskId]=true});
+  var order={must:0,should:1,could:2};
+  return tasks.filter(function(t){
+    if(!t||t.done||t.scheduledStart||mirrored[t.id])return false;
+    return t.due==='today'||t.dueKey===key;
+  }).sort(function(a,b){return(order[a.pri]!=null?order[a.pri]:3)-(order[b.pri]!=null?order[b.pri]:3)});
+}
+function toggleTodayTodoTask(id){
+  var tasks=todoList(),t=tasks.filter(function(x){return x&&x.id===id})[0];
+  if(!t)return;
+  t.done=!t.done;t.doneAt=t.done?Date.now():null;t.updatedAt=Date.now();
+  try{SyncEngine.set('todo','tasks',JSON.stringify(tasks))}catch(e){}
+  sfx('click');
+  if(view==='today')renderToday();
+}
+function renderTodayTodoSection(){
+  var items=unscheduledTodayTasks();
+  if(!items.length)return'';
+  var html='<div class="today-todo"><div class="today-todo-label">Also today</div>';
+  items.forEach(function(t){
+    var c=TODO_PRI_COLOR[t.pri]||'var(--text-3)',band=TODO_BAND_LABEL[t.time]||'';
+    html+='<label class="today-todo-row" style="--pri-c:'+c+'"><input type="checkbox" data-todo-id="'+esc(t.id)+'">'
+      +'<span class="dot" style="background:'+c+'"></span><span class="text">'+esc(t.text)+'</span>'
+      +(band?'<span class="band">'+band+'</span>':'')+'</label>';
+  });
+  html+='</div>';
+  return html;
+}
+function wireTodayTodoSection(){
+  document.querySelectorAll('.today-todo-row input[type="checkbox"]').forEach(function(cb){
+    cb.addEventListener('change',function(){toggleTodayTodoTask(this.dataset.todoId)});
+    cb.addEventListener('click',function(e){e.stopPropagation()});
+  });
 }
 function localEventIso(key,time){var date=parseScheduleDate(key),parts=String(time||'00:00').split(':').map(Number);date.setHours(parts[0]||0,parts[1]||0,0,0);return date.toISOString()}
 function eventTimeBand(duration){return duration<=20?'quick':duration<=45?'m30':duration<=90?'m60':'deep'}
@@ -1092,7 +1157,9 @@ function boot(){
       });
       SyncEngine.subscribe('timetable',TT_CLOUD_RECOVERY_KEY,function(value){if(schedule.length)return;var emptyAt=intentionallyEmptyAt();if(value&&Array.isArray(value.current)&&value.current.length&&(+value.savedAt||0)>emptyAt){schedule=writeLocalSnapshot(value.current,false);protectRemoteSchedule();render();drawSaved()}});
       SyncEngine.subscribe('timetable','preferences',function(value){if(value&&typeof value==='object'){prefs={defaultView:/^(today|week)$/.test(value.defaultView)?value.defaultView:'auto',weekLayout:value.weekLayout==='calendar'?'calendar':'compact',sound:value.sound!==false,mondayFirst:!!value.mondayFirst,travelBuffer:[0,10,15,20,30].indexOf(+value.travelBuffer)>=0?+value.travelBuffer:10};drawSettings();render()}});
+      SyncEngine.subscribe('todo','tasks',function(){if(view==='today')renderToday()});
     }
+    if(SyncEngine.pull)Promise.resolve(SyncEngine.pull('todo')).catch(function(){}).then(function(){if(view==='today')renderToday()});
   }catch(e){}
   render();drawSettings();updateStorageStatus();setInterval(updateStorageStatus,12000);requestAnimationFrame(syncSeg);
 }
