@@ -299,7 +299,8 @@ body {
 .study-unit { font-size: 9px; font-weight: 500; color: var(--meta-color); text-transform: lowercase; }
 .study-cycle-indicator { display: inline-block; text-align: center; font-size: 9px; letter-spacing: 1.2px; text-transform: uppercase; color: #fff; background: var(--accent); padding: 5px 14px; border-radius: 999px; margin-bottom: 8px; font-weight: 700; box-shadow: var(--dot-active-glow); }
 
-/* ── Stats Mode: Mastery Level + Consistency Heatmap ── */
+/* ── Settings: Progress (Mastery Level + Consistency Heatmap) ── */
+.s-progress { margin-top: 8px; padding-top: 16px; border-top: 1px solid var(--arc-track); }
 .mastery-card { margin: 10px auto 22px; }
 .mastery-stage-name { font-size: 16px; font-weight: 700; color: var(--accent); letter-spacing: 0.3px; margin-bottom: 10px; }
 .mastery-bar-track { width: 100%; height: 8px; border-radius: 6px; background: var(--bar-bg); overflow: hidden; }
@@ -486,7 +487,6 @@ body {
     <button class="mode-btn active" data-mode="clock">Clock</button>
     <button class="mode-btn" data-mode="stopwatch">Stopwatch</button>
     <button class="mode-btn" data-mode="timer">Timer</button>
-    <button class="mode-btn" data-mode="stats">Stats</button>
     <span class="mode-indicator" aria-hidden="true"></span>
   </div>
 
@@ -569,36 +569,35 @@ body {
     </div>
     <div class="focus-stats" id="tmStats"></div>
   </div>
-
-  <!-- STATS MODE -->
-  <div class="mode" id="statsMode" role="tabpanel" aria-label="Stats panel">
-    <div class="mastery-card">
-      <div class="mastery-stage-name" id="masteryStageName">1L Novice</div>
-      <div class="mastery-bar-track"><div class="mastery-bar-fill" id="masteryBarFill"></div></div>
-      <div class="mastery-bar-caption" id="masteryBarCaption"></div>
-    </div>
-    <div class="heatmap-card">
-      <div class="heatmap-title">Focus Consistency</div>
-      <div class="heatmap-grid" id="heatmapGrid"></div>
-      <div class="heatmap-legend">
-        <span>Less</span>
-        <span class="heatmap-legend-cells">
-          <span class="hm-cell hm-lvl-0"></span>
-          <span class="hm-cell hm-lvl-1"></span>
-          <span class="hm-cell hm-lvl-2"></span>
-          <span class="hm-cell hm-lvl-3"></span>
-          <span class="hm-cell hm-lvl-4"></span>
-        </span>
-        <span>More</span>
-      </div>
-    </div>
-  </div>
   </div>
 
   <!-- SETTINGS -->
   <div class="settings-ov" id="settingsOv">
     <div class="s-title">&#x2699;&#xFE0F; Settings</div>
     <div id="sContent"></div>
+    <div class="s-progress">
+      <div class="heatmap-title">Focus Progress</div>
+      <div class="mastery-card">
+        <div class="mastery-stage-name" id="masteryStageName">Starting Out</div>
+        <div class="mastery-bar-track"><div class="mastery-bar-fill" id="masteryBarFill"></div></div>
+        <div class="mastery-bar-caption" id="masteryBarCaption"></div>
+      </div>
+      <div class="heatmap-card">
+        <div class="heatmap-title">Focus Consistency</div>
+        <div class="heatmap-grid" id="heatmapGrid"></div>
+        <div class="heatmap-legend">
+          <span>Less</span>
+          <span class="heatmap-legend-cells">
+            <span class="hm-cell hm-lvl-0"></span>
+            <span class="hm-cell hm-lvl-1"></span>
+            <span class="hm-cell hm-lvl-2"></span>
+            <span class="hm-cell hm-lvl-3"></span>
+            <span class="hm-cell hm-lvl-4"></span>
+          </span>
+          <span>More</span>
+        </div>
+      </div>
+    </div>
     <div class="s-close" id="sClose">Close</div>
   </div>
 
@@ -633,15 +632,14 @@ body {
 /* ══════════════════════════════════════
    MODE SWITCHING
    ══════════════════════════════════════ */
-var modes = ['clock', 'stopwatch', 'timer', 'stats'];
-var modeEls = { clock: document.getElementById('clockMode'), stopwatch: document.getElementById('stopwatchMode'), timer: document.getElementById('timerMode'), stats: document.getElementById('statsMode') };
+var modes = ['clock', 'stopwatch', 'timer'];
+var modeEls = { clock: document.getElementById('clockMode'), stopwatch: document.getElementById('stopwatchMode'), timer: document.getElementById('timerMode') };
 var modeBtns = document.querySelectorAll('.mode-btn');
 var currentMode = 'clock';
-var modeIndex = { clock: 0, stopwatch: 1, timer: 2, stats: 3 };
+var modeIndex = { clock: 0, stopwatch: 1, timer: 2 };
 
 function switchModeAnimated(mode) {
   if (mode === currentMode) return;
-  if (mode === 'stats') { renderMastery(); renderHeatmap(); }
   var from = modeIndex[currentMode], to = modeIndex[mode];
   var dir = to > from ? 'forward' : 'backward';
   var oldEl = modeEls[currentMode], newEl = modeEls[mode];
@@ -1114,19 +1112,20 @@ function recordFocusTime(secs) {
   addFocusSeconds(secs);
   addDragonXP(secs / 60);
   updateFocusStats();
-  if (currentMode === 'stats') { renderMastery(); renderHeatmap(); }
+  if (document.getElementById('settingsOv').classList.contains('show')) { renderMastery(); renderHeatmap(); }
 }
 
 /* ══════════════════════════════════════
-   STATS MODE — Mastery Level & Consistency Heatmap
+   PROGRESS — Mastery Level & Consistency Heatmap
+   (lives inside Settings, not a separate mode tab)
    ══════════════════════════════════════ */
 var MASTERY_STAGES = [
-  { name: '1L Novice',             xp: 0 },
-  { name: 'Case Briefer',          xp: 1000 },
-  { name: 'Moot Court Regular',    xp: 5000 },
-  { name: 'Law Review Contender',  xp: 20000 },
-  { name: "Dean's List",           xp: 60000 },
-  { name: 'Order of the Coif',     xp: 120000 }
+  { name: 'Starting Out',   xp: 0 },
+  { name: 'Developing',     xp: 1000 },
+  { name: 'Consistent',     xp: 5000 },
+  { name: 'Advanced',       xp: 20000 },
+  { name: 'Elite',          xp: 60000 },
+  { name: 'Mastery',        xp: 120000 }
 ];
 
 function renderMastery() {
@@ -1865,7 +1864,7 @@ document.getElementById('breakSkip').addEventListener('click', function() {
 var _geo = [];
 
 document.getElementById('sBtn').addEventListener('click', function() {
-  playOpen(); renderS(); document.getElementById('settingsOv').classList.add('show');
+  playOpen(); renderS(); renderMastery(); renderHeatmap(); document.getElementById('settingsOv').classList.add('show');
 });
 document.getElementById('sClose').addEventListener('click', function() {
   playClose(); document.getElementById('settingsOv').classList.remove('show');
