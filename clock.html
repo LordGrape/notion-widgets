@@ -299,6 +299,25 @@ body {
 .study-unit { font-size: 9px; font-weight: 500; color: var(--meta-color); text-transform: lowercase; }
 .study-cycle-indicator { display: inline-block; text-align: center; font-size: 9px; letter-spacing: 1.2px; text-transform: uppercase; color: #fff; background: var(--accent); padding: 5px 14px; border-radius: 999px; margin-bottom: 8px; font-weight: 700; box-shadow: var(--dot-active-glow); }
 
+/* Fix: an element's own `display` declaration always beats the UA [hidden]
+   default (author origin outranks UA origin regardless of specificity), so
+   `.study-config{display:grid}` and `.study-cycle-indicator{display:inline-block}`
+   were silently leaking through in Single mode whenever `hidden` was set.
+   Pre-existing since the Study Session redesign — fixed here incidentally. */
+#studyConfig[hidden], #studyCycleIndicator[hidden] { display: none; }
+
+/* ── Study Session: To-Do Task Checklist (shared SyncEngine 'todo' data) ── */
+.study-tasks { text-align: left; margin: 0 auto 14px; padding: 12px 14px; border-radius: 14px; background: var(--dot-bg); border: 1px solid var(--arc-track); max-width: 320px; }
+.study-tasks-label { font-size: 9px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--meta-color); margin-bottom: 8px; }
+.study-tasks-empty { font-size: 10.5px; font-weight: 300; font-style: italic; color: var(--meta-color); }
+.study-task-row { display: flex; align-items: center; gap: 8px; padding: 6px 4px; border-radius: 8px; cursor: pointer; transition: background 0.15s ease; }
+.study-task-row:hover { background: rgba(var(--accent-rgb), 0.08); }
+.study-task-row input[type="checkbox"] { width: 15px; height: 15px; flex-shrink: 0; accent-color: var(--accent); cursor: pointer; }
+.study-task-text { font-size: 11.5px; font-weight: 500; color: var(--date-color); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: opacity 0.25s ease; }
+.study-task-row.done .study-task-text { text-decoration: line-through; opacity: 0.45; }
+.study-task-row.scheduled-now { background: rgba(var(--accent-rgb), 0.06); }
+.study-task-badge { font-size: 7px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: #fff; background: var(--accent); padding: 2px 6px; border-radius: 999px; flex-shrink: 0; }
+
 /* ── Settings: Progress (Mastery Level + Consistency Heatmap) ── */
 .s-progress { margin-top: 8px; padding-top: 16px; border-top: 1px solid var(--arc-track); }
 .mastery-card { margin: 10px auto 22px; }
@@ -553,6 +572,7 @@ body {
       <div class="study-field"><label for="stLong">Long break</label><div class="study-input-row"><input class="s-input study-input" id="stLong" type="number" min="10" max="45" step="5" value="20"><span class="study-unit">min</span></div></div>
     </div>
     <div class="study-cycle-indicator" id="studyCycleIndicator" hidden></div>
+    <div class="study-tasks" id="studyTasks" hidden></div>
     <div class="ring-wrap">
       <svg class="ring-svg" viewBox="0 0 180 180">
         <circle class="ring-track" cx="90" cy="90" r="82"/>
@@ -640,6 +660,7 @@ var modeIndex = { clock: 0, stopwatch: 1, timer: 2 };
 
 function switchModeAnimated(mode) {
   if (mode === currentMode) return;
+  if (mode === 'timer' && timerType === 'study') renderStudyTasks();
   var from = modeIndex[currentMode], to = modeIndex[mode];
   var dir = to > from ? 'forward' : 'backward';
   var oldEl = modeEls[currentMode], newEl = modeEls[mode];
@@ -696,7 +717,11 @@ modeBtns.forEach(function(btn) {
 Core.a11y.roving(document.querySelector('.mode-toggle'), '.mode-btn');
 
 /* ── SyncEngine Init ── */
-SyncEngine.init({ worker: 'https://widget-sync.lordgrape-widgets.workers.dev' });
+/* 'todo' is registered here (in addition to Clock's own namespaces) so that
+   reading/writing the shared To-Do task list merges safely instead of
+   clobbering keys Clock doesn't know about — the same pattern todo.html
+   itself uses to register 'timetable' alongside its own namespace. */
+SyncEngine.init({ worker: 'https://widget-sync.lordgrape-widgets.workers.dev', namespaces: ['dragon', 'clock', 'user', 'todo'] });
 
 /* Migrate old clock_user_* keys → SyncEngine user namespace */
 (function() {
@@ -1287,6 +1312,113 @@ var stBreakEl = document.getElementById('stBreak');
 var stCyclesEl = document.getElementById('stCycles');
 var stLongEl = document.getElementById('stLong');
 
+/* ── Study Session Task Checklist (shared with To-Do via SyncEngine) ──
+   Reads/writes the exact same SyncEngine('todo','tasks') JSON array
+   To-Do itself owns. No changes to To-Do's code are needed — this only
+   ever patches the 'done'/'doneAt' fields on the matching task object,
+   leaving every other field (and every other task) untouched, so it's
+   safe alongside To-Do's other fields (subtasks, notes, scheduling…). */
+var studyTaskIds = [];
+var studyTasksEl = document.getElementById('studyTasks');
+
+function escTaskText(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, function(c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+  });
+}
+function readTodoTasks() {
+  var raw = SyncEngine.get('todo', 'tasks');
+  if (!raw) return [];
+  try {
+    var arr = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    return Array.isArray(arr) ? arr : [];
+  } catch (e) { return []; }
+}
+function loadTodoTasks() {
+  var p = (typeof SyncEngine.pull === 'function') ? SyncEngine.pull('todo') : null;
+  return Promise.resolve(p).catch(function() {}).then(readTodoTasks);
+}
+/* A task "already has an established time" when its natural-language-parsed
+   or Timetable-timeboxed window (scheduledStart/scheduledEnd) overlaps now
+   (with a 5-min lead-in so opening Clock a little early still catches it). */
+function isScheduledNow(t) {
+  if (!t || !t.scheduledStart || !t.scheduledEnd) return false;
+  var now = Date.now(), s = Date.parse(t.scheduledStart), e = Date.parse(t.scheduledEnd);
+  return !isNaN(s) && !isNaN(e) && now >= (s - 5 * 60000) && now <= e;
+}
+function completeTodoTask(id, done) {
+  var tasks = readTodoTasks();
+  var t = tasks.filter(function(x) { return x && x.id === id; })[0];
+  if (!t) return;
+  t.done = done;
+  t.doneAt = done ? Date.now() : null;
+  SyncEngine.set('todo', 'tasks', JSON.stringify(tasks));
+  playClick();
+  renderStudyTasks();
+}
+function renderStudyTasks() {
+  if (!studyTasksEl) return;
+  if (timerType !== 'study') { studyTasksEl.hidden = true; return; }
+  loadTodoTasks().then(function(tasks) {
+    if (timerType !== 'study') { studyTasksEl.hidden = true; return; }
+    if (studyActive) renderStudyChecklist(tasks); else renderStudyPicker(tasks);
+  });
+}
+function renderStudyPicker(tasks) {
+  var open = tasks.filter(function(t) { return t && !t.done; });
+  /* Auto-attach anything already timeboxed for right now */
+  open.forEach(function(t) {
+    if (isScheduledNow(t) && studyTaskIds.indexOf(t.id) === -1) studyTaskIds.push(t.id);
+  });
+  studyTaskIds = studyTaskIds.filter(function(id) {
+    return open.some(function(t) { return t.id === id; });
+  });
+  studyTasksEl.hidden = false;
+  if (!open.length) {
+    studyTasksEl.innerHTML = '<div class="study-tasks-label">Attach tasks</div><div class="study-tasks-empty">No open tasks in To-Do</div>';
+    return;
+  }
+  var html = '<div class="study-tasks-label">Attach tasks</div>';
+  open.slice(0, 12).forEach(function(t) {
+    var checked = studyTaskIds.indexOf(t.id) !== -1;
+    var now = isScheduledNow(t);
+    var txt = escTaskText(t.text);
+    html += '<label class="study-task-row' + (now ? ' scheduled-now' : '') + '" title="' + txt + '">' +
+      '<input type="checkbox" data-task-id="' + t.id + '"' + (checked ? ' checked' : '') + '>' +
+      '<span class="study-task-text">' + txt + '</span>' +
+      (now ? '<span class="study-task-badge">Now</span>' : '') +
+      '</label>';
+  });
+  studyTasksEl.innerHTML = html;
+  studyTasksEl.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+    cb.addEventListener('change', function() {
+      var id = this.dataset.taskId;
+      if (this.checked) { if (studyTaskIds.indexOf(id) === -1) studyTaskIds.push(id); }
+      else { studyTaskIds = studyTaskIds.filter(function(x) { return x !== id; }); }
+      playClick();
+    });
+  });
+}
+function renderStudyChecklist(tasks) {
+  var attached = studyTaskIds
+    .map(function(id) { return tasks.filter(function(t) { return t && t.id === id; })[0]; })
+    .filter(Boolean);
+  if (!attached.length) { studyTasksEl.hidden = true; return; }
+  studyTasksEl.hidden = false;
+  var html = '<div class="study-tasks-label">Studying</div>';
+  attached.forEach(function(t) {
+    var txt = escTaskText(t.text);
+    html += '<label class="study-task-row' + (t.done ? ' done' : '') + '" title="' + txt + '">' +
+      '<input type="checkbox" data-task-id="' + t.id + '"' + (t.done ? ' checked' : '') + '>' +
+      '<span class="study-task-text">' + txt + '</span>' +
+      '</label>';
+  });
+  studyTasksEl.innerHTML = html;
+  studyTasksEl.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+    cb.addEventListener('change', function() { completeTodoTask(this.dataset.taskId, this.checked); });
+  });
+}
+
 function loadStudyPrefs() {
   try {
     var saved = SyncEngine.get('clock', 'study_prefs');
@@ -1330,6 +1462,8 @@ function setTimerType(type, force) {
   if (customWrap) customWrap.style.display = type === 'single' ? '' : 'none';
   studyConfigEl.hidden = type !== 'study';
   if (!studyActive) studyCycleIndicatorEl.hidden = true;
+  if (type === 'study') renderStudyTasks();
+  else if (studyTasksEl) studyTasksEl.hidden = true;
 }
 tmTypeSingle.addEventListener('click', function() { setTimerType('single'); });
 tmTypeStudy.addEventListener('click', function() { setTimerType('study'); });
@@ -1338,6 +1472,8 @@ function endStudySession() {
   studyActive = false;
   studyPhase = 'focus'; studyCycle = 0;
   studyCycleIndicatorEl.hidden = true;
+  studyTaskIds = [];
+  renderStudyTasks();
   dismissBreak();
 }
 
@@ -1356,6 +1492,7 @@ function startNextStudyPhase() {
 }
 
 function advanceStudySession() {
+  renderStudyTasks();
   if (studyPhase === 'focus') {
     recordFocusTime(tmDuration);
     playChime(); launchConfetti('confetti');
@@ -1388,7 +1525,7 @@ var breakInterval = null, breakRemaining = 0, breakStartTime = 0, breakPhaseDura
 
 /* ── Timer State Persistence (SyncEngine) ── */
 function studySnapshot() {
-  return studyActive ? { phase: studyPhase, cycle: studyCycle, focusSecs: studyFocusSecs, breakSecs: studyBreakSecs, longSecs: studyLongSecs, cyclesUntilLong: studyCyclesUntilLong } : null;
+  return studyActive ? { phase: studyPhase, cycle: studyCycle, focusSecs: studyFocusSecs, breakSecs: studyBreakSecs, longSecs: studyLongSecs, cyclesUntilLong: studyCyclesUntilLong, taskIds: studyTaskIds } : null;
 }
 function saveTimerState() {
   if (studyActive && (studyPhase === 'break' || studyPhase === 'longBreak')) {
@@ -1445,6 +1582,7 @@ function restoreTimerState() {
       studyBreakSecs = st.study.breakSecs || 600;
       studyLongSecs = st.study.longSecs || 1200;
       studyCyclesUntilLong = st.study.cyclesUntilLong || 3;
+      studyTaskIds = Array.isArray(st.study.taskIds) ? st.study.taskIds : [];
       setTimerType('study', true);
       stFocusEl.value = Math.round(studyFocusSecs / 60);
       stBreakEl.value = Math.round(studyBreakSecs / 60);
@@ -1772,6 +1910,7 @@ document.getElementById('tmToggle').addEventListener('click', function() {
     tmDuration = studyFocusSecs; tmRemaining = studyFocusSecs;
     saveStudyPrefs();
     updateStudyIndicator();
+    renderStudyTasks();
   }
   if (tmRunning) { playPause(); } else if (tmRemaining < tmDuration) { playResume(); } else { playStart(); }
   if (tmRunning) {
