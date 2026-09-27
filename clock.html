@@ -723,6 +723,120 @@ function sendNotification(title, body) {
 }
 
 /* ══════════════════════════════════════
+   BACKGROUND KEEP-AWAKE (opt-in, Fix B)
+   ══════════════════════════════════════
+   The desktop notification above still needs this tab's own JS to be running
+   at the right moment to fire — Chrome throttles and can eventually fully
+   freeze a backgrounded/minimized tab (~5+ min hidden), which delays that.
+   Chrome's freeze logic exempts tabs it detects as "playing audio", so while
+   a timer/break is actually running we play an inaudible tone (below the
+   ~20Hz human hearing floor) to (hopefully) keep this tab off the freeze
+   list. This is a best-effort browser heuristic hack, not a guarantee — it
+   can't be verified from outside a real browser+OS whether it actually
+   prevents freezing on every build. Fix C's server-side push (below) is the
+   real backstop for when a tab freezes or the browser is closed entirely. */
+var KEEPAWAKE_KEY = 'clock_keepawake_enabled';
+function keepAwakeEnabled() { return localStorage.getItem(KEEPAWAKE_KEY) === '1'; }
+function setKeepAwakeEnabled(v) { localStorage.setItem(KEEPAWAKE_KEY, v ? '1' : '0'); syncKeepAwakeToActivity(); }
+var _keepAwakeNode = null;
+function startKeepAwakeTone() {
+  if (_keepAwakeNode) return;
+  var ctx = getAudioCtx();
+  if (!ctx) return;
+  try {
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(18, ctx.currentTime); /* inaudible to humans */
+    /* Deliberately not near-zero: Chrome's "is this tab making sound" check
+       measures actual digital signal energy at the WebAudio destination
+       (before any speaker/hardware filtering), so the gain has to clear that
+       internal threshold even though 18Hz itself can't be heard. */
+    gain.gain.setValueAtTime(0.012, ctx.currentTime);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start();
+    _keepAwakeNode = { osc: osc, gain: gain };
+  } catch (e) {}
+}
+function stopKeepAwakeTone() {
+  if (!_keepAwakeNode) return;
+  try { _keepAwakeNode.osc.stop(); _keepAwakeNode.osc.disconnect(); _keepAwakeNode.gain.disconnect(); } catch (e) {}
+  _keepAwakeNode = null;
+}
+
+/* ══════════════════════════════════════
+   REAL PUSH NOTIFICATIONS (opt-in, Fix C)
+   ══════════════════════════════════════
+   Fires even if this tab is fully frozen or the browser/PWA is closed —
+   delivered by the OS's push service, not by this page's JS. Shares the
+   same opt-in toggle as the desktop notification above (both need the same
+   Notification permission). Registers a dedicated service worker at this
+   origin, subscribes to Web Push, and hands the subscription to the
+   widget-sync worker, which stores exactly one pending "fire at this time"
+   entry and checks it on its existing once-a-minute cron. The client keeps
+   that pending entry in sync with whatever's actually running below
+   (syncPushSchedule), so in the common case (tab alive and not frozen) the
+   local notification already fires and cancels the pending push before the
+   next cron tick — the push is only actually delivered as a backstop when
+   the local JS didn't get to run in time. */
+var VAPID_PUBLIC_KEY = 'BDiIM7fcIgpc0XYuKf3G7V1KRSmaJ7zq4lAbkRtpS6dLSZ8_GnXm0UR-2rEU-Z-TkCeVMUIqSlugUXXco-ysPQw';
+var PUSH_SUB_KEY = 'clock_push_subscribed';
+function pushSubscribed() { return notifyEnabled() && localStorage.getItem(PUSH_SUB_KEY) === '1'; }
+function urlB64ToUint8Array(b64url) {
+  var s = b64url.replace(/-/g, '+').replace(/_/g, '/');
+  while (s.length % 4) s += '=';
+  var raw = atob(s);
+  var arr = new Uint8Array(raw.length);
+  for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+  return arr;
+}
+function ensurePushSubscription() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return Promise.resolve(false);
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return Promise.resolve(false);
+  return navigator.serviceWorker.register('/push-sw.js').then(function() {
+    /* register() can resolve before the worker is actually active — subscribing
+       against a registration with no active worker yet intermittently throws
+       "Subscription failed - no active Service Worker". .ready only resolves
+       once there's an active worker controlling this scope, so wait for that
+       first (register() already put one on the way, this just waits for it). */
+    return navigator.serviceWorker.ready;
+  }).then(function(reg) {
+    return reg.pushManager.getSubscription().then(function(existing) {
+      if (existing) return existing;
+      return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8Array(VAPID_PUBLIC_KEY) });
+    });
+  }).then(function(sub) {
+    return SyncEngine.callWorker('/push/subscribe', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: sub.toJSON() })
+    });
+  }).then(function(r) {
+    var ok = !!(r && r.ok);
+    localStorage.setItem(PUSH_SUB_KEY, ok ? '1' : '0');
+    return ok;
+  }).catch(function() {
+    localStorage.setItem(PUSH_SUB_KEY, '0');
+    return false;
+  });
+}
+function teardownPushSubscription() {
+  localStorage.setItem(PUSH_SUB_KEY, '0');
+  try { SyncEngine.callWorker('/push/cancel', { method: 'DELETE' }).catch(function() {}); } catch (e) {}
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistration('/push-sw.js').then(function(reg) {
+      if (!reg) return;
+      return reg.pushManager.getSubscription().then(function(sub) { if (sub) return sub.unsubscribe(); });
+    }).catch(function() {});
+  }
+}
+/* Returning user who already has notifications on from a previous visit but
+   hasn't gone through the push-specific subscribe step yet (or the browser
+   dropped the subscription) — (re)subscribe quietly, no permission prompt
+   needed since it's already granted. */
+if (notifyEnabled()) { ensurePushSubscription(); }
+
+/* ══════════════════════════════════════
    MODE SWITCHING
    ══════════════════════════════════════ */
 var modes = ['clock', 'stopwatch', 'timer'];
@@ -2227,21 +2341,32 @@ function renderS() {
   h += '<div class="s-actions">';
   if (notifOn) { h += '<button class="s-btn del" data-a="nof">Turn off</button>'; }
   else if (!notifBlocked) { h += '<button class="s-btn add" data-a="non">Turn on</button>'; }
-  h += '</div></div><div id="nna" class="s-item-hint">Get a system notification when a focus session or break ends \u2014 useful if this window is minimized or in the background.</div>';
+  h += '</div></div><div id="nna" class="s-item-hint">Get a system notification when a focus session or break ends \u2014 useful if this window is minimized or in the background. Also enables a backstop that can still notify you if this tab gets fully closed or frozen.</div>';
+  var kaOn = keepAwakeEnabled();
+  h += '<div class="s-item"><div class="s-item-info"><div class="s-item-label">Keep timer accurate in background</div>';
+  h += '<div class="s-item-val' + (kaOn ? '' : ' empty') + '">' + (kaOn ? 'On' : 'Off') + '</div></div>';
+  h += '<div class="s-actions">';
+  h += kaOn ? '<button class="s-btn del" data-a="kof">Turn off</button>' : '<button class="s-btn add" data-a="kon">Turn on</button>';
+  h += '</div></div><div class="s-item-hint">Plays an inaudible tone while a timer/break is running to discourage the browser from freezing this tab. A best-effort trick, not a guarantee.</div>';
   document.getElementById('sContent').innerHTML = h;
   document.querySelectorAll('[data-a]').forEach(function(b) {
     b.addEventListener('click', function() {
-      ({ en: showNI, dn: confirmDN, el: showLI, dl: confirmDL, non: enableNotifyUI, nof: disableNotifyUI })[this.dataset.a]();
+      ({ en: showNI, dn: confirmDN, el: showLI, dl: confirmDL, non: enableNotifyUI, nof: disableNotifyUI, kon: enableKeepAwakeUI, kof: disableKeepAwakeUI })[this.dataset.a]();
     });
   });
 }
 
 function enableNotifyUI() {
-  requestNotifyPermission().then(function() { renderS(); });
+  requestNotifyPermission().then(function(ok) {
+    if (ok) ensurePushSubscription().then(renderS);
+    else renderS();
+  });
 }
 function disableNotifyUI() {
-  disableNotify(); renderS();
+  disableNotify(); teardownPushSubscription(); syncKeepAwakeToActivity(); renderS();
 }
+function enableKeepAwakeUI() { setKeepAwakeEnabled(true); renderS(); }
+function disableKeepAwakeUI() { setKeepAwakeEnabled(false); renderS(); }
 
 function showNI() {
   var c = SyncEngine.get('user', 'name') || '';
@@ -2358,6 +2483,74 @@ if (SyncEngine && typeof SyncEngine.onReady === 'function') {
   });
 }
 setTimeout(revealClockContent, 650);
+
+/* ══════════════════════════════════════
+   KEEP-AWAKE + PUSH SCHEDULE POLLING
+   ══════════════════════════════════════
+   Both Fix B (silent audio) and Fix C (server-side push) key off "is a
+   timer/break actually running right now, and if so when does it end", so
+   they're driven from the same lightweight poll rather than instrumenting
+   every pause/resume/skip/reset call site individually. */
+function isAnyTimerActiveNow() {
+  return tmRunning || (studyActive && breakInterval && (studyPhase === 'break' || studyPhase === 'longBreak'));
+}
+function syncKeepAwakeToActivity() {
+  if (keepAwakeEnabled() && isAnyTimerActiveNow()) startKeepAwakeTone();
+  else stopKeepAwakeTone();
+}
+setInterval(syncKeepAwakeToActivity, 2000);
+
+/* Returns the absolute completion time + notification copy for whichever
+   phase is currently actually running, or null if nothing's running (idle
+   or paused) — mirrors the exact wording used by the in-page sendNotification
+   calls above (advanceStudySession, the breakInterval handler, tickTimer). */
+function computeActivePushTarget() {
+  if (studyActive && breakInterval && (studyPhase === 'break' || studyPhase === 'longBreak')) {
+    return {
+      dueAt: breakStartTime + breakPhaseDuration * 1000,
+      title: 'Break\u2019s over',
+      body: 'Back to focus \u2014 ' + Math.round(studyFocusSecs / 60) + ' min session.'
+    };
+  }
+  if (tmRunning && studyActive && studyPhase === 'focus') {
+    var goLong = ((studyCycle + 1) % studyCyclesUntilLong) === 0;
+    var nextSecs = goLong ? studyLongSecs : studyBreakSecs;
+    return {
+      dueAt: tmStartTime + tmStartRemaining * 1000,
+      title: 'Focus session complete',
+      body: (goLong ? 'Long' : 'Short') + ' break started \u2014 ' + Math.round(nextSecs / 60) + ' min.'
+    };
+  }
+  if (tmRunning && !studyActive) {
+    return {
+      dueAt: tmStartTime + tmStartRemaining * 1000,
+      title: 'Timer complete!',
+      body: Math.round(tmDuration / 60) + ' min timer finished.'
+    };
+  }
+  return null;
+}
+var _lastPushTarget = null;
+function syncPushSchedule() {
+  if (!pushSubscribed()) return;
+  var target = computeActivePushTarget();
+  if (!target) {
+    if (_lastPushTarget) {
+      _lastPushTarget = null;
+      SyncEngine.callWorker('/push/cancel', { method: 'DELETE' }).catch(function() {});
+    }
+    return;
+  }
+  if (_lastPushTarget && _lastPushTarget.dueAt === target.dueAt &&
+      _lastPushTarget.title === target.title && _lastPushTarget.body === target.body) return;
+  _lastPushTarget = target;
+  SyncEngine.callWorker('/push/schedule', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(target)
+  }).catch(function() {});
+}
+setInterval(syncPushSchedule, 4000);
 </script>
 </body>
 </html>

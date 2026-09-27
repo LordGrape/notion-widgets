@@ -8,3 +8,11 @@ crons = ["* * * * *"]
 [[kv_namespaces]]
 binding = "WIDGET_KV"
 id = "9861b66da25340d28d2bb3536e98fa70"
+
+[vars]
+# Public VAPID key for Web Push (Fix C) — safe to commit, it's meant to be
+# public (sent to browsers as the applicationServerKey). The matching private
+# key is NOT here — it's a secret, added separately via the Cloudflare
+# dashboard or `wrangler secret put VAPID_PRIVATE_KEY`.
+VAPID_PUBLIC_KEY = "BDiIM7fcIgpc0XYuKf3G7V1KRSmaJ7zq4lAbkRtpS6dLSZ8_GnXm0UR-2rEU-Z-TkCeVMUIqSlugUXXco-ysPQw"
+VAPID_SUBJECT = "https://notion-widgets-93r.pages.dev"

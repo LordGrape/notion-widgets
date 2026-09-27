@@ -10,6 +10,9 @@ export interface Env {
   ACTION_BLOCKS_DB_ID?: string;
   UPCOMING_DB_ID?: string;
   FITNESS_TEST_DB_ID?: string;
+  VAPID_PUBLIC_KEY?: string;
+  VAPID_PRIVATE_KEY?: string;
+  VAPID_SUBJECT?: string;
 }
 
 export type TutorMode = "socratic" | "quick" | "teach" | "insight" | "acknowledge" | "freeform";

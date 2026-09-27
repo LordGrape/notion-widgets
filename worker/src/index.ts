@@ -27,6 +27,7 @@ import { handleTutor } from "./routes/tutor";
 import { handleVisual } from "./routes/visual";
 import { handleWidgetAsset } from "./routes/widgets";
 import { handleAiUsage } from "./routes/ai-usage";
+import { handlePushSubscribe, handlePushSchedule, handlePushCancel } from "./routes/push";
 
 import { handleBuildAssemble } from "./routes/build/assemble";
 import { handleDeckFrenchCore2000 } from "./routes/build/decks-french-core-2000";
@@ -76,6 +77,13 @@ export default {
 
       if (route === "state" && key) {
         return withCorsHeaders(await handleState(request, env, key));
+      }
+
+      if (route === "push") {
+        if (key === "subscribe") return withCorsHeaders(await handlePushSubscribe(request, env));
+        if (key === "schedule") return withCorsHeaders(await handlePushSchedule(request, env));
+        if (key === "cancel") return withCorsHeaders(await handlePushCancel(request, env));
+        return json({ error: "Unknown push resource" }, 404);
       }
 
       if (route === "notion") {

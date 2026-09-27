@@ -1,5 +1,6 @@
 import app from "./index";
 import { getReminderHealth, processDueReminders } from "./routes/reminders";
+import { processDuePush } from "./routes/push";
 import type { Env } from "./types";
 
 function healthResponse(body: unknown, status = 200) {
@@ -31,6 +32,13 @@ export default {
       processDueReminders(env).then((result) => {
         if (result.sent || result.failed) {
           console.log("Notion reminders", JSON.stringify(result));
+        }
+      }),
+    );
+    ctx.waitUntil(
+      processDuePush(env).then((result) => {
+        if (result.sent || result.error) {
+          console.log("Widget push", JSON.stringify(result));
         }
       }),
     );
