@@ -45,11 +45,16 @@
     return[];
   }
   function hasPlan(t){return!!(t.plan&&String(t.plan).trim())}
+  /* A task already has a concrete trigger if it has a Plan note, a reminder time,
+     a real scheduled Timetable block (e.g. from "@4pm" or a time range), or is
+     itself waiting on another task via the after/@-dependency link. Any of these
+     means there's nothing left to nudge for. */
+  function hasTrigger(t){return!!(hasPlan(t)||t.reminderAt||t.scheduledStart||t.dependsOn)}
   function candidates(){
     var tasks=parseTasks(),dismissed=dismissedIds();
     return tasks.filter(function(t){
       if(!t||!t.id||t.done||dismissed.indexOf(t.id)!==-1)return false;
-      if(t.reminderAt||hasPlan(t))return false;
+      if(hasTrigger(t))return false;
       if(t.pri==='must')return true;
       if((t.time==='deep'||t.time==='m60')&&!t.due&&!t.dueKey)return true;
       return false;

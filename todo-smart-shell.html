@@ -4,7 +4,7 @@
 <script>
 (async function(){
   'use strict';
-  const frame=document.getElementById('shell'),revision='20260927-after-dependency-v1';
+  const frame=document.getElementById('shell'),revision='20260927-nudge-fix-v1';
   const fallback='https://raw.githubusercontent.com/LordGrape/notion-widgets/main/';
   async function text(path){
     for(const url of [new URL(path+'?v='+revision,location.href).href,fallback+path]){

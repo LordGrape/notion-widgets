@@ -189,8 +189,8 @@ body{
 .tbox-go:hover{transform:translateY(-1px)}
 .tbox-hint{width:100%;font-size:0.66rem;color:var(--text-tertiary)}
 
-/* Tomorrow preview and completion calibration */
-.tomorrow{margin-top:14px;border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--surface-2);overflow:hidden}.tomorrow summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;cursor:pointer;color:var(--text-secondary);font-size:.72rem;font-weight:750;letter-spacing:.06em;text-transform:uppercase}.tomorrow summary::-webkit-details-marker{display:none}.tomorrow summary:after{content:'+';font-size:1rem;color:var(--accent-primary);transition:transform var(--transition-fast)}.tomorrow[open] summary:after{transform:rotate(45deg)}.tomorrow-list{display:flex;flex-direction:column;gap:6px;padding:0 9px 9px;border-top:1px solid var(--border-subtle)}.tomorrow-row{display:grid;grid-template-columns:7px 1fr auto;gap:8px;align-items:center;padding:8px 4px;font-size:.79rem;color:var(--text-primary)}.tomorrow-row i{width:7px;height:7px;border-radius:50%;background:var(--accent-primary)}.tomorrow-row small{font-size:.68rem;color:var(--text-tertiary)}.calibration{position:fixed;z-index:10040;left:50%;bottom:72px;transform:translateX(-50%);width:min(390px,calc(100vw - 24px));padding:13px;border:1px solid var(--border-default);border-radius:var(--radius-md);background:var(--surface-3);box-shadow:var(--shadow-md);backdrop-filter:var(--blur-glass);-webkit-backdrop-filter:var(--blur-glass)}.calibration b{display:block;font-size:.84rem}.calibration p{margin-top:3px;font-size:.72rem;color:var(--text-secondary)}.calibration-actions{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px}.calibration-actions button{flex:1;min-width:72px;border:1px solid var(--border-default);border-radius:999px;background:var(--surface-1);color:var(--text-secondary);padding:7px 8px;font:650 .68rem var(--font);cursor:pointer}.calibration-actions button:hover{border-color:var(--border-accent);color:var(--accent-primary)}.e-outcome{border-style:dashed;border-color:var(--border-accent)}
+/* Tomorrow preview */
+.tomorrow{margin-top:14px;border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--surface-2);overflow:hidden}.tomorrow summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;cursor:pointer;color:var(--text-secondary);font-size:.72rem;font-weight:750;letter-spacing:.06em;text-transform:uppercase}.tomorrow summary::-webkit-details-marker{display:none}.tomorrow summary:after{content:'+';font-size:1rem;color:var(--accent-primary);transition:transform var(--transition-fast)}.tomorrow[open] summary:after{transform:rotate(45deg)}.tomorrow-list{display:flex;flex-direction:column;gap:6px;padding:0 9px 9px;border-top:1px solid var(--border-subtle)}.tomorrow-row{display:grid;grid-template-columns:7px 1fr auto;gap:8px;align-items:center;padding:8px 4px;font-size:.79rem;color:var(--text-primary)}.tomorrow-row i{width:7px;height:7px;border-radius:50%;background:var(--accent-primary)}.tomorrow-row small{font-size:.68rem;color:var(--text-tertiary)}.e-outcome{border-style:dashed;border-color:var(--border-accent)}
 
 /* Done section */
 .section{margin-top:18px}
@@ -494,7 +494,6 @@ body::before{
     t.done = !t.done;
     t.doneAt = t.done ? Date.now() : null;
     if (t.done && editingId === id) editingId = null;
-    var calibrate = t.done && !!t.scheduledStart && !t.completionFit && scheduledMinutes(t) >= 45;
     if (t.done) {
       snd("playChime"); announce("Completed: " + t.text);
       showUndo("Task completed", function () { t.done = false; t.doneAt = null; });
@@ -502,7 +501,6 @@ body::before{
       snd("playClick"); hideUndo();
     }
     save();
-    if (calibrate) setTimeout(function () { showCalibration(t); }, 80);
     if (t.done) {
       var openCount = tasks.filter(function (x) { return isToday(x); }).length;
       if (openCount === 0 && window.launchConfetti) launchConfetti("bg");
@@ -868,7 +866,6 @@ body::before{
 
   function tomorrowTasks(){return tasks.filter(function(t){return!t.done&&(t.due==="tomorrow"||keyNum(t.dueKey)===keyNum(tmrwKey()))}).sort(function(a,b){return Date.parse(a.scheduledStart||0)-Date.parse(b.scheduledStart||0)||orderOf(a)-orderOf(b)})}
   function renderTomorrow(){var section=$("tomorrowSec"),list=$("tomorrowList"),items=tomorrowTasks();if(!section||!list)return;section.style.display=tab==="today"&&items.length?"":"none";$("tomorrowN").textContent=items.length;list.innerHTML=items.map(function(t){var time=t.scheduledStart?new Date(t.scheduledStart).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):(t.time?TIMEL[t.time]:"Flexible");return'<div class="tomorrow-row"><i></i><span>'+esc(t.text)+'</span><small>'+esc(time)+'</small></div>'}).join("")}
-  function showCalibration(task){var old=document.querySelector(".calibration");if(old)old.remove();clearTimeout(calibrationTimer);var panel=document.createElement("div");panel.className="calibration";panel.setAttribute("role","dialog");panel.innerHTML='<b>How did the block go?</b><p>'+esc(task.text)+'</p><div class="calibration-actions"><button data-fit="as-planned">As planned</button><button data-fit="shorter">Shorter</button><button data-fit="longer">Longer</button><button data-fit="partial">Partial</button></div>';panel.addEventListener("click",function(e){var fit=e.target&&e.target.getAttribute("data-fit");if(!fit)return;var current=byId(task.id);if(current){current.completionFit=fit;if(fit==="as-planned")current.actualMinutes=scheduledMinutes(current);current.updatedAt=Date.now();save()}panel.remove();showToast("Completion feedback saved.")});document.body.appendChild(panel);calibrationTimer=setTimeout(function(){if(panel.parentNode)panel.remove()},12000)}
 
   function emptyHtml(which) {
     var icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>';
