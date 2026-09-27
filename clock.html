@@ -1140,6 +1140,24 @@ function recordFocusTime(secs) {
   if (document.getElementById('settingsOv').classList.contains('show')) { renderMastery(); renderHeatmap(); }
 }
 
+/* Guards timer/study completions against being credited more than once for the
+   same run. timer_state is synced, so the SAME finished run can be seen by more
+   than one open Clock instance (e.g. this widget embedded directly on a page AND
+   inside the Command Centre app), or by the same instance across a reload — each
+   would otherwise independently call recordFocusTime() for the identical block.
+   startTime (already unique per run, set once via Date.now() when it began) is
+   used as a monotonic dedupe key: a run can only advance the marker forward once,
+   so any later/duplicate sighting of the same run is skipped. Stopwatch time is
+   local-only (never written to synced timer_state) and isn't at risk here, so it
+   still calls recordFocusTime() directly. */
+function creditTimerRun(startTime, secs) {
+  if (!startTime) { recordFocusTime(secs); return; }
+  var last = SyncEngine.get('clock', 'timer_last_credited') || 0;
+  if (startTime <= last) return;
+  SyncEngine.set('clock', 'timer_last_credited', startTime);
+  recordFocusTime(secs);
+}
+
 /* ══════════════════════════════════════
    PROGRESS — Mastery Level & Consistency Heatmap
    (lives inside Settings, not a separate mode tab)
@@ -1494,7 +1512,7 @@ function startNextStudyPhase() {
 function advanceStudySession() {
   renderStudyTasks();
   if (studyPhase === 'focus') {
-    recordFocusTime(tmDuration);
+    creditTimerRun(tmStartTime, tmDuration);
     playChime(); launchConfetti('confetti');
     studyCycle++;
     var goLong = (studyCycle % studyCyclesUntilLong) === 0;
@@ -1615,7 +1633,7 @@ function restoreTimerState() {
           advanceStudySession();
           return true;
         }
-        recordFocusTime(st.duration);
+        creditTimerRun(st.startTime, st.duration);
         tmRemaining = tmDuration;
         updateTMDisplay();
         /* Play completion feedback */
@@ -1886,7 +1904,7 @@ function tickTimer() {
     document.getElementById('tmToggle').textContent = 'Start';
     document.getElementById('tmLabel').textContent = 'Complete!';
     document.getElementById('tmLabel').className = 'session-label done';
-    recordFocusTime(tmDuration);
+    creditTimerRun(tmStartTime, tmDuration);
     playChime(); launchConfetti('confetti');
     var needsBreak = tmDuration >= 2700;
     setTimeout(function() {
@@ -1939,7 +1957,7 @@ document.getElementById('tmReset').addEventListener('click', function() {
   playReset();
   if (tmRunning) {
     var focused = tmDuration - Math.max(0, tmStartRemaining - (Date.now() - tmStartTime) / 1000);
-    if (focused >= 1 && (!studyActive || studyPhase === 'focus')) { recordFocusTime(focused); }
+    if (focused >= 1 && (!studyActive || studyPhase === 'focus')) { creditTimerRun(tmStartTime, focused); }
   }
   tmRunning = false; clearInterval(tmInterval);
   if (studyActive) {
