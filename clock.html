@@ -668,6 +668,22 @@ body {
 
 <script src="core.js"></script>
 <script>
+/* Notion HQ embeds don't use Study Session — only the Command Centre app does.
+   This is what fixes the "Study timer glitchy with two open" report at its root:
+   Command Centre is now the sole owner of Study Session state, so the plain
+   Notion-embedded widget simply hides that feature (below) and ignores any
+   Study-related shared state it happens to see (see restoreTimerState further
+   down) instead of trying to mirror it. Command Centre's clock.html src has
+   ?ctx=command-centre appended; a bare Notion embed never gets that param. */
+var IS_COMMAND_CENTRE = (function() {
+  try { return new URLSearchParams(location.search).get('ctx') === 'command-centre'; }
+  catch (e) { return false; }
+})();
+if (!IS_COMMAND_CENTRE) {
+  var _tmTypeToggleEl = document.getElementById('tmTypeToggle');
+  if (_tmTypeToggleEl) _tmTypeToggleEl.style.display = 'none';
+}
+
 /* ══════════════════════════════════════
    MODE SWITCHING
    ══════════════════════════════════════ */
@@ -1639,6 +1655,14 @@ function restoreTimerState() {
     if (!raw) return false;
     var st = typeof raw === 'string' ? JSON.parse(raw) : raw;
     if (!st || !st.duration) return false;
+    /* Notion HQ embeds don't offer Study Session at all (see IS_COMMAND_CENTRE
+       above) — the Command Centre app is the sole owner of Study Session state.
+       If a Study session or break is running there, just leave this instance
+       alone entirely rather than trying to mirror UI it doesn't have; returning
+       true (not false) tells liveResyncFromRemote() "handled, nothing to change"
+       instead of "nothing to restore", so it won't reset an unrelated local
+       Single timer/stopwatch this instance might legitimately have running. */
+    if (!IS_COMMAND_CENTRE && (st.timerType === 'study' || st.onBreak)) return true;
     /* Always start from a clean slate so this function is safe to call more than
        once per page (see liveResyncFromRemote below) — otherwise re-running it
        while a local interval from a stale prior state is still ticking would
