@@ -15,8 +15,11 @@
   --card-glow: 0 0 20px 2px rgba(138, 92, 246, 0.06);
   --greeting-color: rgba(124, 58, 237, 0.5);
   --time-grad: linear-gradient(135deg, #1a1a2e 0%, #7c3aed 40%, #8b5cf6 60%, #1a1a2e 100%);
-  --date-color: rgba(100, 100, 120, 0.5);
-  --meta-color: rgba(100, 100, 120, 0.35);
+  /* 2026 "responsible glassmorphism": secondary/meta text alpha bumped so
+     labels like the weather condition stay legible over the glass card
+     (was 0.5/0.35, close to unreadable against --card-bg) */
+  --date-color: rgba(90, 86, 110, 0.72);
+  --meta-color: rgba(90, 86, 110, 0.58);
   --dot-bg: rgba(138, 92, 246, 0.1);
   --dot-active: #8b5cf6;
   --dot-active-glow: 0 0 6px rgba(138, 92, 246, 0.4);
@@ -40,8 +43,9 @@
     --card-glow: 0 0 24px 4px rgba(138, 92, 246, 0.12);
     --greeting-color: rgba(167, 139, 250, 0.65);
     --time-grad: linear-gradient(135deg, #fff 0%, #c4b5fd 25%, #8b5cf6 50%, #a78bfa 75%, #fff 100%);
-    --date-color: rgba(160, 160, 180, 0.5);
-    --meta-color: rgba(160, 160, 180, 0.35);
+    /* same 2026 contrast bump as light mode, tuned for the dark glass card */
+    --date-color: rgba(196, 194, 210, 0.74);
+    --meta-color: rgba(196, 194, 210, 0.60);
     --dot-bg: rgba(138, 92, 246, 0.15);
     --dot-active: #a78bfa;
     --dot-active-glow: 0 0 8px rgba(167, 139, 250, 0.5);
@@ -2183,7 +2187,10 @@ function confirmDL() {
 /* ── Init core systems ── */
 var card = document.querySelector('.container');
 setTimeout(function() { card.style.opacity = '1'; card.style.animation = 'breathe 8s cubic-bezier(0.4,0,0.2,1) infinite'; }, 900);
-initBackground('bgCanvas', { orbCount: 3, particleCount: Core.isLowEnd ? (Core.isDark ? 8 : 5) : (Core.isDark ? 18 : 12), orbRadius: [80, 140], hueRange: [250, 40], mouseTracking: true });
+/* 2026 refresh: one extra orb + a touch wider hue spread (still purple->magenta,
+   no new colors) for a slightly richer background "story" per current
+   dashboard-design research, kept modest per the restraint principle. */
+initBackground('bgCanvas', { orbCount: 4, particleCount: Core.isLowEnd ? (Core.isDark ? 8 : 5) : (Core.isDark ? 18 : 12), orbRadius: [90, 150], hueRange: [240, 70], mouseTracking: true });
 initTilt('.container', { maxDeg: 2 });
 playSummon('upper');
 Core.tooltip.init();
