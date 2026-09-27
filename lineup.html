@@ -182,6 +182,9 @@ input,select{font-family:inherit}
 .marker{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:3px;cursor:grab;touch-action:none;width:74px}
 .marker .disc{position:relative;width:40px;height:40px;border-radius:50%;background:var(--jersey);color:var(--jersey-text,#fff);font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.3);border:2px solid rgba(255,255,255,.9);transition:box-shadow .12s ease}
 .marker .dot{position:absolute;top:-2px;right:-2px;width:11px;height:11px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 2px rgba(0,0,0,.3)}
+.marker.locked{cursor:not-allowed}.marker.locked .disc{box-shadow:0 0 0 3px rgba(23,23,31,.72),0 2px 8px rgba(0,0,0,.3)}
+.marker-lock{position:absolute;left:-7px;top:-7px;width:18px;height:18px;border-radius:50%;background:#17171f;color:#fff;border:2px solid #fff;display:grid;place-items:center;z-index:3;box-shadow:0 2px 5px rgba(0,0,0,.3)}
+.marker-lock svg{width:9px;height:9px}
 .marker.selected .disc{box-shadow:0 0 0 4px var(--accent-2),0 2px 10px rgba(0,0,0,.3)}
 .marker.swap-target .disc{box-shadow:0 0 0 4px #fff,0 0 0 7px var(--on)}
 .marker .mname{font-size:10px;font-weight:800;color:#17171f;background:#fff;border-radius:999px;padding:2px 8px;box-shadow:0 1px 4px rgba(0,0,0,.28);max-width:74px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -557,6 +560,7 @@ var state = {
   slots: blankSlots("2-3-1"),
   lineups: [],
   squads: [],
+  lockedPlayerIds: [],
   currentLineupId: null,
   currentSquadId: null,
   positionLocked: true,
@@ -591,6 +595,7 @@ function loadState(){
     state.slots     = normaliseSlots(stored.slots, state.formation);
     state.lineups   = Array.isArray(stored.lineups) ? stored.lineups : [];
     state.squads    = Array.isArray(stored.squads) ? stored.squads : [];
+    state.lockedPlayerIds = Array.isArray(stored.lockedPlayerIds) ? stored.lockedPlayerIds.filter(function(id){return typeof id==="string";}) : [];
     state.currentLineupId = stored.currentLineupId || null;
     state.currentSquadId = stored.currentSquadId || null;
     state.positionLocked = stored.positionLocked !== false;
@@ -623,6 +628,7 @@ function loadState(){
     delete p.position;
   });
   state.squads.forEach(function(s){ s.slots = normaliseSlots(s.slots, s.formation || state.formation); });
+  state.lockedPlayerIds=state.lockedPlayerIds.filter(function(id){return !!byId(id);});
   normaliseLineupGroups();
 }
 
@@ -667,7 +673,7 @@ function persist(){
   persistTimer = setTimeout(function(){
     Store.set("team", {
       teamName: state.teamName, players: state.players, rosterSort:state.rosterSort, formation: state.formation,
-      slots: state.slots, lineups:state.lineups, squads: state.squads, currentLineupId:state.currentLineupId, currentSquadId: state.currentSquadId,
+      slots: state.slots, lineups:state.lineups, squads: state.squads, lockedPlayerIds:state.lockedPlayerIds, currentLineupId:state.currentLineupId, currentSquadId: state.currentSquadId,
       positionLocked: state.positionLocked, appearance: state.appearance, match: state.match
     });
   }, 180);
@@ -676,6 +682,14 @@ function persist(){
 /* ─────────── Helpers ─────────── */
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
 function byId(id){ return state.players.find(function(p){ return p.id===id; }); }
+function isPlayerLocked(id){return !!id&&state.lockedPlayerIds.indexOf(id)>-1;}
+function togglePlayerLock(id){
+  if(!id)return;
+  checkpoint(isPlayerLocked(id)?"unlock player":"lock player");
+  if(isPlayerLocked(id))state.lockedPlayerIds=state.lockedPlayerIds.filter(function(x){return x!==id;});
+  else state.lockedPlayerIds.push(id);
+  selectedId=null;persist();renderPitch();toast((isPlayerLocked(id)?"Locked ":"Unlocked ")+(byId(id)?byId(id).name:"player"));
+}
 function initial(n){ return (n||"?").trim().charAt(0).toUpperCase(); }
 function firstName(n){ return (n||"").trim().split(/\s+/)[0]; }
 function initials(n){ return (n||"?").trim().split(/\s+/).slice(0,2).map(function(x){return x.charAt(0).toUpperCase();}).join("") || "?"; }
@@ -689,12 +703,12 @@ function availablePlayers(){ return state.players.filter(function(p){ return p.a
 function copySlots(slots){ return slots.map(function(s){ return {playerId:s.playerId||null,x:s.x,y:s.y,role:s.role}; }); }
 var undoStack=[];
 function checkpoint(label){
-  undoStack.push({label:label,formation:state.formation,slots:copySlots(state.slots),players:JSON.parse(JSON.stringify(state.players)),lineups:JSON.parse(JSON.stringify(state.lineups)),currentLineupId:state.currentLineupId,currentSquadId:state.currentSquadId,squads:JSON.parse(JSON.stringify(state.squads)),positionLocked:state.positionLocked});
+  undoStack.push({label:label,formation:state.formation,slots:copySlots(state.slots),players:JSON.parse(JSON.stringify(state.players)),lineups:JSON.parse(JSON.stringify(state.lineups)),lockedPlayerIds:state.lockedPlayerIds.slice(),currentLineupId:state.currentLineupId,currentSquadId:state.currentSquadId,squads:JSON.parse(JSON.stringify(state.squads)),positionLocked:state.positionLocked});
   if(undoStack.length>30) undoStack.shift();
   updateUndoButton();
 }
 function updateUndoButton(){ var b=document.getElementById("undoBtn"); if(b){ b.disabled=!undoStack.length; b.title=undoStack.length?("Undo "+undoStack[undoStack.length-1].label):"Nothing to undo"; } }
-function undoLast(){ var x=undoStack.pop(); if(!x) return; state.formation=x.formation; state.slots=copySlots(x.slots); state.players=x.players; state.lineups=x.lineups;state.currentLineupId=x.currentLineupId;state.currentSquadId=x.currentSquadId; state.squads=x.squads; state.positionLocked=x.positionLocked; syncChips(); persist(); paint(); updateUndoButton(); toast("Undid "+x.label); }
+function undoLast(){ var x=undoStack.pop(); if(!x) return; state.formation=x.formation; state.slots=copySlots(x.slots); state.players=x.players; state.lineups=x.lineups;state.lockedPlayerIds=x.lockedPlayerIds||[];state.currentLineupId=x.currentLineupId;state.currentSquadId=x.currentSquadId; state.squads=x.squads; state.positionLocked=x.positionLocked; syncChips(); persist(); paint(); updateUndoButton(); toast("Undid "+x.label); }
 function safeLineupSlots(slots){
   var unavailable=[];
   var clean=normaliseSlots(slots,state.formation);
@@ -786,6 +800,7 @@ var ICON = {
   down: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>',
   edit: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>',
   copy: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>',
+  lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>',
   trash:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>',
   grip: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="6" r="1.6"/><circle cx="16" cy="6" r="1.6"/><circle cx="8" cy="12" r="1.6"/><circle cx="16" cy="12" r="1.6"/><circle cx="8" cy="18" r="1.6"/><circle cx="16" cy="18" r="1.6"/></svg>'
 };
@@ -955,7 +970,7 @@ document.getElementById("rosterList").addEventListener("click", function(e){
     checkpoint("availability change");
     var p=state.players[idx];
     p.available = (p.available===false);
-    if(p.available===false) removeFromPitch(p.id, true);
+    if(p.available===false) removeFromPitch(p.id, true, true);
   } else if(act==="edit"){
     editPlayer(id); return;
   } else if(act==="del"){
@@ -980,6 +995,7 @@ function editPlayer(id){
 
 function removePlayerEverywhere(id){
   checkpoint("remove player");
+  state.lockedPlayerIds=state.lockedPlayerIds.filter(function(x){return x!==id;});
   state.players=state.players.filter(function(p){ return p.id!==id; });
   state.slots.forEach(function(s){ if(s.playerId===id) s.playerId=null; });
   state.squads.forEach(function(sq){ sq.slots.forEach(function(s){ if(s.playerId===id) s.playerId=null; }); });
@@ -1068,19 +1084,23 @@ function renderPitch(){
   state.slots.forEach(function(slot, i){
     var p = slot.playerId ? byId(slot.playerId) : null;
     if(slot.playerId && !p){ slot.playerId=null; }
+    var locked=p&&isPlayerLocked(p.id);
     var el=document.createElement("div");
     var sel = selectedId ? byId(selectedId) : null;
     el.className="marker"+(i===0?" gk":"")+(p?"":" empty")+((p&&selectedId===p.id)?" selected":"")
       +(offPosition(p, slot.role)?" off-pos":"")
+      +(locked?" locked":"")
       +((sel && sel.id!==slot.playerId && slot.role && posList(sel).indexOf(slot.role)>-1)?" fit":"")
       +((selectedSlot===i)?" selected":"");
     el.style.left=slot.x+"%"; el.style.top=slot.y+"%";
     el.dataset.slotIndex=i;
     if(p) el.dataset.playerId=p.id;
     el.dataset.origin="pitch";
+    if(p)el.title=locked?"Right-click to unlock "+p.name:"Right-click to lock "+p.name;
     var dot = p && posList(p).length ? '<span class="dot" style="background:var(--c-'+posList(p)[0]+')"></span>' : "";
+    var lockBadge=locked?'<span class="marker-lock" aria-label="Locked">'+ICON.lock+'</span>':"";
     var shirtEmpty=!p&&state.appearance.markerShape==="shirt";
-    el.innerHTML='<div class="disc">'+(p?esc(discLabel(p)):(shirtEmpty?"":esc(slot.role||"")))+dot+'</div>'+
+    el.innerHTML='<div class="disc">'+(p?esc(discLabel(p)):(shirtEmpty?"":esc(slot.role||"")))+dot+lockBadge+'</div>'+
                  (p?'<div class="mname">'+esc(firstName(p.name))+'</div>':'')+
                  ((p||shirtEmpty)&&slot.role?'<div class="mrole">'+esc(slot.role)+'</div>':'');
     pitch.appendChild(el);
@@ -1122,6 +1142,7 @@ document.getElementById("onPitchList").addEventListener("click", function(e){
      "drop the selected player back on the bench". */
   e.stopPropagation();
   var idx=Number(row.dataset.slotIndex), pid=row.dataset.playerId||null;
+  if(pid&&isPlayerLocked(pid)){toast("Right-click the pitch marker to unlock this player");return;}
   if(selectedId){ placeInSlot(selectedId, idx); selectedId=null; selectedSlot=null; }
   else if(pid){ selectedId=(selectedId===pid)?null:pid; selectedSlot=null; }
   else { selectedSlot=(selectedSlot===idx)?null:idx; }
@@ -1170,16 +1191,19 @@ function renderWarnings(){
 
 /* ─────────── Placement ─────────── */
 function placeInSlot(playerId, slotIndex){
-  checkpoint("player move");
   var target=state.slots[slotIndex];
+  if(isPlayerLocked(playerId)){toast("Unlock this player before moving them");return false;}
+  if(target&&isPlayerLocked(target.playerId)){toast("That position contains a locked player");return false;}
   var fromIndex=state.slots.findIndex(function(s){ return s.playerId===playerId; });
   if(fromIndex===slotIndex) return;
+  checkpoint("player move");
   var displaced=target.playerId;
   target.playerId=playerId;
   if(fromIndex>-1) state.slots[fromIndex].playerId=displaced||null;  // swap
   persist(); renderPitch();
 }
-function removeFromPitch(playerId, skipCheckpoint){
+function removeFromPitch(playerId, skipCheckpoint, force){
+  if(isPlayerLocked(playerId)&&!force){toast("Unlock this player before removing them");return false;}
   var s=state.slots.find(function(x){ return x.playerId===playerId; });
   if(s){ if(!skipCheckpoint) checkpoint("player removal"); s.playerId=null; persist(); renderPitch(); }
 }
@@ -1194,12 +1218,17 @@ function nearestSlot(xPct, yPct, wantEmpty){
 }
 
 /* Tap-to-place: reliable on touch, and the keyboard-free sideline path. */
+document.getElementById("pitch").addEventListener("contextmenu",function(e){
+  var marker=e.target.closest(".marker[data-player-id]");if(!marker)return;
+  e.preventDefault();togglePlayerLock(marker.dataset.playerId);
+});
 document.getElementById("pitch").addEventListener("click", function(e){
   if(justDragged) return;
   var marker=e.target.closest(".marker");
   if(!marker) return;
   var idx=Number(marker.dataset.slotIndex);
   var pid=marker.dataset.playerId||null;
+  if(pid&&isPlayerLocked(pid)){toast("Right-click to unlock this player");return;}
   if(selectedId){
     placeInSlot(selectedId, idx);
     selectedId=null; selectedSlot=null; renderPitch();
@@ -1240,6 +1269,7 @@ function pctFromPitch(clientX, clientY){
 document.addEventListener("pointerdown", function(e){
   var el=e.target.closest(".marker, .bench-card");
   if(!el) return;
+  if(el.dataset.playerId&&isPlayerLocked(el.dataset.playerId)){if(e.pointerType==="mouse")toast("Right-click to unlock this player");return;}
   if(e.pointerType==="mouse" && e.button!==0) return;
   var ghost=el.cloneNode(true);
   ghost.classList.add("ghost");
@@ -1327,11 +1357,12 @@ document.addEventListener("pointercancel", function(){
 
 /* ─────────── Squads ─────────── */
 document.getElementById("clearPitchBtn").addEventListener("click", function(){
-  if(!confirm("Clear the pitch? Everyone goes back to the bench.")) return;
+  var lockedCount=onPitchIds().filter(isPlayerLocked).length;
+  if(!confirm(lockedCount?"Clear all unlocked players? Locked players will stay on the pitch.":"Clear the pitch? Everyone goes back to the bench.")) return;
   checkpoint("clear lineup");
-  state.slots.forEach(function(s){ s.playerId=null; });
+  state.slots.forEach(function(s){ if(!isPlayerLocked(s.playerId))s.playerId=null; });
   selectedId=null;
-  persist(); renderPitch();
+  persist(); renderPitch();if(lockedCount)toast(lockedCount+" locked player"+(lockedCount>1?"s":"")+" kept");
 });
 
 function snapshotCurrentSquad(id,lineupId,name){
@@ -1679,7 +1710,7 @@ document.getElementById("crestInput").addEventListener("change",function(){var f
 /* ─────────── Backup ─────────── */
 document.getElementById("exportJsonBtn").addEventListener("click", function(){
   var data=JSON.stringify({ teamName:state.teamName, players:state.players, rosterSort:state.rosterSort, formation:state.formation,
-    slots:state.slots, lineups:state.lineups, squads:state.squads, currentLineupId:state.currentLineupId, currentSquadId:state.currentSquadId, positionLocked:state.positionLocked, appearance:state.appearance, match:state.match }, null, 2);
+    slots:state.slots, lineups:state.lineups, squads:state.squads, lockedPlayerIds:state.lockedPlayerIds, currentLineupId:state.currentLineupId, currentSquadId:state.currentSquadId, positionLocked:state.positionLocked, appearance:state.appearance, match:state.match }, null, 2);
   var blob=new Blob([data],{type:"application/json"});
   var url=URL.createObjectURL(blob), a=document.createElement("a");
   a.href=url; a.download="lineup-backup.json";
@@ -1708,6 +1739,7 @@ document.getElementById("importJsonBtn").addEventListener("click", function(){
           return { id:s.id||uid(), lineupId:s.lineupId||null, name:s.name, formation:s.formation||state.formation, slots:normaliseSlots(s.slots,s.formation||state.formation) };
         });
         state.currentLineupId=d.currentLineupId||null;state.currentSquadId=d.currentSquadId||null;normaliseLineupGroups();
+        state.lockedPlayerIds=Array.isArray(d.lockedPlayerIds)?d.lockedPlayerIds.filter(function(id){return typeof id==="string"&&!!byId(id);}):[];
         state.positionLocked=d.positionLocked!==false;
         state.appearance=d.appearance&&typeof d.appearance==="object"?Object.assign(state.appearance,d.appearance):state.appearance;
         state.match=d.match&&typeof d.match==="object" ? d.match : { elapsedMs:0, intervalMin:8, lastAlertBucket:0, minutes:{} };
