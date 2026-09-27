@@ -148,7 +148,13 @@ input,select{font-family:inherit}
 .pos-editor .hint{font-size:11px;color:var(--text-faint);flex:1;min-width:120px}
 .marker.off-pos .disc{border-color:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,.6),0 2px 8px rgba(0,0,0,.28)}
 .marker.fit .disc{box-shadow:0 0 0 3px #38bdf8,0 2px 8px rgba(0,0,0,.28)}
+.marker.used-elsewhere .disc{filter:brightness(.62) saturate(.72)}
+.marker .usage-dot{position:absolute;left:-7px;top:-7px;min-width:18px;height:18px;padding:0 4px;border-radius:999px;background:#17171f;color:#fff;border:2px solid #fff;display:grid;place-items:center;font-size:8px;font-weight:800;box-shadow:0 2px 5px rgba(0,0,0,.3)}
 .bench-card.cover{border-color:#38bdf8;box-shadow:0 0 0 3px rgba(56,189,248,.26)}
+.bench-card.used-elsewhere,.tray-player.used-elsewhere,.lineup-row.used-elsewhere,.roster-row.used-elsewhere{opacity:.52}
+.bench-card.used-elsewhere:hover,.tray-player.used-elsewhere:hover,.lineup-row.used-elsewhere:hover,.roster-row.used-elsewhere:hover,.bench-card.used-elsewhere.selected,.tray-player.used-elsewhere.selected,.lineup-row.used-elsewhere.selected{opacity:1}
+.usage-badge{font-size:9px!important;font-weight:800!important;padding:2px 5px;border-radius:999px;background:var(--text);color:var(--bg);white-space:nowrap}
+.usage-legend{display:none;font-size:10px;color:var(--text-faint);font-weight:600;margin:-2px 0 8px}
 .bench-card .pos-tag{font-size:9px;padding:2px 5px;border-radius:5px}
 .row-actions{display:flex;gap:1px;flex-shrink:0}
 .empty-hint{color:var(--text-faint);font-size:13px;padding:18px 4px;text-align:center}
@@ -164,6 +170,7 @@ input,select{font-family:inherit}
 .chip:not(.active):hover{background:var(--panel-2);color:var(--text)}
 
 .lineup-grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(250px,1fr);gap:14px;align-items:start}
+.lineup-grid>*{min-width:0}
 @media (max-width:860px){.lineup-grid{grid-template-columns:1fr}}
 
 .pitch-wrap{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:11px}
@@ -363,6 +370,7 @@ input,select{font-family:inherit}
         <button class="btn btn-ghost btn-sm" id="undoBtn" disabled>Undo</button>
         <button class="btn btn-ghost btn-sm" id="lockBtn" aria-pressed="true">Positions locked</button>
         <button class="btn btn-ghost btn-sm" id="resetShapeBtn">Reset shape</button>
+        <button class="btn btn-ghost btn-sm" id="nextLineupBtn" disabled>Next lineup</button>
         <button class="btn btn-ghost btn-sm" id="exportBtn">Export</button>
         <button class="btn btn-ghost btn-sm" id="clearPitchBtn">Clear lineup</button>
         <button class="btn btn-primary btn-sm" id="saveSquadBtn">Save lineup</button>
@@ -370,10 +378,11 @@ input,select{font-family:inherit}
     </div>
     <div class="warning-summary" id="warningSummary" role="status"></div>
     <div class="lineup-grid">
-      <div class="pitch-wrap"><div class="mobile-player-tray" id="mobilePlayerTray"><div class="tray-head"><span class="card-title" style="margin:0">Available players</span><div class="tray-filters" id="trayFilters"></div></div><div class="tray-players" id="trayPlayers"></div></div><div class="pitch" id="pitch"></div></div>
+      <div class="pitch-wrap"><div class="mobile-player-tray" id="mobilePlayerTray"><div class="tray-head"><span class="card-title" style="margin:0">Available players</span><div class="tray-filters" id="trayFilters"></div></div><div class="usage-legend" id="trayRotationHint">Dimmed players are already used in another saved lineup.</div><div class="tray-players" id="trayPlayers"></div></div><div class="pitch" id="pitch"></div></div>
       <div>
         <div class="bench-panel" id="benchPanel">
           <div class="bench-head"><h3>Players</h3><span class="bench-count" id="onPitchCount">0 on pitch</span></div>
+          <div class="usage-legend" id="rotationHint">Dimmed players are already used in another saved lineup.</div>
           <div class="lineup-rows" id="onPitchList"></div>
           <div class="bench-head" style="margin-top:15px"><h3>Substitutes</h3><span class="bench-count" id="benchCount">0</span></div>
           <div class="bench-list" id="benchList"></div>
@@ -701,7 +710,19 @@ function posChipsHTML(list){
 }
 function benchPlayers(){
   var on = {}; onPitchIds().forEach(function(id){ on[id]=true; });
-  return availablePlayers().filter(function(p){ return !on[p.id]; });
+  return availablePlayers().filter(function(p){ return !on[p.id]; }).sort(function(a,b){return lineupUsage(a.id).count-lineupUsage(b.id).count;});
+}
+function lineupUsage(playerId){
+  var names=[];
+  state.squads.forEach(function(sq){
+    if(sq.id===state.currentSquadId) return;
+    if(sq.slots.some(function(slot){return slot.playerId===playerId;})) names.push(sq.name);
+  });
+  return {count:names.length,names:names};
+}
+function usageBadgeHTML(playerId){
+  var usage=lineupUsage(playerId);
+  return usage.count?'<span class="usage-badge" title="Also in '+esc(usage.names.join(", "))+'">'+usage.count+'×</span>':"";
 }
 function fmtClock(ms){
   var t = Math.max(0, Math.floor(ms/1000));
@@ -792,12 +813,14 @@ function renderRoster(){
   document.getElementById("rosterEmptyHint").style.display = state.players.length ? "none":"block";
   state.players.forEach(function(p){
     var row=document.createElement("div");
-    row.className="roster-row" + (p.available===false ? " out":"");
+    var usage=lineupUsage(p.id);
+    row.className="roster-row" + (p.available===false ? " out":"") + (usage.count ? " used-elsewhere":"");
     row.dataset.id=p.id;
     row.innerHTML =
       '<span class="drag-handle" data-act="grip" title="Drag to reorder">'+ICON.grip+'</span>'+
       '<button class="num" data-act="avail" title="'+(p.available===false?"Mark available":"Mark away")+'">'+(p.number?esc(p.number):initial(p.name))+'</button>'+
       '<span class="rname">'+esc(p.name)+(p.available===false?' <span style="font-weight:600;color:var(--text-faint);font-size:11px">away</span>':'')+'</span>'+
+      usageBadgeHTML(p.id)+
       '<span class="pos-tags clickable" data-act="pos" title="Edit positions">'+posTagsHTML(p)+'</span>'+
       '<span class="row-actions">'+
         '<button class="icon-btn" data-act="up" title="Move up">'+ICON.up+'</button>'+
@@ -987,10 +1010,12 @@ function renderPitch(){
   state.slots.forEach(function(slot, i){
     var p = slot.playerId ? byId(slot.playerId) : null;
     if(slot.playerId && !p){ slot.playerId=null; }
+    var usage=p?lineupUsage(p.id):{count:0,names:[]};
     var el=document.createElement("div");
     var sel = selectedId ? byId(selectedId) : null;
     el.className="marker"+(i===0?" gk":"")+(p?"":" empty")+((p&&selectedId===p.id)?" selected":"")
       +(offPosition(p, slot.role)?" off-pos":"")
+      +(usage.count?" used-elsewhere":"")
       +((sel && sel.id!==slot.playerId && slot.role && posList(sel).indexOf(slot.role)>-1)?" fit":"")
       +((selectedSlot===i)?" selected":"");
     el.style.left=slot.x+"%"; el.style.top=slot.y+"%";
@@ -998,7 +1023,8 @@ function renderPitch(){
     if(p) el.dataset.playerId=p.id;
     el.dataset.origin="pitch";
     var dot = p && posList(p).length ? '<span class="dot" style="background:var(--c-'+posList(p)[0]+')"></span>' : "";
-    el.innerHTML='<div class="disc">'+(p?esc(discLabel(p)):esc(slot.role||""))+dot+'</div>'+
+    var usageDot=usage.count?'<span class="usage-dot" title="Also in '+esc(usage.names.join(", "))+'">'+usage.count+'×</span>':"";
+    el.innerHTML='<div class="disc">'+(p?esc(discLabel(p)):esc(slot.role||""))+dot+usageDot+'</div>'+
                  (p?'<div class="mname">'+esc(firstName(p.name))+'</div>':'')+
                  (p&&slot.role?'<div class="mrole">'+esc(slot.role)+'</div>':'');
     pitch.appendChild(el);
@@ -1019,14 +1045,16 @@ function renderOnPitch(){
   state.slots.forEach(function(slot,i){
     var p = slot.playerId ? byId(slot.playerId) : null;
     if(p) n++;
+    var usage=p?lineupUsage(p.id):{count:0};
     var row=document.createElement("div");
-    row.className="lineup-row"+(p?"":" vacant")+((p&&selectedId===p.id)||(!p&&selectedSlot===i)?" selected":"");
+    row.className="lineup-row"+(p?"":" vacant")+((p&&selectedId===p.id)||(!p&&selectedSlot===i)?" selected":"")+(usage.count?" used-elsewhere":"");
     row.dataset.slotIndex=i;
     if(p) row.dataset.playerId=p.id;
     var pos = p && posList(p).length ? posList(p)[0] : (slot.role||"");
     if(pos) row.style.setProperty("--ring","var(--c-"+pos+")");
     row.innerHTML='<span class="disc">'+(p?esc(discLabel(p)):esc(slot.role||"-"))+'</span>'+
                   '<span class="lname">'+(p?esc(p.name):"Empty")+'</span>'+
+                  (p?usageBadgeHTML(p.id):"")+
                   (pos?'<span class="pos-tag pos-'+pos+'">'+pos+'</span>':'');
     list.appendChild(row);
   });
@@ -1048,17 +1076,20 @@ document.getElementById("onPitchList").addEventListener("click", function(e){
 function renderBench(){
   var list=document.getElementById("benchList");
   list.innerHTML="";
+  document.getElementById("rotationHint").style.display=state.squads.length?"block":"none";
   var bench=benchPlayers();
   document.getElementById("benchCount").textContent=bench.length;
   document.getElementById("benchEmptyHint").style.display=bench.length?"none":"block";
   document.getElementById("benchEmptyHint").textContent=state.players.length?"Everyone available is on the pitch.":"Add players in the Roster tab.";
   var wantRole = (selectedSlot!==null && state.slots[selectedSlot]) ? state.slots[selectedSlot].role : "";
   bench.forEach(function(p){
+    var usage=lineupUsage(p.id);
     var c=document.createElement("div");
     c.className="bench-card"+(selectedId===p.id?" selected":"")
-      +((wantRole && posList(p).indexOf(wantRole)>-1)?" cover":"");
+      +((wantRole && posList(p).indexOf(wantRole)>-1)?" cover":"")+(usage.count?" used-elsewhere":"");
     c.dataset.playerId=p.id; c.dataset.origin="bench";
     c.innerHTML='<span class="disc">'+esc(discLabel(p))+'</span><span>'+esc(p.name)+'</span>'+
+                usageBadgeHTML(p.id)+
                 (posList(p).length?'<span class="pos-tags">'+posTagsHTML(p)+'</span>':'');
     list.appendChild(c);
   });
@@ -1068,9 +1099,10 @@ function renderBench(){
 var trayFilter="ALL";
 function renderMobileTray(){
   var filters=document.getElementById("trayFilters"), list=document.getElementById("trayPlayers");
+  document.getElementById("trayRotationHint").style.display=state.squads.length?"block":"none";
   filters.innerHTML=["ALL"].concat(POSITIONS).map(function(pos){return '<button class="tray-filter'+(trayFilter===pos?' active':'')+'" data-filter="'+pos+'">'+(pos==="ALL"?"All":pos)+'</button>';}).join("");
   var players=benchPlayers().filter(function(p){return trayFilter==="ALL"||posList(p).indexOf(trayFilter)>-1;});
-  list.innerHTML=players.length?players.map(function(p){return '<button class="tray-player'+(selectedId===p.id?' selected':'')+'" data-player-id="'+p.id+'"><span class="disc">'+esc(discLabel(p))+'</span>'+esc(firstName(p.name))+'</button>';}).join(""):'<span class="empty-hint" style="padding:6px">No matching players</span>';
+  list.innerHTML=players.length?players.map(function(p){var usage=lineupUsage(p.id);return '<button class="tray-player'+(selectedId===p.id?' selected':'')+(usage.count?' used-elsewhere':'')+'" data-player-id="'+p.id+'"><span class="disc">'+esc(discLabel(p))+'</span>'+esc(firstName(p.name))+usageBadgeHTML(p.id)+'</button>';}).join(""):'<span class="empty-hint" style="padding:6px">No matching players</span>';
 }
 document.getElementById("trayFilters").addEventListener("click",function(e){var b=e.target.closest("[data-filter]");if(!b)return;trayFilter=b.dataset.filter;renderMobileTray();});
 document.getElementById("trayPlayers").addEventListener("click",function(e){var b=e.target.closest("[data-player-id]");if(!b)return;var pid=b.dataset.playerId;if(selectedSlot!==null&&state.slots[selectedSlot]&&!state.slots[selectedSlot].playerId){placeInSlot(pid,selectedSlot);selectedSlot=null;selectedId=null;}else selectedId=selectedId===pid?null:pid;renderPitch();});
@@ -1080,6 +1112,7 @@ function renderWarnings(){
   var gk=state.slots.find(function(s){return s.role==="GK";}), gp=gk&&gk.playerId?byId(gk.playerId):null;
   if(ids.length&&(!gp||posList(gp).indexOf("GK")<0)) msgs.push("No goalkeeper selected");
   var off=state.slots.filter(function(s){return s.playerId&&offPosition(byId(s.playerId),s.role);}).length; if(off) msgs.push(off+" player"+(off>1?"s":"")+" out of position");
+  var repeated=ids.filter(function(id){return lineupUsage(id).count>0;}).length;if(repeated)msgs.push(repeated+" player"+(repeated>1?"s":"")+" also used in other lineups");
   var el=document.getElementById("warningSummary"); el.textContent=msgs.join(" · "); el.classList.toggle("show",!!msgs.length);
 }
 
@@ -1295,16 +1328,17 @@ function renderSquads(){
     row.addEventListener("click",function(e){
       var b=e.target.closest("[data-act]"); if(!b) return; var act=b.dataset.act;
       if(act==="load") loadSquad(sq.id);
-      else if(act==="rename") askText("Rename lineup",sq.name,"Save").then(function(name){if(name){checkpoint("rename lineup");sq.name=name;persist();renderSquads();}});
-      else if(act==="duplicate"){checkpoint("duplicate lineup");state.squads.splice(idx+1,0,{id:uid(),name:sq.name+" copy",formation:sq.formation,slots:copySlots(sq.slots)});persist();renderSquads();}
+      else if(act==="rename") askText("Rename lineup",sq.name,"Save").then(function(name){if(name){checkpoint("rename lineup");sq.name=name;persist();renderPitch();}});
+      else if(act==="duplicate"){checkpoint("duplicate lineup");state.squads.splice(idx+1,0,{id:uid(),name:sq.name+" copy",formation:sq.formation,slots:copySlots(sq.slots)});persist();renderPitch();}
       else if(act==="up"&&idx>0){checkpoint("reorder lineups");state.squads.splice(idx-1,0,state.squads.splice(idx,1)[0]);persist();renderSquads();}
       else if(act==="down"&&idx<state.squads.length-1){checkpoint("reorder lineups");state.squads.splice(idx+1,0,state.squads.splice(idx,1)[0]);persist();renderSquads();}
-      else if(act==="del"&&confirm('Delete lineup "'+sq.name+'"?')){checkpoint("delete lineup");state.squads=state.squads.filter(function(x){return x.id!==sq.id;});if(state.currentSquadId===sq.id)state.currentSquadId=null;persist();renderSquads();renderRoster();}
+      else if(act==="del"&&confirm('Delete lineup "'+sq.name+'"?')){checkpoint("delete lineup");state.squads=state.squads.filter(function(x){return x.id!==sq.id;});if(state.currentSquadId===sq.id)state.currentSquadId=null;persist();renderPitch();renderRoster();}
     });
     row.addEventListener("dragstart",function(){row.classList.add("dragging");}); row.addEventListener("dragend",function(){row.classList.remove("dragging");});
     row.addEventListener("dragover",function(e){e.preventDefault();var from=list.querySelector(".dragging");if(!from||from===row)return;var fi=state.squads.findIndex(function(x){return x.id===from.dataset.id;}),ti=state.squads.findIndex(function(x){return x.id===sq.id;});if(fi<0||ti<0)return;checkpoint("reorder lineups");state.squads.splice(ti,0,state.squads.splice(fi,1)[0]);persist();renderSquads();});
     list.appendChild(row);
   });
+  updateNextLineupButton();
 }
 
 /* ─────────── Match clock and playing time ───────────
@@ -1319,6 +1353,16 @@ function nextSquad(){
   if(i<0) return state.squads[0];
   return state.squads[(i+1)%state.squads.length];
 }
+function updateNextLineupButton(){
+  var b=document.getElementById("nextLineupBtn"), next=nextSquad();
+  b.disabled=state.squads.length<2;
+  b.textContent=state.squads.length<2?"Next lineup":("Next: "+next.name);
+}
+document.getElementById("nextLineupBtn").addEventListener("click",function(){
+  var next=nextSquad();
+  if(!next||state.squads.length<2){toast("Save at least two lineups first");return;}
+  loadSquad(next.id);
+});
 
 function tick(){
   state.match.elapsedMs += 1000;
