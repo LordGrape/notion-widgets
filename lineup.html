@@ -196,6 +196,8 @@ input,select{font-family:inherit}
 .pitch[data-marker-shape="shirt"] .marker .disc::before{content:"";position:absolute;inset:0;background:var(--jersey);clip-path:polygon(27% 0,39% 10%,61% 10%,73% 0,100% 20%,84% 42%,78% 34%,78% 100%,22% 100%,22% 34%,16% 42%,0 20%);filter:drop-shadow(0 2px 3px rgba(0,0,0,.35));z-index:-1}
 .pitch[data-marker-shape="shirt"] .marker.gk .disc::before{background:var(--keeper)}
 .pitch[data-marker-shape="shirt"] .marker.empty .disc::before{background:rgba(255,255,255,.12)}
+.pitch[data-marker-shape="shirt"] .marker.off-pos .disc::before{filter:drop-shadow(0 0 3px #f59e0b) drop-shadow(0 0 5px #f59e0b) drop-shadow(0 2px 3px rgba(0,0,0,.35))}
+.pitch[data-marker-shape="shirt"] .marker.fit .disc::before{filter:drop-shadow(0 0 3px #38bdf8) drop-shadow(0 0 5px #38bdf8) drop-shadow(0 2px 3px rgba(0,0,0,.35))}
 .pitch[data-marker-size="small"] .marker .disc{width:34px;height:34px;font-size:12px}.pitch[data-marker-size="small"] .marker{width:66px}
 .pitch[data-marker-size="large"] .marker .disc{width:48px;height:48px;font-size:16px}.pitch[data-marker-size="large"] .marker{width:84px}
 .marker.empty .disc{background:rgba(255,255,255,.12);border:2px dashed rgba(255,255,255,.6);color:rgba(255,255,255,.85);font-size:10px;box-shadow:none}
@@ -1097,7 +1099,8 @@ function renderPitch(){
     if(p) el.dataset.playerId=p.id;
     el.dataset.origin="pitch";
     if(p)el.title=locked?"Right-click to unlock "+p.name:"Right-click to lock "+p.name;
-    var dot = p && posList(p).length ? '<span class="dot" style="background:var(--c-'+posList(p)[0]+')"></span>' : "";
+    var dotList = posList(p);
+    var dot = (p && dotList.length) ? '<span class="dot" style="background:'+(offPosition(p, slot.role)?"#f59e0b":"var(--c-"+(slot.role||dotList[0])+")")+'"></span>' : "";
     var lockBadge=locked?'<span class="marker-lock" aria-label="Locked">'+ICON.lock+'</span>':"";
     var shirtEmpty=!p&&state.appearance.markerShape==="shirt";
     el.innerHTML='<div class="disc">'+(p?esc(discLabel(p)):(shirtEmpty?"":esc(slot.role||"")))+dot+lockBadge+'</div>'+
