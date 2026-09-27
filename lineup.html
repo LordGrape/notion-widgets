@@ -119,13 +119,18 @@ input,select{font-family:inherit}
 
 .add-player-form{display:grid;grid-template-columns:1.4fr .7fr 1fr auto;gap:9px;align-items:end}
 .add-player-form .field-row{max-width:none}
-@media (max-width:640px){.add-player-form{grid-template-columns:1fr 1fr}.add-player-form .btn{grid-column:1/-1}}
+@media (max-width:640px){.add-player-form{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.add-player-form>*{min-width:0}.add-player-form .field-row:nth-child(3),.add-player-form .btn{grid-column:1/-1}}
 
 .roster-list{display:flex;flex-direction:column;gap:7px;margin-top:12px}
+.roster-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}.roster-head .card-title{margin:0}
+.roster-sort{display:flex;align-items:center;gap:4px;flex-wrap:wrap}.roster-sort-label{font-size:10px;font-weight:800;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-right:2px}
+.sort-chip{min-height:28px;border:1px solid var(--border);background:var(--panel-2);color:var(--text-dim);border-radius:999px;padding:5px 9px;font-size:10px;font-weight:800}.sort-chip.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.roster-group-label{font-size:10px;font-weight:800;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;padding:7px 3px 1px}
 .roster-row{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--panel-2)}
 .roster-row.out{opacity:.45}
 .roster-row.dragging{opacity:.35}
 .drag-handle{color:var(--text-faint);cursor:grab;padding:2px;flex-shrink:0;touch-action:none}
+.drag-handle.disabled{opacity:.25;cursor:default}
 .roster-row .num{width:28px;height:28px;border-radius:8px;background:var(--accent-soft);color:var(--accent-2);font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .roster-row .rname{font-weight:600;font-size:14px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pos-tag{font-size:10px;font-weight:700;padding:3px 7px;border-radius:6px;flex-shrink:0}
@@ -148,11 +153,7 @@ input,select{font-family:inherit}
 .pos-editor .hint{font-size:11px;color:var(--text-faint);flex:1;min-width:120px}
 .marker.off-pos .disc{border-color:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,.6),0 2px 8px rgba(0,0,0,.28)}
 .marker.fit .disc{box-shadow:0 0 0 3px #38bdf8,0 2px 8px rgba(0,0,0,.28)}
-.marker.used-elsewhere .disc{filter:brightness(.62) saturate(.72)}
-.marker .usage-dot{position:absolute;left:-7px;top:-7px;min-width:18px;height:18px;padding:0 4px;border-radius:999px;background:#17171f;color:#fff;border:2px solid #fff;display:grid;place-items:center;font-size:8px;font-weight:800;box-shadow:0 2px 5px rgba(0,0,0,.3)}
 .bench-card.cover{border-color:#38bdf8;box-shadow:0 0 0 3px rgba(56,189,248,.26)}
-.bench-card.used-elsewhere,.tray-player.used-elsewhere,.lineup-row.used-elsewhere,.roster-row.used-elsewhere{opacity:.52}
-.bench-card.used-elsewhere:hover,.tray-player.used-elsewhere:hover,.lineup-row.used-elsewhere:hover,.roster-row.used-elsewhere:hover,.bench-card.used-elsewhere.selected,.tray-player.used-elsewhere.selected,.lineup-row.used-elsewhere.selected{opacity:1}
 .usage-badge{font-size:9px!important;font-weight:800!important;padding:2px 5px;border-radius:999px;background:var(--text);color:var(--bg);white-space:nowrap}
 .usage-legend{display:none;font-size:10px;color:var(--text-faint);font-weight:600;margin:-2px 0 8px}
 .bench-card .pos-tag{font-size:9px;padding:2px 5px;border-radius:5px}
@@ -188,7 +189,10 @@ input,select{font-family:inherit}
 .marker.gk:not(.empty) .disc{background:var(--keeper);color:var(--keeper-text,#17171f)}
 .pitch[data-marker-shape="square"] .marker .disc{border-radius:10px}
 .pitch[data-marker-shape="diamond"] .marker .disc{border-radius:0;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
-.pitch[data-marker-shape="shirt"] .marker .disc{border-radius:0;font-size:11px;clip-path:polygon(27% 0,39% 10%,61% 10%,73% 0,100% 20%,84% 42%,78% 34%,78% 100%,22% 100%,22% 34%,16% 42%,0 20%)}
+.pitch[data-marker-shape="shirt"] .marker .disc{border:0;background:transparent!important;border-radius:0;font-size:11px;box-shadow:none;overflow:visible;isolation:isolate}
+.pitch[data-marker-shape="shirt"] .marker .disc::before{content:"";position:absolute;inset:0;background:var(--jersey);clip-path:polygon(27% 0,39% 10%,61% 10%,73% 0,100% 20%,84% 42%,78% 34%,78% 100%,22% 100%,22% 34%,16% 42%,0 20%);filter:drop-shadow(0 2px 3px rgba(0,0,0,.35));z-index:-1}
+.pitch[data-marker-shape="shirt"] .marker.gk .disc::before{background:var(--keeper)}
+.pitch[data-marker-shape="shirt"] .marker.empty .disc::before{background:rgba(255,255,255,.12)}
 .pitch[data-marker-size="small"] .marker .disc{width:34px;height:34px;font-size:12px}.pitch[data-marker-size="small"] .marker{width:66px}
 .pitch[data-marker-size="large"] .marker .disc{width:48px;height:48px;font-size:16px}.pitch[data-marker-size="large"] .marker{width:84px}
 .marker.empty .disc{background:rgba(255,255,255,.12);border:2px dashed rgba(255,255,255,.6);color:rgba(255,255,255,.85);font-size:10px;box-shadow:none}
@@ -294,6 +298,8 @@ input,select{font-family:inherit}
   .lineup-toolbar{align-items:flex-start}.toolbar-actions{width:100%}.toolbar-actions .btn{flex:1}.appearance-grid{grid-template-columns:1fr}.settings-grid{grid-template-columns:1fr}.settings-panel{padding:12px}.field-choices{grid-template-columns:repeat(3,1fr)}
   .tray-head{display:block}.tray-filters{margin-top:7px}.tray-filter{flex:1}
   .squad-row{grid-template-columns:46px minmax(0,1fr)}.squad-mini{width:46px}.squad-actions{grid-column:1/-1;justify-content:flex-start}
+  .icon-btn{min-width:34px;min-height:34px}.icon-btn:disabled{display:none}.roster-head{display:block}.roster-sort{margin-top:9px}.sort-chip{min-height:34px;padding:7px 11px}
+  .roster-row{flex-wrap:wrap;max-width:100%}.roster-row .rname{min-width:120px}.roster-row .pos-tags{margin-left:37px}.roster-row .row-actions{margin-left:auto}
 }
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
@@ -383,11 +389,11 @@ input,select{font-family:inherit}
     </div>
     <div class="warning-summary" id="warningSummary" role="status"></div>
     <div class="lineup-grid">
-      <div class="pitch-wrap"><div class="mobile-player-tray" id="mobilePlayerTray"><div class="tray-head"><span class="card-title" style="margin:0">Available players</span><div class="tray-filters" id="trayFilters"></div></div><div class="usage-legend" id="trayRotationHint">Dimmed players are already used in another saved lineup.</div><div class="tray-players" id="trayPlayers"></div></div><div class="pitch" id="pitch"></div></div>
+      <div class="pitch-wrap"><div class="mobile-player-tray" id="mobilePlayerTray"><div class="tray-head"><span class="card-title" style="margin:0">Available players</span><div class="tray-filters" id="trayFilters"></div></div><div class="usage-legend" id="trayRotationHint">The × badge shows use in another squad in this lineup.</div><div class="tray-players" id="trayPlayers"></div></div><div class="pitch" id="pitch"></div></div>
       <div>
         <div class="bench-panel" id="benchPanel">
           <div class="bench-head"><h3>Players</h3><span class="bench-count" id="onPitchCount">0 on pitch</span></div>
-          <div class="usage-legend" id="rotationHint">Dimmed players are already used in another saved lineup.</div>
+          <div class="usage-legend" id="rotationHint">The × badge shows use in another squad in this lineup.</div>
           <div class="lineup-rows" id="onPitchList"></div>
           <div class="bench-head" style="margin-top:15px"><h3>Substitutes</h3><span class="bench-count" id="benchCount">0</span></div>
           <div class="bench-list" id="benchList"></div>
@@ -447,7 +453,7 @@ input,select{font-family:inherit}
       </div>
     </div>
     <div class="card">
-      <div class="card-title">Roster <span style="text-transform:none;letter-spacing:0;font-weight:500">- tap the circle to mark someone away today</span></div>
+      <div class="roster-head"><div class="card-title">Roster <span style="text-transform:none;letter-spacing:0;font-weight:500">- tap the circle to mark someone away today</span></div><div class="roster-sort" id="rosterSort"><span class="roster-sort-label">Sort</span><button class="sort-chip" data-sort="manual">Manual</button><button class="sort-chip" data-sort="availability">Availability</button><button class="sort-chip" data-sort="position">Position</button></div></div>
       <div class="roster-list" id="rosterList"></div>
       <div class="empty-hint" id="rosterEmptyHint" style="display:none">No players yet. Add your squad above.</div>
     </div>
@@ -546,6 +552,7 @@ function blankSlots(formation){
 var state = {
   teamName: "My Team",
   players: [],
+  rosterSort: "manual",
   formation: "2-3-1",
   slots: blankSlots("2-3-1"),
   lineups: [],
@@ -579,6 +586,7 @@ function loadState(){
   if(stored && typeof stored === "object"){
     state.teamName  = stored.teamName || "My Team";
     state.players   = Array.isArray(stored.players) ? stored.players : [];
+    state.rosterSort = ["manual","availability","position"].indexOf(stored.rosterSort)>-1 ? stored.rosterSort : "manual";
     state.formation = FORMATIONS[stored.formation] ? stored.formation : "2-3-1";
     state.slots     = normaliseSlots(stored.slots, state.formation);
     state.lineups   = Array.isArray(stored.lineups) ? stored.lineups : [];
@@ -658,7 +666,7 @@ function persist(){
   clearTimeout(persistTimer);
   persistTimer = setTimeout(function(){
     Store.set("team", {
-      teamName: state.teamName, players: state.players, formation: state.formation,
+      teamName: state.teamName, players: state.players, rosterSort:state.rosterSort, formation: state.formation,
       slots: state.slots, lineups:state.lineups, squads: state.squads, currentLineupId:state.currentLineupId, currentSquadId: state.currentSquadId,
       positionLocked: state.positionLocked, appearance: state.appearance, match: state.match
     });
@@ -839,24 +847,39 @@ nameA.addEventListener("change", function(){ setTeamName(nameA.value.trim()); })
 nameB.addEventListener("change", function(){ setTeamName(nameB.value.trim()); });
 
 /* ─────────── Roster ─────────── */
+var POSITION_ORDER={GK:0,DEF:1,MID:2,FWD:3};
+function rosterGroup(p){
+  if(state.rosterSort==="availability") return p.available===false?"Away":"Available";
+  if(state.rosterSort==="position") return posList(p)[0]||"Unassigned";
+  return "";
+}
+function sortedRosterPlayers(){
+  var indexed=state.players.map(function(p,i){return{p:p,i:i};});
+  if(state.rosterSort==="availability")indexed.sort(function(a,b){var av=a.p.available===false?1:0,bv=b.p.available===false?1:0;return av-bv||a.i-b.i;});
+  if(state.rosterSort==="position")indexed.sort(function(a,b){var ap=posList(a.p)[0]||"",bp=posList(b.p)[0]||"",ao=ap in POSITION_ORDER?POSITION_ORDER[ap]:9,bo=bp in POSITION_ORDER?POSITION_ORDER[bp]:9;return ao-bo||((a.p.available===false?1:0)-(b.p.available===false?1:0))||a.i-b.i;});
+  return indexed.map(function(x){return x.p;});
+}
 function renderRoster(){
   var list=document.getElementById("rosterList");
   list.innerHTML="";
   document.getElementById("rosterEmptyHint").style.display = state.players.length ? "none":"block";
-  state.players.forEach(function(p){
+  document.querySelectorAll("#rosterSort [data-sort]").forEach(function(b){b.classList.toggle("active",b.dataset.sort===state.rosterSort);b.setAttribute("aria-pressed",b.dataset.sort===state.rosterSort?"true":"false");});
+  var lastGroup=null;
+  sortedRosterPlayers().forEach(function(p){
+    var groupName=rosterGroup(p);
+    if(groupName&&groupName!==lastGroup){var heading=document.createElement("div");heading.className="roster-group-label";heading.textContent=groupName;list.appendChild(heading);lastGroup=groupName;}
     var row=document.createElement("div");
-    var usage=lineupUsage(p.id);
-    row.className="roster-row" + (p.available===false ? " out":"") + (usage.count ? " used-elsewhere":"");
+    row.className="roster-row" + (p.available===false ? " out":"");
     row.dataset.id=p.id;
     row.innerHTML =
-      '<span class="drag-handle" data-act="grip" title="Drag to reorder">'+ICON.grip+'</span>'+
+      '<span class="drag-handle'+(state.rosterSort==="manual"?"":" disabled")+'" data-act="grip" title="'+(state.rosterSort==="manual"?"Drag to reorder":"Select Manual sorting to reorder")+'">'+ICON.grip+'</span>'+
       '<button class="num" data-act="avail" title="'+(p.available===false?"Mark available":"Mark away")+'">'+(p.number?esc(p.number):initial(p.name))+'</button>'+
-      '<span class="rname">'+esc(p.name)+(p.available===false?' <span style="font-weight:600;color:var(--text-faint);font-size:11px">away</span>':'')+'</span>'+
       usageBadgeHTML(p.id)+
+      '<span class="rname">'+esc(p.name)+(p.available===false?' <span style="font-weight:600;color:var(--text-faint);font-size:11px">away</span>':'')+'</span>'+
       '<span class="pos-tags clickable" data-act="pos" title="Edit positions">'+posTagsHTML(p)+'</span>'+
       '<span class="row-actions">'+
-        '<button class="icon-btn" data-act="up" title="Move up">'+ICON.up+'</button>'+
-        '<button class="icon-btn" data-act="down" title="Move down">'+ICON.down+'</button>'+
+        '<button class="icon-btn" data-act="up" title="Move up"'+(state.rosterSort==="manual"?"":" disabled")+'>'+ICON.up+'</button>'+
+        '<button class="icon-btn" data-act="down" title="Move down"'+(state.rosterSort==="manual"?"":" disabled")+'>'+ICON.down+'</button>'+
         '<button class="icon-btn" data-act="edit" title="Edit">'+ICON.edit+'</button>'+
         '<button class="icon-btn danger" data-act="del" title="Remove">'+ICON.trash+'</button>'+
       '</span>';
@@ -875,6 +898,7 @@ function renderRoster(){
   document.getElementById("statSquads").textContent=state.lineups.length;
   document.getElementById("statKeepers").textContent=keeperCount();
 }
+document.getElementById("rosterSort").addEventListener("click",function(e){var b=e.target.closest("[data-sort]");if(!b)return;state.rosterSort=b.dataset.sort;persist();renderRoster();});
 
 var posEditingId = null;
 var newPosSel = [];
@@ -967,11 +991,13 @@ function removePlayerEverywhere(id){
 var rosterDragId=null;
 var rosterList=document.getElementById("rosterList");
 rosterList.addEventListener("pointerdown", function(e){
+  if(state.rosterSort!=="manual") return;
   var grip=e.target.closest('[data-act="grip"]');
   var row=e.target.closest(".roster-row");
   if(grip && row) row.draggable=true;
 });
 rosterList.addEventListener("dragstart", function(e){
+  if(state.rosterSort!=="manual"){e.preventDefault();return;}
   var row=e.target.closest(".roster-row"); if(!row) return;
   rosterDragId=row.dataset.id; row.classList.add("dragging");
   e.dataTransfer.effectAllowed="move";
@@ -982,6 +1008,7 @@ rosterList.addEventListener("dragend", function(e){
   rosterDragId=null; persist();
 });
 rosterList.addEventListener("dragover", function(e){
+  if(state.rosterSort!=="manual") return;
   e.preventDefault();
   var row=e.target.closest(".roster-row");
   if(!row||!rosterDragId||row.dataset.id===rosterDragId) return;
@@ -1041,12 +1068,10 @@ function renderPitch(){
   state.slots.forEach(function(slot, i){
     var p = slot.playerId ? byId(slot.playerId) : null;
     if(slot.playerId && !p){ slot.playerId=null; }
-    var usage=p?lineupUsage(p.id):{count:0,names:[]};
     var el=document.createElement("div");
     var sel = selectedId ? byId(selectedId) : null;
     el.className="marker"+(i===0?" gk":"")+(p?"":" empty")+((p&&selectedId===p.id)?" selected":"")
       +(offPosition(p, slot.role)?" off-pos":"")
-      +(usage.count?" used-elsewhere":"")
       +((sel && sel.id!==slot.playerId && slot.role && posList(sel).indexOf(slot.role)>-1)?" fit":"")
       +((selectedSlot===i)?" selected":"");
     el.style.left=slot.x+"%"; el.style.top=slot.y+"%";
@@ -1054,8 +1079,7 @@ function renderPitch(){
     if(p) el.dataset.playerId=p.id;
     el.dataset.origin="pitch";
     var dot = p && posList(p).length ? '<span class="dot" style="background:var(--c-'+posList(p)[0]+')"></span>' : "";
-    var usageDot=usage.count?'<span class="usage-dot" title="Also in '+esc(usage.names.join(", "))+'">'+usage.count+'×</span>':"";
-    el.innerHTML='<div class="disc">'+(p?esc(discLabel(p)):esc(slot.role||""))+dot+usageDot+'</div>'+
+    el.innerHTML='<div class="disc">'+(p?esc(discLabel(p)):esc(slot.role||""))+dot+'</div>'+
                  (p?'<div class="mname">'+esc(firstName(p.name))+'</div>':'')+
                  (p&&slot.role?'<div class="mrole">'+esc(slot.role)+'</div>':'');
     pitch.appendChild(el);
@@ -1076,16 +1100,15 @@ function renderOnPitch(){
   state.slots.forEach(function(slot,i){
     var p = slot.playerId ? byId(slot.playerId) : null;
     if(p) n++;
-    var usage=p?lineupUsage(p.id):{count:0};
     var row=document.createElement("div");
-    row.className="lineup-row"+(p?"":" vacant")+((p&&selectedId===p.id)||(!p&&selectedSlot===i)?" selected":"")+(usage.count?" used-elsewhere":"");
+    row.className="lineup-row"+(p?"":" vacant")+((p&&selectedId===p.id)||(!p&&selectedSlot===i)?" selected":"");
     row.dataset.slotIndex=i;
     if(p) row.dataset.playerId=p.id;
     var pos = p && posList(p).length ? posList(p)[0] : (slot.role||"");
     if(pos) row.style.setProperty("--ring","var(--c-"+pos+")");
     row.innerHTML='<span class="disc">'+(p?esc(discLabel(p)):esc(slot.role||"-"))+'</span>'+
-                  '<span class="lname">'+(p?esc(p.name):"Empty")+'</span>'+
                   (p?usageBadgeHTML(p.id):"")+
+                  '<span class="lname">'+(p?esc(p.name):"Empty")+'</span>'+
                   (pos?'<span class="pos-tag pos-'+pos+'">'+pos+'</span>':'');
     list.appendChild(row);
   });
@@ -1114,13 +1137,11 @@ function renderBench(){
   document.getElementById("benchEmptyHint").textContent=state.players.length?"Everyone available is on the pitch.":"Add players in the Roster tab.";
   var wantRole = (selectedSlot!==null && state.slots[selectedSlot]) ? state.slots[selectedSlot].role : "";
   bench.forEach(function(p){
-    var usage=lineupUsage(p.id);
     var c=document.createElement("div");
     c.className="bench-card"+(selectedId===p.id?" selected":"")
-      +((wantRole && posList(p).indexOf(wantRole)>-1)?" cover":"")+(usage.count?" used-elsewhere":"");
+      +((wantRole && posList(p).indexOf(wantRole)>-1)?" cover":"");
     c.dataset.playerId=p.id; c.dataset.origin="bench";
-    c.innerHTML='<span class="disc">'+esc(discLabel(p))+'</span><span>'+esc(p.name)+'</span>'+
-                usageBadgeHTML(p.id)+
+    c.innerHTML='<span class="disc">'+esc(discLabel(p))+'</span>'+usageBadgeHTML(p.id)+'<span>'+esc(p.name)+'</span>'+
                 (posList(p).length?'<span class="pos-tags">'+posTagsHTML(p)+'</span>':'');
     list.appendChild(c);
   });
@@ -1133,7 +1154,7 @@ function renderMobileTray(){
   document.getElementById("trayRotationHint").style.display=hasActiveRotation()?"block":"none";
   filters.innerHTML=["ALL"].concat(POSITIONS).map(function(pos){return '<button class="tray-filter'+(trayFilter===pos?' active':'')+'" data-filter="'+pos+'">'+(pos==="ALL"?"All":pos)+'</button>';}).join("");
   var players=benchPlayers().filter(function(p){return trayFilter==="ALL"||posList(p).indexOf(trayFilter)>-1;});
-  list.innerHTML=players.length?players.map(function(p){var usage=lineupUsage(p.id);return '<button class="tray-player'+(selectedId===p.id?' selected':'')+(usage.count?' used-elsewhere':'')+'" data-player-id="'+p.id+'"><span class="disc">'+esc(discLabel(p))+'</span>'+esc(firstName(p.name))+usageBadgeHTML(p.id)+'</button>';}).join(""):'<span class="empty-hint" style="padding:6px">No matching players</span>';
+  list.innerHTML=players.length?players.map(function(p){return '<button class="tray-player'+(selectedId===p.id?' selected':'')+'" data-player-id="'+p.id+'"><span class="disc">'+esc(discLabel(p))+'</span>'+usageBadgeHTML(p.id)+esc(firstName(p.name))+'</button>';}).join(""):'<span class="empty-hint" style="padding:6px">No matching players</span>';
 }
 document.getElementById("trayFilters").addEventListener("click",function(e){var b=e.target.closest("[data-filter]");if(!b)return;trayFilter=b.dataset.filter;renderMobileTray();});
 document.getElementById("trayPlayers").addEventListener("click",function(e){var b=e.target.closest("[data-player-id]");if(!b)return;var pid=b.dataset.playerId;if(selectedSlot!==null&&state.slots[selectedSlot]&&!state.slots[selectedSlot].playerId){placeInSlot(pid,selectedSlot);selectedSlot=null;selectedId=null;}else selectedId=selectedId===pid?null:pid;renderPitch();});
@@ -1143,7 +1164,6 @@ function renderWarnings(){
   var gk=state.slots.find(function(s){return s.role==="GK";}), gp=gk&&gk.playerId?byId(gk.playerId):null;
   if(ids.length&&(!gp||posList(gp).indexOf("GK")<0)) msgs.push("No goalkeeper selected");
   var off=state.slots.filter(function(s){return s.playerId&&offPosition(byId(s.playerId),s.role);}).length; if(off) msgs.push(off+" player"+(off>1?"s":"")+" out of position");
-  var repeated=ids.filter(function(id){return lineupUsage(id).count>0;}).length;if(repeated)msgs.push(repeated+" player"+(repeated>1?"s":"")+" also used in other lineups");
   var el=document.getElementById("warningSummary"); el.textContent=msgs.join(" · "); el.classList.toggle("show",!!msgs.length);
 }
 
@@ -1657,7 +1677,7 @@ document.getElementById("crestInput").addEventListener("change",function(){var f
 
 /* ─────────── Backup ─────────── */
 document.getElementById("exportJsonBtn").addEventListener("click", function(){
-  var data=JSON.stringify({ teamName:state.teamName, players:state.players, formation:state.formation,
+  var data=JSON.stringify({ teamName:state.teamName, players:state.players, rosterSort:state.rosterSort, formation:state.formation,
     slots:state.slots, lineups:state.lineups, squads:state.squads, currentLineupId:state.currentLineupId, currentSquadId:state.currentSquadId, positionLocked:state.positionLocked, appearance:state.appearance, match:state.match }, null, 2);
   var blob=new Blob([data],{type:"application/json"});
   var url=URL.createObjectURL(blob), a=document.createElement("a");
@@ -1679,6 +1699,7 @@ document.getElementById("importJsonBtn").addEventListener("click", function(){
         if(!confirm("Replace the current team with this backup?")) return;
         state.teamName=d.teamName||"My Team";
         state.players=d.players;
+        state.rosterSort=["manual","availability","position"].indexOf(d.rosterSort)>-1?d.rosterSort:"manual";
         state.formation=FORMATIONS[d.formation]?d.formation:"2-3-1";
         state.slots=normaliseSlots(d.slots, state.formation);
         state.lineups=Array.isArray(d.lineups)?d.lineups:[];
