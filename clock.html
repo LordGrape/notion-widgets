@@ -369,6 +369,7 @@ body {
 .s-item-val { font-size:11px; font-weight:500; color:var(--date-color); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .s-item-val.empty { font-style:italic; opacity:0.4; font-weight:300; }
 .s-actions { display:flex; gap:4px; flex-shrink:0; }
+.s-item-hint { font-size:9px; font-weight:300; color:var(--meta-color); line-height:1.4; margin:-2px 0 12px; padding:0 2px; }
 .s-btn { font-family:'Inter',sans-serif; font-size:8px; font-weight:600; letter-spacing:0.5px; text-transform:uppercase; padding:5px 10px; border-radius:8px; border:none; cursor:pointer; transition:all 0.2s; }
 .s-btn.add { background:var(--accent); color:#fff; }
 .s-btn.add:hover { transform:scale(1.05); }
@@ -682,6 +683,43 @@ var IS_COMMAND_CENTRE = (function() {
 if (!IS_COMMAND_CENTRE) {
   var _tmTypeToggleEl = document.getElementById('tmTypeToggle');
   if (_tmTypeToggleEl) _tmTypeToggleEl.style.display = 'none';
+}
+
+/* ══════════════════════════════════════
+   DESKTOP NOTIFICATIONS
+   ══════════════════════════════════════
+   A background/minimized tab gets throttled (and eventually frozen) by the
+   browser, so the in-page chime can end up silent until the tab is reopened.
+   A real OS notification is delivered by the browser/OS independently of that,
+   so it's the reliable way to actually hear about a finished focus block or
+   break while the app isn't in front of you. Opt-in, off until the user turns
+   it on in Settings (and grants the browser permission prompt). */
+var NOTIFY_KEY = 'clock_notify_enabled';
+function notifyEnabled() {
+  return localStorage.getItem(NOTIFY_KEY) === '1' &&
+    typeof Notification !== 'undefined' && Notification.permission === 'granted';
+}
+function requestNotifyPermission() {
+  if (typeof Notification === 'undefined') return Promise.resolve(false);
+  if (Notification.permission === 'granted') { localStorage.setItem(NOTIFY_KEY, '1'); return Promise.resolve(true); }
+  if (Notification.permission === 'denied') return Promise.resolve(false);
+  return Notification.requestPermission().then(function(perm) {
+    var ok = perm === 'granted';
+    localStorage.setItem(NOTIFY_KEY, ok ? '1' : '0');
+    return ok;
+  });
+}
+function disableNotify() { localStorage.setItem(NOTIFY_KEY, '0'); }
+/* Only pop an OS notification when the user isn't actually looking at this
+   tab/window right now — otherwise the on-screen chime + confetti is enough
+   and a toast on top of that would just be noise. */
+function sendNotification(title, body) {
+  if (!notifyEnabled()) return;
+  if (!document.hidden && document.hasFocus()) return;
+  try {
+    var n = new Notification(title, { body: body, tag: 'clock-widget', renotify: true });
+    n.onclick = function() { try { window.focus(); if (window.parent && window.parent !== window) window.parent.focus(); } catch (e) {} n.close(); };
+  } catch (e) {}
 }
 
 /* ══════════════════════════════════════
@@ -1591,6 +1629,7 @@ function advanceStudySession() {
     document.getElementById('tmToggle').textContent = 'Start';
     document.getElementById('tmLabel').textContent = goLong ? 'Long break' : 'Break';
     document.getElementById('tmLabel').className = 'session-label';
+    sendNotification('Focus session complete', (goLong ? 'Long' : 'Short') + ' break started \u2014 ' + Math.round(tmDuration / 60) + ' min.');
     startBreakOverlay(goLong ? 'Long Break' : 'Short Break', tmDuration, startNextStudyPhase);
   } else {
     playChime();
@@ -2031,6 +2070,7 @@ function tickTimer() {
     document.getElementById('tmLabel').className = 'session-label done';
     creditTimerRun(tmStartTime, tmDuration);
     playChime(); launchConfetti('confetti');
+    sendNotification('Timer complete!', Math.round(tmDuration / 60) + ' min timer finished.');
     var needsBreak = tmDuration >= 2700;
     setTimeout(function() {
       tmRemaining = tmDuration; updateTMDisplay();
@@ -2114,6 +2154,10 @@ function startBreakOverlay(title, secs, onComplete) {
     breakRemaining--;
     if (breakRemaining <= 0) {
       var cb = breakOnComplete; breakOnComplete = null;
+      if (studyActive) {
+        playChime();
+        sendNotification('Break\u2019s over', 'Back to focus \u2014 ' + Math.round(studyFocusSecs / 60) + ' min session.');
+      }
       dismissBreak();
       if (cb) cb();
       return;
@@ -2176,12 +2220,27 @@ function renderS() {
   if (l) { h += '<button class="s-btn edt" data-a="el">Edit</button><button class="s-btn del" data-a="dl">Delete</button>'; }
   else { h += '<button class="s-btn add" data-a="el">Add</button>'; }
   h += '</div></div><div id="la"></div>';
+  var notifBlocked = typeof Notification !== 'undefined' && Notification.permission === 'denied';
+  var notifOn = notifyEnabled();
+  h += '<div class="s-item"><div class="s-item-info"><div class="s-item-label">Desktop notifications</div>';
+  h += '<div class="s-item-val' + (notifOn ? '' : ' empty') + '">' + (notifOn ? 'On' : (notifBlocked ? 'Blocked in browser settings' : 'Off')) + '</div></div>';
+  h += '<div class="s-actions">';
+  if (notifOn) { h += '<button class="s-btn del" data-a="nof">Turn off</button>'; }
+  else if (!notifBlocked) { h += '<button class="s-btn add" data-a="non">Turn on</button>'; }
+  h += '</div></div><div id="nna" class="s-item-hint">Get a system notification when a focus session or break ends \u2014 useful if this window is minimized or in the background.</div>';
   document.getElementById('sContent').innerHTML = h;
   document.querySelectorAll('[data-a]').forEach(function(b) {
     b.addEventListener('click', function() {
-      ({ en: showNI, dn: confirmDN, el: showLI, dl: confirmDL })[this.dataset.a]();
+      ({ en: showNI, dn: confirmDN, el: showLI, dl: confirmDL, non: enableNotifyUI, nof: disableNotifyUI })[this.dataset.a]();
     });
   });
+}
+
+function enableNotifyUI() {
+  requestNotifyPermission().then(function() { renderS(); });
+}
+function disableNotifyUI() {
+  disableNotify(); renderS();
 }
 
 function showNI() {
