@@ -325,6 +325,9 @@ body {
 .mastery-bar-track { width: 100%; height: 8px; border-radius: 6px; background: var(--bar-bg); overflow: hidden; }
 .mastery-bar-fill { height: 100%; width: 0%; background: var(--bar-fill); border-radius: 6px; box-shadow: var(--bar-glow); transition: width 0.6s cubic-bezier(0.4,0,0.2,1); }
 .mastery-bar-caption { font-size: 8.5px; font-weight: 300; letter-spacing: 0.6px; text-transform: uppercase; color: var(--meta-color); margin-top: 9px; }
+.mastery-reset-row { margin-top: 10px; text-align: right; }
+.mastery-reset-btn { font-family:'Inter',sans-serif; font-size: 7.5px; font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase; color: var(--meta-color); background: none; border: none; cursor: pointer; padding: 2px 0; opacity: 0.6; }
+.mastery-reset-btn:hover { opacity: 1; color: #ef4444; }
 .heatmap-card { margin-top: 6px; }
 .heatmap-title { font-size: 9.5px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--meta-color); margin-bottom: 10px; }
 .heatmap-grid { display: grid; grid-template-columns: repeat(13, 1fr); grid-template-rows: repeat(7, 1fr); gap: 2.5px; width: 100%; aspect-ratio: 13 / 7; }
@@ -601,6 +604,7 @@ body {
         <div class="mastery-stage-name" id="masteryStageName">Starting Out</div>
         <div class="mastery-bar-track"><div class="mastery-bar-fill" id="masteryBarFill"></div></div>
         <div class="mastery-bar-caption" id="masteryBarCaption"></div>
+        <div class="mastery-reset-row" id="masteryResetRow"><button class="mastery-reset-btn" id="masteryResetBtn">Reset progress</button></div>
       </div>
       <div class="heatmap-card">
         <div class="heatmap-title">Focus Consistency</div>
@@ -1128,8 +1132,10 @@ function updateFocusStats() {
 updateFocusStats();
 
 /* Records a completed focus session: updates today's focus-time total
-   (existing per-day store) AND awards Dragon XP — a pre-existing,
-   dormant cross-widget mastery primitive in core.js (monotonic, daily-
+   (existing per-day store) AND awards XP — a pre-existing, dormant
+   cross-widget mastery primitive in core.js (internally namespaced
+   'dragon' for historical reasons; user-facing text just says XP;
+   monotonic, daily-
    capped, never punitive). 1 XP == 1 focused minute. Sub-minute
    remainders are simply floored (same rounding core.js already uses
    for focus-time itself) — negligible over a multi-year XP curve. */
@@ -1216,6 +1222,35 @@ function renderHeatmap() {
 }
 renderMastery();
 renderHeatmap();
+
+function resetMasteryProgress() {
+  SyncEngine.remove('dragon', 'xp');
+  SyncEngine.remove('dragon', '_xpCapDate');
+  SyncEngine.remove('dragon', '_xpCapUsed');
+  SyncEngine.remove('clock', 'timer_last_credited');
+  renderMastery();
+  renderHeatmap();
+  playReset();
+}
+
+function wireMasteryResetBtn() {
+  var row = document.getElementById('masteryResetRow');
+  var btn = document.getElementById('masteryResetBtn');
+  if (!row || !btn) return;
+  btn.addEventListener('click', function askMasteryReset() {
+    row.innerHTML = '<div class="s-confirm"><span class="s-confirm-msg">Reset XP to 0?</span><button class="s-confirm-btn s-confirm-no" id="masteryResetNo">Cancel</button><button class="s-confirm-btn s-confirm-yes" id="masteryResetYes">Reset</button></div>';
+    document.getElementById('masteryResetNo').addEventListener('click', function() {
+      row.innerHTML = '<button class="mastery-reset-btn" id="masteryResetBtn">Reset progress</button>';
+      wireMasteryResetBtn();
+    });
+    document.getElementById('masteryResetYes').addEventListener('click', function() {
+      resetMasteryProgress();
+      row.innerHTML = '<button class="mastery-reset-btn" id="masteryResetBtn">Reset progress</button>';
+      wireMasteryResetBtn();
+    });
+  });
+}
+wireMasteryResetBtn();
 
 /* ══════════════════════════════════════
    STOPWATCH
