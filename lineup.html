@@ -35,6 +35,24 @@
     --turf-1:#1f7a3d; --turf-2:#186631; --line:rgba(255,255,255,.4);
   }
 }
+html[data-theme="light"]{
+  color-scheme:light;
+  --bg:#f5f5f8;--panel:#fff;--panel-2:#fafafa;--border:rgba(20,20,30,.08);
+  --text:#17171f;--text-dim:#68687a;--text-faint:#9797a8;
+  --accent:#8b5cf6;--accent-2:#7c3aed;--accent-soft:rgba(139,92,246,.12);--accent-ring:rgba(139,92,246,.35);
+  --on:#2563eb;--on-soft:rgba(37,99,235,.12);--off:#d97706;--off-soft:rgba(217,119,6,.14);
+  --danger:#dc2626;--danger-soft:rgba(220,38,38,.1);
+  --shadow:0 1px 2px rgba(20,20,30,.04),0 8px 24px rgba(20,20,30,.06);--shadow-lg:0 12px 40px rgba(20,20,30,.14);
+}
+html[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#121216;--panel:#1b1b22;--panel-2:#1f1f28;--border:rgba(255,255,255,.08);
+  --text:#f2f2f7;--text-dim:#a3a3b2;--text-faint:#6f6f80;
+  --accent:#a78bfa;--accent-2:#8b5cf6;--accent-soft:rgba(167,139,250,.16);--accent-ring:rgba(167,139,250,.4);
+  --on:#60a5fa;--on-soft:rgba(96,165,250,.16);--off:#fbbf24;--off-soft:rgba(251,191,36,.16);
+  --danger:#f87171;--danger-soft:rgba(248,113,113,.14);
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);--shadow-lg:0 16px 48px rgba(0,0,0,.5);
+}
 html,body{height:100%}
 body{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;overflow-x:hidden}
 button{font-family:inherit;cursor:pointer}
@@ -55,6 +73,20 @@ input,select{font-family:inherit}
 .tab-btn{border:none;background:transparent;color:var(--text-dim);font-size:13px;font-weight:600;padding:8px 14px;border-radius:9px;transition:all .15s ease}
 .tab-btn.active{background:var(--accent);color:#fff;box-shadow:0 2px 8px var(--accent-ring)}
 .tab-btn:not(.active):hover{color:var(--text);background:var(--panel-2)}
+.settings-toggle{border:none;background:transparent;color:var(--text-dim);font-size:13px;font-weight:700;padding:8px 12px;border-radius:9px}
+.settings-toggle:hover,.settings-toggle[aria-expanded="true"]{color:var(--text);background:var(--panel-2)}
+.settings-panel{display:none;margin:-2px 0 14px;padding:14px;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+.settings-panel.open{display:block}
+.settings-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.settings-head h2{font-size:15px}.settings-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.setting-group{min-width:0}.setting-label{display:block;font-size:11px;font-weight:800;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px}
+.segmented{display:flex;gap:4px;flex-wrap:wrap}.choice-btn{border:1px solid var(--border);background:var(--panel-2);color:var(--text-dim);border-radius:8px;padding:7px 10px;font-size:11px;font-weight:700}
+.choice-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.field-choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.field-choice{border:1px solid var(--border);background:var(--panel-2);color:var(--text-dim);border-radius:9px;padding:6px;font-size:10px;font-weight:700;text-align:left}
+.field-choice.active{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft);color:var(--text)}
+.field-swatch{display:block;height:24px;border-radius:6px;margin-bottom:5px;border:1px solid rgba(255,255,255,.3)}
+.settings-colours{display:flex;gap:10px;flex-wrap:wrap}.settings-colours label{font-size:10px;color:var(--text-faint);font-weight:700}.settings-colours input{display:block;width:44px;height:34px;padding:2px;margin-top:4px;border:1px solid var(--border);border-radius:8px;background:var(--panel-2)}
 .view{display:none;animation:fadeIn .22s ease}
 .view.active{display:block}
 @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
@@ -147,6 +179,11 @@ input,select{font-family:inherit}
 .marker .mname{font-size:10px;font-weight:800;color:#17171f;background:#fff;border-radius:999px;padding:2px 8px;box-shadow:0 1px 4px rgba(0,0,0,.28);max-width:74px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .marker .mrole{font-size:9px;font-weight:800;color:#fff;letter-spacing:.04em;text-shadow:0 1px 3px rgba(0,0,0,.7)}
 .marker.gk:not(.empty) .disc{background:var(--keeper);color:var(--keeper-text,#17171f)}
+.pitch[data-marker-shape="square"] .marker .disc{border-radius:10px}
+.pitch[data-marker-shape="diamond"] .marker .disc{border-radius:0;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+.pitch[data-marker-shape="shirt"] .marker .disc{border-radius:0;font-size:11px;clip-path:polygon(27% 0,39% 10%,61% 10%,73% 0,100% 20%,84% 42%,78% 34%,78% 100%,22% 100%,22% 34%,16% 42%,0 20%)}
+.pitch[data-marker-size="small"] .marker .disc{width:34px;height:34px;font-size:12px}.pitch[data-marker-size="small"] .marker{width:66px}
+.pitch[data-marker-size="large"] .marker .disc{width:48px;height:48px;font-size:16px}.pitch[data-marker-size="large"] .marker{width:84px}
 .marker.empty .disc{background:rgba(255,255,255,.12);border:2px dashed rgba(255,255,255,.6);color:rgba(255,255,255,.85);font-size:10px;box-shadow:none}
 .marker.ghost{position:fixed;z-index:999;pointer-events:none;opacity:.92;transform:translate(-50%,-50%) scale(1.06)}
 
@@ -236,12 +273,13 @@ input,select{font-family:inherit}
 .color-field input[type="color"]{width:42px;height:34px;padding:2px;border-radius:8px}
 .crest-preview{width:42px;height:42px;border-radius:11px;object-fit:cover;background:var(--panel-2);border:1px solid var(--border)}
 @media (max-width:860px){
+  .settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .mobile-player-tray{display:block;margin-bottom:9px;padding:9px;background:var(--panel-2);border:1px solid var(--border);border-radius:12px}
   .lineup-toolbar{top:4px}
 }
 @media (max-width:560px){
   #app{padding:12px 10px 34px}.header{margin-bottom:10px}.tabs{width:100%;justify-content:space-between}.tab-btn{flex:1;padding:8px 7px}
-  .lineup-toolbar{align-items:flex-start}.toolbar-actions{width:100%}.toolbar-actions .btn{flex:1}.appearance-grid{grid-template-columns:1fr}
+  .lineup-toolbar{align-items:flex-start}.toolbar-actions{width:100%}.toolbar-actions .btn{flex:1}.appearance-grid{grid-template-columns:1fr}.settings-grid{grid-template-columns:1fr}.settings-panel{padding:12px}.field-choices{grid-template-columns:repeat(3,1fr)}
   .tray-head{display:block}.tray-filters{margin-top:7px}.tray-filter{flex:1}
   .squad-row{grid-template-columns:46px minmax(0,1fr)}.squad-mini{width:46px}.squad-actions{grid-column:1/-1;justify-content:flex-start}
 }
@@ -261,8 +299,60 @@ input,select{font-family:inherit}
       <button class="tab-btn" data-view="match" role="tab">Match</button>
       <button class="tab-btn" data-view="roster" role="tab">Roster</button>
       <button class="tab-btn" data-view="team" role="tab">Team</button>
+      <button class="settings-toggle" id="settingsToggle" aria-expanded="false" aria-controls="settingsPanel">Settings</button>
     </div>
   </div>
+
+  <section class="settings-panel" id="settingsPanel" aria-label="Appearance settings">
+    <div class="settings-head"><h2>Customize lineup</h2><button class="icon-btn" id="settingsClose" aria-label="Close settings">×</button></div>
+    <div class="settings-grid">
+      <div class="setting-group">
+        <span class="setting-label">App theme</span>
+        <div class="segmented" id="themeChoices">
+          <button class="choice-btn" data-theme-choice="system">System</button>
+          <button class="choice-btn" data-theme-choice="light">Light</button>
+          <button class="choice-btn" data-theme-choice="dark">Dark</button>
+        </div>
+      </div>
+      <div class="setting-group">
+        <span class="setting-label">Player icon</span>
+        <div class="segmented" id="shapeChoices">
+          <button class="choice-btn" data-shape-choice="circle">Circle</button>
+          <button class="choice-btn" data-shape-choice="square">Square</button>
+          <button class="choice-btn" data-shape-choice="diamond">Diamond</button>
+          <button class="choice-btn" data-shape-choice="shirt">Shirt</button>
+        </div>
+        <div class="segmented" id="sizeChoices" style="margin-top:6px">
+          <button class="choice-btn" data-size-choice="small">Small</button>
+          <button class="choice-btn" data-size-choice="medium">Medium</button>
+          <button class="choice-btn" data-size-choice="large">Large</button>
+        </div>
+      </div>
+      <div class="setting-group">
+        <span class="setting-label">Marker details</span>
+        <div class="settings-colours">
+          <label>Players<input id="jerseyColor" type="color" value="#8b5cf6"></label>
+          <label>Goalkeeper<input id="keeperColor" type="color" value="#d97706"></label>
+        </div>
+        <div class="field-row" style="margin-top:8px"><select id="markerLabel" aria-label="Marker label"><option value="number">Jersey number</option><option value="initials">Initials</option><option value="both">Number and initials</option></select></div>
+      </div>
+      <div class="setting-group">
+        <span class="setting-label">Team crest</span>
+        <div class="color-field"><img class="crest-preview" id="crestPreview" alt="Team crest preview"><input id="crestInput" type="file" accept="image/*" style="display:none"><button class="btn btn-ghost btn-sm" id="crestChooseBtn">Choose</button><button class="btn btn-ghost btn-sm" id="crestRemoveBtn">Remove</button></div>
+      </div>
+    </div>
+    <div class="setting-group" style="margin-top:14px">
+      <span class="setting-label">Field</span>
+      <div class="field-choices" id="fieldChoices">
+        <button class="field-choice" data-field-choice="classic"><span class="field-swatch" style="background:repeating-linear-gradient(90deg,#2f9e4f 0 25%,#278a44 25% 50%)"></span>Classic</button>
+        <button class="field-choice" data-field-choice="deep"><span class="field-swatch" style="background:repeating-linear-gradient(90deg,#155e35 0 25%,#14532d 25% 50%)"></span>Deep green</button>
+        <button class="field-choice" data-field-choice="light"><span class="field-swatch" style="background:repeating-linear-gradient(90deg,#4fbf70 0 25%,#3eaa60 25% 50%)"></span>Light green</button>
+        <button class="field-choice" data-field-choice="blue"><span class="field-swatch" style="background:repeating-linear-gradient(90deg,#1677a6 0 25%,#12658f 25% 50%)"></span>Blue turf</button>
+        <button class="field-choice" data-field-choice="night"><span class="field-swatch" style="background:repeating-linear-gradient(90deg,#172033 0 25%,#111827 25% 50%)"></span>Night</button>
+        <button class="field-choice" data-field-choice="sand"><span class="field-swatch" style="background:repeating-linear-gradient(90deg,#c18b4f 0 25%,#aa7540 25% 50%)"></span>Sand</button>
+      </div>
+    </div>
+  </section>
 
   <!-- LINEUP -->
   <div class="view active" id="view-lineup">
@@ -362,16 +452,6 @@ input,select{font-family:inherit}
       </div>
     </div>
     <div class="card">
-      <div class="card-title">Appearance</div>
-      <div class="appearance-grid">
-        <div class="field-row"><label for="jerseyColor">Outfield colour</label><div class="color-field"><input id="jerseyColor" type="color" value="#8b5cf6"><span>Player markers</span></div></div>
-        <div class="field-row"><label for="keeperColor">Goalkeeper colour</label><div class="color-field"><input id="keeperColor" type="color" value="#d97706"><span>Goalkeeper marker</span></div></div>
-        <div class="field-row"><label for="markerLabel">Marker label</label><select id="markerLabel"><option value="number">Jersey number</option><option value="initials">Initials</option><option value="both">Number and initials</option></select></div>
-        <div class="field-row"><label for="pitchStyle">Pitch</label><select id="pitchStyle"><option value="classic">Classic green</option><option value="dark">Dark green</option><option value="light">Light green</option></select></div>
-        <div class="field-row"><label>Team crest</label><div class="color-field"><img class="crest-preview" id="crestPreview" alt="Team crest preview"><input id="crestInput" type="file" accept="image/*" style="display:none"><button class="btn btn-ghost btn-sm" id="crestChooseBtn">Choose image</button><button class="btn btn-ghost btn-sm" id="crestRemoveBtn">Remove</button></div></div>
-      </div>
-    </div>
-    <div class="card">
       <div class="card-title">Data</div>
       <p style="font-size:13px;color:var(--text-dim);line-height:1.55;margin-bottom:12px" id="syncNote"></p>
       <div style="display:flex;gap:7px;flex-wrap:wrap">
@@ -457,7 +537,7 @@ var state = {
   squads: [],
   currentSquadId: null,
   positionLocked: true,
-  appearance: { jerseyColor:"#8b5cf6", keeperColor:"#d97706", markerLabel:"both", pitchStyle:"classic", crestData:"" },
+  appearance: { themeMode:"system", jerseyColor:"#8b5cf6", keeperColor:"#d97706", markerLabel:"both", markerShape:"circle", markerSize:"medium", pitchStyle:"classic", crestData:"" },
   match: { elapsedMs:0, intervalMin:8, lastAlertBucket:0, minutes:{} }
 };
 
@@ -490,10 +570,13 @@ function loadState(){
     state.positionLocked = stored.positionLocked !== false;
     var ap = stored.appearance && typeof stored.appearance === "object" ? stored.appearance : {};
     state.appearance = {
+      themeMode: ["system","light","dark"].indexOf(ap.themeMode)>-1 ? ap.themeMode : "system",
       jerseyColor: /^#[0-9a-f]{6}$/i.test(ap.jerseyColor||"") ? ap.jerseyColor : "#8b5cf6",
       keeperColor: /^#[0-9a-f]{6}$/i.test(ap.keeperColor||"") ? ap.keeperColor : "#d97706",
       markerLabel: ["number","initials","both"].indexOf(ap.markerLabel)>-1 ? ap.markerLabel : "both",
-      pitchStyle: ["classic","dark","light"].indexOf(ap.pitchStyle)>-1 ? ap.pitchStyle : "classic",
+      markerShape: ["circle","square","diamond","shirt"].indexOf(ap.markerShape)>-1 ? ap.markerShape : "circle",
+      markerSize: ["small","medium","large"].indexOf(ap.markerSize)>-1 ? ap.markerSize : "medium",
+      pitchStyle: ["classic","deep","dark","light","blue","night","sand"].indexOf(ap.pitchStyle)>-1 ? (ap.pitchStyle==="dark"?"deep":ap.pitchStyle) : "classic",
       crestData: typeof ap.crestData === "string" && ap.crestData.indexOf("data:image/")===0 ? ap.crestData : ""
     };
     var m = stored.match || {};
@@ -682,6 +765,10 @@ document.querySelectorAll(".tab-btn").forEach(function(btn){
   });
 });
 document.querySelectorAll(".tab-btn").forEach(function(btn){ btn.setAttribute("aria-selected",btn.classList.contains("active")?"true":"false"); btn.setAttribute("aria-controls","view-"+btn.dataset.view); });
+var settingsToggle=document.getElementById("settingsToggle"), settingsPanel=document.getElementById("settingsPanel");
+function setSettingsOpen(open){settingsPanel.classList.toggle("open",open);settingsToggle.setAttribute("aria-expanded",open?"true":"false");}
+settingsToggle.addEventListener("click",function(){setSettingsOpen(!settingsPanel.classList.contains("open"));});
+document.getElementById("settingsClose").addEventListener("click",function(){setSettingsOpen(false);settingsToggle.focus();});
 document.getElementById("quickAddBtn").addEventListener("click",function(){ var b=document.querySelector('.tab-btn[data-view="roster"]'); b.click(); setTimeout(function(){document.getElementById("newName").focus();},50); });
 document.getElementById("undoBtn").addEventListener("click",undoLast);
 document.getElementById("lockBtn").addEventListener("click",function(){ checkpoint("position lock"); state.positionLocked=!state.positionLocked; persist(); updateLockButton(); });
@@ -1361,7 +1448,7 @@ function exportPitchImage(){
   var g=c.getContext("2d");
   g.scale(2,2);
 
-  var dark=window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  var dark=state.appearance.themeMode==="dark" || (state.appearance.themeMode==="system" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
   g.fillStyle=dark?"#1b1b22":"#ffffff";
   g.fillRect(0,0,W,H);
 
@@ -1390,14 +1477,15 @@ function exportPitchImage(){
   g.moveTo(px+rr,py); g.arcTo(px+pw,py,px+pw,py+ph,rr); g.arcTo(px+pw,py+ph,px,py+ph,rr);
   g.arcTo(px,py+ph,px,py,rr); g.arcTo(px,py,px+pw,py,rr); g.closePath(); g.clip();
 
+  var fieldPalette=getFieldPalette(state.appearance.pitchStyle);
   for(var i=0;i<8;i++){
-    g.fillStyle = (i%2===0) ? "#2f9e4f" : "#278a44";
+    g.fillStyle = (i%2===0) ? fieldPalette[0] : fieldPalette[1];
     g.fillRect(px, py+(ph/8)*i, pw, ph/8+1);
   }
   // Markings use the 0-150 viewBox scale; slot coordinates are 0-100 percentages.
   var SX=function(v){ return px+(v/100)*pw; }, SY=function(v){ return py+(v/150)*ph; };
   var PX=function(v){ return px+(v/100)*pw; }, PY=function(v){ return py+(v/100)*ph; };
-  g.strokeStyle="rgba(255,255,255,0.55)"; g.lineWidth=2.4;
+  g.strokeStyle=fieldPalette[2]; g.lineWidth=2.4;
   function box(x,y,w,h){ g.strokeRect(SX(x),SY(y),(w/100)*pw,(h/150)*ph); }
   box(2,2,96,146);
   g.beginPath(); g.moveTo(SX(2),SY(75)); g.lineTo(SX(98),SY(75)); g.stroke();
@@ -1405,10 +1493,19 @@ function exportPitchImage(){
   g.beginPath(); g.arc(SX(50),SY(75),3,0,Math.PI*2); g.fillStyle="rgba(255,255,255,0.55)"; g.fill();
   box(26,2,48,18); box(26,130,48,18); box(38,2,24,7); box(38,141,24,7);
 
+  function markerPath(cx,cy,r,shape){
+    g.beginPath();
+    if(shape==="square"){g.roundRect(cx-r,cy-r,r*2,r*2,Math.max(5,r*.3));}
+    else if(shape==="diamond"){g.moveTo(cx,cy-r);g.lineTo(cx+r,cy);g.lineTo(cx,cy+r);g.lineTo(cx-r,cy);g.closePath();}
+    else if(shape==="shirt"){
+      var pts=[[-.46,-1],[-.2,-.78],[.2,-.78],[.46,-1],[1,-.55],[.62,-.12],[.52,-.3],[.52,1],[-.52,1],[-.52,-.3],[-.62,-.12],[-1,-.55]];
+      pts.forEach(function(pt,i){var x=cx+pt[0]*r,y=cy+pt[1]*r;if(i===0)g.moveTo(x,y);else g.lineTo(x,y);});g.closePath();
+    }else g.arc(cx,cy,r,0,Math.PI*2);
+  }
   state.slots.forEach(function(s,idx){
     var p=s.playerId?byId(s.playerId):null;
-    var cx=PX(s.x), cy=PY(s.y), r=26;
-    g.beginPath(); g.arc(cx,cy,r,0,Math.PI*2);
+    var cx=PX(s.x), cy=PY(s.y), r=state.appearance.markerSize==="small"?22:(state.appearance.markerSize==="large"?31:26);
+    markerPath(cx,cy,r,state.appearance.markerShape);
     g.fillStyle = p ? (idx===0?state.appearance.keeperColor:state.appearance.jerseyColor) : "rgba(255,255,255,0.12)";
     g.fill();
     g.strokeStyle="rgba(255,255,255,0.92)"; g.lineWidth=3; g.stroke();
@@ -1442,17 +1539,32 @@ function exportPitchImage(){
 /* ─────────── Appearance ─────────── */
 function applyAppearance(){
   function setTextToken(name,colour){document.documentElement.style.setProperty(name,contrastText(colour));}
+  if(state.appearance.themeMode==="system") document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme",state.appearance.themeMode);
   document.documentElement.style.setProperty("--jersey",state.appearance.jerseyColor);
   document.documentElement.style.setProperty("--keeper",state.appearance.keeperColor);
   setTextToken("--jersey-text",state.appearance.jerseyColor);setTextToken("--keeper-text",state.appearance.keeperColor);
-  var turf=state.appearance.pitchStyle==="dark"?["#155e35","#14532d"]:state.appearance.pitchStyle==="light"?["#4fbf70","#3eaa60"]:["#2f9e4f","#278a44"];
-  document.documentElement.style.setProperty("--turf-1",turf[0]);document.documentElement.style.setProperty("--turf-2",turf[1]);
-  document.getElementById("jerseyColor").value=state.appearance.jerseyColor;document.getElementById("keeperColor").value=state.appearance.keeperColor;document.getElementById("markerLabel").value=state.appearance.markerLabel;document.getElementById("pitchStyle").value=state.appearance.pitchStyle;
+  var turf=getFieldPalette(state.appearance.pitchStyle);
+  document.documentElement.style.setProperty("--turf-1",turf[0]);document.documentElement.style.setProperty("--turf-2",turf[1]);document.documentElement.style.setProperty("--line",turf[2]);
+  var pitch=document.getElementById("pitch");pitch.dataset.markerShape=state.appearance.markerShape;pitch.dataset.markerSize=state.appearance.markerSize;
+  document.getElementById("jerseyColor").value=state.appearance.jerseyColor;document.getElementById("keeperColor").value=state.appearance.keeperColor;document.getElementById("markerLabel").value=state.appearance.markerLabel;
+  document.querySelectorAll("[data-theme-choice]").forEach(function(b){b.classList.toggle("active",b.dataset.themeChoice===state.appearance.themeMode);});
+  document.querySelectorAll("[data-shape-choice]").forEach(function(b){b.classList.toggle("active",b.dataset.shapeChoice===state.appearance.markerShape);});
+  document.querySelectorAll("[data-size-choice]").forEach(function(b){b.classList.toggle("active",b.dataset.sizeChoice===state.appearance.markerSize);});
+  document.querySelectorAll("[data-field-choice]").forEach(function(b){b.classList.toggle("active",b.dataset.fieldChoice===state.appearance.pitchStyle);});
   var crest=document.getElementById("brandCrest"), svg=document.querySelector("#brandBadge svg"), preview=document.getElementById("crestPreview");
   if(state.appearance.crestData){crest.src=state.appearance.crestData;crest.style.display="block";svg.style.display="none";preview.src=state.appearance.crestData;preview.style.visibility="visible";}else{crest.style.display="none";svg.style.display="block";preview.removeAttribute("src");preview.style.visibility="hidden";}
 }
+function getFieldPalette(style){
+  var fields={classic:["#2f9e4f","#278a44","rgba(255,255,255,.55)"],deep:["#155e35","#14532d","rgba(255,255,255,.52)"],light:["#4fbf70","#3eaa60","rgba(255,255,255,.68)"],blue:["#1677a6","#12658f","rgba(255,255,255,.62)"],night:["#172033","#111827","rgba(255,255,255,.48)"],sand:["#c18b4f","#aa7540","rgba(255,255,255,.62)"]};
+  return fields[style]||fields.classic;
+}
 function contrastText(hex){var h=String(hex||"").replace("#","");if(h.length!==6)return"#fff";var r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);return ((r*299+g*587+b*114)/1000)>155?"#17171f":"#fff";}
-["jerseyColor","keeperColor","markerLabel","pitchStyle"].forEach(function(id){document.getElementById(id).addEventListener("change",function(){state.appearance[id]=this.value;persist();applyAppearance();renderPitch();});});
+["jerseyColor","keeperColor","markerLabel"].forEach(function(id){document.getElementById(id).addEventListener("change",function(){state.appearance[id]=this.value;persist();applyAppearance();renderPitch();});});
+document.getElementById("themeChoices").addEventListener("click",function(e){var b=e.target.closest("[data-theme-choice]");if(!b)return;state.appearance.themeMode=b.dataset.themeChoice;persist();applyAppearance();});
+document.getElementById("shapeChoices").addEventListener("click",function(e){var b=e.target.closest("[data-shape-choice]");if(!b)return;state.appearance.markerShape=b.dataset.shapeChoice;persist();applyAppearance();renderPitch();});
+document.getElementById("sizeChoices").addEventListener("click",function(e){var b=e.target.closest("[data-size-choice]");if(!b)return;state.appearance.markerSize=b.dataset.sizeChoice;persist();applyAppearance();renderPitch();});
+document.getElementById("fieldChoices").addEventListener("click",function(e){var b=e.target.closest("[data-field-choice]");if(!b)return;state.appearance.pitchStyle=b.dataset.fieldChoice;persist();applyAppearance();renderPitch();});
 document.getElementById("crestChooseBtn").addEventListener("click",function(){document.getElementById("crestInput").click();});
 document.getElementById("crestRemoveBtn").addEventListener("click",function(){state.appearance.crestData="";persist();applyAppearance();});
 document.getElementById("crestInput").addEventListener("change",function(){var f=this.files&&this.files[0];if(!f)return;var r=new FileReader();r.onload=function(){var im=new Image();im.onload=function(){var c=document.createElement("canvas");c.width=c.height=160;var g=c.getContext("2d"),scale=Math.max(160/im.width,160/im.height),w=im.width*scale,h=im.height*scale;g.drawImage(im,(160-w)/2,(160-h)/2,w,h);state.appearance.crestData=c.toDataURL("image/jpeg",.86);persist();applyAppearance();};im.src=String(r.result);};r.readAsDataURL(f);});
