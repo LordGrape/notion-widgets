@@ -1639,6 +1639,18 @@ function restoreTimerState() {
     if (!raw) return false;
     var st = typeof raw === 'string' ? JSON.parse(raw) : raw;
     if (!st || !st.duration) return false;
+    /* Always start from a clean slate so this function is safe to call more than
+       once per page (see liveResyncFromRemote below) — otherwise re-running it
+       while a local interval from a stale prior state is still ticking would
+       stack a second interval instead of replacing it. */
+    clearInterval(tmInterval); tmInterval = null;
+    dismissBreak();
+    /* Reset tmRunning too as part of that clean slate — the branches below only
+       set it back to true when the restored state is actually running, so without
+       this a stale "true" from a previous live resync would stick around (e.g.
+       after another instance pauses), causing our own periodic autosave to
+       resurrect the old running state and undo the pause. */
+    tmRunning = false;
     tmDuration = st.duration;
     tmCustomSecs = st.customSecs || 0;
     selectedPreset = st.preset != null ? st.preset : 0;
@@ -1914,10 +1926,7 @@ function hidePresetHint() {
   }, 120);
 }
 
-/* ── Restore timer on load ── */
-var _timerRestored = restoreTimerState();
-if (_timerRestored) {
-  /* Sync preset chip highlight */
+function syncPresetChipHighlight() {
   clearActivePresets();
   if (selectedPreset >= 0 && selectedPreset < PRESETS.length) {
     var chips = presetsEl.querySelectorAll('.preset-chip');
@@ -1925,6 +1934,48 @@ if (_timerRestored) {
   } else if (tmCustomSecs > 0) {
     customChip.classList.add('active');
   }
+}
+
+/* ── Restore timer on load ── */
+var _timerRestored = restoreTimerState();
+if (_timerRestored) syncPresetChipHighlight();
+
+/* ── Live cross-instance sync ──
+   timer_state is shared (SyncEngine), but until now each open copy of this widget
+   (e.g. two Clock embeds on the same Notion page) only ever read it once, at load.
+   After that each instance ticked its own independent countdown and blindly
+   re-saved its own (possibly stale) belief on a timer, so pausing/resuming/
+   skipping/resetting in one instance could get silently overwritten a few
+   seconds later by another open instance that never learned about the change —
+   and that instance's own display just kept counting down as if nothing
+   happened. Subscribing here means every open instance adopts the same change
+   within moments, the same way the boot-time restore already does it. */
+function liveResyncFromRemote() {
+  var restored = restoreTimerState();
+  if (restored) { syncPresetChipHighlight(); return; }
+  /* No shared state left (session completed elsewhere, or Reset was pressed
+     elsewhere) — mirror that back to idle here too, without replaying this
+     instance's own completion effects (the instance where it actually
+     happened already handled those). */
+  clearInterval(tmInterval); tmInterval = null;
+  dismissBreak();
+  tmRunning = false;
+  if (studyActive) {
+    studyActive = false; studyPhase = 'focus'; studyCycle = 0;
+    studyCycleIndicatorEl.hidden = true; studyTaskIds = [];
+    renderStudyTasks();
+  }
+  tmRemaining = tmDuration; updateTMDisplay();
+  document.getElementById('tmToggle').textContent = 'Start';
+  document.getElementById('tmToggle').setAttribute('aria-label', 'Start timer');
+  document.getElementById('tmLabel').textContent = 'Set duration';
+  document.getElementById('tmLabel').className = 'session-label';
+  document.getElementById('tmRing').classList.remove('complete');
+}
+if (typeof SyncEngine.subscribe === 'function') {
+  SyncEngine.subscribe('clock', 'timer_state', function(value, meta) {
+    if (meta && meta.source === 'remote') liveResyncFromRemote();
+  });
 }
 
 function formatTM(secs) {
