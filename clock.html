@@ -64,8 +64,19 @@
 body {
   font-family: 'Inter', sans-serif;
   background: var(--bg);
-  display: flex; align-items: center; justify-content: center;
-  height: 100vh; overflow: hidden;
+  /* Fix: body was height:100vh + overflow:hidden, so any time the card's
+     content got taller than the embed's viewport (most often the Pomodoro
+     break screen: avatar + title + big timer + message + Skip button is
+     taller than the plain clock face) the extra content was simply clipped
+     with no way to scroll to it. Switched to min-height + overflow-y:auto
+     so the page scrolls when needed but still looks identical when content
+     fits. "safe center" keeps the still-common case centered, while telling
+     browsers that support it to fall back to start-alignment (so the top of
+     the content stays reachable by scroll) instead of the classic flexbox
+     bug where centered overflow becomes inaccessible in either direction. */
+  display: flex; align-items: center; align-items: safe center;
+  justify-content: center; justify-content: safe center;
+  min-height: 100vh; overflow-y: auto; overflow-x: hidden;
   transition: background 0.3s;
   user-select: none; -webkit-user-select: none;
 }
