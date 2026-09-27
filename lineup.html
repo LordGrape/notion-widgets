@@ -1079,9 +1079,10 @@ function renderPitch(){
     if(p) el.dataset.playerId=p.id;
     el.dataset.origin="pitch";
     var dot = p && posList(p).length ? '<span class="dot" style="background:var(--c-'+posList(p)[0]+')"></span>' : "";
-    el.innerHTML='<div class="disc">'+(p?esc(discLabel(p)):esc(slot.role||""))+dot+'</div>'+
+    var shirtEmpty=!p&&state.appearance.markerShape==="shirt";
+    el.innerHTML='<div class="disc">'+(p?esc(discLabel(p)):(shirtEmpty?"":esc(slot.role||"")))+dot+'</div>'+
                  (p?'<div class="mname">'+esc(firstName(p.name))+'</div>':'')+
-                 (p&&slot.role?'<div class="mrole">'+esc(slot.role)+'</div>':'');
+                 ((p||shirtEmpty)&&slot.role?'<div class="mrole">'+esc(slot.role)+'</div>':'');
     pitch.appendChild(el);
   });
   renderOnPitch();
