@@ -2729,6 +2729,17 @@ let SyncEngine = (function() {
       .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(function(d) { return d.items || []; })
       .catch(function() { return []; });
+    },
+
+    /** Generic authenticated call to the widget-sync worker for routes that
+     *  aren't simple per-namespace state (e.g. push/subscribe, push/schedule).
+     *  path should start with '/'. Returns a Promise<Response> (caller decides
+     *  how to parse/handle it) so this stays a thin, reusable primitive. */
+    callWorker: function(path, opts) {
+      if (!WORKER_URL) return Promise.reject(new Error('SyncEngine not initialized'));
+      opts = opts || {};
+      var headers = Object.assign({ 'X-Widget-Key': passphrase }, opts.headers || {});
+      return fetch(WORKER_URL + path, Object.assign({}, opts, { headers: headers }));
     }
   };
 })();
