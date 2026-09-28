@@ -294,6 +294,10 @@ input,select{font-family:inherit}
 .coach-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.coach-form .field-row{max-width:none}.coach-form .wide{grid-column:1/-1}.coach-form textarea,.player-note-grid textarea{width:100%;min-height:94px;resize:vertical;padding:10px 12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--panel-2);color:var(--text);font:inherit;font-size:13px;line-height:1.45}.coach-form textarea:focus,.player-note-grid textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 .coach-help{font-size:11px;line-height:1.45;color:var(--text-faint);margin-top:4px}.coach-actions{display:flex;gap:7px;justify-content:flex-end;flex-wrap:wrap}.attached-lineup{border:1px dashed var(--border);border-radius:11px;padding:10px;background:var(--panel-2);font-size:11px;color:var(--text-dim)}.attached-lineup strong{color:var(--text)}.attached-players{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}.attached-player{background:var(--accent-soft);color:var(--accent-2);border-radius:999px;padding:4px 7px;font-size:10px;font-weight:800}
 .player-notes-card{margin-top:12px}.player-note-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.player-note-grid .field-row{max-width:none}.prompt-label{display:flex;align-items:center;justify-content:space-between;gap:8px}.prompt-tip{font-size:9px;color:var(--text-faint);font-weight:600;text-transform:none;letter-spacing:0}.coach-empty{padding:22px 10px;text-align:center;color:var(--text-faint);font-size:12px;line-height:1.5}.match-tools{margin-top:12px}.match-tools>summary{cursor:pointer;color:var(--text-dim);font-size:12px;font-weight:800;padding:10px 2px}.match-tools[open]>summary{margin-bottom:8px}
+.player-select-shell{position:relative;display:grid;grid-template-columns:36px minmax(0,1fr) 18px;align-items:center;gap:9px;min-width:230px;padding:7px 9px;border:1px solid var(--border);border-radius:12px;background:var(--panel-2);transition:border-color .15s ease,box-shadow .15s ease}.player-select-shell:hover,.player-select-shell:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}.player-select-avatar{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;font-size:11px;font-weight:800}.player-select-copy{min-width:0}.player-select-kicker{display:block;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin-bottom:1px}.player-select-shell select{appearance:none;width:100%;border:0;background:transparent;color:var(--text);font:inherit;font-size:13px;font-weight:800;padding:0;outline:0;cursor:pointer}.player-select-chevron{color:var(--accent);font-size:17px;font-weight:800;pointer-events:none}
+.notes-launcher{position:fixed;right:0;top:48%;z-index:700;border:1px solid var(--accent-ring);border-right:0;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;border-radius:14px 0 0 14px;box-shadow:var(--shadow-lg);padding:10px 9px;display:flex;align-items:center;gap:7px;cursor:pointer;transform:translateX(calc(100% - 39px));transition:transform .2s ease}.notes-launcher:hover,.notes-launcher:focus-visible,.notes-launcher[aria-expanded="true"]{transform:translateX(0)}.notes-launcher-icon{font-size:16px}.notes-launcher-label{font-size:11px;font-weight:800;white-space:nowrap}.notes-drawer-backdrop{position:fixed;inset:0;background:rgba(10,10,16,.32);opacity:0;pointer-events:none;transition:opacity .2s ease;z-index:790}.notes-drawer-backdrop.open{opacity:1;pointer-events:auto}.notes-drawer{position:fixed;top:8px;right:8px;bottom:8px;width:min(430px,calc(100vw - 20px));z-index:800;background:var(--panel);border:1px solid var(--border);border-radius:18px;box-shadow:0 24px 80px rgba(15,15,25,.28);transform:translateX(calc(100% + 18px));transition:transform .24s ease;display:flex;flex-direction:column;overflow:hidden}.notes-drawer.open{transform:translateX(0)}.notes-drawer-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,var(--accent-soft),transparent)}.notes-drawer-title{font-size:15px;font-weight:800}.notes-drawer-sub{font-size:10px;color:var(--text-faint);margin-top:2px}.notes-drawer-tabs{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:10px 14px 0}.drawer-tab{border:1px solid var(--border);background:var(--panel-2);color:var(--text-dim);border-radius:9px;padding:8px;font-size:11px;font-weight:800}.drawer-tab.active{background:var(--accent);border-color:var(--accent);color:#fff}.notes-drawer-body{padding:14px;overflow:auto;flex:1}.drawer-panel{display:none}.drawer-panel.active{display:block}.drawer-section{display:flex;flex-direction:column;gap:11px}.drawer-actions{display:flex;gap:7px;flex-wrap:wrap}.drawer-actions .btn-primary{flex:1}.drawer-player-picker{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 7px;scrollbar-width:thin}.drawer-player-chip{flex:0 0 auto;border:1px solid var(--border);background:var(--panel-2);color:var(--text);border-radius:999px;padding:5px 10px 5px 5px;display:flex;align-items:center;gap:6px;font-size:11px;font-weight:800}.drawer-player-chip i{width:25px;height:25px;border-radius:50%;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent-2);font-style:normal;font-size:9px}.drawer-player-chip.active{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}.drawer-fields{display:grid;gap:10px}.drawer-fields textarea{width:100%;min-height:82px;resize:vertical;padding:10px 11px;border-radius:10px;border:1px solid var(--border);background:var(--panel-2);color:var(--text);font:inherit;font-size:12px;line-height:1.45}.drawer-fields textarea:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.match-tools{border:1px solid var(--border);border-radius:16px;background:var(--panel);box-shadow:var(--shadow);overflow:hidden}.match-tools>summary{list-style:none;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;background:linear-gradient(135deg,var(--accent-soft),transparent)}.match-tools>summary::-webkit-details-marker{display:none}.live-summary-main{display:flex;align-items:center;gap:10px}.live-summary-icon{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--accent);color:#fff;font-size:16px}.live-summary-title{display:block;color:var(--text);font-size:12px;font-weight:800}.live-summary-sub{display:block;color:var(--text-faint);font-size:10px;font-weight:600;margin-top:2px}.live-summary-chevron{color:var(--accent);font-size:17px;transition:transform .18s ease}.match-tools[open] .live-summary-chevron{transform:rotate(180deg)}.match-tools[open]>summary{margin:0;border-bottom:1px solid var(--border)}.match-tools>.lineup-grid{padding:12px;background:var(--bg)}.reset-zone{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.btn-danger-soft{background:var(--danger-soft);color:var(--danger);border:1px solid color-mix(in srgb,var(--danger) 28%,transparent)}.btn-danger-soft:hover{background:var(--danger);color:#fff}.reset-help{font-size:10px;color:var(--text-faint);line-height:1.4;margin-top:7px}
+@media (max-width:560px){.notes-launcher{top:auto;bottom:18px}.notes-drawer{inset:6px;width:auto}.player-select-shell{min-width:0;width:100%}.coach-card-head{flex-direction:column}.reset-zone{grid-template-columns:1fr}}
 @media (max-width:760px){.coach-grid{grid-template-columns:1fr}.fixture-list{max-height:240px}.coach-form,.player-note-grid{grid-template-columns:1fr}.coach-form .wide{grid-column:auto}}
 .appearance-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;max-width:620px}
 .color-field{display:flex;align-items:center;gap:9px}
@@ -417,7 +421,43 @@ input,select{font-family:inherit}
         </div>
       </div>
     </div>
+    <button class="notes-launcher" id="notesLauncher" aria-expanded="false" aria-controls="notesDrawer" title="Open quick coach notes"><span class="notes-launcher-icon">✎</span><span class="notes-launcher-label">Quick notes</span></button>
   </div>
+
+  <div class="notes-drawer-backdrop" id="notesDrawerBackdrop"></div>
+  <aside class="notes-drawer" id="notesDrawer" aria-hidden="true" aria-label="Quick coach notes">
+    <div class="notes-drawer-head"><div><div class="notes-drawer-title">Quick coach notes</div><div class="notes-drawer-sub">Capture the moment without leaving the lineup.</div></div><button class="icon-btn" id="notesDrawerClose" aria-label="Close quick notes">×</button></div>
+    <div class="notes-drawer-tabs"><button class="drawer-tab active" data-drawer-tab="game">Game</button><button class="drawer-tab" data-drawer-tab="player">Player</button></div>
+    <div class="notes-drawer-body">
+      <section class="drawer-panel active" data-drawer-panel="game">
+        <div class="drawer-section">
+          <div class="field-row" style="max-width:none"><label>Fixture</label><select id="drawerMatchSelect"></select></div>
+          <div class="drawer-actions"><button class="btn btn-ghost btn-sm" id="drawerNewMatchBtn">+ New game</button><button class="btn btn-ghost btn-sm" id="drawerFullReportBtn">Open full report</button></div>
+          <div id="drawerGameEmpty" class="coach-empty">Create a fixture to start quick game notes.</div>
+          <div class="drawer-fields" id="drawerGameFields">
+            <div class="coach-form"><div class="field-row"><label>Date</label><input id="drawerMatchDate" type="date"></div><div class="field-row"><label>Opponent</label><input id="drawerMatchOpponent" maxlength="50" placeholder="Team name"></div></div>
+            <div class="field-row"><label>What worked</label><textarea id="drawerMatchWorked" placeholder="Name the action and the moment it helped."></textarea></div>
+            <div class="field-row"><label>Needs attention</label><textarea id="drawerMatchImprove" placeholder="What behaviour repeatedly broke down?"></textarea></div>
+            <div class="field-row"><label>Next session</label><textarea id="drawerMatchNext" placeholder="What is the one highest-value behaviour to practise next?"></textarea></div>
+            <button class="btn btn-primary" id="drawerSaveMatchBtn">Save game notes</button>
+          </div>
+        </div>
+      </section>
+      <section class="drawer-panel" data-drawer-panel="player">
+        <div class="drawer-section">
+          <div><span class="setting-label">Choose player</span><div class="drawer-player-picker" id="drawerPlayerPicker"></div></div>
+          <div id="drawerPlayerEmpty" class="coach-empty">Add players in the Roster tab to begin notes.</div>
+          <div class="drawer-fields" id="drawerPlayerFields">
+            <div class="field-row"><label>Strengths</label><textarea id="drawerPlayerStrengths" placeholder="What does this player do that helps the team?"></textarea></div>
+            <div class="field-row"><label>Development area</label><textarea id="drawerPlayerDevelopment" placeholder="Describe one observable behaviour, not a personality label."></textarea></div>
+            <div class="field-row"><label>Next coaching focus</label><textarea id="drawerPlayerFocus" placeholder="Give one small, measurable cue for the next session."></textarea></div>
+            <div class="field-row"><label>Evidence & follow-up</label><textarea id="drawerPlayerEvidence" placeholder="When did you see it, and did the cue help?"></textarea></div>
+            <button class="btn btn-primary" id="drawerSavePlayerBtn">Save player notes</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </aside>
 
   <!-- COACH NOTES -->
   <div class="view" id="view-match">
@@ -450,7 +490,7 @@ input,select{font-family:inherit}
       </div>
     </div>
     <div class="card player-notes-card">
-      <div class="coach-card-head"><div><div class="card-title">Player notes</div><div class="coach-help">Use balanced, evidence-based notes. Keep the next focus small enough to coach in one session.</div></div><div class="field-row" style="margin:0;min-width:190px"><select id="coachPlayerSelect" aria-label="Choose player"></select></div></div>
+      <div class="coach-card-head"><div><div class="card-title">Player notes</div><div class="coach-help">Use balanced, evidence-based notes. Keep the next focus small enough to coach in one session.</div></div><label class="player-select-shell"><span class="player-select-avatar" id="coachPlayerAvatar">?</span><span class="player-select-copy"><span class="player-select-kicker">Viewing player</span><select id="coachPlayerSelect" aria-label="Choose player"></select></span><span class="player-select-chevron">⌄</span></label></div>
       <div class="coach-empty" id="playerNotesEmpty">Add players in the Roster tab to begin coaching notes.</div>
       <div id="playerNotesEditor" style="display:none">
         <div class="player-note-grid">
@@ -463,7 +503,7 @@ input,select{font-family:inherit}
       </div>
     </div>
     <details class="match-tools">
-      <summary>Optional live match tools</summary>
+      <summary><span class="live-summary-main"><span class="live-summary-icon">◷</span><span><span class="live-summary-title">Live match tools</span><span class="live-summary-sub" id="liveToolsSummaryTime">Clock 00:00 · playing time ready</span></span></span><span class="live-summary-chevron">⌄</span></summary>
     <div class="lineup-grid">
       <div>
         <div class="card">
@@ -474,8 +514,9 @@ input,select{font-family:inherit}
           </div>
           <div class="clock-actions">
             <button class="btn btn-primary" id="clockToggle">Start</button>
-            <button class="btn btn-ghost" id="clockReset">Reset</button>
+            <button class="btn btn-ghost" id="clockReset">Reset clock</button>
           </div>
+          <div class="reset-zone"><button class="btn btn-danger-soft" id="hardResetMatchBtn">Hard reset match</button><div class="reset-help">Clears the clock and every player’s recorded minutes. Reset clock keeps playing time.</div></div>
           <div class="field-row" style="margin-top:13px;max-width:none">
             <label>Swap reminder every (minutes)</label>
             <input id="subInterval" type="number" min="1" max="45" step="1" value="8" inputmode="numeric">
@@ -1540,9 +1581,9 @@ function renderAttachedLineup(game, liveValue){
   var ids=attachedPlayerIds(snap), names=ids.map(function(id){var p=byId(id);return p?p.name:"Former player";});
   document.getElementById("matchLineupPreview").innerHTML='<strong>'+esc(snap.label||"Attached lineup")+' · '+esc(snap.formation||"Custom")+'</strong><div class="attached-players">'+(names.length?names.map(function(n){return '<span class="attached-player">'+esc(n)+'</span>';}).join(""):'<span class="coach-help">No players assigned to this formation.</span>')+'</div>';
 }
-function newMatch(){
+function newMatch(focusEditor){
   var g={id:uid(),date:isoToday(),opponent:"",location:"",homeAway:"Home",ourScore:null,theirScore:null,source:"current",label:"Current pitch",formation:state.formation,slots:copySlots(state.slots),plan:"",worked:"",improve:"",next:"",createdAt:new Date().toISOString(),updatedAt:""};
-  state.matches.unshift(g);selectedMatchId=g.id;persist();renderCoachNotes();setTimeout(function(){document.getElementById("matchOpponent").focus();},0);
+  state.matches.unshift(g);selectedMatchId=g.id;persist();renderCoachNotes();if(focusEditor!==false)setTimeout(function(){document.getElementById("matchOpponent").focus();},0);return g;
 }
 function saveMatchReport(){
   var g=matchById(selectedMatchId);if(!g)return;
@@ -1569,10 +1610,10 @@ function renderMatchEditor(){
 function renderPlayerNotes(){
   var sel=document.getElementById("coachPlayerSelect"), players=state.players;
   document.getElementById("playerNotesEmpty").style.display=players.length?"none":"block";document.getElementById("playerNotesEditor").style.display=players.length?"block":"none";
-  if(!players.length){sel.innerHTML='<option>No players</option>';selectedCoachPlayerId=null;return;}
+  if(!players.length){sel.innerHTML='<option>No players</option>';document.getElementById("coachPlayerAvatar").textContent="?";selectedCoachPlayerId=null;return;}
   if(!byId(selectedCoachPlayerId))selectedCoachPlayerId=players[0].id;
   sel.innerHTML=players.map(function(p){return '<option value="'+esc(p.id)+'">'+esc(p.name)+'</option>';}).join("");sel.value=selectedCoachPlayerId;
-  var p=byId(selectedCoachPlayerId), n=p.coaching||{};document.getElementById("playerStrengths").value=n.strengths||"";document.getElementById("playerDevelopment").value=n.development||"";document.getElementById("playerFocus").value=n.focus||"";document.getElementById("playerEvidence").value=n.evidence||"";
+  var p=byId(selectedCoachPlayerId), n=p.coaching||{};document.getElementById("coachPlayerAvatar").textContent=initial(p.name);document.getElementById("playerStrengths").value=n.strengths||"";document.getElementById("playerDevelopment").value=n.development||"";document.getElementById("playerFocus").value=n.focus||"";document.getElementById("playerEvidence").value=n.evidence||"";
 }
 function savePlayerNotes(){
   var p=byId(selectedCoachPlayerId);if(!p)return;p.coaching={strengths:document.getElementById("playerStrengths").value.trim(),development:document.getElementById("playerDevelopment").value.trim(),focus:document.getElementById("playerFocus").value.trim(),evidence:document.getElementById("playerEvidence").value.trim(),updatedAt:new Date().toISOString()};persist();toast("Player notes saved");
@@ -1585,6 +1626,30 @@ document.getElementById("fixtureList").addEventListener("click",function(e){var 
 document.getElementById("matchLineup").addEventListener("change",function(){renderAttachedLineup(null,this.value);});
 document.getElementById("coachPlayerSelect").addEventListener("change",function(){selectedCoachPlayerId=this.value;renderPlayerNotes();});
 document.getElementById("savePlayerNotesBtn").addEventListener("click",savePlayerNotes);
+
+var drawerMatchId=null, drawerPlayerId=null, drawerMode="game";
+function setDrawerOpen(open){
+  document.getElementById("notesDrawer").classList.toggle("open",open);document.getElementById("notesDrawer").setAttribute("aria-hidden",open?"false":"true");document.getElementById("notesDrawerBackdrop").classList.toggle("open",open);document.getElementById("notesLauncher").setAttribute("aria-expanded",open?"true":"false");if(open)renderQuickDrawer();
+}
+function setDrawerMode(mode){drawerMode=mode;document.querySelectorAll("[data-drawer-tab]").forEach(function(b){b.classList.toggle("active",b.dataset.drawerTab===mode);});document.querySelectorAll("[data-drawer-panel]").forEach(function(p){p.classList.toggle("active",p.dataset.drawerPanel===mode);});if(mode==="player")renderDrawerPlayer();else renderDrawerGame();}
+function renderDrawerGame(){
+  var sel=document.getElementById("drawerMatchSelect"),games=state.matches.slice().sort(function(a,b){return String(b.date||"").localeCompare(String(a.date||""));});
+  if(!matchById(drawerMatchId))drawerMatchId=games.length?games[0].id:null;
+  sel.innerHTML=games.length?games.map(function(g){return '<option value="'+esc(g.id)+'">'+esc((g.opponent||"Untitled fixture")+' · '+(g.date||"No date"))+'</option>';}).join(""):'<option value="">No fixtures yet</option>';sel.disabled=!games.length;if(drawerMatchId)sel.value=drawerMatchId;
+  var g=matchById(drawerMatchId);document.getElementById("drawerGameEmpty").style.display=g?"none":"block";document.getElementById("drawerGameFields").style.display=g?"grid":"none";if(!g)return;
+  document.getElementById("drawerMatchDate").value=g.date||isoToday();document.getElementById("drawerMatchOpponent").value=g.opponent||"";document.getElementById("drawerMatchWorked").value=g.worked||"";document.getElementById("drawerMatchImprove").value=g.improve||"";document.getElementById("drawerMatchNext").value=g.next||"";
+}
+function saveDrawerGame(){var g=matchById(drawerMatchId);if(!g)return;g.date=document.getElementById("drawerMatchDate").value||isoToday();g.opponent=document.getElementById("drawerMatchOpponent").value.trim();g.worked=document.getElementById("drawerMatchWorked").value.trim();g.improve=document.getElementById("drawerMatchImprove").value.trim();g.next=document.getElementById("drawerMatchNext").value.trim();g.updatedAt=new Date().toISOString();persist();renderFixtureList();toast("Quick game notes saved");}
+function renderDrawerPlayer(){
+  var players=state.players;if(!byId(drawerPlayerId))drawerPlayerId=selectedCoachPlayerId&&byId(selectedCoachPlayerId)?selectedCoachPlayerId:(players[0]?players[0].id:null);
+  document.getElementById("drawerPlayerPicker").innerHTML=players.map(function(p){return '<button class="drawer-player-chip'+(p.id===drawerPlayerId?' active':'')+'" data-drawer-player="'+esc(p.id)+'"><i>'+esc(initial(p.name))+'</i>'+esc(firstName(p.name))+'</button>';}).join("");var p=byId(drawerPlayerId);document.getElementById("drawerPlayerEmpty").style.display=p?"none":"block";document.getElementById("drawerPlayerFields").style.display=p?"grid":"none";if(!p)return;var n=p.coaching||{};document.getElementById("drawerPlayerStrengths").value=n.strengths||"";document.getElementById("drawerPlayerDevelopment").value=n.development||"";document.getElementById("drawerPlayerFocus").value=n.focus||"";document.getElementById("drawerPlayerEvidence").value=n.evidence||"";
+}
+function saveDrawerPlayer(){var p=byId(drawerPlayerId);if(!p)return;p.coaching={strengths:document.getElementById("drawerPlayerStrengths").value.trim(),development:document.getElementById("drawerPlayerDevelopment").value.trim(),focus:document.getElementById("drawerPlayerFocus").value.trim(),evidence:document.getElementById("drawerPlayerEvidence").value.trim(),updatedAt:new Date().toISOString()};selectedCoachPlayerId=p.id;persist();toast("Player notes saved");}
+function renderQuickDrawer(){setDrawerMode(drawerMode);}
+document.getElementById("notesLauncher").addEventListener("click",function(){setDrawerOpen(true);});document.getElementById("notesDrawerClose").addEventListener("click",function(){setDrawerOpen(false);});document.getElementById("notesDrawerBackdrop").addEventListener("click",function(){setDrawerOpen(false);});
+document.querySelector(".notes-drawer-tabs").addEventListener("click",function(e){var b=e.target.closest("[data-drawer-tab]");if(b)setDrawerMode(b.dataset.drawerTab);});
+document.getElementById("drawerMatchSelect").addEventListener("change",function(){drawerMatchId=this.value;renderDrawerGame();});document.getElementById("drawerNewMatchBtn").addEventListener("click",function(){var g=newMatch(false);drawerMatchId=g.id;renderDrawerGame();document.getElementById("drawerMatchOpponent").focus();});document.getElementById("drawerSaveMatchBtn").addEventListener("click",saveDrawerGame);document.getElementById("drawerFullReportBtn").addEventListener("click",function(){if(drawerMatchId)selectedMatchId=drawerMatchId;setDrawerOpen(false);var tab=document.querySelector('.tab-btn[data-view="match"]');if(tab)tab.click();});
+document.getElementById("drawerPlayerPicker").addEventListener("click",function(e){var b=e.target.closest("[data-drawer-player]");if(!b)return;drawerPlayerId=b.dataset.drawerPlayer;renderDrawerPlayer();});document.getElementById("drawerSavePlayerBtn").addEventListener("click",saveDrawerPlayer);document.addEventListener("keydown",function(e){if(e.key==="Escape")setDrawerOpen(false);});
 
 function tick(){
   state.match.elapsedMs += 1000;
@@ -1628,10 +1693,16 @@ document.getElementById("resetMinutesBtn").addEventListener("click", function(){
   state.match.minutes={}; persist(); renderMatch();
   toast("Minutes cleared");
 });
+document.getElementById("hardResetMatchBtn").addEventListener("click", function(){
+  if(!confirm("Hard reset this match? This clears the clock and every player's recorded minutes.")) return;
+  setRunning(false); state.match.elapsedMs=0; state.match.lastAlertBucket=0; state.match.minutes={}; minutesDirty=false;
+  persist(); renderMatch(); toast("Match clock and playing time reset");
+});
 
 function renderMatch(){
   var elapsed=state.match.elapsedMs;
   document.getElementById("clockTime").textContent=fmtClock(elapsed);
+  document.getElementById("liveToolsSummaryTime").textContent="Clock "+fmtClock(elapsed)+" · "+(running?"tracking playing time":"playing time "+(elapsed>0?"paused":"ready"));
   document.getElementById("clockToggle").textContent = running ? "Pause" : (elapsed>0 ? "Resume" : "Start");
   document.getElementById("subInterval").value=state.match.intervalMin;
 
