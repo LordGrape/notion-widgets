@@ -1,3 +1,24 @@
 {
-  "name":"Command Centre","short_name":"Command","description":"Musbah's private companion for Notion, law school, and life.","start_url":"./","scope":"./","display":"standalone","background_color":"#17131d","theme_color":"#6f4aa8","icons":[{"src":"./icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any"},{"src":"./icon-maskable.svg","sizes":"any","type":"image/svg+xml","purpose":"maskable"}]
+  "id": "/apps/assistant/",
+  "name": "Command Centre",
+  "short_name": "Command",
+  "description": "Musbah's private companion for Notion, law school, and life.",
+  "lang": "en-CA",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "any",
+  "background_color": "#17131d",
+  "theme_color": "#6f4aa8",
+  "categories": ["productivity", "education", "utilities"],
+  "icons": [
+    {"src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any"},
+    {"src": "./icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable"}
+  ],
+  "shortcuts": [
+    {"name": "To-Do", "short_name": "To-Do", "url": "./?panel=todo", "description": "Jump straight to your task list"},
+    {"name": "Clock", "short_name": "Clock", "url": "./?panel=clock", "description": "Jump straight to the focus clock"},
+    {"name": "Timetable", "short_name": "Timetable", "url": "./?panel=timetable", "description": "Jump straight to your timetable"}
+  ]
 }
