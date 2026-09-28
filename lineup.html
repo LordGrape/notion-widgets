@@ -288,7 +288,13 @@ input,select{font-family:inherit}
 
 .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:13px;font-weight:600;box-shadow:var(--shadow-lg);opacity:0;transition:all .25s ease;pointer-events:none;z-index:1100;max-width:90vw;text-align:center}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-#view-match,.tab-btn[data-view="match"]{display:none!important}
+.coach-grid{display:grid;grid-template-columns:minmax(230px,.72fr) minmax(0,1.4fr);gap:12px;align-items:start}
+.coach-stack{display:flex;flex-direction:column;gap:12px}.coach-card{margin:0}.coach-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px}
+.fixture-list{display:flex;flex-direction:column;gap:7px;max-height:520px;overflow:auto}.fixture-item{width:100%;border:1px solid var(--border);background:var(--panel-2);color:var(--text);border-radius:11px;padding:10px;text-align:left;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 9px}.fixture-item:hover,.fixture-item.active{border-color:var(--accent)}.fixture-item.active{box-shadow:0 0 0 3px var(--accent-soft)}.fixture-opponent{font-size:13px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fixture-score{font-size:14px;font-weight:800;grid-row:1/3;grid-column:2}.fixture-meta{font-size:10px;color:var(--text-faint)}
+.coach-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.coach-form .field-row{max-width:none}.coach-form .wide{grid-column:1/-1}.coach-form textarea,.player-note-grid textarea{width:100%;min-height:94px;resize:vertical;padding:10px 12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--panel-2);color:var(--text);font:inherit;font-size:13px;line-height:1.45}.coach-form textarea:focus,.player-note-grid textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.coach-help{font-size:11px;line-height:1.45;color:var(--text-faint);margin-top:4px}.coach-actions{display:flex;gap:7px;justify-content:flex-end;flex-wrap:wrap}.attached-lineup{border:1px dashed var(--border);border-radius:11px;padding:10px;background:var(--panel-2);font-size:11px;color:var(--text-dim)}.attached-lineup strong{color:var(--text)}.attached-players{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}.attached-player{background:var(--accent-soft);color:var(--accent-2);border-radius:999px;padding:4px 7px;font-size:10px;font-weight:800}
+.player-notes-card{margin-top:12px}.player-note-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.player-note-grid .field-row{max-width:none}.prompt-label{display:flex;align-items:center;justify-content:space-between;gap:8px}.prompt-tip{font-size:9px;color:var(--text-faint);font-weight:600;text-transform:none;letter-spacing:0}.coach-empty{padding:22px 10px;text-align:center;color:var(--text-faint);font-size:12px;line-height:1.5}.match-tools{margin-top:12px}.match-tools>summary{cursor:pointer;color:var(--text-dim);font-size:12px;font-weight:800;padding:10px 2px}.match-tools[open]>summary{margin-bottom:8px}
+@media (max-width:760px){.coach-grid{grid-template-columns:1fr}.fixture-list{max-height:240px}.coach-form,.player-note-grid{grid-template-columns:1fr}.coach-form .wide{grid-column:auto}}
 .appearance-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;max-width:620px}
 .color-field{display:flex;align-items:center;gap:9px}
 .color-field input[type="color"]{width:42px;height:34px;padding:2px;border-radius:8px}
@@ -319,7 +325,7 @@ input,select{font-family:inherit}
     </div>
     <div class="tabs" role="tablist">
       <button class="tab-btn active" data-view="lineup" role="tab">Lineup</button>
-      <button class="tab-btn" data-view="match" role="tab">Match</button>
+      <button class="tab-btn" data-view="match" role="tab">Coach</button>
       <button class="tab-btn" data-view="roster" role="tab">Roster</button>
       <button class="tab-btn" data-view="team" role="tab">Team</button>
       <button class="settings-toggle" id="settingsToggle" aria-expanded="false" aria-controls="settingsPanel">Settings</button>
@@ -413,8 +419,51 @@ input,select{font-family:inherit}
     </div>
   </div>
 
-  <!-- MATCH -->
+  <!-- COACH NOTES -->
   <div class="view" id="view-match">
+    <div class="coach-grid">
+      <div class="card coach-card">
+        <div class="coach-card-head"><div><div class="card-title">Fixtures & reports</div><div class="coach-help">Keep one short record per game. The saved lineup is a snapshot, so later formation changes will not rewrite match history.</div></div><button class="btn btn-primary btn-sm" id="newMatchBtn">+ Game</button></div>
+        <div class="fixture-list" id="fixtureList"></div>
+        <div class="empty-hint" id="fixtureEmpty">No games yet. Add your first fixture before or after the match.</div>
+      </div>
+      <div class="card coach-card" id="matchEditorCard">
+        <div class="coach-empty" id="matchEditorEmpty">Select a game or add a fixture to open the coach report.</div>
+        <div id="matchEditor" style="display:none">
+          <div class="coach-card-head"><div><div class="card-title">Game report</div><div class="coach-help">Record observable moments. Avoid labels like “lazy” and write what happened, when, and what you will coach next.</div></div><button class="btn btn-ghost btn-sm" id="deleteMatchBtn">Delete</button></div>
+          <div class="coach-form">
+            <div class="field-row"><label>Date</label><input id="matchDate" type="date"></div>
+            <div class="field-row"><label>Opponent</label><input id="matchOpponent" maxlength="50" placeholder="Team name"></div>
+            <div class="field-row"><label>Venue</label><input id="matchLocation" maxlength="60" placeholder="Field or venue"></div>
+            <div class="field-row"><label>Home / away</label><select id="matchHomeAway"><option value="Home">Home</option><option value="Away">Away</option><option value="Neutral">Neutral</option></select></div>
+            <div class="field-row"><label>Our score</label><input id="matchOurScore" type="number" min="0" max="99" inputmode="numeric" placeholder="-"></div>
+            <div class="field-row"><label>Opponent score</label><input id="matchTheirScore" type="number" min="0" max="99" inputmode="numeric" placeholder="-"></div>
+            <div class="field-row wide"><label>Attach lineup</label><select id="matchLineup"></select><div class="coach-help">Choose a saved squad or capture the formation currently on the pitch.</div></div>
+            <div class="attached-lineup wide" id="matchLineupPreview"></div>
+            <div class="field-row wide"><label>Before the game</label><textarea id="matchPlan" placeholder="What are our 1–2 priorities? What would success look like today?"></textarea></div>
+            <div class="field-row"><label>What worked</label><textarea id="matchWorked" placeholder="Which actions or patterns helped us? Name a specific moment."></textarea></div>
+            <div class="field-row"><label>Needs attention</label><textarea id="matchImprove" placeholder="What repeatedly broke down? Describe the behaviour, not the person."></textarea></div>
+            <div class="field-row wide"><label>Next session</label><textarea id="matchNext" placeholder="What is the one highest-value behaviour to practise next, and how will we know it improved?"></textarea></div>
+            <div class="coach-actions wide"><button class="btn btn-primary" id="saveMatchBtn">Save game report</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card player-notes-card">
+      <div class="coach-card-head"><div><div class="card-title">Player notes</div><div class="coach-help">Use balanced, evidence-based notes. Keep the next focus small enough to coach in one session.</div></div><div class="field-row" style="margin:0;min-width:190px"><select id="coachPlayerSelect" aria-label="Choose player"></select></div></div>
+      <div class="coach-empty" id="playerNotesEmpty">Add players in the Roster tab to begin coaching notes.</div>
+      <div id="playerNotesEditor" style="display:none">
+        <div class="player-note-grid">
+          <div class="field-row"><label class="prompt-label">Strengths <span class="prompt-tip">What helps the team?</span></label><textarea id="playerStrengths" placeholder="Example: Scans before receiving and finds the open teammate under pressure."></textarea></div>
+          <div class="field-row"><label class="prompt-label">Development area <span class="prompt-tip">One observable behaviour</span></label><textarea id="playerDevelopment" placeholder="Example: Often follows the ball and leaves space behind. Avoid personality labels."></textarea></div>
+          <div class="field-row"><label class="prompt-label">Next coaching focus <span class="prompt-tip">Specific and measurable</span></label><textarea id="playerFocus" placeholder="Example: Check both shoulders before every restart and call the nearest option."></textarea></div>
+          <div class="field-row"><label class="prompt-label">Evidence & follow-up <span class="prompt-tip">When did you see it?</span></label><textarea id="playerEvidence" placeholder="Date, game or drill, what happened, and whether the cue helped."></textarea></div>
+        </div>
+        <div class="coach-actions" style="margin-top:11px"><button class="btn btn-primary" id="savePlayerNotesBtn">Save player notes</button></div>
+      </div>
+    </div>
+    <details class="match-tools">
+      <summary>Optional live match tools</summary>
     <div class="lineup-grid">
       <div>
         <div class="card">
@@ -444,6 +493,7 @@ input,select{font-family:inherit}
         <div class="min-legend" id="minLegend"></div>
       </div>
     </div>
+    </details>
   </div>
 
   <!-- ROSTER -->
@@ -567,8 +617,11 @@ var state = {
   currentSquadId: null,
   positionLocked: true,
   appearance: { themeMode:"system", jerseyColor:"#8b5cf6", keeperColor:"#d97706", markerLabel:"both", markerShape:"circle", markerSize:"medium", pitchStyle:"classic", crestData:"" },
-  match: { elapsedMs:0, intervalMin:8, lastAlertBucket:0, minutes:{} }
+  match: { elapsedMs:0, intervalMin:8, lastAlertBucket:0, minutes:{} },
+  matches: []
 };
+var selectedMatchId = null;
+var selectedCoachPlayerId = null;
 
 function normaliseSlots(raw, formation){
   var base = blankSlots(formation);
@@ -619,6 +672,7 @@ function loadState(){
       lastAlertBucket: Number(m.lastAlertBucket) || 0,
       minutes: (m.minutes && typeof m.minutes === "object") ? m.minutes : {}
     };
+    state.matches = Array.isArray(stored.matches) ? stored.matches.filter(function(g){return g&&g.id;}) : [];
   } else {
     migrateLegacy();
   }
@@ -628,6 +682,7 @@ function loadState(){
     if(!Array.isArray(p.positions)) p.positions = p.position ? [p.position] : [];
     p.positions = p.positions.filter(function(x){ return POSITIONS.indexOf(x) > -1; });
     delete p.position;
+    if(!p.coaching || typeof p.coaching!=="object") p.coaching={ strengths:"", development:"", focus:"", evidence:"", updatedAt:"" };
   });
   state.squads.forEach(function(s){ s.slots = normaliseSlots(s.slots, s.formation || state.formation); });
   state.lockedPlayerIds=state.lockedPlayerIds.filter(function(id){return !!byId(id);});
@@ -676,7 +731,7 @@ function persist(){
     Store.set("team", {
       teamName: state.teamName, players: state.players, rosterSort:state.rosterSort, formation: state.formation,
       slots: state.slots, lineups:state.lineups, squads: state.squads, lockedPlayerIds:state.lockedPlayerIds, currentLineupId:state.currentLineupId, currentSquadId: state.currentSquadId,
-      positionLocked: state.positionLocked, appearance: state.appearance, match: state.match
+      positionLocked: state.positionLocked, appearance: state.appearance, match: state.match, matches:state.matches
     });
   }, 180);
 }
@@ -839,7 +894,7 @@ document.querySelectorAll(".tab-btn").forEach(function(btn){
     document.querySelectorAll(".view").forEach(function(v){ v.classList.remove("active"); });
     btn.classList.add("active"); btn.setAttribute("aria-selected","true");
     document.getElementById("view-"+btn.dataset.view).classList.add("active");
-    if(btn.dataset.view==="match") renderMatch();
+    if(btn.dataset.view==="match"){ renderCoachNotes(); renderMatch(); }
   });
 });
 document.querySelectorAll(".tab-btn").forEach(function(btn){ btn.setAttribute("aria-selected",btn.classList.contains("active")?"true":"false"); btn.setAttribute("aria-controls","view-"+btn.dataset.view); });
@@ -1460,6 +1515,77 @@ document.getElementById("nextLineupBtn").addEventListener("click",function(){
   loadSquad(next.id);
 });
 
+function isoToday(){
+  var d=new Date(), off=d.getTimezoneOffset(); return new Date(d.getTime()-off*60000).toISOString().slice(0,10);
+}
+function matchById(id){return state.matches.find(function(g){return g.id===id;});}
+function scoreValue(id){var v=document.getElementById(id).value;return v===""?null:Math.max(0,Math.min(99,Number(v)||0));}
+function snapshotOptionValue(){var sel=document.getElementById("matchLineup");return sel&&sel.value?sel.value:"current";}
+function lineupSnapshot(value){
+  if(value&&value.indexOf("squad:")===0){
+    var sq=state.squads.find(function(x){return x.id===value.slice(6);});
+    if(sq){var group=state.lineups.find(function(x){return x.id===sq.lineupId;});return {source:value,label:(group?group.name+" · ":"")+sq.name,formation:sq.formation||state.formation,slots:copySlots(sq.slots)};}
+  }
+  return {source:"current",label:"Current pitch",formation:state.formation,slots:copySlots(state.slots)};
+}
+function attachedPlayerIds(game){return (game&&Array.isArray(game.slots)?game.slots:[]).map(function(x){return x.playerId;}).filter(Boolean);}
+function renderMatchLineupOptions(selected){
+  var sel=document.getElementById("matchLineup"), opts=['<option value="current">Current pitch · '+esc(state.formation)+'</option>'];
+  state.lineups.forEach(function(group){state.squads.filter(function(sq){return sq.lineupId===group.id;}).forEach(function(sq){opts.push('<option value="squad:'+esc(sq.id)+'">'+esc(group.name+' · '+sq.name+' · '+(sq.formation||state.formation))+'</option>');});});
+  sel.innerHTML=opts.join("");
+  if(Array.from(sel.options).some(function(o){return o.value===selected;}))sel.value=selected;else sel.value="current";
+}
+function renderAttachedLineup(game, liveValue){
+  var snap=game&&game.slots?game:lineupSnapshot(liveValue||snapshotOptionValue());
+  var ids=attachedPlayerIds(snap), names=ids.map(function(id){var p=byId(id);return p?p.name:"Former player";});
+  document.getElementById("matchLineupPreview").innerHTML='<strong>'+esc(snap.label||"Attached lineup")+' · '+esc(snap.formation||"Custom")+'</strong><div class="attached-players">'+(names.length?names.map(function(n){return '<span class="attached-player">'+esc(n)+'</span>';}).join(""):'<span class="coach-help">No players assigned to this formation.</span>')+'</div>';
+}
+function newMatch(){
+  var g={id:uid(),date:isoToday(),opponent:"",location:"",homeAway:"Home",ourScore:null,theirScore:null,source:"current",label:"Current pitch",formation:state.formation,slots:copySlots(state.slots),plan:"",worked:"",improve:"",next:"",createdAt:new Date().toISOString(),updatedAt:""};
+  state.matches.unshift(g);selectedMatchId=g.id;persist();renderCoachNotes();setTimeout(function(){document.getElementById("matchOpponent").focus();},0);
+}
+function saveMatchReport(){
+  var g=matchById(selectedMatchId);if(!g)return;
+  var opponent=document.getElementById("matchOpponent").value.trim();if(!opponent){document.getElementById("matchOpponent").focus();toast("Add the opponent first");return;}
+  var snap=lineupSnapshot(snapshotOptionValue());
+  Object.assign(g,{date:document.getElementById("matchDate").value||isoToday(),opponent:opponent,location:document.getElementById("matchLocation").value.trim(),homeAway:document.getElementById("matchHomeAway").value,ourScore:scoreValue("matchOurScore"),theirScore:scoreValue("matchTheirScore"),source:snap.source,label:snap.label,formation:snap.formation,slots:snap.slots,plan:document.getElementById("matchPlan").value.trim(),worked:document.getElementById("matchWorked").value.trim(),improve:document.getElementById("matchImprove").value.trim(),next:document.getElementById("matchNext").value.trim(),updatedAt:new Date().toISOString()});
+  persist();renderCoachNotes();toast("Game report saved");
+}
+function deleteMatch(){
+  var g=matchById(selectedMatchId);if(!g||!confirm("Delete this game report?"))return;
+  state.matches=state.matches.filter(function(x){return x.id!==g.id;});selectedMatchId=state.matches.length?state.matches[0].id:null;persist();renderCoachNotes();toast("Game report deleted");
+}
+function renderFixtureList(){
+  var list=document.getElementById("fixtureList"), games=state.matches.slice().sort(function(a,b){return String(b.date||"").localeCompare(String(a.date||""));});
+  document.getElementById("fixtureEmpty").style.display=games.length?"none":"block";
+  list.innerHTML=games.map(function(g){var score=(g.ourScore===null||g.ourScore===undefined||g.theirScore===null||g.theirScore===undefined)?"–":g.ourScore+"–"+g.theirScore;return '<button class="fixture-item'+(g.id===selectedMatchId?' active':'')+'" data-match-id="'+esc(g.id)+'"><span class="fixture-opponent">'+esc(g.opponent||"Untitled fixture")+'</span><span class="fixture-score">'+esc(score)+'</span><span class="fixture-meta">'+esc((g.date||"No date")+' · '+(g.homeAway||""))+'</span></button>';}).join("");
+}
+function renderMatchEditor(){
+  var g=matchById(selectedMatchId), editor=document.getElementById("matchEditor"), empty=document.getElementById("matchEditorEmpty");
+  editor.style.display=g?"block":"none";empty.style.display=g?"none":"block";if(!g)return;
+  document.getElementById("matchDate").value=g.date||isoToday();document.getElementById("matchOpponent").value=g.opponent||"";document.getElementById("matchLocation").value=g.location||"";document.getElementById("matchHomeAway").value=g.homeAway||"Home";document.getElementById("matchOurScore").value=g.ourScore===null||g.ourScore===undefined?"":g.ourScore;document.getElementById("matchTheirScore").value=g.theirScore===null||g.theirScore===undefined?"":g.theirScore;document.getElementById("matchPlan").value=g.plan||"";document.getElementById("matchWorked").value=g.worked||"";document.getElementById("matchImprove").value=g.improve||"";document.getElementById("matchNext").value=g.next||"";
+  renderMatchLineupOptions(g.source||"current");renderAttachedLineup(g);
+}
+function renderPlayerNotes(){
+  var sel=document.getElementById("coachPlayerSelect"), players=state.players;
+  document.getElementById("playerNotesEmpty").style.display=players.length?"none":"block";document.getElementById("playerNotesEditor").style.display=players.length?"block":"none";
+  if(!players.length){sel.innerHTML='<option>No players</option>';selectedCoachPlayerId=null;return;}
+  if(!byId(selectedCoachPlayerId))selectedCoachPlayerId=players[0].id;
+  sel.innerHTML=players.map(function(p){return '<option value="'+esc(p.id)+'">'+esc(p.name)+'</option>';}).join("");sel.value=selectedCoachPlayerId;
+  var p=byId(selectedCoachPlayerId), n=p.coaching||{};document.getElementById("playerStrengths").value=n.strengths||"";document.getElementById("playerDevelopment").value=n.development||"";document.getElementById("playerFocus").value=n.focus||"";document.getElementById("playerEvidence").value=n.evidence||"";
+}
+function savePlayerNotes(){
+  var p=byId(selectedCoachPlayerId);if(!p)return;p.coaching={strengths:document.getElementById("playerStrengths").value.trim(),development:document.getElementById("playerDevelopment").value.trim(),focus:document.getElementById("playerFocus").value.trim(),evidence:document.getElementById("playerEvidence").value.trim(),updatedAt:new Date().toISOString()};persist();toast("Player notes saved");
+}
+function renderCoachNotes(){if(!selectedMatchId&&state.matches.length)selectedMatchId=state.matches[0].id;renderFixtureList();renderMatchEditor();renderPlayerNotes();}
+document.getElementById("newMatchBtn").addEventListener("click",newMatch);
+document.getElementById("saveMatchBtn").addEventListener("click",saveMatchReport);
+document.getElementById("deleteMatchBtn").addEventListener("click",deleteMatch);
+document.getElementById("fixtureList").addEventListener("click",function(e){var b=e.target.closest("[data-match-id]");if(!b)return;selectedMatchId=b.dataset.matchId;renderFixtureList();renderMatchEditor();});
+document.getElementById("matchLineup").addEventListener("change",function(){renderAttachedLineup(null,this.value);});
+document.getElementById("coachPlayerSelect").addEventListener("change",function(){selectedCoachPlayerId=this.value;renderPlayerNotes();});
+document.getElementById("savePlayerNotesBtn").addEventListener("click",savePlayerNotes);
+
 function tick(){
   state.match.elapsedMs += 1000;
   onPitchIds().forEach(function(id){
@@ -1861,7 +1987,7 @@ document.getElementById("crestInput").addEventListener("change",function(){var f
 /* ─────────── Backup ─────────── */
 document.getElementById("exportJsonBtn").addEventListener("click", function(){
   var data=JSON.stringify({ teamName:state.teamName, players:state.players, rosterSort:state.rosterSort, formation:state.formation,
-    slots:state.slots, lineups:state.lineups, squads:state.squads, lockedPlayerIds:state.lockedPlayerIds, currentLineupId:state.currentLineupId, currentSquadId:state.currentSquadId, positionLocked:state.positionLocked, appearance:state.appearance, match:state.match }, null, 2);
+    slots:state.slots, lineups:state.lineups, squads:state.squads, lockedPlayerIds:state.lockedPlayerIds, currentLineupId:state.currentLineupId, currentSquadId:state.currentSquadId, positionLocked:state.positionLocked, appearance:state.appearance, match:state.match, matches:state.matches }, null, 2);
   var blob=new Blob([data],{type:"application/json"});
   var url=URL.createObjectURL(blob), a=document.createElement("a");
   a.href=url; a.download="lineup-backup.json";
@@ -1894,7 +2020,8 @@ document.getElementById("importJsonBtn").addEventListener("click", function(){
         state.positionLocked=d.positionLocked!==false;
         state.appearance=d.appearance&&typeof d.appearance==="object"?Object.assign(state.appearance,d.appearance):state.appearance;
         state.match=d.match&&typeof d.match==="object" ? d.match : { elapsedMs:0, intervalMin:8, lastAlertBucket:0, minutes:{} };
-        state.players.forEach(function(p){ if(p.available===undefined) p.available=true; });
+        state.matches=Array.isArray(d.matches)?d.matches:[];
+        state.players.forEach(function(p){ if(p.available===undefined) p.available=true; if(!p.coaching||typeof p.coaching!=="object")p.coaching={strengths:"",development:"",focus:"",evidence:"",updatedAt:""}; });
         setTeamName(state.teamName);
         syncChips(); persist(); renderRoster(); renderPitch(); renderMatch();
         toast("Backup restored");
@@ -1909,7 +2036,7 @@ document.getElementById("importJsonBtn").addEventListener("click", function(){
 function paint(){
   nameA.value=state.teamName; nameB.value=state.teamName;
   applyAppearance(); updateLockButton(); updateUndoButton();
-  syncChips(); renderRoster(); renderPitch(); renderMatch();
+  syncChips(); renderRoster(); renderPitch(); renderCoachNotes(); renderMatch();
 }
 
 function markSync(online){
@@ -1917,8 +2044,8 @@ function markSync(online){
   dot.classList.toggle("online", !!online);
   dot.title = online ? "Synced across your devices" : "Saved on this device";
   document.getElementById("syncNote").textContent = online
-    ? "Your roster, squads and minutes sync across every device signed in to your widgets."
-    : "Saved on this device only. Open this widget from your Notion dashboard on another device to sync it.";
+    ? "Your roster, lineups, game reports and player notes sync across every device signed in to your widgets."
+    : "Saved on this device only. Open this widget from your Notion dashboard on another device to sync your coaching records.";
 }
 
 if(hasSync){
