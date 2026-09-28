@@ -1765,6 +1765,16 @@ function setTimerType(type, force) {
 tmTypeSingle.addEventListener('click', function() { setTimerType('single'); });
 tmTypeStudy.addEventListener('click', function() { setTimerType('study'); });
 
+function clearRestoredStudySession() {
+  studyActive = false;
+  studyPhase = 'focus'; studyCycle = 0;
+  studyTaskIds = [];
+  timerType = 'single';
+  setTimerType('single', true);
+  updateStudyIndicator();
+  renderStudyTasks();
+}
+
 function endStudySession() {
   studyActive = false;
   studyPhase = 'focus'; studyCycle = 0;
@@ -1868,7 +1878,17 @@ function restoreTimerState() {
     var raw = SyncEngine.get('clock', 'timer_state');
     if (!raw) return false;
     var st = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    if (!st || !st.duration) return false;
+    if (!st || !Number.isFinite(Number(st.duration)) || Number(st.duration) <= 0) return false;
+    /* Only restore an explicitly running, paused, or break state. A partial or
+       stale SyncEngine object must never be enough to activate Study mode. */
+    var validRunningState = st.running === true && Number.isFinite(Number(st.startTime)) &&
+      Number(st.startTime) > 0 && Number.isFinite(Number(st.startRemaining)) && Number(st.startRemaining) >= 0;
+    var validBreakState = st.onBreak === true && Number.isFinite(Number(st.breakStartTime)) &&
+      Number(st.breakStartTime) > 0 && Number.isFinite(Number(st.breakDuration)) && Number(st.breakDuration) > 0;
+    var restoredRemaining = Number(st.remaining);
+    var validPausedState = st.running === false && Number.isFinite(restoredRemaining) &&
+      restoredRemaining >= 0 && restoredRemaining <= Number(st.duration);
+    if (!validRunningState && !validBreakState && !validPausedState) return false;
     /* Notion HQ embeds don't offer Study Session at all (see IS_COMMAND_CENTRE
        above) — the Command Centre app is the sole owner of Study Session state.
        If a Study session or break is running there, just leave this instance
@@ -1889,7 +1909,11 @@ function restoreTimerState() {
        after another instance pauses), causing our own periodic autosave to
        resurrect the old running state and undo the pause. */
     tmRunning = false;
-    tmDuration = st.duration;
+    /* A restore may replace a previous Study snapshot with a Single timer.
+       Clear all local Study-mode state first so stale UI/session flags cannot
+       survive that transition. A valid Study snapshot below reactivates it. */
+    clearRestoredStudySession();
+    tmDuration = Number(st.duration);
     tmCustomSecs = st.customSecs || 0;
     selectedPreset = st.preset != null ? st.preset : 0;
     if (st.timerType === 'study' && st.study) {
@@ -2198,11 +2222,7 @@ function liveResyncFromRemote() {
   clearInterval(tmInterval); tmInterval = null;
   dismissBreak();
   tmRunning = false;
-  if (studyActive) {
-    studyActive = false; studyPhase = 'focus'; studyCycle = 0;
-    studyCycleIndicatorEl.hidden = true; studyTaskIds = [];
-    renderStudyTasks();
-  }
+  clearRestoredStudySession();
   tmRemaining = tmDuration; updateTMDisplay();
   document.getElementById('tmToggle').textContent = 'Start';
   document.getElementById('tmToggle').setAttribute('aria-label', 'Start timer');
@@ -2615,3 +2635,4 @@ setInterval(syncPushSchedule, 4000);
 </script>
 </body>
 </html>
+
