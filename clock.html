@@ -210,6 +210,7 @@ body {
 .ctrl-primary:hover { transform: scale(1.05); box-shadow: 0 4px 18px rgba(var(--accent-rgb), 0.4); }
 .ctrl-secondary { background: var(--dot-bg); color: var(--date-color); }
 .ctrl-secondary:hover { background: rgba(var(--accent-rgb), 0.15); }
+.ctrl-btn[hidden] { display: none; }
 
 /* Timer Presets */
 .presets { display: flex; justify-content: center; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
@@ -666,6 +667,7 @@ body::before{
     <div class="controls">
       <button class="ctrl-btn ctrl-primary" id="tmToggle" aria-label="Start timer">Start</button>
       <button class="ctrl-btn ctrl-secondary" id="tmReset">Reset</button>
+      <button class="ctrl-btn ctrl-secondary" id="tmEndSession" aria-label="End study session" hidden>End session</button>
     </div>
     <div class="focus-stats" id="tmStats"></div>
   </div>
@@ -1598,6 +1600,11 @@ var studyActive = false;
 var studyPhase = 'focus'; /* 'focus' | 'break' | 'longBreak' */
 var studyCycle = 0;
 var studyFocusSecs = 2700, studyBreakSecs = 600, studyLongSecs = 1200, studyCyclesUntilLong = 3;
+/* A phase can be armed (loaded and ready) without running. Phases never start
+   themselves: the session used to chain focus into break into focus automatically,
+   so an unattended widget kept counting cycles and crediting focus time nobody
+   spent. Every phase now waits for an explicit Start. */
+var studyPending = false;
 var breakOnComplete = null;
 
 var tmTypeSingle = document.getElementById('tmTypeSingle');
@@ -1761,31 +1768,68 @@ function setTimerType(type, force) {
   if (!studyActive) studyCycleIndicatorEl.hidden = true;
   if (type === 'study') renderStudyTasks();
   else if (studyTasksEl) studyTasksEl.hidden = true;
+  updateStudyControls();
 }
 tmTypeSingle.addEventListener('click', function() { setTimerType('single'); });
 tmTypeStudy.addEventListener('click', function() { setTimerType('study'); });
 
+/* The End session control is only meaningful while a session exists. */
+function updateStudyControls() {
+  var endBtn = document.getElementById('tmEndSession');
+  if (endBtn) endBtn.hidden = !studyActive;
+}
+
 function endStudySession() {
-  studyActive = false;
+  studyActive = false; studyPending = false;
   studyPhase = 'focus'; studyCycle = 0;
   studyCycleIndicatorEl.hidden = true;
   studyTaskIds = [];
   renderStudyTasks();
+  updateStudyControls();
   dismissBreak();
 }
 
-function startNextStudyPhase() {
-  studyPhase = 'focus';
-  tmDuration = studyFocusSecs; tmRemaining = studyFocusSecs;
+/* Loads the next phase into the timer and waits. Never starts a countdown. */
+function armStudyPhase(phase) {
+  studyPhase = phase;
+  studyPending = true;
+  tmRunning = false; clearInterval(tmInterval); tmInterval = null;
+  tmDuration = phase === 'focus' ? studyFocusSecs : (phase === 'longBreak' ? studyLongSecs : studyBreakSecs);
+  tmRemaining = tmDuration;
   updateStudyIndicator();
+  updateStudyControls();
   updateTMDisplay();
   document.getElementById('tmRing').classList.remove('complete');
-  tmStartTime = Date.now(); tmStartRemaining = tmRemaining;
-  tmRunning = true; tmInterval = setInterval(tickTimer, 100);
-  document.getElementById('tmToggle').textContent = 'Pause';
-  document.getElementById('tmLabel').textContent = 'Focusing';
-  document.getElementById('tmLabel').className = 'session-label running';
+  document.getElementById('tmToggle').textContent = phase === 'focus' ? 'Start focus' : (phase === 'longBreak' ? 'Start long break' : 'Start break');
+  document.getElementById('tmToggle').setAttribute('aria-label', 'Start next study phase');
+  document.getElementById('tmLabel').textContent = phase === 'focus' ? 'Ready to focus' : 'Ready for a break';
+  document.getElementById('tmLabel').className = 'session-label';
   saveTimerState();
+}
+
+/* Starts the phase the session is currently waiting on. */
+function startArmedStudyPhase() {
+  studyPending = false;
+  document.getElementById('tmRing').classList.remove('complete');
+  updateStudyIndicator();
+  updateStudyControls();
+  if (studyPhase === 'focus') {
+    tmStartTime = Date.now(); tmStartRemaining = tmRemaining;
+    tmRunning = true; clearInterval(tmInterval); tmInterval = setInterval(tickTimer, 100);
+    document.getElementById('tmToggle').textContent = 'Pause';
+    document.getElementById('tmToggle').setAttribute('aria-label', 'Pause timer');
+    document.getElementById('tmLabel').textContent = 'Focusing';
+    document.getElementById('tmLabel').className = 'session-label running';
+    updateTMDisplay();
+    saveTimerState();
+  } else {
+    document.getElementById('tmToggle').textContent = 'Start';
+    document.getElementById('tmLabel').textContent = studyPhase === 'longBreak' ? 'Long break' : 'Break';
+    document.getElementById('tmLabel').className = 'session-label';
+    startBreakOverlay(studyPhase === 'longBreak' ? 'Long Break' : 'Short Break', tmDuration, function() {
+      armStudyPhase('focus');
+    });
+  }
 }
 
 function advanceStudySession() {
@@ -1795,20 +1839,11 @@ function advanceStudySession() {
     playChime(); launchConfetti('confetti');
     studyCycle++;
     var goLong = (studyCycle % studyCyclesUntilLong) === 0;
-    studyPhase = goLong ? 'longBreak' : 'break';
-    tmDuration = goLong ? studyLongSecs : studyBreakSecs;
-    tmRemaining = tmDuration;
-    updateStudyIndicator();
-    updateTMDisplay();
-    document.getElementById('tmRing').classList.remove('complete');
-    document.getElementById('tmToggle').textContent = 'Start';
-    document.getElementById('tmLabel').textContent = goLong ? 'Long break' : 'Break';
-    document.getElementById('tmLabel').className = 'session-label';
-    sendNotification('Focus session complete', (goLong ? 'Long' : 'Short') + ' break started \u2014 ' + Math.round(tmDuration / 60) + ' min.');
-    startBreakOverlay(goLong ? 'Long Break' : 'Short Break', tmDuration, startNextStudyPhase);
+    armStudyPhase(goLong ? 'longBreak' : 'break');
+    sendNotification('Focus block complete', 'Start your ' + Math.round(tmDuration / 60) + ' min ' + (goLong ? 'long break' : 'break') + ' when you are ready.');
   } else {
     playChime();
-    startNextStudyPhase();
+    armStudyPhase('focus');
   }
 }
 
@@ -1826,11 +1861,26 @@ function studySnapshot() {
   return studyActive ? { phase: studyPhase, cycle: studyCycle, focusSecs: studyFocusSecs, breakSecs: studyBreakSecs, longSecs: studyLongSecs, cyclesUntilLong: studyCyclesUntilLong, taskIds: studyTaskIds } : null;
 }
 function saveTimerState() {
-  if (studyActive && (studyPhase === 'break' || studyPhase === 'longBreak')) {
+  if (studyActive && studyPending) {
+    /* Armed-but-not-started phase: persisted so a reload keeps the session,
+       but nothing resumes counting on its own. */
+    SyncEngine.set('clock', 'timer_state', JSON.stringify({
+      pending: true,
+      running: false,
+      duration: tmDuration,
+      remaining: tmRemaining,
+      preset: selectedPreset,
+      customSecs: tmCustomSecs,
+      timerType: timerType,
+      lastSeen: Date.now(),
+      study: studySnapshot()
+    }));
+  } else if (studyActive && (studyPhase === 'break' || studyPhase === 'longBreak')) {
     SyncEngine.set('clock', 'timer_state', JSON.stringify({
       onBreak: true,
       breakStartTime: breakStartTime,
       breakDuration: breakPhaseDuration,
+      lastSeen: Date.now(),
       duration: tmDuration,
       preset: selectedPreset,
       customSecs: tmCustomSecs,
@@ -1842,6 +1892,7 @@ function saveTimerState() {
       running: true,
       startTime: tmStartTime,
       startRemaining: tmStartRemaining,
+      lastSeen: Date.now(),
       duration: tmDuration,
       preset: selectedPreset,
       customSecs: tmCustomSecs,
@@ -1852,6 +1903,7 @@ function saveTimerState() {
     SyncEngine.set('clock', 'timer_state', JSON.stringify({
       running: false,
       remaining: tmRemaining,
+      lastSeen: Date.now(),
       duration: tmDuration,
       preset: selectedPreset,
       customSecs: tmCustomSecs,
@@ -1863,12 +1915,33 @@ function saveTimerState() {
   }
 }
 
+/* Focus time that this widget actually witnessed.
+   A saved run heartbeats through the periodic autosave, so if the last
+   heartbeat is well before the block's scheduled end, the widget (and almost
+   certainly the study session) stopped early. Crediting the full block in that
+   case is what inflated today's focus total, so credit only the observed part. */
+var STATE_HEARTBEAT_GRACE_MS = 20000;
+var STATE_STALE_MS = 4 * 60 * 60 * 1000;
+function observedFocusSecs(st) {
+  var full = st.duration || 0;
+  var priorProgress = Math.max(0, full - (st.startRemaining || full));
+  var endsAt = st.startTime + (st.startRemaining || 0) * 1000;
+  var seen = st.lastSeen || 0;
+  if (!seen || seen >= endsAt - STATE_HEARTBEAT_GRACE_MS) return full;
+  return Math.max(0, Math.min(full, priorProgress + (seen - st.startTime) / 1000));
+}
+
 function restoreTimerState() {
   try {
     var raw = SyncEngine.get('clock', 'timer_state');
     if (!raw) return false;
     var st = typeof raw === 'string' ? JSON.parse(raw) : raw;
     if (!st || !st.duration) return false;
+    /* Abandoned state from hours ago should never revive a session or a timer. */
+    if (st.lastSeen && (Date.now() - st.lastSeen) > STATE_STALE_MS) {
+      SyncEngine.remove('clock', 'timer_state');
+      return false;
+    }
     /* Notion HQ embeds don't offer Study Session at all (see IS_COMMAND_CENTRE
        above) — the Command Centre app is the sole owner of Study Session state.
        If a Study session or break is running there, just leave this instance
@@ -1907,19 +1980,29 @@ function restoreTimerState() {
       stLongEl.value = Math.round(studyLongSecs / 60);
       stCyclesEl.value = studyCyclesUntilLong;
       updateStudyIndicator();
+      updateStudyControls();
+    }
+    if (st.pending && studyActive) {
+      /* Session was waiting on a phase before the reload; keep it waiting. */
+      studyPending = true;
+      tmRemaining = st.remaining || tmDuration;
+      armStudyPhase(studyPhase);
+      return true;
     }
     if (st.onBreak && studyActive) {
       var breakElapsed = (Date.now() - st.breakStartTime) / 1000;
       var breakLeft = Math.max(0, Math.round((st.breakDuration || 0) - breakElapsed));
       if (breakLeft <= 0) {
-        /* Break finished while we were away; move straight into the next focus block. */
-        SyncEngine.remove('clock', 'timer_state');
-        startNextStudyPhase();
+        /* Break finished while we were away. Load the next focus block and wait
+           for a deliberate Start instead of quietly starting a timer. */
+        armStudyPhase('focus');
         return true;
       }
       document.getElementById('tmLabel').textContent = studyPhase === 'longBreak' ? 'Long break' : 'Break';
       document.getElementById('tmLabel').className = 'session-label';
-      startBreakOverlay(studyPhase === 'longBreak' ? 'Long Break' : 'Short Break', breakLeft, startNextStudyPhase);
+      startBreakOverlay(studyPhase === 'longBreak' ? 'Long Break' : 'Short Break', breakLeft, function() {
+        armStudyPhase('focus');
+      });
       return true;
     }
     if (st.running) {
@@ -1928,12 +2011,16 @@ function restoreTimerState() {
       if (tmRemaining <= 0) {
         /* Timer completed while we were away */
         SyncEngine.remove('clock', 'timer_state');
+        var observed = observedFocusSecs(st);
         if (studyActive) {
           tmRunning = false;
-          advanceStudySession();
+          renderStudyTasks();
+          if (observed >= 1) creditTimerRun(st.startTime, observed);
+          studyCycle++;
+          armStudyPhase((studyCycle % studyCyclesUntilLong) === 0 ? 'longBreak' : 'break');
           return true;
         }
-        creditTimerRun(st.startTime, st.duration);
+        if (observed >= 1) creditTimerRun(st.startTime, observed);
         tmRemaining = tmDuration;
         updateTMDisplay();
         /* Play completion feedback */
@@ -1975,6 +2062,7 @@ function restoreTimerState() {
 /* Save timer state on visibility change and before unload */
 function timerNeedsSave() {
   return tmRunning || (tmRemaining < tmDuration && tmRemaining > 0) ||
+    (studyActive && studyPending) ||
     (studyActive && (studyPhase === 'break' || studyPhase === 'longBreak'));
 }
 document.addEventListener('visibilitychange', function() {
@@ -2199,9 +2287,10 @@ function liveResyncFromRemote() {
   dismissBreak();
   tmRunning = false;
   if (studyActive) {
-    studyActive = false; studyPhase = 'focus'; studyCycle = 0;
+    studyActive = false; studyPending = false; studyPhase = 'focus'; studyCycle = 0;
     studyCycleIndicatorEl.hidden = true; studyTaskIds = [];
     renderStudyTasks();
+    updateStudyControls();
   }
   tmRemaining = tmDuration; updateTMDisplay();
   document.getElementById('tmToggle').textContent = 'Start';
@@ -2259,15 +2348,21 @@ function tickTimer() {
 updateTMDisplay();
 
 document.getElementById('tmToggle').addEventListener('click', function() {
+  /* A session waiting on its next phase starts that phase, nothing else. */
+  if (studyActive && studyPending) { playStart(); startArmedStudyPhase(); return; }
+  /* A break runs in its own overlay; the main control must not start a
+     second countdown over top of it. */
+  if (studyActive && studyPhase !== 'focus') return;
   if (!tmRunning && !studyActive && timerType === 'study') {
     studyFocusSecs = Math.max(60, (parseInt(stFocusEl.value) || 45) * 60);
     studyBreakSecs = Math.max(60, (parseInt(stBreakEl.value) || 10) * 60);
     studyLongSecs = Math.max(60, (parseInt(stLongEl.value) || 20) * 60);
     studyCyclesUntilLong = Math.max(1, parseInt(stCyclesEl.value) || 3);
-    studyActive = true; studyPhase = 'focus'; studyCycle = 0;
+    studyActive = true; studyPending = false; studyPhase = 'focus'; studyCycle = 0;
     tmDuration = studyFocusSecs; tmRemaining = studyFocusSecs;
     saveStudyPrefs();
     updateStudyIndicator();
+    updateStudyControls();
     renderStudyTasks();
   }
   if (tmRunning) { playPause(); } else if (tmRemaining < tmDuration) { playResume(); } else { playStart(); }
@@ -2293,16 +2388,22 @@ document.getElementById('tmToggle').addEventListener('click', function() {
   setTimeout(function() { document.getElementById('tmRing').classList.remove('pulse'); }, 180);
 });
 
+function creditPartialFocus() {
+  if (!tmRunning) return;
+  var focused = tmDuration - Math.max(0, tmStartRemaining - (Date.now() - tmStartTime) / 1000);
+  if (focused >= 1 && (!studyActive || studyPhase === 'focus')) { creditTimerRun(tmStartTime, focused); }
+}
+
+/* Reset restarts the current phase. Ending a study session is a separate,
+   explicit action so Reset can no longer wipe a session by accident. */
 document.getElementById('tmReset').addEventListener('click', function() {
   playReset();
-  if (tmRunning) {
-    var focused = tmDuration - Math.max(0, tmStartRemaining - (Date.now() - tmStartTime) / 1000);
-    if (focused >= 1 && (!studyActive || studyPhase === 'focus')) { creditTimerRun(tmStartTime, focused); }
-  }
+  creditPartialFocus();
   tmRunning = false; clearInterval(tmInterval);
   if (studyActive) {
-    endStudySession();
-    tmDuration = studyFocusSecs;
+    dismissBreak();
+    armStudyPhase(studyPhase);
+    return;
   }
   tmRemaining = tmDuration; updateTMDisplay();
   document.getElementById('tmToggle').textContent = 'Start';
@@ -2310,6 +2411,28 @@ document.getElementById('tmReset').addEventListener('click', function() {
   document.getElementById('tmLabel').className = 'session-label';
   document.getElementById('tmRing').classList.remove('complete');
   SyncEngine.remove('clock', 'timer_state');
+});
+
+document.getElementById('tmEndSession').addEventListener('click', function() {
+  if (!studyActive) return;
+  playReset();
+  creditPartialFocus();
+  tmRunning = false; clearInterval(tmInterval); tmInterval = null;
+  endStudySession();
+  setTimerType('study', true);
+  tmDuration = studyFocusSecs; tmRemaining = studyFocusSecs;
+  updateTMDisplay();
+  document.getElementById('tmToggle').textContent = 'Start';
+  document.getElementById('tmToggle').setAttribute('aria-label', 'Start timer');
+  document.getElementById('tmLabel').textContent = 'Session ended';
+  document.getElementById('tmLabel').className = 'session-label';
+  document.getElementById('tmRing').classList.remove('complete');
+  SyncEngine.remove('clock', 'timer_state');
+  setTimeout(function() {
+    if (!studyActive && !tmRunning) {
+      document.getElementById('tmLabel').textContent = 'Set duration';
+    }
+  }, 4000);
 });
 
 /* ══════════════════════════════════════
@@ -2331,7 +2454,7 @@ function startBreakOverlay(title, secs, onComplete) {
       var cb = breakOnComplete; breakOnComplete = null;
       if (studyActive) {
         playChime();
-        sendNotification('Break\u2019s over', 'Back to focus \u2014 ' + Math.round(studyFocusSecs / 60) + ' min session.');
+        sendNotification('Break\u2019s over', 'Start your next ' + Math.round(studyFocusSecs / 60) + ' min focus block when you\u2019re ready.');
       }
       dismissBreak();
       if (cb) cb();
@@ -2570,7 +2693,7 @@ function computeActivePushTarget() {
     return {
       dueAt: breakStartTime + breakPhaseDuration * 1000,
       title: 'Break\u2019s over',
-      body: 'Back to focus \u2014 ' + Math.round(studyFocusSecs / 60) + ' min session.'
+      body: 'Start your next ' + Math.round(studyFocusSecs / 60) + ' min focus block when you\u2019re ready.'
     };
   }
   if (tmRunning && studyActive && studyPhase === 'focus') {
@@ -2578,8 +2701,8 @@ function computeActivePushTarget() {
     var nextSecs = goLong ? studyLongSecs : studyBreakSecs;
     return {
       dueAt: tmStartTime + tmStartRemaining * 1000,
-      title: 'Focus session complete',
-      body: (goLong ? 'Long' : 'Short') + ' break started \u2014 ' + Math.round(nextSecs / 60) + ' min.'
+      title: 'Focus block complete',
+      body: 'Start your ' + Math.round(nextSecs / 60) + ' min ' + (goLong ? 'long break' : 'break') + ' when you are ready.'
     };
   }
   if (tmRunning && !studyActive) {
@@ -2610,6 +2733,12 @@ function syncPushSchedule() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(target)
   }).catch(function() {});
+}
+setInterval(syncPushSchedule, 4000);
+</script>
+</body>
+</html>
+atch(function() {});
 }
 setInterval(syncPushSchedule, 4000);
 </script>
