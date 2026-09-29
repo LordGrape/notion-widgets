@@ -28,6 +28,7 @@ import { handleVisual } from "./routes/visual";
 import { handleWidgetAsset } from "./routes/widgets";
 import { handleAiUsage } from "./routes/ai-usage";
 import { handlePushSubscribe, handlePushSchedule, handlePushCancel } from "./routes/push";
+import { handleTodoTask } from "./routes/todo-tasks";
 
 import { handleBuildAssemble } from "./routes/build/assemble";
 import { handleDeckFrenchCore2000 } from "./routes/build/decks-french-core-2000";
@@ -101,6 +102,9 @@ export default {
           (request.method === "GET" || request.method === "POST" || request.method === "DELETE")
         ) {
           return withCorsHeaders(await handleFitnessTests(request, env));
+        }
+        if (key === "todo-task" && request.method === "POST") {
+          return withCorsHeaders(await handleTodoTask(request, env));
         }
         return json({ error: "Unknown Notion resource" }, 404);
       }
