@@ -87,6 +87,11 @@ export default {
         return json({ error: "Unknown push resource" }, 404);
       }
 
+      if (url.pathname.replace(/\/+$/, "") === "/notion/todo-task") {
+        if (request.method !== "POST") return methodNotAllowed();
+        return withCorsHeaders(await handleTodoTask(request, env));
+      }
+
       if (route === "notion") {
         if (key === "milestones" && request.method === "GET") {
           return withCorsHeaders(await handleNotionMilestones(request, env));
@@ -102,9 +107,6 @@ export default {
           (request.method === "GET" || request.method === "POST" || request.method === "DELETE")
         ) {
           return withCorsHeaders(await handleFitnessTests(request, env));
-        }
-        if (key === "todo-task" && request.method === "POST") {
-          return withCorsHeaders(await handleTodoTask(request, env));
         }
         return json({ error: "Unknown Notion resource" }, 404);
       }
