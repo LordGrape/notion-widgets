@@ -1,9 +1,9 @@
 name: To-Do browser regression
 on:
   push:
-    paths: ['todo*.html', 'todo*.js', 'tools/test-todo-loader.cjs', '.github/workflows/todo-loader.yml']
+    paths: ['todo*.html', 'todo*.js', 'apps/todo/**', 'tools/test-todo-ui.cjs', 'tools/test-todo-loader.cjs', '.github/workflows/todo-loader.yml']
   pull_request:
-    paths: ['todo*.html', 'todo*.js', 'tools/test-todo-loader.cjs', '.github/workflows/todo-loader.yml']
+    paths: ['todo*.html', 'todo*.js', 'apps/todo/**', 'tools/test-todo-ui.cjs', 'tools/test-todo-loader.cjs', '.github/workflows/todo-loader.yml']
 permissions:
   contents: read
 jobs:
@@ -18,3 +18,7 @@ jobs:
       - run: npm install --no-save --package-lock=false playwright@1.55.0
       - run: npx playwright install --with-deps chromium
       - run: node tools/test-todo-loader.cjs
+      - run: npm ci --prefix apps/todo
+      - run: node apps/todo/build.mjs --check
+      - run: npm test --prefix apps/todo
+      - run: node tools/test-todo-ui.cjs

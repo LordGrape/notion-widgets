@@ -384,7 +384,7 @@ body::before{
   var NS = "todo", KEY = "tasks";
   var WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
   var PRI = [null, "must", "should", "could"];
-  var PRIL = { must: "Must", should: "Should", could: "Could" };
+  var PRIL = { must: "Must Do", should: "Should Do", could: "Could Do" };
   var TIME = [null, "quick", "m30", "m60", "deep"];
   var TIMEL = { quick: "Quick", m30: "~30m", m60: "~60m", deep: "Deep" };
   var TIMEM = { quick: 15, m30: 30, m60: 60, deep: 120 };
@@ -485,7 +485,7 @@ body::before{
     snd("playClick");
     announce("Task added: " + v);
     save();
-    capCheck();
+
   }
 
   function toggle(id) {
@@ -568,13 +568,7 @@ body::before{
   function durationLabel(m){var h=Math.floor(m/60),r=m%60;return(h?h+'h':'')+(r?(h?' ':'')+r+'m':(!h?'0m':''))}
   function updateCapLine(){var el=$("capLine");if(!el)return;if(tab!=="today"){el.textContent="";el.className="stats-sub";return}var w=workload();if(!w.total&&!w.unestimated){el.textContent="";el.className="stats-sub";return}var parts=[];if(w.scheduled)parts.push(durationLabel(w.scheduled)+" scheduled");if(w.flexible)parts.push(durationLabel(w.flexible)+" flexible");if(w.unestimated)parts.push(w.unestimated+" unestimated");el.textContent=(w.total?durationLabel(w.total)+" planned · ":"")+parts.join(" + ");el.className="stats-sub show";if(w.total>DAY_CAP_MIN)el.className+=" over";else if(w.total>DAY_CAP_MIN-60)el.className+=" warn"}
 
-  /* 1·3·5 soft cap: a single gentle toast, never a block. */
-  function capCheck() {
-    var openToday = tasks.filter(function (t) { return isToday(t); });
-    if (openToday.length > 9) { showToast("More than 9 open tasks today. The 1·3·5 rule suggests trimming."); return; }
-    var musts = openToday.filter(function (t) { return t.pri === "must"; }).length;
-    if (musts > 1) showToast("Two Musts today. The research says pick one.");
-  }
+  function capCheck() { /* Workload is chosen deliberately; no unsolicited prompts. */ }
 
   /* Quick inline title rename (click the task text) */
   function editStart(id, node) {
@@ -601,7 +595,7 @@ body::before{
     else if (field === "due") { t.due = v || null; t.dueKey = v === "tomorrow" ? tmrwKey() : (v === "today" ? todayKey() : null); t.setKey = todayKey(); }
     snd("playClick");
     save();
-    if ((field === "pri" && v === "must") || (field === "due" && v === "today")) capCheck();
+
   }
   function moveItem(id, dir) {
     var list = visibleOpen();
@@ -754,7 +748,7 @@ body::before{
       noteChip.addEventListener("blur", hideNote);
     }
 
-    if (!t.done && !isEditing) {
+    if (!window.TodoUI && !t.done && !isEditing) {
       el.setAttribute("draggable", "true");
       el.addEventListener("dragstart", function (e) {
         el.classList.add("dragging");
@@ -890,6 +884,7 @@ body::before{
 
   function render() {
     hideNote();
+    if (window.TodoUI) { window.TodoUI.render(); return; }
     var listEl = $("list"), doneEl = $("doneList");
     listEl.innerHTML = ""; doneEl.innerHTML = "";
     var open = tasks.filter(function (t) { return !t.done; });
@@ -961,6 +956,22 @@ body::before{
     $("greet").textContent = h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
     try { $("date").textContent = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }); } catch (e) {}
   }
+
+  window.TodoUIBridge = {
+    snapshot: function () { return { tasks: tasks.slice(), visible: visibleOpen(), tab: tab, comp: { pri: PRI[comp.pri], time: TIME[comp.time], due: DUE[comp.due], dueKey: comp.dueKey || null }, editingId: editingId }; },
+    itemNode: itemNode,
+    choose: function (kind, value) {
+      if (kind === "pri") comp.pri = Math.max(0, PRI.indexOf(value || null));
+      else if (kind === "time") comp.time = Math.max(0, TIME.indexOf(value || null));
+      else if (kind === "due") { comp.due = Math.max(0, DUE.indexOf(value || null)); if ("dueKey" in comp) comp.dueKey = null; }
+      syncComposer(); render();
+    },
+    selectTab: function (value) { tab = value; render(); },
+    reorder: function (ids) { ids.forEach(function (id, index) { var t = byId(id); if (t) t.order = index; }); save(); },
+    refresh: function () { rollover(); poll(); render(); },
+    updateCapLine: updateCapLine,
+    renderTomorrow: renderTomorrow
+  };
 
   function boot() {
     wire(); syncComposer();

@@ -1,0 +1,283 @@
+.ui-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 5px;
+	border: 1px solid var(--border-default);
+	border-radius: 10px;
+	padding: 7px 10px;
+	background: var(--surface-2);
+	color: var(--text-secondary);
+	font: 650 0.75rem var(--font);
+	cursor: pointer;
+}
+.ui-button:focus-visible,
+.ui-drag-handle:focus-visible {
+	outline: 2px solid var(--accent-primary);
+	outline-offset: 3px;
+}
+.ui-ghost {
+	border-color: transparent;
+	background: transparent;
+}
+.ui-primary {
+	background: var(--accent-primary);
+	color: white;
+	border-color: transparent;
+}
+.ui-tabs .tab[data-state="active"] {
+	background: var(--accent-primary) !important;
+	color: white !important;
+	box-shadow: 0 3px 10px var(--accent-glow);
+}
+.ui-menu,
+.ui-popover,
+.ui-dialog {
+	z-index: 10100;
+	border: 1px solid var(--todo-line, var(--border-default));
+	border-radius: 14px;
+	background: var(--surface-3);
+	color: var(--text-primary);
+	font-family: var(--font);
+	box-shadow: var(--shadow-md);
+	backdrop-filter: blur(24px);
+}
+.ui-menu {
+	min-width: 180px;
+	max-width: calc(100vw - 24px);
+	padding: 6px;
+}
+.ui-menu-label {
+	padding: 6px 9px;
+	font-size: 0.62rem;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--text-tertiary);
+	font-weight: 750;
+}
+.ui-menu-item {
+	position: relative;
+	display: flex;
+	align-items: center;
+	min-height: 38px;
+	gap: 8px;
+	outline: none;
+	padding: 8px 30px 8px 9px;
+	border-radius: 8px;
+	font-size: 0.77rem;
+	cursor: pointer;
+}
+.ui-menu-item[data-highlighted] {
+	background: var(--surface-2);
+	color: var(--accent-primary);
+}
+.ui-menu-check {
+	position: absolute;
+	right: 9px;
+	display: flex;
+	color: var(--accent-primary);
+}
+.ui-popover {
+	width: min(290px, calc(100vw - 24px));
+	padding: 15px;
+	font-size: 0.77rem;
+	line-height: 1.5;
+}
+.ui-popover p {
+	color: var(--text-secondary);
+	margin: 7px 0 12px;
+}
+.ui-popover small {
+	display: block;
+	margin-top: 10px;
+	color: var(--text-tertiary);
+	font-size: 0.68rem;
+}
+.goal-field {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+}
+.goal-field select {
+	border: 1px solid var(--border-default);
+	border-radius: 8px;
+	background: var(--surface-0);
+	color: var(--text-primary);
+	min-height: 36px;
+	padding: 4px 12px;
+	font: inherit;
+}
+.goal-settings {
+	align-self: flex-start;
+	margin-left: auto;
+	flex-shrink: 0;
+	padding: 4px;
+	min-width: 28px;
+	min-height: 28px;
+}
+.stats-txt {
+	min-width: 0;
+}
+.stats-num {
+	font-size: 0.92rem !important;
+	line-height: 1.4;
+}
+.stats .ring-fg {
+	transition: none;
+}
+.composer .chip {
+	gap: 4px;
+}
+.composer .chip .k {
+	font-size: 0.55rem;
+}
+.composer {
+	flex-wrap: wrap;
+}
+.composer .chip svg {
+	flex-shrink: 0;
+}
+.ui-task-row {
+	position: relative;
+	min-width: 0;
+}
+.ui-dragging {
+	opacity: 0.65;
+	box-shadow: var(--shadow-md);
+	border-radius: var(--radius-md);
+}
+.ui-drag-handle {
+	padding: 0 !important;
+	background: transparent;
+	border: 0;
+	color: inherit;
+	touch-action: none;
+	cursor: grab;
+}
+.acts .grip {
+	padding: 6px;
+}
+.acts .grip .ui-drag-handle {
+	opacity: inherit;
+}
+.item:focus-within .acts button,
+.item:focus-within .grip {
+	opacity: 0.8;
+}
+.item .box svg {
+	width: 14px;
+	height: 14px;
+}
+.item .del svg {
+	width: 13px;
+	height: 13px;
+}
+.ui-task-row .item .tag.note svg {
+	width: 12px;
+}
+.day-complete {
+	display: flex;
+	align-items: center;
+	flex-direction: column;
+	text-align: center;
+	gap: 7px;
+	padding: 25px 10px 20px;
+	color: var(--accent-primary);
+}
+.day-complete b {
+	font-size: 0.94rem;
+	color: var(--text-primary);
+}
+.day-complete span {
+	font-size: 0.76rem;
+	color: var(--text-secondary);
+}
+.day-complete small {
+	font-size: 0.68rem;
+	color: var(--text-tertiary);
+	margin-top: 5px;
+}
+.ui-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 10090;
+	background: rgba(15, 8, 30, 0.38);
+	backdrop-filter: blur(8px);
+}
+.ui-dialog {
+	position: fixed;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	width: min(390px, calc(100vw - 28px));
+	max-height: calc(100dvh - 28px);
+	overflow: auto;
+	padding: 18px;
+}
+.ui-close {
+	position: absolute;
+	top: 10px;
+	right: 10px;
+	width: 32px;
+	height: 32px;
+	padding: 6px;
+}
+.ui-dialog-title {
+	font-size: 0.94rem;
+	font-weight: 750;
+	margin: 0 34px 5px 0;
+}
+.ui-dialog-description {
+	font-size: 0.73rem;
+	color: var(--text-secondary);
+	line-height: 1.5;
+	margin: 0 25px 0 0;
+}
+.ui-custom-host .todo-custom-panel {
+	width: 100%;
+	max-height: none;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	box-shadow: none;
+	backdrop-filter: none;
+}
+.ui-dialog .calendar-day {
+	min-height: 36px;
+}
+.ui-dialog .calendar-panel {
+	margin-top: 6px;
+}
+@media (max-width: 360px) {
+	.composer .chip {
+		padding: 6px 8px !important;
+	}
+	.stats {
+		padding: 12px !important;
+		gap: 10px !important;
+	}
+	.stats-label {
+		font-size: 0.68rem !important;
+	}
+	.stats-num {
+		font-size: 0.84rem !important;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.ui-task-row,
+	.ui-menu,
+	.ui-dialog,
+	.ring-fg {
+		animation: none !important;
+		transition: none !important;
+	}
+}
+/* Let the document scroll inside the embed, rather than advertising a second
+   body scroll container to keyboard drag sensors. */
+html {
+	overflow-x: hidden;
+}
+body {
+	overflow: visible;
+}

@@ -56,3 +56,25 @@ Generated timetable tasks keep a stable task title while `outcomeGoal` stores th
 - The section is collapsed by default and does not affect daily workload, completion, or notifications.
 - The assignment remains the overall outcome. User-authored phases are stored as linked Action Blocks through the existing `Context` relation.
 - A phase enters Today or Tomorrow only after the user assigns that phase a date. Date-only phases remain flexible and do not trigger timed reminders.
+
+## Calm UI layer
+`todo-smart-shell.html` loads the compiled `todo-ui.js` enhancement. Its React
+islands use locally styled shadcn/ui patterns built on Radix, Lucide icons,
+Motion for restrained transitions, and dnd-kit for pointer/touch and keyboard
+reordering. The existing vanilla task editor and import/sync code still own
+task mutations; `TodoUIBridge` is application-local and does not alter SyncEngine.
+
+- Build: `cd apps/todo && npm ci && npm run build` (commit the root `todo-ui.js`).
+- Goal logic: `npm test` in this folder.
+- Browser: `node tools/test-todo-ui.cjs` and `node tools/test-todo-loader.cjs`.
+- Goal setting: `todo/dailyGoal`, JSON `{date: YYYYMMDD, count: 0..5}`.
+  Default is one Should Do, bounded by the number planned today. All Must Do
+  and unclassified tasks remain commitments; Could Do never blocks the goal.
+  A goal setting applies only to its local calendar day.
+- Reordering preserves priority groups (and dates in Upcoming). Keyboard:
+  focus a drag handle, Space to pick up, arrows to move, Space to drop,
+  Escape to cancel. Touch drags start on the handle so the list can still scroll.
+- The trigger-nudge toggle, banners, polling, and workload toasts are removed.
+  Exact task reminders remain an explicit, optional feature.
+- React is confined to this UI enhancement. Existing embed paths and task
+  payloads remain compatible, including schedule pasting and task editing.
