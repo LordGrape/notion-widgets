@@ -26,6 +26,7 @@ const inputs = [
 	"studyengine/app/index.html",
 	"studyengine/app/styles.css",
 	"studyengine/app/app.ts",
+	"studyengine/app/presentation.ts",
 	"studyengine/app/domain.ts",
 	"studyengine/app/repository.ts",
 	"studyengine/app/types.ts",

@@ -1,3 +1,4 @@
+import { checklistHtml } from "./presentation";
 import {
 	assessmentLabel,
 	AUTHORING_PROMPT,
@@ -150,8 +151,39 @@ function toast(text: string): void {
 }
 function sourceLink(source: Source): string {
 	return safeUrl(source.url)
-		? `<a href="${escape(source.url)}" target="_blank" rel="noopener noreferrer">${escape(source.title || "Open source")} ↗</a> · ${escape(source.pinpoint || "Pinpoint missing")}`
+		? `<a href="${escape(source.url)}" target="_blank" rel="noopener noreferrer">${escape(source.title || "Open source")} ↗</a><span class="source-pinpoint">${escape(source.pinpoint || "Pinpoint missing")}</span>`
 		: "Source link not yet confirmed.";
+}
+function conditionsSummary(): string {
+	const notes =
+		select("notesMode").value === "closed" ? "Closed notes" : "Open notes";
+	const help =
+		{ none: "No help", hint: "Hint used", ai: "AI help", human: "Human help" }[
+			select("assistance").value as Assistance
+		] ?? "Help not specified";
+	return `${notes} · ${help}`;
+}
+function updateConditions(): void {
+	el("conditionsSummary").textContent = conditionsSummary();
+}
+function stage(name: "try" | "compare" | "next"): void {
+	el("roundSteps").dataset.stage = name;
+	for (const step of el("roundSteps").querySelectorAll<HTMLElement>(
+		"[data-step]",
+	)) {
+		if (step.dataset.step === name) step.setAttribute("aria-current", "step");
+		else step.removeAttribute("aria-current");
+	}
+}
+function sessionProgress(): void {
+	const length = Math.max(1, queue.length),
+		position = Math.min(queueIndex + 1, length);
+	const progress = el("sessionProgress");
+	progress.hidden = !queue.length;
+	progress.setAttribute("aria-valuemax", String(length));
+	progress.setAttribute("aria-valuenow", String(position));
+	progress.setAttribute("aria-valuetext", `Question ${position} of ${length}`);
+	progress.style.setProperty("--progress", `${(position / length) * 100}%`);
 }
 function formattedDate(timestamp: string): string {
 	return new Intl.DateTimeFormat("en-CA", {
@@ -336,12 +368,12 @@ function renderToday(): void {
 	if (next) {
 		const p = next.practice;
 		el("planContainer").innerHTML =
-			`<article class="focus-card"><div class="card-meta"><span class="tag">${KIND_LABELS[p.kind]}</span><span class="muted">${escape(p.course)} · ${p.minutes} min</span></div><h2>${escape(p.topic)}</h2><p class="detail">${escape(p.prompt)}</p><div class="button-row"><button class="primary" data-action="start-plan" ${disabled}>Start practice ↗</button><button class="quiet" data-action="send-plan" ${disabled}>Send to To-do</button></div><p class="reason">${escape(next.reason)} ${plan.steps.length} ${plan.steps.length === 1 ? "activity" : "activities"} · ${plan.minutes} min within your ${plan.budget} min budget.</p></article>`;
+			`<article class="focus-card"><div class="round-stat"><span class="eyebrow">Up next</span><span class="tag subtle">${plan.steps.length} ${plan.steps.length === 1 ? "question" : "questions"} · ${plan.minutes} min</span></div><div class="card-meta"><span class="tag">${KIND_LABELS[p.kind]}</span><span class="muted">${escape(p.course)}</span></div><h2>${escape(p.topic)}</h2><p class="detail prompt-preview">${escape(p.prompt)}</p><div class="button-row"><button class="primary" data-action="start-plan" ${disabled}>Let’s practise <span aria-hidden="true">→</span></button><button class="quiet" data-action="send-plan" ${disabled}>Send to To-do</button></div><p class="reason">${escape(next.reason)} Within your ${plan.budget} min budget.</p></article>`;
 	} else {
 		const title = loaded?.blocked
 			? "Your workspace is read-only."
 			: !practices.length
-				? "First, link your source."
+				? "Your first round starts here."
 				: draftCount
 					? "Your drafts need a source check."
 					: dueCount
@@ -350,14 +382,14 @@ function renderToday(): void {
 		const detail = loaded?.blocked
 			? "Export a recovery copy above. Learning records cannot be displayed reliably, and nothing will be overwritten."
 			: !practices.length
-				? "Bring in one permitted question from your Notion notes. Try it first, then compare your response with the assigned source."
+				? "Bring a small practice pack from Notion AI, or write one question. Try first, then check the source."
 				: draftCount
 					? `${draftCount} ${draftCount === 1 ? "question needs" : "questions need"} source details or practice permission before starting.`
 					: dueCount
 						? "A due activity is longer than your budget. Increase the budget or edit its estimate; the engine will not silently overfill your time."
 						: "Your review dates are still ahead. You can practise earlier from the library; being caught up is not demonstrated mastery.";
 		el("planContainer").innerHTML =
-			`<article class="focus-card"><span class="tag">${!practices.length ? "Evidence-first practice" : "Your next step"}</span><h2>${title}</h2><p class="detail">${detail}</p><div class="button-row"><button class="primary" data-action="${!practices.length ? "add" : "library"}" ${disabled}>${!practices.length ? "Add practice" : "Open library"} ↗</button><button class="quiet" data-action="import" ${disabled}>Import from Notion AI</button></div><p class="reason">No automatic task creation. No paid AI model running in the background.</p></article>`;
+			`<article class="focus-card"><span class="tag">${!practices.length ? "One question at a time" : "Your next step"}</span><h2>${title}</h2><p class="detail">${detail}</p><div class="button-row"><button class="primary" data-action="${!practices.length ? "add" : "library"}" ${disabled}>${!practices.length ? "Add practice" : "Open library"} ↗</button><button class="quiet" data-action="import" ${disabled}>Import from Notion AI</button></div><p class="reason">Your sources stay in Notion. Nothing is automatically graded.</p></article>`;
 	}
 	el("dueList").innerHTML =
 		plan.steps
@@ -373,6 +405,7 @@ function renderToday(): void {
 }
 function tab(name: string): void {
 	activeTab = name;
+	el("appShell").dataset.view = name;
 	for (const view of ["today", "evidence", "library", "practice"])
 		el(`${view}View`).hidden = view !== name;
 	document
@@ -482,15 +515,26 @@ function nextQuestion(): void {
 	select("notesMode").value = draft?.notes ?? "closed";
 	select("assistance").value = draft?.assistance ?? "none";
 	el("sessionPosition").textContent =
-		`${queueIndex + 1} of ${queue.length} · ${practice.minutes} min estimate`;
-	area("practiceAnswer").focus();
+		`Question ${queueIndex + 1} of ${queue.length} · ~${practice.minutes} min`;
+	updateConditions();
+	sessionProgress();
+	el("questionText").focus({ preventScroll: true });
+	el("practiceView").scrollIntoView({ block: "start" });
 }
 function renderQuestion(p: Practice): void {
 	el("practiceKind").textContent = KIND_LABELS[p.kind];
 	el("practiceCourse").textContent = p.course;
 	el("practiceTopic").textContent = p.topic;
 	el("questionText").textContent = p.prompt;
+	el("questionText").classList.toggle("long-question", p.prompt.length > 280);
 	el("practiceSource").innerHTML = sourceLink(p.source);
+	el("practiceSourceBadge").textContent = p.checklistChecked
+		? "Checked by you"
+		: "Checklist unverified";
+	el<HTMLDetailsElement>("practiceSourceDetails").open = false;
+	el<HTMLDetailsElement>("attemptConditions").open = false;
+	el("answerStage").hidden = false;
+	stage("try");
 	area("practiceAnswer").disabled = false;
 	select("notesMode").disabled = false;
 	select("assistance").disabled = false;
@@ -538,8 +582,28 @@ function reveal(previous?: Assessment): void {
 	select("notesMode").disabled = true;
 	select("assistance").disabled = true;
 	el("beforeReveal").hidden = true;
+	el("answerStage").hidden = true;
 	el("comparison").hidden = false;
-	el("answerChecklist").textContent = a.context.checklist;
+	stage("compare");
+	el("answerChecklist").innerHTML = checklistHtml(a.context.checklist);
+	el("originalQuestion").textContent = a.context.prompt;
+	el("originalResponse").textContent = area("practiceAnswer").value;
+	el("recordedConditions").textContent =
+		`${conditionsSummary()} · Self-reported at submission.`;
+	el("checklistBadge").textContent = a.context.checklistChecked
+		? "Checked by you"
+		: a.context.checklistOrigin === "notion-ai"
+			? "AI draft · Unverified"
+			: "Checklist unverified";
+	for (const disclosure of el(
+		"comparison",
+	).querySelectorAll<HTMLDetailsElement>("details"))
+		disclosure.open = false;
+	el<HTMLDetailsElement>("assessmentDetails").open = Boolean(previous);
+	el("assessmentDetails").hidden = false;
+	el<HTMLDetailsElement>("feedbackDetails").open = Boolean(
+		previous && (previous.assessor !== "self" || previous.notes),
+	);
 	el("comparisonSource").innerHTML = sourceLink(a.context.source);
 	el("checklistProvenance").textContent =
 		`${a.context.checklistOrigin === "notion-ai" ? "Notion AI drafted this checklist." : a.context.checklistOrigin === "instructor" ? "Checklist recorded as instructor-provided." : "Self-authored checklist."} ${a.context.checklistChecked ? "You marked it source-checked before this attempt." : "It was unverified when this attempt began; this response is excluded from pattern summaries."}`;
@@ -559,9 +623,19 @@ function reveal(previous?: Assessment): void {
 	el("assessmentSaved").hidden = true;
 	button("saveAssessment").textContent = previous
 		? "Save correction, keep original"
-		: "Save assessment";
+		: "Save self-check";
+	const hasNext = queueIndex + 1 < queue.length;
+	button("nextPractice").textContent = hasNext
+		? "Next question →"
+		: "Finish session →";
+	button("nextPractice").hidden = false;
+
+	el("continueNote").textContent =
+		"Self-check optional. Your response is already saved.";
 	correctionBase = previous?.id ?? null;
 	reviewSuggestion();
+	el("comparisonHeading").focus({ preventScroll: true });
+	el("practiceView").scrollIntoView({ block: "start" });
 }
 function formAssessment(): Assessment {
 	if (!currentAttempt)
@@ -592,6 +666,13 @@ function reviewSuggestion(): void {
 		currentAttempt,
 		dayKey(new Date(), workspace().manifest.settings.timeZone),
 	);
+	if (assessment.assessor !== "self")
+		el<HTMLDetailsElement>("feedbackDetails").open = true;
+	button("saveAssessment").textContent = correctionBase
+		? "Save correction, keep original"
+		: assessment.assessor === "self"
+			? "Save self-check"
+			: "Save recorded feedback";
 	input("feedbackUrl").required = instructor;
 	area("assessmentNotes").required = assessment.assessor !== "self";
 	el("feedbackRequirement").textContent = instructor
@@ -637,11 +718,14 @@ function saveAssessment(event: Event): void {
 			});
 		save(records);
 		el("assessmentForm").hidden = true;
+		el("assessmentDetails").hidden = true;
 		el("assessmentSaved").hidden = false;
+		stage("next");
 		el("savedSummary").textContent =
 			`${verdictLabel(assessment.verdict)} · ${assessmentLabel(assessment)}. Next practice: ${input("nextReview").value}. Original response and earlier assessments retained.`;
-		button("nextPractice").hidden = queueIndex + 1 >= queue.length;
-		toast("Assessment recorded with its source check and provenance.");
+		el("continueNote").textContent =
+			"Comparison saved. Original response kept.";
+		toast("Comparison saved with its assessor and source status.");
 	} catch (error) {
 		el("assessmentError").textContent = message(error);
 	}
@@ -662,8 +746,9 @@ function assessExisting(id: string): void {
 	renderQuestion(currentPractice);
 	el("sessionPosition").textContent =
 		`Recorded ${formattedDate(a.submittedAt)}`;
+	sessionProgress();
 	reveal(latestAssessment(workspace(), id));
-	el("comparisonHeading").scrollIntoView({ block: "start" });
+	el<HTMLDetailsElement>("assessmentDetails").open = true;
 }
 function leavePractice(): void {
 	if (
@@ -1109,17 +1194,22 @@ function bind(): void {
 			event.target.closest("a")
 		) {
 			select("notesMode").value = "open";
+			updateConditions();
 			toast("Source opened. This attempt is now marked open-note.");
 		}
 	});
+	for (const id of ["notesMode", "assistance"])
+		el(id).addEventListener("change", updateConditions);
 	for (const id of ["assessor", "verdict", "sourceChecked"])
 		el(id).addEventListener("change", reviewSuggestion);
 	el("assessmentForm").addEventListener("submit", saveAssessment);
 	button("nextPractice").addEventListener("click", () => {
-		queueIndex += 1;
-		nextQuestion();
+		if (queueIndex + 1 < queue.length) {
+			queueIndex += 1;
+			nextQuestion();
+		} else leavePractice();
 	});
-	for (const id of ["exitPractice", "finishPractice"])
+	for (const id of ["exitPractice"])
 		button(id).addEventListener("click", leavePractice);
 	for (const id of ["exportButton", "guardExport", "migrationExport"])
 		button(id).addEventListener("click", () => {

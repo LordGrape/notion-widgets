@@ -486,6 +486,8 @@ Read the actual assigned sources before drafting legal questions or answer check
 Exclude assessed work where AI assistance is prohibited. Do not reproduce a restricted assignment or provide its answer.
 Keep my full notes in Notion. Return only focused practice questions, their source-linked checklists, and exact page or paragraph pinpoints. Distinguish judicial holdings, party arguments, paraphrases, and my observations. Do not import related or later cases without identifying them.
 Use the practice categories retrieve, explain, apply, distinguish, integrate, or perform as appropriate, not as a compulsory sequence. Prefer a few useful questions to exhaustive card production.
+Ask one clear task per question. Keep direct questions to a sentence or two. For a hypothetical, use only the material facts and a short task, separated by a newline. Do not bury the task in administrative instructions. Preserve any qualification needed for legal accuracy.
+Use short numbered checklist points, aiming for 2–5 essential points without omitting legally necessary qualifications. Put the exact source pinpoint next to each point. Keep URLs in source.url or compact inline citations, not repeated plain-text URL paragraphs.
 For every substantive checklist point include its exact source pinpoint. Do not claim a generated checklist is verified or a rubric is official. Use checklistOrigin "notion-ai". I will check the source myself.
 Output only JSON matching:
 {
