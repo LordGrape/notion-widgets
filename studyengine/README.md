@@ -2,6 +2,16 @@
 
 An evidence-first practice space. Full notes and assigned sources stay in Notion. Gizmo stays alongside it, without an unverified integration.
 
+## Interface
+
+The tactile practice deck uses raised purple cards, pressable buttons, lime accents, and a focused Try → Compare → Move on loop. Mobile and Notion embeds use the same interface, with automatic light/dark themes and reduced-motion support.
+
+- Notes and help are always summarized before submission; expand Change to edit them. Opening the source marks the attempt open-note.
+- The original answer is saved before the checklist appears. Citation markup becomes compact accessible links; saved source text is never rewritten.
+- Source status stays visible. Full provenance, the original question/answer, and optional self-check details are disclosures rather than mandatory forms.
+- Next question works without an assessment. Skipping leaves the attempt unassessed and does not change its review date or invent feedback.
+- No XP, mastery score, autonomous grading, or new integration is introduced.
+
 ## First useful session
 
 1. Open `/studyengine/` using the existing shared widget access key.

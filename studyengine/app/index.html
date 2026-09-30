@@ -5,7 +5,8 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="color-scheme" content="light dark" />
 		<meta name="study-engine-release" content="evidence-first-v2" />
-		<title>Study Engine · Practice, with proof</title>
+		<meta name="study-engine-interface" content="tactile-practice-v1" />
+		<title>Study Engine · Find your flow</title>
 		<link rel="stylesheet" href="./styles.css" />
 	</head>
 	<body>
@@ -13,10 +14,10 @@
 			<div class="gate-card">
 				<div class="brand-mark" aria-hidden="true">S</div>
 				<p class="eyebrow">Study Engine</p>
-				<h1 id="gateTitle">Practice,<br />with proof.</h1>
+				<h1 id="gateTitle">Less scrolling.<br /><span>More thinking.</span></h1>
 				<p class="gate-intro">
-					Your notes stay in Notion. This is the space to try, check, and return
-					to what matters.
+					One question at a time. Try it, check it, keep moving. Your notes stay
+					in Notion.
 				</p>
 				<form id="unlockForm">
 					<label for="accessKey">Shared widget access key</label>
@@ -31,15 +32,13 @@
 						in on this browser</label
 					>
 					<button class="primary wide" id="unlockButton" type="submit">
-						Open my workspace <span aria-hidden="true">↗</span>
+						Let’s practise <span aria-hidden="true">→</span>
 					</button>
 					<p id="unlockStatus" class="form-status" role="status">
 						Use the same private key as your other widgets.
 					</p>
 				</form>
-				<p class="gate-foot">
-					No public course notes. No invented mastery scores.
-				</p>
+				<p class="gate-foot">Private workspace. Original responses kept.</p>
 			</div>
 		</section>
 		<div id="appShell" class="shell" hidden>
@@ -48,7 +47,7 @@
 					<div class="brand-mark small" aria-hidden="true">S</div>
 					<div>
 						<p class="brand-name">Study Engine</p>
-						<p class="brand-subtitle">Practice, with proof.</p>
+						<p class="brand-subtitle">Find your flow.</p>
 					</div>
 				</div>
 				<div class="header-actions">
@@ -75,17 +74,59 @@
 								d="M6.1 7a7 7 0 0 1 11.6-1L20 9M4 15l2.3 3A7 7 0 0 0 17.9 17"
 							/>
 						</svg></button
-					><button id="aboutButton" class="quiet">How it works</button
+					><button id="aboutButton" class="quiet">Help</button
 					><button id="lockButton" class="quiet">Lock</button>
 				</div>
 			</header>
 			<div class="workspace-bar">
 				<nav class="tabs" aria-label="Study Engine navigation">
 					<button id="tab-today" data-tab="today" aria-pressed="true">
+						<svg
+							aria-hidden="true"
+							width="19"
+							height="19"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="1.8"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<path
+								d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"
+							/>
+							<circle cx="12" cy="12" r="4" />
+						</svg>
 						Today</button
 					><button id="tab-evidence" data-tab="evidence" aria-pressed="false">
+						<svg
+							aria-hidden="true"
+							width="19"
+							height="19"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="1.8"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<path d="M7 3h10l3 3v15H4V3h3M8 10h8M8 14h8M8 18h5" />
+						</svg>
 						Evidence</button
 					><button id="tab-library" data-tab="library" aria-pressed="false">
+						<svg
+							aria-hidden="true"
+							width="19"
+							height="19"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="1.8"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<path d="M4 4h6v16H4zM14 5l5-1 3 16-5 1z" />
+						</svg>
 						Library
 					</button>
 				</nav>
@@ -121,10 +162,15 @@
 					<div class="section-heading">
 						<div>
 							<p id="todayDate" class="eyebrow"></p>
-							<h1 id="todayHeading">Make room for practice.</h1>
+							<h1 id="todayHeading">
+								Find your <span class="accent-word">flow.</span>
+							</h1>
+							<p class="section-intro">
+								A little less reading. A little more doing.
+							</p>
 						</div>
 						<label class="budget-label" for="sessionMinutes"
-							>Session budget<select id="sessionMinutes">
+							>Time for this round<select id="sessionMinutes">
 								<option value="10">10 min</option>
 								<option value="20" selected>20 min</option>
 								<option value="30">30 min</option>
@@ -138,37 +184,42 @@
 					<div class="today-grid">
 						<div id="planContainer"></div>
 						<aside class="side-panel" aria-labelledby="recordHeading">
-							<p class="eyebrow">The record, so far</p>
-							<h2 id="recordHeading">Evidence before inference.</h2>
+							<p class="eyebrow">Your practice</p>
+							<h2 id="recordHeading">Small steps. Real attempts.</h2>
 							<div id="todayFacts" class="facts"></div>
-							<p class="fineprint">
-								Attempts describe what you did. Assessments say who checked it.
-								Neither is an exam-grade prediction.
-							</p>
+							<details class="small-disclosure">
+								<summary>What these numbers mean</summary>
+								<p class="fineprint">
+									Attempts record practice, not mastery. Source-checked attempts
+									also need closed notes, no reported help, and a checked
+									checklist. These are not exam-grade predictions.
+								</p>
+							</details>
 							<button class="text-button" data-go="evidence">
-								See the evidence <span aria-hidden="true">↗</span>
+								Open practice history <span aria-hidden="true">↗</span>
 							</button>
 						</aside>
 					</div>
 					<div id="dueList" class="due-list"></div>
 					<p class="page-note">
-						A modest practice loop, not a second set of notes. Gizmo can stay
-						alongside it.
+						Notion is your notebook. This is where you put it to work.
 					</p>
 				</section>
 				<section id="evidenceView" hidden aria-labelledby="evidenceHeading">
 					<div class="section-heading">
 						<div>
 							<p class="eyebrow">Your learning record</p>
-							<h1 id="evidenceHeading">What the evidence says.</h1>
+							<h1 id="evidenceHeading">
+								Your practice, <span class="accent-word">kept.</span>
+							</h1>
 						</div>
 						<button id="exportButton" class="secondary">
 							Export private backup
 						</button>
 					</div>
 					<p class="section-intro">
-						Original responses, recorded conditions, and attributed feedback. No
-						subject-wide labels from a handful of answers.
+						Original answers and feedback, without turning a few attempts into a
+						mastery score.
 					</p>
 					<div id="observationList"></div>
 					<div class="list-heading">
@@ -181,7 +232,9 @@
 					<div class="section-heading">
 						<div>
 							<p class="eyebrow">Source-linked practice</p>
-							<h1 id="libraryHeading">A small, useful library.</h1>
+							<h1 id="libraryHeading">
+								Pick your <span class="accent-word">next move.</span>
+							</h1>
 						</div>
 						<div class="button-row">
 							<button id="importButton" class="secondary">Import</button
@@ -189,8 +242,7 @@
 						</div>
 					</div>
 					<p class="section-intro">
-						Keep the full reading and your notes in Notion. Bring only the
-						question, answer checklist, and exact source support here.
+						Your questions live here. The full reading stays in Notion.
 					</p>
 					<div class="library-filters">
 						<label for="librarySearch" class="sr-only">Search practice</label
@@ -217,71 +269,131 @@
 						task your course actually requires.
 					</p>
 				</section>
-				<section id="practiceView" hidden aria-labelledby="questionText">
+				<section id="practiceView" hidden aria-label="Practice session">
 					<div class="practice-heading">
 						<button id="exitPractice" class="quiet">
-							<span aria-hidden="true">←</span> Back
+							<span aria-hidden="true">←</span> End session
 						</button>
 						<p id="sessionPosition" class="muted"></p>
 					</div>
+					<div
+						id="sessionProgress"
+						class="session-progress"
+						role="progressbar"
+						aria-label="Question position"
+						aria-valuemin="0"
+						aria-valuemax="1"
+						aria-valuenow="0"
+					>
+						<span></span>
+					</div>
+					<ol
+						id="roundSteps"
+						class="round-steps"
+						aria-label="Practice steps"
+						data-stage="try"
+					>
+						<li data-step="try" aria-current="step"><span>1</span> Try</li>
+						<li data-step="compare"><span>2</span> Compare</li>
+						<li data-step="next"><span>3</span> Move on</li>
+					</ol>
 					<div class="practice-card">
-						<div class="card-meta">
+						<div class="card-meta practice-meta">
 							<span id="practiceKind" class="tag"></span
 							><span id="practiceCourse" class="muted"></span>
 						</div>
-						<h1 id="questionText" class="question"></h1>
-						<p id="practiceTopic" class="muted"></p>
-						<p id="practiceSource" class="source-line"></p>
-						<div id="attemptConditions" class="conditions">
-							<label for="notesMode"
-								>Notes<select id="notesMode">
-									<option value="closed">Closed notes</option>
-									<option value="open">Open notes</option>
-								</select></label
-							><label for="assistance"
-								>Help used<select id="assistance">
-									<option value="none">None</option>
-									<option value="hint">A hint</option>
-									<option value="ai">AI assistance</option>
-									<option value="human">Human assistance</option>
-								</select></label
-							>
-							<p class="fineprint">
-								Conditions are self-reported. Mark help or source use honestly.
-							</p>
-						</div>
-						<label for="practiceAnswer" id="answerLabel">Your response</label
-						><textarea
-							id="practiceAnswer"
-							rows="7"
-							maxlength="100000"
-							placeholder="Try in your own words before opening the checklist."
-						></textarea>
-						<div id="beforeReveal" class="practice-actions">
-							<button id="submitAttempt" class="primary">
-								Record response &amp; compare</button
-							><button id="dontKnow" class="quiet">I don’t know yet</button>
+						<div id="answerStage">
+							<p id="practiceTopic" class="question-topic"></p>
+							<h1 id="questionText" class="question" tabindex="-1"></h1>
+							<details id="practiceSourceDetails" class="source-disclosure">
+								<summary>
+									<span class="disclosure-icon" aria-hidden="true">↗</span>
+									Source &amp; context
+									<span id="practiceSourceBadge" class="inline-status"></span>
+								</summary>
+								<p id="practiceSource" class="source-line"></p>
+								<p class="fineprint">
+									Opening the source before submitting marks this attempt
+									open-note.
+								</p>
+							</details>
+							<label for="practiceAnswer" id="answerLabel">Your turn</label>
+							<textarea
+								id="practiceAnswer"
+								rows="5"
+								maxlength="100000"
+								placeholder="Give it a shot in your own words…"
+							></textarea>
+							<details id="attemptConditions" class="conditions-disclosure">
+								<summary>
+									<span id="conditionsSummary">Closed notes · No help</span
+									><span class="change-label">Change</span>
+								</summary>
+								<div class="conditions">
+									<label for="notesMode"
+										>Notes<select id="notesMode">
+											<option value="closed">Closed notes</option>
+											<option value="open">Open notes</option>
+										</select></label
+									>
+									<label for="assistance"
+										>Help used<select id="assistance">
+											<option value="none">None</option>
+											<option value="hint">A hint</option>
+											<option value="ai">AI assistance</option>
+											<option value="human">Human assistance</option>
+										</select></label
+									>
+									<p class="fineprint">
+										These are your reported conditions. Change them if you used
+										notes or help.
+									</p>
+								</div>
+							</details>
+							<div id="beforeReveal" class="practice-actions">
+								<button id="submitAttempt" class="primary">
+									Compare my answer <span aria-hidden="true">→</span>
+								</button>
+								<button id="dontKnow" class="quiet">I don’t know yet</button>
+							</div>
 						</div>
 						<section id="comparison" hidden aria-labelledby="comparisonHeading">
 							<div class="comparison-heading">
-								<h2 id="comparisonHeading">Compare with the source.</h2>
-								<span class="tag subtle">Your original response is saved</span>
+								<div>
+									<p class="eyebrow">Response saved</p>
+									<h1 id="comparisonHeading" tabindex="-1">
+										Check the key points.
+									</h1>
+								</div>
+								<span id="checklistBadge" class="tag subtle"></span>
 							</div>
-							<p id="checklistProvenance" class="fineprint"></p>
+							<p class="comparison-intro">
+								Compare your reasoning with the checklist. This is not automatic
+								grading.
+							</p>
 							<div id="answerChecklist" class="checklist"></div>
-							<p id="comparisonSource" class="source-line"></p>
-							<form id="assessmentForm">
-								<div class="form-grid">
-									<label for="assessor"
-										>Who assessed this?<select id="assessor">
-											<option value="self">Me, against the source</option>
-											<option value="ai">External AI, provisional</option>
-											<option value="instructor">
-												Instructor / teaching assistant feedback I recorded
-											</option>
-										</select></label
-									><label for="verdict"
-										>Recorded outcome<select id="verdict">
+							<div class="comparison-context">
+								<details class="small-disclosure">
+									<summary>Your answer &amp; source</summary>
+									<p class="eyebrow">Your response</p>
+									<div id="originalResponse" class="response-copy"></div>
+									<p id="recordedConditions" class="fineprint"></p>
+									<details class="small-disclosure">
+										<summary>The question</summary>
+										<p id="originalQuestion" class="original-question"></p>
+									</details>
+									<p id="comparisonSource" class="source-line"></p>
+									<p id="checklistProvenance" class="fineprint"></p>
+								</details>
+							</div>
+							<details id="assessmentDetails" class="assessment-details">
+								<summary>
+									<span>Log how it went</span
+									><span class="muted">Optional self-check</span>
+								</summary>
+								<form id="assessmentForm">
+									<label for="verdict"
+										>How did your answer compare?<select id="verdict">
 											<option value="partial">Partially supported</option>
 											<option value="supported">
 												Supported by the checklist
@@ -289,96 +401,118 @@
 											<option value="needs-work">Needs work</option>
 										</select></label
 									>
-								</div>
-								<label class="check-row"
-									><input id="sourceChecked" type="checkbox" /> I checked the
-									response and checklist against the linked source</label
-								>
-								<p id="assessmentCaution" class="fineprint"></p>
-								<fieldset class="gaps">
-									<legend>
-										What needs attention? <span class="muted">Optional</span>
-									</legend>
-									<div class="gap-options">
-										<label
-											><input type="checkbox" name="gap" value="rule" /> Rule
-											recall</label
-										><label
-											><input type="checkbox" name="gap" value="issue" /> Issue
-											spotting</label
-										><label
-											><input type="checkbox" name="gap" value="application" />
-											Fact-to-rule links</label
-										><label
-											><input type="checkbox" name="gap" value="distinction" />
-											Case distinctions</label
-										><label
-											><input type="checkbox" name="gap" value="timing" /> Time
-											pressure</label
-										><label
-											><input type="checkbox" name="gap" value="source" />
-											Source support</label
-										>
-									</div>
-								</fieldset>
-								<label for="assessmentNotes"
-									>A concrete observation<textarea
-										id="assessmentNotes"
-										rows="3"
-										maxlength="30000"
-										placeholder="Name the exact omission, useful distinction, or source-supported correction."
-									></textarea>
-								</label>
-								<label for="feedbackUrl"
-									>Feedback link
-									<span id="feedbackRequirement" class="muted">Optional</span
-									><input
-										id="feedbackUrl"
-										type="url"
-										maxlength="2048"
-										placeholder="https://"
-								/></label>
-								<div class="review-row">
-									<label for="nextReview"
-										>Next practice date<input
-											id="nextReview"
-											type="date"
-											required
-									/></label>
-									<p class="fineprint">
-										Adjustable defaults: 1 day for unverified / needs work, 3
-										for partial, 7 for supported. These are not optimized
-										forgetting estimates.
-									</p>
-								</div>
-								<p
-									id="assessmentError"
-									class="form-status error"
-									role="status"
-								></p>
-								<button id="saveAssessment" class="primary" type="submit">
-									Save assessment
-								</button>
-							</form>
-							<div id="assessmentSaved" hidden class="assessment-saved">
-								<p id="savedSummary"></p>
-								<div class="button-row">
-									<button id="nextPractice" class="primary">
-										Next practice</button
-									><button id="finishPractice" class="secondary">
-										Return to today
+									<label class="check-row"
+										><input id="sourceChecked" type="checkbox" /> I checked my
+										response and this checklist against the source</label
+									>
+									<details id="feedbackDetails" class="small-disclosure">
+										<summary>Feedback, gaps &amp; review date</summary>
+										<div class="feedback-fields">
+											<label for="assessor"
+												>Who assessed this?<select id="assessor">
+													<option value="self">Me, against the source</option>
+													<option value="ai">External AI, provisional</option>
+													<option value="instructor">
+														Instructor / teaching assistant feedback I recorded
+													</option>
+												</select></label
+											>
+											<p id="assessmentCaution" class="fineprint"></p>
+											<fieldset class="gaps">
+												<legend>
+													What needs attention?
+													<span class="muted">Optional</span>
+												</legend>
+												<div class="gap-options">
+													<label
+														><input type="checkbox" name="gap" value="rule" />
+														Rule recall</label
+													><label
+														><input type="checkbox" name="gap" value="issue" />
+														Issue spotting</label
+													><label
+														><input
+															type="checkbox"
+															name="gap"
+															value="application"
+														/>
+														Fact-to-rule links</label
+													><label
+														><input
+															type="checkbox"
+															name="gap"
+															value="distinction"
+														/>
+														Case distinctions</label
+													><label
+														><input type="checkbox" name="gap" value="timing" />
+														Time pressure</label
+													><label
+														><input type="checkbox" name="gap" value="source" />
+														Source support</label
+													>
+												</div>
+											</fieldset>
+											<label for="assessmentNotes"
+												>A concrete observation<textarea
+													id="assessmentNotes"
+													rows="3"
+													maxlength="30000"
+													placeholder="What was missing, useful, or worth correcting?"
+												></textarea>
+											</label>
+											<label for="feedbackUrl"
+												>Feedback link
+												<span id="feedbackRequirement" class="muted"
+													>Optional</span
+												><input
+													id="feedbackUrl"
+													type="url"
+													maxlength="2048"
+													placeholder="https://"
+											/></label>
+											<label for="nextReview"
+												>Next practice date<input
+													id="nextReview"
+													type="date"
+													required
+											/></label>
+											<p class="fineprint">
+												Editable defaults: 1 day for unverified / needs work, 3
+												for partial, 7 for supported. These are starting points,
+												not fitted forgetting estimates.
+											</p>
+										</div>
+									</details>
+									<p
+										id="assessmentError"
+										class="form-status error"
+										role="status"
+									></p>
+									<button id="saveAssessment" class="secondary" type="submit">
+										Save self-check
 									</button>
-								</div>
+								</form>
+							</details>
+							<div id="assessmentSaved" hidden class="assessment-saved">
+								<span class="saved-icon" aria-hidden="true">✓</span>
+								<p id="savedSummary"></p>
 							</div>
+							<div class="practice-actions comparison-actions">
+								<button id="nextPractice" class="primary">
+									Next question <span aria-hidden="true">→</span>
+								</button>
+							</div>
+							<p id="continueNote" class="fineprint continuation-note">
+								Your response is saved. Self-checks are optional.
+							</p>
 						</section>
 					</div>
 				</section>
 			</main>
 			<footer class="app-footer">
 				<span>Notion is home. This is practice.</span
-				><button id="footerAbout" class="text-button">
-					Evidence &amp; limitations
-				</button>
+				><button id="footerAbout" class="text-button">How this works</button>
 			</footer>
 		</div>
 		<dialog id="practiceDialog" aria-labelledby="practiceDialogHeading">
@@ -515,9 +649,7 @@
 			<div class="dialog-heading">
 				<div>
 					<p class="eyebrow">Notion stays the source</p>
-					<h2 id="importHeading">
-						Bring in practice, not your whole notebook.
-					</h2>
+					<h2 id="importHeading">Bring your next round.</h2>
 				</div>
 				<button
 					class="icon-button"
@@ -528,9 +660,14 @@
 				</button>
 			</div>
 			<p class="fineprint">
-				Ask Notion AI to prepare a source-grounded pack from your course page.
-				You still verify every legal checklist. Gizmo data is not imported.
+				Use a practice pack prepared from your actual course sources. This is a
+				manual import, not a live Notion or Gizmo connection.
 			</p>
+			<ol class="import-steps" aria-label="Import steps">
+				<li><span>1</span> Prepare</li>
+				<li><span>2</span> Paste</li>
+				<li><span>3</span> Preview</li>
+			</ol>
 			<button id="copyAuthoringPrompt" class="secondary">
 				Copy Notion AI instructions
 			</button>
@@ -541,7 +678,7 @@
 				</select></label
 			>
 			<label for="importInput"
-				>Paste JSON<textarea
+				>Paste your practice pack<textarea
 					id="importInput"
 					rows="7"
 					spellcheck="false"
@@ -552,7 +689,7 @@
 					id="importFile"
 					type="file"
 					accept=".json,application/json" /></label
-			><button id="previewImport" class="secondary">Check import</button>
+			><button id="previewImport" class="secondary">Preview questions</button>
 			<div id="importPreview" class="notice" hidden>
 				<div>
 					<strong id="importPreviewTitle"></strong>
@@ -567,7 +704,7 @@
 			<div class="dialog-actions">
 				<button class="secondary" data-close="importDialog">Cancel</button
 				><button id="confirmImport" class="primary" disabled>
-					Import confirmed records
+					Add to my library
 				</button>
 			</div>
 		</dialog>

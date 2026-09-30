@@ -35,7 +35,10 @@ it("runs an authenticated, source-linked practice loop without fabricated master
 			this.open = false;
 		},
 	});
-	const fixture = practice();
+	const fixture = practice({
+		checklist:
+			"1. The landing year is 1969 (landing timeline). [^https://www.nasa.gov/mission/apollo-11/]\n2. Check the mission overview. [^https://www.nasa.gov/mission/apollo-11/]",
+	});
 	const sync = new MemorySync({
 		studyengine: {
 			[MANIFEST_KEY]: emptyWorkspace(NOW).manifest,
@@ -131,6 +134,12 @@ it("runs an authenticated, source-linked practice loop without fabricated master
 		.querySelector<HTMLButtonElement>('[data-action="start-plan"]')!
 		.click();
 	expect(byId("comparison").hidden).toBe(true);
+	expect(byId("answerStage").hidden).toBe(false);
+	expect(byId<HTMLDetailsElement>("attemptConditions").open).toBe(false);
+	expect(byId("conditionsSummary").textContent).toBe("Closed notes · No help");
+	expect(byId("sessionProgress").getAttribute("aria-valuetext")).toBe(
+		"Question 1 of 1",
+	);
 	click("submitAttempt");
 	expect(sync.getAll("studyengine")).not.toHaveProperty("mastery");
 	expect(
@@ -141,6 +150,13 @@ it("runs an authenticated, source-linked practice loop without fabricated master
 	set("practiceAnswer", "1969");
 	click("submitAttempt");
 	expect(byId("comparison").hidden).toBe(false);
+	expect(byId("answerStage").hidden).toBe(true);
+	expect(byId<HTMLDetailsElement>("assessmentDetails").open).toBe(false);
+	expect(byId("roundSteps").dataset.stage).toBe("compare");
+	expect(document.querySelectorAll("#answerChecklist li")).toHaveLength(2);
+	expect(byId("answerChecklist").textContent).not.toContain("[^https");
+	expect(byId("originalResponse").textContent).toBe("1969");
+	expect(byId("nextPractice").textContent).toContain("Finish session");
 	expect(byId<HTMLTextAreaElement>("practiceAnswer").disabled).toBe(true);
 	const attemptKey = Object.keys(sync.getAll("studyengine")).find((k) =>
 		k.includes(".attempt."),
@@ -161,7 +177,7 @@ it("runs an authenticated, source-linked practice loop without fabricated master
 	)!;
 	expect((sync.get("studyengine", aiKey) as Assessment).assessor).toBe("ai");
 	expect(byId("savedSummary").textContent).toContain("provisional");
-	click("finishPractice");
+	click("nextPractice");
 	click("tab-evidence");
 	expect(byId("observationList").textContent).toContain(
 		"Not enough independent evidence",
@@ -181,7 +197,7 @@ it("runs an authenticated, source-linked practice loop without fabricated master
 		),
 	).toBe(true);
 	expect(sync.get("studyengine", attemptKey)).toEqual(original);
-	click("finishPractice");
+	click("nextPractice");
 	click("tab-library");
 	document.querySelector<HTMLButtonElement>('[data-action="edit"]')!.click();
 	set("pinpointInput", "Revised public source section");
@@ -195,6 +211,37 @@ it("runs an authenticated, source-linked practice loop without fabricated master
 		(sync.get("studyengine", attemptKey) as Attempt).context.source.pinpoint,
 	).toBe("Landing timeline");
 	expect(requests.every((url) => url.includes("/state/"))).toBe(true);
+	// Skipping the optional self-check keeps an honest unassessed attempt.
+	document.querySelector<HTMLButtonElement>('[data-action="start"]')!.click();
+	byId<HTMLDetailsElement>("practiceSourceDetails").open = true;
+	document
+		.querySelector<HTMLAnchorElement>("#practiceSource a")!
+		.dispatchEvent(
+			new MouseEvent("click", { bubbles: true, cancelable: true }),
+		);
+	expect(byId("conditionsSummary").textContent).toContain("Open notes");
+	set("assistance", "human");
+	change("assistance");
+	const assessmentCount = Object.values(sync.getAll("studyengine")).filter(
+		(v) => (v as { type?: string })?.type === "assessment",
+	).length;
+	const reviewDate = (sync.get("studyengine", recordKey(fixture)) as Practice)
+		.nextReview;
+	click("dontKnow");
+	expect(byId("recordedConditions").textContent).toContain(
+		"Open notes · Human help",
+	);
+	click("nextPractice");
+	expect(byId("todayView").hidden).toBe(false);
+	expect(
+		Object.values(sync.getAll("studyengine")).filter(
+			(v) => (v as { type?: string })?.type === "assessment",
+		),
+	).toHaveLength(assessmentCount);
+	expect(
+		(sync.get("studyengine", recordKey(fixture)) as Practice).nextReview,
+	).toBe(reviewDate);
+	expect(sync.get("studyengine", attemptKey)).toEqual(original);
 	sync.set("studyengine", MANIFEST_KEY, { version: 99 });
 	expect(byId("dataGuard").hidden).toBe(false);
 	expect(byId<HTMLButtonElement>("addButton").disabled).toBe(true);
