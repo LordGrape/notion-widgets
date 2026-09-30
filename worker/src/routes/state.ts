@@ -1,5 +1,6 @@
 import { getCorsHeaders } from "../cors";
 import type { Env } from "../types";
+import { evidenceValues, readEvidence, writeEvidence } from "../study-evidence-ledger";
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -14,12 +15,28 @@ function json(body: unknown, status = 200): Response {
 export async function handleState(request: Request, env: Env, key: string): Promise<Response> {
   if (request.method === "GET") {
     const value = await env.WIDGET_KV.get(key, "json");
+    if (key === "studyengine" && env.STUDY_EVIDENCE) {
+      try {
+        const ledger = await readEvidence(env);
+        const base = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+        return json({ key, value: { ...base, ...ledger }, evidenceLedger: 2 });
+      } catch {
+        return json({ error: "Evidence ledger is unavailable; protected records were not omitted." }, 503);
+      }
+    }
     return json({ key, value: value ?? null });
   }
 
   if (request.method === "PUT") {
     const body = (await request.json()) as { value?: unknown };
     const newState = (body.value ?? {}) as Record<string, unknown>;
+    if (key === "studyengine") {
+      const evidence = evidenceValues(newState);
+      if (Object.keys(evidence).length) {
+        const accepted = await writeEvidence(env, evidence);
+        if (!accepted.ok) return accepted;
+      }
+    }
 
     if (key === "dragon") {
       const existing = await env.WIDGET_KV.get(key, "json");

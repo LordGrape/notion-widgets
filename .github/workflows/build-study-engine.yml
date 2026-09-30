@@ -1,0 +1,47 @@
+name: Build and verify Study Engine
+on:
+  push:
+    branches: [main, "feat/study-engine-*"]
+    paths:
+      - studyengine/**
+      - packages/study-evidence/**
+      - tools/build-study-engine.mjs
+      - tools/verify-study-engine.mjs
+      - .github/workflows/build-study-engine.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: build-study-engine-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: studyengine/package-lock.json
+      - run: npm ci
+        working-directory: studyengine
+      - run: npm run typecheck && npm test
+        working-directory: studyengine
+      - name: Assemble canonical entries and retire obsolete frontend
+        run: |
+          node tools/build-study-engine.mjs --prune-obsolete
+          node tools/build-study-engine.mjs --check
+          node tools/verify-study-engine.mjs
+      - name: Publish verified generated entries
+        run: |
+          git add -A -- studyengine
+          git add -f -- dist/studyengine.html
+          if git diff --cached --quiet; then
+            echo "Study Engine output is current"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "Build evidence-first Study Engine and retire obsolete frontend"
+            git push
+          fi

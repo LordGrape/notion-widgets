@@ -9,7 +9,7 @@ A personal suite of synchronized tools for planning, focused work, learning, and
 | Command Centre | Unified execution view | `apps/assistant/` | application-owned |
 | To-do | Priorities, action blocks, and reminders | documented in `apps/todo/` | `/todo*.html` |
 | Timetable | Weekly schedule and one-off timed work | `timetable.html` | `/timetable.html` |
-| Study Engine | Retrieval practice and adaptive tutoring | `studyengine/` | `/dist/studyengine.html` |
+| Study Engine | Source-linked practice and attributed evidence | `studyengine/app/` | `/studyengine/`, `/dist/studyengine.html` |
 | Athlete | Assessments, workouts, and progress | Athlete source modules | `/athlete.html` |
 | Clock | Time, timer, focus tracking, and weather | `clock.html` | `/clock.html` |
 | Quotes | Passive daily quotation | `quotes.html` and `quotes.json` | `/quotes.html` |

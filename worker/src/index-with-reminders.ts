@@ -2,6 +2,7 @@ import app from "./index";
 import { getReminderHealth, processDueReminders } from "./routes/reminders";
 import { processDuePush } from "./routes/push";
 import type { Env } from "./types";
+export { StudyEvidenceLedger } from "./study-evidence-ledger";
 
 function healthResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -17,6 +18,9 @@ function healthResponse(body: unknown, status = 200) {
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+    if (request.method === "GET" && url.pathname === "/studyengine/health") {
+      return healthResponse({ ok: Boolean(env.STUDY_EVIDENCE), version: "evidence-first-v2", protectedStorageConfigured: Boolean(env.STUDY_EVIDENCE) });
+    }
     if (request.method === "GET" && url.pathname === "/reminders/health") {
       try {
         return healthResponse(await getReminderHealth(env));

@@ -1,6 +1,15 @@
 name = "widget-sync"
 main = "src/index-with-reminders.ts"
 compatibility_date = "2024-01-01"
+keep_vars = true
+
+[[durable_objects.bindings]]
+name = "STUDY_EVIDENCE"
+class_name = "StudyEvidenceLedger"
+
+[[migrations]]
+tag = "study-evidence-ledger-v1"
+new_sqlite_classes = ["StudyEvidenceLedger"]
 
 [triggers]
 crons = ["* * * * *"]

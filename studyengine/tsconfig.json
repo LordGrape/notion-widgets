@@ -1,14 +1,14 @@
 {
   "compilerOptions": {
-    "allowJs": true,
-    "checkJs": false,
     "strict": true,
+    "noUncheckedIndexedAccess": true,
     "noEmit": true,
     "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "types": ["node", "vitest/globals"]
   },
-  "include": ["src/**/*", "**/*.d.ts"],
-  "files": ["src/types.ts", "src/globals.d.ts"]
+  "include": ["app/**/*.ts"]
 }

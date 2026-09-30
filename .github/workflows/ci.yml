@@ -35,8 +35,9 @@ jobs:
           cache-dependency-path: studyengine/package-lock.json
       - run: npm ci
       - run: npm run typecheck
-      - run: node scripts/verify-domain-extraction.mjs
       - run: npm test
+      - run: npm run check:build
+      - run: node ../tools/verify-study-engine.mjs
 
   worker:
     name: worker (typecheck + test)
@@ -54,3 +55,4 @@ jobs:
       - run: npm ci
       - run: npx tsc --noEmit
       - run: npm test -- --passWithNoTests
+      - run: npx wrangler deploy --config wrangler.toml --dry-run --outdir /tmp/study-engine-worker

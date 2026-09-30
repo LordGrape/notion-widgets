@@ -26,7 +26,7 @@ Build one coherent personal execution system for planning, time, study, and trai
 
 ## Protected decisions
 Do not change without explicit approval:
-- `scheduleFSRS`, Free Spaced Repetition Scheduler parameters, or the six-tier Study Engine progression.
+- Existing Free Spaced Repetition Scheduler parameters in shared or Worker contracts. Study Engine v2's six categories are a taxonomy, not an automatic progression.
 - SyncEngine public methods or timestamp merge strategy.
 - Worker grading and tutoring prompt contracts.
 - The separation between experience points and scheduling decisions.

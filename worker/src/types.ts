@@ -1,5 +1,6 @@
 export interface Env {
   WIDGET_KV: KVNamespace;
+  STUDY_EVIDENCE?: DurableObjectNamespace;
   WIDGET_SECRET: string;
   GEMINI_API_KEY: string;
   GOOGLE_TTS_KEY: string;
@@ -103,7 +104,7 @@ export interface AIPolicy {
 export type AcademicIntegrityHint = string;
 export type FieldConfidence = "high" | "medium" | "low";
 
-// Keep in sync with studyengine/src/types.ts ParsedSyllabus.
+// Legacy syllabus route contract retained; Study Engine v2 does not alter it.
 export interface ParsedSyllabus {
   subjectType: SubjectType;
   subjectTypeReason: string;

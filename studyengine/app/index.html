@@ -1,0 +1,670 @@
+<!doctype html>
+<html lang="en-CA">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="color-scheme" content="light dark" />
+		<meta name="study-engine-release" content="evidence-first-v2" />
+		<title>Study Engine · Practice, with proof</title>
+		<link rel="stylesheet" href="./styles.css" />
+	</head>
+	<body>
+		<section id="gate" class="gate" aria-labelledby="gateTitle">
+			<div class="gate-card">
+				<div class="brand-mark" aria-hidden="true">S</div>
+				<p class="eyebrow">Study Engine</p>
+				<h1 id="gateTitle">Practice,<br />with proof.</h1>
+				<p class="gate-intro">
+					Your notes stay in Notion. This is the space to try, check, and return
+					to what matters.
+				</p>
+				<form id="unlockForm">
+					<label for="accessKey">Shared widget access key</label>
+					<input
+						id="accessKey"
+						type="password"
+						autocomplete="current-password"
+						required
+					/>
+					<label class="check-row"
+						><input id="rememberKey" type="checkbox" checked /> Keep me signed
+						in on this browser</label
+					>
+					<button class="primary wide" id="unlockButton" type="submit">
+						Open my workspace <span aria-hidden="true">↗</span>
+					</button>
+					<p id="unlockStatus" class="form-status" role="status">
+						Use the same private key as your other widgets.
+					</p>
+				</form>
+				<p class="gate-foot">
+					No public course notes. No invented mastery scores.
+				</p>
+			</div>
+		</section>
+		<div id="appShell" class="shell" hidden>
+			<header class="app-header">
+				<div class="brand">
+					<div class="brand-mark small" aria-hidden="true">S</div>
+					<div>
+						<p class="brand-name">Study Engine</p>
+						<p class="brand-subtitle">Practice, with proof.</p>
+					</div>
+				</div>
+				<div class="header-actions">
+					<button
+						id="refreshButton"
+						class="icon-button"
+						aria-label="Refresh private workspace"
+						title="Refresh"
+					>
+						<svg
+							aria-hidden="true"
+							focusable="false"
+							width="20"
+							height="20"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="1.8"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<path d="M20 7v5h-5M4 17v-5h5" />
+							<path
+								d="M6.1 7a7 7 0 0 1 11.6-1L20 9M4 15l2.3 3A7 7 0 0 0 17.9 17"
+							/>
+						</svg></button
+					><button id="aboutButton" class="quiet">How it works</button
+					><button id="lockButton" class="quiet">Lock</button>
+				</div>
+			</header>
+			<div class="workspace-bar">
+				<nav class="tabs" aria-label="Study Engine navigation">
+					<button id="tab-today" data-tab="today" aria-pressed="true">
+						Today</button
+					><button id="tab-evidence" data-tab="evidence" aria-pressed="false">
+						Evidence</button
+					><button id="tab-library" data-tab="library" aria-pressed="false">
+						Library
+					</button>
+				</nav>
+				<p id="saveStatus" class="save-status" role="status">
+					<span class="status-dot" aria-hidden="true"></span
+					><span id="saveStatusText">Connected</span>
+				</p>
+			</div>
+			<aside
+				id="dataGuard"
+				class="notice warning"
+				hidden
+				aria-labelledby="guardTitle"
+			>
+				<div>
+					<strong id="guardTitle">Your saved data is protected.</strong>
+					<p id="guardText"></p>
+				</div>
+				<div class="button-row">
+					<button id="guardMigration" class="secondary">Review migration</button
+					><button id="guardExport" class="quiet">Export recovery copy</button>
+				</div>
+			</aside>
+			<aside id="legacyNotice" class="notice" hidden>
+				<p>
+					Previous Study Engine data stays untouched until you review the
+					migration.
+				</p>
+				<button id="reviewLegacy" class="quiet">Review previous data</button>
+			</aside>
+			<main id="workspaceMain">
+				<section id="todayView" aria-labelledby="todayHeading">
+					<div class="section-heading">
+						<div>
+							<p id="todayDate" class="eyebrow"></p>
+							<h1 id="todayHeading">Make room for practice.</h1>
+						</div>
+						<label class="budget-label" for="sessionMinutes"
+							>Session budget<select id="sessionMinutes">
+								<option value="10">10 min</option>
+								<option value="20" selected>20 min</option>
+								<option value="30">30 min</option>
+								<option value="45">45 min</option>
+								<option value="60">60 min</option>
+								<option value="90">90 min</option>
+								<option value="120">120 min</option>
+							</select></label
+						>
+					</div>
+					<div class="today-grid">
+						<div id="planContainer"></div>
+						<aside class="side-panel" aria-labelledby="recordHeading">
+							<p class="eyebrow">The record, so far</p>
+							<h2 id="recordHeading">Evidence before inference.</h2>
+							<div id="todayFacts" class="facts"></div>
+							<p class="fineprint">
+								Attempts describe what you did. Assessments say who checked it.
+								Neither is an exam-grade prediction.
+							</p>
+							<button class="text-button" data-go="evidence">
+								See the evidence <span aria-hidden="true">↗</span>
+							</button>
+						</aside>
+					</div>
+					<div id="dueList" class="due-list"></div>
+					<p class="page-note">
+						A modest practice loop, not a second set of notes. Gizmo can stay
+						alongside it.
+					</p>
+				</section>
+				<section id="evidenceView" hidden aria-labelledby="evidenceHeading">
+					<div class="section-heading">
+						<div>
+							<p class="eyebrow">Your learning record</p>
+							<h1 id="evidenceHeading">What the evidence says.</h1>
+						</div>
+						<button id="exportButton" class="secondary">
+							Export private backup
+						</button>
+					</div>
+					<p class="section-intro">
+						Original responses, recorded conditions, and attributed feedback. No
+						subject-wide labels from a handful of answers.
+					</p>
+					<div id="observationList"></div>
+					<div class="list-heading">
+						<h2>Practice history</h2>
+						<span id="historyCount" class="muted"></span>
+					</div>
+					<div id="recordList"></div>
+				</section>
+				<section id="libraryView" hidden aria-labelledby="libraryHeading">
+					<div class="section-heading">
+						<div>
+							<p class="eyebrow">Source-linked practice</p>
+							<h1 id="libraryHeading">A small, useful library.</h1>
+						</div>
+						<div class="button-row">
+							<button id="importButton" class="secondary">Import</button
+							><button id="addButton" class="primary">Add practice</button>
+						</div>
+					</div>
+					<p class="section-intro">
+						Keep the full reading and your notes in Notion. Bring only the
+						question, answer checklist, and exact source support here.
+					</p>
+					<div class="library-filters">
+						<label for="librarySearch" class="sr-only">Search practice</label
+						><input
+							id="librarySearch"
+							type="search"
+							placeholder="Find a course, topic, or question"
+						/><label for="kindFilter" class="sr-only">Practice category</label
+						><select id="kindFilter">
+							<option value="">All practice categories</option>
+							<option value="retrieve">Retrieve</option>
+							<option value="explain">Explain</option>
+							<option value="apply">Apply</option>
+							<option value="distinguish">Distinguish</option>
+							<option value="integrate">Integrate</option>
+							<option value="perform">Perform</option></select
+						><label class="check-row"
+							><input id="showArchived" type="checkbox" /> Archived</label
+						>
+					</div>
+					<div id="libraryList"></div>
+					<p class="page-note">
+						The six categories are options, not a compulsory ladder. Choose the
+						task your course actually requires.
+					</p>
+				</section>
+				<section id="practiceView" hidden aria-labelledby="questionText">
+					<div class="practice-heading">
+						<button id="exitPractice" class="quiet">
+							<span aria-hidden="true">←</span> Back
+						</button>
+						<p id="sessionPosition" class="muted"></p>
+					</div>
+					<div class="practice-card">
+						<div class="card-meta">
+							<span id="practiceKind" class="tag"></span
+							><span id="practiceCourse" class="muted"></span>
+						</div>
+						<h1 id="questionText" class="question"></h1>
+						<p id="practiceTopic" class="muted"></p>
+						<p id="practiceSource" class="source-line"></p>
+						<div id="attemptConditions" class="conditions">
+							<label for="notesMode"
+								>Notes<select id="notesMode">
+									<option value="closed">Closed notes</option>
+									<option value="open">Open notes</option>
+								</select></label
+							><label for="assistance"
+								>Help used<select id="assistance">
+									<option value="none">None</option>
+									<option value="hint">A hint</option>
+									<option value="ai">AI assistance</option>
+									<option value="human">Human assistance</option>
+								</select></label
+							>
+							<p class="fineprint">
+								Conditions are self-reported. Mark help or source use honestly.
+							</p>
+						</div>
+						<label for="practiceAnswer" id="answerLabel">Your response</label
+						><textarea
+							id="practiceAnswer"
+							rows="7"
+							maxlength="100000"
+							placeholder="Try in your own words before opening the checklist."
+						></textarea>
+						<div id="beforeReveal" class="practice-actions">
+							<button id="submitAttempt" class="primary">
+								Record response &amp; compare</button
+							><button id="dontKnow" class="quiet">I don’t know yet</button>
+						</div>
+						<section id="comparison" hidden aria-labelledby="comparisonHeading">
+							<div class="comparison-heading">
+								<h2 id="comparisonHeading">Compare with the source.</h2>
+								<span class="tag subtle">Your original response is saved</span>
+							</div>
+							<p id="checklistProvenance" class="fineprint"></p>
+							<div id="answerChecklist" class="checklist"></div>
+							<p id="comparisonSource" class="source-line"></p>
+							<form id="assessmentForm">
+								<div class="form-grid">
+									<label for="assessor"
+										>Who assessed this?<select id="assessor">
+											<option value="self">Me, against the source</option>
+											<option value="ai">External AI, provisional</option>
+											<option value="instructor">
+												Instructor / teaching assistant feedback I recorded
+											</option>
+										</select></label
+									><label for="verdict"
+										>Recorded outcome<select id="verdict">
+											<option value="partial">Partially supported</option>
+											<option value="supported">
+												Supported by the checklist
+											</option>
+											<option value="needs-work">Needs work</option>
+										</select></label
+									>
+								</div>
+								<label class="check-row"
+									><input id="sourceChecked" type="checkbox" /> I checked the
+									response and checklist against the linked source</label
+								>
+								<p id="assessmentCaution" class="fineprint"></p>
+								<fieldset class="gaps">
+									<legend>
+										What needs attention? <span class="muted">Optional</span>
+									</legend>
+									<div class="gap-options">
+										<label
+											><input type="checkbox" name="gap" value="rule" /> Rule
+											recall</label
+										><label
+											><input type="checkbox" name="gap" value="issue" /> Issue
+											spotting</label
+										><label
+											><input type="checkbox" name="gap" value="application" />
+											Fact-to-rule links</label
+										><label
+											><input type="checkbox" name="gap" value="distinction" />
+											Case distinctions</label
+										><label
+											><input type="checkbox" name="gap" value="timing" /> Time
+											pressure</label
+										><label
+											><input type="checkbox" name="gap" value="source" />
+											Source support</label
+										>
+									</div>
+								</fieldset>
+								<label for="assessmentNotes"
+									>A concrete observation<textarea
+										id="assessmentNotes"
+										rows="3"
+										maxlength="30000"
+										placeholder="Name the exact omission, useful distinction, or source-supported correction."
+									></textarea>
+								</label>
+								<label for="feedbackUrl"
+									>Feedback link
+									<span id="feedbackRequirement" class="muted">Optional</span
+									><input
+										id="feedbackUrl"
+										type="url"
+										maxlength="2048"
+										placeholder="https://"
+								/></label>
+								<div class="review-row">
+									<label for="nextReview"
+										>Next practice date<input
+											id="nextReview"
+											type="date"
+											required
+									/></label>
+									<p class="fineprint">
+										Adjustable defaults: 1 day for unverified / needs work, 3
+										for partial, 7 for supported. These are not optimized
+										forgetting estimates.
+									</p>
+								</div>
+								<p
+									id="assessmentError"
+									class="form-status error"
+									role="status"
+								></p>
+								<button id="saveAssessment" class="primary" type="submit">
+									Save assessment
+								</button>
+							</form>
+							<div id="assessmentSaved" hidden class="assessment-saved">
+								<p id="savedSummary"></p>
+								<div class="button-row">
+									<button id="nextPractice" class="primary">
+										Next practice</button
+									><button id="finishPractice" class="secondary">
+										Return to today
+									</button>
+								</div>
+							</div>
+						</section>
+					</div>
+				</section>
+			</main>
+			<footer class="app-footer">
+				<span>Notion is home. This is practice.</span
+				><button id="footerAbout" class="text-button">
+					Evidence &amp; limitations
+				</button>
+			</footer>
+		</div>
+		<dialog id="practiceDialog" aria-labelledby="practiceDialogHeading">
+			<div class="dialog-heading">
+				<div>
+					<p class="eyebrow">Keep it focused</p>
+					<h2 id="practiceDialogHeading">Add practice</h2>
+				</div>
+				<button
+					class="icon-button"
+					data-close="practiceDialog"
+					aria-label="Close practice editor"
+				>
+					×
+				</button>
+			</div>
+			<form id="practiceForm">
+				<input id="editId" type="hidden" />
+				<div class="form-grid">
+					<label for="courseInput"
+						>Course<input id="courseInput" required maxlength="300" /></label
+					><label for="topicInput"
+						>Topic<input id="topicInput" required maxlength="1000"
+					/></label>
+				</div>
+				<div class="form-grid">
+					<label for="kindInput"
+						>Practice category<select id="kindInput">
+							<option value="retrieve">Retrieve</option>
+							<option value="explain">Explain</option>
+							<option value="apply">Apply</option>
+							<option value="distinguish">Distinguish</option>
+							<option value="integrate">Integrate</option>
+							<option value="perform">Perform</option>
+						</select></label
+					><label for="minutesInput"
+						>Estimated minutes<input
+							id="minutesInput"
+							type="number"
+							min="1"
+							max="120"
+							value="5"
+							required
+					/></label>
+				</div>
+				<label for="promptInput"
+					>Practice question<textarea
+						id="promptInput"
+						rows="3"
+						required
+						maxlength="30000"
+					></textarea>
+				</label>
+				<label for="checklistInput"
+					>Answer checklist, with exact support<textarea
+						id="checklistInput"
+						rows="4"
+						required
+						maxlength="30000"
+						placeholder="Each essential point, with its page or paragraph pinpoint."
+					></textarea>
+				</label>
+				<label for="sourceUrlInput"
+					>Source in Notion or assigned source link<input
+						id="sourceUrlInput"
+						type="url"
+						required
+						maxlength="2048"
+						placeholder="https://"
+				/></label>
+				<div class="form-grid">
+					<label for="sourceTitleInput"
+						>Source title<input
+							id="sourceTitleInput"
+							required
+							maxlength="500" /></label
+					><label for="pinpointInput"
+						>Exact page / paragraph<input
+							id="pinpointInput"
+							required
+							maxlength="1000"
+							placeholder="e.g., paras. 12–15"
+					/></label>
+				</div>
+				<div class="form-grid">
+					<label for="sourceKindInput"
+						>Source type<select id="sourceKindInput">
+							<option value="assigned-source">Assigned primary source</option>
+							<option value="course-notes">Course / lecture notes</option>
+							<option value="rubric">Official rubric / model answer</option>
+							<option value="other">Other identified source</option>
+						</select></label
+					><label for="originInput"
+						>Checklist author<select id="originInput">
+							<option value="self">Me</option>
+							<option value="notion-ai">Notion AI, unverified</option>
+							<option value="instructor">
+								Instructor / teaching assistant
+							</option>
+						</select></label
+					>
+				</div>
+				<div class="form-grid">
+					<label for="priorityInput"
+						>Priority<select id="priorityInput">
+							<option value="medium">Medium</option>
+							<option value="high">High</option>
+							<option value="low">Low</option>
+						</select></label
+					><label for="reviewInput"
+						>Review date<input id="reviewInput" type="date" required
+					/></label>
+				</div>
+				<label class="check-row"
+					><input id="checklistCheckedInput" type="checkbox" /> I checked this
+					question and checklist against the assigned source</label
+				>
+				<label class="check-row"
+					><input id="permittedInput" type="checkbox" required /> This is
+					permitted practice, not assessed work where AI help is
+					prohibited</label
+				>
+				<p id="practiceFormError" class="form-status error" role="status"></p>
+				<div class="dialog-actions">
+					<button class="secondary" type="button" data-close="practiceDialog">
+						Cancel</button
+					><button id="savePracticeButton" class="primary" type="submit">
+						Save practice
+					</button>
+				</div>
+			</form>
+		</dialog>
+		<dialog id="importDialog" aria-labelledby="importHeading">
+			<div class="dialog-heading">
+				<div>
+					<p class="eyebrow">Notion stays the source</p>
+					<h2 id="importHeading">
+						Bring in practice, not your whole notebook.
+					</h2>
+				</div>
+				<button
+					class="icon-button"
+					data-close="importDialog"
+					aria-label="Close import"
+				>
+					×
+				</button>
+			</div>
+			<p class="fineprint">
+				Ask Notion AI to prepare a source-grounded pack from your course page.
+				You still verify every legal checklist. Gizmo data is not imported.
+			</p>
+			<button id="copyAuthoringPrompt" class="secondary">
+				Copy Notion AI instructions
+			</button>
+			<label for="importMode"
+				>Import type<select id="importMode">
+					<option value="practice">Source-linked practice pack</option>
+					<option value="backup">Restore a private version 2 backup</option>
+				</select></label
+			>
+			<label for="importInput"
+				>Paste JSON<textarea
+					id="importInput"
+					rows="7"
+					spellcheck="false"
+					placeholder="Paste the practice pack here."
+				></textarea></label
+			><label for="importFile" class="file-label"
+				>Or choose a JSON file<input
+					id="importFile"
+					type="file"
+					accept=".json,application/json" /></label
+			><button id="previewImport" class="secondary">Check import</button>
+			<div id="importPreview" class="notice" hidden>
+				<div>
+					<strong id="importPreviewTitle"></strong>
+					<p id="importPreviewText"></p>
+				</div>
+			</div>
+			<label id="importPermissionRow" class="check-row" hidden
+				><input id="importPermission" type="checkbox" /> I confirm these
+				questions are permitted practice</label
+			>
+			<p id="importError" class="form-status error" role="status"></p>
+			<div class="dialog-actions">
+				<button class="secondary" data-close="importDialog">Cancel</button
+				><button id="confirmImport" class="primary" disabled>
+					Import confirmed records
+				</button>
+			</div>
+		</dialog>
+		<dialog id="migrationDialog" aria-labelledby="migrationHeading">
+			<div class="dialog-heading">
+				<div>
+					<p class="eyebrow">A careful transition</p>
+					<h2 id="migrationHeading">
+						Preserve the record. Reset the assumptions.
+					</h2>
+				</div>
+				<button
+					class="icon-button"
+					data-close="migrationDialog"
+					aria-label="Close migration"
+				>
+					×
+				</button>
+			</div>
+			<div id="migrationSummary"></div>
+			<p>
+				Original saved data is copied to a private recovery record. Existing
+				ratings are not converted into verified learning evidence. Imported
+				questions remain drafts until you confirm their sources and practice
+				permissions.
+			</p>
+			<button id="migrationExport" class="secondary">
+				Export before migrating</button
+			><label class="check-row"
+				><input id="migrationPermission" type="checkbox" /> I understand how my
+				previous data will be preserved</label
+			>
+			<p id="migrationError" class="form-status error" role="status"></p>
+			<div class="dialog-actions">
+				<button class="secondary" data-close="migrationDialog">Not now</button
+				><button id="confirmMigration" class="primary" disabled>
+					Preserve &amp; migrate
+				</button>
+			</div>
+		</dialog>
+		<dialog id="aboutDialog" aria-labelledby="aboutHeading">
+			<div class="dialog-heading">
+				<div>
+					<p class="eyebrow">Evidence &amp; limitations</p>
+					<h2 id="aboutHeading">A practice engine. Not a legal oracle.</h2>
+				</div>
+				<button
+					class="icon-button"
+					data-close="aboutDialog"
+					aria-label="Close explanation"
+				>
+					×
+				</button>
+			</div>
+			<div class="about-copy">
+				<h3>Try first. Check second.</h3>
+				<p>
+					Your original response and self-reported conditions are recorded
+					before the answer checklist appears. Full sources stay in Notion.
+				</p>
+				<h3>Keep the source above the model.</h3>
+				<p>
+					Assigned sources, current professor guidance, and official rubrics
+					outrank generated material. External AI feedback is always
+					provisional. No AI API is called by this version.
+				</p>
+				<h3>Make narrow, attributed observations.</h3>
+				<p>
+					Pattern summaries require at least three source-checked, closed-note,
+					unaided attempts on two days. This is a conservative product rule, not
+					a validated mastery threshold. Repeating one question does not
+					establish transfer.
+				</p>
+				<h3>Schedule without false precision.</h3>
+				<p>
+					Review intervals and time estimates are editable starting points.
+					Completion, speed, and self-assessment do not become a mastery
+					percentage or predicted exam grade.
+				</p>
+				<h3>Protect practice history.</h3>
+				<p>
+					Responses and assessments are append-only. Corrections create a new
+					assessment without replacing the old one. Imports are checked before
+					confirmation; backups stay private.
+				</p>
+				<p>
+					<a
+						href="https://github.com/LordGrape/notion-widgets/blob/main/studyengine/docs/learning-evidence.md"
+						target="_blank"
+						rel="noopener noreferrer"
+						>Read the evidence basis and validation boundaries ↗</a
+					>
+				</p>
+			</div>
+		</dialog>
+		<div id="toast" class="toast" role="status" hidden></div>
+		<script src="./__SHARED_CORE__.js"></script>
+		<script type="module" src="./app.ts"></script>
+	</body>
+</html>

@@ -1,9 +1,13 @@
 node_modules/
-.npm-cache/
+build/
+app/
 scripts/
 src/
 test/
+docs/
 package.json
 package-lock.json
+build-policy.json
 tsconfig.json
 vite.config.ts
+vitest.config.ts
