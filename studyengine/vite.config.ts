@@ -1,18 +1,19 @@
-import { defineConfig } from 'vite';
-import { viteSingleFile } from 'vite-plugin-singlefile';
-import { resolve } from 'path';
+import { defineConfig } from "vite";
+import { viteSingleFile } from "vite-plugin-singlefile";
+import { resolve } from "path";
 
 export default defineConfig({
-  plugins: [viteSingleFile({ removeViteModuleLoader: true })],
-  build: {
-    outDir: '../dist',
-    emptyOutDir: false,
-    minify: false,
-    rollupOptions: {
-      input: resolve(__dirname, 'studyengine.html'),
-      output: {
-        entryFileNames: 'studyengine.js',
-      },
-    },
-  },
+	root: resolve(__dirname, "app"),
+	plugins: [viteSingleFile({ removeViteModuleLoader: true })],
+	build: {
+		outDir: resolve(__dirname, "build"),
+		emptyOutDir: true,
+		minify: false,
+		rollupOptions: {
+			input: resolve(__dirname, "app/index.html"),
+			output: {
+				entryFileNames: "studyengine.js",
+			},
+		},
+	},
 });

@@ -1,0 +1,29 @@
+{
+  "entryPoints": [
+    "studyengine/index.html",
+    "studyengine/studyengine.html",
+    "dist/studyengine.html"
+  ],
+  "protectedData": {
+    "studyengine/src/decks/french-core-2000/__fixtures__/tatoeba-eng.tsv": "a642bbc826314af1082801d062e2024507606e463c78e43de0ca9015a96606b7",
+    "studyengine/src/decks/french-core-2000/__fixtures__/tatoeba-fra.tsv": "80c39e1e978c28f2753e7b86bc642a296a2548f964f3d00d983030c8ec4e47e8",
+    "studyengine/src/decks/french-core-2000/__fixtures__/tatoeba-links.csv": "66449dea8d8dbb0005170b550b7d920fd9d60790ddd33aaf395b36ed62b212c5",
+    "studyengine/src/decks/french-core-2000/glosses-sample.json": "2409178319d86b61bc8d6da590e558bf338d90ad15558a43f186885834015cb0"
+  },
+  "obsoleteRoots": [
+    "studyengine/src/",
+    "studyengine/scripts/",
+    "studyengine/test/",
+    "studyengine/data/",
+    "studyengine/.npm-cache/",
+    "studyengine/docs/adr/"
+  ],
+  "currentDocumentation": ["studyengine/docs/adr/0008-evidence-first.md"],
+  "obsoleteFiles": [
+    "studyengine/law-school-app.js",
+    "studyengine/law-school-core.js",
+    "studyengine/law-school.css",
+    "studyengine/docs/extraction-map.md",
+    "studyengine/docs/metrics.md"
+  ]
+}
