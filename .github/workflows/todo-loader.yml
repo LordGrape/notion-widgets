@@ -17,6 +17,7 @@ jobs:
           node-version: '22'
       - run: npm install --no-save --package-lock=false playwright@1.55.0
       - run: npx playwright install --with-deps chromium
+      - run: node tools/test-todo-source.cjs
       - run: node tools/test-todo-loader.cjs
       - run: npm ci --prefix apps/todo
       - run: node apps/todo/build.mjs --check

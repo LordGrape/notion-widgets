@@ -82,3 +82,7 @@ task mutations; `TodoUIBridge` is application-local and does not alter SyncEngin
 ## Reading estimates
 
 Shared logic and editor controls live in `../../reading-estimates.js` with `../../reading-estimates.css`. Existing `plannedMinutes` is the scheduling estimate; optional `reading` metadata stores `pageMode` (`text`, `count`, `range`), page count/endpoints, pace, `manual` and `autoMinutes`. Older tasks remain compatible, including previously saved reading paces. New inferred estimates never overwrite a manual duration or existing time band. The task writer, natural entry and Command Centre use the same model. Split suggestions add session steps only after selection. Run `node tools/test-reading-estimates.cjs` for parsing, manual override and persistence checks.
+
+## Shared entry points
+
+`todo-smart-shell.html` and `todo-v2.html` both load `todo-loader.js`; `todo-sync.html` embeds the same shell. The loader composes the existing `todo.html` controller with the same upgrades and UI used by Command Centre. Required icons, reading logic and SyncEngine are fetched before mounting, with the existing public-source fallback. A missing dependency displays a load error rather than an active but broken composer. All task changes continue through the controller and `todo/tasks`; the old sync wrapper no longer installs a separate task merger.

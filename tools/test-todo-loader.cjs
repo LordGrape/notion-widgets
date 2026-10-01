@@ -11,19 +11,20 @@ const state={'todo/tasks':JSON.stringify([{id:'existing',text:'Keep existing tas
 const core=`let store=${JSON.stringify(state)};let SyncEngine={init(){},onReady(cb){cb()},get(ns,k){return store[ns+'/'+k]},set(ns,k,v){store[ns+'/'+k]=v},subscribe(){return()=>{}},onSyncStatus(){},isOnline(){return false},pull:async()=>{},push:async()=>{},flush:async()=>{}};window.testRead=()=>store;window.tiltCalls=0;window.initTilt=()=>{window.tiltCalls++};window.Core={magneticHover(){window.tiltCalls++},a11y:{announce(){}}};`;
 const items=Array.from({length:7},(_,i)=>({id:'photo-'+i,date:'2026-09-10',start:(8+i).toString().padStart(2,'0')+':00',end:(8+i).toString().padStart(2,'0')+':30',category:'study',priority:'should',course:'BIO 101',kind:'reading',title:'Photosynthesis '+i,steps:['Read','Recall']}));
 (async()=>{const browser=await chromium.launch({headless:true,...(fs.existsSync('/usr/local/bin/chromium')?{executablePath:'/usr/local/bin/chromium',args:['--no-sandbox']}: {})});
-try{for(const width of [360,1000])for(const colorScheme of ['light','dark']){
+try{for(const entry of ['todo-smart-shell.html','todo-v2.html'])for(const width of [360,1000])for(const colorScheme of ['light','dark']){
  const context=await browser.newContext({viewport:{width,height:850},colorScheme});let fallbackHits=0;
  await context.route('**/*',async route=>{const url=new URL(route.request().url());const file=url.pathname.split('/').pop();
   if(file==='todo-smart-shell.html')return route.fulfill({contentType:'text/html',body:shell});
+  if(file==='todo-loader.js')return route.fulfill({contentType:'application/javascript',body:fs.readFileSync('todo-loader.js','utf8')});
   if(file==='core.js')return route.fulfill({contentType:'application/javascript',body:core});
-  if(url.hostname==='widget.test'&&/todo-.*\.js/.test(file))return route.fulfill({status:404,body:'not found'});
+  if(url.hostname==='widget.test'&&(/todo-.*\.js/.test(file)||['widget-icons.js','reading-estimates.js'].includes(file)))return route.fulfill({status:404,body:'not found'});
   if(url.hostname==='raw.githubusercontent.com')fallbackHits++;
   let body=file==='todo.html'?original:file==='todo-v2.html'?wrapper:file==='todo-schedule-import.js'?importer:null;
   if(body===null&&fs.existsSync(path.join(root,file))&&/\.js$/.test(file))body=fs.readFileSync(path.join(root,file),'utf8');
   if(body===null)body='';return route.fulfill({contentType:/\.html$/.test(file)?'text/html':'application/javascript',body});
  });
- const page=await context.newPage();await page.goto('https://widget.test/todo-smart-shell.html');
- const app=page.frameLocator('#shell');await app.locator('#inp[data-schedule-version="5"]').waitFor();
+ const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('https://widget.test/'+entry);
+ const app=page.frameLocator(entry==='todo-v2.html'?'#app':'#shell');await app.locator('#inp[data-schedule-version="5"]').waitFor();
  const frame=page.frames().find(f=>f!==page.mainFrame());
  const paste=async()=>frame.evaluate(text=>{const d=new DataTransfer();d.setData('text/plain',text);document.getElementById('inp').dispatchEvent(new ClipboardEvent('paste',{clipboardData:d,bubbles:true,cancelable:true}))},JSON.stringify({version:1,items}));
  await paste();assert.match(await app.locator('#schedulePasteStatus').innerText(),/7 schedule items recognized/);await app.locator('#addbtn').click();
@@ -31,7 +32,7 @@ try{for(const width of [360,1000])for(const colorScheme of ['light','dark']){
  await paste();await app.locator('#inp').press('Enter');assert.equal(await frame.evaluate(()=>JSON.parse(testRead()['todo/tasks']).length),8);
  await app.locator('#inp').fill('Ordinary task after schedule');await app.locator('#addbtn').click();assert.equal(await frame.evaluate(()=>JSON.parse(testRead()['todo/tasks']).length),9);
  assert.equal(await frame.evaluate(()=>tiltCalls),0);await app.locator('#addbtn').hover();assert.equal(await app.locator('#card').evaluate(e=>getComputedStyle(e).transform),'none');assert.equal(await app.locator('#addbtn').evaluate(e=>getComputedStyle(e).transform),'none');
- assert(fallbackHits>=1);await context.close();console.log(`PASS ${real?'repository app':'isolated loader fixture'} ${width}px ${colorScheme}: 404 fallback, 7 tasks + blocks, duplicate paste, next ordinary add, fixed card/button`);
+ assert(fallbackHits>=3);assert.equal(await app.locator('#addbtn svg path').count(),1);assert.deepEqual(errors,[]);await context.close();console.log(`PASS ${real?'repository app':'isolated loader fixture'} ${entry} ${width}px ${colorScheme}: 404 fallback, 7 tasks + blocks, duplicate paste, next ordinary add, fixed card/button`);
 }
-const context=await browser.newContext();await context.route('**/*',r=>r.request().url().includes('todo-smart-shell.html')?r.fulfill({contentType:'text/html',body:shell}):r.fulfill({status:404,body:'not found'}));const page=await context.newPage();await page.goto('https://widget.test/todo-smart-shell.html');await page.locator('#error:not([hidden])').waitFor();assert.equal(await page.frameLocator('#shell').locator('#inp').count(),0);await context.close();console.log('PASS required asset unavailable: no active task input, visible failure, no mutations');
+const context=await browser.newContext();await context.route('**/*',r=>r.request().url().includes('todo-loader.js')?r.fulfill({contentType:'application/javascript',body:fs.readFileSync('todo-loader.js','utf8')}):r.request().url().includes('todo-smart-shell.html')?r.fulfill({contentType:'text/html',body:shell}):r.fulfill({status:404,body:'not found'}));const page=await context.newPage();await page.goto('https://widget.test/todo-smart-shell.html');await page.locator('#error:not([hidden])').waitFor();assert.equal(await page.frameLocator('#shell').locator('#inp').count(),0);await context.close();console.log('PASS required asset unavailable: no active task input, visible failure, no mutations');
 }finally{await browser.close()}})().catch(e=>{console.error(e);process.exitCode=1});

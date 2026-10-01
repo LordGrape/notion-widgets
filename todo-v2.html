@@ -4,15 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>To-Do</title>
-<style>*{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden;background:transparent}iframe{display:block;width:100%;height:100%;border:0;background:transparent}.load-error{display:none;margin:16px;padding:14px;border:1px solid rgba(239,68,68,.35);border-radius:12px;background:rgba(127,29,29,.12);color:#ef4444;font:600 14px/1.45 system-ui,sans-serif}</style>
+<style>*{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden;background:transparent}iframe{display:block;width:100%;height:100%;border:0;background:transparent}.load-error{display:block;margin:16px;padding:14px;border:1px solid rgba(239,68,68,.35);border-radius:12px;background:rgba(127,29,29,.12);color:#ef4444;font:600 14px/1.45 system-ui,sans-serif}[hidden]{display:none!important}</style>
 </head>
 <body>
 <iframe id="app" title="To-Do widget"></iframe>
-<div class="load-error" id="error" role="alert">The To-Do upgrade could not load. Refresh this widget.</div>
-<script>
-(function(){
-  "use strict";
-  var payload=`H4sIACaVnGoC/+0bDW/bxvWvXIQ2FmuJkePW8STbQeakazAnzZIUw2AJBUWepKsokiWPkl3H++17790deaRIx8rSFhuCABZ5H+/7
+<div class="load-error" id="error" role="alert" hidden>To-Do could not load safely. Your saved tasks have not been changed. Refresh to retry.</div>
+<script type="text/plain" id="todo-upgrade">var payload=`H4sIACaVnGoC/+0bDW/bxvWvXIQ2FmuJkePW8STbQeakazAnzZIUw2AJBUWepKsokiWPkl3H++17790deaRIx8rSFhuCABZ5H+/7
 8465vOy4/kIkbuBmXN5MPX85T+M8CoZrL+32+57v80j2k1SsvPTauR1H4+jRN+xCZJJ986jT23U3LV/xKL9J4kxIEUfDmbjiwei3
 vogCfjU8GAyOBqOViPobEcjF8OD4OLkaJV4QiGg+PILnLSxZns48n/cPndE0TgOeDg+SK5bFoQiYWqGG+wGfeXkozbJ+6gUizzQU
 9dJfBTh91c8WXhBvDAZ6UXOAPUjjpD8ToQRUGkGYp/156GWZM+pv+HQpZP+jK21x9KWQIb8xfH4HDADf7Anw68dhbHZLfiXhTyoF
@@ -64,11 +61,6 @@ xrwF9wJXw34WBKBJaL2m8ZoDVoZxJYP4Aky65hPE/5qHrr3H0qK9Df83QZCHPFAENvPufEbm7yKqrSFF
 blSnHLl1lQN2RUaOgq0zDhve1X43i1NpnW94PTa1jjgg3731omXXc6CANy+w4MMHRv9L5MeZmjIv00oZ9Ml0dsu1FZHay0uapUXw
 gwd3fl111tAQIsVaNs5Owmkh0nSWXoG1b7BOiyEQ4O6yJdF8wjalE2M91NvVdVEcMqsSDcxOZkBxw/UGmCjpSd0TPVJ3SDKWXkjD
 oy0wF+rUbuvGptiCMivBIlmVOfCMMCS8ZTxg43H+/PjwHH++P/6L9iBaUzA0bAwLsvL95a26Lrgn72R++r917OOnE+UrUn2g7ouK
-SKOpagw9H5cPMlMiw4NDqCJDDsGgpF772ReNbmm0KpLSP+8tFRMCSnXXRiyNG/AVrVcGd9I8Vqy1LPZ/Yq6TyX8A2pNn7mg+AAA=`.replace(/\s/g,"");
-  function decode(){var bytes=Uint8Array.from(atob(payload),function(c){return c.charCodeAt(0)});return new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"))).text()}
-  function count(haystack,needle){var n=0,pos=0;while((pos=haystack.indexOf(needle,pos))!==-1){n++;pos+=needle.length}return n}
-  Promise.all([decode(),fetch("todo.html?source=20260905-context-menu-v2",{cache:"no-store"}).then(function(r){if(!r.ok)throw new Error("Source request failed: "+r.status);return r.text()})]).then(function(values){var patches=JSON.parse(values[0]),source=values[1];patches.forEach(function(pair,index){var matches=count(source,pair[0]);if(matches!==1)throw new Error("Patch "+(index+1)+" expected one match, found "+matches);source=source.replace(pair[0],pair[1])});source=source.replace("<head>",'<head><base href="./">');document.getElementById("app").srcdoc=source}).catch(function(error){console.error(error);document.getElementById("app").style.display="none";document.getElementById("error").style.display="block"});
-})();
-</script>
-</body>
-</html>
+SKOpagw9H5cPMlMiw4NDqCJDDsGgpF772ReNbmm0KpLSP+8tFRMCSnXXRiyNG/AVrVcGd9I8Vqy1LPZ/Yq6TyX8A2pNn7mg+AAA=`</script>
+<script src="todo-loader.js?v=20261001-shared-todo" onerror="document.querySelector('iframe').hidden=true;document.getElementById('error').hidden=false"></script>
+</body></html>
