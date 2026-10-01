@@ -16,7 +16,7 @@ import {
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261001-command-views-v1";
+	REVISION = "20261001-live-calendar-v2";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -278,6 +278,7 @@ function refresh() {
 	);
 	syncStatus(online ? "Synced" : "Saved locally", !online);
 	updateTimer();
+	updateCalendarTime();
 }
 function occurrences(date) {
 	return engines.timetable?.occurrencesForDate(localDate(isoDate(date))) || [];
@@ -342,11 +343,32 @@ function hourLines(start, end, hour = 76) {
 	return s;
 }
 function nowLine(start, end, hour = 76, date = isoDate()) {
+	return `<div class="calendar-time" data-time-date="${date}" data-time-start="${start}" data-time-end="${end}" data-time-hour="${hour}" aria-hidden="true"><div class="elapsed-time"></div><div class="now-line" hidden><i class="now-orb"></i><span class="now-badge"><i></i><b>NOW</b><time></time></span></div></div>`;
+}
+function updateCalendarTime() {
 	const now = new Date(),
-		m = now.getHours() * 60 + now.getMinutes();
-	return date === isoDate() && m >= start && m <= end
-		? `<div class="now-line" style="top:${((m - start) * hour) / 60}px"><span>${timeString(m)}</span></div>`
-		: "";
+		today = isoDate(now);
+	const minute =
+		now.getHours() * 60 +
+		now.getMinutes() +
+		now.getSeconds() / 60 +
+		now.getMilliseconds() / 60000;
+	for (const layer of document.querySelectorAll(".calendar-time")) {
+		const current = layer.dataset.timeDate === today;
+		layer.hidden = !current;
+		if (!current) continue;
+		const start = Number(layer.dataset.timeStart),
+			end = Number(layer.dataset.timeEnd),
+			hour = Number(layer.dataset.timeHour);
+		const position =
+			((Math.max(start, Math.min(end, minute)) - start) * hour) / 60;
+		layer.style.setProperty("--now-position", `${position}px`);
+		const line = layer.querySelector(".now-line");
+		line.hidden = minute < start || minute > end;
+		const time = line.querySelector("time");
+		time.textContent = timeString(Math.floor(minute));
+		time.dateTime = now.toISOString();
+	}
 }
 function renderToday() {
 	const events = occurrences(new Date()),
@@ -370,6 +392,7 @@ function render() {
 	decorate();
 	bindWorkspace();
 	updateTimer();
+	updateCalendarTime();
 }
 function renderDock() {
 	const current = activeTask(),
@@ -919,6 +942,9 @@ document.addEventListener("keydown", (e) => {
 		e.preventDefault();
 		changeTheme();
 	}
+});
+document.addEventListener("visibilitychange", () => {
+	if (!document.hidden) refresh();
 });
 $("#unlockForm").onsubmit = async (e) => {
 	e.preventDefault();

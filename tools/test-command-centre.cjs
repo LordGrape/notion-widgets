@@ -174,6 +174,114 @@ let states = {
 		await page
 			.getByRole("button", { name: "Read assigned case", exact: true })
 			.waitFor();
+		// The live indicator must move without rebuilding the calendar or losing input.
+		const checkLiveTime = async () => {
+			const noon = await page.evaluate(() => new Date().setHours(12, 0, 0, 0));
+			await page.evaluate((value) => {
+				window.calendarTestNow = value;
+				if (!window.NativeDate) {
+					window.NativeDate = Date;
+					window.Date = class extends window.NativeDate {
+						constructor(...args) {
+							super(...(args.length ? args : [window.calendarTestNow]));
+						}
+						static now() {
+							return window.calendarTestNow;
+						}
+					};
+				}
+			}, noon);
+			await page.waitForFunction(
+				() =>
+					document.querySelector(".now-line:not([hidden]) time")
+						?.textContent === "12:00",
+			);
+			await page.waitForTimeout(1500); // Let task/sync writes settle before testing time alone.
+			const before = await page.evaluate(() => {
+				window.testTimeLayer = document.querySelector(
+					".calendar-time:not([hidden])",
+				);
+				return parseFloat(
+					testTimeLayer.style.getPropertyValue("--now-position"),
+				);
+			});
+			await page.evaluate(
+				(value) => {
+					window.calendarTestNow = value;
+				},
+				noon + 15.5 * 60000,
+			);
+			await page.waitForFunction(
+				() =>
+					document.querySelector(".now-line:not([hidden]) time")
+						?.textContent === "12:15",
+			);
+			const result = await page.evaluate(() => ({
+				same:
+					testTimeLayer ===
+					document.querySelector(".calendar-time:not([hidden])"),
+				position: parseFloat(
+					testTimeLayer.style.getPropertyValue("--now-position"),
+				),
+				shade: parseFloat(
+					getComputedStyle(testTimeLayer.querySelector(".elapsed-time")).height,
+				),
+			}));
+			assert(result.same, "Time updates must preserve the calendar DOM");
+			assert(Math.abs(result.position - before - (15.5 * 76) / 60) < 0.05);
+			assert(Math.abs(result.shade - result.position) < 0.05);
+			await page.evaluate(
+				(value) => {
+					window.calendarTestNow = value;
+				},
+				noon - 4 * 3600000,
+			);
+			await page.waitForFunction(
+				() =>
+					document.querySelector(".calendar-time:not([hidden]) .now-line")
+						.hidden,
+			);
+			await page.evaluate(
+				(value) => {
+					window.calendarTestNow = value;
+				},
+				noon + 6 * 3600000,
+			);
+			await page.waitForFunction(
+				() =>
+					document.querySelector(".calendar-time:not([hidden]) .now-line")
+						.hidden &&
+					parseFloat(
+						document
+							.querySelector(".calendar-time:not([hidden])")
+							.style.getPropertyValue("--now-position"),
+					) > 0,
+			);
+			await page.evaluate((value) => {
+				window.calendarTestNow = value;
+				if (!window.NativeDate) {
+					window.NativeDate = Date;
+					window.Date = class extends window.NativeDate {
+						constructor(...args) {
+							super(...(args.length ? args : [window.calendarTestNow]));
+						}
+						static now() {
+							return window.calendarTestNow;
+						}
+					};
+				}
+			}, noon);
+			await page.waitForFunction(
+				() =>
+					!document.querySelector(".calendar-time:not([hidden]) .now-line")
+						.hidden,
+			);
+			await page.evaluate(() => {
+				window.Date = window.NativeDate;
+				delete window.NativeDate;
+			});
+		};
+		await checkLiveTime();
 		await page.screenshot({
 			path: path.join(out, "A-today-light.png"),
 			fullPage: true,
@@ -204,6 +312,8 @@ let states = {
 		assert((await getTasks()).some((t) => t.text === "Synthetic new task"));
 		// B: click-to-schedule uses the same task and one dated block, never recurrence.
 		await page.locator(".view-tabs [data-view=plan]").click();
+		await checkLiveTime();
+		assert.equal(await page.locator(".calendar-time:not([hidden])").count(), 1);
 		await page.screenshot({
 			path: path.join(out, "B-plan-light.png"),
 			fullPage: true,
