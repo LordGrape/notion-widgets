@@ -546,6 +546,7 @@ function clean(v){return (v&&v!=='TBA')?v:''}
 function decorateBlock(block,source){
   var category=String(source&&source.category||'').toLowerCase();if(/^(class|study|training|personal)$/.test(category))block.category=category;
   if(hasOwn(source,'trackCompletion'))block.trackCompletion=!!source.trackCompletion;if(hasOwn(source,'actionable'))block.actionable=!!source.actionable;
+  if(hasOwn(source,'eventType'))block.eventType=String(source.eventType||'');
   if(/^\d{4}-\d{2}-\d{2}$/.test(String(source&&source.startDate||'')))block.startDate=String(source.startDate);
   if(/^\d{4}-\d{2}-\d{2}$/.test(String(source&&source.endDate||'')))block.endDate=String(source.endDate);
   if(hasOwn(source,'outcomeGoal'))block.outcomeGoal=String(source.outcomeGoal||'');
@@ -1017,7 +1018,7 @@ function openEventComposer(initialDate){
   document.body.appendChild(overlay);var name=overlay.querySelector('#eventName'),date=overlay.querySelector('#eventDate'),start=overlay.querySelector('#eventStart'),end=overlay.querySelector('#eventEnd'),notes=overlay.querySelector('#eventNotes'),link=overlay.querySelector('#eventToDo'),warning=overlay.querySelector('#eventWarning');
   function close(){overlay.remove()}function validate(){var valid=!!(date.value&&start.value&&end.value&&mins(end.value)>mins(start.value));warning.textContent=valid?'':'Choose an end time after the start.';return valid}
   overlay.querySelectorAll('[data-event-close]').forEach(function(button){button.addEventListener('click',close)});overlay.addEventListener('click',function(e){if(e.target===overlay)close()});[date,start,end].forEach(function(input){input.addEventListener('input',validate)});
-  overlay.querySelector('[data-event-save]').addEventListener('click',function(){var title=name.value.trim();if(!title){warning.textContent='Give the event a name.';name.focus();return}if(!validate()){warning.textContent='Choose a valid date and time range.';return}var eventKey=date.value,event={id:genId(),name:title,description:notes.value.trim(),location:'',color:nextAvailableColor(),category:'personal',trackCompletion:!!link.checked,startDate:eventKey,endDate:eventKey,days:[{day:parseScheduleDate(eventKey).getDay(),start:start.value,end:end.value,location:''}],overrides:[]};saveBlocks(schedule.concat([event]));if(link.checked)createLinkedEventTask(event,eventKey,start.value,end.value,notes.value.trim());render();drawSaved();sfx('start');close()});
+  overlay.querySelector('[data-event-save]').addEventListener('click',function(){var title=name.value.trim();if(!title){warning.textContent='Give the event a name.';name.focus();return}if(!validate()){warning.textContent='Choose a valid date and time range.';return}var eventKey=date.value,event={id:genId(),name:title,description:notes.value.trim(),location:'',color:nextAvailableColor(),category:'personal',eventType:'reminder',trackCompletion:!!link.checked,startDate:eventKey,endDate:eventKey,days:[{day:parseScheduleDate(eventKey).getDay(),start:start.value,end:end.value,location:''}],overrides:[]};saveBlocks(schedule.concat([event]));if(link.checked)createLinkedEventTask(event,eventKey,start.value,end.value,notes.value.trim());render();drawSaved();sfx('start');close()});
   setTimeout(function(){name.focus()},80);
 }
 var restoreArmed=false,restoreTimer=null;

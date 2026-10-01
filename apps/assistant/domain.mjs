@@ -27,6 +27,21 @@ export const duration = (t = {}) =>
 				),
 			)
 		: { quick: 15, m30: 30, m60: 60, deep: 120 }[t.time] || 0);
+export const isCalendarReminder = (task, courses = []) => {
+	if (task?.calendarReminder || task?.eventType === "reminder") return true;
+	if (task?.source !== "timetable" || !task.scheduleId) return false;
+	const block = courses.find((item) => item?.id === task.scheduleId);
+	return !!(
+		block &&
+		(block.eventType === "reminder" ||
+			(block.category === "personal" &&
+				block.trackCompletion &&
+				block.startDate &&
+				block.startDate === block.endDate))
+	);
+};
+export const focusTasks = (tasks, courses = []) =>
+	tasks.filter((task) => !isCalendarReminder(task, courses));
 export function todayTasks(tasks, now = new Date()) {
 	const key = isoDate(now);
 	return tasks.filter((t) =>

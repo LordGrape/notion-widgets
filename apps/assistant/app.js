@@ -9,6 +9,8 @@ import {
 	minutes,
 	timeString,
 	duration,
+	focusTasks,
+	isCalendarReminder,
 	todayTasks,
 	intervals,
 	gaps,
@@ -19,7 +21,7 @@ import {
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261001-shared-todo";
+	REVISION = "20261001-calendar-reminders";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -95,11 +97,9 @@ function task(id) {
 	return tasks.find((t) => t.id === id);
 }
 function activeTask() {
-	return (
-		task(selectedId) ||
-		todayTasks(tasks).find((t) => !t.done && t.pri !== "could") ||
-		tasks.find((t) => !t.done)
-	);
+	const available = focusTasks(tasks, courses);
+	const selected = available.find((t) => t.id === selectedId && !t.done);
+	return selected || todayTasks(available).find((t) => !t.done && t.pri !== "could");
 }
 function engineWindow(type) {
 	try {
@@ -268,9 +268,12 @@ function refresh() {
 		setting = typeof raw === "string" ? JSON.parse(raw) : raw;
 	} catch {}
 	target = setting?.date === dateKey() ? setting.count : 1;
-	goal = dailyGoal(tasks, target);
+	goal = dailyGoal(focusTasks(tasks, courses), target);
 	const context = engines.clock.SyncEngine.get("clock", "commandTask");
-	if (!selectedId && context?.taskId && task(context.taskId))
+	if (context?.taskId && isCalendarReminder(task(context.taskId), courses)) {
+		selectedId = null;
+		engines.clock.SyncEngine.set("clock", "commandTask", { taskId: null });
+	} else if (!selectedId && context?.taskId && task(context.taskId))
 		selectedId = context.taskId;
 	const next = JSON.stringify([
 		tasks,
@@ -307,10 +310,11 @@ function finishLine(compact = false) {
 }
 function taskRow(t, planner = false) {
 	const m = duration(t);
-	return `<div class="task-row ${t.done ? "done" : ""}" data-task="${esc(t.id)}" ${!planner && !t.done ? `draggable="true" data-drag="${esc(t.id)}"` : ""}>${!t.done ? `<button class="drag-handle icon-button ${planner ? "" : "today-grip"}" title="Drag to schedule; click to choose a time" data-action="schedule" data-id="${esc(t.id)}" draggable="true" data-drag="${esc(t.id)}" aria-label="Drag ${esc(t.text)} to the calendar">${icon("grip")}</button>` : ""}<button class="check-button ${t.done ? "checked" : ""}" data-action="toggle" data-id="${esc(t.id)}" aria-label="${t.done ? "Reopen" : "Complete"} ${esc(t.text)}">${t.done ? icon("check") : ""}</button><button class="task-title" data-action="edit" data-id="${esc(t.id)}">${esc(t.text)}${planner ? `<small class="planner-task-meta"><span class="priority-chip ${t.pri || "must"}">${t.pri === "could" ? "Could" : t.pri === "should" ? "Should" : "Must"}</span>${m ? `${m} min` : "No estimate"}</small>` : ""}</button>${!planner && m ? `<span class="task-meta">${icon("clock")}${m} min</span>` : ""}<div class="task-actions"><button class="icon-button" data-action="select-focus" data-id="${esc(t.id)}" aria-label="Focus on ${esc(t.text)}" title="Focus on this task">${icon("play")}</button><button class="icon-button" data-action="${planner ? "schedule" : "edit"}" data-id="${esc(t.id)}" aria-label="${planner ? "Schedule" : "Edit"} ${esc(t.text)}">${icon(planner ? "calendar" : "more")}</button></div></div>`;
+	const focusable = !isCalendarReminder(t, courses);
+	return `<div class="task-row ${t.done ? "done" : ""}" data-task="${esc(t.id)}" ${!planner && !t.done ? `draggable="true" data-drag="${esc(t.id)}"` : ""}>${!t.done ? `<button class="drag-handle icon-button ${planner ? "" : "today-grip"}" title="Drag to schedule; click to choose a time" data-action="schedule" data-id="${esc(t.id)}" draggable="true" data-drag="${esc(t.id)}" aria-label="Drag ${esc(t.text)} to the calendar">${icon("grip")}</button>` : ""}<button class="check-button ${t.done ? "checked" : ""}" data-action="toggle" data-id="${esc(t.id)}" aria-label="${t.done ? "Reopen" : "Complete"} ${esc(t.text)}">${t.done ? icon("check") : ""}</button><button class="task-title" data-action="edit" data-id="${esc(t.id)}">${esc(t.text)}${planner ? `<small class="planner-task-meta"><span class="priority-chip ${t.pri || "must"}">${t.pri === "could" ? "Could" : t.pri === "should" ? "Should" : "Must"}</span>${m ? `${m} min` : "No estimate"}</small>` : ""}</button>${!planner && m ? `<span class="task-meta">${icon("clock")}${m} min</span>` : ""}<div class="task-actions">${focusable ? `<button class="icon-button" data-action="select-focus" data-id="${esc(t.id)}" aria-label="Focus on ${esc(t.text)}" title="Focus on this task">${icon("play")}</button>` : ""}<button class="icon-button" data-action="${planner ? "schedule" : "edit"}" data-id="${esc(t.id)}" aria-label="${planner ? "Schedule" : "Edit"} ${esc(t.text)}">${icon(planner ? "calendar" : "more")}</button></div></div>`;
 }
 function taskGroups() {
-	const list = todayTasks(tasks).sort(
+	const list = todayTasks(focusTasks(tasks, courses)).sort(
 		(a, b) => (a.order ?? a.created) - (b.order ?? b.created),
 	);
 	return ["must", "should", "could"]
@@ -387,7 +391,7 @@ function updateCalendarTime() {
 function renderToday() {
 	const events = occurrences(new Date()),
 		{ start, end } = timeRange(events);
-	return `<div class="today-layout"><section class="surface tasks-surface"><div class="today-heading"><div><h2>Today</h2><p class="date-copy">${dateLabel(new Date())}</p></div>${finishLine()}</div><form class="composer" id="quickAdd"><input name="task" aria-label="Add a task" placeholder="Add a task for today…" autocomplete="off" required><button class="primary" aria-label="Add task">${icon("plus")}</button><button type="button" data-action="add" aria-label="Add task with details">${icon("more")}</button></form>${taskGroups()}<div class="tasks-footer"><button class="text-button" data-action="all-tasks">All tasks · ${tasks.filter((t) => !t.done).length} open</button><button class="text-button" data-action="standalone" data-type="todo">Open To-Do separately ↗</button></div></section><section class="surface agenda-surface"><div class="section-heading"><h2>Your day</h2><span>${new Date().toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" })}</span></div><div class="agenda-scroll"><div class="timeline" data-drop-calendar data-date="${isoDate()}" data-start="${start}" data-end="${end}" style="--timeline-height:${((end - start) * 76) / 60}px">${hourLines(start, end)}${events.map((e) => eventMarkup(e, start)).join("")}${nowLine(start, end)}</div></div><div class="tasks-footer"><button class="text-button" data-action="view" data-view="plan">Open planner ${icon("right")}</button><button class="text-button" data-action="standalone" data-type="timetable">Timetable ↗</button></div></section></div>`;
+	return `<div class="today-layout"><section class="surface tasks-surface"><div class="today-heading"><div><h2>Today</h2><p class="date-copy">${dateLabel(new Date())}</p></div>${finishLine()}</div><form class="composer" id="quickAdd"><input name="task" aria-label="Add a task" placeholder="Add a task for today…" autocomplete="off" required><button class="primary" aria-label="Add task">${icon("plus")}</button><button type="button" data-action="add" aria-label="Add task with details">${icon("more")}</button></form>${taskGroups()}<div class="tasks-footer"><button class="text-button" data-action="all-tasks">All tasks · ${focusTasks(tasks, courses).filter((t) => !t.done).length} open</button><button class="text-button" data-action="standalone" data-type="todo">Open To-Do separately ↗</button></div></section><section class="surface agenda-surface"><div class="section-heading"><h2>Your day</h2><span>${new Date().toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" })}</span></div><div class="agenda-scroll"><div class="timeline" data-drop-calendar data-date="${isoDate()}" data-start="${start}" data-end="${end}" style="--timeline-height:${((end - start) * 76) / 60}px">${hourLines(start, end)}${events.map((e) => eventMarkup(e, start)).join("")}${nowLine(start, end)}</div></div><div class="tasks-footer"><button class="text-button" data-action="view" data-view="plan">Open planner ${icon("right")}</button><button class="text-button" data-action="standalone" data-type="timetable">Timetable ↗</button></div></section></div>`;
 }
 function render() {
 	if (!engines.todo) return;
@@ -533,7 +537,7 @@ function bindWorkspace() {
 	});
 }
 function selectFocus(id) {
-	if (!task(id) || task(id).done) {
+	if (!task(id) || task(id).done || isCalendarReminder(task(id), courses)) {
 		notify("Choose an open task to focus on.");
 		return;
 	}
@@ -1102,7 +1106,7 @@ function renderPlan() {
 	const events = dates.map(occurrences),
 		all = events.flat(),
 		{ start, end } = timeRange(all);
-	const open = tasks
+	const open = focusTasks(tasks, courses)
 		.filter((t) => !t.done && !t.scheduledStart)
 		.sort(
 			(a, b) =>
@@ -1133,7 +1137,7 @@ function formatMinutes(n) {
 }
 function renderFocus() {
 	const current = activeTask(),
-		next = todayTasks(tasks).find(
+		next = todayTasks(focusTasks(tasks, courses)).find(
 			(t) => !t.done && t.id !== current?.id && t.pri !== "could",
 		),
 		events = occurrences(new Date()),
@@ -1146,7 +1150,7 @@ function renderFocus() {
 		"could",
 	]
 		.map((pri) => {
-			const list = todayTasks(tasks).filter(
+			const list = todayTasks(focusTasks(tasks, courses)).filter(
 				(t) =>
 					(t.pri === "should" || t.pri === "could" ? t.pri : "must") === pri,
 			);

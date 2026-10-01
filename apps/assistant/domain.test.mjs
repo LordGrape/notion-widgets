@@ -8,6 +8,8 @@ import {
 	validateSlot,
 	suggestSlot,
 	duration,
+	focusTasks,
+	isCalendarReminder,
 } from "./domain.mjs";
 test("capacity merges overlaps and preserves usable gaps", () => {
 	const e = [
@@ -69,6 +71,31 @@ test("duration uses explicit estimates and exact scheduled windows", () => {
 		}),
 		45,
 	);
+});
+
+test("one-off personal calendar reminders stay out of focus and daily work", () => {
+	const haircut = {
+		id: "tt:haircut:tuesday",
+		text: "Haircut",
+		pri: "should",
+		due: "future",
+		source: "timetable",
+		scheduleId: "haircut-event",
+		scheduledStart: "2026-10-06T14:00:00.000Z",
+	};
+	const courses = [{
+		id: "haircut-event",
+		name: "Haircut",
+		category: "personal",
+		trackCompletion: true,
+		startDate: "2026-10-06",
+		endDate: "2026-10-06",
+	}];
+	assert.equal(isCalendarReminder(haircut, courses), true);
+	assert.deepEqual(focusTasks([haircut], courses), []);
+	assert.equal(isCalendarReminder({ source: "timetable", scheduleId: "weekly-study" }, [
+		{ id: "weekly-study", category: "study", trackCompletion: true },
+	]), false);
 });
 
 test("drop suggestions fit a complete task into the next available gap", () => {
