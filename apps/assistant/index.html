@@ -63,7 +63,7 @@
 				<div class="header-actions">
 					<button id="searchButton" class="search-trigger">
 						<span data-icon="search"></span><span>Search tasks or actions…</span
-						><kbd>⌘ K</kbd></button
+						><kbd data-shortcut="K">Ctrl + K</kbd></button
 					><span class="sync-state" id="syncState" role="status"
 						><i></i><span>Connecting…</span></span
 					><button
@@ -119,8 +119,9 @@
 				allow="notifications"
 			></iframe>
 		</div>
+		<script src="../../widget-platform.js?v=20261001-platform"></script>
 		<script src="./remember.js"></script>
 		<script src="../../widget-icons.js?v=20261001-duotone-b"></script>
-		<script type="module" src="./app.js?v=20261001-reading-views"></script>
+		<script type="module" src="./app.js?v=20261001-platform"></script>
 	</body>
 </html>

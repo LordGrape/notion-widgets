@@ -20,6 +20,7 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm check:assistant
       - run: node tools/build-widget-icons.mjs --check
+      - run: node tools/build-widget-platform.mjs --check
 
   studyengine:
     name: studyengine (typecheck + test)
