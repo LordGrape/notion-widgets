@@ -6,6 +6,68 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Athlete</title>
 <meta name="athlete-build" content="single-file-v2.3">
+<script data-athlete-inline="widget-icons.js">
+/* Soft Duotone B. Original SVG geometry, 24px grid, 1.65px rounded strokes.
+ * Public UI assets only. No user content or persistence is inspected.
+ * Hydration is opt-in through data-widget-icon; data-icon belongs to Command Centre.
+ */
+(function(global){"use strict";
+const paths = {
+  "minus": "<path d=\"M5 12h14\"/>",
+  "command": "<g class=\"wi-tone\" fill=\"var(--wi-soft)\" stroke=\"none\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"10\" rx=\"2\"/></g><rect x=\"3\" y=\"3\" width=\"7\" height=\"10\" rx=\"2\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"6\" rx=\"2\"/><rect x=\"3\" y=\"17\" width=\"7\" height=\"4\" rx=\"1.5\"/><rect x=\"14\" y=\"13\" width=\"7\" height=\"8\" rx=\"2\"/>",
+  "todo": "<g class=\"wi-tone\" fill=\"var(--wi-soft)\" stroke=\"none\"><rect x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"3\"/></g><rect x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"3\"/><path d=\"m7 8 1 1 2-2m-3 7 1 1 2-2m3-5h4m-4 6h4m-10 4h10\"/>",
+  "calendar": "<g class=\"wi-tone\" fill=\"var(--wi-soft)\" stroke=\"none\"><rect x=\"3\" y=\"5\" width=\"18\" height=\"16\" rx=\"3\"/></g><rect x=\"3\" y=\"5\" width=\"18\" height=\"16\" rx=\"3\"/><path d=\"M8 3v4m8-4v4M3 11h18\"/><rect x=\"7\" y=\"14\" width=\"4\" height=\"3\" rx=\"1\"/>",
+  "clock": "<g class=\"wi-tone\" fill=\"var(--wi-soft)\" stroke=\"none\"><circle cx=\"12\" cy=\"12\" r=\"9\"/></g><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 7v5l4 2\"/>",
+  "book": "<g class=\"wi-tone\" fill=\"var(--wi-soft)\" stroke=\"none\"><path d=\"M12 6C9 3 5 3 3 4v15c3-1 6-1 9 1 3-2 6-2 9-1V4c-2-1-6-1-9 2Zm0 0v14\"/></g><path d=\"M12 6C9 3 5 3 3 4v15c3-1 6-1 9 1 3-2 6-2 9-1V4c-2-1-6-1-9 2Zm0 0v14\"/><path d=\"M6 8h3m-3 4h3m6-4h3m-3 4h3\"/>",
+  "athlete": "<g class=\"wi-tone\" fill=\"var(--wi-soft)\" stroke=\"none\"><path d=\"m8 8 8 8M4 10l6-6m4 16 6-6M3 7l4-4m10 18 4-4\"/></g><path d=\"m8 8 8 8M4 10l6-6m4 16 6-6M3 7l4-4m10 18 4-4\"/><rect x=\"4\" y=\"5\" width=\"5\" height=\"7\" rx=\"1.2\" transform=\"rotate(-45 6.5 8.5)\"/><rect x=\"15\" y=\"12\" width=\"5\" height=\"7\" rx=\"1.2\" transform=\"rotate(-45 17.5 15.5)\"/>",
+  "quotes": "<g class=\"wi-tone\" fill=\"var(--wi-soft)\" stroke=\"none\"><path d=\"M4 5h6v7c0 4-2 6-5 7v-3c2-1 2-2 2-4H4Zm10 0h6v7c0 4-2 6-5 7v-3c2-1 2-2 2-4h-3Z\"/></g><path d=\"M4 5h6v7c0 4-2 6-5 7v-3c2-1 2-2 2-4H4Zm10 0h6v7c0 4-2 6-5 7v-3c2-1 2-2 2-4h-3Z\"/>",
+  "lineup": "<g class=\"wi-tone\" fill=\"var(--wi-soft)\" stroke=\"none\"><rect x=\"3\" y=\"2\" width=\"18\" height=\"20\" rx=\"3\"/></g><rect x=\"3\" y=\"2\" width=\"18\" height=\"20\" rx=\"3\"/><path d=\"M3 12h18M8 2v4h8V2M8 22v-4h8v4\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/>",
+  "search": "<g class=\"wi-tone\" fill=\"var(--wi-soft)\" stroke=\"none\"><circle cx=\"10.5\" cy=\"10.5\" r=\"7\"/></g><circle cx=\"10.5\" cy=\"10.5\" r=\"7\"/><path d=\"m16 16 5 5\"/>",
+  "settings": "<g class=\"wi-tone\" fill=\"var(--wi-soft)\" stroke=\"none\"><path d=\"m9 3-1 3-3 1 1 3-2 2 2 2-1 3 3 1 1 3h6l1-3 3-1-1-3 2-2-2-2 1-3-3-1-1-3Z\"/></g><path d=\"m9 3-1 3-3 1 1 3-2 2 2 2-1 3 3 1 1 3h6l1-3 3-1-1-3 2-2-2-2 1-3-3-1-1-3Z\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/>",
+  "sun": "<g class=\"wi-tone\" fill=\"var(--wi-soft)\" stroke=\"none\"><circle cx=\"12\" cy=\"12\" r=\"4\"/></g><circle cx=\"12\" cy=\"12\" r=\"4\"/><path d=\"M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1 1m12 12 1 1M5 19l1-1M18 6l1-1\"/>",
+  "moon": "<g class=\"wi-tone\" fill=\"var(--wi-soft)\" stroke=\"none\"><path d=\"M20 14A8 8 0 0 1 10 4a8 8 0 1 0 10 10Z\"/></g><path d=\"M20 14A8 8 0 0 1 10 4a8 8 0 1 0 10 10Z\"/>",
+  "play": "<g class=\"wi-tone\" fill=\"var(--wi-soft)\" stroke=\"none\"><path d=\"m8 4 12 8-12 8Z\"/></g><path d=\"m8 4 12 8-12 8Z\"/>",
+  "pause": "<g class=\"wi-tone\" fill=\"var(--wi-soft)\" stroke=\"none\"><rect x=\"5\" y=\"4\" width=\"4\" height=\"16\" rx=\"1.5\"/></g><rect x=\"5\" y=\"4\" width=\"4\" height=\"16\" rx=\"1.5\"/><rect x=\"15\" y=\"4\" width=\"4\" height=\"16\" rx=\"1.5\"/>",
+  "check": "<path d=\"m5 12 4 4L19 6\"/>",
+  "close": "<path d=\"m6 6 12 12M6 18 18 6\"/>",
+  "plus": "<path d=\"M12 5v14M5 12h14\"/>",
+  "chevron": "<path d=\"m6 9 6 6 6-6\"/>",
+  "right": "<path d=\"m9 6 6 6-6 6\"/>",
+  "reset": "<path d=\"M3 10a9 9 0 1 1 2 9M3 4v6h6\"/>",
+  "grip": "<circle cx=\"8\" cy=\"5\" r=\"1\"/><circle cx=\"16\" cy=\"5\" r=\"1\"/><circle cx=\"8\" cy=\"12\" r=\"1\"/><circle cx=\"16\" cy=\"12\" r=\"1\"/><circle cx=\"8\" cy=\"19\" r=\"1\"/><circle cx=\"16\" cy=\"19\" r=\"1\"/>",
+  "flag": "<g class=\"wi-tone\" fill=\"var(--wi-soft)\" stroke=\"none\"><path d=\"M5 21V3c5-3 9 3 14 0v10c-5 3-9-3-14 0\"/></g><path d=\"M5 21V3c5-3 9 3 14 0v10c-5 3-9-3-14 0\"/>",
+  "list": "<path d=\"M9 6h12M9 12h12M9 18h12M3 6h1M3 12h1M3 18h1\"/>",
+  "more": "<circle cx=\"12\" cy=\"5\" r=\"1\"/><circle cx=\"12\" cy=\"12\" r=\"1\"/><circle cx=\"12\" cy=\"19\" r=\"1\"/>",
+  "edit": "<path d=\"m15 4 5 5M4 20l5-1L20 8a3.5 3.5 0 0 0-5-5L4 14Z\"/>",
+  "up": "<path d=\"M12 20V4m-7 7 7-7 7 7\"/>",
+  "down": "<path d=\"M12 4v16m-7-7 7 7 7-7\"/>",
+  "copy": "<g class=\"wi-tone\" fill=\"var(--wi-soft)\" stroke=\"none\"><rect x=\"8\" y=\"8\" width=\"13\" height=\"13\" rx=\"3\"/></g><rect x=\"8\" y=\"8\" width=\"13\" height=\"13\" rx=\"3\"/><path d=\"M16 8V6a3 3 0 0 0-3-3H6a3 3 0 0 0-3 3v7a3 3 0 0 0 3 3h2\"/>",
+  "trash": "<path d=\"M4 6h16M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7m4-7v7\"/>",
+  "lock": "<g class=\"wi-tone\" fill=\"var(--wi-soft)\" stroke=\"none\"><rect x=\"5\" y=\"10\" width=\"14\" height=\"11\" rx=\"3\"/></g><rect x=\"5\" y=\"10\" width=\"14\" height=\"11\" rx=\"3\"/><path d=\"M8 10V7a4 4 0 0 1 8 0v3\"/><circle cx=\"12\" cy=\"15\" r=\"1\"/>",
+  "sliders": "<g class=\"wi-tone\" fill=\"var(--wi-soft)\" stroke=\"none\"><path d=\"M3 7h5m4 0h9M3 17h9m4 0h5\"/></g><path d=\"M3 7h5m4 0h9M3 17h9m4 0h5\"/><circle cx=\"10\" cy=\"7\" r=\"2\"/><circle cx=\"14\" cy=\"17\" r=\"2\"/>",
+  "cloud": "<g class=\"wi-tone\" fill=\"var(--wi-soft)\" stroke=\"none\"><path d=\"M7 18a5 5 0 1 1 1-10 6 6 0 0 1 11 3 3.5 3.5 0 0 1 0 7Z\"/></g><path d=\"M7 18a5 5 0 1 1 1-10 6 6 0 0 1 11 3 3.5 3.5 0 0 1 0 7Z\"/>",
+  "rain": "<g class=\"wi-tone\" fill=\"var(--wi-soft)\" stroke=\"none\"><path d=\"M6 15a4 4 0 1 1 2-8 5 5 0 0 1 10 3 3 3 0 0 1 0 6H6\"/></g><path d=\"M6 15a4 4 0 1 1 2-8 5 5 0 0 1 10 3 3 3 0 0 1 0 6H6\"/><path d=\"m8 18-1 3m6-3-1 3m6-3-1 3\"/>",
+  "snow": "<path d=\"M12 3v18M4 7l16 10M4 17 20 7M9 5l3 3 3-3M9 19l3-3 3 3\"/>",
+  "storm": "<g class=\"wi-tone\" fill=\"var(--wi-soft)\" stroke=\"none\"><path d=\"M6 15a4 4 0 1 1 2-8 5 5 0 0 1 10 3 3 3 0 0 1 0 6\"/></g><path d=\"M6 15a4 4 0 1 1 2-8 5 5 0 0 1 10 3 3 3 0 0 1 0 6\"/><path d=\"m13 12-4 6h4l-1 4 5-7h-4Z\"/>",
+  "fog": "<path d=\"M4 7h16M2 12h20M4 17h16\"/>",
+  "circle": "<g class=\"wi-tone\" fill=\"var(--wi-soft)\" stroke=\"none\"><circle cx=\"12\" cy=\"12\" r=\"8\"/></g><circle cx=\"12\" cy=\"12\" r=\"8\"/>",
+  "logo": "<path d=\"M3 19V6a3 3 0 0 1 5-2l4 5-4 5V10v9a2.5 2.5 0 0 1-5 0Z\" fill=\"var(--wi-soft)\" stroke=\"none\"/><path d=\"m8 4 8 10 5-8v13a2.5 2.5 0 0 1-5 0v-6L8 4Z\" fill=\"currentColor\" stroke=\"none\"/><path d=\"m12 9 5-5a2.5 2.5 0 0 1 4 2l-5 8Z\" fill=\"var(--wi-soft)\" stroke=\"none\"/>"
+};
+function svg(name, options){
+ const o=options||{}; const known=Object.prototype.hasOwnProperty.call(paths,name); const body=known?paths[name]:paths.circle;
+ return '<svg class="widget-icon'+(o.command?' icon':'')+'" data-wi="'+(Object.prototype.hasOwnProperty.call(paths,name)?name:'circle')+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'+body+'</svg>';
+}
+function hydrate(scope){
+ const nodes=[]; if(scope.nodeType===1&&scope.matches('[data-widget-icon]'))nodes.push(scope);
+ if(scope.querySelectorAll)nodes.push(...scope.querySelectorAll('[data-widget-icon]'));
+ nodes.forEach(node=>{const name=node.dataset.widgetIcon;const existing=node.querySelector('svg[data-wi]');if(!existing||existing.dataset.wi!==(Object.prototype.hasOwnProperty.call(paths,name)?name:'circle'))node.innerHTML=svg(name);});
+}
+const style=document.createElement('style');style.id='widget-icon-theme';style.textContent=" .widget-icon{--wi-soft:#bfa4ff;display:inline-block;width:20px;height:20px;flex:none;vertical-align:-.18em;color:var(--accent-primary,var(--accent,#7c3aed));overflow:visible}.widget-icon .wi-tone{opacity:.38}.widget-mark{display:inline-flex;align-items:center;justify-content:center;flex:none;width:34px;height:34px;border-radius:11px;background:color-mix(in srgb,#bfa4ff 19%,transparent);vertical-align:middle;margin-right:9px}.widget-mark .widget-icon{width:23px;height:23px}.widget-icon.icon{color:inherit}button .widget-icon{pointer-events:none;color:inherit!important} .brand-mark:has(.widget-icon){background:color-mix(in srgb,#bfa4ff 19%,transparent);box-shadow:none}.brand-mark .widget-icon{width:28px;height:28px;color:#7c3aed}:root[data-theme=\"dark\"] .widget-icon,body.dark .widget-icon{--wi-soft:#c9b5ff;color:var(--accent-primary,var(--accent,#bfa4ff))}@media(prefers-color-scheme:dark){:root:not([data-theme=\"light\"]) .widget-icon{--wi-soft:#c9b5ff;color:var(--accent-primary,var(--accent,#bfa4ff))}}";document.head.appendChild(style);
+global.WidgetIcons=Object.freeze({svg,hydrate,paths:Object.freeze(paths),names:Object.freeze(Object.keys(paths))});
+function start(){hydrate(document);new MutationObserver(records=>{records.forEach(record=>record.addedNodes.forEach(node=>{if(node.nodeType===1)hydrate(node);}));}).observe(document.body,{childList:true,subtree:true});}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
+})(window);
+</script>
 <script data-athlete-inline="core.js">
 /* ═══════════════════════════════════════════════════════
    core.js v3 — Shared Widget Engine
@@ -40,6 +102,8 @@ let Core = {
   dpr: Math.min(window.devicePixelRatio || 1, 2),
   gsapReady: _gsapReady
 };
+
+Core.icons = window.WidgetIcons;
 
 /* Core runtime primitives (event bus, registry, perf monitor) */
 let _coreEvents = {};
@@ -3548,13 +3612,13 @@ button:hover, .item:hover, .class-block:hover, .week-pill:hover, .chip:hover, .t
 <canvas id="fx"></canvas>
 <main class="container card" id="app">
  <div class="top">
-  <div class="label">Athlete</div>
-  <div class="top-actions"><span class="sync" id="syncState"></span><button class="icon-btn" id="settingsBtn" aria-label="Settings" data-snd>&#9881;</button></div>
+  <div class="label"><span class="widget-mark" data-widget-icon="athlete" aria-hidden="true"></span>Athlete</div>
+  <div class="top-actions"><span class="sync" id="syncState"></span><button class="icon-btn" id="settingsBtn" aria-label="Settings" data-snd data-widget-icon="settings"></button></div>
  </div>
  <nav class="app-nav" role="tablist" aria-label="Athlete sections">
-  <button class="on" data-app-view="profile" role="tab" aria-selected="true" data-snd>Profile</button>
-  <button data-app-view="train" role="tab" aria-selected="false" data-snd>Train</button>
-  <button data-app-view="progress" role="tab" aria-selected="false" data-snd>Progress</button>
+  <button class="on" data-app-view="profile" role="tab" aria-selected="true" data-snd><span data-widget-icon="athlete" aria-hidden="true"></span> Profile</button>
+  <button data-app-view="train" role="tab" aria-selected="false" data-snd><span data-widget-icon="play" aria-hidden="true"></span> Train</button>
+  <button data-app-view="progress" role="tab" aria-selected="false" data-snd><span data-widget-icon="flag" aria-hidden="true"></span> Progress</button>
  </nav>
 
  <section class="app-view" id="profileView">
@@ -3593,12 +3657,12 @@ button:hover, .item:hover, .class-block:hover, .week-pill:hover, .chip:hover, .t
 </main>
 
 <div class="tip" id="tip" hidden></div>
-<div class="overlay" id="logSheet" hidden><div class="card sheet" role="dialog" aria-modal="true" aria-label="Log assessment"><div class="sheet-head"><div class="panel-title" id="logTitle">Log assessment</div><button class="icon-btn" data-close="logSheet" aria-label="Close">&times;</button></div><div id="logBody"></div></div></div>
-<div class="overlay" id="detail" hidden><div class="card sheet" role="dialog" aria-modal="true" aria-label="Attribute detail"><div class="sheet-head"><div class="panel-title" id="detailTitle">Detail</div><button class="icon-btn" data-close="detail" aria-label="Close">&times;</button></div><div id="detailBody"></div></div></div>
+<div class="overlay" id="logSheet" hidden><div class="card sheet" role="dialog" aria-modal="true" aria-label="Log assessment"><div class="sheet-head"><div class="panel-title" id="logTitle">Log assessment</div><button class="icon-btn" data-close="logSheet" aria-label="Close"><span data-widget-icon="close" aria-hidden="true"></span></button></div><div id="logBody"></div></div></div>
+<div class="overlay" id="detail" hidden><div class="card sheet" role="dialog" aria-modal="true" aria-label="Attribute detail"><div class="sheet-head"><div class="panel-title" id="detailTitle">Detail</div><button class="icon-btn" data-close="detail" aria-label="Close"><span data-widget-icon="close" aria-hidden="true"></span></button></div><div id="detailBody"></div></div></div>
 
 <div class="overlay" id="workoutSheet" hidden>
  <div class="card sheet workout-sheet" role="dialog" aria-modal="true" aria-label="Workout editor">
-  <div class="sheet-head workout-head"><div class="workout-head-copy"><div class="workout-title-field"><label for="workoutTitleInput">Workout</label><input id="workoutTitleInput" autocomplete="off" value="Training session"></div><div class="workout-date-field"><label for="workoutDateInput">Date</label><input type="date" id="workoutDateInput"></div></div><button class="icon-btn" data-close="workoutSheet" aria-label="Close workout">&times;</button></div>
+  <div class="sheet-head workout-head"><div class="workout-head-copy"><div class="workout-title-field"><label for="workoutTitleInput">Workout</label><input id="workoutTitleInput" autocomplete="off" value="Training session"></div><div class="workout-date-field"><label for="workoutDateInput">Date</label><input type="date" id="workoutDateInput"></div></div><button class="icon-btn" data-close="workoutSheet" aria-label="Close workout"><span data-widget-icon="close" aria-hidden="true"></span></button></div>
   <div class="workout-scroll"><div class="workout-totals" id="workoutTotals"></div><div id="workoutExercises"></div><button class="add-exercise" id="addExerciseBtn" data-snd>+ Add exercise</button><div class="workout-err" id="workoutErr" role="alert"></div></div>
   <div class="workout-footer"><button class="form-btn" id="workoutDiscardBtn">Discard</button><button class="form-btn form-btn-primary" id="workoutFinishBtn" data-snd>Finish workout</button></div>
  </div>
@@ -3606,7 +3670,7 @@ button:hover, .item:hover, .class-block:hover, .week-pill:hover, .chip:hover, .t
 
 <div class="overlay" id="exercisePicker" hidden>
  <div class="card sheet exercise-picker-sheet" role="dialog" aria-modal="true" aria-label="Choose exercise">
-  <div class="sheet-head exercise-picker-head"><div><div class="panel-title">Add exercise</div><div class="settings-subtitle">Choose a lift or create your own.</div></div><button class="icon-btn" data-close="exercisePicker" aria-label="Close exercise picker">&times;</button></div>
+  <div class="sheet-head exercise-picker-head"><div><div class="panel-title">Add exercise</div><div class="settings-subtitle">Choose a lift or create your own.</div></div><button class="icon-btn" data-close="exercisePicker" aria-label="Close exercise picker"><span data-widget-icon="close" aria-hidden="true"></span></button></div>
   <div class="exercise-picker-search"><input id="exerciseSearch" type="search" placeholder="Search exercises or muscle groups" autocomplete="off"></div>
   <div class="exercise-picker-list" id="exercisePickerList"></div>
   <div class="custom-exercise"><span>Custom exercise</span><div class="custom-exercise-row"><input id="customExerciseName" placeholder="Exercise name"><select id="customExerciseGroup"><option>Chest</option><option>Back</option><option>Shoulders</option><option>Arms</option><option>Legs</option><option>Posterior chain</option><option>Core</option><option selected>Other</option></select><button id="createExerciseBtn">Create</button></div><div class="exercise-picker-err" id="exercisePickerErr"></div></div>
@@ -3615,13 +3679,13 @@ button:hover, .item:hover, .class-block:hover, .week-pill:hover, .chip:hover, .t
 
 <div class="overlay" id="settings" hidden>
  <div class="card sheet settings-sheet" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
-  <div class="sheet-head settings-head"><div><div class="settings-eyebrow">Athlete configuration</div><div class="panel-title" id="settingsTitle">Athlete settings</div><div class="settings-subtitle">Profile, training, scoring and backups in one place.</div></div><button class="icon-btn" data-close="settings" aria-label="Close settings">&times;</button></div>
+  <div class="sheet-head settings-head"><div><div class="settings-eyebrow">Athlete configuration</div><div class="panel-title" id="settingsTitle">Athlete settings</div><div class="settings-subtitle">Profile, training, scoring and backups in one place.</div></div><button class="icon-btn" data-close="settings" aria-label="Close settings"><span data-widget-icon="close" aria-hidden="true"></span></button></div>
   <div class="settings-scroll">
    <div class="settings-profile-card"><div class="settings-avatar" aria-hidden="true">A</div><div class="settings-profile-copy"><strong>Your athlete profile</strong><span id="setSummaryCopy">No records yet</span></div><span class="settings-save-state" id="setSaveState">Up to date</span></div>
    <section class="settings-section" aria-labelledby="profileSettingsTitle"><div class="settings-section-head"><div><h3 id="profileSettingsTitle">Profile</h3><p>One optional value for accurate relative grip scoring.</p></div><span class="settings-pill" id="setProfileState">Optional</span></div><div class="fld settings-field"><label for="setBw">Bodyweight</label><div class="input-unit"><input id="setBw" inputmode="decimal" autocomplete="off" placeholder="77.1"><span>kg</span></div><div class="field-help">Used only to normalise grip strength. Leave blank if you do not log grip tests.</div></div></section>
    <section class="settings-section" aria-labelledby="trainingSettingsTitle"><div class="settings-section-head"><div><h3 id="trainingSettingsTitle">Training preferences</h3><p>Keep logging fast and matched to the equipment you use.</p></div></div><div class="settings-choice"><label for="setUnits">Weight units<select id="setUnits"><option value="lb">Pounds (lb)</option><option value="kg">Kilograms (kg)</option></select></label><label class="settings-toggle" for="setRpeEnabled"><span>Show optional RPE fields</span><input type="checkbox" id="setRpeEnabled"></label></div></section>
    <details class="settings-section settings-disclosure" id="ruckSettings"><summary><span class="settings-chevron" aria-hidden="true">&#8250;</span><span class="settings-summary-label"><strong>Loaded march scoring</strong><small>Advanced personal pace standard</small></span><span class="settings-pill" id="setRuckMode">Recommended</span></summary><div class="settings-disclosure-body"><div class="settings-callout"><strong>Only affects Loaded March</strong><span>Set five pace anchors from slowest to fastest. Every other test keeps its built-in scoring.</span></div><div class="pace-table" role="group" aria-label="Loaded march pace anchors"><div class="pace-row pace-header" aria-hidden="true"><span>Standard</span><span>Score</span><span>Pace</span></div><div class="pace-row"><label for="rkFloor">Baseline</label><span class="pace-score">25</span><div class="pace-input"><input id="rkFloor" inputmode="decimal" placeholder="14:00"><span>/km</span></div></div><div class="pace-row"><label for="rkL1">Entry</label><span class="pace-score">60</span><div class="pace-input"><input id="rkL1" inputmode="decimal" placeholder="12:30"><span>/km</span></div></div><div class="pace-row"><label for="rkL2">Pro</label><span class="pace-score">75</span><div class="pace-input"><input id="rkL2" inputmode="decimal" placeholder="11:40"><span>/km</span></div></div><div class="pace-row"><label for="rkL3">Elite</label><span class="pace-score">90</span><div class="pace-input"><input id="rkL3" inputmode="decimal" placeholder="11:00"><span>/km</span></div></div><div class="pace-row"><label for="rkCap">Cap</label><span class="pace-score">99</span><div class="pace-input"><input id="rkCap" inputmode="decimal" placeholder="9:30"><span>/km</span></div></div></div><button type="button" class="settings-text-btn" id="ruckDefaults" data-snd>Restore recommended standard</button></div></details>
-   <section class="settings-section" aria-labelledby="dataSettingsTitle"><div class="settings-section-head"><div><h3 id="dataSettingsTitle">Data and backups</h3><p>Move or safeguard your complete profile and workout history.</p></div><span class="settings-pill" id="setDataCount">0 records</span></div><div class="settings-action-list"><button type="button" class="settings-action" id="setExport" data-snd><span class="settings-action-icon" aria-hidden="true">&#8595;</span><span class="settings-action-copy"><strong>Copy backup</strong><small>Copy assessments, workouts and settings as JSON.</small></span><span class="settings-action-meta">Copy</span></button><button type="button" class="settings-action" id="setImport" data-snd><span class="settings-action-icon" aria-hidden="true">&#8593;</span><span class="settings-action-copy"><strong>Import backup</strong><small>Restore a previously exported Athlete JSON file.</small></span><span class="settings-action-meta">Choose file</span></button><input type="file" id="setImportFile" accept="application/json,.json" hidden></div><div class="settings-status" id="setBackupStatus" role="status" aria-live="polite"></div></section>
+   <section class="settings-section" aria-labelledby="dataSettingsTitle"><div class="settings-section-head"><div><h3 id="dataSettingsTitle">Data and backups</h3><p>Move or safeguard your complete profile and workout history.</p></div><span class="settings-pill" id="setDataCount">0 records</span></div><div class="settings-action-list"><button type="button" class="settings-action" id="setExport" data-snd><span class="settings-action-icon" aria-hidden="true" data-widget-icon="down"></span><span class="settings-action-copy"><strong>Copy backup</strong><small>Copy assessments, workouts and settings as JSON.</small></span><span class="settings-action-meta">Copy</span></button><button type="button" class="settings-action" id="setImport" data-snd><span class="settings-action-icon" aria-hidden="true" data-widget-icon="up"></span><span class="settings-action-copy"><strong>Import backup</strong><small>Restore a previously exported Athlete JSON file.</small></span><span class="settings-action-meta">Choose file</span></button><input type="file" id="setImportFile" accept="application/json,.json" hidden></div><div class="settings-status" id="setBackupStatus" role="status" aria-live="polite"></div></section>
    <section class="settings-section settings-danger-zone" aria-labelledby="resetSettingsTitle"><div class="settings-section-head"><div><h3 id="resetSettingsTitle">Reset athlete data</h3><p>Delete assessments, workouts and custom exercises, then restore defaults.</p></div></div><button type="button" class="form-btn settings-reset-btn" id="setReset">Reset athlete data</button><div class="reset-confirm" id="resetConfirm" hidden tabindex="-1"><div><strong>Delete everything?</strong><span>This action cannot be undone. Export a backup first if needed.</span></div><div class="reset-confirm-actions"><button type="button" class="form-btn" id="resetCancel">Cancel</button><button type="button" class="form-btn form-btn-danger" id="resetConfirmBtn">Delete everything</button></div></div></section>
   </div>
   <div class="settings-footer"><div class="err" id="setErr" role="alert"></div><div class="settings-footer-actions"><button class="form-btn" id="setCancel" data-snd>Cancel</button><button class="form-btn form-btn-primary" id="setSave" data-snd disabled>Save changes</button></div></div>

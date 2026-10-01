@@ -11,7 +11,7 @@ assert(html.includes('single-file-v2.3'),'Athlete build marker is missing.');
 assert(!/@import\b/i.test(html),'Athlete output contains a CSS @import.');
 for(const id of ['app','profileView','trainView','progressView','ovrNum','bodyWrap','radar','attrList','logBtn','profileStartWorkout','startWorkoutBtn','recentWorkouts','progressExercise','progressChart','workoutSheet','workoutTitleInput','workoutExercises','addExerciseBtn','workoutFinishBtn','exercisePicker','exerciseSearch','setBw','setUnits','setRpeEnabled','ruckSettings','setExport','setImport','setReset','setSave'])assert(new RegExp(`id=["']${id}["']`).test(shell),`Missing #${id}.`);
 const scripts=[...html.matchAll(/<script data-athlete-inline="([^"]+)">\n?([\s\S]*?)<\/script>/g)];
-const expected=['core.js','athlete-body.js','athlete-data.js','athlete-training-data.js','athlete-render.js','athlete-flow.js','athlete-settings.js','athlete-training-ui.js','athlete-notion.js'];
+const expected=['widget-icons.js','core.js','athlete-body.js','athlete-data.js','athlete-training-data.js','athlete-render.js','athlete-flow.js','athlete-settings.js','athlete-training-ui.js','athlete-notion.js'];
 assert(scripts.length===expected.length,`Expected ${expected.length} inline scripts.`);
 for(let i=0;i<expected.length;i++){assert(scripts[i][1]===expected[i],`Script order mismatch at ${expected[i]}.`);new vm.Script(scripts[i][2],{filename:expected[i]});}
 const readScript=name=>readFile(join(root,'apps/athlete/src/scripts',name),'utf8');

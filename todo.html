@@ -291,7 +291,7 @@ body::before{
   <div class="card" id="card">
     <div class="head">
       <div class="head-l">
-        <h1 class="title"><span class="dot"></span><span id="greet">To-Do</span></h1>
+        <h1 class="title"><span class="widget-mark" data-widget-icon="todo" aria-hidden="true"></span><span id="greet">To-Do</span></h1>
         <div class="date" id="date"></div>
       </div>
       <div class="sync" id="sync"><span class="led"></span><span id="synctxt">Syncing</span></div>
@@ -323,7 +323,7 @@ body::before{
 
     <div class="add">
       <input id="inp" type="text" placeholder="Add a task and press Enter" autocomplete="off" enterkeyhint="done" aria-label="Add a task">
-      <button id="addbtn" aria-label="Add task">+</button>
+      <button id="addbtn" aria-label="Add task" data-widget-icon="plus"></button>
     </div>
 
     <div class="composer">
@@ -350,6 +350,7 @@ body::before{
     </div>
   </div>
 </div>
+<script src="widget-icons.js?v=20261001-duotone-b"></script>
 <script src="core.js"></script>
 <script src="action-blocks.js?v=20260902-editor-v2&planning=20260903-v1&copy=20260903-v2&targets=20260903-v1&upcoming=20260903-v1"></script>
 <script src="todo-action-import.js?v=20260906-encrypted-fallback-v2"></script>
@@ -626,10 +627,10 @@ body::before{
     t.scheduledStart=localIsoFor(dateKeyValue,start);t.scheduledEnd=localIsoFor(dateKeyValue,end);t.dueKey=dateKeyValue;t.due=keyNum(dateKeyValue)===keyNum(todayKey())?"today":(keyNum(dateKeyValue)===keyNum(tmrwKey())?"tomorrow":null);t.timeboxed=true;t.updatedAt=Date.now();save();showToast(repeat==="weekly"?"Added as a weekly schedule block.":"Added to this week only.");snd("playChime");announce("Timeboxed into schedule: "+t.text)
   }
 
-  var CHECK = '<svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"></polyline></svg>';
-  var GRIP = '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>';
-  var PENCIL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
-  var NOTEICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>';
+  var CHECK = WidgetIcons.svg("check");
+  var GRIP = WidgetIcons.svg("grip");
+  var PENCIL = WidgetIcons.svg("edit");
+  var NOTEICON = WidgetIcons.svg("list");
 
   /* Self-contained note preview bubble. Triggers on hovering a task that has a
      note (and on focusing its Note chip). Flips above/below and clamps to the
@@ -695,7 +696,7 @@ body::before{
       h += '<div class="sub-row' + (s.done ? " done" : "") + '" data-sid="' + s.id + '">' +
         '<button class="sub-box' + (s.done ? " on" : "") + '" aria-pressed="' + (s.done ? "true" : "false") + '" aria-label="Toggle step">' + CHECK + "</button>" +
         '<span class="sub-txt">' + esc(s.text) + "</span>" +
-        '<button class="sub-del" aria-label="Delete step">&#10005;</button></div>';
+        '<button class="sub-del" aria-label="Delete step" data-widget-icon="close"></button></div>';
     });
     h += '<input class="sub-add" placeholder="Add a step and press Enter" aria-label="Add a step">';
     return h + "</div>";
@@ -717,7 +718,7 @@ body::before{
     var acts = "";
     if (!t.done) acts += '<span class="grip" aria-hidden="true" title="Drag to reorder">' + GRIP + "</span>";
     acts += '<button class="manage" aria-label="Edit task" aria-expanded="' + (isEditing ? "true" : "false") + '" title="Edit">' + PENCIL + "</button>";
-    acts += '<button class="del" aria-label="Delete task" title="Delete">&#10005;</button>';
+    acts += '<button class="del" aria-label="Delete task" title="Delete" data-widget-icon="close"></button>';
     el.innerHTML =
       '<button class="box' + (t.done ? " on" : "") + '" aria-pressed="' + (t.done ? "true" : "false") + '" aria-label="' + (t.done ? "Mark as not done" : "Mark complete") + '">' + CHECK + "</button>" +
       '<div class="body"><div class="txt" role="button" tabindex="0">' + esc(t.text) + "</div>" +

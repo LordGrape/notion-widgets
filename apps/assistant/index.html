@@ -25,13 +25,13 @@
 				document.documentElement.dataset.theme = "light";
 			}
 		</script>
-		<link rel="stylesheet" href="./styles.css?v=20261001-drag-polish-v4" />
+		<link rel="stylesheet" href="./styles.css?v=20261001-duotone-b" />
 		<title>Command Centre</title>
 	</head>
 	<body class="locked">
 		<div class="lock-screen" id="lockScreen">
 			<form class="lock-card" id="unlockForm">
-				<span class="brand-mark">M</span>
+				<span class="brand-mark" data-widget-icon="logo" aria-hidden="true"></span>
 				<p class="eyebrow">Private workspace</p>
 				<h1>Command Centre</h1>
 				<p class="lock-copy">Your tasks, your day, and room to focus.</p>
@@ -51,7 +51,7 @@
 		<div class="app" id="appShell" aria-hidden="true">
 			<header class="app-header">
 				<a class="identity" href="./" aria-label="Command Centre home"
-					><span class="brand-mark">M</span>
+					><span class="brand-mark" data-widget-icon="logo" aria-hidden="true"></span>
 					<h1>Command Centre</h1></a
 				>
 				<nav class="view-tabs" aria-label="Workspace view">
@@ -119,6 +119,7 @@
 			></iframe>
 		</div>
 		<script src="./remember.js"></script>
-		<script type="module" src="./app.js?v=20261001-drag-polish-v4"></script>
+		<script src="../../widget-icons.js?v=20261001-duotone-b"></script>
+		<script type="module" src="./app.js?v=20261001-duotone-b"></script>
 	</body>
 </html>

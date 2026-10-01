@@ -1,5 +1,6 @@
-const CACHE = "command-centre-20261001-drag-polish-v4";
+const CACHE = "command-centre-20261001-duotone-b";
 const SHELL = [
+	"../../widget-icons.js",
 	"./",
 	"./index.html",
 	"./styles.css",

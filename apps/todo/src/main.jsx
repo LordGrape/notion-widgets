@@ -8,21 +8,6 @@ import {
 	useReducedMotion,
 } from "motion/react";
 import {
-	Check,
-	SquareCheckBig,
-	Pencil,
-	X,
-	GripVertical,
-	Plus,
-	ArrowUp,
-	ArrowDown,
-	Timer,
-	CalendarDays,
-	Flag,
-	ChevronDown,
-	SlidersHorizontal,
-} from "lucide-react";
-import {
 	DndContext,
 	PointerSensor,
 	KeyboardSensor,
@@ -57,6 +42,22 @@ import {
 	PopoverContent,
 } from "./components/ui/index.jsx";
 import { dailyGoal, dateKey } from "./daily-goal.mjs";
+function SharedIcon({name, size=20, className="", ...props}) {
+ return <svg {...props} className={`widget-icon ${className}`} width={size} height={size} style={{width:size,height:size,...props.style}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" data-wi={name} dangerouslySetInnerHTML={{__html:window.WidgetIcons.paths[name]}} />;
+}
+const Check = props => <SharedIcon name="check" {...props} />;
+const SquareCheckBig = props => <SharedIcon name="todo" {...props} />;
+const Pencil = props => <SharedIcon name="edit" {...props} />;
+const X = props => <SharedIcon name="close" {...props} />;
+const GripVertical = props => <SharedIcon name="grip" {...props} />;
+const Plus = props => <SharedIcon name="plus" {...props} />;
+const ArrowUp = props => <SharedIcon name="up" {...props} />;
+const ArrowDown = props => <SharedIcon name="down" {...props} />;
+const Timer = props => <SharedIcon name="clock" {...props} />;
+const CalendarDays = props => <SharedIcon name="calendar" {...props} />;
+const Flag = props => <SharedIcon name="flag" {...props} />;
+const ChevronDown = props => <SharedIcon name="chevron" {...props} />;
+const SlidersHorizontal = props => <SharedIcon name="sliders" {...props} />;
 const priLabels = { must: "Must Do", should: "Should Do", could: "Could Do" },
 	timeLabels = { quick: "Quick", m30: "~30m", m60: "~60m", deep: "Deep" };
 let updateUI, legacyCustom;

@@ -374,7 +374,7 @@ body.wide-calendar .shell{width:min(97vw,960px)}
   <header class="head">
     <div>
       <div class="label">Schedule</div>
-      <h1 id="title">Today</h1>
+      <span class="widget-mark" data-widget-icon="calendar" aria-hidden="true"></span><h1 id="title" style="display:inline">Today</h1>
       <div class="sub" id="sub">Your week, at a glance.</div>
     </div>
     <div class="head-right">
@@ -384,18 +384,18 @@ body.wide-calendar .shell{width:min(97vw,960px)}
         <button data-view="week">Week</button>
       </div>
       <div class="head-tools">
-        <button class="fab utility" id="settingsBtn" aria-label="Widget settings" aria-expanded="false" title="Widget settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.12 2.12-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.55V20h-3v-.09A1.7 1.7 0 0 0 10.65 18.36a1.7 1.7 0 0 0-1.88.34l-.06.06-2.12-2.12.06-.06A1.7 1.7 0 0 0 7 14.7a1.7 1.7 0 0 0-1.55-1.03H5v-3h.09A1.7 1.7 0 0 0 6.64 9.65a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.12-2.12.06.06A1.7 1.7 0 0 0 10.3 6a1.7 1.7 0 0 0 1.03-1.55V4h3v.09A1.7 1.7 0 0 0 15.35 5.64a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.12 2.12-.06.06A1.7 1.7 0 0 0 19 9.3a1.7 1.7 0 0 0 1.55 1.03H21v3h-.09A1.7 1.7 0 0 0 19.4 15Z"></path></svg></button>
-        <button class="fab" id="manageBtn" aria-label="Add weekly block" title="Add weekly block">+</button>
+        <button class="fab utility" id="settingsBtn" aria-label="Widget settings" aria-expanded="false" title="Widget settings" data-widget-icon="settings"></button>
+        <button class="fab" id="manageBtn" aria-label="Add weekly block" title="Add weekly block" data-widget-icon="plus"></button>
       </div>
     </div>
   </header>
 
   <nav class="days" id="days"></nav>
   <div class="week-nav" id="weekNav" aria-label="Week navigation">
-    <button id="previousWeek" type="button" aria-label="Previous week">‹</button>
+    <button style="transform:none" id="previousWeek" type="button" aria-label="Previous week" data-widget-icon="right" style="rotate:180deg"></button>
     <button class="week-nav-today" id="currentWeek" type="button">This week</button>
     <span class="week-nav-label" id="weekRange"></span>
-    <button id="nextWeek" type="button" aria-label="Next week">›</button>
+    <button id="nextWeek" type="button" aria-label="Next week" data-widget-icon="right"></button>
   </div>
 
   <section class="stats">
@@ -488,6 +488,7 @@ body.wide-calendar .shell{width:min(97vw,960px)}
   </div>
 </div>
 
+<script src="widget-icons.js?v=20261001-duotone-b"></script>
 <script src="core.js"></script>
 <script src="action-blocks.js?v=20260902-editor-v2&planning=20260903-v1&copy=20260903-v2&targets=20260903-v1"></script>
 <script>

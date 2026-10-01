@@ -566,11 +566,20 @@ let states = {
 			"todo-smart-shell.html",
 			"timetable-shell.html",
 			"clock.html",
+            "quotes.html",
+            "lineup.html",
+            "apps/athlete/athlete.html",
+            "studyengine/index.html",
+            "firac-reader/site/index.html",
 		]) {
 			const p = await context.newPage();
 			await p.goto(`${base}/${widget}#key=synthetic-test-key`);
 			await p.waitForTimeout(1700);
 			assert(await p.locator("body").count());
+            const surface = widget === "todo-smart-shell.html" ? p.frameLocator("#shell") : widget === "timetable-shell.html" ? p.frameLocator("#schedule") : p;
+            await surface.locator("svg[data-wi]").first().waitFor();
+            assert(await surface.locator("svg[data-wi]").count() > 0, `${widget} renders shared icons`);
+            assert.equal(await surface.locator("svg[data-wi]").first().getAttribute("aria-hidden"), "true");
 			if (widget === "todo-smart-shell.html")
 				await p.frameLocator("#shell").locator("#inp").waitFor();
 			if (widget === "timetable-shell.html")
@@ -581,7 +590,7 @@ let states = {
 					true,
 				);
 			await p.screenshot({
-				path: path.join(out, `standalone-${widget}.png`),
+				path: path.join(out, `standalone-${widget.replaceAll("/", "-")}.png`),
 				fullPage: true,
 			});
 			await p.close();

@@ -3709,12 +3709,12 @@ dialog > .notice {
 .comparison-context {
 	margin-top: 18px;
 }</style>
-	<meta name="study-engine-source-digest" content="e1683e7259c4b99d5056663edc2c9cc9b5b61c04d9e6c0512c43ba99d5401ae6" />
+	<meta name="study-engine-source-digest" content="11089363b9907d05f1a01c06a3e6bc277708c67dc305b0106cc36668bfded83e" />
 </head>
 	<body>
 		<section id="gate" class="gate" aria-labelledby="gateTitle">
 			<div class="gate-card">
-				<div class="brand-mark" aria-hidden="true">S</div>
+				<div class="brand-mark" aria-hidden="true" data-widget-icon="book"></div>
 				<p class="eyebrow">Study Engine</p>
 				<h1 id="gateTitle">Less scrolling.<br /><span>More thinking.</span></h1>
 				<p class="gate-intro">
@@ -3746,7 +3746,7 @@ dialog > .notice {
 		<div id="appShell" class="shell" hidden>
 			<header class="app-header">
 				<div class="brand">
-					<div class="brand-mark small" aria-hidden="true">S</div>
+					<div class="brand-mark small" aria-hidden="true" data-widget-icon="book"></div>
 					<div>
 						<p class="brand-name">Study Engine</p>
 						<p class="brand-subtitle">Find your flow.</p>
@@ -3759,23 +3759,7 @@ dialog > .notice {
 						aria-label="Refresh private workspace"
 						title="Refresh"
 					>
-						<svg
-							aria-hidden="true"
-							focusable="false"
-							width="20"
-							height="20"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="1.8"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-						>
-							<path d="M20 7v5h-5M4 17v-5h5" />
-							<path
-								d="M6.1 7a7 7 0 0 1 11.6-1L20 9M4 15l2.3 3A7 7 0 0 0 17.9 17"
-							/>
-						</svg></button
+						<span data-widget-icon="reset" aria-hidden="true"></span></button
 					><button id="aboutButton" class="quiet">Help</button
 					><button id="lockButton" class="quiet">Lock</button>
 				</div>
@@ -3783,52 +3767,13 @@ dialog > .notice {
 			<div class="workspace-bar">
 				<nav class="tabs" aria-label="Study Engine navigation">
 					<button id="tab-today" data-tab="today" aria-pressed="true">
-						<svg
-							aria-hidden="true"
-							width="19"
-							height="19"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="1.8"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-						>
-							<path
-								d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"
-							/>
-							<circle cx="12" cy="12" r="4" />
-						</svg>
+						<span data-widget-icon="sun" aria-hidden="true"></span>
 						Today</button
 					><button id="tab-evidence" data-tab="evidence" aria-pressed="false">
-						<svg
-							aria-hidden="true"
-							width="19"
-							height="19"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="1.8"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-						>
-							<path d="M7 3h10l3 3v15H4V3h3M8 10h8M8 14h8M8 18h5" />
-						</svg>
+						<span data-widget-icon="todo" aria-hidden="true"></span>
 						Evidence</button
 					><button id="tab-library" data-tab="library" aria-pressed="false">
-						<svg
-							aria-hidden="true"
-							width="19"
-							height="19"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="1.8"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-						>
-							<path d="M4 4h6v16H4zM14 5l5-1 3 16-5 1z" />
-						</svg>
+						<span data-widget-icon="book" aria-hidden="true"></span>
 						Library
 					</button>
 				</nav>
@@ -4197,7 +4142,7 @@ dialog > .notice {
 								</form>
 							</details>
 							<div id="assessmentSaved" hidden class="assessment-saved">
-								<span class="saved-icon" aria-hidden="true">✓</span>
+								<span class="saved-icon" data-widget-icon="check" aria-hidden="true"></span>
 								<p id="savedSummary"></p>
 							</div>
 							<div class="practice-actions comparison-actions">
@@ -4227,9 +4172,7 @@ dialog > .notice {
 					class="icon-button"
 					data-close="practiceDialog"
 					aria-label="Close practice editor"
-				>
-					×
-				</button>
+				><span data-widget-icon="close" aria-hidden="true"></span></button>
 			</div>
 			<form id="practiceForm">
 				<input id="editId" type="hidden" />
@@ -4357,9 +4300,7 @@ dialog > .notice {
 					class="icon-button"
 					data-close="importDialog"
 					aria-label="Close import"
-				>
-					×
-				</button>
+				><span data-widget-icon="close" aria-hidden="true"></span></button>
 			</div>
 			<p class="fineprint">
 				Use a practice pack prepared from your actual course sources. This is a
@@ -4422,9 +4363,7 @@ dialog > .notice {
 					class="icon-button"
 					data-close="migrationDialog"
 					aria-label="Close migration"
-				>
-					×
-				</button>
+				><span data-widget-icon="close" aria-hidden="true"></span></button>
 			</div>
 			<div id="migrationSummary"></div>
 			<p>
@@ -4457,9 +4396,7 @@ dialog > .notice {
 					class="icon-button"
 					data-close="aboutDialog"
 					aria-label="Close explanation"
-				>
-					×
-				</button>
+				><span data-widget-icon="close" aria-hidden="true"></span></button>
 			</div>
 			<div class="about-copy">
 				<h3>Try first. Check second.</h3>
@@ -4503,6 +4440,7 @@ dialog > .notice {
 			</div>
 		</dialog>
 		<div id="toast" class="toast" role="status" hidden></div>
+		<script src="../widget-icons.js?v=20261001-duotone-b"></script>
 		<script src="../core.js"></script>
 	</body>
 </html>

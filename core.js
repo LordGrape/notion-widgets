@@ -32,6 +32,8 @@ let Core = {
   gsapReady: _gsapReady
 };
 
+Core.icons = window.WidgetIcons;
+
 /* Core runtime primitives (event bus, registry, perf monitor) */
 let _coreEvents = {};
 let _corePlugins = {};

@@ -491,6 +491,8 @@ body {
   letter-spacing: 1.5px; text-transform: uppercase;
 }
 
+
+.weather-icon .widget-icon{width:22px;height:22px}.forecast-now-icon .widget-icon{width:36px;height:36px}.forecast-hour-icon .widget-icon{width:24px;height:24px}
 </style>
 <style id="clock-schedule-visual-v1">
 /* CLOCK SCHEDULE-MATCHED GLASS v1
@@ -582,7 +584,8 @@ body::before{
     <div class="skeleton sk-weather"></div>
   </div>
   <div class="content-shell loading" id="clockContent">
-  <button class="settings-btn" id="sBtn" title="Settings">&#x2699;&#xFE0F;</button>
+  <button class="settings-btn" id="sBtn" title="Settings" aria-label="Settings" data-widget-icon="settings"></button>
+  <span class="widget-mark" data-widget-icon="clock" aria-hidden="true" style="margin-bottom:10px"></span>
   <div class="mode-toggle" role="tablist" aria-label="Clock modes">
     <button class="mode-btn active" data-mode="clock">Clock</button>
     <button class="mode-btn" data-mode="stopwatch">Stopwatch</button>
@@ -676,7 +679,7 @@ body::before{
 
   <!-- SETTINGS -->
   <div class="settings-ov" id="settingsOv">
-    <div class="s-title">&#x2699;&#xFE0F; Settings</div>
+    <div class="s-title"><span data-widget-icon="settings" aria-hidden="true"></span> Settings</div>
     <div id="sContent"></div>
     <div class="s-progress">
       <div class="heatmap-title">Focus Progress</div>
@@ -718,7 +721,7 @@ body::before{
 <div class="forecast-ov" id="forecastOv">
   <div class="forecast-header">
     <div>
-      <div class="forecast-title">☁️ 24-Hour Forecast</div>
+      <div class="forecast-title"><span data-widget-icon="cloud" aria-hidden="true"></span> 24-Hour Forecast</div>
       <div class="forecast-loc" id="forecastLoc"></div>
     </div>
     <button class="forecast-close" id="forecastClose">Close</button>
@@ -731,6 +734,7 @@ body::before{
 </div>
 </div>
 
+<script src="widget-icons.js?v=20261001-duotone-b"></script>
 <script src="core.js"></script>
 <script>
 /* Notion HQ embeds don't use Study Session — only the Command Centre app does.
@@ -1085,10 +1089,16 @@ function wmoEmoji(code, hour) {
   }
   return [icon, cond];
 }
+function weatherSVG(code, hour) {
+ var name = getWeatherType(code), h = typeof hour === 'number' ? hour : new Date().getHours();
+ if(name === 'clear') name = h < 6 || h >= 20 ? 'moon' : 'sun';
+ if(name === 'cloudy') name = 'cloud';
+ return WidgetIcons.svg(name);
+}
 function renderClockWeatherFromPayload(wd) {
   if (!wd || wd.temp === undefined) { weatherEl.innerHTML = ''; return; }
   var wFb = wmoEmoji(typeof wd.code === 'number' ? wd.code : 0);
-  var icon = wd.icon != null && wd.icon !== '' ? wd.icon : wFb[0];
+  var icon = weatherSVG(typeof wd.code === 'number' ? wd.code : 0);
   var cond = wd.condition || wFb[1];
   var t = Math.round(wd.temp);
   weatherEl.innerHTML = '<span class="weather-icon">' + icon + '</span><span class="weather-temp">' + t + '\u00B0C</span><span class="weather-cond">\u00B7 ' + cond + '</span>';
@@ -1203,7 +1213,7 @@ function renderForecast(d) {
   var hi = d.daily ? Math.round(d.daily.temperature_2m_max[0]) : '--';
   var lo = d.daily ? Math.round(d.daily.temperature_2m_min[0]) : '--';
   document.getElementById('forecastNow').innerHTML =
-    '<span class="forecast-now-icon">' + cw[0] + '</span>' +
+    '<span class="forecast-now-icon">' + weatherSVG(d.current.weather_code, now.getHours()) + '</span>' +
     '<span class="forecast-now-temp">' + Math.round(d.current.temperature_2m) + '°</span>' +
     '<div class="forecast-now-details">' +
       '<div class="forecast-now-cond">' + cw[1] + '</div>' +
@@ -1243,7 +1253,7 @@ function renderForecast(d) {
 
     html += '<div class="forecast-hour' + (isNow ? ' now-hour' : '') + '">' +
       '<span class="forecast-hour-time">' + label + '</span>' +
-      '<span class="forecast-hour-icon">' + w[0] + '</span>' +
+      '<span class="forecast-hour-icon">' + weatherSVG(isNow ? d.current.weather_code : codes[j], hr) + '</span>' +
       '<span class="forecast-hour-temp">' + temp + '°</span>' +
     '</div>';
   }

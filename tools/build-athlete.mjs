@@ -10,10 +10,11 @@ const sourcePaths={
  'athlete-settings.css':'apps/athlete/src/styles/athlete-settings.css',
  'athlete-training.css':'apps/athlete/src/styles/athlete-training.css',
  'core.js':'core.js',
+ 'widget-icons.js':'widget-icons.js',
  ...Object.fromEntries(['athlete-body.js','athlete-data.js','athlete-training-data.js','athlete-render.js','athlete-flow.js','athlete-settings.js','athlete-training-ui.js','athlete-notion.js'].map(name=>[name,`apps/athlete/src/scripts/${name}`]))
 };
 const loaded=Object.fromEntries(await Promise.all(Object.entries(sourcePaths).map(async([name,path])=>[name,await readFile(join(root,path),'utf8')])));
-const scriptNames=['core.js','athlete-body.js','athlete-data.js','athlete-training-data.js','athlete-render.js','athlete-flow.js','athlete-settings.js','athlete-training-ui.js','athlete-notion.js'];
+const scriptNames=['widget-icons.js','core.js','athlete-body.js','athlete-data.js','athlete-training-data.js','athlete-render.js','athlete-flow.js','athlete-settings.js','athlete-training-ui.js','athlete-notion.js'];
 for(const name of scriptNames)new vm.Script(loaded[name],{filename:name});
 const themeCss=loaded['theme-upgrade.css'].replace(/^\s*@import[^\r\n]*(?:\r?\n)?/i,'');
 if(/@import\b/i.test(themeCss))throw new Error('Shared theme still contains an external @import.');
@@ -21,12 +22,13 @@ const style=(name,css)=>`<style data-athlete-inline="${name}">\n${css.trimEnd()}
 const script=(name,source)=>`<script data-athlete-inline="${name}">\n${source.trimEnd().replace(/<\/script/gi,'<\\/script')}\n</script>`;
 function replaceOnce(html,pattern,replacement,label){if(!pattern.test(html))throw new Error(`Missing ${label} in Athlete source.`);return html.replace(pattern,replacement);}
 let html=loaded['athlete.source.html'];
+html=replaceOnce(html,/<script\b[^>]*\bsrc=["'][^"']*widget-icons\.js["'][^>]*><\/script>/i,script('widget-icons.js',loaded['widget-icons.js']),'widget-icons.js');
 html=replaceOnce(html,/<script\b[^>]*\bsrc=["'][^"']*core\.js(?:\?[^"']*)?["'][^>]*><\/script>/i,script('core.js',loaded['core.js']),'core.js');
 for(const name of ['athlete.css','theme-upgrade.css','athlete-settings.css','athlete-training.css']){
  const escaped=name.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
  html=replaceOnce(html,new RegExp(`<link\\b(?=[^>]*rel=["']stylesheet["'])(?=[^>]*href=["'][^"']*${escaped}(?:\\?[^"']*)?["'])[^>]*>`,'i'),style(name,name==='theme-upgrade.css'?themeCss:loaded[name]),name);
 }
-for(const name of scriptNames.slice(1)){
+for(const name of scriptNames.slice(2)){
  const escaped=name.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
  html=replaceOnce(html,new RegExp(`<script\\b[^>]*src=["'][^"']*${escaped}(?:\\?[^"']*)?["'][^>]*><\\/script>`,'i'),script(name,loaded[name]),name);
 }

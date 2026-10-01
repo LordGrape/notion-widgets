@@ -17,7 +17,7 @@ import {
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261001-drag-polish-v4";
+	REVISION = "20261001-duotone-b";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -42,31 +42,8 @@ let accessKey = "",
 	toastTimer,
 	lastTaskRaw;
 let theme = document.documentElement.dataset.theme || "light";
-const icons = {
-	search: '<circle cx="11" cy="11" r="7"/><path d="m16 16 4 4"/>',
-	sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/>',
-	moon: '<path d="M20 14A8 8 0 0 1 10 4a8 8 0 1 0 10 10Z"/>',
-	settings:
-		'<path d="m9 3-1 3-3 1 1 3-2 2 2 2-1 3 3 1 1 3h6l1-3 3-1-1-3 2-2-2-2 1-3-3-1-1-3Z"/><circle cx="12" cy="12" r="3"/>',
-	clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v6l4 2"/>',
-	calendar:
-		'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/>',
-	play: '<path d="m8 4 12 8-12 8Z"/>',
-	pause: '<path d="M8 5v14M16 5v14"/>',
-	check: '<path d="m5 12 4 4L19 6"/>',
-	more: '<circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>',
-	chevron: '<path d="m6 9 6 6 6-6"/>',
-	right: '<path d="m9 6 6 6-6 6"/>',
-	plus: '<path d="M12 5v14M5 12h14"/>',
-	reset: '<path d="M3 10a9 9 0 1 1 2 9M3 4v6h6"/>',
-	grip: '<circle cx="8" cy="5" r="1"/><circle cx="16" cy="5" r="1"/><circle cx="8" cy="12" r="1"/><circle cx="16" cy="12" r="1"/><circle cx="8" cy="19" r="1"/><circle cx="16" cy="19" r="1"/>',
-	flag: '<path d="M5 21V3c5-3 9 3 14 0v10c-5 3-9-3-14 0"/>',
-	list: '<path d="M9 6h12M9 12h12M9 18h12M3 6h1M3 12h1M3 18h1"/>',
-	book: '<path d="M12 5v15M12 5C8 2 4 3 2 4v15c3-1 6-1 10 1 4-2 7-2 10-1V4c-2-1-6-2-10 1Z"/>',
-	close: '<path d="m6 6 12 12M6 18 18 6"/>',
-};
 function icon(name) {
-	return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.clock}</svg>`;
+	return WidgetIcons.svg(name, {command: true});
 }
 function decorate(scope = document) {
 	scope

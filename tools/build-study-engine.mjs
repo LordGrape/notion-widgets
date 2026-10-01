@@ -44,6 +44,7 @@ const sourceDigest = source.digest("hex");
 const compiled = (
 	await readFile(resolve(root, "studyengine/build/index.html"), "utf8")
 )
+	.replaceAll("./__SHARED_ICONS__.js", "../widget-icons.js?v=20261001-duotone-b")
 	.replaceAll("./__SHARED_CORE__.js", "../core.js")
 	.replace(
 		"</head>",
