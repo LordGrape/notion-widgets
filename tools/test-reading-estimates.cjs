@@ -24,3 +24,17 @@ assert(!R.html({text:'Read 20 pages'}).includes('cornell'));
 assert(R.html({text:'Read 20 pages'}).includes('https://sass.queensu.ca/resources/online/reading'));
 assert.equal(R.estimate('Read 20 pages').minutes,120);
 console.log('Reading parsing, saved pace compatibility, splits, manual overrides and state round trip passed.');
+
+for (const title of ['Read pages 3-9 & 12', 'Read 3–9 & 12', 'Read pp. 3–9, 12', 'Do reading pages 3 to 9 and p. 12']) {
+  assert.equal(R.estimate(title).pages,8,title);
+  assert.equal(R.estimate(title).minutes,48,title);
+}
+assert.equal(R.estimate('Read pages 3-9, 12-15 & 20').pages,12);
+assert.equal(R.estimate('Read pages 3-9 & 7 & 8-12').pages,10);
+assert.equal(R.estimate('Read pages 3-9 & 12-10').invalid,true);
+assert.equal(R.estimate('Read pages 3-9 & 0').invalid,true);
+assert.equal(R.estimate('Read pages 3-9 for class at 12').pages,7);
+assert.deepEqual(R.estimate('Read pages 3-19 & 25').splits,[{text:'Read first 9 pages',minutes:54},{text:'Read remaining 9 pages',minutes:54}]);
+const mixed={text:'Read pages 3-9 & 12'};R.apply(mixed);assert.equal(mixed.plannedMinutes,48);
+const savedMixed=JSON.parse(JSON.stringify(mixed));savedMixed.text='Read pages 3-9 & 12-15';R.apply(savedMixed);assert.equal(savedMixed.plannedMinutes,66);
+console.log('Mixed page ranges and single pages passed.');

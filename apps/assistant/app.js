@@ -19,7 +19,7 @@ import {
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261001-simple-reading";
+	REVISION = "20261001-page-lists";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {

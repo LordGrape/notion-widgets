@@ -8,17 +8,17 @@
     text = String(text || '');
     const isReading = /\b(read|reading|review|brief)\b/i.test(text);
     if (!isReading) return null;
-    const ranges = [...text.matchAll(/\b(?:pages?|pp?\.?)\s*(\d+)\s*(?:[-–—]|to)\s*(\d+)/gi)];
-    if (ranges.length) {
-      const intervals = ranges.map(m => [+m[1], +m[2]]);
-      if (intervals.some(([a,b]) => a < 1 || b < a)) return { invalid: true };
-      intervals.sort((a,b) => a[0]-b[0]);
-      const merged = [];
-      intervals.forEach(([a,b]) => { const last = merged.at(-1); if (last && a <= last[1]+1) last[1] = Math.max(last[1],b); else merged.push([a,b]); });
-      return { pages: merged.reduce((n,[a,b]) => n+b-a+1,0), start: ranges.length === 1 ? +ranges[0][1] : null, end: ranges.length === 1 ? +ranges[0][2] : null };
-    }
-    const count = text.match(/\b(\d+)\s*pages?\b/i), single = text.match(/\b(?:page|p\.)\s*(\d+)\b/i);
-    return count ? { pages: +count[1] } : single ? { pages: 1, start: +single[1], end: +single[1] } : { pages: null };
+    const count = text.match(/\b(\d+)\s*pages?\b/i);
+    if (count) return { pages: +count[1] };
+    // A page marker starts a list; later entries can omit it.
+    const lists = [...text.matchAll(/\b(?:pages?|pp?\.?|read|reading)\s*:?\s*(\d+(?:\s*(?:[-–—]|to)\s*\d+)?(?:\s*(?:,|&|and|\+)\s*(?:(?:pages?|pp?\.?)\s*)?\d+(?:\s*(?:[-–—]|to)\s*\d+)?)*)/gi)];
+    const intervals = lists.flatMap(m => [...m[1].matchAll(/(\d+)(?:\s*(?:[-–—]|to)\s*(\d+))?/gi)].map(n => [+n[1], +(n[2] || n[1])]));
+    if (!intervals.length) return { pages: null };
+    if (intervals.some(([a,b]) => a < 1 || b < a)) return { invalid: true };
+    intervals.sort((a,b) => a[0]-b[0]);
+    const merged = [];
+    intervals.forEach(([a,b]) => { const last = merged.at(-1); if (last && a <= last[1]+1) last[1] = Math.max(last[1],b); else merged.push([a,b]); });
+    return { pages: merged.reduce((n,[a,b]) => n+b-a+1,0), start: merged.length === 1 ? merged[0][0] : null, end: merged.length === 1 ? merged[0][1] : null };
   }
   function estimate(text, data = {}) {
     const parsed = parse(text);
