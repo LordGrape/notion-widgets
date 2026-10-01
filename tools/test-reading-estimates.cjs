@@ -19,4 +19,8 @@ roundTrip.plannedMinutes=50;R.apply(roundTrip);assert.equal(roundTrip.plannedMin
 assert.equal(R.apply({text:'Read 20 pages',plannedMinutes:45}).plannedMinutes,45);
 assert.equal(R.apply({text:'Read 20 pages',time:'m30'}).plannedMinutes,undefined);
 const manual={text:'Read 20 pages',plannedMinutes:45,reading:{manual:true}};assert.equal(R.apply(manual).plannedMinutes,45);
-console.log('Reading parsing, phases, splits, manual overrides and state round trip passed.');
+assert(!R.html({text:'Read 20 pages'}).includes('data-reading="phase"'));
+assert(!R.html({text:'Read 20 pages'}).includes('cornell'));
+assert(R.html({text:'Read 20 pages'}).includes('https://sass.queensu.ca/resources/online/reading'));
+assert.equal(R.estimate('Read 20 pages').minutes,120);
+console.log('Reading parsing, saved pace compatibility, splits, manual overrides and state round trip passed.');
