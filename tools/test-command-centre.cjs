@@ -614,6 +614,7 @@ let states = {
         assert.match(await page.locator('#taskForm [name=steps]').inputValue(),/15–22/);
         await page.locator('#taskForm [data-manual-duration]').click();
         await page.locator('#taskForm [name=plannedMinutes]').fill('75');
+        await page.locator('#taskForm .reading-options > summary').click();
         await page.locator('#taskForm [data-reading=phase]').selectOption('analysis');
         assert.equal(await page.locator('#taskForm [name=plannedMinutes]').inputValue(),'75');
         await page.locator('#taskForm [data-use-estimate]').click();
@@ -627,6 +628,7 @@ let states = {
         const sf=standalone.frameLocator('#shell');
         await sf.locator(`[data-id="${readingTask.id}"] .manage`).click();
         assert.equal(await sf.locator(`[data-id="${readingTask.id}"] [data-reading=phase]`).inputValue(),'analysis');
+        await sf.locator(`[data-id="${readingTask.id}"] .reading-options > summary`).click();
         await sf.locator(`[data-id="${readingTask.id}"] [data-reading=pageMode]`).selectOption('count');
         await sf.locator(`[data-id="${readingTask.id}"] [data-reading=pages]`).fill('10');
         await sf.locator(`[data-id="${readingTask.id}"] [data-reading=pages]`).press('Tab');
