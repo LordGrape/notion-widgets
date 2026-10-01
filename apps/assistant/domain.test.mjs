@@ -6,6 +6,7 @@ import {
 	gaps,
 	intervals,
 	validateSlot,
+	suggestSlot,
 	duration,
 } from "./domain.mjs";
 test("capacity merges overlaps and preserves usable gaps", () => {
@@ -68,4 +69,17 @@ test("duration uses explicit estimates and exact scheduled windows", () => {
 		}),
 		45,
 	);
+});
+
+test("drop suggestions fit a complete task into the next available gap", () => {
+	const events = [
+		{ id: "class", start: "11:00", end: "12:00" },
+		{ id: "lunch", start: "12:00", end: "13:00" },
+		{ id: "study", start: "13:00", end: "14:00" },
+		{ id: "other", start: "15:00", end: "16:00" },
+	];
+	assert.equal(suggestSlot(events, 675, 45, 1020), 840);
+	assert.equal(suggestSlot(events, 855, 60, 1020), 960);
+	assert.equal(suggestSlot(events, 675, 30, 1020, "class"), 675);
+	assert.equal(suggestSlot(events, 1005, 45, 1020), null);
 });

@@ -84,6 +84,17 @@ export function validateSlot(events, start, end, exclude) {
 			"That time overlaps a scheduled block. Choose an open time.",
 		);
 }
+export function suggestSlot(events, preferred, duration, end = 1439, exclude) {
+	for (const [start, finish] of gaps(
+		events.filter((e) => e.id !== exclude),
+		preferred,
+		end,
+	)) {
+		const snapped = Math.ceil(start / 15) * 15;
+		if (snapped + duration <= finish) return snapped;
+	}
+	return null;
+}
 export const escapeHtml = (value) =>
 	String(value ?? "").replace(
 		/[&<>"']/g,

@@ -1,4 +1,4 @@
-const CACHE = "command-centre-20261001-live-calendar-v2";
+const CACHE = "command-centre-20261001-drag-schedule-v3";
 const SHELL = [
 	"./",
 	"./index.html",

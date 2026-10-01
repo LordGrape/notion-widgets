@@ -310,6 +310,68 @@ let states = {
 			.first()
 			.click();
 		assert((await getTasks()).some((t) => t.text === "Synthetic new task"));
+		// Today: dragging from the actual task title onto an occupied time suggests a gap.
+		const dragReading = () =>
+			page
+				.locator('.task-row[data-task="reading"] .task-title')
+				.dragTo(page.locator(".timeline"), {
+					targetPosition: { x: 100, y: 171 },
+				});
+		await dragReading();
+		await page.locator("#scheduleForm").waitFor();
+		assert.equal(
+			await page.locator("#scheduleForm [name=start]").inputValue(),
+			"14:00",
+		);
+		assert.equal(
+			await page.locator("#scheduleForm [name=duration]").inputValue(),
+			"45",
+		);
+		assert.equal(
+			await page.locator("#scheduleForm [name=date]").inputValue(),
+			key,
+		);
+		assert(
+			!(await getTasks()).find((t) => t.id === "reading").scheduleId,
+			"Dropping must not save before confirmation",
+		);
+		await page
+			.locator("#editorDialog [data-action=close-dialog]")
+			.first()
+			.click();
+		assert(
+			!(await getTasks()).find((t) => t.id === "reading").scheduleId,
+			"Cancel leaves the task unchanged",
+		);
+		await dragReading();
+		await page.locator("#scheduleForm .primary").click();
+		await page.waitForFunction(
+			() => !document.querySelector("#editorDialog").open,
+		);
+		const reading = (await getTasks()).find((t) => t.id === "reading");
+		assert(reading.scheduleId && reading.scheduledStart);
+		assert.equal(
+			(await getTasks()).filter((t) => t.id === "reading").length,
+			1,
+		);
+		assert.equal(
+			await page
+				.locator('.timeline .event[data-event-id="' + reading.scheduleId + '"]')
+				.count(),
+			1,
+		);
+		// The drag grip doubles as a keyboard/touch scheduling button.
+		await page
+			.getByRole("button", {
+				name: "Drag Read assigned case to the calendar",
+				exact: true,
+			})
+			.click();
+		await page.locator("#scheduleForm").waitFor();
+		await page
+			.locator("#editorDialog [data-action=close-dialog]")
+			.first()
+			.click();
 		// B: click-to-schedule uses the same task and one dated block, never recurrence.
 		await page.locator(".view-tabs [data-view=plan]").click();
 		await checkLiveTime();
@@ -338,7 +400,7 @@ let states = {
 		const added = blocks.find((b) => b.id === review.scheduleId);
 		assert.equal(added.startDate, key);
 		assert.equal(added.endDate, key);
-		assert.equal(blocks.length, 5);
+		assert.equal(blocks.length, 6);
 		// Rescheduling updates the existing dated block rather than duplicating it.
 		await page.locator(".view-tabs [data-view=today]").click();
 		await page
@@ -357,7 +419,7 @@ let states = {
 					.contentWindow.document.querySelector("#schedule").contentWindow
 					.CommandTimetable.schedule,
 		);
-		assert.equal(blocks.length, 5);
+		assert.equal(blocks.length, 6);
 		// Drag-to-schedule must land in the same explicit scheduling form.
 		await page.locator(".view-tabs [data-view=plan]").click();
 		await page

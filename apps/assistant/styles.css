@@ -395,6 +395,43 @@ h3 {
 	text-decoration: line-through;
 	color: var(--muted);
 }
+.today-grip {
+	width: 15px;
+	min-width: 15px;
+	margin-right: -5px;
+	opacity: 0.45;
+}
+.task-row:hover .today-grip,
+.today-grip:focus-visible {
+	opacity: 1;
+}
+.timeline.drop-target,
+.calendar-column.drop-target {
+	background: var(--accent-soft);
+	outline: 1px dashed color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.drop-preview {
+	position: absolute;
+	left: 8px;
+	right: 8px;
+	z-index: 4;
+	border-top: 2px dashed var(--accent);
+	color: var(--accent);
+	background: var(--surface);
+	border-radius: 4px;
+	padding: 5px 8px;
+	font-size: 11px;
+	font-weight: 600;
+	pointer-events: none;
+}
+.schedule-hint {
+	padding: 10px 12px;
+	border: 1px solid var(--line);
+	border-radius: 9px;
+	background: var(--accent-soft);
+	font-size: 12px;
+	line-height: 1.5;
+}
 .check-button {
 	display: grid;
 	place-items: center;

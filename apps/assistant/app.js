@@ -11,12 +11,13 @@ import {
 	intervals,
 	gaps,
 	validateSlot,
+	suggestSlot,
 	escapeHtml as esc,
 } from "./domain.mjs";
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261001-live-calendar-v2";
+	REVISION = "20261001-drag-schedule-v3";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -293,7 +294,7 @@ function finishLine(compact = false) {
 }
 function taskRow(t, planner = false) {
 	const m = duration(t);
-	return `<div class="task-row ${t.done ? "done" : ""}" data-task="${esc(t.id)}">${planner ? `<button class="drag-handle icon-button" draggable="true" data-drag="${esc(t.id)}" aria-label="Drag ${esc(t.text)} to the calendar">${icon("grip")}</button>` : ""}<button class="check-button ${t.done ? "checked" : ""}" data-action="toggle" data-id="${esc(t.id)}" aria-label="${t.done ? "Reopen" : "Complete"} ${esc(t.text)}">${t.done ? icon("check") : ""}</button><button class="task-title" data-action="edit" data-id="${esc(t.id)}">${esc(t.text)}${planner ? `<small class="planner-task-meta"><span class="priority-chip ${t.pri || "must"}">${t.pri === "could" ? "Could" : t.pri === "should" ? "Should" : "Must"}</span>${m ? `${m} min` : "No estimate"}</small>` : ""}</button>${!planner && m ? `<span class="task-meta">${icon("clock")}${m} min</span>` : ""}<div class="task-actions"><button class="icon-button" data-action="select-focus" data-id="${esc(t.id)}" aria-label="Focus on ${esc(t.text)}" title="Focus on this task">${icon("play")}</button><button class="icon-button" data-action="${planner ? "schedule" : "edit"}" data-id="${esc(t.id)}" aria-label="${planner ? "Schedule" : "Edit"} ${esc(t.text)}">${icon(planner ? "calendar" : "more")}</button></div></div>`;
+	return `<div class="task-row ${t.done ? "done" : ""}" data-task="${esc(t.id)}" ${!planner && !t.done ? `draggable="true" data-drag="${esc(t.id)}"` : ""}>${!t.done ? `<button class="drag-handle icon-button ${planner ? "" : "today-grip"}" title="Drag to schedule; click to choose a time" data-action="schedule" data-id="${esc(t.id)}" draggable="true" data-drag="${esc(t.id)}" aria-label="Drag ${esc(t.text)} to the calendar">${icon("grip")}</button>` : ""}<button class="check-button ${t.done ? "checked" : ""}" data-action="toggle" data-id="${esc(t.id)}" aria-label="${t.done ? "Reopen" : "Complete"} ${esc(t.text)}">${t.done ? icon("check") : ""}</button><button class="task-title" data-action="edit" data-id="${esc(t.id)}">${esc(t.text)}${planner ? `<small class="planner-task-meta"><span class="priority-chip ${t.pri || "must"}">${t.pri === "could" ? "Could" : t.pri === "should" ? "Should" : "Must"}</span>${m ? `${m} min` : "No estimate"}</small>` : ""}</button>${!planner && m ? `<span class="task-meta">${icon("clock")}${m} min</span>` : ""}<div class="task-actions"><button class="icon-button" data-action="select-focus" data-id="${esc(t.id)}" aria-label="Focus on ${esc(t.text)}" title="Focus on this task">${icon("play")}</button><button class="icon-button" data-action="${planner ? "schedule" : "edit"}" data-id="${esc(t.id)}" aria-label="${planner ? "Schedule" : "Edit"} ${esc(t.text)}">${icon(planner ? "calendar" : "more")}</button></div></div>`;
 }
 function taskGroups() {
 	const list = todayTasks(tasks).sort(
@@ -373,7 +374,7 @@ function updateCalendarTime() {
 function renderToday() {
 	const events = occurrences(new Date()),
 		{ start, end } = timeRange(events);
-	return `<div class="today-layout"><section class="surface tasks-surface"><div class="today-heading"><div><h2>Today</h2><p class="date-copy">${dateLabel(new Date())}</p></div>${finishLine()}</div><form class="composer" id="quickAdd"><input name="task" aria-label="Add a task" placeholder="Add a task for today…" autocomplete="off" required><button class="primary" aria-label="Add task">${icon("plus")}</button><button type="button" data-action="add" aria-label="Add task with details">${icon("more")}</button></form>${taskGroups()}<div class="tasks-footer"><button class="text-button" data-action="all-tasks">All tasks · ${tasks.filter((t) => !t.done).length} open</button><button class="text-button" data-action="standalone" data-type="todo">Open To-Do separately ↗</button></div></section><section class="surface agenda-surface"><div class="section-heading"><h2>Your day</h2><span>${new Date().toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" })}</span></div><div class="agenda-scroll"><div class="timeline" style="--timeline-height:${((end - start) * 76) / 60}px">${hourLines(start, end)}${events.map((e) => eventMarkup(e, start)).join("")}${nowLine(start, end)}</div></div><div class="tasks-footer"><button class="text-button" data-action="view" data-view="plan">Open planner ${icon("right")}</button><button class="text-button" data-action="standalone" data-type="timetable">Timetable ↗</button></div></section></div>`;
+	return `<div class="today-layout"><section class="surface tasks-surface"><div class="today-heading"><div><h2>Today</h2><p class="date-copy">${dateLabel(new Date())}</p></div>${finishLine()}</div><form class="composer" id="quickAdd"><input name="task" aria-label="Add a task" placeholder="Add a task for today…" autocomplete="off" required><button class="primary" aria-label="Add task">${icon("plus")}</button><button type="button" data-action="add" aria-label="Add task with details">${icon("more")}</button></form>${taskGroups()}<div class="tasks-footer"><button class="text-button" data-action="all-tasks">All tasks · ${tasks.filter((t) => !t.done).length} open</button><button class="text-button" data-action="standalone" data-type="todo">Open To-Do separately ↗</button></div></section><section class="surface agenda-surface"><div class="section-heading"><h2>Your day</h2><span>${new Date().toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" })}</span></div><div class="agenda-scroll"><div class="timeline" data-drop-calendar data-date="${isoDate()}" data-start="${start}" data-end="${end}" style="--timeline-height:${((end - start) * 76) / 60}px">${hourLines(start, end)}${events.map((e) => eventMarkup(e, start)).join("")}${nowLine(start, end)}</div></div><div class="tasks-footer"><button class="text-button" data-action="view" data-view="plan">Open planner ${icon("right")}</button><button class="text-button" data-action="standalone" data-type="timetable">Timetable ↗</button></div></section></div>`;
 }
 function render() {
 	if (!engines.todo) return;
@@ -415,30 +416,86 @@ function bindWorkspace() {
 			refresh();
 			notify("Task added.");
 		};
+	let draggingId = null;
+	const clearDrop = () =>
+		document.querySelectorAll("[data-drop-calendar]").forEach((el) => {
+			el.classList.remove("drop-target");
+			el.querySelector(".drop-preview")?.remove();
+		});
 	document.querySelectorAll("[data-drag]").forEach((el) => {
 		el.ondragstart = (e) => {
-			e.dataTransfer.setData("text/plain", el.dataset.drag);
+			e.stopPropagation();
+			if (!task(el.dataset.drag) || task(el.dataset.drag).done) {
+				e.preventDefault();
+				return;
+			}
+			draggingId = el.dataset.drag;
+			e.dataTransfer.setData("text/plain", draggingId);
 			e.dataTransfer.effectAllowed = "move";
 		};
-	});
-	document.querySelectorAll(".calendar-column").forEach((el) => {
-		el.ondragover = (e) => {
-			e.preventDefault();
-			el.classList.add("drop-target");
+		el.ondragend = () => {
+			draggingId = null;
+			clearDrop();
 		};
-		el.ondragleave = () => el.classList.remove("drop-target");
+	});
+	document.querySelectorAll("[data-drop-calendar]").forEach((el) => {
+		const dropMinute = (e) =>
+			Math.max(
+				Number(el.dataset.start),
+				Math.min(
+					Number(el.dataset.end) - 15,
+					Number(el.dataset.start) +
+						Math.floor(
+							((e.clientY - el.getBoundingClientRect().top) / 76) * 4,
+						) *
+							15,
+				),
+			);
+		el.ondragover = (e) => {
+			if (!draggingId) return;
+			e.preventDefault();
+			e.dataTransfer.dropEffect = "move";
+			el.classList.add("drop-target");
+			let preview = el.querySelector(".drop-preview");
+			if (!preview) {
+				preview = document.createElement("div");
+				preview.className = "drop-preview";
+				el.append(preview);
+			}
+			const m = dropMinute(e);
+			preview.style.top = `${((m - Number(el.dataset.start)) * 76) / 60}px`;
+			preview.textContent = `Schedule at ${timeString(m)}`;
+		};
+		el.ondragleave = (e) => {
+			if (!el.contains(e.relatedTarget)) {
+				el.classList.remove("drop-target");
+				el.querySelector(".drop-preview")?.remove();
+			}
+		};
 		el.ondrop = (e) => {
 			e.preventDefault();
-			el.classList.remove("drop-target");
 			const id = e.dataTransfer.getData("text/plain"),
-				m =
-					Number(el.dataset.start) +
-					Math.floor(((e.clientY - el.getBoundingClientRect().top) / 76) * 4) *
-						15;
+				t = task(id);
+			clearDrop();
+			if (!t || t.done) return;
+			const preferred = dropMinute(e),
+				date = el.dataset.date;
+			const suggested = suggestSlot(
+				occurrences(localDate(date)),
+				preferred,
+				duration(t) || 45,
+				Number(el.dataset.end),
+				t.scheduleId,
+			);
 			openSchedule(
 				id,
-				el.dataset.date,
-				timeString(Math.max(0, Math.min(1425, m))),
+				date,
+				timeString(suggested ?? preferred),
+				suggested === preferred
+					? "Confirm the time and duration to add this task to your timetable."
+					: suggested !== null
+						? `The dropped time is busy or too short. The next space that fits starts at ${timeString(suggested)}.`
+						: "There is no space that fits after this time in the displayed day. Choose another time or adjust the duration.",
 			);
 		};
 	});
@@ -691,13 +748,13 @@ function openSearch(all = false) {
 	};
 	results();
 }
-function openSchedule(id, date = isoDate(), start = "13:00") {
+function openSchedule(id, date = isoDate(), start = "13:00", hint = "") {
 	const t = task(id);
 	if (!t) return;
 	$("#editorDialog").open && $("#editorDialog").close();
 	const d = openDialog(
 		"#editorDialog",
-		`${dialogHead("Schedule task", "editorTitle")}<p class="muted">${esc(t.text)}</p><form id="scheduleForm"><div class="form-grid" style="margin-top:20px"><label class="field wide">Date<input type="date" name="date" value="${date}" required></label><label class="field">Start<input type="time" name="start" value="${start}" required></label><label class="field">Minutes<input type="number" min="1" max="720" name="duration" value="${duration(t) || 45}" required></label></div><p class="form-error" role="alert" id="scheduleError"></p><div class="dialog-actions"><button type="button" data-action="close-dialog">Cancel</button><button class="primary">Save time block</button></div></form>`,
+		`${dialogHead("Schedule task", "editorTitle")}<p class="muted">${esc(t.text)}</p>${hint ? `<p class="schedule-hint">${esc(hint)}</p>` : ""}<form id="scheduleForm"><div class="form-grid" style="margin-top:20px"><label class="field wide">Date<input type="date" name="date" value="${date}" required></label><label class="field">Start<input type="time" name="start" value="${start}" required></label><label class="field">Minutes<input type="number" min="1" max="720" name="duration" value="${duration(t) || 45}" required></label></div><p class="form-error" role="alert" id="scheduleError"></p><div class="dialog-actions"><button type="button" data-action="close-dialog">Cancel</button><button class="primary">Save time block</button></div></form>`,
 	);
 	$("#scheduleForm").onsubmit = async (e) => {
 		e.preventDefault();
@@ -1004,7 +1061,7 @@ function renderPlan() {
 			const gap = gaps(events[i], start, end).find(
 				([s, e]) => e - s >= 45 && s >= minutes("12:00"),
 			);
-			return `<div class="calendar-column ${isoDate(date) === today ? "today" : ""}" data-date="${isoDate(date)}" data-start="${start}">${events[i].map((e) => eventMarkup(e, start)).join("")}${gap ? `<div class="open-slot" style="top:${((gap[0] - start) * 76) / 60 + 4}px;height:${(45 * 76) / 60 - 8}px">45 min available</div>` : ""}${nowLine(start, end, 76, isoDate(date))}</div>`;
+			return `<div class="calendar-column ${isoDate(date) === today ? "today" : ""}" data-drop-calendar data-date="${isoDate(date)}" data-start="${start}" data-end="${end}">${events[i].map((e) => eventMarkup(e, start)).join("")}${gap ? `<div class="open-slot" style="top:${((gap[0] - start) * 76) / 60 + 4}px;height:${(45 * 76) / 60 - 8}px">45 min available</div>` : ""}${nowLine(start, end, 76, isoDate(date))}</div>`;
 		})
 		.join(
 			"",
