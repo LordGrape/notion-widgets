@@ -6,6 +6,7 @@ on:
       - apps/athlete/**
       - packages/theme/theme-upgrade.css
       - core.js
+      - widget-icons.js
       - tools/build-athlete.mjs
       - tools/verify-athlete.mjs
       - .github/workflows/build-athlete.yml

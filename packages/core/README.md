@@ -26,4 +26,4 @@ Before editing `core.js`, identify which widgets use the function being changed.
 - Icon-only controls must retain a descriptive `aria-label`; icons are hidden from screen readers.
 - React islands use `WidgetIcons.paths` so their geometry matches the other widgets exactly.
 
-Purple outlines, lavender fills, round caps and a 1.65px stroke define set B. Theme-aware CSS is scoped to icons; progress rings, diagrams, user text and uploaded crests are not rewritten. Geometry is original and requires no external icon font or network dependency. Edit the shared library, then rebuild Athlete.
+Purple outlines, lavender fills, round caps and a 1.65px stroke define set B. Theme-aware CSS is scoped to icons; progress rings, diagrams, user text and uploaded crests are not rewritten. Geometry is original and requires no external icon font or network dependency. Edit the shared library, then rebuild Athlete and run `node tools/build-widget-icons.mjs` for FIRAC’s separate deployment bundle. Its generated copy is checked in CI.

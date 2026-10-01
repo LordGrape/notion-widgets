@@ -19,6 +19,7 @@ jobs:
       - run: pnpm install --no-frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm check:assistant
+      - run: node tools/build-widget-icons.mjs --check
 
   studyengine:
     name: studyengine (typecheck + test)

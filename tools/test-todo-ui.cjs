@@ -125,6 +125,8 @@ const fakeCore = `let store={'todo/tasks':JSON.stringify([{id:'must-a',text:'Rea
 							);
 						}),
 					);
+					// Let the 160ms reorder animation finish before locating the next pointer target.
+					await frame.waitForTimeout(250);
 					const aBox = await app
 						.getByRole("button", { name: "Reorder Read a sample case" })
 						.boundingBox();

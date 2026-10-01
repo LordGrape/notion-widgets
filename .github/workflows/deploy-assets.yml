@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - 'firac-reader/**'
+      - 'widget-icons.js'
+      - 'tools/build-widget-icons.mjs'
       - '.github/workflows/deploy-assets.yml'
   workflow_dispatch:
 
@@ -20,6 +22,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Verify shared icon bundle
+        run: node tools/build-widget-icons.mjs --check
       - name: Deploy FIRAC Reader
         uses: cloudflare/wrangler-action@v3
         with:
