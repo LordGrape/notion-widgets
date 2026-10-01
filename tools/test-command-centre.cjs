@@ -595,6 +595,46 @@ let states = {
 			});
 			await p.close();
 		}
+
+        // Calendar ranges and reading fields work through the original task writer.
+        await page.setViewportSize({width:1440,height:1000});
+        await page.locator('.view-tabs [data-view=plan]').click();
+        for(const days of [1,7,3]) {
+            await page.locator(`[data-action=plan-range][data-days="${days}"]`).click();
+            assert.equal(await page.locator('.calendar-column').count(),days);
+            if(days===7) assert.equal(await page.locator('.calendar-date').first().textContent().then(t=>t.startsWith('Mon')),true);
+            await page.setViewportSize({width:390,height:1000});
+            assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`Range ${days} fits mobile`);
+            await page.setViewportSize({width:1440,height:1000});
+        }
+        await page.locator('.planner-tray [data-action=add]').click();
+        await page.locator('#taskForm [name=text]').fill('Read pages 15-30');
+        assert.equal(await page.locator('#taskForm [name=plannedMinutes]').inputValue(),'96');
+        await page.locator('#taskForm [data-split-reading]').click();
+        assert.match(await page.locator('#taskForm [name=steps]').inputValue(),/15–22/);
+        await page.locator('#taskForm [name=plannedMinutes]').fill('75');
+        await page.locator('#taskForm [data-reading=phase]').selectOption('analysis');
+        assert.equal(await page.locator('#taskForm [name=plannedMinutes]').inputValue(),'75');
+        await page.locator('#taskForm [data-use-estimate]').click();
+        assert.equal(await page.locator('#taskForm [name=plannedMinutes]').inputValue(),'144');
+        await page.locator('#taskForm button[type=submit]').click();
+        const readingTask=(await getTasks()).find(t=>t.text==='Read pages 15-30');
+        assert.equal(readingTask.plannedMinutes,144);assert.equal(readingTask.reading.phase,'analysis');
+        assert.equal(readingTask.subs.length,2);
+        const standalone=await context.newPage();
+        await standalone.goto(`${base}/todo-smart-shell.html#key=synthetic-test-key`);
+        const sf=standalone.frameLocator('#shell');
+        await sf.locator(`[data-id="${readingTask.id}"] .manage`).click();
+        assert.equal(await sf.locator(`[data-id="${readingTask.id}"] [data-reading=phase]`).inputValue(),'analysis');
+        await sf.locator(`[data-id="${readingTask.id}"] [data-reading=pageMode]`).selectOption('count');
+        await sf.locator(`[data-id="${readingTask.id}"] [data-reading=pages]`).fill('10');
+        await sf.locator(`[data-id="${readingTask.id}"] [data-reading=pages]`).press('Tab');
+        await sf.locator(`[data-id="${readingTask.id}"] .e-minutes`).fill('50');
+        await sf.locator(`[data-id="${readingTask.id}"] .e-minutes`).press('Tab');
+        const standaloneTask=await standalone.evaluate(id=>document.querySelector('#shell').contentWindow.TodoUIBridge.snapshot().tasks.find(t=>t.id===id),readingTask.id);
+        assert.equal(standaloneTask.plannedMinutes,50);assert.equal(standaloneTask.reading.manual,true);
+        await standalone.close();
+
 		// A fresh browser with no local cache must receive the same protected task state.
 		const freshContext = await browser.newContext({
 			timezoneId: "America/Toronto",

@@ -209,7 +209,8 @@
   function applyParsed(task, tasks, parsed) {
     var now = new Date(), linked = parsed.dependencyText ? findTask(tasks, parsed.dependencyText, task) : null;
     if (parsed.priority) task.pri = parsed.priority;
-    if (parsed.duration) { task.plannedMinutes = parsed.duration; task.time = timeBand(parsed.duration); }
+    if (parsed.duration) { task.plannedMinutes = parsed.duration; task.time = timeBand(parsed.duration); task.reading = Object.assign({},task.reading,{manual:true}); }
+    if(root.ReadingEstimates)root.ReadingEstimates.apply(task);
     if (parsed.dateKey) {
       task.dueKey = parsed.dateKey; task.due = dueState(parsed.dateKey, now); task.setKey = dateKey(now);
       task.allDay = parsed.allDay;

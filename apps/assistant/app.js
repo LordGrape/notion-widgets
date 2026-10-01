@@ -1,3 +1,5 @@
+import "../../reading-estimates.js";
+const Reading = globalThis.ReadingEstimates;
 import {
 	dailyGoal,
 	dateKey,
@@ -17,7 +19,7 @@ import {
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261001-duotone-b";
+	REVISION = "20261001-reading-views";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -34,6 +36,7 @@ let accessKey = "",
 	target = 1,
 	selectedId = null,
 	weekOffset = 0,
+	planDays = 3,
 	collapsed = new Set(["could"]),
 	signature = "",
 	loadingTimer,
@@ -277,6 +280,7 @@ function refresh() {
 		view,
 		selectedId,
 		weekOffset,
+		planDays,
 		[...collapsed],
 	]);
 	if (next !== signature) {
@@ -414,6 +418,11 @@ function renderDock() {
 		`<div class="dock-task"><button class="dock-icon" data-action="view" data-view="focus" aria-label="Open focus workspace">${icon("clock")}</button><div><b>${esc(current?.text || "Ready when you are")}</b><small>${current ? `${duration(current) || 45}-minute focus block` : "Choose a task or start a timer"}</small></div></div><span class="dock-time" data-timer>45:00</span><div class="dock-controls"><button class="primary" data-action="timer" data-timer-button>${icon("play")} Start focus</button><button class="icon-button" data-action="reset-timer" aria-label="End and reset timer" title="End and reset timer">${icon("reset")}</button></div><div class="next-event">${icon("calendar")}<div><span>Next</span><b>${next ? `${esc(next.name)} · ${esc(next.start)}` : "No more scheduled blocks"}</b></div></div>`;
 }
 function bindWorkspace() {
+	const calendarScroll=$(".calendar-scroll"), calendarHead=$(".calendar-head");
+	if(calendarScroll && calendarHead) {
+		calendarScroll.addEventListener("scroll",()=>{calendarHead.scrollLeft=calendarScroll.scrollLeft;});
+		calendarHead.addEventListener("scroll",()=>{calendarScroll.scrollLeft=calendarHead.scrollLeft;});
+	}
 	const form = $("#quickAdd");
 	if (form)
 		form.onsubmit = (e) => {
@@ -642,8 +651,9 @@ function openEditor(id) {
 	const t = task(id),
 		d = openDialog(
 			"#editorDialog",
-			`${dialogHead(t ? "Edit task" : "Add task", "editorTitle")}<form id="taskForm"><div class="form-grid"><label class="field wide">Task<input name="text" value="${esc(t?.text || "")}" required maxlength="500"></label><label class="field">Priority<select name="pri">${["must", "should", "could"].map((p) => `<option value="${p}" ${p === (t?.pri || "must") ? "selected" : ""}>${p === "must" ? "Must Do" : p === "should" ? "Should Do" : "Could Do"}</option>`).join("")}</select></label><label class="field">Estimated minutes<input type="number" name="plannedMinutes" min="1" max="720" value="${duration(t || {}) || ""}" placeholder="Optional"></label><label class="field wide">Date<input name="dueKey" type="date" value="${esc(normalizeDateKey(t?.dueKey) || isoDate())}"></label><label class="field wide">Notes<textarea name="notes" rows="3">${esc(t?.notes || "")}</textarea></label><label class="field wide">Session steps <span>One step per line</span><textarea name="steps" rows="3" placeholder="Add the steps this task needs…">${esc((t?.subs || []).map((s) => s.text).join("\n"))}</textarea></label></div><p class="form-error" id="formError" role="alert"></p><div class="dialog-actions">${t ? `<button type="button" class="delete" data-action="delete" data-id="${esc(id)}">Delete</button><button type="button" data-action="schedule" data-id="${esc(id)}">Schedule</button>` : ""}<button type="submit" class="primary">${t ? "Save changes" : "Add task"}</button></div></form>`,
+			`${dialogHead(t ? "Edit task" : "Add task", "editorTitle")}<form id="taskForm"><div class="form-grid"><label class="field wide">Task<input name="text" value="${esc(t?.text || "")}" required maxlength="500"></label><label class="field">Priority<select name="pri">${["must", "should", "could"].map((p) => `<option value="${p}" ${p === (t?.pri || "must") ? "selected" : ""}>${p === "must" ? "Must Do" : p === "should" ? "Should Do" : "Could Do"}</option>`).join("")}</select></label><label class="field">Estimated minutes<input type="number" name="plannedMinutes" min="1" value="${duration(t || {}) || ""}" placeholder="Optional"></label><div class="wide">${Reading.html(t || {})}</div><label class="field wide">Date<input name="dueKey" type="date" value="${esc(normalizeDateKey(t?.dueKey) || isoDate())}"></label><label class="field wide">Notes<textarea name="notes" rows="3">${esc(t?.notes || "")}</textarea></label><label class="field wide">Session steps <span>One step per line</span><textarea name="steps" rows="3" placeholder="Add the steps this task needs…">${esc((t?.subs || []).map((s) => s.text).join("\n"))}</textarea></label></div><p class="form-error" id="formError" role="alert"></p><div class="dialog-actions">${t ? `<button type="button" class="delete" data-action="delete" data-id="${esc(id)}">Delete</button><button type="button" data-action="schedule" data-id="${esc(id)}">Schedule</button>` : ""}<button type="submit" class="primary">${t ? "Save changes" : "Add task"}</button></div></form>`,
 		);
+	const readingData = Reading.mount(d, t || {}, { title: d.querySelector("[name=text]"), duration: d.querySelector("[name=plannedMinutes]"), split: steps => { const el=d.querySelector("[name=steps]"); const existing=el.value.split("\n"); el.value=[...existing.filter(Boolean),...steps.filter(s=>!existing.includes(s))].join("\n"); } });
 	$("#taskForm").onsubmit = (e) => {
 		e.preventDefault();
 		const f = new FormData(e.target),
@@ -652,6 +662,8 @@ function openEditor(id) {
 				text: f.get("text").trim(),
 				pri: f.get("pri"),
 				plannedMinutes: Number(f.get("plannedMinutes")) || null,
+				reading: readingData(),
+				time: null,
 				dueKey: key || null,
 				due: key === isoDate() ? "today" : null,
 				notes: f.get("notes"),
@@ -964,13 +976,16 @@ document.addEventListener("click", (e) => {
 			$("#searchDialog").close();
 			b.dataset.command === "add" ? openEditor() : setView(b.dataset.command);
 			break;
+		case "plan-range":
+			planDays = [1,3,7].includes(Number(b.dataset.days)) ? Number(b.dataset.days) : 3;
+			signature = ""; render(); break;
 		case "week-prev":
-			weekOffset -= 3;
+			weekOffset -= planDays;
 			signature = "";
 			render();
 			break;
 		case "week-next":
-			weekOffset += 3;
+			weekOffset += planDays;
 			signature = "";
 			render();
 			break;
@@ -1076,9 +1091,12 @@ if ("serviceWorker" in navigator && location.protocol.startsWith("http"))
 	navigator.serviceWorker.register(`./sw.js?v=${REVISION}`).catch(() => {});
 
 function renderPlan() {
-	const dates = Array.from({ length: 3 }, (_, i) => {
-		const d = new Date();
-		d.setDate(d.getDate() + weekOffset + i);
+	const anchor = new Date();
+	anchor.setDate(anchor.getDate() + weekOffset);
+	if (planDays === 7) anchor.setDate(anchor.getDate() - (anchor.getDay() + 6) % 7);
+	const dates = Array.from({ length: planDays }, (_, i) => {
+		const d = new Date(anchor);
+		d.setDate(d.getDate() + i);
 		return d;
 	});
 	const events = dates.map(occurrences),
@@ -1095,7 +1113,7 @@ function renderPlan() {
 		planned = intervals(day, start, end).reduce((n, [s, e]) => n + e - s, 0),
 		available = end - start - planned;
 	const today = isoDate();
-	return `<div class="planner-layout"><aside class="surface planner-tray"><div class="section-heading"><h2>Unscheduled</h2><span>${open.length} tasks</span></div><p class="muted" style="font-size:11px;margin:0 5px 17px">Drag a task into a day, or choose its calendar button.</p>${open.length ? open.map((t) => taskRow(t, true)).join("") : '<p class="group-empty">Your tasks have a time. Add another when you need it.</p>'}<button class="text-button" data-action="add" style="align-self:flex-start;margin:4px 5px 24px">+ Add a task</button><div class="tray-timer"><div><small>Focus</small><b data-timer>45:00</b></div><button data-action="timer" aria-label="Start or pause focus">${icon("play")}</button></div></aside><section class="surface planner-calendar"><div class="calendar-head">${icon("calendar")}<div class="calendar-dates">${dates.map((d) => `<div class="calendar-date ${isoDate(d) === today ? "today" : ""}">${d.toLocaleDateString("en-CA", { weekday: "short", day: "numeric" })}<small>${d.toLocaleDateString("en-CA", { month: "long", year: "numeric" })}</small></div>`).join("")}</div></div><div class="calendar-toolbar"><button data-action="week-prev" aria-label="Previous three days">←</button><button data-action="week-today">Today</button><button data-action="week-next" aria-label="Next three days">→</button><button data-action="standalone" data-type="timetable">Edit timetable ↗</button></div><div class="calendar-scroll"><div class="calendar-body" style="--calendar-height:${((end - start) * 76) / 60}px"><div class="calendar-hours">${Array.from({ length: (end - start) / 60 + 1 }, (_, i) => `<span style="top:${i * 76}px">${timeString(start + i * 60)}</span>`).join("")}</div><div class="calendar-columns">${dates
+	return `<div class="planner-layout"><aside class="surface planner-tray"><div class="section-heading"><h2>Unscheduled</h2><span>${open.length} tasks</span></div><p class="muted" style="font-size:11px;margin:0 5px 17px">Drag a task into a day, or choose its calendar button.</p>${open.length ? open.map((t) => taskRow(t, true)).join("") : '<p class="group-empty">Your tasks have a time. Add another when you need it.</p>'}<button class="text-button" data-action="add" style="align-self:flex-start;margin:4px 5px 24px">+ Add a task</button><div class="tray-timer"><div><small>Focus</small><b data-timer>45:00</b></div><button data-action="timer" aria-label="Start or pause focus">${icon("play")}</button></div></aside><section class="surface planner-calendar" style="--plan-days:${planDays}"><div class="calendar-head">${icon("calendar")}<div class="calendar-dates">${dates.map((d) => `<div class="calendar-date ${isoDate(d) === today ? "today" : ""}">${d.toLocaleDateString("en-CA", { weekday: "short", day: "numeric" })}<small>${d.toLocaleDateString("en-CA", { month: "long", year: "numeric" })}</small></div>`).join("")}</div></div><div class="calendar-toolbar"><div class="plan-range" role="group" aria-label="Calendar view">${[1,3,7].map(n => `<button data-action="plan-range" data-days="${n}" aria-pressed="${planDays===n}">${n===7?"1 week":n===1?"1 day":"3 days"}</button>`).join("")}</div><button data-action="week-prev" aria-label="Previous ${planDays} days">←</button><button data-action="week-today">Today</button><button data-action="week-next" aria-label="Next ${planDays} days">→</button><button data-action="standalone" data-type="timetable">Edit timetable ↗</button></div><div class="calendar-scroll"><div class="calendar-body" style="--calendar-height:${((end - start) * 76) / 60}px"><div class="calendar-hours">${Array.from({ length: (end - start) / 60 + 1 }, (_, i) => `<span style="top:${i * 76}px">${timeString(start + i * 60)}</span>`).join("")}</div><div class="calendar-columns">${dates
 		.map((date, i) => {
 			const gap = gaps(events[i], start, end).find(
 				([s, e]) => e - s >= 45 && s >= minutes("12:00"),
@@ -1104,7 +1122,7 @@ function renderPlan() {
 		})
 		.join(
 			"",
-		)}</div></div></div><div class="capacity"><b>${dates[0].toLocaleDateString("en-CA", { weekday: "short" })} · Planned ${formatMinutes(planned)} · Available ${formatMinutes(available)}</b><div class="progress-track" role="meter" aria-label="Scheduled time for first displayed day" aria-valuemin="0" aria-valuemax="${end - start}" aria-valuenow="${planned}"><span style="width:${(planned / (end - start)) * 100}%"></span></div><span>${formatMinutes(planned)} / ${formatMinutes(end - start)}</span></div></section></div>`;
+		)}</div></div></div><div class="capacity"><b>${dates[0].toLocaleDateString("en-CA", { weekday: "short" })} · Planned ${formatMinutes(planned)} · Available ${formatMinutes(available)}</b><div class="progress-track" role="meter" aria-label="Scheduled time for first displayed day" aria-valuemin="0" aria-valuemax="${end - start}" aria-valuenow="${planned}"><span style="width:${(planned / (end - start)) * 100}%"></span></div><span>${timeString(start)}–${timeString(end)} window · ${formatMinutes(end - start)} shown</span><small class="capacity-note">Calendar window, not a work limit. Scheduling outside it expands the view.</small></div></section></div>`;
 }
 function formatMinutes(n) {
 	const h = Math.floor(n / 60),

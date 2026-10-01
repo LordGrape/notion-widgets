@@ -78,3 +78,7 @@ task mutations; `TodoUIBridge` is application-local and does not alter SyncEngin
   Exact task reminders remain an explicit, optional feature.
 - React is confined to this UI enhancement. Existing embed paths and task
   payloads remain compatible, including schedule pasting and task editing.
+
+## Reading estimates
+
+Shared logic and editor controls live in `../../reading-estimates.js` with `../../reading-estimates.css`. Existing `plannedMinutes` is the scheduling estimate; optional `reading` metadata stores `pageMode` (`text`, `count`, `range`), page count/endpoints, phase, pace, `manual` and `autoMinutes`. Older tasks remain compatible. New inferred estimates never overwrite a manual duration or existing time band. The task writer, natural entry and Command Centre use the same model. Split suggestions add session steps only after selection. Run `node tools/test-reading-estimates.cjs` for parsing, manual override and persistence checks.

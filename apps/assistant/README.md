@@ -45,3 +45,9 @@ Today, Plan, and Focus are Command Centre-specific presentations. The three orig
 - The PWA caches public shell assets only. Worker responses, widget frames and credentials are never cached by its service worker.
 
 Visual and interaction checks: `node tools/test-command-centre.cjs` (Playwright and a local HTTP server), `node --test apps/assistant/domain.test.mjs`, and `pnpm check`.
+
+## Plan ranges and reading estimates
+
+Plan offers 1-day, 3-day and Monday-first week views. Navigation moves by the chosen range. The footer describes the displayed calendar window (9–5 by default); it is not a daily work cap. Scheduled events outside it expand the window.
+
+Command Centre and standalone To-Do share `reading-estimates.js` and the existing task writer. Reading titles such as “Read pages 15–30” count endpoints inclusively (16 pages). The editor accepts a page count or range, phase and pace. First pass starts at 6 min/page, based on [Cornell Law academic support](https://www.lawschool.cornell.edu/life-at-cornell-law/academic-support/); analysis at 9 and review at 3 are editable planning defaults, not research averages. Readings above 90 minutes offer two optional session steps. No tasks or calendar blocks are created by the suggestion. Manual durations and existing time bands remain authoritative until Use estimate is selected.

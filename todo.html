@@ -351,6 +351,7 @@ body::before{
   </div>
 </div>
 <script src="widget-icons.js?v=20261001-duotone-b"></script>
+<link rel="stylesheet" href="reading-estimates.css?v=20261001"><script src="reading-estimates.js?v=20261001"></script>
 <script src="core.js"></script>
 <script src="action-blocks.js?v=20260902-editor-v2&planning=20260903-v1&copy=20260903-v2&targets=20260903-v1&upcoming=20260903-v1"></script>
 <script src="todo-action-import.js?v=20260906-encrypted-fallback-v2"></script>
@@ -446,6 +447,7 @@ body::before{
     if (changed) save();
   }
   function save() {
+    tasks.forEach(function(t){ ReadingEstimates.apply(t); });
     var raw = JSON.stringify(tasks);
     lastRaw = raw;
     SyncEngine.set(NS, KEY, raw);
@@ -565,7 +567,7 @@ body::before{
 
   /* Deterministic workload: schedule duration plus user-estimated flexible tasks. */
   function scheduledMinutes(t){if(!t.scheduledStart||!t.scheduledEnd)return 0;var value=Math.round((Date.parse(t.scheduledEnd)-Date.parse(t.scheduledStart))/60000);return Math.max(0,value||0)}
-  function workload(){var result={scheduled:0,flexible:0,unestimated:0};tasks.filter(function(t){return isToday(t)}).forEach(function(t){var fixed=scheduledMinutes(t);if(fixed)result.scheduled+=fixed;else if(TIMEM[t.time])result.flexible+=TIMEM[t.time];else result.unestimated++});result.total=result.scheduled+result.flexible;return result}
+  function workload(){var result={scheduled:0,flexible:0,unestimated:0};tasks.filter(function(t){return isToday(t)}).forEach(function(t){var fixed=scheduledMinutes(t);if(fixed)result.scheduled+=fixed;else if(t.plannedMinutes||TIMEM[t.time])result.flexible+=Number(t.plannedMinutes)||TIMEM[t.time];else result.unestimated++});result.total=result.scheduled+result.flexible;return result}
   function durationLabel(m){var h=Math.floor(m/60),r=m%60;return(h?h+'h':'')+(r?(h?' ':'')+r+'m':(!h?'0m':''))}
   function updateCapLine(){var el=$("capLine");if(!el)return;if(tab!=="today"){el.textContent="";el.className="stats-sub";return}var w=workload();if(!w.total&&!w.unestimated){el.textContent="";el.className="stats-sub";return}var parts=[];if(w.scheduled)parts.push(durationLabel(w.scheduled)+" scheduled");if(w.flexible)parts.push(durationLabel(w.flexible)+" flexible");if(w.unestimated)parts.push(w.unestimated+" unestimated");el.textContent=(w.total?durationLabel(w.total)+" planned · ":"")+parts.join(" + ");el.className="stats-sub show";if(w.total>DAY_CAP_MIN)el.className+=" over";else if(w.total>DAY_CAP_MIN-60)el.className+=" warn"}
 
@@ -592,7 +594,7 @@ body::before{
   function setField(t, field, v) {
     v = v || "";
     if (field === "pri") t.pri = v || null;
-    else if (field === "time") t.time = v || null;
+    else if (field === "time") { t.time = v || null; t.plannedMinutes = null; t.reading = Object.assign({},t.reading,{manual:!!v,autoMinutes:null}); }
     else if (field === "due") { t.due = v || null; t.dueKey = v === "tomorrow" ? tmrwKey() : (v === "today" ? todayKey() : null); t.setKey = todayKey(); }
     snd("playClick");
     save();
@@ -620,7 +622,7 @@ body::before{
   /* Timebox bridge defaults to one occurrence. Weekly repetition must be explicit. */
   function localIsoFor(key,time){var p=String(key).split('-').map(Number),t=String(time||'00:00').split(':').map(Number);return new Date(p[0],p[1]-1,p[2],t[0]||0,t[1]||0,0,0).toISOString()}
   function timeboxTask(t,dateKeyValue,start,repeat){
-    var dateParts=String(dateKeyValue).split('-').map(Number),date=new Date(dateParts[0],dateParts[1]-1,dateParts[2],12),day=date.getDay(),dur=TIMEM[t.time]||60,p=String(start||"14:00").split(":"),sm=(+p[0]||0)*60+(+p[1]||0),em=Math.min(1439,sm+dur),end=("0"+Math.floor(em/60)).slice(-2)+":"+("0"+(em%60)).slice(-2),courses=[];
+    var dateParts=String(dateKeyValue).split('-').map(Number),date=new Date(dateParts[0],dateParts[1]-1,dateParts[2],12),day=date.getDay(),dur=Number(t.plannedMinutes)||TIMEM[t.time]||60,p=String(start||"14:00").split(":"),sm=(+p[0]||0)*60+(+p[1]||0),em=Math.min(1439,sm+dur),end=("0"+Math.floor(em/60)).slice(-2)+":"+("0"+(em%60)).slice(-2),courses=[];
     try{courses=SyncEngine.get("timetable","courses")||[];if(typeof courses==="string")courses=JSON.parse(courses);if(!Array.isArray(courses))courses=[]}catch(e){courses=[]}
     var block={id:uid(),name:t.text,description:repeat==="weekly"?"Weekly timebox":"One-off timebox",location:"",color:"#8b5cf6",days:[{day:day,start:start,end:end,location:""}],category:"personal",trackCompletion:false,outcomeGoal:repeat==="weekly"?"":(t.outcomeGoal||"")};if(repeat==="weekly"&&t.outcomeGoal){block.overrides=[{sourceDate:dateKeyValue,date:dateKeyValue,start:start,end:end,location:"",skipped:false,outcomeGoal:t.outcomeGoal}]}if(repeat!=="weekly"){block.startDate=dateKeyValue;block.endDate=dateKeyValue}
     courses.push(block);try{SyncEngine.set("timetable","courses",courses)}catch(e){}
@@ -670,7 +672,8 @@ body::before{
   function tagHtml(t) {
     var h = "";
     if (t.pri) h += '<span class="tag ' + t.pri + '">' + PRIL[t.pri] + "</span>";
-    if (t.time) h += '<span class="tag">' + TIMEL[t.time] + "</span>";
+    if (t.plannedMinutes) h += '<span class="tag">' + t.plannedMinutes + " min</span>";
+    else if (t.time) h += '<span class="tag">' + TIMEL[t.time] + "</span>";
     if (!t.done) {
       if (isOverdue(t)) h += '<span class="tag overdue">Overdue</span>';
       else if (t.due === "today" || t.dueKey === todayKey()) h += '<span class="tag today">Today</span>';
@@ -701,7 +704,7 @@ body::before{
     h += '<input class="sub-add" placeholder="Add a step and press Enter" aria-label="Add a step">';
     return h + "</div>";
   }
-  function tboxHtml(t){var opts="",now=new Date(),nh=(now.getHours()+1)%24,defStart=("0"+nh).slice(-2)+":00";for(var i=0;i<7;i++){var d=new Date(now.getFullYear(),now.getMonth(),now.getDate()+i),key=d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2),lbl=i===0?"Today":i===1?"Tomorrow":d.toLocaleDateString("en-CA",{weekday:"short",month:"short",day:"numeric"});opts+='<option value="'+key+'">'+lbl+"</option>"}return'<div class="tbox"><select class="tbox-day" aria-label="Date">'+opts+'</select><input class="tbox-time" type="time" value="'+defStart+'" aria-label="Start time"><select class="tbox-repeat" aria-label="Repeat"><option value="once">This week only</option><option value="weekly">Repeat weekly</option></select><button class="tbox-go">Block '+(TIMEM[t.time]||60)+'m</button><span class="tbox-hint">One occurrence by default. Weekly repetition is always explicit.</span></div>'}
+  function tboxHtml(t){var opts="",now=new Date(),nh=(now.getHours()+1)%24,defStart=("0"+nh).slice(-2)+":00";for(var i=0;i<7;i++){var d=new Date(now.getFullYear(),now.getMonth(),now.getDate()+i),key=d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2),lbl=i===0?"Today":i===1?"Tomorrow":d.toLocaleDateString("en-CA",{weekday:"short",month:"short",day:"numeric"});opts+='<option value="'+key+'">'+lbl+"</option>"}return'<div class="tbox"><select class="tbox-day" aria-label="Date">'+opts+'</select><input class="tbox-time" type="time" value="'+defStart+'" aria-label="Start time"><select class="tbox-repeat" aria-label="Repeat"><option value="once">This week only</option><option value="weekly">Repeat weekly</option></select><button class="tbox-go">Block '+(Number(t.plannedMinutes)||TIMEM[t.time]||60)+'m</button><span class="tbox-hint">One occurrence by default. Weekly repetition is always explicit.</span></div>'}
 
   function editorHtml(t){var pri=[{v:"",l:"None"},{v:"must",l:"Must"},{v:"should",l:"Should"},{v:"could",l:"Could"}],time=[{v:"",l:"None"},{v:"quick",l:"Quick"},{v:"m30",l:"~30m"},{v:"m60",l:"~60m"},{v:"deep",l:"Deep"}],due=[{v:"",l:"None"},{v:"today",l:"Today"},{v:"tomorrow",l:"Tomorrow"}];return'<div class="editor"><input class="e-title e-title-main" aria-label="Task title" value="'+esc(t.text)+'"><input class="e-title e-outcome" aria-label=\"Task target\" placeholder="Target for this task (optional)" value="'+esc(t.outcomeGoal||"")+'">'+eoptRow("Priority","pri",pri,t.pri)+(t.pri==="must"?'<input class="e-title e-plan" aria-label="Plan: when and where" placeholder="Plan: after ___ , at ___" value="'+esc(t.plan||"")+'">':"")+eoptRow("Time","time",time,t.time)+eoptRow("Due","due",due,t.due)+subsHtml(t)+'<textarea class="e-notes" placeholder="Notes (optional)" aria-label="Notes">'+esc(t.notes||"")+'</textarea><div class="eactions"><button class="emove" data-dir="-1" aria-label="Move up" title="Move up">↑</button><button class="emove" data-dir="1" aria-label="Move down" title="Move down">↓</button><button class="emove tbox-toggle" aria-label="Timebox into schedule" aria-expanded="false" title="Timebox into schedule">⏱</button><span class="espacer"></span><button class="edone">Done</button></div>'+tboxHtml(t)+"</div>"}
 
@@ -762,9 +765,16 @@ body::before{
     }
 
     if (isEditing) {
+      el.querySelector(".e-title-main").insertAdjacentHTML("afterend",'<label>Estimated minutes<input class="e-title e-minutes" type="number" min="1" aria-label="Estimated minutes" value="'+esc(t.plannedMinutes || '')+'"></label>'+ReadingEstimates.html(t));
       var titleI = el.querySelector(".e-title-main");
+      var minutesI=el.querySelector(".e-minutes");
+      var getReading=ReadingEstimates.mount(el,t,{title:titleI,duration:minutesI,split:function(steps){t.subs=t.subs||[];steps.forEach(function(text){if(!t.subs.some(function(s){return s.text===text}))t.subs.push({id:uid(),text:text,done:false});});save();}});
+      function keepReading(){t.reading=getReading();t.plannedMinutes=Number(minutesI.value)||null;if(!t.reading.manual)t.time=null;}
+      el.querySelector(".reading-fields").addEventListener("change",function(){keepReading();save();});
+      minutesI.addEventListener("change",function(){keepReading();save();});
+      el.querySelector("[data-use-estimate]").addEventListener("click",function(){keepReading();save();});
       titleI.addEventListener("input", function () { t.text = this.value; });
-      titleI.addEventListener("blur", function () { t.text = this.value.trim() || t.text; save(); });
+      titleI.addEventListener("blur", function () { t.text = this.value.trim() || t.text; keepReading(); save(); });
       titleI.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); this.blur(); } });
       var outcomeI = el.querySelector(".e-outcome");
       if (outcomeI) { outcomeI.addEventListener("input", function () { t.outcomeGoal = this.value; }); outcomeI.addEventListener("blur", function () { var value=this.value.trim();t.outcomeGoal=value;save();syncTargetToSchedule(t,value); }); outcomeI.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); this.blur(); } }); }
@@ -968,7 +978,7 @@ body::before{
       undo: doUndo,
       update: function (id, patch) {
         poll(); var task = byId(id); if (!task) return;
-        ['text','pri','time','due','dueKey','notes','plannedMinutes','subs','scheduledStart','scheduledEnd','scheduleId','timeboxed'].forEach(function (key) {
+        ['text','pri','time','due','dueKey','notes','plannedMinutes','subs','scheduledStart','scheduledEnd','scheduleId','timeboxed','reading'].forEach(function (key) {
           if (Object.prototype.hasOwnProperty.call(patch, key)) task[key] = patch[key];
         });
         task.updatedAt = Date.now(); task.setKey = todayKey(); save();
@@ -979,7 +989,7 @@ body::before{
           plannedMinutes:Number(value.plannedMinutes)||null,due:Object.prototype.hasOwnProperty.call(value,'due')?value.due:'today',
           dueKey:Object.prototype.hasOwnProperty.call(value,'dueKey')?value.dueKey:todayKey(),setKey:todayKey(),done:false,doneAt:null,
           created:Date.now(),notes:value.notes || '',subs:[]};
-        tasks.unshift(task); save(); return task.id;
+        task.reading=value.reading || null; tasks.unshift(task); save(); return task.id;
       },
       subtask: function (id, subId) {
         poll(); var task=byId(id); if(!task)return;

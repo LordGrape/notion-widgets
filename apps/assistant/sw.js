@@ -1,5 +1,7 @@
-const CACHE = "command-centre-20261001-duotone-b";
+const CACHE = "command-centre-20261001-reading-views";
 const SHELL = [
+	"../../reading-estimates.js",
+	"../../reading-estimates.css",
 	"../../widget-icons.js",
 	"./",
 	"./index.html",

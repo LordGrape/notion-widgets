@@ -1424,7 +1424,7 @@ dialog[open] {
 }
 .calendar-dates {
 	display: grid;
-	grid-template-columns: repeat(3, minmax(0, 1fr));
+	grid-template-columns: repeat(var(--plan-days, 3), minmax(0, 1fr));
 	gap: 5px;
 }
 .calendar-date {
@@ -1481,7 +1481,7 @@ dialog[open] {
 }
 .calendar-columns {
 	display: grid;
-	grid-template-columns: repeat(3, minmax(0, 1fr));
+	grid-template-columns: repeat(var(--plan-days, 3), minmax(0, 1fr));
 }
 .calendar-column {
 	position: relative;
@@ -2116,3 +2116,5 @@ dialog[open] {
 		display: none;
 	}
 }
+
+.plan-range{display:flex;gap:3px;padding:3px;background:var(--accent-soft);border-radius:10px;margin-right:auto}.plan-range button{font-size:14px}.plan-range button[aria-pressed="true"]{background:var(--accent);color:white}.calendar-toolbar{flex-wrap:wrap}.capacity{flex-wrap:wrap}.capacity-note{flex-basis:100%;font-size:14px;color:var(--muted)}.planner-calendar{min-width:0}.planner-calendar[style*="--plan-days:7"] .calendar-column{min-width:105px}.planner-calendar[style*="--plan-days:7"] .calendar-columns{grid-template-columns:repeat(7,minmax(105px,1fr))}.planner-calendar[style*="--plan-days:7"] .calendar-body{min-width:790px}.planner-calendar[style*="--plan-days:7"] .calendar-head{overflow:auto}.planner-calendar[style*="--plan-days:7"] .calendar-dates{min-width:735px}.reading-fields .reading-grid input{min-width:0}
