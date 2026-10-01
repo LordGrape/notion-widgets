@@ -17,7 +17,7 @@ import {
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261001-drag-schedule-v3";
+	REVISION = "20261001-drag-polish-v4";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -72,6 +72,38 @@ function decorate(scope = document) {
 	scope
 		.querySelectorAll("[data-icon]")
 		.forEach((n) => (n.innerHTML = icon(n.dataset.icon)));
+}
+let interfaceAudio = null;
+let recentScheduleId = null;
+function playCue(kind) {
+	if (engines.todo?.SyncEngine.get("user", "commandCentreSounds") === false)
+		return;
+	try {
+		const Audio = window.AudioContext || window.webkitAudioContext;
+		if (!Audio) return;
+		interfaceAudio ||= new Audio();
+		if (interfaceAudio.state === "suspended")
+			interfaceAudio.resume().catch(() => {});
+		const tones = { pickup: [420, 560], drop: [560, 720], saved: [660, 880] }[
+			kind
+		] || [440];
+		tones.forEach((frequency, index) => {
+			const oscillator = interfaceAudio.createOscillator(),
+				gain = interfaceAudio.createGain();
+			const start = interfaceAudio.currentTime + index * 0.055;
+			oscillator.type = "sine";
+			oscillator.frequency.value = frequency;
+			gain.gain.setValueAtTime(0.001, start);
+			gain.gain.linearRampToValueAtTime(0.035, start + 0.008);
+			gain.gain.exponentialRampToValueAtTime(0.001, start + 0.1);
+			oscillator.connect(gain);
+			gain.connect(interfaceAudio.destination);
+			oscillator.start(start);
+			oscillator.stop(start + 0.11);
+		});
+	} catch {
+		/* Audio support never blocks scheduling. */
+	}
 }
 const dateLabel = (d) =>
 	d.toLocaleDateString("en-CA", {
@@ -335,7 +367,7 @@ function eventMarkup(e, start, hour = 76) {
 			t.scheduleId === e.id &&
 			normalizeDateKey(t.dueKey) === e.dateKey,
 	);
-	return `<button class="event ${done ? "completed" : ""}" style="top:${top}px;height:${height}px;--event-color:${/^#[0-9a-f]{3,8}$/i.test(e.color) ? e.color : "#9461e9"}" data-action="event" data-event-id="${esc(e.id)}" data-source="${esc(e.sourceDate)}" data-date="${esc(e.dateKey)}" aria-label="${esc(e.name)} ${esc(e.start)} to ${esc(e.end)}"><b>${esc(e.name)}</b><span>${esc(e.start)} – ${esc(e.end)}${e.location ? " · " + esc(e.location) : ""}</span></button>`;
+	return `<button class="event ${done ? "completed" : ""} ${e.id === recentScheduleId ? "scheduled-reveal" : ""}" style="top:${top}px;height:${height}px;--event-color:${/^#[0-9a-f]{3,8}$/i.test(e.color) ? e.color : "#9461e9"}" data-action="event" data-event-id="${esc(e.id)}" data-source="${esc(e.sourceDate)}" data-date="${esc(e.dateKey)}" aria-label="${esc(e.name)} ${esc(e.start)} to ${esc(e.end)}"><b>${esc(e.name)}</b><span>${esc(e.start)} – ${esc(e.end)}${e.location ? " · " + esc(e.location) : ""}</span></button>`;
 }
 function hourLines(start, end, hour = 76) {
 	let s = "";
@@ -432,9 +464,22 @@ function bindWorkspace() {
 			draggingId = el.dataset.drag;
 			e.dataTransfer.setData("text/plain", draggingId);
 			e.dataTransfer.effectAllowed = "move";
+			const row = el.closest(".task-row");
+			const chip = document.createElement("div");
+			chip.className = "drag-chip";
+			chip.innerHTML = `${icon("grip")}<span>${esc(task(draggingId).text)}</span><small>${duration(task(draggingId)) ? `${duration(task(draggingId))} min` : "Task"}</small>`;
+			const bounds = row.getBoundingClientRect();
+			chip.style.left = `${Math.max(8, Math.min(innerWidth - 238, bounds.left))}px`;
+			chip.style.top = `${Math.max(8, bounds.top)}px`;
+			document.body.append(chip);
+			e.dataTransfer.setDragImage(chip, 24, 22);
+			setTimeout(() => chip.remove(), 0);
+			row.classList.add("is-dragging");
+			playCue("pickup");
 		};
 		el.ondragend = () => {
 			draggingId = null;
+			el.closest(".task-row")?.classList.remove("is-dragging");
 			clearDrop();
 		};
 	});
@@ -478,6 +523,7 @@ function bindWorkspace() {
 				t = task(id);
 			clearDrop();
 			if (!t || t.done) return;
+			playCue("drop");
 			const preferred = dropMinute(e),
 				date = el.dataset.date;
 			const suggested = suggestSlot(
@@ -692,9 +738,17 @@ function openSettings() {
 			)
 			.join(
 				"",
-			)}</div><button data-action="goal">Adjust daily finish line</button> <button id="lockButton">Lock Command Centre</button>`,
+			)}</div><button id="soundToggle" aria-pressed="${engines.todo.SyncEngine.get("user", "commandCentreSounds") !== false}">Sound effects: ${engines.todo.SyncEngine.get("user", "commandCentreSounds") === false ? "Off" : "On"}</button> <button data-action="goal">Adjust daily finish line</button> <button id="lockButton">Lock Command Centre</button>`,
 	);
 	$("#lockButton").onclick = lock;
+	$("#soundToggle").onclick = (e) => {
+		const enabled =
+			engines.todo.SyncEngine.get("user", "commandCentreSounds") === false;
+		engines.todo.SyncEngine.set("user", "commandCentreSounds", enabled);
+		e.currentTarget.textContent = `Sound effects: ${enabled ? "On" : "Off"}`;
+		e.currentTarget.setAttribute("aria-pressed", String(enabled));
+		if (enabled) playCue("drop");
+	};
 }
 function openSearch(all = false) {
 	const d = openDialog(
@@ -835,9 +889,17 @@ function openSchedule(id, date = isoDate(), start = "13:00", hint = "") {
 				plannedMinutes: m,
 			});
 			d.close();
+			recentScheduleId = block.id;
+			setTimeout(() => {
+				recentScheduleId = null;
+				document
+					.querySelectorAll(".scheduled-reveal")
+					.forEach((el) => el.classList.remove("scheduled-reveal"));
+			}, 650);
 			signature = "";
 			refresh();
 			notify("Task scheduled.");
+			playCue("saved");
 		} catch (err) {
 			$("#scheduleError").textContent = err.message;
 		} finally {

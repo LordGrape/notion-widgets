@@ -390,6 +390,47 @@ h3 {
 	background: var(--surface);
 	padding: 13px 15px;
 	min-height: 66px;
+	transition:
+		opacity 160ms ease,
+		border-color 160ms ease;
+}
+.task-row.is-dragging {
+	opacity: 0.45;
+}
+.drag-chip {
+	position: fixed;
+	z-index: 10000;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 230px;
+	height: 44px;
+	padding: 0 12px;
+	border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--line));
+	border-radius: 12px;
+	background: var(--surface);
+	color: var(--text);
+	box-shadow: 0 5px 16px #21133924;
+	pointer-events: none;
+}
+.drag-chip .icon {
+	width: 13px;
+	min-width: 13px;
+	color: var(--accent);
+}
+.drag-chip span {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 12px;
+	font-weight: 600;
+}
+.drag-chip small {
+	flex-shrink: 0;
+	font-size: 10px;
+	color: var(--muted);
 }
 .task-row.done .task-title {
 	text-decoration: line-through;
@@ -423,6 +464,31 @@ h3 {
 	font-size: 11px;
 	font-weight: 600;
 	pointer-events: none;
+	transition: top 100ms ease-out;
+	animation: soft-enter 140ms ease-out;
+}
+@keyframes soft-enter {
+	from {
+		opacity: 0;
+		transform: translateY(5px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+@keyframes schedule-settle {
+	from {
+		opacity: 0.4;
+		transform: translateY(5px) scale(0.98);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
+}
+.event.scheduled-reveal {
+	animation: schedule-settle 260ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .schedule-hint {
 	padding: 10px 12px;
@@ -848,6 +914,9 @@ dialog {
 dialog::backdrop {
 	background: #18112655;
 	backdrop-filter: blur(5px);
+}
+dialog[open] {
+	animation: soft-enter 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .dialog-heading {
 	display: flex;

@@ -311,6 +311,26 @@ let states = {
 			.click();
 		assert((await getTasks()).some((t) => t.text === "Synthetic new task"));
 		// Today: dragging from the actual task title onto an occupied time suggests a gap.
+		await page.evaluate(() => {
+			window.dragImages = [];
+			window.cueTones = 0;
+			const setDragImage = DataTransfer.prototype.setDragImage;
+			DataTransfer.prototype.setDragImage = function (el, x, y) {
+				const rect = el.getBoundingClientRect();
+				window.dragImages.push({
+					width: rect.width,
+					height: rect.height,
+					text: el.textContent,
+				});
+				return setDragImage.call(this, el, x, y);
+			};
+			const create = AudioContext.prototype.createOscillator;
+			AudioContext.prototype.createOscillator = function () {
+				window.cueTones++;
+				return create.call(this);
+			};
+		});
+
 		const dragReading = () =>
 			page
 				.locator('.task-row[data-task="reading"] .task-title')
@@ -360,6 +380,45 @@ let states = {
 				.count(),
 			1,
 		);
+		const feedback = await page.evaluate(() => ({
+			images: window.dragImages,
+			tones: window.cueTones,
+		}));
+		assert.equal(feedback.images.length, 2);
+		for (const image of feedback.images) {
+			assert.equal(image.width, 230);
+			assert.equal(image.height, 44);
+			assert(image.text.includes("Read assigned case"));
+		}
+		assert.equal(
+			feedback.tones,
+			10,
+			"Pickup, drop and successful save have distinct soft cues",
+		);
+		assert.equal(
+			await page.locator(".drag-chip,.is-dragging,.drop-preview").count(),
+			0,
+		);
+		await page.locator("#settingsButton").click();
+		await page.locator("#soundToggle").click();
+		assert.equal(
+			await page.locator("#soundToggle").getAttribute("aria-pressed"),
+			"false",
+		);
+		await page.locator("#settingsDialog [data-action=close-dialog]").click();
+		await dragReading();
+		assert.equal(
+			await page.evaluate(() => window.cueTones),
+			feedback.tones,
+			"Muted dragging emits no sound",
+		);
+		await page
+			.locator("#editorDialog [data-action=close-dialog]")
+			.first()
+			.click();
+		await page.locator("#settingsButton").click();
+		await page.locator("#soundToggle").click();
+		await page.locator("#settingsDialog [data-action=close-dialog]").click();
 		// The drag grip doubles as a keyboard/touch scheduling button.
 		await page
 			.getByRole("button", {
