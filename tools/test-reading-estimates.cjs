@@ -2,6 +2,8 @@ const assert=require('node:assert/strict');
 require('../reading-estimates.js');
 const R=globalThis.ReadingEstimates;
 assert.equal(R.estimate('Read pages 15–30').minutes,96);
+assert.equal(R.estimate('Tort Readings pp.66-80').pages,15);
+assert.equal(R.estimate('Tort Readings pp.66-80').minutes,90);
 assert.equal(R.estimate('Read pages 15-30').pages,16);
 assert.equal(R.estimate('Read pp. 15 to 30').pages,16);
 assert.equal(R.estimate('Read pages 15-30 and pages 20-35').pages,21);

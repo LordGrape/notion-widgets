@@ -6,7 +6,7 @@
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   function parse(text) {
     text = String(text || '');
-    const isReading = /\b(read|reading|review|brief)\b/i.test(text);
+    const isReading = /\b(?:reads?|readings?|reviews?|briefs?)\b/i.test(text);
     if (!isReading) return null;
     const count = text.match(/\b(\d+)\s*pages?\b/i);
     if (count) return { pages: +count[1] };

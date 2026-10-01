@@ -1,4 +1,4 @@
-import "../../reading-estimates.js";
+import "../../reading-estimates.js?v=20261001-reading-plural";
 const Reading = globalThis.ReadingEstimates;
 import {
 	dailyGoal,
@@ -21,7 +21,7 @@ import {
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261001-calendar-reminders";
+	REVISION = "20261001-reading-plural";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
