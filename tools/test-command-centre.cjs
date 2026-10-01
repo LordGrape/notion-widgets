@@ -612,6 +612,7 @@ let states = {
         assert.equal(await page.locator('#taskForm [name=plannedMinutes]').inputValue(),'96');
         await page.locator('#taskForm [data-split-reading]').click();
         assert.match(await page.locator('#taskForm [name=steps]').inputValue(),/15–22/);
+        await page.locator('#taskForm [data-manual-duration]').click();
         await page.locator('#taskForm [name=plannedMinutes]').fill('75');
         await page.locator('#taskForm [data-reading=phase]').selectOption('analysis');
         assert.equal(await page.locator('#taskForm [name=plannedMinutes]').inputValue(),'75');
@@ -629,6 +630,7 @@ let states = {
         await sf.locator(`[data-id="${readingTask.id}"] [data-reading=pageMode]`).selectOption('count');
         await sf.locator(`[data-id="${readingTask.id}"] [data-reading=pages]`).fill('10');
         await sf.locator(`[data-id="${readingTask.id}"] [data-reading=pages]`).press('Tab');
+        await sf.locator(`[data-id="${readingTask.id}"] [data-manual-duration]`).click();
         await sf.locator(`[data-id="${readingTask.id}"] .e-minutes`).fill('50');
         await sf.locator(`[data-id="${readingTask.id}"] .e-minutes`).press('Tab');
         const standaloneTask=await standalone.evaluate(id=>document.querySelector('#shell').contentWindow.TodoUIBridge.snapshot().tasks.find(t=>t.id===id),readingTask.id);
