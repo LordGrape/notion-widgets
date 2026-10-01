@@ -14,7 +14,7 @@ on:
 permissions:
   contents: write
 env:
-  ATHLETE_URL: https://notion-widgets-93r.pages.dev/apps/athlete/athlete.html
+  ATHLETE_URL: https://lordgrape.github.io/notion-widgets/apps/athlete/athlete.html
 concurrency:
   group: build-athlete-main
   cancel-in-progress: true
@@ -46,7 +46,7 @@ jobs:
           deployed=0
           for attempt in $(seq 1 30); do
             page="$(curl -fsSL --max-time 20 "${ATHLETE_URL}?build=${GITHUB_RUN_ID}-${attempt}" || true)"
-            if [[ "$page" == *'id="trainView"'* ]] && [[ "$page" == *'single-file-v2.3'* ]]; then deployed=1; break; fi
+            if [[ "$page" == *'id="trainView"'* ]] && [[ "$page" == *'single-file-v2.3'* ]] && [[ "$page" == *'data-athlete-inline="widget-icons.js"'* ]]; then deployed=1; break; fi
             sleep 10
           done
           [ "$deployed" -eq 1 ]
