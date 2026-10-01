@@ -959,6 +959,32 @@ body::before{
 
   window.TodoUIBridge = {
     snapshot: function () { return { tasks: tasks.slice(), visible: visibleOpen(), tab: tab, comp: { pri: PRI[comp.pri], time: TIME[comp.time], due: DUE[comp.due], dueKey: comp.dueKey || null }, editingId: editingId }; },
+    // Command Centre presentation adapter. The existing task controller remains
+    // the only writer; standalone rendering and embed contracts are unchanged.
+    command: {
+      toggle: function (id) { poll(); toggle(id); },
+      remove: function (id) { poll(); remove(id); },
+      undo: doUndo,
+      update: function (id, patch) {
+        poll(); var task = byId(id); if (!task) return;
+        ['text','pri','time','due','dueKey','notes','plannedMinutes','subs','scheduledStart','scheduledEnd','scheduleId','timeboxed'].forEach(function (key) {
+          if (Object.prototype.hasOwnProperty.call(patch, key)) task[key] = patch[key];
+        });
+        task.updatedAt = Date.now(); task.setKey = todayKey(); save();
+      },
+      add: function (value) {
+        poll(); var text = String(value.text || '').trim(); if (!text) return;
+        var task = {id:uid(),text:text,pri:value.pri || 'must',time:null,
+          plannedMinutes:Number(value.plannedMinutes)||null,due:Object.prototype.hasOwnProperty.call(value,'due')?value.due:'today',
+          dueKey:Object.prototype.hasOwnProperty.call(value,'dueKey')?value.dueKey:todayKey(),setKey:todayKey(),done:false,doneAt:null,
+          created:Date.now(),notes:value.notes || '',subs:[]};
+        tasks.unshift(task); save(); return task.id;
+      },
+      subtask: function (id, subId) {
+        poll(); var task=byId(id); if(!task)return;
+        (task.subs || []).forEach(function(sub){if(sub.id===subId)sub.done=!sub.done}); save();
+      }
+    },
     itemNode: itemNode,
     choose: function (kind, value) {
       if (kind === "pri") comp.pri = Math.max(0, PRI.indexOf(value || null));

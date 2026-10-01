@@ -1137,6 +1137,15 @@ document.addEventListener('keydown',function(e){var tag=(e.target.tagName||'').t
 setInterval(function(){if(view==='today'&&isActualToday(currentWeekDate(selectedDay))&&!$('overlay').classList.contains('show'))renderToday()},30000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden){var nd=new Date().getDay();if(nd!==today){today=nd;selectedDay=nd}render()}});
 
+/* Application-local adapter for Command Centre. The standalone UI is untouched. */
+window.CommandTimetable = {
+  SyncEngine: SyncEngine,
+  get schedule(){return schedule},
+  set schedule(value){schedule=normaliseBlocks(value)},
+  occurrencesForDate: occurrencesForDate,
+  saveBlocks: saveBlocks
+};
+
 /* ── Boot ── */
 var booted=false;
 function boot(){

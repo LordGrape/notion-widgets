@@ -1,1 +1,124 @@
-<!doctype html><html lang="en-CA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#17131d"><meta name="description" content="A focused command centre for tasks and time."><link rel="manifest" href="./manifest.webmanifest"><link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="./icon.svg"><link rel="mask-icon" href="./icon-maskable.svg" color="#5f3b91"><script>try{document.documentElement.dataset.theme=localStorage.getItem('command-centre-theme-v1')||(matchMedia('(prefers-color-scheme:light)').matches?'light':'dark')}catch(e){document.documentElement.dataset.theme='dark'}</script><link rel="stylesheet" href="./styles.css?v=20260928-pwa-upgrade-v2"><link rel="stylesheet" href="./dashboard-layout.css?v=20260928-pwa-upgrade-v2"><title>Command Centre</title></head><body class="locked"><div class="lock-screen" id="lockScreen"><form class="lock-card" id="unlockForm"><span class="brand-mark">M</span><p class="eyebrow">Private workspace</p><h1>Command Centre</h1><p class="lock-copy">Unlock your focused task and timetable workspace.</p><label for="accessKey">Access key</label><div class="unlock-row"><input id="accessKey" type="password" autocomplete="current-password" required placeholder="Enter your private key"><button type="submit">Unlock</button></div><p class="form-status" id="unlockStatus" role="status">Remembered only on this device.</p></form></div><div class="app" id="appShell" aria-hidden="true"><header><div class="identity"><span class="brand-mark">M</span><div><p class="eyebrow">Command Centre</p><h1>Tasks and time</h1></div></div><div class="header-actions"><span class="sync-state" id="syncState"><i></i>Private and synchronized</span><button class="theme-control" id="themeToggle" aria-keyshortcuts="Control+Alt+L"><span class="theme-icon" id="themeIcon">☀</span><span class="theme-label" id="themeLabel">Light</span><kbd>Ctrl Alt L</kbd></button><button class="quiet" id="lockButton">Lock</button></div></header><div class="hidden-tray" id="hiddenTray" hidden></div><main><section class="widget-panel todo-panel"><div class="panel-head"><div><p class="eyebrow">Execute</p><h2>To-Do</h2></div><a id="todoOpen" target="_blank" rel="noopener">Open separately</a></div><iframe id="todoFrame" title="To-Do widget"></iframe></section><section class="widget-panel clock-panel"><div class="panel-head"><div><p class="eyebrow">Focus</p><h2>Clock</h2></div><a id="clockOpen" target="_blank" rel="noopener">Open separately</a></div><iframe id="clockFrame" title="Clock widget" allow="notifications"></iframe></section><section class="widget-panel timetable-panel"><div class="panel-head"><div><p class="eyebrow">Plan</p><h2>Timetable</h2></div><a id="timetableOpen" target="_blank" rel="noopener">Open separately</a></div><iframe id="timetableFrame" title="Timetable widget"></iframe></section></main></div><script src="./remember.js"></script><script defer src="./app.js?v=20260928-pwa-upgrade-v2"></script><script defer src="./dashboard-layout.js?v=20260928-pwa-upgrade-v2"></script></body></html>
+<!doctype html>
+<html lang="en-CA">
+	<head>
+		<meta charset="utf-8" />
+		<meta
+			name="viewport"
+			content="width=device-width,initial-scale=1,viewport-fit=cover"
+		/>
+		<meta name="theme-color" content="#f8f7fc" />
+		<meta
+			name="description"
+			content="Your tasks, your day, and room to focus."
+		/>
+		<link rel="manifest" href="./manifest.webmanifest" />
+		<link rel="icon" href="./icon.svg" type="image/svg+xml" />
+		<link rel="apple-touch-icon" href="./icon.svg" />
+		<script>
+			try {
+				document.documentElement.dataset.theme =
+					localStorage.getItem("command-centre-theme-v1") ||
+					(matchMedia("(prefers-color-scheme:light)").matches
+						? "light"
+						: "dark");
+			} catch (e) {
+				document.documentElement.dataset.theme = "light";
+			}
+		</script>
+		<link rel="stylesheet" href="./styles.css?v=20261001-command-views-v1" />
+		<title>Command Centre</title>
+	</head>
+	<body class="locked">
+		<div class="lock-screen" id="lockScreen">
+			<form class="lock-card" id="unlockForm">
+				<span class="brand-mark">M</span>
+				<p class="eyebrow">Private workspace</p>
+				<h1>Command Centre</h1>
+				<p class="lock-copy">Your tasks, your day, and room to focus.</p>
+				<label for="accessKey">Access key</label>
+				<div class="unlock-row">
+					<input
+						id="accessKey"
+						type="password"
+						autocomplete="current-password"
+						required
+						placeholder="Enter your private key"
+					/><button class="primary" type="submit">Unlock</button>
+				</div>
+				<p id="unlockStatus" role="status">Remembered only on this device.</p>
+			</form>
+		</div>
+		<div class="app" id="appShell" aria-hidden="true">
+			<header class="app-header">
+				<a class="identity" href="./" aria-label="Command Centre home"
+					><span class="brand-mark">M</span>
+					<h1>Command Centre</h1></a
+				>
+				<nav class="view-tabs" aria-label="Workspace view">
+					<button data-view="today" aria-current="page">Today</button
+					><button data-view="plan">Plan</button
+					><button data-view="focus">Focus</button>
+				</nav>
+				<div class="header-actions">
+					<button id="searchButton" class="search-trigger">
+						<span data-icon="search"></span><span>Search tasks or actions…</span
+						><kbd>⌘ K</kbd></button
+					><span class="sync-state" id="syncState" role="status"
+						><i></i><span>Connecting…</span></span
+					><button
+						id="themeToggle"
+						class="icon-button"
+						aria-label="Change theme"
+						aria-keyshortcuts="Control+Alt+L"
+					>
+						<span data-icon="sun"></span></button
+					><button
+						id="settingsButton"
+						class="icon-button"
+						aria-label="Open workspace settings"
+					>
+						<span data-icon="settings"></span>
+					</button>
+				</div>
+			</header>
+			<main id="workspace" aria-label="Command Centre workspace">
+				<div class="loading-state">Loading your workspace…</div>
+			</main>
+			<footer id="focusDock" class="focus-dock" hidden></footer>
+			<p id="announcement" class="sr-only" aria-live="polite"></p>
+			<div class="toast" id="toast" role="status" hidden>
+				<span id="toastText"></span><button id="undoButton" hidden>Undo</button
+				><button
+					class="icon-button"
+					id="toastClose"
+					aria-label="Dismiss notification"
+				>
+					×
+				</button>
+			</div>
+		</div>
+		<dialog id="editorDialog" aria-labelledby="editorTitle"></dialog>
+		<dialog
+			id="searchDialog"
+			class="command-dialog"
+			aria-label="Search tasks and actions"
+		></dialog>
+		<dialog id="settingsDialog" aria-labelledby="settingsTitle"></dialog>
+		<div class="widget-engines" aria-hidden="true" inert>
+			<iframe id="todoFrame" title="To-Do widget engine" tabindex="-1"></iframe
+			><iframe
+				id="timetableFrame"
+				title="Timetable widget engine"
+				tabindex="-1"
+			></iframe
+			><iframe
+				id="clockFrame"
+				title="Clock widget engine"
+				tabindex="-1"
+				allow="notifications"
+			></iframe>
+		</div>
+		<script src="./remember.js"></script>
+		<script type="module" src="./app.js?v=20261001-command-views-v1"></script>
+	</body>
+</html>

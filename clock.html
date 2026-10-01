@@ -2722,6 +2722,26 @@ function confirmDL() {
   });
 }
 
+/* Command Centre presents this existing timer; it never owns a second timer. */
+if (IS_COMMAND_CENTRE) {
+  window.CommandClock = {SyncEngine:SyncEngine,document:document,
+    stFocusEl:stFocusEl,setMode:switchModeAnimated,setTimerType:setTimerType,
+    updateTMDisplay:updateTMDisplay,
+    get tmRunning(){return tmRunning},
+    get tmRemaining(){return tmRemaining},
+    get tmDuration(){return tmDuration},
+    get tmStartRemaining(){return tmStartRemaining},
+    get tmStartTime(){return tmStartTime},
+    get studyActive(){return studyActive},
+    get studyPending(){return studyPending},
+    get studyPhase(){return studyPhase},
+    get studyTaskIds(){return studyTaskIds},set studyTaskIds(value){studyTaskIds=value},
+    get breakInterval(){return breakInterval},
+    get breakRemaining(){return breakRemaining},
+    get breakPhaseDuration(){return breakPhaseDuration}
+  };
+}
+
 /* ── Init core systems ── */
 var card = document.querySelector('.container');
 setTimeout(function() { card.style.opacity = '1'; card.style.animation = 'breathe 8s cubic-bezier(0.4,0,0.2,1) infinite'; }, 900);

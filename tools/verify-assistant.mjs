@@ -37,10 +37,12 @@ const assertions = [
 	],
 	[
 		/await\s+authorize\([\s\S]*?\);\s*unlock\(\)/.test(script) &&
-			script.includes("if(!response.ok)throw new Error('unavailable')"),
+			/if\s*\(\s*!response\.ok\s*\)\s*throw new Error\(["']unavailable["']\)/.test(
+				script,
+			),
 		"access verified before unlock",
 	],
-	[script.includes("'X-Widget-Key':key"), "requests use key header"],
+	[/["']X-Widget-Key["']\s*:\s*key/.test(script), "requests use key header"],
 	[
 		remember.includes("localStorage.setItem(REMEMBERED_ACCESS_KEY"),
 		"key remembered in browser",
