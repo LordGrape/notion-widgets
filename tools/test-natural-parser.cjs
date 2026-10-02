@@ -1,5 +1,5 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
-const context={Intl,Date};vm.createContext(context);vm.runInContext(fs.readFileSync('todo-natural-add.js','utf8'),context);const parse=(s,t=[])=>context.TodoNaturalAdd.parse(s,new Date('2026-09-09T22:00:00Z'),t);
+const context={Intl,Date};vm.createContext(context);vm.runInContext(fs.readFileSync('reading-estimates.js','utf8'),context);vm.runInContext(fs.readFileSync('todo-natural-add.js','utf8'),context);const parse=(s,t=[])=>context.TodoNaturalAdd.parse(s,new Date('2026-09-09T22:00:00Z'),t);
 let r=parse('Read photosynthesis tomorrow at 6pm for 45 min');assert.equal(r.text,'Read photosynthesis');assert.equal(r.dateKey,'2026-09-10');assert.equal(r.startTime,'18:00');assert.equal(r.endTime,'18:45');
 r=parse('Review cells today');assert.equal(r.dateKey,'2026-09-09');assert.equal(r.startTime,null);
 r=parse('Read tomorrow 3-4pm');assert.equal(r.startTime,'15:00');assert.equal(r.endTime,'16:00');
@@ -14,4 +14,18 @@ r=parse('Must do Review sample');assert.equal(r.priority,'must');assert.equal(r.
 r=parse('Should do Read sample pp. 3-9 & 12 tomorrow');assert.equal(r.priority,'should');assert.equal(r.text,'Read sample pp. 3-9 & 12');assert.equal(r.startTime,null);
 r=parse('Could do Review sample');assert.equal(r.priority,'could');assert.equal(r.text,'Review sample');
 r=parse('Should do');assert.equal(r.priority,'should');assert.equal(r.emptyText,true);
+const classes=[{id:'law195',name:'LAW 195: Torts',category:'class',days:[{day:4,start:'10:00',end:'11:30'}]},{id:'law210',name:'LAW 210: Property',category:'class',days:[{day:4,start:'14:00',end:'15:00'}]}],anchorNow=new Date('2026-09-09T22:00:00Z');
+r=context.TodoNaturalAdd.parse('After class today review notes for 30 min',anchorNow,[],[{id:'today-class',name:'Seminar',category:'class',days:[{day:3,start:'18:30',end:'19:30'}]}]);assert.equal(r.classAnchor.name,'Seminar');assert.equal(r.startTime,'19:30');
+r=context.TodoNaturalAdd.parse('Should do after Law 195 formulate notes tomorrow for 1 hour',anchorNow,[],classes);assert.equal(r.text,'formulate notes');assert.equal(r.priority,'should');assert.equal(r.dateKey,'2026-09-10');assert.equal(r.startTime,'11:30');assert.equal(r.endTime,'12:30');assert.equal(r.classAnchor.name,'LAW 195: Torts');assert.equal(r.conflict,null);
+r=context.TodoNaturalAdd.parse('After Torts formulate notes for 30 mins tomorrow',anchorNow,[],classes);assert.equal(r.startTime,'11:30');assert.equal(r.endTime,'12:00');
+r=context.TodoNaturalAdd.parse('After LAW195 formulate notes tomorrow for 30 min',anchorNow,[],classes);assert.equal(r.classAnchor.name,'LAW 195: Torts');assert.equal(r.startTime,'11:30');
+r=context.TodoNaturalAdd.parse('After class tomorrow review notes for 30 min',anchorNow,[],[classes[0]]);assert.equal(r.classAnchor.name,'LAW 195: Torts');assert.equal(r.startTime,'11:30');
+r=context.TodoNaturalAdd.parse('After Torts tomorrow Read pp. 3-5',anchorNow,[],[classes[0]]);assert.equal(r.duration,18);assert.equal(r.durationSource,'reading');assert.equal(r.startTime,'11:30');
+r=context.TodoNaturalAdd.parse('After Torts tomorrow review notes for 20 min',anchorNow,[],[{...classes[0],overrides:[{sourceDate:'2026-09-10',date:'2026-09-10',start:'12:30',end:'13:00'}]}]);assert.equal(r.startTime,'13:00');
+r=context.TodoNaturalAdd.parse('After class tomorrow review notes',anchorNow,[],[classes[0]]);assert.equal(r.duration,60);assert.equal(r.durationDefault,true);assert.equal(r.labels.includes('60 min default'),true);
+assert.throws(()=>context.TodoNaturalAdd.parse('After class tomorrow review notes',anchorNow,[],classes),/More than one class/);
+assert.throws(()=>context.TodoNaturalAdd.parse('After LAW 195 formulate notes tomorrow',anchorNow,[],[]),/No upcoming/);
+const withConflict=[...classes,{id:'busy',name:'Study group',category:'personal',days:[{day:4,start:'12:00',end:'13:00'}]}];
+r=context.TodoNaturalAdd.parse('After LAW 195 formulate notes tomorrow',anchorNow,[],withConflict);assert.match(r.conflict,/Study group/);assert.match(r.labels.join(' '),/Conflicts with Study group/);
+assert.throws(()=>context.TodoNaturalAdd.parse('After LAW 195 formulate notes today',anchorNow,[],[{id:'past',name:'LAW 195: Torts',category:'class',days:[{day:3,start:'09:00',end:'10:00'}]}]),/No upcoming/);
 console.log('PASS natural parser: dates, time ranges, durations, deadlines, dependencies, page numbers, invalid input and optional Chrono');

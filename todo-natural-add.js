@@ -11,12 +11,71 @@ function valid(key){const d=new Date(key+'T12:00:00Z');return Number.isFinite(+d
 function array(v){const a=typeof v==='string'?JSON.parse(v):v||[];if(!Array.isArray(a))throw Error('Existing widget data could not be read.');return JSON.parse(JSON.stringify(a));}
 function clock(h,m,s){h=Number(h);m=Number(m||0);if(m>59||h>23||(s&&(h<1||h>12)))throw Error('Use a valid time, such as 6pm or 18:00.');if(s){h%=12;if(s.toLowerCase()==='pm')h+=12;}return pad(h)+':'+pad(m);}
 function clean(s){return s.replace(/\s+/g,' ').replace(/^(?:start|begin|schedule|on|at|from)\s+/i,'').replace(/\s+(?:on|at|from|for|by)$/i,'').replace(/^[,;: -]+|[,;: -]+$/g,'').trim();}
-function parse(text,now=new Date(),tasks=[]){
+const minute=t=>Number(t.slice(0,2))*60+Number(t.slice(3));
+function classAliases(block){
+ const name=String(block.name||''),parts=name.split(/\s*[:|–—]\s*/).map(clean).filter(Boolean),code=String(block.courseCode||'').match(/\b[A-Z]{2,6}\s*\d{3,4}\b/i)?.[0];
+ return [...new Set([name,...parts,code].filter(x=>x&&x.length>2))].sort((a,b)=>b.length-a.length);
+}
+function extractClassAnchor(work,courses){
+ let m=work.match(/\bafter\s+(?:the\s+)?class\b/i);
+ if(m)return {index:m.index,length:m[0].length,0:m[0],query:'class',generic:true};
+ const found=[];
+ (courses||[]).filter(b=>b&&b.category==='class'&&b.eventType!=='break').forEach(block=>classAliases(block).forEach(alias=>{
+  const code=alias.match(/^([A-Z]{2,6})\s+(\d{3,4})$/i),escaped=code?code[1]+'\\s*'+code[2]:alias.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),rx=new RegExp('\\bafter\\s+(?:the\\s+)?('+escaped+')(?=$|[\\s,;.!?])','i'),hit=rx.exec(work);
+  if(hit)found.push({index:hit.index,length:hit[0].length,0:hit[0],query:hit[1],blockId:block.id,alias});
+ }));
+ if(!found.length){const code=work.match(/\bafter\s+(?:the\s+)?([A-Z]{2,6}\s*\d{3,4})(?=$|[\s,;.!?])/i);return code?{index:code.index,length:code[0].length,0:code[0],query:code[1],blockId:null,alias:code[1]}:null;}
+ found.sort((a,b)=>b.alias.length-a.alias.length);
+ const longest=found[0].alias.length,top=found.filter(x=>x.alias.length===longest),blocks=[...new Set(top.map(x=>x.blockId))];
+ return blocks.length===1?top[0]:{...top[0],ambiguous:true};
+}
+function activeOn(block,key){return(!block.startDate||key>=block.startDate)&&(!block.endDate||key<=block.endDate)}
+function occurrencesOn(blocks,key){
+ const weekday=new Date(key+'T12:00:00Z').getUTCDay(),out=[];
+ (blocks||[]).forEach(block=>{
+  if(!block||!Array.isArray(block.days))return;
+  const overrides=Array.isArray(block.overrides)?block.overrides:[],direct=overrides.find(o=>o.sourceDate===key);
+  if(direct){
+   if(!direct.skipped&&direct.date===key&&activeOn(block,key)){const entry=block.days.find(d=>+d.day===weekday);if(entry)out.push({id:block.id,name:block.name,category:block.category,eventType:block.eventType,start:direct.start||entry.start,end:direct.end||entry.end,sourceDate:key});}
+  }else if(activeOn(block,key)){
+   const entry=block.days.find(d=>+d.day===weekday);if(entry)out.push({id:block.id,name:block.name,category:block.category,eventType:block.eventType,start:entry.start,end:entry.end,sourceDate:key});
+  }
+  overrides.filter(o=>o.date===key&&o.sourceDate!==key&&!o.skipped&&activeOn(block,o.sourceDate)).forEach(o=>{
+   const sourceDay=new Date(o.sourceDate+'T12:00:00Z').getUTCDay(),entry=block.days.find(d=>+d.day===sourceDay);if(entry)out.push({id:block.id,name:block.name,category:block.category,eventType:block.eventType,start:o.start||entry.start,end:o.end||entry.end,sourceDate:o.sourceDate});
+  });
+ });
+ return out;
+}
+function resolveClassAnchor(anchor,key,now,courses){
+ if(anchor.ambiguous)throw Error('More than one class matches “'+anchor.query+'”. Use its course code or full title.');
+ let choices=occurrencesOn(courses,key).filter(e=>e.category==='class'&&e.eventType!=='break');
+ if(!anchor.generic)choices=choices.filter(e=>anchor.blockId&&e.id===anchor.blockId);
+ if(key===day(now)){const current=wall(now),currentMinute=Number(current.hour)*60+Number(current.minute);choices=choices.filter(e=>minute(e.end)>currentMinute);}
+ if(!choices.length)throw Error(anchor.generic?'No upcoming class was found for '+key+'.':'No upcoming “'+anchor.query+'” class was found for '+key+'.');
+ if(choices.length>1)throw Error(anchor.generic?'More than one class is upcoming. Add its course code or title.':'More than one “'+anchor.query+'” class is scheduled. Add the date or more of its title.');
+ return choices[0];
+}
+function findConflict(key,start,end,courses,tasks,anchor){
+ const sm=minute(start),em=minute(end);
+ for(const event of occurrencesOn(courses,key)){
+  if(anchor&&event.id===anchor.id&&event.sourceDate===anchor.sourceDate)continue;
+  if(sm<minute(event.end)&&em>minute(event.start))return event.name||'another calendar block';
+ }
+ for(const task of tasks||[]){
+  if(!task.scheduledStart||!task.scheduledEnd)continue;
+  const a=wall(new Date(task.scheduledStart)),b=wall(new Date(task.scheduledEnd));
+  if(a.year+'-'+a.month+'-'+a.day!==key||b.year+'-'+b.month+'-'+b.day!==key)continue;
+  if(sm<Number(b.hour)*60+Number(b.minute)&&em>Number(a.hour)*60+Number(a.minute))return task.text||'another task';
+ }
+ return '';
+}
+function parse(text,now=new Date(),tasks=[],courses=[]){
  const raw=String(text).trim(),today=day(now);let work=raw;
- const r={text:raw,dateKey:null,startTime:null,endTime:null,duration:null,priority:null,dependency:null,dueTime:null,recognized:false,labels:[]};
+ const r={text:raw,dateKey:null,startTime:null,endTime:null,duration:null,priority:null,dependency:null,dueTime:null,classAnchor:null,durationDefault:false,conflict:null,recognized:false,labels:[]};
  function take(m){work=work.slice(0,m.index)+' '+work.slice(m.index+m[0].length);r.recognized=true;}
  let m=work.match(/\b(must|urgent|important|should|could)\b(?:\s+do\b)?/i);if(m){r.priority=/must|urgent|important/i.test(m[1])?'must':m[1].toLowerCase();take(m);}
- m=work.match(/\bfor\s+(\d+(?:\.\d+)?)\s*(minutes?|mins?|min|m|hours?|hrs?|hr|h)\b/i);if(m){r.duration=Math.round(Number(m[1])*(/^h/i.test(m[2])?60:1));if(r.duration<1||r.duration>720)throw Error('Use a duration from 1 to 720 minutes.');take(m);}
+ m=work.match(/\bfor\s+(\d+(?:\.\d+)?)\s*(minutes?|mins?|min|m|hours?|hrs?|hr|h)\b/i);if(m){r.duration=Math.round(Number(m[1])*(/^h/i.test(m[2])?60:1));if(r.duration<1||r.duration>720)throw Error('Use a duration from 1 to 720 minutes.');r.durationSource='explicit';take(m);}
+ const anchor=extractClassAnchor(work,courses);if(anchor){take(anchor);r.classAnchor=anchor;}
  // Explicit dates first, preventing ISO dates or page ranges from becoming clock ranges.
  m=work.match(/\b(20\d{2})-(\d{1,2})-(\d{1,2})\b/);if(m){r.dateKey=m[1]+'-'+pad(m[2])+'-'+pad(m[3]);if(!valid(r.dateKey))throw Error('That calendar date does not exist.');take(m);}
  if(!r.dateKey){m=work.match(/\b(today|tonight|tomorrow|tmrw|tmr)\b/i);if(m){r.dateKey=/tomorrow|tmrw|tmr/i.test(m[1])?shift(today,1):today;take(m);}}
@@ -30,7 +89,7 @@ function parse(text,now=new Date(),tasks=[]){
  let a=m[3],b=m[6];if(!a&&b)a=Number(m[1])>Number(m[4])?(b.toLowerCase()==='pm'?'am':'pm'):b;if(!b&&a)b=a;
  r.startTime=clock(m[1],m[2],a);r.endTime=clock(m[4],m[5],b);
  if(r.endTime<=r.startTime)throw Error('The end is earlier than the start. Clarify the range with AM/PM; overnight blocks need separate day entries.');
- const minutes=t=>Number(t.slice(0,2))*60+Number(t.slice(3));r.duration=minutes(r.endTime)-minutes(r.startTime);if(r.duration>720)throw Error('That range exceeds 12 hours. Please clarify AM/PM.');take(m);
+ r.duration=minute(r.endTime)-minute(r.startTime);r.durationSource='explicit';if(r.duration>720)throw Error('That range exceeds 12 hours. Please clarify AM/PM.');take(m);
  }
  if(!r.startTime){m=work.match(/\b(?:before|by)\s+(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/i);if(m){r.dueTime=clock(m[1],m[2],m[3]);take(m);}}
  if(!r.startTime){m=work.match(/(?:@|\bat\s+)(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/i)||work.match(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i);if(m){r.startTime=clock(m[1],m[2],m[3]);take(m);}}
@@ -41,22 +100,24 @@ function parse(text,now=new Date(),tasks=[]){
  const results=root.TodoChrono.parse(work,{instant:now,timezone:offset},{forwardDate:true});
  if(results.length===1){const c=results[0],k=c.start.get('year')+'-'+pad(c.start.get('month'))+'-'+pad(c.start.get('day'));if(valid(k)){r.dateKey=k;r.explicitDate=true;if(c.start.isCertain('hour'))r.startTime=clock(c.start.get('hour'),c.start.get('minute'));take({index:c.index,0:c.text});}}
  }
+ if(r.classAnchor){if(!r.dateKey)r.dateKey=today;const event=resolveClassAnchor(r.classAnchor,r.dateKey,now,courses);r.classAnchor={id:event.id,name:event.name,sourceDate:event.sourceDate,end:event.end};if(!r.startTime)r.startTime=event.end;if(!r.duration&&!r.endTime){const estimate=root.ReadingEstimates?.estimate(clean(work));if(estimate?.minutes){r.duration=estimate.minutes;r.durationSource='reading';}else{r.duration=60;r.durationDefault=true;}}}
  m=work.match(/\s+after\s+(.+?)\s*$/i)||work.match(/@([A-Za-z][\w' .-]{1,60})\s*$/);if(m){const name=clean(m[1]);const matches=tasks.filter(t=>!t.done&&String(t.text).toLowerCase()===name.toLowerCase());if(matches.length>1)throw Error('More than one task matches that dependency. Use a unique task title.');r.dependency={text:name,id:matches[0]?.id||null};const linked=matches[0];if(!r.startTime&&linked&&linked.scheduledEnd){const p=wall(new Date(linked.scheduledEnd));r.dateKey=`${p.year}-${p.month}-${p.day}`;r.startTime=p.hour+':'+p.minute;}take(m);}
  if(r.startTime||r.dueTime){if(!r.dateKey)r.dateKey=today;}
- if(r.startTime&&!r.endTime){r.duration=r.duration||60;const end=Number(r.startTime.slice(0,2))*60+Number(r.startTime.slice(3))+r.duration;if(end>=1440)throw Error('This block crosses midnight. Use separate day entries.');r.endTime=pad(Math.floor(end/60))+':'+pad(end%60);}
+ if(r.startTime&&!r.endTime){if(!r.duration){r.duration=60;r.durationDefault=!!r.classAnchor;}const end=minute(r.startTime)+r.duration;if(end>=1440)throw Error('This block crosses midnight. Use separate day entries.');r.endTime=pad(Math.floor(end/60))+':'+pad(end%60);}
  r.emptyText=!clean(work);r.text=clean(work)||'Scheduled task';
- if(r.dateKey)r.labels.push(r.dateKey);if(r.startTime)r.labels.push(r.startTime+'–'+r.endTime+' ET',r.duration+' min','Timetable');else if(r.dateKey)r.labels.push(r.dueTime?'Due by '+r.dueTime:'Date only');
- if(r.duration&&!r.startTime)r.labels.push(r.duration+' min estimate');if(r.priority)r.labels.push(r.priority);if(r.dependency)r.labels.push('After '+r.dependency.text+(r.dependency.id?'':' (not linked)'));
+ if(r.classAnchor&&r.startTime&&r.endTime){r.conflict=findConflict(r.dateKey,r.startTime,r.endTime,courses,tasks,r.classAnchor)||null;if(r.conflict)r.labels.push('Conflicts with '+r.conflict);}
+ if(r.dateKey)r.labels.push(r.dateKey);if(r.startTime)r.labels.push(r.startTime+'–'+r.endTime+' ET',r.duration+' min'+(r.durationDefault?' default':''),'Timetable');else if(r.dateKey)r.labels.push(r.dueTime?'Due by '+r.dueTime:'Date only');
+ if(r.classAnchor)r.labels.unshift('After '+r.classAnchor.name);if(r.duration&&!r.startTime)r.labels.push(r.duration+' min estimate');if(r.priority)r.labels.push(r.priority);if(r.dependency)r.labels.push('After '+r.dependency.text+(r.dependency.id?'':' (not linked)'));
  return r;
 }
 function isSchedule(s){return /20\d{2}-\d{2}-\d{2}\s*\||^\s*(?:```json\s*)?\{/.test(s);}
 function entries(text){return String(text).split(/\n+|\s*;\s*/).map(x=>x.replace(/^\s*[-*•]\s+/,'').trim()).filter(Boolean);}
-function plan(text){const tasks=array(sync.get('todo','tasks'));let carry=null;return entries(text).map(s=>{let r=parse(s,new Date(),tasks);if(carry&&!r.explicitDate)r=parse(carry+' '+s,new Date(),tasks);if(r.dateKey)carry=r.dateKey;return r;});}
+function plan(text){const tasks=array(sync.get('todo','tasks')),courses=array(sync.get('timetable','courses'));let carry=null;return entries(text).map(s=>{let r=parse(s,new Date(),tasks,courses);if(carry&&!r.explicitDate)r=parse(carry+' '+s,new Date(),tasks,courses);if(r.dateKey)carry=r.dateKey;return r;});}
 function preview(){const input=doc.getElementById('inp'),row=doc.getElementById('smartPreview');if(!input||!row||!sync)return;const text=rawPaste||input.value;if(!text.trim()||isSchedule(text)){row.textContent='';row.hidden=true;return}try{const parsed=plan(text);row.textContent=parsed.map(r=>r.labels.join(' · ')).filter(Boolean).join(' | ');row.hidden=!row.textContent;}catch(e){row.hidden=false;row.textContent=e.message;}}
 function status(message){const row=doc.getElementById('smartPreview');row.hidden=false;row.textContent=message;}
 function submit(event){const target=event.target;if(!(event.type==='keydown'?target.id==='inp'&&event.key==='Enter':target.closest&&target.closest('#addbtn')))return;
  const input=doc.getElementById('inp'),text=rawPaste||input.value;if(!text.trim()||isSchedule(text))return;
- let parsed;try{parsed=plan(text);if(parsed.some(r=>r.emptyText))throw Error('Add a task after the priority or date.');}catch(e){event.preventDefault();event.stopImmediatePropagation();status(e.message);return;}
+ let parsed;try{parsed=plan(text);if(parsed.some(r=>r.emptyText))throw Error('Add a task after the priority or date.');if(parsed.some(r=>r.conflict))throw Error('This time conflicts with '+parsed.find(r=>r.conflict).conflict+'. Choose another time.');}catch(e){event.preventDefault();event.stopImmediatePropagation();status(e.message);return;}
  if(parsed.length===1&&!parsed[0].recognized)return;
  event.preventDefault();event.stopImmediatePropagation();if(!ready){status('Still connecting. Your task is kept here.');return;}
  try{

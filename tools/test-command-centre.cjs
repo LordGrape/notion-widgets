@@ -751,6 +751,38 @@ let states = {
 		smartTask = (await getTasks()).find(t=>t.text==='Read quick sample pp. 3-9 & 12');
 		assert.equal(smartTask.pri,'should'); assert.equal(smartTask.plannedMinutes,48);
 		assert.equal(smartTask.scheduledStart,undefined); assert(smartTask.dueKey);
+		const nextDate = new Date(`${key}T12:00:00Z`); nextDate.setUTCDate(nextDate.getUTCDate()+1);
+		const nextKey = nextDate.toISOString().slice(0,10), nextDay = nextDate.getUTCDay();
+		await page.evaluate(({nextKey,nextDay}) => {
+			const shell=document.querySelector('#todoFrame').contentWindow.document.querySelector('#shell').contentWindow;
+			const courses=shell.SyncEngine.get('timetable','courses');
+			courses.push(
+				{id:'law195-anchor',name:'LAW 195: Torts',category:'class',startDate:nextKey,endDate:nextKey,days:[{day:nextDay,start:'10:00',end:'11:30'}]},
+				{id:'busy-after-torts',name:'Study group',category:'personal',startDate:nextKey,endDate:nextKey,days:[{day:nextDay,start:'12:00',end:'13:00'}]}
+			);
+			shell.SyncEngine.set('timetable','courses',courses);
+		},{nextKey,nextDay});
+		await page.locator('#quickAdd input').fill('Should do after Law 195 tomorrow formulate notes for 30 min');
+		assert.match(await page.locator('#capturePreview').textContent(),/After LAW 195: Torts/);
+		assert.match(await page.locator('#capturePreview').textContent(),/11:30–12:00/);
+		await page.locator('#quickAdd input').press('Enter');
+		smartTask=(await getTasks()).find(t=>t.text==='formulate notes');
+		assert.equal(smartTask.pri,'should');assert.equal(smartTask.plannedMinutes,30);assert(smartTask.scheduledStart&&smartTask.scheduledEnd);
+		await page.evaluate(id=>document.querySelector('#todoFrame').contentWindow.document.querySelector('#shell').contentWindow.TodoUIBridge.command.remove(id),smartTask.id);
+		await page.locator('#quickAdd input').fill('Should do after LAW 195 tomorrow prepare case map for 30 min');
+		await page.locator('#quickAdd [data-action=add]').click();
+		assert.equal(await page.locator('#taskForm [name=pri]').inputValue(),'should');
+		assert.equal(await page.locator('#taskForm [name=plannedMinutes]').inputValue(),'30');
+		assert.match(await page.locator('#taskForm .editor-smart-preview').textContent(),/11:30–12:00/);
+		await page.locator('#taskForm button[type=submit]').click();
+		smartTask=(await getTasks()).find(t=>t.text==='prepare case map');
+		assert.equal(smartTask.pri,'should');assert.equal(smartTask.plannedMinutes,30);assert(smartTask.scheduledStart&&smartTask.scheduledEnd);
+		await page.locator('#quickAdd input').fill('after Torts tomorrow outline notes');
+		assert.match(await page.locator('#capturePreview').textContent(),/Conflicts with Study group/);
+		const beforeConflict=(await getTasks()).length;
+		await page.locator('#quickAdd input').press('Enter');
+		assert.equal((await getTasks()).length,beforeConflict);
+		assert.match(await page.locator('#capturePreview').textContent(),/Choose another time/);
 		await page.locator('#quickAdd input').fill('Could do Read dialog sample pp. 66-80 tomorrow for 45 min');
 		await page.locator('#quickAdd [data-action=add]').click();
 		assert.equal(await page.locator('#taskForm [name=pri]').inputValue(),'could');

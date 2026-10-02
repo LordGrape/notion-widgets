@@ -59,9 +59,9 @@ One-off personal calendar reminders (including calendar-linked entries such as a
 
 ## Smart task capture
 
-Today quick capture and the New Task dialog use the standalone To-Do parser. “Must do”, “Should do” and “Could do” set priority and are removed from the saved title. The dialog updates priority, date and duration as you type; manual field choices remain authoritative. Its details button carries the current quick-add draft. New-task notes, reading settings and session steps remain intact.
+Today quick capture and the New Task dialog use the standalone To-Do parser. “Must do”, “Should do” and “Could do” set priority and are removed from the saved title. Class anchors such as “after LAW 195”, “after Torts” and “after class today” resolve against upcoming timetable occurrences. A duration schedules the task from the class end; reading page ranges supply an estimate when no duration is stated, otherwise the preview shows the 60-minute default. Multiple matching classes and overlapping blocks are surfaced before saving. The dialog updates priority, date and duration as you type; manual field choices remain authoritative. Its details button carries the current quick-add draft. New-task notes, reading settings and session steps remain intact.
 
-Today quick capture uses `TodoNaturalAdd.plan` for its live preview and `TodoNaturalAdd.capture` in the existing To-Do controller for submission. Both surfaces share priority, date, duration, time range, deadline, dependency and multi-task parsing, plus the same reading page estimates. Pasted lines and semicolon-separated entries keep the existing date carry behaviour. Invalid entries retain the input and show the parser error. Task and timetable writes remain owned by the existing controller.
+Today quick capture uses `TodoNaturalAdd.plan` for its live preview and `TodoNaturalAdd.capture` in the existing To-Do controller for submission. Both surfaces share priority, date, duration, time range, deadline, task dependency, class anchor and multi-task parsing, plus the same reading page estimates. Pasted lines and semicolon-separated entries keep the existing date carry behaviour. Invalid or conflicting entries retain the input and show the parser message. Task and timetable writes remain owned by the existing controller.
 
 ## Calendar block controls
 

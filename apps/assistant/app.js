@@ -22,7 +22,7 @@ import {
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261002-smart-entry-restored";
+	REVISION = "20261002-class-anchored-tasks";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -680,6 +680,7 @@ function smartSummary(parsed, reading = {}) {
 function parseNewTask(text) {
 	const parsed = engines.todo.TodoNaturalAdd.plan(text);
 	if (parsed.length !== 1) throw Error("Use quick add to enter multiple tasks.");
+	if (parsed[0].conflict) throw Error(`This time conflicts with ${parsed[0].conflict}. Choose another time.`);
 	return parsed[0];
 }
 function openEditor(id, draft = "") {
@@ -695,22 +696,31 @@ function openEditor(id, draft = "") {
 		const preview = document.createElement("p"); preview.className = "capture-preview editor-smart-preview";
 		preview.setAttribute("role", "status"); preview.setAttribute("aria-live", "polite");
 		d.querySelector(".task-name").append(preview);
-		for (const name of ["pri", "dueKey", "plannedMinutes"]) fields[name].addEventListener("input", () => { if (!automatic) manualFields.add(name); });
 		const infer = () => {
 			try {
 				if (!fields.text.value.trim()) { preview.textContent = ""; return; }
-				const parsed = parseNewTask(fields.text.value), estimate = Reading.estimate(parsed.text, readingData());
+				let parsed = parseNewTask(fields.text.value);
+				if (parsed.classAnchor && manualFields.size) {
+					const source = parsed.durationSource, estimate = Reading.estimate(parsed.text, readingData());
+					const parts = [parsed.text, manualFields.has("pri") ? fields.pri.value : parsed.priority, `after ${parsed.classAnchor.name}`, manualFields.has("dueKey") ? fields.dueKey.value : parsed.dateKey];
+					const minutes = manualFields.has("plannedMinutes") ? fields.plannedMinutes.value : parsed.duration || estimate?.minutes;
+					if (minutes) parts.push(`for ${minutes} min`);
+					parsed = parseNewTask(parts.filter(Boolean).join(" "));
+					parsed.durationSource = manualFields.has("plannedMinutes") ? "explicit" : source;
+				}
+				const estimate = Reading.estimate(parsed.text, readingData());
 				if (!manualFields.has("pri")) fields.pri.value = parsed.priority || "must";
 				if (!manualFields.has("dueKey")) fields.dueKey.value = parsed.dateKey || isoDate();
 				if (!manualFields.has("plannedMinutes")) {
-					fields.plannedMinutes.value = parsed.duration || estimate?.minutes || "";
-					if (parsed.duration) {
+					fields.plannedMinutes.value = parsed.durationSource === "explicit" ? parsed.duration : estimate?.minutes || parsed.duration || "";
+					if (parsed.durationSource === "explicit") {
 						automatic = true; fields.plannedMinutes.dispatchEvent(new Event("input", { bubbles: true })); automatic = false;
 					}
 				}
 				preview.textContent = smartSummary([parsed], readingData());
 			} catch (error) { preview.textContent = error.message; }
 		};
+		for (const name of ["pri", "dueKey", "plannedMinutes"]) fields[name].addEventListener("input", () => { if (!automatic) { manualFields.add(name); infer(); } });
 		fields.text.addEventListener("input", infer); infer();
 	}
 	$("#taskForm").onsubmit = (e) => {
@@ -742,9 +752,9 @@ function openEditor(id, draft = "") {
 			const parsed = parseNewTask(patch.text);
 			if (parsed.emptyText) throw Error("Add a task after the priority or date.");
 			patch.text = parsed.text;
-			patch.reading.manual = manualFields.has("plannedMinutes") || !!parsed.duration || patch.reading.manual && !patch.reading.autoMinutes;
-			const entry = [parsed.text, patch.pri, key,
-				parsed.startTime ? `at ${parsed.startTime}` : parsed.dueTime ? `by ${parsed.dueTime}` : "",
+			patch.reading.manual = manualFields.has("plannedMinutes") || parsed.durationSource === "explicit" || patch.reading.manual && !parsed.durationDefault && parsed.durationSource !== "reading" && !patch.reading.autoMinutes;
+			const entry = [parsed.text, patch.pri, parsed.classAnchor ? `after ${parsed.classAnchor.name}` : "", key,
+				parsed.classAnchor ? "" : parsed.startTime ? `at ${parsed.startTime}` : parsed.dueTime ? `by ${parsed.dueTime}` : "",
 				(parsed.duration || manualFields.has("plannedMinutes")) && patch.plannedMinutes ? `for ${patch.plannedMinutes} min` : "",
 				parsed.dependency ? `after ${parsed.dependency.text}` : "",
 			].filter(Boolean).join(" ");
