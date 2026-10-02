@@ -44,13 +44,18 @@ const assertions = [
 	],
 	[/["']X-Widget-Key["']\s*:\s*key/.test(script), "requests use key header"],
 	[
-		remember.includes("localStorage.setItem(REMEMBERED_ACCESS_KEY"),
+		remember.includes("sessionStorage.setItem(REMEMBERED_ACCESS_KEY"),
+		"remembered key copied into session",
+	],
+	[
+		script.includes("localStorage.setItem(SESSION_KEY"),
 		"key remembered in browser",
 	],
 	[
-		remember.includes("localStorage.removeItem(REMEMBERED_ACCESS_KEY"),
+		script.includes("localStorage.removeItem(SESSION_KEY"),
 		"locking forgets remembered key",
 	],
+	[html.includes('src="./notion-sync.js'), "timetable bridge loaded"],
 	[notionSync.includes("target=timetable"), "timetable bridge configured"],
 	[script.includes("serviceWorker.register"), "service worker registered"],
 	[

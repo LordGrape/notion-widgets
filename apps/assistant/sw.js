@@ -1,4 +1,4 @@
-const CACHE = "command-centre-20261002-smart-capture";
+const CACHE = "command-centre-20261002-audit-repairs";
 const SHELL = [
 	"../../widget-platform.js",
 	"../../reading-estimates.js",
@@ -11,6 +11,7 @@ const SHELL = [
 	"./domain.mjs",
 	"../todo/src/daily-goal.mjs",
 	"./remember.js",
+	"./notion-sync.js",
 	"./manifest.webmanifest",
 	"./icon.svg",
 	"./icon-maskable.svg",
@@ -48,7 +49,8 @@ self.addEventListener("fetch", (e) => {
 	e.respondWith(
 		fetch(e.request)
 			.then((r) => {
-				if (r.ok) caches.open(CACHE).then((c) => c.put(url.href, r.clone()));
+				if (r.ok)
+					e.waitUntil(caches.open(CACHE).then((c) => c.put(url.href, r.clone())));
 				return r;
 			})
 			.catch(() => caches.match(url.href)),

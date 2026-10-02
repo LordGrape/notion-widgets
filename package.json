@@ -12,6 +12,7 @@
     "check": "pnpm typecheck && pnpm check:assistant"
   },
   "devDependencies": {
+    "playwright": "^1.63.0",
     "prettier": "^3.3.3",
     "typescript": "^5.6.3",
     "wrangler": "^4.84.1"

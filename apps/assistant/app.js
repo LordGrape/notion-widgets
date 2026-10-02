@@ -1,4 +1,4 @@
-import "../../reading-estimates.js?v=20261001-reading-plural";
+import "../../reading-estimates.js?v=20261002-audit-repairs";
 const Reading = globalThis.ReadingEstimates;
 import {
 	dailyGoal,
@@ -21,7 +21,7 @@ import {
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261002-smart-capture";
+	REVISION = "20261002-audit-repairs";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -188,6 +188,7 @@ function unlock() {
 }
 function lock() {
 	clearInterval(pollTimer);
+	pollTimer = null;
 	clearTimeout(loadingTimer);
 	Object.keys(paths).forEach(
 		(type) => ($(`#${type}Frame`).src = "about:blank"),
@@ -391,7 +392,7 @@ function updateCalendarTime() {
 function renderToday() {
 	const events = occurrences(new Date()),
 		{ start, end } = timeRange(events);
-	return `<div class="today-layout"><section class="surface tasks-surface"><div class="today-heading"><div><h2>Today</h2><p class="date-copy">${dateLabel(new Date())}</p></div>${finishLine()}</div><form class="composer" id="quickAdd"><input name="task" aria-label="Add a task" placeholder="Add a task… e.g. should read pp. 3–9 & 12 tomorrow" autocomplete="off" required><button class="primary" aria-label="Add task">${icon("plus")}</button><button type="button" data-action="add" aria-label="Add task with details">${icon("more")}</button></form><p id="capturePreview" class="capture-preview" role="status" aria-live="polite" hidden></p>${taskGroups()}<div class="tasks-footer"><button class="text-button" data-action="all-tasks">All tasks · ${focusTasks(tasks, courses).filter((t) => !t.done).length} open</button><button class="text-button" data-action="standalone" data-type="todo">Open To-Do separately ↗</button></div></section><section class="surface agenda-surface"><div class="section-heading"><h2>Your day</h2><span>${new Date().toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" })}</span></div><div class="agenda-scroll"><div class="timeline" data-drop-calendar data-date="${isoDate()}" data-start="${start}" data-end="${end}" style="--timeline-height:${((end - start) * 76) / 60}px">${hourLines(start, end)}${events.map((e) => eventMarkup(e, start)).join("")}${nowLine(start, end)}</div></div><div class="tasks-footer"><button class="text-button" data-action="view" data-view="plan">Open planner ${icon("right")}</button><button class="text-button" data-action="standalone" data-type="timetable">Timetable ↗</button></div></section></div>`;
+	return `<div class="today-layout"><section class="surface tasks-surface"><div class="today-heading"><div><h2>Today</h2><p class="date-copy">${dateLabel(new Date())}</p></div>${finishLine()}</div><form class="composer" id="quickAdd"><input name="task" aria-label="Add a task" placeholder="Add a task for today…" autocomplete="off" required><button class="primary" aria-label="Add task">${icon("plus")}</button><button type="button" data-action="add" aria-label="Add task with details">${icon("more")}</button></form>${taskGroups()}<div class="tasks-footer"><button class="text-button" data-action="all-tasks">All tasks · ${focusTasks(tasks, courses).filter((t) => !t.done).length} open</button><button class="text-button" data-action="standalone" data-type="todo">Open To-Do separately ↗</button></div></section><section class="surface agenda-surface"><div class="section-heading"><h2>Your day</h2><span>${new Date().toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" })}</span></div><div class="agenda-scroll"><div class="timeline" data-drop-calendar data-date="${isoDate()}" data-start="${start}" data-end="${end}" style="--timeline-height:${((end - start) * 76) / 60}px">${hourLines(start, end)}${events.map((e) => eventMarkup(e, start)).join("")}${nowLine(start, end)}</div></div><div class="tasks-footer"><button class="text-button" data-action="view" data-view="plan">Open planner ${icon("right")}</button><button class="text-button" data-action="standalone" data-type="timetable">Timetable ↗</button></div></section></div>`;
 }
 function render() {
 	if (!engines.todo) return;
@@ -428,46 +429,16 @@ function bindWorkspace() {
 		calendarHead.addEventListener("scroll",()=>{calendarScroll.scrollLeft=calendarHead.scrollLeft;});
 	}
 	const form = $("#quickAdd");
-	if (form) {
-		let pastedText = null;
-		const input = form.elements.task, preview = $("#capturePreview");
-		const entry = () => pastedText || input.value;
-		const showPreview = () => {
-			try {
-				const parsed = engines.todo.TodoNaturalAdd.plan(entry());
-				preview.textContent = parsed.map((r) => {
-					const estimate = Reading.estimate(r.text);
-					return [...r.labels, ...(estimate?.pages ? [
-						`${estimate.pages} pages`, ...(!r.duration ? [`${estimate.minutes} min estimate`] : []),
-					] : [])].join(" · ");
-				}).filter(Boolean).join(" | ");
-			} catch (error) { preview.textContent = error.message; }
-			preview.hidden = !preview.textContent;
-		};
-		input.oninput = () => { pastedText = null; showPreview(); };
-		input.onpaste = (e) => {
-			const text = e.clipboardData?.getData("text/plain");
-			if (!text || !text.includes("\n")) return;
-			e.preventDefault();
-			pastedText = text;
-			input.value = text.replace(/\s+/g, " ");
-			showPreview();
-		};
+	if (form)
 		form.onsubmit = (e) => {
 			e.preventDefault();
-			try {
-				engines.todo.TodoNaturalAdd.capture(entry());
-				input.value = "";
-				pastedText = null;
-				signature = "";
-				refresh();
-				notify("Task added.");
-			} catch (error) {
-				preview.textContent = error.message;
-				preview.hidden = false;
-			}
+			const input = form.elements.task;
+			engines.todo.TodoUIBridge.command.add({ text: input.value, pri: "must" });
+			input.value = "";
+			signature = "";
+			refresh();
+			notify("Task added.");
 		};
-	}
 	let draggingId = null;
 	const clearDrop = () =>
 		document.querySelectorAll("[data-drop-calendar]").forEach((el) => {
@@ -585,8 +556,8 @@ function timerAction() {
 		current = activeTask();
 	if (!w.tmRunning && !w.studyActive && w.tmRemaining === w.tmDuration) {
 		w.setMode?.("timer");
-		w.setTimerType("study", true);
-		w.stFocusEl.value = duration(current) || 45;
+		w.setTimerType?.("study", true);
+		if (w.stFocusEl) w.stFocusEl.value = duration(current) || 45;
 		w.studyTaskIds = current ? [current.id] : [];
 		selectedId = current?.id || null;
 		w.SyncEngine.set("clock", "commandTask", { taskId: selectedId });
@@ -1089,7 +1060,15 @@ document.addEventListener("keydown", (e) => {
 	}
 });
 document.addEventListener("visibilitychange", () => {
-	if (!document.hidden) refresh();
+	if (!accessKey) return;
+	if (document.hidden) {
+		/* Pause the 500 ms poll while hidden; the engines keep running. */
+		clearInterval(pollTimer);
+		pollTimer = null;
+	} else {
+		if (!pollTimer) pollTimer = setInterval(refresh, 500);
+		refresh();
+	}
 });
 $("#unlockForm").onsubmit = async (e) => {
 	e.preventDefault();
