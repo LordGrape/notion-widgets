@@ -42,7 +42,7 @@ import { planDay, isUnscheduled, PLAN_START, PLAN_END } from "./autofit.mjs";
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261002-repeat-range";
+	REVISION = "20261002-typography";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {

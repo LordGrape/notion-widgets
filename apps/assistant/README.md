@@ -98,3 +98,7 @@ The Your day panel offers an opt-in Plan my day preview. `autofit.mjs` (pure, te
 ## Repeat range
 
 Recurring timetable blocks can start and end on chosen dates (`startDate`, `endDate`; absent means ongoing). The weekly block editor in the Timetable has a Runs control (Ongoing, 4, 8 or 12 weeks, or pick dates) with a plain-language summary, and the Existing list shows each block's range. In Command Centre, a recurring block's details dialog has Repeat range with the same options and an Undo.
+
+## Typography
+
+Instrument Sans carries the interface and Instrument Serif the display type (page titles, the Docket, dialog titles, large figures). Both load from Google Fonts with system fallbacks, so the app stays usable offline. The service worker does not cache them.

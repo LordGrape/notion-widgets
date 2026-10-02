@@ -1,4 +1,4 @@
-const CACHE = "command-centre-20261002-repeat-range";
+const CACHE = "command-centre-20261002-typography";
 const SHELL = [
 	"../../widget-platform.js",
 	"../../reading-estimates.js",
