@@ -42,7 +42,7 @@ import { planDay, isUnscheduled, PLAN_START, PLAN_END } from "./autofit.mjs";
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261002-partner-away";
+	REVISION = "20261002-repeat-range";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -863,7 +863,7 @@ function updateTimer() {
 	const finish = $("[data-finish]");
 	if (finish) finish.disabled = !current || current.done;
 	{
-		const away = view !== "today" && w.tmRunning && !breaking;
+		const away = view === "docket" && w.tmRunning && !breaking;
 		const card = document.querySelector("#broadcastCompanion");
 		if (card) {
 			card.classList.toggle("is-away", away);
@@ -1192,7 +1192,7 @@ function openSettings() {
 		if (!e.currentTarget.checked) stopBroadcastAudio();
 		const card = $("#broadcastCompanion");
 		if (card) card.hidden = !e.currentTarget.checked;
-		else if (e.currentTarget.checked && view === "focus") render();
+		else if (e.currentTarget.checked && view === "docket") render();
 	};
 	$("#partnerSoundToggle").onchange = (e) => {
 		engines.todo.SyncEngine.set("user", "commandPartnerSound", e.currentTarget.checked);
@@ -1652,6 +1652,60 @@ function openCalendarEditor(event) {
 		}
 	};
 }
+async function openRepeatRange(id) {
+	await engines.timetable.SyncEngine.pull("timetable");
+	let blocks = engines.timetable.SyncEngine.get("timetable", "courses") || [];
+	if (typeof blocks === "string") blocks = JSON.parse(blocks);
+	const block = blocks.find((b) => b.id === id);
+	if (!block) return;
+	const before = { startDate: block.startDate, endDate: block.endDate };
+	let mode = block.endDate ? "custom" : "ongoing", start = block.startDate || "", end = block.endDate || "";
+	const add = (key, n) => { const d = localDate(key); d.setDate(d.getDate() + n); return isoDate(d); };
+	const label = (key) => localDate(key).toLocaleDateString("en-CA", { month: "short", day: "numeric", ...(localDate(key).getFullYear() !== new Date().getFullYear() ? { year: "numeric" } : {}) });
+	const days = [...new Set((block.days || []).map((x) => ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][x.day]))].join(", ");
+	$("#editorDialog").open && $("#editorDialog").close();
+	const d = openDialog("#editorDialog", dialogHead("Repeat range", "editorTitle") + '<p class="muted">' + esc(block.name) + '</p><div class="range-picker" role="radiogroup" aria-label="How long this repeats"></div><div class="form-grid"><label class="field">Starts<input type="date" name="start"></label><label class="field">Ends<input type="date" name="end"></label></div><p class="range-summary" role="status"></p><p class="form-error" id="rangeError" role="alert"></p><div class="dialog-actions"><button type="button" data-action="close-dialog">Cancel</button><button type="button" class="primary" id="rangeSave">Save range</button></div>');
+	const picker = d.querySelector(".range-picker"), startInput = d.querySelector("[name=start]"), endInput = d.querySelector("[name=end]"), summary = d.querySelector(".range-summary");
+	const draw = () => {
+		picker.innerHTML = [["ongoing", "Ongoing"], ["w4", "4 weeks"], ["w8", "8 weeks"], ["w12", "12 weeks"], ["custom", "Pick dates"]].map(([m, text]) => '<button type="button" role="radio" aria-checked="' + (mode === m) + '" data-run="' + m + '">' + text + "</button>").join("");
+		picker.querySelectorAll("[data-run]").forEach((x) => (x.onclick = () => {
+			const m = x.dataset.run;
+			if (m !== "ongoing" && !start) start = isoDate();
+			mode = m;
+			if (m === "ongoing") end = "";
+			else if (m[0] === "w") end = add(start, Number(m.slice(1)) * 7 - 1);
+			else if (!end) end = add(start, 55);
+			draw();
+		}));
+		startInput.value = start;
+		endInput.value = end;
+		endInput.disabled = mode === "ongoing";
+		const weeks = start && end ? Math.max(1, Math.ceil((Math.round((localDate(end) - localDate(start)) / 864e5) + 1) / 7)) : 0;
+		summary.textContent = !end ? "Repeats every " + days + (start ? " from " + label(start) : "") + ", with no end date." : "Repeats every " + days + (start ? " from " + label(start) + " to " : " until ") + label(end) + (weeks ? " · " + weeks + (weeks === 1 ? " week" : " weeks") : "") + ".";
+	};
+	startInput.onchange = () => { start = startInput.value; if (mode[0] === "w" && start) end = add(start, Number(mode.slice(1)) * 7 - 1); draw(); };
+	endInput.onchange = () => { end = endInput.value; mode = end ? "custom" : "ongoing"; draw(); };
+	draw();
+	$("#rangeSave").onclick = async () => {
+		if (start && end && end < start) { $("#rangeError").textContent = "The end date must come after the start date."; return; }
+		await engines.timetable.SyncEngine.pull("timetable");
+		let current = engines.timetable.SyncEngine.get("timetable", "courses") || [];
+		if (typeof current === "string") current = JSON.parse(current);
+		const target = current.find((b) => b.id === id);
+		if (!target) return;
+		const apply = (range) => {
+			target.startDate = range.startDate || "";
+			target.endDate = range.endDate || "";
+			engines.timetable.schedule = current;
+			engines.timetable.saveBlocks(current);
+			signature = "";
+			refresh();
+		};
+		apply({ startDate: start || undefined, endDate: end || undefined });
+		d.close();
+		notify("Repeat range saved.", () => { apply(before); $("#toast").hidden = true; });
+	};
+}
 function openEvent(id, source, date) {
 	const block = courses.find((b) => b.id === id),
 		event = occurrences(localDate(date)).find(
@@ -1660,7 +1714,7 @@ function openEvent(id, source, date) {
 	if (!block || !event) return;
 	const d = openDialog(
 		"#editorDialog",
-		`${dialogHead("Scheduled block", "editorTitle")}<h3>${esc(event.name)}</h3><p class="muted" style="margin-top:7px">${dateLabel(localDate(date))} · ${esc(event.start)} – ${esc(event.end)}</p>${event.location ? `<p class="muted">${esc(event.location)}</p>` : ""}${event.outcomeGoal ? `<p style="margin-top:18px">${esc(event.outcomeGoal)}</p>` : ""}<p style="margin-top:18px;white-space:pre-wrap">${esc(event.description || "")}</p><div class="dialog-actions"><button data-action="event-edit" data-event-id="${esc(id)}" data-source="${esc(source)}" data-date="${esc(date)}">Edit time</button>${block.startDate && block.startDate === block.endDate ? "" : `<button data-action="event-skip" data-event-id="${esc(id)}" data-source="${esc(source)}" data-date="${esc(date)}">Remove this week only</button>`}<button class="delete" data-action="event-remove" data-event-id="${esc(id)}" data-source="${esc(source)}" data-date="${esc(date)}">Remove from schedule</button><button class="primary" data-action="close-dialog">Done</button></div>`,
+		`${dialogHead("Scheduled block", "editorTitle")}<h3>${esc(event.name)}</h3><p class="muted" style="margin-top:7px">${dateLabel(localDate(date))} · ${esc(event.start)} – ${esc(event.end)}</p>${event.location ? `<p class="muted">${esc(event.location)}</p>` : ""}${event.outcomeGoal ? `<p style="margin-top:18px">${esc(event.outcomeGoal)}</p>` : ""}<p style="margin-top:18px;white-space:pre-wrap">${esc(event.description || "")}</p><div class="dialog-actions"><button data-action="event-edit" data-event-id="${esc(id)}" data-source="${esc(source)}" data-date="${esc(date)}">Edit time</button>${block.startDate && block.startDate === block.endDate ? "" : `<button data-action="event-skip" data-event-id="${esc(id)}" data-source="${esc(source)}" data-date="${esc(date)}">Remove this week only</button>`}${block.startDate && block.startDate === block.endDate ? "" : `<button data-action="event-range" data-event-id="${esc(id)}">Repeat range</button>`}<button class="delete" data-action="event-remove" data-event-id="${esc(id)}" data-source="${esc(source)}" data-date="${esc(date)}">Remove from schedule</button><button class="primary" data-action="close-dialog">Done</button></div>`,
 	);
 }
 document.addEventListener("click", (e) => {
@@ -1751,6 +1805,9 @@ document.addEventListener("click", (e) => {
 			break;
 		case "event-edit":
 			openCalendarEditor(selectedEvent(b)); break;
+		case "event-range":
+			openRepeatRange(b.dataset.eventId);
+			break;
 		case "event-skip":
 			applyCalendarChange(selectedEvent(b), "skip"); break;
 		case "event-remove":
@@ -2111,7 +2168,7 @@ function renderFocus() {
 		})
 		.join(
 			"",
-		)}</section>${broadcastVisible() ? broadcastMarkup() : ""}<section class="surface context-card next-scheduled"><p class="eyebrow">${icon("calendar")} Next scheduled</p><b>${esc(nextEvent?.name || "An open stretch")}</b><p>${nextEvent ? `${esc(nextEvent.start)} · ${formatMinutes(minutes(nextEvent.end) - minutes(nextEvent.start))}` : "No more scheduled blocks today."}</p></section></aside></div><div class="surface focus-agenda">${
+		)}</section><section class="surface context-card next-scheduled"><p class="eyebrow">${icon("calendar")} Next scheduled</p><b>${esc(nextEvent?.name || "An open stretch")}</b><p>${nextEvent ? `${esc(nextEvent.start)} · ${formatMinutes(minutes(nextEvent.end) - minutes(nextEvent.start))}` : "No more scheduled blocks today."}</p></section></aside></div><div class="surface focus-agenda">${
 		events
 			.filter((e) => minutes(e.end) >= now)
 			.slice(0, 3)

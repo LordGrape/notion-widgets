@@ -87,10 +87,14 @@ Docket is a fourth Command Centre view (`?panel=docket`) that totals billable ho
 - Line items and the total use docket units (tenths of an hour). Under three minutes bills nothing.
 - Log time appends a `manual: true` session (with `note` and `kind`) to `clock/focus_sessions`, keeping its 300-entry cap. Completing an untimed billable task offers a Log time action. Manual entries can be removed with Undo.
 - The pace marker compares billable hours with a linear share of the target for the elapsed week.
-- Broadcast comments on pace here. While a focus session is running he steps away and leaves a one-line billing status. When you pause or finish, he returns with the week's hours and pace. The dock on Today also shows this week's billable hours and opens the Docket.
+- Broadcast lives on the Docket, not the Focus tab. He comments on pace; while a focus session runs he steps away and leaves a one-line billing status. The dock on Today shows this week's billable hours and opens the Docket.
 
 Pure logic and tests: `hours.mjs`, `hours.test.mjs`.
 
 ## Plan my day
 
 The Your day panel offers an opt-in Plan my day preview. `autofit.mjs` (pure, tested) fills the open stretches between 09:00 and 21:00 with today's unscheduled tasks: Must first, then Should, then Could; overdue work leads within a tier; tasks without an estimate use 30 minutes and are marked estimated; a 10-minute buffer follows each block; nothing is placed in the past. Tomorrow can be planned the same way. The dialog shows the day as a strip, lets the user untick tasks, and lists anything that does not fit. Confirming creates one-off timetable blocks and updates the tasks through the existing controller in one batch, with a single Undo.
+
+## Repeat range
+
+Recurring timetable blocks can start and end on chosen dates (`startDate`, `endDate`; absent means ongoing). The weekly block editor in the Timetable has a Runs control (Ongoing, 4, 8 or 12 weeks, or pick dates) with a plain-language summary, and the Existing list shows each block's range. In Command Centre, a recurring block's details dialog has Repeat range with the same options and an Undo.

@@ -297,6 +297,12 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.8px;line-height:1.15;margin-t
   box-shadow:0 6px 16px rgba(124,58,237,.26),inset 0 1px 0 rgba(255,255,255,.22)}
 .trows{display:flex;flex-direction:column;gap:6px}
 .trows:empty{display:none}
+.runs{display:flex;flex-direction:column;gap:8px}
+.runs .dchip{min-width:0;flex:1 1 auto;padding:8px 10px}
+.runs-dates .f-input{padding:9px 11px;font-size:12px}
+.runs-dates .f-input:disabled{opacity:.45;cursor:not-allowed}
+#fPlanning .ab-term-row,#fPlanning .ab-term-row+.ab-plan-help{display:none!important}
+.runs-sum{padding:9px 12px;border-radius:12px;background:var(--surface-3);border:1px solid var(--line);font-size:10.5px;font-weight:600;line-height:1.45;color:var(--text-2)}
 .trow{display:grid;grid-template-columns:38px 1fr 14px 1fr;gap:7px;align-items:center;
   padding:8px 10px;border-radius:12px;background:color-mix(in srgb,var(--bg) 45%,transparent);
   border:1px solid var(--line);animation:fadeUp .3s var(--ease) both}
@@ -447,6 +453,15 @@ body.wide-calendar .shell{width:min(97vw,960px)}
       </div>
       <div class="trows" id="fTrows"></div>
       <div class="f-warning" id="fWarn" role="status"></div>
+      <div class="runs">
+        <label class="f-label">Runs</label>
+        <div class="chips" id="fRuns" role="radiogroup" aria-label="How long this block repeats"></div>
+        <div class="f-row runs-dates">
+          <div><label class="f-label" for="fStart">Starts</label><input class="f-input" type="date" id="fStart"></div>
+          <div><label class="f-label" for="fEnd">Ends</label><input class="f-input" type="date" id="fEnd"></div>
+        </div>
+        <div class="runs-sum" id="fRunSum" role="status"></div>
+      </div>
       <div>
         <label class="f-label">Colour</label>
         <div class="swatches" id="fSw"></div>
@@ -558,6 +573,7 @@ function decorateBlock(block,source){
   if(hasOwn(source,'eventType'))block.eventType=String(source.eventType||'');
   if(/^\d{4}-\d{2}-\d{2}$/.test(String(source&&source.startDate||'')))block.startDate=String(source.startDate);
   if(/^\d{4}-\d{2}-\d{2}$/.test(String(source&&source.endDate||'')))block.endDate=String(source.endDate);
+  if(source&&source.startDate==='')block.startDate='';if(source&&source.endDate==='')block.endDate='';
   if(hasOwn(source,'outcomeGoal'))block.outcomeGoal=String(source.outcomeGoal||'');
   if(Array.isArray(source&&source.overrides))block.overrides=source.overrides.filter(function(o){return o&&/^\d{4}-\d{2}-\d{2}$/.test(String(o.sourceDate||''))}).map(function(o){var item={sourceDate:String(o.sourceDate),date:/^\d{4}-\d{2}-\d{2}$/.test(String(o.date||''))?String(o.date):String(o.sourceDate),skipped:!!o.skipped};if(o.start)item.start=String(o.start);if(o.end)item.end=String(o.end);if(hasOwn(o,'location'))item.location=clean(o.location);if(hasOwn(o,'outcomeGoal'))item.outcomeGoal=String(o.outcomeGoal||'').trim();return item});
   /* Keep task links and unknown metadata while normalising known fields. */
@@ -934,6 +950,7 @@ function openPanel(editId){
       b.days.forEach(function(d){selDays[d.day]={start:d.start,end:d.end,location:clean(d.location||b.location)}});
     }
   }
+  setRunsFrom(editId?schedule.find(function(x){return x.id===editId}):null);
   $('overlay').classList.add('show');$('overlay').setAttribute('aria-hidden','false');
   drawSaved();drawForm();
   $('existingBlocks').open=!!editingId;
@@ -1049,7 +1066,7 @@ function drawSaved(){
     if(confirmId===b.id){
       return '<div class="s-item confirming" style="--c:'+esc(b.color)+'"><div class="bar"></div><div class="confirm-line"><span>Delete "'+esc(b.name)+'"?</span><span class="btns"><button class="no" data-cancel="'+b.id+'">Keep</button><button class="yes" data-yes="'+b.id+'">Delete</button></span></div></div>';
     }
-    return '<div class="s-item" style="--c:'+esc(b.color)+'"><div class="bar"></div><div style="min-width:0"><div class="n">'+esc(b.name)+'</div><div class="m">'+esc(ds)+'</div></div><div class="s-acts"><button class="ed" data-edit="'+b.id+'">Edit</button><button class="del" data-del="'+b.id+'">Del</button></div></div>';
+    return '<div class="s-item" style="--c:'+esc(b.color)+'"><div class="bar"></div><div style="min-width:0"><div class="n">'+esc(b.name)+'</div><div class="m">'+esc(ds)+' \u00b7 '+esc(runRangeText(b))+'</div></div><div class="s-acts"><button class="ed" data-edit="'+b.id+'">Edit</button><button class="del" data-del="'+b.id+'">Del</button></div></div>';
   }).join('');
 
   el.querySelectorAll('[data-edit]').forEach(function(b){b.addEventListener('click',function(){openPanel(b.dataset.edit)})});
@@ -1063,6 +1080,56 @@ function drawSaved(){
   })});
 }
 
+var runMode='ongoing',runStart='',runEnd='';
+function runYmd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function runParse(k){var p=String(k).split('-');return new Date(+p[0],+p[1]-1,+p[2])}
+function runAdd(k,n){var d=runParse(k);d.setDate(d.getDate()+n);return runYmd(d)}
+function runLabel(k){var d=runParse(k),o={month:'short',day:'numeric'};if(d.getFullYear()!==new Date().getFullYear())o.year='numeric';return d.toLocaleDateString('en-CA',o)}
+function runRangeText(b){
+  if(!b||(!b.startDate&&!b.endDate))return 'Ongoing';
+  if(b.startDate&&b.endDate)return runLabel(b.startDate)+' \u2013 '+runLabel(b.endDate);
+  return b.endDate?'Until '+runLabel(b.endDate):'From '+runLabel(b.startDate);
+}
+function setRunsFrom(b){
+  runStart=b&&b.startDate||'';runEnd=b&&b.endDate||'';
+  runMode=runEnd?'custom':'ongoing';
+}
+function runSummary(){
+  var names=orderedDays().filter(function(i){return selDays[i]}).map(function(i){var n=String(DAY_SHORT[i]);return n.charAt(0).toUpperCase()+n.slice(1).toLowerCase()});
+  var on=names.length?names.join(', '):'the days you choose';
+  if(!runEnd){return 'Repeats every '+on+(runStart?' from '+runLabel(runStart):'')+', with no end date.'}
+  var weeks=runStart?Math.max(1,Math.ceil((Math.round((runParse(runEnd)-runParse(runStart))/864e5)+1)/7)):0;
+  return 'Repeats every '+on+(runStart?' from '+runLabel(runStart)+' to ':' until ')+runLabel(runEnd)+(weeks?' \u00b7 '+weeks+(weeks===1?' week':' weeks'):'')+'.';
+}
+function syncRunInputs(){
+  $('fStart').value=runStart;$('fEnd').value=runEnd;$('fEnd').disabled=runMode==='ongoing';
+  var abStart=document.getElementById('fStartDate'),abEnd=document.getElementById('fEndDate');if(abStart)abStart.value=runStart;if(abEnd)abEnd.value=runEnd;
+  $('fRunSum').textContent=runSummary();
+}
+function drawRuns(){
+  var el=$('fRuns');if(!el)return;
+  var opts=[['ongoing','Ongoing'],['w4','4 weeks'],['w8','8 weeks'],['w12','12 weeks'],['custom','Pick dates']];
+  el.innerHTML=opts.map(function(o){return '<button type="button" role="radio" aria-checked="'+(runMode===o[0])+'" class="dchip'+(runMode===o[0]?' on':'')+'" data-run="'+o[0]+'">'+o[1]+'</button>'}).join('');
+  el.querySelectorAll('[data-run]').forEach(function(b){b.addEventListener('click',function(){
+    sfx('presetSelect');var m=b.dataset.run;
+    if(m!=='ongoing'&&!runStart)runStart=runYmd(new Date());
+    runMode=m;
+    if(m==='ongoing')runEnd='';
+    else if(m.charAt(0)==='w')runEnd=runAdd(runStart,(+m.slice(1))*7-1);
+    else if(!runEnd)runEnd=runAdd(runStart,55);
+    hideErr();drawRuns();
+  })});
+  syncRunInputs();
+}
+function validateRuns(){
+  if(runEnd&&runStart&&runEnd<runStart)return 'The end date must come after the start date.';
+  return '';
+}
+function applyRuns(block){
+  if(runStart)block.startDate=runStart;else if(editingId)block.startDate='';else delete block.startDate;
+  if(runEnd)block.endDate=runEnd;else if(editingId)block.endDate='';else delete block.endDate;
+  return block;
+}
 function drawForm(){
   /* Day chips */
   var chips=$('fChips');
@@ -1079,7 +1146,7 @@ function drawForm(){
       hideErr();drawFormInputs();drawChips();
     });
   });
-  drawFormInputs();drawSwatches();
+  drawFormInputs();drawSwatches();drawRuns();
   function drawChips(){chips.querySelectorAll('.dchip').forEach(function(b){b.classList.toggle('on',!!selDays[+b.dataset.d])})}
   function drawFormInputs(){
     var tr=$('fTrows');
@@ -1107,11 +1174,19 @@ function drawForm(){
 function showErr(msg){sfx('error');var e=$('fErr');e.textContent=msg;e.classList.add('show')}
 function hideErr(){$('fErr').classList.remove('show')}
 
+$('fStart').addEventListener('change',function(){
+  runStart=this.value;
+  if(runMode.charAt(0)==='w'&&runStart)runEnd=runAdd(runStart,(+runMode.slice(1))*7-1);
+  hideErr();drawRuns();
+});
+$('fEnd').addEventListener('change',function(){
+  runEnd=this.value;runMode=runEnd?'custom':'ongoing';hideErr();drawRuns();
+});
 $('fClear').addEventListener('click',function(){
   sfx('reset');
   editingId=null;selDays={};selColor=nextAvailableColor();
   $('fName').value='';$('fDesc').value='';$('fLoc').value='';
-  $('fSave').textContent='Save block';hideErr();drawForm();
+  $('fSave').textContent='Save block';hideErr();setRunsFrom(null);drawForm();
 });
 
 $('fSave').addEventListener('click',function(){
@@ -1124,16 +1199,17 @@ $('fSave').addEventListener('click',function(){
   for(var i=0;i<days.length;i++){
     if(!days[i].start||!days[i].end||mins(days[i].end)<=mins(days[i].start)){showErr(DAY_SHORT[days[i].day]+' end time must be after the start time.');return}
   }
+  var runError=validateRuns();if(runError){showErr(runError);return}
   /* Keep the block's identity metadata (break marker, term dates, completion
      tracking, occurrence tweaks) when an edit only changes the basics. */
   var previous=editingId?schedule.find(function(b){return b.id===editingId}):null;
-  var block=decorateBlock({id:editingId||genId(),name:name,description:desc,location:loc,color:selColor,days:days},previous||{});
+  var block=applyRuns(decorateBlock({id:editingId||genId(),name:name,description:desc,location:loc,color:selColor,days:days},previous||{}));
   if(editingId)saveBlocks(schedule.map(function(b){return b.id===editingId?block:b}));
   else saveBlocks(schedule.concat(block));
   sfx('start');
   editingId=null;selDays={};selColor=nextAvailableColor();
   $('fName').value='';$('fDesc').value='';$('fLoc').value='';
-  $('fSave').textContent='Save block';hideErr();
+  $('fSave').textContent='Save block';hideErr();setRunsFrom(null);
   drawSaved();drawForm();render();
 });
 

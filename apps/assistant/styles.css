@@ -2859,3 +2859,33 @@ dialog[open] {
 	color: var(--accent);
 	font-size: 14px;
 }
+
+/* Repeat range picker. */
+.range-picker {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin: 14px 0;
+}
+.range-picker button {
+	padding: 8px 15px;
+	border: 1px solid var(--line);
+	border-radius: 20px;
+	background: var(--surface);
+	font-size: 12px;
+	font-weight: 650;
+}
+.range-picker button[aria-checked="true"] {
+	color: #fff;
+	border-color: transparent;
+	background: linear-gradient(135deg, #8b4af3, #6d2be0);
+}
+.range-summary {
+	margin: 14px 0 0;
+	padding: 12px 14px;
+	border-radius: 12px;
+	background: var(--surface-2);
+	border: 1px solid var(--line);
+	font-size: 13px;
+	line-height: 1.45;
+}
