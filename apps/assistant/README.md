@@ -87,7 +87,7 @@ Docket is a fourth Command Centre view (`?panel=docket`) that totals billable ho
 - Line items and the total use docket units (tenths of an hour). Under three minutes bills nothing.
 - Log time appends a `manual: true` session (with `note` and `kind`) to `clock/focus_sessions`, keeping its 300-entry cap. Completing an untimed billable task offers a Log time action. Manual entries can be removed with Undo.
 - The pace marker compares billable hours with a linear share of the target for the elapsed week.
-- Broadcast comments on pace here. He is not yet hidden during focus.
+- Broadcast comments on pace here. While a focus session is running he steps away and leaves a one-line billing status. When you pause or finish, he returns with the week's hours and pace. The dock on Today also shows this week's billable hours and opens the Docket.
 
 Pure logic and tests: `hours.mjs`, `hours.test.mjs`.
 

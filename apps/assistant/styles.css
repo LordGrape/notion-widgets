@@ -2825,3 +2825,37 @@ dialog[open] {
 		grid-column: 2;
 	}
 }
+
+/* Partner steps away while you focus; the dock carries the weekly hours. */
+.broadcast-away {
+	display: none;
+	margin: 0;
+	padding: 6px 4px;
+	color: var(--muted);
+	font-size: 13px;
+	line-height: 1.45;
+}
+.broadcast-card.is-away {
+	padding: 14px 18px;
+}
+.broadcast-card.is-away .broadcast-stage,
+.broadcast-card.is-away .broadcast-dialogue {
+	display: none;
+}
+.broadcast-card.is-away .broadcast-away {
+	display: block;
+}
+.dock-hours {
+	margin-left: auto;
+	padding: 7px 13px;
+	border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
+	border-radius: 20px;
+	background: var(--accent-soft);
+	color: var(--muted);
+	font-size: 12px;
+	white-space: nowrap;
+}
+.dock-hours strong {
+	color: var(--accent);
+	font-size: 14px;
+}

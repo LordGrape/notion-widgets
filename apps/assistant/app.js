@@ -42,7 +42,7 @@ import { planDay, isUnscheduled, PLAN_START, PLAN_END } from "./autofit.mjs";
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261002-plan-my-day";
+	REVISION = "20261002-partner-away";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -137,8 +137,8 @@ function broadcastReact(state) {
 	const figure = card.querySelector(".broadcast-figure"), line = card.querySelector(".broadcast-dialogue");
 	const copy = {
 		start: ["The clock is running. Make this hour count, counsel.", "broadcast-greet"],
-		pause: ["A pause is part of the work. I'll hold the file.", "broadcast-focus"],
-		finish: ["Filed. One more matter closed.", "broadcast-celebrate"],
+		pause: ["A pause is part of the work. " + paceTail(), "broadcast-focus"],
+		finish: ["Filed. " + paceTail(), "broadcast-celebrate"],
 		break: ["Recess. Even partners leave the office for a minute.", "broadcast-celebrate"],
 		flow: ["An extra quarter-hour? Diligent counsel.", "broadcast-greet"],
 	}[state] || ["Shall we begin, counsel?", "broadcast-greet"];
@@ -593,6 +593,11 @@ function render() {
 		}
 	}
 }
+function dockHours() {
+	const week = currentWeek();
+	if (!week) return "";
+	return `<button class="dock-hours" data-action="view" data-view="docket" aria-label="Open weekly docket"><strong>${formatUnits(week.billable)}</strong> / ${formatUnits(week.target)} h this week</button>`;
+}
 function renderDock() {
 	const current = activeTask(),
 		next = occurrences(new Date()).find(
@@ -600,7 +605,7 @@ function renderDock() {
 				minutes(e.start) > new Date().getHours() * 60 + new Date().getMinutes(),
 		);
 	$("#focusDock").innerHTML =
-		`<div class="dock-task"><button class="dock-icon" data-action="view" data-view="focus" aria-label="Open focus workspace">${icon("clock")}</button><div><b>${esc(current?.text || "Ready when you are")}</b><small>${current ? `${duration(current) || 45}-minute focus block` : "Choose a task or start a timer"}</small></div></div><span class="dock-time" data-timer>45:00</span><div class="dock-controls"><button class="primary" data-action="timer" data-timer-button>${icon("play")} Start focus</button><button class="icon-button" data-action="reset-timer" aria-label="End and reset timer" title="End and reset timer">${icon("reset")}</button></div><div class="next-event">${icon("calendar")}<div><span>Next</span><b>${next ? `${esc(next.name)} · ${esc(next.start)}` : "No more scheduled blocks"}</b></div></div>`;
+		`<div class="dock-task"><button class="dock-icon" data-action="view" data-view="focus" aria-label="Open focus workspace">${icon("clock")}</button><div><b>${esc(current?.text || "Ready when you are")}</b><small>${current ? `${duration(current) || 45}-minute focus block` : "Choose a task or start a timer"}</small></div></div><span class="dock-time" data-timer>45:00</span><div class="dock-controls"><button class="primary" data-action="timer" data-timer-button>${icon("play")} Start focus</button><button class="icon-button" data-action="reset-timer" aria-label="End and reset timer" title="End and reset timer">${icon("reset")}</button></div><div class="next-event">${icon("calendar")}<div><span>Next</span><b>${next ? `${esc(next.name)} · ${esc(next.start)}` : "No more scheduled blocks"}</b></div>${dockHours()}</div>`;
 }
 function bindWorkspace() {
 	const calendarScroll=$(".calendar-scroll"), calendarHead=$(".calendar-head");
@@ -857,6 +862,19 @@ function updateTimer() {
 	}
 	const finish = $("[data-finish]");
 	if (finish) finish.disabled = !current || current.done;
+	{
+		const away = view !== "today" && w.tmRunning && !breaking;
+		const card = document.querySelector("#broadcastCompanion");
+		if (card) {
+			card.classList.toggle("is-away", away);
+			if (away) {
+				const week = currentWeek();
+				const line = card.querySelector(".broadcast-away");
+				const text = week ? "On the clock. " + formatUnits(week.billable) + " of " + formatUnits(week.target) + " billable hours this week." : "On the clock.";
+				if (line && line.textContent !== text) line.textContent = text;
+			}
+		}
+	}
 	if (view === "focus") {
 		const currentKey = `${w.studyActive}:${w.studyPhase}:${w.studyPending}`;
 		if (currentKey !== lastFocus) {
@@ -1925,7 +1943,7 @@ function formatMinutes(n) {
 	);
 }
 function broadcastMarkup() {
-	return `<section class="surface context-card broadcast-card" id="broadcastCompanion" aria-label="Broadcast, your focus partner"><div class="broadcast-stage"><div class="broadcast-figure ${broadcastPose}" role="img" aria-label="Broadcast, a muscular CRT television-headed partner in a tailored charcoal suit"><div class="broadcast-shadow"></div><div class="broadcast-leg broadcast-leg-left"><div class="broadcast-shoe"></div></div><div class="broadcast-leg broadcast-leg-right"><div class="broadcast-shoe"></div></div><div class="broadcast-arm broadcast-arm-left"><div class="broadcast-cuff"></div><div class="broadcast-hand"></div></div><div class="broadcast-arm broadcast-arm-right"><div class="broadcast-cuff"></div><div class="broadcast-hand"></div></div><div class="broadcast-body"><div class="broadcast-shirt"></div><div class="broadcast-tie"></div><div class="broadcast-lapel"></div><div class="broadcast-lapel broadcast-lapel-right"></div><div class="broadcast-pocket"></div></div><div class="broadcast-head"><div class="broadcast-antenna"></div><div class="broadcast-screen"><div class="broadcast-face"><span class="broadcast-eye broadcast-eye-left"></span><span class="broadcast-eye broadcast-eye-right"></span><span class="broadcast-mouth"></span><span class="broadcast-fang"></span></div><div class="broadcast-scan"></div><div class="broadcast-reflection"></div></div><div class="broadcast-knob"></div></div></div></div><p class="broadcast-dialogue" role="status" aria-live="polite">${esc(broadcastLine)}</p></section>`;
+	return `<section class="surface context-card broadcast-card" id="broadcastCompanion" aria-label="Broadcast, your focus partner"><div class="broadcast-stage"><div class="broadcast-figure ${broadcastPose}" role="img" aria-label="Broadcast, a muscular CRT television-headed partner in a tailored charcoal suit"><div class="broadcast-shadow"></div><div class="broadcast-leg broadcast-leg-left"><div class="broadcast-shoe"></div></div><div class="broadcast-leg broadcast-leg-right"><div class="broadcast-shoe"></div></div><div class="broadcast-arm broadcast-arm-left"><div class="broadcast-cuff"></div><div class="broadcast-hand"></div></div><div class="broadcast-arm broadcast-arm-right"><div class="broadcast-cuff"></div><div class="broadcast-hand"></div></div><div class="broadcast-body"><div class="broadcast-shirt"></div><div class="broadcast-tie"></div><div class="broadcast-lapel"></div><div class="broadcast-lapel broadcast-lapel-right"></div><div class="broadcast-pocket"></div></div><div class="broadcast-head"><div class="broadcast-antenna"></div><div class="broadcast-screen"><div class="broadcast-face"><span class="broadcast-eye broadcast-eye-left"></span><span class="broadcast-eye broadcast-eye-right"></span><span class="broadcast-mouth"></span><span class="broadcast-fang"></span></div><div class="broadcast-scan"></div><div class="broadcast-reflection"></div></div><div class="broadcast-knob"></div></div></div></div><p class="broadcast-dialogue" role="status" aria-live="polite">${esc(broadcastLine)}</p><p class="broadcast-away" role="status"></p></section>`;
 }
 const monthDay = (d) => d.toLocaleDateString("en-CA", { month: "short", day: "numeric" });
 const clockTime = (ms) => {
@@ -1942,14 +1960,33 @@ function saveSessions(raw) {
 	signature = "";
 	refresh();
 }
-function docketData() {
+function docketData(offset = docketOffset) {
 	const anchor = new Date();
-	anchor.setDate(anchor.getDate() + docketOffset * 7);
+	anchor.setDate(anchor.getDate() + offset * 7);
 	const keys = weekKeys(anchor);
-	const now = docketOffset === 0 ? new Date() : docketOffset < 0 ? new Date(keys[6] + "T23:59:59") : new Date(keys[0] + "T00:00:00");
+	const now = offset === 0 ? new Date() : offset < 0 ? new Date(keys[6] + "T23:59:59") : new Date(keys[0] + "T00:00:00");
 	const events = keys.flatMap((key) => occurrences(localDate(key)));
 	const entries = [...sessionEntries(focusSessionsRaw(), tasks), ...classEntries(events, now)];
 	return { keys, now, summary: summarize(entries, now, weeklyTarget()) };
+}
+let weekCache = { key: "", at: 0, summary: null };
+function currentWeek() {
+	if (!engines.clock || !engines.timetable || !engines.todo) return null;
+	const key = String(focusSessionsRaw() || "") + weeklyTarget() + isoDate();
+	if (weekCache.summary && weekCache.key === key && Date.now() - weekCache.at < 20000) return weekCache.summary;
+	try {
+		weekCache = { key, at: Date.now(), summary: docketData(0).summary };
+	} catch {
+		return weekCache.summary;
+	}
+	return weekCache.summary;
+}
+function paceTail() {
+	const s = currentWeek();
+	if (!s) return "";
+	const gap = Math.round((s.expected - s.billable) * 10) / 10;
+	const pace = s.pace === "behind" ? ", " + formatUnits(gap) + " behind" : s.pace === "ahead" ? ", " + formatUnits(-gap) + " ahead" : ", right on pace";
+	return formatUnits(s.billable) + " of " + formatUnits(s.target) + " hours this week" + pace + ".";
 }
 function docketNarration(s) {
 	if (docketOffset < 0) return "That week closed at " + formatUnits(s.billable) + " of " + formatUnits(s.target) + " hours.";
