@@ -129,7 +129,7 @@ function run(){if(!root.SyncEngine)return;normalizeSchedule();var tasks=parseLis
 function boot(){
  isTodoWidget=!!document.getElementById('inp')&&!!document.getElementById('list');
  installSetBridge();injectStyles();installTimetableEditor();
- if(isTodoWidget)document.addEventListener('click',function(e){var btn=e.target&&e.target.closest&&e.target.closest('.item .del');if(!btn)return;var item=btn.closest('.item'),id=item&&item.getAttribute('data-id'),tasks=parseList(root.SyncEngine&&root.SyncEngine.get('todo','tasks')),task=tasks.find(function(t){return t&&t.id===id});if(!task||!task.occurrenceId)return;e.preventDefault();e.stopImmediatePropagation();task.done=true;task.doneAt=Date.now();task.outcome='skipped';task.updatedAt=Date.now();writeTasks(tasks);showToast('Scheduled action skipped.')},true);
+ if(isTodoWidget)document.addEventListener('click',function(e){var btn=e.target&&e.target.closest&&e.target.closest('.item .del');if(!btn)return;var item=btn.closest('.item'),id=item&&item.getAttribute('data-id'),tasks=parseList(root.SyncEngine&&root.SyncEngine.get('todo','tasks')),task=tasks.find(function(t){return t&&t.id===id});if(!task||!task.occurrenceId)return;e.preventDefault();e.stopImmediatePropagation();task.done=true;task.doneAt=Date.now();task.outcome='skipped';task.updatedAt=Date.now();writeTasks(tasks);if(root.TodoUIBridge&&typeof root.TodoUIBridge.refresh==='function')root.TodoUIBridge.refresh();showToast('Marked as skipped. The repeating block stays in Timetable.')},true);
  if(root.SyncEngine&&root.SyncEngine.onReady)root.SyncEngine.onReady(function(){
   run();
   if(root.SyncEngine.subscribe){
