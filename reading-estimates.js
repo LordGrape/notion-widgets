@@ -6,12 +6,17 @@
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   function parse(text) {
     text = String(text || '');
-    const isReading = /\b(?:reads?|readings?|reviews?|briefs?)\b/i.test(text);
+    // A page marker is enough context by itself: quick-add phrases often say
+    // “do pp. 5–8” without also including “read” or “reading”.
+    const hasReadingVerb = /\b(?:reads?|readings?|reviews?|briefs?)\b/i.test(text);
+    const hasPageMarker = /\b(?:pages?|pp?\.?|pgs?\.?)\s*:?\s*\d+/i.test(text);
+    const nonReadingAction = /\b(?:submit|turn\s+in|hand\s+in|upload|draft|write)\b/i.test(text);
+    const isReading = hasReadingVerb || (hasPageMarker && !nonReadingAction);
     if (!isReading) return null;
     const count = text.match(/\b(\d+)\s*pages?\b/i);
     if (count) return { pages: +count[1] };
     // A page marker starts a list; later entries can omit it.
-    const lists = [...text.matchAll(/\b(?:pages?|pp?\.?|read|reading)\s*:?\s*(\d+(?:\s*(?:[-–—]|to)\s*\d+)?(?:\s*(?:,|&|and|\+)\s*(?:(?:pages?|pp?\.?)\s*)?\d+(?:\s*(?:[-–—]|to)\s*\d+)?)*)/gi)];
+    const lists = [...text.matchAll(/\b(?:pages?|pp?\.?|pgs?\.?|read|reading)\s*:?\s*(\d+(?:\s*(?:[-–—]|to)\s*\d+)?(?:\s*(?:,|&|and|\+)\s*(?:(?:pages?|pp?\.?|pgs?\.?)\s*)?\d+(?:\s*(?:[-–—]|to)\s*\d+)?)*)/gi)];
     const intervals = lists.flatMap(m => [...m[1].matchAll(/(\d+)(?:\s*(?:[-–—]|to)\s*(\d+))?/gi)].map(n => [+n[1], +(n[2] || n[1])]));
     if (!intervals.length) return { pages: null };
     if (intervals.some(([a,b]) => a < 1 || b < a)) return { invalid: true };

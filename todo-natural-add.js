@@ -123,7 +123,7 @@ function parse(text,now=new Date(),tasks=[],courses=[]){
  r.explicitDate=!!r.dateKey;
  const range=/(?<![\d-])(?:\b(?:from|at|between)\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s*(?:-|–|—|to|until|through|and)\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/i;
  m=work.match(range);
- if(m&&!/\b(?:pp?\.?|pages?|chapters?|sections?)\s*$/i.test(work.slice(0,m.index))){
+ if(m&&!/\b(?:pp?\.?|pgs?\.?|pages?|chapters?|sections?)\s*$/i.test(work.slice(0,m.index))){
  let a=m[3],b=m[6];if(!a&&b)a=Number(m[1])>Number(m[4])?(b.toLowerCase()==='pm'?'am':'pm'):b;if(!b&&a)b=a;
  r.startTime=clock(m[1],m[2],a);r.endTime=clock(m[4],m[5],b);
  if(r.endTime<=r.startTime)throw Error('The end is earlier than the start. Clarify the range with AM/PM; overnight blocks need separate day entries.');
@@ -147,6 +147,9 @@ function parse(text,now=new Date(),tasks=[],courses=[]){
  if(r.startTime&&!r.endTime){if(!r.duration){r.duration=60;r.durationDefault=!!r.classAnchor;}const end=minute(r.startTime)+r.duration;if(end>=1440)throw Error('This block crosses midnight. Use separate day entries.');r.endTime=pad(Math.floor(end/60))+':'+pad(end%60);}
  if(r.dateKey&&r.duration&&!r.startTime){let slotDate=r.dateKey;if(r.deadlineOnly&&!r.classAnchor){for(let key=today;key<=r.dateKey;key=shift(key,1)){const candidate=freeSlot(key,r.duration,courses,tasks,null,null,now,key===r.dateKey&&r.dueTime?minute(r.dueTime):null);if(candidate){slotDate=key;r.suggestedStart=candidate;break;}}}else r.suggestedStart=freeSlot(slotDate,r.duration,courses,tasks,r.classAnchor&&r.classAnchor.relation==='before'?r.classAnchor:null,r.classAnchor?.relation,now);if(r.suggestedStart){r.suggestedDate=slotDate;r.suggestedEnd=pad(Math.floor((minute(r.suggestedStart)+r.duration)/60))+':'+pad((minute(r.suggestedStart)+r.duration)%60);}}
  r.emptyText=!clean(work);r.text=clean(work)||'Scheduled task';
+ const reading=root.ReadingEstimates?.estimate(r.text);
+ if(reading?.invalid)throw Error('Check the page range. Use ascending pages, like pp. 5–8 or pp. 5–6, 9, 10–12.');
+ if(reading?.pages)r.labels.push(reading.pages+' pages');
  if(r.classAnchor&&r.startTime&&r.endTime){r.conflict=findConflict(r.dateKey,r.startTime,r.endTime,courses,tasks,r.classAnchor)||null;if(r.conflict)r.labels.push('Conflicts with '+r.conflict);}
  if(r.dateKey)r.labels.push(r.dateKey);if(r.startTime)r.labels.push(r.startTime+'–'+r.endTime+' ET',r.duration+' min'+(r.durationDefault?' default':''),'Timetable');else if(r.dateKey)r.labels.push(r.dueTime?'Due by '+r.dueTime:r.classAnchor?.relation==='before'?'Before '+r.classAnchor.name:'Date only');
  if(r.classAnchor&&r.classAnchor.relation==='after')r.labels.unshift('After '+r.classAnchor.name);else if(r.classAnchor)r.labels.unshift('Before '+r.classAnchor.name);if(r.duration&&!r.startTime)r.labels.push(r.duration+' min estimate');if(r.learnedPace)r.labels.push('Based on '+r.learnedPace.sampleCount+' completed readings · '+r.learnedPace.pace+' min/page');if(r.suggestedStart)r.labels.push('Suggested '+r.suggestedStart+'–'+r.suggestedEnd);if(r.recurrence)r.labels.push('Repeats '+(r.recurrence.days.length===5&&[1,2,3,4,5].every(d=>r.recurrence.days.includes(d))?'weekdays':r.recurrence.days.map(d=>['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d]).join(', '))+(r.recurrence.interval===2?' every other week':''));if(r.priority)r.labels.push(r.priority);if(r.dependency)r.labels.push('After '+r.dependency.text+(r.dependency.id?'':' (not linked)'));

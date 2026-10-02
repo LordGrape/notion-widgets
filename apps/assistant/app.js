@@ -709,7 +709,10 @@ function smartSummary(parsed, reading = {}) {
 	return parsed.map(r => {
 		const estimate = Reading.estimate(r.text, reading);
 		const labels = r.labels.map(label => label === r.priority ? `${label[0].toUpperCase()}${label.slice(1)} Do` : label);
-		if (estimate?.pages) labels.push(`${estimate.pages} pages`, ...(!r.duration ? [`${estimate.minutes} min estimate`] : []));
+		if (estimate?.pages) {
+			if (!labels.includes(`${estimate.pages} pages`)) labels.push(`${estimate.pages} pages`);
+			if (!r.duration) labels.push(`${estimate.minutes} min estimate`);
+		}
 		return labels.length ? "Smart · " + labels.join(" · ") : "";
 	}).filter(Boolean).join(" | ");
 }
