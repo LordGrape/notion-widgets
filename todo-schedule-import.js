@@ -34,6 +34,10 @@
   }
   function courseCode(text) { const m=String(text||'').toUpperCase().match(/\b([A-Z]{2,6})\s*(\d{3,4})\b/); return m ? m[1]+' '+m[2] : ''; }
   function kindOf(text) { return /review|recall|retrieval/i.test(text)?'review':/read/i.test(text)?'reading':/assign|draft|memo|essay/i.test(text)?'assignment':'study'; }
+  /* Sunny amber for breaks: visibly lighter and warmer than every course
+     colour. Breaks are timetable markers only — never tasks — so they stay
+     out of the To-Do list and its counts entirely. */
+  const BREAK_COLOUR = '#f59e0b';
   function validate(raw, index) {
     if (!raw || typeof raw !== 'object') throw new Error('Invalid item '+(index+1));
     const item = Object.assign({},raw);
@@ -94,6 +98,18 @@
       const index=tasks.findIndex(t=>t.id===id||t.occurrenceId===occurrence);
       const old=index>=0?tasks[index]:null;
       const metadata=[item.course? 'Course: '+item.course:'', 'Type: '+item.kind, item.notes||'', item.sourceUrl?'Source: '+item.sourceUrl:''].filter(Boolean).join('\n');
+      if(item.kind==='break') {
+        // Timetable marker only, never a task. Re-pasting also removes any
+        // task an earlier version created for the same break.
+        const blockId=item.id?'ai_break_'+item.id:'import_break_'+hash;
+        const stale=tasks.findIndex(t=>t.id===id||t.occurrenceId===occurrence);
+        if(stale>=0)tasks.splice(stale,1);
+        const bIdx=blocks.findIndex(b=>b.id===blockId||b.occurrenceId===occurrence||b.todoTaskId===id);
+        const block=Object.assign({},bIdx>=0?blocks[bIdx]:{}, {id:blockId,name:item.title,description:metadata,color:BREAK_COLOUR,days:[{day:new Date(item.date+'T12:00:00Z').getUTCDay(),start:item.start,end:item.end}],category:'personal',eventType:'break',trackCompletion:false,startDate:item.date,endDate:item.date,source:'schedule-import',occurrenceId:occurrence});
+        delete block.todoTaskId;delete block.todoDone;delete block.todoDoneAt;delete block.courseCode;delete block.workType;
+        if(bIdx>=0)blocks[bIdx]=block;else blocks.push(block);
+        continue;
+      }
       if(item.category==='class') {
         const blockId=item.id?'ai_class_'+item.id:'import_block_'+hash;
         const idx=blocks.findIndex(b=>b.id===blockId);

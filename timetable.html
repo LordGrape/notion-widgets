@@ -168,6 +168,13 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.8px;line-height:1.15;margin-t
   background:color-mix(in srgb,var(--c) 10%,transparent);
   border:1px solid color-mix(in srgb,var(--c) 24%,transparent)}
 .chip .pulse{width:5px;height:5px;border-radius:50%;background:currentColor;animation:pulse 1.6s ease-in-out infinite}
+/* Breaks: a soft sunny tint with a dashed edge and a coffee qualifier, so
+   time off reads as rest at a glance. Breaks are never tasks. */
+.card.brk{background:linear-gradient(150deg,color-mix(in srgb,var(--c) 13%,var(--surface)),var(--surface-2));border-style:dashed;border-color:color-mix(in srgb,var(--c) 45%,var(--line))}
+.chip.brk-chip{color:color-mix(in srgb,var(--c) 75%,var(--text));background:color-mix(in srgb,var(--c) 16%,transparent);border-style:dashed;border-color:color-mix(in srgb,var(--c) 45%,transparent)}
+.pill.brk{background:color-mix(in srgb,var(--c) 22%,var(--surface));color:color-mix(in srgb,var(--c) 62%,var(--text));border:1.5px dashed color-mix(in srgb,var(--c) 60%,transparent);box-shadow:none}
+.pill.brk:hover{box-shadow:0 6px 16px color-mix(in srgb,var(--c) 28%,transparent)}
+.cal-event.brk{background:color-mix(in srgb,var(--c) 10%,var(--surface));border-style:dashed;border-left:3px dashed color-mix(in srgb,var(--c) 70%,transparent)}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
 .card.live{border-color:color-mix(in srgb,var(--c) 48%,var(--line));
   box-shadow:0 0 0 1px color-mix(in srgb,var(--c) 20%,transparent),0 16px 40px color-mix(in srgb,var(--c) 18%,transparent)}
@@ -678,7 +685,7 @@ function isActualToday(date){return scheduleDateKey(date)===scheduleDateKey(new 
 function weekRangeLabel(){var start=currentWeekDate(orderedDays()[0]),end=currentWeekDate(orderedDays()[6]),a=start.toLocaleDateString('en-CA',{month:'short',day:'numeric'}),b=end.toLocaleDateString('en-CA',{month:'short',day:'numeric',year:start.getFullYear()!==end.getFullYear()?'numeric':undefined});return a+' – '+b}
 function updateWeekNavigation(){var label=$('weekRange'),reset=$('currentWeek');if(label)label.textContent=weekRangeLabel();if(reset)reset.hidden=weekOffset===0}
 function activeInTerm(block,key){return(!block.startDate||key>=block.startDate)&&(!block.endDate||key<=block.endDate)}
-function makeOccurrence(block,entry,key,sourceKey,override){var target=override&&hasOwn(override,'outcomeGoal')?String(override.outcomeGoal||''):String(block.outcomeGoal||'');return{id:block.id,name:block.name,description:block.description,location:override&&hasOwn(override,'location')?clean(override.location):clean(entry.location||block.location),color:block.color,category:block.category||'',trackCompletion:!!block.trackCompletion,outcomeGoal:target,day:parseScheduleDate(key).getDay(),start:override&&override.start||entry.start,end:override&&override.end||entry.end,dateKey:key,sourceDate:sourceKey}}
+function makeOccurrence(block,entry,key,sourceKey,override){var target=override&&hasOwn(override,'outcomeGoal')?String(override.outcomeGoal||''):String(block.outcomeGoal||'');return{id:block.id,name:block.name,description:block.description,location:override&&hasOwn(override,'location')?clean(override.location):clean(entry.location||block.location),color:block.color,category:block.category||'',eventType:block.eventType||'',trackCompletion:!!block.trackCompletion,outcomeGoal:target,day:parseScheduleDate(key).getDay(),start:override&&override.start||entry.start,end:override&&override.end||entry.end,dateKey:key,sourceDate:sourceKey}}
 function occurrencesForDate(target){
   var key=scheduleDateKey(target),day=target.getDay(),out=[];
   schedule.forEach(function(block){
@@ -709,7 +716,7 @@ function hideWeekTip(){clearTimeout(tipTimer);var tip=$('smartTip');if(!tip)retu
 function showWeekTip(el,temporary){
   var day=+el.dataset.day,item=flatFor(day).find(function(x){return x.id===el.dataset.id}),tip=$('smartTip');if(!item||!tip)return;
   clearTimeout(tipTimer);tip.style.setProperty('--tip-c',item.color||COLORS[0]);
-  tip.innerHTML='<div class="tip-head"><i class="tip-dot"></i><div class="tip-name">'+esc(item.name)+'</div></div><div class="tip-time">'+DAY_SHORT[day]+' · '+fmt(item.start)+'–'+fmt(item.end)+'</div>'+(item.location?'<div class="tip-detail">'+esc(item.location)+'</div>':'')+(item.outcomeGoal?'<div class="tip-detail"><b>Target</b> · '+esc(item.outcomeGoal)+'</div>':'')+(item.description?'<div class="tip-detail">'+esc(item.description)+'</div>':'');
+  tip.innerHTML='<div class="tip-head"><i class="tip-dot"></i><div class="tip-name">'+esc(item.name)+'</div></div><div class="tip-time">'+DAY_SHORT[day]+' · '+fmt(item.start)+'–'+fmt(item.end)+'</div>'+(item.eventType==='break'?'<div class="tip-detail">☕ Break · time off, not a task</div>':'')+(item.location?'<div class="tip-detail">'+esc(item.location)+'</div>':'')+(item.outcomeGoal?'<div class="tip-detail"><b>Target</b> · '+esc(item.outcomeGoal)+'</div>':'')+(item.description?'<div class="tip-detail">'+esc(item.description)+'</div>':'');
   tip.classList.add('show');tip.setAttribute('aria-hidden','false');
   requestAnimationFrame(function(){var r=el.getBoundingClientRect(),tr=tip.getBoundingClientRect(),left=Math.max(12,Math.min(innerWidth-tr.width-12,r.left+r.width/2-tr.width/2)),top=r.top-tr.height-9;if(top<12)top=Math.min(innerHeight-tr.height-12,r.bottom+9);tip.style.left=left+'px';tip.style.top=top+'px'});
   if(temporary)tipTimer=setTimeout(hideWeekTip,2800);
@@ -745,8 +752,11 @@ function buildDays(){
 /* ── Stats ── */
 function updateStats(){
   var weekMode=view==='week',items=weekMode?allFlat():flatFor(selectedDay);
-  var total=items.reduce(function(s,c){return s+Math.max(0,mins(c.end)-mins(c.start))},0);
-  $('stBlocks').textContent=items.length;
+  /* Breaks stay visible on the timeline but are not work: they never count
+     toward the block total or the scheduled hours. */
+  var counted=items.filter(function(c){return c.eventType!=='break'});
+  var total=counted.reduce(function(s,c){return s+Math.max(0,mins(c.end)-mins(c.start))},0);
+  $('stBlocks').textContent=counted.length;
   $('stHours').textContent=(total/60).toFixed(total%60?1:0)+'h';
   var next='Free',nm=nowMins();
   if(weekMode){
@@ -787,7 +797,7 @@ function renderToday(){
 
   var html='<div class="list">';
   items.forEach(function(c,i){
-    var s=mins(c.start),e=mins(c.end),cls='',chip='',prog='';
+    var s=mins(c.start),e=mins(c.end),cls='',chip='',prog='',brk=c.eventType==='break';
     if(isToday){
       if(nm>=s&&nm<e){
         cls=' live';
@@ -796,9 +806,10 @@ function renderToday(){
       }else if(nm>=e){cls=' past';chip='<span class="chip">Done</span>'}
       else{chip='<span class="chip">In '+(s-nm>=60?Math.floor((s-nm)/60)+'h '+((s-nm)%60)+'m':(s-nm)+'m')+'</span>'}
     }else{chip='<span class="chip">'+durStr(c.start,c.end)+'</span>'}
+    if(brk)chip='<span class="chip brk-chip">☕ Break</span>'+chip;
 
     var meta=[c.description,c.location].filter(Boolean).map(esc).join(' · ');
-    html+='<article class="card'+cls+'" data-id="'+c.id+'" data-date="'+esc(c.dateKey)+'" data-source-date="'+esc(c.sourceDate)+'" style="--c:'+esc(c.color)+';animation-delay:'+(i*60)+'ms">'
+    html+='<article class="card'+cls+(brk?' brk':'')+'" data-id="'+c.id+'" data-date="'+esc(c.dateKey)+'" data-source-date="'+esc(c.sourceDate)+'" style="--c:'+esc(c.color)+';animation-delay:'+(i*60)+'ms">'
       +'<div class="bar"></div>'
       +'<div class="time"><b>'+fmt(c.start)+'</b><span>'+fmt(c.end)+'</span></div>'
       +'<div class="info"><div class="name">'+esc(c.name)+'</div>'
@@ -839,7 +850,7 @@ function renderCalendarWeek(){
   var span=end-start,height=Math.max(420,Math.round(span*.8)),hourPx=height/(span/60),now=nowMins();
   var heads='<div class="cal-heads"><div class="cal-corner"></div>'+order.map(function(day){return'<div class="cal-day-head'+(isActualToday(currentWeekDate(day))?' today':'')+'">'+DAY_SHORT[day]+'</div>'}).join('')+'</div>';
   var labels='';for(var tick=Math.ceil(start/60)*60;tick<=end;tick+=60)labels+='<span style="top:'+((tick-start)/span*100)+'%">'+fmtShort(Math.floor(tick/60)+':00')+'</span>';
-  var columns=order.map(function(day){var dayDate=currentWeekDate(day),events=flatFor(day).map(function(c){var top=(mins(c.start)-start)/span*100,size=Math.max(4,(mins(c.end)-mins(c.start))/span*100),live=isActualToday(dayDate)&&now>=mins(c.start)&&now<mins(c.end);return'<button class="cal-event'+(live?' live':'')+'" data-id="'+esc(c.id)+'" data-day="'+day+'" data-source-date="'+esc(c.sourceDate)+'" style="--c:'+esc(c.color)+';top:'+top.toFixed(3)+'%;height:'+size.toFixed(3)+'%" aria-label="'+esc(c.name+' '+fmt(c.start)+' to '+fmt(c.end))+'"><b>'+esc(compactLabel(c))+'</b><span>'+fmt(c.start)+'–'+fmt(c.end)+'</span></button>'}).join('');return'<div class="cal-day-col'+(isActualToday(dayDate)?' today':'')+'" data-date="'+scheduleDateKey(dayDate)+'">'+events+'</div>'}).join('');
+  var columns=order.map(function(day){var dayDate=currentWeekDate(day),events=flatFor(day).map(function(c){var top=(mins(c.start)-start)/span*100,size=Math.max(4,(mins(c.end)-mins(c.start))/span*100),live=isActualToday(dayDate)&&now>=mins(c.start)&&now<mins(c.end);return'<button class="cal-event'+(live?' live':'')+(c.eventType==='break'?' brk':'')+'" data-id="'+esc(c.id)+'" data-day="'+day+'" data-source-date="'+esc(c.sourceDate)+'" style="--c:'+esc(c.color)+';top:'+top.toFixed(3)+'%;height:'+size.toFixed(3)+'%" aria-label="'+esc(c.name+' '+fmt(c.start)+' to '+fmt(c.end))+'"><b>'+esc((c.eventType==='break'?'☕ ':'')+compactLabel(c))+'</b><span>'+fmt(c.start)+'–'+fmt(c.end)+'</span></button>'}).join('');return'<div class="cal-day-col'+(isActualToday(dayDate)?' today':'')+'" data-date="'+scheduleDateKey(dayDate)+'">'+events+'</div>'}).join('');
   main.innerHTML='<div class="calendar-scroll"><div class="calendar-board" style="--cal-height:'+height+'px;--cal-hour:'+hourPx+'px">'+heads+'<div class="cal-body"><div class="cal-time-axis">'+labels+'</div>'+columns+'</div></div></div>';
   main.querySelectorAll('.cal-event').forEach(function(event){event.addEventListener('mouseenter',function(){showWeekTip(event,false)});event.addEventListener('mouseleave',hideWeekTip);event.addEventListener('focus',function(){showWeekTip(event,false)});event.addEventListener('blur',hideWeekTip);event.addEventListener('click',function(){hideWeekTip();openOccurrence(event.dataset.id,event.dataset.sourceDate)})});main.querySelectorAll('.cal-day-col').forEach(function(column){column.addEventListener('dblclick',function(e){if(e.target.closest('.cal-event'))return;openEventComposer(parseScheduleDate(column.dataset.date))})});
 }
@@ -871,7 +882,7 @@ function renderWeek(){
       var l=((mins(c.start)-gs)/span*100),w=Math.max(6,(mins(c.end)-mins(c.start))/span*100);
       if(l+w>100)w=100-l;
       var full=c.name+' · '+fmt(c.start)+'\u2013'+fmt(c.end)+(c.location?' · '+c.location:'');
-      html+='<div class="pill" tabindex="0" role="button" data-id="'+esc(c.id)+'" data-day="'+d+'" data-date="'+esc(c.dateKey)+'" data-source-date="'+esc(c.sourceDate)+'" style="--c:'+esc(c.color)+';left:'+l+'%;width:'+w+'%" aria-label="'+esc(full)+'">'+(w>5?esc(compactLabel(c)):'')+'</div>';
+      html+='<div class="pill'+(c.eventType==='break'?' brk':'')+'" tabindex="0" role="button" data-id="'+esc(c.id)+'" data-day="'+d+'" data-date="'+esc(c.dateKey)+'" data-source-date="'+esc(c.sourceDate)+'" style="--c:'+esc(c.color)+';left:'+l+'%;width:'+w+'%" aria-label="'+esc(full)+'">'+(w>5?esc((c.eventType==='break'?'☕ ':'')+compactLabel(c)):'')+'</div>';
     });
     html+='</div></div>';
   });
@@ -1111,7 +1122,10 @@ $('fSave').addEventListener('click',function(){
   for(var i=0;i<days.length;i++){
     if(!days[i].start||!days[i].end||mins(days[i].end)<=mins(days[i].start)){showErr(DAY_SHORT[days[i].day]+' end time must be after the start time.');return}
   }
-  var block={id:editingId||genId(),name:name,description:desc,location:loc,color:selColor,days:days};
+  /* Keep the block's identity metadata (break marker, term dates, completion
+     tracking, occurrence tweaks) when an edit only changes the basics. */
+  var previous=editingId?schedule.find(function(b){return b.id===editingId}):null;
+  var block=decorateBlock({id:editingId||genId(),name:name,description:desc,location:loc,color:selColor,days:days},previous||{});
   if(editingId)saveBlocks(schedule.map(function(b){return b.id===editingId?block:b}));
   else saveBlocks(schedule.concat(block));
   sfx('start');
