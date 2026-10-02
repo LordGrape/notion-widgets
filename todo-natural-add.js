@@ -50,8 +50,13 @@ function resolveClassAnchor(anchor,key,now,courses){
  if(anchor.ambiguous)throw Error('More than one class matches “'+anchor.query+'”. Use its course code or full title.');
  let choices=occurrencesOn(courses,key).filter(e=>e.category==='class'&&e.eventType!=='break');
  if(!anchor.generic)choices=choices.filter(e=>anchor.blockId&&e.id===anchor.blockId);
- if(key===day(now)){const current=wall(now),currentMinute=Number(current.hour)*60+Number(current.minute);choices=choices.filter(e=>minute(e.end)>currentMinute);}
- if(!choices.length)throw Error(anchor.generic?'No upcoming class was found for '+key+'.':'No upcoming “'+anchor.query+'” class was found for '+key+'.');
+ if(key===day(now)){
+  const current=wall(now),currentMinute=Number(current.hour)*60+Number(current.minute),upcoming=choices.filter(e=>minute(e.end)>currentMinute);
+  // If the referenced class already ended today, it still anchors an “after class” task.
+  // Generic references remain unambiguous only when there was exactly one class that day.
+  choices=upcoming.length?upcoming:anchor.relation==='after'&&choices.length===1?choices:[];
+ }
+ if(!choices.length)throw Error(anchor.generic?'No upcoming class was found for '+key+'.':'No class was found for “'+anchor.query+'” on '+key+'.');
  if(choices.length>1)throw Error(anchor.generic?'More than one class is upcoming. Add its course code or title.':'More than one “'+anchor.query+'” class is scheduled. Add the date or more of its title.');
  return choices[0];
 }
@@ -133,7 +138,7 @@ function parse(text,now=new Date(),tasks=[],courses=[]){
  const results=root.TodoChrono.parse(work,{instant:now,timezone:offset},{forwardDate:true});
  if(results.length===1){const c=results[0],k=c.start.get('year')+'-'+pad(c.start.get('month'))+'-'+pad(c.start.get('day'));if(valid(k)){r.dateKey=k;r.explicitDate=true;if(c.start.isCertain('hour'))r.startTime=clock(c.start.get('hour'),c.start.get('minute'));take({index:c.index,0:c.text});}}
  }
- if(r.classAnchor){if(!r.dateKey)r.dateKey=today;const event=resolveClassAnchor(r.classAnchor,r.dateKey,now,courses);r.classAnchor={id:event.id,name:event.name,sourceDate:event.sourceDate,start:event.start,end:event.end,relation:r.classAnchor.relation||'after'};if(r.classAnchor.relation==='after'&&!r.startTime)r.startTime=event.end;if(!r.duration&&!r.endTime){const learned=learnedPace(tasks),estimate=root.ReadingEstimates?.estimate(clean(work),learned?{pace:learned.pace}:{});if(estimate?.minutes){r.duration=estimate.minutes;r.durationSource='reading';r.splitSuggestions=estimate.splits;if(learned)r.learnedPace=learned;}else{r.duration=60;r.durationDefault=true;}}}
+ if(r.classAnchor){if(!r.dateKey)r.dateKey=today;const event=resolveClassAnchor(r.classAnchor,r.dateKey,now,courses);r.classAnchor={id:event.id,name:event.name,sourceDate:event.sourceDate,start:event.start,end:event.end,relation:r.classAnchor.relation||'after'};if(!r.duration&&!r.endTime){const learned=learnedPace(tasks),estimate=root.ReadingEstimates?.estimate(clean(work),learned?{pace:learned.pace}:{});if(estimate?.minutes){r.duration=estimate.minutes;r.durationSource='reading';r.splitSuggestions=estimate.splits;if(learned)r.learnedPace=learned;}else{r.duration=60;r.durationDefault=true;}}if(r.classAnchor.relation==='after'&&!r.startTime){const p=wall(now),pastToday=r.dateKey===today&&minute(event.end)<=Number(p.hour)*60+Number(p.minute),start=pastToday?freeSlot(r.dateKey,r.duration,courses,tasks,event,'after',now):event.end;if(!start)throw Error('No open time remains after '+event.name+' on '+r.dateKey+'.');r.startTime=start;}}
  m=work.match(/\s+after\s+(.+?)\s*$/i)||work.match(/@([A-Za-z][\w' .-]{1,60})\s*$/);if(m){const name=clean(m[1]);const matches=tasks.filter(t=>!t.done&&String(t.text).toLowerCase()===name.toLowerCase());if(matches.length>1)throw Error('More than one task matches that dependency. Use a unique task title.');r.dependency={text:name,id:matches[0]?.id||null};const linked=matches[0];if(!r.startTime&&linked&&linked.scheduledEnd){const p=wall(new Date(linked.scheduledEnd));r.dateKey=`${p.year}-${p.month}-${p.day}`;r.startTime=p.hour+':'+p.minute;}take(m);}
  if(!r.dateKey&&r.recurrence)r.dateKey=firstRepeatKey(r.recurrence,today);
  if(r.recurrence&&r.dateKey){r.recurrence.anchorDate=r.dateKey;r.dateKey=firstRepeatKey(r.recurrence,r.dateKey);}

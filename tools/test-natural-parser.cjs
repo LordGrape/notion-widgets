@@ -30,8 +30,10 @@ const weekly=context.TodoNaturalAdd.parse('Review Torts every Monday',anchorNow)
 const alternate=context.TodoNaturalAdd.parse('Review notes every other day',anchorNow);assert.equal(context.TodoNaturalAdd.nextRepeatKey(alternate.recurrence,alternate.dateKey),'2026-09-11');
 const alternateWeek=context.TodoNaturalAdd.parse('Review notes every other week',anchorNow);assert.equal(context.TodoNaturalAdd.nextRepeatKey(alternateWeek.recurrence,alternateWeek.dateKey),'2026-09-23');
 assert.throws(()=>context.TodoNaturalAdd.parse('After class tomorrow review notes',anchorNow,[],classes),/More than one class/);
-assert.throws(()=>context.TodoNaturalAdd.parse('After LAW 195 formulate notes tomorrow',anchorNow,[],[]),/No upcoming/);
+assert.throws(()=>context.TodoNaturalAdd.parse('After LAW 195 formulate notes tomorrow',anchorNow,[],[]),/No class was found/);
 const withConflict=[...classes,{id:'busy',name:'Study group',category:'personal',days:[{day:4,start:'12:00',end:'13:00'}]}];
 r=context.TodoNaturalAdd.parse('After LAW 195 formulate notes tomorrow',anchorNow,[],withConflict);assert.match(r.conflict,/Study group/);assert.match(r.labels.join(' '),/Conflicts with Study group/);
-assert.throws(()=>context.TodoNaturalAdd.parse('After LAW 195 formulate notes today',anchorNow,[],[{id:'past',name:'LAW 195: Torts',category:'class',days:[{day:3,start:'09:00',end:'10:00'}]}]),/No upcoming/);
+const afterPast=context.TodoNaturalAdd.parse('After LAW 195 formulate notes today',anchorNow,[],[{id:'past',name:'LAW 195: Torts',category:'class',days:[{day:3,start:'09:00',end:'10:00'}]}]);assert.equal(afterPast.startTime,'18:00');
+const screenshotNow=new Date('2026-10-02T16:40:00Z'),screenshotClass=[{id:'law195-today',name:'LAW 195: Torts',category:'class',startDate:'2026-10-02',endDate:'2026-10-02',days:[{day:5,start:'10:00',end:'11:00'}]}];
+r=context.TodoNaturalAdd.parse('After Law 195 do readings',screenshotNow,[],screenshotClass);assert.equal(r.classAnchor.name,'LAW 195: Torts');assert.equal(r.startTime,'12:45');assert.equal(r.endTime,'13:45');assert.equal(r.durationDefault,true);
 console.log('PASS natural parser: dates, time ranges, durations, deadlines, dependencies, page numbers, invalid input and optional Chrono');
