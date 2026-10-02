@@ -34,6 +34,7 @@ Do not change without explicit approval:
 
 ## Engineering rules
 - Prefer application-local changes. Share code only after a real second consumer exists.
+- Follow the established iconography: use the shared `WidgetIcons.svg` duotone icon set and its existing semantic names. Do not use emoji or platform-dependent Unicode glyphs as UI icons; extend the shared set when a new icon is needed.
 - Preserve public function signatures and update every caller when a contract must change.
 - Use strict types in Study Engine code. Do not introduce `any` or a new framework.
 - Treat generated outputs as generated. Edit Athlete source files, not `athlete.html`; edit Study Engine source, not `dist/studyengine.html`.
