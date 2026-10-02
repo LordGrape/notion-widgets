@@ -38,10 +38,11 @@ import {
 	appendSession,
 	removeSession,
 } from "./hours.mjs";
+import { planDay, isUnscheduled, PLAN_START, PLAN_END } from "./autofit.mjs";
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261002-weekly-docket";
+	REVISION = "20261002-plan-my-day";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -556,7 +557,7 @@ function updateCalendarTime() {
 function renderToday() {
 	const events = occurrences(new Date()),
 		{ start, end } = timeRange(events);
-	return `<div class="today-layout"><section class="surface tasks-surface"><div class="today-heading"><div><h2>Today</h2><p class="date-copy">${dateLabel(new Date())}</p></div>${finishLine()}</div><form class="composer" id="quickAdd"><input name="task" aria-label="Add a task" placeholder="Add a task… e.g. should do Read pp. 3–9 & 12 tomorrow" autocomplete="off" required><button class="primary" aria-label="Add task">${icon("plus")}</button><button type="button" data-action="add" aria-label="Add task with details">${icon("more")}</button></form><p id="capturePreview" class="capture-preview" role="status" aria-live="polite" hidden></p>${taskGroups()}<div class="tasks-footer"><button class="text-button" data-action="all-tasks">All tasks · ${focusTasks(tasks, courses).filter((t) => !t.done).length} open</button><span class="footer-actions"><button class="text-button" data-action="wrap-up">Wrap up day</button><button class="text-button" data-action="standalone" data-type="todo">Open To-Do separately ↗</button></span></div></section><section class="surface agenda-surface"><div class="section-heading"><h2>Your day</h2><span>${new Date().toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" })}</span></div><div class="agenda-scroll"><div class="timeline" data-drop-calendar data-date="${isoDate()}" data-start="${start}" data-end="${end}" style="--timeline-height:${((end - start) * 76) / 60}px">${hourLines(start, end)}${gapHints(events, start, end)}${events.map((e) => eventMarkup(e, start)).join("")}${nowLine(start, end)}</div></div><div class="tasks-footer"><button class="text-button" data-action="view" data-view="plan">Open planner ${icon("right")}</button><button class="text-button" data-action="standalone" data-type="timetable">Timetable ↗</button></div></section></div>`;
+	return `<div class="today-layout"><section class="surface tasks-surface"><div class="today-heading"><div><h2>Today</h2><p class="date-copy">${dateLabel(new Date())}</p></div>${finishLine()}</div><form class="composer" id="quickAdd"><input name="task" aria-label="Add a task" placeholder="Add a task… e.g. should do Read pp. 3–9 & 12 tomorrow" autocomplete="off" required><button class="primary" aria-label="Add task">${icon("plus")}</button><button type="button" data-action="add" aria-label="Add task with details">${icon("more")}</button></form><p id="capturePreview" class="capture-preview" role="status" aria-live="polite" hidden></p>${taskGroups()}<div class="tasks-footer"><button class="text-button" data-action="all-tasks">All tasks · ${focusTasks(tasks, courses).filter((t) => !t.done).length} open</button><span class="footer-actions"><button class="text-button" data-action="wrap-up">Wrap up day</button><button class="text-button" data-action="standalone" data-type="todo">Open To-Do separately ↗</button></span></div></section><section class="surface agenda-surface"><div class="section-heading"><h2>Your day</h2><div class="heading-actions"><button class="plan-day" data-action="plan-day">${icon("calendar")}Plan my day</button><span>${new Date().toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" })}</span></div></div><div class="agenda-scroll"><div class="timeline" data-drop-calendar data-date="${isoDate()}" data-start="${start}" data-end="${end}" style="--timeline-height:${((end - start) * 76) / 60}px">${hourLines(start, end)}${gapHints(events, start, end)}${events.map((e) => eventMarkup(e, start)).join("")}${nowLine(start, end)}</div></div><div class="tasks-footer"><button class="text-button" data-action="view" data-view="plan">Open planner ${icon("right")}</button><button class="text-button" data-action="standalone" data-type="timetable">Timetable ↗</button></div></section></div>`;
 }
 function render() {
 	if (!engines.todo) return;
@@ -984,6 +985,125 @@ function openEditor(id, draft = "") {
 		refresh();
 		notify(t ? "Task updated." : "Task added.");
 		} catch (error) { $("#formError").textContent = error.message; }
+	};
+}
+function planInputs(day) {
+	const date = day === "tomorrow" ? tomorrowKey() : isoDate();
+	const pool = focusTasks(tasks, courses).filter((t) => {
+		if (!isUnscheduled(t)) return false;
+		if (day === "tomorrow") return normalizeDateKey(t.dueKey) === date || t.due === "tomorrow";
+		return todayTasks([t]).length > 0;
+	});
+	const now = new Date();
+	const events = occurrences(localDate(date));
+	return { date, events, plan: planDay({ tasks: pool, events, today: isoDate(), nowMinute: day === "today" ? now.getHours() * 60 + now.getMinutes() : 0 }), pool };
+}
+async function scheduleBatch(items, date) {
+	await engines.timetable.SyncEngine.pull("timetable");
+	await engines.todo.SyncEngine.pull("todo");
+	engines.todo.TodoUIBridge.refresh();
+	let blocks = engines.timetable.SyncEngine.get("timetable", "courses") || [];
+	if (typeof blocks === "string") blocks = JSON.parse(blocks);
+	engines.timetable.schedule = blocks;
+	const fresh = engines.todo.TodoUIBridge.snapshot().tasks;
+	const created = [], prior = [], applied = [];
+	for (const item of items) {
+		const t = fresh.find((x) => x.id === item.id);
+		if (!t || !isUnscheduled(t)) continue;
+		const end = minutes(item.start) + item.minutes;
+		try {
+			validateSlot(occurrences(localDate(date)), minutes(item.start), end);
+		} catch {
+			continue;
+		}
+		const block = {
+			id: crypto.randomUUID(),
+			name: t.text,
+			description: "One-off timebox",
+			location: "",
+			color: "#9461e9",
+			category: "personal",
+			trackCompletion: false,
+			startDate: date,
+			endDate: date,
+			days: [{ day: localDate(date).getDay(), start: item.start, end: timeString(end), location: "" }],
+			overrides: [],
+		};
+		blocks.push(block);
+		created.push(block.id);
+		prior.push({ id: t.id, patch: { scheduledStart: t.scheduledStart ?? null, scheduledEnd: t.scheduledEnd ?? null, dueKey: t.dueKey ?? null, due: t.due ?? null, scheduleId: t.scheduleId ?? null, timeboxed: t.timeboxed ?? null, plannedMinutes: t.plannedMinutes ?? null } });
+		const patch = {
+			scheduledStart: new Date(date + "T" + item.start).toISOString(),
+			scheduledEnd: new Date(date + "T" + timeString(end)).toISOString(),
+			dueKey: date,
+			due: date === isoDate() ? "today" : null,
+			scheduleId: block.id,
+			timeboxed: true,
+			plannedMinutes: item.minutes,
+		};
+		engines.todo.TodoUIBridge.command.update(t.id, patch);
+		applied.push({ id: t.id, patch });
+	}
+	if (!created.length) throw new Error("Those times were taken while you were looking. Try again.");
+	engines.timetable.saveBlocks(blocks);
+	engines.todo.TodoUIBridge.refresh();
+	const saved = engines.todo.TodoUIBridge.snapshot().tasks;
+	for (const p of applied) if (!saved.find((x) => x.id === p.id)?.scheduleId) engines.todo.TodoUIBridge.command.update(p.id, p.patch);
+	const undo = async () => {
+		await engines.timetable.SyncEngine.pull("timetable");
+		let current = engines.timetable.SyncEngine.get("timetable", "courses") || [];
+		if (typeof current === "string") current = JSON.parse(current);
+		engines.timetable.schedule = current.filter((b) => !created.includes(b.id));
+		engines.timetable.saveBlocks(engines.timetable.schedule);
+		for (const p of prior) engines.todo.TodoUIBridge.command.update(p.id, p.patch);
+		signature = "";
+		refresh();
+		$("#toast").hidden = true;
+	};
+	return { done: created.length, undo };
+}
+function openPlanDay(day) {
+	const nowMinute = new Date().getHours() * 60 + new Date().getMinutes();
+	day = day || (PLAN_END - nowMinute >= 30 ? "today" : "tomorrow");
+	const { date, plan, events, pool } = planInputs(day);
+	$("#editorDialog").open && $("#editorDialog").close();
+	const lo = Math.min(PLAN_START, ...events.map((e) => Math.floor(minutes(e.start) / 60) * 60)), span = PLAN_END - lo;
+	const seg = (a, b, cls, label) => '<i class="' + cls + '" style="left:' + ((a - lo) / span) * 100 + "%;width:" + ((b - a) / span) * 100 + '%" title="' + esc(label) + '"></i>';
+	const strip = events.map((e) => seg(minutes(e.start), minutes(e.end), "busy", e.name)).join("") + plan.placed.map((p) => seg(minutes(p.start), minutes(p.end), "plan", p.text)).join("");
+	const ticks = [];
+	for (let m = Math.ceil(lo / 180) * 180; m <= PLAN_END; m += 180) ticks.push('<span style="left:' + ((m - lo) / span) * 100 + '%">' + timeString(m) + "</span>");
+	const summary = plan.placed.length
+		? plan.placed.length + (plan.placed.length === 1 ? " task fits" : " tasks fit") + " into the open time. Nothing is placed until you confirm."
+		: pool.length ? "Nothing fits in the time that is left." : "Nothing is waiting to be scheduled.";
+	const rows = plan.placed.map((p) => '<label class="plan-row"><input type="checkbox" name="pick" value="' + esc(p.id) + '" checked><span class="plan-time">' + p.start + " – " + p.end + '</span><span class="plan-title">' + esc(p.text) + '<small><span class="priority-chip ' + p.pri + '">' + (p.pri === "could" ? "Could" : p.pri === "should" ? "Should" : "Must") + "</span>" + p.minutes + " min" + (p.estimated ? " · estimated" : "") + "</small></span></label>").join("");
+	const left = plan.unplaced.length ? '<div class="plan-unplaced"><b>Does not fit</b>' + plan.unplaced.map((u) => "<p>" + esc(u.text) + "<small>" + esc(u.reason) + "</small></p>").join("") + "</div>" : "";
+	const d = openDialog("#editorDialog", dialogHead("Plan your day", "editorTitle") + '<div class="plan-tabs" role="group" aria-label="Day"><button type="button" data-plan-day="today" aria-pressed="' + (day === "today") + '">Today</button><button type="button" data-plan-day="tomorrow" aria-pressed="' + (day === "tomorrow") + '">Tomorrow</button></div><p class="muted">' + summary + '</p><div class="plan-strip" aria-hidden="true">' + strip + '</div><div class="plan-ticks" aria-hidden="true">' + ticks.join("") + '</div><form id="planForm">' + rows + left + '<p class="form-error" id="planError" role="alert"></p><div class="dialog-actions"><button type="button" data-action="close-dialog">Cancel</button>' + (plan.placed.length ? '<button type="submit" class="primary" id="planConfirm"></button>' : "") + "</div></form>");
+	const form = $("#planForm"), confirm = $("#planConfirm");
+	const count = () => {
+		const n = form.querySelectorAll("input[name=pick]:checked").length;
+		if (confirm) {
+			confirm.textContent = n === 1 ? "Schedule 1 task" : "Schedule " + n + " tasks";
+			confirm.disabled = !n;
+		}
+	};
+	form.addEventListener("change", count);
+	count();
+	d.querySelectorAll("[data-plan-day]").forEach((b) => (b.onclick = () => openPlanDay(b.dataset.planDay)));
+	form.onsubmit = async (e) => {
+		e.preventDefault();
+		const picked = [...form.querySelectorAll("input[name=pick]:checked")].map((i) => i.value);
+		confirm.disabled = true;
+		try {
+			const result = await scheduleBatch(plan.placed.filter((p) => picked.includes(p.id)), date);
+			d.close();
+			signature = "";
+			refresh();
+			notify("Scheduled " + result.done + (result.done === 1 ? " task." : " tasks."), result.undo);
+			playCue("saved");
+		} catch (error) {
+			$("#planError").textContent = error.message;
+			confirm.disabled = false;
+		}
 	};
 }
 function openWrapUp() {
@@ -1566,6 +1686,9 @@ document.addEventListener("click", (e) => {
 		case "goal":
 			if ($("#settingsDialog").open) $("#settingsDialog").close();
 			openGoal();
+			break;
+		case "plan-day":
+			openPlanDay();
 			break;
 		case "docket-week":
 			docketOffset = b.dataset.step === "0" ? 0 : docketOffset + Number(b.dataset.step);

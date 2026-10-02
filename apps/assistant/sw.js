@@ -1,4 +1,4 @@
-const CACHE = "command-centre-20261002-weekly-docket";
+const CACHE = "command-centre-20261002-plan-my-day";
 const SHELL = [
 	"../../widget-platform.js",
 	"../../reading-estimates.js",
@@ -10,6 +10,7 @@ const SHELL = [
 	"./app.js",
 	"./domain.mjs",
 	"./hours.mjs",
+	"./autofit.mjs",
 	"./calendar-actions.mjs",
 	"../todo/src/daily-goal.mjs",
 	"./remember.js",

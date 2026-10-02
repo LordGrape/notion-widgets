@@ -90,3 +90,7 @@ Docket is a fourth Command Centre view (`?panel=docket`) that totals billable ho
 - Broadcast comments on pace here. He is not yet hidden during focus.
 
 Pure logic and tests: `hours.mjs`, `hours.test.mjs`.
+
+## Plan my day
+
+The Your day panel offers an opt-in Plan my day preview. `autofit.mjs` (pure, tested) fills the open stretches between 09:00 and 21:00 with today's unscheduled tasks: Must first, then Should, then Could; overdue work leads within a tier; tasks without an estimate use 30 minutes and are marked estimated; a 10-minute buffer follows each block; nothing is placed in the past. Tomorrow can be planned the same way. The dialog shows the day as a strip, lets the user untick tasks, and lists anything that does not fit. Confirming creates one-off timetable blocks and updates the tasks through the existing controller in one batch, with a single Undo.

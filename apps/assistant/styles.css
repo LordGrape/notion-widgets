@@ -2699,3 +2699,129 @@ dialog[open] {
 	.docket-head { flex-wrap: wrap; }
 	.docket-total b { font-size: 34px; }
 }
+
+/* Plan my day. */
+.heading-actions {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+.plan-day {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 13px;
+	border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--line));
+	border-radius: 20px;
+	background: var(--accent-soft);
+	color: var(--accent);
+	font-size: 12px;
+	font-weight: 650;
+}
+.plan-day .icon {
+	width: 14px;
+	height: 14px;
+}
+.plan-tabs {
+	display: inline-flex;
+	padding: 3px;
+	margin: 6px 0 4px;
+	border-radius: 20px;
+	background: var(--surface-3);
+}
+.plan-tabs button {
+	padding: 6px 16px;
+	border: 0;
+	border-radius: 20px;
+	background: none;
+	color: var(--muted);
+	font-size: 12px;
+	font-weight: 650;
+}
+.plan-tabs button[aria-pressed="true"] {
+	background: var(--surface);
+	color: var(--accent);
+	box-shadow: 0 1px 4px rgba(46, 27, 83, 0.12);
+}
+.plan-strip {
+	position: relative;
+	height: 14px;
+	margin: 14px 0 4px;
+	border-radius: 8px;
+	background: var(--surface-3);
+	overflow: hidden;
+}
+.plan-strip i {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+}
+.plan-strip i.busy {
+	background: color-mix(in srgb, var(--text) 22%, transparent);
+}
+.plan-strip i.plan {
+	background: linear-gradient(135deg, #8b4af3, #6d2be0);
+	border-radius: 4px;
+}
+.plan-ticks {
+	position: relative;
+	height: 16px;
+	margin-bottom: 14px;
+	font-size: 10px;
+	color: var(--faint);
+}
+.plan-ticks span {
+	position: absolute;
+	transform: translateX(-50%);
+}
+.plan-row {
+	display: grid;
+	grid-template-columns: 18px 108px minmax(0, 1fr);
+	gap: 12px;
+	align-items: center;
+	padding: 12px 0;
+	border-bottom: 1px solid var(--line);
+	cursor: pointer;
+}
+.plan-time {
+	font-variant-numeric: tabular-nums;
+	font-weight: 650;
+	font-size: 13px;
+}
+.plan-title {
+	font-size: 14px;
+	line-height: 1.35;
+}
+.plan-title small {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	margin-top: 4px;
+	color: var(--muted);
+	font-size: 11px;
+}
+.plan-unplaced {
+	margin-top: 14px;
+	padding: 12px 14px;
+	border-radius: 12px;
+	background: var(--surface-2);
+	font-size: 12px;
+}
+.plan-unplaced p {
+	margin: 6px 0 0;
+}
+.plan-unplaced small {
+	display: block;
+	color: var(--muted);
+}
+@media (max-width: 560px) {
+	.plan-row {
+		grid-template-columns: 18px minmax(0, 1fr);
+	}
+	.plan-time {
+		grid-column: 2;
+	}
+	.plan-title {
+		grid-column: 2;
+	}
+}
