@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en-CA">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>__TITLE__</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Theme: system by default; html[data-theme] forces light or dark (same model as lineup.html). */
+:root{
+  color-scheme:light dark;
+  --bg:#f5f5f8;--panel:rgba(255,255,255,.96);--border:rgba(138,92,246,.12);
+  --text:#17171f;--text-dim:#68687a;--text-faint:#9797a8;
+  --accent:#8b5cf6;--accent-2:#7c3aed;--accent-soft:rgba(139,92,246,.12);--accent-ring:rgba(139,92,246,.35);
+  --shadow:0 4px 24px rgba(0,0,0,.06);--glow:0 0 20px 2px rgba(138,92,246,.06);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#191919;--panel:rgba(25,25,35,.94);--border:rgba(138,92,246,.15);
+    --text:#f2f2f7;--text-dim:#a3a3b2;--text-faint:#6f6f80;
+    --accent:#a78bfa;--accent-2:#8b5cf6;--accent-soft:rgba(167,139,250,.16);--accent-ring:rgba(167,139,250,.4);
+    --shadow:0 8px 40px rgba(0,0,0,.4);--glow:0 0 24px 4px rgba(138,92,246,.12);
+  }
+}
+html[data-theme="light"]{color-scheme:light}
+html[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#191919;--panel:rgba(25,25,35,.94);--border:rgba(138,92,246,.15);
+  --text:#f2f2f7;--text-dim:#a3a3b2;--text-faint:#6f6f80;
+  --accent:#a78bfa;--accent-2:#8b5cf6;--accent-soft:rgba(167,139,250,.16);--accent-ring:rgba(167,139,250,.4);
+  --shadow:0 8px 40px rgba(0,0,0,.4);--glow:0 0 24px 4px rgba(138,92,246,.12);
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html,body{min-height:100%}
+body{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;overflow-x:hidden;padding:16px}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent-ring);outline-offset:2px}
+.card{max-width:560px;margin:0 auto;background:var(--panel);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow),var(--glow);padding:18px;backdrop-filter:blur(12px)}
+.head{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.head h1{font-size:15px;font-weight:600;letter-spacing:.01em}
+.icon-btn{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:10px;border:1px solid var(--border);background:transparent}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--text-faint)}
+.sync-dot.online{background:var(--accent)}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<main class="card" aria-labelledby="title">
+  <header class="head">
+    <span class="widget-mark" data-widget-icon="__ICON__" aria-hidden="true"></span>
+    <h1 id="title">__TITLE__</h1>
+    <span class="sync-dot" id="syncDot" title="Saved on this device"></span>
+    <button class="icon-btn" id="settingsBtn" aria-label="Settings" data-widget-icon="settings"></button>
+  </header>
+  <section id="view" aria-live="polite"></section>
+</main>
+
+<script src="widget-icons.js?v=20261001-duotone-b"></script>
+<script src="core.js"></script>
+<script>
+"use strict";
+/* Data boundary: namespace "__NS__", key "state". Document the shape in apps/__NS__/README.md. */
+var NS = "__NS__";
+var WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
+var hasSync = (typeof SyncEngine !== "undefined" && SyncEngine && typeof SyncEngine.get === "function");
+
+/* localStorage is only the fallback when core.js is unavailable (documented boundary, as in lineup.html). */
+var Store = {
+  get: function(key, fallback){
+    try{
+      if(hasSync){ var v = SyncEngine.get(NS, key); return (v === null || v === undefined) ? fallback : v; }
+      var raw = localStorage.getItem(NS + ":" + key);
+      return raw === null ? fallback : JSON.parse(raw);
+    }catch(e){ return fallback; }
+  },
+  set: function(key, value){
+    try{
+      if(hasSync){ SyncEngine.set(NS, key, value); return; }
+      localStorage.setItem(NS + ":" + key, JSON.stringify(value));
+    }catch(e){}
+  }
+};
+
+var STATE_VERSION = 1;
+var state = defaults();
+
+function defaults(){
+  return { v: STATE_VERSION, items: [], appearance: { themeMode: "system" } };
+}
+
+/* Normalise every field: stored data may come from an older build or another device. */
+function loadState(){
+  var stored = Store.get("state", null);
+  var base = defaults();
+  if(!stored || typeof stored !== "object"){ state = base; return; }
+  state = {
+    v: STATE_VERSION,
+    items: Array.isArray(stored.items) ? stored.items : base.items,
+    appearance: { themeMode: ["system","light","dark"].indexOf(stored.appearance && stored.appearance.themeMode) > -1 ? stored.appearance.themeMode : "system" }
+  };
+}
+
+var persistTimer = null;
+function persist(){
+  clearTimeout(persistTimer);
+  persistTimer = setTimeout(function(){ Store.set("state", state); }, 180);
+}
+
+function applyAppearance(){
+  if(state.appearance.themeMode === "system") document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme", state.appearance.themeMode);
+}
+
+function render(){
+  var view = document.getElementById("view");
+  view.textContent = state.items.length ? "" : "Nothing here yet.";
+}
+
+function paint(){ applyAppearance(); render(); }
+
+function markSync(online){
+  var dot = document.getElementById("syncDot");
+  dot.classList.toggle("online", !!online);
+  dot.title = online ? "Synced across your devices" : "Saved on this device";
+}
+
+if(hasSync){
+  try{
+    SyncEngine.init({ worker: WORKER, namespaces: [NS] });
+    SyncEngine.onReady(function(){
+      loadState(); paint(); markSync(true);
+      if(typeof SyncEngine.subscribe === "function"){
+        SyncEngine.subscribe(NS, "state", function(_v, source){ if(source === "remote"){ loadState(); paint(); } });
+      }
+    });
+    /* Paint local data promptly if the first sync is slow or offline. */
+    setTimeout(function(){ if(!state.items.length){ loadState(); paint(); } }, 2500);
+  }catch(e){ hasSync = false; loadState(); paint(); markSync(false); }
+} else {
+  loadState(); paint(); markSync(false);
+}
+
+window.addEventListener("pagehide", function(){ if(persistTimer){ clearTimeout(persistTimer); Store.set("state", state); } });
+</script>
+</body>
+</html>
