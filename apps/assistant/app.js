@@ -22,7 +22,7 @@ import {
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261002-calendar-controls";
+	REVISION = "20261002-smart-entry-restored";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -396,7 +396,7 @@ function updateCalendarTime() {
 function renderToday() {
 	const events = occurrences(new Date()),
 		{ start, end } = timeRange(events);
-	return `<div class="today-layout"><section class="surface tasks-surface"><div class="today-heading"><div><h2>Today</h2><p class="date-copy">${dateLabel(new Date())}</p></div>${finishLine()}</div><form class="composer" id="quickAdd"><input name="task" aria-label="Add a task" placeholder="Add a task for today…" autocomplete="off" required><button class="primary" aria-label="Add task">${icon("plus")}</button><button type="button" data-action="add" aria-label="Add task with details">${icon("more")}</button></form>${taskGroups()}<div class="tasks-footer"><button class="text-button" data-action="all-tasks">All tasks · ${focusTasks(tasks, courses).filter((t) => !t.done).length} open</button><button class="text-button" data-action="standalone" data-type="todo">Open To-Do separately ↗</button></div></section><section class="surface agenda-surface"><div class="section-heading"><h2>Your day</h2><span>${new Date().toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" })}</span></div><div class="agenda-scroll"><div class="timeline" data-drop-calendar data-date="${isoDate()}" data-start="${start}" data-end="${end}" style="--timeline-height:${((end - start) * 76) / 60}px">${hourLines(start, end)}${events.map((e) => eventMarkup(e, start)).join("")}${nowLine(start, end)}</div></div><div class="tasks-footer"><button class="text-button" data-action="view" data-view="plan">Open planner ${icon("right")}</button><button class="text-button" data-action="standalone" data-type="timetable">Timetable ↗</button></div></section></div>`;
+	return `<div class="today-layout"><section class="surface tasks-surface"><div class="today-heading"><div><h2>Today</h2><p class="date-copy">${dateLabel(new Date())}</p></div>${finishLine()}</div><form class="composer" id="quickAdd"><input name="task" aria-label="Add a task" placeholder="Add a task… e.g. should do Read pp. 3–9 & 12 tomorrow" autocomplete="off" required><button class="primary" aria-label="Add task">${icon("plus")}</button><button type="button" data-action="add" aria-label="Add task with details">${icon("more")}</button></form><p id="capturePreview" class="capture-preview" role="status" aria-live="polite" hidden></p>${taskGroups()}<div class="tasks-footer"><button class="text-button" data-action="all-tasks">All tasks · ${focusTasks(tasks, courses).filter((t) => !t.done).length} open</button><button class="text-button" data-action="standalone" data-type="todo">Open To-Do separately ↗</button></div></section><section class="surface agenda-surface"><div class="section-heading"><h2>Your day</h2><span>${new Date().toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" })}</span></div><div class="agenda-scroll"><div class="timeline" data-drop-calendar data-date="${isoDate()}" data-start="${start}" data-end="${end}" style="--timeline-height:${((end - start) * 76) / 60}px">${hourLines(start, end)}${events.map((e) => eventMarkup(e, start)).join("")}${nowLine(start, end)}</div></div><div class="tasks-footer"><button class="text-button" data-action="view" data-view="plan">Open planner ${icon("right")}</button><button class="text-button" data-action="standalone" data-type="timetable">Timetable ↗</button></div></section></div>`;
 }
 function render() {
 	if (!engines.todo) return;
@@ -433,16 +433,29 @@ function bindWorkspace() {
 		calendarHead.addEventListener("scroll",()=>{calendarScroll.scrollLeft=calendarHead.scrollLeft;});
 	}
 	const form = $("#quickAdd");
-	if (form)
-		form.onsubmit = (e) => {
-			e.preventDefault();
-			const input = form.elements.task;
-			engines.todo.TodoUIBridge.command.add({ text: input.value, pri: "must" });
-			input.value = "";
-			signature = "";
-			refresh();
-			notify("Task added.");
+	if (form) {
+		let pastedText = null;
+		const input = form.elements.task, preview = $("#capturePreview");
+		const entry = () => pastedText || input.value;
+		const showPreview = () => {
+			try { preview.textContent = smartSummary(engines.todo.TodoNaturalAdd.plan(entry())); }
+			catch (error) { preview.textContent = error.message; }
+			preview.hidden = !preview.textContent;
 		};
+		input.oninput = () => { pastedText = null; showPreview(); };
+		input.onpaste = e => {
+			const text = e.clipboardData?.getData("text/plain");
+			if (!text?.includes("\n")) return;
+			e.preventDefault(); pastedText = text; input.value = text.replace(/\s+/g, " "); showPreview();
+		};
+		form.onsubmit = e => {
+			e.preventDefault();
+			try {
+				engines.todo.TodoNaturalAdd.capture(entry());
+				input.value = ""; pastedText = null; signature = ""; refresh(); notify("Task added.");
+			} catch (error) { preview.textContent = error.message; preview.hidden = false; }
+		};
+	}
 	let draggingId = null;
 	const clearDrop = () =>
 		document.querySelectorAll("[data-drop-calendar]").forEach((el) => {
@@ -656,15 +669,53 @@ function openDialog(id, html) {
 }
 const dialogHead = (title, id) =>
 	`<div class="dialog-heading"><h2 id="${id}">${title}</h2><button type="button" class="icon-button" data-action="close-dialog" aria-label="Close">${icon("close")}</button></div>`;
-function openEditor(id) {
+function smartSummary(parsed, reading = {}) {
+	return parsed.map(r => {
+		const estimate = Reading.estimate(r.text, reading);
+		const labels = r.labels.map(label => label === r.priority ? `${label[0].toUpperCase()}${label.slice(1)} Do` : label);
+		if (estimate?.pages) labels.push(`${estimate.pages} pages`, ...(!r.duration ? [`${estimate.minutes} min estimate`] : []));
+		return labels.length ? "Smart · " + labels.join(" · ") : "";
+	}).filter(Boolean).join(" | ");
+}
+function parseNewTask(text) {
+	const parsed = engines.todo.TodoNaturalAdd.plan(text);
+	if (parsed.length !== 1) throw Error("Use quick add to enter multiple tasks.");
+	return parsed[0];
+}
+function openEditor(id, draft = "") {
 	const t = task(id),
 		d = openDialog(
 			"#editorDialog",
-			`${dialogHead(t ? "Edit task" : "New task", "editorTitle")}<form id="taskForm"><div class="form-grid"><label class="field wide task-name">Task<input name="text" value="${esc(t?.text || "")}" required maxlength="500" placeholder="What would you like to do?"></label><label class="field">Priority<select name="pri">${["must", "should", "could"].map((p) => `<option value="${p}" ${p === (t?.pri || "must") ? "selected" : ""}>${p === "must" ? "Must Do" : p === "should" ? "Should Do" : "Could Do"}</option>`).join("")}</select></label><label class="field">Date<input name="dueKey" type="date" value="${esc(normalizeDateKey(t?.dueKey) || isoDate())}"></label><label class="field wide duration-field">Time <span>minutes</span><input type="number" name="plannedMinutes" min="1" value="${duration(t || {}) || ""}" placeholder="Optional"></label><div class="wide">${Reading.html(t || {})}</div><details class="task-extra wide" ${t?.notes || t?.subs?.length ? 'open' : ''}><summary>Notes & session steps</summary><div class="form-grid"><label class="field wide">Notes<textarea name="notes" rows="2" placeholder="Add a note…">${esc(t?.notes || "")}</textarea></label><label class="field wide">Session steps<textarea name="steps" rows="2" placeholder="One step per line">${esc((t?.subs || []).map((s) => s.text).join("\n"))}</textarea></label></div></details></div><p class="form-error" id="formError" role="alert"></p><div class="dialog-actions">${t ? `<button type="button" class="delete" data-action="delete" data-id="${esc(id)}">Delete</button><button type="button" data-action="schedule" data-id="${esc(id)}">Schedule</button>` : ""}<button type="submit" class="primary">${t ? "Save" : "Add task"}</button></div></form>`,
+			`${dialogHead(t ? "Edit task" : "New task", "editorTitle")}<form id="taskForm"><div class="form-grid"><label class="field wide task-name">Task<input name="text" value="${esc(t?.text || draft)}" required maxlength="500" placeholder="What would you like to do?"></label><label class="field">Priority<select name="pri">${["must", "should", "could"].map((p) => `<option value="${p}" ${p === (t?.pri || "must") ? "selected" : ""}>${p === "must" ? "Must Do" : p === "should" ? "Should Do" : "Could Do"}</option>`).join("")}</select></label><label class="field">Date<input name="dueKey" type="date" value="${esc(normalizeDateKey(t?.dueKey) || isoDate())}"></label><label class="field wide duration-field">Time <span>minutes</span><input type="number" name="plannedMinutes" min="1" value="${duration(t || {}) || ""}" placeholder="Optional"></label><div class="wide">${Reading.html(t || {})}</div><details class="task-extra wide" ${t?.notes || t?.subs?.length ? 'open' : ''}><summary>Notes & session steps</summary><div class="form-grid"><label class="field wide">Notes<textarea name="notes" rows="2" placeholder="Add a note…">${esc(t?.notes || "")}</textarea></label><label class="field wide">Session steps<textarea name="steps" rows="2" placeholder="One step per line">${esc((t?.subs || []).map((s) => s.text).join("\n"))}</textarea></label></div></details></div><p class="form-error" id="formError" role="alert"></p><div class="dialog-actions">${t ? `<button type="button" class="delete" data-action="delete" data-id="${esc(id)}">Delete</button><button type="button" data-action="schedule" data-id="${esc(id)}">Schedule</button>` : ""}<button type="submit" class="primary">${t ? "Save" : "Add task"}</button></div></form>`,
 		);
 	const readingData = Reading.mount(d, t || {}, { title: d.querySelector("[name=text]"), duration: d.querySelector("[name=plannedMinutes]"), split: steps => { const el=d.querySelector("[name=steps]"); const existing=el.value.split("\n"); el.value=[...existing.filter(Boolean),...steps.filter(s=>!existing.includes(s))].join("\n"); el.closest("details").open=true; } });
+	const manualFields = new Set(), fields = d.querySelector("form").elements;
+	let automatic = false;
+	if (!t) {
+		const preview = document.createElement("p"); preview.className = "capture-preview editor-smart-preview";
+		preview.setAttribute("role", "status"); preview.setAttribute("aria-live", "polite");
+		d.querySelector(".task-name").append(preview);
+		for (const name of ["pri", "dueKey", "plannedMinutes"]) fields[name].addEventListener("input", () => { if (!automatic) manualFields.add(name); });
+		const infer = () => {
+			try {
+				if (!fields.text.value.trim()) { preview.textContent = ""; return; }
+				const parsed = parseNewTask(fields.text.value), estimate = Reading.estimate(parsed.text, readingData());
+				if (!manualFields.has("pri")) fields.pri.value = parsed.priority || "must";
+				if (!manualFields.has("dueKey")) fields.dueKey.value = parsed.dateKey || isoDate();
+				if (!manualFields.has("plannedMinutes")) {
+					fields.plannedMinutes.value = parsed.duration || estimate?.minutes || "";
+					if (parsed.duration) {
+						automatic = true; fields.plannedMinutes.dispatchEvent(new Event("input", { bubbles: true })); automatic = false;
+					}
+				}
+				preview.textContent = smartSummary([parsed], readingData());
+			} catch (error) { preview.textContent = error.message; }
+		};
+		fields.text.addEventListener("input", infer); infer();
+	}
 	$("#taskForm").onsubmit = (e) => {
 		e.preventDefault();
+		try {
 		const f = new FormData(e.target),
 			key = f.get("dueKey"),
 			patch = {
@@ -688,20 +739,25 @@ function openEditor(id) {
 				});
 			engines.todo.TodoUIBridge.command.update(id, patch);
 		} else {
-			const newId = engines.todo.TodoUIBridge.command.add(patch);
-			if (f.get("steps"))
-				engines.todo.TodoUIBridge.command.update(newId, {
-					subs: String(f.get("steps"))
-						.split("\n")
-						.map((s) => s.trim())
-						.filter(Boolean)
-						.map((text) => ({ id: crypto.randomUUID(), text, done: false })),
-				});
+			const parsed = parseNewTask(patch.text);
+			if (parsed.emptyText) throw Error("Add a task after the priority or date.");
+			patch.text = parsed.text;
+			patch.reading.manual = manualFields.has("plannedMinutes") || !!parsed.duration || patch.reading.manual && !patch.reading.autoMinutes;
+			const entry = [parsed.text, patch.pri, key,
+				parsed.startTime ? `at ${parsed.startTime}` : parsed.dueTime ? `by ${parsed.dueTime}` : "",
+				(parsed.duration || manualFields.has("plannedMinutes")) && patch.plannedMinutes ? `for ${patch.plannedMinutes} min` : "",
+				parsed.dependency ? `after ${parsed.dependency.text}` : "",
+			].filter(Boolean).join(" ");
+			const [newId] = engines.todo.TodoNaturalAdd.capture(entry);
+			if (!newId) throw Error("Task could not be added. Your text is kept here.");
+			patch.subs = String(f.get("steps")).split("\n").map(s => s.trim()).filter(Boolean).map(text => ({ id: crypto.randomUUID(), text, done: false }));
+			engines.todo.TodoUIBridge.command.update(newId, patch);
 		}
 		d.close();
 		signature = "";
 		refresh();
 		notify(t ? "Task updated." : "Task added.");
+		} catch (error) { $("#formError").textContent = error.message; }
 	};
 }
 function openGoal() {
@@ -1224,7 +1280,7 @@ document.addEventListener("click", (e) => {
 			openEditor(id);
 			break;
 		case "add":
-			openEditor();
+			openEditor(undefined, $("#quickAdd input")?.value || "");
 			break;
 		case "delete":
 			engines.todo.TodoUIBridge.command.remove(id);

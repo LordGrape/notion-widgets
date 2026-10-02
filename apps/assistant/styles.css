@@ -2189,3 +2189,5 @@ dialog[open] {
 		min-height: 44px;
 	}
 }
+
+.editor-smart-preview { margin: 8px 0 0; font-weight: 400; }

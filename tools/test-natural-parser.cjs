@@ -10,4 +10,8 @@ r=parse('Read in 2 days at noon');assert.equal(r.dateKey,'2026-09-11');assert.eq
 r=parse('Submit notes tomorrow before 6pm');assert.equal(r.startTime,null);assert.equal(r.dueTime,'18:00');
 r=parse('Review for 20 min after Read cells',[{id:'prior',text:'Read cells',scheduledEnd:'2026-09-10T21:00:00Z'}]);assert.equal(r.dependency.id,'prior');assert.equal(r.startTime,'17:00');assert.equal(r.endTime,'17:20');
 if(process.env.TEST_CHRONO){context.TodoChrono=require('chrono-node/en');r=parse('Read in two days at 6pm');assert.equal(r.dateKey,'2026-09-11');assert.equal(r.startTime,'18:00');}
+r=parse('Must do Review sample');assert.equal(r.priority,'must');assert.equal(r.text,'Review sample');
+r=parse('Should do Read sample pp. 3-9 & 12 tomorrow');assert.equal(r.priority,'should');assert.equal(r.text,'Read sample pp. 3-9 & 12');assert.equal(r.startTime,null);
+r=parse('Could do Review sample');assert.equal(r.priority,'could');assert.equal(r.text,'Review sample');
+r=parse('Should do');assert.equal(r.priority,'should');assert.equal(r.emptyText,true);
 console.log('PASS natural parser: dates, time ranges, durations, deadlines, dependencies, page numbers, invalid input and optional Chrono');

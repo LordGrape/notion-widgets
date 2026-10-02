@@ -59,6 +59,8 @@ One-off personal calendar reminders (including calendar-linked entries such as a
 
 ## Smart task capture
 
+Today quick capture and the New Task dialog use the standalone To-Do parser. “Must do”, “Should do” and “Could do” set priority and are removed from the saved title. The dialog updates priority, date and duration as you type; manual field choices remain authoritative. Its details button carries the current quick-add draft. New-task notes, reading settings and session steps remain intact.
+
 Today quick capture uses `TodoNaturalAdd.plan` for its live preview and `TodoNaturalAdd.capture` in the existing To-Do controller for submission. Both surfaces share priority, date, duration, time range, deadline, dependency and multi-task parsing, plus the same reading page estimates. Pasted lines and semicolon-separated entries keep the existing date carry behaviour. Invalid entries retain the input and show the parser error. Task and timetable writes remain owned by the existing controller.
 
 ## Calendar block controls

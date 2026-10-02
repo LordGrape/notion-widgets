@@ -15,7 +15,7 @@ function parse(text,now=new Date(),tasks=[]){
  const raw=String(text).trim(),today=day(now);let work=raw;
  const r={text:raw,dateKey:null,startTime:null,endTime:null,duration:null,priority:null,dependency:null,dueTime:null,recognized:false,labels:[]};
  function take(m){work=work.slice(0,m.index)+' '+work.slice(m.index+m[0].length);r.recognized=true;}
- let m=work.match(/\b(must|urgent|important|should|could)\b/i);if(m){r.priority=/must|urgent|important/i.test(m[1])?'must':m[1].toLowerCase();take(m);}
+ let m=work.match(/\b(must|urgent|important|should|could)\b(?:\s+do\b)?/i);if(m){r.priority=/must|urgent|important/i.test(m[1])?'must':m[1].toLowerCase();take(m);}
  m=work.match(/\bfor\s+(\d+(?:\.\d+)?)\s*(minutes?|mins?|min|m|hours?|hrs?|hr|h)\b/i);if(m){r.duration=Math.round(Number(m[1])*(/^h/i.test(m[2])?60:1));if(r.duration<1||r.duration>720)throw Error('Use a duration from 1 to 720 minutes.');take(m);}
  // Explicit dates first, preventing ISO dates or page ranges from becoming clock ranges.
  m=work.match(/\b(20\d{2})-(\d{1,2})-(\d{1,2})\b/);if(m){r.dateKey=m[1]+'-'+pad(m[2])+'-'+pad(m[3]);if(!valid(r.dateKey))throw Error('That calendar date does not exist.');take(m);}
@@ -44,7 +44,7 @@ function parse(text,now=new Date(),tasks=[]){
  m=work.match(/\s+after\s+(.+?)\s*$/i)||work.match(/@([A-Za-z][\w' .-]{1,60})\s*$/);if(m){const name=clean(m[1]);const matches=tasks.filter(t=>!t.done&&String(t.text).toLowerCase()===name.toLowerCase());if(matches.length>1)throw Error('More than one task matches that dependency. Use a unique task title.');r.dependency={text:name,id:matches[0]?.id||null};const linked=matches[0];if(!r.startTime&&linked&&linked.scheduledEnd){const p=wall(new Date(linked.scheduledEnd));r.dateKey=`${p.year}-${p.month}-${p.day}`;r.startTime=p.hour+':'+p.minute;}take(m);}
  if(r.startTime||r.dueTime){if(!r.dateKey)r.dateKey=today;}
  if(r.startTime&&!r.endTime){r.duration=r.duration||60;const end=Number(r.startTime.slice(0,2))*60+Number(r.startTime.slice(3))+r.duration;if(end>=1440)throw Error('This block crosses midnight. Use separate day entries.');r.endTime=pad(Math.floor(end/60))+':'+pad(end%60);}
- r.text=clean(work)||'Scheduled task';
+ r.emptyText=!clean(work);r.text=clean(work)||'Scheduled task';
  if(r.dateKey)r.labels.push(r.dateKey);if(r.startTime)r.labels.push(r.startTime+'–'+r.endTime+' ET',r.duration+' min','Timetable');else if(r.dateKey)r.labels.push(r.dueTime?'Due by '+r.dueTime:'Date only');
  if(r.duration&&!r.startTime)r.labels.push(r.duration+' min estimate');if(r.priority)r.labels.push(r.priority);if(r.dependency)r.labels.push('After '+r.dependency.text+(r.dependency.id?'':' (not linked)'));
  return r;
@@ -56,7 +56,7 @@ function preview(){const input=doc.getElementById('inp'),row=doc.getElementById(
 function status(message){const row=doc.getElementById('smartPreview');row.hidden=false;row.textContent=message;}
 function submit(event){const target=event.target;if(!(event.type==='keydown'?target.id==='inp'&&event.key==='Enter':target.closest&&target.closest('#addbtn')))return;
  const input=doc.getElementById('inp'),text=rawPaste||input.value;if(!text.trim()||isSchedule(text))return;
- let parsed;try{parsed=plan(text);}catch(e){event.preventDefault();event.stopImmediatePropagation();status(e.message);return;}
+ let parsed;try{parsed=plan(text);if(parsed.some(r=>r.emptyText))throw Error('Add a task after the priority or date.');}catch(e){event.preventDefault();event.stopImmediatePropagation();status(e.message);return;}
  if(parsed.length===1&&!parsed[0].recognized)return;
  event.preventDefault();event.stopImmediatePropagation();if(!ready){status('Still connecting. Your task is kept here.');return;}
  try{
@@ -78,11 +78,13 @@ function boot(){sync=typeof SyncEngine!=='undefined'?SyncEngine:root.SyncEngine;
 // Command Centre submits through this same composer and its existing handlers.
 function capture(text){
  if(!ready)throw Error('Still connecting. Your task is kept here.');
+ const existing=new Set(array(sync.get('todo','tasks')).map(t=>t.id));
  const input=doc.getElementById('inp');
  rawPaste=null;input.value=String(text);input.dispatchEvent(new root.Event('input',{bubbles:true}));
  if(entries(text).length>1&&!isSchedule(text))rawPaste=String(text);
  doc.getElementById('addbtn').click();
  if(input.value.trim())throw Error(doc.getElementById('smartPreview')?.textContent||'Task could not be added.');
+ return array(sync.get('todo','tasks')).filter(t=>!existing.has(t.id)).map(t=>t.id);
 }
 root.TodoNaturalAdd={parse,plan,capture,version:1};if(doc){if(doc.readyState==='loading')doc.addEventListener('DOMContentLoaded',boot);else boot();}
 })(typeof window!=='undefined'?window:globalThis);
