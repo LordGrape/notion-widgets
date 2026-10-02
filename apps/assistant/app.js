@@ -1,4 +1,4 @@
-import "../../reading-estimates.js?v=20261002-audit-repairs";
+import "../../reading-estimates.js?v=20261002-smart-schedule";
 const Reading = globalThis.ReadingEstimates;
 import { changeCalendar, undoCalendar } from "./calendar-actions.mjs";
 import {
@@ -22,7 +22,7 @@ import {
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261002-class-anchored-tasks";
+	REVISION = "20261002-smart-planning";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -265,6 +265,7 @@ function refresh() {
 		engines.todo.TodoUIBridge.refresh();
 	}
 	tasks = engines.todo.TodoUIBridge.snapshot().tasks;
+	Reading.learn?.(tasks, engines.clock.SyncEngine.get("clock", "focus_sessions"));
 	courses = engines.timetable.schedule || [];
 	const raw = engines.todo.SyncEngine.get("todo", "dailyGoal");
 	let setting;
@@ -316,7 +317,7 @@ function finishLine(compact = false) {
 function taskRow(t, planner = false) {
 	const m = duration(t);
 	const focusable = !isCalendarReminder(t, courses);
-	return `<div class="task-row ${t.done ? "done" : ""}" data-task="${esc(t.id)}" ${!planner && !t.done ? `draggable="true" data-drag="${esc(t.id)}"` : ""}>${!t.done ? `<button class="drag-handle icon-button ${planner ? "" : "today-grip"}" title="Drag to schedule; click to choose a time" data-action="schedule" data-id="${esc(t.id)}" draggable="true" data-drag="${esc(t.id)}" aria-label="Drag ${esc(t.text)} to the calendar">${icon("grip")}</button>` : ""}<button class="check-button ${t.done ? "checked" : ""}" data-action="toggle" data-id="${esc(t.id)}" aria-label="${t.done ? "Reopen" : "Complete"} ${esc(t.text)}">${t.done ? icon("check") : ""}</button><button class="task-title" data-action="edit" data-id="${esc(t.id)}">${esc(t.text)}${planner ? `<small class="planner-task-meta"><span class="priority-chip ${t.pri || "must"}">${t.pri === "could" ? "Could" : t.pri === "should" ? "Should" : "Must"}</span>${m ? `${m} min` : "No estimate"}</small>` : ""}</button>${!planner && m ? `<span class="task-meta">${icon("clock")}${m} min</span>` : ""}<div class="task-actions">${focusable ? `<button class="icon-button" data-action="select-focus" data-id="${esc(t.id)}" aria-label="Focus on ${esc(t.text)}" title="Focus on this task">${icon("play")}</button>` : ""}<button class="icon-button" data-action="${planner ? "schedule" : "edit"}" data-id="${esc(t.id)}" aria-label="${planner ? "Schedule" : "Edit"} ${esc(t.text)}">${icon(planner ? "calendar" : "more")}</button></div></div>`;
+	return `<div class="task-row ${t.done ? "done" : ""}" data-task="${esc(t.id)}" ${!planner && !t.done ? `draggable="true" data-drag="${esc(t.id)}"` : ""}>${!t.done ? `<button class="drag-handle icon-button ${planner ? "" : "today-grip"}" title="Drag to schedule; click to choose a time" data-action="schedule" data-id="${esc(t.id)}" draggable="true" data-drag="${esc(t.id)}" aria-label="Drag ${esc(t.text)} to the calendar">${icon("grip")}</button>` : ""}<button class="check-button ${t.done ? "checked" : ""}" data-action="toggle" data-id="${esc(t.id)}" aria-label="${t.done ? "Reopen" : "Complete"} ${esc(t.text)}">${t.done ? icon("check") : ""}</button><button class="task-title" data-action="edit" data-id="${esc(t.id)}">${esc(t.text)}${planner ? `<small class="planner-task-meta"><span class="priority-chip ${t.pri || "must"}">${t.pri === "could" ? "Could" : t.pri === "should" ? "Should" : "Must"}</span>${m ? `${m} min` : "No estimate"}${t.repeatRule ? " · Repeats" : ""}</small>` : ""}</button>${!planner && m ? `<span class="task-meta">${icon("clock")}${m} min</span>` : ""}${!planner && t.repeatRule ? `<span class="task-meta repeat-meta">Repeats</span>` : ""}<div class="task-actions">${focusable ? `<button class="icon-button" data-action="select-focus" data-id="${esc(t.id)}" aria-label="Focus on ${esc(t.text)}" title="Focus on this task">${icon("play")}</button>` : ""}<button class="icon-button" data-action="${planner ? "schedule" : "edit"}" data-id="${esc(t.id)}" aria-label="${planner ? "Schedule" : "Edit"} ${esc(t.text)}">${icon(planner ? "calendar" : "more")}</button></div></div>`;
 }
 function taskGroups() {
 	const list = todayTasks(focusTasks(tasks, courses)).sort(
@@ -438,7 +439,42 @@ function bindWorkspace() {
 		const input = form.elements.task, preview = $("#capturePreview");
 		const entry = () => pastedText || input.value;
 		const showPreview = () => {
-			try { preview.textContent = smartSummary(engines.todo.TodoNaturalAdd.plan(entry())); }
+			try {
+				const parsed = engines.todo.TodoNaturalAdd.plan(entry());
+				preview.textContent = smartSummary(parsed);
+				const suggestions = parsed.filter((r) => r.suggestedStart && !r.startTime);
+				const splittable = parsed.filter((r) => r.splitSuggestions?.length);
+				if (suggestions.length) {
+					const button = document.createElement("button");
+					button.type = "button";
+					button.className = "capture-schedule";
+					button.textContent = suggestions.length === 1
+						? `Schedule at ${suggestions[0].suggestedStart} on ${suggestions[0].suggestedDate}`
+						: `Schedule ${suggestions.length} tasks at suggested times`;
+					button.onclick = () => {
+						try {
+							engines.todo.TodoNaturalAdd.capture(entry(), { scheduleSuggestions: true });
+							input.value = ""; pastedText = null; signature = ""; refresh();
+							preview.textContent = "Added and scheduled at the suggested time.";
+						} catch (error) { preview.textContent = error.message; }
+					};
+					preview.append(" ", button);
+				}
+				if (splittable.length === 1 && parsed.length === 1) {
+					const button = document.createElement("button");
+					button.type = "button";
+					button.className = "capture-schedule";
+					button.textContent = `Create ${splittable[0].splitSuggestions.length} page-based study sessions`;
+					button.onclick = () => {
+						try {
+							engines.todo.TodoNaturalAdd.capture(entry(), { splitReadingSessions: true });
+							input.value = ""; pastedText = null; signature = ""; refresh();
+							preview.textContent = "Added as separate page-based study sessions.";
+						} catch (error) { preview.textContent = error.message; }
+					};
+					preview.append(" ", button);
+				}
+			}
 			catch (error) { preview.textContent = error.message; }
 			preview.hidden = !preview.textContent;
 		};

@@ -543,6 +543,10 @@ h3 {
 	font-size: 11px;
 	white-space: nowrap;
 }
+.repeat-meta {
+	color: var(--faint);
+	font-size: 10px;
+}
 .task-meta .icon {
 	width: 14px;
 	height: 14px;
@@ -2132,6 +2136,17 @@ dialog[open] {
  font-size: 12px;
  line-height: 1.5;
  overflow-wrap: anywhere;
+}
+.capture-schedule {
+	margin: 6px 0 0;
+	padding: 5px 9px;
+	border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--accent) 8%, transparent);
+	color: var(--text);
+	font: inherit;
+	font-size: 11px;
+	cursor: pointer;
 }
 
 .calendar-context-menu {

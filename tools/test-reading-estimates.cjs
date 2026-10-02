@@ -25,6 +25,13 @@ assert(!R.html({text:'Read 20 pages'}).includes('data-reading="phase"'));
 assert(!R.html({text:'Read 20 pages'}).includes('cornell'));
 assert(R.html({text:'Read 20 pages'}).includes('https://sass.queensu.ca/resources/online/reading'));
 assert.equal(R.estimate('Read 20 pages').minutes,120);
+const learnedTasks=[{id:'r1',text:'Read 10 pages',done:true},{id:'r2',text:'Read 20 pages',done:true},{id:'r3',text:'Read pages 3-12',done:true}];
+const sessions=[{taskId:'r1',seconds:1800},{taskId:'r2',seconds:6000},{taskId:'r3',seconds:2400}];
+assert.deepEqual(R.learn(learnedTasks,sessions),{pace:4,sampleCount:3});
+assert.equal(R.estimate('Read 10 pages').minutes,40);
+assert.equal(R.estimate('Read 10 pages',{pace:6}).minutes,60);
+assert.equal(R.learn([{id:'r1',text:'Read 10 pages',done:true}],sessions),null);
+assert.equal(R.estimate('Read 10 pages').minutes,60);
 console.log('Reading parsing, saved pace compatibility, splits, manual overrides and state round trip passed.');
 
 for (const title of ['Read pages 3-9 & 12', 'Read 3–9 & 12', 'Read pp. 3–9, 12', 'Do reading pages 3 to 9 and p. 12']) {

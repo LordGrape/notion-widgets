@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const stored = { 'todo/tasks': JSON.stringify([{ id: 'prior', text: 'Prepare sample', notes: 'Keep me', done: false }]), 'timetable/courses': [] };
 const listeners = {};
 const input = { id: 'inp', value: '', dispatchEvent(event) { event.target = this; context.dispatchEvent(event); } };
-const preview = { textContent: '', hidden: true };
+const preview = { textContent: '', hidden: true, append(...children) { this.children = children; } };
 const button = { closest(selector) { return selector === '#addbtn' ? this : null; }, click() { const e = new context.Event('click'); e.target = this; context.dispatchEvent(e); } };
 const context = {
  Intl, Date, console,
@@ -17,7 +17,7 @@ const context = {
 };
 vm.createContext(context);
 for (const file of ['reading-estimates.js', 'todo-schedule-import.js']) vm.runInContext(fs.readFileSync(file, 'utf8'), context);
-context.document = { readyState: 'complete', getElementById(id) { return { inp: input, addbtn: button, smartPreview: preview }[id]; } };
+ context.document = { readyState: 'complete', getElementById(id) { return { inp: input, addbtn: button, smartPreview: preview }[id]; }, createElement() { return { addEventListener() {}, setAttribute() {}, type: '', textContent: '' }; } };
 vm.runInContext(fs.readFileSync('todo-natural-add.js', 'utf8'), context);
 const tasks = () => JSON.parse(stored['todo/tasks']);
 context.TodoNaturalAdd.capture('should Read sample pp. 3-9 & 12 tomorrow');
@@ -41,6 +41,15 @@ assert(stored['timetable/courses'].some(b => b.todoTaskId === task.id));
 context.TodoNaturalAdd.capture('should Review sample A 2026-11-03\ncould Review sample B');
 assert.equal(tasks().find(t => t.text === 'Review sample A').dueKey, '2026-11-03');
 assert.equal(tasks().find(t => t.text === 'Review sample B').dueKey, '2026-11-03');
+const flexiblePlan=context.TodoNaturalAdd.plan('should Review notes tomorrow for 30 min');
+assert(flexiblePlan[0].suggestedStart);assert.equal(flexiblePlan[0].startTime,null);
+context.TodoNaturalAdd.capture('should Review notes tomorrow for 30 min',{scheduleSuggestions:true});
+task=tasks().find(t=>t.text==='Review notes');assert(task.scheduledStart&&task.scheduledEnd);assert.equal(task.plannedMinutes,30);
+context.TodoNaturalAdd.capture('must Read pages 15-30 tomorrow',{splitReadingSessions:true});
+const readingSessions=tasks().filter(t=>t.sessionParentText==='Read pages 15-30');
+assert.equal(readingSessions.length,2);assert.equal(readingSessions[0].plannedMinutes,48);assert.equal(readingSessions[1].plannedMinutes,48);
+context.TodoNaturalAdd.capture('should Review flashcards every weekday');
+task=tasks().find(t=>t.text==='Review flashcards');assert.deepEqual(task.repeatRule.days,[1,2,3,4,5]);
 const localParts=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'America/Toronto',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).map(p=>[p.type,p.value]));
 const anchorDate=new Date(`${localParts.year}-${localParts.month}-${localParts.day}T12:00:00Z`);anchorDate.setUTCDate(anchorDate.getUTCDate()+1);
 const anchorKey=anchorDate.toISOString().slice(0,10),anchorDay=anchorDate.getUTCDay();

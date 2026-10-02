@@ -78,6 +78,9 @@ body{
 .add button:hover{transform:translateY(-1px)}
 .add button:active{transform:scale(.94)}
 .add button:focus-visible{outline:2px solid var(--accent-primary);outline-offset:2px}
+#smartPreview .smart-action{border:1px solid var(--border-accent);border-radius:999px;background:var(--surface-2);color:var(--text-primary);font:inherit;font-size:.72rem;padding:5px 9px;margin:3px 2px;cursor:pointer}
+#smartPreview .smart-action:hover{background:var(--accent-glow)}
+#smartPreview .smart-action:focus-visible{outline:2px solid var(--accent-primary);outline-offset:2px}
 
 /* Composer */
 .composer{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
@@ -351,7 +354,7 @@ body::before{
   </div>
 </div>
 <script src="widget-icons.js?v=20261001-duotone-b"></script>
-<link rel="stylesheet" href="reading-estimates.css?v=20261002-audit-repairs"><script src="reading-estimates.js?v=20261002-audit-repairs"></script>
+<link rel="stylesheet" href="reading-estimates.css?v=20261002-smart-schedule"><script src="reading-estimates.js?v=20261002-smart-schedule"></script>
 <script src="core.js"></script>
 <script src="action-blocks.js?v=20260902-editor-v2&planning=20260903-v1&copy=20260903-v2&targets=20260903-v1&upcoming=20260903-v1&skip=20261002"></script>
 <script src="todo-action-import.js?v=20260906-encrypted-fallback-v2"></script>
@@ -494,12 +497,28 @@ body::before{
   function toggle(id) {
     var t = byId(id);
     if (!t) return;
+    var generatedRepeat = null;
     t.done = !t.done;
     t.doneAt = t.done ? Date.now() : null;
+    if (t.done && t.repeatRule && window.TodoNaturalAdd && window.TodoNaturalAdd.nextRepeatKey) {
+      var nextKey = window.TodoNaturalAdd.nextRepeatKey(t.repeatRule, t.dueKey || todayKey()),
+        rootId = t.repeatRootId || t.id,
+        nextId = rootId + "_repeat_" + nextKey;
+      if (nextKey && !tasks.some(function (x) { return x.id === nextId; })) {
+        generatedRepeat = Object.assign({}, t, { id: nextId, repeatRootId: rootId, repeatOccurrence: nextKey,
+          dueKey: nextKey, due: nextKey === todayKey() ? "today" : null, setKey: nextKey,
+          created: Date.now(), order: Date.now(), done: false, doneAt: null, updatedAt: Date.now(),
+          scheduledStart: null, scheduledEnd: null, scheduleId: null, occurrenceId: null, sourceDate: null,
+          timeboxed: false, source: "recurring-task", outcome: null, dependsOn: null, dependencyText: null,
+          reminderAt: null, reminderState: null, reminderSentAt: null, reminderSentFor: null,
+          subs: (t.subs || []).map(function (sub, index) { return Object.assign({}, sub, { id: nextId + "_step_" + index, done: false }); }) });
+        tasks.push(generatedRepeat);
+      }
+    }
     if (t.done && editingId === id) editingId = null;
     if (t.done) {
       snd("playChime"); announce("Completed: " + t.text);
-      showUndo("Task completed", function () { t.done = false; t.doneAt = null; });
+      showUndo(generatedRepeat ? "Task completed · next one added" : "Task completed", function () { t.done = false; t.doneAt = null; if (generatedRepeat) tasks = tasks.filter(function (x) { return x.id !== generatedRepeat.id; }); });
     } else {
       snd("playClick"); hideUndo();
     }

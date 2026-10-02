@@ -542,8 +542,20 @@ let states = {
 			path: path.join(out, "C-focus-dark.png"),
 			fullPage: true,
 		});
+		await page.evaluate((start) => {
+			const w = document.querySelector("#clockFrame").contentWindow;
+			w.__testOriginalDateNow = w.Date.now;
+			w.Date.now = () => start + 185000;
+		}, initial.start);
 		await page.locator(".focus-controls [data-action=timer]").click();
 		assert.equal((await clock()).running, false);
+		const sessionHistory = await page.evaluate(() => {
+			const w = document.querySelector("#clockFrame").contentWindow;
+			w.Date.now = w.__testOriginalDateNow;
+			const value = w.CommandClock.SyncEngine.get("clock", "focus_sessions");
+			return typeof value === "string" ? JSON.parse(value) : value;
+		});
+		assert(sessionHistory.some((session) => session.taskId === "reading" && session.seconds >= 180));
 		await page.locator(".focus-controls [data-action=reset-timer]").click();
 		// Layouts fit laptop, tablet, mobile, light/dark and reduced motion.
 		await page.emulateMedia({ reducedMotion: "reduce" });
@@ -751,6 +763,20 @@ let states = {
 		smartTask = (await getTasks()).find(t=>t.text==='Read quick sample pp. 3-9 & 12');
 		assert.equal(smartTask.pri,'should'); assert.equal(smartTask.plannedMinutes,48);
 		assert.equal(smartTask.scheduledStart,undefined); assert(smartTask.dueKey);
+		await page.locator('#quickAdd input').fill('Must do Review suggested slot tomorrow for 30 min');
+		await page.locator('#capturePreview .capture-schedule').click();
+		smartTask=(await getTasks()).find(t=>t.text==='Review suggested slot');
+		assert(smartTask.scheduledStart&&smartTask.scheduledEnd);
+		await page.locator('#quickAdd input').fill('Should do Read pages 15-30 tomorrow');
+		await page.locator('#capturePreview .capture-schedule').count().then(async count=>{if(count) await page.locator('#capturePreview .capture-schedule').last().click();});
+		const splitTasks=(await getTasks()).filter(t=>t.sessionParentText==='Read pages 15-30');
+		assert.equal(splitTasks.length,2);assert.equal(splitTasks.reduce((sum,t)=>sum+t.plannedMinutes,0),96);
+		await page.locator('#quickAdd input').fill('Should do Review flashcards every weekday');
+		await page.locator('#quickAdd input').press('Enter');
+		smartTask=(await getTasks()).find(t=>t.text==='Review flashcards');assert.deepEqual(smartTask.repeatRule.days,[1,2,3,4,5]);
+		await page.evaluate(id=>document.querySelector('#todoFrame').contentWindow.document.querySelector('#shell').contentWindow.TodoUIBridge.command.toggle(id),smartTask.id);
+		await page.waitForTimeout(100);
+		assert((await getTasks()).some(t=>t.repeatRootId===smartTask.id&&!t.done),'Completing a recurring task creates its next occurrence');
 		const nextDate = new Date(`${key}T12:00:00Z`); nextDate.setUTCDate(nextDate.getUTCDate()+1);
 		const nextKey = nextDate.toISOString().slice(0,10), nextDay = nextDate.getUTCDay();
 		await page.evaluate(({nextKey,nextDay}) => {
@@ -821,7 +847,7 @@ let states = {
 		);
 		assert.deepEqual(errors, []);
 		console.log(
-			"Command Centre: completion, undo, capture, scheduling, rescheduling, subtasks, timer continuity, four widths, reduced motion, standalone widgets and lock passed.",
+			"Command Centre: completion, undo, smart scheduling, reading sessions, recurring tasks, subtasks, timer continuity, four widths, reduced motion, standalone widgets and lock passed.",
 		);
 		console.log("Screenshots: " + out);
 	} finally {

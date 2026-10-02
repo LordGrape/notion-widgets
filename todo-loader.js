@@ -1,6 +1,6 @@
 (async function(){
   'use strict';
-  const frame=document.querySelector('iframe'),revision='20261002-class-anchored-tasks';
+  const frame=document.querySelector('iframe'),revision='20261002-smart-planning';
   const fallback='https://raw.githubusercontent.com/LordGrape/notion-widgets/main/';
   async function text(path){
     for(const url of [new URL(path+'?v='+revision,location.href).href,fallback+path]){

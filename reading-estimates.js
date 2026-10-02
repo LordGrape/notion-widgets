@@ -1,8 +1,8 @@
 /* Shared reading planner. Estimates are editable planning defaults, not averages. */
 (function (g) {
-  const DEFAULT_PACE = 6;
+  const DEFAULT_PACE = 6;let learnedPace=null;
   // Preserve saved pace choices from older task payloads without showing phases.
-  const paceFor = data => +data.pace > 0 ? +data.pace : ({first:6,analysis:9,review:3}[data.phase] || DEFAULT_PACE);
+  const paceFor = data => +data.pace > 0 ? +data.pace : (learnedPace?.pace || ({first:6,analysis:9,review:3}[data.phase] || DEFAULT_PACE));
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   function parse(text) {
     text = String(text || '');
@@ -49,6 +49,15 @@
     else if (reading.autoMinutes) { task.plannedMinutes=null; task.reading={...reading,autoMinutes:null}; }
     return task;
   }
+  function learn(tasks,sessions){
+    const history=typeof sessions==='string'?(()=>{try{return JSON.parse(sessions)}catch{return[]}})():sessions||[],totals=new Map();
+    if(!Array.isArray(history))return learnedPace;
+    history.forEach(s=>{if(s&&s.taskId&&Number(s.seconds)>0)totals.set(String(s.taskId),(totals.get(String(s.taskId))||0)+Number(s.seconds));});
+    const samples=(tasks||[]).filter(t=>t&&t.done&&t.id&&estimate(t.text,t.reading||{})?.pages).map(t=>({pages:estimate(t.text,t.reading||{}).pages,seconds:totals.get(String(t.id))||0})).filter(x=>x.seconds>=180).map(x=>x.seconds/60/x.pages).filter(x=>x>=.5&&x<=30).sort((a,b)=>a-b);
+    if(samples.length<3){learnedPace=null;return null;}
+    const n=samples.length,i=Math.floor(n/2),pace=Math.round((n%2?samples[i]:(samples[i-1]+samples[i])/2)*4)/4;
+    learnedPace={pace,sampleCount:n};return learnedPace;
+  }
   const editorState = new Map();
   const timeLabel = minutes => minutes >= 60
     ? `${Math.floor(minutes / 60)} h${minutes % 60 ? ` ${minutes % 60} min` : ''}`
@@ -57,16 +66,16 @@
     const r = task.reading || {}, parsed = parse(task.text) || {};
     const mode = r.pageMode || (!parsed.pages && r.pages ? 'count' : 'text');
     const open = editorState.get(task.id)?.open ?? !parsed.pages;
-    return `<section class="reading-fields" aria-label="Reading estimate"><div class="reading-overview"><div><span class="reading-label">Reading</span><p data-reading-summary aria-live="polite"></p></div><button type="button" class="reading-time" data-manual-duration aria-label="Change reading duration"></button></div><details class="reading-options" ${open ? 'open' : ''}><summary>Adjust reading</summary><div class="reading-grid"><label>Pages<select data-reading="pageMode"><option value="text" ${mode==='text'?'selected':''}>From title</option><option value="count" ${mode==='count'?'selected':''}>Page count</option><option value="range" ${mode==='range'?'selected':''}>Page range</option></select></label><label data-count>Pages<input type="number" min="1" step="1" data-reading="pages" value="${esc(r.pages || parsed.pages || '')}" placeholder="e.g. 16"></label><label data-range>From page<input type="number" min="1" step="1" data-reading="start" value="${esc(r.start || parsed.start || '')}" placeholder="15"></label><label data-range>To page<input type="number" min="1" step="1" data-reading="end" value="${esc(r.end || parsed.end || '')}" placeholder="30"></label></div><details class="reading-advanced" ${editorState.get(task.id)?.pace ? 'open' : ''}><summary>Reading pace</summary><label>Minutes per page<input type="number" min="0.25" max="60" step="0.25" data-reading="pace" value="${esc(paceFor(r))}"></label><p>Adjust this to your pace. <a href="https://sass.queensu.ca/resources/online/reading" target="_blank" rel="noopener">Queen’s reading guidance</a></p></details></details><div class="reading-actions"><button type="button" data-use-estimate hidden>Use suggested time</button><button type="button" data-split-reading hidden></button></div></section>`;
+    return `<section class="reading-fields" aria-label="Reading estimate"><div class="reading-overview"><div><span class="reading-label">Reading</span><p data-reading-summary aria-live="polite"></p></div><button type="button" class="reading-time" data-manual-duration aria-label="Change reading duration"></button></div><details class="reading-options" ${open ? 'open' : ''}><summary>Adjust reading</summary><div class="reading-grid"><label>Pages<select data-reading="pageMode"><option value="text" ${mode==='text'?'selected':''}>From title</option><option value="count" ${mode==='count'?'selected':''}>Page count</option><option value="range" ${mode==='range'?'selected':''}>Page range</option></select></label><label data-count>Pages<input type="number" min="1" step="1" data-reading="pages" value="${esc(r.pages || parsed.pages || '')}" placeholder="e.g. 16"></label><label data-range>From page<input type="number" min="1" step="1" data-reading="start" value="${esc(r.start || parsed.start || '')}" placeholder="15"></label><label data-range>To page<input type="number" min="1" step="1" data-reading="end" value="${esc(r.end || parsed.end || '')}" placeholder="30"></label></div><details class="reading-advanced" ${editorState.get(task.id)?.pace ? 'open' : ''}><summary>Reading pace</summary><label><span data-pace-label>Minutes per page</span><input type="number" min="0.25" max="60" step="0.25" data-reading="pace" value="${esc(r.pace || paceFor(r))}"></label><p>Adjust this to your pace. <a href="https://sass.queensu.ca/resources/online/reading" target="_blank" rel="noopener">Queen’s reading guidance</a></p></details></details><div class="reading-actions"><button type="button" data-use-estimate hidden>Use suggested time</button><button type="button" data-split-reading hidden></button></div></section>`;
   }
   function mount(host, task, options) {
     const box=host.querySelector('.reading-fields'), title=options.title, duration=options.duration;
     const durationField=duration.closest('label');
     const details=box.querySelector('.reading-options'), paceDetails=box.querySelector('.reading-advanced');
     if(task.id) [details,paceDetails].forEach(node=>node.addEventListener('toggle',()=>editorState.set(task.id,{open:details.open,pace:paceDetails.open})));
-    let r={...(task.reading || {})}, editingDuration=false;
+    let r={...(task.reading || {})}, editingDuration=false, paceOverride=Number(task.reading?.pace)>0;
     if (!r.manual && (task.time || (task.plannedMinutes && task.plannedMinutes !== r.autoMinutes))) r.manual=true;
-    function read() { box.querySelectorAll('[data-reading]').forEach(n=>r[n.dataset.reading]=n.value); return r; }
+    function read() { box.querySelectorAll('[data-reading]').forEach(n=>{if(n.dataset.reading!=='pace')r[n.dataset.reading]=n.value;});if(paceOverride)r.pace=box.querySelector('[data-reading="pace"]').value;else delete r.pace;return r; }
     function update() {
       const text=title.value, e=estimate(text,read());
       box.hidden=!parse(text);
@@ -74,6 +83,7 @@
       box.querySelectorAll('[data-range]').forEach(n=>n.hidden=r.pageMode!=='range');
       box.querySelector('[data-reading-summary]').textContent=e?.invalid?'Check the page range':e?.minutes?`${e.pages} pages`:'How many pages?';
       const shownMinutes = r.manual ? Number(duration.value) : e?.minutes;
+      const paceLabel=box.querySelector('[data-pace-label]');if(paceLabel)paceLabel.textContent=learnedPace?`Your pace · ${learnedPace.pace} min/page from ${learnedPace.sampleCount} completed readings`:'Minutes per page';
       box.querySelector('[data-manual-duration]').textContent=shownMinutes ? timeLabel(shownMinutes) : 'Set time';
       box.querySelector('[data-manual-duration]').setAttribute('aria-label',`${shownMinutes ? timeLabel(shownMinutes) + '. ' : ''}Change reading duration`);
       if(durationField) durationField.hidden=!!parse(text) && !editingDuration;
@@ -86,6 +96,7 @@
     title.addEventListener('input',update);
     duration.addEventListener('input',()=>{r.manual=true; update();});
     duration.addEventListener('blur',()=>{editingDuration=false;update();});
+    box.querySelector('[data-reading="pace"]').addEventListener('input',()=>{paceOverride=true;update();});
     box.addEventListener('input',update);
     box.querySelector('[data-manual-duration]').onclick=()=>{editingDuration=true;r.manual=true;update();duration.focus();duration.select();};
     box.querySelector('[data-use-estimate]').onclick=()=>{r.manual=false;update();};
@@ -93,5 +104,5 @@
     update();
     return ()=>{ const value={...read(),manual:!!r.manual}; delete value.phase; return value; };
   }
-  g.ReadingEstimates={parse,estimate,apply,html,mount};
+  g.ReadingEstimates={parse,estimate,apply,learn,html,mount};
 })(globalThis);

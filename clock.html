@@ -1396,9 +1396,23 @@ updateFocusStats();
    capped, never punitive). 1 XP == 1 focused minute. Sub-minute
    remainders are simply floored (same rounding core.js already uses
    for focus-time itself) — negligible over a multi-year XP curve. */
-function recordFocusTime(secs) {
+function recordFocusTime(secs, startedAt) {
   addFocusSeconds(secs);
   addDragonXP(secs / 60);
+  try {
+    var selected = Array.isArray(studyTaskIds) && studyTaskIds.length === 1 ? studyTaskIds[0] : null,
+      command = SyncEngine.get('clock', 'commandTask');
+    if (!selected && command && command.taskId && (!Array.isArray(studyTaskIds) || !studyTaskIds.length)) selected = command.taskId;
+    if (selected && secs >= 60) {
+      var raw = SyncEngine.get('clock', 'focus_sessions'), history = typeof raw === 'string' ? JSON.parse(raw) : (raw || []);
+      if (!Array.isArray(history)) history = [];
+      var stamp = Number(startedAt) || Date.now(), sessionId = 'timer:' + stamp;
+      if (!history.some(function (item) { return item && item.id === sessionId; })) {
+        history.push({ id: sessionId, taskId: String(selected), seconds: Math.floor(secs), completedAt: Date.now() });
+        SyncEngine.set('clock', 'focus_sessions', JSON.stringify(history.slice(-300)));
+      }
+    }
+  } catch (error) { /* Focus credit must still succeed if optional history is unavailable. */ }
   updateFocusStats();
   if (document.getElementById('settingsOv').classList.contains('show')) { renderMastery(); renderHeatmap(); }
 }
@@ -1414,11 +1428,11 @@ function recordFocusTime(secs) {
    local-only (never written to synced timer_state) and isn't at risk here, so it
    still calls recordFocusTime() directly. */
 function creditTimerRun(startTime, secs) {
-  if (!startTime) { recordFocusTime(secs); return; }
+  if (!startTime) { recordFocusTime(secs, Date.now()); return; }
   var last = SyncEngine.get('clock', 'timer_last_credited') || 0;
   if (startTime <= last) return;
   SyncEngine.set('clock', 'timer_last_credited', startTime);
-  recordFocusTime(secs);
+  recordFocusTime(secs, startTime);
 }
 
 /* ══════════════════════════════════════

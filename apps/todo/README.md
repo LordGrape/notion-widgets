@@ -33,6 +33,9 @@ type Task = {
   reminderState?: "scheduled" | "sending" | "sent" | "error"
   reminderSentAt?: number
   reminderSentFor?: string
+  repeatRule?: { frequency: "daily" | "weekly"; interval: number; days: number[]; anchorDate: string }
+  repeatRootId?: string
+  repeatOccurrence?: string
 }
 ```
 
@@ -81,7 +84,9 @@ task mutations; `TodoUIBridge` is application-local and does not alter SyncEngin
 
 ## Reading estimates
 
-Shared logic and editor controls live in `../../reading-estimates.js` with `../../reading-estimates.css`. Existing `plannedMinutes` is the scheduling estimate; optional `reading` metadata stores `pageMode` (`text`, `count`, `range`), page count/endpoints, pace, `manual` and `autoMinutes`. Older tasks remain compatible, including previously saved reading paces. New inferred estimates never overwrite a manual duration or existing time band. The task writer, natural entry and Command Centre use the same model. Split suggestions add session steps only after selection. Run `node tools/test-reading-estimates.cjs` for parsing, manual override and persistence checks.
+Shared logic and editor controls live in `../../reading-estimates.js` with `../../reading-estimates.css`. Existing `plannedMinutes` is the scheduling estimate; optional `reading` metadata stores `pageMode` (`text`, `count`, `range`), page count/endpoints, pace, `manual` and `autoMinutes`. Older tasks remain compatible, including previously saved reading paces. New inferred estimates never overwrite a manual duration or existing time band. The task writer, natural entry and Command Centre use the same model. Run `node tools/test-reading-estimates.cjs` for parsing, manual override, adaptive pace, splitting and persistence checks.
+
+Command Centre can create long readings as separate inclusive page-range sessions. Clock stores up to 300 task-linked focus records in `clock/focus_sessions`; after three completed readings with sufficient focus time, Reading Estimates uses their median minutes per page as a suggested default. Existing manual pace and duration choices remain authoritative. Quick Add supports recurring daily and weekly study tasks; completing one creates the next occurrence only, while deleting that occurrence ends the series.
 
 ## Shared entry points
 
