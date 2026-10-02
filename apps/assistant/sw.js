@@ -1,4 +1,4 @@
-const CACHE = "command-centre-20261002-broadcast-partner";
+const CACHE = "command-centre-20261002-today-refinements";
 const SHELL = [
 	"../../widget-platform.js",
 	"../../reading-estimates.js",

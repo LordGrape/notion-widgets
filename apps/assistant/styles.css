@@ -2284,3 +2284,182 @@ dialog[open] {
 	.broadcast-stage { height: 235px; }
 	.broadcast-figure { zoom: .8; }
 }
+
+/* Today refinements: compact empty groups, overdue cue, free-time hints, overrun cue, wrap-up. */
+.task-group.is-empty {
+	margin-bottom: 10px;
+}
+.task-group.is-empty .group-heading {
+	padding: 10px 18px;
+	font-size: 15px;
+}
+.task-group.is-empty .priority-dot {
+	width: 14px;
+	height: 14px;
+}
+.task-group.is-empty .task-rows {
+	display: none;
+}
+.task-group.is-empty .group-heading .count::after {
+	content: " · empty";
+}
+.overdue-meta {
+	color: #b4531f;
+	background: color-mix(in srgb, #e08a3c 14%, var(--surface));
+}
+:root[data-theme="dark"] .overdue-meta {
+	color: #f0b27a;
+}
+.footer-actions {
+	display: flex;
+	gap: 14px;
+}
+.gap-hint {
+	position: absolute;
+	left: 6px;
+	right: 6px;
+	z-index: 1;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 0 10px;
+	border: 1px dashed color-mix(in srgb, var(--accent) 28%, var(--line));
+	border-radius: 8px;
+	color: var(--faint);
+	font-size: 11px;
+	pointer-events: none;
+}
+.gap-hint button {
+	pointer-events: auto;
+	max-width: 70%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	border: 0;
+	border-radius: 20px;
+	padding: 4px 10px;
+	color: var(--accent);
+	background: var(--accent-soft);
+	font-size: 11px;
+	font-weight: 600;
+}
+.event.overrun::after {
+	content: "Not done";
+	position: absolute;
+	top: 6px;
+	right: 8px;
+	padding: 2px 8px;
+	border-radius: 20px;
+	color: #b4531f;
+	background: color-mix(in srgb, #e08a3c 16%, var(--surface));
+	font-size: 10px;
+	font-weight: 650;
+}
+:root[data-theme="dark"] .event.overrun::after {
+	color: #f0b27a;
+}
+.wrap-list {
+	display: grid;
+	gap: 8px;
+	margin: 14px 0;
+	max-height: 40svh;
+	overflow: auto;
+}
+.wrap-item {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 10px 12px;
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	background: var(--surface-2);
+}
+.wrap-item span {
+	flex: 1;
+	min-width: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+	.gap-hint button {
+		transition: none;
+	}
+}
+
+/* Tier bands, segmented progress and task-state blocks. */
+:root {
+	--tier-must: #7c3aed;
+	--tier-should: #3b82c4;
+	--tier-could: #8a97aa;
+	--state-done: #2ca66f;
+	--state-late: #d9822b;
+}
+:root[data-theme="dark"] {
+	--tier-must: #b48aff;
+	--tier-should: #6cb2ee;
+	--tier-could: #a2adbd;
+	--state-done: #70dba6;
+	--state-late: #f0b27a;
+}
+.progress-segments {
+	display: flex;
+	gap: 6px;
+}
+.progress-segments .seg-must {
+	flex: 2;
+}
+.progress-segments .seg-should {
+	flex: 1;
+}
+.progress-segments .seg-should span {
+	background: linear-gradient(90deg, #6cb2ee, var(--tier-should));
+}
+.task-group {
+	--tier: var(--tier-must);
+}
+.task-group.should {
+	--tier: var(--tier-should);
+}
+.task-group.could {
+	--tier: var(--tier-could);
+}
+.task-group .group-heading {
+	border-left: 4px solid var(--tier);
+	background: color-mix(in srgb, var(--tier) 9%, var(--surface));
+}
+.task-group .group-heading:hover {
+	background: color-mix(in srgb, var(--tier) 15%, var(--surface));
+}
+.task-group .priority-dot {
+	background: var(--tier);
+}
+.event.is-task {
+	border: 1.5px dashed color-mix(in srgb, var(--state-done) 55%, var(--line));
+	border-left: 4px solid var(--state-done);
+	background: var(--surface);
+}
+.event.is-task:hover {
+	background: color-mix(in srgb, var(--state-done) 8%, var(--surface));
+}
+.event.is-task.completed {
+	opacity: 1;
+	border-style: solid;
+	background: color-mix(in srgb, var(--state-done) 12%, var(--surface));
+}
+.event.is-task.completed b {
+	text-decoration: line-through;
+	text-decoration-color: color-mix(in srgb, var(--state-done) 60%, transparent);
+}
+.event.is-task.overrun {
+	border-color: color-mix(in srgb, var(--state-late) 60%, var(--line));
+	border-left-color: var(--state-late);
+	background: color-mix(in srgb, var(--state-late) 10%, var(--surface));
+}
+.gap-hint[hidden] {
+	display: none;
+}
+@media (max-width: 560px) {
+	.overdue-meta {
+		padding: 3px 6px;
+		font-size: 10px;
+	}
+}

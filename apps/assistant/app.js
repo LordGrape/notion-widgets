@@ -22,7 +22,7 @@ import {
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261002-broadcast-partner";
+	REVISION = "20261002-today-refinements";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -386,12 +386,55 @@ function setView(next) {
 	render();
 }
 function finishLine(compact = false) {
-	return `<div class="finish-line ${compact ? "compact" : ""}"><div class="goal-label"><b>Daily finish line</b><button data-action="goal" title="Adjust today’s Should target">${goal.mustDone || 0} of ${goal.mustTotal || 0} Must · ${Math.min(goal.shouldDone || 0, goal.shouldTarget || 0)} of ${goal.shouldTarget || 0} Should</button></div><div class="progress-track" role="progressbar" aria-label="Daily finish line" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${goal.pct || 0}"><span style="width:${goal.pct || 0}%"></span></div></div>`;
+	return `<div class="finish-line ${compact ? "compact" : ""}"><div class="goal-label"><b>Daily finish line</b><button data-action="goal" title="Adjust today’s Should target">${goal.mustDone || 0} of ${goal.mustTotal || 0} Must${goal.shouldTarget ? ` · ${Math.min(goal.shouldDone || 0, goal.shouldTarget)} of ${goal.shouldTarget} Should` : ""}</button></div><div class="progress-segments" role="progressbar" aria-label="Daily finish line" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${goal.pct || 0}"><div class="progress-track seg-must"><span style="width:${goal.mustTotal ? Math.round((goal.mustDone / goal.mustTotal) * 100) : goal.shouldTarget ? 0 : goal.pct || 0}%"></span></div>${goal.shouldTarget ? `<div class="progress-track seg-should"><span style="width:${Math.round((Math.min(goal.shouldDone, goal.shouldTarget) / goal.shouldTarget) * 100)}%"></span></div>` : ""}</div></div>`;
+}
+function focusMinutes(id) {
+	let raw = engines.clock?.SyncEngine.get("clock", "focus_sessions");
+	try {
+		if (typeof raw === "string") raw = JSON.parse(raw);
+	} catch {
+		raw = [];
+	}
+	if (!Array.isArray(raw)) return 0;
+	return Math.round(
+		raw
+			.filter((r) => r && String(r.taskId) === String(id))
+			.reduce((sum, r) => sum + (Number(r.seconds) || 0), 0) / 60,
+	);
+}
+function overdueLabel(t) {
+	const key = normalizeDateKey(t.dueKey);
+	if (t.done || !key || key >= isoDate()) return "";
+	const days = Math.round((localDate(isoDate()) - localDate(key)) / 864e5);
+	return days === 1 ? "From yesterday" : `${days} days overdue`;
+}
+function unfinishedToday() {
+	return todayTasks(focusTasks(tasks, courses)).filter((t) => !t.done);
+}
+function tomorrowKey() {
+	const d = new Date();
+	d.setDate(d.getDate() + 1);
+	return isoDate(d);
+}
+function gapHints(events, start, end) {
+	const now = new Date(),
+		nowMinute = now.getHours() * 60 + now.getMinutes();
+	const from = Math.max(start, Math.ceil(nowMinute / 15) * 15);
+	const open = unfinishedToday()
+		.filter((t) => !t.scheduleId && !t.scheduledStart && duration(t))
+		.sort((a, b) => ["must", "should", "could"].indexOf(a.pri || "must") - ["must", "should", "could"].indexOf(b.pri || "must"));
+	return gaps(events, from, end)
+		.filter(([s, e]) => e - s >= 20)
+		.map(([s, e]) => {
+			const fit = open.find((t) => duration(t) <= e - s);
+			return `<div class="gap-hint" data-start="${s}" data-end="${e}" style="top:${((s - start) * 76) / 60}px;height:${((e - s) * 76) / 60}px"><span class="gap-label">${formatMinutes(e - s)} free</span>${fit ? `<button data-action="fill-gap" data-id="${esc(fit.id)}" data-start="${timeString(Math.ceil(s / 15) * 15)}" title="Schedule ${esc(fit.text)}">Fit in “${esc(fit.text.length > 28 ? fit.text.slice(0, 27) + "…" : fit.text)}”</button>` : ""}</div>`;
+		})
+		.join("");
 }
 function taskRow(t, planner = false) {
 	const m = duration(t);
 	const focusable = !isCalendarReminder(t, courses);
-	return `<div class="task-row ${t.done ? "done" : ""}" data-task="${esc(t.id)}" ${!planner && !t.done ? `draggable="true" data-drag="${esc(t.id)}"` : ""}>${!t.done ? `<button class="drag-handle icon-button ${planner ? "" : "today-grip"}" title="Drag to schedule; click to choose a time" data-action="schedule" data-id="${esc(t.id)}" draggable="true" data-drag="${esc(t.id)}" aria-label="Drag ${esc(t.text)} to the calendar">${icon("grip")}</button>` : ""}<button class="check-button ${t.done ? "checked" : ""}" data-action="toggle" data-id="${esc(t.id)}" aria-label="${t.done ? "Reopen" : "Complete"} ${esc(t.text)}">${t.done ? icon("check") : ""}</button><button class="task-title" data-action="edit" data-id="${esc(t.id)}">${esc(t.text)}${planner ? `<small class="planner-task-meta"><span class="priority-chip ${t.pri || "must"}">${t.pri === "could" ? "Could" : t.pri === "should" ? "Should" : "Must"}</span>${m ? `${m} min` : "No estimate"}${t.repeatRule ? " · Repeats" : ""}</small>` : ""}</button>${!planner && m ? `<span class="task-meta">${icon("clock")}${m} min</span>` : ""}${!planner && t.repeatRule ? `<span class="task-meta repeat-meta">Repeats</span>` : ""}<div class="task-actions">${focusable ? `<button class="icon-button" data-action="select-focus" data-id="${esc(t.id)}" aria-label="Focus on ${esc(t.text)}" title="Focus on this task">${icon("play")}</button>` : ""}<button class="icon-button" data-action="${planner ? "schedule" : "edit"}" data-id="${esc(t.id)}" aria-label="${planner ? "Schedule" : "Edit"} ${esc(t.text)}">${icon(planner ? "calendar" : "more")}</button></div></div>`;
+	return `<div class="task-row ${t.done ? "done" : ""}" data-task="${esc(t.id)}" ${!planner && !t.done ? `draggable="true" data-drag="${esc(t.id)}"` : ""}>${!t.done ? `<button class="drag-handle icon-button ${planner ? "" : "today-grip"}" title="Drag to schedule; click to choose a time" data-action="schedule" data-id="${esc(t.id)}" draggable="true" data-drag="${esc(t.id)}" aria-label="Drag ${esc(t.text)} to the calendar">${icon("grip")}</button>` : ""}<button class="check-button ${t.done ? "checked" : ""}" data-action="toggle" data-id="${esc(t.id)}" aria-label="${t.done ? "Reopen" : "Complete"} ${esc(t.text)}">${t.done ? icon("check") : ""}</button><button class="task-title" data-action="edit" data-id="${esc(t.id)}">${esc(t.text)}${planner ? `<small class="planner-task-meta"><span class="priority-chip ${t.pri || "must"}">${t.pri === "could" ? "Could" : t.pri === "should" ? "Should" : "Must"}</span>${m ? `${m} min` : "No estimate"}${t.repeatRule ? " · Repeats" : ""}</small>` : ""}</button>${!planner && overdueLabel(t) ? `<span class="task-meta overdue-meta">${overdueLabel(t)}</span>` : ""}${!planner && m ? `<span class="task-meta" ${t.done && focusMinutes(t.id) ? `title="Estimated ${m} min, focused ${focusMinutes(t.id)} min"` : ""}>${icon("clock")}${t.done && focusMinutes(t.id) ? `${focusMinutes(t.id)} of ${m} min` : `${m} min`}</span>` : ""}${!planner && t.repeatRule ? `<span class="task-meta repeat-meta">Repeats</span>` : ""}<div class="task-actions">${focusable ? `<button class="icon-button" data-action="select-focus" data-id="${esc(t.id)}" aria-label="Focus on ${esc(t.text)}" title="Focus on this task">${icon("play")}</button>` : ""}<button class="icon-button" data-action="${planner ? "schedule" : "edit"}" data-id="${esc(t.id)}" aria-label="${planner ? "Schedule" : "Edit"} ${esc(t.text)}">${icon(planner ? "calendar" : "more")}</button></div></div>`;
 }
 function taskGroups() {
 	const list = todayTasks(focusTasks(tasks, courses)).sort(
@@ -404,7 +447,7 @@ function taskGroups() {
 					(t.pri === "should" || t.pri === "could" ? t.pri : "must") === pri,
 			);
 			const closed = collapsed.has(pri);
-			return `<section class="task-group ${pri}"><button class="group-heading" data-action="collapse" data-priority="${pri}" aria-expanded="${!closed}">${icon(closed ? "right" : "chevron")}<i class="priority-dot"></i>${pri === "must" ? "Must Do" : pri === "should" ? "Should Do" : "Could Do"}<span class="count">${group.filter((t) => t.done).length} of ${group.length} complete</span></button>${closed ? "" : `<div class="task-rows">${group.length ? group.map((t) => taskRow(t)).join("") : `<p class="group-empty">${pri === "must" ? "No commitments here." : pri === "should" ? "Choose a task worth making progress on." : "Optional tasks, when you have room."}</p>`}</div>`}</section>`;
+			return `<section class="task-group ${pri} ${!closed && !group.length && pri !== "must" ? "is-empty" : ""}"><button class="group-heading" data-action="collapse" data-priority="${pri}" aria-expanded="${!closed}">${icon(closed ? "right" : "chevron")}<i class="priority-dot"></i>${pri === "must" ? "Must Do" : pri === "should" ? "Should Do" : "Could Do"}<span class="count">${group.filter((t) => t.done).length} of ${group.length} complete</span></button>${closed ? "" : `<div class="task-rows">${group.length ? group.map((t) => taskRow(t)).join("") : `<p class="group-empty">${pri === "must" ? "No commitments here." : pri === "should" ? "Choose a task worth making progress on." : "Optional tasks, when you have room."}</p>`}</div>`}</section>`;
 		})
 		.join("");
 }
@@ -432,7 +475,10 @@ function eventMarkup(e, start, hour = 76) {
 			t.scheduleId === e.id &&
 			normalizeDateKey(t.dueKey) === e.dateKey,
 	);
-	return `<button class="event ${done ? "completed" : ""} ${e.id === recentScheduleId ? "scheduled-reveal" : ""}" style="top:${top}px;height:${height}px;--event-color:${/^#[0-9a-f]{3,8}$/i.test(e.color) ? e.color : "#9461e9"}" aria-haspopup="dialog" title="Click for details; right-click for options" data-action="event" data-event-id="${esc(e.id)}" data-source="${esc(e.sourceDate)}" data-date="${esc(e.dateKey)}" aria-label="${esc(e.name)} ${esc(e.start)} to ${esc(e.end)}"><b>${esc(e.name)}</b><span>${esc(e.start)} – ${esc(e.end)}${e.location ? " · " + esc(e.location) : ""}</span></button>`;
+	const linked = tasks.find((t) => t.scheduleId === e.id && normalizeDateKey(t.dueKey) === e.dateKey);
+	const open = !done && !!linked && !linked.done;
+	const spent = done && linked ? focusMinutes(linked.id) : 0;
+	return `<button data-end="${minutes(e.end)}" data-open-task="${open ? 1 : 0}" class="event ${linked ? "is-task" : ""} ${done ? "completed" : ""} ${e.id === recentScheduleId ? "scheduled-reveal" : ""}" style="top:${top}px;height:${height}px;--event-color:${/^#[0-9a-f]{3,8}$/i.test(e.color) ? e.color : "#9461e9"}" aria-haspopup="dialog" title="Click for details; right-click for options" data-action="event" data-event-id="${esc(e.id)}" data-source="${esc(e.sourceDate)}" data-date="${esc(e.dateKey)}" aria-label="${esc(e.name)} ${esc(e.start)} to ${esc(e.end)}"><b>${esc(e.name)}</b><span>${esc(e.start)} – ${esc(e.end)}${e.location ? " · " + esc(e.location) : ""}${spent ? ` · done in ${spent} min` : ""}</span></button>`;
 }
 function hourLines(start, end, hour = 76) {
 	let s = "";
@@ -451,6 +497,18 @@ function updateCalendarTime() {
 		now.getMinutes() +
 		now.getSeconds() / 60 +
 		now.getMilliseconds() / 60000;
+	for (const hint of document.querySelectorAll(".gap-hint")) {
+		const left = Number(hint.dataset.end) - Math.max(Number(hint.dataset.start), minute);
+		hint.hidden = left < 20;
+		hint.querySelector(".gap-label").textContent = `${formatMinutes(Math.floor(left))} free`;
+	}
+	for (const block of document.querySelectorAll(".event[data-open-task='1']")) {
+		const day = block.dataset.date;
+		block.classList.toggle(
+			"overrun",
+			day < today || (day === today && Number(block.dataset.end) < minute),
+		);
+	}
 	for (const layer of document.querySelectorAll(".calendar-time")) {
 		const current = layer.dataset.timeDate === today;
 		layer.hidden = !current;
@@ -471,7 +529,7 @@ function updateCalendarTime() {
 function renderToday() {
 	const events = occurrences(new Date()),
 		{ start, end } = timeRange(events);
-	return `<div class="today-layout"><section class="surface tasks-surface"><div class="today-heading"><div><h2>Today</h2><p class="date-copy">${dateLabel(new Date())}</p></div>${finishLine()}</div><form class="composer" id="quickAdd"><input name="task" aria-label="Add a task" placeholder="Add a task… e.g. should do Read pp. 3–9 & 12 tomorrow" autocomplete="off" required><button class="primary" aria-label="Add task">${icon("plus")}</button><button type="button" data-action="add" aria-label="Add task with details">${icon("more")}</button></form><p id="capturePreview" class="capture-preview" role="status" aria-live="polite" hidden></p>${taskGroups()}<div class="tasks-footer"><button class="text-button" data-action="all-tasks">All tasks · ${focusTasks(tasks, courses).filter((t) => !t.done).length} open</button><button class="text-button" data-action="standalone" data-type="todo">Open To-Do separately ↗</button></div></section><section class="surface agenda-surface"><div class="section-heading"><h2>Your day</h2><span>${new Date().toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" })}</span></div><div class="agenda-scroll"><div class="timeline" data-drop-calendar data-date="${isoDate()}" data-start="${start}" data-end="${end}" style="--timeline-height:${((end - start) * 76) / 60}px">${hourLines(start, end)}${events.map((e) => eventMarkup(e, start)).join("")}${nowLine(start, end)}</div></div><div class="tasks-footer"><button class="text-button" data-action="view" data-view="plan">Open planner ${icon("right")}</button><button class="text-button" data-action="standalone" data-type="timetable">Timetable ↗</button></div></section></div>`;
+	return `<div class="today-layout"><section class="surface tasks-surface"><div class="today-heading"><div><h2>Today</h2><p class="date-copy">${dateLabel(new Date())}</p></div>${finishLine()}</div><form class="composer" id="quickAdd"><input name="task" aria-label="Add a task" placeholder="Add a task… e.g. should do Read pp. 3–9 & 12 tomorrow" autocomplete="off" required><button class="primary" aria-label="Add task">${icon("plus")}</button><button type="button" data-action="add" aria-label="Add task with details">${icon("more")}</button></form><p id="capturePreview" class="capture-preview" role="status" aria-live="polite" hidden></p>${taskGroups()}<div class="tasks-footer"><button class="text-button" data-action="all-tasks">All tasks · ${focusTasks(tasks, courses).filter((t) => !t.done).length} open</button><span class="footer-actions"><button class="text-button" data-action="wrap-up">Wrap up day</button><button class="text-button" data-action="standalone" data-type="todo">Open To-Do separately ↗</button></span></div></section><section class="surface agenda-surface"><div class="section-heading"><h2>Your day</h2><span>${new Date().toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" })}</span></div><div class="agenda-scroll"><div class="timeline" data-drop-calendar data-date="${isoDate()}" data-start="${start}" data-end="${end}" style="--timeline-height:${((end - start) * 76) / 60}px">${hourLines(start, end)}${gapHints(events, start, end)}${events.map((e) => eventMarkup(e, start)).join("")}${nowLine(start, end)}</div></div><div class="tasks-footer"><button class="text-button" data-action="view" data-view="plan">Open planner ${icon("right")}</button><button class="text-button" data-action="standalone" data-type="timetable">Timetable ↗</button></div></section></div>`;
 }
 function render() {
 	if (!engines.todo) return;
@@ -479,6 +537,7 @@ function render() {
 		if (b.dataset.view === view) b.setAttribute("aria-current", "page");
 		else b.removeAttribute("aria-current");
 	});
+	const priorScroll = $(".agenda-scroll")?.scrollTop;
 	$("#workspace").innerHTML =
 		view === "today"
 			? renderToday()
@@ -491,6 +550,18 @@ function render() {
 	bindWorkspace();
 	updateTimer();
 	updateCalendarTime();
+	const agenda = $(".agenda-scroll");
+	if (agenda) {
+		if (priorScroll != null) agenda.scrollTop = priorScroll;
+		else {
+			const line = agenda.querySelector(".now-line:not([hidden])");
+			if (line)
+				agenda.scrollTop = Math.max(
+					0,
+					line.getBoundingClientRect().top - agenda.getBoundingClientRect().top + agenda.scrollTop - agenda.clientHeight * 0.35,
+				);
+		}
+	}
 }
 function renderDock() {
 	const current = activeTask(),
@@ -884,6 +955,33 @@ function openEditor(id, draft = "") {
 		notify(t ? "Task updated." : "Task added.");
 		} catch (error) { $("#formError").textContent = error.message; }
 	};
+}
+function openWrapUp() {
+	const open = unfinishedToday();
+	const movable = open.filter((t) => !t.scheduleId);
+	const kept = open.length - movable.length;
+	const d = openDialog(
+		"#settingsDialog",
+		`${dialogHead("Wrap up day", "settingsTitle")}${
+			open.length
+				? `<p class="muted">${open.length} unfinished ${open.length === 1 ? "task" : "tasks"} today. Choose what carries over to tomorrow.</p><div class="wrap-list">${movable.map((t) => `<label class="wrap-item"><input type="checkbox" name="move" value="${esc(t.id)}" checked><span>${esc(t.text)}</span><small class="priority-chip ${t.pri || "must"}">${t.pri === "could" ? "Could" : t.pri === "should" ? "Should" : "Must"}</small></label>`).join("")}</div>${kept ? `<p class="muted">${kept} scheduled ${kept === 1 ? "task stays" : "tasks stay"} on the calendar. Reschedule ${kept === 1 ? "it" : "them"} from Plan.</p>` : ""}<div class="dialog-actions"><button type="button" data-action="close-dialog">Not yet</button>${movable.length ? `<button type="button" class="primary" id="wrapConfirm">Move to tomorrow</button>` : ""}</div>`
+				: `<p class="muted">Everything planned for today is complete. Nicely done.</p><div class="dialog-actions"><button type="button" class="primary" data-action="close-dialog">Close</button></div>`
+		}`,
+	);
+	const confirm = $("#wrapConfirm");
+	if (confirm)
+		confirm.onclick = () => {
+			const ids = [...d.querySelectorAll("input[name=move]:checked")].map((i) => i.value);
+			for (const id of ids)
+				engines.todo.TodoUIBridge.command.update(id, {
+					dueKey: tomorrowKey(),
+					due: null,
+				});
+			d.close();
+			signature = "";
+			refresh();
+			notify(`Moved ${ids.length} ${ids.length === 1 ? "task" : "tasks"} to tomorrow.`, true);
+		};
 }
 function openGoal() {
 	const d = openDialog(
@@ -1433,6 +1531,12 @@ document.addEventListener("click", (e) => {
 		case "goal":
 			if ($("#settingsDialog").open) $("#settingsDialog").close();
 			openGoal();
+			break;
+		case "wrap-up":
+			openWrapUp();
+			break;
+		case "fill-gap":
+			openSchedule(id, isoDate(), b.dataset.start);
 			break;
 		case "all-tasks":
 			openSearch(true);
