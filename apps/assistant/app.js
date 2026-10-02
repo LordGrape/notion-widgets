@@ -19,10 +19,29 @@ import {
 	suggestSlot,
 	escapeHtml as esc,
 } from "./domain.mjs";
+import {
+	KINDS,
+	BILLABLE,
+	KIND_LABEL,
+	WEEKLY_TARGET,
+	isKind,
+	classifyText,
+	taskKind,
+	formatUnits,
+	minutesFor,
+	weekStart,
+	weekKeys,
+	sessionEntries,
+	classEntries,
+	summarize,
+	manualSession,
+	appendSession,
+	removeSession,
+} from "./hours.mjs";
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261002-today-refinements";
+	REVISION = "20261002-weekly-docket";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -47,7 +66,9 @@ let accessKey = "",
 	lastFocus = null,
 	toastTimer,
 	lastTaskRaw,
-	undoAction = null;
+	undoAction = null,
+	toastAction = null,
+	docketOffset = 0;
 let theme = document.documentElement.dataset.theme || "light";
 function icon(name) {
 	return WidgetIcons.svg(name, {command: true});
@@ -206,8 +227,11 @@ function syncStatus(label, offline = false) {
 	$("#syncState").classList.toggle("offline", offline);
 	$("#syncState span").textContent = label;
 }
-function notify(text, undo = false) {
+function notify(text, undo = false, action = null) {
 	undoAction = typeof undo === "function" ? undo : null;
+	toastAction = action;
+	$("#toastAction").hidden = !action;
+	if (action) $("#toastAction").textContent = action.label;
 	$("#toastText").textContent = text;
 	$("#toast").hidden = false;
 	$("#undoButton").hidden = !undo;
@@ -247,7 +271,7 @@ function unlock() {
 	$("#appShell").setAttribute("aria-hidden", "false");
 	document.body.classList.remove("locked");
 	const panel = new URLSearchParams(location.search).get("panel");
-	view = panel === "clock" ? "focus" : panel === "timetable" ? "plan" : "today";
+	view = panel === "clock" ? "focus" : panel === "timetable" ? "plan" : panel === "docket" ? "docket" : "today";
 	Object.keys(paths).forEach((type) => {
 		$(`#${type}Frame`).src = standaloneUrl(type);
 	});
@@ -364,6 +388,9 @@ function refresh() {
 		weekOffset,
 		planDays,
 		[...collapsed],
+		view === "docket"
+			? [docketOffset, engines.clock.SyncEngine.get("clock", "focus_sessions"), Math.floor(Date.now() / 300000), weeklyTarget()]
+			: null,
 	]);
 	if (next !== signature) {
 		signature = next;
@@ -543,7 +570,9 @@ function render() {
 			? renderToday()
 			: view === "plan"
 				? renderPlan()
-				: renderFocus();
+				: view === "docket"
+					? renderDocket()
+					: renderFocus();
 	$("#focusDock").hidden = view !== "today";
 	renderDock();
 	decorate();
@@ -873,7 +902,7 @@ function openEditor(id, draft = "") {
 	const t = task(id),
 		d = openDialog(
 			"#editorDialog",
-			`${dialogHead(t ? "Edit task" : "New task", "editorTitle")}<form id="taskForm"><div class="form-grid"><label class="field wide task-name">Task<input name="text" value="${esc(t?.text || draft)}" required maxlength="500" placeholder="What would you like to do?"></label><label class="field">Priority<select name="pri">${["must", "should", "could"].map((p) => `<option value="${p}" ${p === (t?.pri || "must") ? "selected" : ""}>${p === "must" ? "Must Do" : p === "should" ? "Should Do" : "Could Do"}</option>`).join("")}</select></label><label class="field">Date<input name="dueKey" type="date" value="${esc(normalizeDateKey(t?.dueKey) || isoDate())}"></label><label class="field wide duration-field">Time <span>minutes</span><input type="number" name="plannedMinutes" min="1" value="${duration(t || {}) || ""}" placeholder="Optional"></label><div class="wide">${Reading.html(t || {})}</div><details class="task-extra wide" ${t?.notes || t?.subs?.length ? 'open' : ''}><summary>Notes & session steps</summary><div class="form-grid"><label class="field wide">Notes<textarea name="notes" rows="2" placeholder="Add a note…">${esc(t?.notes || "")}</textarea></label><label class="field wide">Session steps<textarea name="steps" rows="2" placeholder="One step per line">${esc((t?.subs || []).map((s) => s.text).join("\n"))}</textarea></label></div></details></div><p class="form-error" id="formError" role="alert"></p><div class="dialog-actions">${t ? `<button type="button" class="delete" data-action="delete" data-id="${esc(id)}">Delete</button><button type="button" data-action="schedule" data-id="${esc(id)}">Schedule</button>` : ""}<button type="submit" class="primary">${t ? "Save" : "Add task"}</button></div></form>`,
+			`${dialogHead(t ? "Edit task" : "New task", "editorTitle")}<form id="taskForm"><div class="form-grid"><label class="field wide task-name">Task<input name="text" value="${esc(t?.text || draft)}" required maxlength="500" placeholder="What would you like to do?"></label><label class="field">Priority<select name="pri">${["must", "should", "could"].map((p) => `<option value="${p}" ${p === (t?.pri || "must") ? "selected" : ""}>${p === "must" ? "Must Do" : p === "should" ? "Should Do" : "Could Do"}</option>`).join("")}</select></label><label class="field">Date<input name="dueKey" type="date" value="${esc(normalizeDateKey(t?.dueKey) || isoDate())}"></label><label class="field">Type<select name="kind"><option value="">Auto${t ? ` (${KIND_LABEL[taskKind({ text: t.text })]})` : ""}</option>${KINDS.filter((k) => k !== "class").map((k) => `<option value="${k}" ${t?.kind === k ? "selected" : ""}>${KIND_LABEL[k]}</option>`).join("")}</select></label><label class="field wide duration-field">Time <span>minutes</span><input type="number" name="plannedMinutes" min="1" value="${duration(t || {}) || ""}" placeholder="Optional"></label><div class="wide">${Reading.html(t || {})}</div><details class="task-extra wide" ${t?.notes || t?.subs?.length ? 'open' : ''}><summary>Notes & session steps</summary><div class="form-grid"><label class="field wide">Notes<textarea name="notes" rows="2" placeholder="Add a note…">${esc(t?.notes || "")}</textarea></label><label class="field wide">Session steps<textarea name="steps" rows="2" placeholder="One step per line">${esc((t?.subs || []).map((s) => s.text).join("\n"))}</textarea></label></div></details></div><p class="form-error" id="formError" role="alert"></p><div class="dialog-actions">${t ? `<button type="button" class="delete" data-action="delete" data-id="${esc(id)}">Delete</button><button type="button" data-action="schedule" data-id="${esc(id)}">Schedule</button>` : ""}<button type="submit" class="primary">${t ? "Save" : "Add task"}</button></div></form>`,
 		);
 	const readingData = Reading.mount(d, t || {}, { title: d.querySelector("[name=text]"), duration: d.querySelector("[name=plannedMinutes]"), split: steps => { const el=d.querySelector("[name=steps]"); const existing=el.value.split("\n"); el.value=[...existing.filter(Boolean),...steps.filter(s=>!existing.includes(s))].join("\n"); el.closest("details").open=true; } });
 	const manualFields = new Set(), fields = d.querySelector("form").elements;
@@ -923,6 +952,7 @@ function openEditor(id, draft = "") {
 				dueKey: key || null,
 				due: key === isoDate() ? "today" : null,
 				notes: f.get("notes"),
+				kind: isKind(f.get("kind")) ? f.get("kind") : null,
 			};
 		if (t) {
 			patch.subs = String(f.get("steps"))
@@ -1054,6 +1084,7 @@ function openSearch(all = false) {
 			["today", "Open Today"],
 			["plan", "Open planner"],
 			["focus", "Open focus workspace"],
+			["docket", "Open weekly docket"],
 			["add", "Add a task"],
 		].filter(([, label]) => !q || label.toLowerCase().includes(q));
 		$("#commandResults").innerHTML =
@@ -1507,7 +1538,11 @@ document.addEventListener("click", (e) => {
 			engines.todo.TodoUIBridge.command.toggle(id);
 			signature = "";
 			refresh();
-			notify(task(id)?.done ? "Task completed." : "Task reopened.", true);
+			{
+				const done = task(id);
+				const untimed = done?.done && !isCalendarReminder(done, courses) && taskKind(done) !== "admin" && !focusMinutes(id);
+				notify(done?.done ? "Task completed." : "Task reopened.", true, untimed ? { label: "Log time", run: () => openLogTime(id) } : null);
+			}
 			break;
 		case "collapse":
 			collapsed.has(b.dataset.priority)
@@ -1532,6 +1567,23 @@ document.addEventListener("click", (e) => {
 			if ($("#settingsDialog").open) $("#settingsDialog").close();
 			openGoal();
 			break;
+		case "docket-week":
+			docketOffset = b.dataset.step === "0" ? 0 : docketOffset + Number(b.dataset.step);
+			signature = "";
+			refresh();
+			break;
+		case "docket-log":
+			openLogTime();
+			break;
+		case "docket-target":
+			openTarget();
+			break;
+		case "docket-remove": {
+			const before = focusSessionsRaw();
+			saveSessions(removeSession(before, id));
+			notify("Entry removed.", () => { saveSessions(before); $("#toast").hidden = true; });
+			break;
+		}
 		case "wrap-up":
 			openWrapUp();
 			break;
@@ -1628,6 +1680,12 @@ $("#themeToggle").onclick = changeTheme;
 $("#searchButton").onclick = () => openSearch();
 $("#settingsButton").onclick = openSettings;
 $("#toastClose").onclick = () => ($("#toast").hidden = true);
+$("#toastAction").onclick = () => {
+	const action = toastAction;
+	$("#toast").hidden = true;
+	toastAction = null;
+	action?.run();
+};
 $("#undoButton").onclick = () => {
 	if (undoAction) { const undo = undoAction; undoAction = null; undo(); return; }
 	engines.todo.TodoUIBridge.command.undo();
@@ -1744,7 +1802,131 @@ function formatMinutes(n) {
 	);
 }
 function broadcastMarkup() {
-	return `<section class="surface context-card broadcast-card" id="broadcastCompanion" aria-label="Broadcast, your focus partner"><div class="broadcast-stage"><div class="broadcast-figure ${broadcastPose}" role="img" aria-label="Broadcast, a muscular CRT television-headed partner in a tailored charcoal suit"><div class="broadcast-shadow"></div><div class="broadcast-leg broadcast-leg-left"><div class="broadcast-shoe"></div></div><div class="broadcast-leg broadcast-leg-right"><div class="broadcast-shoe"></div></div><div class="broadcast-arm broadcast-arm-left"><div class="broadcast-cuff"></div><div class="broadcast-hand"></div></div><div class="broadcast-arm broadcast-arm-right"><div class="broadcast-cuff"></div><div class="broadcast-hand"></div></div><div class="broadcast-body"><div class="broadcast-shirt"></div><div class="broadcast-tie"></div><div class="broadcast-lapel"></div><div class="broadcast-lapel broadcast-lapel-right"></div><div class="broadcast-pocket"></div></div><div class="broadcast-head"><div class="broadcast-antenna"></div><div class="broadcast-screen"><div class="broadcast-face"><span class="broadcast-eye broadcast-eye-left"></span><span class="broadcast-eye broadcast-eye-right"></span><span class="broadcast-mouth"></span><span class="broadcast-fang"></span></div><div class="broadcast-scan"></div><div class="broadcast-reflection"></div></div><div class="broadcast-knob"></div></div></div><p class="broadcast-dialogue" role="status" aria-live="polite">${esc(broadcastLine)}</p></section>`;
+	return `<section class="surface context-card broadcast-card" id="broadcastCompanion" aria-label="Broadcast, your focus partner"><div class="broadcast-stage"><div class="broadcast-figure ${broadcastPose}" role="img" aria-label="Broadcast, a muscular CRT television-headed partner in a tailored charcoal suit"><div class="broadcast-shadow"></div><div class="broadcast-leg broadcast-leg-left"><div class="broadcast-shoe"></div></div><div class="broadcast-leg broadcast-leg-right"><div class="broadcast-shoe"></div></div><div class="broadcast-arm broadcast-arm-left"><div class="broadcast-cuff"></div><div class="broadcast-hand"></div></div><div class="broadcast-arm broadcast-arm-right"><div class="broadcast-cuff"></div><div class="broadcast-hand"></div></div><div class="broadcast-body"><div class="broadcast-shirt"></div><div class="broadcast-tie"></div><div class="broadcast-lapel"></div><div class="broadcast-lapel broadcast-lapel-right"></div><div class="broadcast-pocket"></div></div><div class="broadcast-head"><div class="broadcast-antenna"></div><div class="broadcast-screen"><div class="broadcast-face"><span class="broadcast-eye broadcast-eye-left"></span><span class="broadcast-eye broadcast-eye-right"></span><span class="broadcast-mouth"></span><span class="broadcast-fang"></span></div><div class="broadcast-scan"></div><div class="broadcast-reflection"></div></div><div class="broadcast-knob"></div></div></div></div><p class="broadcast-dialogue" role="status" aria-live="polite">${esc(broadcastLine)}</p></section>`;
+}
+const monthDay = (d) => d.toLocaleDateString("en-CA", { month: "short", day: "numeric" });
+const clockTime = (ms) => {
+	const d = new Date(ms);
+	return timeString(d.getHours() * 60 + d.getMinutes());
+};
+function weeklyTarget() {
+	const value = Number(engines.todo?.SyncEngine.get("todo", "weeklyHours"));
+	return value >= 5 && value <= 80 ? value : WEEKLY_TARGET;
+}
+const focusSessionsRaw = () => engines.clock.SyncEngine.get("clock", "focus_sessions");
+function saveSessions(raw) {
+	engines.clock.SyncEngine.set("clock", "focus_sessions", raw);
+	signature = "";
+	refresh();
+}
+function docketData() {
+	const anchor = new Date();
+	anchor.setDate(anchor.getDate() + docketOffset * 7);
+	const keys = weekKeys(anchor);
+	const now = docketOffset === 0 ? new Date() : docketOffset < 0 ? new Date(keys[6] + "T23:59:59") : new Date(keys[0] + "T00:00:00");
+	const events = keys.flatMap((key) => occurrences(localDate(key)));
+	const entries = [...sessionEntries(focusSessionsRaw(), tasks), ...classEntries(events, now)];
+	return { keys, now, summary: summarize(entries, now, weeklyTarget()) };
+}
+function docketNarration(s) {
+	if (docketOffset < 0) return "That week closed at " + formatUnits(s.billable) + " of " + formatUnits(s.target) + " hours.";
+	if (docketOffset > 0) return "Nothing billed yet. Plan the week, counsel.";
+	const gap = Math.round((s.expected - s.billable) * 10) / 10;
+	if (s.pace === "behind") return formatUnits(gap) + " hours behind pace. Close it before Sunday.";
+	if (s.pace === "ahead") return formatUnits(-gap) + " hours ahead of pace. Do not coast.";
+	return "Right on pace. Hold the line.";
+}
+function docketInsight(s) {
+	if (!s.entries.length) return "";
+	const b = s.byKind;
+	if (docketOffset === 0 && b.reading > 0 && b.study === 0) return "No study time yet. Practice questions or outlining would balance the reading.";
+	if (docketOffset === 0 && b.reading + b.study > 6 && b.writing === 0) return "No writing time yet. A short memo or case comment keeps the skill warm.";
+	const top = ["reading", "study", "writing"].sort((a, c) => b[c] - b[a])[0];
+	return b[top] ? "Most of your independent time went to " + KIND_LABEL[top].toLowerCase() + "." : "";
+}
+function docketGauge(s, keys) {
+	const arc = 251.3, fraction = s.target ? Math.min(1, s.expected / s.target) : 0;
+	const point = (r) => [100 - r * Math.cos(fraction * Math.PI), 105 - r * Math.sin(fraction * Math.PI)];
+	const [x1, y1] = point(68), [x2, y2] = point(96);
+	const marker = docketOffset === 0 ? '<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '" class="gauge-marker"/>' : "";
+	return '<svg viewBox="0 0 200 124" role="img" aria-label="' + formatUnits(s.billable) + " of " + formatUnits(s.target) + ' billable hours"><defs><linearGradient id="gaugeFill" x1="0" x2="1"><stop offset="0" stop-color="#b48aff"/><stop offset="1" stop-color="#7132ec"/></linearGradient></defs><path class="gauge-track" d="M20 105 A80 80 0 0 1 180 105"/><path class="gauge-fill" d="M20 105 A80 80 0 0 1 180 105" stroke-dasharray="' + (arc * s.pct) / 100 + " " + arc + '"/>' + marker + '<text x="100" y="92" text-anchor="middle" class="gauge-value">' + formatUnits(s.billable) + '</text><text x="100" y="113" text-anchor="middle" class="gauge-of">of ' + formatUnits(s.target) + " hours</text></svg>";
+}
+function renderDocket() {
+	const { keys, summary: s } = docketData();
+	const today = isoDate();
+	const perDay = keys.map((key) => s.entries.filter((e) => e.kind !== "admin" && isoDate(new Date(e.start)) === key).reduce((sum, e) => sum + e.units, 0));
+	const max = Math.max(6, ...perDay);
+	const bars = keys.map((key, i) => '<div class="' + (key === today ? "today" : "") + '" style="height:' + Math.max(7, (perDay[i] / max) * 100) + "%" + (perDay[i] ? "" : ";background:var(--surface-3)") + '" title="' + formatUnits(perDay[i]) + ' h"></div>').join("");
+	let lastDay = "";
+	const rows = [...s.entries].reverse().map((e) => {
+		const d = new Date(e.start), day = isoDate(d), first = day !== lastDay;
+		lastDay = day;
+		const manual = e.source === "manual";
+		return '<div class="docket-row"><span class="docket-date">' + (first ? "<b>" + d.toLocaleDateString("en-CA", { weekday: "short" }) + "</b>" + monthDay(d) : "") + '</span><span class="docket-desc">' + esc(e.description) + '<span class="docket-meta"><span class="kind-chip ' + e.kind + '">' + KIND_LABEL[e.kind] + "</span><span>" + clockTime(e.start) + " – " + clockTime(e.end) + "</span>" + (manual ? "<span>Logged</span>" : "") + '</span></span><span class="docket-units">' + formatUnits(e.units) + (manual ? '<button class="icon-button docket-remove" data-action="docket-remove" data-id="' + esc(e.id) + '" aria-label="Remove this entry">' + icon("close") + "</button>" : "") + "</span></div>";
+	}).join("");
+	const first = localDate(keys[0]), last = localDate(keys[6]);
+	const pace = docketOffset === 0 ? (s.pace === "ahead" ? '<span class="ahead">' + formatUnits(s.billable - s.expected) + " h ahead of pace</span>" : s.pace === "behind" ? '<span class="behind">' + formatUnits(s.expected - s.billable) + " h behind pace</span>" : '<span class="ahead">On pace</span>') : "<span>" + formatUnits(s.remaining) + " h short of target</span>";
+	broadcastLine = docketNarration(s);
+	broadcastPose = "";
+	const insight = docketInsight(s);
+	const legend = KINDS.filter((k) => k !== "admin").map((k) => '<span><i class="kind-dot ' + k + '"></i>' + KIND_LABEL[k] + " <b>" + formatUnits(s.byKind[k]) + "</b></span>").join("");
+	return '<div class="docket-layout"><div class="docket-side"><section class="surface docket-gauge"><div class="docket-top"><p class="eyebrow">Billable this week</p><button class="text-button" data-action="docket-target">Target ' + formatUnits(s.target) + " h</button></div>" + docketGauge(s, keys) + '<p class="docket-pace">' + pace + '</p><div class="docket-bars">' + bars + '</div><div class="docket-days">' + "MTWTFSS".split("").map((l) => "<span>" + l + "</span>").join("") + '</div><div class="docket-legend">' + legend + "</div></section>" + (broadcastVisible() ? broadcastMarkup() : "") + '</div><section class="surface docket-main"><div class="docket-head"><div><p class="eyebrow">Weekly docket</p><h2>' + monthDay(first) + " – " + monthDay(last) + '</h2></div><div class="docket-actions"><button class="icon-button flip" data-action="docket-week" data-step="-1" aria-label="Previous week">' + icon("right") + "</button>" + (docketOffset ? '<button class="text-button" data-action="docket-week" data-step="0">This week</button>' : "") + '<button class="icon-button" data-action="docket-week" data-step="1" aria-label="Next week">' + icon("right") + '</button><button class="primary" data-action="docket-log">Log time</button></div></div>' + (rows || '<p class="docket-empty">No hours yet this week. Start a focus session, or log time you have already worked.</p>') + (insight ? '<p class="docket-insight"><span class="eyebrow">Mix</span>' + esc(insight) + "</p>" : "") + '<div class="docket-total"><span>Total billable</span><b>' + formatUnits(s.billable) + "</b></div></section></div>";
+}
+function openTarget() {
+	const d = openDialog("#settingsDialog", dialogHead("Weekly target", "settingsTitle") + '<p class="muted">Billable hours per week: class, reading, study and writing. Admin is tracked but not counted.</p><form id="targetForm" class="settings-links"><label class="field">Hours per week<input name="hours" type="number" min="5" max="80" step="0.5" value="' + weeklyTarget() + '"></label><button class="primary">Save target</button></form>');
+	$("#targetForm").onsubmit = (e) => {
+		e.preventDefault();
+		engines.todo.SyncEngine.set("todo", "weeklyHours", Math.min(80, Math.max(5, Number(e.target.elements.hours.value) || WEEKLY_TARGET)));
+		d.close();
+		signature = "";
+		refresh();
+	};
+}
+function openLogTime(prefillId = "") {
+	const options = focusTasks(tasks, courses).filter((t) => !t.done || t.id === prefillId);
+	const nowDate = new Date();
+	const d = openDialog("#editorDialog", dialogHead("Log time", "editorTitle") + '<form id="logForm" class="log-form"><label class="field wide">Task<select name="task"><option value="">Something else</option>' + options.map((t) => '<option value="' + esc(t.id) + '" ' + (t.id === prefillId ? "selected" : "") + ">" + esc(t.text) + "</option>").join("") + '</select></label><label class="field wide">What did you work on?<input name="note" maxlength="200" autocomplete="off" placeholder="Reviewed Donoghue v Stevenson and outlined the neighbour principle"></label><div class="field wide"><span class="field-label">Type</span><div class="kind-picker" role="radiogroup" aria-label="Type of work">' + KINDS.filter((k) => k !== "class").map((k) => '<button type="button" role="radio" class="kind-chip ' + k + '" data-kind="' + k + '">' + KIND_LABEL[k] + "</button>").join("") + '</div></div><div class="field wide"><span class="field-label">Time spent</span><div class="hour-picker">' + [0.5, 1, 1.5, 2, 3].map((v) => '<button type="button" data-hours="' + v + '">' + formatUnits(v) + "</button>").join("") + '<input name="hours" type="number" min="0.1" max="16" step="0.1" value="1" aria-label="Hours"><span>hours</span></div></div><div class="form-grid"><label class="field">Finished<input name="time" type="time" value="' + timeString(nowDate.getHours() * 60 + nowDate.getMinutes()) + '"></label><label class="field">Date<input name="date" type="date" value="' + isoDate() + '"></label></div><div class="log-preview" id="logPreview" aria-live="polite"></div><p class="form-error" id="logError" role="alert"></p><div class="dialog-actions"><button type="button" data-action="close-dialog">Cancel</button><button type="submit" class="primary">Log time</button></div></form>');
+	const f = d.querySelector("form").elements;
+	let kind = "study", manualKind = false;
+	const picked = () => options.find((t) => t.id === f.task.value);
+	const update = () => {
+		const t = picked();
+		if (!manualKind) kind = t ? taskKind(t) : classifyText(f.note.value);
+		d.querySelectorAll("[data-kind]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.kind === kind)));
+		d.querySelectorAll("[data-hours]").forEach((b) => b.classList.toggle("on", Number(b.dataset.hours) === Number(f.hours.value)));
+		const hours = Number(f.hours.value) || 0, end = new Date(f.date.value + "T" + f.time.value);
+		const start = new Date(end.getTime() - hours * 3600000);
+		$("#logPreview").innerHTML = '<b>' + formatUnits(hours) + ' h</b><span class="kind-chip ' + kind + '">' + KIND_LABEL[kind] + "</span><span>" + (isNaN(end) ? "" : clockTime(start) + " – " + clockTime(end)) + "</span><small>" + (BILLABLE.has(kind) ? "Counts towards your target" : "Tracked, not billable") + "</small>";
+	};
+	f.task.onchange = () => {
+		const t = picked();
+		if (t && duration(t)) f.hours.value = formatUnits(duration(t) / 60);
+		update();
+	};
+	f.note.oninput = update;
+	f.hours.oninput = f.time.oninput = f.date.oninput = update;
+	d.querySelectorAll("[data-kind]").forEach((b) => (b.onclick = () => { kind = b.dataset.kind; manualKind = true; update(); }));
+	d.querySelectorAll("[data-hours]").forEach((b) => (b.onclick = () => { f.hours.value = b.dataset.hours; update(); }));
+	f.task.onchange();
+	f.note.focus();
+	d.querySelector("form").onsubmit = (e) => {
+		e.preventDefault();
+		try {
+			const t = picked();
+			if (!t && !f.note.value.trim()) throw new Error("Describe the work in a few words.");
+			const end = new Date(f.date.value + "T" + f.time.value).getTime();
+			if (!end) throw new Error("Choose when you finished.");
+			const session = manualSession({ taskId: t?.id || "", minutes: minutesFor(Number(f.hours.value)), note: f.note.value, kind, endAt: end });
+			const before = focusSessionsRaw();
+			saveSessions(appendSession(before, session));
+			docketOffset = Math.round((weekStart(new Date(end)) - weekStart(new Date())) / (7 * 86400000));
+			d.close();
+			if (view !== "docket") setView("docket"); else { signature = ""; refresh(); }
+			notify("Logged " + formatUnits(minutesFor(Number(f.hours.value)) / 60) + " h.", () => { saveSessions(before); $("#toast").hidden = true; });
+		} catch (error) {
+			$("#logError").textContent = error.message;
+		}
+	};
 }
 function renderFocus() {
 	const current = activeTask(),

@@ -76,3 +76,17 @@ Broadcast currently lives beside the Focus workflow and reacts to starting or pa
 ## Calendar block controls
 
 Right-click a block in Today or Plan for View details, Edit time, Remove this week only (a single recurring occurrence), and Remove from schedule (the whole block). Shift+F10 / the context-menu key and a touch long press open the same menu; tapping a block also exposes its actions. Edits use the existing sourceDate overrides, retaining other weeks and days. Removal unschedules user-authored linked tasks and removes only open timetable-generated occurrences. Completed task history stays intact. Undo restores only changed records and rejects a restore if those records have since changed. Save pulls current shared state first and continues through the existing timetable and To-Do SyncEngine namespaces.
+
+## Weekly docket
+
+Docket is a fourth Command Centre view (`?panel=docket`) that totals billable hours for a Monday-first week against a weekly target (default 35, stored in `todo/weeklyHours`). It computes everything from existing data and owns no hours store.
+
+- Class: timetable blocks with `category: "class"`, counted as they are attended.
+- Reading, Study, Writing: focus-timer time from `clock/focus_sessions`, typed from the task. Admin is tracked but not billable.
+- Types come from `hours.mjs` (`classifyText`) using the task wording ("read", "pp.", "review", "outline", "memo", "draft"). A task's Type field (`task.kind`) overrides the parser; `TodoUIBridge.command.update` saves it.
+- Line items and the total use docket units (tenths of an hour). Under three minutes bills nothing.
+- Log time appends a `manual: true` session (with `note` and `kind`) to `clock/focus_sessions`, keeping its 300-entry cap. Completing an untimed billable task offers a Log time action. Manual entries can be removed with Undo.
+- The pace marker compares billable hours with a linear share of the target for the elapsed week.
+- Broadcast comments on pace here. He is not yet hidden during focus.
+
+Pure logic and tests: `hours.mjs`, `hours.test.mjs`.

@@ -25,7 +25,7 @@
 				document.documentElement.dataset.theme = "light";
 			}
 		</script>
-	<link rel="stylesheet" href="./styles.css?v=20261002-today-refinements" />
+	<link rel="stylesheet" href="./styles.css?v=20261002-weekly-docket" />
 		<title>Command Centre</title>
 	<link rel="stylesheet" href="../../reading-estimates.css?v=20261002-class-anchored-tasks">
 </head>
@@ -58,7 +58,8 @@
 				<nav class="view-tabs" aria-label="Workspace view">
 					<button data-view="today" aria-current="page">Today</button
 					><button data-view="plan">Plan</button
-					><button data-view="focus">Focus</button>
+					><button data-view="focus">Focus</button
+					><button data-view="docket">Docket</button>
 				</nav>
 				<div class="header-actions">
 					<button id="searchButton" class="search-trigger">
@@ -88,7 +89,7 @@
 			<footer id="focusDock" class="focus-dock" hidden></footer>
 			<p id="announcement" class="sr-only" aria-live="polite"></p>
 			<div class="toast" id="toast" role="status" hidden>
-				<span id="toastText"></span><button id="undoButton" hidden>Undo</button
+				<span id="toastText"></span><button id="toastAction" hidden></button><button id="undoButton" hidden>Undo</button
 				><button
 					class="icon-button"
 					id="toastClose"
@@ -123,6 +124,6 @@
 		<script src="./remember.js"></script>
 		<script defer src="./notion-sync.js?v=20261002-class-anchored-tasks"></script>
 		<script src="../../widget-icons.js?v=20261001-duotone-b"></script>
-		<script type="module" src="./app.js?v=20261002-today-refinements"></script>
+		<script type="module" src="./app.js?v=20261002-weekly-docket"></script>
 	</body>
 </html>

@@ -2463,3 +2463,239 @@ dialog[open] {
 		font-size: 10px;
 	}
 }
+
+/* Weekly docket. */
+:root {
+	--kind-class: #6d7cf5;
+	--kind-reading: #2ca66f;
+	--kind-study: #8b5cf6;
+	--kind-writing: #e08a3c;
+	--kind-admin: #8a97aa;
+	--docket-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+}
+:root[data-theme="dark"] {
+	--kind-class: #8f9bff;
+	--kind-reading: #5fd39a;
+	--kind-study: #b48aff;
+	--kind-writing: #f0a560;
+	--kind-admin: #a2adbd;
+}
+.kind-chip {
+	--k: var(--kind-admin);
+	display: inline-block;
+	padding: 2px 9px;
+	border: 0;
+	border-radius: 20px;
+	color: var(--k);
+	background: color-mix(in srgb, var(--k) 14%, var(--surface));
+	font-size: 11px;
+	font-weight: 650;
+	white-space: nowrap;
+}
+.kind-chip.class, .kind-dot.class { --k: var(--kind-class); }
+.kind-chip.reading, .kind-dot.reading { --k: var(--kind-reading); }
+.kind-chip.study, .kind-dot.study { --k: var(--kind-study); }
+.kind-chip.writing, .kind-dot.writing { --k: var(--kind-writing); }
+.kind-dot {
+	--k: var(--kind-admin);
+	display: inline-block;
+	width: 8px;
+	height: 8px;
+	margin-right: 6px;
+	border-radius: 50%;
+	background: var(--k);
+}
+.docket-layout {
+	display: grid;
+	grid-template-columns: 420px minmax(0, 1fr);
+	gap: 22px;
+	align-items: start;
+	max-width: 1240px;
+	margin: 0 auto;
+}
+.docket-side {
+	display: grid;
+	gap: 22px;
+}
+.docket-gauge,
+.docket-main {
+	padding: 26px;
+}
+.docket-top,
+.docket-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 14px;
+}
+.docket-gauge svg {
+	width: 100%;
+	margin-top: 10px;
+}
+.gauge-track,
+.gauge-fill {
+	fill: none;
+	stroke-width: 14;
+	stroke-linecap: round;
+}
+.gauge-track { stroke: var(--surface-3); }
+.gauge-fill { stroke: url(#gaugeFill); }
+.gauge-marker { stroke: #e08a3c; stroke-width: 3.5; stroke-linecap: round; }
+.gauge-value { font-size: 36px; font-weight: 650; fill: var(--text); }
+.gauge-of { font-size: 11px; fill: var(--muted); }
+.docket-pace {
+	margin: -2px 0 18px;
+	text-align: center;
+	font-size: 13px;
+	font-weight: 650;
+	color: var(--muted);
+}
+.docket-pace .behind { color: #d9822b; }
+.docket-pace .ahead { color: var(--green); }
+.docket-bars {
+	display: grid;
+	grid-template-columns: repeat(7, 1fr);
+	gap: 8px;
+	align-items: end;
+	height: 84px;
+}
+.docket-bars div {
+	border-radius: 6px 6px 3px 3px;
+	background: var(--accent);
+}
+.docket-bars div.today {
+	background: linear-gradient(180deg, #b99cf0, #8b4af3);
+}
+.docket-days {
+	display: grid;
+	grid-template-columns: repeat(7, 1fr);
+	gap: 8px;
+	margin-top: 6px;
+	text-align: center;
+	font-size: 11px;
+	color: var(--faint);
+}
+.docket-legend {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 16px;
+	margin-top: 14px;
+	font-size: 12px;
+	color: var(--muted);
+}
+.docket-legend b { color: var(--text); font-weight: 650; }
+.docket-head h2 {
+	margin: 2px 0 0;
+	font-size: 26px;
+	font-family: var(--docket-serif);
+	font-weight: 500;
+}
+.docket-actions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+.docket-actions .flip svg { transform: scaleX(-1); }
+.docket-main .docket-head { margin-bottom: 10px; padding-bottom: 12px; border-bottom: 2px solid var(--text); }
+.docket-row {
+	display: grid;
+	grid-template-columns: 56px minmax(0, 1fr) auto;
+	gap: 14px;
+	align-items: center;
+	padding: 14px 0;
+	border-bottom: 1px solid var(--line);
+}
+.docket-date { font-size: 12px; color: var(--muted); }
+.docket-date b { display: block; font-size: 14px; color: var(--text); }
+.docket-desc { font-family: var(--docket-serif); font-size: 16px; line-height: 1.35; }
+.docket-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 10px;
+	align-items: center;
+	margin-top: 6px;
+	font-family: inherit;
+	font-size: 12px;
+	color: var(--muted);
+}
+.docket-meta > * { font-family: system-ui, sans-serif; }
+.docket-units {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 20px;
+	font-weight: 650;
+	font-variant-numeric: tabular-nums;
+}
+.docket-remove { opacity: 0.5; }
+.docket-remove:hover { opacity: 1; }
+.docket-remove .icon { width: 14px; height: 14px; }
+.docket-empty { padding: 36px 6px; text-align: center; color: var(--muted); }
+.docket-insight {
+	display: flex;
+	gap: 10px;
+	align-items: center;
+	margin: 16px 0 0;
+	padding: 14px 16px;
+	border-radius: 12px;
+	background: var(--accent-soft);
+	font-size: 13px;
+}
+.docket-total {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	margin-top: 18px;
+	padding-top: 16px;
+	border-top: 2px solid var(--text);
+	color: var(--muted);
+}
+.docket-total b {
+	font-family: var(--docket-serif);
+	font-size: 44px;
+	font-weight: 500;
+	color: var(--text);
+}
+.log-form { display: grid; gap: 14px; }
+.field-label { font-size: 12px; color: var(--muted); }
+.kind-picker, .hour-picker { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 6px; }
+.kind-picker .kind-chip { padding: 7px 14px; font-size: 12px; cursor: pointer; border: 1px solid transparent; }
+.kind-picker .kind-chip[aria-checked="true"] { border-color: var(--k); background: color-mix(in srgb, var(--k) 22%, var(--surface)); }
+.hour-picker button {
+	padding: 7px 14px;
+	border: 1px solid var(--line);
+	border-radius: 20px;
+	background: var(--surface);
+	font-weight: 650;
+	font-size: 12px;
+}
+.hour-picker button.on { color: #fff; border-color: transparent; background: linear-gradient(135deg, #8b4af3, #6d2be0); }
+.hour-picker input { width: 76px; }
+.hour-picker span { font-size: 12px; color: var(--muted); }
+.log-preview {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 12px;
+	align-items: center;
+	padding: 14px 16px;
+	border-radius: 12px;
+	background: var(--surface-2);
+	border: 1px solid var(--line);
+}
+.log-preview b { font-family: var(--docket-serif); font-size: 26px; font-weight: 500; }
+.log-preview small { margin-left: auto; color: var(--muted); }
+#toastAction {
+	border: 0;
+	background: none;
+	color: var(--accent);
+	font-weight: 650;
+}
+@media (max-width: 980px) {
+	.docket-layout { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 560px) {
+	.docket-gauge, .docket-main { padding: 18px; }
+	.docket-row { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; }
+	.docket-head { flex-wrap: wrap; }
+	.docket-total b { font-size: 34px; }
+}

@@ -997,7 +997,7 @@ body::before{
       undo: doUndo,
       update: function (id, patch) {
         poll(); var task = byId(id); if (!task) return;
-        ['text','pri','time','due','dueKey','notes','plannedMinutes','subs','scheduledStart','scheduledEnd','scheduleId','timeboxed','reading'].forEach(function (key) {
+        ['text','pri','time','due','dueKey','notes','plannedMinutes','subs','scheduledStart','scheduledEnd','scheduleId','timeboxed','reading','kind'].forEach(function (key) {
           if (Object.prototype.hasOwnProperty.call(patch, key)) task[key] = patch[key];
         });
         task.updatedAt = Date.now(); task.setKey = todayKey(); save();
