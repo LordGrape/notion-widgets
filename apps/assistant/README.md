@@ -67,6 +67,12 @@ Smart planning can suggest an open 15-minute-aligned slot for a dated task with 
 
 When a focus session has exactly one selected task, Clock stores its task ID and focused seconds in the existing `clock/focus_sessions` key (capped at 300 entries). After three completed, task-linked readings with at least three focused minutes each, the median observed minutes per page becomes the default estimate. Manually entered reading paces and durations stay authoritative. No task text is sent to an external parser or model.
 
+## Broadcast, the partner
+
+Broadcast is the approved optional Command Centre character: a sinister-but-charming CRT television-headed law partner with the established purple screen, expressive eyes and grin, and restrained haunted-broadcast glitches. His redesigned body is strong and muscular, with broad shoulders, a tailored charcoal executive suit, thicker arms, substantial gloves and shoes. Motion combines rubber-hose executive gestures with occasional TV-static glitches. Spoken audio is optional, wordless static-like garble; every line is shown as readable text. The partner visibility setting hides the entire character and interaction surface; the sound setting remains separate. Keep interface symbols within the shared WidgetIcons duotone icon set and never use emoji as UI icons. See the Broadcast rule in the repository `AGENTS.md` before changing his design.
+
+Broadcast currently lives beside the Focus workflow and reacts to starting or pausing focus, finishing a task, and entering or extending a break. `user/commandPartnerVisible` defaults on; `user/commandPartnerSound` defaults off. Both settings use the existing To-Do SyncEngine user namespace. Interface sound effects keep their separate existing preference.
+
 ## Calendar block controls
 
 Right-click a block in Today or Plan for View details, Edit time, Remove this week only (a single recurring occurrence), and Remove from schedule (the whole block). Shift+F10 / the context-menu key and a touch long press open the same menu; tapping a block also exposes its actions. Edits use the existing sourceDate overrides, retaining other weeks and days. Removal unschedules user-authored linked tasks and removes only open timetable-generated occurrences. Completed task history stays intact. Undo restores only changed records and rejects a restore if those records have since changed. Save pulls current shared state first and continues through the existing timetable and To-Do SyncEngine namespaces.

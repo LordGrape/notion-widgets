@@ -35,6 +35,7 @@ Do not change without explicit approval:
 ## Engineering rules
 - Prefer application-local changes. Share code only after a real second consumer exists.
 - Follow the established iconography: use the shared `WidgetIcons.svg` duotone icon set and its existing semantic names. Do not use emoji or platform-dependent Unicode glyphs as UI icons; extend the shared set when a new icon is needed.
+- Preserve the approved Command Centre mascot, Broadcast, as a sinister-but-charming CRT television-headed law partner. The approved build has the existing purple CRT face and expressive broadcast glitches above a strong, broad-shouldered, muscular silhouette in a tailored charcoal executive suit, with substantial gloves and shoes. Keep his rubber-hose executive gestures, occasional restrained TV-static glitches, and readable dialogue paired with optional wordless static-like chatter. The Command Centre must provide an independent setting to hide the entire partner and a separate sound setting. Do not replace established interface icons with emoji or use Broadcast as a substitute for task controls.
 - Preserve public function signatures and update every caller when a contract must change.
 - Use strict types in Study Engine code. Do not introduce `any` or a new framework.
 - Treat generated outputs as generated. Edit Athlete source files, not `athlete.html`; edit Study Engine source, not `dist/studyengine.html`.

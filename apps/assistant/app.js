@@ -22,7 +22,7 @@ import {
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261002-smart-planning";
+	REVISION = "20261002-broadcast-partner";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -59,6 +59,80 @@ function decorate(scope = document) {
 }
 let interfaceAudio = null;
 let recentScheduleId = null;
+let broadcastAudio = null, broadcastResetTimer = 0;
+let broadcastVersion = 0;
+let broadcastLine = "Counsel. Shall we begin?", broadcastPose = "";
+function broadcastVisible() {
+	return engines.todo?.SyncEngine.get("user", "commandPartnerVisible") !== false;
+}
+function broadcastSoundEnabled() {
+	return engines.todo?.SyncEngine.get("user", "commandPartnerSound") === true;
+}
+function stopBroadcastAudio() {
+	broadcastVersion++;
+	if (!broadcastAudio) return;
+	try { broadcastAudio.stop(); } catch {}
+	broadcastAudio = null;
+}
+function broadcastChatter() {
+	if (!broadcastVisible() || !broadcastSoundEnabled()) return;
+	stopBroadcastAudio();
+	const version = broadcastVersion;
+	try {
+		const Audio = window.AudioContext || window.webkitAudioContext;
+		if (!Audio) return;
+		const context = new Audio();
+		context.resume().catch(() => {});
+		const master = context.createGain();
+		master.gain.value = 0.045;
+		master.connect(context.destination);
+		broadcastAudio = { stop: () => { try { master.disconnect(); context.close(); } catch {} } };
+		const start = context.currentTime;
+		for (let i = 0; i < 5; i++) {
+			const oscillator = context.createOscillator(), filter = context.createBiquadFilter(), gain = context.createGain();
+			const at = start + i * 0.105;
+			oscillator.type = "sawtooth";
+			oscillator.frequency.setValueAtTime(88 + (i % 3) * 28, at);
+			oscillator.frequency.linearRampToValueAtTime(125 + (i % 2) * 30, at + 0.07);
+			filter.type = "bandpass";
+			filter.frequency.setValueAtTime(520 + (i % 3) * 180, at);
+			filter.frequency.linearRampToValueAtTime(850 - (i % 2) * 260, at + 0.08);
+			filter.Q.value = 3.2;
+			gain.gain.setValueAtTime(0.001, at);
+			gain.gain.linearRampToValueAtTime(0.48, at + 0.014);
+			gain.gain.exponentialRampToValueAtTime(0.001, at + 0.09);
+			oscillator.connect(filter); filter.connect(gain); gain.connect(master);
+			oscillator.start(at); oscillator.stop(at + 0.1);
+			oscillator.onended = () => { oscillator.disconnect(); filter.disconnect(); gain.disconnect(); };
+		}
+		if (version !== broadcastVersion) { broadcastAudio.stop(); broadcastAudio = null; }
+		setTimeout(() => { if (broadcastVersion === version) { broadcastAudio?.stop(); broadcastAudio = null; } }, 850);
+	} catch { /* Optional audio never blocks focus controls. */ }
+}
+function broadcastReact(state) {
+	const card = $("#broadcastCompanion");
+	if (!card || card.hidden || !broadcastVisible()) return;
+	const figure = card.querySelector(".broadcast-figure"), line = card.querySelector(".broadcast-dialogue");
+	const copy = {
+		start: ["The clock is running. Make this hour count, counsel.", "broadcast-greet"],
+		pause: ["A pause is part of the work. I'll hold the file.", "broadcast-focus"],
+		finish: ["Filed. One more matter closed.", "broadcast-celebrate"],
+		break: ["Recess. Even partners leave the office for a minute.", "broadcast-celebrate"],
+		flow: ["An extra quarter-hour? Diligent counsel.", "broadcast-greet"],
+	}[state] || ["Shall we begin, counsel?", "broadcast-greet"];
+	broadcastLine = copy[0];
+	broadcastPose = copy[1];
+	line.textContent = copy[0];
+	figure.classList.remove("broadcast-greet", "broadcast-focus", "broadcast-celebrate", "broadcast-talking", "broadcast-glitch");
+	void figure.offsetWidth;
+	figure.classList.add(...copy[1].split(" "), "broadcast-talking", "broadcast-glitch");
+	clearTimeout(broadcastResetTimer);
+	broadcastResetTimer = setTimeout(() => {
+		broadcastPose = "";
+		$("#broadcastCompanion .broadcast-figure")?.classList.remove("broadcast-talking", "broadcast-glitch", "broadcast-greet", "broadcast-celebrate");
+	}, 1900);
+	broadcastChatter();
+}
 function playCue(kind) {
 	if (engines.todo?.SyncEngine.get("user", "commandCentreSounds") === false)
 		return;
@@ -685,6 +759,7 @@ function updateTimer() {
 	if (view === "focus") {
 		const currentKey = `${w.studyActive}:${w.studyPhase}:${w.studyPending}`;
 		if (currentKey !== lastFocus) {
+			const previous = lastFocus;
 			lastFocus = currentKey;
 			const actions = $("#breakActions");
 			if (actions)
@@ -693,6 +768,7 @@ function updateTimer() {
 					w.studyPending &&
 					w.studyPhase !== "focus"
 				);
+			if (previous && w.studyActive && w.studyPhase !== "focus") broadcastReact("break");
 		}
 	}
 }
@@ -830,6 +906,7 @@ function openGoal() {
 	};
 }
 function openSettings() {
+	const partnerVisible = broadcastVisible(), partnerSound = broadcastSoundEnabled();
 	openDialog(
 		"#settingsDialog",
 		`${dialogHead("Your workspace", "settingsTitle")}<p class="muted">The same widgets and saved data, with a view for each part of your day.</p><div class="settings-links">${Object.keys(
@@ -841,9 +918,20 @@ function openSettings() {
 			)
 			.join(
 				"",
-			)}</div><button id="soundToggle" aria-pressed="${engines.todo.SyncEngine.get("user", "commandCentreSounds") !== false}">Sound effects: ${engines.todo.SyncEngine.get("user", "commandCentreSounds") === false ? "Off" : "On"}</button> <button data-action="goal">Adjust daily finish line</button> <button id="lockButton">Lock Command Centre</button>`,
+			)}</div><fieldset class="partner-settings"><legend>Broadcast</legend><label><input id="partnerVisibleToggle" type="checkbox" ${partnerVisible ? "checked" : ""}> Show partner</label><label><input id="partnerSoundToggle" type="checkbox" ${partnerSound ? "checked" : ""}> Static chatter</label></fieldset><button id="soundToggle" aria-pressed="${engines.todo.SyncEngine.get("user", "commandCentreSounds") !== false}">Interface sounds: ${engines.todo.SyncEngine.get("user", "commandCentreSounds") === false ? "Off" : "On"}</button> <button data-action="goal">Adjust daily finish line</button> <button id="lockButton">Lock Command Centre</button>`,
 	);
 	$("#lockButton").onclick = lock;
+	$("#partnerVisibleToggle").onchange = (e) => {
+		engines.todo.SyncEngine.set("user", "commandPartnerVisible", e.currentTarget.checked);
+		if (!e.currentTarget.checked) stopBroadcastAudio();
+		const card = $("#broadcastCompanion");
+		if (card) card.hidden = !e.currentTarget.checked;
+		else if (e.currentTarget.checked && view === "focus") render();
+	};
+	$("#partnerSoundToggle").onchange = (e) => {
+		engines.todo.SyncEngine.set("user", "commandPartnerSound", e.currentTarget.checked);
+		if (!e.currentTarget.checked) stopBroadcastAudio();
+	};
 	$("#soundToggle").onclick = (e) => {
 		const enabled =
 			engines.todo.SyncEngine.get("user", "commandCentreSounds") === false;
@@ -1312,6 +1400,10 @@ document.addEventListener("click", (e) => {
 	const b = e.target.closest("[data-action]");
 	if (!b) return;
 	const id = b.dataset.id;
+	if (b.dataset.action === "timer") {
+		broadcastReact(/pause/i.test(b.textContent) ? "pause" : "start");
+	} else if (b.dataset.action === "finish") broadcastReact("finish");
+	else if (b.dataset.action === "flow") broadcastReact("flow");
 	switch (b.dataset.action) {
 		case "toggle":
 			engines.todo.TodoUIBridge.command.toggle(id);
@@ -1547,6 +1639,9 @@ function formatMinutes(n) {
 		`${h ? h + " h" : ""}${h && m ? " " : ""}${m ? m + " min" : ""}` || "0 min"
 	);
 }
+function broadcastMarkup() {
+	return `<section class="surface context-card broadcast-card" id="broadcastCompanion" aria-label="Broadcast, your focus partner"><div class="broadcast-stage"><div class="broadcast-figure ${broadcastPose}" role="img" aria-label="Broadcast, a muscular CRT television-headed partner in a tailored charcoal suit"><div class="broadcast-shadow"></div><div class="broadcast-leg broadcast-leg-left"><div class="broadcast-shoe"></div></div><div class="broadcast-leg broadcast-leg-right"><div class="broadcast-shoe"></div></div><div class="broadcast-arm broadcast-arm-left"><div class="broadcast-cuff"></div><div class="broadcast-hand"></div></div><div class="broadcast-arm broadcast-arm-right"><div class="broadcast-cuff"></div><div class="broadcast-hand"></div></div><div class="broadcast-body"><div class="broadcast-shirt"></div><div class="broadcast-tie"></div><div class="broadcast-lapel"></div><div class="broadcast-lapel broadcast-lapel-right"></div><div class="broadcast-pocket"></div></div><div class="broadcast-head"><div class="broadcast-antenna"></div><div class="broadcast-screen"><div class="broadcast-face"><span class="broadcast-eye broadcast-eye-left"></span><span class="broadcast-eye broadcast-eye-right"></span><span class="broadcast-mouth"></span><span class="broadcast-fang"></span></div><div class="broadcast-scan"></div><div class="broadcast-reflection"></div></div><div class="broadcast-knob"></div></div></div><p class="broadcast-dialogue" role="status" aria-live="polite">${esc(broadcastLine)}</p></section>`;
+}
 function renderFocus() {
 	const current = activeTask(),
 		next = todayTasks(focusTasks(tasks, courses)).find(
@@ -1570,7 +1665,7 @@ function renderFocus() {
 		})
 		.join(
 			"",
-		)}</section><section class="surface context-card next-scheduled"><p class="eyebrow">${icon("calendar")} Next scheduled</p><b>${esc(nextEvent?.name || "An open stretch")}</b><p>${nextEvent ? `${esc(nextEvent.start)} · ${formatMinutes(minutes(nextEvent.end) - minutes(nextEvent.start))}` : "No more scheduled blocks today."}</p></section></aside></div><div class="surface focus-agenda">${
+		)}</section>${broadcastVisible() ? broadcastMarkup() : ""}<section class="surface context-card next-scheduled"><p class="eyebrow">${icon("calendar")} Next scheduled</p><b>${esc(nextEvent?.name || "An open stretch")}</b><p>${nextEvent ? `${esc(nextEvent.start)} · ${formatMinutes(minutes(nextEvent.end) - minutes(nextEvent.start))}` : "No more scheduled blocks today."}</p></section></aside></div><div class="surface focus-agenda">${
 		events
 			.filter((e) => minutes(e.end) >= now)
 			.slice(0, 3)

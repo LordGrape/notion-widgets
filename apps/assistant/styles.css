@@ -2206,3 +2206,81 @@ dialog[open] {
 }
 
 .editor-smart-preview { margin: 8px 0 0; font-weight: 400; }
+
+/* Broadcast: optional focus companion. Character artwork uses CSS shapes so the embed stays self-contained. */
+.broadcast-card {
+	padding: 17px 15px 15px;
+	text-align: center;
+	overflow: hidden;
+	background: radial-gradient(ellipse at 50% 45%, color-mix(in srgb, var(--accent) 13%, var(--surface)), var(--surface) 72%);
+}
+.broadcast-card[hidden] { display: none; }
+.broadcast-stage { height: 252px; display: grid; place-items: center; overflow: hidden; }
+.broadcast-figure { position: relative; width: 240px; height: 282px; margin-top: 12px; zoom: .8; transform-origin: 50% 90%; animation: broadcast-idle 4s ease-in-out infinite; }
+.broadcast-shadow { position: absolute; left: 24px; bottom: 5px; width: 192px; height: 14px; border-radius: 50%; background: #13091f30; filter: blur(5px); }
+.broadcast-leg { position: absolute; top: 223px; z-index: 2; width: 50px; height: 57px; border-radius: 8px 8px 17px 15px; background: linear-gradient(90deg,#282330,#51445e 46%,#2b2434); box-shadow: inset 2px 0 #9483a22b; }
+.broadcast-leg::after { content: ""; position: absolute; left: 25px; top: 12px; width: 1px; height: 38px; background: #a28bad35; }
+.broadcast-leg-left { left: 66px; transform: rotate(5deg); }
+.broadcast-leg-right { left: 137px; transform: rotate(-6deg); }
+.broadcast-shoe { position: absolute; left: -14px; bottom: -4px; width: 68px; height: 27px; border-radius: 60% 26% 24% 25%; background: radial-gradient(ellipse at 30% 16%,#75637f,transparent 50%),linear-gradient(#3c3148,#17111f 74%); box-shadow: 0 3px #5b4a67,0 5px #211829; }
+.broadcast-leg-right .broadcast-shoe { left: 0; transform: scaleX(-1); }
+.broadcast-body { position: absolute; z-index: 4; top: 123px; left: 42px; width: 157px; height: 121px; border-radius: 48% 48% 23% 23% / 25% 25% 18% 18%; transform: rotate(-2deg); background: radial-gradient(ellipse at 27% 20%,#6d607a,transparent 45%),linear-gradient(110deg,#51475b,#302936 64%,#211c29); box-shadow: inset 2px 2px 2px #c2b0cf35,inset -7px -5px 12px #130d1d50,4px 7px 10px #100a1d25; }
+.broadcast-body::before { content: ""; position: absolute; left: 77px; top: 74px; width: 1px; height: 40px; background: #18131f; box-shadow: 1px 0 #a893b52b; }
+.broadcast-arm { position: absolute; z-index: 3; top: 139px; width: 53px; height: 98px; border-radius: 48% 48% 36% 36% / 28% 28% 44% 44%; transform-origin: 50% 16%; background: radial-gradient(ellipse at 29% 23%,#7a6b87,transparent 56%),linear-gradient(100deg,#554a64,#2b2333); box-shadow: inset 2px 1px 2px #c4b0d044,inset -5px -3px 10px #170f20; transition: transform .4s cubic-bezier(.3,1.6,.5,1); }
+.broadcast-arm-left { left: 13px; transform: rotate(12deg); }
+.broadcast-arm-right { left: 178px; transform: rotate(-14deg); }
+.broadcast-cuff { position: absolute; left: 5px; bottom: 3px; width: 43px; height: 17px; border-radius: 5px; background: linear-gradient(90deg,#b9a9c2,#f0e7ee 43%,#c4b2cf); box-shadow: 0 -2px #251b2e; }
+.broadcast-cuff::after { content: ""; position: absolute; right: 5px; top: 5px; width: 6px; height: 6px; border-radius: 2px; background: #b58bd4; }
+.broadcast-hand { position: absolute; left: 4px; bottom: -22px; width: 44px; height: 37px; border-radius: 14px 14px 18px 17px; background: linear-gradient(125deg,#887794,#493a55 58%,#292031); box-shadow: inset 2px 2px #c4a9d063,2px 3px 3px #170d22; }
+.broadcast-hand::before { content: ""; position: absolute; left: -5px; top: 6px; width: 15px; height: 23px; border-radius: 9px; transform: rotate(-18deg); background: linear-gradient(100deg,#816f8d,#493a55); }
+.broadcast-hand::after { content: ""; position: absolute; left: 20px; top: 12px; width: 1px; height: 13px; background: #21172b66; box-shadow: 8px 0 #21172b66; }
+.broadcast-shirt { position: absolute; z-index: 1; left: 49px; top: 1px; width: 60px; height: 76px; clip-path: polygon(0 0,100% 0,51% 100%); background: linear-gradient(90deg,#c2b4ca,#f4eaf0 50%,#d2c3d8); }
+.broadcast-tie { position: absolute; z-index: 2; left: 70px; top: 9px; width: 22px; height: 78px; clip-path: polygon(10% 0,88% 0,62% 20%,100% 85%,54% 100%,14% 87%,40% 20%); background: linear-gradient(90deg,#633197,#b080e8 52%,#552778); }
+.broadcast-lapel { position: absolute; z-index: 3; left: 17px; top: 3px; width: 67px; height: 98px; clip-path: polygon(30% 0,56% 0,100% 100%,0 45%,24% 31%,5% 22%); background: linear-gradient(125deg,#8a7997,#45394f 55%,#362b40); }
+.broadcast-lapel-right { left: 78px; width: 61px; height: 94px; transform: scaleX(-1); background: linear-gradient(125deg,#746080,#3c3047); }
+.broadcast-pocket { position: absolute; right: 15px; top: 53px; width: 22px; height: 13px; background: #eee5ec; clip-path: polygon(0 100%,10% 30%,38% 65%,65% 0,100% 100%); }
+.broadcast-head { position: absolute; z-index: 6; left: 25px; top: 5px; width: 190px; height: 143px; border: 3px solid #39303f; border-radius: 21px 25px 24px 20px; transform: rotate(-6deg); transform-origin: 50% 95%; background: linear-gradient(120deg,#766982 0%,#3e3348 17%,#211a29 81%); box-shadow: 10px 7px 0 #19141f,13px 9px 0 #463850,0 12px 15px #0b051c40; animation: broadcast-head-idle 6s ease-in-out infinite; }
+.broadcast-screen { position: absolute; inset: 11px 20px 12px 9px; overflow: hidden; border: 4px solid #130f1b; border-radius: 16px 20px 21px 15px; background: radial-gradient(ellipse at 40% 35%,#684099,#291741 65%,#140c24); box-shadow: inset 0 0 15px #050309,0 1px 1px #a08da8; }
+.broadcast-face { position: absolute; inset: 0; filter: drop-shadow(0 0 5px #d19aff); }
+.broadcast-eye { position: absolute; top: 28px; width: 28px; height: 21px; border-radius: 4px 4px 16px 16px; background: #f2d7ff; transform-origin: center; animation: broadcast-blink 5s infinite; }
+.broadcast-eye-left { left: 21px; transform: rotate(14deg); }
+.broadcast-eye-right { right: 18px; transform: rotate(-14deg); }
+.broadcast-mouth { position: absolute; left: 28px; top: 48px; width: 74px; height: 31px; border-bottom: 7px solid #f2d7ff; border-radius: 0 0 65% 55%; transform: rotate(-9deg); }
+.broadcast-fang { position: absolute; top: 72px; left: 37px; width: 8px; height: 10px; clip-path: polygon(0 0,100% 0,50% 100%); background: #f2d7ff; transform: rotate(15deg); }
+.broadcast-scan,.broadcast-reflection { position: absolute; inset: 0; pointer-events: none; }
+.broadcast-scan { z-index: 4; opacity: .13; background: repeating-linear-gradient(0deg,transparent 0 3px,#d3a7ff 3px 4px); }
+.broadcast-reflection { z-index: 5; border-radius: inherit; background: linear-gradient(130deg,#f5e4ff18,transparent 45%); }
+.broadcast-knob { position: absolute; right: 4px; bottom: 18px; width: 10px; height: 10px; border-radius: 50%; background: linear-gradient(135deg,#b6a8bd,#352940); box-shadow: 0 -15px #64536e; }
+.broadcast-antenna { position: absolute; top: -17px; left: 111px; width: 3px; height: 17px; background: #aa9ab2; transform: rotate(25deg); transform-origin: bottom; }
+.broadcast-antenna::after { content: ""; position: absolute; top: -3px; left: -2px; width: 7px; height: 7px; border-radius: 50%; background: #c3acd0; }
+.broadcast-dialogue { margin: 4px 0 0; padding: 10px 12px; min-height: 52px; display: grid; place-items: center; border-radius: 11px; background: var(--surface-2); color: var(--text); font-size: 12px; line-height: 1.45; }
+.broadcast-greet .broadcast-arm-right { animation: broadcast-wave 1.35s ease-in-out; }
+.broadcast-greet .broadcast-head { animation: broadcast-nod .75s ease-in-out 2; }
+.broadcast-celebrate { animation: broadcast-hop .65s ease-in-out 2; }
+.broadcast-celebrate .broadcast-arm-left { transform: rotate(112deg); }
+.broadcast-celebrate .broadcast-arm-right { transform: rotate(-112deg); }
+.broadcast-focus .broadcast-head { animation: none; transform: rotate(2deg) translateY(3px); }
+.broadcast-focus .broadcast-eye { height: 11px; top: 35px; }
+.broadcast-focus .broadcast-fang { display: none; }
+.broadcast-talking .broadcast-mouth { animation: broadcast-talk .18s ease-in-out infinite alternate; }
+.broadcast-glitch .broadcast-face { animation: broadcast-glitch .42s steps(2); }
+@keyframes broadcast-idle { 0%,100%{transform:translateY(0) rotate(-1deg)} 50%{transform:translateY(-4px) rotate(1deg)} }
+@keyframes broadcast-head-idle { 0%,70%,100%{transform:rotate(-6deg)} 80%,90%{transform:rotate(-2deg)} }
+@keyframes broadcast-blink { 0%,44%,48%,100%{scale:1 1} 46%{scale:1 .1} }
+@keyframes broadcast-wave { 0%,100%{transform:rotate(-14deg)} 25%,65%{transform:rotate(-135deg)} 45%,80%{transform:rotate(-112deg)} }
+@keyframes broadcast-nod { 0%,100%{transform:rotate(-6deg)} 50%{transform:rotate(4deg) translateY(4px)} }
+@keyframes broadcast-hop { 0%,100%{transform:translateY(0) scale(1)} 20%{transform:translateY(5px) scale(1.05,.95)} 55%{transform:translateY(-17px) scale(.98,1.02)} }
+@keyframes broadcast-talk { from{height:24px;scale:1 .8} to{height:31px;scale:.9 1.1} }
+@keyframes broadcast-glitch { 0%,100%{transform:translateX(0)} 25%{transform:translateX(3px) skewX(3deg)} 60%{transform:translateX(-2px)} }
+.partner-settings { display: flex; flex-wrap: wrap; gap: 16px 22px; border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px 14px; margin: 18px 0; color: var(--muted); }
+.partner-settings legend { padding: 0 6px; font-weight: 650; color: var(--text); }
+.partner-settings label { display: flex; align-items: center; gap: 8px; min-height: 32px; }
+.partner-settings input { accent-color: var(--accent); width: 16px; height: 16px; }
+@media (prefers-reduced-motion: reduce) {
+	.broadcast-figure,.broadcast-head,.broadcast-eye,.broadcast-mouth,.broadcast-arm,.broadcast-face { animation: none !important; transition: none !important; }
+}
+@media (max-width: 640px) {
+	.broadcast-card { grid-column: 1 / -1; }
+	.broadcast-stage { height: 235px; }
+	.broadcast-figure { zoom: .8; }
+}

@@ -1,4 +1,4 @@
-const CACHE = "command-centre-20261002-class-anchored-tasks";
+const CACHE = "command-centre-20261002-broadcast-partner";
 const SHELL = [
 	"../../widget-platform.js",
 	"../../reading-estimates.js",

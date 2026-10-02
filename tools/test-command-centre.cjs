@@ -505,6 +505,28 @@ let states = {
 			.getByRole("button", { name: "Focus on Read assigned case", exact: true })
 			.click();
 		await page.locator(".focus-layout").waitFor();
+		await page.locator("#broadcastCompanion .broadcast-figure").waitFor();
+		await page.locator("#settingsButton").click();
+		await page.locator("#partnerVisibleToggle").uncheck();
+		assert.equal(
+			await page.locator("#broadcastCompanion").getAttribute("hidden"),
+			"",
+			"Show partner hides the complete focus companion",
+		);
+		assert.equal(
+			await page.evaluate(() => document.querySelector("#todoFrame").contentWindow.document.querySelector("#shell").contentWindow.SyncEngine.get("user", "commandPartnerVisible")),
+			false,
+			"Partner visibility is saved in the existing user namespace",
+		);
+		await page.locator("#partnerVisibleToggle").check();
+		await page.locator("#partnerSoundToggle").check();
+		assert.equal(
+			await page.evaluate(() => document.querySelector("#todoFrame").contentWindow.document.querySelector("#shell").contentWindow.SyncEngine.get("user", "commandPartnerSound")),
+			true,
+			"Partner chatter has an independent saved setting",
+		);
+		await page.locator("#partnerSoundToggle").uncheck();
+		await page.locator("#settingsDialog [data-action=close-dialog]").click();
 		await page.screenshot({
 			path: path.join(out, "C-focus-light.png"),
 			fullPage: true,
