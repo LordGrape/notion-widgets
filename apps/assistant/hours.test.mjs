@@ -12,6 +12,11 @@ import {
 	manualSession,
 	appendSession,
 	removeSession,
+	heatRange,
+	dayTotals,
+	levelFor,
+	heatCells,
+	streakStats,
 } from "./hours.mjs";
 
 test("task text is tagged by the smart parser", () => {
@@ -132,4 +137,62 @@ test("untethered sessions are tagged from their narrative and can be removed", (
 	]);
 	assert.deepEqual(sessionEntries(raw, []).map((e) => e.kind), ["writing", "reading"]);
 	assert.deepEqual(JSON.parse(removeSession(raw, "m1")).map((s) => s.id), ["m2"]);
+});
+
+const daysOf = (...pairs) => new Map(pairs);
+test("heat range is whole Monday-first weeks ending this week", () => {
+	const keys = heatRange("2026-10-02", 3);
+	assert.equal(keys.length, 21);
+	assert.equal(keys[0], "2026-09-14");
+	assert.equal(keys[20], "2026-10-04");
+});
+test("day totals sum billable units per local day and skip admin", () => {
+	const at = (d, h) => new Date(2026, 9, d, h).getTime();
+	const totals = dayTotals([
+		{ kind: "reading", minutes: 60, start: at(1, 9) },
+		{ kind: "class", minutes: 90, start: at(1, 13) },
+		{ kind: "admin", minutes: 120, start: at(1, 16) },
+		{ kind: "study", minutes: 30, start: at(2, 9) },
+	]);
+	assert.equal(totals.get("2026-10-01"), 2.5);
+	assert.equal(totals.get("2026-10-02"), 0.5);
+});
+test("levels scale against the daily target", () => {
+	assert.equal(levelFor(0, 7), 0);
+	assert.equal(levelFor(1, 7), 1);
+	assert.equal(levelFor(2.5, 7), 2);
+	assert.equal(levelFor(5, 7), 3);
+	assert.equal(levelFor(7, 7), 4);
+});
+test("heat cells flag today and the future", () => {
+	const { columns, months } = heatCells({ totals: daysOf(["2026-10-02", 7]), today: "2026-10-02", weeks: 2, dailyTarget: 7 });
+	assert.equal(columns.length, 2);
+	const today = columns[1].find((c) => c.today);
+	assert.equal(today.level, 4);
+	assert.equal(columns[1][6].future, true);
+	assert.equal(months[0].week, 0);
+});
+test("weekends rest and weekdays break the streak", () => {
+	const keys = heatRange("2026-10-09", 3);
+	const active = ["2026-10-01", "2026-10-02", "2026-10-05", "2026-10-06"];
+	const totals = new Map(active.map((k) => [k, 3]));
+	const stats = streakStats(totals, keys, "2026-10-06");
+	assert.equal(stats.current, 4);
+	assert.equal(stats.best, 4);
+	const broken = streakStats(totals, keys, "2026-10-08");
+	assert.equal(broken.current, 0);
+	assert.equal(broken.best, 4);
+});
+test("today does not break a streak before it has ended", () => {
+	const keys = heatRange("2026-10-07", 2);
+	const totals = new Map([["2026-10-05", 3], ["2026-10-06", 3]]);
+	assert.equal(streakStats(totals, keys, "2026-10-07").current, 2);
+});
+test("streak milestones track progress", () => {
+	const keys = heatRange("2026-10-09", 3);
+	const totals = new Map(["2026-10-05", "2026-10-06", "2026-10-07", "2026-10-08", "2026-10-09"].map((k) => [k, 3]));
+	const stats = streakStats(totals, keys, "2026-10-09");
+	assert.equal(stats.current, 5);
+	assert.equal(stats.next, 7);
+	assert.equal(stats.progress, 50);
 });

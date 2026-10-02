@@ -1,4 +1,4 @@
-import { isoDate } from "./domain.mjs";
+import { isoDate, localDate } from "./domain.mjs";
 
 /* Billable-hours model. Pure functions only: tasks, focus sessions and timetable
    events go in; a docket (entries, totals, pace) comes out. Nothing here stores
@@ -177,4 +177,72 @@ export function appendSession(raw, session) {
 
 export function removeSession(raw, id) {
 	return JSON.stringify(parseSessions(raw).filter((s) => s && s.id !== id));
+}
+
+/* Consistency: a day is active at STREAK_MIN billable hours. Weekends are rest
+   days: an inactive Saturday or Sunday never breaks a streak, but an active
+   one still counts. Today never breaks a streak before it has ended. */
+export const STREAK_MIN = 2;
+export const HEAT_WEEKS = 20;
+export const MILESTONES = [3, 7, 14, 21, 30, 60, 100];
+
+export function heatRange(today, weeks = HEAT_WEEKS) {
+	const start = weekStart(localDate(today));
+	start.setDate(start.getDate() - (weeks - 1) * 7);
+	return Array.from({ length: weeks * 7 }, (_, i) => {
+		const d = new Date(start);
+		d.setDate(start.getDate() + i);
+		return isoDate(d);
+	});
+}
+export function dayTotals(entries) {
+	const totals = new Map();
+	for (const e of entries) {
+		if (!BILLABLE.has(e.kind)) continue;
+		const key = isoDate(new Date(e.start));
+		totals.set(key, (totals.get(key) || 0) + unitsFor(e.minutes));
+	}
+	for (const [key, value] of totals) totals.set(key, Math.round(value * 10) / 10);
+	return totals;
+}
+export function levelFor(units, dailyTarget) {
+	if (!(units > 0)) return 0;
+	if (units >= dailyTarget - 0.05) return 4;
+	const ratio = units / dailyTarget;
+	return ratio < 0.25 ? 1 : ratio < 0.5 ? 2 : 3;
+}
+export function heatCells({ totals, today, weeks = HEAT_WEEKS, dailyTarget }) {
+	const keys = heatRange(today, weeks);
+	const columns = [];
+	const months = [];
+	let lastMonth = -1;
+	for (let w = 0; w < weeks; w++) {
+		const column = keys.slice(w * 7, w * 7 + 7).map((key) => {
+			const units = totals.get(key) || 0;
+			return { key, units, level: key > today ? 0 : levelFor(units, dailyTarget), future: key > today, today: key === today };
+		});
+		columns.push(column);
+		const month = localDate(column[0].key).getMonth();
+		if (month !== lastMonth) {
+			months.push({ week: w, label: localDate(column[0].key).toLocaleDateString("en-CA", { month: "short" }) });
+			lastMonth = month;
+		}
+	}
+	return { columns, months, keys };
+}
+export function streakStats(totals, keys, today, min = STREAK_MIN) {
+	let run = 0;
+	let best = 0;
+	for (const key of keys) {
+		if (key > today) break;
+		const active = (totals.get(key) || 0) >= min;
+		const day = localDate(key).getDay();
+		if (active) run += 1;
+		else if (key === today || day === 0 || day === 6) continue;
+		else run = 0;
+		if (run > best) best = run;
+	}
+	const next = MILESTONES.find((m) => m > run) || MILESTONES[MILESTONES.length - 1];
+	const previous = [...MILESTONES].reverse().find((m) => m <= run) || 0;
+	return { current: run, best, next, progress: next > previous ? Math.min(100, Math.round(((run - previous) / (next - previous)) * 100)) : 100 };
 }

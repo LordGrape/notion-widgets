@@ -37,12 +37,18 @@ import {
 	manualSession,
 	appendSession,
 	removeSession,
+	HEAT_WEEKS,
+	STREAK_MIN,
+	dayTotals,
+	heatCells,
+	heatRange,
+	streakStats,
 } from "./hours.mjs";
 import { planDay, isUnscheduled, PLAN_START, PLAN_END } from "./autofit.mjs";
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261002-typography";
+	REVISION = "20261002-consistency";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -2087,7 +2093,35 @@ function renderDocket() {
 	broadcastPose = "";
 	const insight = docketInsight(s);
 	const legend = KINDS.filter((k) => k !== "admin").map((k) => '<span><i class="kind-dot ' + k + '"></i>' + KIND_LABEL[k] + " <b>" + formatUnits(s.byKind[k]) + "</b></span>").join("");
-	return '<div class="docket-layout"><div class="docket-side"><section class="surface docket-gauge"><div class="docket-top"><p class="eyebrow">Billable this week</p><button class="text-button" data-action="docket-target">Target ' + formatUnits(s.target) + " h</button></div>" + docketGauge(s, keys) + '<p class="docket-pace">' + pace + '</p><div class="docket-bars">' + bars + '</div><div class="docket-days">' + "MTWTFSS".split("").map((l) => "<span>" + l + "</span>").join("") + '</div><div class="docket-legend">' + legend + "</div></section>" + (broadcastVisible() ? broadcastMarkup() : "") + '</div><section class="surface docket-main"><div class="docket-head"><div><p class="eyebrow">Weekly docket</p><h2>' + monthDay(first) + " – " + monthDay(last) + '</h2></div><div class="docket-actions"><button class="icon-button flip" data-action="docket-week" data-step="-1" aria-label="Previous week">' + icon("right") + "</button>" + (docketOffset ? '<button class="text-button" data-action="docket-week" data-step="0">This week</button>' : "") + '<button class="icon-button" data-action="docket-week" data-step="1" aria-label="Next week">' + icon("right") + '</button><button class="primary" data-action="docket-log">Log time</button></div></div>' + (rows || '<p class="docket-empty">No hours yet this week. Start a focus session, or log time you have already worked.</p>') + (insight ? '<p class="docket-insight"><span class="eyebrow">Mix</span>' + esc(insight) + "</p>" : "") + '<div class="docket-total"><span>Total billable</span><b>' + formatUnits(s.billable) + "</b></div></section></div>";
+	return renderConsistency() + '<div class="docket-layout"><div class="docket-side"><section class="surface docket-gauge"><div class="docket-top"><p class="eyebrow">Billable this week</p><button class="text-button" data-action="docket-target">Target ' + formatUnits(s.target) + " h</button></div>" + docketGauge(s, keys) + '<p class="docket-pace">' + pace + '</p><div class="docket-bars">' + bars + '</div><div class="docket-days">' + "MTWTFSS".split("").map((l) => "<span>" + l + "</span>").join("") + '</div><div class="docket-legend">' + legend + "</div></section>" + (broadcastVisible() ? broadcastMarkup() : "") + '</div><section class="surface docket-main"><div class="docket-head"><div><p class="eyebrow">Weekly docket</p><h2>' + monthDay(first) + " – " + monthDay(last) + '</h2></div><div class="docket-actions"><button class="icon-button flip" data-action="docket-week" data-step="-1" aria-label="Previous week">' + icon("right") + "</button>" + (docketOffset ? '<button class="text-button" data-action="docket-week" data-step="0">This week</button>' : "") + '<button class="icon-button" data-action="docket-week" data-step="1" aria-label="Next week">' + icon("right") + '</button><button class="primary" data-action="docket-log">Log time</button></div></div>' + (rows || '<p class="docket-empty">No hours yet this week. Start a focus session, or log time you have already worked.</p>') + (insight ? '<p class="docket-insight"><span class="eyebrow">Mix</span>' + esc(insight) + "</p>" : "") + '<div class="docket-total"><span>Total billable</span><b>' + formatUnits(s.billable) + "</b></div></section></div>";
+}
+let heatCache = { key: "", value: null }, heatAnimated = false;
+function heatInfo() {
+	const today = isoDate();
+	const key = String(focusSessionsRaw() || "") + today + weeklyTarget() + Math.floor(Date.now() / 600000);
+	if (heatCache.value && heatCache.key === key) return heatCache.value;
+	const keys = heatRange(today, HEAT_WEEKS);
+	const now = new Date();
+	const events = keys.filter((k) => k <= today).flatMap((k) => occurrences(localDate(k)));
+	const totals = dayTotals([...sessionEntries(focusSessionsRaw(), tasks), ...classEntries(events, now)]);
+	const dailyTarget = weeklyTarget() / 5;
+	const grid = heatCells({ totals, today, weeks: HEAT_WEEKS, dailyTarget });
+	const stats = streakStats(totals, keys, today, STREAK_MIN);
+	heatCache = { key, value: { grid, stats, dailyTarget } };
+	return heatCache.value;
+}
+function renderConsistency() {
+	const { grid, stats, dailyTarget } = heatInfo();
+	const animate = !heatAnimated;
+	heatAnimated = true;
+	const recent = grid.columns.slice(-4).flat().filter((c) => !c.future);
+	const onTarget = recent.filter((c) => c.level === 4).length;
+	const label = (c) => localDate(c.key).toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" }) + (c.future ? "" : " · " + formatUnits(c.units) + " h");
+	const cells = grid.columns.map((column, w) => column.map((c) => '<i class="heat-cell l' + c.level + (c.today ? " today" : "") + (c.future ? " future" : "") + '" style="--c:' + w + '" title="' + esc(label(c)) + '"></i>').join("")).join("");
+	const months = grid.months.map((m) => '<span style="grid-column:' + (m.week + 1) + '">' + m.label + "</span>").join("");
+	const legend = [0, 1, 2, 3, 4].map((l) => '<i class="heat-cell l' + l + '"></i>').join("");
+	return '<section class="surface consistency" aria-label="Consistency"><div class="streak"><p class="eyebrow">Current streak</p><div class="streak-num">' + stats.current + "<small>" + (stats.current === 1 ? "day" : "days") + '</small></div><div class="milestone"><div class="milestone-bar" role="progressbar" aria-label="Progress to the next milestone" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + stats.progress + '"><i style="width:' + stats.progress + '%"></i></div><small>' + Math.max(0, stats.next - stats.current) + (stats.next - stats.current === 1 ? " day" : " days") + " to " + stats.next + '</small></div><div class="streak-meta"><span>Best <b>' + stats.best + "</b></span><span><b>" + onTarget + "</b>" + (onTarget === 1 ? " on-target day" : " on-target days") + ' in 4 weeks</span></div><p class="streak-note">A day counts at ' + STREAK_MIN + " billable hours. Weekends never break it.</p></div>" +
+		'<div class="heat' + (animate ? " animate" : "") + '" role="img" aria-label="Billable hours per day over the last ' + HEAT_WEEKS + ' weeks. Current streak ' + stats.current + ' days."><div class="heat-months">' + months + '</div><div class="heat-body"><div class="heat-days"><span>M</span><span></span><span>W</span><span></span><span>F</span><span></span><span></span></div><div class="heat-grid">' + cells + '</div></div><div class="heat-legend"><span>Less</span>' + legend + "<span>More</span><small>Full colour = " + formatUnits(dailyTarget) + " h</small></div></div></section>";
 }
 function openTarget() {
 	const d = openDialog("#settingsDialog", dialogHead("Weekly target", "settingsTitle") + '<p class="muted">Billable hours per week: class, reading, study and writing. Admin is tracked but not counted.</p><form id="targetForm" class="settings-links"><label class="field">Hours per week<input name="hours" type="number" min="5" max="80" step="0.5" value="' + weeklyTarget() + '"></label><button class="primary">Save target</button></form>');

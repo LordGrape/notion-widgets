@@ -101,4 +101,8 @@ Recurring timetable blocks can start and end on chosen dates (`startDate`, `endD
 
 ## Typography
 
-Instrument Sans carries the interface and Instrument Serif the display type (page titles, the Docket, dialog titles, large figures). Both load from Google Fonts with system fallbacks, so the app stays usable offline. The service worker does not cache them.
+The interface uses the system face on Apple devices (San Francisco) and Inter elsewhere, both for text and for headings, with tabular figures for numbers. Inter loads from Google Fonts with system fallbacks, so the app stays usable offline.
+
+## Consistency
+
+The Docket opens with a streak and a 20-week heat map of billable hours per day (class, reading, study and writing; Admin excluded). Cell colour scales against a day's share of the weekly target (target ÷ 5); a full-colour cell means the day reached that share. A day is active at 2 billable hours. Saturdays and Sundays never break a streak, but an active weekend day counts. Today never breaks a streak before it has ended. Milestones are 3, 7, 14, 21, 30, 60 and 100 days. Everything is calculated from the same sources as the weekly docket; nothing extra is stored. Focus history is limited by the Clock's 300-session cap, and class history comes from the timetable's current blocks.
