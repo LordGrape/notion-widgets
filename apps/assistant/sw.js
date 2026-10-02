@@ -1,4 +1,4 @@
-const CACHE = "command-centre-20261002-audit-repairs";
+const CACHE = "command-centre-20261002-calendar-controls";
 const SHELL = [
 	"../../widget-platform.js",
 	"../../reading-estimates.js",
@@ -9,6 +9,7 @@ const SHELL = [
 	"./styles.css",
 	"./app.js",
 	"./domain.mjs",
+	"./calendar-actions.mjs",
 	"../todo/src/daily-goal.mjs",
 	"./remember.js",
 	"./notion-sync.js",

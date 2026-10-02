@@ -1,5 +1,6 @@
 import "../../reading-estimates.js?v=20261002-audit-repairs";
 const Reading = globalThis.ReadingEstimates;
+import { changeCalendar, undoCalendar } from "./calendar-actions.mjs";
 import {
 	dailyGoal,
 	dateKey,
@@ -21,7 +22,7 @@ import {
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261002-audit-repairs";
+	REVISION = "20261002-calendar-controls";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -45,7 +46,8 @@ let accessKey = "",
 	pollTimer,
 	lastFocus = null,
 	toastTimer,
-	lastTaskRaw;
+	lastTaskRaw,
+	undoAction = null;
 let theme = document.documentElement.dataset.theme || "light";
 function icon(name) {
 	return WidgetIcons.svg(name, {command: true});
@@ -131,6 +133,7 @@ function syncStatus(label, offline = false) {
 	$("#syncState span").textContent = label;
 }
 function notify(text, undo = false) {
+	undoAction = typeof undo === "function" ? undo : null;
 	$("#toastText").textContent = text;
 	$("#toast").hidden = false;
 	$("#undoButton").hidden = !undo;
@@ -302,6 +305,7 @@ function occurrences(date) {
 	return engines.timetable?.occurrencesForDate(localDate(isoDate(date))) || [];
 }
 function setView(next) {
+	closeCalendarMenu();
 	view = next;
 	signature = "";
 	render();
@@ -353,7 +357,7 @@ function eventMarkup(e, start, hour = 76) {
 			t.scheduleId === e.id &&
 			normalizeDateKey(t.dueKey) === e.dateKey,
 	);
-	return `<button class="event ${done ? "completed" : ""} ${e.id === recentScheduleId ? "scheduled-reveal" : ""}" style="top:${top}px;height:${height}px;--event-color:${/^#[0-9a-f]{3,8}$/i.test(e.color) ? e.color : "#9461e9"}" data-action="event" data-event-id="${esc(e.id)}" data-source="${esc(e.sourceDate)}" data-date="${esc(e.dateKey)}" aria-label="${esc(e.name)} ${esc(e.start)} to ${esc(e.end)}"><b>${esc(e.name)}</b><span>${esc(e.start)} – ${esc(e.end)}${e.location ? " · " + esc(e.location) : ""}</span></button>`;
+	return `<button class="event ${done ? "completed" : ""} ${e.id === recentScheduleId ? "scheduled-reveal" : ""}" style="top:${top}px;height:${height}px;--event-color:${/^#[0-9a-f]{3,8}$/i.test(e.color) ? e.color : "#9461e9"}" aria-haspopup="dialog" title="Click for details; right-click for options" data-action="event" data-event-id="${esc(e.id)}" data-source="${esc(e.sourceDate)}" data-date="${esc(e.dateKey)}" aria-label="${esc(e.name)} ${esc(e.start)} to ${esc(e.end)}"><b>${esc(e.name)}</b><span>${esc(e.start)} – ${esc(e.end)}${e.location ? " · " + esc(e.location) : ""}</span></button>`;
 }
 function hourLines(start, end, hour = 76) {
 	let s = "";
@@ -901,6 +905,293 @@ function openSchedule(id, date = isoDate(), start = "13:00", hint = "") {
 		}
 	};
 }
+let calendarMenu = null,
+	calendarMenuAnchor = null,
+	calendarMenuScroll = null,
+	holdTimer = null,
+	suppressBlockClick = null;
+function closeCalendarMenu(restoreFocus = false) {
+	calendarMenu?.remove();
+	calendarMenu = null;
+	if (restoreFocus && calendarMenuAnchor?.isConnected)
+		calendarMenuAnchor.focus({ preventScroll: true });
+	calendarMenuAnchor = null;
+}
+function selectedEvent(element) {
+	return occurrences(localDate(element.dataset.date)).find(
+		(e) =>
+			e.id === element.dataset.eventId &&
+			e.sourceDate === element.dataset.source,
+	);
+}
+function showCalendarMenu(element, x, y) {
+	const event = selectedEvent(element);
+	if (!event) return;
+	closeCalendarMenu();
+	calendarMenuAnchor = element;
+	const block = courses.find((b) => b.id === event.id);
+	const oneOff = block?.startDate && block.startDate === block.endDate;
+	const choices = [
+		[
+			"details",
+			"View details",
+			"",
+			() => openEvent(event.id, event.sourceDate, event.dateKey),
+		],
+		[
+			"edit",
+			"Edit time",
+			"This occurrence only",
+			() => openCalendarEditor(event),
+		],
+		...(!oneOff
+			? [
+					[
+						"skip",
+						"Remove this week only",
+						dateLabel(localDate(event.dateKey)),
+						() => applyCalendarChange(event, "skip"),
+					],
+				]
+			: []),
+		[
+			"remove",
+			"Remove from schedule",
+			oneOff ? "Keep the linked task" : "All occurrences of this block",
+			() => applyCalendarChange(event, "remove"),
+		],
+	];
+	const menu = document.createElement("div");
+	menu.className = "calendar-context-menu";
+	menu.setAttribute("role", "menu");
+	menu.setAttribute("aria-label", `Options for ${event.name}`);
+	menu.innerHTML =
+		`<p class="calendar-menu-title">${esc(event.name)}</p>` +
+		choices
+			.map(
+				([action, label, hint]) =>
+					`<button type="button" role="menuitem" data-calendar-choice="${action}" class="${action === "remove" ? "danger" : ""}"><span>${esc(label)}</span>${hint ? `<small>${esc(hint)}</small>` : ""}</button>`,
+			)
+			.join("");
+	menu.onclick = (e) => {
+		const item = e.target.closest("[data-calendar-choice]");
+		if (!item) return;
+		const action = choices.find((c) => c[0] === item.dataset.calendarChoice)[3];
+		closeCalendarMenu();
+		action();
+	};
+	menu.onkeydown = (e) => {
+		const items = [...menu.querySelectorAll('[role="menuitem"]')],
+			index = items.indexOf(document.activeElement);
+		if (["ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) {
+			e.preventDefault();
+			items[
+				e.key === "Home"
+					? 0
+					: e.key === "End"
+						? items.length - 1
+						: (index + (e.key === "ArrowDown" ? 1 : -1) + items.length) %
+							items.length
+			]?.focus();
+		} else if (e.key === "Escape") {
+			e.preventDefault();
+			closeCalendarMenu(true);
+		} else if (e.key === "Tab") closeCalendarMenu(true);
+	};
+	document.body.append(menu);
+	calendarMenu = menu;
+	const bounds = menu.getBoundingClientRect();
+	menu.style.left = `${Math.max(8, Math.min(x, innerWidth - bounds.width - 8))}px`;
+	menu.style.top = `${Math.max(8, Math.min(y, innerHeight - bounds.height - 8))}px`;
+	const scroller = element.closest(".calendar-scroll,.agenda-scroll");
+	calendarMenuScroll = { x: scrollX, y: scrollY, scroller, top: scroller?.scrollTop, left: scroller?.scrollLeft };
+	menu.querySelector("button").focus({ preventScroll: true });
+}
+document.addEventListener("contextmenu", (e) => {
+	const element = e.target.closest(".event[data-event-id]");
+	if (!element) return;
+	e.preventDefault();
+	clearTimeout(holdTimer);
+	const bounds = element.getBoundingClientRect();
+	showCalendarMenu(element, e.clientX || bounds.left, e.clientY || bounds.top);
+});
+document.addEventListener("keydown", (e) => {
+	if (e.key !== "ContextMenu" && !(e.shiftKey && e.key === "F10")) return;
+	const element = e.target.closest(".event[data-event-id]");
+	if (!element) return;
+	e.preventDefault();
+	const bounds = element.getBoundingClientRect();
+	showCalendarMenu(element, bounds.left, bounds.top);
+});
+document.addEventListener("pointerdown", (e) => {
+	if (calendarMenu && !calendarMenu.contains(e.target)) closeCalendarMenu();
+	clearTimeout(holdTimer);
+	const element = e.target.closest(".event[data-event-id]");
+	if (!element || e.pointerType !== "touch") return;
+	const x = e.clientX,
+		y = e.clientY;
+	holdTimer = setTimeout(() => {
+		suppressBlockClick = element;
+		showCalendarMenu(element, x, y);
+	}, 500);
+	const cancelOnMove = (move) => {
+		if (Math.abs(move.clientX - x) + Math.abs(move.clientY - y) > 10)
+			clearTimeout(holdTimer);
+	};
+	document.addEventListener("pointermove", cancelOnMove);
+	document.addEventListener(
+		"pointerup",
+		() => {
+			clearTimeout(holdTimer);
+			document.removeEventListener("pointermove", cancelOnMove);
+		},
+		{ once: true },
+	);
+});
+document.addEventListener("pointercancel", () => clearTimeout(holdTimer));
+document.addEventListener(
+	"click",
+	(e) => {
+		if (
+			suppressBlockClick &&
+			e.target.closest(".event") === suppressBlockClick
+		) {
+			e.preventDefault();
+			e.stopImmediatePropagation();
+		}
+		suppressBlockClick = null;
+	},
+	true,
+);
+window.addEventListener("resize", () => {
+	if (!calendarMenu) return;
+	const bounds = calendarMenu.getBoundingClientRect();
+	calendarMenu.style.left = `${Math.max(8, Math.min(bounds.left, innerWidth - bounds.width - 8))}px`;
+	calendarMenu.style.top = `${Math.max(8, Math.min(bounds.top, innerHeight - bounds.height - 8))}px`;
+});
+document.addEventListener("scroll", () => {
+	const state = calendarMenuScroll;
+	if (calendarMenu && state && (scrollX !== state.x || scrollY !== state.y || state.scroller?.scrollTop !== state.top || state.scroller?.scrollLeft !== state.left)) closeCalendarMenu();
+}, true);
+function calendarState() {
+	const read = (engine, namespace, key) => {
+		const value = engine.SyncEngine.get(namespace, key);
+		const parsed = value == null ? [] : typeof value === "string" ? JSON.parse(value) : value;
+		if (!Array.isArray(parsed))
+			throw Error("Calendar data is unavailable. Reload to retry.");
+		return JSON.parse(JSON.stringify(parsed));
+	};
+	return {
+		blocks: engines.timetable.normaliseBlocks(
+			read(engines.timetable, "timetable", "courses"),
+		),
+		tasks: read(engines.timetable, "todo", "tasks"),
+	};
+}
+async function pullCalendarState() {
+	await Promise.all([
+		engines.timetable.SyncEngine.pull("timetable"),
+		engines.timetable.SyncEngine.pull("todo"),
+	]);
+	return calendarState();
+}
+function saveCalendarState(state) {
+	// Write both namespaces through one existing engine so task links are current
+	// when its completion bridge processes the calendar update.
+	engines.timetable.SyncEngine.set("todo", "tasks", JSON.stringify(state.tasks));
+	engines.timetable.saveBlocks(state.blocks);
+	engines.timetable.render();
+	signature = "";
+	refresh();
+}
+let calendarBusy = false;
+async function applyCalendarChange(event, action, patch = {}) {
+	if (calendarBusy) return false;
+	if (!event) {
+		notify("This occurrence is no longer available.");
+		return false;
+	}
+	calendarBusy = true;
+	try {
+		const before = await pullCalendarState();
+		if (action === "edit") {
+			engines.timetable.schedule = engines.timetable.normaliseBlocks(
+				before.blocks,
+			);
+			validateSlot(
+				occurrences(localDate(patch.date)).filter(
+					(e) => !(e.id === event.id && e.sourceDate === event.sourceDate),
+				),
+				minutes(patch.start),
+				minutes(patch.end),
+			);
+		}
+		let after = changeCalendar(
+			before.blocks,
+			before.tasks,
+			event,
+			action,
+			patch,
+		);
+		saveCalendarState(after);
+		after = calendarState();
+		if ($("#editorDialog").open) $("#editorDialog").close();
+		notify(
+			action === "edit"
+				? "Time updated for this occurrence."
+				: action === "skip"
+					? "Occurrence removed for this week."
+					: "Block removed from schedule.",
+			async () => {
+				if (calendarBusy) return;
+				calendarBusy = true;
+				try {
+					saveCalendarState(
+						undoCalendar(before, after, await pullCalendarState()),
+					);
+					notify("Calendar change undone.");
+				} catch (error) {
+					notify(error.message);
+				} finally {
+					calendarBusy = false;
+				}
+			},
+		);
+		return true;
+	} catch (error) {
+		const message = $("#calendarError");
+		if (message && $("#editorDialog").open) message.textContent = error.message;
+		else notify(error.message);
+		return false;
+	} finally {
+		calendarBusy = false;
+	}
+}
+function openCalendarEditor(event) {
+	if (!event) {
+		notify("This occurrence is no longer available.");
+		return;
+	}
+	if ($("#editorDialog").open) $("#editorDialog").close();
+	const d = openDialog(
+		"#editorDialog",
+		`${dialogHead("Edit time", "editorTitle")}<p class="muted">${esc(event.name)} · This occurrence only</p><form id="calendarForm"><div class="form-grid"><label class="field wide">Date<input type="date" name="date" value="${esc(event.dateKey)}" required></label><label class="field">Start<input type="time" name="start" value="${esc(event.start)}" required></label><label class="field">End<input type="time" name="end" value="${esc(event.end)}" required></label></div><p class="form-error" id="calendarError" role="alert"></p><div class="dialog-actions"><button type="button" data-action="close-dialog">Cancel</button><button class="primary" type="submit">Save time</button></div></form>`,
+	);
+	d.querySelector("form").onsubmit = async (e) => {
+		e.preventDefault();
+		const button = e.target.querySelector('[type="submit"]');
+		button.disabled = true;
+		try {
+			await applyCalendarChange(
+				event,
+				"edit",
+				Object.fromEntries(new FormData(e.target)),
+			);
+		} finally {
+			button.disabled = false;
+		}
+	};
+}
 function openEvent(id, source, date) {
 	const block = courses.find((b) => b.id === id),
 		event = occurrences(localDate(date)).find(
@@ -909,7 +1200,7 @@ function openEvent(id, source, date) {
 	if (!block || !event) return;
 	const d = openDialog(
 		"#editorDialog",
-		`${dialogHead("Scheduled block", "editorTitle")}<h3>${esc(event.name)}</h3><p class="muted" style="margin-top:7px">${dateLabel(localDate(date))} · ${esc(event.start)} – ${esc(event.end)}</p>${event.location ? `<p class="muted">${esc(event.location)}</p>` : ""}${event.outcomeGoal ? `<p style="margin-top:18px">${esc(event.outcomeGoal)}</p>` : ""}<p style="margin-top:18px;white-space:pre-wrap">${esc(event.description || "")}</p><div class="dialog-actions"><button data-action="standalone" data-type="timetable">Edit in Timetable ↗</button><button class="primary" data-action="close-dialog">Done</button></div>`,
+		`${dialogHead("Scheduled block", "editorTitle")}<h3>${esc(event.name)}</h3><p class="muted" style="margin-top:7px">${dateLabel(localDate(date))} · ${esc(event.start)} – ${esc(event.end)}</p>${event.location ? `<p class="muted">${esc(event.location)}</p>` : ""}${event.outcomeGoal ? `<p style="margin-top:18px">${esc(event.outcomeGoal)}</p>` : ""}<p style="margin-top:18px;white-space:pre-wrap">${esc(event.description || "")}</p><div class="dialog-actions"><button data-action="event-edit" data-event-id="${esc(id)}" data-source="${esc(source)}" data-date="${esc(date)}">Edit time</button>${block.startDate && block.startDate === block.endDate ? "" : `<button data-action="event-skip" data-event-id="${esc(id)}" data-source="${esc(source)}" data-date="${esc(date)}">Remove this week only</button>`}<button class="delete" data-action="event-remove" data-event-id="${esc(id)}" data-source="${esc(source)}" data-date="${esc(date)}">Remove from schedule</button><button class="primary" data-action="close-dialog">Done</button></div>`,
 	);
 }
 document.addEventListener("click", (e) => {
@@ -964,6 +1255,12 @@ document.addEventListener("click", (e) => {
 		case "schedule":
 			openSchedule(id);
 			break;
+		case "event-edit":
+			openCalendarEditor(selectedEvent(b)); break;
+		case "event-skip":
+			applyCalendarChange(selectedEvent(b), "skip"); break;
+		case "event-remove":
+			applyCalendarChange(selectedEvent(b), "remove"); break;
 		case "event":
 			openEvent(b.dataset.eventId, b.dataset.source, b.dataset.date);
 			break;
@@ -1031,6 +1328,7 @@ $("#searchButton").onclick = () => openSearch();
 $("#settingsButton").onclick = openSettings;
 $("#toastClose").onclick = () => ($("#toast").hidden = true);
 $("#undoButton").onclick = () => {
+	if (undoAction) { const undo = undoAction; undoAction = null; undo(); return; }
 	engines.todo.TodoUIBridge.command.undo();
 	signature = "";
 	refresh();

@@ -60,3 +60,7 @@ One-off personal calendar reminders (including calendar-linked entries such as a
 ## Smart task capture
 
 Today quick capture uses `TodoNaturalAdd.plan` for its live preview and `TodoNaturalAdd.capture` in the existing To-Do controller for submission. Both surfaces share priority, date, duration, time range, deadline, dependency and multi-task parsing, plus the same reading page estimates. Pasted lines and semicolon-separated entries keep the existing date carry behaviour. Invalid entries retain the input and show the parser error. Task and timetable writes remain owned by the existing controller.
+
+## Calendar block controls
+
+Right-click a block in Today or Plan for View details, Edit time, Remove this week only (a single recurring occurrence), and Remove from schedule (the whole block). Shift+F10 / the context-menu key and a touch long press open the same menu; tapping a block also exposes its actions. Edits use the existing sourceDate overrides, retaining other weeks and days. Removal unschedules user-authored linked tasks and removes only open timetable-generated occurrences. Completed task history stays intact. Undo restores only changed records and rejects a restore if those records have since changed. Save pulls current shared state first and continues through the existing timetable and To-Do SyncEngine namespaces.

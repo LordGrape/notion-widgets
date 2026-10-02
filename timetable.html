@@ -551,6 +551,9 @@ function decorateBlock(block,source){
   if(/^\d{4}-\d{2}-\d{2}$/.test(String(source&&source.endDate||'')))block.endDate=String(source.endDate);
   if(hasOwn(source,'outcomeGoal'))block.outcomeGoal=String(source.outcomeGoal||'');
   if(Array.isArray(source&&source.overrides))block.overrides=source.overrides.filter(function(o){return o&&/^\d{4}-\d{2}-\d{2}$/.test(String(o.sourceDate||''))}).map(function(o){var item={sourceDate:String(o.sourceDate),date:/^\d{4}-\d{2}-\d{2}$/.test(String(o.date||''))?String(o.date):String(o.sourceDate),skipped:!!o.skipped};if(o.start)item.start=String(o.start);if(o.end)item.end=String(o.end);if(hasOwn(o,'location'))item.location=clean(o.location);if(hasOwn(o,'outcomeGoal'))item.outcomeGoal=String(o.outcomeGoal||'').trim();return item});
+  /* Keep task links and unknown metadata while normalising known fields. */
+  var known=['id','name','description','location','color','days','category','trackCompletion','actionable','eventType','startDate','endDate','outcomeGoal','overrides'];
+  Object.keys(source||{}).forEach(function(key){if(known.indexOf(key)<0)block[key]=source[key]});
   return block
 }
 
@@ -966,9 +969,7 @@ var TODO_PRI_COLOR={must:'#e5484d',should:'#c2410c',could:'#8b5cf6'};
 var TODO_BAND_LABEL={quick:'Quick',m30:'30m',m60:'60m',deep:'Deep'};
 function unscheduledTodayTasks(){
   var tasks=todoList(),key=scheduleDateKey(new Date()),mirrored={};
-  /* normaliseBlocks() strips unknown fields like todoTaskId from the
-     internal `schedule` array, so check the raw synced value instead
-     (same source timetable-todo-completion.js reads for the same reason). */
+  /* Read the latest raw synced value, including task-link metadata. */
   var rawCourses=null;try{rawCourses=SyncEngine.get('timetable','courses')}catch(e){}
   (Array.isArray(rawCourses)?rawCourses:[]).forEach(function(b){if(b&&b.todoTaskId)mirrored[b.todoTaskId]=true});
   var order={must:0,should:1,could:2};
@@ -1145,7 +1146,9 @@ window.CommandTimetable = {
   get schedule(){return schedule},
   set schedule(value){schedule=normaliseBlocks(value)},
   occurrencesForDate: occurrencesForDate,
-  saveBlocks: saveBlocks
+  saveBlocks: saveBlocks,
+  normaliseBlocks: normaliseBlocks,
+  render: function(){render();drawSaved()}
 };
 
 /* ── Boot ── */
