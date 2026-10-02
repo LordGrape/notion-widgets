@@ -75,5 +75,14 @@ function boot(){sync=typeof SyncEngine!=='undefined'?SyncEngine:root.SyncEngine;
  root.addEventListener('keydown',submit,true);root.addEventListener('click',submit,true);
  if(!root.TodoChrono)import('https://esm.sh/chrono-node@2.8.0/en?bundle').then(c=>{if(typeof c.parse==='function'){root.TodoChrono=c;preview();}}).catch(()=>{});
 }
-root.TodoNaturalAdd={parse,version:1};if(doc){if(doc.readyState==='loading')doc.addEventListener('DOMContentLoaded',boot);else boot();}
+// Command Centre submits through this same composer and its existing handlers.
+function capture(text){
+ if(!ready)throw Error('Still connecting. Your task is kept here.');
+ const input=doc.getElementById('inp');
+ rawPaste=null;input.value=String(text);input.dispatchEvent(new root.Event('input',{bubbles:true}));
+ if(entries(text).length>1&&!isSchedule(text))rawPaste=String(text);
+ doc.getElementById('addbtn').click();
+ if(input.value.trim())throw Error(doc.getElementById('smartPreview')?.textContent||'Task could not be added.');
+}
+root.TodoNaturalAdd={parse,plan,capture,version:1};if(doc){if(doc.readyState==='loading')doc.addEventListener('DOMContentLoaded',boot);else boot();}
 })(typeof window!=='undefined'?window:globalThis);

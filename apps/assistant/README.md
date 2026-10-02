@@ -56,3 +56,7 @@ The task sheet shows the title, priority and date first. Reading tasks show one 
 
 
 One-off personal calendar reminders (including calendar-linked entries such as appointments) stay in the agenda and do not count as work commitments or become focus tasks. Focus selects an open task for today; future calendar entries are never used as a fallback task.
+
+## Smart task capture
+
+Today quick capture uses `TodoNaturalAdd.plan` for its live preview and `TodoNaturalAdd.capture` in the existing To-Do controller for submission. Both surfaces share priority, date, duration, time range, deadline, dependency and multi-task parsing, plus the same reading page estimates. Pasted lines and semicolon-separated entries keep the existing date carry behaviour. Invalid entries retain the input and show the parser error. Task and timetable writes remain owned by the existing controller.

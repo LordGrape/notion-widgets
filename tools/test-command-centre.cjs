@@ -310,6 +310,29 @@ let states = {
 			.first()
 			.click();
 		assert((await getTasks()).some((t) => t.text === "Synthetic new task"));
+		// Quick capture shares the real standalone natural-entry and reading path.
+		await page.locator("#quickAdd input").fill("should Read sample pp. 3-9 & 12 tomorrow");
+		await page.locator("#capturePreview").waitFor({ state: "visible" });
+		assert.match(await page.locator("#capturePreview").textContent(), /8 pages/);
+		await page.locator("#quickAdd input").press("Enter");
+		let captured = (await getTasks()).find(t => t.text === "Read sample pp. 3-9 & 12");
+		assert.equal(captured.pri, "should");
+		assert.equal(captured.plannedMinutes, 48);
+		assert(captured.dueKey);
+		assert.equal(captured.scheduledStart, undefined);
+		await page.locator("#quickAdd input").fill("could Review sample for 20 min after Synthetic new task");
+		await page.locator("#quickAdd input").press("Enter");
+		captured = (await getTasks()).find(t => t.text === "Review sample");
+		assert.equal(captured.pri, "could");
+		assert.equal(captured.plannedMinutes, 20);
+		assert.equal(captured.dependsOn, (await getTasks()).find(t => t.text === "Synthetic new task").id);
+		const countBeforeInvalid = (await getTasks()).length;
+		await page.locator("#quickAdd input").fill("Read sample February 30 at 6pm");
+		await page.locator("#quickAdd input").press("Enter");
+		assert.equal((await getTasks()).length, countBeforeInvalid);
+		assert.equal(await page.locator("#quickAdd input").inputValue(), "Read sample February 30 at 6pm");
+		assert.match(await page.locator("#capturePreview").textContent(), /does not exist/);
+		await page.locator("#quickAdd input").fill("");
 		// Today: dragging from the actual task title onto an occupied time suggests a gap.
 		await page.evaluate(() => {
 			window.dragImages = [];
