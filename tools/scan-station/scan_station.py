@@ -20,6 +20,8 @@ from PIL import Image, ImageOps
 
 APP_DIR = Path(os.environ.get("APPDATA", Path.home())) / "ScanStation"
 CONFIG = APP_DIR / "config.json"
+INBOX = APP_DIR / "inbox.json"  # scan path -> Command Centre upload id
+VERSION = "2026.10.03"
 LOG = APP_DIR / "scan-station.log"
 WORKER = "https://widget-sync.lordgrape-widgets.workers.dev"
 MODEL = "StarDoc-AI/TeleOCR"
@@ -356,6 +358,21 @@ class Worker:
         image.convert("RGB").resize((1000, round(1000 * image.height / image.width))).save(buf, "JPEG", quality=72, optimize=True)
         return self.call("POST", f"/notion/source-library/upload?name={name}", data=buf.getvalue(), headers={"Content-Type": "image/jpeg"})["id"]
 
+    def inbox(self) -> list[dict]:
+        return self.call("GET", "/notion/source-library/inbox").get("items", [])
+
+    def chunk(self, item_id: str, file: int, chunk: int) -> bytes:
+        r = self.http.get(f"{self.base}/notion/source-library/inbox/chunk", params={"id": item_id, "file": file, "chunk": chunk}, headers={"X-Widget-Key": self.key}, timeout=300)
+        r.raise_for_status()
+        return r.content
+
+    def status(self, item_id: str, status: str, note: str = "", reading: dict | None = None) -> None:
+        body = {"status": status, "note": note, **({"readingId": reading["id"], "readingUrl": reading["url"]} if reading else {})}
+        self.call("POST", f"/notion/source-library/inbox/status?id={item_id}", json=body)
+
+    def heartbeat(self, reading: str = "") -> None:
+        self.call("POST", "/notion/source-library/inbox/heartbeat", json={"version": VERSION, "reading": reading})
+
     def file(self, reading: dict, batch: int = 40) -> dict:
         """File in batches: the Worker's free plan allows 50 Notion calls per request, one per page."""
         pages = reading["pages"]
@@ -426,28 +443,81 @@ def stable(path: Path) -> bool:
     return bool(files) and all(time.time() - f.stat().st_mtime > 15 for f in files)
 
 
+def free_name(folder: Path, name: str) -> Path:
+    stem, suffix, n = Path(name).stem, Path(name).suffix, 1
+    path = folder / name
+    while path.exists():
+        n += 1
+        path = folder / f"{stem} ({n}){suffix}"
+    return path
+
+
+def collect(worker: Worker, watch: Path, uploads: dict) -> None:
+    """Bring scans added in Command Centre into the watched folder. One file lands as itself;
+    several (photos) land as a folder, which the station reads as one reading."""
+    for item in worker.inbox():
+        if item.get("status") != "queued" or item["id"] in uploads.values():
+            continue
+        files = item["files"]
+        single = len(files) == 1
+        target = free_name(watch, item["name"] + Path(files[0]["name"]).suffix.lower()) if single else free_name(watch, item["name"])
+        part = target.with_name(target.name + ".part")
+        if not single:
+            part.mkdir()
+        for i, f in enumerate(files):
+            data = b"".join(worker.chunk(item["id"], i, c) for c in range(f["chunks"]))
+            (part if single else part / f"{i + 1:03d}{Path(f['name']).suffix.lower()}").write_bytes(data)
+        part.rename(target)
+        uploads[str(target)] = item["id"]
+        INBOX.write_text(json.dumps(uploads), encoding="utf-8")
+        worker.status(item["id"], "reading", "Received by the scan station; reading it now.")
+        log(f"Collected {target.name} from Command Centre")
+
+
 def run(config: dict) -> None:
     watch = Path(config["watch"])
     filed, attention = watch / "Filed", watch / "Needs attention"
     for d in (watch, filed, attention):
         d.mkdir(parents=True, exist_ok=True)
     reader, worker = Reader(), Worker(config["key"], config.get("worker", WORKER))
+    uploads = json.loads(INBOX.read_text(encoding="utf-8")) if INBOX.exists() else {}
     log(f"Watching {watch}")
+    beat = 0.0
     while True:
+        try:
+            if time.time() - beat > 900:
+                worker.heartbeat()
+                beat = time.time()
+            collect(worker, watch, uploads)
+        except Exception as error:  # offline: the folder still works
+            log(f"Command Centre inbox unavailable: {error}")
         for item in sorted(watch.iterdir()):
-            if item in (filed, attention) or item.name.startswith(".") or item.suffix == ".json":
+            if item in (filed, attention) or item.name.startswith(".") or item.suffix in (".json", ".part"):
                 continue
             if not (item.is_dir() or item.suffix.lower() in IMAGE_TYPES | {".pdf"}) or not stable(item):
                 continue
+            upload = uploads.pop(str(item), None)
             try:
+                if upload:
+                    worker.heartbeat(item.stem)
                 result = process(item, reader, worker)
                 target = attention if result.get("problem") else filed
+                if upload:
+                    worker.status(upload, "attention" if result.get("problem") else "filed", result.get("problem") or f"Filed {len(result.get('pages', []))} pages.", result.get("reading"))
             except Exception as error:  # keep watching; leave a note beside the scan
                 log(f"Could not file {item.name}: {error}\n{traceback.format_exc()}")
                 reader.release()
                 target = attention
                 (attention / f"{item.stem} - what went wrong.txt").write_text(str(error), encoding="utf-8")
-            shutil.move(str(item), str(target / item.name))
+                if upload:
+                    try:
+                        worker.status(upload, "failed", str(error)[:500])
+                    except Exception:
+                        pass
+            shutil.move(str(item), str(free_name(target, item.name)))
+            INBOX.write_text(json.dumps(uploads), encoding="utf-8")
+            if upload:
+                beat = 0.0  # tell Command Centre the station is free again
         time.sleep(20)
 
 

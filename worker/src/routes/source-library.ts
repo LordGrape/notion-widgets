@@ -1,6 +1,7 @@
 import { getCorsHeaders } from "../cors";
 import type { Env } from "../types";
 import { fromLecturePage, type LectureRow } from "./lecture-readings";
+import { handleShelf } from "./library-shelf";
 
 /* Source Library: the scan station (a PC service that reads photographed textbook pages) files
    readings into Notion through these routes, so the Notion token never leaves the Worker.
@@ -14,8 +15,8 @@ import { fromLecturePage, type LectureRow } from "./lecture-readings";
 
 const NOTION_VERSION = "2022-06-28";
 const CALENDAR_DB_ID = "783a2021-af4c-4369-86eb-7948ef66bf23";
-const READINGS_DB_ID = "8ace347b-edb7-4f52-84a6-606aac8eaa8d";
-const PAGES_DB_ID = "64fcad6a-367f-4d5b-b89d-a4bb664986d3";
+export const READINGS_DB_ID = "8ace347b-edb7-4f52-84a6-606aac8eaa8d";
+export const PAGES_DB_ID = "64fcad6a-367f-4d5b-b89d-a4bb664986d3";
 const MAX_PAGES = 40; /* per request: one Notion call per page, under the free plan's 50 */
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const TEXT_LIMIT = 1900; /* Notion allows 2000 characters per rich-text object */
@@ -49,7 +50,7 @@ function json(body: unknown, status = 200): Response {
 	return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json", ...getCorsHeaders() } });
 }
 
-async function notion(env: Env, path: string, init: RequestInit = {}): Promise<any> {
+export async function notion(env: Env, path: string, init: RequestInit = {}): Promise<any> {
 	const response = await fetch("https://api.notion.com/v1" + path, {
 		...init,
 		headers: { Authorization: `Bearer ${env.NOTION_TOKEN}`, "Notion-Version": NOTION_VERSION, ...(init.body instanceof FormData ? {} : { "Content-Type": "application/json" }), ...(init.headers || {}) },
@@ -66,7 +67,7 @@ export function richText(text: string, annotations?: Record<string, unknown>): a
 }
 
 const clamp = (s: unknown, n: number) => String(s ?? "").slice(0, n);
-const isId = (s: unknown): s is string => typeof s === "string" && /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i.test(s);
+export const isId = (s: unknown): s is string => typeof s === "string" && /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i.test(s);
 
 /* Page body: a citation callout, flags if any, the text, and the photo folded in a toggle. */
 export function pageBlocks(book: string, page: PageInput): any[] {
@@ -210,6 +211,8 @@ export async function handleSourceLibrary(request: Request, env: Env, action: st
 			const reading = validateReading(await request.json());
 			return json({ configured: true, ...(await createReading(env, reading)) });
 		}
+		const shelf = await handleShelf(request, env, action, url);
+		if (shelf) return shelf;
 		return json({ error: "Unknown source library action" }, 404);
 	} catch (error) {
 		return json({ configured: true, error: "Source library request failed", detail: (error as Error).message }, 502);
