@@ -3449,6 +3449,61 @@ dialog h3 {
 	font-weight: 650;
 }
 :root[data-theme="dark"] .late-chip { color: #f0b27a; }
+/* Scheduled blocks billed automatically. */
+.auto-chip {
+	padding: 1px 8px;
+	border-radius: 20px;
+	color: var(--accent);
+	background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+	font-weight: 650;
+}
+.docket-row.live .auto-chip::before {
+	content: "";
+	display: inline-block;
+	width: 6px;
+	height: 6px;
+	margin-right: 5px;
+	border-radius: 50%;
+	background: currentColor;
+	vertical-align: 1px;
+	animation: billing-pulse 1.6s ease-in-out infinite;
+}
+@keyframes billing-pulse { 50% { opacity: 0.25; } }
+/* Why Focus picked its task, and what the schedule has on when something else holds it. */
+.focus-reason {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	align-items: center;
+	gap: 8px;
+	margin: 6px 0 2px;
+	color: var(--muted);
+	font-size: 13px;
+	font-weight: 600;
+}
+.focus-billing {
+	padding: 2px 9px;
+	border-radius: 20px;
+	color: var(--accent);
+	background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+	font-size: 12px;
+}
+.focus-nudge {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	margin-top: 12px;
+	padding: 8px 8px 8px 14px;
+	border: 1px solid var(--line);
+	border-radius: 12px;
+	background: var(--surface-2, var(--surface));
+	font-size: 13px;
+}
+.focus-nudge > svg { width: 16px; height: 16px; color: var(--accent); }
+.focus-nudge button { padding: 5px 12px; }
+@media (prefers-reduced-motion: reduce) {
+	.docket-row.live .auto-chip::before { animation: none; }
+}
 .plan-sentence {
 	margin: 4px 0 0;
 	padding: 12px 14px;

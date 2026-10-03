@@ -261,3 +261,26 @@ test("work that ends after midnight is flagged", () => {
 	assert.equal(isLateNight(evening), false);
 	assert.equal(lateNightHours([late, evening, { end: at(3), minutes: 30, units: 0.5 }]), 1.5);
 });
+
+import { scheduledEntries } from "./hours.mjs";
+const t0 = (hm) => new Date(`2026-10-02T${hm}:00`);
+const plan = (id, text, from, to, extra = {}) => ({ id, text, scheduledStart: t0(from).toISOString(), scheduledEnd: t0(to).toISOString(), ...extra });
+
+test("scheduled billable blocks count as their time passes", () => {
+	const [e] = scheduledEntries([plan("p", "Practice public law fact pattern", "10:30", "12:30")], { now: t0("11:15") });
+	assert.deepEqual([e.kind, e.minutes, e.live, e.source], ["practice", 45, true, "scheduled"]);
+	assert.equal(scheduledEntries([plan("p", "Practice fact pattern", "10:30", "12:30")], { now: t0("14:00") })[0].minutes, 120);
+});
+test("scheduled entries skip admin, future, excluded and pre-feature blocks", () => {
+	const tasks = [plan("d", "Create dinner", "10:00", "11:00"), plan("r", "Read Torts pp. 1-20", "15:00", "16:00"), plan("x", "Read Torts pp. 20-40", "09:00", "10:00")];
+	assert.deepEqual(scheduledEntries(tasks, { now: t0("12:00"), excluded: ["plan:x:2026-10-02"] }), []);
+	assert.deepEqual(scheduledEntries([tasks[2]], { now: t0("12:00"), since: t0("11:00").getTime() }), []);
+});
+test("scheduled time stops when the task is ticked off and never double-bills a session", () => {
+	const done = plan("p", "Practice fact pattern", "10:00", "12:00", { done: true, doneAt: t0("11:00").toISOString() });
+	assert.equal(scheduledEntries([done], { now: t0("13:00") })[0].minutes, 60);
+	const session = { id: "s", taskId: "p", seconds: 1800, completedAt: t0("10:45").getTime() };
+	assert.equal(scheduledEntries([plan("p", "Practice fact pattern", "10:00", "12:00")], { now: t0("13:00"), sessions: [session] })[0].minutes, 90);
+	const manual = { id: "m", taskId: "p", seconds: 3600, completedAt: t0("18:00").getTime(), manual: true };
+	assert.deepEqual(scheduledEntries([plan("p", "Practice fact pattern", "10:00", "12:00")], { now: t0("19:00"), sessions: [manual] }), []);
+});

@@ -110,3 +110,38 @@ test("drop suggestions fit a complete task into the next available gap", () => {
 	assert.equal(suggestSlot(events, 675, 30, 1020, "class"), 675);
 	assert.equal(suggestSlot(events, 1005, 45, 1020), null);
 });
+
+import { focusPick, focusLength } from "./domain.mjs";
+const at = (hm) => new Date(`2026-10-03T${hm}:00`).getTime();
+const block = (id, from, to, extra = {}) => ({ id, text: id, pri: "must", due: "today", dueKey: "2026-10-03", scheduledStart: new Date(at(from)).toISOString(), scheduledEnd: new Date(at(to)).toISOString(), ...extra });
+const day = [block("practice", "10:30", "12:30"), block("property", "12:30", "17:00"), block("dinner", "17:00", "18:00", { pri: "should" })];
+
+test("focusPick follows the schedule, not list order", () => {
+	assert.equal(focusPick(day, { now: at("11:00") }).task.id, "practice");
+	assert.equal(focusPick(day, { now: at("11:00") }).reason, "now");
+	assert.equal(focusPick(day, { now: at("13:00") }).task.id, "property");
+	assert.equal(focusPick(day, { now: at("09:00") }).reason, "next");
+	assert.equal(focusPick(day, { now: at("09:00") }).task.id, "practice");
+});
+test("focusPick keeps an open block that ran over until the next one starts", () => {
+	const gap = [block("practice", "10:30", "12:00"), block("dinner", "17:00", "18:00")];
+	const pick = focusPick(gap, { now: at("12:20") });
+	assert.deepEqual([pick.task.id, pick.reason], ["practice", "over"]);
+	assert.equal(focusPick([{ ...gap[0], done: true, doneAt: at("11:50") }, gap[1]], { now: at("12:20") }).task.id, "dinner");
+});
+test("a chosen task holds until a later block starts", () => {
+	assert.equal(focusPick(day, { now: at("11:00"), selection: { taskId: "dinner", at: at("10:45") } }).task.id, "dinner");
+	assert.equal(focusPick(day, { now: at("12:31"), selection: { taskId: "dinner", at: at("10:45") } }).task.id, "property");
+	/* A stale choice without a time (yesterday's, or from before this rule) yields to the schedule. */
+	assert.equal(focusPick(day, { now: at("11:00"), selection: { taskId: "dinner" } }).task.id, "practice");
+});
+test("focusPick falls back to Must before Should and skips Could", () => {
+	const loose = [{ id: "c", text: "c", pri: "could", due: "today" }, { id: "s", text: "s", pri: "should", due: "today" }, { id: "m", text: "m", pri: "must", due: "today" }];
+	assert.equal(focusPick(loose, { now: at("11:00") }).task.id, "m");
+	assert.equal(focusPick([loose[0]], { now: at("11:00") }).task, null);
+});
+test("focusLength is what is left of the block on now", () => {
+	assert.equal(focusLength(day[0], at("11:43")), 47);
+	assert.equal(focusLength(day[0], at("12:28")), 5);
+	assert.equal(focusLength({ plannedMinutes: 25 }, at("11:00")), 25);
+});

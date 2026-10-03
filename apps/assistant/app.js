@@ -14,6 +14,9 @@ import {
 	timeString,
 	duration,
 	focusTasks,
+	focusPick,
+	focusLength,
+	blockOf,
 	isCalendarReminder,
 	todayTasks,
 	intervals,
@@ -36,6 +39,7 @@ import {
 	weekKeys,
 	sessionEntries,
 	classEntries,
+	scheduledEntries,
 	summarize,
 	manualSession,
 	appendSession,
@@ -61,7 +65,7 @@ import { suggestLastPage, planPageSplit, planTimeSplit, defaultRemaining } from 
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261004-drag";
+	REVISION = "20261004-autobill";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -77,6 +81,7 @@ let accessKey = "",
 	goal = {},
 	target = 1,
 	selectedId = null,
+	selectedAt = 0,
 	weekOffset = 0,
 	planDays = 3,
 	collapsed = new Set(["could"]),
@@ -286,10 +291,41 @@ const dateLabel = (d) =>
 function task(id) {
 	return tasks.find((t) => t.id === id);
 }
-function activeTask() {
+/* The task Focus is on. A session in progress keeps its task; otherwise the schedule decides
+   (see focusPick): the block on now, one running over, the next block, then Must work. */
+function saveChoice(id) {
+	selectedId = id || null;
+	selectedAt = id ? Date.now() : 0;
+	engines.clock.SyncEngine.set("clock", "commandTask", { taskId: selectedId, at: selectedAt });
+}
+/* Seconds focused in the timer's current session (0 when it has not started). */
+function sessionSeconds() {
+	const w = engines.clock;
+	if (!w || w.tmRemaining == null || w.tmDuration == null) return 0;
+	const left = w.tmRunning ? w.tmStartRemaining - (Date.now() - w.tmStartTime) / 1000 : w.tmRemaining;
+	return Math.max(0, w.tmDuration - left);
+}
+/* A running session, or a paused one with at least a minute in it, holds its task. */
+function sessionHolds() {
+	const w = engines.clock;
+	return !!w && (w.tmRunning || (w.studyActive && w.studyPhase !== "focus") || sessionSeconds() >= 60);
+}
+function focusChoice() {
 	const available = focusTasks(tasks, courses);
-	const selected = available.find((t) => t.id === selectedId && !t.done);
-	return selected || todayTasks(available).find((t) => !t.done && t.pri !== "could");
+	const held = sessionHolds() && available.find((t) => t.id === selectedId && !t.done);
+	if (held) return { task: held, reason: "session", block: blockOf(held) };
+	return focusPick(available, { selection: { taskId: selectedId, at: selectedAt } });
+}
+function activeTask() {
+	return focusChoice().task;
+}
+/* A timer paused within its first minute on a task the schedule has moved past is dropped,
+   so a stray click never pins Focus to the wrong task. Nothing under a minute is ever billed. */
+function dropStaleTimer() {
+	const w = engines.clock;
+	if (!w || w.tmRunning || sessionHolds() || (!w.studyActive && w.tmRemaining === w.tmDuration)) return;
+	const pick = focusChoice().task;
+	if (selectedId && pick && pick.id !== selectedId) resetTimer(true);
 }
 function engineWindow(type) {
 	try {
@@ -468,9 +504,13 @@ function refresh() {
 	const context = engines.clock.SyncEngine.get("clock", "commandTask");
 	if (context?.taskId && isCalendarReminder(task(context.taskId), courses)) {
 		selectedId = null;
-		engines.clock.SyncEngine.set("clock", "commandTask", { taskId: null });
-	} else if (!selectedId && context?.taskId && task(context.taskId))
+		saveChoice(null);
+	} else if (!selectedId && context?.taskId && task(context.taskId)) {
 		selectedId = context.taskId;
+		selectedAt = Number(context.at) || 0;
+	}
+	dropStaleTimer();
+	const pick = focusChoice();
 	const next = JSON.stringify([
 		tasks,
 		courses,
@@ -478,11 +518,13 @@ function refresh() {
 		isoDate(),
 		view,
 		selectedId,
+		pick.task?.id,
+		pick.reason,
 		weekOffset,
 		planDays,
 		[...collapsed],
 		view === "docket"
-			? [docketOffset, engines.clock.SyncEngine.get("clock", "focus_sessions"), Math.floor(Date.now() / 300000), weeklyTarget()]
+			? [docketOffset, engines.clock.SyncEngine.get("clock", "focus_sessions"), engines.clock.SyncEngine.get("clock", "docket_excluded"), Math.floor(Date.now() / 60000), weeklyTarget()]
 			: null,
 	]);
 	if (next !== signature) {
@@ -772,7 +814,7 @@ function renderDock() {
 				minutes(e.start) > new Date().getHours() * 60 + new Date().getMinutes(),
 		);
 	$("#focusDock").innerHTML =
-		`<div class="dock-task"><button class="dock-icon" data-action="view" data-view="focus" aria-label="Open focus workspace">${icon("clock")}</button><div><b>${esc(current?.text || "Ready when you are")}</b><small>${current ? `${duration(current) || 45}-minute focus block` : "Choose a task or start a timer"}</small></div></div><span class="dock-time" data-timer>45:00</span><div class="dock-controls"><button class="primary" data-action="timer" data-timer-button>${icon("play")} Start focus</button><button class="icon-button" data-action="reset-timer" aria-label="End session and save time" title="End session and save time">${icon("reset")}</button></div><div class="next-event">${icon("calendar")}<div><span>Next</span><b>${next ? `${esc(next.name)} · ${esc(next.start)}` : "No more scheduled blocks"}</b></div>${dockHours()}</div>`;
+		`<div class="dock-task"><button class="dock-icon" data-action="view" data-view="focus" aria-label="Open focus workspace">${icon("clock")}</button><div><b>${esc(current?.text || "Ready when you are")}</b><small>${current ? `${focusLength(current)}-minute focus block` : "Choose a task or start a timer"}</small></div></div><span class="dock-time" data-timer>45:00</span><div class="dock-controls"><button class="primary" data-action="timer" data-timer-button>${icon("play")} Start focus</button><button class="icon-button" data-action="reset-timer" aria-label="End session and save time" title="End session and save time">${icon("reset")}</button></div><div class="next-event">${icon("calendar")}<div><span>Next</span><b>${next ? `${esc(next.name)} · ${esc(next.start)}` : "No more scheduled blocks"}</b></div>${dockHours()}</div>`;
 }
 function bindWorkspace() {
 	const calendarScroll=$(".calendar-scroll"), calendarHead=$(".calendar-head");
@@ -1067,7 +1109,7 @@ function selectFocus(id) {
 		return;
 	}
 	selectedId = id;
-	w.SyncEngine.set("clock", "commandTask", { taskId: id });
+	saveChoice(id);
 	setView("focus");
 }
 function timerAction() {
@@ -1076,10 +1118,10 @@ function timerAction() {
 	if (!w.tmRunning && !w.studyActive && w.tmRemaining === w.tmDuration) {
 		w.setMode?.("timer");
 		w.setTimerType?.("study", true);
-		if (w.stFocusEl) w.stFocusEl.value = duration(current) || 45;
+		if (w.stFocusEl) w.stFocusEl.value = focusLength(current || {});
 		w.studyTaskIds = current ? [current.id] : [];
 		selectedId = current?.id || null;
-		w.SyncEngine.set("clock", "commandTask", { taskId: selectedId });
+		saveChoice(selectedId);
 	}
 	w.document.getElementById("tmToggle").click();
 	updateTimer();
@@ -1103,7 +1145,7 @@ function updateTimer() {
 	const current = activeTask();
 	const fresh =
 		!w.studyActive && !w.tmRunning && w.tmRemaining === w.tmDuration;
-	const seconds = Math.ceil(fresh ? (duration(current) || 45) * 60 : remaining);
+	const seconds = Math.ceil(fresh ? focusLength(current || {}) * 60 : remaining);
 	const text = `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 	document
 		.querySelectorAll("[data-timer]")
@@ -1140,7 +1182,7 @@ function updateTimer() {
 		const total = breaking
 			? w.breakPhaseDuration
 			: fresh
-				? (duration(current) || 45) * 60
+				? focusLength(current || {}) * 60
 				: w.tmDuration;
 		ring.style.strokeDashoffset = String(
 			691.15 * (1 - Math.max(0, Math.min(1, seconds / total))),
@@ -1479,7 +1521,7 @@ function openSessionWrap({ task: t, recorded = 0, mode = "session" }) {
 			if (choice === "done") {
 				if (!t.done) bridge.command.toggle(t.id);
 				selectedId = null;
-				engines.clock.SyncEngine.set("clock", "commandTask", { taskId: null });
+				saveChoice(null);
 				message = "Task completed.";
 			} else if (choice === "split") {
 				const plan = compute();
@@ -1488,7 +1530,7 @@ function openSessionWrap({ task: t, recorded = 0, mode = "session" }) {
 				newId = bridge.command.add({ text: plan.restText, pri: t.pri || "must", plannedMinutes: plan.restMinutes, due: t.due ?? "today", dueKey: t.dueKey ?? isoDate(), notes: t.notes || "", reading: null });
 				if (newId && isKind(t.kind)) bridge.command.update(newId, { kind: t.kind });
 				selectedId = newId || null;
-				engines.clock.SyncEngine.set("clock", "commandTask", { taskId: selectedId });
+				saveChoice(selectedId);
 				message = "Split. The rest is a new task.";
 			}
 			d.close();
@@ -1501,7 +1543,7 @@ function openSessionWrap({ task: t, recorded = 0, mode = "session" }) {
 				const now = bridge.snapshot().tasks.find((x) => x.id === t.id);
 				if (now && !!now.done !== before.done) bridge.command.toggle(t.id);
 				selectedId = before.selected;
-				engines.clock.SyncEngine.set("clock", "commandTask", { taskId: selectedId });
+				saveChoice(selectedId);
 				signature = "";
 				refresh();
 				$("#toast").hidden = true;
@@ -2049,7 +2091,8 @@ function docketMenu(el, x, y) {
 		if (!t.done && !isCalendarReminder(t, courses)) entries.push({ label: "Focus on it again", run: () => selectFocus(t.id) });
 	}
 	entries.push({ label: "Log time\u2026", run: () => openLogTime(t?.id || "") });
-	if (el.dataset.manual === "1" && el.querySelector(".docket-remove")) entries.push({ sep: true }, { label: "Remove this entry", danger: true, run: () => el.querySelector(".docket-remove")?.click() });
+	if (el.dataset.auto === "1") entries.push({ label: "Log the actual time instead…", hint: "Replaces the automatic entry for that day", run: () => openLogTime(t?.id || "") });
+	if ((el.dataset.manual === "1" || el.dataset.auto === "1") && el.querySelector(".docket-remove")) entries.push({ sep: true }, { label: "Remove this entry", danger: true, run: () => el.querySelector(".docket-remove")?.click() });
 	showMenu(el, x, y, el.querySelector(".docket-desc")?.firstChild?.textContent?.trim() || "Docket entry", entries);
 }
 function areaMenu(el, x, y) {
@@ -2828,6 +2871,14 @@ document.addEventListener("click", (e) => {
 		case "docket-target":
 			openTarget();
 			break;
+		case "docket-dismiss": {
+			const before = engines.clock.SyncEngine.get("clock", "docket_excluded");
+			engines.clock.SyncEngine.set("clock", "docket_excluded", JSON.stringify([...new Set([...docketExcluded(), id])].slice(-400)));
+			signature = "";
+			refresh();
+			notify("Removed. That block no longer bills.", () => { engines.clock.SyncEngine.set("clock", "docket_excluded", before ?? "[]"); signature = ""; refresh(); $("#toast").hidden = true; });
+			break;
+		}
 		case "docket-remove": {
 			const before = focusSessionsRaw();
 			saveSessions(removeSession(before, id));
@@ -2960,7 +3011,7 @@ document.addEventListener("click", (e) => {
 			if (activeTask() && !activeTask().done)
 				engines.todo.TodoUIBridge.command.toggle(activeTask().id);
 			selectedId = null;
-			engines.clock.SyncEngine.set("clock", "commandTask", { taskId: null });
+			saveChoice(null);
 			signature = "";
 			refresh();
 			notify("Task completed.", true);
@@ -3126,6 +3177,33 @@ function saveSessions(raw) {
 	signature = "";
 	refresh();
 }
+/* Scheduled blocks bill themselves from the day this arrived (earlier weeks keep the hours
+   they had), minus entries removed from the docket. */
+function autoSince() {
+	let since = Number(engines.todo.SyncEngine.get("user", "autoDocketSince"));
+	if (!since) {
+		since = localDate(isoDate()).setHours(0, 0, 0, 0);
+		engines.todo.SyncEngine.set("user", "autoDocketSince", since);
+	}
+	return since;
+}
+function docketExcluded() {
+	let raw = engines.clock.SyncEngine.get("clock", "docket_excluded");
+	try {
+		if (typeof raw === "string") raw = JSON.parse(raw);
+	} catch {
+		raw = [];
+	}
+	return Array.isArray(raw) ? raw.map(String) : [];
+}
+function billedEntries(events, now) {
+	const classes = classEntries(events, now);
+	return [
+		...sessionEntries(focusSessionsRaw(), tasks),
+		...classes,
+		...scheduledEntries(focusTasks(tasks, courses), { sessions: focusSessionsRaw(), classes, now, since: autoSince(), excluded: docketExcluded() }),
+	];
+}
 function docketData(offset = docketOffset) {
 	const anchor = new Date();
 	anchor.setDate(anchor.getDate() + offset * 7);
@@ -3133,13 +3211,12 @@ function docketData(offset = docketOffset) {
 	const now = offset === 0 ? new Date() : offset < 0 ? new Date(keys[6] + "T23:59:59") : new Date(keys[0] + "T00:00:00");
 	const since = firstActivityKey();
 	const events = keys.filter((key) => key >= since).flatMap((key) => occurrences(localDate(key)));
-	const entries = [...sessionEntries(focusSessionsRaw(), tasks), ...classEntries(events, now)];
-	return { keys, now, summary: summarize(entries, now, weeklyTarget()) };
+	return { keys, now, summary: summarize(billedEntries(events, now), now, weeklyTarget()) };
 }
 let weekCache = { key: "", at: 0, summary: null };
 function currentWeek() {
 	if (!engines.clock || !engines.timetable || !engines.todo) return null;
-	const key = String(focusSessionsRaw() || "") + weeklyTarget() + isoDate();
+	const key = String(focusSessionsRaw() || "") + weeklyTarget() + isoDate() + docketExcluded().join();
 	if (weekCache.summary && weekCache.key === key && Date.now() - weekCache.at < 20000) return weekCache.summary;
 	try {
 		weekCache = { key, at: Date.now(), summary: docketData(0).summary };
@@ -3264,8 +3341,8 @@ function renderDocket() {
 	const rows = [...s.entries].reverse().map((e) => {
 		const d = new Date(e.start), day = isoDate(d), first = day !== lastDay;
 		lastDay = day;
-		const manual = e.source === "manual";
-		return '<div class="docket-row" data-ctx="docket" data-task-id="' + esc(e.taskId || "") + '" data-manual="' + (manual ? 1 : 0) + '"><span class="docket-date">' + (first ? "<b>" + d.toLocaleDateString("en-CA", { weekday: "short" }) + "</b>" + monthDay(d) : "") + '</span><span class="docket-desc">' + esc(e.description) + '<span class="docket-meta"><span class="kind-chip ' + e.kind + '">' + KIND_LABEL[e.kind] + "</span><span>" + clockTime(e.start) + " – " + clockTime(e.end) + "</span>" + (manual ? "<span>Logged</span>" : "") + (e.sessions > 1 ? "<span>" + e.sessions + " sessions</span>" : "") + (isLateNight(e) ? '<span class="late-chip">After midnight</span>' : "") + '</span></span><span class="docket-units">' + formatUnits(e.units) + (manual ? '<button class="icon-button docket-remove" data-action="docket-remove" data-id="' + esc(e.id) + '" aria-label="Remove this entry">' + icon("close") + "</button>" : "") + "</span></div>";
+		const manual = e.source === "manual", auto = e.source === "scheduled";
+		return '<div class="docket-row' + (e.live ? " live" : "") + '" data-ctx="docket" data-task-id="' + esc(e.taskId || "") + '" data-manual="' + (manual ? 1 : 0) + '" data-auto="' + (auto ? 1 : 0) + '"><span class="docket-date">' + (first ? "<b>" + d.toLocaleDateString("en-CA", { weekday: "short" }) + "</b>" + monthDay(d) : "") + '</span><span class="docket-desc">' + esc(e.description) + '<span class="docket-meta"><span class="kind-chip ' + e.kind + '">' + KIND_LABEL[e.kind] + "</span><span>" + clockTime(e.start) + " – " + (e.live ? "now" : clockTime(e.end)) + "</span>" + (manual ? "<span>Logged</span>" : "") + (auto ? '<span class="auto-chip" title="Counted from your schedule. Remove it if you did not do the work.">' + (e.live ? "Billing now" : "Auto") + "</span>" : "") + (e.sessions > 1 ? "<span>" + e.sessions + " sessions</span>" : "") + (isLateNight(e) ? '<span class="late-chip">After midnight</span>' : "") + '</span></span><span class="docket-units">' + formatUnits(e.units) + (manual ? '<button class="icon-button docket-remove" data-action="docket-remove" data-id="' + esc(e.id) + '" aria-label="Remove this entry">' + icon("close") + "</button>" : auto ? '<button class="icon-button docket-remove" data-action="docket-dismiss" data-id="' + esc(e.id) + '" aria-label="Remove this automatic entry" title="Did not do it? Remove it">' + icon("close") + "</button>" : "") + "</span></div>";
 	}).join("");
 	const first = localDate(keys[0]), last = localDate(keys[6]);
 	const pace = docketOffset === 0 && s.billable >= weeklyCeiling() ? '<span class="behind">Past your ' + formatUnits(weeklyCeiling()) + " h ceiling. Rest.</span>" : docketOffset === 0 ? (s.pace === "ahead" ? '<span class="ahead">' + formatUnits(s.billable - s.expected) + " h ahead of pace</span>" : s.pace === "behind" ? '<span class="behind">' + formatUnits(s.expected - s.billable) + " h behind pace</span>" : '<span class="ahead">On pace</span>') : "<span>" + formatUnits(s.remaining) + " h short of target</span>";
@@ -3275,7 +3352,7 @@ function renderDocket() {
 	broadcastLine = docketOffset === 0 ? partnerVoice(s) : docketNarration(s);
 	const insight = docketInsight(s);
 	const legend = KINDS.filter((k) => k !== "admin").map((k) => '<span><i class="kind-dot ' + k + '"></i>' + KIND_LABEL[k] + " <b>" + formatUnits(s.byKind[k]) + "</b></span>").join("");
-	return renderReview() + renderConsistency() + '<div class="docket-layout"><div class="docket-side"><section class="surface docket-gauge"><div class="docket-top"><p class="eyebrow">Billable this week</p><button class="text-button" data-action="docket-target">Target ' + formatUnits(s.target) + " h</button></div>" + docketGauge(s, keys) + '<p class="docket-pace">' + pace + '</p>' + docketCompare(s) + '<div class="docket-bars">' + bars + '</div><div class="docket-days">' + "MTWTFSS".split("").map((l) => "<span>" + l + "</span>").join("") + '</div><div class="docket-legend">' + legend + "</div></section>" + (broadcastVisible() ? broadcastMarkup() : "") + '</div><section class="surface docket-main"><div class="docket-head"><div><p class="eyebrow">Weekly docket</p><h2>' + monthDay(first) + " – " + monthDay(last) + '</h2></div><div class="docket-actions"><button class="icon-button flip" data-action="docket-week" data-step="-1" aria-label="Previous week">' + icon("right") + "</button>" + (docketOffset ? '<button class="text-button" data-action="docket-week" data-step="0">This week</button>' : "") + '<button class="icon-button" data-action="docket-week" data-step="1" aria-label="Next week">' + icon("right") + '</button><button class="primary" data-action="docket-log">Log time</button></div></div>' + (rows || '<p class="docket-empty">No hours yet this week. Start a focus session, or log time you have already worked.</p>') + (insight ? '<p class="docket-insight"><span class="eyebrow">Mix</span>' + esc(insight) + "</p>" : "") + '<div class="docket-total"><span>Total billable</span><b>' + formatUnits(s.billable) + "</b></div></section></div>";
+	return renderReview() + renderConsistency() + '<div class="docket-layout"><div class="docket-side"><section class="surface docket-gauge"><div class="docket-top"><p class="eyebrow">Billable this week</p><button class="text-button" data-action="docket-target">Target ' + formatUnits(s.target) + " h</button></div>" + docketGauge(s, keys) + '<p class="docket-pace">' + pace + '</p>' + docketCompare(s) + '<div class="docket-bars">' + bars + '</div><div class="docket-days">' + "MTWTFSS".split("").map((l) => "<span>" + l + "</span>").join("") + '</div><div class="docket-legend">' + legend + "</div></section>" + (broadcastVisible() ? broadcastMarkup() : "") + '</div><section class="surface docket-main"><div class="docket-head"><div><p class="eyebrow">Weekly docket</p><h2>' + monthDay(first) + " – " + monthDay(last) + '</h2></div><div class="docket-actions"><button class="icon-button flip" data-action="docket-week" data-step="-1" aria-label="Previous week">' + icon("right") + "</button>" + (docketOffset ? '<button class="text-button" data-action="docket-week" data-step="0">This week</button>' : "") + '<button class="icon-button" data-action="docket-week" data-step="1" aria-label="Next week">' + icon("right") + '</button><button class="primary" data-action="docket-log">Log time</button></div></div>' + (rows || '<p class="docket-empty">No hours yet this week. Scheduled study blocks count as their time passes; focus sessions and logged time count too.</p>') + (insight ? '<p class="docket-insight"><span class="eyebrow">Mix</span>' + esc(insight) + "</p>" : "") + '<div class="docket-total"><span>Total billable</span><b>' + formatUnits(s.billable) + "</b></div></section></div>";
 }
 let heatCache = { key: "", value: null }, heatAnimated = false;
 function firstActivityKey() {
@@ -3290,7 +3367,7 @@ function firstActivityKey() {
 }
 function heatInfo() {
 	const today = isoDate();
-	const key = String(focusSessionsRaw() || "") + today + weeklyTarget() + Math.floor(Date.now() / 600000);
+	const key = String(focusSessionsRaw() || "") + today + weeklyTarget() + Math.floor(Date.now() / 120000) + docketExcluded().join() + tasks.map((t) => t.id + (t.done ? 1 : 0) + (t.scheduledStart || "")).join();
 	if (heatCache.value && heatCache.key === key) return heatCache.value;
 	const now = new Date();
 	/* Class time only counts from the first recorded session, so recurring
@@ -3300,7 +3377,7 @@ function heatInfo() {
 	const weeks = Math.max(6, Math.min(HEAT_WEEKS, Math.round((weekStart(now) - weekStart(localDate(since))) / (7 * 864e5)) + 1));
 	const keys = heatRange(today, weeks);
 	const events = keys.filter((k) => k <= today && k >= since).flatMap((k) => occurrences(localDate(k)));
-	const totals = dayTotals([...sessionEntries(focusSessionsRaw(), tasks), ...classEntries(events, now)]);
+	const totals = dayTotals(billedEntries(events, now));
 	const dailyTarget = weeklyTarget() / 5;
 	const grid = heatCells({ totals, today, weeks, dailyTarget });
 	const stats = streakStats(totals, keys, today, STREAK_MIN);
@@ -3380,16 +3457,38 @@ function openLogTime(prefillId = "") {
 		}
 	};
 }
+/* Why Focus is on this task, in a few words. */
+function focusReason(choice, now = Date.now()) {
+	const t = choice.task, b = choice.block;
+	if (!t) return "";
+	const span = b ? `${clockTime(b[0])}–${clockTime(b[1])}` : "";
+	const billing = b && b[0] <= now && now < b[1] && BILLABLE.has(taskKind(t)) ? '<span class="focus-billing">Billing automatically</span>' : "";
+	const text =
+		choice.reason === "now" ? `On your schedule now · ${span} · ${formatMinutes(Math.max(1, Math.round((b[1] - now) / 60000)))} left`
+		: choice.reason === "over" ? `Ran over · was booked ${span}`
+		: choice.reason === "next" ? `Next on your schedule · starts ${clockTime(b[0])}, in ${formatMinutes(Math.max(1, Math.round((b[0] - now) / 60000)))}`
+		: choice.reason === "session" ? `In session${span ? ` · booked ${span}` : ""}`
+		: choice.reason === "chosen" ? `Your pick${span ? ` · booked ${span}` : ""}`
+		: `${t.pri === "should" ? "Should" : "Must"} do today · not scheduled`;
+	return `<p class="focus-reason">${esc(text)}${billing}</p>`;
+}
+/* When a session or a pick holds Focus, say what the schedule has on now. */
+function focusNudge(choice, now = Date.now()) {
+	if (choice.reason !== "session" && choice.reason !== "chosen") return "";
+	const live = focusPick(focusTasks(tasks, courses), { now });
+	if (live.reason !== "now" || live.task.id === choice.task?.id) return "";
+	return `<div class="focus-nudge">${icon("calendar")}<span>Booked now: <b>${esc(live.task.text)}</b> ${clockTime(live.block[0])}–${clockTime(live.block[1])}</span><button data-action="select-focus" data-id="${esc(live.task.id)}">Switch</button></div>`;
+}
 function renderFocus() {
-	const current = activeTask(),
-		next = todayTasks(focusTasks(tasks, courses)).find(
-			(t) => !t.done && t.id !== current?.id && t.pri !== "could",
-		),
+	const choice = focusChoice(),
+		current = choice.task,
+		after = current && blockOf(current) ? Math.max(Date.now(), blockOf(current)[1]) : Date.now(),
+		next = focusPick(focusTasks(tasks, courses).filter((t) => t.id !== current?.id), { now: after }).task,
 		events = occurrences(new Date()),
 		now = new Date().getHours() * 60 + new Date().getMinutes(),
 		nextEvent = events.find((e) => minutes(e.start) > now),
 		subs = current?.subs || [];
-	return `<div class="focus-layout"><section class="surface focus-main"><p class="eyebrow">Current task</p><h2>${esc(current?.text || "Room to focus")}</h2><p class="focus-subtitle">${current ? `${duration(current) || 45}-minute focus block` : "Start a timer, or choose a task from Today"}</p><div class="timer-art"><svg viewBox="0 0 240 240" aria-hidden="true"><circle class="timer-track" cx="120" cy="120" r="110"/><circle class="timer-progress" data-timer-ring cx="120" cy="120" r="110"/></svg><div><div class="timer-digits" data-timer>45:00</div><p class="timer-caption" data-phase>Ready to focus</p></div></div><div class="focus-controls"><button data-action="timer" data-timer-button>${icon("play")} Start focus</button><button class="primary" data-action="finish" data-finish>${icon("check")} Finish task</button><button data-action="reset-timer" title="End the session and save the time">End session</button></div><div class="break-actions" id="breakActions" hidden><span class="muted" style="font-size:12px">Your break is ready.</span><button data-action="flow">+15 min focus</button></div><section class="session-steps"><div class="steps-head"><span>Session steps</span><span>${subs.filter((s) => s.done).length} of ${subs.length}</span></div>${subs.length ? subs.map((sub) => `<div class="step-row ${sub.done ? "done" : ""}"><button class="check-button ${sub.done ? "checked" : ""}" data-action="subtask" data-sub-id="${esc(sub.id)}" aria-label="${sub.done ? "Reopen" : "Complete"} step: ${esc(sub.text)}">${sub.done ? icon("check") : ""}</button><span class="step-text">${esc(sub.text)}</span></div>`).join("") : `<div class="step-empty">${current ? "Add the steps that will help you finish this task." : "Choose a task to see its session steps."}${current ? `<br><button data-action="edit" data-id="${esc(current.id)}">Add session steps</button>` : ""}</div>`}</section></section><aside class="focus-sidebar"><section class="surface context-card"><p class="eyebrow">${icon("list")} Up next</p>${next ? `<div class="next-task"><button class="check-button" data-action="select-focus" data-id="${esc(next.id)}" aria-label="Select ${esc(next.text)}"></button><div><b>${esc(next.text)}</b><small>${duration(next) ? duration(next) + " min" : "No estimate"}</small></div></div>` : '<p class="muted" style="font-size:12px">No other commitments today.</p>'}</section><section class="surface context-card finish-context"><p class="eyebrow">${icon("flag")} Today’s finish line</p>${finishLine(true)}${[
+	return `<div class="focus-layout"><section class="surface focus-main"><p class="eyebrow">Current task</p><h2>${esc(current?.text || "Room to focus")}</h2>${focusReason(choice)}<p class="focus-subtitle">${current ? `${focusLength(current)}-minute focus block` : "Start a timer, or choose a task from Today"}</p>${focusNudge(choice)}<div class="timer-art"><svg viewBox="0 0 240 240" aria-hidden="true"><circle class="timer-track" cx="120" cy="120" r="110"/><circle class="timer-progress" data-timer-ring cx="120" cy="120" r="110"/></svg><div><div class="timer-digits" data-timer>45:00</div><p class="timer-caption" data-phase>Ready to focus</p></div></div><div class="focus-controls"><button data-action="timer" data-timer-button>${icon("play")} Start focus</button><button class="primary" data-action="finish" data-finish>${icon("check")} Finish task</button><button data-action="reset-timer" title="End the session and save the time">End session</button></div><div class="break-actions" id="breakActions" hidden><span class="muted" style="font-size:12px">Your break is ready.</span><button data-action="flow">+15 min focus</button></div><section class="session-steps"><div class="steps-head"><span>Session steps</span><span>${subs.filter((s) => s.done).length} of ${subs.length}</span></div>${subs.length ? subs.map((sub) => `<div class="step-row ${sub.done ? "done" : ""}"><button class="check-button ${sub.done ? "checked" : ""}" data-action="subtask" data-sub-id="${esc(sub.id)}" aria-label="${sub.done ? "Reopen" : "Complete"} step: ${esc(sub.text)}">${sub.done ? icon("check") : ""}</button><span class="step-text">${esc(sub.text)}</span></div>`).join("") : `<div class="step-empty">${current ? "Add the steps that will help you finish this task." : "Choose a task to see its session steps."}${current ? `<br><button data-action="edit" data-id="${esc(current.id)}">Add session steps</button>` : ""}</div>`}</section></section><aside class="focus-sidebar"><section class="surface context-card"><p class="eyebrow">${icon("list")} Up next</p>${next ? `<div class="next-task"><button class="check-button" data-action="select-focus" data-id="${esc(next.id)}" aria-label="Select ${esc(next.text)}"></button><div><b>${esc(next.text)}</b><small>${duration(next) ? duration(next) + " min" : "No estimate"}</small></div></div>` : '<p class="muted" style="font-size:12px">No other commitments today.</p>'}</section><section class="surface context-card finish-context"><p class="eyebrow">${icon("flag")} Today’s finish line</p>${finishLine(true)}${[
 		"must",
 		"should",
 		"could",

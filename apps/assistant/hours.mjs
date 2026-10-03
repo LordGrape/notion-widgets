@@ -131,6 +131,49 @@ export function classEntries(events = [], now = new Date()) {
 		.filter((e) => e.minutes >= 1);
 }
 
+/* Scheduled work bills itself, like class: a billable task's block counts as its time passes,
+   up to now or until the task is ticked off. Time a focus session or class already covers is
+   taken out so nothing is billed twice; a day with time logged by hand for the task, a block
+   before `since`, or an entry id in `excluded` (removed from the docket) does not count. */
+export function scheduledEntries(tasks = [], { sessions = [], classes = [], now = new Date(), since = 0, excluded = [] } = {}) {
+	const at = now.getTime();
+	const skip = new Set(excluded.map(String));
+	const logged = parseSessions(sessions).filter((s) => s && Number(s.completedAt) > 0);
+	const busy = [
+		...logged.filter((s) => !s.manual && Number(s.seconds) >= 60).map((s) => [Number(s.completedAt) - Number(s.seconds) * 1000, Number(s.completedAt)]),
+		...classes.map((c) => [c.start, c.end]),
+	];
+	const manualDays = new Set(logged.filter((s) => s.manual).map((s) => `${s.taskId}|${isoDate(new Date(Number(s.completedAt)))}`));
+	const out = [];
+	for (const t of tasks) {
+		const start = Date.parse(t.scheduledStart), end = Date.parse(t.scheduledEnd);
+		if (!Number.isFinite(start) || !(end > start) || start < since || start >= at) continue;
+		const kind = taskKind(t);
+		if (!BILLABLE.has(kind)) continue;
+		const day = isoDate(new Date(start));
+		const id = `plan:${t.id}:${day}`;
+		if (skip.has(id) || manualDays.has(`${t.id}|${day}`)) continue;
+		const doneAt = t.done ? Number(new Date(t.doneAt)) || 0 : 0;
+		const stop = Math.min(end, at, doneAt > start ? doneAt : end);
+		if (t.done && doneAt && doneAt <= start) continue;
+		let ms = stop - start;
+		for (const [s, e] of mergeRanges(busy)) ms -= Math.max(0, Math.min(e, stop) - Math.max(s, start));
+		const mins = Math.round(ms / 60000);
+		if (mins < 1) continue;
+		out.push({ id, source: "scheduled", taskId: String(t.id), kind, description: t.text, start, end: stop, minutes: mins, live: stop === at && at < end });
+	}
+	return out;
+}
+function mergeRanges(ranges) {
+	const merged = [];
+	for (const [s, e] of ranges.filter(([s, e]) => e > s).sort((a, b) => a[0] - b[0])) {
+		const last = merged.at(-1);
+		if (last && s <= last[1]) last[1] = Math.max(last[1], e);
+		else merged.push([s, e]);
+	}
+	return merged;
+}
+
 /* One line per matter per day, as on a real docket: focus sessions on the same
    task and day merge into a single entry with their total time. */
 export function mergeEntries(entries) {

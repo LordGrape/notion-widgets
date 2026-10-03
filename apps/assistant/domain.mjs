@@ -54,6 +54,48 @@ export function todayTasks(tasks, now = new Date()) {
 				(t.dueKey ? normalizeDateKey(t.dueKey) <= key : t.due !== "tomorrow"),
 	);
 }
+/* A task's scheduled block as [start, end] in ms, or null. */
+export const blockOf = (t = {}) => {
+	const start = Date.parse(t.scheduledStart), end = Date.parse(t.scheduledEnd);
+	return Number.isFinite(start) && Number.isFinite(end) && end > start ? [start, end] : null;
+};
+const RANK = { must: 0, should: 1, could: 2 };
+/* What Focus should be on right now. In order:
+   1. a task you chose, until a scheduled block starts after you chose it;
+   2. the block on now;
+   3. a block that ended today but is still open (running over);
+   4. the next block today;
+   5. unscheduled Must, then Should, work due today.
+   `selection` is { taskId, at }; a selection without `at` predates this rule and yields to any block. */
+export function focusPick(tasks, { now = Date.now(), selection = null } = {}) {
+	const day = isoDate(new Date(now));
+	const open = todayTasks(tasks, new Date(now)).filter((t) => !t.done);
+	const timed = open
+		.map((t) => ({ t, block: blockOf(t) }))
+		.filter(({ block }) => block && isoDate(new Date(block[0])) === day);
+	const chosen = selection?.taskId && tasks.find((t) => !t.done && String(t.id) === String(selection.taskId));
+	if (chosen) {
+		const at = Number(selection.at) || 0;
+		const superseded = timed.some(({ t, block }) => t.id !== chosen.id && block[0] > at && block[0] <= now);
+		if (!superseded) return { task: chosen, reason: "chosen", block: blockOf(chosen) };
+	}
+	const live = timed.filter(({ block }) => block[0] <= now && now < block[1]).sort((a, b) => b.block[0] - a.block[0])[0];
+	if (live) return { task: live.t, reason: "now", block: live.block };
+	const over = timed.filter(({ block }) => block[1] <= now).sort((a, b) => b.block[1] - a.block[1])[0];
+	if (over) return { task: over.t, reason: "over", block: over.block };
+	const next = timed.filter(({ block }) => block[0] > now).sort((a, b) => a.block[0] - b.block[0])[0];
+	if (next) return { task: next.t, reason: "next", block: next.block };
+	const loose = open
+		.filter((t) => !blockOf(t) && t.pri !== "could")
+		.sort((a, b) => (RANK[a.pri || "must"] ?? 0) - (RANK[b.pri || "must"] ?? 0))[0];
+	return loose ? { task: loose, reason: "priority", block: null } : { task: null, reason: "none", block: null };
+}
+/* Minutes for a focus timer: what is left of a block on now, else the estimate. */
+export function focusLength(task, now = Date.now()) {
+	const block = blockOf(task);
+	if (block && block[0] <= now && now < block[1]) return Math.max(5, Math.round((block[1] - now) / 60000));
+	return duration(task) || 45;
+}
 export function intervals(events, start = 540, end = 1020) {
 	const ranges = events
 		.map((e) => [
