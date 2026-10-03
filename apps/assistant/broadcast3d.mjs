@@ -302,7 +302,9 @@ async function create(url, carry = false) {
 		},
 		react(kind, plan = null) {
 			const now = performance.now();
-			if (kind === "cheer") {
+			if (kind === "wave" && carry) {
+				play("wave", { once: true });
+			} else if (kind === "cheer") {
 				faceOverride = "happy";
 				overrideUntil = now + 2600;
 				play("cheer", { once: true, repeats: 3 });

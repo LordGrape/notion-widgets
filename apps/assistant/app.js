@@ -69,7 +69,7 @@ import { suggestLastPage, planPageSplit, planTimeSplit, defaultRemaining } from 
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261004-carry";
+	REVISION = "20261004-carry-wave";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -113,7 +113,7 @@ let broadcastAudio = null, broadcastResetTimer = 0;
 let broadcastVersion = 0;
 let broadcastLine = "My office. Let's see the numbers.", broadcastPose = "", broadcastMood = "approve";
 let broadcast3D = null, broadcast3DFailed = false, celebratedWeek = "";
-let carry3D = null, carry3DFailed = false, carryCheer = false;
+let carry3D = null, carry3DFailed = false, carryCheer = false, carryWave = false;
 let partnerCta = null, partnerLine = { key: "", line: null, moment: "", vars: {} }, partnerCheer = false;
 const partnerUsed = new Set();
 function broadcastVisible() {
@@ -137,7 +137,11 @@ function mountCarry3D() {
 			button.classList.add("has-3d");
 			if (carryCheer) {
 				carryCheer = false;
+				carryWave = false;
 				companion.react("cheer");
+			} else if (carryWave) {
+				carryWave = false;
+				companion.react("wave");
 			}
 		})
 		.catch((error) => {
@@ -151,6 +155,12 @@ function celebrateWithCarry() {
 	if (!$(".carry-companion") || !canUse3D()) return;
 	if (carry3D) carry3D.react("cheer");
 	else carryCheer = true;
+}
+
+function waveWithCarry() {
+	if (!$(".carry-companion") || !canUse3D()) return;
+	if (carry3D) carry3D.react("wave");
+	else carryWave = true;
 }
 function broadcastSoundEnabled() {
 	return engines.todo?.SyncEngine.get("user", "commandPartnerSound") !== false;
@@ -1223,6 +1233,8 @@ function selectFocus(id) {
 function timerAction() {
 	const w = engines.clock,
 		current = activeTask();
+	const startingFocus = !w.tmRunning && w.tmRemaining === w.tmDuration &&
+		(!w.studyActive || w.studyPhase === "focus");
 	if (!w.tmRunning && !w.studyActive && w.tmRemaining === w.tmDuration) {
 		w.setMode?.("timer");
 		w.setTimerType?.("study", true);
@@ -1232,6 +1244,7 @@ function timerAction() {
 		saveChoice(selectedId);
 	}
 	w.document.getElementById("tmToggle").click();
+	if (startingFocus && w.tmRunning) waveWithCarry();
 	updateTimer();
 }
 function resetTimer(silent = false) {
@@ -2997,7 +3010,7 @@ document.addEventListener("click", (e) => {
 	else if (b.dataset.action === "flow") broadcastReact("flow");
 	switch (b.dataset.action) {
 		case "carry-greet":
-			if (canUse3D()) carry3D?.react("talk");
+			waveWithCarry();
 			notify("Meet Carry, Broadcast's son. He's here to keep you company.");
 			break;
 		case "toggle":

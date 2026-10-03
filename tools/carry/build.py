@@ -130,6 +130,15 @@ for sign, side in ((-1, "L"), (1, "R")):
 box("Side latch", (0.81, 0.02, 1.16), (0.065, 0.26, 0.34), latch, 0.03)
 box("Latch inset", (0.851, -0.015, 1.16), (0.017, 0.06, 0.12), handle_mat, 0.008)
 REST = {key: (obj.location.copy(), obj.rotation_euler.copy()) for key, obj in J.items()}
+# One friendly wave: raise the right mitten, wave twice, then settle at rest.
+ANIMS["wave"] = (60, {
+    "ShoulderR": [(0, Z, Z), (10, (0, -2.15, -0.12), (0, 0, 0.16)),
+        (18, (0, -2.50, -0.12), (0, 0, 0.16)), (26, (0, -1.85, -0.12), (0, 0, 0.16)),
+        (34, (0, -2.50, -0.12), (0, 0, 0.16)), (42, (0, -1.85, -0.12), (0, 0, 0.16)),
+        (50, (0, -2.15, -0.12), (0, 0, 0.16)), (60, Z, Z)],
+    "ElbowR": [(0, Z, Z), (10, (0, -0.35, 0), Z), (50, (0, -0.35, 0), Z), (60, Z, Z)],
+    "Neck": [(0, Z, Z), (12, (0, 0.07, -0.04), Z), (48, (0, 0.07, -0.04), Z), (60, Z, Z)],
+})
 for name, (length, spec) in ANIMS.items():
     keyframes(spec, length)
     stash(name, length)
