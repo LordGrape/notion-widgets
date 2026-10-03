@@ -43,13 +43,15 @@ import {
 	heatCells,
 	heatRange,
 	streakStats,
+	moodFor,
 } from "./hours.mjs";
+import { canUse3D, loadBroadcast3D } from "./broadcast3d.mjs";
 import { planDay, isUnscheduled, PLAN_START, PLAN_END } from "./autofit.mjs";
 import { suggestLastPage, planPageSplit, planTimeSplit, defaultRemaining } from "./split.mjs";
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261002-split";
+	REVISION = "20261002-broadcast-3d";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -90,7 +92,8 @@ let interfaceAudio = null;
 let recentScheduleId = null;
 let broadcastAudio = null, broadcastResetTimer = 0;
 let broadcastVersion = 0;
-let broadcastLine = "Counsel. Shall we begin?", broadcastPose = "";
+let broadcastLine = "Counsel. Shall we begin?", broadcastPose = "", broadcastMood = "approve";
+let broadcast3D = null, broadcast3DFailed = false, celebratedWeek = "";
 function broadcastVisible() {
 	return engines.todo?.SyncEngine.get("user", "commandPartnerVisible") !== false;
 }
@@ -138,7 +141,33 @@ function broadcastChatter() {
 		setTimeout(() => { if (broadcastVersion === version) { broadcastAudio?.stop(); broadcastAudio = null; } }, 850);
 	} catch { /* Optional audio never blocks focus controls. */ }
 }
+function mountBroadcast3D() {
+	const card = $("#broadcastCompanion");
+	if (!card || card.hidden || broadcast3DFailed || !canUse3D()) return;
+	const host = card.querySelector(".broadcast-3d");
+	if (!host) return;
+	if (broadcast3D) card.classList.add("has-3d");
+	loadBroadcast3D(new URL("./broadcast.glb?v=" + REVISION, import.meta.url).href)
+		.then((partner) => {
+			broadcast3D = partner;
+			if (!host.isConnected) return;
+			partner.attach(host);
+			partner.setMood(broadcastMood);
+			card.classList.add("has-3d");
+			const week = isoDate(weekStart(new Date()));
+			if (broadcastMood === "happy" && celebratedWeek !== week) {
+				celebratedWeek = week;
+				partner.react("cheer");
+			}
+		})
+		.catch((error) => {
+			broadcast3DFailed = true;
+			card.classList.remove("has-3d");
+			console.warn("Broadcast 3D is unavailable; using the 2D partner.", error);
+		});
+}
 function broadcastReact(state) {
+	broadcast3D?.react({ start: "talk", pause: "talk", finish: "cheer", break: "talk", flow: "talk" }[state] || "talk");
 	const card = $("#broadcastCompanion");
 	if (!card || card.hidden || !broadcastVisible()) return;
 	const figure = card.querySelector(".broadcast-figure"), line = card.querySelector(".broadcast-dialogue");
@@ -311,7 +340,7 @@ function lock() {
 	sessionStorage.removeItem(SESSION_KEY);
 	localStorage.removeItem(SESSION_KEY);
 	$("#workspace").innerHTML =
-		'<div class="loading-state">Loading your workspace…</div>';
+		'<div class="loading-state"><span class="broadcast-run" aria-hidden="true"></span><span>Loading your workspace…</span></div>';
 	$("#focusDock").hidden = true;
 	$("#lockScreen").hidden = false;
 	$("#appShell").setAttribute("aria-hidden", "true");
@@ -587,6 +616,7 @@ function render() {
 	bindWorkspace();
 	updateTimer();
 	updateCalendarTime();
+	mountBroadcast3D();
 	const agenda = $(".agenda-scroll");
 	if (agenda) {
 		if (priorScroll != null) agenda.scrollTop = priorScroll;
@@ -2108,7 +2138,7 @@ function formatMinutes(n) {
 	);
 }
 function broadcastMarkup() {
-	return `<section class="surface context-card broadcast-card" id="broadcastCompanion" aria-label="Broadcast, your focus partner"><div class="broadcast-stage"><div class="broadcast-figure ${broadcastPose}" role="img" aria-label="Broadcast, a muscular CRT television-headed partner in a tailored charcoal suit"><div class="broadcast-shadow"></div><div class="broadcast-leg broadcast-leg-left"><div class="broadcast-shoe"></div></div><div class="broadcast-leg broadcast-leg-right"><div class="broadcast-shoe"></div></div><div class="broadcast-arm broadcast-arm-left"><div class="broadcast-cuff"></div><div class="broadcast-hand"></div></div><div class="broadcast-arm broadcast-arm-right"><div class="broadcast-cuff"></div><div class="broadcast-hand"></div></div><div class="broadcast-body"><div class="broadcast-shirt"></div><div class="broadcast-tie"></div><div class="broadcast-lapel"></div><div class="broadcast-lapel broadcast-lapel-right"></div><div class="broadcast-pocket"></div></div><div class="broadcast-head"><div class="broadcast-antenna"></div><div class="broadcast-screen"><div class="broadcast-face"><span class="broadcast-eye broadcast-eye-left"></span><span class="broadcast-eye broadcast-eye-right"></span><span class="broadcast-mouth"></span><span class="broadcast-fang"></span></div><div class="broadcast-scan"></div><div class="broadcast-reflection"></div></div><div class="broadcast-knob"></div></div></div></div><p class="broadcast-dialogue" role="status" aria-live="polite">${esc(broadcastLine)}</p><p class="broadcast-away" role="status"></p></section>`;
+	return `<section class="surface context-card broadcast-card" id="broadcastCompanion" aria-label="Broadcast, your focus partner"><div class="broadcast-stage"><div class="broadcast-3d" title="Tap to hear from your partner"></div><div class="broadcast-figure ${broadcastPose}" role="img" aria-label="Broadcast, a muscular CRT television-headed partner in a tailored charcoal suit"><div class="broadcast-shadow"></div><div class="broadcast-leg broadcast-leg-left"><div class="broadcast-shoe"></div></div><div class="broadcast-leg broadcast-leg-right"><div class="broadcast-shoe"></div></div><div class="broadcast-arm broadcast-arm-left"><div class="broadcast-cuff"></div><div class="broadcast-hand"></div></div><div class="broadcast-arm broadcast-arm-right"><div class="broadcast-cuff"></div><div class="broadcast-hand"></div></div><div class="broadcast-body"><div class="broadcast-shirt"></div><div class="broadcast-tie"></div><div class="broadcast-lapel"></div><div class="broadcast-lapel broadcast-lapel-right"></div><div class="broadcast-pocket"></div></div><div class="broadcast-head"><div class="broadcast-antenna"></div><div class="broadcast-screen"><div class="broadcast-face"><span class="broadcast-eye broadcast-eye-left"></span><span class="broadcast-eye broadcast-eye-right"></span><span class="broadcast-mouth"></span><span class="broadcast-fang"></span></div><div class="broadcast-scan"></div><div class="broadcast-reflection"></div></div><div class="broadcast-knob"></div></div></div></div><p class="broadcast-dialogue" role="status" aria-live="polite">${esc(broadcastLine)}</p><p class="broadcast-away" role="status"></p></section>`;
 }
 const monthDay = (d) => d.toLocaleDateString("en-CA", { month: "short", day: "numeric" });
 const clockTime = (ms) => {
@@ -2193,6 +2223,7 @@ function renderDocket() {
 	const pace = docketOffset === 0 ? (s.pace === "ahead" ? '<span class="ahead">' + formatUnits(s.billable - s.expected) + " h ahead of pace</span>" : s.pace === "behind" ? '<span class="behind">' + formatUnits(s.expected - s.billable) + " h behind pace</span>" : '<span class="ahead">On pace</span>') : "<span>" + formatUnits(s.remaining) + " h short of target</span>";
 	broadcastLine = docketNarration(s);
 	broadcastPose = "";
+	broadcastMood = moodFor(s, { current: docketOffset === 0, sunday: new Date().getDay() === 0 });
 	const insight = docketInsight(s);
 	const legend = KINDS.filter((k) => k !== "admin").map((k) => '<span><i class="kind-dot ' + k + '"></i>' + KIND_LABEL[k] + " <b>" + formatUnits(s.byKind[k]) + "</b></span>").join("");
 	return renderConsistency() + '<div class="docket-layout"><div class="docket-side"><section class="surface docket-gauge"><div class="docket-top"><p class="eyebrow">Billable this week</p><button class="text-button" data-action="docket-target">Target ' + formatUnits(s.target) + " h</button></div>" + docketGauge(s, keys) + '<p class="docket-pace">' + pace + '</p><div class="docket-bars">' + bars + '</div><div class="docket-days">' + "MTWTFSS".split("").map((l) => "<span>" + l + "</span>").join("") + '</div><div class="docket-legend">' + legend + "</div></section>" + (broadcastVisible() ? broadcastMarkup() : "") + '</div><section class="surface docket-main"><div class="docket-head"><div><p class="eyebrow">Weekly docket</p><h2>' + monthDay(first) + " – " + monthDay(last) + '</h2></div><div class="docket-actions"><button class="icon-button flip" data-action="docket-week" data-step="-1" aria-label="Previous week">' + icon("right") + "</button>" + (docketOffset ? '<button class="text-button" data-action="docket-week" data-step="0">This week</button>' : "") + '<button class="icon-button" data-action="docket-week" data-step="1" aria-label="Next week">' + icon("right") + '</button><button class="primary" data-action="docket-log">Log time</button></div></div>' + (rows || '<p class="docket-empty">No hours yet this week. Start a focus session, or log time you have already worked.</p>') + (insight ? '<p class="docket-insight"><span class="eyebrow">Mix</span>' + esc(insight) + "</p>" : "") + '<div class="docket-total"><span>Total billable</span><b>' + formatUnits(s.billable) + "</b></div></section></div>";

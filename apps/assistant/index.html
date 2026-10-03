@@ -12,6 +12,9 @@
 			content="Your tasks, your day, and room to focus."
 		/>
 		<link rel="manifest" href="./manifest.webmanifest" />
+		<script type="importmap">
+			{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }
+		</script>
 		<link rel="icon" href="./icon.svg" type="image/svg+xml" />
 		<link rel="apple-touch-icon" href="./icon.svg" />
 		<script>
@@ -28,7 +31,7 @@
 	<link rel="preconnect" href="https://fonts.googleapis.com" />
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" />
-	<link rel="stylesheet" href="./styles.css?v=20261002-split" />
+	<link rel="stylesheet" href="./styles.css?v=20261002-broadcast-3d" />
 		<title>Command Centre</title>
 	<link rel="stylesheet" href="../../reading-estimates.css?v=20261002-class-anchored-tasks">
 </head>
@@ -87,7 +90,7 @@
 				</div>
 			</header>
 			<main id="workspace" aria-label="Command Centre workspace">
-				<div class="loading-state">Loading your workspace…</div>
+				<div class="loading-state"><span class="broadcast-run" aria-hidden="true"></span><span>Loading your workspace…</span></div>
 			</main>
 			<footer id="focusDock" class="focus-dock" hidden></footer>
 			<p id="announcement" class="sr-only" aria-live="polite"></p>
@@ -127,6 +130,6 @@
 		<script src="./remember.js"></script>
 		<script defer src="./notion-sync.js?v=20261002-class-anchored-tasks"></script>
 		<script src="../../widget-icons.js?v=20261001-duotone-b"></script>
-		<script type="module" src="./app.js?v=20261002-split"></script>
+		<script type="module" src="./app.js?v=20261002-broadcast-3d"></script>
 	</body>
 </html>

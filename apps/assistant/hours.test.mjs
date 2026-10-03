@@ -17,6 +17,7 @@ import {
 	levelFor,
 	heatCells,
 	streakStats,
+	moodFor,
 } from "./hours.mjs";
 
 test("task text is tagged by the smart parser", () => {
@@ -195,4 +196,15 @@ test("streak milestones track progress", () => {
 	assert.equal(stats.current, 5);
 	assert.equal(stats.next, 7);
 	assert.equal(stats.progress, 50);
+});
+
+test("the partner's mood follows the week", () => {
+	const base = { target: 35, expected: 20, billable: 20, pace: "on pace" };
+	assert.equal(moodFor(base), "approve");
+	assert.equal(moodFor({ ...base, billable: 23, pace: "ahead" }), "smug");
+	assert.equal(moodFor({ ...base, billable: 17, pace: "behind" }), "stern");
+	assert.equal(moodFor({ ...base, billable: 10, pace: "behind" }), "panic");
+	assert.equal(moodFor({ ...base, billable: 17, pace: "behind" }, { sunday: true }), "panic");
+	assert.equal(moodFor({ ...base, billable: 35 }), "happy");
+	assert.equal(moodFor({ ...base, billable: 10, pace: "behind" }, { current: false }), "approve");
 });

@@ -1,4 +1,4 @@
-const CACHE = "command-centre-20261002-split";
+const CACHE = "command-centre-20261002-broadcast-3d";
 const SHELL = [
 	"../../widget-platform.js",
 	"../../reading-estimates.js",
@@ -12,6 +12,9 @@ const SHELL = [
 	"./hours.mjs",
 	"./autofit.mjs",
 	"./split.mjs",
+	"./broadcast3d.mjs",
+	"./broadcast.glb",
+	"./broadcast-run.webp",
 	"./calendar-actions.mjs",
 	"../todo/src/daily-goal.mjs",
 	"./remember.js",

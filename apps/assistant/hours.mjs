@@ -246,3 +246,15 @@ export function streakStats(totals, keys, today, min = STREAK_MIN) {
 	const previous = [...MILESTONES].reverse().find((m) => m <= run) || 0;
 	return { current: run, best, next, progress: next > previous ? Math.min(100, Math.round(((run - previous) / (next - previous)) * 100)) : 100 };
 }
+
+/* Broadcast's mood for the week: target met, comfortably ahead, on pace, behind,
+   or far enough behind (a quarter of the target, or any gap on Sunday) to panic. */
+export function moodFor(summary, { current = true, sunday = false } = {}) {
+	if (summary.billable >= summary.target) return "happy";
+	if (!current) return "approve";
+	const gap = summary.expected - summary.billable;
+	if (gap > summary.target * 0.25 || (sunday && gap > 2)) return "panic";
+	if (summary.pace === "behind") return "stern";
+	if (summary.pace === "ahead") return "smug";
+	return "approve";
+}
