@@ -1,4 +1,4 @@
-const CACHE = "command-centre-20261004-freeslots";
+const CACHE = "command-centre-20261004-sprints";
 const SHELL = [
 	"../../widget-platform.js",
 	"../../reading-estimates.js",
@@ -15,6 +15,7 @@ const SHELL = [
 	"./calendar-extras.mjs",
 	"./interactions.mjs",
 	"./readings-import.mjs",
+	"./sprints.mjs",
 	"./split.mjs",
 	"./broadcast3d.mjs",
 	"./partner.mjs",

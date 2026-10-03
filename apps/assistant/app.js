@@ -4,6 +4,7 @@ import { changeCalendar, undoCalendar } from "./calendar-actions.mjs";
 import { ghostEvents, planNudge, timeAtOffset, parseTypeTag, stripTypeTag, withTypeTag } from "./calendar-extras.mjs";
 import { reorderIds, insertionIndex, movedTimes, resizedEnd, snap } from "./interactions.mjs";
 import { readingCandidates } from "./readings-import.mjs";
+import { SPRINT, sprintCount, sprintMinutes, sessionPlan, oversizedSteps, breakAfterStep } from "./sprints.mjs";
 import { conflicts, resolveOverlap } from "./overlap.mjs";
 import {
 	dailyGoal,
@@ -67,7 +68,7 @@ import { suggestLastPage, planPageSplit, planTimeSplit, defaultRemaining } from 
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261004-freeslots";
+	REVISION = "20261004-sprints";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -1189,7 +1190,7 @@ function timerAction() {
 	if (!w.tmRunning && !w.studyActive && w.tmRemaining === w.tmDuration) {
 		w.setMode?.("timer");
 		w.setTimerType?.("study", true);
-		if (w.stFocusEl) w.stFocusEl.value = focusLength(current || {});
+		if (w.stFocusEl) w.stFocusEl.value = sprintFocus(current || {});
 		w.studyTaskIds = current ? [current.id] : [];
 		selectedId = current?.id || null;
 		saveChoice(selectedId);
@@ -1216,7 +1217,7 @@ function updateTimer() {
 	const current = activeTask();
 	const fresh =
 		!w.studyActive && !w.tmRunning && w.tmRemaining === w.tmDuration;
-	const seconds = Math.ceil(fresh ? focusLength(current || {}) * 60 : remaining);
+	const seconds = Math.ceil(fresh ? sprintFocus(current || {}) * 60 : remaining);
 	const text = `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 	document
 		.querySelectorAll("[data-timer]")
@@ -1253,7 +1254,7 @@ function updateTimer() {
 		const total = breaking
 			? w.breakPhaseDuration
 			: fresh
-				? focusLength(current || {}) * 60
+				? sprintFocus(current || {}) * 60
 				: w.tmDuration;
 		ring.style.strokeDashoffset = String(
 			691.15 * (1 - Math.max(0, Math.min(1, seconds / total))),
@@ -3179,6 +3180,15 @@ document.addEventListener("click", (e) => {
 			signature = "";
 			refresh();
 			break;
+		case "adopt-plan": {
+			const t = activeTask();
+			if (!t) break;
+			const subs = planFor(t).plan.map((r, i) => ({ id: `${t.id}_sprint_${Date.now()}_${i}`, text: r.text, done: false }));
+			engines.todo.TodoUIBridge.command.update(t.id, { subs });
+			signature = "";
+			refresh();
+			break;
+		}
 		case "flow":
 			engines.clock.document.getElementById("tmContinueFlow").click();
 			updateTimer();
@@ -3642,6 +3652,32 @@ function focusNudge(choice, now = Date.now()) {
 	if (live.reason !== "now" || live.task.id === choice.task?.id) return "";
 	return `<div class="focus-nudge">${icon("calendar")}<span>Booked now: <b>${esc(live.task.text)}</b> ${clockTime(live.block[0])}–${clockTime(live.block[1])}</span><button data-action="select-focus" data-id="${esc(live.task.id)}">Switch</button></div>`;
 }
+/* Focus runs one sprint at a time. A long task is cut into sprints of at most 50 minutes with a break
+   between them, because attention fades over a long unbroken block. */
+const sprintFocus = (t) => sprintMinutes(focusLength(t));
+function focusSubtitle(t) {
+	const total = focusLength(t), n = sprintCount(total);
+	return n === 1 ? `${total}-minute focus block` : `${sprintMinutes(total)}-minute sprint \u00b7 ${n} sprints for this task, with breaks`;
+}
+function planFor(t) {
+	const e = Reading.estimate(t.text, t.reading || {});
+	const total = duration(t) || e?.minutes || 0;
+	return { reading: !!e?.pages, total, plan: sessionPlan({ minutes: total, start: e?.start ?? null, end: e?.end ?? null }) };
+}
+const breakRow = (m) => `<div class="step-break">${icon("clock")}<span>${m}-minute break \u00b7 ${m > SPRINT.breakMin ? "walk, eat, step away from the desk" : "stand up, look into the distance, no phone"}</span></div>`;
+function stepsPanel(current, subs) {
+	if (!current) return '<section class="session-steps"><div class="steps-head"><span>Plan for this session</span></div><div class="step-empty">Choose a task to see its plan.</div></section>';
+	const { reading, total, plan } = planFor(current);
+	const tip = reading ? '<p class="steps-tip">Skim the headings first. Read for the one rule this adds. Then close the book and say it back.</p>' : "";
+	if ((!subs.length || oversizedSteps(subs)) && (reading || total > SPRINT.single)) {
+		const rows = plan.map((r) => `<div class="step-row plan"><span class="step-dot">${r.kind === "recall" ? icon("check") : r.index}</span><span class="step-text">${esc(r.text)}</span></div>${r.breakAfter ? breakRow(r.breakAfter) : ""}`).join("");
+		return `<section class="session-steps"><div class="steps-head"><span>${reading ? "Reading plan" : "Plan for this session"}</span><span>${formatMinutes(total)}</span></div>${tip}${rows}<div class="step-actions"><button data-action="adopt-plan">Use this plan</button></div></section>`;
+	}
+	const rows = subs.length
+		? subs.map((sub, i) => `<div class="step-row ${sub.done ? "done" : ""}"><button class="check-button ${sub.done ? "checked" : ""}" data-action="subtask" data-sub-id="${esc(sub.id)}" aria-label="${sub.done ? "Reopen" : "Complete"} step: ${esc(sub.text)}">${sub.done ? icon("check") : ""}</button><span class="step-text">${esc(sub.text)}</span></div>${breakAfterStep(subs, i) ? breakRow(breakAfterStep(subs, i)) : ""}`).join("")
+		: `<div class="step-empty">Add the steps that will help you finish this task.<br><button data-action="edit" data-id="${esc(current.id)}">Add session steps</button></div>`;
+	return `<section class="session-steps"><div class="steps-head"><span>Plan for this session</span><span>${subs.filter((x) => x.done).length} of ${subs.length}</span></div>${tip}${rows}</section>`;
+}
 function renderFocus() {
 	const choice = focusChoice(),
 		current = choice.task,
@@ -3651,7 +3687,7 @@ function renderFocus() {
 		now = new Date().getHours() * 60 + new Date().getMinutes(),
 		nextEvent = events.find((e) => minutes(e.start) > now),
 		subs = current?.subs || [];
-	return `<div class="focus-layout"><section class="surface focus-main"><p class="eyebrow">Current task</p><h2>${esc(current?.text || "Room to focus")}</h2>${focusReason(choice)}<p class="focus-subtitle">${current ? `${focusLength(current)}-minute focus block` : "Start a timer, or choose a task from Today"}</p>${focusNudge(choice)}<div class="timer-art"><svg viewBox="0 0 240 240" aria-hidden="true"><circle class="timer-track" cx="120" cy="120" r="110"/><circle class="timer-progress" data-timer-ring cx="120" cy="120" r="110"/></svg><div><div class="timer-digits" data-timer>45:00</div><p class="timer-caption" data-phase>Ready to focus</p></div></div><div class="focus-controls"><button data-action="timer" data-timer-button>${icon("play")} Start focus</button><button class="primary" data-action="finish" data-finish>${icon("check")} Finish task</button><button data-action="reset-timer" title="End the session and save the time">End session</button></div><div class="break-actions" id="breakActions" hidden><span class="muted" style="font-size:12px">Your break is ready.</span><button data-action="flow">+15 min focus</button></div><section class="session-steps"><div class="steps-head"><span>Session steps</span><span>${subs.filter((s) => s.done).length} of ${subs.length}</span></div>${subs.length ? subs.map((sub) => `<div class="step-row ${sub.done ? "done" : ""}"><button class="check-button ${sub.done ? "checked" : ""}" data-action="subtask" data-sub-id="${esc(sub.id)}" aria-label="${sub.done ? "Reopen" : "Complete"} step: ${esc(sub.text)}">${sub.done ? icon("check") : ""}</button><span class="step-text">${esc(sub.text)}</span></div>`).join("") : `<div class="step-empty">${current ? "Add the steps that will help you finish this task." : "Choose a task to see its session steps."}${current ? `<br><button data-action="edit" data-id="${esc(current.id)}">Add session steps</button>` : ""}</div>`}</section></section><aside class="focus-sidebar"><section class="surface context-card"><p class="eyebrow">${icon("list")} Up next</p>${next ? `<div class="next-task"><button class="check-button" data-action="select-focus" data-id="${esc(next.id)}" aria-label="Select ${esc(next.text)}"></button><div><b>${esc(next.text)}</b><small>${duration(next) ? duration(next) + " min" : "No estimate"}</small></div></div>` : '<p class="muted" style="font-size:12px">No other commitments today.</p>'}</section><section class="surface context-card finish-context"><p class="eyebrow">${icon("flag")} Today’s finish line</p>${finishLine(true)}${[
+	return `<div class="focus-layout"><section class="surface focus-main"><p class="eyebrow">Current task</p><h2>${esc(current?.text || "Room to focus")}</h2>${focusReason(choice)}<p class="focus-subtitle">${current ? focusSubtitle(current) : "Start a timer, or choose a task from Today"}</p>${focusNudge(choice)}<div class="timer-art"><svg viewBox="0 0 240 240" aria-hidden="true"><circle class="timer-track" cx="120" cy="120" r="110"/><circle class="timer-progress" data-timer-ring cx="120" cy="120" r="110"/></svg><div><div class="timer-digits" data-timer>45:00</div><p class="timer-caption" data-phase>Ready to focus</p></div></div><div class="focus-controls"><button data-action="timer" data-timer-button>${icon("play")} Start focus</button><button class="primary" data-action="finish" data-finish>${icon("check")} Finish task</button><button data-action="reset-timer" title="End the session and save the time">End session</button></div><div class="break-actions" id="breakActions" hidden><span class="muted" style="font-size:12px">Your break is ready.</span><button data-action="flow">+15 min focus</button></div>${stepsPanel(current, subs)}</section><aside class="focus-sidebar"><section class="surface context-card"><p class="eyebrow">${icon("list")} Up next</p>${next ? `<div class="next-task"><button class="check-button" data-action="select-focus" data-id="${esc(next.id)}" aria-label="Select ${esc(next.text)}"></button><div><b>${esc(next.text)}</b><small>${duration(next) ? duration(next) + " min" : "No estimate"}</small></div></div>` : '<p class="muted" style="font-size:12px">No other commitments today.</p>'}</section><section class="surface context-card finish-context"><p class="eyebrow">${icon("flag")} Today’s finish line</p>${finishLine(true)}${[
 		"must",
 		"should",
 		"could",
