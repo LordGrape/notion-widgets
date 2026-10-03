@@ -69,7 +69,7 @@ import { suggestLastPage, planPageSplit, planTimeSplit, defaultRemaining } from 
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261004-autotick";
+	REVISION = "20261004-trim";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -1546,6 +1546,37 @@ function endSessionFlow() {
 	resetTimer(true);
 	setTimeout(() => openSessionWrap({ task: current, recorded: Math.max(0, focusMinutes(current.id) - before) }), 250);
 }
+/* Finishing or splitting a task while its booking is live: the block ends when you stopped, not when it
+   was planned to, so the calendar and the hours match what you did. Returns { end, undo }, or null when
+   there is nothing to trim (no block, not live, or it would not get shorter). */
+async function trimLiveBlock(t) {
+	const block = blockOf(t), now = Date.now();
+	if (!block || !t.scheduleId || !(block[0] <= now && now < block[1])) return null;
+	const end = Math.max(Math.ceil(now / 300000) * 300000, block[0] + 15 * 60000);
+	if (end >= block[1]) return null;
+	const dateKey = isoDate(new Date(block[0]));
+	const ev = occurrences(localDate(dateKey)).find((e) => e.id === t.scheduleId);
+	if (!ev || calendarBusy) return null;
+	const stop = new Date(end), endText = timeString(stop.getHours() * 60 + stop.getMinutes());
+	calendarBusy = true;
+	try {
+		const before = await pullCalendarState();
+		engines.timetable.schedule = engines.timetable.normaliseBlocks(before.blocks);
+		saveCalendarState(changeCalendar(before.blocks, before.tasks, ev, "edit", { date: dateKey, start: ev.start, end: endText }));
+		return {
+			end: endText,
+			/* Put the booking back as it was, whatever else has changed since. */
+			undo: async () => {
+				const now = await pullCalendarState();
+				saveCalendarState(changeCalendar(now.blocks, now.tasks, ev, "edit", { date: dateKey, start: ev.start, end: ev.end }));
+			},
+		};
+	} catch {
+		return null;
+	} finally {
+		calendarBusy = false;
+	}
+}
 function openSessionWrap({ task: t, recorded = 0, mode = "session" }) {
 	if (!t) return;
 	$("#editorDialog").open && $("#editorDialog").close();
@@ -1587,35 +1618,38 @@ function openSessionWrap({ task: t, recorded = 0, mode = "session" }) {
 	d.querySelectorAll("[data-choice]").forEach((b) => (b.onclick = () => { choice = b.dataset.choice; paint(); }));
 	form.addEventListener("input", paint);
 	paint();
-	form.onsubmit = (e) => {
+	form.onsubmit = async (e) => {
 		e.preventDefault();
 		try {
 			const before = { text: t.text, plannedMinutes: t.plannedMinutes ?? null, reading: t.reading ?? null, done: !!t.done, selected: selectedId };
-			let newId = null, message = "Saved. The task stays open.";
+			let newId = null, trimmed = null, message = "Saved. The task stays open.";
 			if (choice === "done") {
+				trimmed = await trimLiveBlock(t);
 				if (!t.done) bridge.command.toggle(t.id);
 				selectedId = null;
 				saveChoice(null);
-				message = "Task completed.";
+				message = "Task completed." + (trimmed ? ` Its block now ends at ${trimmed.end}.` : "");
 			} else if (choice === "split") {
 				const plan = compute();
+				trimmed = await trimLiveBlock(t);
 				bridge.command.update(t.id, { text: plan.doneText, plannedMinutes: plan.doneMinutes, reading: null });
 				if (!t.done) bridge.command.toggle(t.id);
 				newId = bridge.command.add({ text: plan.restText, pri: t.pri || "must", plannedMinutes: plan.restMinutes, due: t.due ?? "today", dueKey: t.dueKey ?? isoDate(), notes: t.notes || "", reading: null });
 				if (newId && isKind(t.kind)) bridge.command.update(newId, { kind: t.kind });
 				selectedId = newId || null;
 				saveChoice(selectedId);
-				message = "Split. The rest is a new task.";
+				message = "Split. The rest is a new task." + (trimmed ? ` Its block now ends at ${trimmed.end}.` : "");
 			}
 			d.close();
 			signature = "";
 			refresh();
 			if (choice === "open" && mode !== "split") return notify(message);
-			notify(message, () => {
+			notify(message, async () => {
 				if (newId) bridge.command.remove(newId);
 				bridge.command.update(t.id, { text: before.text, plannedMinutes: before.plannedMinutes, reading: before.reading });
 				const now = bridge.snapshot().tasks.find((x) => x.id === t.id);
 				if (now && !!now.done !== before.done) bridge.command.toggle(t.id);
+				if (trimmed) await trimmed.undo().catch(() => {});
 				selectedId = before.selected;
 				saveChoice(selectedId);
 				signature = "";
