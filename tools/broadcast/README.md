@@ -18,3 +18,7 @@ Use `PREVIEW=1` to also render still frames of each clip into `<outdir>`. `RUN_W
 - Clips: `idle`, `talk`, `cheer`, `slump`, `run`. Every clip keys every joint, so switching clips never leaves a stale pose.
 - The face is the mesh named `Screen`. `apps/assistant/broadcast3d.mjs` replaces its emissive map with a live canvas (moods, blinking, talking, glitches).
 - The run sprite is 16 frames, laid out left to right, for the loading screen.
+
+## Logo
+
+`python tools/broadcast/logo.py` regenerates the Command Centre mark (Broadcast's CRT with the M on its screen): the two inline badges in `apps/assistant/index.html`, the light and dark theme variables in `styles.css`, and `icon.svg` (adapts to the browser's colour scheme), `icon-light.svg`, `icon-dark.svg` and `icon-maskable.svg`. The installed icons are dark-tile PNGs rendered from `icon-dark.svg` and `icon-maskable.svg` with `sharp` at 192, 512 (and maskable 512), 180 (`apple-touch-icon.png`) and 32 (`favicon-32.png`) px.
