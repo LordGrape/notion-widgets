@@ -164,7 +164,7 @@ Settings has a Notifications section that drives the existing Clock notification
 
 ## Gestures
 
-All gestures reuse existing actions, so an undo or a confirmation behaves the same as the button version. Settings lists them under Shortcuts and gestures.
+All gestures reuse existing actions, so an undo or a confirmation behaves the same as the button version.
 
 - Right-click, press and hold (touch), or the context-menu key on: a task (start focus, edit, schedule, priority, tag, move to tomorrow, log time, complete, delete), a calendar block (details, start focus, complete, tag, edit time, move back to Unscheduled, remove), a Must/Should/Could heading (add here, collapse), a docket entry, Broadcast, the logo, and empty space in Today and the Unscheduled tray. Text fields, dialogs and the menu itself keep the browser menu. One `showMenu` builds every menu (rows of choices for priority and tag).
 - Double-click or double-tap: an empty calendar spot (new task there), a task's blank space (start focus), a day heading in Plan (zoom to that day, again to zoom out), a docket entry (open the task), empty Docket space (log time). Single clicks keep their meaning, so none of these compete with an existing click.

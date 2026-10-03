@@ -3825,23 +3825,5 @@ dialog h3 {
 .task-row, .calendar-column, .timeline, .calendar-date, .docket-layout {
 	touch-action: manipulation;
 }
-.gesture-tips {
-	margin-top: 14px;
-	font-size: 12px;
-	color: var(--muted);
-}
-.gesture-tips summary {
-	cursor: pointer;
-	font-weight: 650;
-	color: var(--text);
-}
-.gesture-tips ul {
-	margin: 8px 0 0;
-	padding-left: 18px;
-	line-height: 1.6;
-}
-.gesture-tips b {
-	color: var(--text);
-}
 /* Toasts must not intercept drops (they sit over the timer bar). */
 body.is-dragging #toast { pointer-events: none; }
