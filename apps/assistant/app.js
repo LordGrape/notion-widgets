@@ -47,6 +47,8 @@ import {
 	comparison,
 	practiceShare,
 	PRACTICE_GOAL,
+	isLateNight,
+	lateNightHours,
 } from "./hours.mjs";
 import { canUse3D, loadBroadcast3D } from "./broadcast3d.mjs";
 import { momentFor, pickLine, pickEventLine, nextStep, milestoneReached, weeklyReview } from "./partner.mjs";
@@ -56,7 +58,7 @@ import { suggestLastPage, planPageSplit, planTimeSplit, defaultRemaining } from 
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261002-partner-lines";
+	REVISION = "20261002-evidence";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -1320,20 +1322,36 @@ function openFirstBlock() {
 		notify("Nothing is waiting to be booked. Add a task for tomorrow first.");
 		return;
 	}
-	const events = occurrences(localDate(date));
+	const events = occurrences(localDate(date)).slice().sort((a, b) => minutes(a.start) - minutes(b.start));
+	const anchors = events.filter((e) => minutes(e.end) >= 8 * 60 && minutes(e.end) <= 20 * 60);
 	const first = options[0];
-	const suggest = (t) => suggestSlot(events, 9 * 60, duration(t) || 60, 21 * 60) ?? 9 * 60;
-	const d = openDialog("#editorDialog", dialogHead("Tomorrow's first block", "editorTitle") + '<p class="muted">People who decide when and where they will start are far more likely to follow through. Pick the first thing you will bill tomorrow.</p><form id="firstForm" class="form-grid"><label class="field wide">Task<select name="task">' + options.map((t) => '<option value="' + esc(t.id) + '">' + esc(t.text) + "</option>").join("") + '</select></label><label class="field">Start<input type="time" name="start" value="' + timeString(suggest(first)) + '"></label><label class="field">Minutes<input type="number" name="minutes" min="5" step="any" value="' + (duration(first) || 60) + '"></label><p class="form-error wide" id="firstError" role="alert"></p><div class="dialog-actions wide"><button type="button" data-action="close-dialog">Cancel</button><button type="submit" class="primary">Book it</button></div></form>');
+	const suggest = (t, from = 9 * 60) => suggestSlot(events, from, duration(t) || 60, 21 * 60) ?? from;
+	const d = openDialog("#editorDialog", dialogHead("Tomorrow's first block", "editorTitle") + '<p class="muted">An if-then plan works best: tie the start to something that already happens tomorrow. Broadcast will remind you of it in the morning.</p><form id="firstForm" class="form-grid"><label class="field wide">Task<select name="task">' + options.map((t) => '<option value="' + esc(t.id) + '">' + esc(t.text) + "</option>").join("") + '</select></label><label class="field wide">When<select name="anchor"><option value="">At a set time</option>' + anchors.map((e, i) => '<option value="' + i + '"' + (i === 0 ? " selected" : "") + ">After " + esc(e.name) + " ends (" + e.end + ")</option>").join("") + '</select></label><label class="field">Start<input type="time" name="start" value="' + timeString(suggest(first)) + '"></label><label class="field">Minutes<input type="number" name="minutes" min="5" step="any" value="' + (duration(first) || 60) + '"></label><p class="plan-sentence wide" id="planSentence"></p><p class="form-error wide" id="firstError" role="alert"></p><div class="dialog-actions wide"><button type="button" data-action="close-dialog">Cancel</button><button type="submit" class="primary">Book it</button></div></form>');
 	const f = $("#firstForm").elements;
-	f.task.onchange = () => {
+	const sentence = () => {
 		const t = options.find((x) => x.id === f.task.value);
-		f.minutes.value = duration(t) || 60;
-		f.start.value = timeString(suggest(t));
+		const anchor = anchors[Number(f.anchor.value)];
+		return (f.anchor.value !== "" && anchor ? "after " + anchor.name + " ends at " + anchor.end : "at " + f.start.value) + ", start " + (t?.text || "");
 	};
+	const sync = (fromAnchor) => {
+		const t = options.find((x) => x.id === f.task.value);
+		const anchor = anchors[Number(f.anchor.value)];
+		if (fromAnchor) f.start.value = timeString(suggest(t, f.anchor.value !== "" && anchor ? minutes(anchor.end) : 9 * 60));
+		const text = sentence();
+		$("#planSentence").innerHTML = "<b>Your plan:</b> " + esc(text.charAt(0).toUpperCase() + text.slice(1)) + ".";
+	};
+	f.task.onchange = () => {
+		f.minutes.value = duration(options.find((x) => x.id === f.task.value)) || 60;
+		sync(true);
+	};
+	f.anchor.onchange = () => sync(true);
+	f.start.oninput = () => sync(false);
+	sync(true);
 	$("#firstForm").onsubmit = async (e) => {
 		e.preventDefault();
 		try {
 			const result = await scheduleBatch([{ id: f.task.value, start: f.start.value, minutes: Number(f.minutes.value) || 60 }], date);
+			engines.todo.SyncEngine.set("user", "partnerPlan", JSON.stringify({ date, taskId: f.task.value, text: sentence() }));
 			d.close();
 			signature = "";
 			refresh();
@@ -1403,7 +1421,7 @@ function openSettings() {
 			)
 			.join(
 				"",
-			)}</div><fieldset class="partner-settings"><legend>Broadcast</legend><label><input id="partnerVisibleToggle" type="checkbox" ${partnerVisible ? "checked" : ""}> Show partner</label><label><input id="partnerSoundToggle" type="checkbox" ${partnerSound ? "checked" : ""}> Static chatter</label></fieldset><button id="soundToggle" aria-pressed="${engines.todo.SyncEngine.get("user", "commandCentreSounds") !== false}">Interface sounds: ${engines.todo.SyncEngine.get("user", "commandCentreSounds") === false ? "Off" : "On"}</button> <button data-action="goal">Adjust daily finish line</button> <button id="lockButton">Lock Command Centre</button>`,
+			)}</div><fieldset class="partner-settings"><legend>Broadcast</legend><label><input id="partnerVisibleToggle" type="checkbox" ${partnerVisible ? "checked" : ""}> Show partner</label><label><input id="partnerSoundToggle" type="checkbox" ${partnerSound ? "checked" : ""}> Voice</label><label>Intensity <select id="partnerIntensity"><option value="intense" ${partnerIntensity() === "intense" ? "selected" : ""}>Intense</option><option value="steady" ${partnerIntensity() === "steady" ? "selected" : ""}>Steady</option></select></label></fieldset><button id="soundToggle" aria-pressed="${engines.todo.SyncEngine.get("user", "commandCentreSounds") !== false}">Interface sounds: ${engines.todo.SyncEngine.get("user", "commandCentreSounds") === false ? "Off" : "On"}</button> <button data-action="goal">Adjust daily finish line</button> <button id="lockButton">Lock Command Centre</button>`,
 	);
 	$("#lockButton").onclick = lock;
 	$("#partnerVisibleToggle").onchange = (e) => {
@@ -1412,6 +1430,12 @@ function openSettings() {
 		const card = $("#broadcastCompanion");
 		if (card) card.hidden = !e.currentTarget.checked;
 		else if (e.currentTarget.checked && view === "docket") render();
+	};
+	$("#partnerIntensity").onchange = (e) => {
+		engines.todo.SyncEngine.set("user", "partnerIntensity", e.currentTarget.value);
+		partnerLine.key = "";
+		signature = "";
+		refresh();
 	};
 	$("#partnerSoundToggle").onchange = (e) => {
 		engines.todo.SyncEngine.set("user", "commandPartnerSound", e.currentTarget.checked);
@@ -2288,6 +2312,11 @@ function paceTail() {
 	const pace = s.pace === "behind" ? ", " + formatUnits(gap) + " behind" : s.pace === "ahead" ? ", " + formatUnits(-gap) + " ahead" : ", right on pace";
 	return formatUnits(s.billable) + " of " + formatUnits(s.target) + " hours this week" + pace + ".";
 }
+const partnerIntensity = () => (engines.todo?.SyncEngine.get("user", "partnerIntensity") === "steady" ? "steady" : "intense");
+function weeklyCeiling() {
+	const value = Number(engines.todo?.SyncEngine.get("todo", "weeklyCeiling"));
+	return value >= 20 && value <= 100 ? value : 55;
+}
 function partnerVoice(s) {
 	const { stats, grid } = heatInfo();
 	const now = new Date();
@@ -2302,13 +2331,28 @@ function partnerVoice(s) {
 		engines.todo.SyncEngine.set("user", "partnerMilestone", milestone);
 		partnerCheer = true;
 	}
+	const todayKey = isoDate();
+	const todayActive = (todayCell?.units || 0) >= STREAK_MIN;
+	const hadHistory = grid.columns.flat().some((c) => c.key < todayKey && c.units >= STREAK_MIN);
+	const comeback = todayActive && stats.current === 1 && hadHistory;
+	if (comeback && engines.todo.SyncEngine.get("user", "partnerComeback") !== todayKey) {
+		engines.todo.SyncEngine.set("user", "partnerComeback", todayKey);
+		partnerCheer = true;
+	}
+	let plan = engines.todo.SyncEngine.get("user", "partnerPlan");
+	try {
+		if (typeof plan === "string") plan = JSON.parse(plan);
+	} catch {
+		plan = null;
+	}
+	const planText = plan && plan.date === todayKey && plan.taskId && task(plan.taskId) && !task(plan.taskId).done ? plan.text : "";
 	const tomorrow = tomorrowKey();
 	const tomorrowBooked = tasks.some((t) => !t.done && t.scheduleId && normalizeDateKey(t.dueKey) === tomorrow);
-	const moment = momentFor({ mood: broadcastMood, day: now.getDay(), hour: now.getHours(), streak: stats.current, todayActive: (todayCell?.units || 0) >= STREAK_MIN, milestone, pct: s.pct, tomorrowBooked, billable: s.billable });
-	const vars = { left: formatUnits(Math.max(0, s.target - s.billable)), gap: formatUnits(Math.max(0, s.expected - s.billable)), ahead: formatUnits(Math.max(0, s.billable - s.expected)), billable: formatUnits(s.billable), target: formatUnits(s.target), streak: milestone || stats.current };
-	const key = moment + isoDate();
+	const moment = momentFor({ mood: broadcastMood, day: now.getDay(), hour: now.getHours(), streak: stats.current, todayActive: (todayCell?.units || 0) >= STREAK_MIN, milestone, pct: s.pct, tomorrowBooked, billable: s.billable, comeback, overCeiling: s.billable >= weeklyCeiling(), plan: planText });
+	const vars = { plan: planText, left: formatUnits(Math.max(0, s.target - s.billable)), gap: formatUnits(Math.max(0, s.expected - s.billable)), ahead: formatUnits(Math.max(0, s.billable - s.expected)), billable: formatUnits(s.billable), target: formatUnits(s.target), streak: milestone || stats.current };
+	const key = moment + isoDate() + partnerIntensity();
 	if (partnerLine.key !== key) {
-		const line = pickLine(moment, vars, { date: isoDate(), used: [...partnerUsed] });
+		const line = pickLine(moment, vars, { date: isoDate(), used: [...partnerUsed], intensity: partnerIntensity() });
 		partnerUsed.add(line.id);
 		partnerLine = { key, line, moment, vars };
 	}
@@ -2318,7 +2362,7 @@ function partnerVoice(s) {
 }
 function advancePartnerLine() {
 	if (!partnerLine.moment) return;
-	const line = pickLine(partnerLine.moment, partnerLine.vars, { date: isoDate() + partnerUsed.size, used: [...partnerUsed] });
+	const line = pickLine(partnerLine.moment, partnerLine.vars, { date: isoDate() + partnerUsed.size, used: [...partnerUsed], intensity: partnerIntensity() });
 	partnerUsed.add(line.id);
 	partnerLine.line = line;
 	broadcastLine = line.text;
@@ -2344,6 +2388,8 @@ function docketNarration(s) {
 function docketInsight(s) {
 	if (!s.entries.length) return "";
 	const b = s.byKind;
+	const late = lateNightHours(s.entries);
+	if (docketOffset === 0 && late >= 0.5) return formatUnits(late) + " h billed after midnight this week. Sleep under six hours costs grades; move that work earlier.";
 	const mix = practiceShare(s);
 	if (mix.independent >= 3 && mix.share < PRACTICE_GOAL) return "Practice is " + Math.round(mix.share * 100) + "% of your independent time. Aim for a fifth: practice questions beat rereading.";
 	if (docketOffset === 0 && b.reading > 0 && b.study === 0) return "No study time yet. Practice questions or outlining would balance the reading.";
@@ -2376,10 +2422,10 @@ function renderDocket() {
 		const d = new Date(e.start), day = isoDate(d), first = day !== lastDay;
 		lastDay = day;
 		const manual = e.source === "manual";
-		return '<div class="docket-row"><span class="docket-date">' + (first ? "<b>" + d.toLocaleDateString("en-CA", { weekday: "short" }) + "</b>" + monthDay(d) : "") + '</span><span class="docket-desc">' + esc(e.description) + '<span class="docket-meta"><span class="kind-chip ' + e.kind + '">' + KIND_LABEL[e.kind] + "</span><span>" + clockTime(e.start) + " – " + clockTime(e.end) + "</span>" + (manual ? "<span>Logged</span>" : "") + (e.sessions > 1 ? "<span>" + e.sessions + " sessions</span>" : "") + '</span></span><span class="docket-units">' + formatUnits(e.units) + (manual ? '<button class="icon-button docket-remove" data-action="docket-remove" data-id="' + esc(e.id) + '" aria-label="Remove this entry">' + icon("close") + "</button>" : "") + "</span></div>";
+		return '<div class="docket-row"><span class="docket-date">' + (first ? "<b>" + d.toLocaleDateString("en-CA", { weekday: "short" }) + "</b>" + monthDay(d) : "") + '</span><span class="docket-desc">' + esc(e.description) + '<span class="docket-meta"><span class="kind-chip ' + e.kind + '">' + KIND_LABEL[e.kind] + "</span><span>" + clockTime(e.start) + " – " + clockTime(e.end) + "</span>" + (manual ? "<span>Logged</span>" : "") + (e.sessions > 1 ? "<span>" + e.sessions + " sessions</span>" : "") + (isLateNight(e) ? '<span class="late-chip">After midnight</span>' : "") + '</span></span><span class="docket-units">' + formatUnits(e.units) + (manual ? '<button class="icon-button docket-remove" data-action="docket-remove" data-id="' + esc(e.id) + '" aria-label="Remove this entry">' + icon("close") + "</button>" : "") + "</span></div>";
 	}).join("");
 	const first = localDate(keys[0]), last = localDate(keys[6]);
-	const pace = docketOffset === 0 ? (s.pace === "ahead" ? '<span class="ahead">' + formatUnits(s.billable - s.expected) + " h ahead of pace</span>" : s.pace === "behind" ? '<span class="behind">' + formatUnits(s.expected - s.billable) + " h behind pace</span>" : '<span class="ahead">On pace</span>') : "<span>" + formatUnits(s.remaining) + " h short of target</span>";
+	const pace = docketOffset === 0 && s.billable >= weeklyCeiling() ? '<span class="behind">Past your ' + formatUnits(weeklyCeiling()) + " h ceiling. Rest.</span>" : docketOffset === 0 ? (s.pace === "ahead" ? '<span class="ahead">' + formatUnits(s.billable - s.expected) + " h ahead of pace</span>" : s.pace === "behind" ? '<span class="behind">' + formatUnits(s.expected - s.billable) + " h behind pace</span>" : '<span class="ahead">On pace</span>') : "<span>" + formatUnits(s.remaining) + " h short of target</span>";
 	broadcastPose = "";
 	broadcastMood = moodFor(s, { current: docketOffset === 0, sunday: new Date().getDay() === 0 });
 	partnerCta = null;
@@ -2424,19 +2470,22 @@ function renderConsistency() {
 	const animate = !heatAnimated;
 	heatAnimated = true;
 	const recent = grid.columns.slice(-4).flat().filter((c) => !c.future);
+	const month = isoDate().slice(0, 7);
+	const activeThisMonth = grid.columns.flat().filter((c) => !c.future && c.key.startsWith(month) && c.units >= STREAK_MIN).length;
 	const onTarget = recent.filter((c) => c.level === 4).length;
 	const label = (c) => localDate(c.key).toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" }) + (c.future ? "" : " · " + formatUnits(c.units) + " h");
 	const cells = grid.columns.map((column, w) => column.map((c) => '<i class="heat-cell l' + c.level + (c.today ? " today" : "") + (c.future ? " future" : "") + (recess.has(c.key) ? " recess" : "") + '" style="--c:' + w + '" title="' + esc(label(c) + (recess.has(c.key) ? " · recess day" : "")) + '"></i>').join("")).join("");
 	const months = grid.months.map((m) => '<span style="grid-column:' + (m.week + 1) + '">' + m.label + "</span>").join("");
 	const legend = [0, 1, 2, 3, 4].map((l) => '<i class="heat-cell l' + l + '"></i>').join("");
-	return '<section class="surface consistency" aria-label="Consistency"><div class="streak"><p class="eyebrow">Current streak</p><div class="streak-num">' + stats.current + "<small>" + (stats.current === 1 ? "day" : "days") + '</small></div><div class="milestone"><div class="milestone-bar" role="progressbar" aria-label="Progress to the next milestone" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + stats.progress + '"><i style="width:' + stats.progress + '%"></i></div><small>' + Math.max(0, stats.next - stats.current) + (stats.next - stats.current === 1 ? " day" : " days") + " to " + stats.next + '</small></div><div class="streak-meta"><span>Best <b>' + stats.best + "</b></span><span><b>" + onTarget + "</b>" + (onTarget === 1 ? " on-target day" : " on-target days") + ' in 4 weeks</span></div><p class="streak-note">A day counts at ' + STREAK_MIN + " billable hours. Weekends never break it, and one missed weekday a week is a recess day.</p><p class=\"streak-recess " + (stats.recessLeft ? "" : "used") + "\">" + (stats.recessLeft ? "Recess day available this week" : "Recess day used this week") + "</p></div>" +
+	return '<section class="surface consistency" aria-label="Consistency"><div class="streak">' + (stats.current === 0 ? '<p class="eyebrow">Fresh start</p><div class="streak-num restart">Day 1<small>starts with ' + STREAK_MIN + " billable hours</small></div>" : '<p class="eyebrow">Current streak</p><div class="streak-num">' + stats.current + "<small>" + (stats.current === 1 ? "day" : "days") + "</small></div>") + '<div class="milestone"><div class="milestone-bar" role="progressbar" aria-label="Progress to the next milestone" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + stats.progress + '"><i style="width:' + stats.progress + '%"></i></div><small>' + (stats.current === 0 ? "Bill " + STREAK_MIN + " hours today to start it" : Math.max(0, stats.next - stats.current) + (stats.next - stats.current === 1 ? " day" : " days") + " to " + stats.next) + '</small></div><div class="streak-meta"><span>Best <b>' + stats.best + "</b></span><span><b>" + activeThisMonth + "</b> active " + (activeThisMonth === 1 ? "day" : "days") + " this month</span><span><b>" + onTarget + "</b>" + (onTarget === 1 ? " on-target day" : " on-target days") + ' in 4 weeks</span></div><p class="streak-note">A day counts at ' + STREAK_MIN + " billable hours. Weekends never break it, and one missed weekday a week is a recess day.</p><p class=\"streak-recess " + (stats.recessLeft ? "" : "used") + "\">" + (stats.recessLeft ? "Recess day available this week" : "Recess day used this week") + "</p></div>" +
 		'<div class="heat' + (animate ? " animate" : "") + '" style="--weeks:' + weeks + (weeks <= 10 ? ";--cell:30px" : "") + '" role="img" aria-label="Billable hours per day over the last ' + weeks + ' weeks. Current streak ' + stats.current + ' days."><div class="heat-months">' + months + '</div><div class="heat-body"><div class="heat-days"><span>M</span><span></span><span>W</span><span></span><span>F</span><span></span><span></span></div><div class="heat-grid">' + cells + '</div></div><div class="heat-legend"><span>Less</span>' + legend + "<span>More</span><small>Full colour = " + formatUnits(dailyTarget) + " h</small></div></div></section>";
 }
 function openTarget() {
-	const d = openDialog("#settingsDialog", dialogHead("Weekly target", "settingsTitle") + '<p class="muted">Billable hours per week: class, reading, study and writing. Admin is tracked but not counted.</p><form id="targetForm" class="settings-links"><label class="field">Hours per week<input name="hours" type="number" min="5" max="80" step="0.5" value="' + weeklyTarget() + '"></label><button class="primary">Save target</button></form>');
+	const d = openDialog("#settingsDialog", dialogHead("Weekly target", "settingsTitle") + '<p class="muted">Billable hours per week: class, reading, study and writing. Admin is tracked but not counted.</p><form id="targetForm" class="settings-links"><label class="field">Hours per week<input name="hours" type="number" min="5" max="80" step="0.5" value="' + weeklyTarget() + '"></label><label class="field">Weekly ceiling<input name="ceiling" type="number" min="20" max="100" step="1" value="' + weeklyCeiling() + '"></label><p class="muted">Above the ceiling Broadcast tells you to rest instead of pushing.</p><button class="primary">Save target</button></form>');
 	$("#targetForm").onsubmit = (e) => {
 		e.preventDefault();
 		engines.todo.SyncEngine.set("todo", "weeklyHours", Math.min(80, Math.max(5, Number(e.target.elements.hours.value) || WEEKLY_TARGET)));
+		engines.todo.SyncEngine.set("todo", "weeklyCeiling", Math.min(100, Math.max(20, Number(e.target.elements.ceiling.value) || 55)));
 		d.close();
 		signature = "";
 		refresh();

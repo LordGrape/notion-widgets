@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { LINES, EVENT_LINES, momentFor, pickLine, pickEventLine, nextStep, milestoneReached, weeklyReview } from "./partner.mjs";
+import { LINES, EVENT_LINES, STEADY_LINES, momentFor, pickLine, pickEventLine, nextStep, milestoneReached, weeklyReview } from "./partner.mjs";
 
 test("the moment that matters most wins", () => {
 	const base = { mood: "stern", day: 3, hour: 14, streak: 4, todayActive: false, milestone: 0 };
@@ -65,4 +65,20 @@ test("late nights, empty dockets and mornings have their own voice", () => {
 test("focus events pick from their own lines", () => {
 	assert.ok(EVENT_LINES.start.includes(pickEventLine("start", () => 0.99)));
 	assert.ok(EVENT_LINES.start.includes(pickEventLine("unknown", () => 0)));
+});
+
+test("coming back, the ceiling and a plan take priority in that order", () => {
+	const base = { mood: "stern", day: 3, hour: 9, streak: 1, todayActive: true, milestone: 0 };
+	assert.equal(momentFor({ ...base, comeback: true }), "comeback");
+	assert.equal(momentFor({ ...base, comeback: true, overCeiling: true }), "ceiling");
+	assert.equal(momentFor({ ...base, plan: "After LAW 195, read pp. 1-10" }), "plan");
+	assert.equal(momentFor({ ...base, plan: "x", hour: 15 }), "stern");
+	assert.match(pickLine("plan", { plan: "After LAW 195, read pp. 1-10" }).text, /After LAW 195/);
+});
+test("steady intensity softens only the pressure moments", () => {
+	const steady = pickLine("stern", { gap: "3.0" }, { intensity: "steady" });
+	assert.ok(STEADY_LINES.stern.some((l) => l.replace("{gap}", "3.0") === steady.text));
+	const approve = pickLine("approve", {}, { intensity: "steady" });
+	assert.ok(LINES.approve.includes(approve.id));
+	for (const line of Object.values(STEADY_LINES).flat()) assert.doesNotMatch(line, /my office|excuse|lying|bleeding/i);
 });

@@ -84,6 +84,24 @@ export const LINES = {
 		"Two hours tonight keeps {streak} days alive. Your call.",
 		"I don't break streaks. Neither do you. Two hours.",
 	],
+	comeback: [
+		"Back on the docket. That's the move that matters: coming back.",
+		"Welcome back. One missed day is noise. Two is a pattern. You broke it.",
+		"You returned. Partners remember who shows up after a bad day.",
+		"Day one again, and you showed up for it. Keep going.",
+	],
+	ceiling: [
+		"{billable} hours. That's past your ceiling. Rest is part of the job.",
+		"Enough for this week. Tired associates make expensive mistakes.",
+		"You've cleared the ceiling. Bank it and recover.",
+		"Over the line. Close the laptop and come back sharp.",
+	],
+	plan: [
+		"Your plan: {plan}. You wrote it. Now bill it.",
+		"{plan}. That's the commitment. Hold to it.",
+		"Remember what you decided last night: {plan}.",
+		"The plan is set: {plan}. No renegotiating.",
+	],
 	milestone: [
 		"{streak} days straight. That's a pattern of conduct.",
 		"A {streak}-day streak. That's precedent.",
@@ -101,6 +119,35 @@ export const LINES = {
 		"Tomorrow's first hour decides the day. Put it on the calendar.",
 		"Don't walk in tomorrow and decide. Decide now.",
 		"Book tomorrow's first block before you leave tonight.",
+	],
+};
+
+/* Steady intensity: the same partner, without the pressure, for weeks that
+   need support more than a push. Only the high-pressure moments change. */
+export const STEADY_LINES = {
+	stern: [
+		"{gap} hours behind. One focused block is a good start.",
+		"A bit behind. Pick the smallest next step and take it.",
+		"The week isn't over. One session at a time.",
+		"Behind is just information. Plan the next hour.",
+	],
+	panic: [
+		"{gap} hours behind. Let's make a realistic plan, not a heroic one.",
+		"Rough week. Start with one block and see how it feels.",
+		"Recovering hours starts with the next one. Keep it simple.",
+		"No need to catch up all at once. One block.",
+	],
+	empty: [
+		"Nothing billed yet. A short first session counts.",
+		"Fresh docket. Start small.",
+		"Begin with twenty-five minutes. That's enough to start.",
+		"An empty docket is easy to fix. One block.",
+	],
+	streakRisk: [
+		"Two hours tonight would keep your {streak}-day streak. Only if you have it in you.",
+		"Your streak is still alive. A short session keeps it.",
+		"{streak} days so far. Tonight is optional; tomorrow still counts.",
+		"If tonight's not possible, your recess day may cover it.",
 	],
 };
 
@@ -151,9 +198,12 @@ function fill(line, vars) {
 }
 
 /* Which moment matters most right now. */
-export function momentFor({ mood, day, hour, streak, todayActive, milestone, pct = 0, tomorrowBooked = true, billable = null }) {
+export function momentFor({ mood, day, hour, streak, todayActive, milestone, pct = 0, tomorrowBooked = true, billable = null, comeback = false, overCeiling = false, plan = "" }) {
 	if (milestone) return "milestone";
 	if (hour >= 23 || hour < 4) return "late";
+	if (overCeiling) return "ceiling";
+	if (comeback) return "comeback";
+	if (plan && hour < 14) return "plan";
 	if (streak > 0 && !todayActive && hour >= 19 && day !== 0 && day !== 6) return "streakRisk";
 	if (hour >= 18 && !tomorrowBooked) return "tomorrow";
 	if (pct >= 80 && pct < 100) return "almost";
@@ -165,8 +215,8 @@ export function momentFor({ mood, day, hour, streak, todayActive, milestone, pct
 
 /* Picks a line for the moment, varied by date and never repeating one already
    used today while an alternative exists. */
-export function pickLine(moment, vars, { date = "", used = [] } = {}) {
-	const pool = LINES[moment] || LINES.approve;
+export function pickLine(moment, vars, { date = "", used = [], intensity = "intense" } = {}) {
+	const pool = (intensity === "steady" && STEADY_LINES[moment]) || LINES[moment] || LINES.approve;
 	const start = hash(date + moment) % pool.length;
 	for (let i = 0; i < pool.length; i++) {
 		const line = pool[(start + i) % pool.length];

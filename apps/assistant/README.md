@@ -136,3 +136,10 @@ His line sits in a dark speech bubble that behaves like a TV signal: it tunes in
 - Recess day: the first missed weekday of each week keeps a running streak alive (marked on the map), so one bad day is never all-or-nothing.
 - Implementation intention: in the evening, if nothing is booked for tomorrow, Broadcast asks for tomorrow's first block; the same booking is offered from Wrap up day.
 - Practice is its own billable type (practice questions, past exams, problem sets, flashcards). The Docket nudges toward practice being at least a fifth of independent time.
+
+## Evidence pass (research since 2020)
+
+- Broken streaks demotivate out of proportion (Silverman and Barasch, 2023): with no current streak the card shows a fresh start ("Day 1") and active days this month instead of a large zero.
+- Rewarding a return after a miss was the strongest intervention in the 2021 exercise megastudy (Milkman et al.): the first active day after a gap triggers a comeback line and a cheer once (`user/partnerComeback`).
+- If-then plans with rehearsal work best (Sheeran et al., 2024): tomorrow's first block can be anchored to the end of a scheduled event, the plan sentence is saved (`user/partnerPlan`), and Broadcast repeats it the next morning until the task is done.
+- Wellbeing guardrails: an intensity setting (Intense or Steady, `user/partnerIntensity`) softens the high-pressure moments; a weekly ceiling (default 55 h, `todo/weeklyCeiling`) switches him to recovery lines; entries ending after midnight are flagged and called out, because sleep under six hours predicts lower grades (Creswell et al., 2023).

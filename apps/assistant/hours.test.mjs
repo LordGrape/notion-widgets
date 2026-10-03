@@ -21,6 +21,8 @@ import {
 	mergeEntries,
 	comparison,
 	practiceShare,
+	isLateNight,
+	lateNightHours,
 } from "./hours.mjs";
 
 test("task text is tagged by the smart parser", () => {
@@ -249,4 +251,13 @@ test("practice share counts independent time only", () => {
 	const s = practiceShare({ byKind: { class: 9, reading: 6, study: 2, practice: 2, writing: 0 } });
 	assert.equal(s.independent, 10);
 	assert.equal(s.share, 0.2);
+});
+
+test("work that ends after midnight is flagged", () => {
+	const at = (h) => new Date(2026, 9, 2, h, 30).getTime();
+	const late = { end: at(1), minutes: 60, units: 1 };
+	const evening = { end: at(22), minutes: 60, units: 1 };
+	assert.equal(isLateNight(late), true);
+	assert.equal(isLateNight(evening), false);
+	assert.equal(lateNightHours([late, evening, { end: at(3), minutes: 30, units: 0.5 }]), 1.5);
 });

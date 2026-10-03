@@ -322,3 +322,13 @@ export function practiceShare(summary) {
 	const independent = (b.reading || 0) + (b.study || 0) + (b.practice || 0) + (b.writing || 0);
 	return { independent: round1(independent), share: independent ? (b.practice || 0) / independent : 0 };
 }
+
+/* Work after midnight. Sleep under six hours is linked to lower grades, so the
+   Docket flags it rather than rewarding it. */
+export function isLateNight(entry) {
+	const hour = new Date(entry.end).getHours();
+	return hour < 5 && entry.minutes > 0;
+}
+export function lateNightHours(entries) {
+	return round1(entries.filter(isLateNight).reduce((n, e) => n + (e.units ?? unitsFor(e.minutes)), 0));
+}

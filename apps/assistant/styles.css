@@ -3342,3 +3342,24 @@ dialog h3 {
 @media (max-width: 560px) {
 	.consistency .heat { --cell: 11px !important; }
 }
+
+/* Evidence pass: fresh start, late-night flag, plan sentence. */
+.streak-num.restart { font-size: 60px; }
+.late-chip {
+	padding: 1px 8px;
+	border-radius: 20px;
+	color: #b4531f;
+	background: color-mix(in srgb, #e08a3c 16%, var(--surface));
+	font-weight: 650;
+}
+:root[data-theme="dark"] .late-chip { color: #f0b27a; }
+.plan-sentence {
+	margin: 4px 0 0;
+	padding: 12px 14px;
+	border-radius: 12px;
+	background: var(--accent-soft);
+	font-size: 13px;
+	line-height: 1.45;
+}
+.plan-sentence b { color: var(--accent); }
+.partner-settings select { margin-left: 8px; }
