@@ -1,0 +1,10 @@
+--extra-index-url https://download.pytorch.org/whl/cu126
+torch
+# TeleOCR's model code targets Transformers 4.x (5.x removed the rope setting it uses).
+transformers>=4.51,<5
+accelerate
+numpy
+pillow
+pillow-heif
+pymupdf
+requests
