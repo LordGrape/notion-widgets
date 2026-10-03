@@ -17,7 +17,6 @@ body.shot .pv-bar{display:none}
 </head>
 <body>
 <div class="pv-bar" id="bar">
- <span>Variant</span><button data-v="a">A Bookshelf</button><button data-v="b">B Archive</button><button data-v="c">C Casebook</button>
  <span>Theme</span><button data-t="light">Light</button><button data-t="dark">Dark</button>
  <button id="open">Open reader</button>
 </div>
@@ -27,18 +26,42 @@ body.shot .pv-bar{display:none}
 import { createLibrary } from "../../apps/assistant/library.mjs";
 const qs = new URLSearchParams(location.search);
 if (qs.get("shot")) document.body.classList.add("shot");
-const setV = (v) => { document.documentElement.classList.remove("lib-theme-a","lib-theme-b","lib-theme-c"); document.documentElement.classList.add("lib-theme-" + v); document.querySelectorAll("[data-v]").forEach(b=>b.classList.toggle("on", b.dataset.v===v)); };
 const setT = (t) => { document.documentElement.dataset.theme = t; document.querySelectorAll("[data-t]").forEach(b=>b.classList.toggle("on", b.dataset.t===t)); };
-setV(qs.get("v") || "a"); setT(qs.get("t") || "light");
-document.getElementById("bar").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; if (b.dataset.v) setV(b.dataset.v); if (b.dataset.t) setT(b.dataset.t); });
+setT(qs.get("t") || "light");
+document.getElementById("bar").addEventListener("click", e => { const b = e.target.closest("button"); if (b && b.dataset.t) setT(b.dataset.t); });
 
+/* Everything below is synthetic. Lecture dates are relative to today so some are always past and some upcoming. */
 const now = Date.now(), iso = (m) => new Date(now - m * 60000).toISOString();
+const pad = (n) => String(n).padStart(2, "0");
+const day = (n) => { const d = new Date(now + n * 86400000); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+const at = (n, h, m, mins) => { const d = new Date(now + n * 86400000); d.setHours(h, m, 0, 0); return [d.toISOString(), new Date(d.getTime() + mins * 60000).toISOString()]; };
+const notes = (prep, ...reads) => `PREPARE\n• ${prep}\n\nREADINGS\n${reads.map(r => "• " + r).join("\n")}\n\nCLASS NOTES\n• Bring the casebook.`;
 const courseMap = { c183: "LAW 183: Property Law", c195: "LAW 195: Torts", c160: "LAW 160: Contracts", c171: "LAW 171: Criminal Law" };
 const readings = [
- { id: "r1", title: "Property pp. 144-153", book: "Property Law: Cases and Materials", authors: "Synthetic sample", courseId: "c183", lectureCount: 2, first: 144, last: 153, status: "Checked", captured: "2026-09-28" },
- { id: "r2", title: "Negligence and the standard of care pp. 60-84", book: "Torts: Cases and Commentary", authors: "Synthetic sample", courseId: "c195", lectureCount: 1, first: 60, last: 84, status: "Machine-read", captured: "2026-09-30" },
- { id: "r3", title: "Offer and acceptance pp. 12-41", book: "Contracts: Cases and Notes", authors: "Synthetic sample", courseId: "c160", lectureCount: 3, first: 12, last: 41, status: "Machine-read", captured: "2026-10-01" },
- { id: "r4", title: "Mens rea and the guilty mind pp. 201-236", book: "Criminal Law: Cases and Commentary", authors: "Synthetic sample", courseId: "c171", lectureCount: 2, first: 201, last: 236, status: "Checked", captured: "2026-10-02" },
+ { id: "r1", title: "Possession and the fox hunt pp. 144-153", book: "Property: Cases and Commentary", authors: "Synthetic sample", courseId: "c183", lectureIds: ["l183c"], lectureCount: 1, first: 144, last: 153, status: "Checked", captured: "2026-09-28" },
+ { id: "r5", title: "Acquisition by capture pp. 120-143", book: "Property: Cases and Commentary", authors: "Synthetic sample", courseId: "c183", lectureIds: ["l183b"], lectureCount: 1, first: 120, last: 143, status: "Machine-read", captured: "2026-09-26" },
+ { id: "r6", title: "Notes on first possession pp. 300-310", book: "Property: Cases and Commentary", authors: "Synthetic sample", courseId: "c183", lectureIds: [], lectureCount: 0, first: 300, last: 310, status: "Machine-read", captured: "2026-10-01" },
+ { id: "r2", title: "Negligence and the standard of care pp. 60-84", book: "Torts: Cases and Commentary", authors: "Synthetic sample", courseId: "c195", lectureIds: ["l195b"], lectureCount: 1, first: 60, last: 84, status: "Machine-read", captured: "2026-09-30" },
+ { id: "r3", title: "Offer and acceptance pp. 12-41", book: "Contracts: Cases and Notes", authors: "Synthetic sample", courseId: "c160", lectureIds: ["l160a"], lectureCount: 1, first: 12, last: 41, status: "Machine-read", captured: "2026-10-01" },
+ { id: "r4", title: "Mens rea and the guilty mind pp. 201-236", book: "Criminal Law: Cases and Commentary", authors: "Synthetic sample", courseId: "c171", lectureIds: ["l171b"], lectureCount: 1, first: 201, last: 236, status: "Checked", captured: "2026-10-02" },
+ { id: "r7", title: "Legal research guide pp. 1-20", book: "Legal Research Guide", authors: "Synthetic sample", courseId: "", lectureIds: [], lectureCount: 0, first: 1, last: 20, status: "Machine-read", captured: "2026-09-15" },
+];
+const lec = (id, courseId, title, start, end, n) => ({ id, url: "#", title, start, end, progress: "", notes: n, courseId });
+const lectures = [
+ lec("l160a", "c160", "W3A: Offer and Acceptance", day(-12), day(-12), notes("Review the postal acceptance rule.", "Contracts: Cases and Notes, pp. 12–41")),
+ lec("l160b", "c160", "W4A: Consideration and Promissory Estoppel", day(-5), day(-5), notes("Read the headnotes first.", "Contracts: Cases and Notes, pp. 42–60")),
+ lec("l160c", "c160", "W5A: Intention to Create Legal Relations", day(2), day(2), notes("Skim the problem set.", "Contracts: Cases and Notes, pp. 61–78")),
+ lec("l160d", "c160", "W6A: Certainty and Capacity", day(9), day(9), notes("Bring two questions.", "Contracts: Cases and Notes, pp. 79–96")),
+ lec("l171a", "c171", "W4B: Actus Reus and Omissions", day(-9), day(-9), notes("Outline the voluntariness cases.", "Criminal Law: Cases and Commentary, pp. 150–200")),
+ lec("l171b", "c171", "W5B: Mens Rea and the Guilty Mind", day(-2), day(-2), notes("Compare subjective and objective fault.", "Criminal Law: Cases and Commentary, pp. 201–236")),
+ lec("l171c", "c171", "W6B: Causation and Intervening Acts", day(4), day(4), notes("Prepare the Smith hypothetical.", "Criminal Law: Cases and Commentary, pp. 237–250")),
+ lec("l183a", "c183", "W4A: Acquisition by Capture", day(-8), day(-8), notes("Read the Pierson summary.", "Property: Cases and Commentary, pp. 100–119")),
+ lec("l183b", "c183", "W4B: Finders and Bailment", ...at(-3, 10, 0, 80), notes("Prepare the finder's rights chart.", "Property: Cases and Commentary, pp. 120–143")),
+ lec("l183c", "c183", "W5A: Possession and Possessory Title to Land", ...at(3, 10, 0, 80), notes("Bring the fox hunt facts.", "Property: Cases and Commentary, pp. 144–188", "Course Pack: Adverse Possession, pp. 3–19")),
+ lec("l183d", "c183", "W6A: Adverse Possession", ...at(10, 10, 0, 80), notes("Draft a one-page rule statement.", "Property: Cases and Commentary, pp. 189–231")),
+ lec("l195a", "c195", "W3A: Duty of Care", ...at(-9, 13, 30, 80), notes("Map the neighbour principle.", "Torts: Cases and Commentary, pp. 30–59")),
+ lec("l195b", "c195", "W4A: Negligence and the Standard of Care", ...at(-1, 13, 30, 80), notes("List the reasonable person factors.", "Torts: Cases and Commentary, pp. 60–84")),
+ lec("l195c", "c195", "W5A: Causation and Remoteness", ...at(5, 13, 30, 80), notes("Read the problem questions.", "Torts: Cases and Commentary, pp. 85–110")),
 ];
 const P = [
  "[1] Fox hunting is a lawful and indeed an honourable pursuit, but the question we are asked to settle is whether the pursuer of a wild animal acquires any property in it before he has taken it. The plaintiff alleges that he started and chased a fox with hounds, and that the defendant, knowing this, killed and carried it off.",
@@ -53,15 +76,17 @@ function pagesFor(id) {
  for (let i = 0; i < 10; i++) {
   const paragraphs = [P[(i * 2) % 6], P[(i * 2 + 1) % 6], P[(i * 2 + 2) % 6]].map((t, k) => t.replace(/^\[\d+\]/, `[${i * 3 + k + 1}]`));
   out.push({ id: "pg" + i, url: "#", printed: first + i, confidence: 0.93, status: "Machine-read", paragraphs,
-   flags: i === 2 ? ["Footnote marker unclear near paragraph 8; the numeral may be 3 or 8."] : [],
+   flags: i === 0 ? ["Footnote marker unclear near paragraph 8; the numeral may be 3 or 8."] : [],
    photo: "data:image/svg+xml;utf8," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='800' height='1080'><rect width='800' height='1080' fill='#efe9dc'/>${Array.from({length:26},(_,k)=>`<rect x='70' y='${90+k*34}' width='${k%7===6?420:660}' height='9' rx='4' fill='#9a8f78' opacity='.55'/>`).join('')}<text x='400' y='1030' text-anchor='middle' font-family='serif' font-size='22' fill='#6e6554'>${first+i}</text></svg>`) });
  }
  return out;
 }
-const items = [
+const busy = qs.get("inbox") === "busy";
+const items = busy ? [
  { id: "i1", name: "LAW 195 Torts pp. 85-110", files: [{name:"IMG_2041.heic",type:"image/heic",size:3200000},{name:"IMG_2042.heic",type:"image/heic",size:3100000}], status: "reading", createdAt: iso(14), updatedAt: iso(1) },
  { id: "i2", name: "LAW 160 Contracts pp. 42-60", files: [{name:"contracts.pdf",type:"application/pdf",size:14800000}], status: "queued", createdAt: iso(9), updatedAt: iso(9) },
- { id: "i3", name: "LAW 171 Criminal pp. 237-250", files: [{name:"a.jpg",type:"image/jpeg",size:2100000},{name:"b.jpg",type:"image/jpeg",size:2300000},{name:"c.jpg",type:"image/jpeg",size:2000000}], status: "attention", note: "Pages 2 and 3 were skewed; please re-scan them flat.", createdAt: iso(180), updatedAt: iso(120) },
+] : [
+ { id: "i0", name: "LAW 183 Property pp. 144-153", files: [{name:"property.pdf",type:"application/pdf",size:5200000}], status: "filed", readingId: "r1", createdAt: iso(2600), updatedAt: iso(2590) },
 ];
 const delay = (ms) => new Promise(r => setTimeout(r, ms));
 const res = (data) => new Response(JSON.stringify({ configured: true, ...data }), { status: 200 });
@@ -69,8 +94,8 @@ const api = async (path) => {
  const u = new URL(path, "http://x");
  await delay(u.pathname.endsWith("/pages") ? 250 : 60);
  if (u.pathname.endsWith("/library/pages")) { const all = pagesFor(u.searchParams.get("id")); const o = +u.searchParams.get("offset"), l = +u.searchParams.get("limit"); return res({ total: all.length, offset: o, pages: all.slice(o, o + l) }); }
- if (u.pathname.endsWith("/library")) return res({ readings, courses: courseMap });
- if (u.pathname.endsWith("/inbox")) return res({ items, station: { at: iso(3), version: "1.2", reading: "LAW 195 Torts pp. 85-110" } });
+ if (u.pathname.endsWith("/library")) return res({ readings, lectures, courses: courseMap });
+ if (u.pathname.endsWith("/inbox")) return res({ items, station: { at: iso(3), version: "1.2", reading: busy ? "LAW 195 Torts pp. 85-110" : null } });
  return res({});
 };
 const mem = {};
@@ -80,13 +105,15 @@ const pageOneText = P[1].replace(/^\[\d+\]/, "[2]");
 if (qs.get("brief")) {
  const t0 = P[0].replace(/^\[\d+\]/, "[1]"), t2 = P[2].replace(/^\[\d+\]/, "[3]");
  const full = [t0, pageOneText, t2].join("\n");
- const at = (s) => full.indexOf(s);
- const mk = (id, cat, s, note) => ({ id, page: 144, quote: s, category: cat, note, start: at(s), end: at(s) + s.length });
- store.set("library:brief:r1", { readingId: "r1", title: "Property pp. 144-153", updatedAt: "", highlights: [
+ const at2 = (s) => full.indexOf(s);
+ const mk = (id, cat, s, note) => ({ id, page: 144, quote: s, category: cat, note, start: at2(s), end: at2(s) + s.length });
+ store.set("library:brief:r1", { readingId: "r1", title: "Possession and the fox hunt pp. 144-153", updatedAt: "", highlights: [
   mk("a", "facts", "he started and chased a fox with hounds, and that the defendant, knowing this, killed and carried it off", "Pursuer never touched the fox; defendant intervened with knowledge."),
   mk("b", "issue", "whether the pursuer of a wild animal acquires any property in it before he has taken it", "Does pursuit alone vest property in a wild animal?"),
   mk("c", "rule", demoText, "Possession is the root of title for wild animals."),
   mk("d", "conclusion", "mere pursuit gives no legal right to the animal pursued", ""),
+  mk("e", "analysis", "it sets a line that hunters can see", "Clarity as the policy reason."),
+  mk("f", "unsure", "certain, reasonable and generally known", "Is this the test for custom?"),
  ]});
 }
 const icon = (n) => WidgetIcons.svg(n, { command: true });

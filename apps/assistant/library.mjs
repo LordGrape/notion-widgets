@@ -2,6 +2,8 @@
  * Pure helpers are named exports and covered by library.test.mjs. The factory touches the DOM only in
  * bind(), open() and the reader; render() is a pure function of state. All Notion and user text is escaped. */
 
+import { parseReadings } from "./readings-import.mjs";
+
 const API = "/notion/source-library";
 const DEFAULT_CHUNK = 20 * 1024 * 1024;
 const STATION_FRESH_MS = 20 * 60 * 1000;
@@ -148,6 +150,186 @@ export function filterReadings(readings, { courseId = "all", query = "" } = {}) 
 		if (!q) return true;
 		return [r.title, r.book, r.authors].some((v) => String(v || "").toLowerCase().includes(q));
 	});
+}
+
+/* ----- the shelf model: course, then lecture, then reading ----- */
+
+/** "W5A: Possession and Possessory Title" -> { week: "W5A", title: "Possession and Possessory Title" }. */
+export function lectureParts(title) {
+	const t = String(title || "").trim();
+	const m = /^(W\d+[A-Za-z]?)\s*[:\-–—]\s*(.+)$/.exec(t);
+	return m ? { week: m[1].toUpperCase(), title: m[2].trim() } : { week: "", title: t };
+}
+
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+const DAY_MS = 24 * 3600 * 1000;
+
+function localDay(iso) {
+	if (DATE_ONLY.test(iso)) {
+		const [y, m, d] = iso.split("-").map(Number);
+		return new Date(y, m - 1, d);
+	}
+	return new Date(iso);
+}
+
+/** When a lecture starts and ends, in ms. A date with no time runs to the end of that day. */
+export function lectureSpan(lecture) {
+	const startIso = String((lecture && lecture.start) || "");
+	const s = localDay(startIso).getTime();
+	if (!Number.isFinite(s)) return { start: Infinity, end: Infinity };
+	const endIso = lecture.end ? String(lecture.end) : "";
+	let e = endIso ? localDay(endIso).getTime() : NaN;
+	if (endIso && DATE_ONLY.test(endIso) && Number.isFinite(e)) e += DAY_MS - 1;
+	if (!Number.isFinite(e) || e < s) e = DATE_ONLY.test(startIso) ? s + DAY_MS - 1 : s + 90 * 60 * 1000;
+	return { start: s, end: e };
+}
+
+export function lectureDateLabel(lecture) {
+	const iso = String((lecture && lecture.start) || "");
+	const d = localDay(iso);
+	if (!Number.isFinite(d.getTime())) return "";
+	const day = d.toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" });
+	if (DATE_ONLY.test(iso)) return day;
+	return `${day} · ${d.toLocaleTimeString("en-CA", { hour: "numeric", minute: "2-digit" })}`;
+}
+
+/** "Property: Cases and Commentary" -> "Property". */
+export function bookShortName(source) {
+	const s = String(source || "").trim();
+	return (s.split(/\s*[:–—]\s*|\s+-\s+|,\s*/)[0] || s).trim();
+}
+
+const rangeText = (ranges) => ranges.map(([a, b]) => (a === b ? String(a) : `${a}-${b}`)).join(", ");
+const rangePages = (ranges) => ranges.reduce((n, [a, b]) => n + b - a + 1, 0);
+
+function overlapsRanges(reading, ranges) {
+	if (reading.first === "" || reading.last === "" || reading.first == null || reading.last == null) return false;
+	const first = Number(reading.first);
+	const last = Number(reading.last);
+	if (!Number.isFinite(first) || !Number.isFinite(last)) return false;
+	return ranges.some(([a, b]) => a <= last && b >= first);
+}
+
+/**
+ * Groups the library for the shelf: one section per course, inside it one group per lecture in date order
+ * (assigned readings from the lecture notes, each either a scanned reading or a "ghost" that is not scanned yet),
+ * then "Other readings" for scanned readings no lecture claims. Readings with no course go in a final Unfiled section.
+ * A reading belongs to a lecture when its lectureIds include the lecture, or it is in the same course and its
+ * page range overlaps a range in the lecture's READINGS notes. The first lecture of a course that has not
+ * finished yet is marked "next".
+ */
+export function shelfModel({ readings = [], lectures = [], courses = {}, now = Date.now() } = {}) {
+	const nowMs = now instanceof Date ? now.getTime() : Number(now);
+	const names = courses || {};
+	const list = Array.isArray(readings) ? readings : [];
+	const lecs = Array.isArray(lectures) ? lectures : [];
+	const ids = new Set();
+	for (const r of list) if (r.courseId) ids.add(r.courseId);
+	for (const l of lecs) if (l.courseId) ids.add(l.courseId);
+	const pageKey = (x) => (x !== "" && x != null && Number.isFinite(Number(x)) ? Number(x) : Infinity);
+	const sections = [];
+	for (const id of ids) {
+		const name = names[id] || "Course";
+		const mine = list.filter((r) => r.courseId === id);
+		const lecturesOf = lecs
+			.filter((l) => l.courseId === id)
+			.map((l) => ({ l, span: lectureSpan(l) }))
+			.sort((a, b) => a.span.start - b.span.start);
+		const used = new Set();
+		const ghostKeys = new Set();
+		let nextDone = false;
+		const groups = lecturesOf.map(({ l, span }) => {
+			const parts = lectureParts(l.title);
+			const entries = parseReadings(l.notes);
+			const hit = new Map();
+			for (const r of mine) if (Array.isArray(r.lectureIds) && r.lectureIds.includes(l.id)) hit.set(r.id, r);
+			for (const e of entries) for (const r of mine) if (overlapsRanges(r, e.ranges)) hit.set(r.id, r);
+			const items = [...hit.values()].map((r) => ({ kind: "reading", reading: r, sort: pageKey(r.first) }));
+			for (const r of hit.values()) used.add(r.id);
+			entries.forEach((e, k) => {
+				if ([...hit.values()].some((r) => overlapsRanges(r, e.ranges))) return;
+				const short = bookShortName(e.source);
+				const pages = rangeText(e.ranges);
+				ghostKeys.add(`${short.toLowerCase()}|${pages}`);
+				items.push({
+					kind: "ghost",
+					key: `${l.id}:${k}`,
+					book: short || e.source || "Reading",
+					pageCount: e.pages || rangePages(e.ranges),
+					pagesLabel: `pp. ${pages.replace(/-/g, "–")}`,
+					prefill: [courseCodeSpaced(name), short, `pp. ${pages}`].filter(Boolean).join(" "),
+					sort: e.ranges[0][0],
+				});
+			});
+			items.sort((a, b) => a.sort - b.sort);
+			const past = span.end < nowMs;
+			let state = past ? "past" : "upcoming";
+			if (!past && !nextDone) {
+				state = "next";
+				nextDone = true;
+			}
+			return {
+				kind: "lecture",
+				id: l.id,
+				url: l.url || "",
+				week: parts.week,
+				title: parts.title,
+				dateLabel: lectureDateLabel(l),
+				state,
+				items: items.map(({ sort, ...rest }) => rest),
+			};
+		});
+		const other = sortReadings(
+			mine.filter((r) => !used.has(r.id)),
+			names,
+		).map((r) => ({ kind: "reading", reading: r }));
+		if (other.length) groups.push({ kind: "other", id: `${id}:other`, items: other });
+		sections.push({
+			id,
+			name,
+			code: courseCodeSpaced(name),
+			subject: courseSubject(name),
+			groups,
+			scanned: mine.length,
+			total: mine.length + ghostKeys.size,
+			hasLectures: lecturesOf.length > 0,
+		});
+	}
+	sections.sort((a, b) => a.name.localeCompare(b.name, "en-CA", { numeric: true }));
+	const loose = list.filter((r) => !r.courseId);
+	if (loose.length) {
+		sections.push({
+			id: "unfiled",
+			name: "Unfiled",
+			code: "",
+			subject: "Unfiled",
+			unfiled: true,
+			groups: [{ kind: "other", id: "unfiled:other", items: sortReadings(loose, names).map((r) => ({ kind: "reading", reading: r })) }],
+			scanned: loose.length,
+			total: loose.length,
+			hasLectures: false,
+		});
+	}
+	return sections;
+}
+
+/** "1 reading, 1 queued": what the scan station is doing, from the inbox rows' statuses. */
+export function inboxSummary(rows) {
+	const n = (s) => (rows || []).filter((r) => r.status === s).length;
+	const parts = [];
+	if (n("uploading")) parts.push(`${n("uploading")} uploading`);
+	if (n("reading")) parts.push(`${n("reading")} reading`);
+	if (n("queued")) parts.push(`${n("queued")} queued`);
+	if (n("attention")) parts.push(`${n("attention")} ${n("attention") === 1 ? "needs" : "need"} attention`);
+	if (n("failed")) parts.push(`${n("failed")} failed`);
+	if (parts.length) return parts.join(", ");
+	const filed = n("filed");
+	return filed ? `${filed} filed` : "Nothing waiting";
+}
+
+/** The inbox list opens by itself when something is moving or needs a look. */
+export function inboxIsBusy(rows) {
+	return (rows || []).some((r) => ["uploading", "queued", "reading", "attention", "failed"].includes(r.status));
 }
 
 export function formatBytes(n) {
@@ -339,7 +521,12 @@ export function slug(s) {
 export function createLibrary({ api, store, icon, courses = [], notify = () => {}, onChange = null }) {
 	const S = {
 		readings: [],
+		lectures: [],
 		courseMap: {},
+		collapsed: new Set(),
+		addOpen: false,
+		inboxOpen: null,
+		dragging: false,
 		loaded: false,
 		loading: false,
 		error: "",
@@ -387,6 +574,7 @@ export function createLibrary({ api, store, icon, courses = [], notify = () => {
 		try {
 			const d = await json(`${API}/library`);
 			S.readings = Array.isArray(d.readings) ? d.readings : [];
+			S.lectures = Array.isArray(d.lectures) ? d.lectures : [];
 			S.courseMap = d.courses || {};
 			S.loaded = true;
 		} catch (e) {
@@ -519,6 +707,8 @@ export function createLibrary({ api, store, icon, courses = [], notify = () => {
 		const up = { key: `u${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, name, files: d.files, itemId: null, pct: 0, status: "uploading", error: "" };
 		S.uploads.unshift(up);
 		S.draft = { files: [], name: "", touched: false, error: "" };
+		S.addOpen = false;
+		S.inboxOpen = null;
 		runUpload(up);
 	}
 
@@ -583,8 +773,11 @@ export function createLibrary({ api, store, icon, courses = [], notify = () => {
 
 	function stationHtml() {
 		const st = stationState(S.station);
-		return `<div class="lib-station ${st.online ? "is-on" : "is-off"}" role="status"><i class="lib-light" aria-hidden="true"></i><span><b>${esc(st.label)}</b><small>${esc(st.detail)}</small></span></div>`;
+		return `<span class="lib-station ${st.online ? "is-on" : "is-off"}" role="status"><i class="lib-light" aria-hidden="true"></i><span class="lib-station-copy"><b>${esc(st.label)}</b><small>${esc(st.detail)}</small></span></span>`;
 	}
+
+	const addPanelOpen = () => S.addOpen || S.dragging || S.draft.files.length > 0 || !!S.draft.error || !!S.draft.name;
+	const inboxListOpen = (rows) => (S.inboxOpen == null ? inboxIsBusy(rows) || !!S.inboxError : S.inboxOpen);
 
 	function uploaderHtml() {
 		const d = S.draft;
@@ -611,8 +804,13 @@ export function createLibrary({ api, store, icon, courses = [], notify = () => {
 				<div class="lib-stage-actions"><button type="submit" class="lib-btn lib-btn-primary" data-lib-submit>Send to the scan station</button><button type="button" class="lib-btn lib-btn-ghost" data-lib-clear>Clear</button></div>
 			</form>`
 			: "";
-		return `<section class="lib-add" aria-label="Add a reading">
-			<div class="lib-add-head"><h3>Add a reading</h3><p>The scan station on your PC reads it (about 20 s a page) and files it in Notion.</p></div>
+		const prefill =
+			!d.files.length && d.name
+				? `<p class="lib-prefill"><span>Adding <b>${esc(d.name)}</b>. Drop the PDF or photos below.</span><button type="button" class="lib-btn lib-btn-ghost lib-btn-small" data-lib-clear>Cancel</button></p>`
+				: "";
+		return `<div class="lib-addpanel" id="lib-addpanel" data-lib-addpanel${addPanelOpen() ? "" : " hidden"}>
+			<p class="lib-add-note">The scan station on your PC reads it (about 20 s a page) and files it in Notion.</p>
+			${prefill}
 			<input type="file" class="lib-file-input" data-lib-file multiple accept="${ACCEPT_ATTR}" hidden>
 			<div class="lib-drop${d.files.length ? " is-compact" : ""}" data-lib-drop>
 				<button type="button" class="lib-drop-btn" data-lib-browse>
@@ -622,12 +820,10 @@ export function createLibrary({ api, store, icon, courses = [], notify = () => {
 			</div>
 			${d.error ? `<p class="lib-inline-error" role="alert">${esc(d.error)}</p>` : ""}
 			${stage}
-		</section>`;
+		</div>`;
 	}
 
-	function inboxHtml() {
-		const rows = inboxRows();
-		if (!rows.length && !S.inboxError) return "";
+	function inboxListHtml(rows) {
 		const body = rows
 			.map((r) => {
 				const m = statusMeta(r.status, r.pct);
@@ -656,10 +852,26 @@ export function createLibrary({ api, store, icon, courses = [], notify = () => {
 				</li>`;
 			})
 			.join("");
-		return `<section class="lib-inbox" aria-label="Scan station inbox">
-			<div class="lib-section-head"><h3>In the scan station</h3></div>
+		return `<div class="lib-inbox" aria-label="Scan station inbox">
 			${S.inboxError ? `<p class="lib-inline-error" role="alert">${esc(S.inboxError)}</p>` : ""}
 			<ul class="lib-rows">${body}</ul>
+		</div>`;
+	}
+
+	/* One slim bar: the add button, the station light, and a one-line inbox summary. The drop zone and the inbox list fold open. */
+	function stationBarHtml(rows) {
+		const open = addPanelOpen();
+		const listOpen = inboxListOpen(rows);
+		const summary = S.inboxError && !rows.length ? "Inbox unavailable" : inboxSummary(rows);
+		const hasList = rows.length > 0 || !!S.inboxError;
+		return `<section class="lib-addbar-wrap${open ? " is-add-open" : ""}" aria-label="Add a reading">
+			<div class="lib-addbar">
+				<button type="button" class="lib-btn lib-btn-primary lib-add-toggle" data-lib-toggle-add aria-expanded="${open}" aria-controls="lib-addpanel">${ic("plus")}<span>Add a reading</span></button>
+				${stationHtml()}
+				<button type="button" class="lib-summary${inboxIsBusy(rows) ? " is-busy" : ""}" data-lib-toggle-inbox aria-expanded="${hasList && listOpen}"${hasList ? "" : " disabled"}><span>${esc(summary)}</span>${hasList ? `<i class="lib-chev" aria-hidden="true">${ic("chevron")}</i>` : ""}</button>
+			</div>
+			${uploaderHtml()}
+			${hasList && listOpen ? inboxListHtml(rows) : ""}
 		</section>`;
 	}
 
@@ -669,9 +881,8 @@ export function createLibrary({ api, store, icon, courses = [], notify = () => {
 
 	function cardHtml(r) {
 		const cname = S.courseMap[r.courseId] || "";
-		const colour = courseColour(courses, cname);
+		const colour = cname ? courseColour(courses, cname) : "var(--faint)";
 		const rs = readingStatusMeta(r.status);
-		const exam = examBankUrl(cname);
 		const pages = r.first && r.last ? `pp. ${esc(r.first)}–${esc(r.last)}` : "";
 		const byline = [r.book && r.book !== r.title ? r.book : "", r.authors].filter(Boolean).join(" · ");
 		return `<article class="lib-card" style="--spine:${esc(colour)}">
@@ -682,48 +893,96 @@ export function createLibrary({ api, store, icon, courses = [], notify = () => {
 				${byline ? `<p class="lib-card-by">${esc(byline)}</p>` : ""}
 				<div class="lib-card-foot">
 					<span class="lib-pages">${pages}${r.captured ? `<small>${esc(r.captured)}</small>` : ""}</span>
-					${exam ? `<a class="lib-exam" href="${esc(exam)}" target="_blank" rel="noopener noreferrer" title="Opens Queen's ExamBank in a new tab. Off-campus access needs a NetID login.">Past exams</a>` : ""}
 					<span class="lib-go" aria-hidden="true">${ic("right")}</span>
 				</div>
 			</div>
 		</article>`;
 	}
 
+	function ghostHtml(g) {
+		return `<button type="button" class="lib-ghost" data-lib-ghost="${esc(g.prefill)}" aria-label="${esc(`${g.book} ${g.pagesLabel}, not scanned yet. Add a scan.`)}">
+			<span class="lib-ghost-spine" aria-hidden="true"></span>
+			<span class="lib-ghost-body">
+				<small>Not scanned yet</small>
+				<b>${esc(g.book)}</b>
+				<span class="lib-ghost-pages">${esc(g.pagesLabel)}${g.pageCount ? `<i>${g.pageCount} ${g.pageCount === 1 ? "page" : "pages"}</i>` : ""}</span>
+				<em class="lib-ghost-add">${ic("plus")}Add a scan</em>
+			</span>
+		</button>`;
+	}
+
+	function groupHtml(sec, g) {
+		const items = g.items.map((it) => (it.kind === "ghost" ? ghostHtml(it) : cardHtml(it.reading))).join("");
+		if (g.kind === "other") {
+			const head = sec.hasLectures ? `<div class="lib-lec-head"><h4 class="lib-lec-title">Other readings</h4><span class="lib-lec-date">Not tied to a lecture</span></div>` : "";
+			return `<div class="lib-lecture is-other">${head}<div class="lib-grid">${items}</div></div>`;
+		}
+		return `<div class="lib-lecture is-${g.state}">
+			<div class="lib-lec-head">
+				${g.week ? `<span class="lib-wk">${esc(g.week)}</span>` : ""}
+				<h4 class="lib-lec-title">${esc(g.title)}</h4>
+				${g.state === "next" ? `<span class="lib-next">Next</span>` : ""}
+				${g.dateLabel ? `<span class="lib-lec-date">${esc(g.dateLabel)}</span>` : ""}
+			</div>
+			${items ? `<div class="lib-grid">${items}</div>` : `<p class="lib-lec-empty">No readings set for this class.</p>`}
+		</div>`;
+	}
+
+	function sectionHtml(sec, index) {
+		const colour = sec.unfiled ? "var(--faint)" : courseColour(courses, sec.name);
+		const collapsed = S.collapsed.has(sec.id);
+		const exam = sec.unfiled ? "" : examBankUrl(sec.name);
+		const pct = sec.total ? Math.round((sec.scanned / sec.total) * 100) : 0;
+		const count = sec.unfiled
+			? `${sec.scanned} ${sec.scanned === 1 ? "reading" : "readings"}`
+			: sec.total
+				? `${sec.scanned} of ${sec.total} ${sec.total === 1 ? "reading" : "readings"} scanned`
+				: "No readings assigned yet";
+		const bodyId = `lib-sec-${index}`;
+		return `<section class="lib-course-sec${collapsed ? " is-collapsed" : ""}" style="--spine:${esc(colour)}" data-course="${esc(sec.id)}">
+			<header class="lib-course-head">
+				<button type="button" class="lib-course-toggle" data-lib-toggle-course="${esc(sec.id)}" aria-expanded="${!collapsed}" aria-controls="${bodyId}">
+					<i class="lib-chev" aria-hidden="true">${ic("chevron")}</i>
+					<span class="lib-course-name">${sec.code ? `<b>${esc(sec.code)}</b>` : ""}<span>${esc(sec.subject)}</span></span>
+					<span class="lib-course-count">${esc(count)}</span>
+					${sec.unfiled ? "" : `<span class="lib-meter" aria-hidden="true"><i style="width:${pct}%"></i></span>`}
+				</button>
+				${exam ? `<a class="lib-exam" href="${esc(exam)}" target="_blank" rel="noopener noreferrer" title="Opens Queen's ExamBank in a new tab. Off-campus access needs a NetID login.">Past exams</a>` : ""}
+			</header>
+			<div class="lib-course-body" id="${bodyId}"${collapsed ? " hidden" : ""}>${sec.groups.map((g) => groupHtml(sec, g)).join("")}</div>
+		</section>`;
+	}
+
 	function shelfHtml() {
-		if (S.error && !S.readings.length) {
+		if (S.error && !S.readings.length && !S.lectures.length) {
 			return `<div class="lib-state lib-state-error" role="alert"><p><b>The shelf did not load.</b><span>${esc(S.error)}</span></p><button type="button" class="lib-btn" data-lib-retry-load>Retry</button></div>`;
 		}
 		if (!S.loaded) return `<div class="lib-grid">${skeletonCards()}</div>`;
-		const ids = [...new Set(S.readings.map((r) => r.courseId))].sort((a, b) => String(S.courseMap[a] || "").localeCompare(String(S.courseMap[b] || ""), "en-CA", { numeric: true }));
-		if (!S.readings.length) {
+		const sections = shelfModel({ readings: S.readings, lectures: S.lectures, courses: S.courseMap, now: Date.now() });
+		if (!sections.length) {
 			return `<div class="lib-state lib-empty"><div class="lib-books" aria-hidden="true"><i></i><i></i><i></i><i></i></div><h3>Your shelf is ready</h3><p>Add a scanned chapter above and it will appear here, typeset and ready to brief, as soon as the scan station files it.</p></div>`;
 		}
-		const filter = ids.includes(S.filter) ? S.filter : "all";
-		const items = sortReadings(filterReadings(S.readings, { courseId: filter }), S.courseMap);
+		const filter = sections.some((s) => s.id === S.filter) ? S.filter : "all";
 		const chips = [`<button type="button" class="lib-filter${filter === "all" ? " is-on" : ""}" data-lib-filter="all" aria-pressed="${filter === "all"}">All<span>${S.readings.length}</span></button>`]
 			.concat(
-				ids.map((id) => {
-					const name = S.courseMap[id] || "Other";
-					const n = S.readings.filter((r) => r.courseId === id).length;
-					return `<button type="button" class="lib-filter${filter === id ? " is-on" : ""}" data-lib-filter="${esc(id)}" aria-pressed="${filter === id}" style="--chip:${esc(courseColour(courses, name))}"><i aria-hidden="true"></i>${esc(courseCodeSpaced(name))}<span>${n}</span></button>`;
-				}),
+				sections.map(
+					(s) =>
+						`<button type="button" class="lib-filter${filter === s.id ? " is-on" : ""}" data-lib-filter="${esc(s.id)}" aria-pressed="${filter === s.id}" style="--chip:${esc(s.unfiled ? "var(--faint)" : courseColour(courses, s.name))}"><i aria-hidden="true"></i>${esc(s.code || s.name)}<span>${s.scanned}</span></button>`,
+				),
 			)
 			.join("");
-		const courseName = filter !== "all" ? S.courseMap[filter] : "";
-		const exam = courseName ? examBankUrl(courseName) : "";
+		const shown = sections.map((s, i) => [s, i]).filter(([s]) => filter === "all" || s.id === filter);
 		return `<div class="lib-filters" role="group" aria-label="Filter by course">${chips}</div>
-			${exam ? `<p class="lib-exam-line"><a href="${esc(exam)}" target="_blank" rel="noopener noreferrer">Past exams for ${esc(courseCodeSpaced(courseName))} in Queen's ExamBank</a><small>Off-campus access needs a NetID login.</small></p>` : ""}
-			<div class="lib-grid">${items.map(cardHtml).join("")}</div>`;
+			<div class="lib-courses">${shown.map(([s, i]) => sectionHtml(s, i)).join("")}</div>`;
 	}
 
 	function render() {
 		const n = S.readings.length;
 		const courseN = new Set(S.readings.map((r) => r.courseId)).size;
 		const sub = !S.loaded ? "Opening the shelf" : n ? `${n} ${n === 1 ? "reading" : "readings"} across ${courseN} ${courseN === 1 ? "course" : "courses"}` : "Nothing filed yet";
-		return `<section class="lib" data-lib>
-			<header class="lib-head"><div><p class="lib-eyebrow">Law School Library</p><h2 class="lib-title">Readings</h2><p class="lib-sub">${esc(sub)}</p></div>${stationHtml()}</header>
-			${uploaderHtml()}
-			${inboxHtml()}
+		return `<section class="lib${S.dragging ? " is-dragging" : ""}" data-lib>
+			<header class="lib-head"><div><p class="lib-eyebrow">Law School Library</p><h2 class="lib-title">Readings</h2><p class="lib-sub">${esc(sub)}</p></div></header>
+			${stationBarHtml(inboxRows())}
 			<div class="lib-shelf">${shelfHtml()}</div>
 		</section>`;
 	}
@@ -735,6 +994,7 @@ export function createLibrary({ api, store, icon, courses = [], notify = () => {
 		const host = root && root.nodeType === 1 ? root : null;
 		if (!host || bound.has(host)) return;
 		bound.add(host);
+		let dragDepth = 0;
 		const inLib = (e) => (e.target && e.target.closest ? e.target.closest("[data-lib]") : null);
 		host.addEventListener("click", (e) => {
 			if (!inLib(e)) return;
@@ -745,6 +1005,27 @@ export function createLibrary({ api, store, icon, courses = [], notify = () => {
 			else if (d.libFilter !== undefined) {
 				S.filter = d.libFilter;
 				bump();
+			} else if (d.libToggleAdd !== undefined) {
+				S.addOpen = !addPanelOpen();
+				if (!S.addOpen) S.dragging = false;
+				bump();
+			} else if (d.libToggleInbox !== undefined) {
+				S.inboxOpen = !inboxListOpen(inboxRows());
+				bump();
+			} else if (d.libToggleCourse !== undefined) {
+				if (S.collapsed.has(d.libToggleCourse)) S.collapsed.delete(d.libToggleCourse);
+				else S.collapsed.add(d.libToggleCourse);
+				bump();
+			} else if (d.libGhost !== undefined) {
+				S.draft.name = d.libGhost;
+				S.draft.touched = true;
+				S.draft.error = "";
+				S.addOpen = true;
+				bump();
+				requestAnimationFrame(() => {
+					const panel = host.querySelector("[data-lib-addpanel]");
+					if (panel && panel.scrollIntoView) panel.scrollIntoView({ block: "center", behavior: "smooth" });
+				});
 			} else if (d.libBrowse !== undefined) {
 				const input = host.querySelector("[data-lib-file]");
 				if (input) input.click();
@@ -754,6 +1035,7 @@ export function createLibrary({ api, store, icon, courses = [], notify = () => {
 				bump();
 			} else if (d.libClear !== undefined) {
 				S.draft = { files: [], name: "", touched: false, error: "" };
+				S.addOpen = false;
 				bump();
 			} else if (d.libCourseChip !== undefined) {
 				S.draft.name = withCourseName(S.draft.name, d.libCourseChip);
@@ -816,6 +1098,39 @@ export function createLibrary({ api, store, icon, courses = [], notify = () => {
 			if (!z || !hasFiles(e)) return;
 			e.preventDefault();
 			z.classList.remove("is-over");
+			S.dragging = false;
+			dragDepth = 0;
+			addFiles(e.dataTransfer.files);
+		});
+		/* A file dragged anywhere over the page folds the drop zone open. */
+		const live = () => host.isConnected && host.getClientRects().length > 0 && !document.body.classList.contains("lib-reader-open");
+		const setDragging = (on) => {
+			S.dragging = on;
+			const panel = host.querySelector("[data-lib-addpanel]");
+			if (panel) panel.hidden = !addPanelOpen();
+			const lib = host.querySelector("[data-lib]");
+			if (lib) lib.classList.toggle("is-dragging", on);
+		};
+		document.addEventListener("dragenter", (e) => {
+			if (!hasFiles(e) || !live()) return;
+			dragDepth++;
+			if (!S.dragging) setDragging(true);
+		});
+		document.addEventListener("dragover", (e) => {
+			if (hasFiles(e) && live()) e.preventDefault();
+		});
+		document.addEventListener("dragleave", (e) => {
+			if (!hasFiles(e) || !S.dragging) return;
+			dragDepth = Math.max(0, dragDepth - 1);
+			if (!dragDepth) setDragging(false);
+		});
+		document.addEventListener("drop", (e) => {
+			if (!hasFiles(e) || !live()) return;
+			e.preventDefault();
+			dragDepth = 0;
+			if (S.dragging) setDragging(false);
+			if (zone(e)) return;
+			S.addOpen = true;
 			addFiles(e.dataTransfer.files);
 		});
 		void el;

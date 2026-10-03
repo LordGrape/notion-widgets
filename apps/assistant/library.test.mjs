@@ -4,7 +4,7 @@ import {
 	esc, courseCode, courseSubject, examBankUrl, courseColour, statusMeta, readingStatusMeta, stationState, relativeTime,
 	sortReadings, filterReadings, formatBytes, filesSummary, nameFromFiles, withCourseName, chunkCount, isAcceptedFile,
 	joinParagraphs, paragraphOffsets, normaliseRange, makeHighlight, renderParagraphsHtml, findMatches, groupHighlights,
-	briefMarkdown, slug, CATEGORIES,
+	briefMarkdown, slug, CATEGORIES, shelfModel, lectureParts, bookShortName, inboxSummary, inboxIsBusy,
 } from "./library.mjs";
 
 test("escape", () => {
@@ -126,4 +126,89 @@ test("markdown export", () => {
 	assert.match(md, /\*\*State the governing rule in your own words\.\*\* The test/);
 	assert.equal(slug("Property pp. 144-189!"), "property-pp-144-189");
 	assert.equal(CATEGORIES.length, 6);
+});
+
+/* ----- shelf model ----- */
+
+const NOW = new Date(2026, 9, 3, 12, 0).getTime();
+const notesOf = (...lines) => `READINGS\n${lines.map((l) => "• " + l).join("\n")}`;
+const courses = { c1: "LAW 183: Property Law", c2: "LAW 195: Torts" };
+const lectures = [
+	{ id: "L2", courseId: "c1", title: "W5A: Possession", start: "2026-10-06T14:00:00.000Z", end: "2026-10-06T15:20:00.000Z", notes: notesOf("Property: Cases and Commentary, pp. 144–188", "Course Pack: Adverse Possession, pp. 3–19") },
+	{ id: "L1", courseId: "c1", title: "W4A: Capture", start: "2026-09-28", end: "2026-09-28", notes: notesOf("Property: Cases and Commentary, pp. 120–143") },
+	{ id: "L3", courseId: "c1", title: "W6A: Finders", start: "2026-10-13", end: "2026-10-13", notes: notesOf("Property: Cases and Commentary, pp. 189–231") },
+	{ id: "T1", courseId: "c2", title: "Duty of care", start: "2026-10-03", end: "2026-10-03", notes: "no readings here" },
+];
+const rd = (id, courseId, first, last, lectureIds = []) => ({ id, courseId, title: id, first, last, lectureIds });
+
+test("lecture titles split into week and title", () => {
+	assert.deepEqual(lectureParts("W5A: Possession and Possessory Title to Land"), { week: "W5A", title: "Possession and Possessory Title to Land" });
+	assert.deepEqual(lectureParts("Duty of care"), { week: "", title: "Duty of care" });
+	assert.equal(bookShortName("Property: Cases and Commentary"), "Property");
+});
+
+test("shelf: courses, lectures in date order, other and unfiled", () => {
+	const readings = [rd("byId", "c1", "", "", ["L1"]), rd("byPages", "c1", 150, 160), rd("other", "c1", 300, 310), rd("loose", "", 1, 5)];
+	const model = shelfModel({ readings, lectures, courses, now: NOW });
+	assert.deepEqual(model.map((s) => s.id), ["c1", "c2", "unfiled"]);
+	assert.deepEqual(model[0].groups.map((g) => g.id), ["L1", "L2", "L3", "c1:other"]);
+	assert.deepEqual(model[0].groups[3].items.map((i) => i.reading.id), ["other"]);
+	assert.equal(model[2].unfiled, true);
+	assert.deepEqual(model[2].groups[0].items.map((i) => i.reading.id), ["loose"]);
+});
+
+test("shelf: matching by lectureIds, by page overlap, and ghosts", () => {
+	const readings = [rd("byId", "c1", "", "", ["L1"]), rd("byPages", "c1", 150, 160)];
+	const [prop] = shelfModel({ readings, lectures, courses, now: NOW });
+	const [L1, L2, L3] = prop.groups;
+	/* L1 is matched by lectureIds (the reading has no page range); its notes entry stays a ghost */
+	assert.deepEqual(L1.items.map((i) => i.kind + ":" + (i.reading ? i.reading.id : "")), ["ghost:", "reading:byId"]);
+	/* L2: the overlapping reading covers pp. 144-188; the course pack is not scanned */
+	assert.deepEqual(L2.items.map((i) => i.kind + ":" + (i.reading ? i.reading.id : i.book)), ["ghost:Course Pack", "reading:byPages"]);
+	const ghost = L2.items[0];
+	assert.equal(ghost.prefill, "LAW 183 Course Pack pp. 3-19");
+	assert.equal(ghost.pagesLabel, "pp. 3–19");
+	assert.equal(ghost.pageCount, 17);
+	assert.equal(L3.items[0].prefill, "LAW 183 Property pp. 189-231");
+	assert.equal(prop.scanned, 2);
+	assert.equal(prop.total, 5);
+});
+
+test("shelf: past, next and upcoming lectures", () => {
+	const [prop, torts] = shelfModel({ readings: [], lectures, courses, now: NOW });
+	assert.deepEqual(prop.groups.map((g) => g.state), ["past", "next", "upcoming"]);
+	/* a date-only lecture today has not finished, so it is the next one; no READINGS means no items */
+	assert.equal(torts.groups[0].state, "next");
+	assert.deepEqual(torts.groups[0].items, []);
+	assert.equal(torts.total, 0);
+});
+
+test("shelf: a reading in another course never matches by pages; empty input is fine", () => {
+	const model = shelfModel({ readings: [rd("x", "c2", 144, 150)], lectures: lectures.slice(0, 1), courses, now: NOW });
+	const prop = model.find((s) => s.id === "c1");
+	assert.deepEqual(prop.groups[0].items.map((i) => i.kind), ["ghost", "ghost"]);
+	assert.deepEqual(shelfModel({}), []);
+});
+
+test("inbox summary and busy state", () => {
+	const rows = [{ status: "reading" }, { status: "queued" }];
+	assert.equal(inboxSummary(rows), "1 reading, 1 queued");
+	assert.equal(inboxSummary([{ status: "attention" }, { status: "attention" }, { status: "failed" }]), "2 need attention, 1 failed");
+	assert.equal(inboxSummary([{ status: "filed" }]), "1 filed");
+	assert.equal(inboxSummary([]), "Nothing waiting");
+	assert.equal(inboxIsBusy(rows), true);
+	assert.equal(inboxIsBusy([{ status: "filed" }]), false);
+});
+
+test("dark theme highlights keep text above 4.5:1", () => {
+	const lin = (c) => ((c /= 255) <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+	const lum = ([r, g, b]) => 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+	const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+	const page = hex("#1b1824");
+	const ink = hex("#fbf9ff");
+	for (const c of CATEGORIES) {
+		const bg = hex(c.colour).map((v, i) => v * 0.4 + page[i] * 0.6);
+		const ratio = (lum(ink) + 0.05) / (lum(bg) + 0.05);
+		assert.ok(ratio >= 4.5, `${c.id} ${ratio.toFixed(2)}`);
+	}
 });

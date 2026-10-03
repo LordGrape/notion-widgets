@@ -1,5 +1,6 @@
 /* Law School Library. Link after styles.css; uses its tokens. Every class is prefixed lib-.
- * Variants: add lib-theme-a (Bookshelf, default), lib-theme-b (Archive) or lib-theme-c (Casebook) to <html>. */
+ * One design: the Bookshelf shelf (a section per course, a group per lecture, books as spines)
+ * and the Casebook reader (pages as printed paper sheets with a margin column). Light and dark. */
 
 .lib,
 .lib-reader,
@@ -100,23 +101,25 @@
 .lib-station {
 	display: inline-flex;
 	align-items: center;
-	gap: 10px;
-	padding: 8px 14px 8px 12px;
-	border: 1px solid var(--line);
-	border-radius: 999px;
-	background: color-mix(in srgb, var(--surface) 82%, transparent);
-	backdrop-filter: blur(10px);
-	font-size: 12px;
+	gap: 9px;
+	min-width: 0;
+	font-size: 12.5px;
 	line-height: 1.25;
 }
+.lib-station-copy {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 8px;
+	min-width: 0;
+}
 .lib-station b {
-	display: block;
 	font-weight: 600;
+	white-space: nowrap;
 }
 .lib-station small {
-	display: block;
 	color: var(--muted);
-	font-size: 11px;
+	font-size: 12px;
+	white-space: nowrap;
 }
 .lib-light {
 	width: 9px;
@@ -137,34 +140,113 @@
 }
 
 /* uploader */
-.lib-add {
-	padding: 18px;
+.lib-addbar-wrap {
 	border: 1px solid var(--line);
-	border-radius: calc(var(--radius) + 4px);
+	border-radius: calc(var(--radius) + 2px);
 	background:
-		radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 55%),
-		var(--surface);
+		radial-gradient(120% 220% at 0% 0%, color-mix(in srgb, var(--accent) 6%, transparent), transparent 60%),
+		color-mix(in srgb, var(--surface) 88%, transparent);
+	backdrop-filter: blur(10px);
 	box-shadow: var(--lib-lift);
 }
-.lib-add-head {
+.lib-addbar {
 	display: flex;
-	align-items: baseline;
-	justify-content: space-between;
-	gap: 12px;
-	flex-wrap: wrap;
-	margin-bottom: 12px;
+	align-items: center;
+	gap: 14px;
+	padding: 8px 10px 8px 8px;
+	min-height: 52px;
 }
-.lib-add-head h3,
-.lib-section-head h3 {
-	margin: 0;
-	font-size: 15px;
-	font-weight: 650;
-	letter-spacing: -0.005em;
+.lib-add-toggle {
+	padding: 8px 15px 8px 12px;
 }
-.lib-add-head p {
+.lib-add-toggle svg {
+	transition: transform 0.25s var(--lib-ease);
+}
+.lib-addbar-wrap.is-add-open .lib-add-toggle svg {
+	transform: rotate(45deg);
+}
+.lib-summary {
+	margin-left: auto;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 8px 6px 12px;
+	border: 1px solid transparent;
+	border-radius: 999px;
+	background: none;
+	color: var(--muted);
+	font-size: 12.5px;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	transition:
+		background 0.15s,
+		color 0.15s;
+}
+.lib-summary:hover:not(:disabled) {
+	background: var(--surface-3);
+	color: var(--text);
+}
+.lib-summary:disabled {
+	cursor: default;
+	padding-right: 12px;
+}
+.lib-summary.is-busy {
+	color: var(--accent);
+}
+.lib-summary[aria-expanded="true"] .lib-chev {
+	transform: rotate(180deg);
+}
+.lib-chev {
+	display: inline-grid;
+	place-items: center;
+	font-style: normal;
+	transition: transform 0.22s var(--lib-ease);
+}
+.lib-addpanel {
+	display: grid;
+	gap: 10px;
+	margin: 0 10px 10px;
+	padding: 14px 0 0;
+	border-top: 1px solid var(--lib-hair);
+	animation: lib-in 0.3s var(--lib-ease) both;
+}
+.lib-addpanel[hidden] {
+	display: none;
+}
+.lib-add-note {
 	margin: 0;
 	color: var(--muted);
 	font-size: 12.5px;
+}
+.lib-prefill {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	margin: 0;
+	padding: 8px 12px;
+	border-radius: 10px;
+	background: var(--accent-soft);
+	font-size: 13px;
+}
+.lib-prefill b {
+	font-weight: 650;
+}
+.lib-addbar-wrap .lib-inbox {
+	margin: 0 10px 10px;
+	padding-top: 10px;
+	border-top: 1px solid var(--lib-hair);
+	animation: lib-in 0.3s var(--lib-ease) both;
+}
+.lib-addbar-wrap .lib-inbox .lib-row {
+	box-shadow: none;
+	padding: 10px 12px;
+}
+.lib.is-dragging .lib-addbar-wrap {
+	border-color: var(--accent);
+	box-shadow:
+		0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent),
+		var(--lib-lift);
 }
 .lib-drop {
 	border: 1.5px dashed color-mix(in srgb, var(--accent) 38%, var(--line));
@@ -419,12 +501,6 @@
 }
 
 /* inbox */
-.lib-section-head {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	margin-bottom: 10px;
-}
 .lib-rows {
 	list-style: none;
 	display: grid;
@@ -559,35 +635,273 @@
 	display: grid;
 	gap: 16px;
 }
-.lib-exam-line {
-	margin: -4px 0 0;
-	font-size: 12.5px;
-	color: var(--muted);
-}
-.lib-exam-line a,
 .lib-exam {
 	color: var(--accent);
 	font-weight: 600;
 	text-decoration: none;
 }
-.lib-exam-line a:hover,
 .lib-exam:hover {
 	text-decoration: underline;
 	text-underline-offset: 3px;
 }
-.lib-exam-line small {
-	margin-left: 10px;
-	color: var(--faint);
-}
 .lib-grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(262px, 1fr));
+	grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+	gap: 16px;
+}
+
+/* a course section: header, then a group per lecture */
+.lib-courses {
+	display: grid;
 	gap: 18px;
+}
+.lib-course-sec {
+	border: 1px solid var(--line);
+	border-radius: calc(var(--radius) + 6px);
+	background:
+		linear-gradient(180deg, color-mix(in srgb, var(--spine) 5%, transparent), transparent 140px),
+		color-mix(in srgb, var(--surface) 70%, transparent);
+	box-shadow: var(--lib-lift);
+	overflow: hidden;
+}
+.lib-course-head {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding-right: 16px;
+	border-left: 4px solid var(--spine);
+}
+.lib-course-toggle {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 14px 8px 14px 14px;
+	border: 0;
+	background: none;
+	text-align: left;
+}
+.lib-course-toggle .lib-chev {
+	color: var(--faint);
+	transform: rotate(-90deg);
+}
+.lib-course-toggle[aria-expanded="true"] .lib-chev {
+	transform: none;
+}
+.lib-course-toggle:hover .lib-chev {
+	color: var(--text);
+}
+.lib-course-name {
+	display: flex;
+	align-items: baseline;
+	gap: 10px;
+	min-width: 0;
+	font-family: var(--lib-serif);
+	font-size: 21px;
+	font-weight: 600;
+	letter-spacing: -0.01em;
+}
+.lib-course-name b {
+	font-family: var(--lib-sans);
+	font-size: 11.5px;
+	font-weight: 750;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: color-mix(in srgb, var(--spine) 78%, var(--text));
+}
+.lib-course-name span {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.lib-course-count {
+	margin-left: auto;
+	flex: none;
+	color: var(--muted);
+	font-size: 12.5px;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+}
+.lib-meter {
+	flex: none;
+	width: 72px;
+	height: 4px;
+	border-radius: 4px;
+	background: var(--surface-3);
+	overflow: hidden;
+}
+.lib-meter i {
+	display: block;
+	height: 100%;
+	border-radius: inherit;
+	background: var(--spine);
+}
+.lib-course-body {
+	display: grid;
+	gap: 6px;
+	padding: 2px 18px 20px 22px;
+}
+.lib-course-body[hidden] {
+	display: none;
+}
+.lib-lecture {
+	display: grid;
+	gap: 12px;
+	padding: 14px 14px 16px;
+	border-radius: calc(var(--radius) + 2px);
+	border: 1px solid transparent;
+}
+.lib-lecture + .lib-lecture {
+	border-top-color: var(--lib-hair);
+	border-top-left-radius: 0;
+	border-top-right-radius: 0;
+}
+.lib-lec-head {
+	display: flex;
+	align-items: baseline;
+	flex-wrap: wrap;
+	gap: 4px 10px;
+}
+.lib-wk {
+	padding: 1px 8px;
+	border-radius: 6px;
+	background: color-mix(in srgb, var(--spine) 14%, transparent);
+	color: color-mix(in srgb, var(--spine) 78%, var(--text));
+	font-size: 11px;
+	font-weight: 750;
+	letter-spacing: 0.06em;
+	align-self: center;
+}
+.lib-lec-title {
+	margin: 0;
+	font-size: 14.5px;
+	font-weight: 650;
+	letter-spacing: -0.005em;
+}
+.lib-lec-date {
+	margin-left: auto;
+	color: var(--muted);
+	font-size: 12px;
+	font-variant-numeric: tabular-nums;
+}
+.lib-next {
+	align-self: center;
+	padding: 1px 9px;
+	border-radius: 999px;
+	background: var(--accent);
+	color: #fff;
+	font-size: 10.5px;
+	font-weight: 750;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+:root[data-theme="dark"] .lib-next {
+	color: #120d1d;
+}
+.lib-lecture.is-next {
+	border-color: color-mix(in srgb, var(--accent) 28%, var(--line));
+	border-radius: calc(var(--radius) + 2px);
+	background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 8%, transparent), transparent 70%);
+	box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 6%, transparent);
+}
+.lib-lecture.is-past .lib-lec-title,
+.lib-lecture.is-past .lib-lec-date {
+	color: var(--muted);
+}
+.lib-lecture.is-past .lib-card {
+	box-shadow: 0 1px 2px rgba(46, 27, 83, 0.05);
+}
+.lib-lecture.is-other .lib-lec-title {
+	color: var(--muted);
+	font-weight: 600;
+}
+.lib-lec-empty {
+	margin: 0;
+	color: var(--faint);
+	font-size: 12.5px;
+}
+
+/* a book that is on the shelf in Notion's plan but not scanned yet */
+.lib-ghost {
+	display: flex;
+	min-height: 150px;
+	padding: 0;
+	border: 1.5px dashed color-mix(in srgb, var(--spine) 42%, var(--line));
+	border-radius: 6px 14px 14px 6px;
+	background: color-mix(in srgb, var(--spine) 3%, transparent);
+	text-align: left;
+	overflow: hidden;
+	transition:
+		border-color 0.2s,
+		background 0.2s,
+		transform 0.28s var(--lib-ease);
+}
+.lib-ghost-spine {
+	flex: none;
+	width: 22px;
+	background: repeating-linear-gradient(180deg, color-mix(in srgb, var(--spine) 34%, transparent) 0 6px, transparent 6px 12px);
+	opacity: 0.55;
+}
+.lib-ghost-body {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 16px 16px 14px;
+}
+.lib-ghost-body small {
+	color: var(--muted);
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+}
+.lib-ghost-body b {
+	font-family: var(--lib-serif);
+	font-size: 18px;
+	font-weight: 600;
+	line-height: 1.2;
+	color: color-mix(in srgb, var(--text) 78%, var(--muted));
+}
+.lib-ghost-pages {
+	color: var(--muted);
+	font-size: 12.5px;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+}
+.lib-ghost-pages i {
+	margin-left: 8px;
+	font-style: normal;
+	font-weight: 500;
+	color: var(--faint);
+}
+.lib-ghost-add {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin-top: auto;
+	padding-top: 10px;
+	font-style: normal;
+	font-size: 12.5px;
+	font-weight: 650;
+	color: var(--accent);
+	opacity: 0.85;
+}
+.lib-ghost:hover {
+	transform: translateY(-2px);
+	border-color: color-mix(in srgb, var(--spine) 70%, var(--line));
+	background: color-mix(in srgb, var(--spine) 7%, transparent);
+}
+.lib-ghost:hover .lib-ghost-add {
+	opacity: 1;
 }
 .lib-card {
 	position: relative;
 	display: flex;
-	min-height: 218px;
+	min-height: 168px;
 	border: 1px solid var(--line);
 	border-radius: 6px 14px 14px 6px;
 	background:
@@ -665,7 +979,7 @@
 .lib-card-title {
 	margin: 2px 0 0;
 	font-family: var(--lib-serif);
-	font-size: 21px;
+	font-size: 19px;
 	font-weight: 600;
 	line-height: 1.2;
 	letter-spacing: -0.01em;
@@ -865,6 +1179,7 @@ body.lib-reader-open {
 	inset: 0;
 	z-index: 2000;
 	display: grid;
+	grid-template-columns: minmax(0, 1fr);
 	grid-template-rows: auto auto minmax(0, 1fr);
 	background: var(--canvas);
 	color: var(--text);
@@ -1079,22 +1394,35 @@ body.lib-reader-open {
 		var(--canvas);
 	outline: none;
 }
+/* Casebook: each page is a printed sheet. Page number on the left, text in the middle,
+   a margin column on the right holding the Text/Photo toggle and any flags. */
 .lib-r-column {
-	width: min(100%, 860px);
+	width: min(100%, 1020px);
 	margin: 0 auto;
 	padding: 30px 26px 140px;
 }
 .lib-page {
 	display: grid;
-	grid-template-columns: 84px minmax(0, 1fr);
-	gap: 0 8px;
-	scroll-margin-top: 14px;
-	padding: 6px 0 36px;
+	grid-template-columns: 70px minmax(0, 640px) minmax(150px, 1fr);
+	grid-auto-flow: row;
+	gap: 0 22px;
 	position: relative;
+	scroll-margin-top: 14px;
+	margin: 0 0 30px;
+	padding: 34px 34px 40px 4px;
+	background: var(--lib-paper);
+	border: 1px solid var(--line);
+	border-radius: 4px 12px 12px 4px;
+	box-shadow:
+		var(--lib-lift),
+		-3px 0 0 -1px color-mix(in srgb, var(--spine) 55%, transparent);
 }
-.lib-page + .lib-page {
-	border-top: 1px solid var(--lib-hair);
-	padding-top: 30px;
+.lib-page::after {
+	content: "";
+	grid-column: 3;
+	grid-row: 1;
+	border-left: 1px dashed color-mix(in srgb, var(--line) 90%, transparent);
+	margin-left: -12px;
 }
 .lib-gutter {
 	text-align: right;
@@ -1108,9 +1436,9 @@ body.lib-reader-open {
 	align-items: baseline;
 	gap: 3px;
 	font-family: var(--lib-serif);
-	font-style: italic;
-	font-size: 22px;
-	color: color-mix(in srgb, var(--spine) 70%, var(--faint));
+	font-size: 26px;
+	font-weight: 500;
+	color: color-mix(in srgb, var(--spine) 80%, var(--text));
 	font-variant-numeric: lining-nums;
 	line-height: 1;
 }
@@ -1120,13 +1448,21 @@ body.lib-reader-open {
 	opacity: 0.8;
 }
 .lib-page-main {
-	min-width: 0;
+	display: contents;
+}
+.lib-pagetext,
+.lib-photo {
+	grid-column: 2;
+	grid-row: 1;
 }
 .lib-page-tools {
+	grid-column: 3;
+	grid-row: 1;
 	display: flex;
-	justify-content: flex-end;
-	height: 0;
-	overflow: visible;
+	justify-content: flex-start;
+	align-items: flex-start;
+	align-self: start;
+	margin-bottom: 8px;
 	position: relative;
 	z-index: 1;
 }
@@ -1136,26 +1472,6 @@ body.lib-reader-open {
 	border: 1px solid var(--line);
 	border-radius: 9px;
 	background: var(--surface);
-	opacity: 0;
-	transform: translateY(-4px);
-	transition:
-		opacity 0.2s,
-		transform 0.2s var(--lib-ease);
-	position: absolute;
-	right: 0;
-	top: -4px;
-}
-.lib-page:hover .lib-seg,
-.lib-seg:focus-within,
-.lib-page.is-photo .lib-seg {
-	opacity: 1;
-	transform: none;
-}
-@media (hover: none) {
-	.lib-seg {
-		opacity: 1;
-		transform: none;
-	}
 }
 .lib-seg button {
 	padding: 3px 10px;
@@ -1176,15 +1492,18 @@ body.lib-reader-open {
 }
 .lib-pagetext {
 	font-family: var(--lib-read);
-	font-size: clamp(17px, 1.25vw + 11px, 19.5px);
-	line-height: 1.72;
+	font-size: 17.5px;
+	line-height: 1.7;
 	color: var(--lib-ink);
-	max-width: 66ch;
+	text-align: justify;
 	font-feature-settings: "kern", "liga", "onum";
 	text-wrap: pretty;
 	hyphens: auto;
 	-webkit-hyphens: auto;
 	padding-top: 2px;
+}
+.lib-pagetext::first-letter {
+	font-variant: small-caps;
 }
 .lib-para {
 	margin: 0 0 1em;
@@ -1215,8 +1534,12 @@ body.lib-reader-open {
 	cursor: pointer;
 	transition: background 0.2s;
 }
+/* Dark: a stronger wash, a full-strength underline and near-white text keep every category
+   recognisable and the text above 4.5:1 on the dark page. */
 :root[data-theme="dark"] .lib-hl {
-	background: color-mix(in srgb, var(--cat) 30%, transparent);
+	background: color-mix(in srgb, var(--cat) 40%, transparent);
+	color: #fbf9ff;
+	box-shadow: 0 2px 0 var(--cat);
 }
 .lib-hl[data-cat="facts"] {
 	--cat: #c7c8cc;
@@ -1262,11 +1585,13 @@ body.lib-reader-open {
 	box-shadow: 0 0 0 2px #f6c445;
 }
 .lib-flag {
+	grid-column: 3;
+	grid-row: 1;
+	align-self: start;
 	display: flex;
 	gap: 10px;
 	align-items: flex-start;
-	max-width: 66ch;
-	margin: 6px 0 14px;
+	margin: 40px 0 0;
 	padding: 9px 12px;
 	border-radius: 10px;
 	border: 1px solid color-mix(in srgb, var(--lib-amber) 25%, transparent);
@@ -1324,8 +1649,10 @@ body.lib-reader-open {
 	text-decoration: none;
 }
 .lib-page.is-skeleton .lib-page-main {
+	display: block;
+	grid-column: 2;
+	grid-row: 1;
 	padding-top: 6px;
-	max-width: 66ch;
 }
 
 /* brief */
@@ -1653,6 +1980,30 @@ body.lib-reader-open {
 	.lib-r-rail {
 		display: none;
 	}
+	/* no room for a margin column: the toggle and flags sit above the text */
+	.lib-page {
+		grid-template-columns: 60px minmax(0, 1fr);
+	}
+	.lib-gutter {
+		grid-row: 1 / span 3;
+	}
+	.lib-page::after {
+		display: none;
+	}
+	.lib-page-tools,
+	.lib-flag {
+		grid-column: 2;
+		grid-row: auto;
+		margin-top: 0;
+	}
+	.lib-flag {
+		margin-bottom: 12px;
+	}
+	.lib-pagetext,
+	.lib-photo,
+	.lib-page.is-skeleton .lib-page-main {
+		grid-row: auto;
+	}
 }
 @media (max-width: 860px) {
 	.lib-r-body {
@@ -1670,25 +2021,35 @@ body.lib-reader-open {
 	}
 	.lib-page {
 		grid-template-columns: minmax(0, 1fr);
+		margin-bottom: 18px;
+		padding: 18px 16px 22px;
+		border-radius: 3px 10px 10px 3px;
 	}
 	.lib-gutter {
+		grid-row: auto;
 		text-align: left;
-		padding: 0 0 6px;
+		padding: 0 0 8px;
 	}
 	.lib-pnum {
 		position: static;
-		font-size: 15px;
+		font-size: 17px;
 	}
 	.lib-page-tools {
 		position: absolute;
-		right: 0;
-		top: 0;
-		height: auto;
+		right: 12px;
+		top: 12px;
+		margin: 0;
 	}
-	.lib-seg {
-		position: static;
-		opacity: 1;
-		transform: none;
+	.lib-page-tools,
+	.lib-pagetext,
+	.lib-flag,
+	.lib-photo,
+	.lib-page.is-skeleton .lib-page-main {
+		grid-column: 1;
+	}
+	.lib-pagetext {
+		text-align: left;
+		font-size: 17px;
 	}
 	.lib-r-brief {
 		position: fixed;
@@ -1769,11 +2130,60 @@ body.lib-reader-open {
 	.lib-grid {
 		grid-template-columns: 1fr;
 	}
-	.lib-add {
-		padding: 14px;
+	.lib-addbar {
+		flex-wrap: wrap;
+		gap: 8px 12px;
+	}
+	.lib-station small {
+		display: none;
+	}
+	.lib-summary {
+		margin-left: 0;
+		flex: 1 0 100%;
+		justify-content: space-between;
+		padding-left: 4px;
+	}
+	.lib-addpanel,
+	.lib-addbar-wrap .lib-inbox {
+		margin: 0 8px 8px;
 	}
 	.lib-drop-btn {
 		padding: 20px 16px;
+	}
+	.lib-course-head {
+		flex-wrap: wrap;
+		padding: 0 14px 10px 0;
+	}
+	.lib-course-toggle {
+		flex: 1 0 100%;
+		flex-wrap: wrap;
+		gap: 6px 10px;
+		padding-bottom: 6px;
+	}
+	.lib-course-name {
+		flex-wrap: wrap;
+		gap: 2px 10px;
+		font-size: 19px;
+	}
+	.lib-course-count {
+		margin-left: 26px;
+	}
+	.lib-meter {
+		display: none;
+	}
+	.lib-exam {
+		margin-left: 40px;
+		font-size: 12.5px;
+	}
+	.lib-course-body {
+		padding: 0 6px 14px;
+	}
+	.lib-lecture {
+		padding: 12px 8px 14px;
+	}
+	.lib-lec-date {
+		margin-left: 0;
+		flex: 1 0 100%;
 	}
 	.lib-state-error {
 		grid-auto-flow: row;
@@ -1804,358 +2214,53 @@ body.lib-reader-open {
 		transition: none !important;
 	}
 }
-
-/* =====================================================================
-   Variant B: Archive. Dense Linear-style list, crisp sans reading face.
-   ===================================================================== */
-:root.lib-theme-b .lib,
-:root.lib-theme-b .lib-reader,
-:root.lib-theme-b .lib-pop {
-	--lib-read: var(--lib-sans);
-	--lib-serif: var(--lib-sans);
-	--lib-paper: var(--surface);
-}
-:root.lib-theme-b .lib {
-	gap: 18px;
-}
-:root.lib-theme-b .lib-title {
-	font-weight: 700;
-	font-size: clamp(26px, 3vw, 32px);
-	letter-spacing: -0.03em;
-}
-:root.lib-theme-b .lib-add {
-	padding: 14px;
-	background: var(--surface);
-	box-shadow: none;
-	border-radius: var(--radius);
-}
-:root.lib-theme-b .lib-drop-btn {
-	padding: 16px 18px;
-}
-:root.lib-theme-b .lib-drop-ic {
-	width: 36px;
-	height: 36px;
-	font-size: 18px;
-	border-radius: 10px;
-}
-:root.lib-theme-b .lib-grid {
-	display: block;
-	border: 1px solid var(--line);
-	border-radius: var(--radius);
-	background: var(--surface);
-	overflow: hidden;
-	box-shadow: none;
-}
-:root.lib-theme-b .lib-card {
-	min-height: 0;
-	border: 0;
-	border-bottom: 1px solid var(--lib-hair);
-	border-radius: 0;
-	background: none;
-	box-shadow: none;
-	animation: none;
-}
-:root.lib-theme-b .lib-card:last-child {
-	border-bottom: 0;
-}
-:root.lib-theme-b .lib-card:hover {
-	transform: none;
-	background: color-mix(in srgb, var(--accent-soft) 45%, transparent);
-	box-shadow: none;
-	border-color: var(--lib-hair);
-}
-:root.lib-theme-b .lib-spine {
-	width: 4px;
-	margin: 10px 0 10px 14px;
-	border-radius: 4px;
-	background: var(--spine);
-}
-:root.lib-theme-b .lib-spine::before,
-:root.lib-theme-b .lib-spine::after {
-	display: none;
-}
-:root.lib-theme-b .lib-card-body {
-	display: grid;
-	grid-template-columns: 96px minmax(0, 1fr) auto auto;
-	grid-template-areas: "course title pages exam";
-	align-items: center;
-	gap: 4px 16px;
-	padding: 12px 18px 12px 14px;
-}
-:root.lib-theme-b .lib-card-top {
-	display: contents;
-}
-:root.lib-theme-b .lib-course {
-	grid-area: course;
-	letter-spacing: 0.04em;
-}
-:root.lib-theme-b .lib-badge {
-	order: 9;
-	grid-column: 4;
-	grid-row: 1;
-	justify-self: end;
-	display: none;
-}
-:root.lib-theme-b .lib-card-title {
-	grid-area: title;
-	font-size: 14.5px;
-	font-weight: 600;
-	letter-spacing: -0.01em;
-	-webkit-line-clamp: 1;
-	margin: 0;
-}
-:root.lib-theme-b .lib-card-by {
-	grid-area: title;
-	display: none;
-}
-:root.lib-theme-b .lib-card-foot {
-	display: contents;
-}
-:root.lib-theme-b .lib-pages {
-	grid-area: pages;
+.lib-drop-ic {
 	flex: none;
-	font-size: 12.5px;
-	color: var(--muted);
 }
-:root.lib-theme-b .lib-pages small {
-	display: none;
-}
-:root.lib-theme-b .lib-exam {
-	grid-area: exam;
-}
-:root.lib-theme-b .lib-go {
-	display: none;
-}
-:root.lib-theme-b .lib-card::after {
-	content: "";
-}
-:root.lib-theme-b .lib-pagetext {
-	font-size: 16px;
-	line-height: 1.68;
-	max-width: 70ch;
-	font-feature-settings: normal;
-}
-:root.lib-theme-b .lib-pnum {
-	font-style: normal;
-	font-family: var(--lib-sans);
-	font-weight: 650;
-	font-size: 13px;
-	letter-spacing: 0;
-}
-:root.lib-theme-b .lib-r-title h2 {
-	font-size: 15px;
-	font-weight: 650;
-}
-:root.lib-theme-b .lib-r-body {
-	grid-template-columns: 168px minmax(0, 1fr) 320px;
-}
-:root.lib-theme-b .lib-b-entry {
-	padding: 7px 10px 7px 12px;
-	margin-bottom: 5px;
-	border-radius: 8px;
-	box-shadow: none;
-}
-:root.lib-theme-b .lib-b-jump blockquote {
-	font-family: var(--lib-sans);
-	font-size: 12.5px;
-	-webkit-line-clamp: 3;
-}
-:root.lib-theme-b .lib-b-note {
-	margin-top: 5px;
-	padding-top: 5px;
-	font-size: 12px;
-}
-:root.lib-theme-b .lib-b-group h4 {
-	margin-bottom: 6px;
-}
-:root.lib-theme-b .lib-composer blockquote {
-	font-family: var(--lib-sans);
-	font-style: normal;
-}
-:root.lib-theme-b .lib-hl {
-	box-shadow: none;
-	border-radius: 2px;
-}
-
-/* =====================================================================
-   Variant C: Casebook. Large header-band cards, printed page with margin note rail.
-   ===================================================================== */
-:root.lib-theme-c .lib-grid {
-	grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-	gap: 22px;
-}
-:root.lib-theme-c .lib-card {
-	flex-direction: column;
-	min-height: 250px;
-	border-radius: 16px;
-}
-:root.lib-theme-c .lib-spine {
-	width: auto;
-	height: 70px;
-	background:
-		radial-gradient(120% 160% at 100% 0%, rgba(255, 255, 255, 0.28), transparent 55%),
-		linear-gradient(135deg, color-mix(in srgb, var(--spine) 92%, #fff), color-mix(in srgb, var(--spine) 75%, #000));
-}
-:root.lib-theme-c .lib-spine::before {
-	top: auto;
-	bottom: 14px;
-	left: 20px;
-	right: auto;
-	width: 38px;
-	height: 3px;
-	box-shadow: none;
-}
-:root.lib-theme-c .lib-spine::after {
-	display: none;
-}
-:root.lib-theme-c .lib-card-body {
-	padding: 0 20px 16px;
-	margin-top: -42px;
-}
-:root.lib-theme-c .lib-card-top {
-	position: relative;
-	z-index: 2;
-	margin-bottom: 14px;
-	min-height: 28px;
-	align-items: flex-end;
-}
-:root.lib-theme-c .lib-course {
-	color: #fff;
-	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
-	font-size: 12px;
-}
-:root.lib-theme-c .lib-badge {
-	background: rgba(255, 255, 255, 0.9);
-	color: #3b3150;
-}
-:root.lib-theme-c .lib-card-title {
-	font-size: 22px;
-	margin-top: 14px;
-}
-:root.lib-theme-c .lib-r-column {
-	width: min(100%, 1020px);
-}
-:root.lib-theme-c .lib-page {
-	grid-template-columns: 70px minmax(0, 640px) minmax(150px, 1fr);
-	gap: 0 22px;
-	margin: 0 0 30px;
-	padding: 34px 34px 40px 4px;
-	background: var(--lib-paper);
-	border: 1px solid var(--line);
-	border-radius: 4px 12px 12px 4px;
-	box-shadow:
-		var(--lib-lift),
-		-3px 0 0 -1px color-mix(in srgb, var(--spine) 55%, transparent);
-	border-top: 1px solid var(--line) !important;
-}
-:root.lib-theme-c .lib-page + .lib-page {
-	padding-top: 34px;
-}
-:root.lib-theme-c .lib-page::after {
-	content: "";
-	grid-column: 3;
-	grid-row: 1;
-	border-left: 1px dashed color-mix(in srgb, var(--line) 90%, transparent);
-	margin-left: -12px;
-}
-:root.lib-theme-c .lib-pnum {
-	font-style: normal;
-	font-size: 26px;
-	font-weight: 500;
-	color: color-mix(in srgb, var(--spine) 80%, var(--text));
-}
-:root.lib-theme-c .lib-pagetext {
-	font-size: 17.5px;
-	line-height: 1.7;
-	max-width: none;
-	text-align: justify;
-}
-:root.lib-theme-c .lib-pagetext::first-letter {
-	font-variant: small-caps;
-}
-:root.lib-theme-c .lib-page-tools {
-	grid-column: 3;
-	grid-row: 1;
-	position: static;
-	height: auto;
-	justify-content: flex-start;
-	align-items: flex-start;
-	align-self: start;
-	margin-bottom: 8px;
-}
-:root.lib-theme-c .lib-seg {
-	align-self: flex-start;
-}
-:root.lib-theme-c .lib-page {
-	grid-auto-flow: row;
-}
-:root.lib-theme-c .lib-page-main {
-	display: contents;
-}
-:root.lib-theme-c .lib-pagetext,
-:root.lib-theme-c .lib-photo {
-	grid-column: 2;
-	grid-row: 1;
-}
-:root.lib-theme-c .lib-flag {
-	grid-column: 3;
-	grid-row: 1;
-	align-self: start;
-	margin-top: 40px;
-}
-:root.lib-theme-c .lib-seg {
-	position: static;
-	opacity: 1;
-	transform: none;
-}
-:root.lib-theme-c .lib-r-body {
-	grid-template-columns: 188px minmax(0, 1fr) 340px;
-}
-@media (max-width: 1180px) {
-	:root.lib-theme-c .lib-page {
-		grid-template-columns: 60px minmax(0, 1fr);
-	}
-	:root.lib-theme-c .lib-page-tools,
-	:root.lib-theme-c .lib-flag {
-		grid-column: 2;
-		grid-row: auto;
-		margin-top: 0;
-	}
-	:root.lib-theme-c .lib-pagetext,
-	:root.lib-theme-c .lib-photo {
-		grid-row: auto;
-	}
-	:root.lib-theme-c .lib-page::after {
-		display: none;
-	}
-}
-@media (max-width: 860px) {
-	:root.lib-theme-c .lib-page {
-		grid-template-columns: minmax(0, 1fr);
-		padding: 20px 16px 24px;
-	}
-	:root.lib-theme-c .lib-page-tools,
-	:root.lib-theme-c .lib-pagetext,
-	:root.lib-theme-c .lib-flag,
-	:root.lib-theme-c .lib-photo {
-		grid-column: 1;
-	}
-	:root.lib-theme-c .lib-pagetext {
-		text-align: left;
-	}
-}
-@media (max-width: 640px) {
-	:root.lib-theme-b .lib-card-body {
-		grid-template-columns: minmax(0, 1fr) auto;
-		grid-template-areas: "course pages" "title title" "exam exam";
-	}
-	}
-
 @media (max-width: 640px) {
 	.lib-row-top b {
 		white-space: normal;
 	}
-	.lib-drop-ic {
-		flex: none;
+}
+
+/* lecture groups: the class on the left, its books on the right */
+.lib-lecture {
+	grid-template-columns: 196px minmax(0, 1fr);
+	gap: 12px 22px;
+	align-items: start;
+}
+.lib-lec-head {
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 6px;
+	padding-top: 2px;
+}
+.lib-lec-head .lib-wk,
+.lib-lec-head .lib-next {
+	align-self: flex-start;
+}
+.lib-lec-title {
+	font-size: 15px;
+	line-height: 1.3;
+}
+.lib-lec-date {
+	margin-left: 0;
+}
+.lib-lecture.is-other:not(:has(.lib-lec-head)) {
+	grid-template-columns: minmax(0, 1fr);
+}
+@media (max-width: 860px) {
+	.lib-lecture {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 12px;
+	}
+	.lib-lec-head {
+		flex-direction: row;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 4px 10px;
+	}
+	.lib-lec-date {
+		flex: 1 0 100%;
 	}
 }
