@@ -44,7 +44,7 @@
 	<link rel="preconnect" href="https://fonts.googleapis.com" />
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" />
-	<link rel="stylesheet" href="./styles.css?v=20261004-autobill" />
+	<link rel="stylesheet" href="./styles.css?v=20261004-checkin" />
 		<title>Command Centre</title>
 	<link rel="stylesheet" href="../../reading-estimates.css?v=20261002-class-anchored-tasks">
 </head>
@@ -107,6 +107,7 @@
 			</main>
 			<footer id="focusDock" class="focus-dock" hidden></footer>
 			<p id="announcement" class="sr-only" aria-live="polite"></p>
+			<aside class="checkin-card" id="checkIn" aria-label="Block check-in" hidden></aside>
 			<div class="toast" id="toast" role="status" hidden>
 				<span id="toastText"></span><button id="toastAction" hidden></button><button id="undoButton" hidden>Undo</button
 				><button
@@ -125,6 +126,7 @@
 			aria-label="Search tasks and actions"
 		></dialog>
 		<dialog id="settingsDialog" aria-labelledby="settingsTitle"></dialog>
+		<dialog id="choiceDialog" class="choice-dialog" aria-labelledby="choiceTitle"></dialog>
 		<div class="widget-engines" aria-hidden="true" inert>
 			<iframe id="todoFrame" title="To-Do widget engine" tabindex="-1"></iframe
 			><iframe
@@ -143,6 +145,6 @@
 		<script src="./remember.js"></script>
 		<script defer src="./notion-sync.js?v=20261002-class-anchored-tasks"></script>
 		<script src="../../widget-icons.js?v=20261001-duotone-b"></script>
-		<script type="module" src="./app.js?v=20261004-autobill"></script>
+		<script type="module" src="./app.js?v=20261004-checkin"></script>
 	</body>
 </html>

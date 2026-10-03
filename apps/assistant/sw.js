@@ -1,4 +1,4 @@
-const CACHE = "command-centre-20261004-autobill";
+const CACHE = "command-centre-20261004-checkin";
 const SHELL = [
 	"../../widget-platform.js",
 	"../../reading-estimates.js",
@@ -9,6 +9,7 @@ const SHELL = [
 	"./styles.css",
 	"./app.js",
 	"./domain.mjs",
+	"./overlap.mjs",
 	"./hours.mjs",
 	"./autofit.mjs",
 	"./calendar-extras.mjs",

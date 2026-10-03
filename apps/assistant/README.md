@@ -56,6 +56,8 @@ Command Centre and standalone To-Do share `reading-estimates.js` and the existin
 The task sheet shows the title, priority and date first. Reading tasks show one clickable duration and a compact page summary. Adjust reading reveals page fields; Reading pace reveals the custom pace. The separate duration field appears while changing a reading duration or for a non-reading task. Notes and session steps are collapsed unless populated.
 
 
+Moving, stretching or adding a block over other blocks asks what to do instead of refusing (`overlap.mjs`, pure and tested): push the rest later (blocks starting inside the new time move later by just enough, and anything they then reach moves too; a block the new time starts inside ends where it begins), shorten what it covers, or overlap anyway. Each option lists the exact new times first. Classes and reminders never move, and an option that would need to move one, push past midnight or shrink a block under five minutes is shown disabled with the reason. Everything changes in one step with one Undo. Plan my day still only uses free time.
+
 One-off personal calendar reminders (including calendar-linked entries such as appointments) stay in the agenda and do not count as work commitments or become focus tasks. Focus selects an open task for today; future calendar entries are never used as a fallback task.
 
 ## Smart task capture
@@ -85,6 +87,7 @@ Docket is a fourth Command Centre view (`?panel=docket`) that totals billable ho
 - Class: timetable blocks with `category: "class"`, counted as they are attended.
 - Reading, Study, Practice, Writing: focus-timer time from `clock/focus_sessions`, typed from the task. Admin is tracked but not billable.
 - Scheduled work bills itself (`scheduledEntries` in `hours.mjs`): a billable task's block counts as its time passes ("Billing now"), up to now or until the task is ticked off, labelled Auto. Time a focus session or a class already covers is taken out, so nothing bills twice; time logged by hand for that task and day replaces it. Blocks count from the day this arrived (`user/autoDocketSince`), so earlier weeks keep their hours. Removing an auto entry (with Undo) adds its id to `clock/docket_excluded`; "Log the actual time instead" replaces it with a logged entry.
+- End-of-block check-in: when a booked billable block ends with its task still open, a card asks how it went. Done ticks the task off (the block shows Confirmed); Need more time extends the block by 15, 30 or 60 minutes from the later of its end and now; Partly logs the minutes worked, which replace the automatic entry; Didn't get to it removes the automatic entry and offers a new time. A block whose task holds a running session waits. Answers are kept in `clock/block_checkins` (last 200).
 - Types come from `hours.mjs` (`classifyText`) using the task wording ("read", "pp.", "review", "outline", "memo", "draft"). A task's Type field (`task.kind`) overrides the parser; `TodoUIBridge.command.update` saves it.
 - Line items and the total use docket units (tenths of an hour). Under three minutes bills nothing.
 - Log time appends a `manual: true` session (with `note` and `kind`) to `clock/focus_sessions`, keeping its 300-entry cap. Completing an untimed billable task offers a Log time action. Manual entries can be removed with Undo.

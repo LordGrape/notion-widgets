@@ -4046,3 +4046,45 @@ body.is-dragging #toast { pointer-events: none; }
 	font-size: 12px;
 	cursor: pointer;
 }
+
+/* Overlap choices: what each option would change, before anything moves. */
+.choice-dialog { width: min(520px, calc(100vw - 32px)); }
+.overlap-options { display: grid; gap: 10px; margin: 18px 0 6px; }
+.overlap-option {
+	display: grid;
+	gap: 4px;
+	padding: 13px 15px;
+	border: 1px solid var(--line);
+	border-radius: 14px;
+	background: var(--surface);
+	text-align: left;
+}
+.overlap-option:hover:not([disabled]), .overlap-option:focus-visible { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--surface)); }
+.overlap-option[disabled] { opacity: 0.55; cursor: not-allowed; }
+.overlap-option small { display: grid; gap: 2px; color: var(--muted); font-size: 12.5px; font-weight: 500; }
+.overlap-option small b { color: var(--text); white-space: nowrap; }
+
+/* End-of-block check-in: a card that waits, bottom right, until it is answered. */
+.checkin-card {
+	position: fixed;
+	right: 24px;
+	bottom: 24px;
+	z-index: 20;
+	width: min(390px, calc(100vw - 32px));
+	padding: 18px 20px;
+	border: 1px solid var(--line);
+	border-radius: 18px;
+	background: var(--surface);
+	box-shadow: 0 18px 50px #17131d29;
+	animation: checkin-in 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+.checkin-card[hidden], body.locked .checkin-card { display: none; }
+.checkin-card h3 { margin: 4px 0 6px; font-size: 17px; }
+.checkin-card p:not(.eyebrow) { margin: 0 0 12px; color: var(--muted); font-size: 13.5px; }
+.checkin-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.checkin-actions button { padding: 8px 13px; }
+.checkin-partly label { display: grid; gap: 6px; margin-bottom: 12px; color: var(--muted); font-size: 13px; }
+.checkin-partly input { width: 120px; }
+@keyframes checkin-in { from { opacity: 0; transform: translateY(14px); } }
+@media (prefers-reduced-motion: reduce) { .checkin-card { animation: none; } }
+@media (max-width: 640px) { .checkin-card { right: 16px; bottom: 16px; } }

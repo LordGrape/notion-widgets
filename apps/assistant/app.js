@@ -4,6 +4,7 @@ import { changeCalendar, undoCalendar } from "./calendar-actions.mjs";
 import { ghostEvents, planNudge, timeAtOffset, parseTypeTag, stripTypeTag, withTypeTag } from "./calendar-extras.mjs";
 import { reorderIds, insertionIndex, movedTimes, resizedEnd, snap } from "./interactions.mjs";
 import { readingCandidates } from "./readings-import.mjs";
+import { conflicts, resolveOverlap } from "./overlap.mjs";
 import {
 	dailyGoal,
 	dateKey,
@@ -34,6 +35,7 @@ import {
 	classifyText,
 	taskKind,
 	formatUnits,
+	unitsFor,
 	minutesFor,
 	weekStart,
 	weekKeys,
@@ -65,7 +67,7 @@ import { suggestLastPage, planPageSplit, planTimeSplit, defaultRemaining } from 
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261004-autobill";
+	REVISION = "20261004-checkin";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -327,6 +329,74 @@ function dropStaleTimer() {
 	const pick = focusChoice().task;
 	if (selectedId && pick && pick.id !== selectedId) resetTimer(true);
 }
+/* End-of-block check-in. When a booked study block ends with its task still open, a card asks
+   how it went: done, more time (extends the block, through the overlap choices), partly (logs
+   the real minutes, which replace the automatic entry) or not at all (removes the automatic
+   entry and offers a new time). Answers live in clock/block_checkins by docket entry id. */
+let checkInStage = "ask",
+	checkInKey = "";
+function checkIns() {
+	let raw = engines.clock?.SyncEngine.get("clock", "block_checkins");
+	try {
+		if (typeof raw === "string") raw = JSON.parse(raw);
+	} catch {
+		raw = null;
+	}
+	return raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+}
+function answerCheckIn(entryId, answer) {
+	const all = Object.entries({ ...checkIns(), [entryId]: { answer, at: Date.now() } }).sort((a, b) => a[1].at - b[1].at).slice(-200);
+	engines.clock.SyncEngine.set("clock", "block_checkins", JSON.stringify(Object.fromEntries(all)));
+	checkInStage = "ask";
+}
+const entryIdFor = (t, b) => `plan:${t.id}:${isoDate(new Date(b[0]))}`;
+function checkInDue(now = Date.now()) {
+	if (!engines.clock || !engines.todo) return null;
+	const answered = checkIns(), since = autoSince(), today = isoDate(new Date(now));
+	return (
+		focusTasks(tasks, courses)
+			.map((t) => ({ t, b: blockOf(t) }))
+			.filter(({ t, b }) => b && !t.done && b[1] <= now && b[0] >= since && isoDate(new Date(b[0])) === today && BILLABLE.has(taskKind(t)))
+			.filter(({ t, b }) => !answered[entryIdFor(t, b)] && !(sessionHolds() && t.id === selectedId))
+			.sort((x, y) => x.b[1] - y.b[1])[0] || null
+	);
+}
+function renderCheckIn() {
+	const due = accessKey ? checkInDue() : null;
+	const key = due ? `${due.t.id}|${due.b.join()}|${checkInStage}` : "";
+	if (key === checkInKey) return;
+	checkInKey = key;
+	const card = $("#checkIn");
+	if (!due) {
+		card.hidden = true;
+		card.innerHTML = "";
+		checkInStage = "ask";
+		return;
+	}
+	const { t, b } = due, id = esc(t.id), mins = Math.round((b[1] - b[0]) / 60000);
+	const body =
+		checkInStage === "more"
+			? `<p>Extend the block from ${clockTime(Math.max(b[1], Date.now()))} by</p><div class="checkin-actions"><button data-action="checkin-extend" data-id="${id}" data-minutes="15">15 min</button><button data-action="checkin-extend" data-id="${id}" data-minutes="30">30 min</button><button data-action="checkin-extend" data-id="${id}" data-minutes="60">1 h</button><button class="text-button" data-action="checkin-stage" data-stage="ask">Back</button></div>`
+			: checkInStage === "partly"
+				? `<form class="checkin-partly" data-id="${id}"><label>Minutes you worked<input type="number" name="minutes" min="3" max="${mins}" value="${Math.round(mins / 2)}" required></label><div class="checkin-actions"><button class="primary">Log and keep it open</button><button type="button" class="text-button" data-action="checkin-stage" data-stage="ask">Back</button></div></form>`
+				: `<p>How did it go?</p><div class="checkin-actions"><button class="primary" data-action="checkin-done" data-id="${id}">${icon("check")} Done</button><button data-action="checkin-stage" data-stage="more">Need more time</button><button data-action="checkin-stage" data-stage="partly">Partly</button><button class="text-button" data-action="checkin-skip" data-id="${id}">Didn\u2019t get to it</button></div>`;
+	card.innerHTML = `<p class="eyebrow">Block ended \u00b7 ${clockTime(b[0])}\u2013${clockTime(b[1])}</p><h3>${esc(t.text)}</h3>${body}`;
+	card.hidden = false;
+	decorate(card);
+	card.querySelector("input")?.focus();
+}
+async function extendBlock(t, mins) {
+	const b = blockOf(t);
+	const day = isoDate(new Date(b[0]));
+	const from = Math.max(b[1], Math.ceil(Date.now() / 300000) * 300000);
+	const endMinute = Math.min(1439, minutes(clockTime(from)) + mins + (isoDate(new Date(from)) === day ? 0 : 1440));
+	const end = timeString(endMinute);
+	const ev = t.scheduleId && occurrences(localDate(day)).find((e) => e.id === t.scheduleId);
+	if (ev) return applyCalendarChange(ev, "edit", { date: day, start: ev.start, end }, `Extended to ${end}.`);
+	engines.todo.TodoUIBridge.command.update(t.id, { scheduledEnd: new Date(`${day}T${end}`).toISOString(), plannedMinutes: endMinute - minutes(clockTime(b[0])) });
+	notify(`Extended to ${end}.`);
+	return true;
+}
 function engineWindow(type) {
 	try {
 		let win = $(`#${type}Frame`).contentWindow;
@@ -510,6 +580,7 @@ function refresh() {
 		selectedAt = Number(context.at) || 0;
 	}
 	dropStaleTimer();
+	renderCheckIn();
 	const pick = focusChoice();
 	const next = JSON.stringify([
 		tasks,
@@ -1837,6 +1908,9 @@ function openSchedule(id, date = isoDate(), start = "13:00", hint = "") {
 				(x) => x.id === id,
 			);
 			if (!fresh) throw new Error("This task is no longer available.");
+			const choice = await overlapChoice(occurrences(localDate(date)), minutes(start), end, fresh.text, fresh.scheduleId ? { id: fresh.scheduleId } : null);
+			if (!choice) return;
+			await applyOccurrenceChanges(choice.changes);
 			let blocks =
 				engines.timetable.SyncEngine.get("timetable", "courses") || [];
 			if (typeof blocks === "string") blocks = JSON.parse(blocks);
@@ -1845,12 +1919,7 @@ function openSchedule(id, date = isoDate(), start = "13:00", hint = "") {
 			/* A block left behind by an earlier save that lost its link to this task:
 			   same name, same single day, linked to nobody. Adopt it instead of colliding with it. */
 			const orphan = block ? null : blocks.find((b) => b.startDate === date && b.endDate === date && b.name === fresh.text && !engines.todo.TodoUIBridge.snapshot().tasks.some((x) => x.scheduleId === b.id));
-			validateSlot(
-				occurrences(localDate(date)),
-				minutes(start),
-				end,
-				block?.id || orphan?.id,
-			);
+			/* Overlaps were settled above. */
 			if (orphan) {
 				Object.assign(orphan, { days: [{ day: localDate(date).getDay(), start, end: timeString(end), location: "" }], overrides: [] });
 				block = orphan;
@@ -2195,6 +2264,21 @@ document.addEventListener("keydown", (e) => {
 	}
 });
 document.addEventListener("submit", (e) => {
+	const partly = e.target.closest(".checkin-partly");
+	if (partly) {
+		e.preventDefault();
+		const due = checkInDue();
+		if (!due || due.t.id !== partly.dataset.id) return;
+		try {
+			const mins = Number(new FormData(partly).get("minutes"));
+			saveSessions(appendSession(focusSessionsRaw(), manualSession({ taskId: due.t.id, minutes: mins, kind: taskKind(due.t), endAt: due.b[1] })));
+			answerCheckIn(entryIdFor(due.t, due.b), "partly");
+			notify(`Logged ${formatUnits(unitsFor(mins))} h. The task stays open.`);
+		} catch (error) {
+			notify(error.message);
+		}
+		return;
+	}
 	const form = e.target.closest(".group-quick");
 	if (!form) return;
 	e.preventDefault();
@@ -2222,7 +2306,7 @@ function moveBlockTo(el, date, topMinute, dayStart, dayEnd) {
 	if (!ev) return;
 	const next = movedTimes(ev.start, ev.end, topMinute, 0, 1439);
 	if (date === ev.dateKey && next.start === ev.start) return;
-	applyCalendarChange(ev, "edit", { date, start: next.start, end: next.end }, `Moved to ${dateLabel(localDate(date))} at ${next.start}.`);
+	applyCalendarChange(ev, "edit", { date, start: next.start, end: next.end }, `Moved to ${dateLabel(localDate(date))} at ${next.start}.`).then((ok) => { if (!ok) { signature = ""; render(); } });
 }
 /* Drag the bottom edge of a block to change its length. */
 document.addEventListener("pointerdown", (e) => {
@@ -2415,13 +2499,15 @@ function openCalendarCreate(column, y) {
 		try {
 			if (!text) throw Error("Add a task name.");
 			const end = minutes(at) + m;
+			const choice = await overlapChoice(occurrences(localDate(date)), minutes(at), end, text);
+			if (!choice) return;
+			await applyOccurrenceChanges(choice.changes);
 			await engines.timetable.SyncEngine.pull("timetable");
 			await engines.todo.SyncEngine.pull("todo");
 			engines.todo.TodoUIBridge.refresh();
 			let blocks = engines.timetable.SyncEngine.get("timetable", "courses") || [];
 			if (typeof blocks === "string") blocks = JSON.parse(blocks);
 			engines.timetable.schedule = blocks;
-			validateSlot(occurrences(localDate(date)), minutes(at), end);
 			const id = engines.todo.TodoUIBridge.command.add({ text, pri: f.get("pri"), plannedMinutes: m, due: date === isoDate() ? "today" : null, dueKey: date });
 			if (!id) throw Error("Task could not be added.");
 			const block = {
@@ -2622,7 +2708,49 @@ function unscheduleTimedTask(id) {
 	});
 }
 let calendarBusy = false;
-async function applyCalendarChange(event, action, patch = {}, doneMessage = "") {
+/* A time that runs into other blocks asks what to do instead of refusing: push the rest later,
+   shorten what it covers, or overlap. Resolves to { changes, note }, or null when cancelled. */
+function overlapChoice(events, start, end, name, self = null) {
+	const hits = conflicts(events, start, end, self);
+	if (!hits.length) return Promise.resolve({ changes: [], note: "" });
+	const span = (a, b) => `${a}–${b}`;
+	const option = (mode, label) => {
+		const r = resolveOverlap(events, start, end, mode, self);
+		const detail = r.blocked ? esc(r.blocked) : r.changes.map((c) => `<span>${esc(c.event.name)}: ${span(c.from.start, c.from.end)} → <b>${span(c.start, c.end)}</b></span>`).join("");
+		return { mode, r, html: `<button type="button" class="overlap-option" data-mode="${mode}" ${r.blocked ? "disabled" : ""}><b>${label}</b><small>${detail}</small></button>` };
+	};
+	const options = [option("push", "Push the rest later"), option("shorten", "Shorten what it covers"), { mode: "overlap", r: { changes: [] }, html: `<button type="button" class="overlap-option" data-mode="overlap"><b>Overlap anyway</b><small>Everything else stays where it is.</small></button>` }];
+	const d = openDialog(
+		"#choiceDialog",
+		`${dialogHead("That runs into your schedule", "choiceTitle")}<p class="muted"><b>${esc(name || "This block")}</b> ${span(timeString(start), timeString(end))} overlaps ${hits.map((e) => `${esc(e.name)} (${span(e.start, e.end)})`).join(", ")}.</p><div class="overlap-options">${options.map((o) => o.html).join("")}</div><div class="dialog-actions"><button type="button" data-action="close-dialog">Cancel</button></div>`,
+	);
+	return new Promise((resolve) => {
+		let answer = null;
+		d.querySelectorAll(".overlap-option").forEach((b) =>
+			b.addEventListener("click", () => {
+				const o = options.find((x) => x.mode === b.dataset.mode);
+				const n = o.r.changes.length;
+				answer = { changes: o.r.changes, note: o.mode === "overlap" ? " Overlapping." : ` ${o.mode === "push" ? "Pushed" : "Shortened"} ${n} other block${n === 1 ? "" : "s"}.` };
+				d.close();
+			}),
+		);
+		d.addEventListener("close", () => resolve(answer), { once: true });
+		d.querySelector(".overlap-option:not([disabled])")?.focus();
+	});
+}
+/* Other occurrences changed by an overlap choice made inside another dialog. */
+async function applyOccurrenceChanges(changes) {
+	if (!changes.length) return;
+	let state = await pullCalendarState();
+	for (const c of changes) state = changeCalendar(state.blocks, state.tasks, c.event, "edit", { date: c.event.dateKey, start: c.start, end: c.end });
+	saveCalendarState(state);
+}
+async function applyCalendarChange(event, action, patch = {}, doneMessage = "", options = {}) {
+	if (action === "edit" && event && !options.resolved) {
+		const choice = await overlapChoice(occurrences(localDate(patch.date)), minutes(patch.start), minutes(patch.end), event.name, event);
+		if (!choice) return false;
+		return applyCalendarChange(event, action, patch, (doneMessage || "Time updated for this occurrence.") + choice.note, { resolved: true, extra: choice.changes });
+	}
 	/* A change made right after another (move then resize) waits for the first to finish saving. */
 	for (let waited = 0; calendarBusy && waited < 4000; waited += 50) await new Promise((resolve) => setTimeout(resolve, 50));
 	if (calendarBusy) return false;
@@ -2637,13 +2765,6 @@ async function applyCalendarChange(event, action, patch = {}, doneMessage = "") 
 			engines.timetable.schedule = engines.timetable.normaliseBlocks(
 				before.blocks,
 			);
-			validateSlot(
-				occurrences(localDate(patch.date)).filter(
-					(e) => !(e.id === event.id && e.sourceDate === event.sourceDate),
-				),
-				minutes(patch.start),
-				minutes(patch.end),
-			);
 		}
 		let after = changeCalendar(
 			before.blocks,
@@ -2652,6 +2773,7 @@ async function applyCalendarChange(event, action, patch = {}, doneMessage = "") 
 			action,
 			patch,
 		);
+		for (const c of options.extra || []) after = changeCalendar(after.blocks, after.tasks, c.event, "edit", { date: c.event.dateKey, start: c.start, end: c.end });
 		saveCalendarState(after);
 		after = calendarState();
 		if ($("#editorDialog").open) $("#editorDialog").close();
@@ -2871,6 +2993,39 @@ document.addEventListener("click", (e) => {
 		case "docket-target":
 			openTarget();
 			break;
+		case "checkin-stage":
+			checkInStage = b.dataset.stage;
+			renderCheckIn();
+			break;
+		case "checkin-done": {
+			const due = checkInDue();
+			if (!due || due.t.id !== id) break;
+			answerCheckIn(entryIdFor(due.t, due.b), "done");
+			engines.todo.TodoUIBridge.command.toggle(id);
+			signature = "";
+			refresh();
+			notify("Done. The block is on the docket.");
+			break;
+		}
+		case "checkin-extend": {
+			const due = checkInDue();
+			if (!due || due.t.id !== id) break;
+			checkInStage = "ask";
+			extendBlock(due.t, Number(b.dataset.minutes)).then(() => { signature = ""; refresh(); });
+			break;
+		}
+		case "checkin-skip": {
+			const due = checkInDue();
+			if (!due || due.t.id !== id) break;
+			const entry = entryIdFor(due.t, due.b);
+			answerCheckIn(entry, "skipped");
+			engines.clock.SyncEngine.set("clock", "docket_excluded", JSON.stringify([...new Set([...docketExcluded(), entry])].slice(-400)));
+			signature = "";
+			refresh();
+			const from = suggestSlot(occurrences(new Date()), Math.ceil((new Date().getHours() * 60 + new Date().getMinutes()) / 15) * 15, Math.round((due.b[1] - due.b[0]) / 60000));
+			notify("Taken off the docket.", false, { label: "Find a new time", run: () => openSchedule(id, isoDate(), from == null ? "13:00" : timeString(from)) });
+			break;
+		}
 		case "docket-dismiss": {
 			const before = engines.clock.SyncEngine.get("clock", "docket_excluded");
 			engines.clock.SyncEngine.set("clock", "docket_excluded", JSON.stringify([...new Set([...docketExcluded(), id])].slice(-400)));
@@ -3338,11 +3493,12 @@ function renderDocket() {
 	const max = Math.max(6, ...perDay);
 	const bars = keys.map((key, i) => '<div class="' + (key === today ? "today" : "") + '" style="height:' + Math.max(7, (perDay[i] / max) * 100) + "%" + (perDay[i] ? "" : ";background:var(--surface-3)") + '" title="' + formatUnits(perDay[i]) + ' h"></div>').join("");
 	let lastDay = "";
+	const confirmed = Object.fromEntries(Object.entries(checkIns()).filter(([, v]) => v.answer === "done"));
 	const rows = [...s.entries].reverse().map((e) => {
 		const d = new Date(e.start), day = isoDate(d), first = day !== lastDay;
 		lastDay = day;
 		const manual = e.source === "manual", auto = e.source === "scheduled";
-		return '<div class="docket-row' + (e.live ? " live" : "") + '" data-ctx="docket" data-task-id="' + esc(e.taskId || "") + '" data-manual="' + (manual ? 1 : 0) + '" data-auto="' + (auto ? 1 : 0) + '"><span class="docket-date">' + (first ? "<b>" + d.toLocaleDateString("en-CA", { weekday: "short" }) + "</b>" + monthDay(d) : "") + '</span><span class="docket-desc">' + esc(e.description) + '<span class="docket-meta"><span class="kind-chip ' + e.kind + '">' + KIND_LABEL[e.kind] + "</span><span>" + clockTime(e.start) + " – " + (e.live ? "now" : clockTime(e.end)) + "</span>" + (manual ? "<span>Logged</span>" : "") + (auto ? '<span class="auto-chip" title="Counted from your schedule. Remove it if you did not do the work.">' + (e.live ? "Billing now" : "Auto") + "</span>" : "") + (e.sessions > 1 ? "<span>" + e.sessions + " sessions</span>" : "") + (isLateNight(e) ? '<span class="late-chip">After midnight</span>' : "") + '</span></span><span class="docket-units">' + formatUnits(e.units) + (manual ? '<button class="icon-button docket-remove" data-action="docket-remove" data-id="' + esc(e.id) + '" aria-label="Remove this entry">' + icon("close") + "</button>" : auto ? '<button class="icon-button docket-remove" data-action="docket-dismiss" data-id="' + esc(e.id) + '" aria-label="Remove this automatic entry" title="Did not do it? Remove it">' + icon("close") + "</button>" : "") + "</span></div>";
+		return '<div class="docket-row' + (e.live ? " live" : "") + '" data-ctx="docket" data-task-id="' + esc(e.taskId || "") + '" data-manual="' + (manual ? 1 : 0) + '" data-auto="' + (auto ? 1 : 0) + '"><span class="docket-date">' + (first ? "<b>" + d.toLocaleDateString("en-CA", { weekday: "short" }) + "</b>" + monthDay(d) : "") + '</span><span class="docket-desc">' + esc(e.description) + '<span class="docket-meta"><span class="kind-chip ' + e.kind + '">' + KIND_LABEL[e.kind] + "</span><span>" + clockTime(e.start) + " – " + (e.live ? "now" : clockTime(e.end)) + "</span>" + (manual ? "<span>Logged</span>" : "") + (auto ? '<span class="auto-chip" title="Counted from your schedule. Remove it if you did not do the work.">' + (e.live ? "Billing now" : confirmed[e.id] ? "Confirmed" : "Auto") + "</span>" : "") + (e.sessions > 1 ? "<span>" + e.sessions + " sessions</span>" : "") + (isLateNight(e) ? '<span class="late-chip">After midnight</span>' : "") + '</span></span><span class="docket-units">' + formatUnits(e.units) + (manual ? '<button class="icon-button docket-remove" data-action="docket-remove" data-id="' + esc(e.id) + '" aria-label="Remove this entry">' + icon("close") + "</button>" : auto ? '<button class="icon-button docket-remove" data-action="docket-dismiss" data-id="' + esc(e.id) + '" aria-label="Remove this automatic entry" title="Did not do it? Remove it">' + icon("close") + "</button>" : "") + "</span></div>";
 	}).join("");
 	const first = localDate(keys[0]), last = localDate(keys[6]);
 	const pace = docketOffset === 0 && s.billable >= weeklyCeiling() ? '<span class="behind">Past your ' + formatUnits(weeklyCeiling()) + " h ceiling. Rest.</span>" : docketOffset === 0 ? (s.pace === "ahead" ? '<span class="ahead">' + formatUnits(s.billable - s.expected) + " h ahead of pace</span>" : s.pace === "behind" ? '<span class="behind">' + formatUnits(s.expected - s.billable) + " h behind pace</span>" : '<span class="ahead">On pace</span>') : "<span>" + formatUnits(s.remaining) + " h short of target</span>";
