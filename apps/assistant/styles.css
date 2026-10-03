@@ -137,16 +137,11 @@ h3 {
 	font-weight: 760;
 }
 .brand-mark {
-	display: grid;
-	place-items: center;
-	width: 37px;
+	display: block;
+	width: 40px;
 	height: 40px;
-	color: #fff;
-	font-size: 26px;
-	font-weight: 850;
 	border-radius: 11px;
-	background: linear-gradient(145deg, #b687fa, #7029e6);
-	box-shadow: 0 5px 11px #7c3aed18;
+	box-shadow: 0 5px 14px #17131d2e;
 }
 .view-tabs {
 	display: flex;
@@ -1227,9 +1222,8 @@ dialog[open] {
 		font-size: 20px;
 	}
 	.brand-mark {
-		width: 32px;
+		width: 34px;
 		height: 34px;
-		font-size: 23px;
 	}
 	.header-actions {
 		gap: 2px;

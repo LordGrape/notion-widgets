@@ -1,4 +1,4 @@
-const CACHE = "command-centre-20261002-loading-hd2";
+const CACHE = "command-centre-20261003-logo";
 const SHELL = [
 	"../../widget-platform.js",
 	"../../reading-estimates.js",
@@ -25,6 +25,11 @@ const SHELL = [
 	"./manifest.webmanifest",
 	"./icon.svg",
 	"./icon-maskable.svg",
+	"./icon-192.png",
+	"./icon-512.png",
+	"./icon-maskable-512.png",
+	"./apple-touch-icon.png",
+	"./favicon-32.png",
 ];
 const allowed = new Set(
 	SHELL.map((path) => new URL(path, self.location.href).href),
