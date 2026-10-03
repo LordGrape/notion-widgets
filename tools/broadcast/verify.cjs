@@ -13,7 +13,7 @@ fs.mkdirSync(out, { recursive: true });
 const bytes = fs.readFileSync(path.join(root, 'apps/assistant/broadcast.glb'));
 const model = JSON.parse(bytes.subarray(20, 20 + bytes.readUInt32LE(12)).toString());
 assert.deepEqual(model.animations.map(a => a.name).sort(), ['cheer','idle','run','slump','talk']);
-for (const name of ['Root','Body','Neck','ShoulderL','ShoulderR','ElbowL','ElbowR','HipL','HipR','Screen']) {
+for (const name of ['Root','Body','Neck','ShoulderL','ShoulderR','ElbowL','ElbowR','HipL','HipR','KneeL','KneeR','Screen']) {
  assert(model.nodes.some(n => n.name === name), `Missing rig node: ${name}`);
 }
 for (const name of ['Hand-1','Hand1','Shoe-1Buckle0_0','Shoe1Buckle0_0','CaseHandle','CaseClasp-1']) {

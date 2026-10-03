@@ -3217,16 +3217,29 @@ dialog h3 {
 .broadcast-card.has-3d .broadcast-figure { visibility: hidden; }
 .broadcast-canvas { display: block; width: 100%; height: 100%; }
 .broadcast-run {
-	/* Up to 10x the original 100x110, but never taller than the window or wider than the screen. */
+	/* Up to 10x the original 100x110, but never taller than the window or wider than the screen.
+	   Each scene is a sheet of frames, 8 per row; the columns step within each row and the rows step once per row. */
+	--cols: 8;
+	--rows: 2;
+	--loop: 0.64s;
 	display: block;
 	width: min(1000px, 90vw, calc((100vh - 260px) * 100 / 110));
 	aspect-ratio: 100 / 110;
 	margin: 0 auto 8px;
-	background: url("./broadcast-run.webp?v=suitcase") 0 0 / 1600% 100% no-repeat;
-	animation: broadcast-run 0.64s steps(16, jump-none) infinite;
+	background: url("./broadcast-run.webp?v=scenes") 0 0 / calc(var(--cols) * 100%) calc(var(--rows) * 100%) no-repeat;
+	animation:
+		broadcast-frame-x calc(var(--loop) / var(--rows)) steps(var(--cols), jump-none) infinite,
+		broadcast-frame-y var(--loop) steps(var(--rows), jump-none) infinite;
 }
-@keyframes broadcast-run {
-	to { background-position: 100% 0; }
+[data-loader="laptop"] .broadcast-run { background-image: url("./broadcast-laptop.webp?v=scenes"); --rows: 6; --loop: 2s; }
+[data-loader="meditate"] .broadcast-run { background-image: url("./broadcast-meditate.webp?v=scenes"); --rows: 5; --loop: 2s; }
+[data-loader="soccer"] .broadcast-run { background-image: url("./broadcast-soccer.webp?v=scenes"); --rows: 3; --loop: 1s; }
+[data-loader="basketball"] .broadcast-run { background-image: url("./broadcast-basketball.webp?v=scenes"); --rows: 3; --loop: 1s; }
+@keyframes broadcast-frame-x {
+	to { background-position-x: 100%; }
+}
+@keyframes broadcast-frame-y {
+	to { background-position-y: 100%; }
 }
 @media (prefers-reduced-motion: reduce) {
 	.broadcast-run { animation: none; }

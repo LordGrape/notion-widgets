@@ -412,8 +412,12 @@ for s in (-1, 1):
     d = (wr - el).normalized()
     capsule(f"ShirtCuff{s}", wr - d * 0.02, wr + d * 0.09, 0.155, 0.145, SHIRT)
     make_hand(s, wr + d * 0.08, d, 0.15 if POSE == "cheer" else 0.55)
-    capsule(f"Leg{s}", (s * 0.32, 0, 0.98), (s * 0.34, 0, 0.4), 0.25, 0.21, SUIT)
-    capsule(f"Leg{s}Crease", (s * 0.32, -0.242, 0.88), (s * 0.34, -0.207, 0.44), 0.007, 0.006, SEAM, seg=8, sub=0)
+    # Thigh and shin meet at a knee so Broadcast can sit, crouch and fold his legs.
+    capsule(f"Leg{s}", (s * 0.32, 0, 0.98), (s * 0.33, 0, 0.69), 0.25, 0.232, SUIT)
+    capsule(f"Leg{s}Crease", (s * 0.32, -0.242, 0.88), (s * 0.33, -0.226, 0.7), 0.007, 0.0065, SEAM, seg=8, sub=0)
+    ellipsoid(f"Knee{s}", (s * 0.33, 0, 0.69), (0.232, 0.232, 0.232), SUIT)
+    capsule(f"Shin{s}", (s * 0.33, 0, 0.69), (s * 0.34, 0, 0.4), 0.232, 0.21, SUIT)
+    capsule(f"Shin{s}Crease", (s * 0.33, -0.226, 0.68), (s * 0.34, -0.207, 0.44), 0.0065, 0.006, SEAM, seg=8, sub=0)
     make_shoe(s)
 
 
@@ -456,7 +460,8 @@ for s in (-1, 1):
     sh = empty(f"Shoulder{side}", (s * 0.8, 0, 1.84), body)
     el = empty(f"Elbow{side}", (s * 0.9, 0.06, 1.4), sh)
     hip = empty(f"Hip{side}", (s * 0.32, 0, 0.98), root)
-    J[f"Shoulder{side}"], J[f"Elbow{side}"], J[f"Hip{side}"] = sh, el, hip
+    knee = empty(f"Knee{side}", (s * 0.33, 0, 0.69), hip)
+    J[f"Shoulder{side}"], J[f"Elbow{side}"], J[f"Hip{side}"], J[f"Knee{side}"] = sh, el, hip, knee
 
 HEAD_PARTS = ("Head", "HeadBack", "ScreenWell", "Screen", "Case")
 BODY_PARTS = ("Torso", "Deltoid", "Shirt", "Tie", "Lapel", "Collar", "Pocket", "TieKnot", "Button", "Waistcoat")
@@ -464,7 +469,7 @@ for o in list(bpy.data.objects):
     if o.type != "MESH" or o.parent:
         continue
     n = o.name
-    limb = any(n.startswith(p) for p in ("Upper", "Fore", "ShirtCuff", "Hand", "Leg", "Shoe", "Sole"))
+    limb = any(n.startswith(p) for p in ("Upper", "Fore", "ShirtCuff", "Hand", "Leg", "Knee", "Shin", "Shoe", "Sole"))
     if n.startswith(HEAD_PARTS):
         parent_to(o, neck)
     elif n.startswith(BODY_PARTS) and not limb:
@@ -476,8 +481,10 @@ for o in list(bpy.data.objects):
                 parent_to(o, J[f"Shoulder{side}"])
             elif n.startswith((f"Fore{s}", f"ShirtCuff{s}", f"Hand{s}")):
                 parent_to(o, J[f"Elbow{side}"])
-            elif n.startswith((f"Leg{s}", f"Shoe{s}", f"Sole{s}")):
+            elif n.startswith((f"Leg{s}", f"Knee{s}")):
                 parent_to(o, J[f"Hip{side}"])
+            elif n.startswith((f"Shin{s}", f"Shoe{s}", f"Sole{s}")):
+                parent_to(o, J[f"Knee{side}"])
 orphans = [o.name for o in bpy.data.objects if o.type == "MESH" and not o.parent]
 print("ORPHANS", orphans)
 assert not orphans, f"Unrigged model parts: {orphans}"
@@ -556,6 +563,8 @@ ANIMS["run"] = (16, {
     "Neck": [(0, (-0.12, 0, 0), Z), (16, (-0.12, 0, 0), Z)],
     "HipR": [(0, (-0.65, 0, 0), Z), (8, (0.65, 0, 0), Z), (16, (-0.65, 0, 0), Z)],
     "HipL": [(0, (0.65, 0, 0), Z), (8, (-0.65, 0, 0), Z), (16, (0.65, 0, 0), Z)],
+    "KneeR": [(0, (0.25, 0, 0), Z), (4, (0.35, 0, 0), Z), (8, (0.75, 0, 0), Z), (12, (1.55, 0, 0), Z), (16, (0.25, 0, 0), Z)],
+    "KneeL": [(0, (0.75, 0, 0), Z), (4, (1.55, 0, 0), Z), (8, (0.25, 0, 0), Z), (12, (0.35, 0, 0), Z), (16, (0.75, 0, 0), Z)],
     "ShoulderR": [(0, (0.7, 0, 0), Z), (8, (-0.7, 0, 0), Z), (16, (0.7, 0, 0), Z)],
     "ShoulderL": [(0, (-0.7, 0, 0), Z), (8, (0.7, 0, 0), Z), (16, (-0.7, 0, 0), Z)],
     "ElbowR": [(0, (-1.3, 0, 0), Z), (16, (-1.3, 0, 0), Z)],
@@ -589,33 +598,7 @@ cam.constraints.new("TRACK_TO").target = target
 PREVIEW = os.environ.get("PREVIEW", "1") == "1"
 for name, (length, spec) in ANIMS.items():
     keyframes(spec, length)
-    if name == "run" and os.environ.get("RENDER_RUN", "1") == "1":
-        # Sprite sheet for the loading screen.
-        run_w = int(os.environ.get("RUN_W", "300"))
-        scene.render.resolution_x, scene.render.resolution_y = run_w, round(run_w * 1.1)
-        scene.eevee.taa_render_samples = int(os.environ.get("RUN_SAMPLES", "48"))
-        cam.data.lens = 100
-        cam.location = (-8.5, -9.5, 2.6)
-        target.location = (0, 0, 1.72)
-        frames = []
-        for f in range(0, 16):
-            scene.frame_set(f)
-            path = os.path.join(OUT, f"run_{f:02d}.png")
-            scene.render.filepath = path
-            bpy.ops.render.render(write_still=True)
-            frames.append(path)
-        imgs = [bpy.data.images.load(p) for p in frames]
-        w, h = imgs[0].size
-        sheet = np.zeros((h, w * len(imgs), 4), np.float32)
-        for i, im in enumerate(imgs):
-            px = np.array(im.pixels[:], np.float32).reshape(h, w, 4)
-            sheet[:, i * w:(i + 1) * w] = px
-        out = bpy.data.images.new("run_sheet", w * len(imgs), h, alpha=True)
-        out.pixels.foreach_set(sheet.ravel())
-        out.filepath_raw = os.path.join(OUT, "broadcast-run.png")
-        out.file_format = "PNG"
-        out.save()
-    elif PREVIEW and name in os.environ.get("PREVIEW_CLIPS", "idle,talk,cheer,slump").split(","):
+    if PREVIEW and name in os.environ.get("PREVIEW_CLIPS", "idle,talk,cheer,slump").split(","):
         scene.render.resolution_x, scene.render.resolution_y = 500, 560
         scene.eevee.taa_render_samples = 48
         cam.data.lens = 75
@@ -626,6 +609,10 @@ for name, (length, spec) in ANIMS.items():
             scene.render.filepath = os.path.join(OUT, f"anim_{name}_{f:02d}.png")
             bpy.ops.render.render(write_still=True)
     stash(name, length)
+
+# Loading-screen scenes (sprite frames), rendered in Cycles with props, then removed.
+if os.environ.get("SCENES", "run,laptop,meditate,soccer,basketball"):
+    exec(compile(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "scenes.py"), encoding="utf-8").read(), "scenes.py", "exec"))
 
 # ---------- export ----------
 # Keep a usable studio scene in the editable file; the web export excludes it.

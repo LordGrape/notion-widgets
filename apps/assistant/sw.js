@@ -1,4 +1,4 @@
-const CACHE = "command-centre-20261004-readings3";
+const CACHE = "command-centre-20261004-scenes";
 const SHELL = [
 	"../../widget-platform.js",
 	"../../reading-estimates.js",
@@ -33,8 +33,10 @@ const SHELL = [
 	"./apple-touch-icon.png",
 	"./favicon-32.png",
 ];
+/* The other loading scenes are cached the first time each is shown, not on install. */
+const SCENES = ["./broadcast-laptop.webp", "./broadcast-meditate.webp", "./broadcast-soccer.webp", "./broadcast-basketball.webp"];
 const allowed = new Set(
-	SHELL.map((path) => new URL(path, self.location.href).href),
+	[...SHELL, ...SCENES].map((path) => new URL(path, self.location.href).href),
 );
 self.addEventListener("install", (e) =>
 	e.waitUntil(

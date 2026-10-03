@@ -28,12 +28,23 @@
 			} catch (e) {
 				document.documentElement.dataset.theme = "light";
 			}
+			/* Broadcast does something different on each load; only that scene's sheet is fetched. */
+			(function () {
+				var scenes = ["run", "laptop", "meditate", "soccer", "basketball"],
+					scene = scenes[Math.floor(Math.random() * scenes.length)],
+					link = document.createElement("link");
+				document.documentElement.dataset.loader = scene;
+				link.rel = "preload";
+				link.as = "image";
+				link.href = "./broadcast-" + scene + ".webp?v=scenes";
+				link.setAttribute("fetchpriority", "high");
+				document.head.appendChild(link);
+			})();
 		</script>
 	<link rel="preconnect" href="https://fonts.googleapis.com" />
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" />
-	<link rel="preload" as="image" href="./broadcast-run.webp?v=suitcase" fetchpriority="high" />
-	<link rel="stylesheet" href="./styles.css?v=20261004-readings3" />
+	<link rel="stylesheet" href="./styles.css?v=20261004-scenes" />
 		<title>Command Centre</title>
 	<link rel="stylesheet" href="../../reading-estimates.css?v=20261002-class-anchored-tasks">
 </head>
@@ -132,6 +143,6 @@
 		<script src="./remember.js"></script>
 		<script defer src="./notion-sync.js?v=20261002-class-anchored-tasks"></script>
 		<script src="../../widget-icons.js?v=20261001-duotone-b"></script>
-		<script type="module" src="./app.js?v=20261004-readings3"></script>
+		<script type="module" src="./app.js?v=20261004-scenes"></script>
 	</body>
 </html>
