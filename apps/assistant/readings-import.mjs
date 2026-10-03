@@ -134,6 +134,19 @@ const normalize = (text) =>
 		.replace(/\s+/g, " ")
 		.trim();
 
+const words = (text) => new Set(String(text || "").toLowerCase().match(/[a-z]{4,}/g) || []);
+const STOP = new Set(["read", "reading", "readings", "pages", "class", "lecture", "with", "from", "that", "this", "and", "the"]);
+
+/* A task you wrote yourself counts as this reading when it names every page range and shares a word with
+   the class, so "Read Criminal Law pp. 78-98" matches a class on pp. 78-98 of Criminal Law. */
+function coversReading(taskText, ranges, labels) {
+	const text = String(taskText || "").replace(/[–—]/g, "-").replace(/\s*-\s*/g, "-");
+	const every = ranges.every(([a, b]) => new RegExp(String.raw`(?<![\d-])${a === b ? a : `${a}-${b}`}(?![\d-])`).test(text));
+	if (!every) return false;
+	const mine = words(text);
+	return labels.some((l) => [...words(l)].some((w) => !STOP.has(w) && mine.has(w)));
+}
+
 const classDay = (start) => (/^\d{4}-\d{2}-\d{2}$/.test(start) ? start : isoDate(new Date(start)));
 const addDays = (key, n) => {
 	const d = localDate(key);
@@ -185,7 +198,7 @@ export function readingCandidates({ lectures, courses = {}, tasks = [], today, d
 			dueKey,
 			pri: daysAway <= 2 ? "must" : "should",
 			minutes: estimate(text)?.minutes ?? null,
-			exists: imported.has(lecture.id) || existing.has(normalize(text)),
+			exists: imported.has(lecture.id) || existing.has(normalize(text)) || tasks.some((t) => coversReading(t.text, ranges, [course, ...parts, lecture.title])),
 		});
 	}
 	return { items, unclear, editions: [...editions].sort() };

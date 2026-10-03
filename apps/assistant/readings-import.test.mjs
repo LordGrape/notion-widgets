@@ -170,3 +170,19 @@ test("the estimate is passed through when provided", () => {
 	const { items } = readingCandidates({ ...base, lectures: [lecture()], estimate: (text) => (/pp\./.test(text) ? { minutes: 126 } : null) });
 	assert.equal(items[0].minutes, 126);
 });
+
+test("a hand-made task with the same pages and a word in common counts as already added", () => {
+	const noCourse = { ...base, courses: {} };
+	const sameClass = lecture({ title: "W4A: The Role of Case Law in Criminal Law", notes: "READINGS\n• Smith/Jones/Lee, pp. 78–98" });
+	assert.equal(readingCandidates({ ...noCourse, tasks: [{ id: "t", text: "Read Criminal Law pp. 78-98" }], lectures: [sameClass] }).items[0].exists, true);
+	const comma = lecture({ title: "W5A: Possession of Land", notes: "READINGS\n• Property: Cases and Commentary, pp. 144–188" });
+	assert.equal(readingCandidates({ ...noCourse, tasks: [{ id: "t", text: "Read Property: Cases and Commentary, pp. 144–188" }], lectures: [comma] }).items[0].exists, true);
+});
+
+test("different pages, or no word in common, are not mistaken for the same reading", () => {
+	const noCourse = { ...base, courses: {} };
+	const l = lecture({ title: "W4A: Criminal Law", notes: "READINGS\n• Smith, pp. 78–98" });
+	assert.equal(readingCandidates({ ...noCourse, tasks: [{ id: "t", text: "Read Criminal Law pp. 78-97" }], lectures: [l] }).items[0].exists, false);
+	assert.equal(readingCandidates({ ...noCourse, tasks: [{ id: "t", text: "Read Criminal Law pp. 178-98" }], lectures: [l] }).items[0].exists, false);
+	assert.equal(readingCandidates({ ...noCourse, tasks: [{ id: "t", text: "Read Torts pp. 78-98" }], lectures: [l] }).items[0].exists, false);
+});
