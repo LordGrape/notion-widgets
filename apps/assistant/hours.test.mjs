@@ -18,6 +18,9 @@ import {
 	heatCells,
 	streakStats,
 	moodFor,
+	mergeEntries,
+	comparison,
+	practiceShare,
 } from "./hours.mjs";
 
 test("task text is tagged by the smart parser", () => {
@@ -180,7 +183,11 @@ test("weekends rest and weekdays break the streak", () => {
 	const stats = streakStats(totals, keys, "2026-10-06");
 	assert.equal(stats.current, 4);
 	assert.equal(stats.best, 4);
-	const broken = streakStats(totals, keys, "2026-10-08");
+	const recess = streakStats(totals, keys, "2026-10-08");
+	assert.equal(recess.current, 4);
+	assert.deepEqual(recess.recessDays, ["2026-10-07"]);
+	assert.equal(recess.recessLeft, false);
+	const broken = streakStats(totals, keys, "2026-10-09");
 	assert.equal(broken.current, 0);
 	assert.equal(broken.best, 4);
 });
@@ -207,4 +214,39 @@ test("the partner's mood follows the week", () => {
 	assert.equal(moodFor({ ...base, billable: 17, pace: "behind" }, { sunday: true }), "panic");
 	assert.equal(moodFor({ ...base, billable: 35 }), "happy");
 	assert.equal(moodFor({ ...base, billable: 10, pace: "behind" }, { current: false }), "approve");
+});
+
+test("practice is its own type", () => {
+	assert.equal(classifyText("Torts practice exam 2019"), "practice");
+	assert.equal(classifyText("Anki flashcards for mens rea"), "practice");
+	assert.equal(classifyText("Problem set 3"), "practice");
+	assert.equal(classifyText("Review class notes"), "study");
+	assert.equal(classifyText("Exam outline"), "study");
+});
+test("sessions on the same task and day merge into one docket line", () => {
+	const at = (d, h) => new Date(2026, 9, d, h).getTime();
+	const e = (taskId, start, minutes, source = "focus") => ({ taskId, kind: "reading", source, start, end: start + minutes * 60000, minutes, description: taskId });
+	const merged = mergeEntries([e("a", at(2, 13), 54), e("a", at(2, 14), 15), e("a", at(2, 15), 14), e("a", at(3, 9), 30), e("b", at(2, 16), 20), e("", at(2, 17), 10, "manual")]);
+	assert.equal(merged.length, 4);
+	const first = merged[0];
+	assert.equal(first.minutes, 83);
+	assert.equal(first.sessions, 3);
+	assert.equal(first.end, at(2, 15) + 14 * 60000);
+});
+test("a missed weekday uses the recess only when there is a streak to protect", () => {
+	const keys = heatRange("2026-10-09", 2);
+	const totals = new Map([["2026-10-05", 3]]);
+	assert.equal(streakStats(new Map(), keys, "2026-10-08").recessDays.length, 0);
+	assert.equal(streakStats(totals, keys, "2026-10-07").current, 1);
+});
+test("this week is compared with your own record", () => {
+	const c = comparison({ billable: 10, target: 35 }, [{ billable: 20 }, { billable: 30 }]);
+	assert.deepEqual(c, { last: 20, average: 25, toBeat: 10.1, toTarget: 25, beaten: false });
+	assert.equal(comparison({ billable: 21, target: 35 }, [{ billable: 20 }]).beaten, true);
+	assert.equal(comparison({ billable: 5, target: 35 }, []).average, 0);
+});
+test("practice share counts independent time only", () => {
+	const s = practiceShare({ byKind: { class: 9, reading: 6, study: 2, practice: 2, writing: 0 } });
+	assert.equal(s.independent, 10);
+	assert.equal(s.share, 0.2);
 });

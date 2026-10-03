@@ -4,12 +4,13 @@ import { isoDate, localDate } from "./domain.mjs";
    events go in; a docket (entries, totals, pace) comes out. Nothing here stores
    state, so the ledger can never drift from the widgets that own the data. */
 
-export const KINDS = ["class", "reading", "study", "writing", "admin"];
-export const BILLABLE = new Set(["class", "reading", "study", "writing"]);
+export const KINDS = ["class", "reading", "study", "practice", "writing", "admin"];
+export const BILLABLE = new Set(["class", "reading", "study", "practice", "writing"]);
 export const KIND_LABEL = {
 	class: "Class",
 	reading: "Reading",
 	study: "Study",
+	practice: "Practice",
 	writing: "Writing",
 	admin: "Admin",
 };
@@ -28,9 +29,14 @@ const RULES = [
 		"writing",
 		/\b(write|writing|draft|memo|essay|brief|factum|assignment|paper|reflection|submission|proofread|edit)/i,
 	],
+	/* Retrieval practice is its own type: it is the highest-yield way to study. */
+	[
+		"practice",
+		/\b(practi[cs]e|problem sets?|past (exams?|papers?)|mock|quiz(zes)?|flash\s?cards?|anki|hypotheticals?|fact patterns?|self-test)/i,
+	],
 	[
 		"study",
-		/\b(study|review|outline|flash\s?cards?|anki|practice|quiz|exam|canvass|summar|memori[sz]e|revise|revision|notes?|mock|f?irac|problem set|tutorial|moot)/i,
+		/\b(study|review|outline|exam|canvass|summar|memori[sz]e|revise|revision|notes?|f?irac|tutorial|moot)/i,
 	],
 ];
 
@@ -125,10 +131,33 @@ export function classEntries(events = [], now = new Date()) {
 		.filter((e) => e.minutes >= 1);
 }
 
+/* One line per matter per day, as on a real docket: focus sessions on the same
+   task and day merge into a single entry with their total time. */
+export function mergeEntries(entries) {
+	const out = [];
+	const merged = new Map();
+	for (const e of [...entries].sort((a, b) => a.start - b.start)) {
+		if (e.source !== "focus" || !e.taskId) {
+			out.push({ ...e, sessions: 1 });
+			continue;
+		}
+		const key = `${e.taskId}|${isoDate(new Date(e.start))}|${e.kind}`;
+		const existing = merged.get(key);
+		if (existing) {
+			existing.minutes += e.minutes;
+			existing.end = Math.max(existing.end, e.end);
+			existing.sessions += 1;
+		} else {
+			const entry = { ...e, sessions: 1 };
+			merged.set(key, entry);
+			out.push(entry);
+		}
+	}
+	return out;
+}
 export function summarize(entries, now = new Date(), target = WEEKLY_TARGET) {
 	const from = weekStart(now).getTime();
-	const week = entries
-		.filter((e) => e.start >= from && e.start < from + 7 * DAY)
+	const week = mergeEntries(entries.filter((e) => e.start >= from && e.start < from + 7 * DAY))
 		.map((e) => ({ ...e, units: unitsFor(e.minutes) }))
 		.sort((a, b) => a.start - b.start);
 	const byKind = Object.fromEntries(KINDS.map((k) => [k, 0]));
@@ -231,21 +260,34 @@ export function heatCells({ totals, today, weeks = HEAT_WEEKS, dailyTarget }) {
 	}
 	return { columns, months, keys };
 }
+/* One recess day per week: the first missed weekday of a week keeps a running
+   streak alive instead of breaking it, so one bad day is never all-or-nothing. */
 export function streakStats(totals, keys, today, min = STREAK_MIN) {
 	let run = 0;
 	let best = 0;
+	const recessWeeks = new Set();
+	const recessDays = [];
 	for (const key of keys) {
 		if (key > today) break;
 		const active = (totals.get(key) || 0) >= min;
 		const day = localDate(key).getDay();
 		if (active) run += 1;
 		else if (key === today || day === 0 || day === 6) continue;
-		else run = 0;
+		else {
+			const week = isoDate(weekStart(localDate(key)));
+			if (run > 0 && !recessWeeks.has(week)) {
+				recessWeeks.add(week);
+				recessDays.push(key);
+				continue;
+			}
+			run = 0;
+		}
 		if (run > best) best = run;
 	}
+	const recessLeft = !recessWeeks.has(isoDate(weekStart(localDate(today))));
 	const next = MILESTONES.find((m) => m > run) || MILESTONES[MILESTONES.length - 1];
 	const previous = [...MILESTONES].reverse().find((m) => m <= run) || 0;
-	return { current: run, best, next, progress: next > previous ? Math.min(100, Math.round(((run - previous) / (next - previous)) * 100)) : 100 };
+	return { current: run, best, next, recessDays, recessLeft, progress: next > previous ? Math.min(100, Math.round(((run - previous) / (next - previous)) * 100)) : 100 };
 }
 
 /* Broadcast's mood for the week: target met, comfortably ahead, on pace, behind,
@@ -258,4 +300,25 @@ export function moodFor(summary, { current = true, sunday = false } = {}) {
 	if (summary.pace === "behind") return "stern";
 	if (summary.pace === "ahead") return "smug";
 	return "approve";
+}
+
+const round1 = (n) => Math.round(n * 10) / 10;
+/* This week against your own record: last week and the recent average. */
+export function comparison(summary, past = []) {
+	const last = past[0]?.billable ?? 0;
+	const average = past.length ? round1(past.reduce((n, s) => n + s.billable, 0) / past.length) : 0;
+	return {
+		last,
+		average,
+		toBeat: summary.billable > last ? 0 : round1(last - summary.billable + 0.1),
+		toTarget: round1(Math.max(0, summary.target - summary.billable)),
+		beaten: past.length > 0 && summary.billable > last,
+	};
+}
+/* Share of independent time spent on retrieval practice. */
+export const PRACTICE_GOAL = 0.2;
+export function practiceShare(summary) {
+	const b = summary.byKind;
+	const independent = (b.reading || 0) + (b.study || 0) + (b.practice || 0) + (b.writing || 0);
+	return { independent: round1(independent), share: independent ? (b.practice || 0) / independent : 0 };
 }

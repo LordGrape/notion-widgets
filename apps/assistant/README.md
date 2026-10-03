@@ -126,3 +126,13 @@ On the Docket, Broadcast is a 3D model (`broadcast.glb`, built from `tools/broad
 ## Speech bubble
 
 His line sits in a dark speech bubble that behaves like a TV signal: it tunes in with a burst of static and an RGB-split flicker, types the line at the pace of his voice (same syllable plan), then keeps faint animated static, scanlines and an occasional glitch. A hidden copy reserves the bubble's size so nothing jumps while typing, screen readers receive the whole line at once, and reduced motion shows the text immediately without effects.
+
+## Docket research pass
+
+- One line per matter per day: focus sessions on the same task and day merge into one docket entry (with a session count), as on a real docket.
+- The heat map shows the weeks you have actually used (six to twenty) and widens over time.
+- Goal gradient: the dial has quarter ticks, and the card shows hours to beat last week and to reach the target; Broadcast has an "almost there" voice from 80%.
+- Self-comparison: last week and the four-week average sit under the dial.
+- Recess day: the first missed weekday of each week keeps a running streak alive (marked on the map), so one bad day is never all-or-nothing.
+- Implementation intention: in the evening, if nothing is booked for tomorrow, Broadcast asks for tomorrow's first block; the same booking is offered from Wrap up day.
+- Practice is its own billable type (practice questions, past exams, problem sets, flashcards). The Docket nudges toward practice being at least a fifth of independent time.

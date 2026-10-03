@@ -2476,6 +2476,7 @@ dialog[open] {
 
 /* Weekly docket. */
 :root {
+	--kind-practice: #e0559b;
 	--kind-class: #6d7cf5;
 	--kind-reading: #2ca66f;
 	--kind-study: #8b5cf6;
@@ -2484,6 +2485,7 @@ dialog[open] {
 	--display-font: -apple-system, BlinkMacSystemFont, "SF Pro Display", Inter, "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
 }
 :root[data-theme="dark"] {
+	--kind-practice: #ff8cc6;
 	--kind-class: #8f9bff;
 	--kind-reading: #5fd39a;
 	--kind-study: #b48aff;
@@ -3003,7 +3005,7 @@ dialog h3 {
 }
 .heat-months {
 	display: grid;
-	grid-template-columns: repeat(20, var(--cell));
+	grid-template-columns: repeat(var(--weeks, 20), var(--cell));
 	column-gap: var(--gap);
 	margin: 0 0 6px 26px;
 	color: var(--faint);
@@ -3030,7 +3032,7 @@ dialog h3 {
 	display: grid;
 	grid-auto-flow: column;
 	grid-template-rows: repeat(7, var(--cell));
-	grid-template-columns: repeat(20, var(--cell));
+	grid-template-columns: repeat(var(--weeks, 20), var(--cell));
 	gap: var(--gap);
 }
 .heat-cell {
@@ -3301,4 +3303,42 @@ dialog h3 {
 @media (prefers-reduced-motion: reduce) {
 	.bubble-static, .bubble-text, .broadcast-dialogue[data-state="tuning"] .bubble-text { animation: none; }
 	.broadcast-dialogue[data-state="tuning"] .bubble-static { opacity: 0.1; }
+}
+
+/* Practice, comparison, gauge ticks, recess days. */
+.kind-chip.practice, .kind-dot.practice { --k: var(--kind-practice); }
+.docket-compare {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 6px 14px;
+	margin: -8px 0 16px;
+	font-size: 12px;
+	color: var(--muted);
+}
+.docket-compare b { color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
+.docket-compare .good { color: var(--green); font-weight: 650; }
+.gauge-tick { stroke: var(--surface); stroke-width: 3; stroke-linecap: round; }
+.gauge-tick.hit { stroke: rgba(255, 255, 255, 0.85); }
+.heat-cell.recess {
+	background: transparent;
+	box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 55%, transparent);
+	background-image: repeating-linear-gradient(45deg, color-mix(in srgb, var(--accent) 22%, transparent) 0 3px, transparent 3px 6px);
+}
+.streak-recess {
+	display: inline-block;
+	margin: 10px 0 0;
+	padding: 4px 10px;
+	border-radius: 20px;
+	font-size: 11px;
+	font-weight: 650;
+	color: var(--accent);
+	background: var(--accent-soft);
+}
+.streak-recess.used { color: var(--muted); background: var(--surface-2); }
+
+/* Short histories: centre the map with larger cells. */
+.consistency .heat { justify-self: center; }
+@media (max-width: 560px) {
+	.consistency .heat { --cell: 11px !important; }
 }

@@ -36,6 +36,14 @@ export const LINES = {
 		"Your {streak}-day streak ends at midnight without two hours on the books.",
 		"{streak} days running. Do not let today be the gap in the record.",
 	],
+	almost: [
+		"{left} hours to target. I can smell the finish, counsel.",
+		"So close. {left} hours and the week is yours.",
+	],
+	tomorrow: [
+		"When does tomorrow start, counsel? Book the first block now.",
+		"Tomorrow's first hour decides the day. Put it on the calendar.",
+	],
 	milestone: [
 		"{streak} days straight. That is a pattern of conduct.",
 		"A {streak}-day streak. Precedent, set.",
@@ -51,9 +59,11 @@ function fill(line, vars) {
 }
 
 /* Which moment matters most right now. */
-export function momentFor({ mood, day, hour, streak, todayActive, milestone }) {
+export function momentFor({ mood, day, hour, streak, todayActive, milestone, pct = 0, tomorrowBooked = true }) {
 	if (milestone) return "milestone";
 	if (streak > 0 && !todayActive && hour >= 19 && day !== 0 && day !== 6) return "streakRisk";
+	if (hour >= 18 && !tomorrowBooked) return "tomorrow";
+	if (pct >= 80 && pct < 100) return "almost";
 	if (day === 1 && hour < 12 && mood !== "happy") return "monday";
 	return mood;
 }
@@ -73,6 +83,7 @@ export function pickLine(moment, vars, { date = "", used = [] } = {}) {
 
 /* The single next step under his line. */
 export function nextStep({ task, moment, hasOpenTasks }) {
+	if (moment === "tomorrow") return { kind: "book", label: "Book tomorrow's first block" };
 	if (moment === "monday" || (!task && hasOpenTasks)) return { kind: "plan", label: "Plan my day" };
 	if (task) return { kind: "focus", id: task.id, label: `Focus on ${task.text.length > 34 ? task.text.slice(0, 33) + "…" : task.text}` };
 	return { kind: "log", label: "Log time" };
@@ -89,12 +100,13 @@ export function weeklyReview(summary, { streak = 0 } = {}) {
 	const ratio = summary.target ? summary.billable / summary.target : 0;
 	const verdict = ratio >= 1 ? "Exceeds expectations" : ratio >= 0.8 ? "Meets expectations" : ratio >= 0.5 ? "Needs improvement" : "We need to talk";
 	const tone = ratio >= 1 ? "happy" : ratio >= 0.8 ? "approve" : ratio >= 0.5 ? "stern" : "panic";
-	const kinds = ["reading", "study", "writing"];
-	const top = kinds.slice().sort((a, b) => summary.byKind[b] - summary.byKind[a])[0];
-	const low = kinds.slice().sort((a, b) => summary.byKind[a] - summary.byKind[b])[0];
+	const kinds = ["reading", "study", "practice", "writing"];
+	const amount = (k) => summary.byKind[k] || 0;
+	const top = kinds.slice().sort((a, b) => amount(b) - amount(a))[0];
+	const low = kinds.slice().sort((a, b) => amount(a) - amount(b))[0];
 	const notes = [];
-	if (summary.byKind[top] > 0) notes.push(`Most of your independent time went to ${top}.`);
-	if (summary.billable > 0 && summary.byKind[low] === 0) notes.push(`No ${low} at all. Put some on the calendar this week.`);
+	if (amount(top) > 0) notes.push(`Most of your independent time went to ${top}.`);
+	if (summary.billable > 0 && amount(low) === 0) notes.push(`No ${low} at all. Put some on the calendar this week.`);
 	if (streak >= 3) notes.push(`You carried a ${streak}-day streak into this week.`);
 	return { verdict, tone, pct: Math.round(ratio * 100), notes };
 }

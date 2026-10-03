@@ -44,6 +44,9 @@ import {
 	heatRange,
 	streakStats,
 	moodFor,
+	comparison,
+	practiceShare,
+	PRACTICE_GOAL,
 } from "./hours.mjs";
 import { canUse3D, loadBroadcast3D } from "./broadcast3d.mjs";
 import { momentFor, pickLine, nextStep, milestoneReached, weeklyReview } from "./partner.mjs";
@@ -53,7 +56,7 @@ import { suggestLastPage, planPageSplit, planTimeSplit, defaultRemaining } from 
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261002-static-bubble";
+	REVISION = "20261002-docket-research";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -1308,6 +1311,38 @@ function openSessionWrap({ task: t, recorded = 0, mode = "session" }) {
 		}
 	};
 }
+/* Implementation intention: decide when and on what tomorrow starts. */
+function openFirstBlock() {
+	const date = tomorrowKey();
+	const options = focusTasks(tasks, courses).filter((t) => isUnscheduled(t) && (todayTasks([t]).length || normalizeDateKey(t.dueKey) === date));
+	$("#editorDialog").open && $("#editorDialog").close();
+	if (!options.length) {
+		notify("Nothing is waiting to be booked. Add a task for tomorrow first.");
+		return;
+	}
+	const events = occurrences(localDate(date));
+	const first = options[0];
+	const suggest = (t) => suggestSlot(events, 9 * 60, duration(t) || 60, 21 * 60) ?? 9 * 60;
+	const d = openDialog("#editorDialog", dialogHead("Tomorrow's first block", "editorTitle") + '<p class="muted">People who decide when and where they will start are far more likely to follow through. Pick the first thing you will bill tomorrow.</p><form id="firstForm" class="form-grid"><label class="field wide">Task<select name="task">' + options.map((t) => '<option value="' + esc(t.id) + '">' + esc(t.text) + "</option>").join("") + '</select></label><label class="field">Start<input type="time" name="start" value="' + timeString(suggest(first)) + '"></label><label class="field">Minutes<input type="number" name="minutes" min="5" step="any" value="' + (duration(first) || 60) + '"></label><p class="form-error wide" id="firstError" role="alert"></p><div class="dialog-actions wide"><button type="button" data-action="close-dialog">Cancel</button><button type="submit" class="primary">Book it</button></div></form>');
+	const f = $("#firstForm").elements;
+	f.task.onchange = () => {
+		const t = options.find((x) => x.id === f.task.value);
+		f.minutes.value = duration(t) || 60;
+		f.start.value = timeString(suggest(t));
+	};
+	$("#firstForm").onsubmit = async (e) => {
+		e.preventDefault();
+		try {
+			const result = await scheduleBatch([{ id: f.task.value, start: f.start.value, minutes: Number(f.minutes.value) || 60 }], date);
+			d.close();
+			signature = "";
+			refresh();
+			notify("Booked. Tomorrow starts at " + f.start.value + ".", result.undo);
+		} catch (error) {
+			$("#firstError").textContent = error.message;
+		}
+	};
+}
 function openWrapUp() {
 	const open = unfinishedToday();
 	const movable = open.filter((t) => !t.scheduleId);
@@ -1316,7 +1351,7 @@ function openWrapUp() {
 		"#settingsDialog",
 		`${dialogHead("Wrap up day", "settingsTitle")}${
 			open.length
-				? `<p class="muted">${open.length} unfinished ${open.length === 1 ? "task" : "tasks"} today. Choose what carries over to tomorrow.</p><div class="wrap-list">${movable.map((t) => `<label class="wrap-item"><input type="checkbox" name="move" value="${esc(t.id)}" checked><span>${esc(t.text)}</span><small class="priority-chip ${t.pri || "must"}">${t.pri === "could" ? "Could" : t.pri === "should" ? "Should" : "Must"}</small></label>`).join("")}</div>${kept ? `<p class="muted">${kept} scheduled ${kept === 1 ? "task stays" : "tasks stay"} on the calendar. Reschedule ${kept === 1 ? "it" : "them"} from Plan.</p>` : ""}<div class="dialog-actions"><button type="button" data-action="close-dialog">Not yet</button>${movable.length ? `<button type="button" class="primary" id="wrapConfirm">Move to tomorrow</button>` : ""}</div>`
+				? `<p class="muted">${open.length} unfinished ${open.length === 1 ? "task" : "tasks"} today. Choose what carries over to tomorrow.</p><div class="wrap-list">${movable.map((t) => `<label class="wrap-item"><input type="checkbox" name="move" value="${esc(t.id)}" checked><span>${esc(t.text)}</span><small class="priority-chip ${t.pri || "must"}">${t.pri === "could" ? "Could" : t.pri === "should" ? "Should" : "Must"}</small></label>`).join("")}</div>${kept ? `<p class="muted">${kept} scheduled ${kept === 1 ? "task stays" : "tasks stay"} on the calendar. Reschedule ${kept === 1 ? "it" : "them"} from Plan.</p>` : ""}<div class="dialog-actions"><button type="button" data-action="close-dialog">Not yet</button><button type="button" data-action="book-first">Book tomorrow’s first block</button>${movable.length ? `<button type="button" class="primary" id="wrapConfirm">Move to tomorrow</button>` : ""}</div>`
 				: `<p class="muted">Everything planned for today is complete. Nicely done.</p><div class="dialog-actions"><button type="button" class="primary" data-action="close-dialog">Close</button></div>`
 		}`,
 	);
@@ -1949,7 +1984,12 @@ document.addEventListener("click", (e) => {
 		case "partner-cta":
 			if (b.dataset.kind === "focus") selectFocus(b.dataset.id);
 			else if (b.dataset.kind === "plan") openPlanDay();
+			else if (b.dataset.kind === "book") openFirstBlock();
 			else openLogTime();
+			break;
+		case "book-first":
+			b.closest("dialog")?.close();
+			openFirstBlock();
 			break;
 		case "partner-tap":
 			advancePartnerLine();
@@ -2224,7 +2264,8 @@ function docketData(offset = docketOffset) {
 	anchor.setDate(anchor.getDate() + offset * 7);
 	const keys = weekKeys(anchor);
 	const now = offset === 0 ? new Date() : offset < 0 ? new Date(keys[6] + "T23:59:59") : new Date(keys[0] + "T00:00:00");
-	const events = keys.flatMap((key) => occurrences(localDate(key)));
+	const since = firstActivityKey();
+	const events = keys.filter((key) => key >= since).flatMap((key) => occurrences(localDate(key)));
 	const entries = [...sessionEntries(focusSessionsRaw(), tasks), ...classEntries(events, now)];
 	return { keys, now, summary: summarize(entries, now, weeklyTarget()) };
 }
@@ -2261,8 +2302,10 @@ function partnerVoice(s) {
 		engines.todo.SyncEngine.set("user", "partnerMilestone", milestone);
 		partnerCheer = true;
 	}
-	const moment = momentFor({ mood: broadcastMood, day: now.getDay(), hour: now.getHours(), streak: stats.current, todayActive: (todayCell?.units || 0) >= STREAK_MIN, milestone });
-	const vars = { gap: formatUnits(Math.max(0, s.expected - s.billable)), ahead: formatUnits(Math.max(0, s.billable - s.expected)), billable: formatUnits(s.billable), target: formatUnits(s.target), streak: milestone || stats.current };
+	const tomorrow = tomorrowKey();
+	const tomorrowBooked = tasks.some((t) => !t.done && t.scheduleId && normalizeDateKey(t.dueKey) === tomorrow);
+	const moment = momentFor({ mood: broadcastMood, day: now.getDay(), hour: now.getHours(), streak: stats.current, todayActive: (todayCell?.units || 0) >= STREAK_MIN, milestone, pct: s.pct, tomorrowBooked });
+	const vars = { left: formatUnits(Math.max(0, s.target - s.billable)), gap: formatUnits(Math.max(0, s.expected - s.billable)), ahead: formatUnits(Math.max(0, s.billable - s.expected)), billable: formatUnits(s.billable), target: formatUnits(s.target), streak: milestone || stats.current };
 	const key = moment + isoDate();
 	if (partnerLine.key !== key) {
 		const line = pickLine(moment, vars, { date: isoDate(), used: [...partnerUsed] });
@@ -2301,17 +2344,26 @@ function docketNarration(s) {
 function docketInsight(s) {
 	if (!s.entries.length) return "";
 	const b = s.byKind;
+	const mix = practiceShare(s);
+	if (mix.independent >= 3 && mix.share < PRACTICE_GOAL) return "Practice is " + Math.round(mix.share * 100) + "% of your independent time. Aim for a fifth: practice questions beat rereading.";
 	if (docketOffset === 0 && b.reading > 0 && b.study === 0) return "No study time yet. Practice questions or outlining would balance the reading.";
 	if (docketOffset === 0 && b.reading + b.study > 6 && b.writing === 0) return "No writing time yet. A short memo or case comment keeps the skill warm.";
-	const top = ["reading", "study", "writing"].sort((a, c) => b[c] - b[a])[0];
+	const top = ["reading", "study", "practice", "writing"].sort((a, c) => b[c] - b[a])[0];
 	return b[top] ? "Most of your independent time went to " + KIND_LABEL[top].toLowerCase() + "." : "";
+}
+function docketCompare(s) {
+	if (docketOffset !== 0) return "";
+	const past = [-1, -2, -3, -4].map((o) => docketData(o).summary).filter((w, i) => i === 0 || w.billable > 0);
+	const c = comparison(s, past);
+	const chase = c.beaten ? '<span class="good">Beat last week</span>' : c.last > 0 ? "<span><b>" + formatUnits(c.toBeat) + "</b> h to beat last week</span>" : "";
+	return '<div class="docket-compare">' + chase + "<span><b>" + formatUnits(c.toTarget) + "</b> h to target</span><span>Last week <b>" + formatUnits(c.last) + "</b></span><span>4-week avg <b>" + formatUnits(c.average) + "</b></span></div>";
 }
 function docketGauge(s, keys) {
 	const arc = 251.3, fraction = s.target ? Math.min(1, s.expected / s.target) : 0;
 	const point = (r) => [100 - r * Math.cos(fraction * Math.PI), 105 - r * Math.sin(fraction * Math.PI)];
 	const [x1, y1] = point(68), [x2, y2] = point(96);
 	const marker = docketOffset === 0 ? '<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '" class="gauge-marker"/>' : "";
-	return '<svg viewBox="0 0 200 124" role="img" aria-label="' + formatUnits(s.billable) + " of " + formatUnits(s.target) + ' billable hours"><defs><linearGradient id="gaugeFill" x1="0" x2="1"><stop offset="0" stop-color="#b48aff"/><stop offset="1" stop-color="#7132ec"/></linearGradient></defs><path class="gauge-track" d="M20 105 A80 80 0 0 1 180 105"/><path class="gauge-fill" d="M20 105 A80 80 0 0 1 180 105" stroke-dasharray="' + (arc * s.pct) / 100 + " " + arc + '"/>' + marker + '<text x="100" y="92" text-anchor="middle" class="gauge-value">' + formatUnits(s.billable) + '</text><text x="100" y="113" text-anchor="middle" class="gauge-of">of ' + formatUnits(s.target) + " hours</text></svg>";
+	return '<svg viewBox="0 0 200 124" role="img" aria-label="' + formatUnits(s.billable) + " of " + formatUnits(s.target) + ' billable hours"><defs><linearGradient id="gaugeFill" x1="0" x2="1"><stop offset="0" stop-color="#b48aff"/><stop offset="1" stop-color="#7132ec"/></linearGradient></defs><path class="gauge-track" d="M20 105 A80 80 0 0 1 180 105"/><path class="gauge-fill" d="M20 105 A80 80 0 0 1 180 105" stroke-dasharray="' + (arc * s.pct) / 100 + " " + arc + '"/>' + marker + [0.25, 0.5, 0.75].map((f) => { const a = f * Math.PI, c = Math.cos(a), sn = Math.sin(a); return '<line class="gauge-tick' + (s.pct >= f * 100 ? " hit" : "") + '" x1="' + (100 - 90 * c) + '" y1="' + (105 - 90 * sn) + '" x2="' + (100 - 96 * c) + '" y2="' + (105 - 96 * sn) + '"/>'; }).join("") + '<text x="100" y="92" text-anchor="middle" class="gauge-value">' + formatUnits(s.billable) + '</text><text x="100" y="113" text-anchor="middle" class="gauge-of">of ' + formatUnits(s.target) + " hours</text></svg>";
 }
 function renderDocket() {
 	const { keys, summary: s } = docketData();
@@ -2324,7 +2376,7 @@ function renderDocket() {
 		const d = new Date(e.start), day = isoDate(d), first = day !== lastDay;
 		lastDay = day;
 		const manual = e.source === "manual";
-		return '<div class="docket-row"><span class="docket-date">' + (first ? "<b>" + d.toLocaleDateString("en-CA", { weekday: "short" }) + "</b>" + monthDay(d) : "") + '</span><span class="docket-desc">' + esc(e.description) + '<span class="docket-meta"><span class="kind-chip ' + e.kind + '">' + KIND_LABEL[e.kind] + "</span><span>" + clockTime(e.start) + " – " + clockTime(e.end) + "</span>" + (manual ? "<span>Logged</span>" : "") + '</span></span><span class="docket-units">' + formatUnits(e.units) + (manual ? '<button class="icon-button docket-remove" data-action="docket-remove" data-id="' + esc(e.id) + '" aria-label="Remove this entry">' + icon("close") + "</button>" : "") + "</span></div>";
+		return '<div class="docket-row"><span class="docket-date">' + (first ? "<b>" + d.toLocaleDateString("en-CA", { weekday: "short" }) + "</b>" + monthDay(d) : "") + '</span><span class="docket-desc">' + esc(e.description) + '<span class="docket-meta"><span class="kind-chip ' + e.kind + '">' + KIND_LABEL[e.kind] + "</span><span>" + clockTime(e.start) + " – " + clockTime(e.end) + "</span>" + (manual ? "<span>Logged</span>" : "") + (e.sessions > 1 ? "<span>" + e.sessions + " sessions</span>" : "") + '</span></span><span class="docket-units">' + formatUnits(e.units) + (manual ? '<button class="icon-button docket-remove" data-action="docket-remove" data-id="' + esc(e.id) + '" aria-label="Remove this entry">' + icon("close") + "</button>" : "") + "</span></div>";
 	}).join("");
 	const first = localDate(keys[0]), last = localDate(keys[6]);
 	const pace = docketOffset === 0 ? (s.pace === "ahead" ? '<span class="ahead">' + formatUnits(s.billable - s.expected) + " h ahead of pace</span>" : s.pace === "behind" ? '<span class="behind">' + formatUnits(s.expected - s.billable) + " h behind pace</span>" : '<span class="ahead">On pace</span>') : "<span>" + formatUnits(s.remaining) + " h short of target</span>";
@@ -2334,17 +2386,10 @@ function renderDocket() {
 	broadcastLine = docketOffset === 0 ? partnerVoice(s) : docketNarration(s);
 	const insight = docketInsight(s);
 	const legend = KINDS.filter((k) => k !== "admin").map((k) => '<span><i class="kind-dot ' + k + '"></i>' + KIND_LABEL[k] + " <b>" + formatUnits(s.byKind[k]) + "</b></span>").join("");
-	return renderReview() + renderConsistency() + '<div class="docket-layout"><div class="docket-side"><section class="surface docket-gauge"><div class="docket-top"><p class="eyebrow">Billable this week</p><button class="text-button" data-action="docket-target">Target ' + formatUnits(s.target) + " h</button></div>" + docketGauge(s, keys) + '<p class="docket-pace">' + pace + '</p><div class="docket-bars">' + bars + '</div><div class="docket-days">' + "MTWTFSS".split("").map((l) => "<span>" + l + "</span>").join("") + '</div><div class="docket-legend">' + legend + "</div></section>" + (broadcastVisible() ? broadcastMarkup() : "") + '</div><section class="surface docket-main"><div class="docket-head"><div><p class="eyebrow">Weekly docket</p><h2>' + monthDay(first) + " – " + monthDay(last) + '</h2></div><div class="docket-actions"><button class="icon-button flip" data-action="docket-week" data-step="-1" aria-label="Previous week">' + icon("right") + "</button>" + (docketOffset ? '<button class="text-button" data-action="docket-week" data-step="0">This week</button>' : "") + '<button class="icon-button" data-action="docket-week" data-step="1" aria-label="Next week">' + icon("right") + '</button><button class="primary" data-action="docket-log">Log time</button></div></div>' + (rows || '<p class="docket-empty">No hours yet this week. Start a focus session, or log time you have already worked.</p>') + (insight ? '<p class="docket-insight"><span class="eyebrow">Mix</span>' + esc(insight) + "</p>" : "") + '<div class="docket-total"><span>Total billable</span><b>' + formatUnits(s.billable) + "</b></div></section></div>";
+	return renderReview() + renderConsistency() + '<div class="docket-layout"><div class="docket-side"><section class="surface docket-gauge"><div class="docket-top"><p class="eyebrow">Billable this week</p><button class="text-button" data-action="docket-target">Target ' + formatUnits(s.target) + " h</button></div>" + docketGauge(s, keys) + '<p class="docket-pace">' + pace + '</p>' + docketCompare(s) + '<div class="docket-bars">' + bars + '</div><div class="docket-days">' + "MTWTFSS".split("").map((l) => "<span>" + l + "</span>").join("") + '</div><div class="docket-legend">' + legend + "</div></section>" + (broadcastVisible() ? broadcastMarkup() : "") + '</div><section class="surface docket-main"><div class="docket-head"><div><p class="eyebrow">Weekly docket</p><h2>' + monthDay(first) + " – " + monthDay(last) + '</h2></div><div class="docket-actions"><button class="icon-button flip" data-action="docket-week" data-step="-1" aria-label="Previous week">' + icon("right") + "</button>" + (docketOffset ? '<button class="text-button" data-action="docket-week" data-step="0">This week</button>' : "") + '<button class="icon-button" data-action="docket-week" data-step="1" aria-label="Next week">' + icon("right") + '</button><button class="primary" data-action="docket-log">Log time</button></div></div>' + (rows || '<p class="docket-empty">No hours yet this week. Start a focus session, or log time you have already worked.</p>') + (insight ? '<p class="docket-insight"><span class="eyebrow">Mix</span>' + esc(insight) + "</p>" : "") + '<div class="docket-total"><span>Total billable</span><b>' + formatUnits(s.billable) + "</b></div></section></div>";
 }
 let heatCache = { key: "", value: null }, heatAnimated = false;
-function heatInfo() {
-	const today = isoDate();
-	const key = String(focusSessionsRaw() || "") + today + weeklyTarget() + Math.floor(Date.now() / 600000);
-	if (heatCache.value && heatCache.key === key) return heatCache.value;
-	const keys = heatRange(today, HEAT_WEEKS);
-	const now = new Date();
-	/* Class time only counts from the first recorded session, so recurring
-	   blocks do not invent history from before the app was in use. */
+function firstActivityKey() {
 	let sessions = focusSessionsRaw();
 	try {
 		if (typeof sessions === "string") sessions = JSON.parse(sessions);
@@ -2352,27 +2397,40 @@ function heatInfo() {
 		sessions = [];
 	}
 	const firstAt = Math.min(...(Array.isArray(sessions) ? sessions : []).map((x) => Number(x?.completedAt) || Infinity));
-	const since = Number.isFinite(firstAt) ? isoDate(new Date(firstAt)) : isoDate(weekStart(new Date()));
+	return Number.isFinite(firstAt) ? isoDate(new Date(firstAt)) : isoDate(weekStart(new Date()));
+}
+function heatInfo() {
+	const today = isoDate();
+	const key = String(focusSessionsRaw() || "") + today + weeklyTarget() + Math.floor(Date.now() / 600000);
+	if (heatCache.value && heatCache.key === key) return heatCache.value;
+	const now = new Date();
+	/* Class time only counts from the first recorded session, so recurring
+	   blocks do not invent history from before the app was in use. */
+	const since = firstActivityKey();
+	/* Show the weeks you have actually used, from six up to the full span. */
+	const weeks = Math.max(6, Math.min(HEAT_WEEKS, Math.round((weekStart(now) - weekStart(localDate(since))) / (7 * 864e5)) + 1));
+	const keys = heatRange(today, weeks);
 	const events = keys.filter((k) => k <= today && k >= since).flatMap((k) => occurrences(localDate(k)));
 	const totals = dayTotals([...sessionEntries(focusSessionsRaw(), tasks), ...classEntries(events, now)]);
 	const dailyTarget = weeklyTarget() / 5;
-	const grid = heatCells({ totals, today, weeks: HEAT_WEEKS, dailyTarget });
+	const grid = heatCells({ totals, today, weeks, dailyTarget });
 	const stats = streakStats(totals, keys, today, STREAK_MIN);
-	heatCache = { key, value: { grid, stats, dailyTarget } };
+	heatCache = { key, value: { grid, stats, dailyTarget, weeks } };
 	return heatCache.value;
 }
 function renderConsistency() {
-	const { grid, stats, dailyTarget } = heatInfo();
+	const { grid, stats, dailyTarget, weeks } = heatInfo();
+	const recess = new Set(stats.recessDays);
 	const animate = !heatAnimated;
 	heatAnimated = true;
 	const recent = grid.columns.slice(-4).flat().filter((c) => !c.future);
 	const onTarget = recent.filter((c) => c.level === 4).length;
 	const label = (c) => localDate(c.key).toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" }) + (c.future ? "" : " · " + formatUnits(c.units) + " h");
-	const cells = grid.columns.map((column, w) => column.map((c) => '<i class="heat-cell l' + c.level + (c.today ? " today" : "") + (c.future ? " future" : "") + '" style="--c:' + w + '" title="' + esc(label(c)) + '"></i>').join("")).join("");
+	const cells = grid.columns.map((column, w) => column.map((c) => '<i class="heat-cell l' + c.level + (c.today ? " today" : "") + (c.future ? " future" : "") + (recess.has(c.key) ? " recess" : "") + '" style="--c:' + w + '" title="' + esc(label(c) + (recess.has(c.key) ? " · recess day" : "")) + '"></i>').join("")).join("");
 	const months = grid.months.map((m) => '<span style="grid-column:' + (m.week + 1) + '">' + m.label + "</span>").join("");
 	const legend = [0, 1, 2, 3, 4].map((l) => '<i class="heat-cell l' + l + '"></i>').join("");
-	return '<section class="surface consistency" aria-label="Consistency"><div class="streak"><p class="eyebrow">Current streak</p><div class="streak-num">' + stats.current + "<small>" + (stats.current === 1 ? "day" : "days") + '</small></div><div class="milestone"><div class="milestone-bar" role="progressbar" aria-label="Progress to the next milestone" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + stats.progress + '"><i style="width:' + stats.progress + '%"></i></div><small>' + Math.max(0, stats.next - stats.current) + (stats.next - stats.current === 1 ? " day" : " days") + " to " + stats.next + '</small></div><div class="streak-meta"><span>Best <b>' + stats.best + "</b></span><span><b>" + onTarget + "</b>" + (onTarget === 1 ? " on-target day" : " on-target days") + ' in 4 weeks</span></div><p class="streak-note">A day counts at ' + STREAK_MIN + " billable hours. Weekends never break it.</p></div>" +
-		'<div class="heat' + (animate ? " animate" : "") + '" role="img" aria-label="Billable hours per day over the last ' + HEAT_WEEKS + ' weeks. Current streak ' + stats.current + ' days."><div class="heat-months">' + months + '</div><div class="heat-body"><div class="heat-days"><span>M</span><span></span><span>W</span><span></span><span>F</span><span></span><span></span></div><div class="heat-grid">' + cells + '</div></div><div class="heat-legend"><span>Less</span>' + legend + "<span>More</span><small>Full colour = " + formatUnits(dailyTarget) + " h</small></div></div></section>";
+	return '<section class="surface consistency" aria-label="Consistency"><div class="streak"><p class="eyebrow">Current streak</p><div class="streak-num">' + stats.current + "<small>" + (stats.current === 1 ? "day" : "days") + '</small></div><div class="milestone"><div class="milestone-bar" role="progressbar" aria-label="Progress to the next milestone" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + stats.progress + '"><i style="width:' + stats.progress + '%"></i></div><small>' + Math.max(0, stats.next - stats.current) + (stats.next - stats.current === 1 ? " day" : " days") + " to " + stats.next + '</small></div><div class="streak-meta"><span>Best <b>' + stats.best + "</b></span><span><b>" + onTarget + "</b>" + (onTarget === 1 ? " on-target day" : " on-target days") + ' in 4 weeks</span></div><p class="streak-note">A day counts at ' + STREAK_MIN + " billable hours. Weekends never break it, and one missed weekday a week is a recess day.</p><p class=\"streak-recess " + (stats.recessLeft ? "" : "used") + "\">" + (stats.recessLeft ? "Recess day available this week" : "Recess day used this week") + "</p></div>" +
+		'<div class="heat' + (animate ? " animate" : "") + '" style="--weeks:' + weeks + (weeks <= 10 ? ";--cell:30px" : "") + '" role="img" aria-label="Billable hours per day over the last ' + weeks + ' weeks. Current streak ' + stats.current + ' days."><div class="heat-months">' + months + '</div><div class="heat-body"><div class="heat-days"><span>M</span><span></span><span>W</span><span></span><span>F</span><span></span><span></span></div><div class="heat-grid">' + cells + '</div></div><div class="heat-legend"><span>Less</span>' + legend + "<span>More</span><small>Full colour = " + formatUnits(dailyTarget) + " h</small></div></div></section>";
 }
 function openTarget() {
 	const d = openDialog("#settingsDialog", dialogHead("Weekly target", "settingsTitle") + '<p class="muted">Billable hours per week: class, reading, study and writing. Admin is tracked but not counted.</p><form id="targetForm" class="settings-links"><label class="field">Hours per week<input name="hours" type="number" min="5" max="80" step="0.5" value="' + weeklyTarget() + '"></label><button class="primary">Save target</button></form>');
