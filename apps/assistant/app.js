@@ -757,10 +757,17 @@ const notionLink = (t) => {
 	const url = t?.lectureUrl || String(t?.notes || "").match(/https:\/\/(?:[\w-]+\.)?notion\.(?:so|com)\/\S+/)?.[0] || "";
 	return /^https:\/\//.test(url) ? url : "";
 };
+/* When the class for an imported reading is, and when the reading is due, so unscheduled readings still read in order. */
+const shortDay = (key) => localDate(key).toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" });
+function readingWhen(t) {
+	const cls = t?.lectureDate && normalizeDateKey(t.lectureDate), due = t?.dueKey && normalizeDateKey(t.dueKey);
+	if (!cls) return "";
+	return `Class ${shortDay(cls)}${due && due !== cls ? ` \u00b7 due ${shortDay(due)}` : ""}`;
+}
 function taskRow(t, planner = false) {
 	const m = duration(t);
 	const focusable = !isCalendarReminder(t, courses);
-	return `<div class="task-row ${t.done ? "done" : ""}" data-task="${esc(t.id)}" data-ctx="task" ${!planner && !t.done ? `draggable="true" data-drag="${esc(t.id)}"` : ""}>${!t.done ? `<button class="drag-handle icon-button ${planner ? "" : "today-grip"}" title="Drag to schedule; click to choose a time" data-action="schedule" data-id="${esc(t.id)}" draggable="true" data-drag="${esc(t.id)}" aria-label="Drag ${esc(t.text)} to the calendar">${icon("grip")}</button>` : ""}<button class="check-button ${t.done ? "checked" : ""}" data-action="toggle" data-id="${esc(t.id)}" aria-label="${t.done ? "Reopen" : "Complete"} ${esc(t.text)}">${t.done ? icon("check") : ""}</button><button class="task-title ${notionLink(t) ? "has-link" : ""}" data-action="edit" data-id="${esc(t.id)}" ${notionLink(t) ? 'title="Ctrl-click to open in Notion"' : ""}>${tagDot(taskKind(t))}${esc(t.text)}${notionLink(t) ? `<span class="link-mark" aria-hidden="true">${icon("link")}</span>` : ""}${planner ? `<small class="planner-task-meta"><span class="priority-chip ${t.pri || "must"}">${t.pri === "could" ? "Could" : t.pri === "should" ? "Should" : "Must"}</span>${m ? `${m} min` : "No estimate"}${t.repeatRule ? " · Repeats" : ""}</small>` : ""}</button>${!planner && overdueLabel(t) ? `<span class="task-meta overdue-meta">${overdueLabel(t)}</span>` : ""}${!planner && m ? `<span class="task-meta" ${t.done && focusMinutes(t.id) ? `title="Estimated ${m} min, focused ${focusMinutes(t.id)} min"` : ""}>${icon("clock")}${t.done && focusMinutes(t.id) ? `${focusMinutes(t.id)} of ${m} min` : `${m} min`}</span>` : ""}${!planner && t.repeatRule ? `<span class="task-meta repeat-meta">Repeats</span>` : ""}<div class="task-actions">${focusable ? `<button class="icon-button" data-action="select-focus" data-id="${esc(t.id)}" aria-label="Focus on ${esc(t.text)}" title="Focus on this task">${icon("play")}</button>` : ""}<button class="icon-button" data-action="${planner ? "schedule" : "edit"}" data-id="${esc(t.id)}" aria-label="${planner ? "Schedule" : "Edit"} ${esc(t.text)}">${icon(planner ? "calendar" : "more")}</button></div></div>`;
+	return `<div class="task-row ${t.done ? "done" : ""}" data-task="${esc(t.id)}" data-ctx="task" ${!planner && !t.done ? `draggable="true" data-drag="${esc(t.id)}"` : ""}>${!t.done ? `<button class="drag-handle icon-button ${planner ? "" : "today-grip"}" title="Drag to schedule; click to choose a time" data-action="schedule" data-id="${esc(t.id)}" draggable="true" data-drag="${esc(t.id)}" aria-label="Drag ${esc(t.text)} to the calendar">${icon("grip")}</button>` : ""}<button class="check-button ${t.done ? "checked" : ""}" data-action="toggle" data-id="${esc(t.id)}" aria-label="${t.done ? "Reopen" : "Complete"} ${esc(t.text)}">${t.done ? icon("check") : ""}</button><button class="task-title ${notionLink(t) ? "has-link" : ""}" data-action="edit" data-id="${esc(t.id)}" ${notionLink(t) ? `title="Ctrl-click to open in Notion" data-notion-url="${esc(notionLink(t))}"` : ""}>${tagDot(taskKind(t))}${esc(t.text)}${notionLink(t) ? `<span class="link-mark" aria-hidden="true">${icon("link")}</span>` : ""}${planner ? `<small class="planner-task-meta"><span class="priority-chip ${t.pri || "must"}">${t.pri === "could" ? "Could" : t.pri === "should" ? "Should" : "Must"}</span>${m ? `${m} min` : "No estimate"}${t.repeatRule ? " · Repeats" : ""}${readingWhen(t) ? `<span class="class-when">${icon("calendar")}${esc(readingWhen(t))}</span>` : ""}</small>` : ""}</button>${!planner && overdueLabel(t) ? `<span class="task-meta overdue-meta">${overdueLabel(t)}</span>` : ""}${!planner && readingWhen(t) ? `<span class="task-meta class-meta" title="${esc(readingWhen(t))}">${icon("calendar")}${esc(readingWhen(t).split(" \u00b7 ")[0].replace("Class ", ""))}</span>` : ""}${!planner && m ? `<span class="task-meta" ${t.done && focusMinutes(t.id) ? `title="Estimated ${m} min, focused ${focusMinutes(t.id)} min"` : ""}>${icon("clock")}${t.done && focusMinutes(t.id) ? `${focusMinutes(t.id)} of ${m} min` : `${m} min`}</span>` : ""}${!planner && t.repeatRule ? `<span class="task-meta repeat-meta">Repeats</span>` : ""}<div class="task-actions">${focusable ? `<button class="icon-button" data-action="select-focus" data-id="${esc(t.id)}" aria-label="Focus on ${esc(t.text)}" title="Focus on this task">${icon("play")}</button>` : ""}<button class="icon-button" data-action="${planner ? "schedule" : "edit"}" data-id="${esc(t.id)}" aria-label="${planner ? "Schedule" : "Edit"} ${esc(t.text)}">${icon(planner ? "calendar" : "more")}</button></div></div>`;
 }
 /* Drag state lives outside render(): a background sync can re-render mid-drag, and that must neither
    lose the drag nor replace the dragged element, so renders wait until the drag ends. */
@@ -834,7 +841,7 @@ function eventMarkup(e, start, hour = 76) {
 		),
 		top = ((minutes(e.start) - start) * hour) / 60;
 	if (e.ghost)
-		return `<button data-end="${minutes(e.end)}" class="event is-task task-ghost" ${view === "plan" ? `draggable="true" data-move="1" data-unschedule="ghost"` : ""} style="top:${top}px;height:${height}px;--event-color:${e.color}" title="This task has a time but is not on the calendar yet. Click to put it there." data-action="ghost" data-id="${esc(e.taskId)}" data-date="${esc(e.dateKey)}" data-start="${esc(e.start)}" aria-label="${esc(e.name)} ${esc(e.start)} to ${esc(e.end)}, not yet on the calendar"><b>${tasks.find((t) => t.id === e.taskId) ? tagDot(taskKind(tasks.find((t) => t.id === e.taskId))) : ""}${esc(e.name)}</b><span>${esc(e.start)} – ${esc(e.end)} · Click to add to calendar</span></button>`;
+		return `<button data-end="${minutes(e.end)}" class="event is-task task-ghost" ${view === "plan" ? `draggable="true" data-move="1" data-unschedule="ghost"` : ""} style="top:${top}px;height:${height}px;--event-color:${e.color}" title="This task has a time but is not on the calendar yet. Click to put it there." ${notionLink(tasks.find((t) => t.id === e.taskId)) ? `data-notion-url="${esc(notionLink(tasks.find((t) => t.id === e.taskId)))}"` : ""} data-action="ghost" data-id="${esc(e.taskId)}" data-date="${esc(e.dateKey)}" data-start="${esc(e.start)}" aria-label="${esc(e.name)} ${esc(e.start)} to ${esc(e.end)}, not yet on the calendar"><b>${tasks.find((t) => t.id === e.taskId) ? tagDot(taskKind(tasks.find((t) => t.id === e.taskId))) : ""}${esc(e.name)}</b><span>${esc(e.start)} – ${esc(e.end)} · Click to add to calendar</span></button>`;
 	const done = tasks.some(
 		(t) =>
 			t.done &&
@@ -849,7 +856,7 @@ function eventMarkup(e, start, hour = 76) {
 	const reminder = e.eventType === "reminder" || (linked && isCalendarReminder(linked, courses));
 	const canMove = view === "plan" && !done && !reminder;
 	const movable = canMove && open && linked.source !== "timetable" && own?.startDate && own.startDate === own.endDate;
-	return `<button data-end="${minutes(e.end)}" data-open-task="${open ? 1 : 0}" ${canMove ? `draggable="true" data-move="1"` : ""}${movable ? ` data-unschedule="block"` : ""} class="event ${linked ? "is-task" : ""} ${tint ? "tagged" : ""} ${done ? "completed" : ""} ${e.id === recentScheduleId ? "scheduled-reveal" : ""}" style="top:${top}px;height:${height}px;--event-color:${tint ? `var(--kind-${tint})` : /^#[0-9a-f]{3,8}$/i.test(e.color) ? e.color : "#9461e9"}" aria-haspopup="dialog" title="Click for details; right-click for options" data-action="event" data-event-id="${esc(e.id)}" data-source="${esc(e.sourceDate)}" data-date="${esc(e.dateKey)}" aria-label="${esc(e.name)} ${esc(e.start)} to ${esc(e.end)}"><b>${linked ? tagDot(taskKind(linked)) : ""}${esc(e.name)}</b><span>${esc(e.start)} – ${esc(e.end)}${e.location ? " · " + esc(e.location) : ""}${spent ? ` · done in ${spent} min` : ""}</span>${canMove ? '<i class="event-resize" data-resize aria-hidden="true" title="Drag to change the length"></i>' : ""}</button>`;
+	return `<button data-end="${minutes(e.end)}" data-open-task="${open ? 1 : 0}" ${canMove ? `draggable="true" data-move="1"` : ""}${movable ? ` data-unschedule="block"` : ""} class="event ${linked ? "is-task" : ""} ${tint ? "tagged" : ""} ${done ? "completed" : ""} ${e.id === recentScheduleId ? "scheduled-reveal" : ""}" style="top:${top}px;height:${height}px;--event-color:${tint ? `var(--kind-${tint})` : /^#[0-9a-f]{3,8}$/i.test(e.color) ? e.color : "#9461e9"}" aria-haspopup="dialog" title="Click for details; right-click for options${linked && notionLink(linked) ? "; Ctrl-click opens Notion" : ""}" ${linked && notionLink(linked) ? `data-notion-url="${esc(notionLink(linked))}"` : ""} data-action="event" data-event-id="${esc(e.id)}" data-source="${esc(e.sourceDate)}" data-date="${esc(e.dateKey)}" aria-label="${esc(e.name)} ${esc(e.start)} to ${esc(e.end)}"><b>${linked ? tagDot(taskKind(linked)) : ""}${esc(e.name)}${linked && notionLink(linked) ? `<span class="link-mark" aria-hidden="true">${icon("link")}</span>` : ""}</b><span>${esc(e.start)} – ${esc(e.end)}${e.location ? " · " + esc(e.location) : ""}${spent ? ` · done in ${spent} min` : ""}</span>${canMove ? '<i class="event-resize" data-resize aria-hidden="true" title="Drag to change the length"></i>' : ""}</button>`;
 }
 function hourLines(start, end, hour = 76) {
 	let s = "";
@@ -2520,6 +2527,24 @@ async function openReadingsImport() {
 		if (!res.ok) return fail("Notion could not be read right now." + (body.detail ? ` (${String(body.detail).slice(0, 120)})` : ""));
 		data = body;
 		paint();
+		backfillClassDates();
+	};
+	/* Readings imported before the class date was saved pick it up the next time the notes are read. */
+	const backfillClassDates = () => {
+		const { items: seen } = readingCandidates({ lectures: data.lectures || [], courses: data.courses || {}, tasks: [], today, dueMode, edition });
+		const byLecture = new Map(seen.map((i) => [i.lectureId, i.classDate]));
+		let changed = false;
+		for (const t of tasks) {
+			const date = t.lectureId && !t.lectureDate && byLecture.get(t.lectureId);
+			if (date) {
+				engines.todo.TodoUIBridge.command.update(t.id, { lectureDate: date });
+				changed = true;
+			}
+		}
+		if (changed) {
+			signature = "";
+			refresh();
+		}
 	};
 	const paint = () => {
 		const { items: found, unclear, editions } = readingCandidates({ lectures: data.lectures || [], courses: data.courses || {}, tasks, today, dueMode, edition, estimate: (t) => { const p = paceFor({ text: t }); return Reading.estimate(t, p.source === "default" ? {} : { pace: p.pace }); } });
@@ -2588,6 +2613,7 @@ async function openReadingsImport() {
 						reading: i.minutes ? { autoMinutes: i.minutes } : null,
 						lectureId: i.lectureId,
 						lectureUrl: i.url,
+						lectureDate: i.classDate,
 					});
 					if (id) added.push(id);
 				}
@@ -3043,18 +3069,23 @@ function openEvent(id, source, date) {
 		`${dialogHead("Scheduled block", "editorTitle")}<h3>${esc(event.name)}</h3><p class="muted" style="margin-top:7px">${dateLabel(localDate(date))} · ${esc(event.start)} – ${esc(event.end)}</p>${event.location ? `<p class="muted">${esc(event.location)}</p>` : ""}${event.outcomeGoal ? `<p style="margin-top:18px">${esc(event.outcomeGoal)}</p>` : ""}<p style="margin-top:18px;white-space:pre-wrap">${esc(stripTypeTag(event.description || ""))}</p>${eventTag(block, event, date)}<div class="dialog-actions"><button data-action="event-edit" data-event-id="${esc(id)}" data-source="${esc(source)}" data-date="${esc(date)}">Edit time</button>${block.startDate && block.startDate === block.endDate ? "" : `<button data-action="event-skip" data-event-id="${esc(id)}" data-source="${esc(source)}" data-date="${esc(date)}">Remove this week only</button>`}${block.startDate && block.startDate === block.endDate ? "" : `<button data-action="event-range" data-event-id="${esc(id)}">Repeat range</button>`}<button class="delete" data-action="event-remove" data-event-id="${esc(id)}" data-source="${esc(source)}" data-date="${esc(date)}">Remove from schedule</button><button class="primary" data-action="close-dialog">Done</button></div>`,
 	);
 }
+/* Ctrl-click (Cmd-click on Mac) on anything that carries a Notion page opens that page instead of its usual action. */
+document.addEventListener(
+	"click",
+	(e) => {
+		if (!(e.ctrlKey || e.metaKey)) return;
+		const url = e.target.closest("[data-notion-url]")?.dataset.notionUrl;
+		if (!url || !/^https:\/\//.test(url)) return;
+		e.preventDefault();
+		e.stopImmediatePropagation();
+		window.open(url, "_blank", "noopener");
+	},
+	true,
+);
 document.addEventListener("click", (e) => {
 	const b = e.target.closest("[data-action]");
 	if (!b) return;
 	const id = b.dataset.id;
-	if ((e.ctrlKey || e.metaKey) && (b.dataset.action === "edit" || b.dataset.action === "select-focus")) {
-		const url = notionLink(task(id));
-		if (url) {
-			e.preventDefault();
-			window.open(url, "_blank", "noopener");
-			return;
-		}
-	}
 	if (b.dataset.action === "timer") {
 		broadcastReact(/pause/i.test(b.textContent) ? "pause" : "start");
 	} else if (b.dataset.action === "finish") broadcastReact("finish");
@@ -3989,7 +4020,7 @@ function finishGroups() {
 			const items = list.filter((t) => (t.pri === "should" || t.pri === "could" ? t.pri : "must") === pri);
 			const shown = items.slice().sort((a, b) => (a.done ? 1 : 0) - (b.done ? 1 : 0)).slice(0, 5);
 			const rows = shown
-				.map((t) => `<li class="fl-item ${t.done ? "is-done" : ""}"><button class="fl-check ${t.done ? "checked" : ""}" data-action="toggle" data-id="${esc(t.id)}" aria-label="${t.done ? "Reopen" : "Complete"} ${esc(t.text)}">${t.done ? icon("check") : ""}</button><button class="fl-text" data-action="select-focus" data-id="${esc(t.id)}" title="Focus on this">${esc(t.text)}</button>${duration(t) ? `<small>${formatMinutes(duration(t))}</small>` : ""}</li>`)
+				.map((t) => `<li class="fl-item ${t.done ? "is-done" : ""}"><button class="fl-check ${t.done ? "checked" : ""}" data-action="toggle" data-id="${esc(t.id)}" aria-label="${t.done ? "Reopen" : "Complete"} ${esc(t.text)}">${t.done ? icon("check") : ""}</button><button class="fl-text" data-action="select-focus" data-id="${esc(t.id)}" title="Focus on this${notionLink(t) ? "; Ctrl-click opens Notion" : ""}" ${notionLink(t) ? `data-notion-url="${esc(notionLink(t))}"` : ""}>${esc(t.text)}</button>${duration(t) ? `<small>${formatMinutes(duration(t))}</small>` : ""}</li>`)
 				.join("");
 			const more = items.length > shown.length ? `<li class="fl-more">+${items.length - shown.length} more</li>` : "";
 			return `<div class="fl-group ${pri}"><div class="fl-head"><i></i><b>${label[pri]}</b><span>${items.filter((t) => t.done).length} of ${items.length}</span></div>${items.length ? `<ul class="fl-list">${rows}${more}</ul>` : '<p class="fl-empty">Nothing here today</p>'}</div>`;
@@ -4005,7 +4036,7 @@ function renderFocus() {
 		now = new Date().getHours() * 60 + new Date().getMinutes(),
 		nextEvent = events.find((e) => minutes(e.start) > now),
 		subs = current?.subs || [];
-	return `<div class="focus-layout"><section class="surface focus-main"><p class="eyebrow">Current task</p><h2>${esc(current?.text || "Room to focus")}</h2>${focusReason(choice)}<p class="focus-subtitle">${current ? focusSubtitle(current) : "Start a timer, or choose a task from Today"}</p>${current && scheduleNote(current) ? `<p class="focus-note">${scheduleNote(current)}</p>` : ""}${focusNudge(choice)}${longTimerNotice(current, engines.clock)}<div class="timer-art"><svg viewBox="0 0 240 240" aria-hidden="true"><circle class="timer-track" cx="120" cy="120" r="110"/><circle class="timer-progress" data-timer-ring cx="120" cy="120" r="110"/></svg><div><div class="timer-digits" data-timer>45:00</div><p class="timer-caption" data-phase>Ready to focus</p>${current ? sprintBadge(current) : ""}</div></div><div class="focus-controls"><button data-action="timer" data-timer-button>${icon("play")} Start focus</button><button class="primary" data-action="finish" data-finish>${icon("check")} Finish task</button><button data-action="reset-timer" title="End the session and save the time">End session</button></div><div class="break-actions" id="breakActions" hidden><span class="muted" style="font-size:12px">Your break is ready.</span><button data-action="flow">+15 min focus</button></div>${stepsPanel(current, subs)}</section><aside class="focus-sidebar"><section class="surface context-card"><p class="eyebrow">${icon("list")} Up next</p>${next ? `<div class="next-task"><button class="check-button" data-action="select-focus" data-id="${esc(next.id)}" aria-label="Select ${esc(next.text)}"></button><div><b>${esc(next.text)}</b><small>${duration(next) ? duration(next) + " min" : "No estimate"}</small></div></div>` : '<p class="muted" style="font-size:12px">No other commitments today.</p>'}</section><section class="surface context-card finish-context"><p class="eyebrow">${icon("flag")} Today’s finish line</p>${finishLine(true)}${finishGroups()}</section><section class="surface context-card next-scheduled"><p class="eyebrow">${icon("calendar")} Next scheduled</p><b>${esc(nextEvent?.name || "An open stretch")}</b><p>${nextEvent ? `${esc(nextEvent.start)} · ${formatMinutes(minutes(nextEvent.end) - minutes(nextEvent.start))}` : "No more scheduled blocks today."}</p></section></aside></div><div class="surface focus-agenda">${
+	return `<div class="focus-layout"><section class="surface focus-main"><p class="eyebrow">Current task</p><h2 ${current && notionLink(current) ? `data-notion-url="${esc(notionLink(current))}" title="Ctrl-click to open in Notion"` : ""}>${esc(current?.text || "Room to focus")}${current && notionLink(current) ? `<a class="focus-notion" href="${esc(notionLink(current))}" target="_blank" rel="noopener" title="Open the lecture in Notion" aria-label="Open the lecture in Notion">${icon("link")}</a>` : ""}</h2>${current && readingWhen(current) ? `<p class="focus-when">${icon("calendar")}${esc(readingWhen(current))}</p>` : ""}${focusReason(choice)}<p class="focus-subtitle">${current ? focusSubtitle(current) : "Start a timer, or choose a task from Today"}</p>${current && scheduleNote(current) ? `<p class="focus-note">${scheduleNote(current)}</p>` : ""}${focusNudge(choice)}${longTimerNotice(current, engines.clock)}<div class="timer-art"><svg viewBox="0 0 240 240" aria-hidden="true"><circle class="timer-track" cx="120" cy="120" r="110"/><circle class="timer-progress" data-timer-ring cx="120" cy="120" r="110"/></svg><div><div class="timer-digits" data-timer>45:00</div><p class="timer-caption" data-phase>Ready to focus</p>${current ? sprintBadge(current) : ""}</div></div><div class="focus-controls"><button data-action="timer" data-timer-button>${icon("play")} Start focus</button><button class="primary" data-action="finish" data-finish>${icon("check")} Finish task</button><button data-action="reset-timer" title="End the session and save the time">End session</button></div><div class="break-actions" id="breakActions" hidden><span class="muted" style="font-size:12px">Your break is ready.</span><button data-action="flow">+15 min focus</button></div>${stepsPanel(current, subs)}</section><aside class="focus-sidebar"><section class="surface context-card"><p class="eyebrow">${icon("list")} Up next</p>${next ? `<div class="next-task"><button class="check-button" data-action="select-focus" data-id="${esc(next.id)}" aria-label="Select ${esc(next.text)}"></button><div><b>${esc(next.text)}</b><small>${duration(next) ? duration(next) + " min" : "No estimate"}</small></div></div>` : '<p class="muted" style="font-size:12px">No other commitments today.</p>'}</section><section class="surface context-card finish-context"><p class="eyebrow">${icon("flag")} Today’s finish line</p>${finishLine(true)}${finishGroups()}</section><section class="surface context-card next-scheduled"><p class="eyebrow">${icon("calendar")} Next scheduled</p><b>${esc(nextEvent?.name || "An open stretch")}</b><p>${nextEvent ? `${esc(nextEvent.start)} · ${formatMinutes(minutes(nextEvent.end) - minutes(nextEvent.start))}` : "No more scheduled blocks today."}</p></section></aside></div><div class="surface focus-agenda">${
 		events
 			.filter((e) => minutes(e.end) >= now)
 			.slice(0, 3)
