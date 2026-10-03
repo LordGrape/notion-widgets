@@ -1,7 +1,7 @@
 import { getCorsHeaders } from "../cors";
 import type { Env } from "../types";
 
-const DEFAULT_UPCOMING_DB_ID = "ffcd7479-a64b-4766-89ae-f8a1dc900742";
+const DEFAULT_UPCOMING_DB_ID = "783a2021-af4c-4369-86eb-7948ef66bf23";
 const DEFAULT_ACTION_BLOCKS_DB_ID = "67fdab55-eb09-4a59-a54d-0503ba4efeda";
 const NOTION_VERSION = "2022-06-28";
 const ASSIGNMENT_OPTION = "assignment 📑";

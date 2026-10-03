@@ -4,7 +4,7 @@ import type { Env } from "../types";
 /* Read-only view of the lecture rows in the domain calendar (the rows that are not assignments), so
    Command Centre can turn each class's READINGS into tasks. Nothing is written to Notion. */
 
-const DEFAULT_CALENDAR_DB_ID = "ffcd7479-a64b-4766-89ae-f8a1dc900742";
+const DEFAULT_CALENDAR_DB_ID = "783a2021-af4c-4369-86eb-7948ef66bf23";
 const NOTION_VERSION = "2022-06-28";
 const MAX_ROWS = 100;
 const MAX_COURSES = 12;
