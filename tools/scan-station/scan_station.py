@@ -453,8 +453,8 @@ def run(config: dict) -> None:
 
 def setup() -> None:
     APP_DIR.mkdir(parents=True, exist_ok=True)
-    icloud = Path.home() / "iCloudDrive" / "Scans"
-    default = icloud if icloud.parent.exists() else Path.home() / "Documents" / "Scans"
+    icloud = Path.home() / "iCloudDrive" / "Law School Library"
+    default = icloud if icloud.parent.exists() else Path.home() / "Documents" / "Law School Library"
     watch = input(f"Folder to watch [{default}]: ").strip() or str(default)
     key = getpass.getpass("Widget key (the Command Centre access key; input is hidden): ").strip()
     Path(watch).mkdir(parents=True, exist_ok=True)

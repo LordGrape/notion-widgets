@@ -4,11 +4,11 @@ Turns photographed textbook readings into the Notion Source Library, which the t
 
 ## Using it
 
-1. Scan the reading with the iPhone scanner (Files › ⋯ › Scan Documents, or Notes) and save it to **iCloud Drive › Scans**, or drop photos or a PDF into that folder on the PC. A folder of photos counts as one reading.
+1. Scan the reading with the iPhone scanner (Files › ⋯ › Scan Documents, or Notes) and save it to **iCloud Drive › Law School Library**, or drop photos or a PDF into that folder on the PC. A folder of photos counts as one reading.
 2. Name it after the course or book, for example `Property pp. 144-188`. The name only needs to tell courses apart when two readings share page numbers.
-3. Within a few minutes the reading appears in **Source Library: Readings**, with one row per printed page in **Source Library: Pages**, linked to the course and to every lecture that assigns those pages. The scan moves to `Scans/Filed`.
+3. Within a few minutes the reading appears in **Source Library: Readings**, with one row per printed page in **Source Library: Pages**, linked to the course and to every lecture that assigns those pages. The scan moves to `Law School Library/Filed`.
 
-If it cannot file a scan (no lecture assigns those pages, or two courses match), the scan moves to `Scans/Needs attention` with a note saying why.
+If it cannot file a scan (no lecture assigns those pages, or two courses match), the scan moves to `Law School Library/Needs attention` with a note saying why.
 
 **Better photos, better text:** shoot one page at a time where you can, press the spine flat, and avoid glare. The reader handles curved pages well, but words that disappear into the spine cannot be recovered.
 
