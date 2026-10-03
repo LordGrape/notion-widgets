@@ -3741,9 +3741,12 @@ function capFor(t, base = planBase(t)) {
 	const remaining = Math.max(0, base.total - focusMinutes(t.id));
 	return { ...sprintCap({ free: next.free, remaining }), name: next.name };
 }
+/* The sprint length the whole plan is built on. A class or booking trims only the sprint that is about to
+   run, so it must not shrink every sprint after the break. */
+const planMax = (cap) => (cap.mode === "tight" ? SPRINT.max : cap.max);
 function planFor(t) {
 	const base = planBase(t), cap = capFor(t, base);
-	return { ...base, cap, plan: sessionPlan({ minutes: base.total, start: base.e?.start ?? null, end: base.e?.end ?? null, max: cap.max }) };
+	return { ...base, cap, plan: sessionPlan({ minutes: base.total, start: base.e?.start ?? null, end: base.e?.end ?? null, max: planMax(cap) }) };
 }
 const sprintFocus = (t) => {
 	const base = planBase(t), cap = capFor(t, base), block = focusLength(t);
@@ -3751,18 +3754,19 @@ const sprintFocus = (t) => {
 	const open = (t.subs || []).find((x) => !x.done && /^Sprint \d+/i.test(x.text || ""));
 	const row = Number(open?.text.match(/\((\d+) min\)\s*$/)?.[1]);
 	if (row > 0) return Math.max(5, Math.min(row, block, cap.mode === "tight" ? cap.max : row));
-	return base.total ? Math.min(sprintMinutes(base.total, cap.max), block) : sprintMinutes(block, cap.max);
+	const whole = base.total ? Math.min(sprintMinutes(base.total, planMax(cap)), block) : sprintMinutes(block, planMax(cap));
+	return cap.mode === "tight" ? Math.min(whole, cap.max) : whole;
 };
 /* Which sprint you are on and how many there are. */
 function sprintProgress(t) {
 	const saved = (t.subs || []).filter((x) => /^Sprint \d+/i.test(x.text || ""));
 	if (saved.length) return { count: saved.length, index: Math.min(saved.filter((x) => x.done).length + 1, saved.length) };
 	const base = planBase(t);
-	return { count: sprintCount(base.total || focusLength(t), capFor(t, base).max), index: 1 };
+	return { count: sprintCount(base.total || focusLength(t), planMax(capFor(t, base))), index: 1 };
 }
 function focusSubtitle(t) {
-	const base = planBase(t), cap = capFor(t, base), total = base.total || focusLength(t), n = sprintCount(total, cap.max);
-	return n === 1 ? `${sprintFocus(t)}-minute focus block` : `${n} sprints \u00b7 ${sprintMinutes(total, cap.max)} minutes each, with breaks`;
+	const base = planBase(t), cap = capFor(t, base), total = base.total || focusLength(t), n = sprintCount(total, planMax(cap));
+	return n === 1 ? `${sprintFocus(t)}-minute focus block` : `${n} sprints \u00b7 ${sprintMinutes(total, planMax(cap))} minutes each, with breaks`;
 }
 /* Why today's sprint is the length it is. */
 function scheduleNote(t) {
@@ -3786,7 +3790,7 @@ function replanTask(tid) {
 	const t = task(tid);
 	if (!t) return;
 	const base = planBase(t);
-	const next = replanRemaining({ subs: t.subs || [], taskId: t.id, spentMinutes: focusMinutes(t.id), priorPace: base.learned.pace, max: capFor(t, base).max });
+	const next = replanRemaining({ subs: t.subs || [], taskId: t.id, spentMinutes: focusMinutes(t.id), priorPace: base.learned.pace, max: planMax(capFor(t, base)) });
 	if (!next?.changed) return;
 	engines.todo.TodoUIBridge.command.update(t.id, { subs: next.subs });
 	signature = "";

@@ -49,6 +49,8 @@ test("old two-hour steps are recognised as too long, sprint steps are not", () =
 	assert.equal(oversizedSteps([{ text: "Read pages 144–166 (138 min)" }, { text: "Read pages 167–188 (132 min)" }]), true);
 	assert.equal(oversizedSteps([{ text: "Sprint 1: pp. 1–8 (48 min)" }]), false);
 	assert.equal(oversizedSteps([]), false);
+	assert.equal(oversizedSteps([{ text: "Read pages 78–88 (66 min)" }, { text: "Read pages 89–98 (60 min)" }]), true);
+	assert.equal(oversizedSteps([{ text: "Sprint 1: pp. 1–8 (75 min)" }, { text: "Read the syllabus (40 min)" }]), false);
 });
 
 test("a saved sprint step knows which break follows it", () => {

@@ -46,8 +46,13 @@ export function sessionPlan({ minutes, start = null, end = null, max = SPRINT.ma
 	return rows;
 }
 
-/* Steps saved on a task that are too long to be one sitting, such as "(138 min)". */
-export const oversizedSteps = (subs = []) => subs.some((s) => Number(String(s.text || "").match(/\((\d+)\s*min\)/)?.[1]) > SPRINT.open + 5);
+/* Steps saved on a task that are too long to be one sitting, such as "(138 min)" or "(66 min)". Sprint rows
+   are sized by the plan itself (up to the open limit on a clear day), so only other steps are judged. */
+export const oversizedSteps = (subs = []) =>
+	subs.some((s) => {
+		const text = String(s.text || "");
+		return !/^Sprint \d+/i.test(text) && Number(text.match(/\((\d+)\s*min\)/)?.[1]) > SPRINT.max + 5;
+	});
 
 /* The break that follows a saved step, when it is a sprint row. */
 export function breakAfterStep(subs, index) {
