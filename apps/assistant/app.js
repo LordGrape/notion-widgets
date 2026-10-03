@@ -45,10 +45,11 @@ import {
 	streakStats,
 } from "./hours.mjs";
 import { planDay, isUnscheduled, PLAN_START, PLAN_END } from "./autofit.mjs";
+import { suggestLastPage, planPageSplit, planTimeSplit, defaultRemaining } from "./split.mjs";
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261002-consistency";
+	REVISION = "20261002-split";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -611,7 +612,7 @@ function renderDock() {
 				minutes(e.start) > new Date().getHours() * 60 + new Date().getMinutes(),
 		);
 	$("#focusDock").innerHTML =
-		`<div class="dock-task"><button class="dock-icon" data-action="view" data-view="focus" aria-label="Open focus workspace">${icon("clock")}</button><div><b>${esc(current?.text || "Ready when you are")}</b><small>${current ? `${duration(current) || 45}-minute focus block` : "Choose a task or start a timer"}</small></div></div><span class="dock-time" data-timer>45:00</span><div class="dock-controls"><button class="primary" data-action="timer" data-timer-button>${icon("play")} Start focus</button><button class="icon-button" data-action="reset-timer" aria-label="End and reset timer" title="End and reset timer">${icon("reset")}</button></div><div class="next-event">${icon("calendar")}<div><span>Next</span><b>${next ? `${esc(next.name)} · ${esc(next.start)}` : "No more scheduled blocks"}</b></div>${dockHours()}</div>`;
+		`<div class="dock-task"><button class="dock-icon" data-action="view" data-view="focus" aria-label="Open focus workspace">${icon("clock")}</button><div><b>${esc(current?.text || "Ready when you are")}</b><small>${current ? `${duration(current) || 45}-minute focus block` : "Choose a task or start a timer"}</small></div></div><span class="dock-time" data-timer>45:00</span><div class="dock-controls"><button class="primary" data-action="timer" data-timer-button>${icon("play")} Start focus</button><button class="icon-button" data-action="reset-timer" aria-label="End session and save time" title="End session and save time">${icon("reset")}</button></div><div class="next-event">${icon("calendar")}<div><span>Next</span><b>${next ? `${esc(next.name)} · ${esc(next.start)}` : "No more scheduled blocks"}</b></div>${dockHours()}</div>`;
 }
 function bindWorkspace() {
 	const calendarScroll=$(".calendar-scroll"), calendarHead=$(".calendar-head");
@@ -804,12 +805,12 @@ function timerAction() {
 	w.document.getElementById("tmToggle").click();
 	updateTimer();
 }
-function resetTimer() {
+function resetTimer(silent = false) {
 	const w = engines.clock;
 	if (w.studyActive) w.document.getElementById("tmEndSession").click();
 	else w.document.getElementById("tmReset").click();
 	updateTimer();
-	notify("Session ended. Recorded focus time is kept.");
+	if (!silent) notify("Session ended. Recorded focus time is kept.");
 }
 function updateTimer() {
 	const w = engines.clock;
@@ -927,7 +928,7 @@ function openEditor(id, draft = "") {
 	const t = task(id),
 		d = openDialog(
 			"#editorDialog",
-			`${dialogHead(t ? "Edit task" : "New task", "editorTitle")}<form id="taskForm"><div class="form-grid"><label class="field wide task-name">Task<input name="text" value="${esc(t?.text || draft)}" required maxlength="500" placeholder="What would you like to do?"></label><label class="field">Priority<select name="pri">${["must", "should", "could"].map((p) => `<option value="${p}" ${p === (t?.pri || "must") ? "selected" : ""}>${p === "must" ? "Must Do" : p === "should" ? "Should Do" : "Could Do"}</option>`).join("")}</select></label><label class="field">Date<input name="dueKey" type="date" value="${esc(normalizeDateKey(t?.dueKey) || isoDate())}"></label><label class="field">Type<select name="kind"><option value="">Auto${t ? ` (${KIND_LABEL[taskKind({ text: t.text })]})` : ""}</option>${KINDS.filter((k) => k !== "class").map((k) => `<option value="${k}" ${t?.kind === k ? "selected" : ""}>${KIND_LABEL[k]}</option>`).join("")}</select></label><label class="field wide duration-field">Time <span>minutes</span><input type="number" name="plannedMinutes" min="1" value="${duration(t || {}) || ""}" placeholder="Optional"></label><div class="wide">${Reading.html(t || {})}</div><details class="task-extra wide" ${t?.notes || t?.subs?.length ? 'open' : ''}><summary>Notes & session steps</summary><div class="form-grid"><label class="field wide">Notes<textarea name="notes" rows="2" placeholder="Add a note…">${esc(t?.notes || "")}</textarea></label><label class="field wide">Session steps<textarea name="steps" rows="2" placeholder="One step per line">${esc((t?.subs || []).map((s) => s.text).join("\n"))}</textarea></label></div></details></div><p class="form-error" id="formError" role="alert"></p><div class="dialog-actions">${t ? `<button type="button" class="delete" data-action="delete" data-id="${esc(id)}">Delete</button><button type="button" data-action="schedule" data-id="${esc(id)}">Schedule</button>` : ""}<button type="submit" class="primary">${t ? "Save" : "Add task"}</button></div></form>`,
+			`${dialogHead(t ? "Edit task" : "New task", "editorTitle")}<form id="taskForm"><div class="form-grid"><label class="field wide task-name">Task<input name="text" value="${esc(t?.text || draft)}" required maxlength="500" placeholder="What would you like to do?"></label><label class="field">Priority<select name="pri">${["must", "should", "could"].map((p) => `<option value="${p}" ${p === (t?.pri || "must") ? "selected" : ""}>${p === "must" ? "Must Do" : p === "should" ? "Should Do" : "Could Do"}</option>`).join("")}</select></label><label class="field">Date<input name="dueKey" type="date" value="${esc(normalizeDateKey(t?.dueKey) || isoDate())}"></label><label class="field">Type<select name="kind"><option value="">Auto${t ? ` (${KIND_LABEL[taskKind({ text: t.text })]})` : ""}</option>${KINDS.filter((k) => k !== "class").map((k) => `<option value="${k}" ${t?.kind === k ? "selected" : ""}>${KIND_LABEL[k]}</option>`).join("")}</select></label><label class="field wide duration-field">Time <span>minutes</span><input type="number" name="plannedMinutes" min="1" value="${duration(t || {}) || ""}" placeholder="Optional"></label><div class="wide">${Reading.html(t || {})}</div><details class="task-extra wide" ${t?.notes || t?.subs?.length ? 'open' : ''}><summary>Notes & session steps</summary><div class="form-grid"><label class="field wide">Notes<textarea name="notes" rows="2" placeholder="Add a note…">${esc(t?.notes || "")}</textarea></label><label class="field wide">Session steps<textarea name="steps" rows="2" placeholder="One step per line">${esc((t?.subs || []).map((s) => s.text).join("\n"))}</textarea></label></div></details></div><p class="form-error" id="formError" role="alert"></p><div class="dialog-actions">${t ? `<button type="button" class="delete" data-action="delete" data-id="${esc(id)}">Delete</button><button type="button" data-action="schedule" data-id="${esc(id)}">Schedule</button><button type="button" data-action="split-task" data-id="${esc(id)}">Split</button>` : ""}<button type="submit" class="primary">${t ? "Save" : "Add task"}</button></div></form>`,
 		);
 	const readingData = Reading.mount(d, t || {}, { title: d.querySelector("[name=text]"), duration: d.querySelector("[name=plannedMinutes]"), split: steps => { const el=d.querySelector("[name=steps]"); const existing=el.value.split("\n"); el.value=[...existing.filter(Boolean),...steps.filter(s=>!existing.includes(s))].join("\n"); el.closest("details").open=true; } });
 	const manualFields = new Set(), fields = d.querySelector("form").elements;
@@ -1127,6 +1128,103 @@ function openPlanDay(day) {
 		} catch (error) {
 			$("#planError").textContent = error.message;
 			confirm.disabled = false;
+		}
+	};
+}
+function endSessionFlow() {
+	const w = engines.clock;
+	const current = activeTask();
+	const running = w.tmRunning || w.studyActive || w.tmRemaining !== w.tmDuration;
+	if (!running) {
+		notify("Start a focus session first.");
+		return;
+	}
+	if (!current) {
+		resetTimer();
+		return;
+	}
+	const before = focusMinutes(current.id);
+	resetTimer(true);
+	setTimeout(() => openSessionWrap({ task: current, recorded: Math.max(0, focusMinutes(current.id) - before) }), 250);
+}
+function openSessionWrap({ task: t, recorded = 0, mode = "session" }) {
+	if (!t) return;
+	$("#editorDialog").open && $("#editorDialog").close();
+	const bridge = engines.todo.TodoUIBridge;
+	const reading = Reading.estimate(t.text, t.reading || {});
+	const pageSplit = !!reading && Number.isInteger(reading.start) && Number.isInteger(reading.end) && reading.end > reading.start;
+	const focused = focusMinutes(t.id), planned = duration(t) || 0;
+	let choice = mode === "split" ? "split" : "open";
+	const lead = mode === "split" ? "" : recorded > 0
+		? '<div class="wrap-lead"><b>' + formatUnits(recorded / 60) + ' h</b><span>' + recorded + " min recorded on " + esc(t.text) + ". It counts towards your week.</span></div>"
+		: '<p class="muted">Nothing was recorded. Sessions under a minute do not count. Use Log time to add it by hand.</p>';
+	const cards = [
+		["open", "Keep it open", "Come back to this task later."],
+		["done", "Mark it complete", "You finished it."],
+		["split", "Split off the rest", pageSplit ? "The pages you read are done. The rest becomes a new task." : "What you did is done. The rest becomes a new task."],
+	].map(([k, title, sub]) => '<button type="button" role="radio" class="wrap-choice" data-choice="' + k + '"><b>' + title + "</b><small>" + sub + "</small></button>").join("");
+	const panel = pageSplit
+		? '<label class="field">Last page you read<input name="last" type="number" min="' + reading.start + '" max="' + (reading.end - 1) + '" value="' + suggestLastPage({ start: reading.start, end: reading.end, plannedMinutes: planned, focusedMinutes: focused }) + '"></label>'
+		: '<label class="field">Time left, in minutes<input name="rest" type="number" min="5" step="5" value="' + defaultRemaining({ plannedMinutes: planned, focusedMinutes: focused }) + '"></label>';
+	const d = openDialog("#editorDialog", dialogHead(mode === "split" ? "Split task" : "Session saved", "editorTitle") + lead + '<form id="wrapForm"><div class="wrap-choices" role="radiogroup" aria-label="What happens to the task">' + cards + '</div><div class="split-panel" hidden>' + panel + '<div class="split-preview" aria-live="polite"></div></div><p class="form-error" id="wrapError" role="alert"></p><div class="dialog-actions">' + (mode === "split" ? '<button type="button" data-action="close-dialog">Cancel</button>' : "") + '<button type="submit" class="primary" id="wrapConfirm"></button></div></form>');
+	const form = $("#wrapForm"), f = form.elements, panelEl = d.querySelector(".split-panel"), preview = d.querySelector(".split-preview");
+	const compute = () => pageSplit
+		? planPageSplit({ text: t.text, plannedMinutes: planned, focusedMinutes: focused, start: reading.start, end: reading.end, lastPage: Number(f.last.value) })
+		: planTimeSplit({ text: t.text, plannedMinutes: planned, focusedMinutes: focused, remainingMinutes: Number(f.rest.value) });
+	const paint = () => {
+		d.querySelectorAll("[data-choice]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.choice === choice)));
+		panelEl.hidden = choice !== "split";
+		$("#wrapConfirm").textContent = choice === "done" ? "Mark complete" : choice === "split" ? "Split task" : "Done";
+		$("#wrapError").textContent = "";
+		if (choice === "split") {
+			try {
+				const plan = compute();
+				preview.innerHTML = '<div><span>Done</span><b>' + esc(plan.doneText) + "</b><small>" + plan.doneMinutes + ' min</small></div><div><span>Next</span><b>' + esc(plan.restText) + "</b><small>" + plan.restMinutes + " min</small></div>";
+			} catch (error) {
+				preview.innerHTML = '<p class="muted">' + esc(error.message) + "</p>";
+			}
+		}
+	};
+	d.querySelectorAll("[data-choice]").forEach((b) => (b.onclick = () => { choice = b.dataset.choice; paint(); }));
+	form.addEventListener("input", paint);
+	paint();
+	form.onsubmit = (e) => {
+		e.preventDefault();
+		try {
+			const before = { text: t.text, plannedMinutes: t.plannedMinutes ?? null, reading: t.reading ?? null, done: !!t.done, selected: selectedId };
+			let newId = null, message = "Saved. The task stays open.";
+			if (choice === "done") {
+				if (!t.done) bridge.command.toggle(t.id);
+				selectedId = null;
+				engines.clock.SyncEngine.set("clock", "commandTask", { taskId: null });
+				message = "Task completed.";
+			} else if (choice === "split") {
+				const plan = compute();
+				bridge.command.update(t.id, { text: plan.doneText, plannedMinutes: plan.doneMinutes, reading: null });
+				if (!t.done) bridge.command.toggle(t.id);
+				newId = bridge.command.add({ text: plan.restText, pri: t.pri || "must", plannedMinutes: plan.restMinutes, due: t.due ?? "today", dueKey: t.dueKey ?? isoDate(), notes: t.notes || "", reading: null });
+				if (newId && isKind(t.kind)) bridge.command.update(newId, { kind: t.kind });
+				selectedId = newId || null;
+				engines.clock.SyncEngine.set("clock", "commandTask", { taskId: selectedId });
+				message = "Split. The rest is a new task.";
+			}
+			d.close();
+			signature = "";
+			refresh();
+			if (choice === "open" && mode !== "split") return notify(message);
+			notify(message, () => {
+				if (newId) bridge.command.remove(newId);
+				bridge.command.update(t.id, { text: before.text, plannedMinutes: before.plannedMinutes, reading: before.reading });
+				const now = bridge.snapshot().tasks.find((x) => x.id === t.id);
+				if (now && !!now.done !== before.done) bridge.command.toggle(t.id);
+				selectedId = before.selected;
+				engines.clock.SyncEngine.set("clock", "commandTask", { taskId: selectedId });
+				signature = "";
+				refresh();
+				$("#toast").hidden = true;
+			});
+		} catch (error) {
+			$("#wrapError").textContent = error.message;
 		}
 	};
 }
@@ -1804,7 +1902,11 @@ document.addEventListener("click", (e) => {
 			timerAction();
 			break;
 		case "reset-timer":
-			resetTimer();
+			endSessionFlow();
+			break;
+		case "split-task":
+			$("#editorDialog").close();
+			openSessionWrap({ task: task(id), mode: "split" });
 			break;
 		case "schedule":
 			openSchedule(id);
@@ -2188,7 +2290,7 @@ function renderFocus() {
 		now = new Date().getHours() * 60 + new Date().getMinutes(),
 		nextEvent = events.find((e) => minutes(e.start) > now),
 		subs = current?.subs || [];
-	return `<div class="focus-layout"><section class="surface focus-main"><p class="eyebrow">Current task</p><h2>${esc(current?.text || "Room to focus")}</h2><p class="focus-subtitle">${current ? `${duration(current) || 45}-minute focus block` : "Start a timer, or choose a task from Today"}</p><div class="timer-art"><svg viewBox="0 0 240 240" aria-hidden="true"><circle class="timer-track" cx="120" cy="120" r="110"/><circle class="timer-progress" data-timer-ring cx="120" cy="120" r="110"/></svg><div><div class="timer-digits" data-timer>45:00</div><p class="timer-caption" data-phase>Ready to focus</p></div></div><div class="focus-controls"><button data-action="timer" data-timer-button>${icon("play")} Start focus</button><button class="primary" data-action="finish" data-finish>${icon("check")} Finish task</button><button class="icon-button" data-action="reset-timer" aria-label="End and reset timer" title="End and reset timer">${icon("reset")}</button></div><div class="break-actions" id="breakActions" hidden><span class="muted" style="font-size:12px">Your break is ready.</span><button data-action="flow">+15 min focus</button></div><section class="session-steps"><div class="steps-head"><span>Session steps</span><span>${subs.filter((s) => s.done).length} of ${subs.length}</span></div>${subs.length ? subs.map((sub) => `<div class="step-row ${sub.done ? "done" : ""}"><button class="check-button ${sub.done ? "checked" : ""}" data-action="subtask" data-sub-id="${esc(sub.id)}" aria-label="${sub.done ? "Reopen" : "Complete"} step: ${esc(sub.text)}">${sub.done ? icon("check") : ""}</button><span class="step-text">${esc(sub.text)}</span></div>`).join("") : `<div class="step-empty">${current ? "Add the steps that will help you finish this task." : "Choose a task to see its session steps."}${current ? `<br><button data-action="edit" data-id="${esc(current.id)}">Add session steps</button>` : ""}</div>`}</section></section><aside class="focus-sidebar"><section class="surface context-card"><p class="eyebrow">${icon("list")} Up next</p>${next ? `<div class="next-task"><button class="check-button" data-action="select-focus" data-id="${esc(next.id)}" aria-label="Select ${esc(next.text)}"></button><div><b>${esc(next.text)}</b><small>${duration(next) ? duration(next) + " min" : "No estimate"}</small></div></div>` : '<p class="muted" style="font-size:12px">No other commitments today.</p>'}</section><section class="surface context-card finish-context"><p class="eyebrow">${icon("flag")} Today’s finish line</p>${finishLine(true)}${[
+	return `<div class="focus-layout"><section class="surface focus-main"><p class="eyebrow">Current task</p><h2>${esc(current?.text || "Room to focus")}</h2><p class="focus-subtitle">${current ? `${duration(current) || 45}-minute focus block` : "Start a timer, or choose a task from Today"}</p><div class="timer-art"><svg viewBox="0 0 240 240" aria-hidden="true"><circle class="timer-track" cx="120" cy="120" r="110"/><circle class="timer-progress" data-timer-ring cx="120" cy="120" r="110"/></svg><div><div class="timer-digits" data-timer>45:00</div><p class="timer-caption" data-phase>Ready to focus</p></div></div><div class="focus-controls"><button data-action="timer" data-timer-button>${icon("play")} Start focus</button><button class="primary" data-action="finish" data-finish>${icon("check")} Finish task</button><button data-action="reset-timer" title="End the session and save the time">End session</button></div><div class="break-actions" id="breakActions" hidden><span class="muted" style="font-size:12px">Your break is ready.</span><button data-action="flow">+15 min focus</button></div><section class="session-steps"><div class="steps-head"><span>Session steps</span><span>${subs.filter((s) => s.done).length} of ${subs.length}</span></div>${subs.length ? subs.map((sub) => `<div class="step-row ${sub.done ? "done" : ""}"><button class="check-button ${sub.done ? "checked" : ""}" data-action="subtask" data-sub-id="${esc(sub.id)}" aria-label="${sub.done ? "Reopen" : "Complete"} step: ${esc(sub.text)}">${sub.done ? icon("check") : ""}</button><span class="step-text">${esc(sub.text)}</span></div>`).join("") : `<div class="step-empty">${current ? "Add the steps that will help you finish this task." : "Choose a task to see its session steps."}${current ? `<br><button data-action="edit" data-id="${esc(current.id)}">Add session steps</button>` : ""}</div>`}</section></section><aside class="focus-sidebar"><section class="surface context-card"><p class="eyebrow">${icon("list")} Up next</p>${next ? `<div class="next-task"><button class="check-button" data-action="select-focus" data-id="${esc(next.id)}" aria-label="Select ${esc(next.text)}"></button><div><b>${esc(next.text)}</b><small>${duration(next) ? duration(next) + " min" : "No estimate"}</small></div></div>` : '<p class="muted" style="font-size:12px">No other commitments today.</p>'}</section><section class="surface context-card finish-context"><p class="eyebrow">${icon("flag")} Today’s finish line</p>${finishLine(true)}${[
 		"must",
 		"should",
 		"could",

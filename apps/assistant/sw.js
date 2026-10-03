@@ -1,4 +1,4 @@
-const CACHE = "command-centre-20261002-consistency";
+const CACHE = "command-centre-20261002-split";
 const SHELL = [
 	"../../widget-platform.js",
 	"../../reading-estimates.js",
@@ -11,6 +11,7 @@ const SHELL = [
 	"./domain.mjs",
 	"./hours.mjs",
 	"./autofit.mjs",
+	"./split.mjs",
 	"./calendar-actions.mjs",
 	"../todo/src/daily-goal.mjs",
 	"./remember.js",

@@ -3080,3 +3080,57 @@ dialog h3 {
 	.streak-num { font-size: 60px; }
 	.heat { --cell: 11px; --gap: 3px; }
 }
+
+/* Ending a session and splitting a task. */
+.wrap-lead {
+	display: flex;
+	align-items: baseline;
+	gap: 14px;
+	margin: 6px 0 16px;
+	padding: 16px 18px;
+	border-radius: 14px;
+	background: var(--accent-soft);
+}
+.wrap-lead b {
+	white-space: nowrap;
+	flex: none;
+	font-size: 32px;
+	font-weight: 700;
+	letter-spacing: -0.03em;
+	color: var(--accent);
+	font-variant-numeric: tabular-nums;
+}
+.wrap-lead span { font-size: 13px; line-height: 1.4; color: var(--text); }
+.wrap-choices { display: grid; gap: 10px; margin: 14px 0; }
+.wrap-choice {
+	display: grid;
+	gap: 3px;
+	padding: 13px 16px;
+	text-align: left;
+	border: 1px solid var(--line);
+	border-radius: 14px;
+	background: var(--surface);
+}
+.wrap-choice b { font-size: 14px; }
+.wrap-choice small { font-size: 12px; color: var(--muted); }
+.wrap-choice[aria-checked="true"] {
+	border-color: var(--accent);
+	background: var(--accent-soft);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+.split-panel { display: grid; gap: 12px; margin-bottom: 8px; }
+.split-panel[hidden] { display: none; }
+.split-preview { display: grid; gap: 8px; }
+.split-preview > div {
+	display: grid;
+	grid-template-columns: 44px minmax(0, 1fr) auto;
+	gap: 12px;
+	align-items: center;
+	padding: 12px 14px;
+	border: 1px solid var(--line);
+	border-radius: 12px;
+	background: var(--surface-2);
+}
+.split-preview span { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.split-preview b { font-size: 14px; font-weight: 600; }
+.split-preview small { color: var(--muted); }

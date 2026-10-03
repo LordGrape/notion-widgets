@@ -106,3 +106,7 @@ The interface uses the system face on Apple devices (San Francisco) and Inter el
 ## Consistency
 
 The Docket opens with a streak and a 20-week heat map of billable hours per day (class, reading, study and writing; Admin excluded). Cell colour scales against a day's share of the weekly target (target ÷ 5); a full-colour cell means the day reached that share. A day is active at 2 billable hours. Saturdays and Sundays never break a streak, but an active weekend day counts. Today never breaks a streak before it has ended. Milestones are 3, 7, 14, 21, 30, 60 and 100 days. Everything is calculated from the same sources as the weekly docket; nothing extra is stored. Focus history is limited by the Clock's 300-session cap, and class history comes from the timetable's current blocks.
+
+## Ending a session and splitting a task
+
+End session (Focus tab and the Today dock) stops the timer, which already credits the focused time to the selected task and to the weekly docket. A "Session saved" sheet then shows what was recorded and asks what happens to the task: keep it open, mark it complete, or split off the rest. A page range splits at the last page read (suggested from time spent), for example pp. 78–98 becomes a finished pp. 78–88 and a new pp. 89–98 task; other tasks split by time left and the remainder is marked "(continued)". The same Split sheet is available from a task's edit dialog. Both halves keep the priority, date and type, and one Undo restores the original. Pure logic and tests: `split.mjs`, `split.test.mjs`.
