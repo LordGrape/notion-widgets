@@ -2481,6 +2481,8 @@ function unscheduleTimedTask(id) {
 }
 let calendarBusy = false;
 async function applyCalendarChange(event, action, patch = {}, doneMessage = "") {
+	/* A change made right after another (move then resize) waits for the first to finish saving. */
+	for (let waited = 0; calendarBusy && waited < 4000; waited += 50) await new Promise((resolve) => setTimeout(resolve, 50));
 	if (calendarBusy) return false;
 	if (!event) {
 		notify("This occurrence is no longer available.");
