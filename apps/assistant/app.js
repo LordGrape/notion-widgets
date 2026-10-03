@@ -2,6 +2,7 @@ import "../../reading-estimates.js?v=20261002-smart-schedule";
 const Reading = globalThis.ReadingEstimates;
 import { changeCalendar, undoCalendar } from "./calendar-actions.mjs";
 import { ghostEvents, planNudge, timeAtOffset, parseTypeTag, stripTypeTag, withTypeTag } from "./calendar-extras.mjs";
+import { reorderIds, insertionIndex, movedTimes, resizedEnd, snap } from "./interactions.mjs";
 import {
 	dailyGoal,
 	dateKey,
@@ -59,7 +60,7 @@ import { suggestLastPage, planPageSplit, planTimeSplit, defaultRemaining } from 
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261003-notify";
+	REVISION = "20261003-gestures";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -484,8 +485,11 @@ function refresh() {
 			: null,
 	]);
 	if (next !== signature) {
-		signature = next;
-		render();
+		if (dragActive()) renderDeferred = true;
+		else {
+			signature = next;
+			render();
+		}
 	}
 	const online = ["todo", "timetable", "clock"].every((t) =>
 		engines[t].SyncEngine.isOnline(),
@@ -576,8 +580,23 @@ function gapHints(events, start, end) {
 function taskRow(t, planner = false) {
 	const m = duration(t);
 	const focusable = !isCalendarReminder(t, courses);
-	return `<div class="task-row ${t.done ? "done" : ""}" data-task="${esc(t.id)}" ${!planner && !t.done ? `draggable="true" data-drag="${esc(t.id)}"` : ""}>${!t.done ? `<button class="drag-handle icon-button ${planner ? "" : "today-grip"}" title="Drag to schedule; click to choose a time" data-action="schedule" data-id="${esc(t.id)}" draggable="true" data-drag="${esc(t.id)}" aria-label="Drag ${esc(t.text)} to the calendar">${icon("grip")}</button>` : ""}<button class="check-button ${t.done ? "checked" : ""}" data-action="toggle" data-id="${esc(t.id)}" aria-label="${t.done ? "Reopen" : "Complete"} ${esc(t.text)}">${t.done ? icon("check") : ""}</button><button class="task-title" data-action="edit" data-id="${esc(t.id)}">${tagDot(taskKind(t))}${esc(t.text)}${planner ? `<small class="planner-task-meta"><span class="priority-chip ${t.pri || "must"}">${t.pri === "could" ? "Could" : t.pri === "should" ? "Should" : "Must"}</span>${m ? `${m} min` : "No estimate"}${t.repeatRule ? " · Repeats" : ""}</small>` : ""}</button>${!planner && overdueLabel(t) ? `<span class="task-meta overdue-meta">${overdueLabel(t)}</span>` : ""}${!planner && m ? `<span class="task-meta" ${t.done && focusMinutes(t.id) ? `title="Estimated ${m} min, focused ${focusMinutes(t.id)} min"` : ""}>${icon("clock")}${t.done && focusMinutes(t.id) ? `${focusMinutes(t.id)} of ${m} min` : `${m} min`}</span>` : ""}${!planner && t.repeatRule ? `<span class="task-meta repeat-meta">Repeats</span>` : ""}<div class="task-actions">${focusable ? `<button class="icon-button" data-action="select-focus" data-id="${esc(t.id)}" aria-label="Focus on ${esc(t.text)}" title="Focus on this task">${icon("play")}</button>` : ""}<button class="icon-button" data-action="${planner ? "schedule" : "edit"}" data-id="${esc(t.id)}" aria-label="${planner ? "Schedule" : "Edit"} ${esc(t.text)}">${icon(planner ? "calendar" : "more")}</button></div></div>`;
+	return `<div class="task-row ${t.done ? "done" : ""}" data-task="${esc(t.id)}" data-ctx="task" ${!planner && !t.done ? `draggable="true" data-drag="${esc(t.id)}"` : ""}>${!t.done ? `<button class="drag-handle icon-button ${planner ? "" : "today-grip"}" title="Drag to schedule; click to choose a time" data-action="schedule" data-id="${esc(t.id)}" draggable="true" data-drag="${esc(t.id)}" aria-label="Drag ${esc(t.text)} to the calendar">${icon("grip")}</button>` : ""}<button class="check-button ${t.done ? "checked" : ""}" data-action="toggle" data-id="${esc(t.id)}" aria-label="${t.done ? "Reopen" : "Complete"} ${esc(t.text)}">${t.done ? icon("check") : ""}</button><button class="task-title" data-action="edit" data-id="${esc(t.id)}">${tagDot(taskKind(t))}${esc(t.text)}${planner ? `<small class="planner-task-meta"><span class="priority-chip ${t.pri || "must"}">${t.pri === "could" ? "Could" : t.pri === "should" ? "Should" : "Must"}</span>${m ? `${m} min` : "No estimate"}${t.repeatRule ? " · Repeats" : ""}</small>` : ""}</button>${!planner && overdueLabel(t) ? `<span class="task-meta overdue-meta">${overdueLabel(t)}</span>` : ""}${!planner && m ? `<span class="task-meta" ${t.done && focusMinutes(t.id) ? `title="Estimated ${m} min, focused ${focusMinutes(t.id)} min"` : ""}>${icon("clock")}${t.done && focusMinutes(t.id) ? `${focusMinutes(t.id)} of ${m} min` : `${m} min`}</span>` : ""}${!planner && t.repeatRule ? `<span class="task-meta repeat-meta">Repeats</span>` : ""}<div class="task-actions">${focusable ? `<button class="icon-button" data-action="select-focus" data-id="${esc(t.id)}" aria-label="Focus on ${esc(t.text)}" title="Focus on this task">${icon("play")}</button>` : ""}<button class="icon-button" data-action="${planner ? "schedule" : "edit"}" data-id="${esc(t.id)}" aria-label="${planner ? "Schedule" : "Edit"} ${esc(t.text)}">${icon(planner ? "calendar" : "more")}</button></div></div>`;
 }
+/* Drag state lives outside render(): a background sync can re-render mid-drag, and that must neither
+   lose the drag nor replace the dragged element, so renders wait until the drag ends. */
+let draggingId = null,
+	draggingBlock = null,
+	grabY = 0,
+	renderDeferred = false;
+const dragActive = () => !!(draggingId || draggingBlock);
+function flushDeferredRender() {
+	if (!renderDeferred || dragActive()) return;
+	renderDeferred = false;
+	signature = "";
+	refresh();
+}
+document.addEventListener("dragend", () => setTimeout(() => { draggingId = null; draggingBlock = null; document.body.classList.remove("is-dragging"); flushDeferredRender(); }, 0));
+document.addEventListener("drop", () => setTimeout(() => document.body.classList.remove("is-dragging"), 0), true);
 let quickAdd = null;
 const PRI_NAME = { must: "Must Do", should: "Should Do", could: "Could Do" };
 const groupEntry = (pri, text) => (/\b(must|should|could)\s+do\b/i.test(text) ? text : `${pri} do ${text}`);
@@ -588,6 +607,13 @@ function groupPreview(pri, text) {
 	} catch (error) {
 		return error.message;
 	}
+}
+function openGroupAdd(pri, toggle = false) {
+	quickAdd = toggle && quickAdd?.pri === pri ? null : { pri, value: "" };
+	collapsed.delete(pri);
+	signature = "";
+	render();
+	document.querySelector(".group-quick input")?.focus();
 }
 function groupQuickForm(pri) {
 	const preview = groupPreview(pri, quickAdd.value);
@@ -605,7 +631,7 @@ function taskGroups() {
 			);
 			const closed = collapsed.has(pri);
 			const adding = !closed && quickAdd?.pri === pri;
-			return `<section class="task-group ${pri} ${!closed && !group.length && pri !== "must" && !adding ? "is-empty" : ""}"><div class="group-head"><button class="group-heading" data-action="collapse" data-priority="${pri}" aria-expanded="${!closed}">${icon(closed ? "right" : "chevron")}<i class="priority-dot"></i>${PRI_NAME[pri]}<span class="count">${group.filter((t) => t.done).length} of ${group.length} complete</span></button><button class="group-add" data-action="group-add" data-priority="${pri}" aria-label="Add a ${PRI_NAME[pri]} task" aria-expanded="${adding}" title="Add a ${PRI_NAME[pri]} task">${icon("plus")}</button></div>${closed ? "" : `<div class="task-rows">${group.length ? group.map((t) => taskRow(t)).join("") : adding ? "" : `<p class="group-empty">${pri === "must" ? "No commitments here." : pri === "should" ? "Choose a task worth making progress on." : "Optional tasks, when you have room."}</p>`}${adding ? groupQuickForm(pri) : ""}</div>`}</section>`;
+			return `<section class="task-group ${pri} ${!closed && !group.length && pri !== "must" && !adding ? "is-empty" : ""}"><div class="group-head" data-ctx="group" data-priority="${pri}"><button class="group-heading" data-action="collapse" data-priority="${pri}" aria-expanded="${!closed}">${icon(closed ? "right" : "chevron")}<i class="priority-dot"></i>${PRI_NAME[pri]}<span class="count">${group.filter((t) => t.done).length} of ${group.length} complete</span></button><button class="group-add" data-action="group-add" data-priority="${pri}" aria-label="Add a ${PRI_NAME[pri]} task" aria-expanded="${adding}" title="Add a ${PRI_NAME[pri]} task">${icon("plus")}</button></div>${closed ? "" : `<div class="task-rows">${group.length ? group.map((t) => taskRow(t)).join("") : adding ? "" : `<p class="group-empty">${pri === "must" ? "No commitments here." : pri === "should" ? "Choose a task worth making progress on." : "Optional tasks, when you have room."}</p>`}${adding ? groupQuickForm(pri) : ""}</div>`}</section>`;
 		})
 		.join("");
 }
@@ -628,7 +654,7 @@ function eventMarkup(e, start, hour = 76) {
 		),
 		top = ((minutes(e.start) - start) * hour) / 60;
 	if (e.ghost)
-		return `<button data-end="${minutes(e.end)}" class="event is-task task-ghost" ${view === "plan" ? `draggable="true" data-unschedule="ghost"` : ""} style="top:${top}px;height:${height}px;--event-color:${e.color}" title="This task has a time but is not on the calendar yet. Click to put it there." data-action="ghost" data-id="${esc(e.taskId)}" data-date="${esc(e.dateKey)}" data-start="${esc(e.start)}" aria-label="${esc(e.name)} ${esc(e.start)} to ${esc(e.end)}, not yet on the calendar"><b>${tasks.find((t) => t.id === e.taskId) ? tagDot(taskKind(tasks.find((t) => t.id === e.taskId))) : ""}${esc(e.name)}</b><span>${esc(e.start)} – ${esc(e.end)} · Click to add to calendar</span></button>`;
+		return `<button data-end="${minutes(e.end)}" class="event is-task task-ghost" ${view === "plan" ? `draggable="true" data-move="1" data-unschedule="ghost"` : ""} style="top:${top}px;height:${height}px;--event-color:${e.color}" title="This task has a time but is not on the calendar yet. Click to put it there." data-action="ghost" data-id="${esc(e.taskId)}" data-date="${esc(e.dateKey)}" data-start="${esc(e.start)}" aria-label="${esc(e.name)} ${esc(e.start)} to ${esc(e.end)}, not yet on the calendar"><b>${tasks.find((t) => t.id === e.taskId) ? tagDot(taskKind(tasks.find((t) => t.id === e.taskId))) : ""}${esc(e.name)}</b><span>${esc(e.start)} – ${esc(e.end)} · Click to add to calendar</span></button>`;
 	const done = tasks.some(
 		(t) =>
 			t.done &&
@@ -640,8 +666,10 @@ function eventMarkup(e, start, hour = 76) {
 	const spent = done && linked ? focusMinutes(linked.id) : 0;
 	const own = courses.find((b) => b.id === e.id);
 	const tint = linked ? taskKind(linked) : parseTypeTag(e.description ?? own?.description, KINDS);
-	const movable = view === "plan" && open && linked.source !== "timetable" && own?.startDate && own.startDate === own.endDate;
-	return `<button data-end="${minutes(e.end)}" data-open-task="${open ? 1 : 0}" ${movable ? `draggable="true" data-unschedule="block"` : ""} class="event ${linked ? "is-task" : ""} ${tint ? "tagged" : ""} ${done ? "completed" : ""} ${e.id === recentScheduleId ? "scheduled-reveal" : ""}" style="top:${top}px;height:${height}px;--event-color:${tint ? `var(--kind-${tint})` : /^#[0-9a-f]{3,8}$/i.test(e.color) ? e.color : "#9461e9"}" aria-haspopup="dialog" title="Click for details; right-click for options" data-action="event" data-event-id="${esc(e.id)}" data-source="${esc(e.sourceDate)}" data-date="${esc(e.dateKey)}" aria-label="${esc(e.name)} ${esc(e.start)} to ${esc(e.end)}"><b>${linked ? tagDot(taskKind(linked)) : ""}${esc(e.name)}</b><span>${esc(e.start)} – ${esc(e.end)}${e.location ? " · " + esc(e.location) : ""}${spent ? ` · done in ${spent} min` : ""}</span></button>`;
+	const reminder = e.eventType === "reminder" || (linked && isCalendarReminder(linked, courses));
+	const canMove = view === "plan" && !done && !reminder;
+	const movable = canMove && open && linked.source !== "timetable" && own?.startDate && own.startDate === own.endDate;
+	return `<button data-end="${minutes(e.end)}" data-open-task="${open ? 1 : 0}" ${canMove ? `draggable="true" data-move="1"` : ""}${movable ? ` data-unschedule="block"` : ""} class="event ${linked ? "is-task" : ""} ${tint ? "tagged" : ""} ${done ? "completed" : ""} ${e.id === recentScheduleId ? "scheduled-reveal" : ""}" style="top:${top}px;height:${height}px;--event-color:${tint ? `var(--kind-${tint})` : /^#[0-9a-f]{3,8}$/i.test(e.color) ? e.color : "#9461e9"}" aria-haspopup="dialog" title="Click for details; right-click for options" data-action="event" data-event-id="${esc(e.id)}" data-source="${esc(e.sourceDate)}" data-date="${esc(e.dateKey)}" aria-label="${esc(e.name)} ${esc(e.start)} to ${esc(e.end)}"><b>${linked ? tagDot(taskKind(linked)) : ""}${esc(e.name)}</b><span>${esc(e.start)} – ${esc(e.end)}${e.location ? " · " + esc(e.location) : ""}${spent ? ` · done in ${spent} min` : ""}</span>${canMove ? '<i class="event-resize" data-resize aria-hidden="true" title="Drag to change the length"></i>' : ""}</button>`;
 }
 function hourLines(start, end, hour = 76) {
 	let s = "";
@@ -692,7 +720,7 @@ function updateCalendarTime() {
 function renderToday() {
 	const events = dayEvents(new Date()),
 		{ start, end } = timeRange(events);
-	return `<div class="today-layout"><section class="surface tasks-surface"><div class="today-heading"><div><h2>Today</h2><p class="date-copy">${dateLabel(new Date())}</p></div>${finishLine()}</div><form class="composer" id="quickAdd"><input name="task" aria-label="Add a task" placeholder="Add a task… e.g. should do Read pp. 3–9 & 12 tomorrow" autocomplete="off" required><button class="primary" aria-label="Add task">${icon("plus")}</button><button type="button" data-action="add" aria-label="Add task with details">${icon("more")}</button></form><p id="capturePreview" class="capture-preview" role="status" aria-live="polite" hidden></p>${taskGroups()}<div class="tasks-footer"><button class="text-button" data-action="all-tasks">All tasks · ${focusTasks(tasks, courses).filter((t) => !t.done).length} open</button><span class="footer-actions"><button class="text-button" data-action="wrap-up">Wrap up day</button><button class="text-button" data-action="standalone" data-type="todo">Open To-Do separately ↗</button></span></div></section><section class="surface agenda-surface"><div class="section-heading"><h2>Your day</h2><div class="heading-actions"><button class="plan-day" data-action="plan-day">${icon("calendar")}Plan my day</button><span>${new Date().toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" })}</span></div></div><div class="agenda-scroll"><div class="timeline" data-drop-calendar data-date="${isoDate()}" data-start="${start}" data-end="${end}" style="--timeline-height:${((end - start) * 76) / 60}px">${hourLines(start, end)}${gapHints(events, start, end)}${events.map((e) => eventMarkup(e, start)).join("")}${nowLine(start, end)}</div></div><div class="tasks-footer"><button class="text-button" data-action="view" data-view="plan">Open planner ${icon("right")}</button><button class="text-button" data-action="standalone" data-type="timetable">Timetable ↗</button></div></section></div>`;
+	return `<div class="today-layout"><section class="surface tasks-surface" data-ctx="area" data-area="today"><div class="today-heading"><div><h2>Today</h2><p class="date-copy">${dateLabel(new Date())}</p></div>${finishLine()}</div><form class="composer" id="quickAdd"><input name="task" aria-label="Add a task" placeholder="Add a task… e.g. should do Read pp. 3–9 & 12 tomorrow" autocomplete="off" required><button class="primary" aria-label="Add task">${icon("plus")}</button><button type="button" data-action="add" aria-label="Add task with details">${icon("more")}</button></form><p id="capturePreview" class="capture-preview" role="status" aria-live="polite" hidden></p>${taskGroups()}<div class="tasks-footer"><button class="text-button" data-action="all-tasks">All tasks · ${focusTasks(tasks, courses).filter((t) => !t.done).length} open</button><span class="footer-actions"><button class="text-button" data-action="wrap-up">Wrap up day</button><button class="text-button" data-action="standalone" data-type="todo">Open To-Do separately ↗</button></span></div></section><section class="surface agenda-surface"><div class="section-heading"><h2>Your day</h2><div class="heading-actions"><button class="plan-day" data-action="plan-day">${icon("calendar")}Plan my day</button><span>${new Date().toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" })}</span></div></div><div class="agenda-scroll"><div class="timeline" data-drop-calendar data-date="${isoDate()}" data-start="${start}" data-end="${end}" style="--timeline-height:${((end - start) * 76) / 60}px">${hourLines(start, end)}${gapHints(events, start, end)}${events.map((e) => eventMarkup(e, start)).join("")}${nowLine(start, end)}</div></div><div class="tasks-footer"><button class="text-button" data-action="view" data-view="plan">Open planner ${icon("right")}</button><button class="text-button" data-action="standalone" data-type="timetable">Timetable ↗</button></div></section></div>`;
 }
 function render() {
 	if (!engines.todo) return;
@@ -810,7 +838,6 @@ function bindWorkspace() {
 			} catch (error) { preview.textContent = error.message; preview.hidden = false; }
 		};
 	}
-	let draggingId = null;
 	const clearDrop = () =>
 		document.querySelectorAll("[data-drop-calendar]").forEach((el) => {
 			el.classList.remove("drop-target");
@@ -824,6 +851,7 @@ function bindWorkspace() {
 				return;
 			}
 			draggingId = el.dataset.drag;
+			document.body.classList.add("is-dragging");
 			e.dataTransfer.setData("text/plain", draggingId);
 			e.dataTransfer.effectAllowed = "move";
 			const row = el.closest(".task-row");
@@ -843,27 +871,30 @@ function bindWorkspace() {
 			draggingId = null;
 			el.closest(".task-row")?.classList.remove("is-dragging");
 			clearDrop();
+			flushDeferredRender();
 		};
 	});
 	const tray = document.querySelector("[data-unschedule-zone]");
-	let draggingBlock = null;
-	document.querySelectorAll("[data-unschedule]").forEach((el) => {
+	document.querySelectorAll("[data-move]").forEach((el) => {
 		el.ondragstart = (e) => {
 			e.stopPropagation();
 			draggingBlock = el;
-			e.dataTransfer.setData("text/plain", "unschedule");
+			document.body.classList.add("is-dragging");
+			grabY = e.clientY - el.getBoundingClientRect().top;
+			e.dataTransfer.setData("text/plain", "move");
 			e.dataTransfer.effectAllowed = "move";
-			tray?.classList.add("unschedule-ready");
+			if (el.dataset.unschedule) tray?.classList.add("unschedule-ready");
 			playCue("pickup");
 		};
 		el.ondragend = () => {
 			draggingBlock = null;
 			tray?.classList.remove("unschedule-ready", "drop-target");
+			flushDeferredRender();
 		};
 	});
 	if (tray) {
 		tray.ondragover = (e) => {
-			if (!draggingBlock) return;
+			if (!draggingBlock?.dataset.unschedule) return;
 			e.preventDefault();
 			e.dataTransfer.dropEffect = "move";
 			tray.classList.add("drop-target");
@@ -872,33 +903,13 @@ function bindWorkspace() {
 			if (!tray.contains(e.relatedTarget)) tray.classList.remove("drop-target");
 		};
 		tray.ondrop = (e) => {
-			if (!draggingBlock) return;
+			if (!draggingBlock?.dataset.unschedule) return;
 			e.preventDefault();
 			const el = draggingBlock;
 			draggingBlock = null;
 			tray.classList.remove("unschedule-ready", "drop-target");
 			playCue("drop");
-			if (el.dataset.unschedule === "ghost") unscheduleTimedTask(el.dataset.id);
-			else {
-				const ev = selectedEvent(el);
-				const linked = ev && tasks.find((t) => t.scheduleId === ev.id && normalizeDateKey(t.dueKey) === ev.dateKey);
-				applyCalendarChange(ev, "remove", {}, "Moved back to Unscheduled.").then((ok) => {
-					if (!ok || !linked) return;
-					/* The task write can be overwritten by a sync already in flight; re-clear until it sticks. */
-					const settle = () => {
-						engines.todo.TodoUIBridge.refresh();
-						const t = engines.todo.TodoUIBridge.snapshot().tasks.find((x) => x.id === linked.id);
-						if (t && !t.done && (t.scheduledStart || t.scheduleId)) {
-							engines.todo.TodoUIBridge.command.update(linked.id, { scheduledStart: null, scheduledEnd: null, scheduleId: null, timeboxed: false });
-							signature = "";
-							refresh();
-						}
-					};
-					settle();
-					setTimeout(settle, 400);
-					setTimeout(settle, 1500);
-				});
-			}
+			unscheduleFromElement(el);
 		};
 	}
 	document.querySelectorAll("[data-drop-calendar]").forEach((el) => {
@@ -914,8 +925,9 @@ function bindWorkspace() {
 							15,
 				),
 			);
+		const topMinute = (e) => Number(el.dataset.start) + ((e.clientY - grabY - el.getBoundingClientRect().top) / 76) * 60;
 		el.ondragover = (e) => {
-			if (!draggingId) return;
+			if (!draggingId && !draggingBlock) return;
 			e.preventDefault();
 			e.dataTransfer.dropEffect = "move";
 			el.classList.add("drop-target");
@@ -925,9 +937,9 @@ function bindWorkspace() {
 				preview.className = "drop-preview";
 				el.append(preview);
 			}
-			const m = dropMinute(e);
+			const m = draggingBlock ? Math.max(Number(el.dataset.start), Math.min(Number(el.dataset.end) - 15, snap(topMinute(e)))) : dropMinute(e);
 			preview.style.top = `${((m - Number(el.dataset.start)) * 76) / 60}px`;
-			preview.textContent = `Schedule at ${timeString(m)}`;
+			preview.textContent = `${draggingBlock ? "Move to" : "Schedule at"} ${timeString(m)}`;
 		};
 		el.ondragleave = (e) => {
 			if (!el.contains(e.relatedTarget)) {
@@ -937,6 +949,15 @@ function bindWorkspace() {
 		};
 		el.ondrop = (e) => {
 			e.preventDefault();
+			if (draggingBlock) {
+				const moved = draggingBlock;
+				draggingBlock = null;
+				tray?.classList.remove("unschedule-ready", "drop-target");
+				clearDrop();
+				playCue("drop");
+				moveBlockTo(moved, el.dataset.date, topMinute(e), Number(el.dataset.start), Number(el.dataset.end));
+				return;
+			}
 			const id = e.dataTransfer.getData("text/plain"),
 				t = task(id);
 			clearDrop();
@@ -963,6 +984,76 @@ function bindWorkspace() {
 			);
 		};
 	});
+	document.querySelectorAll(".task-group").forEach((group) => {
+		const pri = ["must", "should", "could"].find((p) => group.classList.contains(p));
+		const rowsOf = () => [...group.querySelectorAll(".task-rows > .task-row:not(.is-dragging)")];
+		const place = (e) => {
+			const rows = rowsOf();
+			const idx = insertionIndex(rows.map((r) => { const b = r.getBoundingClientRect(); return b.top + b.height / 2; }), e.clientY);
+			return { rows, idx, before: rows[idx]?.dataset.task ?? null };
+		};
+		const clearLine = () => {
+			group.classList.remove("drop-target");
+			group.querySelector(".drop-line")?.remove();
+		};
+		group.ondragover = (e) => {
+			if (!draggingId) return;
+			e.preventDefault();
+			e.dataTransfer.dropEffect = "move";
+			group.classList.add("drop-target");
+			const { rows, idx } = place(e);
+			let line = group.querySelector(".drop-line");
+			if (!line) {
+				line = document.createElement("div");
+				line.className = "drop-line";
+			}
+			const container = group.querySelector(".task-rows");
+			if (container) container.insertBefore(line, rows[idx] || null);
+			else group.append(line);
+		};
+		group.ondragleave = (e) => {
+			if (!group.contains(e.relatedTarget)) clearLine();
+		};
+		group.ondrop = (e) => {
+			if (!draggingId) return;
+			e.preventDefault();
+			const id = draggingId;
+			const { rows, before } = place(e);
+			clearLine();
+			draggingId = null;
+			const t = task(id);
+			if (!t || t.done) return;
+			const next = reorderIds(rows.map((r) => r.dataset.task), id, before);
+			const changed = (t.pri || "must") !== pri;
+			if (changed) engines.todo.TodoUIBridge.command.update(id, { pri });
+			engines.todo.TodoUIBridge.reorder(next);
+			playCue("drop");
+			signature = "";
+			refresh();
+			notify(changed ? `Moved to ${PRI_NAME[pri]}.` : "Order saved.");
+		};
+	});
+	const dock = $("#focusDock");
+	if (dock) {
+		dock.ondragover = (e) => {
+			if (!draggingId) return;
+			e.preventDefault();
+			e.dataTransfer.dropEffect = "move";
+			dock.classList.add("drop-target");
+		};
+		dock.ondragleave = (e) => {
+			if (!dock.contains(e.relatedTarget)) dock.classList.remove("drop-target");
+		};
+		dock.ondrop = (e) => {
+			if (!draggingId) return;
+			e.preventDefault();
+			const id = draggingId;
+			draggingId = null;
+			dock.classList.remove("drop-target");
+			clearDrop();
+			selectFocus(id);
+		};
+	}
 }
 function selectFocus(id) {
 	if (!task(id) || task(id).done || isCalendarReminder(task(id), courses)) {
@@ -1551,7 +1642,7 @@ function openSettings() {
 			)
 			.join(
 				"",
-			)}</div><fieldset class="partner-settings"><legend>Broadcast</legend><label><input id="partnerVisibleToggle" type="checkbox" ${partnerVisible ? "checked" : ""}> Show partner</label><label><input id="partnerSoundToggle" type="checkbox" ${partnerSound ? "checked" : ""}> Voice</label><label>Intensity <select id="partnerIntensity"><option value="intense" ${partnerIntensity() === "intense" ? "selected" : ""}>Intense</option><option value="steady" ${partnerIntensity() === "steady" ? "selected" : ""}>Steady</option></select></label></fieldset><fieldset class="partner-settings notify-settings"><legend>Notifications</legend><label><input id="notifyToggle" type="checkbox"> Tell me when a focus block ends or a break is due</label><label><input id="keepAwakeToggle" type="checkbox"> Keep timers accurate while this window is in the background</label><p class="notify-status" id="notifyStatus" role="status" aria-live="polite"></p><div class="notify-actions"><button type="button" id="notifyTest">Send a test notification</button></div></fieldset><button id="soundToggle" aria-pressed="${engines.todo.SyncEngine.get("user", "commandCentreSounds") !== false}">Interface sounds: ${engines.todo.SyncEngine.get("user", "commandCentreSounds") === false ? "Off" : "On"}</button> <button data-action="goal">Adjust daily finish line</button> <button id="lockButton">Lock Command Centre</button>`,
+			)}</div><fieldset class="partner-settings"><legend>Broadcast</legend><label><input id="partnerVisibleToggle" type="checkbox" ${partnerVisible ? "checked" : ""}> Show partner</label><label><input id="partnerSoundToggle" type="checkbox" ${partnerSound ? "checked" : ""}> Voice</label><label>Intensity <select id="partnerIntensity"><option value="intense" ${partnerIntensity() === "intense" ? "selected" : ""}>Intense</option><option value="steady" ${partnerIntensity() === "steady" ? "selected" : ""}>Steady</option></select></label></fieldset><fieldset class="partner-settings notify-settings"><legend>Notifications</legend><label><input id="notifyToggle" type="checkbox"> Tell me when a focus block ends or a break is due</label><label><input id="keepAwakeToggle" type="checkbox"> Keep timers accurate while this window is in the background</label><p class="notify-status" id="notifyStatus" role="status" aria-live="polite"></p><div class="notify-actions"><button type="button" id="notifyTest">Send a test notification</button></div></fieldset><details class="gesture-tips"><summary>Shortcuts and gestures</summary><ul><li><b>Right-click</b> (or press and hold) a task, block, group heading, docket entry or Broadcast for a menu.</li><li><b>Double-click</b> an empty spot on the calendar to add a task at that time.</li><li><b>Double-click</b> a task’s blank space to start focusing on it.</li><li><b>Double-click</b> a day in Plan to zoom to it, and again to zoom out.</li><li><b>Drag</b> a task onto Must, Should or Could to change its priority or order.</li><li><b>Drag</b> a task onto the timer bar to focus on it, or onto the calendar to schedule it.</li><li><b>Drag</b> a block to move it, pull its bottom edge to resize it, or drop it on Unscheduled.</li><li><b>Double-click</b> empty space in the Docket to log time.</li></ul></details><button id="soundToggle" aria-pressed="${engines.todo.SyncEngine.get("user", "commandCentreSounds") !== false}">Interface sounds: ${engines.todo.SyncEngine.get("user", "commandCentreSounds") === false ? "Off" : "On"}</button> <button data-action="goal">Adjust daily finish line</button> <button id="lockButton">Lock Command Centre</button>`,
 	);
 	$("#lockButton").onclick = lock;
 	paintNotify();
@@ -1812,75 +1903,48 @@ function selectedEvent(element) {
 			e.sourceDate === element.dataset.source,
 	);
 }
-function showCalendarMenu(element, x, y) {
-	const event = selectedEvent(element);
-	if (!event) return;
+/* One menu for the whole app. Entries are { label, hint, danger, run }, { sep: true } or
+   { label, options: [{ label, short, value, dot, current }], run(value) } for a row of choices. */
+function showMenu(anchor, x, y, title, entries) {
 	closeCalendarMenu();
-	calendarMenuAnchor = element;
-	const block = courses.find((b) => b.id === event.id);
-	const oneOff = block?.startDate && block.startDate === block.endDate;
-	const choices = [
-		[
-			"details",
-			"View details",
-			"",
-			() => openEvent(event.id, event.sourceDate, event.dateKey),
-		],
-		[
-			"edit",
-			"Edit time",
-			"This occurrence only",
-			() => openCalendarEditor(event),
-		],
-		...(!oneOff
-			? [
-					[
-						"skip",
-						"Remove this week only",
-						dateLabel(localDate(event.dateKey)),
-						() => applyCalendarChange(event, "skip"),
-					],
-				]
-			: []),
-		[
-			"remove",
-			"Remove from schedule",
-			oneOff ? "Keep the linked task" : "All occurrences of this block",
-			() => applyCalendarChange(event, "remove"),
-		],
-	];
+	calendarMenuAnchor = anchor;
+	const handlers = new Map();
+	let n = 0;
+	const html = entries
+		.map((en) => {
+			if (en.sep) return '<hr class="menu-sep">';
+			if (en.options)
+				return `<div class="menu-row" role="group" aria-label="${esc(en.label)}"><span class="menu-row-label">${esc(en.label)}</span><div class="menu-options">${en.options
+					.map((o) => {
+						const id = n++;
+						handlers.set(String(id), () => en.run(o.value));
+						return `<button type="button" role="menuitemradio" aria-checked="${!!o.current}" data-menu="${id}" class="menu-opt" title="${esc(o.label)}" aria-label="${esc(o.label)}">${o.dot ? tagDot(o.dot) : ""}${o.short === "" ? "" : esc(o.short ?? o.label)}</button>`;
+					})
+					.join("")}</div></div>`;
+			const id = n++;
+			handlers.set(String(id), en.run);
+			return `<button type="button" role="menuitem" data-menu="${id}" class="${en.danger ? "danger" : ""}"><span>${esc(en.label)}</span>${en.hint ? `<small>${esc(en.hint)}</small>` : ""}</button>`;
+		})
+		.join("");
 	const menu = document.createElement("div");
 	menu.className = "calendar-context-menu";
 	menu.setAttribute("role", "menu");
-	menu.setAttribute("aria-label", `Options for ${event.name}`);
-	menu.innerHTML =
-		`<p class="calendar-menu-title">${esc(event.name)}</p>` +
-		choices
-			.map(
-				([action, label, hint]) =>
-					`<button type="button" role="menuitem" data-calendar-choice="${action}" class="${action === "remove" ? "danger" : ""}"><span>${esc(label)}</span>${hint ? `<small>${esc(hint)}</small>` : ""}</button>`,
-			)
-			.join("");
+	menu.setAttribute("aria-label", `Options for ${title}`);
+	menu.innerHTML = `<p class="calendar-menu-title">${esc(title)}</p>${html}`;
 	menu.onclick = (e) => {
-		const item = e.target.closest("[data-calendar-choice]");
+		const item = e.target.closest("[data-menu]");
 		if (!item) return;
-		const action = choices.find((c) => c[0] === item.dataset.calendarChoice)[3];
+		const run = handlers.get(item.dataset.menu);
 		closeCalendarMenu();
-		action();
+		run?.();
 	};
+	menu.oncontextmenu = (e) => e.preventDefault();
 	menu.onkeydown = (e) => {
-		const items = [...menu.querySelectorAll('[role="menuitem"]')],
+		const items = [...menu.querySelectorAll("[data-menu]")],
 			index = items.indexOf(document.activeElement);
 		if (["ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) {
 			e.preventDefault();
-			items[
-				e.key === "Home"
-					? 0
-					: e.key === "End"
-						? items.length - 1
-						: (index + (e.key === "ArrowDown" ? 1 : -1) + items.length) %
-							items.length
-			]?.focus();
+			items[e.key === "Home" ? 0 : e.key === "End" ? items.length - 1 : (index + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length]?.focus();
 		} else if (e.key === "Escape") {
 			e.preventDefault();
 			closeCalendarMenu(true);
@@ -1891,23 +1955,185 @@ function showCalendarMenu(element, x, y) {
 	const bounds = menu.getBoundingClientRect();
 	menu.style.left = `${Math.max(8, Math.min(x, innerWidth - bounds.width - 8))}px`;
 	menu.style.top = `${Math.max(8, Math.min(y, innerHeight - bounds.height - 8))}px`;
-	const scroller = element.closest(".calendar-scroll,.agenda-scroll");
+	const scroller = anchor.closest(".calendar-scroll,.agenda-scroll");
 	calendarMenuScroll = { x: scrollX, y: scrollY, scroller, top: scroller?.scrollTop, left: scroller?.scrollLeft };
-	menu.querySelector("button").focus({ preventScroll: true });
+	menu.querySelector("[data-menu]")?.focus({ preventScroll: true });
+}
+const priorityRow = (t) => ({
+	label: "Priority",
+	options: ["must", "should", "could"].map((p) => ({ label: PRI_NAME[p], short: PRI_NAME[p].split(" ")[0], value: p, current: (t.pri || "must") === p })),
+	run: (p) => {
+		engines.todo.TodoUIBridge.command.update(t.id, { pri: p });
+		signature = "";
+		refresh();
+		notify(`Now ${PRI_NAME[p]}.`);
+	},
+});
+const tagRow = (t) => ({
+	label: "Tag",
+	options: [
+		...KINDS.filter((k) => k !== "class").map((k) => ({ label: KIND_LABEL[k], short: "", dot: k, value: k, current: t.kind === k })),
+		{ label: "Auto", short: "Auto", value: "", current: !isKind(t.kind) },
+	],
+	run: (k) => {
+		engines.todo.TodoUIBridge.command.update(t.id, { kind: isKind(k) ? k : null });
+		signature = "";
+		refresh();
+		notify(isKind(k) ? `Tagged ${KIND_LABEL[k]}.` : "Tag set to Auto.");
+	},
+});
+function completeTask(id) {
+	engines.todo.TodoUIBridge.command.toggle(id);
+	signature = "";
+	refresh();
+	const done = task(id);
+	notify(done?.done ? "Task completed." : "Task reopened.", true);
+}
+function deleteTask(id) {
+	engines.todo.TodoUIBridge.command.remove(id);
+	signature = "";
+	refresh();
+	notify("Task deleted.", true);
+}
+function taskMenu(el, x, y) {
+	const t = task(el.dataset.task);
+	if (!t) return;
+	const reminder = isCalendarReminder(t, courses);
+	const scheduled = !!(t.scheduleId || t.scheduledStart);
+	const entries = [];
+	if (!t.done && !reminder) entries.push({ label: "Start focus", hint: "Open the focus workspace", run: () => selectFocus(t.id) });
+	entries.push({ label: "Edit\u2026", run: () => openEditor(t.id) });
+	if (!t.done) entries.push({ label: scheduled ? "Reschedule\u2026" : "Schedule\u2026", run: () => openSchedule(t.id) });
+	if (!t.done) {
+		entries.push({ sep: true }, priorityRow(t), tagRow(t));
+		if (!scheduled)
+			entries.push({
+				label: "Move to tomorrow",
+				run: () => {
+					const prev = { dueKey: t.dueKey ?? null, due: t.due ?? null };
+					engines.todo.TodoUIBridge.command.update(t.id, { dueKey: tomorrowKey(), due: null });
+					signature = "";
+					refresh();
+					notify("Moved to tomorrow.", () => {
+						engines.todo.TodoUIBridge.command.update(t.id, prev);
+						signature = "";
+						refresh();
+					});
+				},
+			});
+		entries.push({ label: "Log time\u2026", run: () => openLogTime(t.id) });
+	}
+	entries.push({ sep: true }, { label: t.done ? "Reopen" : "Mark complete", run: () => completeTask(t.id) }, { label: "Delete", danger: true, run: () => deleteTask(t.id) });
+	showMenu(el, x, y, t.text, entries);
+}
+function groupMenu(el, x, y) {
+	const pri = el.dataset.priority;
+	const closed = collapsed.has(pri);
+	showMenu(el, x, y, PRI_NAME[pri], [
+		{ label: `Add a ${PRI_NAME[pri]} task`, hint: "Type it right in the list", run: () => openGroupAdd(pri) },
+		{
+			label: closed ? "Expand" : "Collapse",
+			run: () => {
+				closed ? collapsed.delete(pri) : collapsed.add(pri);
+				render();
+			},
+		},
+	]);
+}
+function docketMenu(el, x, y) {
+	const t = el.dataset.taskId ? task(el.dataset.taskId) : null;
+	const entries = [];
+	if (t) {
+		entries.push({ label: "Open task", run: () => openEditor(t.id) });
+		if (!t.done && !isCalendarReminder(t, courses)) entries.push({ label: "Focus on it again", run: () => selectFocus(t.id) });
+	}
+	entries.push({ label: "Log time\u2026", run: () => openLogTime(t?.id || "") });
+	if (el.dataset.manual === "1" && el.querySelector(".docket-remove")) entries.push({ sep: true }, { label: "Remove this entry", danger: true, run: () => el.querySelector(".docket-remove")?.click() });
+	showMenu(el, x, y, el.querySelector(".docket-desc")?.firstChild?.textContent?.trim() || "Docket entry", entries);
+}
+function areaMenu(el, x, y) {
+	const entries = [{ label: "New task\u2026", run: () => openEditor() }, { label: "Plan my day", hint: "Preview before anything is scheduled", run: () => openPlanDay() }];
+	if (el.dataset.area === "today") entries.push({ label: "Wrap up day", run: () => openWrapUp() });
+	showMenu(el, x, y, el.dataset.area === "tray" ? "Unscheduled" : "Today", entries);
+}
+function partnerMenu(el, x, y) {
+	const sound = broadcastSoundEnabled();
+	showMenu(el, x, y, "Broadcast", [
+		{ label: "Next line", run: () => advancePartnerLine() },
+		{
+			label: "Intensity",
+			options: [{ label: "Intense", value: "intense", current: partnerIntensity() === "intense" }, { label: "Steady", value: "steady", current: partnerIntensity() === "steady" }],
+			run: (v) => {
+				engines.todo.SyncEngine.set("user", "partnerIntensity", v);
+				partnerLine.key = "";
+				signature = "";
+				refresh();
+			},
+		},
+		{
+			label: sound ? "Mute voice" : "Unmute voice",
+			run: () => {
+				engines.todo.SyncEngine.set("user", "commandPartnerSound", !sound);
+				if (sound) stopBroadcastAudio();
+			},
+		},
+		{ sep: true },
+		{
+			label: "Hide Broadcast",
+			hint: "Turn him back on in Settings",
+			run: () => {
+				engines.todo.SyncEngine.set("user", "commandPartnerVisible", false);
+				stopBroadcastAudio();
+				const card = $("#broadcastCompanion");
+				if (card) card.hidden = true;
+			},
+		},
+	]);
+}
+function appMenu(el, x, y) {
+	showMenu(el, x, y, "Command Centre", [
+		{ label: theme === "dark" ? "Switch to light" : "Switch to dark", run: () => changeTheme() },
+		{ label: "Settings\u2026", run: () => openSettings() },
+		{ sep: true },
+		{ label: "Lock Command Centre", run: () => lock() },
+	]);
+}
+function openContextMenu(el, x, y) {
+	({ task: taskMenu, group: groupMenu, docket: docketMenu, area: areaMenu, partner: partnerMenu, app: appMenu })[el.dataset.ctx]?.(el, x, y);
+}
+function showCalendarMenu(element, x, y) {
+	const event = selectedEvent(element);
+	if (!event) return;
+	const block = courses.find((b) => b.id === event.id);
+	const oneOff = block?.startDate && block.startDate === block.endDate;
+	const linked = tasks.find((t) => t.scheduleId === event.id && normalizeDateKey(t.dueKey) === event.dateKey);
+	const open = linked && !linked.done;
+	const entries = [{ label: "View details", run: () => openEvent(event.id, event.sourceDate, event.dateKey) }];
+	if (open && !isCalendarReminder(linked, courses)) entries.push({ label: "Start focus", run: () => selectFocus(linked.id) });
+	if (open) entries.push({ label: "Mark complete", run: () => completeTask(linked.id) }, tagRow(linked));
+	entries.push({ sep: true }, { label: "Edit time", hint: "This occurrence only", run: () => openCalendarEditor(event) });
+	if (element.dataset.unschedule) entries.push({ label: "Move back to Unscheduled", hint: "Keeps the task", run: () => unscheduleFromElement(element) });
+	if (!oneOff) entries.push({ label: "Remove this week only", hint: dateLabel(localDate(event.dateKey)), run: () => applyCalendarChange(event, "skip") });
+	entries.push({ label: "Remove from schedule", hint: oneOff ? "Keep the linked task" : "All occurrences of this block", danger: true, run: () => applyCalendarChange(event, "remove") });
+	showMenu(element, x, y, event.name, entries);
 }
 document.addEventListener("contextmenu", (e) => {
+	/* Text fields, dialogs and the menu itself keep the browser's own menu. */
+	if (e.target.closest("input, textarea, select, dialog, .calendar-context-menu")) return;
 	const hit = calendarGrid(e);
 	if (hit) {
 		e.preventDefault();
 		openCalendarCreate(hit.column, hit.y);
 		return;
 	}
-	const element = e.target.closest(".event[data-event-id]");
+	const element = e.target.closest(".event[data-event-id], [data-ctx]");
 	if (!element) return;
 	e.preventDefault();
 	clearTimeout(holdTimer);
 	const bounds = element.getBoundingClientRect();
-	showCalendarMenu(element, e.clientX || bounds.left, e.clientY || bounds.top);
+	const x = e.clientX || bounds.left, y = e.clientY || bounds.top;
+	if (element.matches(".event")) showCalendarMenu(element, x, y);
+	else openContextMenu(element, x, y);
 });
 document.addEventListener("input", (e) => {
 	if (!quickAdd || !e.target.matches(".group-quick input")) return;
@@ -1942,6 +2168,91 @@ document.addEventListener("submit", (e) => {
 		notify(error.message);
 	}
 });
+function moveBlockTo(el, date, topMinute, dayStart, dayEnd) {
+	if (el.dataset.unschedule === "ghost") {
+		const start = movedTimes(el.dataset.start, el.dataset.start, topMinute, dayStart, dayEnd).start;
+		openSchedule(el.dataset.id, date, start, "This task has a time but is not on the calendar yet. Saving makes it a real block.");
+		return;
+	}
+	const ev = selectedEvent(el);
+	if (!ev) return;
+	const next = movedTimes(ev.start, ev.end, topMinute, 0, 1439);
+	if (date === ev.dateKey && next.start === ev.start) return;
+	applyCalendarChange(ev, "edit", { date, start: next.start, end: next.end }, `Moved to ${dateLabel(localDate(date))} at ${next.start}.`);
+}
+/* Drag the bottom edge of a block to change its length. */
+document.addEventListener("pointerdown", (e) => {
+	const handle = e.target.closest?.("[data-resize]");
+	if (!handle || e.button > 0) return;
+	const el = handle.closest(".event[data-event-id]");
+	const ev = el && selectedEvent(el);
+	const column = el?.closest("[data-drop-calendar]");
+	if (!ev || !column) return;
+	e.preventDefault();
+	e.stopPropagation();
+	const dayStart = Number(column.dataset.start);
+	const originalHeight = el.style.height;
+	let end = ev.end;
+	el.draggable = false;
+	handle.setPointerCapture?.(e.pointerId);
+	el.classList.add("is-resizing");
+	const paint = (clientY) => {
+		const raw = dayStart + ((clientY - column.getBoundingClientRect().top) / 76) * 60;
+		end = resizedEnd(ev.start, raw);
+		el.style.height = `${Math.max(27, ((minutes(end) - minutes(ev.start)) * 76) / 60 - 4)}px`;
+		const label = el.querySelector("span");
+		if (label) label.textContent = `${ev.start} \u2013 ${end}`;
+	};
+	const finish = (commit) => {
+		handle.removeEventListener("pointermove", onMove);
+		handle.removeEventListener("pointerup", onUp);
+		handle.removeEventListener("pointercancel", onCancel);
+		document.removeEventListener("keydown", onKey, true);
+		el.classList.remove("is-resizing");
+		el.draggable = true;
+		suppressBlockClick = el;
+		if (commit && end !== ev.end) applyCalendarChange(ev, "edit", { date: ev.dateKey, start: ev.start, end }, `Now ends at ${end}.`).then((ok) => { if (!ok) { signature = ""; render(); } });
+		else {
+			el.style.height = originalHeight;
+			signature = "";
+			render();
+		}
+	};
+	const onMove = (m) => paint(m.clientY);
+	const onUp = () => finish(true);
+	const onCancel = () => finish(false);
+	const onKey = (k) => {
+		if (k.key === "Escape") {
+			k.stopPropagation();
+			end = ev.end;
+			finish(false);
+		}
+	};
+	handle.addEventListener("pointermove", onMove);
+	handle.addEventListener("pointerup", onUp);
+	handle.addEventListener("pointercancel", onCancel);
+	document.addEventListener("keydown", onKey, true);
+}, true);
+function saveBlockTag(id, kind) {
+	(async () => {
+		try {
+			await engines.timetable.SyncEngine.pull("timetable");
+			let blocks = engines.timetable.SyncEngine.get("timetable", "courses") || [];
+			/* Clone first: the sync layer only pushes when the saved value actually differs. */
+			blocks = JSON.parse(typeof blocks === "string" ? blocks : JSON.stringify(blocks));
+			const target = blocks.find((x) => x.id === id);
+			if (!target) throw Error("This block is no longer on the schedule.");
+			target.description = withTypeTag(target.description, kind);
+			engines.timetable.schedule = blocks;
+			engines.timetable.saveBlocks(blocks);
+			signature = "";
+			refresh();
+			notify(kind ? `Tagged ${KIND_LABEL[kind]}.` : "Tag removed.");
+		} catch (error) {
+			notify(error.message);
+		}
+	})();
+}
 function openCalendarCreate(column, y) {
 	const date = column.dataset.date,
 		start = timeAtOffset(y, Number(column.dataset.start), Number(column.dataset.end));
@@ -2014,28 +2325,55 @@ const calendarGrid = (e) => {
 	if (!column || !column.dataset.date) return null;
 	return { column, y: e.clientY - column.getBoundingClientRect().top };
 };
+function zoomPlanDay(date) {
+	if (planDays === 1) planDays = 3;
+	else {
+		planDays = 1;
+		weekOffset = Math.round((localDate(date) - localDate(isoDate())) / 864e5);
+	}
+	signature = "";
+	render();
+}
 document.addEventListener("dblclick", (e) => {
+	if (e.target.closest("dialog, input, textarea, select, .calendar-context-menu")) return;
 	const hit = calendarGrid(e);
-	if (hit) openCalendarCreate(hit.column, hit.y);
+	if (hit) return openCalendarCreate(hit.column, hit.y);
+	if (e.target.closest("button, a, .task-actions, .event")) return;
+	const row = e.target.closest(".task-row[data-task]");
+	if (row) {
+		const t = task(row.dataset.task);
+		if (t && !t.done) selectFocus(t.id);
+		return;
+	}
+	const day = e.target.closest(".calendar-date[data-date]");
+	if (day) return zoomPlanDay(day.dataset.date);
+	const entry = e.target.closest(".docket-row");
+	if (entry) {
+		if (entry.dataset.taskId && task(entry.dataset.taskId)) openEditor(entry.dataset.taskId);
+		return;
+	}
+	if (e.target.closest(".docket-layout") && !e.target.closest(".broadcast-card")) openLogTime();
 });
 document.addEventListener("keydown", (e) => {
 	if (e.key !== "ContextMenu" && !(e.shiftKey && e.key === "F10")) return;
-	const element = e.target.closest(".event[data-event-id]");
-	if (!element) return;
+	const element = e.target.closest(".event[data-event-id], [data-ctx]");
+	if (!element || e.target.closest("input, textarea, select")) return;
 	e.preventDefault();
 	const bounds = element.getBoundingClientRect();
-	showCalendarMenu(element, bounds.left, bounds.top);
+	if (element.matches(".event")) showCalendarMenu(element, bounds.left, bounds.top);
+	else openContextMenu(element, bounds.left + 12, bounds.top + 12);
 });
 document.addEventListener("pointerdown", (e) => {
 	if (calendarMenu && !calendarMenu.contains(e.target)) closeCalendarMenu();
 	clearTimeout(holdTimer);
-	const element = e.target.closest(".event[data-event-id]");
-	if (!element || e.pointerType !== "touch") return;
+	const element = e.target.closest(".event[data-event-id], [data-ctx]");
+	if (!element || e.pointerType !== "touch" || e.target.closest("input, textarea, select, button.group-add")) return;
 	const x = e.clientX,
 		y = e.clientY;
 	holdTimer = setTimeout(() => {
 		suppressBlockClick = element;
-		showCalendarMenu(element, x, y);
+		if (element.matches(".event")) showCalendarMenu(element, x, y);
+		else openContextMenu(element, x, y);
 	}, 500);
 	const cancelOnMove = (move) => {
 		if (Math.abs(move.clientX - x) + Math.abs(move.clientY - y) > 10)
@@ -2106,6 +2444,27 @@ function saveCalendarState(state) {
 	engines.timetable.render();
 	signature = "";
 	refresh();
+}
+function unscheduleFromElement(el) {
+	if (el.dataset.unschedule === "ghost") return unscheduleTimedTask(el.dataset.id);
+	const ev = selectedEvent(el);
+	const linked = ev && tasks.find((t) => t.scheduleId === ev.id && normalizeDateKey(t.dueKey) === ev.dateKey);
+	applyCalendarChange(ev, "remove", {}, "Moved back to Unscheduled.").then((ok) => {
+		if (!ok || !linked) return;
+		/* The task write can be overwritten by a sync already in flight; re-clear until it sticks. */
+		const settle = () => {
+			engines.todo.TodoUIBridge.refresh();
+			const t = engines.todo.TodoUIBridge.snapshot().tasks.find((x) => x.id === linked.id);
+			if (t && !t.done && (t.scheduledStart || t.scheduleId)) {
+				engines.todo.TodoUIBridge.command.update(linked.id, { scheduledStart: null, scheduledEnd: null, scheduleId: null, timeboxed: false });
+				signature = "";
+				refresh();
+			}
+		};
+		settle();
+		setTimeout(settle, 400);
+		setTimeout(settle, 1500);
+	});
 }
 function unscheduleTimedTask(id) {
 	const t = task(id);
@@ -2414,15 +2773,9 @@ document.addEventListener("click", (e) => {
 			signature = "";
 			render();
 			break;
-		case "group-add": {
-			const pri = b.dataset.priority;
-			quickAdd = quickAdd?.pri === pri ? null : { pri, value: "" };
-			collapsed.delete(pri);
-			signature = "";
-			render();
-			document.querySelector(".group-quick input")?.focus();
+		case "group-add":
+			openGroupAdd(b.dataset.priority, true);
 			break;
-		}
 		case "tag-pick": {
 			const kind = isKind(b.dataset.kind) ? b.dataset.kind : null;
 			const box = b.closest(".tag-box");
@@ -2440,24 +2793,7 @@ document.addEventListener("click", (e) => {
 		case "set-block-tag": {
 			const kind = isKind(b.dataset.kind) ? b.dataset.kind : null;
 			syncTagRow(b, kind);
-			(async () => {
-				try {
-					await engines.timetable.SyncEngine.pull("timetable");
-					let blocks = engines.timetable.SyncEngine.get("timetable", "courses") || [];
-					/* Clone first: the sync layer only pushes when the saved value actually differs. */
-					blocks = JSON.parse(typeof blocks === "string" ? blocks : JSON.stringify(blocks));
-					const target = blocks.find((x) => x.id === id);
-					if (!target) throw Error("This block is no longer on the schedule.");
-					target.description = withTypeTag(target.description, kind);
-					engines.timetable.schedule = blocks;
-					engines.timetable.saveBlocks(blocks);
-					signature = "";
-					refresh();
-					notify(kind ? `Tagged ${KIND_LABEL[kind]}.` : "Tag removed.");
-				} catch (error) {
-					notify(error.message);
-				}
-			})();
+			saveBlockTag(id, kind);
 			break;
 		}
 		case "ghost":
@@ -2650,7 +2986,7 @@ function renderPlan() {
 		available = end - start - planned;
 	const today = isoDate();
 	const nudge = planNudge({ now: new Date(), eventsFor: (key) => dayEvents(localDate(key)), tasks, dismissed: engines.todo.SyncEngine.get("user", "planNudge") || "" });
-	return `<div class="planner-layout"><aside class="surface planner-tray" data-unschedule-zone><div class="tray-drop-hint" aria-hidden="true">Drop to unschedule</div><div class="section-heading"><h2>Unscheduled</h2><span>${open.length} tasks</span></div><p class="muted" style="font-size:11px;margin:0 5px 17px">Drag a task into a day, or choose its calendar button.</p>${open.length ? open.map((t) => taskRow(t, true)).join("") : '<p class="group-empty">Your tasks have a time. Add another when you need it.</p>'}<button class="text-button" data-action="add" style="align-self:flex-start;margin:4px 5px 24px">+ Add a task</button><div class="tray-timer"><div><small>Focus</small><b data-timer>45:00</b></div><button data-action="timer" aria-label="Start or pause focus">${icon("play")}</button></div></aside><section class="surface planner-calendar" style="--plan-days:${planDays}"><div class="calendar-head">${icon("calendar")}<div class="calendar-dates">${dates.map((d) => `<div class="calendar-date ${isoDate(d) === today ? "today" : ""}">${d.toLocaleDateString("en-CA", { weekday: "short", day: "numeric" })}<small>${d.toLocaleDateString("en-CA", { month: "long", year: "numeric" })}</small></div>`).join("")}</div></div><div class="calendar-toolbar"><div class="plan-range" role="group" aria-label="Calendar view">${[1,3,7].map(n => `<button data-action="plan-range" data-days="${n}" aria-pressed="${planDays===n}">${n===7?"1 week":n===1?"1 day":"3 days"}</button>`).join("")}</div><button data-action="week-prev" aria-label="Previous ${planDays} days">←</button><button data-action="week-today">Today</button><button data-action="week-next" aria-label="Next ${planDays} days">→</button><button data-action="standalone" data-type="timetable">Edit timetable ↗</button></div>${nudge ? `<div class="plan-nudge" role="status"><span>${esc(nudge.text)}</span><button class="primary" data-action="nudge-plan" data-date="${nudge.date}">Plan ${esc(localDate(nudge.date).toLocaleDateString("en-CA", { weekday: "long" }))}</button><button class="icon-button" data-action="nudge-dismiss" data-date="${nudge.date}" aria-label="Dismiss">\u00d7</button></div>` : ""}<div class="calendar-scroll"><div class="calendar-body" style="--calendar-height:${((end - start) * 76) / 60}px"><div class="calendar-hours">${Array.from({ length: (end - start) / 60 + 1 }, (_, i) => `<span style="top:${i * 76}px">${timeString(start + i * 60)}</span>`).join("")}</div><div class="calendar-columns">${dates
+	return `<div class="planner-layout"><aside class="surface planner-tray" data-unschedule-zone data-ctx="area" data-area="tray"><div class="tray-drop-hint" aria-hidden="true">Drop to unschedule</div><div class="section-heading"><h2>Unscheduled</h2><span>${open.length} tasks</span></div><p class="muted" style="font-size:11px;margin:0 5px 17px">Drag a task into a day, or choose its calendar button.</p>${open.length ? open.map((t) => taskRow(t, true)).join("") : '<p class="group-empty">Your tasks have a time. Add another when you need it.</p>'}<button class="text-button" data-action="add" style="align-self:flex-start;margin:4px 5px 24px">+ Add a task</button><div class="tray-timer"><div><small>Focus</small><b data-timer>45:00</b></div><button data-action="timer" aria-label="Start or pause focus">${icon("play")}</button></div></aside><section class="surface planner-calendar" style="--plan-days:${planDays}"><div class="calendar-head">${icon("calendar")}<div class="calendar-dates">${dates.map((d) => `<div class="calendar-date ${isoDate(d) === today ? "today" : ""}" data-date="${isoDate(d)}" title="Double-click to ${planDays === 1 ? "see three days" : "zoom to this day"}">${d.toLocaleDateString("en-CA", { weekday: "short", day: "numeric" })}<small>${d.toLocaleDateString("en-CA", { month: "long", year: "numeric" })}</small></div>`).join("")}</div></div><div class="calendar-toolbar"><div class="plan-range" role="group" aria-label="Calendar view">${[1,3,7].map(n => `<button data-action="plan-range" data-days="${n}" aria-pressed="${planDays===n}">${n===7?"1 week":n===1?"1 day":"3 days"}</button>`).join("")}</div><button data-action="week-prev" aria-label="Previous ${planDays} days">←</button><button data-action="week-today">Today</button><button data-action="week-next" aria-label="Next ${planDays} days">→</button><button data-action="standalone" data-type="timetable">Edit timetable ↗</button></div>${nudge ? `<div class="plan-nudge" role="status"><span>${esc(nudge.text)}</span><button class="primary" data-action="nudge-plan" data-date="${nudge.date}">Plan ${esc(localDate(nudge.date).toLocaleDateString("en-CA", { weekday: "long" }))}</button><button class="icon-button" data-action="nudge-dismiss" data-date="${nudge.date}" aria-label="Dismiss">\u00d7</button></div>` : ""}<div class="calendar-scroll"><div class="calendar-body" style="--calendar-height:${((end - start) * 76) / 60}px"><div class="calendar-hours">${Array.from({ length: (end - start) / 60 + 1 }, (_, i) => `<span style="top:${i * 76}px">${timeString(start + i * 60)}</span>`).join("")}</div><div class="calendar-columns">${dates
 		.map((date, i) => {
 			const gap = gaps(events[i], start, end).find(
 				([s, e]) => e - s >= 45 && s >= minutes("12:00"),
@@ -2669,7 +3005,7 @@ function formatMinutes(n) {
 	);
 }
 function broadcastMarkup() {
-	return `<section class="surface context-card broadcast-card" id="broadcastCompanion" aria-label="Broadcast, your focus partner"><div class="broadcast-stage" data-action="partner-tap"><div class="broadcast-3d" title="Tap to hear from your partner"></div><div class="broadcast-figure ${broadcastPose}" role="img" aria-label="Broadcast, a muscular CRT television-headed partner in a tailored charcoal suit"><div class="broadcast-shadow"></div><div class="broadcast-leg broadcast-leg-left"><div class="broadcast-shoe"></div></div><div class="broadcast-leg broadcast-leg-right"><div class="broadcast-shoe"></div></div><div class="broadcast-arm broadcast-arm-left"><div class="broadcast-cuff"></div><div class="broadcast-hand"></div></div><div class="broadcast-arm broadcast-arm-right"><div class="broadcast-cuff"></div><div class="broadcast-hand"></div></div><div class="broadcast-body"><div class="broadcast-shirt"></div><div class="broadcast-tie"></div><div class="broadcast-lapel"></div><div class="broadcast-lapel broadcast-lapel-right"></div><div class="broadcast-pocket"></div></div><div class="broadcast-head"><div class="broadcast-antenna"></div><div class="broadcast-screen"><div class="broadcast-face"><span class="broadcast-eye broadcast-eye-left"></span><span class="broadcast-eye broadcast-eye-right"></span><span class="broadcast-mouth"></span><span class="broadcast-fang"></span></div><div class="broadcast-scan"></div><div class="broadcast-reflection"></div></div><div class="broadcast-knob"></div></div></div></div><div class="broadcast-dialogue" data-state="tuning"><span class="sr-only bubble-sr" role="status" aria-live="polite">${esc(broadcastLine)}</span><span class="bubble-ghost" aria-hidden="true">${esc(broadcastLine)}</span><span class="bubble-text" aria-hidden="true">${esc(broadcastLine)}</span><i class="bubble-static" aria-hidden="true"></i></div>${partnerCta ? `<button class="broadcast-cta" data-action="partner-cta" data-kind="${esc(partnerCta.kind)}" data-id="${esc(partnerCta.id || "")}">${esc(partnerCta.label)}</button>` : ""}<p class="broadcast-away" role="status"></p></section>`;
+	return `<section class="surface context-card broadcast-card" id="broadcastCompanion" data-ctx="partner" aria-label="Broadcast, your focus partner"><div class="broadcast-stage" data-action="partner-tap"><div class="broadcast-3d" title="Tap to hear from your partner"></div><div class="broadcast-figure ${broadcastPose}" role="img" aria-label="Broadcast, a muscular CRT television-headed partner in a tailored charcoal suit"><div class="broadcast-shadow"></div><div class="broadcast-leg broadcast-leg-left"><div class="broadcast-shoe"></div></div><div class="broadcast-leg broadcast-leg-right"><div class="broadcast-shoe"></div></div><div class="broadcast-arm broadcast-arm-left"><div class="broadcast-cuff"></div><div class="broadcast-hand"></div></div><div class="broadcast-arm broadcast-arm-right"><div class="broadcast-cuff"></div><div class="broadcast-hand"></div></div><div class="broadcast-body"><div class="broadcast-shirt"></div><div class="broadcast-tie"></div><div class="broadcast-lapel"></div><div class="broadcast-lapel broadcast-lapel-right"></div><div class="broadcast-pocket"></div></div><div class="broadcast-head"><div class="broadcast-antenna"></div><div class="broadcast-screen"><div class="broadcast-face"><span class="broadcast-eye broadcast-eye-left"></span><span class="broadcast-eye broadcast-eye-right"></span><span class="broadcast-mouth"></span><span class="broadcast-fang"></span></div><div class="broadcast-scan"></div><div class="broadcast-reflection"></div></div><div class="broadcast-knob"></div></div></div></div><div class="broadcast-dialogue" data-state="tuning"><span class="sr-only bubble-sr" role="status" aria-live="polite">${esc(broadcastLine)}</span><span class="bubble-ghost" aria-hidden="true">${esc(broadcastLine)}</span><span class="bubble-text" aria-hidden="true">${esc(broadcastLine)}</span><i class="bubble-static" aria-hidden="true"></i></div>${partnerCta ? `<button class="broadcast-cta" data-action="partner-cta" data-kind="${esc(partnerCta.kind)}" data-id="${esc(partnerCta.id || "")}">${esc(partnerCta.label)}</button>` : ""}<p class="broadcast-away" role="status"></p></section>`;
 }
 const monthDay = (d) => d.toLocaleDateString("en-CA", { month: "short", day: "numeric" });
 const clockTime = (ms) => {
@@ -2825,7 +3161,7 @@ function renderDocket() {
 		const d = new Date(e.start), day = isoDate(d), first = day !== lastDay;
 		lastDay = day;
 		const manual = e.source === "manual";
-		return '<div class="docket-row"><span class="docket-date">' + (first ? "<b>" + d.toLocaleDateString("en-CA", { weekday: "short" }) + "</b>" + monthDay(d) : "") + '</span><span class="docket-desc">' + esc(e.description) + '<span class="docket-meta"><span class="kind-chip ' + e.kind + '">' + KIND_LABEL[e.kind] + "</span><span>" + clockTime(e.start) + " – " + clockTime(e.end) + "</span>" + (manual ? "<span>Logged</span>" : "") + (e.sessions > 1 ? "<span>" + e.sessions + " sessions</span>" : "") + (isLateNight(e) ? '<span class="late-chip">After midnight</span>' : "") + '</span></span><span class="docket-units">' + formatUnits(e.units) + (manual ? '<button class="icon-button docket-remove" data-action="docket-remove" data-id="' + esc(e.id) + '" aria-label="Remove this entry">' + icon("close") + "</button>" : "") + "</span></div>";
+		return '<div class="docket-row" data-ctx="docket" data-task-id="' + esc(e.taskId || "") + '" data-manual="' + (manual ? 1 : 0) + '"><span class="docket-date">' + (first ? "<b>" + d.toLocaleDateString("en-CA", { weekday: "short" }) + "</b>" + monthDay(d) : "") + '</span><span class="docket-desc">' + esc(e.description) + '<span class="docket-meta"><span class="kind-chip ' + e.kind + '">' + KIND_LABEL[e.kind] + "</span><span>" + clockTime(e.start) + " – " + clockTime(e.end) + "</span>" + (manual ? "<span>Logged</span>" : "") + (e.sessions > 1 ? "<span>" + e.sessions + " sessions</span>" : "") + (isLateNight(e) ? '<span class="late-chip">After midnight</span>' : "") + '</span></span><span class="docket-units">' + formatUnits(e.units) + (manual ? '<button class="icon-button docket-remove" data-action="docket-remove" data-id="' + esc(e.id) + '" aria-label="Remove this entry">' + icon("close") + "</button>" : "") + "</span></div>";
 	}).join("");
 	const first = localDate(keys[0]), last = localDate(keys[6]);
 	const pace = docketOffset === 0 && s.billable >= weeklyCeiling() ? '<span class="behind">Past your ' + formatUnits(weeklyCeiling()) + " h ceiling. Rest.</span>" : docketOffset === 0 ? (s.pace === "ahead" ? '<span class="ahead">' + formatUnits(s.billable - s.expected) + " h ahead of pace</span>" : s.pace === "behind" ? '<span class="behind">' + formatUnits(s.expected - s.billable) + " h behind pace</span>" : '<span class="ahead">On pace</span>') : "<span>" + formatUnits(s.remaining) + " h short of target</span>";

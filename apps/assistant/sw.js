@@ -1,4 +1,4 @@
-const CACHE = "command-centre-20261003-notify";
+const CACHE = "command-centre-20261003-gestures";
 const SHELL = [
 	"../../widget-platform.js",
 	"../../reading-estimates.js",
@@ -12,6 +12,7 @@ const SHELL = [
 	"./hours.mjs",
 	"./autofit.mjs",
 	"./calendar-extras.mjs",
+	"./interactions.mjs",
 	"./split.mjs",
 	"./broadcast3d.mjs",
 	"./partner.mjs",

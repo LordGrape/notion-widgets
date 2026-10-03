@@ -3720,3 +3720,128 @@ dialog h3 {
 	opacity: 0.5;
 	cursor: not-allowed;
 }
+/* Context menu rows of choices */
+.calendar-context-menu .menu-sep {
+	margin: 6px 4px;
+	border: 0;
+	border-top: 1px solid var(--line);
+}
+.calendar-context-menu .menu-row {
+	padding: 6px 8px 8px;
+}
+.calendar-context-menu .menu-row-label {
+	display: block;
+	margin-bottom: 6px;
+	color: var(--muted);
+	font-size: 11px;
+	font-weight: 650;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+.calendar-context-menu .menu-options {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+}
+.calendar-context-menu .menu-opt {
+	flex-direction: row;
+	align-items: center;
+	width: auto;
+	min-width: 30px;
+	justify-content: center;
+	padding: 6px 10px;
+	border: 1px solid var(--line);
+	border-radius: 999px;
+	font-size: 12px;
+}
+.calendar-context-menu .menu-opt .kind-dot {
+	margin-right: 0;
+}
+.calendar-context-menu .menu-opt[aria-checked="true"] {
+	background: var(--accent-soft);
+	border-color: var(--accent);
+	color: var(--accent);
+	font-weight: 650;
+}
+/* Drag and drop */
+.task-group.drop-target {
+	outline: 2px dashed color-mix(in srgb, var(--accent) 55%, transparent);
+	outline-offset: -2px;
+}
+.drop-line {
+	height: 3px;
+	margin: 2px 6px;
+	border-radius: 3px;
+	background: var(--accent);
+	pointer-events: none;
+}
+.focus-dock.drop-target {
+	outline: 2px dashed var(--accent);
+	outline-offset: -4px;
+	background: var(--accent-soft);
+}
+.event[data-move] {
+	cursor: grab;
+}
+.event[data-move]:active {
+	cursor: grabbing;
+}
+.event-resize {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 9px;
+	cursor: ns-resize;
+	touch-action: none;
+}
+.event-resize::after {
+	content: "";
+	position: absolute;
+	left: 50%;
+	bottom: 2px;
+	width: 22px;
+	height: 3px;
+	border-radius: 3px;
+	background: var(--event-color, var(--accent));
+	opacity: 0;
+	transform: translateX(-50%);
+	transition: opacity 0.15s;
+}
+.event:hover .event-resize::after,
+.event.is-resizing .event-resize::after {
+	opacity: 0.7;
+}
+.event.is-resizing {
+	z-index: 5;
+	box-shadow: 0 6px 18px #1d123533;
+	user-select: none;
+}
+@media (hover: none) {
+	.event-resize { height: 16px; }
+	.event-resize::after { opacity: 0.5; }
+}
+/* Double-tap should act, not zoom the page. */
+.task-row, .calendar-column, .timeline, .calendar-date, .docket-layout {
+	touch-action: manipulation;
+}
+.gesture-tips {
+	margin-top: 14px;
+	font-size: 12px;
+	color: var(--muted);
+}
+.gesture-tips summary {
+	cursor: pointer;
+	font-weight: 650;
+	color: var(--text);
+}
+.gesture-tips ul {
+	margin: 8px 0 0;
+	padding-left: 18px;
+	line-height: 1.6;
+}
+.gesture-tips b {
+	color: var(--text);
+}
+/* Toasts must not intercept drops (they sit over the timer bar). */
+body.is-dragging #toast { pointer-events: none; }
