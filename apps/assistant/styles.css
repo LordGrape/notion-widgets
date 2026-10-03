@@ -3468,3 +3468,24 @@ dialog h3 {
 	.kind-picker .kind-chip { transition: none; }
 	.kind-picker .kind-chip:hover { transform: none; }
 }
+
+.event.tagged,
+.event.is-task.tagged {
+	border: 1px solid color-mix(in srgb, var(--event-color) 40%, var(--line));
+	border-left: 4px solid var(--event-color);
+	background: color-mix(in srgb, var(--event-color) 16%, var(--surface));
+}
+.event.tagged:hover,
+.event.is-task.tagged:hover {
+	background: color-mix(in srgb, var(--event-color) 24%, var(--surface));
+}
+.event.tagged b {
+	color: color-mix(in srgb, var(--event-color) 62%, var(--text));
+}
+.event.task-ghost.tagged {
+	border-style: dashed;
+	border-left-style: solid;
+}
+.event.is-task.tagged.completed {
+	opacity: 0.7;
+}

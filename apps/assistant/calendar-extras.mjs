@@ -68,3 +68,19 @@ export function timeAtOffset(y, startMinute, endMinute, hour = 76) {
 }
 
 export { minutes };
+
+/* A block's tag lives in its description as a "Type: study" line, because the
+   timetable widget keeps descriptions but drops unknown block fields. */
+const TYPE_LINE = /^[ \t]*Type:[ \t]*([A-Za-z]+)[ \t]*$/im;
+export function parseTypeTag(description = "", kinds = []) {
+	const kind = String(description).match(TYPE_LINE)?.[1]?.toLowerCase();
+	return kinds.includes(kind) ? kind : null;
+}
+export function stripTypeTag(description = "") {
+	return String(description).replace(/^[ \t]*Type:[ \t]*[A-Za-z]+[ \t]*(\r?\n|$)/im, "").trim();
+}
+export function withTypeTag(description = "", kind = null) {
+	const rest = stripTypeTag(description);
+	if (!kind) return rest;
+	return rest ? `Type: ${kind}\n${rest}` : `Type: ${kind}`;
+}

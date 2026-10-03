@@ -54,3 +54,17 @@ test("a click offset snaps to 15 minutes inside the window", () => {
 	assert.equal(timeAtOffset(100, 540, 1020), "10:15");
 	assert.equal(timeAtOffset(99999, 540, 1020), "16:45");
 });
+
+import { parseTypeTag, stripTypeTag, withTypeTag } from "./calendar-extras.mjs";
+const KS = ["class", "reading", "study", "practice", "writing", "admin"];
+test("a Type line in a description is read, stripped and rewritten", () => {
+	const d = "Course: LAW 195\nType: study\nSome notes";
+	assert.equal(parseTypeTag(d, KS), "study");
+	assert.equal(stripTypeTag(d), "Course: LAW 195\nSome notes");
+	assert.equal(withTypeTag(d, "writing"), "Type: writing\nCourse: LAW 195\nSome notes");
+	assert.equal(withTypeTag(d, null), "Course: LAW 195\nSome notes");
+	assert.equal(withTypeTag("", "reading"), "Type: reading");
+	assert.equal(parseTypeTag("Type: nonsense", KS), null);
+	assert.equal(parseTypeTag("", KS), null);
+	assert.equal(stripTypeTag("Type: study"), "");
+});
