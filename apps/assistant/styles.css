@@ -2297,9 +2297,9 @@ dialog[open] {
 .broadcast-scan,.broadcast-reflection { position: absolute; inset: 0; pointer-events: none; }
 .broadcast-scan { z-index: 4; opacity: .13; background: repeating-linear-gradient(0deg,transparent 0 3px,#d3a7ff 3px 4px); }
 .broadcast-reflection { z-index: 5; border-radius: inherit; background: linear-gradient(130deg,#f5e4ff18,transparent 45%); }
-.broadcast-knob { position: absolute; right: 4px; bottom: 18px; width: 10px; height: 10px; border-radius: 50%; background: linear-gradient(135deg,#b6a8bd,#352940); box-shadow: 0 -15px #64536e; }
-.broadcast-antenna { position: absolute; top: -17px; left: 111px; width: 3px; height: 17px; background: #aa9ab2; transform: rotate(25deg); transform-origin: bottom; }
-.broadcast-antenna::after { content: ""; position: absolute; top: -3px; left: -2px; width: 7px; height: 7px; border-radius: 50%; background: #c3acd0; }
+.broadcast-clasps { position: absolute; left: 23px; top: 6px; width: 23px; height: 10px; border-radius: 2px; background: var(--broadcast-silver); box-shadow: 113px 0 var(--broadcast-silver); }
+.broadcast-handle { position: absolute; top: -30px; left: 60px; width: 68px; height: 31px; border: 8px solid var(--broadcast-cloth); border-bottom: 0; border-radius: 18px 18px 0 0; box-shadow: inset 0 2px var(--broadcast-seam); }
+.broadcast-handle::after { content: ""; position: absolute; left: -11px; bottom: -3px; width: 15px; height: 9px; border-radius: 3px; background: var(--broadcast-silver); box-shadow: 60px 0 var(--broadcast-silver); }
 .broadcast-dialogue { margin: 4px 0 0; padding: 10px 12px; min-height: 52px; display: grid; place-items: center; border-radius: 11px; background: var(--surface-2); color: var(--text); font-size: 12px; line-height: 1.45; }
 .broadcast-greet .broadcast-arm-right { animation: broadcast-wave 1.35s ease-in-out; }
 .broadcast-greet .broadcast-head { animation: broadcast-nod .75s ease-in-out 2; }
@@ -3203,6 +3203,13 @@ dialog h3 {
 .broadcast-shoe::before, .broadcast-shoe::after { content: ""; position: absolute; right: 12px; top: 4px; width: 10px; height: 6px; border: 2px solid var(--broadcast-silver); border-radius: 2px; transform: rotate(10deg); }
 .broadcast-shoe::after { right: 25px; top: 7px; }
 
+
+/* Suitcase silhouette: shallow leather case, carry handle and silver clasps. */
+.broadcast-head { top: 17px; left: 18px; width: 204px; height: 130px; border: 3px solid var(--broadcast-seam); border-radius: 12px; background: linear-gradient(125deg,var(--broadcast-lapel),var(--broadcast-cloth)); box-shadow: 5px 4px var(--broadcast-cloth),7px 5px var(--broadcast-seam); }
+.broadcast-screen { inset: 24px 17px 15px; border-radius: 8px; }
+.broadcast-head .broadcast-mouth { top: 41px; height: 25px; }
+.broadcast-head .broadcast-fang { top: 63px; }
+
 /* Broadcast in 3D, with the 2D figure as the fallback. */
 .broadcast-stage { position: relative; }
 .broadcast-3d { position: absolute; inset: 0; display: none; cursor: pointer; }
@@ -3215,7 +3222,7 @@ dialog h3 {
 	width: min(1000px, 90vw, calc((100vh - 260px) * 100 / 110));
 	aspect-ratio: 100 / 110;
 	margin: 0 auto 8px;
-	background: url("./broadcast-run.webp?v=executive") 0 0 / 1600% 100% no-repeat;
+	background: url("./broadcast-run.webp?v=suitcase") 0 0 / 1600% 100% no-repeat;
 	animation: broadcast-run 0.64s steps(16, jump-none) infinite;
 }
 @keyframes broadcast-run {
@@ -3724,10 +3731,6 @@ dialog h3 {
 	width: 16px;
 	height: 16px;
 }
-/* logo theme start */
-.brand-mark{--lg-tileA:#f4efff;--lg-tileB:#d9ccff;--lg-tvA:#453d63;--lg-tvB:#1e1833;--lg-rim:#8a7bc4;--lg-scrA:#3b2085;--lg-scrB:#130a2c;--lg-m:#ffffff;--lg-glow:#b69cff;--lg-ant:#2b2640;--lg-orb:#7c3aed;--lg-knob:#b69cff;}
-:root[data-theme="dark"] .brand-mark{--lg-tileA:#2c2150;--lg-tileB:#0f0a1d;--lg-tvA:#ece6ff;--lg-tvB:#b5a6ef;--lg-rim:#ffffff;--lg-scrA:#3a1f80;--lg-scrB:#0e0624;--lg-m:#ffffff;--lg-glow:#b69cff;--lg-ant:#d9ccff;--lg-orb:#ffffff;--lg-knob:#6f50d1;}
-/* logo theme end */
 
 .notify-settings .notify-status {
 	margin: 10px 0 0;
@@ -3849,3 +3852,7 @@ dialog h3 {
 }
 /* Toasts must not intercept drops (they sit over the timer bar). */
 body.is-dragging #toast { pointer-events: none; }
+/* logo theme start */
+.brand-mark{--lg-tileA:#f4efff;--lg-tileB:#d9ccff;--lg-tvA:#453d63;--lg-tvB:#1e1833;--lg-rim:#8a7bc4;--lg-scrA:#3b2085;--lg-scrB:#130a2c;--lg-m:#ffffff;--lg-glow:#b69cff;--lg-ant:#2b2640;--lg-orb:#7c3aed;--lg-knob:#b69cff;}
+:root[data-theme="dark"] .brand-mark{--lg-tileA:#2c2150;--lg-tileB:#0f0a1d;--lg-tvA:#ece6ff;--lg-tvB:#b5a6ef;--lg-rim:#ffffff;--lg-scrA:#3a1f80;--lg-scrB:#0e0624;--lg-m:#ffffff;--lg-glow:#b69cff;--lg-ant:#d9ccff;--lg-orb:#ffffff;--lg-knob:#6f50d1;}
+/* logo theme end */

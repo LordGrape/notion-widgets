@@ -16,10 +16,16 @@ assert.deepEqual(model.animations.map(a => a.name).sort(), ['cheer','idle','run'
 for (const name of ['Root','Body','Neck','ShoulderL','ShoulderR','ElbowL','ElbowR','HipL','HipR','Screen']) {
  assert(model.nodes.some(n => n.name === name), `Missing rig node: ${name}`);
 }
-for (const name of ['Hand-1','Hand1','Shoe-1Buckle0_0','Shoe1Buckle0_0']) {
+for (const name of ['Hand-1','Hand1','Shoe-1Buckle0_0','Shoe1Buckle0_0','CaseHandle','CaseClasp-1']) {
  assert(model.nodes.some(n => n.name === name), `Missing executive mesh: ${name}`);
 }
 assert(model.materials.some(m => m.name !== 'Screen' && m.emissiveFactor?.some(v => v > 0)), 'Missing emissive hand signal');
+assert(!model.nodes.some(n => /Antenna/.test(n.name)), 'Old TV antenna remains');
+for (const file of ['icon.svg','icon-light.svg','icon-dark.svg','icon-maskable.svg','index.html']) {
+ const svg=fs.readFileSync(path.join(root,'apps/assistant',file),'utf8');
+ assert(svg.includes('class="lg-handle"'), `${file}: suitcase handle missing`);
+ assert(!svg.includes('class="lg-ant"'), `${file}: old logo antenna remains`);
+}
 const types = { '.html':'text/html', '.js':'text/javascript', '.mjs':'text/javascript', '.css':'text/css', '.svg':'image/svg+xml', '.glb':'model/gltf-binary', '.webp':'image/webp', '.json':'application/json' };
 const server = http.createServer((req,res) => {
  let file = path.resolve(root, '.' + new URL(req.url, 'http://localhost').pathname);

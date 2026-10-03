@@ -2,7 +2,7 @@
 
 Source for the 3D Broadcast used by Command Centre (`apps/assistant/broadcast.glb` and `apps/assistant/broadcast-run.webp`). The model is built procedurally in Blender; there is no hand-edited .blend to keep in sync.
 
-The executive wardrobe has a charcoal three-piece suit, peaked lapels, a silver tie bar, double-monk leather shoes and articulated silver hands with graphite joints and purple signal rings. The existing CRT head, face, rig and five animation clips are retained. Rebuild both assets together; the CSS fallback in `apps/assistant/styles.css` and `broadcastMarkup()` carries the same waistcoat, tie bar, segmented hands and buckles. Bump the app revision, stylesheet/script URLs, sprite URL and service-worker cache when shipping rebuilt assets.
+The executive wardrobe has a charcoal three-piece suit, peaked lapels, a silver tie bar, double-monk leather shoes and articulated silver hands with graphite joints and purple signal rings. The shallow leather suitcase head has a carry handle, silver clasps and corner protectors around the live purple face panel. The face, rig and five animation clips are retained. Rebuild both assets together; the CSS fallback in `apps/assistant/styles.css` and `broadcastMarkup()` carries the same waistcoat, tie bar, segmented hands and buckles. Bump the app revision, stylesheet/script URLs, sprite URL and service-worker cache when shipping rebuilt assets.
 
 ## Rebuild
 
@@ -27,4 +27,4 @@ For a quick modelling pass, `RENDER_RUN=0 PREVIEW_CLIPS=idle` skips the sprite r
 
 ## Logo
 
-`python tools/broadcast/logo.py` regenerates the Command Centre mark (Broadcast's CRT with the M on its screen): the two inline badges in `apps/assistant/index.html`, the light and dark theme variables in `styles.css`, and `icon.svg` (adapts to the browser's colour scheme), `icon-light.svg`, `icon-dark.svg` and `icon-maskable.svg`. The installed icons are dark-tile PNGs rendered from `icon-dark.svg` and `icon-maskable.svg` with `sharp` at 192, 512 (and maskable 512), 180 (`apple-touch-icon.png`) and 32 (`favicon-32.png`) px.
+`python tools/broadcast/logo.py` regenerates the Command Centre mark (Broadcast's suitcase with the M on its face panel): the two inline badges in `apps/assistant/index.html`, the light and dark theme variables in `styles.css`, and `icon.svg` (adapts to the browser's colour scheme), `icon-light.svg`, `icon-dark.svg` and `icon-maskable.svg`. The installed icons are dark-tile PNGs rendered from `icon-dark.svg` and `icon-maskable.svg` with `sharp` at 192, 512 (and maskable 512), 180 (`apple-touch-icon.png`) and 32 (`favicon-32.png`) px.

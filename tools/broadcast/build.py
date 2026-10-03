@@ -46,6 +46,7 @@ def mat(name, color, rough=0.5, metal=0.0, coat=0.0, coat_rough=0.1, sheen=0.0, 
 SUIT = mat("Suit", (0.028, 0.025, 0.036), rough=0.5, sheen=0.18, sheen_tint=(0.7, 0.6, 1))
 LAPEL = mat("Lapel", (0.034, 0.03, 0.045), rough=0.4, sheen=0.4)
 PLASTIC = mat("TV", (0.04, 0.035, 0.05), rough=0.28, coat=0.8, coat_rough=0.08)
+LEATHER = mat("Case leather", (0.024, 0.019, 0.032), rough=0.63, coat=0.12)
 BEZEL = mat("Bezel", (0.012, 0.01, 0.016), rough=0.35)
 GLOVE = mat("Glove", (0.085, 0.075, 0.11), rough=0.38, coat=0.4, coat_rough=0.2)
 CUFF = mat("Cuff", (0.55, 0.53, 0.62), rough=0.5)
@@ -211,39 +212,61 @@ p.inputs["Roughness"].default_value = 0.12
 p.inputs["Coat Weight"].default_value = 1.0
 p.inputs["Coat Roughness"].default_value = 0.02
 
-# ---------- head: rounded CRT ----------
+# ---------- head: executive suitcase with a live face panel ----------
 HZ = 2.62
-head = rounded_box("Head", (0, 0, HZ), (1.74, 1.16, 1.28), PLASTIC, bevel=0.26, segments=10)
-cut = rounded_box("Cutter", (0, -0.62, HZ + 0.02), (1.34, 0.42, 0.96), BEZEL, bevel=0.16, segments=8)
+head = rounded_box("Head", (0, 0, HZ), (1.92, 0.58, 1.22), LEATHER, bevel=0.14, segments=8)
+cut = rounded_box("Cutter", (0, -0.35, HZ - 0.025), (1.43, 0.3, 0.84), BEZEL, bevel=0.10, segments=8)
 cut.hide_render = cut.hide_viewport = True
 bm_ = head.modifiers.new("Recess", "BOOLEAN")
 bm_.object = cut
 bm_.operation = "DIFFERENCE"
 apply_mod(head, "Recess")
 head.modifiers.new("Weighted", "WEIGHTED_NORMAL")
-back = rounded_box("HeadBack", (0, 0.66, HZ - 0.03), (1.16, 0.5, 0.92), PLASTIC, bevel=0.22)
-inner = rounded_box("ScreenWell", (0, -0.43, HZ + 0.02), (1.36, 0.06, 0.98), BEZEL, bevel=0.06, segments=4)
+back = rounded_box("HeadBack", (0, 0.22, HZ), (1.88, 0.20, 1.18), LEATHER, bevel=0.085)
+inner = rounded_box("ScreenWell", (0, -0.205, HZ - 0.025), (1.45, 0.035, 0.86), BEZEL, bevel=0.06, segments=4)
 
-bpy.ops.mesh.primitive_plane_add(size=1, location=(0, -0.47, HZ + 0.02), rotation=(math.pi / 2, 0, 0))
+bpy.ops.mesh.primitive_plane_add(size=1, location=(0, -0.235, HZ - 0.025), rotation=(math.pi / 2, 0, 0))
 screen = bpy.context.object
-screen.scale = (1.26, 0.9, 1)
+screen.scale = (1.35, 0.76, 1)
 apply_tf(screen)
 bm = bmesh.new()
 bm.from_mesh(screen.data)
 bmesh.ops.subdivide_edges(bm, edges=bm.edges[:], cuts=24, use_grid_fill=True)
 for vtx in bm.verts:
-    vtx.co.y -= 0.06 * (1 - (vtx.co.x / 0.63) ** 2) * (1 - (vtx.co.z / 0.45) ** 2)
+    vtx.co.y -= 0.015 * (1 - (vtx.co.x / 0.675) ** 2) * (1 - (vtx.co.z / 0.38) ** 2)
 bm.to_mesh(screen.data)
 bm.free()
 finish(screen, SCREEN, 0)
 
-for dz in (0.14, -0.14):
-    bpy.ops.mesh.primitive_cylinder_add(vertices=32, radius=0.055, depth=0.07, location=(0.77, -0.58, HZ + dz), rotation=(math.pi / 2, 0, 0))
-    k = bpy.context.object
-    k.modifiers.new("Bevel", "BEVEL").width = 0.015
-    finish(k, METAL, 0)
-capsule("Antenna", (0.16, 0.05, HZ + 0.6), (0.3, 0.05, HZ + 1.0), 0.02, 0.016, METAL)
-ellipsoid("AntennaTip", (0.31, 0.05, HZ + 1.03), (0.06, 0.06, 0.06), METAL, sub=0)
+def case_curve(name, points, radius, material):
+    curve = bpy.data.curves.new(name, "CURVE")
+    curve.dimensions = "3D"
+    curve.bevel_depth, curve.bevel_resolution = radius, 3
+    spline = curve.splines.new("POLY")
+    spline.points.add(len(points)-1)
+    for point, position in zip(spline.points, points):
+        point.co = (*position, 1)
+    obj = bpy.data.objects.new(name, curve)
+    bpy.context.collection.objects.link(obj)
+    curve.materials.append(material)
+    activate(obj)
+    bpy.ops.object.convert(target="MESH")
+    return bpy.context.object
+
+# One continuous handle and a fine opening seam, all attached to Neck.
+handle = [(-0.32, 0, HZ + 0.62), (-0.32, 0, HZ + 0.76)]
+handle += [(0.32 * math.cos(a), 0, HZ + 0.76 + 0.16 * math.sin(a)) for a in np.linspace(math.pi, 0, 25)]
+handle.append((0.32, 0, HZ + 0.62))
+case_curve("CaseHandle", handle, 0.053, LEATHER)
+outline = []
+for cx, cz, start in ((0.79, 0.44, 0), (-0.79, 0.44, 90), (-0.79, -0.44, 180), (0.79, -0.44, 270)):
+    outline += [(cx + 0.115*math.cos(a), 0.13, HZ + cz + 0.115*math.sin(a)) for a in np.linspace(math.radians(start), math.radians(start+90), 12)]
+case_curve("CaseSeam", outline+[outline[0]], 0.012, JOINT)
+for s in (-1, 1):
+    rounded_box(f"CaseMount{s}", (s*0.32, 0, HZ+0.61), (0.18, 0.17, 0.10), METAL, 0.027)
+    rounded_box(f"CaseClasp{s}", (s*0.62, -0.295, HZ+0.46), (0.23, 0.045, 0.095), METAL, 0.022)
+    for z in (-0.48, 0.48):
+        rounded_box(f"CaseCorner{s}_{z}", (s*0.84, -0.257, HZ+z), (0.17, 0.095, 0.19), METAL, 0.055)
 
 # ---------- body: broad, tapered jacket ----------
 TZ = 1.42
@@ -435,7 +458,7 @@ for s in (-1, 1):
     hip = empty(f"Hip{side}", (s * 0.32, 0, 0.98), root)
     J[f"Shoulder{side}"], J[f"Elbow{side}"], J[f"Hip{side}"] = sh, el, hip
 
-HEAD_PARTS = ("Head", "HeadBack", "ScreenWell", "Screen", "Antenna", "AntennaTip", "Cylinder")
+HEAD_PARTS = ("Head", "HeadBack", "ScreenWell", "Screen", "Case")
 BODY_PARTS = ("Torso", "Deltoid", "Shirt", "Tie", "Lapel", "Collar", "Pocket", "TieKnot", "Button", "Waistcoat")
 for o in list(bpy.data.objects):
     if o.type != "MESH" or o.parent:
@@ -614,6 +637,7 @@ cam.data.lens = 75
 cam.location = (-6.4, -9.4, 2.9)
 target.location = (0, 0, 1.75)
 scene.render.resolution_x, scene.render.resolution_y = 1000, 1120
+bpy.ops.file.pack_all()
 bpy.ops.wm.save_as_mainfile(filepath=os.path.join(OUT, "broadcast_rigged.blend"))
 for o in list(bpy.data.objects):
     if o.type in ("LIGHT", "CAMERA") or o.name == "CamTarget":

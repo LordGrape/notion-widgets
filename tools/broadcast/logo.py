@@ -1,4 +1,4 @@
-"""Command Centre logo: Broadcast's CRT with the M on its screen. Run: python tools/broadcast/logo.py
+"""Command Centre logo: Broadcast's suitcase with the M on its screen. Run: python tools/broadcast/logo.py
 Rewrites the inline badges in apps/assistant/index.html, the theme variables in styles.css and the SVG icons.
 Then render the PNGs (see the Logo section of tools/broadcast/README.md)."""
 import os, re, json
@@ -7,7 +7,7 @@ LIGHT = dict(tileA='#f4efff', tileB='#d9ccff', tvA='#453d63', tvB='#1e1833', rim
              m='#ffffff', glow='#b69cff', ant='#2b2640', orb='#7c3aed', knob='#b69cff')
 DARK = dict(tileA='#2c2150', tileB='#0f0a1d', tvA='#ece6ff', tvB='#b5a6ef', rim='#ffffff', scrA='#3a1f80', scrB='#0e0624',
             m='#ffffff', glow='#b69cff', ant='#d9ccff', orb='#ffffff', knob='#6f50d1')
-M = 'M19 44V29.5l10.5 10 10.5-10V44'
+M = 'M22 44V31l10 9 10-9V44'
 
 def body(id, c, tile_rx=18, animated=True):
     k = (lambda n: c(n))
@@ -17,17 +17,16 @@ def body(id, c, tile_rx=18, animated=True):
         f'<linearGradient id="{id}b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:{k("tvA")}"/><stop offset="1" style="stop-color:{k("tvB")}"/></linearGradient>'
         f'<radialGradient id="{id}s" cx=".5" cy=".4" r=".8"><stop offset="0" style="stop-color:{k("scrA")}"/><stop offset="1" style="stop-color:{k("scrB")}"/></radialGradient></defs>'
         f'<rect width="64" height="64"{f" rx={chr(34)}{tile_rx}{chr(34)}" if tile_rx else ""} fill="url(#{id}t)"/>'
-        f'<g{cls("lg-ant")}><path d="M32 18 22 6M32 18 42 7" style="stroke:{k("ant")}" stroke-width="3.2" stroke-linecap="round" fill="none"/>'
-        f'<circle{cls("lg-orb")} cx="22" cy="5.6" r="3.2" style="fill:{k("orb")}"/><circle{cls("lg-orb lg-orb2") if animated else ""} cx="42" cy="6.6" r="3.2" style="fill:{k("orb")}"/></g>'
-        f'<rect x="6" y="17" width="52" height="41" rx="12" fill="url(#{id}b)"/>'
-        f'<rect x="6.5" y="17.5" width="51" height="40" rx="11.5" fill="none" style="stroke:{k("rim")}" stroke-opacity=".5"/>'
-        f'<path d="M11.5 27c0-5 3.5-9 8.5-9h14" stroke="#fff" stroke-opacity=".38" stroke-width="2" fill="none" stroke-linecap="round"/>'
-        f'<rect x="12" y="23" width="35" height="29" rx="8" fill="url(#{id}s)"/>'
+        f'<path class="lg-handle" d="M23 18V13Q23 8 28 8H36Q41 8 41 13V18" style="stroke:{k("ant")}" stroke-width="5" stroke-linecap="round" fill="none"/>'
+        f'<rect x="5" y="17" width="54" height="40" rx="7" fill="url(#{id}b)"/>'
+        f'<rect x="7" y="19" width="50" height="36" rx="5" fill="none" style="stroke:{k("rim")}" stroke-opacity=".6"/>'
+        f'<rect x="13" y="26" width="38" height="25" rx="4" fill="url(#{id}s)"/>'
+        f'<path d="M14 18V23H21V18M43 18V23H50V18" style="stroke:{k("rim")}" stroke-width="3" fill="none" stroke-linejoin="round"/>'
         f'<g{cls("lg-m")} fill="none" stroke-linejoin="round" stroke-linecap="round">'
         f'<path{cls("lg-glow")} d="{M}" style="stroke:{k("glow")}" stroke-width="9" stroke-opacity=".35"/>'
         + (f'<path{cls("lg-cyan")} d="{M}" stroke="#33e1ff" stroke-width="5.6"/><path{cls("lg-magenta")} d="{M}" stroke="#ff4fd0" stroke-width="5.6"/>' if animated else '')
         + f'<path{cls("lg-main")} d="{M}" style="stroke:{k("m")}" stroke-width="5.6"/></g>'
-        f'<circle{cls("lg-knob")} cx="52.5" cy="32" r="2.4" style="fill:{k("knob")}"/><circle{cls("lg-knob lg-knob2") if animated else ""} cx="52.5" cy="41" r="2.4" style="fill:{k("knob")}"/>'
+        f'<path d="M6 26V22Q6 18 10 18H14M50 18H54Q58 18 58 22V26M6 48V52Q6 56 10 56H14M50 56H54Q58 56 58 52V48" style="stroke:{k("rim")}" stroke-width="2" fill="none"/>'
     )
 
 var = lambda n: f'var(--lg-{n})'
