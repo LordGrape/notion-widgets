@@ -14,6 +14,7 @@ import { handleNotionMilestones } from "./routes/notion";
 import { handleActionBlocks } from "./routes/action-blocks";
 import { handleUpcomingAssignments } from "./routes/upcoming-assignments";
 import { handleLectureReadings } from "./routes/lecture-readings";
+import { handleSourceLibrary } from "./routes/source-library";
 import { handleFitnessTests } from "./routes/fitness-tests";
 import { handlePrepare } from "./routes/prepare";
 import { handlePrime } from "./routes/prime";
@@ -100,6 +101,9 @@ export default {
         }
         if (key === "action-blocks" && (request.method === "GET" || request.method === "POST")) {
           return withCorsHeaders(await handleActionBlocks(request, env));
+        }
+        if (key.startsWith("source-library/")) {
+          return withCorsHeaders(await handleSourceLibrary(request, env, key.slice("source-library/".length)));
         }
         if (key === "readings" && request.method === "GET") {
           return withCorsHeaders(await handleLectureReadings(request, env));
