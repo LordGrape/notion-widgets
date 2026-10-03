@@ -843,7 +843,26 @@ function bindWorkspace() {
 			tray.classList.remove("unschedule-ready", "drop-target");
 			playCue("drop");
 			if (el.dataset.unschedule === "ghost") unscheduleTimedTask(el.dataset.id);
-			else applyCalendarChange(selectedEvent(el), "remove", {}, "Moved back to Unscheduled.");
+			else {
+				const ev = selectedEvent(el);
+				const linked = ev && tasks.find((t) => t.scheduleId === ev.id && normalizeDateKey(t.dueKey) === ev.dateKey);
+				applyCalendarChange(ev, "remove", {}, "Moved back to Unscheduled.").then((ok) => {
+					if (!ok || !linked) return;
+					/* The task write can be overwritten by a sync already in flight; re-clear until it sticks. */
+					const settle = () => {
+						engines.todo.TodoUIBridge.refresh();
+						const t = engines.todo.TodoUIBridge.snapshot().tasks.find((x) => x.id === linked.id);
+						if (t && !t.done && (t.scheduledStart || t.scheduleId)) {
+							engines.todo.TodoUIBridge.command.update(linked.id, { scheduledStart: null, scheduledEnd: null, scheduleId: null, timeboxed: false });
+							signature = "";
+							refresh();
+						}
+					};
+					settle();
+					setTimeout(settle, 400);
+					setTimeout(settle, 1500);
+				});
+			}
 		};
 	}
 	document.querySelectorAll("[data-drop-calendar]").forEach((el) => {
