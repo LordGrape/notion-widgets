@@ -1574,16 +1574,21 @@ dialog[open] {
 	position: absolute;
 	left: 8px;
 	right: 8px;
-	border: 1px dashed color-mix(in srgb, var(--accent) 35%, var(--line));
+	border: 1px dashed color-mix(in srgb, var(--accent) 22%, transparent);
 	border-radius: 8px;
-	background: var(--surface-2);
-	color: var(--accent);
+	background: color-mix(in srgb, var(--accent) 3%, transparent);
+	color: color-mix(in srgb, var(--accent) 75%, var(--muted));
 	font-size: 11px;
 	text-align: center;
 	display: grid;
-	place-items: center;
+	/* Long gaps keep the label near the top, where the free time begins. */
+	align-items: start;
+	justify-items: center;
+	padding-top: 8px;
+	overflow: hidden;
 	pointer-events: none;
 }
+.open-slot span { position: sticky; top: 8px; }
 .capacity {
 	display: flex;
 	align-items: center;

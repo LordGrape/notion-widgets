@@ -67,7 +67,7 @@ import { suggestLastPage, planPageSplit, planTimeSplit, defaultRemaining } from 
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261004-checkin";
+	REVISION = "20261004-freeslots";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -3272,6 +3272,15 @@ if (saved)
 if ("serviceWorker" in navigator && location.protocol.startsWith("http"))
 	navigator.serviceWorker.register(`./sw.js?v=${REVISION}`).catch(() => {});
 
+/* Free time worth planning on a day: every gap of half an hour or more, at its real size, from
+   now on for today and not at all for past days. */
+function freeSlots(dayEvents, dateKey, start, end) {
+	const today = isoDate();
+	if (dateKey < today) return [];
+	const now = new Date();
+	const from = dateKey === today ? Math.max(start, Math.ceil((now.getHours() * 60 + now.getMinutes()) / 15) * 15) : start;
+	return from < end ? gaps(dayEvents, from, end).filter(([s, e]) => e - s >= 30) : [];
+}
 function renderPlan() {
 	const anchor = new Date();
 	anchor.setDate(anchor.getDate() + weekOffset);
@@ -3298,10 +3307,8 @@ function renderPlan() {
 	const nudge = planNudge({ now: new Date(), eventsFor: (key) => dayEvents(localDate(key)), tasks, dismissed: engines.todo.SyncEngine.get("user", "planNudge") || "" });
 	return `<div class="planner-layout"><aside class="surface planner-tray" data-unschedule-zone data-ctx="area" data-area="tray"><div class="tray-drop-hint" aria-hidden="true">Drop to unschedule</div><div class="section-heading"><h2>Unscheduled</h2><span>${open.length} tasks</span></div><p class="muted" style="font-size:11px;margin:0 5px 17px">Drag a task into a day, or choose its calendar button.</p>${open.length ? open.map((t) => taskRow(t, true)).join("") : '<p class="group-empty">Your tasks have a time. Add another when you need it.</p>'}<button class="text-button" data-action="add" style="align-self:flex-start;margin:4px 5px 24px">+ Add a task</button><div class="tray-timer"><div><small>Focus</small><b data-timer>45:00</b></div><button data-action="timer" aria-label="Start or pause focus">${icon("play")}</button></div></aside><section class="surface planner-calendar" style="--plan-days:${planDays}"><div class="calendar-head">${icon("calendar")}<div class="calendar-dates">${dates.map((d) => `<div class="calendar-date ${isoDate(d) === today ? "today" : ""}" data-date="${isoDate(d)}" title="Double-click to ${planDays === 1 ? "see three days" : "zoom to this day"}">${d.toLocaleDateString("en-CA", { weekday: "short", day: "numeric" })}<small>${d.toLocaleDateString("en-CA", { month: "long", year: "numeric" })}</small></div>`).join("")}</div></div><div class="calendar-toolbar"><div class="plan-range" role="group" aria-label="Calendar view">${[1,3,7].map(n => `<button data-action="plan-range" data-days="${n}" aria-pressed="${planDays===n}">${n===7?"1 week":n===1?"1 day":"3 days"}</button>`).join("")}</div><button data-action="week-prev" aria-label="Previous ${planDays} days">←</button><button data-action="week-today">Today</button><button data-action="week-next" aria-label="Next ${planDays} days">→</button><button data-action="standalone" data-type="timetable">Edit timetable ↗</button></div>${nudge ? `<div class="plan-nudge" role="status"><span>${esc(nudge.text)}</span><button class="primary" data-action="nudge-plan" data-date="${nudge.date}">Plan ${esc(localDate(nudge.date).toLocaleDateString("en-CA", { weekday: "long" }))}</button><button class="icon-button" data-action="nudge-dismiss" data-date="${nudge.date}" aria-label="Dismiss">\u00d7</button></div>` : ""}<div class="calendar-scroll"><div class="calendar-body" style="--calendar-height:${((end - start) * 76) / 60}px"><div class="calendar-hours">${Array.from({ length: (end - start) / 60 + 1 }, (_, i) => `<span style="top:${i * 76}px">${timeString(start + i * 60)}</span>`).join("")}</div><div class="calendar-columns">${dates
 		.map((date, i) => {
-			const gap = gaps(events[i], start, end).find(
-				([s, e]) => e - s >= 45 && s >= minutes("12:00"),
-			);
-			return `<div class="calendar-column ${isoDate(date) === today ? "today" : ""}" data-drop-calendar data-date="${isoDate(date)}" data-start="${start}" data-end="${end}">${events[i].map((e) => eventMarkup(e, start)).join("")}${gap ? `<div class="open-slot" style="top:${((gap[0] - start) * 76) / 60 + 4}px;height:${(45 * 76) / 60 - 8}px">45 min available</div>` : ""}${nowLine(start, end, 76, isoDate(date))}</div>`;
+			const free = freeSlots(events[i], isoDate(date), start, end);
+			return `<div class="calendar-column ${isoDate(date) === today ? "today" : ""}" data-drop-calendar data-date="${isoDate(date)}" data-start="${start}" data-end="${end}">${events[i].map((e) => eventMarkup(e, start)).join("")}${free.map(([s, e]) => `<div class="open-slot" style="top:${((s - start) * 76) / 60 + 4}px;height:${((e - s) * 76) / 60 - 8}px"><span>${formatMinutes(e - s)} free</span></div>`).join("")}${nowLine(start, end, 76, isoDate(date))}</div>`;
 		})
 		.join(
 			"",
