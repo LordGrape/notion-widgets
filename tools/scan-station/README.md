@@ -8,6 +8,8 @@ Turns photographed textbook readings into the Notion Source Library, which the t
 2. Name it after the course or book, for example `Property pp. 144-188`. The name only needs to tell courses apart when two readings share page numbers.
 3. Within a few minutes the reading appears in **Source Library: Readings**, with one row per printed page in **Source Library: Pages**, linked to the course and to every lecture that assigns those pages. The scan moves to `Law School Library/Filed`.
 
+You can also add a reading from **Command Centre › Docket › Library › Add a reading**, from any device. The upload waits in the Worker (for up to a week) until the station collects it, about every 20 seconds while the PC is on; the Library shows it moving from Queued to Reading to Filed. The station checks in every quarter hour so the Library can show whether it is running.
+
 If it cannot file a scan (no lecture assigns those pages, or two courses match), the scan moves to `Law School Library/Needs attention` with a note saying why.
 
 **Better photos, better text:** shoot one page at a time where you can, press the spine flat, and avoid glare. The reader handles curved pages well, but words that disappear into the spine cannot be recovered.
