@@ -59,7 +59,7 @@ import { suggestLastPage, planPageSplit, planTimeSplit, defaultRemaining } from 
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261002-calendar-create";
+	REVISION = "20261002-unschedule-drag";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -593,7 +593,7 @@ function eventMarkup(e, start, hour = 76) {
 		),
 		top = ((minutes(e.start) - start) * hour) / 60;
 	if (e.ghost)
-		return `<button data-end="${minutes(e.end)}" class="event is-task task-ghost" style="top:${top}px;height:${height}px;--event-color:${e.color}" title="This task has a time but is not on the calendar yet. Click to put it there." data-action="ghost" data-id="${esc(e.taskId)}" data-date="${esc(e.dateKey)}" data-start="${esc(e.start)}" aria-label="${esc(e.name)} ${esc(e.start)} to ${esc(e.end)}, not yet on the calendar"><b>${esc(e.name)}</b><span>${esc(e.start)} – ${esc(e.end)} · Click to add to calendar</span></button>`;
+		return `<button data-end="${minutes(e.end)}" class="event is-task task-ghost" ${view === "plan" ? `draggable="true" data-unschedule="ghost"` : ""} style="top:${top}px;height:${height}px;--event-color:${e.color}" title="This task has a time but is not on the calendar yet. Click to put it there." data-action="ghost" data-id="${esc(e.taskId)}" data-date="${esc(e.dateKey)}" data-start="${esc(e.start)}" aria-label="${esc(e.name)} ${esc(e.start)} to ${esc(e.end)}, not yet on the calendar"><b>${esc(e.name)}</b><span>${esc(e.start)} – ${esc(e.end)} · Click to add to calendar</span></button>`;
 	const done = tasks.some(
 		(t) =>
 			t.done &&
@@ -603,7 +603,9 @@ function eventMarkup(e, start, hour = 76) {
 	const linked = tasks.find((t) => t.scheduleId === e.id && normalizeDateKey(t.dueKey) === e.dateKey);
 	const open = !done && !!linked && !linked.done;
 	const spent = done && linked ? focusMinutes(linked.id) : 0;
-	return `<button data-end="${minutes(e.end)}" data-open-task="${open ? 1 : 0}" class="event ${linked ? "is-task" : ""} ${done ? "completed" : ""} ${e.id === recentScheduleId ? "scheduled-reveal" : ""}" style="top:${top}px;height:${height}px;--event-color:${/^#[0-9a-f]{3,8}$/i.test(e.color) ? e.color : "#9461e9"}" aria-haspopup="dialog" title="Click for details; right-click for options" data-action="event" data-event-id="${esc(e.id)}" data-source="${esc(e.sourceDate)}" data-date="${esc(e.dateKey)}" aria-label="${esc(e.name)} ${esc(e.start)} to ${esc(e.end)}"><b>${esc(e.name)}</b><span>${esc(e.start)} – ${esc(e.end)}${e.location ? " · " + esc(e.location) : ""}${spent ? ` · done in ${spent} min` : ""}</span></button>`;
+	const own = courses.find((b) => b.id === e.id);
+	const movable = view === "plan" && open && linked.source !== "timetable" && own?.startDate && own.startDate === own.endDate;
+	return `<button data-end="${minutes(e.end)}" data-open-task="${open ? 1 : 0}" ${movable ? `draggable="true" data-unschedule="block"` : ""} class="event ${linked ? "is-task" : ""} ${done ? "completed" : ""} ${e.id === recentScheduleId ? "scheduled-reveal" : ""}" style="top:${top}px;height:${height}px;--event-color:${/^#[0-9a-f]{3,8}$/i.test(e.color) ? e.color : "#9461e9"}" aria-haspopup="dialog" title="Click for details; right-click for options" data-action="event" data-event-id="${esc(e.id)}" data-source="${esc(e.sourceDate)}" data-date="${esc(e.dateKey)}" aria-label="${esc(e.name)} ${esc(e.start)} to ${esc(e.end)}"><b>${esc(e.name)}</b><span>${esc(e.start)} – ${esc(e.end)}${e.location ? " · " + esc(e.location) : ""}${spent ? ` · done in ${spent} min` : ""}</span></button>`;
 }
 function hourLines(start, end, hour = 76) {
 	let s = "";
@@ -807,6 +809,43 @@ function bindWorkspace() {
 			clearDrop();
 		};
 	});
+	const tray = document.querySelector("[data-unschedule-zone]");
+	let draggingBlock = null;
+	document.querySelectorAll("[data-unschedule]").forEach((el) => {
+		el.ondragstart = (e) => {
+			e.stopPropagation();
+			draggingBlock = el;
+			e.dataTransfer.setData("text/plain", "unschedule");
+			e.dataTransfer.effectAllowed = "move";
+			tray?.classList.add("unschedule-ready");
+			playCue("pickup");
+		};
+		el.ondragend = () => {
+			draggingBlock = null;
+			tray?.classList.remove("unschedule-ready", "drop-target");
+		};
+	});
+	if (tray) {
+		tray.ondragover = (e) => {
+			if (!draggingBlock) return;
+			e.preventDefault();
+			e.dataTransfer.dropEffect = "move";
+			tray.classList.add("drop-target");
+		};
+		tray.ondragleave = (e) => {
+			if (!tray.contains(e.relatedTarget)) tray.classList.remove("drop-target");
+		};
+		tray.ondrop = (e) => {
+			if (!draggingBlock) return;
+			e.preventDefault();
+			const el = draggingBlock;
+			draggingBlock = null;
+			tray.classList.remove("unschedule-ready", "drop-target");
+			playCue("drop");
+			if (el.dataset.unschedule === "ghost") unscheduleTimedTask(el.dataset.id);
+			else applyCalendarChange(selectedEvent(el), "remove", {}, "Moved back to Unscheduled.");
+		};
+	}
 	document.querySelectorAll("[data-drop-calendar]").forEach((el) => {
 		const dropMinute = (e) =>
 			Math.max(
@@ -1776,12 +1815,15 @@ function openCalendarCreate(column, y) {
 			};
 			blocks.push(block);
 			engines.timetable.saveBlocks(blocks);
-			engines.todo.TodoUIBridge.command.update(id, {
+			const link = {
 				scheduledStart: new Date(`${date}T${at}`).toISOString(),
 				scheduledEnd: new Date(`${date}T${timeString(end)}`).toISOString(),
 				scheduleId: block.id,
 				timeboxed: true,
-			});
+			};
+			engines.todo.TodoUIBridge.command.update(id, link);
+			engines.todo.TodoUIBridge.refresh();
+			if (!engines.todo.TodoUIBridge.snapshot().tasks.find((x) => x.id === id)?.scheduleId) engines.todo.TodoUIBridge.command.update(id, link);
 			d.close();
 			recentScheduleId = block.id;
 			signature = "";
@@ -1894,8 +1936,21 @@ function saveCalendarState(state) {
 	signature = "";
 	refresh();
 }
+function unscheduleTimedTask(id) {
+	const t = task(id);
+	if (!t) return;
+	const prior = { scheduledStart: t.scheduledStart ?? null, scheduledEnd: t.scheduledEnd ?? null, scheduleId: t.scheduleId ?? null, timeboxed: t.timeboxed ?? null };
+	engines.todo.TodoUIBridge.command.update(id, { scheduledStart: null, scheduledEnd: null, scheduleId: null, timeboxed: false });
+	signature = "";
+	refresh();
+	notify("Moved back to Unscheduled.", () => {
+		engines.todo.TodoUIBridge.command.update(id, prior);
+		signature = "";
+		refresh();
+	});
+}
 let calendarBusy = false;
-async function applyCalendarChange(event, action, patch = {}) {
+async function applyCalendarChange(event, action, patch = {}, doneMessage = "") {
 	if (calendarBusy) return false;
 	if (!event) {
 		notify("This occurrence is no longer available.");
@@ -1927,11 +1982,12 @@ async function applyCalendarChange(event, action, patch = {}) {
 		after = calendarState();
 		if ($("#editorDialog").open) $("#editorDialog").close();
 		notify(
-			action === "edit"
+			doneMessage ||
+			(action === "edit"
 				? "Time updated for this occurrence."
 				: action === "skip"
 					? "Occurrence removed for this week."
-					: "Block removed from schedule.",
+					: "Block removed from schedule."),
 			async () => {
 				if (calendarBusy) return;
 				calendarBusy = true;
@@ -2346,7 +2402,7 @@ function renderPlan() {
 		available = end - start - planned;
 	const today = isoDate();
 	const nudge = planNudge({ now: new Date(), eventsFor: (key) => dayEvents(localDate(key)), tasks, dismissed: engines.todo.SyncEngine.get("user", "planNudge") || "" });
-	return `<div class="planner-layout"><aside class="surface planner-tray"><div class="section-heading"><h2>Unscheduled</h2><span>${open.length} tasks</span></div><p class="muted" style="font-size:11px;margin:0 5px 17px">Drag a task into a day, or choose its calendar button.</p>${open.length ? open.map((t) => taskRow(t, true)).join("") : '<p class="group-empty">Your tasks have a time. Add another when you need it.</p>'}<button class="text-button" data-action="add" style="align-self:flex-start;margin:4px 5px 24px">+ Add a task</button><div class="tray-timer"><div><small>Focus</small><b data-timer>45:00</b></div><button data-action="timer" aria-label="Start or pause focus">${icon("play")}</button></div></aside><section class="surface planner-calendar" style="--plan-days:${planDays}"><div class="calendar-head">${icon("calendar")}<div class="calendar-dates">${dates.map((d) => `<div class="calendar-date ${isoDate(d) === today ? "today" : ""}">${d.toLocaleDateString("en-CA", { weekday: "short", day: "numeric" })}<small>${d.toLocaleDateString("en-CA", { month: "long", year: "numeric" })}</small></div>`).join("")}</div></div><div class="calendar-toolbar"><div class="plan-range" role="group" aria-label="Calendar view">${[1,3,7].map(n => `<button data-action="plan-range" data-days="${n}" aria-pressed="${planDays===n}">${n===7?"1 week":n===1?"1 day":"3 days"}</button>`).join("")}</div><button data-action="week-prev" aria-label="Previous ${planDays} days">←</button><button data-action="week-today">Today</button><button data-action="week-next" aria-label="Next ${planDays} days">→</button><button data-action="standalone" data-type="timetable">Edit timetable ↗</button></div>${nudge ? `<div class="plan-nudge" role="status"><span>${esc(nudge.text)}</span><button class="primary" data-action="nudge-plan" data-date="${nudge.date}">Plan ${esc(localDate(nudge.date).toLocaleDateString("en-CA", { weekday: "long" }))}</button><button class="icon-button" data-action="nudge-dismiss" data-date="${nudge.date}" aria-label="Dismiss">\u00d7</button></div>` : ""}<div class="calendar-scroll"><div class="calendar-body" style="--calendar-height:${((end - start) * 76) / 60}px"><div class="calendar-hours">${Array.from({ length: (end - start) / 60 + 1 }, (_, i) => `<span style="top:${i * 76}px">${timeString(start + i * 60)}</span>`).join("")}</div><div class="calendar-columns">${dates
+	return `<div class="planner-layout"><aside class="surface planner-tray" data-unschedule-zone><div class="tray-drop-hint" aria-hidden="true">Drop to unschedule</div><div class="section-heading"><h2>Unscheduled</h2><span>${open.length} tasks</span></div><p class="muted" style="font-size:11px;margin:0 5px 17px">Drag a task into a day, or choose its calendar button.</p>${open.length ? open.map((t) => taskRow(t, true)).join("") : '<p class="group-empty">Your tasks have a time. Add another when you need it.</p>'}<button class="text-button" data-action="add" style="align-self:flex-start;margin:4px 5px 24px">+ Add a task</button><div class="tray-timer"><div><small>Focus</small><b data-timer>45:00</b></div><button data-action="timer" aria-label="Start or pause focus">${icon("play")}</button></div></aside><section class="surface planner-calendar" style="--plan-days:${planDays}"><div class="calendar-head">${icon("calendar")}<div class="calendar-dates">${dates.map((d) => `<div class="calendar-date ${isoDate(d) === today ? "today" : ""}">${d.toLocaleDateString("en-CA", { weekday: "short", day: "numeric" })}<small>${d.toLocaleDateString("en-CA", { month: "long", year: "numeric" })}</small></div>`).join("")}</div></div><div class="calendar-toolbar"><div class="plan-range" role="group" aria-label="Calendar view">${[1,3,7].map(n => `<button data-action="plan-range" data-days="${n}" aria-pressed="${planDays===n}">${n===7?"1 week":n===1?"1 day":"3 days"}</button>`).join("")}</div><button data-action="week-prev" aria-label="Previous ${planDays} days">←</button><button data-action="week-today">Today</button><button data-action="week-next" aria-label="Next ${planDays} days">→</button><button data-action="standalone" data-type="timetable">Edit timetable ↗</button></div>${nudge ? `<div class="plan-nudge" role="status"><span>${esc(nudge.text)}</span><button class="primary" data-action="nudge-plan" data-date="${nudge.date}">Plan ${esc(localDate(nudge.date).toLocaleDateString("en-CA", { weekday: "long" }))}</button><button class="icon-button" data-action="nudge-dismiss" data-date="${nudge.date}" aria-label="Dismiss">\u00d7</button></div>` : ""}<div class="calendar-scroll"><div class="calendar-body" style="--calendar-height:${((end - start) * 76) / 60}px"><div class="calendar-hours">${Array.from({ length: (end - start) / 60 + 1 }, (_, i) => `<span style="top:${i * 76}px">${timeString(start + i * 60)}</span>`).join("")}</div><div class="calendar-columns">${dates
 		.map((date, i) => {
 			const gap = gaps(events[i], start, end).find(
 				([s, e]) => e - s >= 45 && s >= minutes("12:00"),

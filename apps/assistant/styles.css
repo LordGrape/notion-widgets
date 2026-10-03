@@ -3394,3 +3394,31 @@ dialog h3 {
 .timeline {
 	cursor: cell;
 }
+
+.planner-tray {
+	position: relative;
+}
+.tray-drop-hint {
+	display: none;
+	position: absolute;
+	inset: 0;
+	z-index: 2;
+	place-items: center;
+	border: 2px dashed color-mix(in srgb, var(--accent) 45%, var(--line));
+	border-radius: inherit;
+	background: color-mix(in srgb, var(--accent-soft) 88%, transparent);
+	color: var(--accent);
+	font-weight: 600;
+	font-size: 13px;
+	pointer-events: none;
+}
+.planner-tray.unschedule-ready .tray-drop-hint {
+	display: grid;
+}
+.planner-tray.unschedule-ready.drop-target .tray-drop-hint {
+	background: var(--accent-soft);
+	border-color: var(--accent);
+}
+.event[data-unschedule] {
+	cursor: grab;
+}
