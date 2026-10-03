@@ -752,10 +752,15 @@ function gapHints(events, start, end) {
 		})
 		.join("");
 }
+/* The Notion page a task came from: saved on imported readings, or a Notion link pasted into the notes. */
+const notionLink = (t) => {
+	const url = t?.lectureUrl || String(t?.notes || "").match(/https:\/\/(?:[\w-]+\.)?notion\.(?:so|com)\/\S+/)?.[0] || "";
+	return /^https:\/\//.test(url) ? url : "";
+};
 function taskRow(t, planner = false) {
 	const m = duration(t);
 	const focusable = !isCalendarReminder(t, courses);
-	return `<div class="task-row ${t.done ? "done" : ""}" data-task="${esc(t.id)}" data-ctx="task" ${!planner && !t.done ? `draggable="true" data-drag="${esc(t.id)}"` : ""}>${!t.done ? `<button class="drag-handle icon-button ${planner ? "" : "today-grip"}" title="Drag to schedule; click to choose a time" data-action="schedule" data-id="${esc(t.id)}" draggable="true" data-drag="${esc(t.id)}" aria-label="Drag ${esc(t.text)} to the calendar">${icon("grip")}</button>` : ""}<button class="check-button ${t.done ? "checked" : ""}" data-action="toggle" data-id="${esc(t.id)}" aria-label="${t.done ? "Reopen" : "Complete"} ${esc(t.text)}">${t.done ? icon("check") : ""}</button><button class="task-title" data-action="edit" data-id="${esc(t.id)}">${tagDot(taskKind(t))}${esc(t.text)}${planner ? `<small class="planner-task-meta"><span class="priority-chip ${t.pri || "must"}">${t.pri === "could" ? "Could" : t.pri === "should" ? "Should" : "Must"}</span>${m ? `${m} min` : "No estimate"}${t.repeatRule ? " · Repeats" : ""}</small>` : ""}</button>${!planner && overdueLabel(t) ? `<span class="task-meta overdue-meta">${overdueLabel(t)}</span>` : ""}${!planner && m ? `<span class="task-meta" ${t.done && focusMinutes(t.id) ? `title="Estimated ${m} min, focused ${focusMinutes(t.id)} min"` : ""}>${icon("clock")}${t.done && focusMinutes(t.id) ? `${focusMinutes(t.id)} of ${m} min` : `${m} min`}</span>` : ""}${!planner && t.repeatRule ? `<span class="task-meta repeat-meta">Repeats</span>` : ""}<div class="task-actions">${focusable ? `<button class="icon-button" data-action="select-focus" data-id="${esc(t.id)}" aria-label="Focus on ${esc(t.text)}" title="Focus on this task">${icon("play")}</button>` : ""}<button class="icon-button" data-action="${planner ? "schedule" : "edit"}" data-id="${esc(t.id)}" aria-label="${planner ? "Schedule" : "Edit"} ${esc(t.text)}">${icon(planner ? "calendar" : "more")}</button></div></div>`;
+	return `<div class="task-row ${t.done ? "done" : ""}" data-task="${esc(t.id)}" data-ctx="task" ${!planner && !t.done ? `draggable="true" data-drag="${esc(t.id)}"` : ""}>${!t.done ? `<button class="drag-handle icon-button ${planner ? "" : "today-grip"}" title="Drag to schedule; click to choose a time" data-action="schedule" data-id="${esc(t.id)}" draggable="true" data-drag="${esc(t.id)}" aria-label="Drag ${esc(t.text)} to the calendar">${icon("grip")}</button>` : ""}<button class="check-button ${t.done ? "checked" : ""}" data-action="toggle" data-id="${esc(t.id)}" aria-label="${t.done ? "Reopen" : "Complete"} ${esc(t.text)}">${t.done ? icon("check") : ""}</button><button class="task-title ${notionLink(t) ? "has-link" : ""}" data-action="edit" data-id="${esc(t.id)}" ${notionLink(t) ? 'title="Ctrl-click to open in Notion"' : ""}>${tagDot(taskKind(t))}${esc(t.text)}${notionLink(t) ? `<span class="link-mark" aria-hidden="true">${icon("link")}</span>` : ""}${planner ? `<small class="planner-task-meta"><span class="priority-chip ${t.pri || "must"}">${t.pri === "could" ? "Could" : t.pri === "should" ? "Should" : "Must"}</span>${m ? `${m} min` : "No estimate"}${t.repeatRule ? " · Repeats" : ""}</small>` : ""}</button>${!planner && overdueLabel(t) ? `<span class="task-meta overdue-meta">${overdueLabel(t)}</span>` : ""}${!planner && m ? `<span class="task-meta" ${t.done && focusMinutes(t.id) ? `title="Estimated ${m} min, focused ${focusMinutes(t.id)} min"` : ""}>${icon("clock")}${t.done && focusMinutes(t.id) ? `${focusMinutes(t.id)} of ${m} min` : `${m} min`}</span>` : ""}${!planner && t.repeatRule ? `<span class="task-meta repeat-meta">Repeats</span>` : ""}<div class="task-actions">${focusable ? `<button class="icon-button" data-action="select-focus" data-id="${esc(t.id)}" aria-label="Focus on ${esc(t.text)}" title="Focus on this task">${icon("play")}</button>` : ""}<button class="icon-button" data-action="${planner ? "schedule" : "edit"}" data-id="${esc(t.id)}" aria-label="${planner ? "Schedule" : "Edit"} ${esc(t.text)}">${icon(planner ? "calendar" : "more")}</button></div></div>`;
 }
 /* Drag state lives outside render(): a background sync can re-render mid-drag, and that must neither
    lose the drag nor replace the dragged element, so renders wait until the drag ends. */
@@ -1392,7 +1397,7 @@ function openEditor(id, draft = "") {
 		noteText = stripTypeTag(t?.notes || ""),
 		d = openDialog(
 			"#editorDialog",
-			`${dialogHead(t ? "Edit task" : "New task", "editorTitle")}<form id="taskForm"><div class="form-grid"><label class="field wide task-name">Task<input name="text" value="${esc(t?.text || draft)}" required maxlength="500" placeholder="What would you like to do?"></label><label class="field">Priority<select name="pri">${["must", "should", "could"].map((p) => `<option value="${p}" ${p === (t?.pri || "must") ? "selected" : ""}>${p === "must" ? "Must Do" : p === "should" ? "Should Do" : "Could Do"}</option>`).join("")}</select></label><label class="field">Date<input name="dueKey" type="date" value="${esc(normalizeDateKey(t?.dueKey) || isoDate())}"></label><div class="field wide tag-field">${tagPicker({ current: noteKind, action: "tag-pick", fallback: t ? taskKind({ text: t.text }) : null, kinds: KINDS.filter((k) => k !== "class") })}<input type="hidden" name="kind" value="${esc(noteKind || "")}"></div><label class="field wide duration-field">Time <span>minutes</span><input type="number" name="plannedMinutes" min="1" value="${duration(t || {}) || ""}" placeholder="Optional"></label><div class="wide">${Reading.html(t || {})}</div><details class="task-extra wide" ${noteText || t?.subs?.length ? 'open' : ''}><summary>Notes & session steps</summary><div class="form-grid"><label class="field wide">Notes<textarea name="notes" rows="2" placeholder="Add a note…">${esc(noteText)}</textarea></label><label class="field wide">Session steps<textarea name="steps" rows="2" placeholder="One step per line">${esc((t?.subs || []).map((s) => s.text).join("\n"))}</textarea></label></div></details></div><p class="form-error" id="formError" role="alert"></p><div class="dialog-actions">${t ? `<button type="button" class="delete" data-action="delete" data-id="${esc(id)}">Delete</button><button type="button" data-action="schedule" data-id="${esc(id)}">Schedule</button><button type="button" data-action="split-task" data-id="${esc(id)}">Split</button>` : ""}<button type="submit" class="primary">${t ? "Save" : "Add task"}</button></div></form>`,
+			`${dialogHead(t ? "Edit task" : "New task", "editorTitle")}<form id="taskForm"><div class="form-grid"><label class="field wide task-name">Task<input name="text" value="${esc(t?.text || draft)}" required maxlength="500" placeholder="What would you like to do?"></label><label class="field">Priority<select name="pri">${["must", "should", "could"].map((p) => `<option value="${p}" ${p === (t?.pri || "must") ? "selected" : ""}>${p === "must" ? "Must Do" : p === "should" ? "Should Do" : "Could Do"}</option>`).join("")}</select></label><label class="field">Date<input name="dueKey" type="date" value="${esc(normalizeDateKey(t?.dueKey) || isoDate())}"></label><div class="field wide tag-field">${tagPicker({ current: noteKind, action: "tag-pick", fallback: t ? taskKind({ text: t.text }) : null, kinds: KINDS.filter((k) => k !== "class") })}<input type="hidden" name="kind" value="${esc(noteKind || "")}"></div><label class="field wide duration-field">Time <span>minutes</span><input type="number" name="plannedMinutes" min="1" value="${duration(t || {}) || ""}" placeholder="Optional"></label><div class="wide">${Reading.html(t || {})}</div><details class="task-extra wide" ${noteText || t?.subs?.length ? 'open' : ''}><summary>Notes & session steps</summary>${notionLink(t) ? `<a class="notion-chip" href="${esc(notionLink(t))}" target="_blank" rel="noopener">${icon("link")}<span>${esc(String(t.notes || "").match(/^From Notion: (.+)$/m)?.[1] || "Lecture notes")}</span><small>Open in Notion</small></a>` : ""}<div class="form-grid"><label class="field wide">Notes<textarea name="notes" rows="2" placeholder="Add a note…">${esc(noteText)}</textarea></label><label class="field wide">Session steps<textarea name="steps" rows="2" placeholder="One step per line">${esc((t?.subs || []).map((s) => s.text).join("\n"))}</textarea></label></div></details></div><p class="form-error" id="formError" role="alert"></p><div class="dialog-actions">${t ? `<button type="button" class="delete" data-action="delete" data-id="${esc(id)}">Delete</button><button type="button" data-action="schedule" data-id="${esc(id)}">Schedule</button><button type="button" data-action="split-task" data-id="${esc(id)}">Split</button>` : ""}<button type="submit" class="primary">${t ? "Save" : "Add task"}</button></div></form>`,
 		);
 	onTagChange(d, (e) => { d.querySelector("[name=kind]").value = e.detail.kind || ""; });
 	const readingData = Reading.mount(d, t || {}, { title: d.querySelector("[name=text]"), duration: d.querySelector("[name=plannedMinutes]"), split: steps => { const el=d.querySelector("[name=steps]"); const existing=el.value.split("\n"); el.value=[...existing.filter(Boolean),...steps.filter(s=>!existing.includes(s))].join("\n"); el.closest("details").open=true; } });
@@ -2497,7 +2502,7 @@ async function openReadingsImport() {
 	const head = dialogHead("Import readings from Notion", "editorTitle");
 	let days = 7,
 		dueMode = "before",
-		edition = "",
+		edition = String(engines.todo?.SyncEngine.get("user", "readingEdition") || ""),
 		data = null,
 		showPast = false;
 	const picked = new Map();
@@ -2521,15 +2526,31 @@ async function openReadingsImport() {
 		const items = found.filter((i) => showPast || i.classDate >= today),
 			missed = found.filter((i) => i.classDate < today).length;
 		const isOn = (i) => (picked.has(i.key) ? picked.get(i.key) : !i.exists && i.classDate >= today);
-		const rows = items
-			.sort((a, b) => a.classDate.localeCompare(b.classDate) || a.text.localeCompare(b.text))
-			.map((i) => {
-				const flags = [i.exists ? "Already on your list" : "", i.moved ? `Class moved from ${day(i.moved.from)}` : "", i.classDate < today ? "Class has passed" : "", i.edition ? `${i.edition} edition` : ""].filter(Boolean);
-				return `<label class="import-row ${i.exists ? "is-exists" : ""}"><input type="checkbox" name="pick" value="${esc(i.key)}" ${isOn(i) && !i.exists ? "checked" : ""} ${i.exists ? "disabled" : ""}><span class="import-main"><b>${esc(i.text)}</b><small>${esc(i.lectureTitle)}</small><small>${day(i.classDate)} \u00b7 ${i.pages} pages${i.minutes ? ` \u00b7 about ${formatMinutes(i.minutes)}` : ""} \u00b7 due ${day(i.dueKey)}</small>${flags.length ? `<span class="import-flags">${flags.map((f) => `<i>${esc(f)}</i>`).join("")}</span>` : ""}</span></label>`;
+		const sorted = items.slice().sort((a, b) => a.classDate.localeCompare(b.classDate) || a.text.localeCompare(b.text));
+		const away = (key) => Math.round((localDate(key) - localDate(today)) / 864e5);
+		const awayLabel = (n) => (n === 0 ? "Today" : n === 1 ? "Tomorrow" : n === -1 ? "Yesterday" : n < 0 ? `${-n} days ago` : `In ${n} days`);
+		const rowOf = (i) => {
+			const flags = [i.exists ? "Already on your list" : "", i.moved ? `Class moved from ${day(i.moved.from)}` : "", i.classDate < today ? "Class has passed" : "", i.edition ? `${i.edition} edition` : ""].filter(Boolean);
+			const link = i.url ? `<a class="import-link" href="${esc(i.url)}" target="_blank" rel="noopener" title="Open the lecture in Notion" aria-label="Open ${esc(i.lectureTitle)} in Notion">${icon("link")}</a>` : "";
+			return `<label class="import-row ${i.exists ? "is-exists" : ""}"><input type="checkbox" name="pick" value="${esc(i.key)}" ${isOn(i) && !i.exists ? "checked" : ""} ${i.exists ? "disabled" : ""}><span class="import-main"><b>${esc(i.text)}</b><small>${esc(i.lectureTitle)}</small><small>${i.pages} pages${i.minutes ? ` \u00b7 about ${formatMinutes(i.minutes)}` : ""}</small><span class="import-flags"><i class="import-due ${i.dueKey <= today ? "is-soon" : ""}">${i.dueKey === today ? "Due today" : `Due ${day(i.dueKey)}`}</i>${flags.map((f) => `<i>${esc(f)}</i>`).join("")}</span></span>${link}</label>`;
+		};
+		const groups = [];
+		for (const i of sorted) {
+			const last = groups[groups.length - 1];
+			if (last && last.key === i.classDate) last.items.push(i);
+			else groups.push({ key: i.classDate, items: [i] });
+		}
+		const rows = groups
+			.map((g) => {
+				const n = away(g.key), minutes = g.items.reduce((sum, i) => sum + (i.minutes || 0), 0), date = localDate(g.key);
+				return `<section class="import-day ${n < 0 ? "is-past" : ""}"><header class="import-date"><small>${esc(date.toLocaleDateString("en-CA", { weekday: "short" }))}</small><b>${esc(date.toLocaleDateString("en-CA", { month: "short", day: "numeric" }))}</b><i>${awayLabel(n)}</i>${minutes ? `<span>${formatMinutes(minutes)}</span>` : ""}</header><div class="import-items">${g.items.map(rowOf).join("")}</div></section>`;
 			})
 			.join("");
+		/* Asked only when a reading in the notes gives pages for more than one edition. */
+		const chosen = edition && editions.includes(edition) ? edition : found.find((i) => i.edition)?.edition || editions[0];
+		const editionBar = editions.length > 1 ? `<div class="import-edition"><span>Some readings list two editions. Which is yours?</span><div class="import-seg" role="group" aria-label="Edition">${editions.map((e) => `<button type="button" data-edition="${esc(e)}" aria-pressed="${e === chosen}">${esc(e)}</button>`).join("")}</div></div>` : "";
 		const check = unclear.length ? `<details class="import-unclear"><summary>${unclear.length} ${unclear.length === 1 ? "class needs" : "classes need"} a look in Notion</summary><ul>${unclear.map((u) => `<li><a href="${esc(u.url)}" target="_blank" rel="noopener">${esc(u.title)}</a> <small>${day(u.classDate)} \u00b7 ${esc(u.reason)}</small></li>`).join("")}</ul></details>` : "";
-		d.innerHTML = head + `<div class="import-controls"><label>Look ahead<select id="impDays"><option value="7" ${days === 7 ? "selected" : ""}>7 days</option><option value="14" ${days === 14 ? "selected" : ""}>14 days</option></select></label><label>Due<select id="impDue"><option value="before" ${dueMode === "before" ? "selected" : ""}>Day before class</option><option value="class" ${dueMode === "class" ? "selected" : ""}>Day of class</option></select></label>${editions.length > 1 ? `<label>Edition<select id="impEd">${editions.map((e) => `<option value="${esc(e)}" ${(edition || editions[0]) === e ? "selected" : ""}>${esc(e)}</option>`).join("")}</select></label>` : ""}</div>${missed ? `<label class="import-past"><input type="checkbox" id="impPast" ${showPast ? "checked" : ""}> Show missed classes (${missed})</label>` : ""}<form id="importForm">${rows ? `<div class="import-list">${rows}</div>` : `<p class="muted">No readings with page numbers in the next ${days} days.</p>`}${check}<p class="muted import-note">Nothing is added until you confirm. Classes whose notes have no page numbers are listed above, not guessed.</p><p class="form-error" id="importError" role="alert"></p><div class="dialog-actions"><button type="button" data-action="close-dialog">Cancel</button>${rows ? '<button type="submit" class="primary" id="importConfirm"></button>' : ""}</div></form>`;
+		d.innerHTML = head + `<div class="import-controls"><label>Look ahead<select id="impDays"><option value="7" ${days === 7 ? "selected" : ""}>7 days</option><option value="14" ${days === 14 ? "selected" : ""}>14 days</option></select></label><label>Due<select id="impDue"><option value="before" ${dueMode === "before" ? "selected" : ""}>Day before class</option><option value="class" ${dueMode === "class" ? "selected" : ""}>Day of class</option></select></label></div>${missed ? `<label class="import-past"><input type="checkbox" id="impPast" ${showPast ? "checked" : ""}> Show missed classes (${missed})</label>` : ""}<form id="importForm">${editionBar}${rows ? `<div class="import-list">${rows}</div>` : `<p class="muted">No readings with page numbers in the next ${days} days.</p>`}${check}<p class="muted import-note">Nothing is added until you confirm. Classes whose notes have no page numbers are listed above, not guessed.</p><p class="form-error" id="importError" role="alert"></p><div class="dialog-actions"><button type="button" data-action="close-dialog">Cancel</button>${rows ? '<button type="submit" class="primary" id="importConfirm"></button>' : ""}</div></form>`;
 		const form = $("#importForm"), confirm = $("#importConfirm");
 		const count = () => {
 			const n = form.querySelectorAll("input[name=pick]:checked").length;
@@ -2546,7 +2567,11 @@ async function openReadingsImport() {
 		$("#impDays").onchange = (e) => { days = Number(e.target.value); d.innerHTML = head + '<p class="muted">Reading your class notes\u2026</p>'; load(); };
 		$("#impDue").onchange = (e) => { dueMode = e.target.value; paint(); };
 		if ($("#impPast")) $("#impPast").onchange = (e) => { showPast = e.target.checked; paint(); };
-			if ($("#impEd")) $("#impEd").onchange = (e) => { edition = e.target.value; paint(); };
+			form.querySelectorAll("[data-edition]").forEach((b) => (b.onclick = () => {
+				edition = b.dataset.edition;
+				engines.todo?.SyncEngine.set("user", "readingEdition", edition);
+				paint();
+			}));
 		form.onsubmit = (e) => {
 			e.preventDefault();
 			try {
@@ -3022,6 +3047,14 @@ document.addEventListener("click", (e) => {
 	const b = e.target.closest("[data-action]");
 	if (!b) return;
 	const id = b.dataset.id;
+	if ((e.ctrlKey || e.metaKey) && (b.dataset.action === "edit" || b.dataset.action === "select-focus")) {
+		const url = notionLink(task(id));
+		if (url) {
+			e.preventDefault();
+			window.open(url, "_blank", "noopener");
+			return;
+		}
+	}
 	if (b.dataset.action === "timer") {
 		broadcastReact(/pause/i.test(b.textContent) ? "pause" : "start");
 	} else if (b.dataset.action === "finish") broadcastReact("finish");

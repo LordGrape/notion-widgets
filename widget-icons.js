@@ -4,6 +4,7 @@
  */
 (function(global){"use strict";
 const paths = {
+  "link": "<g class=\"wi-tone\" fill=\"var(--wi-soft)\" stroke=\"none\"><circle cx=\"12\" cy=\"12\" r=\"3.4\"/></g><path d=\"M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1\"/><path d=\"M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1\"/>",
   "minus": "<path d=\"M5 12h14\"/>",
   "command": "<g class=\"wi-tone\" fill=\"var(--wi-soft)\" stroke=\"none\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"10\" rx=\"2\"/></g><rect x=\"3\" y=\"3\" width=\"7\" height=\"10\" rx=\"2\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"6\" rx=\"2\"/><rect x=\"3\" y=\"17\" width=\"7\" height=\"4\" rx=\"1.5\"/><rect x=\"14\" y=\"13\" width=\"7\" height=\"8\" rx=\"2\"/>",
   "todo": "<g class=\"wi-tone\" fill=\"var(--wi-soft)\" stroke=\"none\"><rect x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"3\"/></g><rect x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"3\"/><path d=\"m7 8 1 1 2-2m-3 7 1 1 2-2m3-5h4m-4 6h4m-10 4h10\"/>",
