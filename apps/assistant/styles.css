@@ -126,6 +126,21 @@ h3 {
 	align-items: center;
 	gap: 26px;
 }
+/* Installed with the title bar folded into the app (window-controls-overlay), the window can only
+   be moved by regions marked draggable: the header's empty space (the page never scrolls it away)
+   and the lock screen around its card. Controls inside them stay clickable. */
+@media (display-mode: window-controls-overlay) {
+	.app-header,
+	.lock-screen {
+		-webkit-app-region: drag;
+		app-region: drag;
+	}
+	.app-header :is(a, button, input, select, textarea, [tabindex]),
+	.lock-card {
+		-webkit-app-region: no-drag;
+		app-region: no-drag;
+	}
+}
 .identity {
 	display: flex;
 	align-items: center;
