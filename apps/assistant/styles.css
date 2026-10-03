@@ -3856,3 +3856,100 @@ body.is-dragging #toast { pointer-events: none; }
 .brand-mark{--lg-tileA:#f4efff;--lg-tileB:#d9ccff;--lg-tvA:#453d63;--lg-tvB:#1e1833;--lg-rim:#8a7bc4;--lg-scrA:#3b2085;--lg-scrB:#130a2c;--lg-m:#ffffff;--lg-glow:#b69cff;--lg-ant:#2b2640;--lg-orb:#7c3aed;--lg-knob:#b69cff;}
 :root[data-theme="dark"] .brand-mark{--lg-tileA:#2c2150;--lg-tileB:#0f0a1d;--lg-tvA:#ece6ff;--lg-tvB:#b5a6ef;--lg-rim:#ffffff;--lg-scrA:#3a1f80;--lg-scrB:#0e0624;--lg-m:#ffffff;--lg-glow:#b69cff;--lg-ant:#d9ccff;--lg-orb:#ffffff;--lg-knob:#6f50d1;}
 /* logo theme end */
+/* Import readings from Notion */
+.import-controls {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	margin: 6px 0 14px;
+}
+.import-controls label {
+	display: grid;
+	gap: 4px;
+	color: var(--muted);
+	font-size: 11px;
+	font-weight: 650;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+.import-controls select {
+	min-width: 130px;
+	text-transform: none;
+	letter-spacing: 0;
+	font-weight: 500;
+}
+.import-list {
+	display: grid;
+	gap: 6px;
+	max-height: min(52vh, 460px);
+	overflow-y: auto;
+	padding-right: 2px;
+}
+.import-row {
+	display: flex;
+	gap: 12px;
+	align-items: flex-start;
+	padding: 11px 12px;
+	border: 1px solid var(--line);
+	border-radius: 12px;
+	background: var(--surface);
+	cursor: pointer;
+}
+.import-row:hover {
+	background: var(--surface-2);
+}
+.import-row.is-exists {
+	opacity: 0.6;
+	cursor: default;
+}
+.import-row input {
+	margin-top: 3px;
+}
+.import-main {
+	display: grid;
+	gap: 3px;
+	min-width: 0;
+}
+.import-main b {
+	font-size: 14px;
+	font-weight: 650;
+}
+.import-main small {
+	color: var(--muted);
+	font-size: 12px;
+	overflow-wrap: anywhere;
+}
+.import-flags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 5px;
+	margin-top: 2px;
+}
+.import-flags i {
+	padding: 2px 8px;
+	border-radius: 999px;
+	background: var(--accent-soft);
+	color: var(--accent);
+	font-size: 11px;
+	font-style: normal;
+	font-weight: 600;
+}
+.import-unclear {
+	margin-top: 12px;
+	font-size: 12px;
+	color: var(--muted);
+}
+.import-unclear summary {
+	cursor: pointer;
+	font-weight: 650;
+	color: var(--text);
+}
+.import-unclear ul {
+	margin: 8px 0 0;
+	padding-left: 18px;
+	line-height: 1.6;
+}
+.import-note {
+	margin-top: 12px;
+	font-size: 12px;
+}

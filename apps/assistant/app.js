@@ -3,6 +3,7 @@ const Reading = globalThis.ReadingEstimates;
 import { changeCalendar, undoCalendar } from "./calendar-actions.mjs";
 import { ghostEvents, planNudge, timeAtOffset, parseTypeTag, stripTypeTag, withTypeTag } from "./calendar-extras.mjs";
 import { reorderIds, insertionIndex, movedTimes, resizedEnd, snap } from "./interactions.mjs";
+import { readingCandidates } from "./readings-import.mjs";
 import {
 	dailyGoal,
 	dateKey,
@@ -60,7 +61,7 @@ import { suggestLastPage, planPageSplit, planTimeSplit, defaultRemaining } from 
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261003-suitcase";
+	REVISION = "20261004-readings";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -720,7 +721,7 @@ function updateCalendarTime() {
 function renderToday() {
 	const events = dayEvents(new Date()),
 		{ start, end } = timeRange(events);
-	return `<div class="today-layout"><section class="surface tasks-surface" data-ctx="area" data-area="today"><div class="today-heading"><div><h2>Today</h2><p class="date-copy">${dateLabel(new Date())}</p></div>${finishLine()}</div><form class="composer" id="quickAdd"><input name="task" aria-label="Add a task" placeholder="Add a task… e.g. should do Read pp. 3–9 & 12 tomorrow" autocomplete="off" required><button class="primary" aria-label="Add task">${icon("plus")}</button><button type="button" data-action="add" aria-label="Add task with details">${icon("more")}</button></form><p id="capturePreview" class="capture-preview" role="status" aria-live="polite" hidden></p>${taskGroups()}<div class="tasks-footer"><button class="text-button" data-action="all-tasks">All tasks · ${focusTasks(tasks, courses).filter((t) => !t.done).length} open</button><span class="footer-actions"><button class="text-button" data-action="wrap-up">Wrap up day</button><button class="text-button" data-action="standalone" data-type="todo">Open To-Do separately ↗</button></span></div></section><section class="surface agenda-surface"><div class="section-heading"><h2>Your day</h2><div class="heading-actions"><button class="plan-day" data-action="plan-day">${icon("calendar")}Plan my day</button><span>${new Date().toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" })}</span></div></div><div class="agenda-scroll"><div class="timeline" data-drop-calendar data-date="${isoDate()}" data-start="${start}" data-end="${end}" style="--timeline-height:${((end - start) * 76) / 60}px">${hourLines(start, end)}${gapHints(events, start, end)}${events.map((e) => eventMarkup(e, start)).join("")}${nowLine(start, end)}</div></div><div class="tasks-footer"><button class="text-button" data-action="view" data-view="plan">Open planner ${icon("right")}</button><button class="text-button" data-action="standalone" data-type="timetable">Timetable ↗</button></div></section></div>`;
+	return `<div class="today-layout"><section class="surface tasks-surface" data-ctx="area" data-area="today"><div class="today-heading"><div><h2>Today</h2><p class="date-copy">${dateLabel(new Date())}</p></div>${finishLine()}</div><form class="composer" id="quickAdd"><input name="task" aria-label="Add a task" placeholder="Add a task… e.g. should do Read pp. 3–9 & 12 tomorrow" autocomplete="off" required><button class="primary" aria-label="Add task">${icon("plus")}</button><button type="button" data-action="add" aria-label="Add task with details">${icon("more")}</button></form><p id="capturePreview" class="capture-preview" role="status" aria-live="polite" hidden></p>${taskGroups()}<div class="tasks-footer"><button class="text-button" data-action="all-tasks">All tasks · ${focusTasks(tasks, courses).filter((t) => !t.done).length} open</button><span class="footer-actions"><button class="text-button" data-action="import-readings">Import readings</button><button class="text-button" data-action="wrap-up">Wrap up day</button><button class="text-button" data-action="standalone" data-type="todo">Open To-Do separately ↗</button></span></div></section><section class="surface agenda-surface"><div class="section-heading"><h2>Your day</h2><div class="heading-actions"><button class="plan-day" data-action="plan-day">${icon("calendar")}Plan my day</button><span>${new Date().toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" })}</span></div></div><div class="agenda-scroll"><div class="timeline" data-drop-calendar data-date="${isoDate()}" data-start="${start}" data-end="${end}" style="--timeline-height:${((end - start) * 76) / 60}px">${hourLines(start, end)}${gapHints(events, start, end)}${events.map((e) => eventMarkup(e, start)).join("")}${nowLine(start, end)}</div></div><div class="tasks-footer"><button class="text-button" data-action="view" data-view="plan">Open planner ${icon("right")}</button><button class="text-button" data-action="standalone" data-type="timetable">Timetable ↗</button></div></section></div>`;
 }
 function render() {
 	if (!engines.todo) return;
@@ -2052,7 +2053,7 @@ function docketMenu(el, x, y) {
 	showMenu(el, x, y, el.querySelector(".docket-desc")?.firstChild?.textContent?.trim() || "Docket entry", entries);
 }
 function areaMenu(el, x, y) {
-	const entries = [{ label: "New task\u2026", run: () => openEditor() }, { label: "Plan my day", hint: "Preview before anything is scheduled", run: () => openPlanDay() }];
+	const entries = [{ label: "New task\u2026", run: () => openEditor() }, { label: "Plan my day", hint: "Preview before anything is scheduled", run: () => openPlanDay() }, { label: "Import readings from Notion\u2026", hint: "Preview before anything is added", run: () => openReadingsImport() }];
 	if (el.dataset.area === "today") entries.push({ label: "Wrap up day", run: () => openWrapUp() });
 	showMenu(el, x, y, el.dataset.area === "tray" ? "Unscheduled" : "Today", entries);
 }
@@ -2252,6 +2253,100 @@ function saveBlockTag(id, kind) {
 			notify(error.message);
 		}
 	})();
+}
+/* Import readings from Notion: reads this week's class notes, shows what it found, and only adds tasks
+   for the rows you leave ticked. Nothing is written to Notion. */
+async function openReadingsImport() {
+	const today = isoDate();
+	const plus = (key, n) => {
+		const d = localDate(key);
+		d.setDate(d.getDate() + n);
+		return isoDate(d);
+	};
+	const day = (key) => localDate(key).toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" });
+	const head = dialogHead("Import readings from Notion", "editorTitle");
+	let days = 7,
+		dueMode = "before",
+		edition = "",
+		data = null;
+	const picked = new Map();
+	const d = openDialog("#editorDialog", head + '<p class="muted">Reading your class notes\u2026</p>');
+	const fail = (text) => { d.innerHTML = head + `<p class="muted">${esc(text)}</p><div class="dialog-actions"><button type="button" data-action="close-dialog">Close</button></div>`; };
+	const load = async () => {
+		let res;
+		try {
+			res = await engines.todo.SyncEngine.callWorker(`/notion/readings?from=${plus(today, -3)}&to=${plus(today, days)}`);
+		} catch {
+			return fail("Could not reach your workspace. Check your connection and try again.");
+		}
+		const body = await res.json().catch(() => ({}));
+		if (res.status === 501) return fail("Notion is not connected to Command Centre yet.");
+		if (!res.ok) return fail("Notion could not be read right now." + (body.detail ? ` (${String(body.detail).slice(0, 120)})` : ""));
+		data = body;
+		paint();
+	};
+	const paint = () => {
+		const { items, unclear, editions } = readingCandidates({ lectures: data.lectures || [], courses: data.courses || {}, tasks, today, dueMode, edition, estimate: (t) => Reading.estimate(t) });
+		const isOn = (i) => (picked.has(i.key) ? picked.get(i.key) : !i.exists && i.classDate >= today);
+		const rows = items
+			.sort((a, b) => a.classDate.localeCompare(b.classDate) || a.text.localeCompare(b.text))
+			.map((i) => {
+				const flags = [i.exists ? "Already on your list" : "", i.moved ? `Class moved from ${day(i.moved.from)}` : "", i.classDate < today ? "Class has passed" : "", i.edition ? `${i.edition} edition` : ""].filter(Boolean);
+				return `<label class="import-row ${i.exists ? "is-exists" : ""}"><input type="checkbox" name="pick" value="${esc(i.key)}" ${isOn(i) && !i.exists ? "checked" : ""} ${i.exists ? "disabled" : ""}><span class="import-main"><b>${esc(i.text)}</b><small>${esc(i.lectureTitle)}</small><small>${day(i.classDate)} \u00b7 ${i.pages} pages${i.minutes ? ` \u00b7 about ${formatMinutes(i.minutes)}` : ""} \u00b7 due ${day(i.dueKey)}</small>${flags.length ? `<span class="import-flags">${flags.map((f) => `<i>${esc(f)}</i>`).join("")}</span>` : ""}</span></label>`;
+			})
+			.join("");
+		const check = unclear.length ? `<details class="import-unclear"><summary>${unclear.length} ${unclear.length === 1 ? "class needs" : "classes need"} a look in Notion</summary><ul>${unclear.map((u) => `<li><a href="${esc(u.url)}" target="_blank" rel="noopener">${esc(u.title)}</a> <small>${day(u.classDate)} \u00b7 ${esc(u.reason)}</small></li>`).join("")}</ul></details>` : "";
+		d.innerHTML = head + `<div class="import-controls"><label>Look ahead<select id="impDays"><option value="7" ${days === 7 ? "selected" : ""}>7 days</option><option value="14" ${days === 14 ? "selected" : ""}>14 days</option></select></label><label>Due<select id="impDue"><option value="before" ${dueMode === "before" ? "selected" : ""}>Day before class</option><option value="class" ${dueMode === "class" ? "selected" : ""}>Day of class</option></select></label>${editions.length > 1 ? `<label>Edition<select id="impEd">${editions.map((e) => `<option value="${esc(e)}" ${(edition || editions[0]) === e ? "selected" : ""}>${esc(e)}</option>`).join("")}</select></label>` : ""}</div><form id="importForm">${rows ? `<div class="import-list">${rows}</div>` : `<p class="muted">No readings with page numbers in the next ${days} days.</p>`}${check}<p class="muted import-note">Nothing is added until you confirm. Classes whose notes have no page numbers are listed above, not guessed.</p><p class="form-error" id="importError" role="alert"></p><div class="dialog-actions"><button type="button" data-action="close-dialog">Cancel</button>${rows ? '<button type="submit" class="primary" id="importConfirm"></button>' : ""}</div></form>`;
+		const form = $("#importForm"), confirm = $("#importConfirm");
+		const count = () => {
+			const n = form.querySelectorAll("input[name=pick]:checked").length;
+			if (confirm) {
+				confirm.textContent = n === 1 ? "Add 1 reading" : `Add ${n} readings`;
+				confirm.disabled = !n;
+			}
+		};
+		form.addEventListener("change", (e) => {
+			if (e.target.name === "pick") picked.set(e.target.value, e.target.checked);
+			count();
+		});
+		count();
+		$("#impDays").onchange = (e) => { days = Number(e.target.value); d.innerHTML = head + '<p class="muted">Reading your class notes\u2026</p>'; load(); };
+		$("#impDue").onchange = (e) => { dueMode = e.target.value; paint(); };
+		if ($("#impEd")) $("#impEd").onchange = (e) => { edition = e.target.value; paint(); };
+		form.onsubmit = (e) => {
+			e.preventDefault();
+			try {
+				const chosen = new Set([...form.querySelectorAll("input[name=pick]:checked")].map((i) => i.value));
+				const added = [];
+				for (const i of items.filter((x) => chosen.has(x.key) && !x.exists)) {
+					const id = engines.todo.TodoUIBridge.command.add({
+						text: i.text,
+						pri: i.pri,
+						plannedMinutes: i.minutes,
+						due: i.dueKey === today ? "today" : null,
+						dueKey: i.dueKey,
+						notes: `From Notion: ${i.lectureTitle}\n${i.url}`,
+						reading: i.minutes ? { autoMinutes: i.minutes } : null,
+						lectureId: i.lectureId,
+						lectureUrl: i.url,
+					});
+					if (id) added.push(id);
+				}
+				if (!added.length) throw Error("Nothing was added. Tick at least one reading.");
+				d.close();
+				signature = "";
+				refresh();
+				notify(`Added ${added.length} ${added.length === 1 ? "reading" : "readings"} from Notion.`, () => {
+					added.forEach((id) => engines.todo.TodoUIBridge.command.remove(id));
+					signature = "";
+					refresh();
+				});
+			} catch (error) {
+				$("#importError").textContent = error.message;
+			}
+		};
+	};
+	load();
 }
 function openCalendarCreate(column, y) {
 	const date = column.dataset.date,
@@ -2695,6 +2790,9 @@ document.addEventListener("click", (e) => {
 			break;
 		case "plan-day":
 			openPlanDay();
+			break;
+		case "import-readings":
+			openReadingsImport();
 			break;
 		case "partner-cta":
 			if (b.dataset.kind === "focus") selectFocus(b.dataset.id);

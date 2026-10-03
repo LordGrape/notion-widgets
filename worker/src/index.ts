@@ -13,6 +13,7 @@ import { handleMemory } from "./routes/memory";
 import { handleNotionMilestones } from "./routes/notion";
 import { handleActionBlocks } from "./routes/action-blocks";
 import { handleUpcomingAssignments } from "./routes/upcoming-assignments";
+import { handleLectureReadings } from "./routes/lecture-readings";
 import { handleFitnessTests } from "./routes/fitness-tests";
 import { handlePrepare } from "./routes/prepare";
 import { handlePrime } from "./routes/prime";
@@ -99,6 +100,9 @@ export default {
         }
         if (key === "action-blocks" && (request.method === "GET" || request.method === "POST")) {
           return withCorsHeaders(await handleActionBlocks(request, env));
+        }
+        if (key === "readings" && request.method === "GET") {
+          return withCorsHeaders(await handleLectureReadings(request, env));
         }
         if (key === "upcoming" && request.method === "GET") {
           return withCorsHeaders(await handleUpcomingAssignments(request, env));

@@ -997,7 +997,7 @@ body::before{
       undo: doUndo,
       update: function (id, patch) {
         poll(); var task = byId(id); if (!task) return;
-        ['text','pri','time','due','dueKey','notes','plannedMinutes','subs','scheduledStart','scheduledEnd','scheduleId','timeboxed','reading','kind'].forEach(function (key) {
+        ['text','pri','time','due','dueKey','notes','plannedMinutes','subs','scheduledStart','scheduledEnd','scheduleId','timeboxed','reading','kind','lectureId','lectureUrl'].forEach(function (key) {
           if (Object.prototype.hasOwnProperty.call(patch, key)) task[key] = patch[key];
         });
         task.updatedAt = Date.now(); task.setKey = todayKey(); save();
@@ -1008,7 +1008,9 @@ body::before{
           plannedMinutes:Number(value.plannedMinutes)||null,due:Object.prototype.hasOwnProperty.call(value,'due')?value.due:'today',
           dueKey:Object.prototype.hasOwnProperty.call(value,'dueKey')?value.dueKey:todayKey(),setKey:todayKey(),done:false,doneAt:null,
           created:Date.now(),notes:value.notes || '',subs:[]};
-        task.reading=value.reading || null; tasks.unshift(task); save(); return task.id;
+        task.reading=value.reading || null;
+        if (value.lectureId) { task.lectureId = String(value.lectureId); task.lectureUrl = String(value.lectureUrl || ''); }
+        tasks.unshift(task); save(); return task.id;
       },
       subtask: function (id, subId) {
         poll(); var task=byId(id); if(!task)return;

@@ -1,4 +1,4 @@
-const CACHE = "command-centre-20261003-suitcase";
+const CACHE = "command-centre-20261004-readings";
 const SHELL = [
 	"../../widget-platform.js",
 	"../../reading-estimates.js",
@@ -13,6 +13,7 @@ const SHELL = [
 	"./autofit.mjs",
 	"./calendar-extras.mjs",
 	"./interactions.mjs",
+	"./readings-import.mjs",
 	"./split.mjs",
 	"./broadcast3d.mjs",
 	"./partner.mjs",
