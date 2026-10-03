@@ -122,3 +122,7 @@ On the Docket, Broadcast is a 3D model (`broadcast.glb`, built from `tools/broad
 ## Broadcast's voice (sound)
 
 `voice.mjs` gives him a deep, wordless radio-host murmur: each line becomes a plan of syllables whose rhythm, pitch and vowel colour follow his mood (lower and slower when stern, higher and quicker when panicking, falling at the end of a phrase). The sound is a sawtooth through three dark vowel formants, gentle saturation and a warm radio band. The same plan drives his 3D mouth, so voice and mouth always match. He speaks when tapped and on focus events; the partner sound setting controls the audio (browsers keep audio locked until the first tap), and hiding the partner silences him.
+
+## Speech bubble
+
+His line sits in a dark speech bubble that behaves like a TV signal: it tunes in with a burst of static and an RGB-split flicker, types the line at the pace of his voice (same syllable plan), then keeps faint animated static, scanlines and an occasional glitch. A hidden copy reserves the bubble's size so nothing jumps while typing, screen readers receive the whole line at once, and reduced motion shows the text immediately without effects.

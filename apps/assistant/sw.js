@@ -1,4 +1,4 @@
-const CACHE = "command-centre-20261002-radio-voice";
+const CACHE = "command-centre-20261002-static-bubble";
 const SHELL = [
 	"../../widget-platform.js",
 	"../../reading-estimates.js",

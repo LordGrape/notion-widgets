@@ -53,7 +53,7 @@ import { suggestLastPage, planPageSplit, planTimeSplit, defaultRemaining } from 
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261002-radio-voice";
+	REVISION = "20261002-static-bubble";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -172,10 +172,42 @@ function mountBroadcast3D() {
 			console.warn("Broadcast 3D is unavailable; using the 2D partner.", error);
 		});
 }
-/* He speaks a line: one syllable plan drives his voice and his mouth. */
+/* The speech bubble tunes in with static, then types the line at the pace of
+   his voice. Screen readers get the whole line at once. */
+let bubbleRun = 0;
+function setBubble(text, plan = null) {
+	const bubble = $("#broadcastCompanion .broadcast-dialogue");
+	const sr = bubble?.querySelector(".bubble-sr"), ghost = bubble?.querySelector(".bubble-ghost"), shown = bubble?.querySelector(".bubble-text");
+	if (!bubble || !sr || !ghost || !shown) return;
+	const run = ++bubbleRun;
+	sr.textContent = ghost.textContent = text;
+	bubble.dataset.state = "tuning";
+	setTimeout(() => {
+		if (run === bubbleRun) bubble.dataset.state = "live";
+	}, 420);
+	if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+		shown.textContent = text;
+		bubble.dataset.state = "live";
+		return;
+	}
+	const total = plan ? Math.max(0.6, plan.duration) * 1000 : 700;
+	const start = performance.now() + 200;
+	shown.textContent = "";
+	bubble.classList.add("typing");
+	const step = (now) => {
+		if (run !== bubbleRun || !shown.isConnected) return;
+		const count = Math.max(0, Math.min(text.length, Math.round(((now - start) / total) * text.length)));
+		shown.textContent = text.slice(0, count);
+		if (count < text.length) requestAnimationFrame(step);
+		else bubble.classList.remove("typing");
+	};
+	requestAnimationFrame(step);
+}
+/* He speaks a line: one syllable plan drives his voice, his mouth and the bubble. */
 function partnerSpeak(text) {
 	if (!broadcastVisible()) return;
 	const plan = syllablePlan(text, broadcastMood);
+	setBubble(text, plan);
 	if (broadcastSoundEnabled()) speak(plan, { volume: 0.22 });
 	broadcast3D?.react("talk", plan);
 }
@@ -193,7 +225,6 @@ function broadcastReact(state) {
 	}[state] || ["Shall we begin, counsel?", "broadcast-greet"];
 	broadcastLine = copy[0];
 	broadcastPose = copy[1];
-	line.textContent = copy[0];
 	figure.classList.remove("broadcast-greet", "broadcast-focus", "broadcast-celebrate", "broadcast-talking", "broadcast-glitch");
 	void figure.offsetWidth;
 	figure.classList.add(...copy[1].split(" "), "broadcast-talking", "broadcast-glitch");
@@ -203,7 +234,9 @@ function broadcastReact(state) {
 		$("#broadcastCompanion .broadcast-figure")?.classList.remove("broadcast-talking", "broadcast-glitch", "broadcast-greet", "broadcast-celebrate");
 	}, 1900);
 	if (state === "finish") {
-		if (broadcastSoundEnabled()) speak(syllablePlan(copy[0], "happy"), { volume: 0.22 });
+		const plan = syllablePlan(copy[0], "happy");
+		setBubble(copy[0], plan);
+		if (broadcastSoundEnabled()) speak(plan, { volume: 0.22 });
 	} else partnerSpeak(copy[0]);
 }
 function playCue(kind) {
@@ -632,6 +665,8 @@ function render() {
 	updateTimer();
 	updateCalendarTime();
 	mountBroadcast3D();
+	const bubble = $("#broadcastCompanion .broadcast-dialogue");
+	if (bubble) setTimeout(() => (bubble.dataset.state = "live"), 420);
 	const agenda = $(".agenda-scroll");
 	if (agenda) {
 		if (priorScroll != null) agenda.scrollTop = priorScroll;
@@ -2167,7 +2202,7 @@ function formatMinutes(n) {
 	);
 }
 function broadcastMarkup() {
-	return `<section class="surface context-card broadcast-card" id="broadcastCompanion" aria-label="Broadcast, your focus partner"><div class="broadcast-stage" data-action="partner-tap"><div class="broadcast-3d" title="Tap to hear from your partner"></div><div class="broadcast-figure ${broadcastPose}" role="img" aria-label="Broadcast, a muscular CRT television-headed partner in a tailored charcoal suit"><div class="broadcast-shadow"></div><div class="broadcast-leg broadcast-leg-left"><div class="broadcast-shoe"></div></div><div class="broadcast-leg broadcast-leg-right"><div class="broadcast-shoe"></div></div><div class="broadcast-arm broadcast-arm-left"><div class="broadcast-cuff"></div><div class="broadcast-hand"></div></div><div class="broadcast-arm broadcast-arm-right"><div class="broadcast-cuff"></div><div class="broadcast-hand"></div></div><div class="broadcast-body"><div class="broadcast-shirt"></div><div class="broadcast-tie"></div><div class="broadcast-lapel"></div><div class="broadcast-lapel broadcast-lapel-right"></div><div class="broadcast-pocket"></div></div><div class="broadcast-head"><div class="broadcast-antenna"></div><div class="broadcast-screen"><div class="broadcast-face"><span class="broadcast-eye broadcast-eye-left"></span><span class="broadcast-eye broadcast-eye-right"></span><span class="broadcast-mouth"></span><span class="broadcast-fang"></span></div><div class="broadcast-scan"></div><div class="broadcast-reflection"></div></div><div class="broadcast-knob"></div></div></div></div><p class="broadcast-dialogue" role="status" aria-live="polite">${esc(broadcastLine)}</p>${partnerCta ? `<button class="broadcast-cta" data-action="partner-cta" data-kind="${esc(partnerCta.kind)}" data-id="${esc(partnerCta.id || "")}">${esc(partnerCta.label)}</button>` : ""}<p class="broadcast-away" role="status"></p></section>`;
+	return `<section class="surface context-card broadcast-card" id="broadcastCompanion" aria-label="Broadcast, your focus partner"><div class="broadcast-stage" data-action="partner-tap"><div class="broadcast-3d" title="Tap to hear from your partner"></div><div class="broadcast-figure ${broadcastPose}" role="img" aria-label="Broadcast, a muscular CRT television-headed partner in a tailored charcoal suit"><div class="broadcast-shadow"></div><div class="broadcast-leg broadcast-leg-left"><div class="broadcast-shoe"></div></div><div class="broadcast-leg broadcast-leg-right"><div class="broadcast-shoe"></div></div><div class="broadcast-arm broadcast-arm-left"><div class="broadcast-cuff"></div><div class="broadcast-hand"></div></div><div class="broadcast-arm broadcast-arm-right"><div class="broadcast-cuff"></div><div class="broadcast-hand"></div></div><div class="broadcast-body"><div class="broadcast-shirt"></div><div class="broadcast-tie"></div><div class="broadcast-lapel"></div><div class="broadcast-lapel broadcast-lapel-right"></div><div class="broadcast-pocket"></div></div><div class="broadcast-head"><div class="broadcast-antenna"></div><div class="broadcast-screen"><div class="broadcast-face"><span class="broadcast-eye broadcast-eye-left"></span><span class="broadcast-eye broadcast-eye-right"></span><span class="broadcast-mouth"></span><span class="broadcast-fang"></span></div><div class="broadcast-scan"></div><div class="broadcast-reflection"></div></div><div class="broadcast-knob"></div></div></div></div><div class="broadcast-dialogue" data-state="tuning"><span class="sr-only bubble-sr" role="status" aria-live="polite">${esc(broadcastLine)}</span><span class="bubble-ghost" aria-hidden="true">${esc(broadcastLine)}</span><span class="bubble-text" aria-hidden="true">${esc(broadcastLine)}</span><i class="bubble-static" aria-hidden="true"></i></div>${partnerCta ? `<button class="broadcast-cta" data-action="partner-cta" data-kind="${esc(partnerCta.kind)}" data-id="${esc(partnerCta.id || "")}">${esc(partnerCta.label)}</button>` : ""}<p class="broadcast-away" role="status"></p></section>`;
 }
 const monthDay = (d) => d.toLocaleDateString("en-CA", { month: "short", day: "numeric" });
 const clockTime = (ms) => {
@@ -2244,8 +2279,6 @@ function advancePartnerLine() {
 	partnerUsed.add(line.id);
 	partnerLine.line = line;
 	broadcastLine = line.text;
-	const el = $("#broadcastCompanion .broadcast-dialogue");
-	if (el) el.textContent = line.text;
 }
 function renderReview() {
 	const day = new Date().getDay();
