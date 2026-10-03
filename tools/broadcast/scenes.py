@@ -562,46 +562,76 @@ def soccer_scene():
                 camera=((-8.5, -9.5, 2.9), (0, -0.2, 1.75), 100))
 
 
+def solve_arm(pose, side, target, guess):
+    """Find shoulder (x, y) and elbow (x) angles that put the palm on `target` (coordinate descent)."""
+    params, step = list(guess), 0.25
+    limits = ((-2.2, 0.8), (-1.6, 1.6), (-2.2, 0.0))
+
+    def cost(q):
+        trial = dict(pose)
+        trial[f"Shoulder{side}"] = P(q[0], q[1], 0)
+        trial[f"Elbow{side}"] = P(q[2])
+        apply_pose(trial)
+        # A little pull toward a relaxed elbow keeps the arm natural when several poses reach.
+        return (where(f"Palm{side}") - target).length_squared + 0.0004 * (q[2] + 0.7) ** 2
+
+    best = cost(params)
+    while step > 0.002:
+        moved = False
+        for i in range(3):
+            for d in (step, -step):
+                q = list(params)
+                q[i] = min(limits[i][1], max(limits[i][0], q[i] + d))
+                c = cost(q)
+                if c < best:
+                    params, best, moved = q, c, True
+        if not moved:
+            step /= 2
+    return params
+
+
 def basketball_scene():
     L = 24
+    BOUNCE = 12                          # two dribbles per loop
     R = 0.32
     ball = basketball(R)
+    spot = Vector((-1.5, -0.38, 0))     # where the ball hits the floor, beside the near foot
+    top, low = 1.0, 0.82                 # ball centre at the top of the dribble, and where the hand lets go
+
+    def ball_z(f):
+        # |cos| is a dribble: rounded at the hand, a sharp bounce at the floor.
+        return R + (top - R) * abs(math.cos(math.pi * f / BOUNCE))
+
+    def body(f):
+        t = f / L
+        push = math.cos(TAU * f / BOUNCE)      # 1 at the top of each dribble
+        return grounded({
+            "Body": P(0.34 + 0.04 * push, -0.05, -0.16),
+            "Neck": P(-0.08 + 0.05 * push, 0, 0.18 + 0.04 * math.sin(TAU * t)),
+            "HipL": P(-0.7, 0.16, -0.18), "HipR": P(-0.7, -0.16, 0.18),
+            "KneeL": P(0.78 + 0.08 * push), "KneeR": P(0.78 + 0.08 * push),
+            "ShoulderR": P(-0.35, -1.05 + 0.06 * math.sin(TAU * t), 0.1),
+            "ElbowR": P(-0.55 - 0.1 * math.sin(TAU * t)),
+        })
+
+    # The hand rides the ball down to `low`, lets go, waits there, and meets it on the way back up.
+    arms, guess = {}, (-0.6, 0.4, -0.5)
+    for f in range(L):
+        pose = body(f)
+        hand = max(ball_z(f), low) + R + 0.06
+        guess = arms[f] = solve_arm(pose, "L", Vector((spot.x, spot.y, hand)), guess)
 
     def pose(f):
-        t = f / L
-        w = 0.5 + 0.5 * math.cos(TAU * t)          # 1: the near hand (L) has the ball, 0: the far hand
-        push_l = bump(f, 1, 4, L)
-        push_r = bump(f, 13, 4, L)
-        shift = math.cos(TAU * t)
-        p = {
-            "Body": P(0.38, 0.05 * shift, 0.14 * shift),
-            "Neck": P(-0.12, 0, -0.1 * shift),
-            "HipL": P(-0.85, 0, -0.22), "HipR": P(-0.85, 0, 0.22),
-            "KneeL": P(0.85 + 0.1 * math.sin(2 * TAU * t)), "KneeR": P(0.85 + 0.1 * math.sin(2 * TAU * t)),
-            "ShoulderL": P(-0.3 - 0.25 * w + 0.3 * push_l, 0.35 + 0.4 * (1 - w), -0.15 * w),
-            "ElbowL": P(-0.5 - 0.55 * w + 0.35 * push_l),
-            "ShoulderR": P(-0.3 - 0.25 * (1 - w) + 0.3 * push_r, -0.35 - 0.4 * w, 0.15 * (1 - w)),
-            "ElbowR": P(-0.5 - 0.55 * (1 - w) + 0.35 * push_r),
-        }
-        return grounded(p, 0.02 * math.sin(2 * TAU * t))
-
-    contacts = {}
-    for f, side in ((0, "L"), (12, "R")):
-        apply_pose(pose(f))
-        contacts[f] = where(f"Palm{side}") - Vector((0, 0, R + 0.05))
+        p = body(f)
+        q = arms[f % L]
+        p["ShoulderL"], p["ElbowL"] = P(q[0], q[1], 0), P(q[2])
+        return p
 
     def props(f):
-        a, b = (0, 12) if f < 12 else (12, 24)
-        u = (f - a) / 12
-        p0, p1 = contacts[a % 24], contacts[b % 24]
-        flat = p0.lerp(p1, u)
-        mid = Vector(((p0.x + p1.x) / 2 * 0.2, min(p0.y, p1.y) - 0.35, R))
-        flat = flat.lerp(mid, math.sin(math.pi * u) * 0.6)
-        z = R + (p0.z + (p1.z - p0.z) * u - R) * abs(math.cos(math.pi * u))
-        key_obj(ball, f, loc=(flat.x, flat.y, z), rot=(TAU * f / L, 0, 0))
+        key_obj(ball, f, loc=(spot.x, spot.y, ball_z(f)), rot=(-TAU * f / BOUNCE * 0.5, 0, 0))
 
     return dict(length=L, fps=24, face="smug", pose=pose, props=props,
-                camera=((-8.5, -9.5, 2.5), (0, -0.25, 1.6), 100))
+                camera=((-8.5, -9.5, 2.6), (-0.2, -0.25, 1.55), 100))
 
 
 def render_frame(path, glows):

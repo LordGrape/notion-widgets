@@ -24,7 +24,7 @@ Use `PREVIEW=1` to also render still frames of each clip into `<outdir>`. For a 
 | `laptop` | 48 | 2 s | Typing at a desk, then slamming Enter and leaning back |
 | `meditate` | 40 | 2 s | Floating cross-legged with orbiting lights and a rune ring |
 | `soccer` | 24 | 1 s | Juggling a football from foot to foot |
-| `basketball` | 24 | 1 s | Crossover dribbling in a low stance |
+| `basketball` | 24 | 1 s | Dribbling beside him in a low stance; the hand is solved onto the ball each frame |
 
 Every scene is a function of the frame keyed on every frame, so loops are seamless and balls meet the foot or hand they come from. Glows are rendered in a second pass with everything else held out, because Cycles shows the shadow catcher through transparent surfaces. `SCENES` picks scenes (comma separated), `SCENE_W` the frame width (height is 1.1x), `SCENE_SAMPLES` the samples, `SCENE_FRAMES=0,12` renders only some frames and `SCENE_CAMERA=x,y,z` moves the camera for a quick look.
 
