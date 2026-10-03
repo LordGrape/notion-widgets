@@ -2,6 +2,8 @@
 
 Source for the 3D Broadcast used by Command Centre (`apps/assistant/broadcast.glb` and `apps/assistant/broadcast-run.webp`). The model is built procedurally in Blender; there is no hand-edited .blend to keep in sync.
 
+The executive wardrobe has a charcoal three-piece suit, peaked lapels, a silver tie bar, double-monk leather shoes and articulated silver hands with graphite joints and purple signal rings. The existing CRT head, face, rig and five animation clips are retained. Rebuild both assets together; the CSS fallback in `apps/assistant/styles.css` and `broadcastMarkup()` carries the same waistcoat, tie bar, segmented hands and buckles. Bump the app revision, stylesheet/script URLs, sprite URL and service-worker cache when shipping rebuilt assets.
+
 ## Rebuild
 
 ```bash
@@ -11,6 +13,10 @@ SPRITE_QUALITY=0.95 node tools/broadcast/sprite.cjs <outdir>/broadcast-run.png a
 ```
 
 Use `PREVIEW=1` to also render still frames of each clip into `<outdir>`. `RUN_W` is the width of one run frame in pixels (height is 1.1x; default 300), `RUN_SAMPLES` the anti-aliasing samples (default 48). The shipped sheet is 16 frames of 800x880 (12800x880), because the loading screen shows the run cycle up to about 1000 px wide.
+
+For a quick modelling pass, `RENDER_RUN=0 PREVIEW_CLIPS=idle` skips the sprite render and previews only idle. These controls do not remove any exported animation clips. The output folder is created automatically and includes the editable `broadcast_rigged.blend`.
+
+`node tools/broadcast/verify.cjs <screenshot-directory>` verifies the shipped rig and executive details, then opens the real app with synthetic state in light/dark, desktop/mobile, embedded and reduced-motion configurations. It exercises talking, cheering, slumping and glitching. Install `three@0.170.0` without saving it as a dependency to serve the app's pinned CDN modules locally during the test. Set `BROADCAST_BROWSER=chrome` or `msedge` to use an installed browser.
 
 ## Contract with the app
 

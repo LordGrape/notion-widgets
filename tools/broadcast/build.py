@@ -1,10 +1,11 @@
-"""Broadcast 3D, pass 2. Run: blender -b --python build2.py -- <outdir>
+"""Broadcast executive partner. Run: blender -b --python tools/broadcast/build.py -- <outdir>
 Env: BROADCAST_POSE=idle|cheer, BROADCAST_FACES=smug,happy,stern, BROADCAST_VIEWS=front,three"""
 import bpy, bmesh, math, sys, os
 import numpy as np
 from mathutils import Vector, Matrix
 
 OUT = sys.argv[sys.argv.index("--") + 1] if "--" in sys.argv else os.path.dirname(__file__)
+os.makedirs(OUT, exist_ok=True)
 POSE = os.environ.get("BROADCAST_POSE", "idle")
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -48,9 +49,16 @@ PLASTIC = mat("TV", (0.04, 0.035, 0.05), rough=0.28, coat=0.8, coat_rough=0.08)
 BEZEL = mat("Bezel", (0.012, 0.01, 0.016), rough=0.35)
 GLOVE = mat("Glove", (0.085, 0.075, 0.11), rough=0.38, coat=0.4, coat_rough=0.2)
 CUFF = mat("Cuff", (0.55, 0.53, 0.62), rough=0.5)
-HAND = mat("Hand", (0.2, 0.19, 0.24), rough=0.32, coat=0.6, coat_rough=0.12)
-SHOE = mat("Shoe", (0.018, 0.016, 0.022), rough=0.15, coat=1.0, coat_rough=0.03)
-SOLE = mat("Sole", (0.2, 0.19, 0.23), rough=0.7)
+HAND = mat("Hand", (0.46, 0.44, 0.52), rough=0.3, metal=0.78, coat=0.25)
+JOINT = mat("Graphite joints", (0.026, 0.023, 0.035), rough=0.38, metal=0.65)
+SHOE = mat("Shoe", (0.018, 0.016, 0.022), rough=0.26, coat=0.65, coat_rough=0.16)
+SOLE = mat("Sole", (0.013, 0.011, 0.017), rough=0.65)
+WAISTCOAT = mat("Waistcoat", (0.045, 0.037, 0.059), rough=0.65)
+SEAM = mat("Tailoring seams", (0.065, 0.054, 0.078), rough=0.7)
+SIGNAL = mat("Hand signal", (0.36, 0.13, 0.85), rough=0.3)
+signal_bsdf = SIGNAL.node_tree.nodes["Principled BSDF"]
+signal_bsdf.inputs["Emission Color"].default_value = (0.36, 0.13, 0.85, 1)
+signal_bsdf.inputs["Emission Strength"].default_value = 2.5
 SHIRT = mat("Shirt", (0.88, 0.86, 0.95), rough=0.6)
 TIE = mat("Tie", (0.36, 0.13, 0.85), rough=0.3, coat=0.6)
 METAL = mat("Metal", (0.7, 0.68, 0.76), rough=0.2, metal=1.0)
@@ -251,17 +259,21 @@ for side in (-1, 1):
 
 def front_piece(name, pts, m, offset):
     me = bpy.data.meshes.new(name)
-    me.from_pydata([Vector(q) for q in pts], [], [list(range(len(pts)))])
+    me.from_pydata([Vector((q[0], q[1], min(q[2], 1.965))) for q in pts], [], [list(range(len(pts)))])
     o = bpy.data.objects.new(name, me)
     bpy.context.collection.objects.link(o)
     bm2 = bmesh.new()
     bm2.from_mesh(me)
-    bmesh.ops.subdivide_edges(bm2, edges=bm2.edges[:], cuts=10, use_grid_fill=True)
+    bmesh.ops.triangulate(bm2, faces=bm2.faces[:])
+    bmesh.ops.subdivide_edges(bm2, edges=bm2.edges[:], cuts=8, use_grid_fill=True)
     bm2.to_mesh(me)
     bm2.free()
     sw = o.modifiers.new("Wrap", "SHRINKWRAP")
     sw.target = torso
-    sw.wrap_method = "NEAREST_SURFACEPOINT"
+    sw.wrap_method = "PROJECT"
+    sw.use_project_y = True
+    sw.use_positive_direction = True
+    sw.use_negative_direction = False
     sw.offset = offset
     o.modifiers.new("Solid", "SOLIDIFY").thickness = 0.018
     return finish(o, m, 0)
@@ -269,30 +281,49 @@ def front_piece(name, pts, m, offset):
 
 front_piece("Shirt", [(-0.3, -0.6, 1.98), (0.3, -0.6, 1.98), (0.0, -0.6, 1.16)], SHIRT, 0.006)
 front_piece("Tie", [(-0.065, -0.6, 1.9), (0.065, -0.6, 1.9), (0.12, -0.6, 1.36), (0.0, -0.6, 1.22), (-0.12, -0.6, 1.36)], TIE, 0.024)
-front_piece("LapelL", [(-0.34, -0.6, 2.0), (-0.04, -0.6, 1.18), (-0.5, -0.6, 1.62)], LAPEL, 0.03)
-front_piece("LapelR", [(0.34, -0.6, 2.0), (0.5, -0.6, 1.62), (0.04, -0.6, 1.18)], LAPEL, 0.03)
+front_piece("Waistcoat", [(-0.3, -0.6, 1.88), (0, -0.6, 1.43), (0.3, -0.6, 1.88), (0.32, -0.6, 1.02), (0.12, -0.6, 0.95), (0, -0.6, 1.03), (-0.12, -0.6, 0.95), (-0.32, -0.6, 1.02)], WAISTCOAT, 0.034)
+front_piece("LapelL", [(-0.34, -0.6, 2.0), (-0.15, -0.6, 1.15), (-0.54, -0.6, 1.65), (-0.42, -0.6, 1.68), (-0.51, -0.6, 1.85)], LAPEL, 0.055)
+front_piece("LapelR", [(0.34, -0.6, 2.0), (0.51, -0.6, 1.85), (0.42, -0.6, 1.68), (0.54, -0.6, 1.65), (0.15, -0.6, 1.15)], LAPEL, 0.055)
 front_piece("CollarL", [(-0.31, -0.6, 2.03), (-0.05, -0.6, 1.97), (-0.2, -0.6, 1.83)], SHIRT, 0.022)
 front_piece("CollarR", [(0.31, -0.6, 2.03), (0.2, -0.6, 1.83), (0.05, -0.6, 1.97)], SHIRT, 0.022)
 front_piece("Pocket", [(0.42, -0.6, 1.62), (0.58, -0.6, 1.62), (0.5, -0.6, 1.72)], SHIRT, 0.036)
 ellipsoid("TieKnot", (0, -0.46, 1.85), (0.075, 0.035, 0.06), TIE, sub=0)
-for z in (1.05, 0.92):
-    ellipsoid("Button", (0.12, -0.47, z), (0.035, 0.02, 0.035), BEZEL, sub=0)
+front_piece("TieBar", [(-0.09, -0.6, 1.61), (0.09, -0.6, 1.61), (0.09, -0.6, 1.58), (-0.09, -0.6, 1.58)], METAL, 0.065)
+for z in (1.34, 1.20, 1.07):
+    front_piece("Button", [(-0.025, -0.6, z + 0.025), (0.025, -0.6, z + 0.025), (0.025, -0.6, z - 0.025), (-0.025, -0.6, z - 0.025)], BEZEL, 0.062)
+for s in (-1, 1):
+    front_piece(f"PocketFlap{s}", [(s * 0.33, -0.6, 1.24), (s * 0.57, -0.6, 1.28), (s * 0.56, -0.6, 1.17), (s * 0.33, -0.6, 1.13)], LAPEL, 0.048)
 
 # ---------- arms and legs ----------
 def make_hand(s, wrist, direction, curl):
-    """Chunky cartoon hand: three rounded fingers and a thumb, fused into one
-    glossy surface. Built pointing down -Z with the palm facing -s*X."""
+    """Separate silver phalanges and graphite joints, pointing down -Z.
+    Joined with material slots intact so the existing elbow rig animates it."""
     parts = [
-        capsule(f"Wrist{s}", (0, 0, 0.03), (0, 0, -0.07), 0.08, 0.09, HAND, seg=24, sub=0),
-        ellipsoid(f"Palm{s}", (0, 0, -0.13), (0.1, 0.13, 0.12), HAND, sub=0),
+        capsule(f"Wrist{s}", (0, 0, 0.035), (0, 0, -0.065), 0.065, 0.075, JOINT, seg=16, sub=0),
+        rounded_box(f"Palm{s}", (0, 0, -0.12), (0.16, 0.24, 0.2), HAND, 0.055, segments=4),
     ]
-    for y, length, r in ((-0.072, 0.11, 0.046), (0.0, 0.125, 0.048), (0.072, 0.105, 0.044)):
-        base = Vector((-s * 0.01, y, -0.19))
-        tip = base + Vector((-s * curl * 0.06, -y * 0.05, -length))
-        parts.append(capsule(f"F{s}{y}", base, tip, r, r * 0.92, HAND, seg=24, sub=0))
-    t0 = Vector((-s * 0.06, -0.1, -0.1))
-    t1 = t0 + Vector((-s * 0.015, 0.03, -0.14))
-    parts.append(capsule(f"Th{s}", t0, t1, 0.05, 0.044, HAND, seg=24, sub=0))
+    for i, (y, length) in enumerate(((-0.09, 0.145), (-0.03, 0.17), (0.03, 0.16), (0.09, 0.125))):
+        base = Vector((0, y, -0.22))
+        mid = base + Vector((-s * 0.016, 0, -length * 0.52))
+        tip = mid + Vector((-s * (0.035 + curl * 0.035), 0, -length * 0.33))
+        for j, (a, b) in enumerate(((base, mid), (mid, tip))):
+            delta = (b - a).normalized()
+            parts.append(capsule(f"Finger{i}_{j}", a + delta * 0.009, b - delta * 0.009, 0.025, 0.023, HAND, seg=12, sub=0))
+        for point in (base, mid):
+            parts.append(ellipsoid("Knuckle", point, (0.027, 0.027, 0.027), JOINT, sub=0))
+    t0 = Vector((-s * 0.045, -0.115, -0.105))
+    t1 = t0 + Vector((-s * 0.07, -0.055, -0.055))
+    t2 = t1 + Vector((-s * 0.025, 0.025, -0.085))
+    parts.extend((capsule("ThumbBase", t0, t1, 0.034, 0.031, HAND, seg=16, sub=0),
+                  ellipsoid("ThumbJoint", t1, (0.034, 0.034, 0.034), JOINT, sub=0),
+                  capsule("ThumbTip", t1 + (t2-t1).normalized()*0.018, t2, 0.03, 0.026, HAND, seg=16, sub=0)))
+    parts.append(ellipsoid("SignalSocket", (s * 0.083, 0, -0.105), (0.013, 0.061, 0.061), JOINT, sub=0))
+    bpy.ops.mesh.primitive_torus_add(major_segments=24, minor_segments=8, location=(s * 0.096, 0, -0.105), rotation=(0, math.pi / 2, 0), major_radius=0.043, minor_radius=0.008)
+    parts.append(finish(bpy.context.object, SIGNAL, 0))
+    # Bake primitives into the same local frame before joining.
+    for part in parts:
+        activate(part)
+        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
     bpy.ops.object.select_all(action="DESELECT")
     for part in parts:
         part.select_set(True)
@@ -302,11 +333,6 @@ def make_hand(s, wrist, direction, curl):
     hand_obj.name = f"Hand{s}"
     for mod in list(hand_obj.modifiers):
         hand_obj.modifiers.remove(mod)
-    hand_obj.data.remesh_voxel_size = 0.006
-    bpy.ops.object.voxel_remesh()
-    smooth_mod = hand_obj.modifiers.new("Smooth", "SMOOTH")
-    smooth_mod.factor = 0.9
-    smooth_mod.iterations = 10
     for poly in hand_obj.data.polygons:
         poly.use_smooth = True
     # Local geometry already mirrors by side, so the frame must not mirror again.
@@ -321,6 +347,37 @@ def make_hand(s, wrist, direction, curl):
     return hand_obj
 
 
+def make_shoe(s):
+    """Leather double-monk upper, thin welt, heel and two silver buckles."""
+    x = s * 0.35
+    profiles = [(-0.59, 0.015, 0.15), (-0.55, 0.16, 0.23), (-0.43, 0.25, 0.28), (-0.25, 0.27, 0.31), (-0.1, 0.245, 0.36), (0.05, 0.225, 0.40), (0.23, 0.215, 0.37), (0.30, 0.14, 0.30), (0.32, 0.01, 0.2)]
+    vertices, faces = [], []
+    count = 18
+    for y, width, top in profiles:
+        for i in range(count):
+            a = 2 * math.pi * i / count
+            vertices.append((x + width * math.cos(a), y, 0.125 + (top - 0.125) * max(0, math.sin(a))))
+    for row in range(len(profiles)-1):
+        for i in range(count):
+            faces.append((row*count+i, row*count+(i+1)%count, (row+1)*count+(i+1)%count, (row+1)*count+i))
+    faces.extend((tuple(reversed(range(count))), tuple((len(profiles)-1)*count+i for i in range(count))))
+    me = bpy.data.meshes.new(f"Shoe{s}")
+    me.from_pydata(vertices, [], faces)
+    shoe = bpy.data.objects.new(f"Shoe{s}", me)
+    bpy.context.collection.objects.link(shoe)
+    finish(shoe, SHOE, 1)
+    ellipsoid(f"Sole{s}", (x, -0.13, 0.09), (0.283, 0.465, 0.048), SOLE, sub=0)
+    rounded_box(f"Shoe{s}Heel", (x, 0.14, 0.035), (0.43, 0.3, 0.07), SOLE, 0.018)
+    for i, y in enumerate((-0.12, 0.045)):
+        top, width = 0.361 + i * 0.04, 0.245 - i * 0.02
+        points = [(x + dx, y, 0.135 + (top - 0.125) * math.sqrt(1 - (dx/width)**2)) for dx in np.linspace(-width*0.88, width*0.88, 15)]
+        for j, (a, b) in enumerate(zip(points, points[1:])):
+            capsule(f"Shoe{s}Strap{i}_{j}", a, b, 0.023, 0.023, SHOE, seg=8, sub=0)
+        bx, by, bz = x + s * 0.12, y - 0.003, 0.15 + (top - 0.125) * math.sqrt(1-(0.12/width)**2)
+        for j, (loc, dims) in enumerate((((bx - 0.049, by, bz), (0.013, 0.088, 0.013)), ((bx + 0.049, by, bz), (0.013, 0.088, 0.013)), ((bx, by - 0.04, bz), (0.11, 0.013, 0.013)), ((bx, by + 0.04, bz), (0.11, 0.013, 0.013)), ((bx, by, bz), (0.012, 0.074, 0.015)))):
+            rounded_box(f"Shoe{s}Buckle{i}_{j}", loc, dims, METAL, 0.005, segments=3)
+
+
 for s in (-1, 1):
     sh = Vector((s * 0.8, 0, 1.84))
     if POSE == "cheer":
@@ -333,8 +390,8 @@ for s in (-1, 1):
     capsule(f"ShirtCuff{s}", wr - d * 0.02, wr + d * 0.09, 0.155, 0.145, SHIRT)
     make_hand(s, wr + d * 0.08, d, 0.15 if POSE == "cheer" else 0.55)
     capsule(f"Leg{s}", (s * 0.32, 0, 0.98), (s * 0.34, 0, 0.4), 0.25, 0.21, SUIT)
-    ellipsoid(f"Shoe{s}", (s * 0.36, -0.14, 0.21), (0.33, 0.48, 0.2), SHOE)
-    ellipsoid(f"Sole{s}", (s * 0.36, -0.14, 0.06), (0.34, 0.49, 0.055), SOLE, sub=0)
+    capsule(f"Leg{s}Crease", (s * 0.32, -0.242, 0.88), (s * 0.34, -0.207, 0.44), 0.007, 0.006, SEAM, seg=8, sub=0)
+    make_shoe(s)
 
 
 # =====================================================================
@@ -348,10 +405,6 @@ for name in ("Cutter",):
 for o in bpy.data.objects:
     if o.type == "MESH" and o.data.materials and o.data.materials[0] and o.data.materials[0].name == "Screen":
         o.name = "Screen"
-for o in bpy.data.objects:
-    if o.name.startswith("Hand"):
-        dec = o.modifiers.new("Decimate", "DECIMATE")
-        dec.ratio = 0.22
 
 
 def empty(name, loc, parent=None):
@@ -383,7 +436,7 @@ for s in (-1, 1):
     J[f"Shoulder{side}"], J[f"Elbow{side}"], J[f"Hip{side}"] = sh, el, hip
 
 HEAD_PARTS = ("Head", "HeadBack", "ScreenWell", "Screen", "Antenna", "AntennaTip", "Cylinder")
-BODY_PARTS = ("Torso", "Deltoid", "Shirt", "Tie", "Lapel", "Collar", "Pocket", "TieKnot", "Button")
+BODY_PARTS = ("Torso", "Deltoid", "Shirt", "Tie", "Lapel", "Collar", "Pocket", "TieKnot", "Button", "Waistcoat")
 for o in list(bpy.data.objects):
     if o.type != "MESH" or o.parent:
         continue
@@ -404,6 +457,7 @@ for o in list(bpy.data.objects):
                 parent_to(o, J[f"Hip{side}"])
 orphans = [o.name for o in bpy.data.objects if o.type == "MESH" and not o.parent]
 print("ORPHANS", orphans)
+assert not orphans, f"Unrigged model parts: {orphans}"
 
 REST = {k: (v.location.copy(), v.rotation_euler.copy()) for k, v in J.items()}
 scene.render.fps = 24
@@ -512,7 +566,7 @@ cam.constraints.new("TRACK_TO").target = target
 PREVIEW = os.environ.get("PREVIEW", "1") == "1"
 for name, (length, spec) in ANIMS.items():
     keyframes(spec, length)
-    if name == "run":
+    if name == "run" and os.environ.get("RENDER_RUN", "1") == "1":
         # Sprite sheet for the loading screen.
         run_w = int(os.environ.get("RUN_W", "300"))
         scene.render.resolution_x, scene.render.resolution_y = run_w, round(run_w * 1.1)
@@ -538,7 +592,7 @@ for name, (length, spec) in ANIMS.items():
         out.filepath_raw = os.path.join(OUT, "broadcast-run.png")
         out.file_format = "PNG"
         out.save()
-    elif PREVIEW:
+    elif PREVIEW and name in os.environ.get("PREVIEW_CLIPS", "idle,talk,cheer,slump").split(","):
         scene.render.resolution_x, scene.render.resolution_y = 500, 560
         scene.eevee.taa_render_samples = 48
         cam.data.lens = 75
@@ -551,6 +605,16 @@ for name, (length, spec) in ANIMS.items():
     stash(name, length)
 
 # ---------- export ----------
+# Keep a usable studio scene in the editable file; the web export excludes it.
+for j in J.values():
+    for track in j.animation_data.nla_tracks:
+        track.mute = track.name != "idle"
+scene.frame_set(0)
+cam.data.lens = 75
+cam.location = (-6.4, -9.4, 2.9)
+target.location = (0, 0, 1.75)
+scene.render.resolution_x, scene.render.resolution_y = 1000, 1120
+bpy.ops.wm.save_as_mainfile(filepath=os.path.join(OUT, "broadcast_rigged.blend"))
 for o in list(bpy.data.objects):
     if o.type in ("LIGHT", "CAMERA") or o.name == "CamTarget":
         bpy.data.objects.remove(o, do_unlink=True)
@@ -569,5 +633,4 @@ bpy.ops.export_scene.gltf(
     export_cameras=False,
     export_yup=True,
 )
-bpy.ops.wm.save_as_mainfile(filepath=os.path.join(OUT, "broadcast_rigged.blend"))
 print("EXPORTED")
