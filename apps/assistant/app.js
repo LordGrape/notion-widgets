@@ -69,7 +69,7 @@ import { suggestLastPage, planPageSplit, planTimeSplit, defaultRemaining } from 
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261004-pace";
+	REVISION = "20261004-autotick";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -1209,6 +1209,7 @@ function resetTimer(silent = false) {
 function updateTimer() {
 	const w = engines.clock;
 	if (!w) return;
+	autoTickSprints();
 	const breaking = w.studyActive && !w.studyPending && w.studyPhase !== "focus";
 	const remaining = breaking
 		? w.breakRemaining
@@ -1562,7 +1563,7 @@ function openSessionWrap({ task: t, recorded = 0, mode = "session" }) {
 		["split", "Split off the rest", pageSplit ? "The pages you read are done. The rest becomes a new task." : "What you did is done. The rest becomes a new task."],
 	].map(([k, title, sub]) => '<button type="button" role="radio" class="wrap-choice" data-choice="' + k + '"><b>' + title + "</b><small>" + sub + "</small></button>").join("");
 	const panel = pageSplit
-		? '<label class="field">Last page you read<input name="last" type="number" min="' + reading.start + '" max="' + (reading.end - 1) + '" value="' + suggestLastPage({ start: reading.start, end: reading.end, plannedMinutes: planned, focusedMinutes: focused }) + '"></label>'
+		? '<label class="field">Last page you read<input name="last" type="number" min="' + reading.start + '" max="' + (reading.end - 1) + '" value="' + (sprintLastPage(t, reading) ?? suggestLastPage({ start: reading.start, end: reading.end, plannedMinutes: planned, focusedMinutes: focused })) + '"></label>'
 		: '<label class="field">Time left, in minutes<input name="rest" type="number" min="5" step="5" value="' + defaultRemaining({ plannedMinutes: planned, focusedMinutes: focused }) + '"></label>';
 	const d = openDialog("#editorDialog", dialogHead(mode === "split" ? "Split task" : "Session saved", "editorTitle") + lead + '<form id="wrapForm"><div class="wrap-choices" role="radiogroup" aria-label="What happens to the task">' + cards + '</div><div class="split-panel" hidden>' + panel + '<div class="split-preview" aria-live="polite"></div></div><p class="form-error" id="wrapError" role="alert"></p><div class="dialog-actions">' + (mode === "split" ? '<button type="button" data-action="close-dialog">Cancel</button>' : "") + '<button type="submit" class="primary" id="wrapConfirm"></button></div></form>');
 	const form = $("#wrapForm"), f = form.elements, panelEl = d.querySelector(".split-panel"), preview = d.querySelector(".split-preview");
@@ -3178,17 +3179,7 @@ document.addEventListener("click", (e) => {
 			engines.todo.TodoUIBridge.command.subtask(tid, b.dataset.subId);
 			signature = "";
 			refresh();
-			const t = task(tid);
-			if (t) {
-				const base = planBase(t);
-				const next = replanRemaining({ subs: t.subs || [], taskId: t.id, spentMinutes: focusMinutes(t.id), priorPace: base.learned.pace, max: capFor(t, base).max });
-				if (next?.changed) {
-					engines.todo.TodoUIBridge.command.update(t.id, { subs: next.subs });
-					signature = "";
-					refresh();
-					if (next.observed) notify(`You are reading at ${next.observed.toFixed(1)} minutes a page, so the next sprints are re-planned.`);
-				}
-			}
+			replanTask(tid);
 			break;
 		}
 		case "adopt-pace": {
@@ -3752,8 +3743,57 @@ const sprintBadge = (t) => {
 };
 /* A timer saved before sprints still holds the whole task. */
 function longTimerNotice(t, w) {
-	if (!t || !w || w.tmDuration / 60 <= SPRINT.open + 5 || sprintCount(planBase(t).total || 0) < 2) return "";
+	const fresh = !w || (!w.studyActive && !w.tmRunning && w.tmRemaining === w.tmDuration);
+	if (!t || fresh || w.tmDuration / 60 <= SPRINT.open + 5 || sprintCount(planBase(t).total || 0) < 2) return "";
 	return `<div class="focus-nudge">${icon("clock")}<span>This timer was set for the whole task (${formatMinutes(Math.round(w.tmDuration / 60))}). Save the time so far and restart in ${sprintFocus(t)}-minute sprints.</span><button data-action="reset-timer">Switch to sprints</button></div>`;
+}
+/* After a sprint is ticked, work out your real pace and re-plan the sprints that are left. */
+function replanTask(tid) {
+	const t = task(tid);
+	if (!t) return;
+	const base = planBase(t);
+	const next = replanRemaining({ subs: t.subs || [], taskId: t.id, spentMinutes: focusMinutes(t.id), priorPace: base.learned.pace, max: capFor(t, base).max });
+	if (!next?.changed) return;
+	engines.todo.TodoUIBridge.command.update(t.id, { subs: next.subs });
+	signature = "";
+	refresh();
+	if (next.observed) notify(`You are reading at ${next.observed.toFixed(1)} minutes a page, so the next sprints are re-planned.`);
+}
+/* Sprints tick themselves once the focus time on a task covers them, so the plan keeps up with you.
+   It only ever ticks, never unticks, and it looks again only when more time has been logged. */
+const autoTickMemo = new Map();
+function autoTickSprints() {
+	const t = activeTask();
+	if (!t || !t.subs?.length) return;
+	const spent = focusMinutes(t.id);
+	const key = String(spent);
+	if (autoTickMemo.get(t.id) === key) return;
+	autoTickMemo.set(t.id, key);
+	let covered = 0, ticked = 0;
+	for (const sub of t.subs) {
+		const m = String(sub.text || "").match(/^Sprint \d+.*\((\d+) min\)\s*$/i);
+		if (!m) continue;
+		covered += Number(m[1]);
+		if (!sub.done && spent >= covered * 0.9) {
+			engines.todo.TodoUIBridge.command.subtask(t.id, sub.id);
+			ticked++;
+		}
+	}
+	if (ticked)
+		setTimeout(() => {
+			signature = "";
+			refresh();
+			replanTask(t.id);
+		}, 0);
+}
+/* The last page of the furthest sprint you have ticked, for "Split off the rest". */
+function sprintLastPage(t, reading) {
+	let last = 0;
+	for (const sub of t.subs || []) {
+		const m = sub.done && String(sub.text || "").match(/^Sprint \d+:?\s*pp?\.\s*(\d+)(?:[\u2013-](\d+))?/i);
+		if (m) last = Math.max(last, Number(m[2] || m[1]));
+	}
+	return last >= reading.start && last < reading.end ? last : null;
 }
 const breakLabel = (m) => `<li class="plan-break"><i></i><span><b>${m} min break</b><small>${m > SPRINT.breakMin ? "Walk, eat, step away from the desk" : "Stand up, look into the distance"}</small></span></li>`;
 /* One row of the plan: a badge or a tick, what to read, and how long. */

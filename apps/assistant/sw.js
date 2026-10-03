@@ -1,4 +1,4 @@
-const CACHE = "command-centre-20261004-pace";
+const CACHE = "command-centre-20261004-autotick";
 const SHELL = [
 	"../../widget-platform.js",
 	"../../reading-estimates.js",
