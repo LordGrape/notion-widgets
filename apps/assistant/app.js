@@ -1579,14 +1579,20 @@ function openSchedule(id, date = isoDate(), start = "13:00", hint = "") {
 				engines.timetable.SyncEngine.get("timetable", "courses") || [];
 			if (typeof blocks === "string") blocks = JSON.parse(blocks);
 			engines.timetable.schedule = blocks;
+			let block = blocks.find((b) => b.id === fresh.scheduleId);
+			/* A block left behind by an earlier save that lost its link to this task:
+			   same name, same single day, linked to nobody. Adopt it instead of colliding with it. */
+			const orphan = block ? null : blocks.find((b) => b.startDate === date && b.endDate === date && b.name === fresh.text && !engines.todo.TodoUIBridge.snapshot().tasks.some((x) => x.scheduleId === b.id));
 			validateSlot(
 				occurrences(localDate(date)),
 				minutes(start),
 				end,
-				fresh.scheduleId,
+				block?.id || orphan?.id,
 			);
-			let block = blocks.find((b) => b.id === fresh.scheduleId);
-			if (block) {
+			if (orphan) {
+				Object.assign(orphan, { days: [{ day: localDate(date).getDay(), start, end: timeString(end), location: "" }], overrides: [] });
+				block = orphan;
+			} else if (block) {
 				const source =
 					fresh.sourceDate ||
 					block.startDate ||
@@ -1627,7 +1633,7 @@ function openSchedule(id, date = isoDate(), start = "13:00", hint = "") {
 				blocks.push(block);
 			}
 			engines.timetable.saveBlocks(blocks);
-			engines.todo.TodoUIBridge.command.update(id, {
+			const link = {
 				scheduledStart: new Date(`${date}T${start}`).toISOString(),
 				scheduledEnd: new Date(`${date}T${timeString(end)}`).toISOString(),
 				dueKey: date,
@@ -1635,7 +1641,10 @@ function openSchedule(id, date = isoDate(), start = "13:00", hint = "") {
 				scheduleId: block.id,
 				timeboxed: true,
 				plannedMinutes: m,
-			});
+			};
+			engines.todo.TodoUIBridge.command.update(id, link);
+			engines.todo.TodoUIBridge.refresh();
+			if (!engines.todo.TodoUIBridge.snapshot().tasks.find((x) => x.id === id)?.scheduleId) engines.todo.TodoUIBridge.command.update(id, link);
 			d.close();
 			recentScheduleId = block.id;
 			setTimeout(() => {
@@ -1649,7 +1658,8 @@ function openSchedule(id, date = isoDate(), start = "13:00", hint = "") {
 			notify("Task scheduled.");
 			playCue("saved");
 		} catch (err) {
-			$("#scheduleError").textContent = err.message;
+			const clash = /overlaps/.test(err.message) && occurrences(localDate(date)).find((e) => minutes(start) < minutes(e.end) && end > minutes(e.start));
+			$("#scheduleError").textContent = clash ? `${err.message} It overlaps “${clash.name}” (${clash.start}–${clash.end}).` : err.message;
 		} finally {
 			button.disabled = false;
 		}
