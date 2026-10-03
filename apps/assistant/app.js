@@ -59,7 +59,7 @@ import { suggestLastPage, planPageSplit, planTimeSplit, defaultRemaining } from 
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261002-tags-2";
+	REVISION = "20261002-tags-3";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -498,11 +498,13 @@ function occurrences(date) {
 	return engines.timetable?.occurrencesForDate(localDate(isoDate(date))) || [];
 }
 const tagDot = (kind) => `<i class="kind-dot ${kind}" aria-hidden="true"></i>`;
-function tagPicker({ current, action, id, none }) {
+const tagPill = (kind, auto = false) => kind ? `<span class="kind-chip ${kind}${auto ? " is-auto" : ""}" data-tag-current>${tagDot(kind)}${KIND_LABEL[kind]}${auto ? '<small>auto</small>' : ""}</span>` : '<span class="kind-chip none" data-tag-current>No tag</span>';
+function tagPicker({ current, action, id, none, fallback = null }) {
 	const chips = KINDS.map((k) => `<button type="button" class="kind-chip ${k}" role="radio" aria-checked="${k === current}" data-action="${action}" data-kind="${k}" data-id="${esc(id)}">${tagDot(k)}${KIND_LABEL[k]}</button>`).join("");
-	return `<div class="tag-row"><span class="tag-label">Tag</span><div class="kind-picker" role="radiogroup" aria-label="Tag">${chips}<button type="button" class="kind-chip auto" role="radio" aria-checked="${!current}" data-action="${action}" data-kind="" data-id="${esc(id)}" title="${none ? "Remove the tag" : "Choose from the task wording"}">${none ? "None" : "Auto"}</button></div></div>`;
+	const reset = `<button type="button" class="kind-chip auto" role="radio" aria-checked="${!current}" data-action="${action}" data-kind="" data-id="${esc(id)}" title="${none ? "Remove the tag" : "Choose from the task wording"}">${none ? "None" : "Auto"}</button>`;
+	return `<div class="tag-box"><div class="tag-row"><span class="tag-label">Tag</span>${tagPill(current || fallback, !current && !!fallback)}<button type="button" class="tag-plus" data-action="tag-toggle" aria-expanded="false" aria-label="Change tag" title="Change tag"><svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="M6 1.5v9M1.5 6h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button></div><div class="kind-picker tag-options" role="radiogroup" aria-label="Tag" hidden>${chips}${reset}</div></div>`;
 }
-const taskTagPicker = (t) => tagPicker({ current: isKind(t.kind) ? t.kind : null, action: "set-tag", id: t.id, none: false });
+const taskTagPicker = (t) => tagPicker({ current: isKind(t.kind) ? t.kind : null, action: "set-tag", id: t.id, none: false, fallback: taskKind(t) });
 /* Timetable blocks plus tasks that have a time but no block yet. */
 function dayEvents(date) {
 	const real = occurrences(date);
@@ -2128,6 +2130,16 @@ async function openRepeatRange(id) {
 		notify("Repeat range saved.", () => { apply(before); $("#toast").hidden = true; });
 	};
 }
+function syncTagRow(chip, kind, fallback = null) {
+	const box = chip.closest(".tag-box");
+	if (!box) return;
+	box.querySelectorAll(".tag-options .kind-chip").forEach((c) => c.setAttribute("aria-checked", String(c === chip)));
+	box.querySelector("[data-tag-current]").outerHTML = tagPill(kind || fallback, !kind && !!fallback);
+	box.querySelector(".tag-options").hidden = true;
+	const plus = box.querySelector(".tag-plus");
+	plus.setAttribute("aria-expanded", "false");
+	plus.focus({ preventScroll: true });
+}
 function eventTag(block, event, date) {
 	const linked = tasks.find((t) => t.scheduleId === block.id && normalizeDateKey(t.dueKey) === date && !t.done);
 	if (linked) return taskTagPicker(linked);
@@ -2259,16 +2271,22 @@ document.addEventListener("click", (e) => {
 			const kind = isKind(b.dataset.kind) ? b.dataset.kind : null;
 			engines.todo.TodoUIBridge.command.update(id, { kind });
 			const t = task(id);
-			b.closest(".kind-picker")?.querySelectorAll(".kind-chip").forEach((chip) => chip.setAttribute("aria-checked", String(chip === b)));
-			if (!kind && t) b.textContent = `Auto · ${KIND_LABEL[taskKind(t)]}`;
+			syncTagRow(b, kind, t ? taskKind(t) : null);
 			signature = "";
 			refresh();
 			notify(kind ? `Tagged ${KIND_LABEL[kind]}.` : "Tag set to Auto.");
 			break;
 		}
+		case "tag-toggle": {
+			const options = b.closest(".tag-box")?.querySelector(".tag-options");
+			if (!options) break;
+			options.hidden = !options.hidden;
+			b.setAttribute("aria-expanded", String(!options.hidden));
+			break;
+		}
 		case "set-block-tag": {
 			const kind = isKind(b.dataset.kind) ? b.dataset.kind : null;
-			b.closest(".kind-picker")?.querySelectorAll(".kind-chip").forEach((chip) => chip.setAttribute("aria-checked", String(chip === b)));
+			syncTagRow(b, kind);
 			(async () => {
 				try {
 					await engines.timetable.SyncEngine.pull("timetable");

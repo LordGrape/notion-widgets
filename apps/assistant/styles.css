@@ -3489,3 +3489,66 @@ dialog h3 {
 .event.is-task.tagged.completed {
 	opacity: 0.7;
 }
+
+.tag-box {
+	margin-top: 20px;
+}
+.tag-box .tag-row {
+	margin-top: 0;
+	gap: 10px;
+}
+.tag-box .kind-chip {
+	display: inline-flex;
+	align-items: center;
+}
+.tag-box .kind-chip small {
+	margin-left: 6px;
+	font-size: 10px;
+	font-weight: 600;
+	opacity: 0.65;
+}
+.kind-chip.none {
+	--k: var(--muted);
+	background: transparent;
+	border: 1px dashed var(--line);
+	font-weight: 550;
+}
+.tag-plus {
+	display: inline-grid;
+	place-items: center;
+	width: 24px;
+	height: 24px;
+	padding: 0;
+	border: 1px solid var(--line);
+	border-radius: 50%;
+	background: var(--surface);
+	color: var(--accent);
+	cursor: pointer;
+	transition: transform 0.2s, background 0.15s, border-color 0.15s;
+}
+.tag-plus:hover {
+	background: var(--accent-soft);
+	border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+}
+.tag-plus[aria-expanded="true"] {
+	transform: rotate(45deg);
+	background: var(--accent-soft);
+}
+.tag-options {
+	margin-top: 12px;
+	padding: 10px;
+	border: 1px solid var(--line);
+	border-radius: 12px;
+	background: var(--surface-2);
+	animation: tag-open 0.18s ease-out;
+}
+.tag-options[hidden] {
+	display: none;
+}
+@keyframes tag-open {
+	from { opacity: 0; transform: translateY(-4px); }
+	to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+	.tag-plus, .tag-options { transition: none; animation: none; }
+}
