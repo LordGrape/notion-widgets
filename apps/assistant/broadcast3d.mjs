@@ -3,6 +3,8 @@
    face live, so moods, talking and glitches cost nothing to change. Optional by
    design: any failure leaves the 2D partner in place. */
 
+import { mouthOpen } from "./voice.mjs";
+
 const W = 640;
 const H = 460;
 export const MOODS = ["smug", "approve", "stern", "panic", "happy"];
@@ -203,6 +205,7 @@ async function create(url) {
 	const mixer = new THREE.AnimationMixer(model);
 	const clips = Object.fromEntries(gltf.animations.map((clip) => [clip.name, clip]));
 	let current = null, pending = null, mood = "approve", faceOverride = null, overrideUntil = 0;
+	let talkPlan = null, talkStart = 0;
 	let talkUntil = 0, glitchUntil = 0, host = null, frame = 0, last = performance.now(), lastFace = 0;
 	const base = () => (mood === "panic" ? "slump" : "idle");
 
@@ -256,7 +259,7 @@ async function create(url) {
 		if (now - lastFace > 33 || glitching) {
 			if (now > overrideUntil) faceOverride = null;
 			const talking = now < talkUntil;
-			const open = talking ? 0.25 + 0.75 * Math.abs(Math.sin(now / 85) * Math.sin(now / 210)) : 0;
+			const open = !talking ? 0 : talkPlan ? Math.max(0.06, mouthOpen(talkPlan, (now - talkStart) / 1000)) : 0.25 + 0.75 * Math.abs(Math.sin(now / 85) * Math.sin(now / 210));
 			drawFace(faceCtx, faceOverride || mood, now, open, glitching);
 			faceTexture.needsUpdate = true;
 			lastFace = now;
@@ -279,7 +282,7 @@ async function create(url) {
 			mood = next;
 			if (!pending) play(base());
 		},
-		react(kind) {
+		react(kind, plan = null) {
 			const now = performance.now();
 			if (kind === "cheer") {
 				faceOverride = "happy";
@@ -290,8 +293,10 @@ async function create(url) {
 			} else if (kind === "glitch") {
 				glitchUntil = now + 450;
 			} else {
-				talkUntil = now + 2200;
-				play("talk", { once: true, repeats: 2 });
+				talkPlan = plan;
+				talkStart = now;
+				talkUntil = now + (plan ? plan.duration * 1000 : 2200);
+				play("talk", { once: true, repeats: Math.max(1, Math.ceil((plan ? plan.duration : 2.2) / (clips.talk?.duration || 2))) });
 				if (Math.random() < 0.35) glitchUntil = now + 220;
 			}
 		},

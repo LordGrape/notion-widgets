@@ -47,12 +47,13 @@ import {
 } from "./hours.mjs";
 import { canUse3D, loadBroadcast3D } from "./broadcast3d.mjs";
 import { momentFor, pickLine, nextStep, milestoneReached, weeklyReview } from "./partner.mjs";
+import { syllablePlan, speak, stopVoice } from "./voice.mjs";
 import { planDay, isUnscheduled, PLAN_START, PLAN_END } from "./autofit.mjs";
 import { suggestLastPage, planPageSplit, planTimeSplit, defaultRemaining } from "./split.mjs";
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261002-fair-pace";
+	REVISION = "20261002-radio-voice";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -101,10 +102,11 @@ function broadcastVisible() {
 	return engines.todo?.SyncEngine.get("user", "commandPartnerVisible") !== false;
 }
 function broadcastSoundEnabled() {
-	return engines.todo?.SyncEngine.get("user", "commandPartnerSound") === true;
+	return engines.todo?.SyncEngine.get("user", "commandPartnerSound") !== false;
 }
 function stopBroadcastAudio() {
 	broadcastVersion++;
+	stopVoice();
 	if (!broadcastAudio) return;
 	try { broadcastAudio.stop(); } catch {}
 	broadcastAudio = null;
@@ -170,8 +172,15 @@ function mountBroadcast3D() {
 			console.warn("Broadcast 3D is unavailable; using the 2D partner.", error);
 		});
 }
+/* He speaks a line: one syllable plan drives his voice and his mouth. */
+function partnerSpeak(text) {
+	if (!broadcastVisible()) return;
+	const plan = syllablePlan(text, broadcastMood);
+	if (broadcastSoundEnabled()) speak(plan, { volume: 0.22 });
+	broadcast3D?.react("talk", plan);
+}
 function broadcastReact(state) {
-	broadcast3D?.react({ start: "talk", pause: "talk", finish: "cheer", break: "talk", flow: "talk" }[state] || "talk");
+	if (state === "finish") broadcast3D?.react("cheer");
 	const card = $("#broadcastCompanion");
 	if (!card || card.hidden || !broadcastVisible()) return;
 	const figure = card.querySelector(".broadcast-figure"), line = card.querySelector(".broadcast-dialogue");
@@ -193,7 +202,9 @@ function broadcastReact(state) {
 		broadcastPose = "";
 		$("#broadcastCompanion .broadcast-figure")?.classList.remove("broadcast-talking", "broadcast-glitch", "broadcast-greet", "broadcast-celebrate");
 	}, 1900);
-	broadcastChatter();
+	if (state === "finish") {
+		if (broadcastSoundEnabled()) speak(syllablePlan(copy[0], "happy"), { volume: 0.22 });
+	} else partnerSpeak(copy[0]);
 }
 function playCue(kind) {
 	if (engines.todo?.SyncEngine.get("user", "commandCentreSounds") === false)
@@ -1907,7 +1918,7 @@ document.addEventListener("click", (e) => {
 			break;
 		case "partner-tap":
 			advancePartnerLine();
-			broadcast3D?.react("talk");
+			partnerSpeak(broadcastLine);
 			break;
 		case "review-dismiss":
 			engines.todo.SyncEngine.set("user", "partnerReview", b.dataset.week);

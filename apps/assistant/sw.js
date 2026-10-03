@@ -1,4 +1,4 @@
-const CACHE = "command-centre-20261002-fair-pace";
+const CACHE = "command-centre-20261002-radio-voice";
 const SHELL = [
 	"../../widget-platform.js",
 	"../../reading-estimates.js",
@@ -14,6 +14,7 @@ const SHELL = [
 	"./split.mjs",
 	"./broadcast3d.mjs",
 	"./partner.mjs",
+	"./voice.mjs",
 	"./broadcast.glb",
 	"./broadcast-run.webp",
 	"./calendar-actions.mjs",

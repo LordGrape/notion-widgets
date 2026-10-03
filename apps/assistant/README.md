@@ -71,7 +71,7 @@ When a focus session has exactly one selected task, Clock stores its task ID and
 
 Broadcast is the approved optional Command Centre character: a sinister-but-charming CRT television-headed law partner with the established purple screen, expressive eyes and grin, and restrained haunted-broadcast glitches. His redesigned body is strong and muscular, with broad shoulders, a tailored charcoal executive suit, thicker arms, substantial gloves and shoes. Motion combines rubber-hose executive gestures with occasional TV-static glitches. Spoken audio is optional, wordless static-like garble; every line is shown as readable text. The partner visibility setting hides the entire character and interaction surface; the sound setting remains separate. Keep interface symbols within the shared WidgetIcons duotone icon set and never use emoji as UI icons. See the Broadcast rule in the repository `AGENTS.md` before changing his design.
 
-Broadcast currently lives beside the Focus workflow and reacts to starting or pausing focus, finishing a task, and entering or extending a break. `user/commandPartnerVisible` defaults on; `user/commandPartnerSound` defaults off. Both settings use the existing To-Do SyncEngine user namespace. Interface sound effects keep their separate existing preference.
+Broadcast lives on the Docket (not the Focus tab) and reacts to starting or pausing focus, finishing a task, and entering or extending a break. `user/commandPartnerVisible` defaults on; `user/commandPartnerSound` defaults on (an explicit off is respected). Both settings use the existing To-Do SyncEngine user namespace. Interface sound effects keep their separate existing preference.
 
 ## Calendar block controls
 
@@ -118,3 +118,7 @@ On the Docket, Broadcast is a 3D model (`broadcast.glb`, built from `tools/broad
 ## Broadcast's voice
 
 `partner.mjs` (pure, tested) gives Broadcast a line library keyed to the moment: the week's mood (happy, smug, approving, stern, panicking), Monday mornings, an evening streak at risk on a weekday, and streak milestones (3, 7, 14, 21, 30, 60, 100 days). Lines are varied by date and do not repeat within a day while alternatives remain; tapping him gives the next line. Under each line is one next step: focus on the current task, Plan my day (Monday mornings, or when nothing is selected), or Log time. A newly reached milestone makes him cheer once (stored in `user/partnerMilestone`, reset when the streak breaks). On Monday and Tuesday the Docket opens with last week's performance review (verdict, hours, notes on the work mix and streak), dismissed per week with "Noted" (`user/partnerReview`).
+
+## Broadcast's voice (sound)
+
+`voice.mjs` gives him a deep, wordless radio-host murmur: each line becomes a plan of syllables whose rhythm, pitch and vowel colour follow his mood (lower and slower when stern, higher and quicker when panicking, falling at the end of a phrase). The sound is a sawtooth through three dark vowel formants, gentle saturation and a warm radio band. The same plan drives his 3D mouth, so voice and mouth always match. He speaks when tapped and on focus events; the partner sound setting controls the audio (browsers keep audio locked until the first tap), and hiding the partner silences him.
