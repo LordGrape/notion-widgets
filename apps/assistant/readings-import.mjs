@@ -143,13 +143,17 @@ const pagesOf = (ranges) => {
 	return pages;
 };
 const toRanges = (pages) => parseRanges([...pages].sort((x, y) => x - y).join(", ").replace(/(\d+)/g, "$1-$1"));
-/* The pages a task names, such as "pp. 144–166" or "p. 12 and 15–18". */
-const taskRanges = (text) =>
-	parseRanges(
-		[...String(text || "").matchAll(/\b(?:pp?\.?|pages?)\s*((?:\d+(?:\s*[–—-]\s*\d+)?(?:\s*(?:,|&|and)\s*)?)+)/gi)]
-			.map((m) => m[1])
-			.join(", ") || "0",
-	).filter(([a]) => a > 0);
+/* The pages a task names: after a marker ("pp. 144–166", "pg. 12 and 15–18", "pages 3-9"), or as a bare range
+   ("Read Criminal Law 78–98"). Chapter, week, lecture and edition numbers are not pages. */
+const MARKED = /\b(?:pp?|pgs?)\.?\s*((?:\d+(?:\s*[–—-]\s*\d+)?(?:\s*(?:,|&|and)\s*)?)+)|\bpages?\s*((?:\d+(?:\s*[–—-]\s*\d+)?(?:\s*(?:,|&|and)\s*)?)+)/gi;
+const NOT_PAGES = /\b(?:chapters?|ch|weeks?|wk|lectures?|class(?:es)?|parts?|sections?|units?|modules?|problems?|questions?|q)\.?\s*\d+(?:\s*[–—-]\s*\d+)?|\d+(?:st|nd|rd|th)\s*ed(?:ition)?\b|\d{1,2}:\d{2}/gi;
+const taskRanges = (text) => {
+	const clean = String(text || "").replace(NOT_PAGES, " ");
+	const marked = [...clean.matchAll(MARKED)].map((m) => m[1] || m[2]);
+	const bare = [...clean.replace(MARKED, " ").matchAll(/(?<![\d.])(\d+)\s*[–—-]\s*(\d+)(?![\d])/g)].map((m) => `${m[1]}-${m[2]}`);
+	const all = [...marked, ...bare].join(", ");
+	return all ? parseRanges(all).filter(([a]) => a > 0) : [];
+};
 
 /* Which of this class's pages your tasks already cover, done or not. A reading you split part-way ("pp. 144-166"
    finished, "pp. 167-188" still open) covers the class together even though neither task names every page, and a

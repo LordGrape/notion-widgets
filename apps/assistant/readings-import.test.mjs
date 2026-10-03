@@ -228,3 +228,17 @@ test("a task about another class does not cover this reading", () => {
 	assert.equal(item.pages, 45);
 });
 
+test("an existing task is recognised whatever page marker or none it uses", () => {
+	const lectures = [lecture({ id: "Q", notes: "READINGS\n• Sample Text, pp. 78–98" })];
+	for (const text of ["Read Criminal Law pg. 78–98", "Read Criminal Law pgs. 78–98", "Read Criminal Law page 78-98", "Read Criminal Law 78–98", "Read Criminal Law p. 78–98"]) {
+		assert.equal(readingCandidates({ ...base, tasks: [{ id: "x", text, done: false }], lectures }).items[0].exists, true, text);
+	}
+});
+
+test("chapter, week and edition numbers are not read as pages", () => {
+	const lectures = [lecture({ id: "Q", notes: "READINGS\n• Sample Text, pp. 1–20" })];
+	const item = readingCandidates({ ...base, tasks: [{ id: "x", text: "Read Criminal Law chapters 3–5, 11th ed, week 2–3", done: false }], lectures }).items[0];
+	assert.equal(item.exists, false);
+	assert.equal(item.pages, 20);
+});
+
