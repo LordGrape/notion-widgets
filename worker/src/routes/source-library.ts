@@ -14,7 +14,7 @@ import { handleShelf } from "./library-shelf";
    in batches: the first creates the reading row, later ones pass its readingId and add pages. */
 
 const NOTION_VERSION = "2022-06-28";
-const CALENDAR_DB_ID = "783a2021-af4c-4369-86eb-7948ef66bf23";
+export const CALENDAR_DB_ID = "783a2021-af4c-4369-86eb-7948ef66bf23";
 export const READINGS_DB_ID = "8ace347b-edb7-4f52-84a6-606aac8eaa8d";
 export const PAGES_DB_ID = "64fcad6a-367f-4d5b-b89d-a4bb664986d3";
 const MAX_PAGES = 40; /* per request: one Notion call per page, under the free plan's 50 */

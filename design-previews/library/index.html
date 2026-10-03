@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Library preview</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../apps/assistant/styles.css">
+<link rel="stylesheet" href="../../apps/assistant/library.css">
+<style>
+body{padding:24px clamp(16px,4vw,48px)}
+.pv-bar{display:flex;gap:8px;margin:0 auto 22px;max-width:1180px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--muted)}
+.pv-bar button{padding:5px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--text);cursor:pointer}
+.pv-bar button.on{background:var(--accent);color:#fff;border-color:transparent}
+body.shot .pv-bar{display:none}
+</style>
+</head>
+<body>
+<div class="pv-bar" id="bar">
+ <span>Variant</span><button data-v="a">A Bookshelf</button><button data-v="b">B Archive</button><button data-v="c">C Casebook</button>
+ <span>Theme</span><button data-t="light">Light</button><button data-t="dark">Dark</button>
+ <button id="open">Open reader</button>
+</div>
+<div id="host"></div>
+<script src="../../widget-icons.js"></script>
+<script type="module">
+import { createLibrary } from "../../apps/assistant/library.mjs";
+const qs = new URLSearchParams(location.search);
+if (qs.get("shot")) document.body.classList.add("shot");
+const setV = (v) => { document.documentElement.classList.remove("lib-theme-a","lib-theme-b","lib-theme-c"); document.documentElement.classList.add("lib-theme-" + v); document.querySelectorAll("[data-v]").forEach(b=>b.classList.toggle("on", b.dataset.v===v)); };
+const setT = (t) => { document.documentElement.dataset.theme = t; document.querySelectorAll("[data-t]").forEach(b=>b.classList.toggle("on", b.dataset.t===t)); };
+setV(qs.get("v") || "a"); setT(qs.get("t") || "light");
+document.getElementById("bar").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; if (b.dataset.v) setV(b.dataset.v); if (b.dataset.t) setT(b.dataset.t); });
+
+const now = Date.now(), iso = (m) => new Date(now - m * 60000).toISOString();
+const courseMap = { c183: "LAW 183: Property Law", c195: "LAW 195: Torts", c160: "LAW 160: Contracts", c171: "LAW 171: Criminal Law" };
+const readings = [
+ { id: "r1", title: "Property pp. 144-153", book: "Property Law: Cases and Materials", authors: "Synthetic sample", courseId: "c183", lectureCount: 2, first: 144, last: 153, status: "Checked", captured: "2026-09-28" },
+ { id: "r2", title: "Negligence and the standard of care pp. 60-84", book: "Torts: Cases and Commentary", authors: "Synthetic sample", courseId: "c195", lectureCount: 1, first: 60, last: 84, status: "Machine-read", captured: "2026-09-30" },
+ { id: "r3", title: "Offer and acceptance pp. 12-41", book: "Contracts: Cases and Notes", authors: "Synthetic sample", courseId: "c160", lectureCount: 3, first: 12, last: 41, status: "Machine-read", captured: "2026-10-01" },
+ { id: "r4", title: "Mens rea and the guilty mind pp. 201-236", book: "Criminal Law: Cases and Commentary", authors: "Synthetic sample", courseId: "c171", lectureCount: 2, first: 201, last: 236, status: "Checked", captured: "2026-10-02" },
+];
+const P = [
+ "[1] Fox hunting is a lawful and indeed an honourable pursuit, but the question we are asked to settle is whether the pursuer of a wild animal acquires any property in it before he has taken it. The plaintiff alleges that he started and chased a fox with hounds, and that the defendant, knowing this, killed and carried it off.",
+ "[2] The common law has long distinguished between animals ferae naturae and those which a person has tamed or confined. A wild animal belongs to no one until it has been reduced to possession, and the law is slow to disturb the rule that fixes that moment with some certainty.",
+ "[3] We are of the opinion that mere pursuit gives no legal right to the animal pursued. To bring the animal within the rule of property, the pursuer must have deprived it of its natural liberty and brought it within his certain control, by wounding, by capture or by enclosure.",
+ "[4] It is said that a contrary rule would encourage the pursuit of noxious animals. That may be so, but the rule we adopt has the virtue of clarity: it sets a line that hunters can see, and it keeps disputes of this kind out of the courts.",
+ "[5] The dissent would find in the usages of hunters a custom sufficient to vest property in the first pursuer. We are not persuaded. Custom may inform the law, but it cannot displace a settled rule where, as here, the parties have not shown that the usage was certain, reasonable and generally known.",
+ "[6] Judgment for the defendant. The pursuer's remedy, if any, lies in the courtesy of the field and not in the law of property.",
+];
+function pagesFor(id) {
+ const first = readings.find(r => r.id === id).first; const out = [];
+ for (let i = 0; i < 10; i++) {
+  const paragraphs = [P[(i * 2) % 6], P[(i * 2 + 1) % 6], P[(i * 2 + 2) % 6]].map((t, k) => t.replace(/^\[\d+\]/, `[${i * 3 + k + 1}]`));
+  out.push({ id: "pg" + i, url: "#", printed: first + i, confidence: 0.93, status: "Machine-read", paragraphs,
+   flags: i === 2 ? ["Footnote marker unclear near paragraph 8; the numeral may be 3 or 8."] : [],
+   photo: "data:image/svg+xml;utf8," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='800' height='1080'><rect width='800' height='1080' fill='#efe9dc'/>${Array.from({length:26},(_,k)=>`<rect x='70' y='${90+k*34}' width='${k%7===6?420:660}' height='9' rx='4' fill='#9a8f78' opacity='.55'/>`).join('')}<text x='400' y='1030' text-anchor='middle' font-family='serif' font-size='22' fill='#6e6554'>${first+i}</text></svg>`) });
+ }
+ return out;
+}
+const items = [
+ { id: "i1", name: "LAW 195 Torts pp. 85-110", files: [{name:"IMG_2041.heic",type:"image/heic",size:3200000},{name:"IMG_2042.heic",type:"image/heic",size:3100000}], status: "reading", createdAt: iso(14), updatedAt: iso(1) },
+ { id: "i2", name: "LAW 160 Contracts pp. 42-60", files: [{name:"contracts.pdf",type:"application/pdf",size:14800000}], status: "queued", createdAt: iso(9), updatedAt: iso(9) },
+ { id: "i3", name: "LAW 171 Criminal pp. 237-250", files: [{name:"a.jpg",type:"image/jpeg",size:2100000},{name:"b.jpg",type:"image/jpeg",size:2300000},{name:"c.jpg",type:"image/jpeg",size:2000000}], status: "attention", note: "Pages 2 and 3 were skewed; please re-scan them flat.", createdAt: iso(180), updatedAt: iso(120) },
+];
+const delay = (ms) => new Promise(r => setTimeout(r, ms));
+const res = (data) => new Response(JSON.stringify({ configured: true, ...data }), { status: 200 });
+const api = async (path) => {
+ const u = new URL(path, "http://x");
+ await delay(u.pathname.endsWith("/pages") ? 250 : 60);
+ if (u.pathname.endsWith("/library/pages")) { const all = pagesFor(u.searchParams.get("id")); const o = +u.searchParams.get("offset"), l = +u.searchParams.get("limit"); return res({ total: all.length, offset: o, pages: all.slice(o, o + l) }); }
+ if (u.pathname.endsWith("/library")) return res({ readings, courses: courseMap });
+ if (u.pathname.endsWith("/inbox")) return res({ items, station: { at: iso(3), version: "1.2", reading: "LAW 195 Torts pp. 85-110" } });
+ return res({});
+};
+const mem = {};
+const store = { get: k => mem[k], set: (k, v) => { mem[k] = v; } };
+const demoText = "A wild animal belongs to no one until it has been reduced to possession";
+const pageOneText = P[1].replace(/^\[\d+\]/, "[2]");
+if (qs.get("brief")) {
+ const t0 = P[0].replace(/^\[\d+\]/, "[1]"), t2 = P[2].replace(/^\[\d+\]/, "[3]");
+ const full = [t0, pageOneText, t2].join("\n");
+ const at = (s) => full.indexOf(s);
+ const mk = (id, cat, s, note) => ({ id, page: 144, quote: s, category: cat, note, start: at(s), end: at(s) + s.length });
+ store.set("library:brief:r1", { readingId: "r1", title: "Property pp. 144-153", updatedAt: "", highlights: [
+  mk("a", "facts", "he started and chased a fox with hounds, and that the defendant, knowing this, killed and carried it off", "Pursuer never touched the fox; defendant intervened with knowledge."),
+  mk("b", "issue", "whether the pursuer of a wild animal acquires any property in it before he has taken it", "Does pursuit alone vest property in a wild animal?"),
+  mk("c", "rule", demoText, "Possession is the root of title for wild animals."),
+  mk("d", "conclusion", "mere pursuit gives no legal right to the animal pursued", ""),
+ ]});
+}
+const icon = (n) => WidgetIcons.svg(n, { command: true });
+const courses = [{ name: "LAW 183", colour: "#7c3aed" }, { name: "LAW 195", colour: "#d9663f" }, { name: "LAW 160", colour: "#2f8f83" }, { name: "LAW 171", colour: "#3b6fd1" }];
+const host = document.getElementById("host");
+let last = -1;
+const lib = createLibrary({ api, store, icon, courses, notify: (m) => console.log("notify", m), onChange: () => tick() });
+function tick() { if (lib.version === last) return; last = lib.version; host.innerHTML = lib.render(); lib.bind(host); }
+window.lib = lib;
+lib.load().then(() => { tick(); if (qs.get("open")) lib.open(qs.get("open")); });
+document.getElementById("open").onclick = () => lib.open("r1");
+tick();
+setInterval(() => lib.poll(), 30000);
+</script>
+</body>
+</html>

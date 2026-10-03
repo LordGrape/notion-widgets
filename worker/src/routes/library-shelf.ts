@@ -1,10 +1,11 @@
 import { getCorsHeaders } from "../cors";
 import type { Env } from "../types";
-import { isId, notion, PAGES_DB_ID, READINGS_DB_ID } from "./source-library";
+import { fromLecturePage, type LectureRow } from "./lecture-readings";
+import { CALENDAR_DB_ID, isId, notion, PAGES_DB_ID, READINGS_DB_ID } from "./source-library";
 
 /* The Library shelf in Command Centre: read the Source Library, and hand new scans to the scan station.
 
-   GET  library                            readings, newest first, with course names
+   GET  library                            readings (newest first), the term's lectures with readings, course names
    GET  library/pages?id=&offset=&limit=   one reading's pages: text, flags and the photo, a batch at a time
    POST inbox                              { name, files: [{ name, type, size }] } -> { item } (status "uploading")
    PUT  inbox/chunk?id=&file=&chunk=       body: up to 20 MB of one file
@@ -60,6 +61,7 @@ export function readingRow(page: any) {
 		book: plain(p.Book?.rich_text),
 		authors: plain(p.Authors?.rich_text),
 		courseId: (p.Course?.relation || [])[0]?.id || null,
+		lectureIds: (p.Lectures?.relation || []).map((r: any) => r.id as string),
 		lectureCount: (p.Lectures?.relation || []).length,
 		first: p["First page"]?.number ?? null,
 		last: p["Last page"]?.number ?? null,
@@ -102,8 +104,29 @@ async function shelf(env: Env) {
 		readings.push(...(data.results || []).filter((r: any) => !r.archived && !r.in_trash).map(readingRow));
 		cursor = data.has_more ? data.next_cursor : undefined;
 	} while (cursor && readings.length < 400);
+	/* The term's lectures with READINGS in their notes, so the shelf can show each class's syllabus,
+	   scanned or not. A window of 150 days either side of today covers a term. */
+	const lectures: LectureRow[] = [];
+	const day = (offset: number) => new Date(Date.now() + offset * 864e5).toISOString().slice(0, 10);
+	cursor = undefined;
+	do {
+		const data = await notion(env, `/databases/${CALENDAR_DB_ID}/query`, {
+			method: "POST",
+			body: JSON.stringify({
+				filter: { and: [{ property: "assignment", select: { is_empty: true } }, { property: "date", date: { on_or_after: day(-150) } }, { property: "date", date: { on_or_before: day(150) } }, { property: "notes", rich_text: { contains: "pp" } }] },
+				sorts: [{ property: "date", direction: "ascending" }],
+				page_size: 100,
+				...(cursor ? { start_cursor: cursor } : {}),
+			}),
+		});
+		for (const page of data.results || []) {
+			const row = fromLecturePage(page);
+			if (row) lectures.push(row);
+		}
+		cursor = data.has_more ? data.next_cursor : undefined;
+	} while (cursor && lectures.length < 500);
 	const courses: Record<string, string> = {};
-	for (const id of [...new Set(readings.map((r) => r.courseId).filter((x): x is string => !!x))].slice(0, 12)) {
+	for (const id of [...new Set([...readings.map((r) => r.courseId), ...lectures.map((l) => l.courseId)].filter((x): x is string => !!x))].slice(0, 12)) {
 		try {
 			const page = await notion(env, `/pages/${id}`);
 			const title = Object.values(page.properties || {}).find((v: any) => v?.type === "title") as any;
@@ -112,7 +135,7 @@ async function shelf(env: Env) {
 			/* a course the integration cannot see: the reading still shows its book */
 		}
 	}
-	return { readings, courses };
+	return { readings, lectures, courses };
 }
 
 async function readingPages(env: Env, id: string, offset: number, limit: number) {
