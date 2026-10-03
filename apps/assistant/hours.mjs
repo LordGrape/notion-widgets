@@ -241,6 +241,15 @@ export function manualSession({ taskId, minutes, note, kind, endAt }) {
 	};
 }
 
+/* Done tasks cleared from the To-Do list leave a small record in clock/docket_tasks (text, kind, block and finish
+   time), so the hours they earned stay on the docket. Live tasks win when an id appears in both, which also covers
+   a clear that was undone. */
+export function withCleared(tasks = [], ledger = []) {
+	const rows = Array.isArray(ledger) ? ledger : [];
+	const live = new Set(tasks.map((t) => String(t.id)));
+	return [...tasks, ...rows.filter((t) => t && t.id != null && !live.has(String(t.id)))];
+}
+
 /* Appends to the Clock-owned focus_sessions payload, keeping its shape and cap. */
 export function appendSession(raw, session) {
 	const history = parseSessions(raw).filter((s) => s && s.id !== session.id);

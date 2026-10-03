@@ -262,7 +262,7 @@ test("work that ends after midnight is flagged", () => {
 	assert.equal(lateNightHours([late, evening, { end: at(3), minutes: 30, units: 0.5 }]), 1.5);
 });
 
-import { scheduledEntries } from "./hours.mjs";
+import { scheduledEntries, withCleared } from "./hours.mjs";
 const t0 = (hm) => new Date(`2026-10-02T${hm}:00`);
 const plan = (id, text, from, to, extra = {}) => ({ id, text, scheduledStart: t0(from).toISOString(), scheduledEnd: t0(to).toISOString(), ...extra });
 
@@ -284,3 +284,28 @@ test("scheduled time stops when the task is ticked off and never double-bills a 
 	const manual = { id: "m", taskId: "p", seconds: 3600, completedAt: t0("18:00").getTime(), manual: true };
 	assert.deepEqual(scheduledEntries([plan("p", "Practice fact pattern", "10:00", "12:00")], { now: t0("19:00"), sessions: [manual] }), []);
 });
+
+test("hours on a cleared done task stay billable, because the task is kept on the ledger", () => {
+	const raw = JSON.stringify([{ id: "s1", taskId: "t1", seconds: 3600, completedAt: Date.parse("2026-10-02T15:00:00") }]);
+	const task = { id: "t1", text: "Read Property pp. 144–166", done: true };
+	assert.equal(sessionEntries(raw, [task])[0].kind, "reading");
+	// Without the task the entry loses its kind and stops counting.
+	assert.equal(sessionEntries(raw, [])[0].kind, "admin");
+	const kept = withCleared([], [task]);
+	assert.equal(sessionEntries(raw, kept)[0].kind, "reading");
+	assert.equal(sessionEntries(raw, kept)[0].description, "Read Property pp. 144–166");
+});
+
+test("a live task wins over its ledger copy, so an undone clear does not double up", () => {
+	const live = { id: "t1", text: "Read Property pp. 144–166", done: true };
+	assert.equal(withCleared([live], [{ ...live }, { id: "t2", text: "Other", done: true }]).length, 2);
+	assert.deepEqual(withCleared([], null), []);
+});
+
+test("a cleared scheduled block still bills until it was finished", () => {
+	const cleared = [{ id: "c1", text: "Read Property pp. 144–166", done: true, kind: "reading", scheduledStart: "2026-10-02T13:00:00", scheduledEnd: "2026-10-02T15:00:00", doneAt: Date.parse("2026-10-02T14:30:00") }];
+	const entries = scheduledEntries(withCleared([], cleared), { now: new Date("2026-10-03T09:00:00"), since: 0 });
+	assert.equal(entries.length, 1);
+	assert.equal(entries[0].minutes, 90);
+});
+

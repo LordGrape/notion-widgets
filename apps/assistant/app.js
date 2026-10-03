@@ -42,6 +42,7 @@ import {
 	weekStart,
 	weekKeys,
 	sessionEntries,
+	withCleared,
 	classEntries,
 	scheduledEntries,
 	summarize,
@@ -655,7 +656,7 @@ function refresh() {
 		planDays,
 		[...collapsed],
 		view === "docket"
-			? [docketOffset, engines.clock.SyncEngine.get("clock", "focus_sessions"), engines.clock.SyncEngine.get("clock", "docket_excluded"), Math.floor(Date.now() / 60000), weeklyTarget()]
+			? [docketOffset, engines.clock.SyncEngine.get("clock", "focus_sessions"), engines.clock.SyncEngine.get("clock", "docket_excluded"), String(clearedRaw() || "").length, Math.floor(Date.now() / 60000), weeklyTarget()]
 			: null,
 	]);
 	if (next !== signature) {
@@ -2547,7 +2548,7 @@ async function openReadingsImport() {
 		}
 	};
 	const paint = () => {
-		const { items: found, unclear, editions } = readingCandidates({ lectures: data.lectures || [], courses: data.courses || {}, tasks, today, dueMode, edition, estimate: (t) => { const p = paceFor({ text: t }); return Reading.estimate(t, p.source === "default" ? {} : { pace: p.pace }); } });
+		const { items: found, unclear, editions } = readingCandidates({ lectures: data.lectures || [], courses: data.courses || {}, tasks: withCleared(tasks, clearedTasks()), today, dueMode, edition, estimate: (t) => { const p = paceFor({ text: t }); return Reading.estimate(t, p.source === "default" ? {} : { pace: p.pace }); } });
 		const items = found.filter((i) => showPast || i.classDate >= today),
 			missed = found.filter((i) => i.classDate < today).length;
 		const isOn = (i) => (picked.has(i.key) ? picked.get(i.key) : !i.exists && i.classDate >= today);
@@ -3547,12 +3548,22 @@ function docketExcluded() {
 	}
 	return Array.isArray(raw) ? raw.map(String) : [];
 }
+const clearedRaw = () => engines.clock?.SyncEngine.get("clock", "docket_tasks");
+function clearedTasks() {
+	try {
+		const raw = clearedRaw();
+		return withCleared([], typeof raw === "string" ? JSON.parse(raw) : raw);
+	} catch {
+		return [];
+	}
+}
 function billedEntries(events, now) {
 	const classes = classEntries(events, now);
+	const cleared = withCleared(tasks, clearedTasks()).slice(tasks.length);
 	return [
-		...sessionEntries(focusSessionsRaw(), tasks),
+		...sessionEntries(focusSessionsRaw(), [...tasks, ...cleared]),
 		...classes,
-		...scheduledEntries(focusTasks(tasks, courses), { sessions: focusSessionsRaw(), classes, now, since: autoSince(), excluded: docketExcluded() }),
+		...scheduledEntries([...focusTasks(tasks, courses), ...cleared], { sessions: focusSessionsRaw(), classes, now, since: autoSince(), excluded: docketExcluded() }),
 	];
 }
 function docketData(offset = docketOffset) {
@@ -3567,7 +3578,7 @@ function docketData(offset = docketOffset) {
 let weekCache = { key: "", at: 0, summary: null };
 function currentWeek() {
 	if (!engines.clock || !engines.timetable || !engines.todo) return null;
-	const key = String(focusSessionsRaw() || "") + weeklyTarget() + isoDate() + docketExcluded().join();
+	const key = String(focusSessionsRaw() || "") + String(clearedRaw() || "").length + weeklyTarget() + isoDate() + docketExcluded().join();
 	if (weekCache.summary && weekCache.key === key && Date.now() - weekCache.at < 20000) return weekCache.summary;
 	try {
 		weekCache = { key, at: Date.now(), summary: docketData(0).summary };

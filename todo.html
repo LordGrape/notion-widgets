@@ -529,11 +529,30 @@ body::before{
     }
   }
 
+  /* Hours are never lost by clearing a finished task: its text, kind, block and finish time are kept in
+     clock/docket_tasks, which the weekly docket reads next to the live tasks. Open tasks are not kept. */
+  function bankDoneHours(done) {
+    try {
+      var raw = SyncEngine.get('clock', 'docket_tasks'), list = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (!Array.isArray(list)) list = [];
+      var have = {};
+      list.forEach(function (e) { if (e && e.id != null) have[e.id] = 1; });
+      done.forEach(function (t) {
+        if (!t || !t.done || have[t.id]) return;
+        list.push({ id: String(t.id), text: t.text, kind: t.kind || undefined, scheduledStart: t.scheduledStart || null, scheduledEnd: t.scheduledEnd || null, doneAt: t.doneAt || Date.now(), done: true });
+      });
+      var cutoff = Date.now() - 150 * 864e5;
+      list = list.filter(function (e) { var at = Number(new Date(e.doneAt)) || Date.parse(e.scheduledEnd) || 0; return at > cutoff; });
+      SyncEngine.set('clock', 'docket_tasks', JSON.stringify(list.slice(-400)));
+    } catch (e) { /* The task still clears if the record cannot be written. */ }
+  }
+
   function remove(id) {
     var idx = -1, t = null;
     for (var i = 0; i < tasks.length; i++) { if (tasks[i].id === id) { idx = i; t = tasks[i]; break; } }
     if (!t) return;
     if (editingId === id) editingId = null;
+    if (t.done) bankDoneHours([t]);
     tasks.splice(idx, 1);
     showUndo("Task deleted", function () { tasks.splice(Math.min(idx, tasks.length), 0, t); });
     snd("playClick");
@@ -543,6 +562,7 @@ body::before{
     var removed = [];
     for (var i = 0; i < tasks.length; i++) { if (tasks[i].done) removed.push({ task: tasks[i], index: i }); }
     if (!removed.length) return;
+    bankDoneHours(removed.map(function (e) { return e.task; }));
     tasks = tasks.filter(function (x) { return !x.done; });
     showUndo(removed.length + (removed.length === 1 ? " task cleared" : " tasks cleared"), function () {
       removed.slice().sort(function (a, c) { return a.index - c.index; }).forEach(function (e) { tasks.splice(Math.min(e.index, tasks.length), 0, e.task); });
