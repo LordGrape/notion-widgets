@@ -838,7 +838,7 @@ h3 {
 	border: 0;
 }
 .loading-state {
-	padding: 60px;
+	padding: 40px 24px 60px;
 	text-align: center;
 	color: var(--muted);
 }
@@ -3151,15 +3151,19 @@ dialog h3 {
 .broadcast-card.has-3d .broadcast-figure { visibility: hidden; }
 .broadcast-canvas { display: block; width: 100%; height: 100%; }
 .broadcast-run {
+	--run-scale: 3;
 	display: block;
-	width: 100px;
-	height: 110px;
-	margin: 0 auto 12px;
-	background: url("./broadcast-run.webp") 0 0 / 1600px 110px no-repeat;
+	width: calc(100px * var(--run-scale));
+	height: calc(110px * var(--run-scale));
+	margin: 0 auto 16px;
+	background: url("./broadcast-run.webp") 0 0 / calc(1600px * var(--run-scale)) calc(110px * var(--run-scale)) no-repeat;
 	animation: broadcast-run 0.64s steps(16) infinite;
 }
 @keyframes broadcast-run {
-	to { background-position: -1600px 0; }
+	to { background-position: calc(-1600px * var(--run-scale)) 0; }
+}
+@media (max-width: 520px) {
+	.broadcast-run { --run-scale: 2; }
 }
 @media (prefers-reduced-motion: reduce) {
 	.broadcast-run { animation: none; }
