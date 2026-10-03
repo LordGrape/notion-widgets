@@ -3552,3 +3552,16 @@ dialog h3 {
 @media (prefers-reduced-motion: reduce) {
 	.tag-plus, .tag-options { transition: none; animation: none; }
 }
+
+.tag-field {
+	display: block;
+}
+.tag-field .tag-box {
+	margin-top: 0;
+}
+.task-title .kind-dot {
+	width: 7px;
+	height: 7px;
+	margin-right: 8px;
+	vertical-align: 1px;
+}

@@ -59,7 +59,7 @@ import { suggestLastPage, planPageSplit, planTimeSplit, defaultRemaining } from 
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261002-tags-3";
+	REVISION = "20261002-tags-4";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -498,11 +498,22 @@ function occurrences(date) {
 	return engines.timetable?.occurrencesForDate(localDate(isoDate(date))) || [];
 }
 const tagDot = (kind) => `<i class="kind-dot ${kind}" aria-hidden="true"></i>`;
-const tagPill = (kind, auto = false) => kind ? `<span class="kind-chip ${kind}${auto ? " is-auto" : ""}" data-tag-current>${tagDot(kind)}${KIND_LABEL[kind]}${auto ? '<small>auto</small>' : ""}</span>` : '<span class="kind-chip none" data-tag-current>No tag</span>';
-function tagPicker({ current, action, id, none, fallback = null }) {
-	const chips = KINDS.map((k) => `<button type="button" class="kind-chip ${k}" role="radio" aria-checked="${k === current}" data-action="${action}" data-kind="${k}" data-id="${esc(id)}">${tagDot(k)}${KIND_LABEL[k]}</button>`).join("");
-	const reset = `<button type="button" class="kind-chip auto" role="radio" aria-checked="${!current}" data-action="${action}" data-kind="" data-id="${esc(id)}" title="${none ? "Remove the tag" : "Choose from the task wording"}">${none ? "None" : "Auto"}</button>`;
-	return `<div class="tag-box"><div class="tag-row"><span class="tag-label">Tag</span>${tagPill(current || fallback, !current && !!fallback)}<button type="button" class="tag-plus" data-action="tag-toggle" aria-expanded="false" aria-label="Change tag" title="Change tag"><svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="M6 1.5v9M1.5 6h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button></div><div class="kind-picker tag-options" role="radiogroup" aria-label="Tag" hidden>${chips}${reset}</div></div>`;
+const tagPill = (kind, auto = false, empty = "No tag") => kind ? `<span class="kind-chip ${kind}${auto ? " is-auto" : ""}" data-tag-current>${tagDot(kind)}${KIND_LABEL[kind]}${auto ? '<small>auto</small>' : ""}</span>` : `<span class="kind-chip none" data-tag-current>${empty}</span>`;
+function tagPicker({ current, action, id = "", none = false, fallback = null, kinds = KINDS, reset = true }) {
+	const chips = kinds.map((k) => `<button type="button" class="kind-chip ${k}" role="radio" aria-checked="${k === current}" data-action="${action}" data-kind="${k}" data-id="${esc(id)}">${tagDot(k)}${KIND_LABEL[k]}</button>`).join("");
+	const clear = reset ? `<button type="button" class="kind-chip auto" role="radio" aria-checked="${!current}" data-action="${action}" data-kind="" data-id="${esc(id)}" title="${none ? "Remove the tag" : "Choose from the task wording"}">${none ? "None" : "Auto"}</button>` : "";
+	return `<div class="tag-box" data-fallback="${esc(fallback || "")}" data-empty="${none ? "No tag" : "Auto"}"><div class="tag-row"><span class="tag-label">Tag</span>${tagPill(current || fallback, !current && !!fallback, none ? "No tag" : "Auto")}<button type="button" class="tag-plus" data-action="tag-toggle" aria-expanded="false" aria-label="Change tag" title="Change tag"><svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="M6 1.5v9M1.5 6h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button></div><div class="kind-picker tag-options" role="radiogroup" aria-label="Tag" hidden>${chips}${clear}</div></div>`;
+}
+/* Dialogs share one element, so replace (never stack) the tag listener each time one opens. */
+function onTagChange(dialog, fn) {
+	if (dialog._tagHandler) dialog.removeEventListener("tagchange", dialog._tagHandler);
+	dialog._tagHandler = fn;
+	dialog.addEventListener("tagchange", fn);
+}
+/* Repaint a tag box for a kind without collapsing it (used while a form auto-detects). */
+function paintTag(box, kind, fallback = box.dataset.fallback || null) {
+	box.querySelectorAll(".tag-options .kind-chip").forEach((c) => c.setAttribute("aria-checked", String(!!c.dataset.kind ? c.dataset.kind === kind : !kind)));
+	box.querySelector("[data-tag-current]").outerHTML = tagPill(kind || fallback || null, !kind && !!fallback, box.dataset.empty || "No tag");
 }
 const taskTagPicker = (t) => tagPicker({ current: isKind(t.kind) ? t.kind : null, action: "set-tag", id: t.id, none: false, fallback: taskKind(t) });
 /* Timetable blocks plus tasks that have a time but no block yet. */
@@ -565,7 +576,7 @@ function gapHints(events, start, end) {
 function taskRow(t, planner = false) {
 	const m = duration(t);
 	const focusable = !isCalendarReminder(t, courses);
-	return `<div class="task-row ${t.done ? "done" : ""}" data-task="${esc(t.id)}" ${!planner && !t.done ? `draggable="true" data-drag="${esc(t.id)}"` : ""}>${!t.done ? `<button class="drag-handle icon-button ${planner ? "" : "today-grip"}" title="Drag to schedule; click to choose a time" data-action="schedule" data-id="${esc(t.id)}" draggable="true" data-drag="${esc(t.id)}" aria-label="Drag ${esc(t.text)} to the calendar">${icon("grip")}</button>` : ""}<button class="check-button ${t.done ? "checked" : ""}" data-action="toggle" data-id="${esc(t.id)}" aria-label="${t.done ? "Reopen" : "Complete"} ${esc(t.text)}">${t.done ? icon("check") : ""}</button><button class="task-title" data-action="edit" data-id="${esc(t.id)}">${esc(t.text)}${planner ? `<small class="planner-task-meta"><span class="priority-chip ${t.pri || "must"}">${t.pri === "could" ? "Could" : t.pri === "should" ? "Should" : "Must"}</span>${m ? `${m} min` : "No estimate"}${t.repeatRule ? " · Repeats" : ""}</small>` : ""}</button>${!planner && overdueLabel(t) ? `<span class="task-meta overdue-meta">${overdueLabel(t)}</span>` : ""}${!planner && m ? `<span class="task-meta" ${t.done && focusMinutes(t.id) ? `title="Estimated ${m} min, focused ${focusMinutes(t.id)} min"` : ""}>${icon("clock")}${t.done && focusMinutes(t.id) ? `${focusMinutes(t.id)} of ${m} min` : `${m} min`}</span>` : ""}${!planner && t.repeatRule ? `<span class="task-meta repeat-meta">Repeats</span>` : ""}<div class="task-actions">${focusable ? `<button class="icon-button" data-action="select-focus" data-id="${esc(t.id)}" aria-label="Focus on ${esc(t.text)}" title="Focus on this task">${icon("play")}</button>` : ""}<button class="icon-button" data-action="${planner ? "schedule" : "edit"}" data-id="${esc(t.id)}" aria-label="${planner ? "Schedule" : "Edit"} ${esc(t.text)}">${icon(planner ? "calendar" : "more")}</button></div></div>`;
+	return `<div class="task-row ${t.done ? "done" : ""}" data-task="${esc(t.id)}" ${!planner && !t.done ? `draggable="true" data-drag="${esc(t.id)}"` : ""}>${!t.done ? `<button class="drag-handle icon-button ${planner ? "" : "today-grip"}" title="Drag to schedule; click to choose a time" data-action="schedule" data-id="${esc(t.id)}" draggable="true" data-drag="${esc(t.id)}" aria-label="Drag ${esc(t.text)} to the calendar">${icon("grip")}</button>` : ""}<button class="check-button ${t.done ? "checked" : ""}" data-action="toggle" data-id="${esc(t.id)}" aria-label="${t.done ? "Reopen" : "Complete"} ${esc(t.text)}">${t.done ? icon("check") : ""}</button><button class="task-title" data-action="edit" data-id="${esc(t.id)}">${tagDot(taskKind(t))}${esc(t.text)}${planner ? `<small class="planner-task-meta"><span class="priority-chip ${t.pri || "must"}">${t.pri === "could" ? "Could" : t.pri === "should" ? "Should" : "Must"}</span>${m ? `${m} min` : "No estimate"}${t.repeatRule ? " · Repeats" : ""}</small>` : ""}</button>${!planner && overdueLabel(t) ? `<span class="task-meta overdue-meta">${overdueLabel(t)}</span>` : ""}${!planner && m ? `<span class="task-meta" ${t.done && focusMinutes(t.id) ? `title="Estimated ${m} min, focused ${focusMinutes(t.id)} min"` : ""}>${icon("clock")}${t.done && focusMinutes(t.id) ? `${focusMinutes(t.id)} of ${m} min` : `${m} min`}</span>` : ""}${!planner && t.repeatRule ? `<span class="task-meta repeat-meta">Repeats</span>` : ""}<div class="task-actions">${focusable ? `<button class="icon-button" data-action="select-focus" data-id="${esc(t.id)}" aria-label="Focus on ${esc(t.text)}" title="Focus on this task">${icon("play")}</button>` : ""}<button class="icon-button" data-action="${planner ? "schedule" : "edit"}" data-id="${esc(t.id)}" aria-label="${planner ? "Schedule" : "Edit"} ${esc(t.text)}">${icon(planner ? "calendar" : "more")}</button></div></div>`;
 }
 function taskGroups() {
 	const list = todayTasks(focusTasks(tasks, courses)).sort(
@@ -1086,10 +1097,14 @@ function parseNewTask(text) {
 }
 function openEditor(id, draft = "") {
 	const t = task(id),
+		/* An imported "Type: study" line in the notes is the same tag; show it as one. */
+		noteKind = t ? (isKind(t.kind) ? t.kind : parseTypeTag(t.notes, KINDS)) : null,
+		noteText = stripTypeTag(t?.notes || ""),
 		d = openDialog(
 			"#editorDialog",
-			`${dialogHead(t ? "Edit task" : "New task", "editorTitle")}<form id="taskForm"><div class="form-grid"><label class="field wide task-name">Task<input name="text" value="${esc(t?.text || draft)}" required maxlength="500" placeholder="What would you like to do?"></label><label class="field">Priority<select name="pri">${["must", "should", "could"].map((p) => `<option value="${p}" ${p === (t?.pri || "must") ? "selected" : ""}>${p === "must" ? "Must Do" : p === "should" ? "Should Do" : "Could Do"}</option>`).join("")}</select></label><label class="field">Date<input name="dueKey" type="date" value="${esc(normalizeDateKey(t?.dueKey) || isoDate())}"></label><label class="field">Type<select name="kind"><option value="">Auto${t ? ` (${KIND_LABEL[taskKind({ text: t.text })]})` : ""}</option>${KINDS.filter((k) => k !== "class").map((k) => `<option value="${k}" ${t?.kind === k ? "selected" : ""}>${KIND_LABEL[k]}</option>`).join("")}</select></label><label class="field wide duration-field">Time <span>minutes</span><input type="number" name="plannedMinutes" min="1" value="${duration(t || {}) || ""}" placeholder="Optional"></label><div class="wide">${Reading.html(t || {})}</div><details class="task-extra wide" ${t?.notes || t?.subs?.length ? 'open' : ''}><summary>Notes & session steps</summary><div class="form-grid"><label class="field wide">Notes<textarea name="notes" rows="2" placeholder="Add a note…">${esc(t?.notes || "")}</textarea></label><label class="field wide">Session steps<textarea name="steps" rows="2" placeholder="One step per line">${esc((t?.subs || []).map((s) => s.text).join("\n"))}</textarea></label></div></details></div><p class="form-error" id="formError" role="alert"></p><div class="dialog-actions">${t ? `<button type="button" class="delete" data-action="delete" data-id="${esc(id)}">Delete</button><button type="button" data-action="schedule" data-id="${esc(id)}">Schedule</button><button type="button" data-action="split-task" data-id="${esc(id)}">Split</button>` : ""}<button type="submit" class="primary">${t ? "Save" : "Add task"}</button></div></form>`,
+			`${dialogHead(t ? "Edit task" : "New task", "editorTitle")}<form id="taskForm"><div class="form-grid"><label class="field wide task-name">Task<input name="text" value="${esc(t?.text || draft)}" required maxlength="500" placeholder="What would you like to do?"></label><label class="field">Priority<select name="pri">${["must", "should", "could"].map((p) => `<option value="${p}" ${p === (t?.pri || "must") ? "selected" : ""}>${p === "must" ? "Must Do" : p === "should" ? "Should Do" : "Could Do"}</option>`).join("")}</select></label><label class="field">Date<input name="dueKey" type="date" value="${esc(normalizeDateKey(t?.dueKey) || isoDate())}"></label><div class="field wide tag-field">${tagPicker({ current: noteKind, action: "tag-pick", fallback: t ? taskKind({ text: t.text }) : null, kinds: KINDS.filter((k) => k !== "class") })}<input type="hidden" name="kind" value="${esc(noteKind || "")}"></div><label class="field wide duration-field">Time <span>minutes</span><input type="number" name="plannedMinutes" min="1" value="${duration(t || {}) || ""}" placeholder="Optional"></label><div class="wide">${Reading.html(t || {})}</div><details class="task-extra wide" ${noteText || t?.subs?.length ? 'open' : ''}><summary>Notes & session steps</summary><div class="form-grid"><label class="field wide">Notes<textarea name="notes" rows="2" placeholder="Add a note…">${esc(noteText)}</textarea></label><label class="field wide">Session steps<textarea name="steps" rows="2" placeholder="One step per line">${esc((t?.subs || []).map((s) => s.text).join("\n"))}</textarea></label></div></details></div><p class="form-error" id="formError" role="alert"></p><div class="dialog-actions">${t ? `<button type="button" class="delete" data-action="delete" data-id="${esc(id)}">Delete</button><button type="button" data-action="schedule" data-id="${esc(id)}">Schedule</button><button type="button" data-action="split-task" data-id="${esc(id)}">Split</button>` : ""}<button type="submit" class="primary">${t ? "Save" : "Add task"}</button></div></form>`,
 		);
+	onTagChange(d, (e) => { d.querySelector("[name=kind]").value = e.detail.kind || ""; });
 	const readingData = Reading.mount(d, t || {}, { title: d.querySelector("[name=text]"), duration: d.querySelector("[name=plannedMinutes]"), split: steps => { const el=d.querySelector("[name=steps]"); const existing=el.value.split("\n"); el.value=[...existing.filter(Boolean),...steps.filter(s=>!existing.includes(s))].join("\n"); el.closest("details").open=true; } });
 	const manualFields = new Set(), fields = d.querySelector("form").elements;
 	let automatic = false;
@@ -2133,8 +2148,7 @@ async function openRepeatRange(id) {
 function syncTagRow(chip, kind, fallback = null) {
 	const box = chip.closest(".tag-box");
 	if (!box) return;
-	box.querySelectorAll(".tag-options .kind-chip").forEach((c) => c.setAttribute("aria-checked", String(c === chip)));
-	box.querySelector("[data-tag-current]").outerHTML = tagPill(kind || fallback, !kind && !!fallback);
+	paintTag(box, kind, fallback ?? box.dataset.fallback ?? null);
 	box.querySelector(".tag-options").hidden = true;
 	const plus = box.querySelector(".tag-plus");
 	plus.setAttribute("aria-expanded", "false");
@@ -2275,6 +2289,13 @@ document.addEventListener("click", (e) => {
 			signature = "";
 			refresh();
 			notify(kind ? `Tagged ${KIND_LABEL[kind]}.` : "Tag set to Auto.");
+			break;
+		}
+		case "tag-pick": {
+			const kind = isKind(b.dataset.kind) ? b.dataset.kind : null;
+			const box = b.closest(".tag-box");
+			syncTagRow(b, kind);
+			box?.dispatchEvent(new CustomEvent("tagchange", { bubbles: true, detail: { kind } }));
 			break;
 		}
 		case "tag-toggle": {
@@ -2744,14 +2765,14 @@ function openTarget() {
 function openLogTime(prefillId = "") {
 	const options = focusTasks(tasks, courses).filter((t) => !t.done || t.id === prefillId);
 	const nowDate = new Date();
-	const d = openDialog("#editorDialog", dialogHead("Log time", "editorTitle") + '<form id="logForm" class="log-form"><label class="field wide">Task<select name="task"><option value="">Something else</option>' + options.map((t) => '<option value="' + esc(t.id) + '" ' + (t.id === prefillId ? "selected" : "") + ">" + esc(t.text) + "</option>").join("") + '</select></label><label class="field wide">What did you work on?<input name="note" maxlength="200" autocomplete="off" placeholder="Reviewed Donoghue v Stevenson and outlined the neighbour principle"></label><div class="field wide"><span class="field-label">Type</span><div class="kind-picker" role="radiogroup" aria-label="Type of work">' + KINDS.filter((k) => k !== "class").map((k) => '<button type="button" role="radio" class="kind-chip ' + k + '" data-kind="' + k + '">' + KIND_LABEL[k] + "</button>").join("") + '</div></div><div class="field wide"><span class="field-label">Time spent</span><div class="hour-picker">' + [0.5, 1, 1.5, 2, 3].map((v) => '<button type="button" data-hours="' + v + '">' + formatUnits(v) + "</button>").join("") + '<input name="hours" type="number" min="0.1" max="16" step="0.1" value="1" aria-label="Hours"><span>hours</span></div></div><div class="form-grid"><label class="field">Finished<input name="time" type="time" value="' + timeString(nowDate.getHours() * 60 + nowDate.getMinutes()) + '"></label><label class="field">Date<input name="date" type="date" value="' + isoDate() + '"></label></div><div class="log-preview" id="logPreview" aria-live="polite"></div><p class="form-error" id="logError" role="alert"></p><div class="dialog-actions"><button type="button" data-action="close-dialog">Cancel</button><button type="submit" class="primary">Log time</button></div></form>');
+	const d = openDialog("#editorDialog", dialogHead("Log time", "editorTitle") + '<form id="logForm" class="log-form"><label class="field wide">Task<select name="task"><option value="">Something else</option>' + options.map((t) => '<option value="' + esc(t.id) + '" ' + (t.id === prefillId ? "selected" : "") + ">" + esc(t.text) + "</option>").join("") + '</select></label><label class="field wide">What did you work on?<input name="note" maxlength="200" autocomplete="off" placeholder="Reviewed Donoghue v Stevenson and outlined the neighbour principle"></label><div class="field wide tag-field">' + tagPicker({ current: "study", action: "tag-pick", kinds: KINDS.filter((k) => k !== "class"), reset: false }) + '</div><div class="field wide"><span class="field-label">Time spent</span><div class="hour-picker">' + [0.5, 1, 1.5, 2, 3].map((v) => '<button type="button" data-hours="' + v + '">' + formatUnits(v) + "</button>").join("") + '<input name="hours" type="number" min="0.1" max="16" step="0.1" value="1" aria-label="Hours"><span>hours</span></div></div><div class="form-grid"><label class="field">Finished<input name="time" type="time" value="' + timeString(nowDate.getHours() * 60 + nowDate.getMinutes()) + '"></label><label class="field">Date<input name="date" type="date" value="' + isoDate() + '"></label></div><div class="log-preview" id="logPreview" aria-live="polite"></div><p class="form-error" id="logError" role="alert"></p><div class="dialog-actions"><button type="button" data-action="close-dialog">Cancel</button><button type="submit" class="primary">Log time</button></div></form>');
 	const f = d.querySelector("form").elements;
 	let kind = "study", manualKind = false;
 	const picked = () => options.find((t) => t.id === f.task.value);
 	const update = () => {
 		const t = picked();
 		if (!manualKind) kind = t ? taskKind(t) : classifyText(f.note.value);
-		d.querySelectorAll("[data-kind]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.kind === kind)));
+		paintTag(d.querySelector(".tag-box"), kind, null);
 		d.querySelectorAll("[data-hours]").forEach((b) => b.classList.toggle("on", Number(b.dataset.hours) === Number(f.hours.value)));
 		const hours = Number(f.hours.value) || 0, end = new Date(f.date.value + "T" + f.time.value);
 		const start = new Date(end.getTime() - hours * 3600000);
@@ -2764,7 +2785,7 @@ function openLogTime(prefillId = "") {
 	};
 	f.note.oninput = update;
 	f.hours.oninput = f.time.oninput = f.date.oninput = update;
-	d.querySelectorAll("[data-kind]").forEach((b) => (b.onclick = () => { kind = b.dataset.kind; manualKind = true; update(); }));
+	onTagChange(d, (e) => { if (e.detail.kind) { kind = e.detail.kind; manualKind = true; update(); } });
 	d.querySelectorAll("[data-hours]").forEach((b) => (b.onclick = () => { f.hours.value = b.dataset.hours; update(); }));
 	f.task.onchange();
 	f.note.focus();
