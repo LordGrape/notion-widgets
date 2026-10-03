@@ -49,14 +49,14 @@ import {
 	PRACTICE_GOAL,
 } from "./hours.mjs";
 import { canUse3D, loadBroadcast3D } from "./broadcast3d.mjs";
-import { momentFor, pickLine, nextStep, milestoneReached, weeklyReview } from "./partner.mjs";
+import { momentFor, pickLine, pickEventLine, nextStep, milestoneReached, weeklyReview } from "./partner.mjs";
 import { syllablePlan, speak, stopVoice } from "./voice.mjs";
 import { planDay, isUnscheduled, PLAN_START, PLAN_END } from "./autofit.mjs";
 import { suggestLastPage, planPageSplit, planTimeSplit, defaultRemaining } from "./split.mjs";
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261002-docket-research";
+	REVISION = "20261002-partner-lines";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -97,7 +97,7 @@ let interfaceAudio = null;
 let recentScheduleId = null;
 let broadcastAudio = null, broadcastResetTimer = 0;
 let broadcastVersion = 0;
-let broadcastLine = "Counsel. Shall we begin?", broadcastPose = "", broadcastMood = "approve";
+let broadcastLine = "My office. Let's see the numbers.", broadcastPose = "", broadcastMood = "approve";
 let broadcast3D = null, broadcast3DFailed = false, celebratedWeek = "";
 let partnerCta = null, partnerLine = { key: "", line: null, moment: "", vars: {} }, partnerCheer = false;
 const partnerUsed = new Set();
@@ -220,12 +220,12 @@ function broadcastReact(state) {
 	if (!card || card.hidden || !broadcastVisible()) return;
 	const figure = card.querySelector(".broadcast-figure"), line = card.querySelector(".broadcast-dialogue");
 	const copy = {
-		start: ["The clock is running. Make this hour count, counsel.", "broadcast-greet"],
-		pause: ["A pause is part of the work. " + paceTail(), "broadcast-focus"],
-		finish: ["Filed. " + paceTail(), "broadcast-celebrate"],
-		break: ["Recess. Even partners leave the office for a minute.", "broadcast-celebrate"],
-		flow: ["An extra quarter-hour? Diligent counsel.", "broadcast-greet"],
-	}[state] || ["Shall we begin, counsel?", "broadcast-greet"];
+		start: [pickEventLine("start"), "broadcast-greet"],
+		pause: [pickEventLine("pause") + " " + paceTail(), "broadcast-focus"],
+		finish: [pickEventLine("finish") + " " + paceTail(), "broadcast-celebrate"],
+		break: [pickEventLine("break"), "broadcast-celebrate"],
+		flow: [pickEventLine("flow"), "broadcast-greet"],
+	}[state] || [pickEventLine("start"), "broadcast-greet"];
 	broadcastLine = copy[0];
 	broadcastPose = copy[1];
 	figure.classList.remove("broadcast-greet", "broadcast-focus", "broadcast-celebrate", "broadcast-talking", "broadcast-glitch");
@@ -2304,7 +2304,7 @@ function partnerVoice(s) {
 	}
 	const tomorrow = tomorrowKey();
 	const tomorrowBooked = tasks.some((t) => !t.done && t.scheduleId && normalizeDateKey(t.dueKey) === tomorrow);
-	const moment = momentFor({ mood: broadcastMood, day: now.getDay(), hour: now.getHours(), streak: stats.current, todayActive: (todayCell?.units || 0) >= STREAK_MIN, milestone, pct: s.pct, tomorrowBooked });
+	const moment = momentFor({ mood: broadcastMood, day: now.getDay(), hour: now.getHours(), streak: stats.current, todayActive: (todayCell?.units || 0) >= STREAK_MIN, milestone, pct: s.pct, tomorrowBooked, billable: s.billable });
 	const vars = { left: formatUnits(Math.max(0, s.target - s.billable)), gap: formatUnits(Math.max(0, s.expected - s.billable)), ahead: formatUnits(Math.max(0, s.billable - s.expected)), billable: formatUnits(s.billable), target: formatUnits(s.target), streak: milestone || stats.current };
 	const key = moment + isoDate();
 	if (partnerLine.key !== key) {
@@ -2335,7 +2335,7 @@ function renderReview() {
 }
 function docketNarration(s) {
 	if (docketOffset < 0) return "That week closed at " + formatUnits(s.billable) + " of " + formatUnits(s.target) + " hours.";
-	if (docketOffset > 0) return "Nothing billed yet. Plan the week, counsel.";
+	if (docketOffset > 0) return "Nothing billed yet. Plan the week before it plans you.";
 	const gap = Math.round((s.expected - s.billable) * 10) / 10;
 	if (s.pace === "behind") return formatUnits(gap) + " hours behind pace. Close it before Sunday.";
 	if (s.pace === "ahead") return formatUnits(-gap) + " hours ahead of pace. Do not coast.";

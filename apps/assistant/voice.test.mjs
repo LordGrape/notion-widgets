@@ -16,7 +16,7 @@ test("mood sets pitch and pace", () => {
 	assert.ok(panic.duration < stern.duration);
 });
 test("phrases fall in pitch toward the end", () => {
-	const plan = syllablePlan("A pause is part of the work counsel and the clock keeps running", "approve", seeded(9));
+	const plan = syllablePlan("A pause is part of the work and the clock keeps running on the file", "approve", seeded(9));
 	assert.ok(plan.syllables.at(-1).pitch < plan.syllables[0].pitch);
 });
 test("the mouth opens only while a syllable sounds", () => {

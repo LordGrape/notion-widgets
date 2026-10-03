@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { LINES, momentFor, pickLine, nextStep, milestoneReached, weeklyReview } from "./partner.mjs";
+import { LINES, EVENT_LINES, momentFor, pickLine, pickEventLine, nextStep, milestoneReached, weeklyReview } from "./partner.mjs";
 
 test("the moment that matters most wins", () => {
 	const base = { mood: "stern", day: 3, hour: 14, streak: 4, todayActive: false, milestone: 0 };
@@ -45,4 +45,24 @@ test("the weekly review gives a verdict and notes", () => {
 	assert.deepEqual(review.notes, ["Most of your independent time went to reading.", "No writing at all. Put some on the calendar this week.", "You carried a 5-day streak into this week."]);
 	assert.equal(weeklyReview({ ...summary, billable: 15 }).verdict, "We need to talk");
 	assert.equal(weeklyReview({ ...summary, billable: 29 }).verdict, "Meets expectations");
+});
+
+test("he sounds like a partner, not a judge", () => {
+	const all = [...Object.values(LINES).flat(), ...Object.values(EVENT_LINES).flat()];
+	assert.ok(all.length >= 80);
+	for (const line of all) assert.doesNotMatch(line, /counsel|court/i);
+	for (const [moment, lines] of Object.entries(LINES)) assert.ok(lines.length >= 4, moment);
+});
+test("late nights, empty dockets and mornings have their own voice", () => {
+	const base = { mood: "stern", day: 3, hour: 14, streak: 0, todayActive: false, milestone: 0 };
+	assert.equal(momentFor({ ...base, hour: 23 }), "late");
+	assert.equal(momentFor({ ...base, hour: 2 }), "late");
+	assert.equal(momentFor({ ...base, billable: 0 }), "empty");
+	assert.equal(momentFor({ ...base, hour: 8 }), "morning");
+	assert.equal(momentFor({ ...base, hour: 8, day: 6 }), "stern");
+	assert.equal(momentFor({ ...base, hour: 8, day: 1 }), "monday");
+});
+test("focus events pick from their own lines", () => {
+	assert.ok(EVENT_LINES.start.includes(pickEventLine("start", () => 0.99)));
+	assert.ok(EVENT_LINES.start.includes(pickEventLine("unknown", () => 0)));
 });
