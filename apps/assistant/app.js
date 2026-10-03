@@ -61,7 +61,7 @@ import { suggestLastPage, planPageSplit, planTimeSplit, defaultRemaining } from 
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261004-readings";
+	REVISION = "20261004-readings2";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -2268,7 +2268,8 @@ async function openReadingsImport() {
 	let days = 7,
 		dueMode = "before",
 		edition = "",
-		data = null;
+		data = null,
+		showPast = false;
 	const picked = new Map();
 	const d = openDialog("#editorDialog", head + '<p class="muted">Reading your class notes\u2026</p>');
 	const fail = (text) => { d.innerHTML = head + `<p class="muted">${esc(text)}</p><div class="dialog-actions"><button type="button" data-action="close-dialog">Close</button></div>`; };
@@ -2286,7 +2287,9 @@ async function openReadingsImport() {
 		paint();
 	};
 	const paint = () => {
-		const { items, unclear, editions } = readingCandidates({ lectures: data.lectures || [], courses: data.courses || {}, tasks, today, dueMode, edition, estimate: (t) => Reading.estimate(t) });
+		const { items: found, unclear, editions } = readingCandidates({ lectures: data.lectures || [], courses: data.courses || {}, tasks, today, dueMode, edition, estimate: (t) => Reading.estimate(t) });
+		const items = found.filter((i) => showPast || i.classDate >= today),
+			missed = found.filter((i) => i.classDate < today).length;
 		const isOn = (i) => (picked.has(i.key) ? picked.get(i.key) : !i.exists && i.classDate >= today);
 		const rows = items
 			.sort((a, b) => a.classDate.localeCompare(b.classDate) || a.text.localeCompare(b.text))
@@ -2296,7 +2299,7 @@ async function openReadingsImport() {
 			})
 			.join("");
 		const check = unclear.length ? `<details class="import-unclear"><summary>${unclear.length} ${unclear.length === 1 ? "class needs" : "classes need"} a look in Notion</summary><ul>${unclear.map((u) => `<li><a href="${esc(u.url)}" target="_blank" rel="noopener">${esc(u.title)}</a> <small>${day(u.classDate)} \u00b7 ${esc(u.reason)}</small></li>`).join("")}</ul></details>` : "";
-		d.innerHTML = head + `<div class="import-controls"><label>Look ahead<select id="impDays"><option value="7" ${days === 7 ? "selected" : ""}>7 days</option><option value="14" ${days === 14 ? "selected" : ""}>14 days</option></select></label><label>Due<select id="impDue"><option value="before" ${dueMode === "before" ? "selected" : ""}>Day before class</option><option value="class" ${dueMode === "class" ? "selected" : ""}>Day of class</option></select></label>${editions.length > 1 ? `<label>Edition<select id="impEd">${editions.map((e) => `<option value="${esc(e)}" ${(edition || editions[0]) === e ? "selected" : ""}>${esc(e)}</option>`).join("")}</select></label>` : ""}</div><form id="importForm">${rows ? `<div class="import-list">${rows}</div>` : `<p class="muted">No readings with page numbers in the next ${days} days.</p>`}${check}<p class="muted import-note">Nothing is added until you confirm. Classes whose notes have no page numbers are listed above, not guessed.</p><p class="form-error" id="importError" role="alert"></p><div class="dialog-actions"><button type="button" data-action="close-dialog">Cancel</button>${rows ? '<button type="submit" class="primary" id="importConfirm"></button>' : ""}</div></form>`;
+		d.innerHTML = head + `<div class="import-controls"><label>Look ahead<select id="impDays"><option value="7" ${days === 7 ? "selected" : ""}>7 days</option><option value="14" ${days === 14 ? "selected" : ""}>14 days</option></select></label><label>Due<select id="impDue"><option value="before" ${dueMode === "before" ? "selected" : ""}>Day before class</option><option value="class" ${dueMode === "class" ? "selected" : ""}>Day of class</option></select></label>${editions.length > 1 ? `<label>Edition<select id="impEd">${editions.map((e) => `<option value="${esc(e)}" ${(edition || editions[0]) === e ? "selected" : ""}>${esc(e)}</option>`).join("")}</select></label>` : ""}</div>${missed ? `<label class="import-past"><input type="checkbox" id="impPast" ${showPast ? "checked" : ""}> Show missed classes (${missed})</label>` : ""}<form id="importForm">${rows ? `<div class="import-list">${rows}</div>` : `<p class="muted">No readings with page numbers in the next ${days} days.</p>`}${check}<p class="muted import-note">Nothing is added until you confirm. Classes whose notes have no page numbers are listed above, not guessed.</p><p class="form-error" id="importError" role="alert"></p><div class="dialog-actions"><button type="button" data-action="close-dialog">Cancel</button>${rows ? '<button type="submit" class="primary" id="importConfirm"></button>' : ""}</div></form>`;
 		const form = $("#importForm"), confirm = $("#importConfirm");
 		const count = () => {
 			const n = form.querySelectorAll("input[name=pick]:checked").length;
@@ -2312,7 +2315,8 @@ async function openReadingsImport() {
 		count();
 		$("#impDays").onchange = (e) => { days = Number(e.target.value); d.innerHTML = head + '<p class="muted">Reading your class notes\u2026</p>'; load(); };
 		$("#impDue").onchange = (e) => { dueMode = e.target.value; paint(); };
-		if ($("#impEd")) $("#impEd").onchange = (e) => { edition = e.target.value; paint(); };
+		if ($("#impPast")) $("#impPast").onchange = (e) => { showPast = e.target.checked; paint(); };
+			if ($("#impEd")) $("#impEd").onchange = (e) => { edition = e.target.value; paint(); };
 		form.onsubmit = (e) => {
 			e.preventDefault();
 			try {

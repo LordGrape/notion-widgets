@@ -3953,3 +3953,12 @@ body.is-dragging #toast { pointer-events: none; }
 	margin-top: 12px;
 	font-size: 12px;
 }
+.import-past {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	margin: -4px 0 12px;
+	color: var(--muted);
+	font-size: 12px;
+	cursor: pointer;
+}
