@@ -1,4 +1,4 @@
-const CACHE = "command-centre-20261005-import-days";
+const CACHE = "command-centre-20261005-notion-when";
 const SHELL = [
 	"../../widget-platform.js",
 	"../../reading-estimates.js",
