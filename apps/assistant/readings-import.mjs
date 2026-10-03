@@ -137,14 +137,35 @@ const normalize = (text) =>
 const words = (text) => new Set(String(text || "").toLowerCase().match(/[a-z]{4,}/g) || []);
 const STOP = new Set(["read", "reading", "readings", "pages", "class", "lecture", "with", "from", "that", "this", "and", "the"]);
 
-/* A task you wrote yourself counts as this reading when it names every page range and shares a word with
-   the class, so "Read Criminal Law pp. 78-98" matches a class on pp. 78-98 of Criminal Law. */
-function coversReading(taskText, ranges, labels) {
-	const text = String(taskText || "").replace(/[–—]/g, "-").replace(/\s*-\s*/g, "-");
-	const every = ranges.every(([a, b]) => new RegExp(String.raw`(?<![\d-])${a === b ? a : `${a}-${b}`}(?![\d-])`).test(text));
-	if (!every) return false;
-	const mine = words(text);
-	return labels.some((l) => [...words(l)].some((w) => !STOP.has(w) && mine.has(w)));
+const pagesOf = (ranges) => {
+	const pages = new Set();
+	for (const [a, b] of ranges) for (let p = a; p <= b; p++) pages.add(p);
+	return pages;
+};
+const toRanges = (pages) => parseRanges([...pages].sort((x, y) => x - y).join(", ").replace(/(\d+)/g, "$1-$1"));
+/* The pages a task names, such as "pp. 144–166" or "p. 12 and 15–18". */
+const taskRanges = (text) =>
+	parseRanges(
+		[...String(text || "").matchAll(/\b(?:pp?\.?|pages?)\s*((?:\d+(?:\s*[–—-]\s*\d+)?(?:\s*(?:,|&|and)\s*)?)+)/gi)]
+			.map((m) => m[1])
+			.join(", ") || "0",
+	).filter(([a]) => a > 0);
+
+/* Which of this class's pages your tasks already cover, done or not. A reading you split part-way ("pp. 144-166"
+   finished, "pp. 167-188" still open) covers the class together even though neither task names every page, and a
+   task counts only when it shares a word with the class, so "Read Criminal Law pp. 78-98" matches that class. */
+function coverage(tasks, ranges, labels) {
+	const want = pagesOf(ranges), have = new Set();
+	let open = false;
+	for (const t of tasks) {
+		const mine = words(t.text);
+		if (!labels.some((l) => [...words(l)].some((w) => !STOP.has(w) && mine.has(w)))) continue;
+		let hit = false;
+		for (const p of pagesOf(taskRanges(t.text))) if (want.has(p)) { have.add(p); hit = true; }
+		if (hit && !t.done) open = true;
+	}
+	const rest = new Set([...want].filter((p) => !have.has(p)));
+	return { have: toRanges(have), remaining: rest.size && have.size ? toRanges(rest) : ranges, all: !rest.size, open };
 }
 
 const classDay = (start) => (/^\d{4}-\d{2}-\d{2}$/.test(start) ? start : isoDate(new Date(start)));
@@ -180,7 +201,10 @@ export function readingCandidates({ lectures, courses = {}, tasks = [], today, d
 		const parts = [...new Set(readings.map((r) => r.source).filter(Boolean))];
 		const course = courseLabel(courses[lecture.courseId] || "");
 		const label = course || parts[0] || "reading";
-		const text = `Read ${label} pp. ${formatRanges(ranges)}`;
+		const cover = coverage(tasks, ranges, [course, ...parts, lecture.title]);
+		/* Pages you have already covered are left out, so only what is still to read is offered. */
+		const toRead = cover.all ? ranges : cover.remaining;
+		const text = `Read ${label} pp. ${formatRanges(toRead)}`;
 		const before = addDays(day, -1);
 		const dueKey = dueMode === "class" ? day : before < today ? today : before;
 		const daysAway = Math.round((localDate(day) - localDate(today)) / 864e5);
@@ -192,14 +216,16 @@ export function readingCandidates({ lectures, courses = {}, tasks = [], today, d
 			course,
 			parts,
 			text,
-			pages: pageCount(ranges),
+			pages: pageCount(toRead),
+			alreadyRead: !cover.all && cover.have.length ? formatRanges(cover.have) : "",
+			alreadyDone: cover.all && !cover.open,
 			edition: readings.find((r) => r.editions.length > 1)?.edition || "",
 			classDate: day,
 			moved: moved && moved !== original ? { from: original, to: moved } : null,
 			dueKey,
 			pri: daysAway <= 2 ? "must" : "should",
 			minutes: estimate(text)?.minutes ?? null,
-			exists: imported.has(lecture.id) || existing.has(normalize(text)) || tasks.some((t) => coversReading(t.text, ranges, [course, ...parts, lecture.title])),
+			exists: imported.has(lecture.id) || existing.has(normalize(text)) || cover.all,
 		});
 	}
 	return { items, unclear, editions: [...editions].sort() };

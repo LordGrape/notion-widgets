@@ -195,3 +195,36 @@ test("the edition is only asked about when one reading lists more than one", () 
 	const both = readingCandidates({ ...base, lectures: [lecture({ notes: "READINGS\n• Casebook (11th ed, pp 76–78; 12th ed, pp 71–73)" })] });
 	assert.deepEqual(both.editions, ["11th", "12th"]);
 });
+
+test("a reading split part-way still counts as imported, done or not", () => {
+	const notes = "READINGS\n• Property: Cases and Commentary, pp. 144–188";
+	const lectures = [lecture({ id: "P", courseId: "C3", notes })];
+	const split = [
+		{ id: "a", text: "Read Property: Cases and Commentary, pp. 144–166", done: true },
+		{ id: "b", text: "Read Property: Cases and Commentary, pp. 167–188", done: false },
+	];
+	const both = readingCandidates({ ...base, courses: { C3: "LAW 140 Property" }, tasks: split, lectures }).items[0];
+	assert.equal(both.exists, true);
+	assert.equal(both.alreadyDone, false);
+	const finished = readingCandidates({ ...base, courses: { C3: "LAW 140 Property" }, tasks: split.map((t) => ({ ...t, done: true })), lectures }).items[0];
+	assert.equal(finished.exists, true);
+	assert.equal(finished.alreadyDone, true);
+});
+
+test("pages already read are left out of what is offered", () => {
+	const notes = "READINGS\n• Property: Cases and Commentary, pp. 144–188";
+	const tasks = [{ id: "a", text: "Read Property: Cases and Commentary, pp. 144–166", done: true }];
+	const item = readingCandidates({ ...base, courses: { C3: "LAW 140 Property" }, tasks, lectures: [lecture({ id: "P", courseId: "C3", notes })] }).items[0];
+	assert.equal(item.exists, false);
+	assert.equal(item.text, "Read Property pp. 167–188");
+	assert.equal(item.pages, 22);
+	assert.equal(item.alreadyRead, "144–166");
+});
+
+test("a task about another class does not cover this reading", () => {
+	const tasks = [{ id: "x", text: "Read Torts pp. 144–188", done: true }];
+	const item = readingCandidates({ ...base, courses: { C3: "LAW 140 Property" }, tasks, lectures: [lecture({ id: "P", courseId: "C3", notes: "READINGS\n• Property: Cases and Commentary, pp. 144–188" })] }).items[0];
+	assert.equal(item.exists, false);
+	assert.equal(item.pages, 45);
+});
+

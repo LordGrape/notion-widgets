@@ -1712,7 +1712,7 @@ function openSessionWrap({ task: t, recorded = 0, mode = "session" }) {
 				trimmed = await trimLiveBlock(t);
 				bridge.command.update(t.id, { text: plan.doneText, plannedMinutes: plan.doneMinutes, reading: null });
 				if (!t.done) bridge.command.toggle(t.id);
-				newId = bridge.command.add({ text: plan.restText, pri: t.pri || "must", plannedMinutes: plan.restMinutes, due: t.due ?? "today", dueKey: t.dueKey ?? isoDate(), notes: t.notes || "", reading: null });
+				newId = bridge.command.add({ text: plan.restText, pri: t.pri || "must", plannedMinutes: plan.restMinutes, due: t.due ?? "today", dueKey: t.dueKey ?? isoDate(), notes: t.notes || "", reading: null, lectureId: t.lectureId, lectureUrl: t.lectureUrl, lectureDate: t.lectureDate });
 				if (newId && isKind(t.kind)) bridge.command.update(newId, { kind: t.kind });
 				selectedId = newId || null;
 				saveChoice(selectedId);
@@ -2555,7 +2555,7 @@ async function openReadingsImport() {
 		const away = (key) => Math.round((localDate(key) - localDate(today)) / 864e5);
 		const awayLabel = (n) => (n === 0 ? "Today" : n === 1 ? "Tomorrow" : n === -1 ? "Yesterday" : n < 0 ? `${-n} days ago` : `In ${n} days`);
 		const rowOf = (i) => {
-			const flags = [i.exists ? "Already on your list" : "", i.moved ? `Class moved from ${day(i.moved.from)}` : "", i.classDate < today ? "Class has passed" : "", i.edition ? `${i.edition} edition` : ""].filter(Boolean);
+			const flags = [i.exists ? (i.alreadyDone ? "Already done" : "Already on your list") : "", i.alreadyRead ? `pp. ${i.alreadyRead} already covered` : "", i.moved ? `Class moved from ${day(i.moved.from)}` : "", i.classDate < today ? "Class has passed" : "", i.edition ? `${i.edition} edition` : ""].filter(Boolean);
 			const link = i.url ? `<a class="import-link" href="${esc(i.url)}" target="_blank" rel="noopener" title="Open the lecture in Notion" aria-label="Open ${esc(i.lectureTitle)} in Notion">${icon("link")}</a>` : "";
 			return `<label class="import-row ${i.exists ? "is-exists" : ""}"><input type="checkbox" name="pick" value="${esc(i.key)}" ${isOn(i) && !i.exists ? "checked" : ""} ${i.exists ? "disabled" : ""}><span class="import-main"><b>${esc(i.text)}</b><small>${esc(i.lectureTitle)}</small><small>${i.pages} pages${i.minutes ? ` \u00b7 about ${formatMinutes(i.minutes)}` : ""}</small><span class="import-flags"><i class="import-due ${i.dueKey <= today ? "is-soon" : ""}">${i.dueKey === today ? "Due today" : `Due ${day(i.dueKey)}`}</i>${flags.map((f) => `<i>${esc(f)}</i>`).join("")}</span></span>${link}</label>`;
 		};

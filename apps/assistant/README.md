@@ -183,6 +183,7 @@ Today footer "Import readings" (or right-click empty space, "Import readings fro
 - Each reading has a Notion link button. On the task list, imported readings show a small link mark; Ctrl-click (Cmd-click on Mac) opens the lecture page in Notion, and the task editor shows an Open in Notion chip.
 - Imported readings remember their class date (`lectureDate` on the task), so unscheduled readings show "Class Mon, Oct 5 · due Sun, Oct 4" in the Unscheduled tray, as a class chip on Today rows, and under the title in Focus. Readings imported earlier pick the date up the next time the import dialog reads the notes.
 - Ctrl-click (Cmd-click on Mac) opens the Notion page from a task, a calendar block or the Focus title (anything with `data-notion-url`); Focus also has a visible link button.
+- Import checks every task you have, finished or not, for the class's pages. A reading you split part-way ("pp. 144–166" done, "pp. 167–188" open) is recognised as already on your list or already done, and when only some pages are covered the import offers just the rest. Splitting a reading keeps its Notion link on both halves.
 - The edition choice appears only when a reading's notes give pages for more than one edition. The answer is remembered in `user.readingEdition`.
 
 
