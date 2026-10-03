@@ -9,6 +9,7 @@ const W = 640;
 const H = 460;
 export const MOODS = ["smug", "approve", "stern", "panic", "happy"];
 let loading = null;
+let carryLoading = null;
 
 export function canUse3D() {
 	try {
@@ -26,6 +27,15 @@ export function loadBroadcast3D(url) {
 		throw error;
 	});
 	return loading;
+}
+
+/* A separate instance shares the renderer and authored clips, never Dad's state. */
+export function loadCarry3D(url) {
+	carryLoading ||= create(url, true).catch((error) => {
+		carryLoading = null;
+		throw error;
+	});
+	return carryLoading;
 }
 
 /* ---------- face ---------- */
@@ -142,7 +152,7 @@ function drawFace(ctx, mood, now, talkOpen, glitch) {
 }
 
 /* ---------- scene ---------- */
-async function create(url) {
+async function create(url, carry = false) {
 	const THREE = await import("three");
 	const [{ GLTFLoader }, { MeshoptDecoder }, { RoomEnvironment }] = await Promise.all([
 		import("three/addons/loaders/GLTFLoader.js"),
@@ -199,8 +209,8 @@ async function create(url) {
 	const neckRest = neck ? neck.position.clone() : null;
 
 	const camera = new THREE.PerspectiveCamera(24, 1, 0.1, 100);
-	const focus = new THREE.Vector3(0, 1.72, 0);
-	const viewDir = new THREE.Vector3(-6.4, 1.15, 9.4).normalize();
+	const focus = new THREE.Vector3(0, carry ? 1.04 : 1.72, 0);
+	const viewDir = carry ? new THREE.Vector3(3, 1.86, 6.5).normalize() : new THREE.Vector3(-6.4, 1.15, 9.4).normalize();
 
 	const mixer = new THREE.AnimationMixer(model);
 	const clips = Object.fromEntries(gltf.animations.map((clip) => [clip.name, clip]));
@@ -236,8 +246,8 @@ async function create(url) {
 		renderer.setSize(w, h, false);
 		camera.aspect = w / h;
 		const halfV = THREE.MathUtils.degToRad(camera.fov / 2);
-		const needV = 3.8 / (2 * Math.tan(halfV));
-		const needH = 3.0 / (2 * Math.tan(halfV) * camera.aspect);
+		const needV = (carry ? 2.55 : 3.8) / (2 * Math.tan(halfV));
+		const needH = (carry ? 2.55 : 3.0) / (2 * Math.tan(halfV) * camera.aspect);
 		camera.position.copy(focus).addScaledVector(viewDir, Math.max(needV, needH));
 		camera.lookAt(focus);
 		camera.updateProjectionMatrix();
@@ -249,14 +259,15 @@ async function create(url) {
 		if (!host || !canvas.isConnected) return;
 		frame = requestAnimationFrame(tick);
 		if (document.hidden || !canvas.offsetParent) return;
+		if (carry && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 		const dt = Math.min(0.05, (now - last) / 1000);
 		last = now;
 		mixer.update(dt);
-		const glitching = now < glitchUntil || Math.random() < 0.0015;
+		const glitching = !carry && (now < glitchUntil || Math.random() < 0.0015);
 		if (neck && neckRest) {
 			neck.position.x = neckRest.x + (glitching ? (Math.random() - 0.5) * 0.04 : 0);
 		}
-		if (now - lastFace > 33 || glitching) {
+		if (screen && (now - lastFace > 33 || glitching)) {
 			if (now > overrideUntil) faceOverride = null;
 			const talking = now < talkUntil;
 			const open = !talking ? 0 : talkPlan ? Math.max(0.06, mouthOpen(talkPlan, (now - talkStart) / 1000)) : 0.25 + 0.75 * Math.abs(Math.sin(now / 85) * Math.sin(now / 210));
@@ -268,6 +279,13 @@ async function create(url) {
 	}
 
 	const api = {
+		detach() {
+			if (host) observer.unobserve(host);
+			host = null;
+			cancelAnimationFrame(frame);
+			frame = 0;
+			canvas.remove();
+		},
 		attach(element) {
 			if (host) observer.unobserve(host);
 			host = element;

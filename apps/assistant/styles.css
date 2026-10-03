@@ -330,6 +330,53 @@ h3 {
 .today-heading > div:first-child {
 	min-width: 135px;
 }
+.today-intro {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+.carry-companion {
+	--surface-0: var(--canvas);
+	--accent-primary: var(--accent);
+	--text-primary: var(--text);
+	position: relative;
+	flex: 0 0 88px;
+	width: 88px;
+	height: 88px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--text-primary);
+	border-radius: 20px;
+}
+.carry-companion:hover {
+	background: color-mix(in srgb, var(--accent-primary) 7%, var(--surface-0));
+}
+.carry-companion:focus-visible {
+	outline: 2px solid var(--accent-primary);
+	outline-offset: 3px;
+}
+.carry-companion img,
+.carry-3d,
+.carry-3d canvas {
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+.carry-3d {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+}
+.carry-companion.has-3d img { visibility: hidden; }
+@media (max-width: 600px) {
+	.carry-companion { flex-basis: 64px; width: 64px; height: 64px; }
+	.today-intro { gap: 6px; }
+}
+@media (prefers-reduced-motion: reduce) {
+	.carry-companion.has-3d img { visibility: visible; }
+	.carry-3d { display: none; }
+}
 .date-copy {
 	font-size: 13px;
 	color: var(--muted);
@@ -4401,4 +4448,11 @@ body.is-dragging #toast { pointer-events: none; }
 }
 .finish-context {
 	align-content: start;
+}
+
+/* Give Carry and the daily target their own rows in compact embeds. */
+@media (max-width: 600px) {
+	.today-heading { flex-wrap: wrap; gap: 12px; }
+	.today-heading .today-intro { flex: 1 1 100%; min-width: 0; }
+	.today-heading .finish-line { width: 100%; margin-top: 0; }
 }

@@ -61,7 +61,7 @@ import {
 	isLateNight,
 	lateNightHours,
 } from "./hours.mjs";
-import { canUse3D, loadBroadcast3D } from "./broadcast3d.mjs";
+import { canUse3D, loadBroadcast3D, loadCarry3D } from "./broadcast3d.mjs";
 import { momentFor, pickLine, pickEventLine, nextStep, milestoneReached, weeklyReview } from "./partner.mjs";
 import { syllablePlan, speak, stopVoice } from "./voice.mjs";
 import { planDay, isUnscheduled, PLAN_START, PLAN_END } from "./autofit.mjs";
@@ -69,7 +69,7 @@ import { suggestLastPage, planPageSplit, planTimeSplit, defaultRemaining } from 
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261004-trim";
+	REVISION = "20261004-carry";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -113,10 +113,44 @@ let broadcastAudio = null, broadcastResetTimer = 0;
 let broadcastVersion = 0;
 let broadcastLine = "My office. Let's see the numbers.", broadcastPose = "", broadcastMood = "approve";
 let broadcast3D = null, broadcast3DFailed = false, celebratedWeek = "";
+let carry3D = null, carry3DFailed = false, carryCheer = false;
 let partnerCta = null, partnerLine = { key: "", line: null, moment: "", vars: {} }, partnerCheer = false;
 const partnerUsed = new Set();
 function broadcastVisible() {
 	return engines.todo?.SyncEngine.get("user", "commandPartnerVisible") !== false;
+}
+
+function carryMarkup() {
+	if (!broadcastVisible()) return "";
+	return `<button type="button" class="carry-companion" data-action="carry-greet" aria-label="Say hello to Carry, Broadcast's son" title="Carry, Broadcast's son"><img src="./carry.webp?v=${REVISION}" width="88" height="88" alt="" draggable="false"><span class="carry-3d" aria-hidden="true"></span></button>`;
+}
+
+function mountCarry3D() {
+	carry3D?.detach();
+	if (!$(".carry-companion") || carry3DFailed || !canUse3D()) return;
+	loadCarry3D(new URL("./carry.glb?v=" + REVISION, import.meta.url).href)
+		.then((companion) => {
+			carry3D = companion;
+			const button = $(".carry-companion");
+			if (!button || !broadcastVisible() || !canUse3D()) return;
+			companion.attach(button.querySelector(".carry-3d"));
+			button.classList.add("has-3d");
+			if (carryCheer) {
+				carryCheer = false;
+				companion.react("cheer");
+			}
+		})
+		.catch((error) => {
+			carry3DFailed = true;
+			$(".carry-companion")?.classList.remove("has-3d");
+			console.warn("Carry 3D is unavailable; using his portrait.", error);
+		});
+}
+
+function celebrateWithCarry() {
+	if (!$(".carry-companion") || !canUse3D()) return;
+	if (carry3D) carry3D.react("cheer");
+	else carryCheer = true;
 }
 function broadcastSoundEnabled() {
 	return engines.todo?.SyncEngine.get("user", "commandPartnerSound") !== false;
@@ -836,7 +870,7 @@ function updateCalendarTime() {
 function renderToday() {
 	const events = dayEvents(new Date()),
 		{ start, end } = timeRange(events);
-	return `<div class="today-layout"><section class="surface tasks-surface" data-ctx="area" data-area="today"><div class="today-heading"><div><h2>Today</h2><p class="date-copy">${dateLabel(new Date())}</p></div>${finishLine()}</div><form class="composer" id="quickAdd"><input name="task" aria-label="Add a task" placeholder="Add a task… e.g. should do Read pp. 3–9 & 12 tomorrow" autocomplete="off" required><button class="primary" aria-label="Add task">${icon("plus")}</button><button type="button" data-action="add" aria-label="Add task with details">${icon("more")}</button></form><p id="capturePreview" class="capture-preview" role="status" aria-live="polite" hidden></p>${taskGroups()}<div class="tasks-footer"><button class="text-button" data-action="all-tasks">All tasks · ${focusTasks(tasks, courses).filter((t) => !t.done).length} open</button><span class="footer-actions"><button class="text-button" data-action="import-readings">Import readings</button><button class="text-button" data-action="wrap-up">Wrap up day</button><button class="text-button" data-action="standalone" data-type="todo">Open To-Do separately ↗</button></span></div></section><section class="surface agenda-surface"><div class="section-heading"><h2>Your day</h2><div class="heading-actions"><button class="plan-day" data-action="plan-day">${icon("calendar")}Plan my day</button><span>${new Date().toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" })}</span></div></div><div class="agenda-scroll"><div class="timeline" data-drop-calendar data-date="${isoDate()}" data-start="${start}" data-end="${end}" style="--timeline-height:${((end - start) * 76) / 60}px">${hourLines(start, end)}${gapHints(events, start, end)}${events.map((e) => eventMarkup(e, start)).join("")}${nowLine(start, end)}</div></div><div class="tasks-footer"><button class="text-button" data-action="view" data-view="plan">Open planner ${icon("right")}</button><button class="text-button" data-action="standalone" data-type="timetable">Timetable ↗</button></div></section></div>`;
+	return `<div class="today-layout"><section class="surface tasks-surface" data-ctx="area" data-area="today"><div class="today-heading"><div class="today-intro">${carryMarkup()}<div><h2>Today</h2><p class="date-copy">${dateLabel(new Date())}</p></div></div>${finishLine()}</div><form class="composer" id="quickAdd"><input name="task" aria-label="Add a task" placeholder="Add a task… e.g. should do Read pp. 3–9 & 12 tomorrow" autocomplete="off" required><button class="primary" aria-label="Add task">${icon("plus")}</button><button type="button" data-action="add" aria-label="Add task with details">${icon("more")}</button></form><p id="capturePreview" class="capture-preview" role="status" aria-live="polite" hidden></p>${taskGroups()}<div class="tasks-footer"><button class="text-button" data-action="all-tasks">All tasks · ${focusTasks(tasks, courses).filter((t) => !t.done).length} open</button><span class="footer-actions"><button class="text-button" data-action="import-readings">Import readings</button><button class="text-button" data-action="wrap-up">Wrap up day</button><button class="text-button" data-action="standalone" data-type="todo">Open To-Do separately ↗</button></span></div></section><section class="surface agenda-surface"><div class="section-heading"><h2>Your day</h2><div class="heading-actions"><button class="plan-day" data-action="plan-day">${icon("calendar")}Plan my day</button><span>${new Date().toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" })}</span></div></div><div class="agenda-scroll"><div class="timeline" data-drop-calendar data-date="${isoDate()}" data-start="${start}" data-end="${end}" style="--timeline-height:${((end - start) * 76) / 60}px">${hourLines(start, end)}${gapHints(events, start, end)}${events.map((e) => eventMarkup(e, start)).join("")}${nowLine(start, end)}</div></div><div class="tasks-footer"><button class="text-button" data-action="view" data-view="plan">Open planner ${icon("right")}</button><button class="text-button" data-action="standalone" data-type="timetable">Timetable ↗</button></div></section></div>`;
 }
 function render() {
 	if (!engines.todo) return;
@@ -860,6 +894,7 @@ function render() {
 	updateTimer();
 	updateCalendarTime();
 	mountBroadcast3D();
+	mountCarry3D();
 	const bubble = $("#broadcastCompanion .broadcast-dialogue");
 	if (bubble) setTimeout(() => (bubble.dataset.state = "live"), 420);
 	const agenda = $(".agenda-scroll");
@@ -1793,7 +1828,7 @@ function openSettings() {
 			)
 			.join(
 				"",
-			)}</div><fieldset class="partner-settings"><legend>Broadcast</legend><label><input id="partnerVisibleToggle" type="checkbox" ${partnerVisible ? "checked" : ""}> Show partner</label><label><input id="partnerSoundToggle" type="checkbox" ${partnerSound ? "checked" : ""}> Voice</label><label>Intensity <select id="partnerIntensity"><option value="intense" ${partnerIntensity() === "intense" ? "selected" : ""}>Intense</option><option value="steady" ${partnerIntensity() === "steady" ? "selected" : ""}>Steady</option></select></label></fieldset><fieldset class="partner-settings notify-settings"><legend>Notifications</legend><label><input id="notifyToggle" type="checkbox"> Tell me when a focus block ends or a break is due</label><label><input id="keepAwakeToggle" type="checkbox"> Keep timers accurate while this window is in the background</label><p class="notify-status" id="notifyStatus" role="status" aria-live="polite"></p><div class="notify-actions"><button type="button" id="notifyTest">Send a test notification</button></div></fieldset><button id="soundToggle" aria-pressed="${engines.todo.SyncEngine.get("user", "commandCentreSounds") !== false}">Interface sounds: ${engines.todo.SyncEngine.get("user", "commandCentreSounds") === false ? "Off" : "On"}</button> <button data-action="goal">Adjust daily finish line</button> <button id="lockButton">Lock Command Centre</button>`,
+			)}</div><fieldset class="partner-settings"><legend>Broadcast</legend><label><input id="partnerVisibleToggle" type="checkbox" ${partnerVisible ? "checked" : ""}> Show Broadcast and Carry</label><label><input id="partnerSoundToggle" type="checkbox" ${partnerSound ? "checked" : ""}> Voice</label><label>Intensity <select id="partnerIntensity"><option value="intense" ${partnerIntensity() === "intense" ? "selected" : ""}>Intense</option><option value="steady" ${partnerIntensity() === "steady" ? "selected" : ""}>Steady</option></select></label></fieldset><fieldset class="partner-settings notify-settings"><legend>Notifications</legend><label><input id="notifyToggle" type="checkbox"> Tell me when a focus block ends or a break is due</label><label><input id="keepAwakeToggle" type="checkbox"> Keep timers accurate while this window is in the background</label><p class="notify-status" id="notifyStatus" role="status" aria-live="polite"></p><div class="notify-actions"><button type="button" id="notifyTest">Send a test notification</button></div></fieldset><button id="soundToggle" aria-pressed="${engines.todo.SyncEngine.get("user", "commandCentreSounds") !== false}">Interface sounds: ${engines.todo.SyncEngine.get("user", "commandCentreSounds") === false ? "Off" : "On"}</button> <button data-action="goal">Adjust daily finish line</button> <button id="lockButton">Lock Command Centre</button>`,
 	);
 	$("#lockButton").onclick = lock;
 	paintNotify();
@@ -1846,7 +1881,7 @@ function openSettings() {
 		if (!e.currentTarget.checked) stopBroadcastAudio();
 		const card = $("#broadcastCompanion");
 		if (card) card.hidden = !e.currentTarget.checked;
-		else if (e.currentTarget.checked && view === "docket") render();
+		render();
 	};
 	$("#partnerIntensity").onchange = (e) => {
 		engines.todo.SyncEngine.set("user", "partnerIntensity", e.currentTarget.value);
@@ -2961,12 +2996,17 @@ document.addEventListener("click", (e) => {
 	} else if (b.dataset.action === "finish") broadcastReact("finish");
 	else if (b.dataset.action === "flow") broadcastReact("flow");
 	switch (b.dataset.action) {
+		case "carry-greet":
+			if (canUse3D()) carry3D?.react("talk");
+			notify("Meet Carry, Broadcast's son. He's here to keep you company.");
+			break;
 		case "toggle":
 			engines.todo.TodoUIBridge.command.toggle(id);
 			signature = "";
 			refresh();
 			{
 				const done = task(id);
+				if (done?.done) celebrateWithCarry();
 				const untimed = done?.done && !isCalendarReminder(done, courses) && taskKind(done) !== "admin" && !focusMinutes(id);
 				notify(done?.done ? "Task completed." : "Task reopened.", true, untimed ? { label: "Log time", run: () => openLogTime(id) } : null);
 			}

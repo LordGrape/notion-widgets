@@ -1,4 +1,4 @@
-const CACHE = "command-centre-20261004-trim";
+const CACHE = "command-centre-20261004-carry";
 const SHELL = [
 	"../../widget-platform.js",
 	"../../reading-estimates.js",
@@ -22,6 +22,8 @@ const SHELL = [
 	"./partner.mjs",
 	"./voice.mjs",
 	"./broadcast.glb",
+	"./carry.glb",
+	"./carry.webp",
 	"./broadcast-run.webp",
 	"./calendar-actions.mjs",
 	"../todo/src/daily-goal.mjs",
