@@ -3363,3 +3363,34 @@ dialog h3 {
 }
 .plan-sentence b { color: var(--accent); }
 .partner-settings select { margin-left: 8px; }
+
+.event.task-ghost {
+	border-style: dashed;
+	background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+}
+.event.task-ghost span {
+	color: var(--accent);
+}
+.plan-nudge {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin: 0 0 12px;
+	padding: 10px 12px 10px 16px;
+	border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
+	border-radius: 10px;
+	background: var(--accent-soft);
+	color: var(--text);
+	font-size: 13px;
+}
+.plan-nudge span {
+	flex: 1;
+}
+.plan-nudge .primary {
+	min-height: 32px;
+	padding: 0 14px;
+}
+.calendar-column,
+.timeline {
+	cursor: cell;
+}

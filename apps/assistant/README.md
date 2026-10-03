@@ -143,3 +143,11 @@ His line sits in a dark speech bubble that behaves like a TV signal: it tunes in
 - Rewarding a return after a miss was the strongest intervention in the 2021 exercise megastudy (Milkman et al.): the first active day after a gap triggers a comeback line and a cheer once (`user/partnerComeback`).
 - If-then plans with rehearsal work best (Sheeran et al., 2024): tomorrow's first block can be anchored to the end of a scheduled event, the plan sentence is saved (`user/partnerPlan`), and Broadcast repeats it the next morning until the task is done.
 - Wellbeing guardrails: an intensity setting (Intense or Steady, `user/partnerIntensity`) softens the high-pressure moments; a weekly ceiling (default 55 h, `todo/weeklyCeiling`) switches him to recovery lines; entries ending after midnight are flagged and called out, because sleep under six hours predicts lower grades (Creswell et al., 2023).
+
+## Plan calendar: timed tasks, nudge and quick create
+
+`calendar-extras.mjs` (pure, tested) backs three Plan and Today calendar behaviours.
+
+- Timed tasks without a block: a task with a `scheduledStart` but no timetable block (for example one timed in the To-Do widget) is drawn as a dashed ghost at that time. Clicking it opens Schedule, and saving turns it into a real one-off block. Ghosts are display-only and never written to the timetable.
+- Planning nudge: from 16:00, if the next day (Monday from Friday or Saturday) has nothing on the calendar, Plan shows a banner with a Plan button (opens Plan my day for that day) and a dismiss control. The dismissal is stored per day in `user/planNudge`.
+- Create on the calendar: double-click or right-click an empty spot in Plan or Today to add a task at that time (snapped to 15 minutes). It creates the task and a one-off timetable block together and rejects overlaps.

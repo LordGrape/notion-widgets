@@ -11,6 +11,7 @@ const SHELL = [
 	"./domain.mjs",
 	"./hours.mjs",
 	"./autofit.mjs",
+	"./calendar-extras.mjs",
 	"./split.mjs",
 	"./broadcast3d.mjs",
 	"./partner.mjs",

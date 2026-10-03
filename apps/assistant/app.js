@@ -1,6 +1,7 @@
 import "../../reading-estimates.js?v=20261002-smart-schedule";
 const Reading = globalThis.ReadingEstimates;
 import { changeCalendar, undoCalendar } from "./calendar-actions.mjs";
+import { ghostEvents, planNudge, timeAtOffset } from "./calendar-extras.mjs";
 import {
 	dailyGoal,
 	dateKey,
@@ -58,7 +59,7 @@ import { suggestLastPage, planPageSplit, planTimeSplit, defaultRemaining } from 
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261002-evidence";
+	REVISION = "20261002-calendar-create";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -496,6 +497,11 @@ function refresh() {
 function occurrences(date) {
 	return engines.timetable?.occurrencesForDate(localDate(isoDate(date))) || [];
 }
+/* Timetable blocks plus tasks that have a time but no block yet. */
+function dayEvents(date) {
+	const real = occurrences(date);
+	return [...real, ...ghostEvents(tasks, isoDate(date), real)];
+}
 function setView(next) {
 	closeCalendarMenu();
 	view = next;
@@ -586,6 +592,8 @@ function eventMarkup(e, start, hour = 76) {
 			((minutes(e.end) - minutes(e.start)) * hour) / 60 - 4,
 		),
 		top = ((minutes(e.start) - start) * hour) / 60;
+	if (e.ghost)
+		return `<button data-end="${minutes(e.end)}" class="event is-task task-ghost" style="top:${top}px;height:${height}px;--event-color:${e.color}" title="This task has a time but is not on the calendar yet. Click to put it there." data-action="ghost" data-id="${esc(e.taskId)}" data-date="${esc(e.dateKey)}" data-start="${esc(e.start)}" aria-label="${esc(e.name)} ${esc(e.start)} to ${esc(e.end)}, not yet on the calendar"><b>${esc(e.name)}</b><span>${esc(e.start)} – ${esc(e.end)} · Click to add to calendar</span></button>`;
 	const done = tasks.some(
 		(t) =>
 			t.done &&
@@ -644,7 +652,7 @@ function updateCalendarTime() {
 	}
 }
 function renderToday() {
-	const events = occurrences(new Date()),
+	const events = dayEvents(new Date()),
 		{ start, end } = timeRange(events);
 	return `<div class="today-layout"><section class="surface tasks-surface"><div class="today-heading"><div><h2>Today</h2><p class="date-copy">${dateLabel(new Date())}</p></div>${finishLine()}</div><form class="composer" id="quickAdd"><input name="task" aria-label="Add a task" placeholder="Add a task… e.g. should do Read pp. 3–9 & 12 tomorrow" autocomplete="off" required><button class="primary" aria-label="Add task">${icon("plus")}</button><button type="button" data-action="add" aria-label="Add task with details">${icon("more")}</button></form><p id="capturePreview" class="capture-preview" role="status" aria-live="polite" hidden></p>${taskGroups()}<div class="tasks-footer"><button class="text-button" data-action="all-tasks">All tasks · ${focusTasks(tasks, courses).filter((t) => !t.done).length} open</button><span class="footer-actions"><button class="text-button" data-action="wrap-up">Wrap up day</button><button class="text-button" data-action="standalone" data-type="todo">Open To-Do separately ↗</button></span></div></section><section class="surface agenda-surface"><div class="section-heading"><h2>Your day</h2><div class="heading-actions"><button class="plan-day" data-action="plan-day">${icon("calendar")}Plan my day</button><span>${new Date().toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" })}</span></div></div><div class="agenda-scroll"><div class="timeline" data-drop-calendar data-date="${isoDate()}" data-start="${start}" data-end="${end}" style="--timeline-height:${((end - start) * 76) / 60}px">${hourLines(start, end)}${gapHints(events, start, end)}${events.map((e) => eventMarkup(e, start)).join("")}${nowLine(start, end)}</div></div><div class="tasks-footer"><button class="text-button" data-action="view" data-view="plan">Open planner ${icon("right")}</button><button class="text-button" data-action="standalone" data-type="timetable">Timetable ↗</button></div></section></div>`;
 }
@@ -1711,12 +1719,91 @@ function showCalendarMenu(element, x, y) {
 	menu.querySelector("button").focus({ preventScroll: true });
 }
 document.addEventListener("contextmenu", (e) => {
+	const hit = calendarGrid(e);
+	if (hit) {
+		e.preventDefault();
+		openCalendarCreate(hit.column, hit.y);
+		return;
+	}
 	const element = e.target.closest(".event[data-event-id]");
 	if (!element) return;
 	e.preventDefault();
 	clearTimeout(holdTimer);
 	const bounds = element.getBoundingClientRect();
 	showCalendarMenu(element, e.clientX || bounds.left, e.clientY || bounds.top);
+});
+function openCalendarCreate(column, y) {
+	const date = column.dataset.date,
+		start = timeAtOffset(y, Number(column.dataset.start), Number(column.dataset.end));
+	$("#editorDialog").open && $("#editorDialog").close();
+	const d = openDialog(
+		"#editorDialog",
+		`${dialogHead("New task on calendar", "editorTitle")}<p class="muted">${esc(dateLabel(localDate(date)))}</p><form id="calendarCreateForm"><div class="form-grid" style="margin-top:20px"><label class="field wide task-name">Task<input name="text" required maxlength="500" placeholder="What are you doing?" autocomplete="off"></label><label class="field">Start<input type="time" name="start" value="${start}" required></label><label class="field">Minutes<input type="number" min="5" max="720" name="duration" value="60" required></label><label class="field wide">Priority<select name="pri"><option value="must">Must Do</option><option value="should">Should Do</option><option value="could">Could Do</option></select></label></div><p class="form-error" role="alert" id="calendarCreateError"></p><div class="dialog-actions"><button type="button" data-action="close-dialog">Cancel</button><button class="primary">Add to calendar</button></div></form>`,
+	);
+	d.querySelector("[name=text]").focus();
+	$("#calendarCreateForm").onsubmit = async (e) => {
+		e.preventDefault();
+		const f = new FormData(e.target),
+			text = String(f.get("text")).trim(),
+			m = Number(f.get("duration")),
+			at = f.get("start");
+		const button = e.target.querySelector(".primary");
+		button.disabled = true;
+		try {
+			if (!text) throw Error("Add a task name.");
+			const end = minutes(at) + m;
+			await engines.timetable.SyncEngine.pull("timetable");
+			await engines.todo.SyncEngine.pull("todo");
+			engines.todo.TodoUIBridge.refresh();
+			let blocks = engines.timetable.SyncEngine.get("timetable", "courses") || [];
+			if (typeof blocks === "string") blocks = JSON.parse(blocks);
+			engines.timetable.schedule = blocks;
+			validateSlot(occurrences(localDate(date)), minutes(at), end);
+			const id = engines.todo.TodoUIBridge.command.add({ text, pri: f.get("pri"), plannedMinutes: m, due: date === isoDate() ? "today" : null, dueKey: date });
+			if (!id) throw Error("Task could not be added.");
+			const block = {
+				id: crypto.randomUUID(),
+				name: text,
+				description: "One-off timebox",
+				location: "",
+				color: "#9461e9",
+				category: "personal",
+				trackCompletion: false,
+				startDate: date,
+				endDate: date,
+				days: [{ day: localDate(date).getDay(), start: at, end: timeString(end), location: "" }],
+				overrides: [],
+			};
+			blocks.push(block);
+			engines.timetable.saveBlocks(blocks);
+			engines.todo.TodoUIBridge.command.update(id, {
+				scheduledStart: new Date(`${date}T${at}`).toISOString(),
+				scheduledEnd: new Date(`${date}T${timeString(end)}`).toISOString(),
+				scheduleId: block.id,
+				timeboxed: true,
+			});
+			d.close();
+			recentScheduleId = block.id;
+			signature = "";
+			refresh();
+			notify("Task added to the calendar.");
+			playCue("saved");
+		} catch (err) {
+			$("#calendarCreateError").textContent = err.message;
+		} finally {
+			button.disabled = false;
+		}
+	};
+}
+const calendarGrid = (e) => {
+	if (e.target.closest(".event, .gap-hint, button, a")) return null;
+	const column = e.target.closest("[data-drop-calendar]");
+	if (!column || !column.dataset.date) return null;
+	return { column, y: e.clientY - column.getBoundingClientRect().top };
+};
+document.addEventListener("dblclick", (e) => {
+	const hit = calendarGrid(e);
+	if (hit) openCalendarCreate(hit.column, hit.y);
 });
 document.addEventListener("keydown", (e) => {
 	if (e.key !== "ContextMenu" && !(e.shiftKey && e.key === "F10")) return;
@@ -2069,6 +2156,17 @@ document.addEventListener("click", (e) => {
 		case "schedule":
 			openSchedule(id);
 			break;
+		case "ghost":
+			openSchedule(id, b.dataset.date, b.dataset.start, "This task has a time but is not on the calendar yet. Saving makes it a real block.");
+			break;
+		case "nudge-plan":
+			openPlanDay(b.dataset.date === tomorrowKey() ? "tomorrow" : "today");
+			break;
+		case "nudge-dismiss":
+			engines.todo.SyncEngine.set("user", "planNudge", b.dataset.date);
+			signature = "";
+			refresh();
+			break;
 		case "event-edit":
 			openCalendarEditor(selectedEvent(b)); break;
 		case "event-range":
@@ -2233,7 +2331,7 @@ function renderPlan() {
 		d.setDate(d.getDate() + i);
 		return d;
 	});
-	const events = dates.map(occurrences),
+	const events = dates.map(dayEvents),
 		all = events.flat(),
 		{ start, end } = timeRange(all);
 	const open = focusTasks(tasks, courses)
@@ -2247,7 +2345,8 @@ function renderPlan() {
 		planned = intervals(day, start, end).reduce((n, [s, e]) => n + e - s, 0),
 		available = end - start - planned;
 	const today = isoDate();
-	return `<div class="planner-layout"><aside class="surface planner-tray"><div class="section-heading"><h2>Unscheduled</h2><span>${open.length} tasks</span></div><p class="muted" style="font-size:11px;margin:0 5px 17px">Drag a task into a day, or choose its calendar button.</p>${open.length ? open.map((t) => taskRow(t, true)).join("") : '<p class="group-empty">Your tasks have a time. Add another when you need it.</p>'}<button class="text-button" data-action="add" style="align-self:flex-start;margin:4px 5px 24px">+ Add a task</button><div class="tray-timer"><div><small>Focus</small><b data-timer>45:00</b></div><button data-action="timer" aria-label="Start or pause focus">${icon("play")}</button></div></aside><section class="surface planner-calendar" style="--plan-days:${planDays}"><div class="calendar-head">${icon("calendar")}<div class="calendar-dates">${dates.map((d) => `<div class="calendar-date ${isoDate(d) === today ? "today" : ""}">${d.toLocaleDateString("en-CA", { weekday: "short", day: "numeric" })}<small>${d.toLocaleDateString("en-CA", { month: "long", year: "numeric" })}</small></div>`).join("")}</div></div><div class="calendar-toolbar"><div class="plan-range" role="group" aria-label="Calendar view">${[1,3,7].map(n => `<button data-action="plan-range" data-days="${n}" aria-pressed="${planDays===n}">${n===7?"1 week":n===1?"1 day":"3 days"}</button>`).join("")}</div><button data-action="week-prev" aria-label="Previous ${planDays} days">←</button><button data-action="week-today">Today</button><button data-action="week-next" aria-label="Next ${planDays} days">→</button><button data-action="standalone" data-type="timetable">Edit timetable ↗</button></div><div class="calendar-scroll"><div class="calendar-body" style="--calendar-height:${((end - start) * 76) / 60}px"><div class="calendar-hours">${Array.from({ length: (end - start) / 60 + 1 }, (_, i) => `<span style="top:${i * 76}px">${timeString(start + i * 60)}</span>`).join("")}</div><div class="calendar-columns">${dates
+	const nudge = planNudge({ now: new Date(), eventsFor: (key) => dayEvents(localDate(key)), tasks, dismissed: engines.todo.SyncEngine.get("user", "planNudge") || "" });
+	return `<div class="planner-layout"><aside class="surface planner-tray"><div class="section-heading"><h2>Unscheduled</h2><span>${open.length} tasks</span></div><p class="muted" style="font-size:11px;margin:0 5px 17px">Drag a task into a day, or choose its calendar button.</p>${open.length ? open.map((t) => taskRow(t, true)).join("") : '<p class="group-empty">Your tasks have a time. Add another when you need it.</p>'}<button class="text-button" data-action="add" style="align-self:flex-start;margin:4px 5px 24px">+ Add a task</button><div class="tray-timer"><div><small>Focus</small><b data-timer>45:00</b></div><button data-action="timer" aria-label="Start or pause focus">${icon("play")}</button></div></aside><section class="surface planner-calendar" style="--plan-days:${planDays}"><div class="calendar-head">${icon("calendar")}<div class="calendar-dates">${dates.map((d) => `<div class="calendar-date ${isoDate(d) === today ? "today" : ""}">${d.toLocaleDateString("en-CA", { weekday: "short", day: "numeric" })}<small>${d.toLocaleDateString("en-CA", { month: "long", year: "numeric" })}</small></div>`).join("")}</div></div><div class="calendar-toolbar"><div class="plan-range" role="group" aria-label="Calendar view">${[1,3,7].map(n => `<button data-action="plan-range" data-days="${n}" aria-pressed="${planDays===n}">${n===7?"1 week":n===1?"1 day":"3 days"}</button>`).join("")}</div><button data-action="week-prev" aria-label="Previous ${planDays} days">←</button><button data-action="week-today">Today</button><button data-action="week-next" aria-label="Next ${planDays} days">→</button><button data-action="standalone" data-type="timetable">Edit timetable ↗</button></div>${nudge ? `<div class="plan-nudge" role="status"><span>${esc(nudge.text)}</span><button class="primary" data-action="nudge-plan" data-date="${nudge.date}">Plan ${esc(localDate(nudge.date).toLocaleDateString("en-CA", { weekday: "long" }))}</button><button class="icon-button" data-action="nudge-dismiss" data-date="${nudge.date}" aria-label="Dismiss">\u00d7</button></div>` : ""}<div class="calendar-scroll"><div class="calendar-body" style="--calendar-height:${((end - start) * 76) / 60}px"><div class="calendar-hours">${Array.from({ length: (end - start) / 60 + 1 }, (_, i) => `<span style="top:${i * 76}px">${timeString(start + i * 60)}</span>`).join("")}</div><div class="calendar-columns">${dates
 		.map((date, i) => {
 			const gap = gaps(events[i], start, end).find(
 				([s, e]) => e - s >= 45 && s >= minutes("12:00"),
