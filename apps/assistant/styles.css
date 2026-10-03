@@ -4094,48 +4094,179 @@ body.is-dragging #toast { pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { .checkin-card { animation: none; } }
 @media (max-width: 640px) { .checkin-card { right: 16px; bottom: 16px; } }
 /* Focus sprints */
-.steps-tip {
-	margin: 2px 0 10px;
-	color: var(--muted);
+.timer-sprint {
+	margin: 6px 0 0;
+	color: var(--accent);
 	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+.plan-card {
+	display: grid;
+	gap: 12px;
+	padding: 18px 18px 16px;
+	border: 1px solid var(--line);
+	border-radius: 22px;
+	background: var(--surface);
+	box-shadow: 0 1px 2px rgba(60, 40, 120, 0.04), 0 12px 32px -18px rgba(60, 40, 120, 0.25);
+}
+.plan-head {
+	display: flex;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: 16px;
+}
+.plan-head > div:first-child {
+	display: grid;
+	gap: 2px;
+}
+.plan-eyebrow {
+	color: var(--muted);
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+.plan-head b {
+	font-size: 20px;
+	font-weight: 700;
+	letter-spacing: -0.02em;
+}
+.plan-meter {
+	display: flex;
+	gap: 4px;
+	flex: 0 1 160px;
+	min-width: 80px;
+}
+.plan-meter i {
+	flex: 1;
+	height: 5px;
+	border-radius: 999px;
+	background: var(--accent-soft);
+}
+.plan-meter i.on {
+	background: var(--accent);
+}
+.plan-tip {
+	margin: 0;
+	color: var(--muted);
+	font-size: 13px;
 	line-height: 1.5;
 }
-.step-row.plan {
+.plan-list {
+	display: grid;
+	gap: 2px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.plan-row {
 	display: flex;
 	align-items: center;
-	gap: 12px;
+	gap: 14px;
+	padding: 11px 12px;
+	border-radius: 16px;
+	transition: background 0.18s ease, opacity 0.18s ease;
 }
-.step-dot {
+.plan-row.is-current {
+	background: var(--accent-soft);
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.plan-row.is-done {
+	opacity: 0.5;
+}
+.plan-badge,
+.plan-check {
 	display: grid;
 	place-items: center;
 	flex: none;
-	width: 24px;
-	height: 24px;
+	width: 30px;
+	height: 30px;
+	padding: 0;
+	border: 0;
 	border-radius: 50%;
 	background: var(--accent-soft);
 	color: var(--accent);
-	font-size: 11px;
+	font-size: 13px;
 	font-weight: 700;
 }
-.step-dot svg {
-	width: 13px;
-	height: 13px;
+.plan-row.is-current .plan-badge {
+	background: var(--accent);
+	color: #fff;
 }
-.step-break {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	margin: 2px 0 2px 36px;
-	padding: 5px 10px;
-	border-left: 2px solid var(--line);
+.plan-check {
+	border: 1.5px solid color-mix(in srgb, var(--accent) 45%, transparent);
+	background: transparent;
+	cursor: pointer;
+}
+.plan-check.checked {
+	border-color: var(--accent);
+	background: var(--accent);
+	color: #fff;
+}
+.plan-check svg,
+.plan-badge svg {
+	width: 14px;
+	height: 14px;
+}
+.plan-text {
+	display: grid;
+	gap: 1px;
+	min-width: 0;
+	flex: 1;
+}
+.plan-text b {
+	font-size: 15px;
+	font-weight: 650;
+}
+.plan-text small {
+	color: var(--muted);
+	font-size: 12.5px;
+}
+.plan-row.is-done .plan-text b {
+	text-decoration: line-through;
+	text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
+}
+.plan-min {
+	flex: none;
+	padding: 3px 10px;
+	border-radius: 999px;
+	background: var(--surface-2);
 	color: var(--muted);
 	font-size: 12px;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
 }
-.step-break svg {
-	width: 13px;
-	height: 13px;
+.plan-break {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	padding: 0 12px 0 27px;
+	min-height: 34px;
+}
+.plan-break i {
 	flex: none;
+	align-self: stretch;
+	width: 2px;
+	border-radius: 2px;
+	background: var(--line);
 }
-.step-actions {
-	margin-top: 12px;
+.plan-break span {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+	color: var(--muted);
+	font-size: 12.5px;
+}
+.plan-break b {
+	font-weight: 650;
+}
+.plan-break small {
+	font-size: 12px;
+	opacity: 0.85;
+}
+.plan-actions {
+	display: flex;
+	justify-content: flex-end;
 }
