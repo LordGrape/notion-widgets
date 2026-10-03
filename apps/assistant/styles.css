@@ -4270,3 +4270,135 @@ body.is-dragging #toast { pointer-events: none; }
 	display: flex;
 	justify-content: flex-end;
 }
+/* Schedule note and finish line */
+.focus-note {
+	margin: 2px auto 0;
+	max-width: 480px;
+	color: var(--accent);
+	font-size: 12.5px;
+	font-weight: 600;
+	text-align: center;
+}
+.plan-pace {
+	margin: 0;
+	color: var(--accent);
+	font-size: 12.5px;
+	font-weight: 600;
+}
+.fl-group {
+	display: grid;
+	gap: 6px;
+	padding: 12px 0;
+	border-top: 1px solid var(--line);
+}
+.fl-head {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	font-size: 13px;
+}
+.fl-head i {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	background: #ac78f3;
+}
+.fl-group.should .fl-head i {
+	background: #d7bdea;
+}
+.fl-group.could .fl-head i {
+	background: var(--faint);
+}
+.fl-head b {
+	font-weight: 700;
+	letter-spacing: -0.01em;
+}
+.fl-head span {
+	margin-left: auto;
+	padding: 2px 9px;
+	border-radius: 999px;
+	background: var(--accent-soft);
+	color: var(--accent);
+	font-size: 11px;
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+}
+.fl-list {
+	display: grid;
+	gap: 1px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.fl-item {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-height: 32px;
+	padding: 3px 4px;
+	border-radius: 10px;
+}
+.fl-item:hover {
+	background: var(--surface-2);
+}
+.fl-check {
+	display: grid;
+	place-items: center;
+	flex: none;
+	width: 18px;
+	height: 18px;
+	padding: 0;
+	border: 1.5px solid color-mix(in srgb, var(--accent) 45%, transparent);
+	border-radius: 50%;
+	background: transparent;
+	color: #fff;
+	cursor: pointer;
+}
+.fl-check.checked {
+	border-color: var(--accent);
+	background: var(--accent);
+}
+.fl-check svg {
+	width: 11px;
+	height: 11px;
+}
+.fl-text {
+	flex: 1;
+	min-width: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--text);
+	font: inherit;
+	font-size: 13px;
+	text-align: left;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	cursor: pointer;
+}
+.fl-item small {
+	flex: none;
+	color: var(--muted);
+	font-size: 11px;
+	font-variant-numeric: tabular-nums;
+}
+.fl-item.is-done .fl-text {
+	color: var(--muted);
+	text-decoration: line-through;
+	text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
+}
+.fl-more,
+.fl-empty {
+	margin: 0;
+	padding: 2px 4px 2px 28px;
+	color: var(--muted);
+	font-size: 12px;
+	list-style: none;
+}
+.fl-empty {
+	padding-left: 0;
+}
+.finish-context {
+	align-content: start;
+}

@@ -181,3 +181,9 @@ Today footer "Import readings" (or right-click empty space, "Import readings fro
 
 ## Focus sprints
 Focus runs one sprint at a time. A task over 55 minutes is cut into sprints of at most 50 minutes with a 10-minute break between them and a 25-minute break after every third, because attention fades over a long unbroken block and reading is the work that needs a run-up. The timer, the subtitle and the Reading plan all come from `sprints.mjs`. A reading task with a page range gets a plan with its own pages per sprint and a closing recall step (write the rule and holding from memory), with "Use this plan" saving it as checkable session steps; old steps longer than 55 minutes are replaced by the plan. Short tasks stay one block.
+
+## Smarter Focus: schedule, pace and memory
+- **Schedule-aware sprints.** How long a sprint can be depends on the day. With nothing booked for a long stretch it stretches to 75 minutes; with a class or booked block coming up it is trimmed to finish before it (with a five-minute buffer); otherwise it stays at 50. Focus says why under the title. Logic in `pace.mjs` (`sprintCap`, `nextCommitment`).
+- **Pace that follows you.** Sprints are time-boxed and the pages flex. Tick a sprint and the remaining ones are re-planned from how fast you actually read (`replanRemaining`), so a faster read means more pages per sprint and fewer sprints. The last page is always still covered.
+- **Reading memory.** Finished readings with logged focus time teach a minutes-per-page pace per class (recent readings count most, a class with little data leans on your overall pace, then on the 6-minute default). It sets estimates in Focus and in the Notion import preview; "Update estimate" saves it on a task. Only your own task text and focus sessions are used, nothing leaves the app.
+- **Today's finish line** lists the tasks under Must, Should and Could, each tickable.

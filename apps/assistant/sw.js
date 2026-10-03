@@ -1,4 +1,4 @@
-const CACHE = "command-centre-20261004-sprints2";
+const CACHE = "command-centre-20261004-pace";
 const SHELL = [
 	"../../widget-platform.js",
 	"../../reading-estimates.js",
@@ -16,6 +16,7 @@ const SHELL = [
 	"./interactions.mjs",
 	"./readings-import.mjs",
 	"./sprints.mjs",
+	"./pace.mjs",
 	"./split.mjs",
 	"./broadcast3d.mjs",
 	"./partner.mjs",
