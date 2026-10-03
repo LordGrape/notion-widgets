@@ -611,7 +611,7 @@ for name, (length, spec) in ANIMS.items():
     stash(name, length)
 
 # Loading-screen scenes (sprite frames), rendered in Cycles with props, then removed.
-if os.environ.get("SCENES", "run,laptop,meditate,soccer,basketball"):
+if os.environ.get("SCENES", "run,laptop,meditate,soccer,basketball,coffee"):
     exec(compile(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "scenes.py"), encoding="utf-8").read(), "scenes.py", "exec"))
 
 # ---------- export ----------

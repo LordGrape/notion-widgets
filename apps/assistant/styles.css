@@ -3226,15 +3226,16 @@ dialog h3 {
 	width: min(1000px, 90vw, calc((100vh - 260px) * 100 / 110));
 	aspect-ratio: 100 / 110;
 	margin: 0 auto 8px;
-	background: url("./broadcast-run.webp?v=scenes2") 0 0 / calc(var(--cols) * 100%) calc(var(--rows) * 100%) no-repeat;
+	background: url("./broadcast-run.webp?v=scenes3") 0 0 / calc(var(--cols) * 100%) calc(var(--rows) * 100%) no-repeat;
 	animation:
 		broadcast-frame-x calc(var(--loop) / var(--rows)) steps(var(--cols), jump-none) infinite,
 		broadcast-frame-y var(--loop) steps(var(--rows), jump-none) infinite;
 }
-[data-loader="laptop"] .broadcast-run { background-image: url("./broadcast-laptop.webp?v=scenes2"); --rows: 6; --loop: 2s; }
-[data-loader="meditate"] .broadcast-run { background-image: url("./broadcast-meditate.webp?v=scenes2"); --rows: 5; --loop: 2s; }
-[data-loader="soccer"] .broadcast-run { background-image: url("./broadcast-soccer.webp?v=scenes2"); --rows: 3; --loop: 1s; }
-[data-loader="basketball"] .broadcast-run { background-image: url("./broadcast-basketball.webp?v=scenes2"); --rows: 3; --loop: 1s; }
+[data-loader="laptop"] .broadcast-run { background-image: url("./broadcast-laptop.webp?v=scenes3"); --rows: 6; --loop: 2s; }
+[data-loader="meditate"] .broadcast-run { background-image: url("./broadcast-meditate.webp?v=scenes3"); --rows: 5; --loop: 2s; }
+[data-loader="soccer"] .broadcast-run { background-image: url("./broadcast-soccer.webp?v=scenes3"); --rows: 3; --loop: 1s; }
+[data-loader="basketball"] .broadcast-run { background-image: url("./broadcast-basketball.webp?v=scenes3"); --rows: 3; --loop: 1s; }
+[data-loader="coffee"] .broadcast-run { background-image: url("./broadcast-coffee.webp?v=scenes3"); --rows: 6; --loop: 2.4s; }
 @keyframes broadcast-frame-x {
 	to { background-position-x: 100%; }
 }

@@ -1,4 +1,4 @@
-const CACHE = "command-centre-20261004-scenes2";
+const CACHE = "command-centre-20261004-scenes3";
 const SHELL = [
 	"../../widget-platform.js",
 	"../../reading-estimates.js",
@@ -34,7 +34,7 @@ const SHELL = [
 	"./favicon-32.png",
 ];
 /* The other loading scenes are cached the first time each is shown, not on install. */
-const SCENES = ["./broadcast-laptop.webp", "./broadcast-meditate.webp", "./broadcast-soccer.webp", "./broadcast-basketball.webp"];
+const SCENES = ["./broadcast-laptop.webp", "./broadcast-meditate.webp", "./broadcast-soccer.webp", "./broadcast-basketball.webp", "./broadcast-coffee.webp"];
 const allowed = new Set(
 	[...SHELL, ...SCENES].map((path) => new URL(path, self.location.href).href),
 );

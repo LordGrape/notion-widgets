@@ -1,5 +1,5 @@
 """Loading-screen scenes for Command Centre: Broadcast running, billing hours at a laptop,
-meditating in mid-air, juggling a football and dribbling a basketball.
+meditating in mid-air, juggling a football, dribbling a basketball and taking a coffee break.
 
 Executed by build.py after the clips are stashed (it shares build.py's globals: J, REST, reset,
 cam, target, mat, rounded_box, capsule, ellipsoid, FACES, tex, OUT...). Every scene is a pure
@@ -11,7 +11,7 @@ Env: SCENES=run,laptop,... SCENE_W=720 (frame width, height is 1.1x), SCENE_SAMP
      SCENE_FRAMES=0,12 (render only these frames, for quick looks)."""
 
 TAU = 2 * math.pi
-SCENE_LIST = [n for n in os.environ.get("SCENES", "run,laptop,meditate,soccer,basketball").split(",") if n]
+SCENE_LIST = [n for n in os.environ.get("SCENES", "run,laptop,meditate,soccer,basketball,coffee").split(",") if n]
 SCENE_W = int(os.environ.get("SCENE_W", "720"))
 SCENE_DIR = os.path.join(OUT, "scenes")
 os.makedirs(SCENE_DIR, exist_ok=True)
@@ -562,14 +562,16 @@ def soccer_scene():
                 camera=((-8.5, -9.5, 2.9), (0, -0.2, 1.75), 100))
 
 
-def solve_arm(pose, side, target, guess):
-    """Find shoulder (x, y) and elbow (x) angles that put the palm on `target` (coordinate descent)."""
+def descend(pose, side, target, guess):
+    """Find shoulder (x, y[, z]) and elbow (x) angles that put the palm on `target` (coordinate
+    descent). Pass a four-value guess to let the shoulder twist too."""
     params, step = list(guess), 0.25
-    limits = ((-2.2, 0.8), (-1.6, 1.6), (-2.2, 0.0))
+    twist = len(params) == 4
+    limits = ((-2.2, 0.8), (-1.6, 1.6), (-2.2, 0.0)) + (((-1.2, 1.2),) if twist else ())
 
     def cost(q):
         trial = dict(pose)
-        trial[f"Shoulder{side}"] = P(q[0], q[1], 0)
+        trial[f"Shoulder{side}"] = P(q[0], q[1], q[3] if twist else 0)
         trial[f"Elbow{side}"] = P(q[2])
         apply_pose(trial)
         # A little pull toward a relaxed elbow keeps the arm natural when several poses reach.
@@ -578,7 +580,7 @@ def solve_arm(pose, side, target, guess):
     best = cost(params)
     while step > 0.002:
         moved = False
-        for i in range(3):
+        for i in range(len(params)):
             for d in (step, -step):
                 q = list(params)
                 q[i] = min(limits[i][1], max(limits[i][0], q[i] + d))
@@ -587,6 +589,19 @@ def solve_arm(pose, side, target, guess):
                     params, best, moved = q, c, True
         if not moved:
             step /= 2
+    return params, best
+
+
+def solve_arm(pose, side, target, guess):
+    """descend() from the previous frame's answer; if that misses, restart from a few poses."""
+    params, best = descend(pose, side, target, guess)
+    if best > 0.03 ** 2:
+        for x in (-1.0, -1.7):
+            for y in (-0.6, 0.6):
+                seed = (x, y, -1.3) + ((0.0,) if len(guess) == 4 else ())
+                q, c = descend(pose, side, target, seed)
+                if c < best:
+                    params, best = q, c
     return params
 
 
@@ -634,6 +649,118 @@ def basketball_scene():
                 camera=((-8.5, -9.5, 2.6), (-0.2, -0.25, 1.55), 100))
 
 
+def face_blend(second):
+    """Let a scene cross-fade the face to `second`; returns the keyable mix factor."""
+    nt = SCREEN.node_tree
+    p = nt.nodes["Principled BSDF"]
+    other = nt.nodes.new("ShaderNodeTexImage")
+    other.image = FACES[second]
+    mix = nt.nodes.new("ShaderNodeMix")
+    mix.data_type = "RGBA"
+    nt.links.new(tex.outputs["Color"], mix.inputs["A"])
+    nt.links.new(other.outputs["Color"], mix.inputs["B"])
+    nt.links.new(mix.outputs["Result"], p.inputs["Emission Color"])
+
+    def undo():
+        nt.animation_data_clear()
+        nt.nodes.remove(mix)
+        nt.nodes.remove(other)
+        nt.links.new(tex.outputs["Color"], p.inputs["Emission Color"])
+    CLEANUPS.append(undo)
+    return mix.inputs["Factor"]
+
+
+def coffee_scene():
+    L = 48
+    porcelain = mat("Porcelain", (0.85, 0.83, 0.9), rough=0.18, coat=0.6, coat_rough=0.05)
+    mug_mat = porcelain
+    band = mat("Mug band", (0.3, 0.1, 0.72), rough=0.2, coat=0.9, coat_rough=0.04)
+    coffee_mat = mat("Coffee", (0.06, 0.025, 0.012), rough=0.08, coat=1.0, coat_rough=0.02)
+    steam_mat = halo_mat("Steam", (0.62, 0.55, 0.82), 1.0, 0.75, 1.5)
+
+    # Cup: an empty carries the mug, coffee and handle (on the +x side, toward his far hand).
+    bpy.ops.object.empty_add(location=(0, 0, 0))
+    cup = prop(bpy.context.object)
+    cup.name = "Cup"
+    parts = [cylinder("Mug", (0, 0, 0), 0.18, 0.36, mug_mat, verts=48),
+             cylinder("MugBand", (0, 0, 0.06), 0.183, 0.07, band, verts=48)]
+    bpy.ops.mesh.primitive_cylinder_add(vertices=48, radius=0.15, depth=0.01, location=(0, 0, 0.15))
+    parts.append(shade(bpy.context.object, coffee_mat))
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.1, minor_radius=0.03, location=(0.2, 0, 0.0), rotation=(math.pi / 2, 0, 0))
+    parts.append(shade(bpy.context.object, mug_mat))
+    for o in parts:
+        o.parent = cup
+    bpy.ops.mesh.primitive_cylinder_add(vertices=48, radius=0.3, depth=0.035, location=(0, 0, 0))
+    saucer = shade(bpy.context.object, porcelain)
+    saucer.name = "Saucer"
+    b = saucer.modifiers.new("Bevel", "BEVEL")
+    b.width, b.segments = 0.015, 3
+    steam = [halo(f"Steam{i}", (0, 0, -5), 0.1, steam_mat) for i in range(6)]
+    happy = face_blend("happy")
+
+    S = Vector((-0.2, -0.82, 1.2))            # saucer, held at chest height in the near hand
+    rest = S + Vector((0, 0, 0.2))            # mug sitting on it
+    sip_at = Vector((0.05, -0.78, 2.12))      # in front of the bottom of the face panel
+
+    def ramp(f, a, b):
+        return smooth((f - a) / (b - a))
+
+    def lift(f):
+        return ramp(f, 6, 17) * (1 - ramp(f, 33, 42))
+
+    def sip(f):
+        return ramp(f, 17, 22) * (1 - ramp(f, 29, 34))
+
+    def glad(f):
+        return ramp(f, 33, 37) * (1 - ramp(f, 44, 48))
+
+    def cup_at(f):
+        u = lift(f)
+        return rest.lerp(sip_at, u) + Vector((0, -0.12 * math.sin(math.pi * u), 0))
+
+    def body(f):
+        t = f / L
+        breathe = math.sin(TAU * t)
+        return grounded({
+            "Body": P(0.04 - 0.06 * sip(f) + 0.01 * breathe, 0, 0.04 * math.sin(TAU * t), dz=0.02 * glad(f)),
+            "Neck": P(0.12 * (1 - lift(f)) - 0.22 * sip(f), 0, -0.08 * glad(f) * math.sin(TAU * 2 * t)),
+            "HipL": P(0, 0.05, 0), "HipR": P(0, -0.05, 0),
+            "KneeL": P(0.04), "KneeR": P(0.04),
+        })
+
+    arms, gl, gr = {}, (-0.8, 0.2, -1.2), (-0.6, -0.2, -1.2, 0.0)
+    for f in range(L):
+        pose = body(f)
+        gl = solve_arm(pose, "L", S - Vector((0, 0, 0.09)), gl)
+        pose["ShoulderL"], pose["ElbowL"] = P(gl[0], gl[1], 0), P(gl[2])
+        aim = cup_at(f) + Vector((0.24, 0.02, -0.04))
+        gr = solve_arm(pose, "R", aim, gr)
+        if os.environ.get("SCENE_DEBUG"):
+            print("REACH", f, round((where("PalmR") - aim).length, 3), round((where("PalmL") - S + Vector((0, 0, 0.09))).length, 3))
+        arms[f] = (gl, gr)
+
+    def pose(f):
+        p = body(f)
+        (l0, l1, l2), (r0, r1, r2, r3) = arms[f % L]
+        p["ShoulderL"], p["ElbowL"], p["ShoulderR"], p["ElbowR"] = P(l0, l1, 0), P(l2), P(r0, r1, r3), P(r2)
+        return p
+
+    def props(f):
+        c = cup_at(f)
+        key_obj(cup, f, loc=c, rot=(-0.95 * sip(f), -0.1 * lift(f), 0))
+        key_obj(saucer, f, loc=S)
+        happy.default_value = glad(f)
+        happy.keyframe_insert("default_value", frame=f)
+        for i, o in enumerate(steam):
+            u = (2 * f / L + i / len(steam)) % 1
+            size = (0.08 + 0.22 * u) * math.sin(math.pi * u) ** 0.6 * (1 - 0.8 * lift(f))
+            drift = Vector((0.06 * math.sin(TAU * (u + i * 0.37)), 0.03 * math.cos(TAU * u), 0.18 + 0.8 * u))
+            key_obj(o, f, loc=c + drift, scale=max(size, 1e-4))
+
+    return dict(length=L, fps=20, face="smug", pose=pose, props=props,
+                camera=((-8.5, -9.5, 2.9), (0, -0.2, 1.75), 100))
+
+
 def render_frame(path, glows):
     """Glows are rendered in their own pass (the floor would show through them), with everything
     else held out, then laid over the main pass."""
@@ -675,7 +802,8 @@ def render_frame(path, glows):
     os.remove(glow_path)
 
 
-BUILDERS = dict(run=run_scene, laptop=laptop_scene, meditate=meditate_scene, soccer=soccer_scene, basketball=basketball_scene)
+BUILDERS = dict(run=run_scene, laptop=laptop_scene, meditate=meditate_scene, soccer=soccer_scene, basketball=basketball_scene, coffee=coffee_scene)
+CLEANUPS = []
 MANIFEST = {}
 
 for name in SCENE_LIST:
@@ -708,6 +836,8 @@ for name in SCENE_LIST:
         if ad and ad.action:
             bpy.data.actions.remove(ad.action)
             ad.action = None
+    while CLEANUPS:
+        CLEANUPS.pop()()
     for o in PROPS[first_prop:]:
         bpy.data.objects.remove(o, do_unlink=True)
     del PROPS[first_prop:]
