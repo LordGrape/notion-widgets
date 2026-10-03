@@ -2,7 +2,9 @@
 
 Carry is Broadcast's small lavender suitcase son. His home is beside the Today
 heading in Command Centre. He waves when a new focus block starts or when tapped;
-completing a task plays his celebration. The existing companion visibility setting controls both characters.
+completing a task plays two happy hops with raised mittens. He looks down and
+wiggles his mittens while you type in Add a task, settling after a short pause,
+clearing the input, submitting, or leaving the field. The existing companion visibility setting controls both characters.
 
 ## Build
 
@@ -21,7 +23,9 @@ when replacing these assets.
 The builder loads the existing modelling helpers and `idle`, `talk`, `cheer`,
 `slump`, and `run` clip definitions from `tools/broadcast/build.py`. It gives Carry
 the same joint names with proportions appropriate to his small body. A Carry-only
-`wave` clip raises his right mitten, waves twice, and returns to idle. Broadcast's
+`wave` clip raises his right mitten, waves twice, and returns to idle. Carry also
+has a tailored `cheer` and a seamless `typing` loop. Typing never interrupts a
+wave or celebration; these finish before returning to the current idle state. Broadcast's
 model and animation definitions are preserved.
 
 The shared Three.js renderer loads Carry as an independent instance. His happy

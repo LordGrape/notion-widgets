@@ -69,7 +69,7 @@ import { suggestLastPage, planPageSplit, planTimeSplit, defaultRemaining } from 
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261004-carry-wave";
+	REVISION = "20261004-carry-reactions";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -114,6 +114,7 @@ let broadcastVersion = 0;
 let broadcastLine = "My office. Let's see the numbers.", broadcastPose = "", broadcastMood = "approve";
 let broadcast3D = null, broadcast3DFailed = false, celebratedWeek = "";
 let carry3D = null, carry3DFailed = false, carryCheer = false, carryWave = false;
+let carryTyping = false, carryTypingTimer = 0, carryOpenTasks = null;
 let partnerCta = null, partnerLine = { key: "", line: null, moment: "", vars: {} }, partnerCheer = false;
 const partnerUsed = new Set();
 function broadcastVisible() {
@@ -134,6 +135,7 @@ function mountCarry3D() {
 			const button = $(".carry-companion");
 			if (!button || !broadcastVisible() || !canUse3D()) return;
 			companion.attach(button.querySelector(".carry-3d"));
+			companion.setTyping(carryTyping);
 			button.classList.add("has-3d");
 			if (carryCheer) {
 				carryCheer = false;
@@ -161,6 +163,14 @@ function waveWithCarry() {
 	if (!$(".carry-companion") || !canUse3D()) return;
 	if (carry3D) carry3D.react("wave");
 	else carryWave = true;
+}
+
+function setCarryTyping(active) {
+	clearTimeout(carryTypingTimer);
+	carryTyping = active && !!$(".carry-companion") &&
+		!matchMedia("(prefers-reduced-motion: reduce)").matches;
+	carry3D?.setTyping(carryTyping);
+	if (carryTyping) carryTypingTimer = setTimeout(() => setCarryTyping(false), 1000);
 }
 function broadcastSoundEnabled() {
 	return engines.todo?.SyncEngine.get("user", "commandPartnerSound") !== false;
@@ -540,6 +550,8 @@ function lock() {
 		(type) => ($(`#${type}Frame`).src = "about:blank"),
 	);
 	engines = {};
+	carryOpenTasks = null;
+	setCarryTyping(false);
 	tasks = [];
 	courses = [];
 	signature = "";
@@ -608,6 +620,8 @@ function refresh() {
 		engines.todo.TodoUIBridge.refresh();
 	}
 	tasks = engines.todo.TodoUIBridge.snapshot().tasks;
+	const carryCompleted = tasks.some((t) => t.done && carryOpenTasks?.has(t.id));
+	carryOpenTasks = new Set(tasks.filter((t) => !t.done).map((t) => t.id));
 	Reading.learn?.(tasks, engines.clock.SyncEngine.get("clock", "focus_sessions"));
 	courses = engines.timetable.schedule || [];
 	const raw = engines.todo.SyncEngine.get("todo", "dailyGoal");
@@ -651,6 +665,7 @@ function refresh() {
 			render();
 		}
 	}
+	if (carryCompleted) celebrateWithCarry();
 	const online = ["todo", "timetable", "clock"].every((t) =>
 		engines[t].SyncEngine.isOnline(),
 	);
@@ -884,6 +899,7 @@ function renderToday() {
 }
 function render() {
 	if (!engines.todo) return;
+	setCarryTyping(false);
 	document.querySelectorAll(".view-tabs button").forEach((b) => {
 		if (b.dataset.view === view) b.setAttribute("aria-current", "page");
 		else b.removeAttribute("aria-current");
@@ -985,14 +1001,16 @@ function bindWorkspace() {
 			catch (error) { preview.textContent = error.message; }
 			preview.hidden = !preview.textContent;
 		};
-		input.oninput = () => { pastedText = null; showPreview(); };
+		input.oninput = () => { pastedText = null; showPreview(); setCarryTyping(!!input.value.trim()); };
+		input.onblur = () => setCarryTyping(false);
 		input.onpaste = e => {
 			const text = e.clipboardData?.getData("text/plain");
 			if (!text?.includes("\n")) return;
-			e.preventDefault(); pastedText = text; input.value = text.replace(/\s+/g, " "); showPreview();
+			e.preventDefault(); pastedText = text; input.value = text.replace(/\s+/g, " "); showPreview(); setCarryTyping(!!input.value.trim());
 		};
 		form.onsubmit = e => {
 			e.preventDefault();
+			setCarryTyping(false);
 			try {
 				engines.todo.TodoNaturalAdd.capture(entry());
 				input.value = ""; pastedText = null; signature = ""; refresh(); notify("Task added.");
@@ -3019,7 +3037,6 @@ document.addEventListener("click", (e) => {
 			refresh();
 			{
 				const done = task(id);
-				if (done?.done) celebrateWithCarry();
 				const untimed = done?.done && !isCalendarReminder(done, courses) && taskKind(done) !== "admin" && !focusMinutes(id);
 				notify(done?.done ? "Task completed." : "Task reopened.", true, untimed ? { label: "Log time", run: () => openLogTime(id) } : null);
 			}

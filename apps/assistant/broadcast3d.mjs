@@ -217,7 +217,8 @@ async function create(url, carry = false) {
 	let current = null, pending = null, mood = "approve", faceOverride = null, overrideUntil = 0;
 	let talkPlan = null, talkStart = 0;
 	let talkUntil = 0, glitchUntil = 0, host = null, frame = 0, last = performance.now(), lastFace = 0;
-	const base = () => (mood === "panic" ? "slump" : "idle");
+	let typing = false;
+	const base = () => (carry && typing ? "typing" : mood === "panic" ? "slump" : "idle");
 
 	function play(name, { once = false, repeats = 1 } = {}) {
 		const clip = clips[name];
@@ -260,7 +261,9 @@ async function create(url, carry = false) {
 		frame = requestAnimationFrame(tick);
 		if (document.hidden || !canvas.offsetParent) return;
 		if (carry && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-		const dt = Math.min(0.05, (now - last) / 1000);
+		// A reattached canvas can receive an already-scheduled frame timestamp.
+		// Never run a newly started one-shot backwards past its first frame.
+		const dt = Math.max(0, Math.min(0.05, (now - last) / 1000));
 		last = now;
 		mixer.update(dt);
 		const glitching = !carry && (now < glitchUntil || Math.random() < 0.0015);
@@ -280,6 +283,10 @@ async function create(url, carry = false) {
 
 	const api = {
 		detach() {
+			if (typing) {
+				typing = false;
+				if (!pending) play(base());
+			}
 			if (host) observer.unobserve(host);
 			host = null;
 			cancelAnimationFrame(frame);
@@ -295,6 +302,11 @@ async function create(url, carry = false) {
 			last = performance.now();
 			if (!frame) frame = requestAnimationFrame(tick);
 		},
+		setTyping(active) {
+			if (!carry || typing === active) return;
+			typing = active;
+			if (!pending) play(base());
+		},
 		setMood(next) {
 			if (!MOODS.includes(next) || next === mood) return;
 			mood = next;
@@ -307,7 +319,7 @@ async function create(url, carry = false) {
 			} else if (kind === "cheer") {
 				faceOverride = "happy";
 				overrideUntil = now + 2600;
-				play("cheer", { once: true, repeats: 3 });
+				play("cheer", { once: true, repeats: carry ? 1 : 3 });
 			} else if (kind === "slump") {
 				play("slump", { once: true, repeats: 2 });
 			} else if (kind === "glitch") {
