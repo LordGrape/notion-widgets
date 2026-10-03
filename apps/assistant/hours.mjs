@@ -137,7 +137,8 @@ export function summarize(entries, now = new Date(), target = WEEKLY_TARGET) {
 		(sum, k) => sum + byKind[k],
 		0,
 	);
-	const elapsed = Math.min(1, Math.max(0, (now.getTime() - from) / (7 * DAY)));
+	/* Pace counts finished days only, so a week never starts behind. */
+	const elapsed = Math.min(1, Math.max(0, Math.floor((now.getTime() - from) / DAY) / 7));
 	const expected = target * elapsed;
 	const diff = billable - expected;
 	return {

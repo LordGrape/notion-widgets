@@ -1,4 +1,4 @@
-const CACHE = "command-centre-20261002-loader-text";
+const CACHE = "command-centre-20261002-fair-pace";
 const SHELL = [
 	"../../widget-platform.js",
 	"../../reading-estimates.js",
@@ -13,6 +13,7 @@ const SHELL = [
 	"./autofit.mjs",
 	"./split.mjs",
 	"./broadcast3d.mjs",
+	"./partner.mjs",
 	"./broadcast.glb",
 	"./broadcast-run.webp",
 	"./calendar-actions.mjs",

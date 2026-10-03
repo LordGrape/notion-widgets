@@ -3162,3 +3162,40 @@ dialog h3 {
 @media (prefers-reduced-motion: reduce) {
 	.broadcast-run { animation: none; }
 }
+
+/* Broadcast's next step and the Monday review. */
+.broadcast-stage { cursor: pointer; }
+.broadcast-cta {
+	display: block;
+	width: 100%;
+	margin-top: 10px;
+	padding: 11px 14px;
+	border: 0;
+	border-radius: 12px;
+	background: linear-gradient(135deg, #8b4af3, #6d2be0);
+	color: #fff;
+	font-weight: 650;
+	font-size: 13px;
+	box-shadow: 0 6px 18px rgba(109, 43, 224, 0.25);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.broadcast-card.is-away .broadcast-cta { display: none; }
+.review-card {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 20px;
+	max-width: 1240px;
+	margin: 0 auto 22px;
+	padding: 24px 28px;
+	border-left: 5px solid var(--accent);
+}
+.review-card.happy { border-left-color: var(--green); }
+.review-card.stern { border-left-color: #d9822b; }
+.review-card.panic { border-left-color: #d75f77; }
+.review-card h2 { margin: 4px 0 6px; font-size: 26px; }
+.review-hours { margin: 0; color: var(--muted); }
+.review-hours b { color: var(--text); font-size: 18px; }
+.review-card ul { margin: 12px 0 0; padding-left: 18px; color: var(--text); font-size: 13px; line-height: 1.6; }

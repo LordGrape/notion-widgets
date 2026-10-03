@@ -46,12 +46,13 @@ import {
 	moodFor,
 } from "./hours.mjs";
 import { canUse3D, loadBroadcast3D } from "./broadcast3d.mjs";
+import { momentFor, pickLine, nextStep, milestoneReached, weeklyReview } from "./partner.mjs";
 import { planDay, isUnscheduled, PLAN_START, PLAN_END } from "./autofit.mjs";
 import { suggestLastPage, planPageSplit, planTimeSplit, defaultRemaining } from "./split.mjs";
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261002-loader-text";
+	REVISION = "20261002-fair-pace";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -94,6 +95,8 @@ let broadcastAudio = null, broadcastResetTimer = 0;
 let broadcastVersion = 0;
 let broadcastLine = "Counsel. Shall we begin?", broadcastPose = "", broadcastMood = "approve";
 let broadcast3D = null, broadcast3DFailed = false, celebratedWeek = "";
+let partnerCta = null, partnerLine = { key: "", line: null, moment: "", vars: {} }, partnerCheer = false;
+const partnerUsed = new Set();
 function broadcastVisible() {
 	return engines.todo?.SyncEngine.get("user", "commandPartnerVisible") !== false;
 }
@@ -155,7 +158,8 @@ function mountBroadcast3D() {
 			partner.setMood(broadcastMood);
 			card.classList.add("has-3d");
 			const week = isoDate(weekStart(new Date()));
-			if (broadcastMood === "happy" && celebratedWeek !== week) {
+			if (partnerCheer || (broadcastMood === "happy" && celebratedWeek !== week)) {
+				partnerCheer = false;
 				celebratedWeek = week;
 				partner.react("cheer");
 			}
@@ -1896,6 +1900,20 @@ document.addEventListener("click", (e) => {
 		case "plan-day":
 			openPlanDay();
 			break;
+		case "partner-cta":
+			if (b.dataset.kind === "focus") selectFocus(b.dataset.id);
+			else if (b.dataset.kind === "plan") openPlanDay();
+			else openLogTime();
+			break;
+		case "partner-tap":
+			advancePartnerLine();
+			broadcast3D?.react("talk");
+			break;
+		case "review-dismiss":
+			engines.todo.SyncEngine.set("user", "partnerReview", b.dataset.week);
+			signature = "";
+			refresh();
+			break;
 		case "docket-week":
 			docketOffset = b.dataset.step === "0" ? 0 : docketOffset + Number(b.dataset.step);
 			signature = "";
@@ -2138,7 +2156,7 @@ function formatMinutes(n) {
 	);
 }
 function broadcastMarkup() {
-	return `<section class="surface context-card broadcast-card" id="broadcastCompanion" aria-label="Broadcast, your focus partner"><div class="broadcast-stage"><div class="broadcast-3d" title="Tap to hear from your partner"></div><div class="broadcast-figure ${broadcastPose}" role="img" aria-label="Broadcast, a muscular CRT television-headed partner in a tailored charcoal suit"><div class="broadcast-shadow"></div><div class="broadcast-leg broadcast-leg-left"><div class="broadcast-shoe"></div></div><div class="broadcast-leg broadcast-leg-right"><div class="broadcast-shoe"></div></div><div class="broadcast-arm broadcast-arm-left"><div class="broadcast-cuff"></div><div class="broadcast-hand"></div></div><div class="broadcast-arm broadcast-arm-right"><div class="broadcast-cuff"></div><div class="broadcast-hand"></div></div><div class="broadcast-body"><div class="broadcast-shirt"></div><div class="broadcast-tie"></div><div class="broadcast-lapel"></div><div class="broadcast-lapel broadcast-lapel-right"></div><div class="broadcast-pocket"></div></div><div class="broadcast-head"><div class="broadcast-antenna"></div><div class="broadcast-screen"><div class="broadcast-face"><span class="broadcast-eye broadcast-eye-left"></span><span class="broadcast-eye broadcast-eye-right"></span><span class="broadcast-mouth"></span><span class="broadcast-fang"></span></div><div class="broadcast-scan"></div><div class="broadcast-reflection"></div></div><div class="broadcast-knob"></div></div></div></div><p class="broadcast-dialogue" role="status" aria-live="polite">${esc(broadcastLine)}</p><p class="broadcast-away" role="status"></p></section>`;
+	return `<section class="surface context-card broadcast-card" id="broadcastCompanion" aria-label="Broadcast, your focus partner"><div class="broadcast-stage" data-action="partner-tap"><div class="broadcast-3d" title="Tap to hear from your partner"></div><div class="broadcast-figure ${broadcastPose}" role="img" aria-label="Broadcast, a muscular CRT television-headed partner in a tailored charcoal suit"><div class="broadcast-shadow"></div><div class="broadcast-leg broadcast-leg-left"><div class="broadcast-shoe"></div></div><div class="broadcast-leg broadcast-leg-right"><div class="broadcast-shoe"></div></div><div class="broadcast-arm broadcast-arm-left"><div class="broadcast-cuff"></div><div class="broadcast-hand"></div></div><div class="broadcast-arm broadcast-arm-right"><div class="broadcast-cuff"></div><div class="broadcast-hand"></div></div><div class="broadcast-body"><div class="broadcast-shirt"></div><div class="broadcast-tie"></div><div class="broadcast-lapel"></div><div class="broadcast-lapel broadcast-lapel-right"></div><div class="broadcast-pocket"></div></div><div class="broadcast-head"><div class="broadcast-antenna"></div><div class="broadcast-screen"><div class="broadcast-face"><span class="broadcast-eye broadcast-eye-left"></span><span class="broadcast-eye broadcast-eye-right"></span><span class="broadcast-mouth"></span><span class="broadcast-fang"></span></div><div class="broadcast-scan"></div><div class="broadcast-reflection"></div></div><div class="broadcast-knob"></div></div></div></div><p class="broadcast-dialogue" role="status" aria-live="polite">${esc(broadcastLine)}</p>${partnerCta ? `<button class="broadcast-cta" data-action="partner-cta" data-kind="${esc(partnerCta.kind)}" data-id="${esc(partnerCta.id || "")}">${esc(partnerCta.label)}</button>` : ""}<p class="broadcast-away" role="status"></p></section>`;
 }
 const monthDay = (d) => d.toLocaleDateString("en-CA", { month: "short", day: "numeric" });
 const clockTime = (ms) => {
@@ -2183,6 +2201,51 @@ function paceTail() {
 	const pace = s.pace === "behind" ? ", " + formatUnits(gap) + " behind" : s.pace === "ahead" ? ", " + formatUnits(-gap) + " ahead" : ", right on pace";
 	return formatUnits(s.billable) + " of " + formatUnits(s.target) + " hours this week" + pace + ".";
 }
+function partnerVoice(s) {
+	const { stats, grid } = heatInfo();
+	const now = new Date();
+	const todayCell = grid.columns.flat().find((c) => c.today);
+	let celebrated = Number(engines.todo.SyncEngine.get("user", "partnerMilestone")) || 0;
+	if (stats.current < celebrated) {
+		celebrated = 0;
+		engines.todo.SyncEngine.set("user", "partnerMilestone", 0);
+	}
+	const milestone = milestoneReached(stats.current, celebrated);
+	if (milestone) {
+		engines.todo.SyncEngine.set("user", "partnerMilestone", milestone);
+		partnerCheer = true;
+	}
+	const moment = momentFor({ mood: broadcastMood, day: now.getDay(), hour: now.getHours(), streak: stats.current, todayActive: (todayCell?.units || 0) >= STREAK_MIN, milestone });
+	const vars = { gap: formatUnits(Math.max(0, s.expected - s.billable)), ahead: formatUnits(Math.max(0, s.billable - s.expected)), billable: formatUnits(s.billable), target: formatUnits(s.target), streak: milestone || stats.current };
+	const key = moment + isoDate();
+	if (partnerLine.key !== key) {
+		const line = pickLine(moment, vars, { date: isoDate(), used: [...partnerUsed] });
+		partnerUsed.add(line.id);
+		partnerLine = { key, line, moment, vars };
+	}
+	const focusable = activeTask();
+	partnerCta = nextStep({ task: focusable && !focusable.done ? focusable : null, moment, hasOpenTasks: unfinishedToday().length > 0 });
+	return partnerLine.line.text;
+}
+function advancePartnerLine() {
+	if (!partnerLine.moment) return;
+	const line = pickLine(partnerLine.moment, partnerLine.vars, { date: isoDate() + partnerUsed.size, used: [...partnerUsed] });
+	partnerUsed.add(line.id);
+	partnerLine.line = line;
+	broadcastLine = line.text;
+	const el = $("#broadcastCompanion .broadcast-dialogue");
+	if (el) el.textContent = line.text;
+}
+function renderReview() {
+	const day = new Date().getDay();
+	const week = isoDate(weekStart(new Date()));
+	if (docketOffset !== 0 || (day !== 1 && day !== 2) || engines.todo.SyncEngine.get("user", "partnerReview") === week) return "";
+	const last = docketData(-1).summary;
+	if (!last.entries.length) return "";
+	const review = weeklyReview(last, { streak: heatInfo().stats.current });
+	const from = localDate(weekKeys(new Date(Date.now() - 7 * 864e5))[0]), to = localDate(weekKeys(new Date(Date.now() - 7 * 864e5))[6]);
+	return '<section class="surface review-card ' + review.tone + '" aria-label="Last week\u2019s performance review"><div><p class="eyebrow">Performance review \u00b7 ' + monthDay(from) + " \u2013 " + monthDay(to) + '</p><h2>' + review.verdict + '</h2><p class="review-hours"><b>' + formatUnits(last.billable) + "</b> of " + formatUnits(last.target) + " billable hours \u00b7 " + review.pct + "%</p>" + (review.notes.length ? "<ul>" + review.notes.map((n) => "<li>" + esc(n) + "</li>").join("") + "</ul>" : "") + '</div><button class="text-button" data-action="review-dismiss" data-week="' + week + '">Noted</button></section>';
+}
 function docketNarration(s) {
 	if (docketOffset < 0) return "That week closed at " + formatUnits(s.billable) + " of " + formatUnits(s.target) + " hours.";
 	if (docketOffset > 0) return "Nothing billed yet. Plan the week, counsel.";
@@ -2221,12 +2284,13 @@ function renderDocket() {
 	}).join("");
 	const first = localDate(keys[0]), last = localDate(keys[6]);
 	const pace = docketOffset === 0 ? (s.pace === "ahead" ? '<span class="ahead">' + formatUnits(s.billable - s.expected) + " h ahead of pace</span>" : s.pace === "behind" ? '<span class="behind">' + formatUnits(s.expected - s.billable) + " h behind pace</span>" : '<span class="ahead">On pace</span>') : "<span>" + formatUnits(s.remaining) + " h short of target</span>";
-	broadcastLine = docketNarration(s);
 	broadcastPose = "";
 	broadcastMood = moodFor(s, { current: docketOffset === 0, sunday: new Date().getDay() === 0 });
+	partnerCta = null;
+	broadcastLine = docketOffset === 0 ? partnerVoice(s) : docketNarration(s);
 	const insight = docketInsight(s);
 	const legend = KINDS.filter((k) => k !== "admin").map((k) => '<span><i class="kind-dot ' + k + '"></i>' + KIND_LABEL[k] + " <b>" + formatUnits(s.byKind[k]) + "</b></span>").join("");
-	return renderConsistency() + '<div class="docket-layout"><div class="docket-side"><section class="surface docket-gauge"><div class="docket-top"><p class="eyebrow">Billable this week</p><button class="text-button" data-action="docket-target">Target ' + formatUnits(s.target) + " h</button></div>" + docketGauge(s, keys) + '<p class="docket-pace">' + pace + '</p><div class="docket-bars">' + bars + '</div><div class="docket-days">' + "MTWTFSS".split("").map((l) => "<span>" + l + "</span>").join("") + '</div><div class="docket-legend">' + legend + "</div></section>" + (broadcastVisible() ? broadcastMarkup() : "") + '</div><section class="surface docket-main"><div class="docket-head"><div><p class="eyebrow">Weekly docket</p><h2>' + monthDay(first) + " – " + monthDay(last) + '</h2></div><div class="docket-actions"><button class="icon-button flip" data-action="docket-week" data-step="-1" aria-label="Previous week">' + icon("right") + "</button>" + (docketOffset ? '<button class="text-button" data-action="docket-week" data-step="0">This week</button>' : "") + '<button class="icon-button" data-action="docket-week" data-step="1" aria-label="Next week">' + icon("right") + '</button><button class="primary" data-action="docket-log">Log time</button></div></div>' + (rows || '<p class="docket-empty">No hours yet this week. Start a focus session, or log time you have already worked.</p>') + (insight ? '<p class="docket-insight"><span class="eyebrow">Mix</span>' + esc(insight) + "</p>" : "") + '<div class="docket-total"><span>Total billable</span><b>' + formatUnits(s.billable) + "</b></div></section></div>";
+	return renderReview() + renderConsistency() + '<div class="docket-layout"><div class="docket-side"><section class="surface docket-gauge"><div class="docket-top"><p class="eyebrow">Billable this week</p><button class="text-button" data-action="docket-target">Target ' + formatUnits(s.target) + " h</button></div>" + docketGauge(s, keys) + '<p class="docket-pace">' + pace + '</p><div class="docket-bars">' + bars + '</div><div class="docket-days">' + "MTWTFSS".split("").map((l) => "<span>" + l + "</span>").join("") + '</div><div class="docket-legend">' + legend + "</div></section>" + (broadcastVisible() ? broadcastMarkup() : "") + '</div><section class="surface docket-main"><div class="docket-head"><div><p class="eyebrow">Weekly docket</p><h2>' + monthDay(first) + " – " + monthDay(last) + '</h2></div><div class="docket-actions"><button class="icon-button flip" data-action="docket-week" data-step="-1" aria-label="Previous week">' + icon("right") + "</button>" + (docketOffset ? '<button class="text-button" data-action="docket-week" data-step="0">This week</button>' : "") + '<button class="icon-button" data-action="docket-week" data-step="1" aria-label="Next week">' + icon("right") + '</button><button class="primary" data-action="docket-log">Log time</button></div></div>' + (rows || '<p class="docket-empty">No hours yet this week. Start a focus session, or log time you have already worked.</p>') + (insight ? '<p class="docket-insight"><span class="eyebrow">Mix</span>' + esc(insight) + "</p>" : "") + '<div class="docket-total"><span>Total billable</span><b>' + formatUnits(s.billable) + "</b></div></section></div>";
 }
 let heatCache = { key: "", value: null }, heatAnimated = false;
 function heatInfo() {
@@ -2235,7 +2299,17 @@ function heatInfo() {
 	if (heatCache.value && heatCache.key === key) return heatCache.value;
 	const keys = heatRange(today, HEAT_WEEKS);
 	const now = new Date();
-	const events = keys.filter((k) => k <= today).flatMap((k) => occurrences(localDate(k)));
+	/* Class time only counts from the first recorded session, so recurring
+	   blocks do not invent history from before the app was in use. */
+	let sessions = focusSessionsRaw();
+	try {
+		if (typeof sessions === "string") sessions = JSON.parse(sessions);
+	} catch {
+		sessions = [];
+	}
+	const firstAt = Math.min(...(Array.isArray(sessions) ? sessions : []).map((x) => Number(x?.completedAt) || Infinity));
+	const since = Number.isFinite(firstAt) ? isoDate(new Date(firstAt)) : isoDate(weekStart(new Date()));
+	const events = keys.filter((k) => k <= today && k >= since).flatMap((k) => occurrences(localDate(k)));
 	const totals = dayTotals([...sessionEntries(focusSessionsRaw(), tasks), ...classEntries(events, now)]);
 	const dailyTarget = weeklyTarget() / 5;
 	const grid = heatCells({ totals, today, weeks: HEAT_WEEKS, dailyTarget });

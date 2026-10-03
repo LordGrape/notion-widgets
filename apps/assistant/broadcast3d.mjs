@@ -264,8 +264,6 @@ async function create(url) {
 		renderer.render(scene, camera);
 	}
 
-	canvas.addEventListener("click", () => api.react("talk"));
-
 	const api = {
 		attach(element) {
 			if (host) observer.unobserve(host);
