@@ -3565,3 +3565,65 @@ dialog h3 {
 	margin-right: 8px;
 	vertical-align: 1px;
 }
+
+.group-head {
+	position: relative;
+}
+.group-head .group-heading .count {
+	margin-right: 40px;
+}
+.group-add {
+	position: absolute;
+	top: 50%;
+	right: 14px;
+	transform: translateY(-50%);
+	display: grid;
+	place-items: center;
+	width: 26px;
+	height: 26px;
+	padding: 0;
+	border: 1px solid transparent;
+	border-radius: 50%;
+	background: transparent;
+	color: var(--muted);
+	cursor: pointer;
+	opacity: 0.55;
+	transition: opacity 0.15s, background 0.15s, color 0.15s, transform 0.2s;
+}
+.group-add svg {
+	width: 14px;
+	height: 14px;
+}
+.group-head:hover .group-add,
+.group-add:focus-visible,
+.group-add[aria-expanded="true"] {
+	opacity: 1;
+}
+.group-add:hover {
+	background: var(--surface);
+	color: var(--accent);
+	border-color: var(--line);
+}
+.group-add[aria-expanded="true"] {
+	transform: translateY(-50%) rotate(45deg);
+	color: var(--accent);
+}
+.group-quick {
+	display: flex;
+	gap: 8px;
+	margin: 4px 0 2px;
+}
+.group-quick input {
+	flex: 1;
+	min-width: 0;
+}
+.group-quick .primary {
+	flex: none;
+	width: 40px;
+	padding: 0;
+	display: grid;
+	place-items: center;
+}
+@media (prefers-reduced-motion: reduce) {
+	.group-add { transition: none; }
+}

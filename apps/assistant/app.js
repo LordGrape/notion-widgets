@@ -59,7 +59,7 @@ import { suggestLastPage, planPageSplit, planTimeSplit, defaultRemaining } from 
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261002-tags-4";
+	REVISION = "20261002-group-add";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -578,6 +578,11 @@ function taskRow(t, planner = false) {
 	const focusable = !isCalendarReminder(t, courses);
 	return `<div class="task-row ${t.done ? "done" : ""}" data-task="${esc(t.id)}" ${!planner && !t.done ? `draggable="true" data-drag="${esc(t.id)}"` : ""}>${!t.done ? `<button class="drag-handle icon-button ${planner ? "" : "today-grip"}" title="Drag to schedule; click to choose a time" data-action="schedule" data-id="${esc(t.id)}" draggable="true" data-drag="${esc(t.id)}" aria-label="Drag ${esc(t.text)} to the calendar">${icon("grip")}</button>` : ""}<button class="check-button ${t.done ? "checked" : ""}" data-action="toggle" data-id="${esc(t.id)}" aria-label="${t.done ? "Reopen" : "Complete"} ${esc(t.text)}">${t.done ? icon("check") : ""}</button><button class="task-title" data-action="edit" data-id="${esc(t.id)}">${tagDot(taskKind(t))}${esc(t.text)}${planner ? `<small class="planner-task-meta"><span class="priority-chip ${t.pri || "must"}">${t.pri === "could" ? "Could" : t.pri === "should" ? "Should" : "Must"}</span>${m ? `${m} min` : "No estimate"}${t.repeatRule ? " · Repeats" : ""}</small>` : ""}</button>${!planner && overdueLabel(t) ? `<span class="task-meta overdue-meta">${overdueLabel(t)}</span>` : ""}${!planner && m ? `<span class="task-meta" ${t.done && focusMinutes(t.id) ? `title="Estimated ${m} min, focused ${focusMinutes(t.id)} min"` : ""}>${icon("clock")}${t.done && focusMinutes(t.id) ? `${focusMinutes(t.id)} of ${m} min` : `${m} min`}</span>` : ""}${!planner && t.repeatRule ? `<span class="task-meta repeat-meta">Repeats</span>` : ""}<div class="task-actions">${focusable ? `<button class="icon-button" data-action="select-focus" data-id="${esc(t.id)}" aria-label="Focus on ${esc(t.text)}" title="Focus on this task">${icon("play")}</button>` : ""}<button class="icon-button" data-action="${planner ? "schedule" : "edit"}" data-id="${esc(t.id)}" aria-label="${planner ? "Schedule" : "Edit"} ${esc(t.text)}">${icon(planner ? "calendar" : "more")}</button></div></div>`;
 }
+let quickAdd = null;
+const PRI_NAME = { must: "Must Do", should: "Should Do", could: "Could Do" };
+function groupQuickForm(pri) {
+	return `<form class="group-quick" data-priority="${pri}"><input name="task" value="${esc(quickAdd.value)}" aria-label="Add a ${PRI_NAME[pri]} task" placeholder="Add a ${PRI_NAME[pri]} task\u2026" autocomplete="off" maxlength="500"><button class="primary" aria-label="Add task">${icon("plus")}</button></form>`;
+}
 function taskGroups() {
 	const list = todayTasks(focusTasks(tasks, courses)).sort(
 		(a, b) => (a.order ?? a.created) - (b.order ?? b.created),
@@ -589,7 +594,8 @@ function taskGroups() {
 					(t.pri === "should" || t.pri === "could" ? t.pri : "must") === pri,
 			);
 			const closed = collapsed.has(pri);
-			return `<section class="task-group ${pri} ${!closed && !group.length && pri !== "must" ? "is-empty" : ""}"><button class="group-heading" data-action="collapse" data-priority="${pri}" aria-expanded="${!closed}">${icon(closed ? "right" : "chevron")}<i class="priority-dot"></i>${pri === "must" ? "Must Do" : pri === "should" ? "Should Do" : "Could Do"}<span class="count">${group.filter((t) => t.done).length} of ${group.length} complete</span></button>${closed ? "" : `<div class="task-rows">${group.length ? group.map((t) => taskRow(t)).join("") : `<p class="group-empty">${pri === "must" ? "No commitments here." : pri === "should" ? "Choose a task worth making progress on." : "Optional tasks, when you have room."}</p>`}</div>`}</section>`;
+			const adding = !closed && quickAdd?.pri === pri;
+			return `<section class="task-group ${pri} ${!closed && !group.length && pri !== "must" && !adding ? "is-empty" : ""}"><div class="group-head"><button class="group-heading" data-action="collapse" data-priority="${pri}" aria-expanded="${!closed}">${icon(closed ? "right" : "chevron")}<i class="priority-dot"></i>${PRI_NAME[pri]}<span class="count">${group.filter((t) => t.done).length} of ${group.length} complete</span></button><button class="group-add" data-action="group-add" data-priority="${pri}" aria-label="Add a ${PRI_NAME[pri]} task" aria-expanded="${adding}" title="Add a ${PRI_NAME[pri]} task">${icon("plus")}</button></div>${closed ? "" : `<div class="task-rows">${group.length ? group.map((t) => taskRow(t)).join("") : adding ? "" : `<p class="group-empty">${pri === "must" ? "No commitments here." : pri === "should" ? "Choose a task worth making progress on." : "Optional tasks, when you have room."}</p>`}${adding ? groupQuickForm(pri) : ""}</div>`}</section>`;
 		})
 		.join("");
 }
@@ -1824,6 +1830,34 @@ document.addEventListener("contextmenu", (e) => {
 	const bounds = element.getBoundingClientRect();
 	showCalendarMenu(element, e.clientX || bounds.left, e.clientY || bounds.top);
 });
+document.addEventListener("input", (e) => {
+	if (quickAdd && e.target.matches(".group-quick input")) quickAdd.value = e.target.value;
+});
+document.addEventListener("keydown", (e) => {
+	if (e.key === "Escape" && quickAdd && e.target.matches(".group-quick input")) {
+		quickAdd = null;
+		signature = "";
+		render();
+	}
+});
+document.addEventListener("submit", (e) => {
+	const form = e.target.closest(".group-quick");
+	if (!form) return;
+	e.preventDefault();
+	const text = form.elements.task.value.trim();
+	if (!text) return;
+	const pri = form.dataset.priority;
+	try {
+		engines.todo.TodoNaturalAdd.capture(/\b(must|should|could)\s+do\b/i.test(text) ? text : `${pri} do ${text}`);
+		quickAdd = { pri, value: "" };
+		signature = "";
+		refresh();
+		document.querySelector(".group-quick input")?.focus();
+		notify("Task added.");
+	} catch (error) {
+		notify(error.message);
+	}
+});
 function openCalendarCreate(column, y) {
 	const date = column.dataset.date,
 		start = timeAtOffset(y, Number(column.dataset.start), Number(column.dataset.end));
@@ -2289,6 +2323,15 @@ document.addEventListener("click", (e) => {
 			signature = "";
 			refresh();
 			notify(kind ? `Tagged ${KIND_LABEL[kind]}.` : "Tag set to Auto.");
+			break;
+		}
+		case "group-add": {
+			const pri = b.dataset.priority;
+			quickAdd = quickAdd?.pri === pri ? null : { pri, value: "" };
+			collapsed.delete(pri);
+			signature = "";
+			render();
+			document.querySelector(".group-quick input")?.focus();
 			break;
 		}
 		case "tag-pick": {
