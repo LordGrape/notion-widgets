@@ -7,13 +7,16 @@ import { fromLecturePage, type LectureRow } from "./lecture-readings";
 
    GET  /notion/source-library/lectures?from=&to=   lecture rows with their READINGS notes (all, done or not)
    POST /notion/source-library/upload?name=x.jpg    body: JPEG bytes -> { id } (a Notion file upload)
-   POST /notion/source-library/reading              body: ReadingInput -> { reading, pages } */
+   POST /notion/source-library/reading              body: ReadingInput -> { reading, pages }
+
+   The free Workers plan allows 50 outbound calls per request, so the station files a long reading
+   in batches: the first creates the reading row, later ones pass its readingId and add pages. */
 
 const NOTION_VERSION = "2022-06-28";
 const CALENDAR_DB_ID = "783a2021-af4c-4369-86eb-7948ef66bf23";
 const READINGS_DB_ID = "8ace347b-edb7-4f52-84a6-606aac8eaa8d";
 const PAGES_DB_ID = "64fcad6a-367f-4d5b-b89d-a4bb664986d3";
-const MAX_PAGES = 120;
+const MAX_PAGES = 40; /* per request: one Notion call per page, under the free plan's 50 */
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const TEXT_LIMIT = 1900; /* Notion allows 2000 characters per rich-text object */
 
@@ -35,6 +38,11 @@ export interface ReadingInput {
 	notes?: string;
 	captured: string;
 	pages: PageInput[];
+	/* Later batches: add pages to this reading instead of creating one. */
+	readingId?: string;
+	/* The whole reading's range, when the first batch holds only part of it. */
+	firstPage?: number;
+	lastPage?: number;
 }
 
 function json(body: unknown, status = 200): Response {
@@ -77,7 +85,11 @@ export function validateReading(body: any): ReadingInput {
 	if (!body || typeof body !== "object") throw new Error("Send a reading.");
 	const pages = Array.isArray(body.pages) ? body.pages.slice(0, MAX_PAGES) : [];
 	if (!body.title || !body.book || !pages.length) throw new Error("A reading needs a title, a book and at least one page.");
+	const pageNumber = (n: unknown) => (typeof n === "number" && Number.isFinite(n) ? Math.round(n) : undefined);
 	return {
+		readingId: isId(body.readingId) ? body.readingId : undefined,
+		firstPage: pageNumber(body.firstPage),
+		lastPage: pageNumber(body.lastPage),
 		title: clamp(body.title, 200),
 		book: clamp(body.book, 200),
 		authors: clamp(body.authors, 200),
@@ -100,8 +112,8 @@ export function validateReading(body: any): ReadingInput {
 const relation = (ids: (string | null | undefined)[]) => ({ relation: ids.filter(isId).map((id) => ({ id })) });
 
 async function createReading(env: Env, r: ReadingInput) {
-	const first = Math.min(...r.pages.map((p) => p.printed)), last = Math.max(...r.pages.map((p) => p.printed));
-	const reading = await notion(env, "/pages", {
+	const first = r.firstPage ?? Math.min(...r.pages.map((p) => p.printed)), last = r.lastPage ?? Math.max(...r.pages.map((p) => p.printed));
+	const reading = r.readingId ? { id: r.readingId, url: undefined } : await notion(env, "/pages", {
 		method: "POST",
 		body: JSON.stringify({
 			parent: { database_id: READINGS_DB_ID },

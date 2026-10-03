@@ -356,8 +356,15 @@ class Worker:
         image.convert("RGB").resize((1000, round(1000 * image.height / image.width))).save(buf, "JPEG", quality=72, optimize=True)
         return self.call("POST", f"/notion/source-library/upload?name={name}", data=buf.getvalue(), headers={"Content-Type": "image/jpeg"})["id"]
 
-    def file(self, reading: dict) -> dict:
-        return self.call("POST", "/notion/source-library/reading", json=reading)
+    def file(self, reading: dict, batch: int = 40) -> dict:
+        """File in batches: the Worker's free plan allows 50 Notion calls per request, one per page."""
+        pages = reading["pages"]
+        printed = [p["printed"] for p in pages]
+        result = self.call("POST", "/notion/source-library/reading", json={**reading, "pages": pages[:batch], "firstPage": min(printed), "lastPage": max(printed)})
+        for start in range(batch, len(pages), batch):
+            more = self.call("POST", "/notion/source-library/reading", json={**reading, "pages": pages[start : start + batch], "readingId": result["reading"]["id"]})
+            result["pages"] += more["pages"]
+        return result
 
 
 # ---------- one scan ----------

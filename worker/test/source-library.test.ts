@@ -27,4 +27,12 @@ describe("source library", () => {
 		expect(r.pages[0]).toMatchObject({ printed: 166, confidence: 100, status: "Machine-read", imageUploadId: undefined });
 		expect(r.captured).toMatch(/^\d{4}-\d{2}-\d{2}$/);
 	});
+	it("takes a long reading in batches that fit the free plan's 50 calls", () => {
+		const pages = Array.from({ length: 46 }, (_, i) => ({ ...page, printed: 144 + i }));
+		const first = validateReading({ title: "t", book: "b", pages, firstPage: 144, lastPage: 189 });
+		expect(first.pages).toHaveLength(40);
+		expect(first).toMatchObject({ firstPage: 144, lastPage: 189, readingId: undefined });
+		const later = validateReading({ title: "t", book: "b", pages: pages.slice(40), readingId: page.imageUploadId });
+		expect(later.readingId).toBe(page.imageUploadId);
+	});
 });
