@@ -514,8 +514,9 @@ for name, (length, spec) in ANIMS.items():
     keyframes(spec, length)
     if name == "run":
         # Sprite sheet for the loading screen.
-        scene.render.resolution_x, scene.render.resolution_y = 300, 330
-        scene.eevee.taa_render_samples = 48
+        run_w = int(os.environ.get("RUN_W", "300"))
+        scene.render.resolution_x, scene.render.resolution_y = run_w, round(run_w * 1.1)
+        scene.eevee.taa_render_samples = int(os.environ.get("RUN_SAMPLES", "48"))
         cam.data.lens = 100
         cam.location = (-8.5, -9.5, 2.6)
         target.location = (0, 0, 1.72)

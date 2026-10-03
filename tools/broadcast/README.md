@@ -5,12 +5,12 @@ Source for the 3D Broadcast used by Command Centre (`apps/assistant/broadcast.gl
 ## Rebuild
 
 ```bash
-PREVIEW=0 blender -b --python tools/broadcast/build.py -- <outdir>
+PREVIEW=0 RUN_W=800 RUN_SAMPLES=96 blender -b --python tools/broadcast/build.py -- <outdir>
 npx @gltf-transform/cli@4 optimize <outdir>/broadcast.glb apps/assistant/broadcast.glb --compress meshopt --texture-compress webp --texture-size 512 --simplify false
-node tools/broadcast/sprite.cjs <outdir>/broadcast-run.png apps/assistant/broadcast-run.webp 200 220
+SPRITE_QUALITY=0.95 node tools/broadcast/sprite.cjs <outdir>/broadcast-run.png apps/assistant/broadcast-run.webp 800 880
 ```
 
-Use `PREVIEW=1` to also render still frames of each clip into `<outdir>`.
+Use `PREVIEW=1` to also render still frames of each clip into `<outdir>`. `RUN_W` is the width of one run frame in pixels (height is 1.1x; default 300), `RUN_SAMPLES` the anti-aliasing samples (default 48). The shipped sheet is 16 frames of 800x880 (12800x880), because the loading screen shows the run cycle up to about 1000 px wide.
 
 ## Contract with the app
 

@@ -1,4 +1,4 @@
-const CACHE = "command-centre-20261002-loading-xl";
+const CACHE = "command-centre-20261002-loading-hd";
 const SHELL = [
 	"../../widget-platform.js",
 	"../../reading-estimates.js",

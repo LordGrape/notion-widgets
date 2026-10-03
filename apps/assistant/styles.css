@@ -3156,7 +3156,7 @@ dialog h3 {
 	width: min(1000px, 90vw, calc((100vh - 260px) * 100 / 110));
 	aspect-ratio: 100 / 110;
 	margin: 0 auto 8px;
-	background: url("./broadcast-run.webp") 0 0 / 1600% 100% no-repeat;
+	background: url("./broadcast-run.webp?v=hd") 0 0 / 1600% 100% no-repeat;
 	animation: broadcast-run 0.64s steps(16, jump-none) infinite;
 }
 @keyframes broadcast-run {
