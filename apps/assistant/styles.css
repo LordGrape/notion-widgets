@@ -3706,3 +3706,17 @@ dialog h3 {
 .brand-mark{--lg-tileA:#f4efff;--lg-tileB:#d9ccff;--lg-tvA:#453d63;--lg-tvB:#1e1833;--lg-rim:#8a7bc4;--lg-scrA:#3b2085;--lg-scrB:#130a2c;--lg-m:#ffffff;--lg-glow:#b69cff;--lg-ant:#2b2640;--lg-orb:#7c3aed;--lg-knob:#b69cff;}
 :root[data-theme="dark"] .brand-mark{--lg-tileA:#2c2150;--lg-tileB:#0f0a1d;--lg-tvA:#ece6ff;--lg-tvB:#b5a6ef;--lg-rim:#ffffff;--lg-scrA:#3a1f80;--lg-scrB:#0e0624;--lg-m:#ffffff;--lg-glow:#b69cff;--lg-ant:#d9ccff;--lg-orb:#ffffff;--lg-knob:#6f50d1;}
 /* logo theme end */
+
+.notify-settings .notify-status {
+	margin: 10px 0 0;
+	font-size: 12px;
+	line-height: 1.5;
+	color: var(--muted);
+}
+.notify-settings .notify-actions {
+	margin-top: 12px;
+}
+.notify-settings .notify-actions button[disabled] {
+	opacity: 0.5;
+	cursor: not-allowed;
+}

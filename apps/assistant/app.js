@@ -59,7 +59,7 @@ import { suggestLastPage, planPageSplit, planTimeSplit, defaultRemaining } from 
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261003-logo-hd";
+	REVISION = "20261003-notify";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -1514,6 +1514,30 @@ function openGoal() {
 		refresh();
 	};
 }
+function notifyState() {
+	const clock = engines.clock;
+	if (typeof Notification === "undefined" || !clock?.notifyEnabled) return { supported: false, on: false, text: "This browser cannot show notifications." };
+	if (Notification.permission === "denied") return { supported: true, on: false, blocked: true, text: "Notifications are blocked for this site. Allow them in the browser's site settings, then turn this on again." };
+	if (!clock.notifyEnabled()) return { supported: true, on: false, text: "Off. Turn on to hear about focus blocks and breaks while you are in another window." };
+	return {
+		supported: true,
+		on: true,
+		text: clock.pushSubscribed()
+			? "On. You will be told when a focus block ends or a break is due, even if this window is closed."
+			: "On while the app is open in the background. Closed-app alerts are not set up on this device yet; use the test to check.",
+	};
+}
+function paintNotify() {
+	const box = $("#notifyToggle");
+	if (!box) return;
+	const state = notifyState();
+	box.checked = state.on;
+	box.disabled = !state.supported || !!state.blocked;
+	$("#keepAwakeToggle").checked = !!engines.clock?.keepAwakeEnabled?.();
+	$("#keepAwakeToggle").disabled = !state.on;
+	$("#notifyTest").disabled = !state.on;
+	$("#notifyStatus").textContent = state.text;
+}
 function openSettings() {
 	const partnerVisible = broadcastVisible(), partnerSound = broadcastSoundEnabled();
 	openDialog(
@@ -1527,9 +1551,54 @@ function openSettings() {
 			)
 			.join(
 				"",
-			)}</div><fieldset class="partner-settings"><legend>Broadcast</legend><label><input id="partnerVisibleToggle" type="checkbox" ${partnerVisible ? "checked" : ""}> Show partner</label><label><input id="partnerSoundToggle" type="checkbox" ${partnerSound ? "checked" : ""}> Voice</label><label>Intensity <select id="partnerIntensity"><option value="intense" ${partnerIntensity() === "intense" ? "selected" : ""}>Intense</option><option value="steady" ${partnerIntensity() === "steady" ? "selected" : ""}>Steady</option></select></label></fieldset><button id="soundToggle" aria-pressed="${engines.todo.SyncEngine.get("user", "commandCentreSounds") !== false}">Interface sounds: ${engines.todo.SyncEngine.get("user", "commandCentreSounds") === false ? "Off" : "On"}</button> <button data-action="goal">Adjust daily finish line</button> <button id="lockButton">Lock Command Centre</button>`,
+			)}</div><fieldset class="partner-settings"><legend>Broadcast</legend><label><input id="partnerVisibleToggle" type="checkbox" ${partnerVisible ? "checked" : ""}> Show partner</label><label><input id="partnerSoundToggle" type="checkbox" ${partnerSound ? "checked" : ""}> Voice</label><label>Intensity <select id="partnerIntensity"><option value="intense" ${partnerIntensity() === "intense" ? "selected" : ""}>Intense</option><option value="steady" ${partnerIntensity() === "steady" ? "selected" : ""}>Steady</option></select></label></fieldset><fieldset class="partner-settings notify-settings"><legend>Notifications</legend><label><input id="notifyToggle" type="checkbox"> Tell me when a focus block ends or a break is due</label><label><input id="keepAwakeToggle" type="checkbox"> Keep timers accurate while this window is in the background</label><p class="notify-status" id="notifyStatus" role="status" aria-live="polite"></p><div class="notify-actions"><button type="button" id="notifyTest">Send a test notification</button></div></fieldset><button id="soundToggle" aria-pressed="${engines.todo.SyncEngine.get("user", "commandCentreSounds") !== false}">Interface sounds: ${engines.todo.SyncEngine.get("user", "commandCentreSounds") === false ? "Off" : "On"}</button> <button data-action="goal">Adjust daily finish line</button> <button id="lockButton">Lock Command Centre</button>`,
 	);
 	$("#lockButton").onclick = lock;
+	paintNotify();
+	$("#notifyToggle").onchange = async (e) => {
+		const box = e.currentTarget, clock = engines.clock;
+		box.disabled = true;
+		try {
+			if (box.checked) {
+				if (typeof Notification !== "undefined" && Notification.permission === "default") await Notification.requestPermission();
+				if (await clock.requestNotifyPermission()) {
+					/* Show "On" straight away; the closed-app (push) setup can take a moment or stall offline. */
+					box.disabled = false;
+					paintNotify();
+					await Promise.race([clock.ensurePushSubscription(), new Promise((resolve) => setTimeout(resolve, 10000))]);
+				}
+			} else {
+				clock.disableNotify();
+				clock.teardownPushSubscription();
+			}
+		} catch {}
+		box.disabled = false;
+		paintNotify();
+	};
+	$("#keepAwakeToggle").onchange = (e) => {
+		engines.clock?.setKeepAwakeEnabled(e.currentTarget.checked);
+		paintNotify();
+	};
+	$("#notifyTest").onclick = async (e) => {
+		const button = e.currentTarget, status = $("#notifyStatus");
+		button.disabled = true;
+		const shown = engines.clock.sendTestNotification();
+		if (!shown) {
+			status.textContent = "Turn notifications on first.";
+			button.disabled = false;
+			return;
+		}
+		status.textContent = "Sent to this device. Checking the closed-app path\u2026";
+		const push = await engines.clock.testPush();
+		button.disabled = false;
+		status.textContent = push.ok
+			? `Test sent to ${push.sent} of ${push.devices} ${push.devices === 1 ? "device" : "devices"}, including when the app is closed.`
+			: push.error === "no_subscription"
+				? "Shown on this device. Closed-app alerts are not set up on it yet: switch notifications off and on again."
+				: push.error === "vapid_not_configured"
+					? "Shown on this device. The server has no push keys, so closed-app alerts cannot be sent."
+					: "Shown on this device. Could not reach the server for the closed-app test.";
+	};
 	$("#partnerVisibleToggle").onchange = (e) => {
 		engines.todo.SyncEngine.set("user", "commandPartnerVisible", e.currentTarget.checked);
 		if (!e.currentTarget.checked) stopBroadcastAudio();

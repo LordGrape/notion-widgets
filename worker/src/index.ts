@@ -27,7 +27,7 @@ import { handleTutor } from "./routes/tutor";
 import { handleVisual } from "./routes/visual";
 import { handleWidgetAsset } from "./routes/widgets";
 import { handleAiUsage } from "./routes/ai-usage";
-import { handlePushSubscribe, handlePushSchedule, handlePushCancel } from "./routes/push";
+import { handlePushSubscribe, handlePushSchedule, handlePushCancel, handlePushTest } from "./routes/push";
 import { handleTodoTask } from "./routes/todo-tasks";
 
 import { handleBuildAssemble } from "./routes/build/assemble";
@@ -84,6 +84,7 @@ export default {
         if (key === "subscribe") return withCorsHeaders(await handlePushSubscribe(request, env));
         if (key === "schedule") return withCorsHeaders(await handlePushSchedule(request, env));
         if (key === "cancel") return withCorsHeaders(await handlePushCancel(request, env));
+        if (key === "test") return withCorsHeaders(await handlePushTest(request, env));
         return json({ error: "Unknown push resource" }, 404);
       }
 

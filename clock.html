@@ -781,14 +781,47 @@ function disableNotify() { localStorage.setItem(NOTIFY_KEY, '0'); }
 /* Only pop an OS notification when the user isn't actually looking at this
    tab/window right now — otherwise the on-screen chime + confetti is enough
    and a toast on top of that would just be noise. */
+/* Inside Command Centre this page is a hidden frame that never has focus, so judge "is the user
+   looking at the app" from the top-level window, not from this frame. */
+function userIsLooking() {
+  try {
+    var w = window.top || window;
+    return !w.document.hidden && w.document.hasFocus();
+  } catch (e) {
+    return !document.hidden && document.hasFocus();
+  }
+}
+var NOTIFY_ICON = new URL('apps/assistant/icon-192.png', location.href).href;
+function showOsNotification(title, body, tag) {
+  var opts = { body: body, tag: tag || 'clock-widget', renotify: true, icon: NOTIFY_ICON, badge: NOTIFY_ICON };
+  try {
+    var n = new Notification(title, opts);
+    n.onclick = function() {
+      try { window.focus(); if (window.top && window.top !== window) window.top.focus(); } catch (e) {}
+      n.close();
+    };
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
 function sendNotification(title, body) {
   if (!notifyEnabled()) return;
-  if (!document.hidden && document.hasFocus()) return;
-  try {
-    var n = new Notification(title, { body: body, tag: 'clock-widget', renotify: true });
-    n.onclick = function() { try { window.focus(); if (window.parent && window.parent !== window) window.parent.focus(); } catch (e) {} n.close(); };
-  } catch (e) {}
+  if (userIsLooking()) return;
+  showOsNotification(title, body);
 }
+/* For the Settings "test" button: always shows, whether or not the app is in front. */
+function sendTestNotification() {
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return false;
+  return showOsNotification('Command Centre', 'Notifications are on. You will hear about focus blocks and breaks here.', 'clock-test');
+}
+/* Asks the worker to push to every subscribed device right now (proves the closed-app path). */
+function testPush() {
+  return SyncEngine.callWorker('/push/test', { method: 'POST' }).then(function(r) {
+    return r.json().then(function(body) { return r.ok ? body : { ok: false, error: (body && body.error) || ('http_' + r.status) }; }, function() { return { ok: false, error: 'bad_response' }; });
+  }).catch(function() { return { ok: false, error: 'unreachable' }; });
+}
+var PUSH_SW_URL = new URL('push-sw.js', location.href).href;
 
 /* ══════════════════════════════════════
    BACKGROUND KEEP-AWAKE (opt-in, Fix B)
@@ -861,7 +894,7 @@ function urlB64ToUint8Array(b64url) {
 function ensurePushSubscription() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return Promise.resolve(false);
   if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return Promise.resolve(false);
-  return navigator.serviceWorker.register('/push-sw.js').then(function() {
+  return navigator.serviceWorker.register(PUSH_SW_URL).then(function() {
     /* register() can resolve before the worker is actually active — subscribing
        against a registration with no active worker yet intermittently throws
        "Subscription failed - no active Service Worker". .ready only resolves
@@ -892,7 +925,7 @@ function teardownPushSubscription() {
   localStorage.setItem(PUSH_SUB_KEY, '0');
   try { SyncEngine.callWorker('/push/cancel', { method: 'DELETE' }).catch(function() {}); } catch (e) {}
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistration('/push-sw.js').then(function(reg) {
+    navigator.serviceWorker.getRegistration(PUSH_SW_URL).then(function(reg) {
       if (!reg) return;
       return reg.pushManager.getSubscription().then(function(sub) { if (sub) return sub.unsubscribe(); });
     }).catch(function() {});
@@ -2762,7 +2795,12 @@ if (IS_COMMAND_CENTRE) {
     get studyTaskIds(){return studyTaskIds},set studyTaskIds(value){studyTaskIds=value},
     get breakInterval(){return breakInterval},
     get breakRemaining(){return breakRemaining},
-    get breakPhaseDuration(){return breakPhaseDuration}
+    get breakPhaseDuration(){return breakPhaseDuration},
+    /* Notification controls for Command Centre's Settings. */
+    notifyEnabled:notifyEnabled,requestNotifyPermission:requestNotifyPermission,disableNotify:disableNotify,
+    ensurePushSubscription:ensurePushSubscription,teardownPushSubscription:teardownPushSubscription,pushSubscribed:pushSubscribed,
+    keepAwakeEnabled:keepAwakeEnabled,setKeepAwakeEnabled:setKeepAwakeEnabled,
+    sendTestNotification:sendTestNotification,testPush:testPush
   };
 }
 
