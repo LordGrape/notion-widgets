@@ -3422,3 +3422,49 @@ dialog h3 {
 .event[data-unschedule] {
 	cursor: grab;
 }
+
+.tag-row {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-top: 20px;
+	flex-wrap: wrap;
+}
+.tag-label {
+	color: var(--muted);
+	font-size: 11px;
+	font-weight: 650;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+.tag-row .kind-picker {
+	margin-top: 0;
+	gap: 6px;
+}
+.kind-picker .kind-chip {
+	display: inline-flex;
+	align-items: center;
+	transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+.kind-picker .kind-chip:hover {
+	background: color-mix(in srgb, var(--k) 22%, var(--surface));
+	transform: translateY(-1px);
+}
+.kind-picker .kind-chip .kind-dot {
+	margin-right: 6px;
+}
+.kind-chip.auto {
+	--k: var(--muted);
+	border: 1px dashed color-mix(in srgb, var(--k) 45%, var(--line));
+}
+.kind-chip.admin, .kind-dot.admin { --k: var(--kind-admin); }
+.event b .kind-dot {
+	width: 7px;
+	height: 7px;
+	margin-right: 6px;
+	vertical-align: 1px;
+}
+@media (prefers-reduced-motion: reduce) {
+	.kind-picker .kind-chip { transition: none; }
+	.kind-picker .kind-chip:hover { transform: none; }
+}

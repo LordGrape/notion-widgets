@@ -59,7 +59,7 @@ import { suggestLastPage, planPageSplit, planTimeSplit, defaultRemaining } from 
 const WORKER = "https://widget-sync.lordgrape-widgets.workers.dev";
 const SESSION_KEY = "command-centre-access-v1",
 	THEME_KEY = "command-centre-theme-v1",
-	REVISION = "20261002-unschedule-drag";
+	REVISION = "20261002-tags";
 const $ = (s) => document.querySelector(s),
 	root = new URL("../../", location.href);
 const paths = {
@@ -497,6 +497,12 @@ function refresh() {
 function occurrences(date) {
 	return engines.timetable?.occurrencesForDate(localDate(isoDate(date))) || [];
 }
+const tagDot = (kind) => `<i class="kind-dot ${kind}" aria-hidden="true"></i>`;
+function tagPicker(t) {
+	const current = taskKind(t);
+	const auto = !isKind(t.kind);
+	return `<div class="tag-row"><span class="tag-label">Tag</span><div class="kind-picker" role="radiogroup" aria-label="Tag">${KINDS.map((k) => `<button type="button" class="kind-chip ${k}" role="radio" aria-checked="${!auto && k === current}" data-action="set-tag" data-kind="${k}" data-id="${esc(t.id)}">${tagDot(k)}${KIND_LABEL[k]}</button>`).join("")}<button type="button" class="kind-chip auto" role="radio" aria-checked="${auto}" data-action="set-tag" data-kind="" data-id="${esc(t.id)}" title="Choose from the task wording">Auto${auto ? ` · ${KIND_LABEL[current]}` : ""}</button></div></div>`;
+}
 /* Timetable blocks plus tasks that have a time but no block yet. */
 function dayEvents(date) {
 	const real = occurrences(date);
@@ -593,7 +599,7 @@ function eventMarkup(e, start, hour = 76) {
 		),
 		top = ((minutes(e.start) - start) * hour) / 60;
 	if (e.ghost)
-		return `<button data-end="${minutes(e.end)}" class="event is-task task-ghost" ${view === "plan" ? `draggable="true" data-unschedule="ghost"` : ""} style="top:${top}px;height:${height}px;--event-color:${e.color}" title="This task has a time but is not on the calendar yet. Click to put it there." data-action="ghost" data-id="${esc(e.taskId)}" data-date="${esc(e.dateKey)}" data-start="${esc(e.start)}" aria-label="${esc(e.name)} ${esc(e.start)} to ${esc(e.end)}, not yet on the calendar"><b>${esc(e.name)}</b><span>${esc(e.start)} – ${esc(e.end)} · Click to add to calendar</span></button>`;
+		return `<button data-end="${minutes(e.end)}" class="event is-task task-ghost" ${view === "plan" ? `draggable="true" data-unschedule="ghost"` : ""} style="top:${top}px;height:${height}px;--event-color:${e.color}" title="This task has a time but is not on the calendar yet. Click to put it there." data-action="ghost" data-id="${esc(e.taskId)}" data-date="${esc(e.dateKey)}" data-start="${esc(e.start)}" aria-label="${esc(e.name)} ${esc(e.start)} to ${esc(e.end)}, not yet on the calendar"><b>${tasks.find((t) => t.id === e.taskId) ? tagDot(taskKind(tasks.find((t) => t.id === e.taskId))) : ""}${esc(e.name)}</b><span>${esc(e.start)} – ${esc(e.end)} · Click to add to calendar</span></button>`;
 	const done = tasks.some(
 		(t) =>
 			t.done &&
@@ -605,7 +611,7 @@ function eventMarkup(e, start, hour = 76) {
 	const spent = done && linked ? focusMinutes(linked.id) : 0;
 	const own = courses.find((b) => b.id === e.id);
 	const movable = view === "plan" && open && linked.source !== "timetable" && own?.startDate && own.startDate === own.endDate;
-	return `<button data-end="${minutes(e.end)}" data-open-task="${open ? 1 : 0}" ${movable ? `draggable="true" data-unschedule="block"` : ""} class="event ${linked ? "is-task" : ""} ${done ? "completed" : ""} ${e.id === recentScheduleId ? "scheduled-reveal" : ""}" style="top:${top}px;height:${height}px;--event-color:${/^#[0-9a-f]{3,8}$/i.test(e.color) ? e.color : "#9461e9"}" aria-haspopup="dialog" title="Click for details; right-click for options" data-action="event" data-event-id="${esc(e.id)}" data-source="${esc(e.sourceDate)}" data-date="${esc(e.dateKey)}" aria-label="${esc(e.name)} ${esc(e.start)} to ${esc(e.end)}"><b>${esc(e.name)}</b><span>${esc(e.start)} – ${esc(e.end)}${e.location ? " · " + esc(e.location) : ""}${spent ? ` · done in ${spent} min` : ""}</span></button>`;
+	return `<button data-end="${minutes(e.end)}" data-open-task="${open ? 1 : 0}" ${movable ? `draggable="true" data-unschedule="block"` : ""} class="event ${linked ? "is-task" : ""} ${done ? "completed" : ""} ${e.id === recentScheduleId ? "scheduled-reveal" : ""}" style="top:${top}px;height:${height}px;--event-color:${/^#[0-9a-f]{3,8}$/i.test(e.color) ? e.color : "#9461e9"}" aria-haspopup="dialog" title="Click for details; right-click for options" data-action="event" data-event-id="${esc(e.id)}" data-source="${esc(e.sourceDate)}" data-date="${esc(e.dateKey)}" aria-label="${esc(e.name)} ${esc(e.start)} to ${esc(e.end)}"><b>${linked ? tagDot(taskKind(linked)) : ""}${esc(e.name)}</b><span>${esc(e.start)} – ${esc(e.end)}${e.location ? " · " + esc(e.location) : ""}${spent ? ` · done in ${spent} min` : ""}</span></button>`;
 }
 function hourLines(start, end, hour = 76) {
 	let s = "";
@@ -2121,6 +2127,12 @@ async function openRepeatRange(id) {
 		notify("Repeat range saved.", () => { apply(before); $("#toast").hidden = true; });
 	};
 }
+function eventTag(block, event, date) {
+	const linked = tasks.find((t) => t.scheduleId === block.id && normalizeDateKey(t.dueKey) === date && !t.done);
+	if (linked) return tagPicker(linked);
+	if (String(block.category || "").toLowerCase() === "class") return `<div class="tag-row"><span class="tag-label">Tag</span><span class="kind-chip class">${tagDot("class")}Class</span></div>`;
+	return "";
+}
 function openEvent(id, source, date) {
 	const block = courses.find((b) => b.id === id),
 		event = occurrences(localDate(date)).find(
@@ -2129,7 +2141,7 @@ function openEvent(id, source, date) {
 	if (!block || !event) return;
 	const d = openDialog(
 		"#editorDialog",
-		`${dialogHead("Scheduled block", "editorTitle")}<h3>${esc(event.name)}</h3><p class="muted" style="margin-top:7px">${dateLabel(localDate(date))} · ${esc(event.start)} – ${esc(event.end)}</p>${event.location ? `<p class="muted">${esc(event.location)}</p>` : ""}${event.outcomeGoal ? `<p style="margin-top:18px">${esc(event.outcomeGoal)}</p>` : ""}<p style="margin-top:18px;white-space:pre-wrap">${esc(event.description || "")}</p><div class="dialog-actions"><button data-action="event-edit" data-event-id="${esc(id)}" data-source="${esc(source)}" data-date="${esc(date)}">Edit time</button>${block.startDate && block.startDate === block.endDate ? "" : `<button data-action="event-skip" data-event-id="${esc(id)}" data-source="${esc(source)}" data-date="${esc(date)}">Remove this week only</button>`}${block.startDate && block.startDate === block.endDate ? "" : `<button data-action="event-range" data-event-id="${esc(id)}">Repeat range</button>`}<button class="delete" data-action="event-remove" data-event-id="${esc(id)}" data-source="${esc(source)}" data-date="${esc(date)}">Remove from schedule</button><button class="primary" data-action="close-dialog">Done</button></div>`,
+		`${dialogHead("Scheduled block", "editorTitle")}<h3>${esc(event.name)}</h3><p class="muted" style="margin-top:7px">${dateLabel(localDate(date))} · ${esc(event.start)} – ${esc(event.end)}</p>${event.location ? `<p class="muted">${esc(event.location)}</p>` : ""}${event.outcomeGoal ? `<p style="margin-top:18px">${esc(event.outcomeGoal)}</p>` : ""}<p style="margin-top:18px;white-space:pre-wrap">${esc(event.description || "")}</p>${eventTag(block, event, date)}<div class="dialog-actions"><button data-action="event-edit" data-event-id="${esc(id)}" data-source="${esc(source)}" data-date="${esc(date)}">Edit time</button>${block.startDate && block.startDate === block.endDate ? "" : `<button data-action="event-skip" data-event-id="${esc(id)}" data-source="${esc(source)}" data-date="${esc(date)}">Remove this week only</button>`}${block.startDate && block.startDate === block.endDate ? "" : `<button data-action="event-range" data-event-id="${esc(id)}">Repeat range</button>`}<button class="delete" data-action="event-remove" data-event-id="${esc(id)}" data-source="${esc(source)}" data-date="${esc(date)}">Remove from schedule</button><button class="primary" data-action="close-dialog">Done</button></div>`,
 	);
 }
 document.addEventListener("click", (e) => {
@@ -2241,6 +2253,17 @@ document.addEventListener("click", (e) => {
 		case "schedule":
 			openSchedule(id);
 			break;
+		case "set-tag": {
+			const kind = isKind(b.dataset.kind) ? b.dataset.kind : null;
+			engines.todo.TodoUIBridge.command.update(id, { kind });
+			const t = task(id);
+			b.closest(".kind-picker")?.querySelectorAll(".kind-chip").forEach((chip) => chip.setAttribute("aria-checked", String(chip === b)));
+			if (!kind && t) b.textContent = `Auto · ${KIND_LABEL[taskKind(t)]}`;
+			signature = "";
+			refresh();
+			notify(kind ? `Tagged ${KIND_LABEL[kind]}.` : "Tag set to Auto.");
+			break;
+		}
 		case "ghost":
 			openSchedule(id, b.dataset.date, b.dataset.start, "This task has a time but is not on the calendar yet. Saving makes it a real block.");
 			break;
