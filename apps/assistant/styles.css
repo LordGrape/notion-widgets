@@ -3627,3 +3627,40 @@ dialog h3 {
 @media (prefers-reduced-motion: reduce) {
 	.group-add { transition: none; }
 }
+
+.group-quick {
+	display: block;
+}
+.group-quick-row {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+}
+.group-quick .capture-preview {
+	margin: 8px 4px 2px;
+}
+.group-cancel {
+	flex: none;
+	min-height: 40px;
+	padding: 0 14px;
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	background: var(--surface);
+	color: var(--muted);
+	font-size: 13px;
+	cursor: pointer;
+}
+.group-cancel:hover {
+	color: var(--text);
+	background: var(--surface-2);
+}
+.group-add[aria-expanded="true"] {
+	width: 28px;
+	height: 28px;
+	background: var(--surface);
+	border-color: var(--line);
+}
+.group-add[aria-expanded="true"] svg {
+	width: 16px;
+	height: 16px;
+}

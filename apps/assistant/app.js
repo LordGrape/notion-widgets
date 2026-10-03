@@ -580,8 +580,18 @@ function taskRow(t, planner = false) {
 }
 let quickAdd = null;
 const PRI_NAME = { must: "Must Do", should: "Should Do", could: "Could Do" };
+const groupEntry = (pri, text) => (/\b(must|should|could)\s+do\b/i.test(text) ? text : `${pri} do ${text}`);
+function groupPreview(pri, text) {
+	if (!text.trim()) return "";
+	try {
+		return smartSummary(engines.todo.TodoNaturalAdd.plan(groupEntry(pri, text)));
+	} catch (error) {
+		return error.message;
+	}
+}
 function groupQuickForm(pri) {
-	return `<form class="group-quick" data-priority="${pri}"><input name="task" value="${esc(quickAdd.value)}" aria-label="Add a ${PRI_NAME[pri]} task" placeholder="Add a ${PRI_NAME[pri]} task\u2026" autocomplete="off" maxlength="500"><button class="primary" aria-label="Add task">${icon("plus")}</button></form>`;
+	const preview = groupPreview(pri, quickAdd.value);
+	return `<form class="group-quick" data-priority="${pri}"><div class="group-quick-row"><input name="task" value="${esc(quickAdd.value)}" aria-label="Add a ${PRI_NAME[pri]} task" placeholder="Add a ${PRI_NAME[pri]} task\u2026" autocomplete="off" maxlength="500"><button class="primary" aria-label="Add task">${icon("plus")}</button><button type="button" class="group-cancel" data-action="group-cancel">Cancel</button></div><p class="capture-preview group-preview" role="status" aria-live="polite" ${preview ? "" : "hidden"}>${esc(preview)}</p></form>`;
 }
 function taskGroups() {
 	const list = todayTasks(focusTasks(tasks, courses)).sort(
@@ -1831,7 +1841,12 @@ document.addEventListener("contextmenu", (e) => {
 	showCalendarMenu(element, e.clientX || bounds.left, e.clientY || bounds.top);
 });
 document.addEventListener("input", (e) => {
-	if (quickAdd && e.target.matches(".group-quick input")) quickAdd.value = e.target.value;
+	if (!quickAdd || !e.target.matches(".group-quick input")) return;
+	quickAdd.value = e.target.value;
+	const preview = e.target.closest(".group-quick").querySelector(".group-preview");
+	const text = groupPreview(quickAdd.pri, e.target.value);
+	preview.textContent = text;
+	preview.hidden = !text;
 });
 document.addEventListener("keydown", (e) => {
 	if (e.key === "Escape" && quickAdd && e.target.matches(".group-quick input")) {
@@ -1848,7 +1863,7 @@ document.addEventListener("submit", (e) => {
 	if (!text) return;
 	const pri = form.dataset.priority;
 	try {
-		engines.todo.TodoNaturalAdd.capture(/\b(must|should|could)\s+do\b/i.test(text) ? text : `${pri} do ${text}`);
+		engines.todo.TodoNaturalAdd.capture(groupEntry(pri, text));
 		quickAdd = { pri, value: "" };
 		signature = "";
 		refresh();
@@ -2325,6 +2340,11 @@ document.addEventListener("click", (e) => {
 			notify(kind ? `Tagged ${KIND_LABEL[kind]}.` : "Tag set to Auto.");
 			break;
 		}
+		case "group-cancel":
+			quickAdd = null;
+			signature = "";
+			render();
+			break;
 		case "group-add": {
 			const pri = b.dataset.priority;
 			quickAdd = quickAdd?.pri === pri ? null : { pri, value: "" };
