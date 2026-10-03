@@ -1,4 +1,4 @@
-const CACHE = "command-centre-20261002-loading-hd";
+const CACHE = "command-centre-20261002-loading-hd2";
 const SHELL = [
 	"../../widget-platform.js",
 	"../../reading-estimates.js",
@@ -33,7 +33,8 @@ self.addEventListener("install", (e) =>
 	e.waitUntil(
 		caches
 			.open(CACHE)
-			.then((c) => c.addAll(SHELL))
+			/* "reload" skips the browser's HTTP cache, so an update never installs a stale copy. */
+			.then((c) => c.addAll(SHELL.map((path) => new Request(path, { cache: "reload" }))))
 			.then(() => self.skipWaiting()),
 	),
 );
@@ -56,8 +57,24 @@ self.addEventListener("fetch", (e) => {
 	const url = new URL(e.request.url);
 	url.search = "";
 	if (!allowed.has(url.href)) return;
+	/* The mascot sheet and model are large and only change with a release (the cache name changes
+	   then), so keep them downloaded and serve them from the device instantly. */
+	if (/\.(webp|glb)$/.test(url.pathname)) {
+		e.respondWith(
+			caches.match(url.href).then(
+				(hit) =>
+					hit ||
+					fetch(e.request).then((r) => {
+						if (r.ok)
+							e.waitUntil(caches.open(CACHE).then((c) => c.put(url.href, r.clone())));
+						return r;
+					}),
+			),
+		);
+		return;
+	}
 	e.respondWith(
-		fetch(e.request)
+		fetch(e.request, { cache: "no-cache" })
 			.then((r) => {
 				if (r.ok)
 					e.waitUntil(caches.open(CACHE).then((c) => c.put(url.href, r.clone())));
