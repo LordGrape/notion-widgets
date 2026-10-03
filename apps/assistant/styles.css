@@ -4016,7 +4016,7 @@ body.is-dragging #toast { pointer-events: none; }
 }
 .import-list {
 	display: grid;
-	gap: 6px;
+	gap: 14px;
 	max-height: min(52vh, 460px);
 	overflow-y: auto;
 	padding-right: 2px;
@@ -4098,6 +4098,139 @@ body.is-dragging #toast { pointer-events: none; }
 	font-size: 12px;
 	cursor: pointer;
 }
+
+/* The edition question: shown only when the notes give pages for more than one edition. */
+.import-edition {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px 14px;
+	margin-bottom: 14px;
+	padding: 10px 12px;
+	border: 1px solid var(--line);
+	border-radius: 12px;
+	background: var(--accent-soft);
+	color: var(--text);
+	font-size: 12.5px;
+}
+.import-seg {
+	display: inline-flex;
+	padding: 2px;
+	border-radius: 999px;
+	background: var(--surface);
+	box-shadow: inset 0 0 0 1px var(--line);
+}
+.import-seg button {
+	min-width: 52px;
+	padding: 4px 12px;
+	border: 0;
+	border-radius: 999px;
+	background: none;
+	color: var(--muted);
+	font-size: 12px;
+	font-weight: 650;
+}
+.import-seg button[aria-pressed="true"] {
+	background: var(--accent);
+	color: #fff;
+}
+
+/* Import readings: days run down a rail, so the order you will need them in is the order you see them. */
+.import-day {
+	display: grid;
+	grid-template-columns: 74px minmax(0, 1fr);
+	gap: 0 14px;
+}
+.import-day.is-past { opacity: 0.7; }
+.import-date {
+	position: relative;
+	display: grid;
+	align-content: start;
+	justify-items: end;
+	gap: 2px;
+	padding-top: 2px;
+	text-align: right;
+}
+.import-date small {
+	color: var(--muted);
+	font-size: 10.5px;
+	font-weight: 650;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+}
+.import-date b { font-size: 19px; line-height: 1.05; }
+.import-date i {
+	padding: 2px 8px;
+	border-radius: 999px;
+	background: var(--accent-soft);
+	color: var(--accent);
+	font-size: 10.5px;
+	font-style: normal;
+	font-weight: 700;
+}
+.import-date span { color: var(--muted); font-size: 11px; }
+.import-date::after {
+	content: "";
+	position: absolute;
+	top: 8px;
+	right: -11px;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--accent);
+	box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.import-items {
+	display: grid;
+	gap: 6px;
+	padding-left: 14px;
+	border-left: 2px solid var(--line);
+}
+.import-row .import-main { flex: 1; }
+.import-due.is-soon { background: color-mix(in srgb, var(--state-late) 18%, transparent); color: var(--state-late); }
+.import-link {
+	display: grid;
+	place-items: center;
+	flex: none;
+	width: 28px;
+	height: 28px;
+	border: 1px solid var(--line);
+	border-radius: 999px;
+	background: var(--accent-soft);
+	color: var(--accent);
+}
+.import-link:hover { border-color: var(--accent); }
+.import-link svg { width: 15px; height: 15px; }
+/* Notion links on tasks: a quiet mark on the title, and a chip in the editor. */
+.task-title .link-mark {
+	display: inline-grid;
+	vertical-align: -2px;
+	margin-left: 6px;
+	color: var(--accent);
+	opacity: 0.55;
+}
+.task-title .link-mark svg { width: 14px; height: 14px; }
+.task-title.has-link:hover .link-mark { opacity: 1; }
+.notion-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	max-width: 100%;
+	margin: 4px 0 8px;
+	padding: 6px 12px;
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	background: var(--accent-soft);
+	color: var(--accent);
+	font-size: 13px;
+	font-weight: 650;
+	text-decoration: none;
+}
+.notion-chip svg { width: 16px; height: 16px; flex: none; }
+.notion-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.notion-chip small { color: var(--muted); font-weight: 500; }
+.notion-chip:hover { border-color: var(--accent); }
 
 /* Overlap choices: what each option would change, before anything moves. */
 .choice-dialog { width: min(520px, calc(100vw - 32px)); }

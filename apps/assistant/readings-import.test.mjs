@@ -186,3 +186,12 @@ test("different pages, or no word in common, are not mistaken for the same readi
 	assert.equal(readingCandidates({ ...noCourse, tasks: [{ id: "t", text: "Read Criminal Law pp. 178-98" }], lectures: [l] }).items[0].exists, false);
 	assert.equal(readingCandidates({ ...noCourse, tasks: [{ id: "t", text: "Read Torts pp. 78-98" }], lectures: [l] }).items[0].exists, false);
 });
+
+test("the edition is only asked about when one reading lists more than one", () => {
+	const single = (n, ed) => lecture({ id: `s${n}`, notes: `READINGS\n• Casebook (${ed} ed, pp 10–20)` });
+	const apart = readingCandidates({ ...base, lectures: [single(1, "11th"), single(2, "12th")] });
+	assert.deepEqual(apart.editions, []);
+	assert.equal(apart.items[0].edition, "");
+	const both = readingCandidates({ ...base, lectures: [lecture({ notes: "READINGS\n• Casebook (11th ed, pp 76–78; 12th ed, pp 71–73)" })] });
+	assert.deepEqual(both.editions, ["11th", "12th"]);
+});

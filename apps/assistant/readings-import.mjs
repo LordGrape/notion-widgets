@@ -174,7 +174,8 @@ export function readingCandidates({ lectures, courses = {}, tasks = [], today, d
 				unclear.push({ id: lecture.id, title: lecture.title, url: lecture.url, classDate: day, reason: needsVerify(lecture.notes) ? "Confirm the readings in Notion" : prep[0] });
 			continue;
 		}
-		readings.forEach((r) => r.editions.forEach((e) => editions.add(e)));
+		/* Only a reading that lists pages for more than one edition needs the student to say which they have. */
+		readings.forEach((r) => r.editions.length > 1 && r.editions.forEach((e) => editions.add(e)));
 		const ranges = parseRanges(readings.flatMap((r) => r.ranges.map(([a, b]) => `${a}-${b}`)).join(", "));
 		const parts = [...new Set(readings.map((r) => r.source).filter(Boolean))];
 		const course = courseLabel(courses[lecture.courseId] || "");
@@ -192,7 +193,7 @@ export function readingCandidates({ lectures, courses = {}, tasks = [], today, d
 			parts,
 			text,
 			pages: pageCount(ranges),
-			edition: readings.find((r) => r.edition)?.edition || "",
+			edition: readings.find((r) => r.editions.length > 1)?.edition || "",
 			classDate: day,
 			moved: moved && moved !== original ? { from: original, to: moved } : null,
 			dueKey,
